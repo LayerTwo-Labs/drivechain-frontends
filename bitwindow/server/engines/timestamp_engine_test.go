@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
@@ -45,6 +46,50 @@ type mockWallet struct{}
 
 func (m *mockWallet) SendTransaction(ctx context.Context, opReturnData []byte) (string, error) {
 	return "mock-txid", nil
+}
+
+type sequenceWallet struct {
+	txids []string
+	sent  int
+}
+
+func (w *sequenceWallet) SendTransaction(ctx context.Context, opReturnData []byte) (string, error) {
+	txid := w.txids[w.sent]
+	w.sent++
+	return txid, nil
+}
+
+// The file hash is unique, so a failed record that is never replaced makes the
+// file impossible to timestamp again.
+func TestTimestampEngine_TimestampFailedFileAgain(t *testing.T) {
+	ctx := context.Background()
+	db := setupTestDB(t)
+	defer db.Close()
+
+	engine := engines.NewTimestampEngine(db, zerolog.Nop(), &sequenceWallet{txids: []string{"first-txid", "second-txid"}}, nil)
+
+	fileData := []byte("test file content")
+	first, err := engine.TimestampFile(ctx, "test.txt", fileData)
+	require.NoError(t, err)
+
+	_, err = db.ExecContext(ctx,
+		`UPDATE file_timestamps SET status = ?, created_at = ? WHERE id = ?`,
+		timestamps.StatusFailed, time.Now().Add(-30*24*time.Hour), first.ID,
+	)
+	require.NoError(t, err)
+
+	second, err := engine.TimestampFile(ctx, "test.txt", fileData)
+	require.NoError(t, err)
+	require.Equal(t, first.ID, second.ID)
+	require.Equal(t, "second-txid", *second.TxID)
+	require.Equal(t, timestamps.StatusConfirming, second.Status)
+
+	stored, err := timestamps.List(ctx, db)
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, timestamps.StatusConfirming, stored[0].Status)
+	require.Equal(t, "second-txid", *stored[0].TxID)
+	require.WithinDuration(t, time.Now(), stored[0].CreatedAt, time.Minute)
 }
 
 func TestTimestampEngine_TimestampFile(t *testing.T) {
