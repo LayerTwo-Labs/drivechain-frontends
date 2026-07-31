@@ -632,7 +632,7 @@ abstract class WalletAPI {
     double amount,
     double fee,
   );
-  Future<String> signMessage(String walletId, String message);
+  Future<String> signMessage(String walletId, String message, String address);
   Future<bool> verifyMessage(
     String walletId,
     String message,
@@ -851,12 +851,13 @@ class _WalletAPILive implements WalletAPI {
   }
 
   @override
-  Future<String> signMessage(String walletId, String message) async {
+  Future<String> signMessage(String walletId, String message, String address) async {
     try {
       final response = await _client.signMessage(
         SignMessageRequest()
           ..walletId = walletId
-          ..message = message,
+          ..message = message
+          ..address = address,
       );
       return response.signature;
     } catch (e) {

@@ -1346,9 +1346,11 @@ func (x *CreateSidechainDepositResponse) GetTxid() string {
 }
 
 type SignMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WalletId      string                 `protobuf:"bytes,1,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	WalletId string                 `protobuf:"bytes,1,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	Message  string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// Receiving address to sign with. Must belong to the wallet.
+	Address       string `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1393,6 +1395,13 @@ func (x *SignMessageRequest) GetWalletId() string {
 func (x *SignMessageRequest) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *SignMessageRequest) GetAddress() string {
+	if x != nil {
+		return x.Address
 	}
 	return ""
 }
@@ -4207,10 +4216,11 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x06amount\x18\x04 \x01(\x01R\x06amount\x12\x10\n" +
 	"\x03fee\x18\x05 \x01(\x01R\x03fee\"4\n" +
 	"\x1eCreateSidechainDepositResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\"K\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"e\n" +
 	"\x12SignMessageRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"3\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x18\n" +
+	"\aaddress\x18\x03 \x01(\tR\aaddress\"3\n" +
 	"\x13SignMessageResponse\x12\x1c\n" +
 	"\tsignature\x18\x01 \x01(\tR\tsignature\"\x8a\x01\n" +
 	"\x14VerifyMessageRequest\x12\x1b\n" +

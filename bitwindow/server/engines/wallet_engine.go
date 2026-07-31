@@ -727,7 +727,7 @@ func (e *WalletEngine) coreDescriptors(masterKey *hdkeychain.ExtendedKey, accoun
 		if err != nil {
 			return nil, err
 		}
-		acct, err := deriveHardenedPath(masterKey, ap)
+		acct, err := DeriveHardenedPath(masterKey, ap)
 		if err != nil {
 			return nil, err
 		}
@@ -748,8 +748,8 @@ func (e *WalletEngine) coreDescriptors(masterKey *hdkeychain.ExtendedKey, accoun
 	return out, nil
 }
 
-// deriveHardenedPath derives the hardened account-level key for an AccountPath.
-func deriveHardenedPath(masterKey *hdkeychain.ExtendedKey, ap orchwallet.AccountPath) (*hdkeychain.ExtendedKey, error) {
+// DeriveHardenedPath derives the hardened account-level key for an AccountPath.
+func DeriveHardenedPath(masterKey *hdkeychain.ExtendedKey, ap orchwallet.AccountPath) (*hdkeychain.ExtendedKey, error) {
 	const h = hdkeychain.HardenedKeyStart
 	cur := masterKey
 	for _, idx := range []uint32{ap.Purpose, ap.Coin, ap.Account} {

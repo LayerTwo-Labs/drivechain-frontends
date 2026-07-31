@@ -35,6 +35,7 @@ import (
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/btcutil"
@@ -564,14 +565,13 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 		return "", nil, fmt.Errorf("get wallet info: %w", err)
 	}
 
-	seedHex := walletInfo.Master.SeedHex
-	if seedHex == "" {
+	if walletInfo.Master.SeedHex == "" {
 		return "", nil, fmt.Errorf("wallet has no seed")
 	}
 
 	chainParams := s.walletEngine.GetChainParams()
 
-	external, err := deriveExternalChainKey(seedHex, chainParams)
+	external, err := deriveExternalChainKey(walletInfo, chainParams)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1281,10 +1281,14 @@ func (s *Server) createElectrumSidechainDeposit(
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{Txid: txid}), nil
 }
 
-// deriveExternalChainKey derives m/84'/coinType'/0'/0, the BIP84 external chain
-// every single-sig wallet address and signing key comes from.
-func deriveExternalChainKey(seedHex string, chainParams *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
-	seed, err := hex.DecodeString(seedHex)
+// messageSigningGapLimit is the BIP44 gap limit: how far out the external chain
+// a signable address can sit.
+const messageSigningGapLimit = 20
+
+// deriveExternalChainKey derives the external chain a wallet's P2WPKH addresses
+// and signing keys come from, at the account path its descriptors were imported with.
+func deriveExternalChainKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
+	seed, err := hex.DecodeString(wallet.Master.SeedHex)
 	if err != nil {
 		return nil, fmt.Errorf("decode seed: %w", err)
 	}
@@ -1294,22 +1298,18 @@ func deriveExternalChainKey(seedHex string, chainParams *chaincfg.Params) (*hdke
 		return nil, fmt.Errorf("derive master key: %w", err)
 	}
 
-	coinType := uint32(0)
-	if chainParams.Name != "mainnet" {
-		coinType = 1
-	}
-
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
+	accountPath, err := orchwallet.ResolveAccountPath(
+		wallet.AccountIndex, wallet.DerivationPath, orchwallet.ScriptNativeSegwit, chainParams,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("derive purpose: %w", err)
+		return nil, fmt.Errorf("resolve account path: %w", err)
 	}
 
-	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + coinType)
-	if err != nil {
-		return nil, fmt.Errorf("derive coin: %w", err)
+	if accountPath.Purpose != 84 {
+		return nil, fmt.Errorf("wallet derives from m/%d', which has no P2WPKH addresses", accountPath.Purpose)
 	}
 
-	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
+	account, err := engines.DeriveHardenedPath(masterKey, accountPath)
 	if err != nil {
 		return nil, fmt.Errorf("derive account: %w", err)
 	}
@@ -1322,25 +1322,43 @@ func deriveExternalChainKey(seedHex string, chainParams *chaincfg.Params) (*hdke
 	return external, nil
 }
 
-// deriveMessageSigningPrivateKey returns the wallet's first BIP84 receiving key,
-// hex encoded, so the signature verifies against its first receiving address.
-func deriveMessageSigningPrivateKey(seedHex string, chainParams *chaincfg.Params) (string, error) {
-	external, err := deriveExternalChainKey(seedHex, chainParams)
+// deriveMessageSigningPrivateKey returns the hex encoded key behind address, so
+// the signature proves ownership of that address rather than some other one.
+func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *chaincfg.Params, address string) (string, error) {
+	external, err := deriveExternalChainKey(wallet, chainParams)
 	if err != nil {
 		return "", err
 	}
 
-	addrKey, err := external.Derive(0)
-	if err != nil {
-		return "", fmt.Errorf("derive address 0: %w", err)
+	for i := uint32(0); i < messageSigningGapLimit; i++ {
+		addrKey, err := external.Derive(i)
+		if err != nil {
+			return "", fmt.Errorf("derive address %d: %w", i, err)
+		}
+
+		pubKey, err := addrKey.ECPubKey()
+		if err != nil {
+			return "", fmt.Errorf("get public key %d: %w", i, err)
+		}
+
+		witnessAddr, err := btcutil.NewAddressWitnessPubKeyHash(btcutil.Hash160(pubKey.SerializeCompressed()), chainParams)
+		if err != nil {
+			return "", fmt.Errorf("create address %d: %w", i, err)
+		}
+
+		if witnessAddr.EncodeAddress() != address {
+			continue
+		}
+
+		privKey, err := addrKey.ECPrivKey()
+		if err != nil {
+			return "", fmt.Errorf("get private key %d: %w", i, err)
+		}
+
+		return hex.EncodeToString(privKey.Serialize()), nil
 	}
 
-	privKey, err := addrKey.ECPrivKey()
-	if err != nil {
-		return "", fmt.Errorf("get private key: %w", err)
-	}
-
-	return hex.EncodeToString(privKey.Serialize()), nil
+	return "", fmt.Errorf("address %s is not one of the wallet's first %d receiving addresses", address, messageSigningGapLimit)
 }
 
 // SignMessage implements walletv1connect.WalletServiceHandler.
@@ -1358,12 +1376,16 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
-	seedHex, err := s.walletEngine.GetWalletSeed(walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet seed: %w", err)
+	if c.Msg.Address == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("address is required"))
 	}
 
-	privKeyHex, err := deriveMessageSigningPrivateKey(seedHex, s.walletEngine.GetChainParams())
+	walletInfo, err := s.walletEngine.GetWalletInfo(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet info: %w", err)
+	}
+
+	privKeyHex, err := deriveMessageSigningPrivateKey(walletInfo, s.walletEngine.GetChainParams(), c.Msg.Address)
 	if err != nil {
 		return nil, fmt.Errorf("derive signing key: %w", err)
 	}

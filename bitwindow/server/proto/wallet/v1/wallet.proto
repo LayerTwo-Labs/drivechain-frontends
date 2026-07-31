@@ -228,6 +228,8 @@ message CreateSidechainDepositResponse {
 message SignMessageRequest {
   string wallet_id = 1;
   string message = 2;
+  // Receiving address to sign with. Must belong to the wallet.
+  string address = 3;
 }
 message SignMessageResponse {
   string signature = 1;

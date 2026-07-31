@@ -406,13 +406,14 @@ const SignMessageRequest$json = {
   '2': [
     {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
   ],
 };
 
 /// Descriptor for `SignMessageRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List signMessageRequestDescriptor = $convert.base64Decode(
     'ChJTaWduTWVzc2FnZVJlcXVlc3QSGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBIYCgdtZX'
-    'NzYWdlGAIgASgJUgdtZXNzYWdl');
+    'NzYWdlGAIgASgJUgdtZXNzYWdlEhgKB2FkZHJlc3MYAyABKAlSB2FkZHJlc3M=');
 
 @$core.Deprecated('Use signMessageResponseDescriptor instead')
 const SignMessageResponse$json = {
