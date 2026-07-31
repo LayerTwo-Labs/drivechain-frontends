@@ -1418,6 +1418,12 @@ func deriveMessageSigningPrivateKey(wallet *engines.WalletInfo, chainParams *cha
 				return "", fmt.Errorf("get private key %d: %w", i, err)
 			}
 
+			// A taproot address commits to the tweaked output key, so the
+			// untweaked internal key would sign for a key nobody can check.
+			if kind == orchwallet.ScriptTaproot {
+				privKey = txscript.TweakTaprootPrivKey(*privKey, []byte{})
+			}
+
 			return hex.EncodeToString(privKey.Serialize()), nil
 		}
 	}

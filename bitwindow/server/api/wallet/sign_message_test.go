@@ -142,15 +142,24 @@ func TestDeriveMessageSigningPrivateKeyHandlesTaproot(t *testing.T) {
 	expected, err := key.ECPrivKey()
 	require.NoError(t, err)
 
-	// Standard wallet: taproot comes alongside segwit off the same seed.
-	privKeyHex, err := deriveMessageSigningPrivateKey(signingWallet(0, ""), chainParams, taproot.EncodeAddress())
-	require.NoError(t, err)
-	require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+	// The key must be tweaked: an untweaked internal key signs for a pubkey the
+	// address does not commit to, so the signature proves nothing about it.
+	tweaked := txscript.TweakTaprootPrivKey(*expected, []byte{})
+	require.NotEqual(t, hex.EncodeToString(expected.Serialize()), hex.EncodeToString(tweaked.Serialize()))
+	require.Equal(t,
+		taproot.ScriptAddress(),
+		schnorr.SerializePubKey(tweaked.PubKey()),
+		"tweaked key must match the address's witness program",
+	)
 
-	// Taproot-only wallet: the explicit m/86' path is its single kind.
-	privKeyHex, err = deriveMessageSigningPrivateKey(signingWallet(0, "m/86'/1'/0'"), chainParams, taproot.EncodeAddress())
-	require.NoError(t, err)
-	require.Equal(t, hex.EncodeToString(expected.Serialize()), privKeyHex)
+	for _, wallet := range []*engines.WalletInfo{
+		signingWallet(0, ""),            // taproot comes alongside segwit off one seed
+		signingWallet(0, "m/86'/1'/0'"), // explicit m/86' path is its single kind
+	} {
+		privKeyHex, err := deriveMessageSigningPrivateKey(wallet, chainParams, taproot.EncodeAddress())
+		require.NoError(t, err)
+		require.Equal(t, hex.EncodeToString(tweaked.Serialize()), privKeyHex)
+	}
 }
 
 // The enforcer's Secp256K1Sign takes a common.Hex message, so plaintext has to be
