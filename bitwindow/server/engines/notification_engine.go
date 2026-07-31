@@ -22,6 +22,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// notificationBacklog is how old a wallet transaction has to be before it counts
+// as history: recorded as seen, never announced.
+const notificationBacklog = 24 * time.Hour
+
 type NotificationEngine struct {
 	db       *sql.DB
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
@@ -243,6 +247,21 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 		}
 
 		if notified && confNotified {
+			continue
+		}
+
+		if txTime := tx.GetTime(); txTime != nil && time.Since(txTime.AsTime()) > notificationBacklog {
+			if !notified {
+				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransaction, eventID); err != nil {
+					log.Warn().Err(err).Str("txid", txid).Msg("mark backlog transaction notified")
+					continue
+				}
+			}
+			if !confNotified && confirmations >= 1 {
+				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
+					log.Warn().Err(err).Str("txid", txid).Msg("mark backlog transaction confirmation notified")
+				}
+			}
 			continue
 		}
 
