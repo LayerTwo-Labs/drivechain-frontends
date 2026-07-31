@@ -697,7 +697,7 @@ class BalanceDisplay extends StatelessWidget {
                     description: 'Syncing wallet..',
                     enabled: balanceSyncing,
                     child: SailText.secondary12(
-                      '${formatBitcoin(balance, symbol: 'BTC')} ${usdBalance != null ? '(\$${formatWithThousandSpacers(usdBalance!.toInt())})' : ''}',
+                      '${formatBitcoin(balance)} ${usdBalance != null ? '(\$${formatWithThousandSpacers(usdBalance!.toInt())})' : ''}',
                     ),
                   ),
                 ],
@@ -719,7 +719,7 @@ class BalanceDisplay extends StatelessWidget {
                         height: SailStyleValues.iconSizeSecondary,
                       ),
                       SailText.secondary12(
-                        formatBitcoin(pendingBalance, symbol: 'BTC'),
+                        formatBitcoin(pendingBalance),
                       ),
                     ],
                   ),

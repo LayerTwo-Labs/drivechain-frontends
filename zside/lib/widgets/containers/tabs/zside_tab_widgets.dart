@@ -54,7 +54,7 @@ class ShieldUTXOAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Shield fee',
-                value: '${formatter.formatBTC(model.shieldFee)} ${model.ticker}',
+                value: formatter.formatBTC(model.shieldFee),
               ),
               StaticActionField(
                 label: 'Total amount',
@@ -222,7 +222,7 @@ class DeshieldUTXOAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Deshield fee',
-                value: '${formatter.formatBTC(model.deshieldFee)} ${model.ticker}',
+                value: formatter.formatBTC(model.deshieldFee),
               ),
               StaticActionField(
                 label: 'Total amount',
@@ -384,15 +384,15 @@ class CastSingleUTXOAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Cast fee',
-                value: '${formatter.formatBTC(model.castFee)} ${model.ticker}',
+                value: formatter.formatBTC(model.castFee),
               ),
               StaticActionField(
                 label: 'Castable amount',
-                value: '${formatter.formatBTC(model.castableAmount)} ${model.ticker}',
+                value: formatter.formatBTC(model.castableAmount),
               ),
               StaticActionField(
                 label: 'Total amount',
-                value: '${formatter.formatBTC(model.totalBitcoinAmount)} ${model.ticker}',
+                value: formatter.formatBTC(model.totalBitcoinAmount),
               ),
             ],
           ),
@@ -550,15 +550,15 @@ class MeltAction extends StatelessWidget {
                 ),
                 StaticActionField(
                   label: 'Melt fee',
-                  value: '${formatter.formatBTC(model.meltFee)} ${model._rpc.chain.ticker}',
+                  value: formatter.formatBTC(model.meltFee),
                 ),
                 StaticActionField(
                   label: 'Melt amount',
-                  value: '${formatter.formatBTC(model.meltAmount)} ${model._rpc.chain.ticker}',
+                  value: formatter.formatBTC(model.meltAmount),
                 ),
                 StaticActionField(
                   label: 'Total amount',
-                  value: '${formatter.formatBTC(model.totalBitcoinAmount)} ${model._rpc.chain.ticker}',
+                  value: formatter.formatBTC(model.totalBitcoinAmount),
                 ),
               ],
             ),
@@ -697,11 +697,11 @@ class MeltSingleUTXOAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Cast amount',
-                value: '${formatter.formatBTC(model.castAmount)} ${model.ticker}',
+                value: formatter.formatBTC(model.castAmount),
               ),
               StaticActionField(
                 label: 'Cast fee',
-                value: '${formatter.formatBTC(model.shieldFee)} ${model.ticker}',
+                value: formatter.formatBTC(model.shieldFee),
               ),
               StaticActionField(
                 label: 'Total amount',
@@ -822,15 +822,15 @@ class CastAction extends StatelessWidget {
                 ),
                 StaticActionField(
                   label: 'Cast fee',
-                  value: '${formatter.formatBTC(model.castAllFee.toDouble())} ${model._rpc.chain.ticker}',
+                  value: formatter.formatBTC(model.castAllFee.toDouble()),
                 ),
                 StaticActionField(
                   label: 'Cast amount',
-                  value: '${formatter.formatBTC(model.castAmount.toDouble())} ${model._rpc.chain.ticker}',
+                  value: formatter.formatBTC(model.castAmount.toDouble()),
                 ),
                 StaticActionField(
                   label: 'Total amount',
-                  value: '${formatter.formatBTC(model.totalBitcoinAmount)} ${model._rpc.chain.ticker}',
+                  value: formatter.formatBTC(model.totalBitcoinAmount),
                 ),
               ],
             ),
@@ -1144,15 +1144,15 @@ class ConsolidateTransparentAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Total amount',
-                value: '${formatter.formatBTC(model.totalAmount)} ${model.ticker}',
+                value: formatter.formatBTC(model.totalAmount),
               ),
               StaticActionField(
                 label: 'Fee',
-                value: '${formatter.formatBTC(model.fee)} ${model.ticker}',
+                value: formatter.formatBTC(model.fee),
               ),
               StaticActionField(
                 label: 'You will receive',
-                value: '${formatter.formatBTC(model.sendAmount)} ${model.ticker}',
+                value: formatter.formatBTC(model.sendAmount),
               ),
               const StaticActionInfo(
                 text:
@@ -1264,15 +1264,15 @@ class ConsolidateShieldedAction extends StatelessWidget {
               ),
               StaticActionField(
                 label: 'Total amount',
-                value: '${formatter.formatBTC(model.totalAmount)} ${model.ticker}',
+                value: formatter.formatBTC(model.totalAmount),
               ),
               StaticActionField(
                 label: 'Fee',
-                value: '${formatter.formatBTC(model.fee)} ${model.ticker}',
+                value: formatter.formatBTC(model.fee),
               ),
               StaticActionField(
                 label: 'You will receive',
-                value: '${formatter.formatBTC(model.sendAmount)} ${model.ticker}',
+                value: formatter.formatBTC(model.sendAmount),
               ),
               const StaticActionInfo(
                 text:

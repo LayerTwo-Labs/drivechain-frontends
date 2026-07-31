@@ -104,7 +104,7 @@ class FeeRateChart extends StatelessWidget {
               getTooltipItems: (touchedSpots) => touchedSpots.map((spot) {
                 final p = points[spot.x.toInt()];
                 return LineTooltipItem(
-                  '${p.satPerVByte.toStringAsFixed(1)} sat/vB\n~${p.confTarget} blocks',
+                  '${p.satPerVByte.toStringAsFixed(1)} ${activeTicker.feeRate}\n~${p.confTarget} blocks',
                   TextStyle(
                     color: theme.colors.text,
                     fontWeight: FontWeight.bold,

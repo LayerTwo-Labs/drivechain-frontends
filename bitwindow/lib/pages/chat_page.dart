@@ -307,7 +307,7 @@ class ChatPage extends StatelessWidget {
                                                         if (message.valueSats != null) ...[
                                                           const SizedBox(width: SailStyleValues.padding08),
                                                           SailText.secondary12(
-                                                            '${message.valueSats} sats',
+                                                            '${message.valueSats} ${activeTicker.subunit}',
                                                             color: theme.colors.textTertiary,
                                                           ),
                                                         ],

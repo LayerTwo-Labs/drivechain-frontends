@@ -422,7 +422,7 @@ class _TooltipContent extends StatelessWidget {
           const SizedBox(height: 4),
           SailText.secondary12('Fee: ${formatter.formatSats(details.feeSats.toInt())}'),
           const SizedBox(height: 2),
-          SailText.secondary12('Rate: ${details.feeRateSatVb.toStringAsFixed(2)} sat/vB'),
+          SailText.secondary12('Rate: ${details.feeRateSatVb.toStringAsFixed(2)} ${activeTicker.feeRate}'),
           const SizedBox(height: 2),
           SailText.secondary12('Size: ${details.vsizeVbytes} vB'),
         ],

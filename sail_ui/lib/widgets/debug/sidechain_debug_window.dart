@@ -249,10 +249,13 @@ class _SidechainInfoTabState extends State<SidechainInfoTab> {
             SidechainInfoSection(
               title: 'Wallet Info',
               details: {
-                'Confirmed Balance': '${_confirmedBalance?.toStringAsFixed(8) ?? '0.00000000'} BTC',
-                'Unconfirmed Balance': '${_unconfirmedBalance?.toStringAsFixed(8) ?? '0.00000000'} BTC',
-                'Total Balance': '${((_confirmedBalance ?? 0) + (_unconfirmedBalance ?? 0)).toStringAsFixed(8)} BTC',
-                if (_sidechainWealth != null) 'Total Sidechain Wealth': '${_sidechainWealth!.toStringAsFixed(8)} BTC',
+                'Confirmed Balance': '${_confirmedBalance?.toStringAsFixed(8) ?? '0.00000000'} ${activeTicker.symbol}',
+                'Unconfirmed Balance':
+                    '${_unconfirmedBalance?.toStringAsFixed(8) ?? '0.00000000'} ${activeTicker.symbol}',
+                'Total Balance':
+                    '${((_confirmedBalance ?? 0) + (_unconfirmedBalance ?? 0)).toStringAsFixed(8)} ${activeTicker.symbol}',
+                if (_sidechainWealth != null)
+                  'Total Sidechain Wealth': '${_sidechainWealth!.toStringAsFixed(8)} ${activeTicker.symbol}',
               },
             ),
           ],

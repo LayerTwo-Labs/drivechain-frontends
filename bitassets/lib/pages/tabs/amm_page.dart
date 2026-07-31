@@ -51,7 +51,7 @@ class AmmTabPage extends StatelessWidget {
                                   child: SailTextField(
                                     hintText: '0',
                                     controller: model.amountSpendController,
-                                    suffix: model.assetSpend.isEmpty ? 'BTC' : null,
+                                    suffix: model.assetSpend.isEmpty ? activeTicker.symbol : null,
                                   ),
                                 ),
                               ],
@@ -95,7 +95,7 @@ class AmmTabPage extends StatelessWidget {
                                     hintText: '0',
                                     controller: model.amountReceiveController,
                                     readOnly: true,
-                                    suffix: model.assetReceive.isEmpty ? 'BTC' : null,
+                                    suffix: model.assetReceive.isEmpty ? activeTicker.symbol : null,
                                   ),
                                 ),
                               ],
@@ -128,7 +128,10 @@ class AmmTabPage extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       SailText.secondary13('Swap Fee (0.3%)'),
-                                      SailText.primary13('~${model.feeEstimate} sats', monospace: true),
+                                      SailText.primary13(
+                                        '~${model.feeEstimate} ${activeTicker.subunit}',
+                                        monospace: true,
+                                      ),
                                     ],
                                   ),
                                 if (model.minimumReceived != null)
@@ -436,7 +439,7 @@ class AmmSwapViewModel extends BaseViewModel {
   }
 
   String _assetLabel(String assetId) {
-    if (assetId.isEmpty) return 'BTC';
+    if (assetId.isEmpty) return activeTicker.symbol;
     final entry = bitAssetsProvider.entries.where((e) => e.hash == assetId).firstOrNull;
     return entry?.plaintextName ?? assetId.substring(0, 8);
   }

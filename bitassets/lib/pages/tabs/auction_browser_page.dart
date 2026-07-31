@@ -480,7 +480,7 @@ class _AuctionRow extends StatelessWidget {
 
   String _formatAmount(int amount) {
     if (amount >= 100000000) {
-      return '${(amount / 100000000).toStringAsFixed(4)} BTC';
+      return '${(amount / 100000000).toStringAsFixed(4)} ${activeTicker.symbol}';
     } else if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(2)}M';
     } else if (amount >= 1000) {
@@ -586,7 +586,7 @@ class AuctionBrowserViewModel extends BaseViewModel {
   }
 
   String getAssetName(String assetId) {
-    if (assetId == 'btc' || assetId.isEmpty) return 'BTC';
+    if (assetId == 'btc' || assetId.isEmpty) return activeTicker.symbol;
     final asset = bitAssetsProvider.entries.where((e) => e.hash == assetId).firstOrNull;
     return asset?.plaintextName ?? '${assetId.substring(0, 8)}...';
   }
@@ -780,7 +780,7 @@ class AuctionBrowserViewModel extends BaseViewModel {
                     notificationProvider.add(
                       title: 'Alert Set',
                       content:
-                          'You will be notified when price ${alertWhenBelow ? "drops below" : "rises above"} $targetPrice sats',
+                          'You will be notified when price ${alertWhenBelow ? "drops below" : "rises above"} $targetPrice ${activeTicker.subunit}',
                       dialogType: DialogType.success,
                     );
                   },
@@ -809,7 +809,7 @@ class AuctionBrowserViewModel extends BaseViewModel {
                       children: [
                         SailText.secondary13('Current Price:'),
                         SailText.primary13(
-                          '${getCurrentPrice(auction)} sats',
+                          '${getCurrentPrice(auction)} ${activeTicker.subunit}',
                           bold: true,
                         ),
                       ],

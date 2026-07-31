@@ -63,7 +63,7 @@ class CashCheckSuccessPage extends StatelessWidget {
                           spacing: SailStyleValues.padding08,
                           children: [
                             SailText.primary13('Amount:', bold: true),
-                            SailText.primary13('$btcAmount BTC'),
+                            SailText.primary13('$btcAmount ${activeTicker.symbol}'),
                           ],
                         ),
                         SailRow(

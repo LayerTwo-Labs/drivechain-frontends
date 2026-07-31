@@ -861,7 +861,6 @@ class _UTXOsTableState extends State<UTXOsTable> {
 
   @override
   Widget build(BuildContext context) {
-    final container = GetIt.I.get<ZSideRPC>();
     final formatter = GetIt.I<FormatterProvider>();
 
     return ListenableBuilder(
@@ -895,13 +894,13 @@ class _UTXOsTableState extends State<UTXOsTable> {
 
           return [
             SailTableCell(
-              value: '${formatter.formatBTC(amount)} ${container.chain.ticker}',
+              value: formatter.formatBTC(amount),
               child: SailTooltip(
                 message: isUnshielded
                     ? (isSafeAmount ? 'Melted, safe UTXO' : 'Not melted, unsafe amount')
                     : (isSafeAmount ? 'Casted, safe UTXO' : 'Not casted, unsafe UTXO'),
                 child: SailText.primary13(
-                  '${formatter.formatBTC(amount)} ${container.chain.ticker}',
+                  formatter.formatBTC(amount),
                   color: color,
                   monospace: true,
                 ),
@@ -984,7 +983,6 @@ class _UTXOsTableState extends State<UTXOsTable> {
 
   void _showUTXODetails(BuildContext context, dynamic utxo) {
     final formatter = GetIt.I<FormatterProvider>();
-    final container = GetIt.I.get<ZSideRPC>();
     showThemedDialog(
       context: context,
       builder: (context) => SailModal(
@@ -999,7 +997,7 @@ class _UTXOsTableState extends State<UTXOsTable> {
               children: [
                 DetailRow(
                   label: 'Amount',
-                  value: '${formatter.formatBTC(utxo.amount)} ${container.chain.ticker}',
+                  value: formatter.formatBTC(utxo.amount),
                 ),
                 DetailRow(
                   label: 'Type',
@@ -1032,7 +1030,6 @@ class PendingMeltView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final container = GetIt.I.get<ZSideRPC>();
     final formatter = GetIt.I<FormatterProvider>();
 
     return SailModal(
@@ -1047,7 +1044,7 @@ class PendingMeltView extends StatelessWidget {
             children: [
               DetailRow(
                 label: 'Amount',
-                value: '${formatter.formatBTC(tx.utxo.amount)} ${container.chain.ticker}',
+                value: formatter.formatBTC(tx.utxo.amount),
               ),
               DetailRow(
                 label: 'From Address',

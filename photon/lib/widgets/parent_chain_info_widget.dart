@@ -95,7 +95,7 @@ class ParentChainInfoViewModel extends BaseViewModel {
 
   String get sidechainWealthFormatted {
     if (sidechainWealth == null) return '-';
-    return '${sidechainWealth!.toStringAsFixed(8)} BTC';
+    return '${sidechainWealth!.toStringAsFixed(8)} ${activeTicker.symbol}';
   }
 
   ParentChainInfoViewModel() {

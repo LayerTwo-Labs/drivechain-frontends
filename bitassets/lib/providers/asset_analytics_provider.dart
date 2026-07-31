@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/env.dart';
+import 'package:sail_ui/ticker.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 
 /// Represents a user's holding of a specific asset
@@ -46,8 +47,8 @@ class PoolAnalytics {
     required this.creationTxid,
   });
 
-  String get asset0Display => asset0Name ?? (asset0 == 'btc' ? 'BTC' : asset0.substring(0, 8));
-  String get asset1Display => asset1Name ?? (asset1 == 'btc' ? 'BTC' : asset1.substring(0, 8));
+  String get asset0Display => asset0Name ?? (asset0 == 'btc' ? activeTicker.symbol : asset0.substring(0, 8));
+  String get asset1Display => asset1Name ?? (asset1 == 'btc' ? activeTicker.symbol : asset1.substring(0, 8));
   String get pairName => '$asset0Display / $asset1Display';
 
   /// Price of asset1 in terms of asset0
@@ -230,7 +231,7 @@ class AssetAnalyticsProvider extends ChangeNotifier {
               PoolAnalytics(
                 asset0: 'btc',
                 asset1: asset.hash,
-                asset0Name: 'BTC',
+                asset0Name: activeTicker.symbol,
                 asset1Name: asset.plaintextName,
                 reserve0: poolState.reserve0,
                 reserve1: poolState.reserve1,

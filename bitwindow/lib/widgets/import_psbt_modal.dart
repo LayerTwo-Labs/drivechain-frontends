@@ -548,7 +548,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
                                 '${group.m} of ${group.n} multisig',
                               ),
                               SailText.secondary12(
-                                'Balance: ${group.balance.toStringAsFixed(8)} BTC',
+                                'Balance: ${group.balance.toStringAsFixed(8)} ${activeTicker.symbol}',
                               ),
                             ],
                           ),

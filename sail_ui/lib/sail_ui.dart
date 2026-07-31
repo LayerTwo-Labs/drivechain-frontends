@@ -3,6 +3,7 @@ export 'package:flutter/material.dart' show SelectionArea;
 
 export 'auth/local_auth.dart';
 export 'bitcoin.dart';
+export 'ticker.dart';
 export 'classes/node_connection_settings.dart';
 export 'models/active_sidechain.dart';
 export 'models/bitcoin_config.dart';

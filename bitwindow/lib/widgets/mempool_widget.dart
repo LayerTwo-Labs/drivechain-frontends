@@ -94,13 +94,13 @@ class MempoolStatsRow extends StatelessWidget {
         ),
         _StatCard(
           label: 'Median Fee',
-          value: '${stats.medianFeeRate.toStringAsFixed(1)} sat/vB',
+          value: '${stats.medianFeeRate.toStringAsFixed(1)} ${activeTicker.feeRate}',
           icon: SailSVGAsset.dollarSign,
           theme: theme,
         ),
         _StatCard(
           label: 'Total Fees',
-          value: '${(stats.totalFees / 100000000).toStringAsFixed(4)} BTC',
+          value: '${(stats.totalFees / 100000000).toStringAsFixed(4)} ${activeTicker.symbol}',
           icon: SailSVGAsset.iconWallet,
           theme: theme,
         ),
@@ -183,7 +183,7 @@ class FeeDistributionChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.secondary12('Fee Distribution (sat/vB)'),
+          SailText.secondary12('Fee Distribution (${activeTicker.feeRate})'),
           const SizedBox(height: 8),
           Expanded(
             child: Row(
@@ -201,7 +201,7 @@ class FeeDistributionChart extends StatelessWidget {
                       children: [
                         SailTooltip(
                           message:
-                              '${bucket.txCount} txs\n${(bucket.totalVsize / 1000).toStringAsFixed(1)} kB\n${bucket.totalFees.toStringAsFixed(0)} sats',
+                              '${bucket.txCount} txs\n${(bucket.totalVsize / 1000).toStringAsFixed(1)} kB\n${bucket.totalFees.toStringAsFixed(0)} ${activeTicker.subunit}',
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             height: max(4, heightRatio * 100),
@@ -299,7 +299,7 @@ class _FeeEstimateRow extends StatelessWidget {
           ),
         ),
         SailText.primary12(
-          '${estimate.feeRate.toStringAsFixed(1)} sat/vB',
+          '${estimate.feeRate.toStringAsFixed(1)} ${activeTicker.feeRate}',
         ),
       ],
     );

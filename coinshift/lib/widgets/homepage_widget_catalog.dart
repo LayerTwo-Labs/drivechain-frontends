@@ -44,7 +44,7 @@ class CoinShiftWidgetCatalog {
                       enabled: !model.balanceInitialized,
                       description: 'Waiting for coinshift to boot...',
                       child: SailText.primary24(
-                        '${formatter.formatBTC(model.totalBalance)} ${model.ticker}',
+                        formatter.formatBTC(model.totalBalance),
                         bold: true,
                       ),
                     ),

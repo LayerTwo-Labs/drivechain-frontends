@@ -38,7 +38,7 @@ class BitAssetsWidgetCatalog {
                       enabled: !model.balanceInitialized,
                       description: 'Waiting for bitassets to boot...',
                       child: SailText.primary24(
-                        '${formatter.formatBTC(model.totalBalance)} ${model.ticker}',
+                        formatter.formatBTC(model.totalBalance),
                         bold: true,
                       ),
                     ),

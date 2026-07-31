@@ -10,8 +10,8 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Statistics about a fee bucket
 class FeeBucket {
-  final double minFeeRate; // sat/vB
-  final double maxFeeRate; // sat/vB
+  final double minFeeRate; // ${activeTicker.feeRate}
+  final double maxFeeRate; // ${activeTicker.feeRate}
   final int txCount;
   final int totalVsize;
   final double totalFees; // in satoshis
@@ -35,7 +35,7 @@ class FeeBucket {
 /// Fee estimate for a specific confirmation target
 class FeeEstimate {
   final int blocks; // Confirmation target in blocks
-  final double feeRate; // sat/vB
+  final double feeRate; // ${activeTicker.feeRate}
 
   FeeEstimate({
     required this.blocks,
@@ -56,7 +56,7 @@ class MempoolStats {
   final int txCount;
   final int totalVsize;
   final double totalFees; // in satoshis
-  final double medianFeeRate; // sat/vB
+  final double medianFeeRate; // ${activeTicker.feeRate}
   final List<FeeBucket> feeBuckets;
   final List<FeeEstimate> feeEstimates;
 
@@ -185,7 +185,7 @@ class MempoolProvider extends ChangeNotifier {
             EstimateSmartFeeRequest()..confTarget = Int64(target),
           );
           if (estimate.feeRate > 0) {
-            // Convert BTC/kB to sat/vB
+            // Convert BTC/kB to ${activeTicker.feeRate}
             final satPerVb = (estimate.feeRate * 100000000 / 1000).toDouble();
             feeEstimates.add(FeeEstimate(blocks: target, feeRate: satPerVb));
           }

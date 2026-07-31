@@ -161,7 +161,7 @@ class _TransactionDetails extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SailText.secondary12('Amount:'),
-                          SailText.primary13('${transaction.amount.toStringAsFixed(8)} BTC'),
+                          SailText.primary13('${transaction.amount.toStringAsFixed(8)} ${activeTicker.symbol}'),
                         ],
                       ),
                     ),
@@ -170,7 +170,7 @@ class _TransactionDetails extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SailText.secondary12('Fee:'),
-                        SailText.primary13('${transaction.fee.toStringAsFixed(8)} BTC'),
+                        SailText.primary13('${transaction.fee.toStringAsFixed(8)} ${activeTicker.symbol}'),
                       ],
                     ),
                   ],

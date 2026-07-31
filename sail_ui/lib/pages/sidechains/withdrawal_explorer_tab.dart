@@ -81,11 +81,11 @@ class BundleExplorerTab extends StatelessWidget {
                             ),
                             _BundleInfoRow(
                               label: 'Total Amount',
-                              value: '${viewModel.totalAmount} sats',
+                              value: '${viewModel.totalAmount} ${activeTicker.subunit}',
                             ),
                             _BundleInfoRow(
                               label: 'Total Fees',
-                              value: '${viewModel.totalFees} sats',
+                              value: '${viewModel.totalFees} ${activeTicker.subunit}',
                             ),
                           ],
                         )
@@ -386,16 +386,16 @@ class BundleExplorerTab extends StatelessWidget {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           SailText.primary12(
-                                            'Amount: ${withdrawal.valueSats} sats',
+                                            'Amount: ${withdrawal.valueSats} ${activeTicker.subunit}',
                                           ),
                                           SailText.primary12(
-                                            'Mainchain Fee: ${withdrawal.mainFeeSats} sats',
+                                            'Mainchain Fee: ${withdrawal.mainFeeSats} ${activeTicker.subunit}',
                                           ),
                                           SailText.primary12(
                                             'Destination: ${withdrawal.mainAddress}',
                                           ),
                                           SailText.primary12(
-                                            'Total Value: ${withdrawal.valueSats + withdrawal.mainFeeSats} sats',
+                                            'Total Value: ${withdrawal.valueSats + withdrawal.mainFeeSats} ${activeTicker.subunit}',
                                           ),
                                         ],
                                       ),
@@ -559,16 +559,16 @@ class NextBundleTab extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SailText.primary12(
-                                    'Amount: ${withdrawal.valueSats} sats',
+                                    'Amount: ${withdrawal.valueSats} ${activeTicker.subunit}',
                                   ),
                                   SailText.primary12(
-                                    'Mainchain Fee: ${withdrawal.mainFeeSats} sats',
+                                    'Mainchain Fee: ${withdrawal.mainFeeSats} ${activeTicker.subunit}',
                                   ),
                                   SailText.primary12(
                                     'Destination: ${withdrawal.mainAddress}',
                                   ),
                                   SailText.primary12(
-                                    'Total Value: ${withdrawal.valueSats + withdrawal.mainFeeSats} sats',
+                                    'Total Value: ${withdrawal.valueSats + withdrawal.mainFeeSats} ${activeTicker.subunit}',
                                   ),
                                 ],
                               ),

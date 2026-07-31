@@ -1,4 +1,4 @@
-/// Convert a bitcoind `estimatesmartfee` rate (BTC/kvB) to sat/vB.
+/// Convert a bitcoind `estimatesmartfee` rate (BTC/kvB) to ${activeTicker.feeRate}.
 double btcPerKvbToSatPerVByte(double btcPerKvb) {
   return (btcPerKvb * 100000000) / 1000;
 }
@@ -8,7 +8,7 @@ int estimateTxVBytes({required int numInputs, required int numOutputs}) {
   return 10 + (numInputs * 148) + (numOutputs * 34);
 }
 
-/// Total fee in sats for a given fee rate (sat/vB) and tx size (vbytes).
+/// Total fee in sats for a given fee rate (${activeTicker.feeRate}) and tx size (vbytes).
 int feeSatsForRate({required double satPerVByte, required int txVBytes}) {
   return (satPerVByte * txVBytes).ceil();
 }
