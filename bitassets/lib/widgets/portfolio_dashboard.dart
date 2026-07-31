@@ -449,7 +449,7 @@ class _HoldingRow extends StatelessWidget {
     if (btc >= 1) {
       return '${btc.toStringAsFixed(4)} ${activeTicker.symbol}';
     } else if (sats >= 1000) {
-      return '${(sats / 1000).toStringAsFixed(2)}k sats';
+      return '${(sats / 1000).toStringAsFixed(2)}k ${activeTicker.subunit}';
     } else {
       return '$sats ${activeTicker.subunit}';
     }

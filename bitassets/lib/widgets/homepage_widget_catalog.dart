@@ -46,13 +46,11 @@ class BitAssetsWidgetCatalog {
                     BalanceRow(
                       label: 'Available',
                       amount: model.balance,
-                      ticker: model.ticker,
                       loading: !model.balanceInitialized,
                     ),
                     BalanceRow(
                       label: 'Pending',
                       amount: model.pendingBalance,
-                      ticker: model.ticker,
                       loading: !model.balanceInitialized,
                     ),
                   ],

@@ -50,13 +50,11 @@ class TruthcoinWidgetCatalog {
                     BalanceRow(
                       label: 'Available',
                       amount: model.balance,
-                      ticker: model.ticker,
                       loading: !model.balanceInitialized,
                     ),
                     BalanceRow(
                       label: 'Pending',
                       amount: model.pendingBalance,
-                      ticker: model.ticker,
                       loading: !model.balanceInitialized,
                     ),
                   ],
@@ -200,14 +198,12 @@ class TruthcoinWidgetCatalog {
 class BalanceRow extends StatelessWidget {
   final String label;
   final double amount;
-  final String ticker;
   final bool loading;
 
   const BalanceRow({
     super.key,
     required this.label,
     required this.amount,
-    required this.ticker,
     this.loading = false,
   });
 
@@ -226,7 +222,7 @@ class BalanceRow extends StatelessWidget {
             SailSkeletonizer(
               enabled: loading,
               description: 'Waiting for truthcoin to boot...',
-              child: SailText.secondary15('${formatter.formatBTC(amount)} $ticker'),
+              child: SailText.secondary15(formatter.formatBTC(amount)),
             ),
           ],
         ),

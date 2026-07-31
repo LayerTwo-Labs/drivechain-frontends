@@ -23,9 +23,9 @@ void main() {
 
     test('naming', () {
       expect(Ticker.ecash.symbol, 'ECX');
-      expect(Ticker.ecash.subunit, 'sztorcs');
-      expect(Ticker.ecash.subunitLabel, 'Sztorcs');
-      expect(Ticker.ecash.feeRate, 'sztorc/vB');
+      expect(Ticker.ecash.subunit, 'szats');
+      expect(Ticker.ecash.subunitLabel, 'Szats');
+      expect(Ticker.ecash.feeRate, 'szat/vB');
 
       expect(Ticker.bitcoin.symbol, 'BTC');
       expect(Ticker.bitcoin.subunit, 'sats');

@@ -155,7 +155,7 @@ class _SwapRecoveryCard extends StatelessWidget {
                     borderRadius: SailStyleValues.borderRadius,
                     border: Border.all(color: theme.colors.divider),
                   ),
-                  child: SailText.secondary12(swap.parentChain.value),
+                  child: SailText.secondary12(swap.parentChain.label),
                 ),
               ],
             ),

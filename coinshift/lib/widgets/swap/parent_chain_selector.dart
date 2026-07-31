@@ -19,7 +19,7 @@ class ParentChainSelector extends StatelessWidget {
       items: ParentChainType.values.map((chain) {
         return SailDropdownItem<ParentChainType>(
           value: chain,
-          label: chain.value,
+          label: chain.label,
         );
       }).toList(),
       onChanged: (newValue) {

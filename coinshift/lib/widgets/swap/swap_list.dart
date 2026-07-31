@@ -260,7 +260,7 @@ class _SearchedSwapCard extends StatelessWidget {
             spacing: SailStyleValues.padding16,
             children: [
               SailText.secondary12('ID: ${swap.idHex.substring(0, 16)}...'),
-              SailText.secondary12('Chain: ${swap.parentChain.value}'),
+              SailText.secondary12('Chain: ${swap.parentChain.label}'),
               SailText.secondary12('Amount: ${formatter.formatSats(swap.l2Amount)}'),
               SwapStatusBadge(state: swap.state),
             ],
@@ -321,8 +321,8 @@ class _SwapTableState extends State<_SwapTable> {
           aValue = a.direction.name;
           bValue = b.direction.name;
         case 'chain':
-          aValue = a.parentChain.value;
-          bValue = b.parentChain.value;
+          aValue = a.parentChain.label;
+          bValue = b.parentChain.label;
         case 'amount':
           aValue = a.l2Amount;
           bValue = b.l2Amount;
@@ -439,7 +439,7 @@ class _SwapRow extends StatelessWidget {
                 // Chain
                 SizedBox(
                   width: 70,
-                  child: SailText.secondary12(swap.parentChain.value),
+                  child: SailText.secondary12(swap.parentChain.label),
                 ),
 
                 // Amount
@@ -562,7 +562,7 @@ class _SwapDetails extends StatelessWidget {
             runSpacing: SailStyleValues.padding08,
             children: [
               _DetailItem(label: 'Swap ID', value: swap.idHex),
-              _DetailItem(label: 'Chain', value: swap.parentChain.value),
+              _DetailItem(label: 'Chain', value: swap.parentChain.label),
               _DetailItem(label: 'State', value: swap.state.toString()),
               _DetailItem(label: 'L2 Amount', value: formatter.formatSats(swap.l2Amount)),
               if (swap.l1Amount != null) _DetailItem(label: 'L1 Amount', value: formatter.formatSats(swap.l1Amount!)),

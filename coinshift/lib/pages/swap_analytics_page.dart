@@ -230,7 +230,7 @@ class _ChainBreakdownCard extends StatelessWidget {
                             spacing: SailStyleValues.padding08,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              SailText.primary15(chain.value, bold: true),
+                              SailText.primary15(chain.label, bold: true),
                               _HealthBadge(isHealthy: health.isHealthy),
                             ],
                           ),
@@ -394,7 +394,7 @@ class _SwapAttentionRow extends StatelessWidget {
             formatter.formatSats(swap.l2Amount),
             monospace: true,
           ),
-          SailText.secondary12(swap.parentChain.value),
+          SailText.secondary12(swap.parentChain.label),
         ],
       ),
     );
