@@ -569,44 +569,11 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 		return "", nil, fmt.Errorf("wallet has no seed")
 	}
 
-	// Decode seed
-	seed, err := hex.DecodeString(seedHex)
-	if err != nil {
-		return "", nil, fmt.Errorf("decode seed: %w", err)
-	}
-
-	// Derive master key
-	masterKey, err := hdkeychain.NewMaster(seed, s.walletEngine.GetChainParams())
-	if err != nil {
-		return "", nil, fmt.Errorf("derive master key: %w", err)
-	}
-
-	// Derive to BIP84 receiving path: m/84'/coinType'/0'/0
 	chainParams := s.walletEngine.GetChainParams()
-	coinType := uint32(0)
-	if chainParams.Name != "mainnet" {
-		coinType = 1
-	}
 
-	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
+	external, err := deriveExternalChainKey(seedHex, chainParams)
 	if err != nil {
-		return "", nil, fmt.Errorf("derive purpose: %w", err)
-	}
-
-	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + coinType)
-	if err != nil {
-		return "", nil, fmt.Errorf("derive coin: %w", err)
-	}
-
-	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return "", nil, fmt.Errorf("derive account: %w", err)
-	}
-
-	// Receiving addresses (external chain = 0)
-	external, err := account.Derive(0)
-	if err != nil {
-		return "", nil, fmt.Errorf("derive external chain: %w", err)
+		return "", nil, err
 	}
 
 	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
@@ -1314,19 +1281,17 @@ func (s *Server) createElectrumSidechainDeposit(
 	return connect.NewResponse(&pb.CreateSidechainDepositResponse{Txid: txid}), nil
 }
 
-// deriveMessageSigningPrivateKey derives the private key messages are signed with,
-// the wallet's first BIP84 receiving key at m/84'/coinType'/0'/0/0, and returns it
-// hex encoded. Same path as deriveAndCheckAddresses, so the signature verifies
-// against the wallet's first receiving address.
-func deriveMessageSigningPrivateKey(seedHex string, chainParams *chaincfg.Params) (string, error) {
+// deriveExternalChainKey derives m/84'/coinType'/0'/0, the BIP84 external chain
+// every single-sig wallet address and signing key comes from.
+func deriveExternalChainKey(seedHex string, chainParams *chaincfg.Params) (*hdkeychain.ExtendedKey, error) {
 	seed, err := hex.DecodeString(seedHex)
 	if err != nil {
-		return "", fmt.Errorf("decode seed: %w", err)
+		return nil, fmt.Errorf("decode seed: %w", err)
 	}
 
 	masterKey, err := hdkeychain.NewMaster(seed, chainParams)
 	if err != nil {
-		return "", fmt.Errorf("derive master key: %w", err)
+		return nil, fmt.Errorf("derive master key: %w", err)
 	}
 
 	coinType := uint32(0)
@@ -1336,23 +1301,33 @@ func deriveMessageSigningPrivateKey(seedHex string, chainParams *chaincfg.Params
 
 	purpose, err := masterKey.Derive(hdkeychain.HardenedKeyStart + 84)
 	if err != nil {
-		return "", fmt.Errorf("derive purpose: %w", err)
+		return nil, fmt.Errorf("derive purpose: %w", err)
 	}
 
 	coin, err := purpose.Derive(hdkeychain.HardenedKeyStart + coinType)
 	if err != nil {
-		return "", fmt.Errorf("derive coin: %w", err)
+		return nil, fmt.Errorf("derive coin: %w", err)
 	}
 
 	account, err := coin.Derive(hdkeychain.HardenedKeyStart + 0)
 	if err != nil {
-		return "", fmt.Errorf("derive account: %w", err)
+		return nil, fmt.Errorf("derive account: %w", err)
 	}
 
-	// Receiving addresses (external chain = 0)
 	external, err := account.Derive(0)
 	if err != nil {
-		return "", fmt.Errorf("derive external chain: %w", err)
+		return nil, fmt.Errorf("derive external chain: %w", err)
+	}
+
+	return external, nil
+}
+
+// deriveMessageSigningPrivateKey returns the wallet's first BIP84 receiving key,
+// hex encoded, so the signature verifies against its first receiving address.
+func deriveMessageSigningPrivateKey(seedHex string, chainParams *chaincfg.Params) (string, error) {
+	external, err := deriveExternalChainKey(seedHex, chainParams)
+	if err != nil {
+		return "", err
 	}
 
 	addrKey, err := external.Derive(0)
@@ -1400,7 +1375,7 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 
 	res, err := crypto.Secp256K1Sign(ctx, connect.NewRequest(&cryptov1.Secp256K1SignRequest{
 		Message: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: c.Msg.Message},
+			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString([]byte(c.Msg.Message))},
 		},
 		SecretKey: &commonv1.ConsensusHex{
 			Hex: &wrapperspb.StringValue{Value: privKeyHex},
@@ -1432,7 +1407,7 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 
 	res, err := crypto.Secp256K1Verify(ctx, connect.NewRequest(&cryptov1.Secp256K1VerifyRequest{
 		Message: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: c.Msg.Message},
+			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString([]byte(c.Msg.Message))},
 		},
 		Signature: &commonv1.Hex{
 			Hex: &wrapperspb.StringValue{Value: c.Msg.Signature},
