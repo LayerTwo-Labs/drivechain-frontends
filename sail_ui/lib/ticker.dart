@@ -4,7 +4,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// Currency naming for the active network. Forknet and drynet are eCash, every
 /// other network is Bitcoin.
 class Ticker {
-  const Ticker._(this.symbol, this.subunit, this.subunitLabel);
+  const Ticker._(this.symbol, this.subunit, this.subunitSingular, this.subunitLabel);
 
   /// Unit symbol shown next to whole amounts, e.g. "1.0000,0000 ECX".
   final String symbol;
@@ -12,14 +12,17 @@ class Ticker {
   /// Smallest-unit name shown next to integer amounts, e.g. "150 000 sztorcs".
   final String subunit;
 
+  /// Singular [subunit], used by rate units.
+  final String subunitSingular;
+
   /// Title-case [subunit] for menus and headings.
   final String subunitLabel;
 
-  static const bitcoin = Ticker._('BTC', 'sats', 'Satoshis');
-  static const ecash = Ticker._('ECX', 'sztorcs', 'Sztorcs');
+  static const bitcoin = Ticker._('BTC', 'sats', 'sat', 'Satoshis');
+  static const ecash = Ticker._('ECX', 'sztorcs', 'sztorc', 'Sztorcs');
 
   /// Fee rate unit, e.g. "sztorc/vB".
-  String get feeRate => '${subunit.substring(0, subunit.length - 1)}/vB';
+  String get feeRate => '$subunitSingular/vB';
 }
 
 /// The active network's currency naming. Falls back to Bitcoin before the
