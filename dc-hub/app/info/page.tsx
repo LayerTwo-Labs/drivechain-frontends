@@ -3,7 +3,13 @@ import { CodeBlock } from "@/components/code-block";
 import { InlineCode } from "@/components/inline-code";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getNetworkConfig } from "@/lib/config";
-import { blockExplorerBase, findBackend, l1Binaries, RELEASES_BASE } from "@/lib/network";
+import {
+  blockExplorerBase,
+  findBackend,
+  l1Binaries,
+  RELEASES_BASE,
+  sidechainPeers,
+} from "@/lib/network";
 
 export async function generateMetadata(): Promise<Metadata> {
   const net = await getNetworkConfig();
@@ -22,6 +28,7 @@ export default async function InfoPage() {
   const snapshot = net.assumeutxo;
   const snapshotFile = snapshot?.url.split("/").pop();
   const binaries = l1Binaries(net);
+  const sidechains = sidechainPeers(net);
   const { blockbook, mining_pool, fast_withdrawal } = net.services;
   const isForknet = net.family === "ecash";
 
@@ -104,6 +111,34 @@ export default async function InfoPage() {
           )}
         </CardContent>
       </Card>
+
+      {(sidechains.reachable.length > 0 || sidechains.private.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sidechain peers</CardTitle>
+            <CardDescription>
+              BIP300 sidechains running on {net.display_name}. Sidechain p2p is QUIC over UDP — add
+              these as peers in the matching sidechain client.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            {sidechains.reachable.map((sc) => (
+              <div key={sc.slot} className="space-y-1">
+                <InlineCode>{sc.p2p.address}</InlineCode>
+                <p className="text-muted-foreground">
+                  {sc.title} (L2-S{sc.slot}) — {sc.description}.
+                </p>
+              </div>
+            ))}
+            {sidechains.private.length > 0 && (
+              <p className="text-muted-foreground">
+                Also running, without a public p2p endpoint:{" "}
+                {sidechains.private.map((sc) => `${sc.title} (L2-S${sc.slot})`).join(", ")}.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {isForknet && (
         <Card>
