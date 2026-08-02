@@ -61,6 +61,22 @@ export interface AssumeUtxo {
   size_bytes: number;
 }
 
+export interface SidechainP2p {
+  // host:port of the sidechain daemon's public peer endpoint. No URL scheme.
+  address: string;
+  // "quic" — sidechain p2p is QUIC over UDP, unlike the L1's Bitcoin-wire TCP.
+  transport: string;
+}
+
+export interface Sidechain {
+  // BIP300 slot number (L2-S<slot>).
+  slot: number;
+  title: string;
+  description: string;
+  // null when the daemon runs on this network without public p2p.
+  p2p: SidechainP2p | null;
+}
+
 export interface NetworkConfig {
   id: string;
   family: string;
@@ -75,6 +91,8 @@ export interface NetworkConfig {
   explorer_block_template: string | null;
   services: Services;
   p2p: P2p | null;
+  // Absent in configs published before the field existed, hence optional.
+  sidechains?: Sidechain[];
   assumeutxo: AssumeUtxo | null;
 }
 
@@ -104,6 +122,19 @@ export function blockExplorerBase(net: NetworkConfig): string | null {
 
 export function findBackend(net: NetworkConfig, kind: string): Backend | undefined {
   return net.backends.find((b) => b.kind === kind);
+}
+
+/** The network's sidechains, split by whether their daemon has a public
+ * p2p endpoint to hand out. */
+export function sidechainPeers(net: NetworkConfig): {
+  reachable: (Sidechain & { p2p: SidechainP2p })[];
+  private: Sidechain[];
+} {
+  const sidechains = net.sidechains ?? [];
+  return {
+    reachable: sidechains.filter((sc): sc is Sidechain & { p2p: SidechainP2p } => sc.p2p !== null),
+    private: sidechains.filter((sc) => sc.p2p === null),
+  };
 }
 
 export const RELEASES_BASE = "https://releases.drivechain.info";
