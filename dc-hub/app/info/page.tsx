@@ -126,14 +126,17 @@ export default async function InfoPage() {
               <div key={sc.slot} className="space-y-1">
                 <InlineCode>{sc.p2p.address}</InlineCode>
                 <p className="text-muted-foreground">
-                  {sc.title} (L2-S{sc.slot}) — {sc.description}.
+                  {sc.title} {sc.version} (L2-S{sc.slot}) — {sc.description}.
                 </p>
               </div>
             ))}
             {sidechains.private.length > 0 && (
               <p className="text-muted-foreground">
                 Also running, without a public p2p endpoint:{" "}
-                {sidechains.private.map((sc) => `${sc.title} (L2-S${sc.slot})`).join(", ")}.
+                {sidechains.private
+                  .map((sc) => `${sc.title} ${sc.version} (L2-S${sc.slot})`)
+                  .join(", ")}
+                .
               </p>
             )}
           </CardContent>

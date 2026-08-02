@@ -73,6 +73,10 @@ export interface Sidechain {
   slot: number;
   title: string;
   description: string;
+  // Docker image ref the daemon runs from.
+  image: string;
+  // Upstream release tag of the running build, or its sha-<short> image tag.
+  version: string;
   // null when the daemon runs on this network without public p2p.
   p2p: SidechainP2p | null;
 }
