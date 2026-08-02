@@ -75,6 +75,8 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
     (sc) => !L2L_SLOTS.has(sc.sidechainNumber)
   );
 
+  const scVersion = (slot: number) => network.sidechains?.find((sc) => sc.slot === slot)?.version;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -93,6 +95,7 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
           title="Thunder"
           subtitle="Most recent block on the Thunder sidechain (L2-S9)"
           block={data?.thunder}
+          version={scVersion(9)}
           repoUrl="https://github.com/LayerTwo-Labs/thunder-rust"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
@@ -100,6 +103,7 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
           title="BitAssets"
           subtitle="Most recent block on the BitAssets sidechain (L2-S4)"
           block={data?.bitassets}
+          version={scVersion(4)}
           repoUrl="https://github.com/LayerTwo-Labs/plain-bitassets"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
@@ -107,6 +111,7 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
           title="BitNames"
           subtitle="Most recent block on the BitNames sidechain (L2-S2)"
           block={data?.bitnames}
+          version={scVersion(2)}
           repoUrl="https://github.com/LayerTwo-Labs/plain-bitnames"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
@@ -114,6 +119,7 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
           title="Zside"
           subtitle="Most recent block on the Zside sidechain (L2-S98)"
           block={data?.zside}
+          version={scVersion(98)}
           repoUrl="https://github.com/iwakura-rein/thunder-orchard"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
@@ -121,6 +127,7 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
           title="CoinShift"
           subtitle="Most recent block on the CoinShift sidechain (L2-S255)"
           block={data?.coinshift}
+          version={scVersion(255)}
           repoUrl="https://github.com/LayerTwo-Labs/coinshift-rs"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
@@ -128,6 +135,7 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
           title="Photon"
           subtitle="Most recent block on the Photon sidechain (L2-S99)"
           block={data?.photon}
+          version={scVersion(99)}
           repoUrl="https://github.com/LayerTwo-Labs/photon"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
@@ -135,6 +143,7 @@ export function ExplorerClient({ initialData, initialSidechains }: ExplorerClien
           title="Truthcoin"
           subtitle="Most recent block on the Truthcoin sidechain (L2-S13)"
           block={data?.truthcoin}
+          version={scVersion(13)}
           repoUrl="https://github.com/LayerTwo-Labs/truthcoin-dc"
           mainchainTimestamp={data?.mainchain?.timestamp}
         />
@@ -284,6 +293,7 @@ function BlockCard({
   title,
   subtitle,
   block,
+  version,
   repoUrl,
   explorerUrl,
   mainchainTimestamp,
@@ -292,6 +302,7 @@ function BlockCard({
   title: string;
   subtitle: string;
   block?: ChainTip;
+  version?: string;
   repoUrl?: string;
   explorerUrl?: (hash: string) => string;
   mainchainTimestamp?: Timestamp;
@@ -310,6 +321,11 @@ function BlockCard({
         <a href={explorerUrl(block.hash)} target="_blank" rel="noopener">
           <MempoolIcon className="h-4 w-4" />
         </a>
+      )}
+      {version && (
+        <span className="ml-auto font-mono text-xs font-normal text-muted-foreground">
+          {version}
+        </span>
       )}
     </>
   );
