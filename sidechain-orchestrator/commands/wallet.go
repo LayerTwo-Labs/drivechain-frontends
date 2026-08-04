@@ -610,11 +610,11 @@ var walletSeedCommand = &cli.Command{
 	Usage:     "Show the seed + mnemonic for a wallet (SENSITIVE)",
 	ArgsUsage: "<wallet-id>",
 	Description: "Prints the 64-byte BIP39 seed as hex and the mnemonic words.\n" +
-		"Pass an empty wallet-id or '-' to read the active enforcer wallet.",
+		"The wallet must be named; there is no default.",
 	Action: func(cctx *cli.Context) error {
-		walletID := ""
-		if cctx.NArg() >= 1 && cctx.Args().First() != "-" {
-			walletID = cctx.Args().First()
+		walletID := cctx.Args().First()
+		if walletID == "" || walletID == "-" {
+			return fmt.Errorf("a wallet id is required")
 		}
 
 		client := newWalletClient(cctx)
