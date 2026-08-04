@@ -168,6 +168,10 @@ func run(cctx *cli.Context) error {
 		Str("rpclisten", listenAddr).
 		Msg("starting orchestratord")
 
+	if err := wallet.SanityCheck(); err != nil {
+		return fmt.Errorf("random source sanity check failed, refusing to start: %w", err)
+	}
+
 	// Single-instance check. With local auth enabled, adopting an existing
 	// listener would require sending it the bearer cookie; a port-squatter could
 	// harvest that token. Fail closed instead.
