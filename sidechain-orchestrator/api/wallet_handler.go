@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -1369,32 +1370,75 @@ func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Reques
 
 func (h *WalletHandler) GetWalletSeed(ctx context.Context, req *connect.Request[pb.GetWalletSeedRequest]) (*connect.Response[pb.GetWalletSeedResponse], error) {
 	walletID := req.Msg.WalletId
-
-	wallets := h.svc.GetAllWallets()
-
 	if walletID == "" {
-		// Return enforcer wallet seed
-		for _, w := range wallets {
-			if w.WalletType == wallet.WalletTypeEnforcer {
-				return connect.NewResponse(&pb.GetWalletSeedResponse{
-					SeedHex:  w.Master.SeedHex,
-					Mnemonic: w.Master.Mnemonic,
-				}), nil
-			}
-		}
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no enforcer wallet found"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("wallet_id is required"))
 	}
 
-	for _, w := range wallets {
-		if w.ID == walletID {
-			return connect.NewResponse(&pb.GetWalletSeedResponse{
-				SeedHex:  w.Master.SeedHex,
-				Mnemonic: w.Master.Mnemonic,
-			}), nil
+	for _, w := range h.svc.GetAllWallets() {
+		if w.ID != walletID {
+			continue
 		}
+		// Electrum wallets keep no master seed, so say so rather than hand back
+		// a blank one that reads like a successful answer.
+		if w.Master.SeedHex == "" {
+			return nil, connect.NewError(
+				connect.CodeFailedPrecondition,
+				fmt.Errorf("wallet %s holds no master seed", walletID),
+			)
+		}
+		return connect.NewResponse(&pb.GetWalletSeedResponse{
+			SeedHex:  w.Master.SeedHex,
+			Mnemonic: w.Master.Mnemonic,
+		}), nil
 	}
 
 	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", walletID))
+}
+
+func (h *WalletHandler) PreviewWalletFromEntropy(
+	ctx context.Context,
+	req *connect.Request[pb.PreviewWalletFromEntropyRequest],
+) (*connect.Response[pb.PreviewWalletFromEntropyResponse], error) {
+	strength := wallet.Strength128
+	if req.Msg.WordCount == 24 {
+		strength = wallet.Strength256
+	}
+
+	entropy := req.Msg.Entropy
+	switch {
+	case len(entropy) > 0:
+	case req.Msg.SourceText != "":
+		// Exact-length hex is what this handler itself hands back, so take it
+		// as-is; anything else is hashed, and one character is enough.
+		if raw, err := hex.DecodeString(req.Msg.SourceText); err == nil && len(raw) == strength.Bytes() {
+			entropy = raw
+			break
+		}
+		digest := sha256.Sum256([]byte(req.Msg.SourceText))
+		entropy = digest[:strength.Bytes()]
+	default:
+		var err error
+		entropy, err = wallet.FreshEntropy(strength)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("generate entropy: %w", err))
+		}
+	}
+
+	w, err := h.svc.GenerateWalletFromEntropy(entropy, req.Msg.Passphrase, true, allSidechainSlots())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("derive wallet from entropy: %w", err))
+	}
+
+	return connect.NewResponse(&pb.PreviewWalletFromEntropyResponse{
+		EntropyHex:       hex.EncodeToString(entropy),
+		Mnemonic:         w.Master.Mnemonic,
+		SeedHex:          w.Master.SeedHex,
+		MasterKey:        w.Master.MasterKey,
+		ChainCode:        w.Master.ChainCode,
+		Bip39Binary:      w.Master.BIP39Binary,
+		Bip39Checksum:    w.Master.BIP39Checksum,
+		Bip39ChecksumHex: w.Master.BIP39ChecksumHex,
+	}), nil
 }
 
 // ============================================================================
