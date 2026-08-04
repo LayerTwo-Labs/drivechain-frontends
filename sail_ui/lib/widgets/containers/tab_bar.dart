@@ -134,10 +134,9 @@ class InlineTabBarState extends State<InlineTabBar> {
                           final isSelected = _selectedIndex == index && _selectedSubItem != null;
                           final displayLabel = isSelected && _selectedSubItem != null ? _selectedSubItem! : tab.label;
 
-                          return _TabItem(
+                          return SailTabItem(
                             label: displayLabel, // Use the dynamic label
                             isSelected: isSelected,
-                            index: index,
                             icon: tab.icon,
                             onIconTap: tab.onIconTap,
                             secondary: widget.secondary,
@@ -156,13 +155,13 @@ class InlineTabBarState extends State<InlineTabBar> {
 
                     // Regular tab items
                     final isSelected = index == _selectedIndex && _selectedSubItem == null;
-                    return _TabItem(
+                    return SailTabItem(
                       label: tab.label,
                       isSelected: isSelected,
-                      index: index,
                       icon: tab.icon,
                       onIconTap: tab.onIconTap,
                       secondary: widget.secondary,
+                      onLabelChanged: tab.onLabelChanged,
                       onTap: () {
                         setIndex(index, null);
                         if (tab.onTap != null) {
@@ -196,25 +195,31 @@ class InlineTabBarState extends State<InlineTabBar> {
   }
 }
 
-class _TabItem extends StatelessWidget {
+/// One tab in a strip. Pass [onLabelChanged] to let the selected tab be renamed.
+class SailTabItem extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final SailSVGAsset? icon;
   final VoidCallback? onIconTap;
   final bool isSelected;
-  final int index;
   final bool withDropdown;
   final bool secondary;
+  final ValueChanged<String>? onLabelChanged;
+  final Widget? leading;
+  final Widget? trailing;
 
-  const _TabItem({
+  const SailTabItem({
+    super.key,
     required this.label,
     required this.isSelected,
-    required this.index,
     required this.onTap,
     this.icon,
     this.onIconTap,
     this.withDropdown = false,
     this.secondary = false,
+    this.onLabelChanged,
+    this.leading,
+    this.trailing,
   });
 
   @override
@@ -247,11 +252,24 @@ class _TabItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SailText.primary13(
-              label,
-              color: isSelected ? context.sailTheme.colors.activeNavText : context.sailTheme.colors.inactiveSubNavText,
-              bold: false,
-            ),
+            if (leading != null) ...[leading!, const SizedBox(width: SailStyleValues.padding04)],
+            if (onLabelChanged != null && isSelected)
+              SailEditableText(
+                value: label,
+                onSubmitted: onLabelChanged!,
+                showPencil: false,
+                editOnDoubleTap: true,
+                style: SailStyleValues.thirteen.copyWith(color: context.sailTheme.colors.activeNavText),
+              )
+            else
+              SailText.primary13(
+                label,
+                color: isSelected
+                    ? context.sailTheme.colors.activeNavText
+                    : context.sailTheme.colors.inactiveSubNavText,
+                bold: false,
+              ),
+            if (trailing != null) ...[const SizedBox(width: SailStyleValues.padding08), trailing!],
             if (icon != null) const SizedBox(width: SailStyleValues.padding04),
             if (icon != null)
               GestureDetector(
@@ -286,6 +304,7 @@ class SingleTabItem extends TabItem {
     super.onTap,
     super.icon,
     super.onIconTap,
+    super.onLabelChanged,
   });
 }
 
@@ -306,11 +325,16 @@ class TabItem {
   final VoidCallback? onTap;
   final SailSVGAsset? icon;
   final VoidCallback? onIconTap;
+
+  /// Set to make the tab's label renameable while it is selected.
+  final ValueChanged<String>? onLabelChanged;
+
   const TabItem({
     required this.label,
     required this.child,
     this.onTap,
     this.icon,
     this.onIconTap,
+    this.onLabelChanged,
   });
 }
