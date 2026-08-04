@@ -4,10 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/tyler-smith/go-bip32"
 	"golang.org/x/crypto/ripemd160" //nolint:staticcheck // Bitcoin protocol requires RIPEMD160
 
@@ -133,44 +134,10 @@ func Base58CheckEncode(data []byte) string {
 	return base58CheckEncode(data)
 }
 
-// base58CheckEncode encodes a byte slice as Base58Check (internal).
 func base58CheckEncode(data []byte) string {
-	// Append 4-byte checksum
-	checksum := doubleSha256(data)
-	payload := append(data, checksum[:4]...)
-
-	// Convert to base58
-	n := new(big.Int).SetBytes(payload)
-	result := make([]byte, 0, len(payload)*2)
-
-	base := big.NewInt(58)
-	zero := big.NewInt(0)
-	mod := new(big.Int)
-
-	for n.Cmp(zero) > 0 {
-		n.DivMod(n, base, mod)
-		result = append(result, base58Alphabet[mod.Int64()])
-	}
-
-	// Add leading zeros
-	for _, b := range payload {
-		if b != 0 {
-			break
-		}
-		result = append(result, base58Alphabet[0])
-	}
-
-	// Reverse
-	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
-		result[i], result[j] = result[j], result[i]
-	}
-
-	return string(result)
+	checksum := chainhash.DoubleHashB(data)
+	payload := make([]byte, 0, len(data)+4)
+	payload = append(payload, data...)
+	payload = append(payload, checksum[:4]...)
+	return base58.Encode(payload)
 }
-
-func doubleSha256(data []byte) [32]byte {
-	first := sha256.Sum256(data)
-	return sha256.Sum256(first[:])
-}
-
-const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
