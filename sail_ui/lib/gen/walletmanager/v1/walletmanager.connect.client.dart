@@ -941,6 +941,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
+  /// show the words while the user is still choosing their entropy.
+  Future<walletmanagerv1walletmanager.PreviewWalletFromEntropyResponse> previewWalletFromEntropy(
+    walletmanagerv1walletmanager.PreviewWalletFromEntropyRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.previewWalletFromEntropy,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Seed access for cheque engine
   Future<walletmanagerv1walletmanager.GetWalletSeedResponse> getWalletSeed(
     walletmanagerv1walletmanager.GetWalletSeedRequest input, {

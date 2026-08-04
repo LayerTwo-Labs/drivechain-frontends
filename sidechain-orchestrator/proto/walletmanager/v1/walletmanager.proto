@@ -98,6 +98,10 @@ service WalletManagerService {
   // DeriveKeystore turns a keystore's intent into derived account key material.
   rpc DeriveKeystore(DeriveKeystoreRequest) returns (DeriveKeystoreResponse);
 
+  // PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
+  // show the words while the user is still choosing their entropy.
+  rpc PreviewWalletFromEntropy(PreviewWalletFromEntropyRequest) returns (PreviewWalletFromEntropyResponse);
+
   // Seed access for cheque engine
   rpc GetWalletSeed(GetWalletSeedRequest) returns (GetWalletSeedResponse);
 
@@ -997,8 +1001,34 @@ message DeriveAddressesResponse {
 // Seed Access
 // ============================================================================
 
+message PreviewWalletFromEntropyRequest {
+  // Raw entropy: 16 bytes for 12 words, 32 for 24. Takes precedence over
+  // source_text.
+  bytes entropy = 1;
+  // Arbitrary user text, hashed into entropy. Any length, including one
+  // character. Exact-length hex (32 or 64 chars) is taken as raw entropy.
+  string source_text = 2;
+  // Words to produce: 12 or 24. Defaults to 12. With no entropy and no
+  // source_text the server mints fresh entropy of this size.
+  uint32 word_count = 3;
+  string passphrase = 4;
+}
+
+message PreviewWalletFromEntropyResponse {
+  // The entropy the words came from, hex encoded.
+  string entropy_hex = 8;
+  string mnemonic = 1;
+  string seed_hex = 2;
+  string master_key = 3;
+  string chain_code = 4;
+  // BIP39 entropy and checksum as bit strings, for the entropy breakdown.
+  string bip39_binary = 5;
+  string bip39_checksum = 6;
+  string bip39_checksum_hex = 7;
+}
+
 message GetWalletSeedRequest {
-  string wallet_id = 1;  // specific wallet, or empty for enforcer
+  string wallet_id = 1;  // required; the wallet is always named
 }
 
 message GetWalletSeedResponse {

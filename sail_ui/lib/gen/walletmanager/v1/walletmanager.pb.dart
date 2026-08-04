@@ -9300,6 +9300,254 @@ class DeriveAddressesResponse extends $pb.GeneratedMessage {
   $core.List<$core.String> get addresses => $_getList(0);
 }
 
+class PreviewWalletFromEntropyRequest extends $pb.GeneratedMessage {
+  factory PreviewWalletFromEntropyRequest({
+    $core.List<$core.int>? entropy,
+    $core.String? sourceText,
+    $core.int? wordCount,
+    $core.String? passphrase,
+  }) {
+    final $result = create();
+    if (entropy != null) {
+      $result.entropy = entropy;
+    }
+    if (sourceText != null) {
+      $result.sourceText = sourceText;
+    }
+    if (wordCount != null) {
+      $result.wordCount = wordCount;
+    }
+    if (passphrase != null) {
+      $result.passphrase = passphrase;
+    }
+    return $result;
+  }
+  PreviewWalletFromEntropyRequest._() : super();
+  factory PreviewWalletFromEntropyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewWalletFromEntropyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewWalletFromEntropyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'entropy', $pb.PbFieldType.OY)
+    ..aOS(2, _omitFieldNames ? '' : 'sourceText')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'wordCount', $pb.PbFieldType.OU3)
+    ..aOS(4, _omitFieldNames ? '' : 'passphrase')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewWalletFromEntropyRequest clone() => PreviewWalletFromEntropyRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewWalletFromEntropyRequest copyWith(void Function(PreviewWalletFromEntropyRequest) updates) => super.copyWith((message) => updates(message as PreviewWalletFromEntropyRequest)) as PreviewWalletFromEntropyRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewWalletFromEntropyRequest create() => PreviewWalletFromEntropyRequest._();
+  PreviewWalletFromEntropyRequest createEmptyInstance() => create();
+  static $pb.PbList<PreviewWalletFromEntropyRequest> createRepeated() => $pb.PbList<PreviewWalletFromEntropyRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewWalletFromEntropyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewWalletFromEntropyRequest>(create);
+  static PreviewWalletFromEntropyRequest? _defaultInstance;
+
+  /// Raw entropy: 16 bytes for 12 words, 32 for 24. Takes precedence over
+  /// source_text.
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get entropy => $_getN(0);
+  @$pb.TagNumber(1)
+  set entropy($core.List<$core.int> v) { $_setBytes(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasEntropy() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEntropy() => clearField(1);
+
+  /// Arbitrary user text, hashed into entropy. Any length, including one
+  /// character. Exact-length hex (32 or 64 chars) is taken as raw entropy.
+  @$pb.TagNumber(2)
+  $core.String get sourceText => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set sourceText($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSourceText() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSourceText() => clearField(2);
+
+  /// Words to produce: 12 or 24. Defaults to 12. With no entropy and no
+  /// source_text the server mints fresh entropy of this size.
+  @$pb.TagNumber(3)
+  $core.int get wordCount => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set wordCount($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasWordCount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWordCount() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get passphrase => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set passphrase($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPassphrase() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPassphrase() => clearField(4);
+}
+
+class PreviewWalletFromEntropyResponse extends $pb.GeneratedMessage {
+  factory PreviewWalletFromEntropyResponse({
+    $core.String? mnemonic,
+    $core.String? seedHex,
+    $core.String? masterKey,
+    $core.String? chainCode,
+    $core.String? bip39Binary,
+    $core.String? bip39Checksum,
+    $core.String? bip39ChecksumHex,
+    $core.String? entropyHex,
+  }) {
+    final $result = create();
+    if (mnemonic != null) {
+      $result.mnemonic = mnemonic;
+    }
+    if (seedHex != null) {
+      $result.seedHex = seedHex;
+    }
+    if (masterKey != null) {
+      $result.masterKey = masterKey;
+    }
+    if (chainCode != null) {
+      $result.chainCode = chainCode;
+    }
+    if (bip39Binary != null) {
+      $result.bip39Binary = bip39Binary;
+    }
+    if (bip39Checksum != null) {
+      $result.bip39Checksum = bip39Checksum;
+    }
+    if (bip39ChecksumHex != null) {
+      $result.bip39ChecksumHex = bip39ChecksumHex;
+    }
+    if (entropyHex != null) {
+      $result.entropyHex = entropyHex;
+    }
+    return $result;
+  }
+  PreviewWalletFromEntropyResponse._() : super();
+  factory PreviewWalletFromEntropyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewWalletFromEntropyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewWalletFromEntropyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'mnemonic')
+    ..aOS(2, _omitFieldNames ? '' : 'seedHex')
+    ..aOS(3, _omitFieldNames ? '' : 'masterKey')
+    ..aOS(4, _omitFieldNames ? '' : 'chainCode')
+    ..aOS(5, _omitFieldNames ? '' : 'bip39Binary')
+    ..aOS(6, _omitFieldNames ? '' : 'bip39Checksum')
+    ..aOS(7, _omitFieldNames ? '' : 'bip39ChecksumHex')
+    ..aOS(8, _omitFieldNames ? '' : 'entropyHex')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewWalletFromEntropyResponse clone() => PreviewWalletFromEntropyResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewWalletFromEntropyResponse copyWith(void Function(PreviewWalletFromEntropyResponse) updates) => super.copyWith((message) => updates(message as PreviewWalletFromEntropyResponse)) as PreviewWalletFromEntropyResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewWalletFromEntropyResponse create() => PreviewWalletFromEntropyResponse._();
+  PreviewWalletFromEntropyResponse createEmptyInstance() => create();
+  static $pb.PbList<PreviewWalletFromEntropyResponse> createRepeated() => $pb.PbList<PreviewWalletFromEntropyResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewWalletFromEntropyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewWalletFromEntropyResponse>(create);
+  static PreviewWalletFromEntropyResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get mnemonic => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set mnemonic($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasMnemonic() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMnemonic() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get seedHex => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set seedHex($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSeedHex() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSeedHex() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get masterKey => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set masterKey($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMasterKey() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMasterKey() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get chainCode => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set chainCode($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasChainCode() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearChainCode() => clearField(4);
+
+  /// BIP39 entropy and checksum as bit strings, for the entropy breakdown.
+  @$pb.TagNumber(5)
+  $core.String get bip39Binary => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set bip39Binary($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBip39Binary() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBip39Binary() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get bip39Checksum => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set bip39Checksum($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasBip39Checksum() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearBip39Checksum() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get bip39ChecksumHex => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set bip39ChecksumHex($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasBip39ChecksumHex() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearBip39ChecksumHex() => clearField(7);
+
+  /// The entropy the words came from, hex encoded.
+  @$pb.TagNumber(8)
+  $core.String get entropyHex => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set entropyHex($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasEntropyHex() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearEntropyHex() => clearField(8);
+}
+
 class GetWalletSeedRequest extends $pb.GeneratedMessage {
   factory GetWalletSeedRequest({
     $core.String? walletId,
@@ -10726,6 +10974,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<DeriveKeystoreResponse> deriveKeystore($pb.ClientContext? ctx, DeriveKeystoreRequest request) =>
     _client.invoke<DeriveKeystoreResponse>(ctx, 'WalletManagerService', 'DeriveKeystore', request, DeriveKeystoreResponse())
+  ;
+  $async.Future<PreviewWalletFromEntropyResponse> previewWalletFromEntropy($pb.ClientContext? ctx, PreviewWalletFromEntropyRequest request) =>
+    _client.invoke<PreviewWalletFromEntropyResponse>(ctx, 'WalletManagerService', 'PreviewWalletFromEntropy', request, PreviewWalletFromEntropyResponse())
   ;
   $async.Future<GetWalletSeedResponse> getWalletSeed($pb.ClientContext? ctx, GetWalletSeedRequest request) =>
     _client.invoke<GetWalletSeedResponse>(ctx, 'WalletManagerService', 'GetWalletSeed', request, GetWalletSeedResponse())
