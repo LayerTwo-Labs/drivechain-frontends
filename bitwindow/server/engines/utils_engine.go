@@ -286,9 +286,11 @@ func CalculateMerkleTree(txids []string) (*MerkleTreeResult, error) {
 
 	// Single transaction case
 	if len(leaves) == 1 {
+		levels := [][]string{{hex.EncodeToString(leaves[0])}}
 		return &MerkleTreeResult{
-			MerkleRoot: hex.EncodeToString(leaves[0]),
-			Levels:     [][]string{{hex.EncodeToString(leaves[0])}},
+			MerkleRoot:    hex.EncodeToString(leaves[0]),
+			Levels:        levels,
+			FormattedText: FormatMerkleTree(levels, nil),
 		}, nil
 	}
 
@@ -333,7 +335,7 @@ func CalculateMerkleTree(txids []string) (*MerkleTreeResult, error) {
 	rcbLevels := calculateRCBLevels(allLevels)
 
 	// Format text output
-	formattedText := formatMerkleTree(levels, rcbLevels)
+	formattedText := FormatMerkleTree(levels, rcbLevels)
 
 	return &MerkleTreeResult{
 		MerkleRoot:    levels[len(levels)-1][0],
@@ -380,7 +382,8 @@ func reverseBytes(b []byte) []byte {
 	return result
 }
 
-func formatMerkleTree(levels [][]string, rcbLevels [][]string) string {
+// FormatMerkleTree renders the tree. Pass nil rcbLevels to omit the RCB rows.
+func FormatMerkleTree(levels [][]string, rcbLevels [][]string) string {
 	if len(levels) == 0 {
 		return "No transactions provided"
 	}

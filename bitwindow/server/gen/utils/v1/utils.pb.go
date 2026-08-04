@@ -483,7 +483,8 @@ func (x *EncodeBase58CheckResponse) GetError() string {
 // Merkle Tree
 type CalculateMerkleTreeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Txids         []string               `protobuf:"bytes,1,rep,name=txids,proto3" json:"txids,omitempty"` // List of transaction IDs (hex)
+	Txids         []string               `protobuf:"bytes,1,rep,name=txids,proto3" json:"txids,omitempty"`                     // List of transaction IDs (hex)
+	ShowRcb       bool                   `protobuf:"varint,2,opt,name=show_rcb,json=showRcb,proto3" json:"show_rcb,omitempty"` // Include Reversed Concatenated Bytes in formatted_text
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -523,6 +524,13 @@ func (x *CalculateMerkleTreeRequest) GetTxids() []string {
 		return x.Txids
 	}
 	return nil
+}
+
+func (x *CalculateMerkleTreeRequest) GetShowRcb() bool {
+	if x != nil {
+		return x.ShowRcb
+	}
+	return false
 }
 
 type CalculateMerkleTreeResponse struct {
@@ -926,9 +934,10 @@ const file_utils_v1_utils_proto_rawDesc = "" +
 	"\x04data\x18\x02 \x01(\fR\x04data\"K\n" +
 	"\x19EncodeBase58CheckResponse\x12\x18\n" +
 	"\aencoded\x18\x01 \x01(\tR\aencoded\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"2\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"M\n" +
 	"\x1aCalculateMerkleTreeRequest\x12\x14\n" +
-	"\x05txids\x18\x01 \x03(\tR\x05txids\"\x98\x01\n" +
+	"\x05txids\x18\x01 \x03(\tR\x05txids\x12\x19\n" +
+	"\bshow_rcb\x18\x02 \x01(\bR\ashowRcb\"\x98\x01\n" +
 	"\x1bCalculateMerkleTreeResponse\x12\x1f\n" +
 	"\vmerkle_root\x18\x01 \x01(\tR\n" +
 	"merkleRoot\x121\n" +
