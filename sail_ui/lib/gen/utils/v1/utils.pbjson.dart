@@ -151,12 +151,14 @@ const CalculateMerkleTreeRequest$json = {
   '1': 'CalculateMerkleTreeRequest',
   '2': [
     {'1': 'txids', '3': 1, '4': 3, '5': 9, '10': 'txids'},
+    {'1': 'show_rcb', '3': 2, '4': 1, '5': 8, '10': 'showRcb'},
   ],
 };
 
 /// Descriptor for `CalculateMerkleTreeRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List calculateMerkleTreeRequestDescriptor = $convert.base64Decode(
-    'ChpDYWxjdWxhdGVNZXJrbGVUcmVlUmVxdWVzdBIUCgV0eGlkcxgBIAMoCVIFdHhpZHM=');
+    'ChpDYWxjdWxhdGVNZXJrbGVUcmVlUmVxdWVzdBIUCgV0eGlkcxgBIAMoCVIFdHhpZHMSGQoIc2'
+    'hvd19yY2IYAiABKAhSB3Nob3dSY2I=');
 
 @$core.Deprecated('Use calculateMerkleTreeResponseDescriptor instead')
 const CalculateMerkleTreeResponse$json = {

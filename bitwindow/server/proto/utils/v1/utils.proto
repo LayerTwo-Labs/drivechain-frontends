@@ -72,6 +72,7 @@ message EncodeBase58CheckResponse {
 // Merkle Tree
 message CalculateMerkleTreeRequest {
   repeated string txids = 1; // List of transaction IDs (hex)
+  bool show_rcb = 2; // Include Reversed Concatenated Bytes in formatted_text
 }
 
 message CalculateMerkleTreeResponse {

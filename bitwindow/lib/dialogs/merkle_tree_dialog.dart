@@ -1,6 +1,8 @@
-import 'package:bitwindow/utils/merkle_tree.dart';
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Merkle Tree Visualizer Dialog - Calculate and visualize Bitcoin Merkle trees
@@ -27,6 +29,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
 
   List<List<String>>? _tree;
   List<List<String>>? _rcbTree;
+  String? _formattedText;
   String? _error;
   bool _showRCB = true; // Qt default is checked
 
@@ -49,44 +52,43 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
     super.dispose();
   }
 
-  void _calculateTree() {
+  Future<void> _calculateTree() async {
+    final input = _txidsController.text.trim();
+    if (input.isEmpty) {
+      setState(() => _error = 'Please enter transaction IDs (one per line)');
+      return;
+    }
+
+    final txids = input.split('\n').map((line) => line.trim()).where((line) => line.isNotEmpty).toList();
+    if (txids.isEmpty) {
+      setState(() => _error = 'Please enter at least one transaction ID');
+      return;
+    }
+    for (final txid in txids) {
+      if (!RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(txid)) {
+        setState(() => _error = 'Invalid transaction ID format: $txid\n(must be 64 hex characters)');
+        return;
+      }
+    }
+
     setState(() {
       _error = null;
       _tree = null;
       _rcbTree = null;
-
-      final input = _txidsController.text.trim();
-      if (input.isEmpty) {
-        _error = 'Please enter transaction IDs (one per line)';
-        return;
-      }
-
-      // Parse transaction IDs (one per line)
-      final txids = input.split('\n').map((line) => line.trim()).where((line) => line.isNotEmpty).toList();
-
-      if (txids.isEmpty) {
-        _error = 'Please enter at least one transaction ID';
-        return;
-      }
-
-      // Validate hex format
-      for (final txid in txids) {
-        if (!RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(txid)) {
-          _error = 'Invalid transaction ID format: $txid\n(must be 64 hex characters)';
-          return;
-        }
-      }
-
-      // Calculate tree
-      try {
-        _tree = MerkleTree.calculate(txids);
-        if (_showRCB) {
-          _rcbTree = MerkleTree.calculateRCB(txids);
-        }
-      } catch (e) {
-        _error = 'Failed to calculate Merkle tree: $e';
-      }
+      _formattedText = null;
     });
+
+    try {
+      final resp = await GetIt.I.get<BitwindowRPC>().utils.calculateMerkleTree(txids, showRCB: _showRCB);
+      if (!mounted) return;
+      setState(() {
+        _tree = resp.levels.map((l) => l.hashes.toList()).toList();
+        _rcbTree = resp.levels.any((l) => l.rcb.isNotEmpty) ? resp.levels.map((l) => l.rcb.toList()).toList() : null;
+        _formattedText = resp.formattedText;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Failed to calculate Merkle tree: $e');
+    }
   }
 
   void _copyToClipboard(String text, String label) {
@@ -147,6 +149,7 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
                       txidsController: _txidsController,
                       tree: _tree,
                       rcbTree: _rcbTree,
+                      formattedText: _formattedText,
                       error: _error,
                       expectedRoot: widget.expectedRoot,
                       onCalculate: _calculateTree,
@@ -183,20 +186,8 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
                       SailCheckbox(
                         value: _showRCB,
                         onChanged: (value) {
-                          setState(() {
-                            _showRCB = value;
-                            if (_tree != null) {
-                              _rcbTree = _showRCB
-                                  ? MerkleTree.calculateRCB(
-                                      _txidsController.text
-                                          .split('\n')
-                                          .map((line) => line.trim())
-                                          .where((line) => line.isNotEmpty)
-                                          .toList(),
-                                    )
-                                  : null;
-                            }
-                          });
+                          setState(() => _showRCB = value);
+                          if (_tree != null) unawaited(_calculateTree());
                         },
                       ),
                       const SizedBox(width: 8),
@@ -229,6 +220,7 @@ class _TreeTab extends StatelessWidget {
   final TextEditingController txidsController;
   final List<List<String>>? tree;
   final List<List<String>>? rcbTree;
+  final String? formattedText;
   final String? error;
   final String? expectedRoot;
   final VoidCallback onCalculate;
@@ -239,6 +231,7 @@ class _TreeTab extends StatelessWidget {
     required this.txidsController,
     required this.tree,
     required this.rcbTree,
+    required this.formattedText,
     required this.error,
     required this.expectedRoot,
     required this.onCalculate,
@@ -334,8 +327,7 @@ class _TreeTab extends StatelessWidget {
                         message: 'Copy tree to clipboard',
                         child: SailTappable(
                           onTap: () async => () {
-                            final treeText = MerkleTree.formatTreeText(tree!, rcbTree: rcbTree);
-                            onCopy(treeText, 'Merkle tree');
+                            onCopy(formattedText ?? '', 'Merkle tree');
                           }(),
                           borderRadius: SailStyleValues.borderRadiusSmall,
                           child: Padding(
@@ -452,7 +444,7 @@ class _TreeTab extends StatelessWidget {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: SailSelectableText(
-                        MerkleTree.formatTreeText(tree!, rcbTree: rcbTree),
+                        formattedText ?? '',
                         style: TextStyle(
                           fontFamily: 'IBMPlexMono',
                           fontSize: 11,

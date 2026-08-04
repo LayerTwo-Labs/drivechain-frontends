@@ -598,10 +598,14 @@ class EncodeBase58CheckResponse extends $pb.GeneratedMessage {
 class CalculateMerkleTreeRequest extends $pb.GeneratedMessage {
   factory CalculateMerkleTreeRequest({
     $core.Iterable<$core.String>? txids,
+    $core.bool? showRcb,
   }) {
     final $result = create();
     if (txids != null) {
       $result.txids.addAll(txids);
+    }
+    if (showRcb != null) {
+      $result.showRcb = showRcb;
     }
     return $result;
   }
@@ -611,6 +615,7 @@ class CalculateMerkleTreeRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CalculateMerkleTreeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'utils.v1'), createEmptyInstance: create)
     ..pPS(1, _omitFieldNames ? '' : 'txids')
+    ..aOB(2, _omitFieldNames ? '' : 'showRcb')
     ..hasRequiredFields = false
   ;
 
@@ -637,6 +642,15 @@ class CalculateMerkleTreeRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $core.List<$core.String> get txids => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.bool get showRcb => $_getBF(1);
+  @$pb.TagNumber(2)
+  set showRcb($core.bool v) { $_setBool(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasShowRcb() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearShowRcb() => clearField(2);
 }
 
 class CalculateMerkleTreeResponse extends $pb.GeneratedMessage {
