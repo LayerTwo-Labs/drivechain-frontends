@@ -193,6 +193,9 @@ const (
 	// WalletManagerServiceDeriveKeystoreProcedure is the fully-qualified name of the
 	// WalletManagerService's DeriveKeystore RPC.
 	WalletManagerServiceDeriveKeystoreProcedure = "/walletmanager.v1.WalletManagerService/DeriveKeystore"
+	// WalletManagerServicePreviewWalletFromEntropyProcedure is the fully-qualified name of the
+	// WalletManagerService's PreviewWalletFromEntropy RPC.
+	WalletManagerServicePreviewWalletFromEntropyProcedure = "/walletmanager.v1.WalletManagerService/PreviewWalletFromEntropy"
 	// WalletManagerServiceGetWalletSeedProcedure is the fully-qualified name of the
 	// WalletManagerService's GetWalletSeed RPC.
 	WalletManagerServiceGetWalletSeedProcedure = "/walletmanager.v1.WalletManagerService/GetWalletSeed"
@@ -314,6 +317,9 @@ type WalletManagerServiceClient interface {
 	CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error)
 	// DeriveKeystore turns a keystore's intent into derived account key material.
 	DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error)
+	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
+	// show the words while the user is still choosing their entropy.
+	PreviewWalletFromEntropy(context.Context, *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -664,6 +670,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("DeriveKeystore")),
 			connect.WithClientOptions(opts...),
 		),
+		previewWalletFromEntropy: connect.NewClient[v1.PreviewWalletFromEntropyRequest, v1.PreviewWalletFromEntropyResponse](
+			httpClient,
+			baseURL+WalletManagerServicePreviewWalletFromEntropyProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("PreviewWalletFromEntropy")),
+			connect.WithClientOptions(opts...),
+		),
 		getWalletSeed: connect.NewClient[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse](
 			httpClient,
 			baseURL+WalletManagerServiceGetWalletSeedProcedure,
@@ -788,6 +800,7 @@ type walletManagerServiceClient struct {
 	sendDevicePin                *connect.Client[v1.SendDevicePinRequest, v1.SendDevicePinResponse]
 	closeDevice                  *connect.Client[v1.CloseDeviceRequest, v1.CloseDeviceResponse]
 	deriveKeystore               *connect.Client[v1.DeriveKeystoreRequest, v1.DeriveKeystoreResponse]
+	previewWalletFromEntropy     *connect.Client[v1.PreviewWalletFromEntropyRequest, v1.PreviewWalletFromEntropyResponse]
 	getWalletSeed                *connect.Client[v1.GetWalletSeedRequest, v1.GetWalletSeedResponse]
 	listCoreVariants             *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
 	getCoreVariant               *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
@@ -1067,6 +1080,11 @@ func (c *walletManagerServiceClient) DeriveKeystore(ctx context.Context, req *co
 	return c.deriveKeystore.CallUnary(ctx, req)
 }
 
+// PreviewWalletFromEntropy calls walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy.
+func (c *walletManagerServiceClient) PreviewWalletFromEntropy(ctx context.Context, req *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error) {
+	return c.previewWalletFromEntropy.CallUnary(ctx, req)
+}
+
 // GetWalletSeed calls walletmanager.v1.WalletManagerService.GetWalletSeed.
 func (c *walletManagerServiceClient) GetWalletSeed(ctx context.Context, req *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {
 	return c.getWalletSeed.CallUnary(ctx, req)
@@ -1209,6 +1227,9 @@ type WalletManagerServiceHandler interface {
 	CloseDevice(context.Context, *connect.Request[v1.CloseDeviceRequest]) (*connect.Response[v1.CloseDeviceResponse], error)
 	// DeriveKeystore turns a keystore's intent into derived account key material.
 	DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error)
+	// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
+	// show the words while the user is still choosing their entropy.
+	PreviewWalletFromEntropy(context.Context, *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error)
 	// Seed access for cheque engine
 	GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error)
 	// Bitcoin Core variant selection (untouched / touched / knots).
@@ -1555,6 +1576,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("DeriveKeystore")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServicePreviewWalletFromEntropyHandler := connect.NewUnaryHandler(
+		WalletManagerServicePreviewWalletFromEntropyProcedure,
+		svc.PreviewWalletFromEntropy,
+		connect.WithSchema(walletManagerServiceMethods.ByName("PreviewWalletFromEntropy")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceGetWalletSeedHandler := connect.NewUnaryHandler(
 		WalletManagerServiceGetWalletSeedProcedure,
 		svc.GetWalletSeed,
@@ -1729,6 +1756,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceCloseDeviceHandler.ServeHTTP(w, r)
 		case WalletManagerServiceDeriveKeystoreProcedure:
 			walletManagerServiceDeriveKeystoreHandler.ServeHTTP(w, r)
+		case WalletManagerServicePreviewWalletFromEntropyProcedure:
+			walletManagerServicePreviewWalletFromEntropyHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetWalletSeedProcedure:
 			walletManagerServiceGetWalletSeedHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListCoreVariantsProcedure:
@@ -1970,6 +1999,10 @@ func (UnimplementedWalletManagerServiceHandler) CloseDevice(context.Context, *co
 
 func (UnimplementedWalletManagerServiceHandler) DeriveKeystore(context.Context, *connect.Request[v1.DeriveKeystoreRequest]) (*connect.Response[v1.DeriveKeystoreResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.DeriveKeystore is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) PreviewWalletFromEntropy(context.Context, *connect.Request[v1.PreviewWalletFromEntropyRequest]) (*connect.Response[v1.PreviewWalletFromEntropyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) GetWalletSeed(context.Context, *connect.Request[v1.GetWalletSeedRequest]) (*connect.Response[v1.GetWalletSeedResponse], error) {

@@ -413,6 +413,15 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.DeriveKeystoreResponse.new,
   );
 
+  /// PreviewWalletFromEntropy derives a wallet without saving it, so a caller can
+  /// show the words while the user is still choosing their entropy.
+  static const previewWalletFromEntropy = connect.Spec(
+    '/$name/PreviewWalletFromEntropy',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.PreviewWalletFromEntropyRequest.new,
+    walletmanagerv1walletmanager.PreviewWalletFromEntropyResponse.new,
+  );
+
   /// Seed access for cheque engine
   static const getWalletSeed = connect.Spec(
     '/$name/GetWalletSeed',

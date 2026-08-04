@@ -75,6 +75,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$15.SendDevicePinResponse> sendDevicePin($pb.ServerContext ctx, $15.SendDevicePinRequest request);
   $async.Future<$15.CloseDeviceResponse> closeDevice($pb.ServerContext ctx, $15.CloseDeviceRequest request);
   $async.Future<$15.DeriveKeystoreResponse> deriveKeystore($pb.ServerContext ctx, $15.DeriveKeystoreRequest request);
+  $async.Future<$15.PreviewWalletFromEntropyResponse> previewWalletFromEntropy($pb.ServerContext ctx, $15.PreviewWalletFromEntropyRequest request);
   $async.Future<$15.GetWalletSeedResponse> getWalletSeed($pb.ServerContext ctx, $15.GetWalletSeedRequest request);
   $async.Future<$15.ListCoreVariantsResponse> listCoreVariants($pb.ServerContext ctx, $15.ListCoreVariantsRequest request);
   $async.Future<$15.GetCoreVariantResponse> getCoreVariant($pb.ServerContext ctx, $15.GetCoreVariantRequest request);
@@ -142,6 +143,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'SendDevicePin': return $15.SendDevicePinRequest();
       case 'CloseDevice': return $15.CloseDeviceRequest();
       case 'DeriveKeystore': return $15.DeriveKeystoreRequest();
+      case 'PreviewWalletFromEntropy': return $15.PreviewWalletFromEntropyRequest();
       case 'GetWalletSeed': return $15.GetWalletSeedRequest();
       case 'ListCoreVariants': return $15.ListCoreVariantsRequest();
       case 'GetCoreVariant': return $15.GetCoreVariantRequest();
@@ -212,6 +214,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'SendDevicePin': return this.sendDevicePin(ctx, request as $15.SendDevicePinRequest);
       case 'CloseDevice': return this.closeDevice(ctx, request as $15.CloseDeviceRequest);
       case 'DeriveKeystore': return this.deriveKeystore(ctx, request as $15.DeriveKeystoreRequest);
+      case 'PreviewWalletFromEntropy': return this.previewWalletFromEntropy(ctx, request as $15.PreviewWalletFromEntropyRequest);
       case 'GetWalletSeed': return this.getWalletSeed(ctx, request as $15.GetWalletSeedRequest);
       case 'ListCoreVariants': return this.listCoreVariants(ctx, request as $15.ListCoreVariantsRequest);
       case 'GetCoreVariant': return this.getCoreVariant(ctx, request as $15.GetCoreVariantRequest);

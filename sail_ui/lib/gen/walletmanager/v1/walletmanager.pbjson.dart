@@ -2022,6 +2022,47 @@ final $typed_data.Uint8List deriveAddressesResponseDescriptor = $convert.base64D
     'ChdEZXJpdmVBZGRyZXNzZXNSZXNwb25zZRIcCglhZGRyZXNzZXMYASADKAlSCWFkZHJlc3Nlcw'
     '==');
 
+@$core.Deprecated('Use previewWalletFromEntropyRequestDescriptor instead')
+const PreviewWalletFromEntropyRequest$json = {
+  '1': 'PreviewWalletFromEntropyRequest',
+  '2': [
+    {'1': 'entropy', '3': 1, '4': 1, '5': 12, '10': 'entropy'},
+    {'1': 'source_text', '3': 2, '4': 1, '5': 9, '10': 'sourceText'},
+    {'1': 'word_count', '3': 3, '4': 1, '5': 13, '10': 'wordCount'},
+    {'1': 'passphrase', '3': 4, '4': 1, '5': 9, '10': 'passphrase'},
+  ],
+};
+
+/// Descriptor for `PreviewWalletFromEntropyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List previewWalletFromEntropyRequestDescriptor = $convert.base64Decode(
+    'Ch9QcmV2aWV3V2FsbGV0RnJvbUVudHJvcHlSZXF1ZXN0EhgKB2VudHJvcHkYASABKAxSB2VudH'
+    'JvcHkSHwoLc291cmNlX3RleHQYAiABKAlSCnNvdXJjZVRleHQSHQoKd29yZF9jb3VudBgDIAEo'
+    'DVIJd29yZENvdW50Eh4KCnBhc3NwaHJhc2UYBCABKAlSCnBhc3NwaHJhc2U=');
+
+@$core.Deprecated('Use previewWalletFromEntropyResponseDescriptor instead')
+const PreviewWalletFromEntropyResponse$json = {
+  '1': 'PreviewWalletFromEntropyResponse',
+  '2': [
+    {'1': 'entropy_hex', '3': 8, '4': 1, '5': 9, '10': 'entropyHex'},
+    {'1': 'mnemonic', '3': 1, '4': 1, '5': 9, '10': 'mnemonic'},
+    {'1': 'seed_hex', '3': 2, '4': 1, '5': 9, '10': 'seedHex'},
+    {'1': 'master_key', '3': 3, '4': 1, '5': 9, '10': 'masterKey'},
+    {'1': 'chain_code', '3': 4, '4': 1, '5': 9, '10': 'chainCode'},
+    {'1': 'bip39_binary', '3': 5, '4': 1, '5': 9, '10': 'bip39Binary'},
+    {'1': 'bip39_checksum', '3': 6, '4': 1, '5': 9, '10': 'bip39Checksum'},
+    {'1': 'bip39_checksum_hex', '3': 7, '4': 1, '5': 9, '10': 'bip39ChecksumHex'},
+  ],
+};
+
+/// Descriptor for `PreviewWalletFromEntropyResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List previewWalletFromEntropyResponseDescriptor = $convert.base64Decode(
+    'CiBQcmV2aWV3V2FsbGV0RnJvbUVudHJvcHlSZXNwb25zZRIfCgtlbnRyb3B5X2hleBgIIAEoCV'
+    'IKZW50cm9weUhleBIaCghtbmVtb25pYxgBIAEoCVIIbW5lbW9uaWMSGQoIc2VlZF9oZXgYAiAB'
+    'KAlSB3NlZWRIZXgSHQoKbWFzdGVyX2tleRgDIAEoCVIJbWFzdGVyS2V5Eh0KCmNoYWluX2NvZG'
+    'UYBCABKAlSCWNoYWluQ29kZRIhCgxiaXAzOV9iaW5hcnkYBSABKAlSC2JpcDM5QmluYXJ5EiUK'
+    'DmJpcDM5X2NoZWNrc3VtGAYgASgJUg1iaXAzOUNoZWNrc3VtEiwKEmJpcDM5X2NoZWNrc3VtX2'
+    'hleBgHIAEoCVIQYmlwMzlDaGVja3N1bUhleA==');
+
 @$core.Deprecated('Use getWalletSeedRequestDescriptor instead')
 const GetWalletSeedRequest$json = {
   '1': 'GetWalletSeedRequest',
@@ -2356,6 +2397,7 @@ const $core.Map<$core.String, $core.dynamic> WalletManagerServiceBase$json = {
     {'1': 'SendDevicePin', '2': '.walletmanager.v1.SendDevicePinRequest', '3': '.walletmanager.v1.SendDevicePinResponse'},
     {'1': 'CloseDevice', '2': '.walletmanager.v1.CloseDeviceRequest', '3': '.walletmanager.v1.CloseDeviceResponse'},
     {'1': 'DeriveKeystore', '2': '.walletmanager.v1.DeriveKeystoreRequest', '3': '.walletmanager.v1.DeriveKeystoreResponse'},
+    {'1': 'PreviewWalletFromEntropy', '2': '.walletmanager.v1.PreviewWalletFromEntropyRequest', '3': '.walletmanager.v1.PreviewWalletFromEntropyResponse'},
     {'1': 'GetWalletSeed', '2': '.walletmanager.v1.GetWalletSeedRequest', '3': '.walletmanager.v1.GetWalletSeedResponse'},
     {'1': 'ListCoreVariants', '2': '.walletmanager.v1.ListCoreVariantsRequest', '3': '.walletmanager.v1.ListCoreVariantsResponse'},
     {'1': 'GetCoreVariant', '2': '.walletmanager.v1.GetCoreVariantRequest', '3': '.walletmanager.v1.GetCoreVariantResponse'},
@@ -2502,6 +2544,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.CloseDeviceResponse': CloseDeviceResponse$json,
   '.walletmanager.v1.DeriveKeystoreRequest': DeriveKeystoreRequest$json,
   '.walletmanager.v1.DeriveKeystoreResponse': DeriveKeystoreResponse$json,
+  '.walletmanager.v1.PreviewWalletFromEntropyRequest': PreviewWalletFromEntropyRequest$json,
+  '.walletmanager.v1.PreviewWalletFromEntropyResponse': PreviewWalletFromEntropyResponse$json,
   '.walletmanager.v1.GetWalletSeedRequest': GetWalletSeedRequest$json,
   '.walletmanager.v1.GetWalletSeedResponse': GetWalletSeedResponse$json,
   '.walletmanager.v1.ListCoreVariantsRequest': ListCoreVariantsRequest$json,
@@ -2631,25 +2675,27 @@ final $typed_data.Uint8List walletManagerServiceDescriptor = $convert.base64Deco
     '5hZ2VyLnYxLkNsb3NlRGV2aWNlUmVxdWVzdBolLndhbGxldG1hbmFnZXIudjEuQ2xvc2VEZXZp'
     'Y2VSZXNwb25zZRJjCg5EZXJpdmVLZXlzdG9yZRInLndhbGxldG1hbmFnZXIudjEuRGVyaXZlS2'
     'V5c3RvcmVSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52MS5EZXJpdmVLZXlzdG9yZVJlc3BvbnNl'
-    'EmAKDUdldFdhbGxldFNlZWQSJi53YWxsZXRtYW5hZ2VyLnYxLkdldFdhbGxldFNlZWRSZXF1ZX'
-    'N0Gicud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZWVkUmVzcG9uc2USaQoQTGlzdENvcmVW'
-    'YXJpYW50cxIpLndhbGxldG1hbmFnZXIudjEuTGlzdENvcmVWYXJpYW50c1JlcXVlc3QaKi53YW'
-    'xsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZXNwb25zZRJjCg5HZXRDb3JlVmFyaWFu'
-    'dBInLndhbGxldG1hbmFnZXIudjEuR2V0Q29yZVZhcmlhbnRSZXF1ZXN0Gigud2FsbGV0bWFuYW'
-    'dlci52MS5HZXRDb3JlVmFyaWFudFJlc3BvbnNlEmMKDlNldENvcmVWYXJpYW50Eicud2FsbGV0'
-    'bWFuYWdlci52MS5TZXRDb3JlVmFyaWFudFJlcXVlc3QaKC53YWxsZXRtYW5hZ2VyLnYxLlNldE'
-    'NvcmVWYXJpYW50UmVzcG9uc2USbAoRR2V0VGVzdFNpZGVjaGFpbnMSKi53YWxsZXRtYW5hZ2Vy'
-    'LnYxLkdldFRlc3RTaWRlY2hhaW5zUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuR2V0VGVzdF'
-    'NpZGVjaGFpbnNSZXNwb25zZRJsChFTZXRUZXN0U2lkZWNoYWlucxIqLndhbGxldG1hbmFnZXIu'
-    'djEuU2V0VGVzdFNpZGVjaGFpbnNSZXF1ZXN0Gisud2FsbGV0bWFuYWdlci52MS5TZXRUZXN0U2'
-    'lkZWNoYWluc1Jlc3BvbnNlEmwKEUdldEVsZWN0cnVtU2VydmVyEioud2FsbGV0bWFuYWdlci52'
-    'MS5HZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3QaKy53YWxsZXRtYW5hZ2VyLnYxLkdldEVsZWN0cn'
-    'VtU2VydmVyUmVzcG9uc2USbAoRU2V0RWxlY3RydW1TZXJ2ZXISKi53YWxsZXRtYW5hZ2VyLnYx'
-    'LlNldEVsZWN0cnVtU2VydmVyUmVxdWVzdBorLndhbGxldG1hbmFnZXIudjEuU2V0RWxlY3RydW'
-    '1TZXJ2ZXJSZXNwb25zZRJdCgxHZXRUb3JDb25maWcSJS53YWxsZXRtYW5hZ2VyLnYxLkdldFRv'
-    'ckNvbmZpZ1JlcXVlc3QaJi53YWxsZXRtYW5hZ2VyLnYxLkdldFRvckNvbmZpZ1Jlc3BvbnNlEl'
-    '0KDFNldFRvckNvbmZpZxIlLndhbGxldG1hbmFnZXIudjEuU2V0VG9yQ29uZmlnUmVxdWVzdBom'
-    'LndhbGxldG1hbmFnZXIudjEuU2V0VG9yQ29uZmlnUmVzcG9uc2USVgoPV2F0Y2hXYWxsZXREYX'
-    'RhEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gikud2FsbGV0bWFuYWdlci52MS5XYXRjaFdhbGxl'
-    'dERhdGFSZXNwb25zZTAB');
+    'EoEBChhQcmV2aWV3V2FsbGV0RnJvbUVudHJvcHkSMS53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZX'
+    'dXYWxsZXRGcm9tRW50cm9weVJlcXVlc3QaMi53YWxsZXRtYW5hZ2VyLnYxLlByZXZpZXdXYWxs'
+    'ZXRGcm9tRW50cm9weVJlc3BvbnNlEmAKDUdldFdhbGxldFNlZWQSJi53YWxsZXRtYW5hZ2VyLn'
+    'YxLkdldFdhbGxldFNlZWRSZXF1ZXN0Gicud2FsbGV0bWFuYWdlci52MS5HZXRXYWxsZXRTZWVk'
+    'UmVzcG9uc2USaQoQTGlzdENvcmVWYXJpYW50cxIpLndhbGxldG1hbmFnZXIudjEuTGlzdENvcm'
+    'VWYXJpYW50c1JlcXVlc3QaKi53YWxsZXRtYW5hZ2VyLnYxLkxpc3RDb3JlVmFyaWFudHNSZXNw'
+    'b25zZRJjCg5HZXRDb3JlVmFyaWFudBInLndhbGxldG1hbmFnZXIudjEuR2V0Q29yZVZhcmlhbn'
+    'RSZXF1ZXN0Gigud2FsbGV0bWFuYWdlci52MS5HZXRDb3JlVmFyaWFudFJlc3BvbnNlEmMKDlNl'
+    'dENvcmVWYXJpYW50Eicud2FsbGV0bWFuYWdlci52MS5TZXRDb3JlVmFyaWFudFJlcXVlc3QaKC'
+    '53YWxsZXRtYW5hZ2VyLnYxLlNldENvcmVWYXJpYW50UmVzcG9uc2USbAoRR2V0VGVzdFNpZGVj'
+    'aGFpbnMSKi53YWxsZXRtYW5hZ2VyLnYxLkdldFRlc3RTaWRlY2hhaW5zUmVxdWVzdBorLndhbG'
+    'xldG1hbmFnZXIudjEuR2V0VGVzdFNpZGVjaGFpbnNSZXNwb25zZRJsChFTZXRUZXN0U2lkZWNo'
+    'YWlucxIqLndhbGxldG1hbmFnZXIudjEuU2V0VGVzdFNpZGVjaGFpbnNSZXF1ZXN0Gisud2FsbG'
+    'V0bWFuYWdlci52MS5TZXRUZXN0U2lkZWNoYWluc1Jlc3BvbnNlEmwKEUdldEVsZWN0cnVtU2Vy'
+    'dmVyEioud2FsbGV0bWFuYWdlci52MS5HZXRFbGVjdHJ1bVNlcnZlclJlcXVlc3QaKy53YWxsZX'
+    'RtYW5hZ2VyLnYxLkdldEVsZWN0cnVtU2VydmVyUmVzcG9uc2USbAoRU2V0RWxlY3RydW1TZXJ2'
+    'ZXISKi53YWxsZXRtYW5hZ2VyLnYxLlNldEVsZWN0cnVtU2VydmVyUmVxdWVzdBorLndhbGxldG'
+    '1hbmFnZXIudjEuU2V0RWxlY3RydW1TZXJ2ZXJSZXNwb25zZRJdCgxHZXRUb3JDb25maWcSJS53'
+    'YWxsZXRtYW5hZ2VyLnYxLkdldFRvckNvbmZpZ1JlcXVlc3QaJi53YWxsZXRtYW5hZ2VyLnYxLk'
+    'dldFRvckNvbmZpZ1Jlc3BvbnNlEl0KDFNldFRvckNvbmZpZxIlLndhbGxldG1hbmFnZXIudjEu'
+    'U2V0VG9yQ29uZmlnUmVxdWVzdBomLndhbGxldG1hbmFnZXIudjEuU2V0VG9yQ29uZmlnUmVzcG'
+    '9uc2USVgoPV2F0Y2hXYWxsZXREYXRhEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5Gikud2FsbGV0'
+    'bWFuYWdlci52MS5XYXRjaFdhbGxldERhdGFSZXNwb25zZTAB');
 
