@@ -351,7 +351,7 @@ class AmmSwapViewModel extends BaseViewModel {
 
   List<SailDropdownItem<String>> get assetOptions {
     final options = <SailDropdownItem<String>>[
-      SailDropdownItem(value: '', label: 'BTC (Native)'),
+      SailDropdownItem(value: '', label: '${activeTicker.symbol} (Native)'),
     ];
 
     for (final entry in bitAssetsProvider.entries) {

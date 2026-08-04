@@ -31,7 +31,7 @@ class PortfolioDashboard extends StatelessWidget {
                 // BTC Balance card
                 Expanded(
                   child: _SummaryCard(
-                    title: 'BTC Balance',
+                    title: '${activeTicker.symbol} Balance',
                     value: model.formattedBtcBalance,
                     subtitle: model.pendingBtcBalance > 0 ? '+${model.formattedPendingBtc} pending' : null,
                     icon: SailSVGAsset.iconCoins,
@@ -113,7 +113,9 @@ class PortfolioDashboard extends StatelessWidget {
                                 children: [
                                   SailSVG.icon(SailSVGAsset.iconWallet, width: 48),
                                   SailText.secondary13('No holdings yet'),
-                                  SailText.secondary12('Deposit BTC or acquire BitAssets to get started'),
+                                  SailText.secondary12(
+                                    'Deposit ${activeTicker.symbol} or acquire BitAssets to get started',
+                                  ),
                                   SailRow(
                                     spacing: SailStyleValues.padding08,
                                     mainAxisSize: MainAxisSize.min,
@@ -505,7 +507,7 @@ class PortfolioDashboardViewModel extends BaseViewModel {
   }
 
   String getAssetName(String assetId) {
-    if (assetId == 'btc') return 'BTC (Native)';
+    if (assetId == 'btc') return '${activeTicker.symbol} (Native)';
 
     // Try to find the asset in the provider
     final asset = bitAssetsProvider.entries.where((e) => e.hash == assetId).firstOrNull;

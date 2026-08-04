@@ -21,7 +21,8 @@ class AssetHolding {
     required this.percentageOfPortfolio,
   });
 
-  String get displayName => assetName ?? (assetId == 'btc' ? 'BTC (Native)' : assetId.substring(0, 12));
+  String get displayName =>
+      assetName ?? (assetId == 'btc' ? '${activeTicker.symbol} (Native)' : assetId.substring(0, 12));
   bool get isBtc => assetId == 'btc';
 }
 
@@ -182,7 +183,7 @@ class AssetAnalyticsProvider extends ChangeNotifier {
         newHoldings.add(
           AssetHolding(
             assetId: 'btc',
-            assetName: 'BTC (Native)',
+            assetName: '${activeTicker.symbol} (Native)',
             amount: totalBtcBalance + pendingBtcBalance,
             percentageOfPortfolio: totalValue > 0 ? ((totalBtcBalance + pendingBtcBalance) / totalValue) * 100 : 100,
           ),
