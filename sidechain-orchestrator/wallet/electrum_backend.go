@@ -11,6 +11,7 @@ import (
 	"math"
 	"net"
 	neturl "net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1589,15 +1590,33 @@ func (p *ElectrumBackend) deriveAddr(d *Descriptor, change bool, index uint32) (
 // descriptorHDPath formats the full BIP derivation path for display, using the
 // descriptor's resolved account origin so a custom account/path is reflected.
 func descriptorHDPath(d *Descriptor, net *chaincfg.Params, change bool, index uint32) string {
-	if len(d.Keys) == 1 {
-		if _, path, ok := parseOrigin(d.Keys[0].Origin); ok && len(path) > 0 {
-			return fmt.Sprintf("m/%s/%d/%d", formatOriginPath(path), chainIndex(change), index)
-		}
+	if path, ok := sharedOriginPath(d); ok {
+		return fmt.Sprintf("m/%s/%d/%d", formatOriginPath(path), chainIndex(change), index)
 	}
 	if purpose, ok := d.Kind.Purpose(); ok && net != nil {
 		return fmt.Sprintf("m/%d'/%d'/0'/%d/%d", purpose, net.HDCoinType, chainIndex(change), index)
 	}
 	return fmt.Sprintf("m/%d/%d", chainIndex(change), index)
+}
+
+// sharedOriginPath returns the origin every key derives from. Cosigners with
+// differing origins have no single path, so the caller falls back.
+func sharedOriginPath(d *Descriptor) ([]uint32, bool) {
+	var shared []uint32
+	for i, key := range d.Keys {
+		_, path, ok := parseOrigin(key.Origin)
+		if !ok || len(path) == 0 {
+			return nil, false
+		}
+		if i == 0 {
+			shared = path
+			continue
+		}
+		if !slices.Equal(shared, path) {
+			return nil, false
+		}
+	}
+	return shared, len(shared) > 0
 }
 
 // formatOriginPath renders BIP32 child numbers, marking the hardened ones.
