@@ -1065,8 +1065,8 @@ class ProofOfFundsViewModel extends BaseViewModel {
     }
   }
 
-  /// Verify Bitcoin message signature by checking address derivation
-  /// This ensures the signature was created by the private key corresponding to the address
+  /// Checks that the public key owns the address, then that it signed the
+  /// message. The signature check runs in the backend, over secp256k1.
   Future<bool> _verifyBitcoinSignature(
     String message,
     String signatureBase64,
@@ -1076,32 +1076,25 @@ class ProofOfFundsViewModel extends BaseViewModel {
     try {
       final isMainnet = env(Environment.network) == 'mainnet';
 
-      // Verify that the public key corresponds to the address
-      // This proves the signature was created by the private key for this address
       final derivedAddress = _publicKeyToBech32Address(publicKeyHex, isMainnet);
-      final addressMatches = derivedAddress == address;
-
-      if (addressMatches) {
-        // Additional validation: ensure signature is not empty and properly formatted
-        if (signatureBase64.isEmpty || signatureBase64.length < 40) {
-          log.w('Invalid signature format for $address');
-          return false;
-        }
-
-        // Verify signature is valid base64
-        try {
-          base64Decode(signatureBase64);
-        } catch (e) {
-          log.w('Invalid base64 signature for $address');
-          return false;
-        }
-
-        log.d('Signature verification passed for $address');
-        return true;
-      } else {
+      if (derivedAddress != address) {
         log.w('Address mismatch: expected $address, got $derivedAddress');
         return false;
       }
+
+      final walletId = _walletReader.activeWalletId;
+      if (walletId == null) {
+        log.e('No active wallet; cannot verify signatures');
+        return false;
+      }
+
+      final signatureHex = hex.encode(base64Decode(signatureBase64));
+      return await GetIt.I.get<BitwindowRPC>().wallet.verifyMessage(
+        walletId,
+        message,
+        signatureHex,
+        publicKeyHex,
+      );
     } catch (e) {
       log.e('Error in signature verification: $e');
       return false;
