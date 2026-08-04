@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -6,12 +7,16 @@ Future<T?> showThemedDialog<T>({
   required WidgetBuilder builder,
   bool barrierDismissible = true,
 }) async {
-  final theme = SailTheme.of(context);
   return await showDialog(
     context: context,
-    barrierColor: theme.colors.background.withValues(alpha: 0.4),
+    // Black, not the theme background: on a light theme that washed the page
+    // out instead of darkening it.
+    barrierColor: SailColorScheme.black.withValues(alpha: 0.55),
     barrierDismissible: barrierDismissible,
-    builder: builder,
+    builder: (context) => BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+      child: builder(context),
+    ),
   );
 }
 
@@ -220,9 +225,16 @@ class SailModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A modal hugs its contents; without this a column inside it stretches to
+    // the full height of the screen.
     return Dialog(
       backgroundColor: backgroundColor ?? SailColorScheme.transparent,
-      child: constraints != null ? ConstrainedBox(constraints: constraints!, child: child) : child,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          constraints != null ? ConstrainedBox(constraints: constraints!, child: child) : child,
+        ],
+      ),
     );
   }
 }
