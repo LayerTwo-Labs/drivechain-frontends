@@ -74,25 +74,25 @@ class CrossPlatformMenuBar extends StatelessWidget {
       return PlatformMenuBar(menus: _withEditMenu(menus), child: child);
     }
 
-    return _CustomMenuBar(menus: menus, child: child);
+    return SailMenuBar(menus: menus, child: child);
   }
 }
 
-// _CustomMenuBar renders the top menu bar on Linux/Windows (macOS uses the
+// SailMenuBar renders the top menu bar on Linux/Windows (macOS uses the
 // native PlatformMenuBar). It owns a _MenuAimController so an open dropdown
 // isn't stolen by a sibling button while the pointer moves diagonally toward
 // it — the "safety triangle" / menu-aim behaviour.
-class _CustomMenuBar extends StatefulWidget {
+class SailMenuBar extends StatefulWidget {
   final List<PlatformMenuItem> menus;
   final Widget child;
 
-  const _CustomMenuBar({required this.menus, required this.child});
+  const SailMenuBar({super.key, required this.menus, required this.child});
 
   @override
-  State<_CustomMenuBar> createState() => _CustomMenuBarState();
+  State<SailMenuBar> createState() => _SailMenuBarState();
 }
 
-class _CustomMenuBarState extends State<_CustomMenuBar> {
+class _SailMenuBarState extends State<SailMenuBar> {
   final _MenuAimController _aim = _MenuAimController();
 
   @override
@@ -102,16 +102,16 @@ class _CustomMenuBarState extends State<_CustomMenuBar> {
         MouseRegion(
           onHover: (event) => _aim.updatePointer(event.position),
           child: Container(
-            color: context.sailTheme.colors.background,
-            height: 28,
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+            decoration: BoxDecoration(
+              color: context.sailTheme.colors.background,
+              border: Border(bottom: BorderSide(color: context.sailTheme.colors.border)),
+            ),
             child: Row(
               children: [
-                const SizedBox(width: 8),
                 for (final menu in widget.menus)
-                  if (menu is PlatformMenu) ...[
-                    _MenuButton(menu: menu, aim: _aim),
-                    const SizedBox(width: 4),
-                  ],
+                  if (menu is PlatformMenu) _MenuButton(menu: menu, aim: _aim),
               ],
             ),
           ),
@@ -299,13 +299,26 @@ class _MenuButtonState extends State<_MenuButton> {
             context.sailTheme.colors.background,
           ),
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          // SailMenu draws the border and radius; this surface only carries the
+          // shadow, so its shape matches but its side stays empty.
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: context.sailTheme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(6),
+            ),
+          ),
+          elevation: const WidgetStatePropertyAll(4),
+          shadowColor: WidgetStatePropertyAll(context.sailTheme.colors.shadow),
         ),
         builder: (context, controller, child) {
           return TextButton(
             style: TextButton.styleFrom(
               minimumSize: Size.zero,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               backgroundColor: controller.isOpen ? context.sailTheme.colors.backgroundSecondary : Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: context.sailTheme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(4),
+              ),
             ),
             onPressed: () {
               if (controller.isOpen) {
@@ -345,11 +358,9 @@ class _MenuButtonState extends State<_MenuButton> {
   ) {
     final items = <SailMenuEntity>[];
 
-    for (final group in menu.menus) {
-      if (group is PlatformMenuItemGroup) {
-        items.addAll(_buildMenuGroup(context, group));
-        items.add(const SailMenuItemDivider());
-      }
+    for (final entry in menu.menus) {
+      _addEntry(context, items, entry);
+      items.add(const SailMenuItemDivider());
     }
 
     if (items.isNotEmpty && items.last is SailMenuItemDivider) {
@@ -359,35 +370,81 @@ class _MenuButtonState extends State<_MenuButton> {
     return items;
   }
 
-  List<SailMenuEntity> _buildMenuGroup(
-    BuildContext context,
-    PlatformMenuItemGroup group,
-  ) {
-    return group.members.map((item) {
-      final bool isEnabled = item.onSelected != null;
+  void _addEntry(BuildContext context, List<SailMenuEntity> items, PlatformMenuItem entry) {
+    if (entry is PlatformMenuItemGroup) {
+      for (final member in entry.members) {
+        _addEntry(context, items, member);
+      }
+      return;
+    }
+    // Flattened into a labelled section: this bar tracks hover per panel, so a
+    // real submenu would close itself as the pointer left the parent.
+    if (entry is PlatformMenu) {
+      items.add(_sectionHeader(context, entry.label));
+      for (final child in entry.menus) {
+        _addEntry(context, items, child);
+      }
+      return;
+    }
+    items.add(_leafItem(context, entry));
+  }
 
-      return SailMenuItem(
-        onSelected: item.onSelected,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SailText.primary13(
+  // SailMenuItem is a fixed 200 by default, which clips the longer labels in
+  // these menus. Widen each item to what it actually needs.
+  static double _itemWidth(String label, String shortcut) {
+    double measure(String text) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: SailStyleValues.thirteen),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      return painter.width;
+    }
+
+    final needed = measure(label) + (shortcut.isEmpty ? 0 : measure(shortcut) + 24) + 48;
+    return needed < 200 ? 200 : needed;
+  }
+
+  SailMenuEntity _sectionHeader(BuildContext context, String label) {
+    return SailMenuItem(
+      width: _itemWidth(label, ''),
+      child: Row(
+        children: [
+          Flexible(
+            child: SailText.secondary12(label, bold: true, color: context.sailTheme.colors.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  SailMenuEntity _leafItem(BuildContext context, PlatformMenuItem item) {
+    final bool isEnabled = item.onSelected != null;
+    final shortcut = item.shortcut == null ? '' : _getShortcutLabel(item.shortcut!);
+
+    return SailMenuItem(
+      onSelected: item.onSelected,
+      width: _itemWidth(item.label, shortcut),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: SailText.primary13(
               item.label,
               color: isEnabled ? context.sailTheme.colors.text : context.sailTheme.colors.text.withValues(alpha: 0.3),
             ),
-            if (item.shortcut != null)
-              SailText.secondary13(
-                _getShortcutLabel(item.shortcut!),
-                color: isEnabled
-                    ? context.sailTheme.colors.textTertiary
-                    : context.sailTheme.colors.textTertiary.withValues(
-                        alpha: 0.3,
-                      ),
-              ),
-          ],
-        ),
-      );
-    }).toList();
+          ),
+          if (shortcut.isNotEmpty)
+            SailText.secondary13(
+              shortcut,
+              color: isEnabled
+                  ? context.sailTheme.colors.textTertiary
+                  : context.sailTheme.colors.textTertiary.withValues(
+                      alpha: 0.3,
+                    ),
+            ),
+        ],
+      ),
+    );
   }
 
   String _getShortcutLabel(MenuSerializableShortcut shortcut) {
