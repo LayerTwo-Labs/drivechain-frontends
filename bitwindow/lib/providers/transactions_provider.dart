@@ -50,11 +50,23 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   // their futures, which would latch _isFetching for the rest of the session.
   static const _fetchTimeout = Duration(seconds: 30);
 
+  String? _lastWalletId;
+
   TransactionProvider() {
     balanceProvider.addListener(fetch);
     blockchainProvider.addListener(fetch);
-    _walletReader.addListener(fetch);
+    _walletReader.addListener(_onWalletChanged);
     _startFetchingTimer();
+  }
+
+  // Another wallet's addresses must never linger while the new ones load.
+  void _onWalletChanged() {
+    final walletId = _walletReader.activeWalletId;
+    if (walletId != _lastWalletId) {
+      _lastWalletId = walletId;
+      clear();
+    }
+    fetch();
   }
 
   // Fetch transactions every 5 seconds, just in case something happens
@@ -88,6 +100,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     receiveAddresses = [];
     address = '';
     addressDerivationPath = '';
+    addressType = wmpb.AddressType.ADDRESS_TYPE_SEGWIT;
     initialized = false;
     error = null;
     notifyListeners();
@@ -235,6 +248,12 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         }(),
       ]).timeout(_fetchTimeout);
 
+      // The wallet changed while this was in flight, so these results are stale.
+      if (_walletReader.activeWalletId != walletId) {
+        clear();
+        return;
+      }
+
       // If any update returned true, notify listeners
       if (results.any((changed) => changed) || error != null) {
         initialized = true;
@@ -280,7 +299,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   void dispose() {
     balanceProvider.removeListener(fetch);
     blockchainProvider.removeListener(fetch);
-    _walletReader.removeListener(fetch);
+    _walletReader.removeListener(_onWalletChanged);
     _fetchTimer?.cancel();
     super.dispose();
   }

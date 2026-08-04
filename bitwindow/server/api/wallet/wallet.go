@@ -1484,14 +1484,8 @@ func (s *Server) SignMessage(ctx context.Context, c *connect.Request[pb.SignMess
 
 // VerifyMessage implements walletv1connect.WalletServiceHandler.
 func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.VerifyMessageRequest]) (*connect.Response[pb.VerifyMessageResponse], error) {
-	walletId := c.Msg.WalletId
-
-	// Wallet ID validation only - verification works the same for both wallet types
-	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
+	// Verification needs only the message, signature and public key, so a third
+	// party proof verifies without any wallet of our own.
 	crypto, err := s.crypto.Get(ctx)
 	if err != nil {
 		return nil, err

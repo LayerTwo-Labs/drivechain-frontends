@@ -25,9 +25,32 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
       );
 
   int generateWalletCalls = 0;
+  int previewCalls = 0;
   String? generatedName;
   String? generatedMnemonic;
   String? generatedPassphrase;
+  List<int>? previewEntropy;
+  String? previewSourceText;
+  int? previewWordCount;
+
+  @override
+  Future<wmpb.PreviewWalletFromEntropyResponse> previewWalletFromEntropy({
+    List<int>? entropy,
+    String? sourceText,
+    int wordCount = 12,
+    String? passphrase,
+  }) async {
+    previewCalls++;
+    previewEntropy = entropy;
+    previewSourceText = sourceText;
+    previewWordCount = wordCount;
+    return wmpb.PreviewWalletFromEntropyResponse(
+      mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      seedHex: 'deadbeef',
+      bip39Binary: List.filled(128, '0').join(),
+      bip39Checksum: '0011',
+    );
+  }
 
   @override
   Future<wmpb.GenerateWalletResponse> generateWallet({
@@ -80,13 +103,32 @@ void main() {
       doNotSave: true,
     );
 
-    expect(fake.generateWalletCalls, 0);
+    expect(fake.generateWalletCalls, 0, reason: 'a preview must not create a wallet');
+    expect(fake.previewCalls, 1, reason: 'derivation happens in the backend, not here');
+    expect(fake.previewEntropy, List<int>.filled(16, 0));
     expect(
       wallet['mnemonic'],
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
     );
     expect(wallet['bip39_binary'], List.filled(128, '0').join());
     expect(wallet['bip39_checksum'], '0011');
+  });
+
+  test('generateWalletFromEntropy forwards raw text for the backend to hash', () async {
+    final fake = _FakeWalletRPC();
+    GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestratorRPC(fake));
+    final provider = WalletWriterProvider(bitwindowAppDir: Directory.systemTemp);
+
+    await provider.generateWalletFromEntropy(
+      const [],
+      sourceText: 'a',
+      wordCount: 24,
+      doNotSave: true,
+    );
+
+    expect(fake.previewSourceText, 'a', reason: 'the text is hashed server-side, never here');
+    expect(fake.previewEntropy, isNull);
+    expect(fake.previewWordCount, 24);
   });
 
   test('generateWalletFromEntropy final create saves once with provided name', () async {

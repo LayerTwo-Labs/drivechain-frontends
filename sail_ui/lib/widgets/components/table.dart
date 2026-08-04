@@ -688,12 +688,12 @@ class SailTableCell extends StatelessWidget {
       color: backgroundColor,
       child:
           child ??
-          SailText.primary16(
+          SailText.primary13(
             value,
             color: textColor,
             monospace: monospace,
             italic: italic,
-            overflow: TextOverflow.ellipsis,
+            overflow: null,
           ),
     );
   }
@@ -733,7 +733,7 @@ class SailTableHeaderCell extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Flexible(
-              child: SailText.primary16(
+              child: SailText.primary12(
                 name,
                 overflow: TextOverflow.ellipsis,
                 color: theme.colors.inactiveNavText,

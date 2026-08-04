@@ -232,7 +232,11 @@ class SailModal extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          constraints != null ? ConstrainedBox(constraints: constraints!, child: child) : child,
+          // Flexible, so the child still learns the real height available. A bare
+          // Column child gets unbounded height and overflows the dialog.
+          Flexible(
+            child: constraints != null ? ConstrainedBox(constraints: constraints!, child: child) : child,
+          ),
         ],
       ),
     );

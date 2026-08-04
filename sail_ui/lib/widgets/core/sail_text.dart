@@ -188,6 +188,7 @@ class SailText {
     bool bold = false,
     Color? color,
     bool underline = false,
+    bool italic = false,
     bool monospace = false,
     TextOverflow? overflow = TextOverflow.ellipsis,
   }) {
@@ -199,6 +200,7 @@ class SailText {
           style: SailStyleValues.thirteen.copyWith(
             color: color ?? theme.colors.text,
             fontWeight: bold ? SailStyleValues.boldWeight : null,
+            fontStyle: italic ? FontStyle.italic : null,
             decoration: underline ? TextDecoration.underline : TextDecoration.none,
             decorationColor: underline ? (color ?? theme.colors.text) : null,
             fontFamily: theme.chrome.fontFamily ?? (monospace ? 'IBMPlexMono' : 'Inter'),

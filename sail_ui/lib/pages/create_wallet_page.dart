@@ -1,15 +1,10 @@
 import 'dart:async';
-import 'dart:convert' show utf8;
 import 'dart:io';
-import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:convert/convert.dart' show hex;
-import 'package:crypto/crypto.dart' show sha256;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -45,7 +40,7 @@ class SailCreateWalletPage extends StatefulWidget {
   State<SailCreateWalletPage> createState() => _SailCreateWalletPageState();
 }
 
-enum WelcomeScreen { initial, restore, advanced, success }
+enum WelcomeScreen { initial, restore, success }
 
 /// Which backend serves the first wallet. The seed comes from the same master
 /// flow regardless; the provider only picks the wallet type and which backend
@@ -72,9 +67,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   final TextEditingController _derivationPathController = TextEditingController();
   File? _selectedBackupFile;
   WalletWriterProvider get _walletProvider => GetIt.I.get<WalletWriterProvider>();
-  bool _isHexMode = false;
-  bool _isValidInput = false;
-  Map<String, dynamic> _currentWalletData = {};
 
   bool hasExistingWallet = false;
   bool _isGenerating = false;
@@ -98,7 +90,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     super.initState();
 
     _currentScreen = widget.initialScreen;
-    _mnemonicController.addListener(_onMnemonicChanged);
     _passphraseController.addListener(setstate);
     _mnemonicController.addListener(_clearErrorOnInput);
     _passphraseController.addListener(_clearErrorOnInput);
@@ -117,7 +108,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   @override
   void dispose() {
-    _mnemonicController.removeListener(_onMnemonicChanged);
     _passphraseController.removeListener(setstate);
     _mnemonicController.removeListener(_clearErrorOnInput);
     _passphraseController.removeListener(_clearErrorOnInput);
@@ -160,8 +150,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 return _buildInitialScreen();
               case WelcomeScreen.restore:
                 return _buildRestoreScreen();
-              case WelcomeScreen.advanced:
-                return _buildAdvancedScreen();
               case WelcomeScreen.success:
                 return _buildSuccessScreen();
             }
@@ -169,140 +157,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         ),
       ),
     );
-  }
-
-  void _clearWalletData() {
-    setState(() {
-      _currentWalletData.clear();
-      _isValidInput = false;
-    });
-  }
-
-  bool _isValidEntropy(String entropyHex) {
-    if (entropyHex.isEmpty) return false;
-    try {
-      if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(entropyHex)) {
-        return false;
-      }
-      if (entropyHex.length > 64) {
-        return false;
-      }
-      _entropyFromHexInput(entropyHex);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  void _onMnemonicChanged() {
-    if (_currentScreen != WelcomeScreen.advanced) return;
-    final input = _mnemonicController.text.trim();
-    if (input.isEmpty) {
-      _clearWalletData();
-      return;
-    }
-    if (_isHexMode) {
-      final isValid = _isValidEntropy(input);
-      setState(() {
-        _isValidInput = isValid;
-      });
-      if (isValid) {
-        _generateWalletFromEntropy(input);
-      } else {
-        _clearWalletData();
-      }
-    } else {
-      final bytes = utf8.encode(input);
-      final hash = sha256.convert(bytes);
-      final entropy = hash.bytes.sublist(0, 16);
-      final entropyHex = hex.encode(entropy);
-      _generateWalletFromEntropy(entropyHex);
-      setState(() {
-        _isValidInput = true;
-      });
-    }
-  }
-
-  Future<void> _generateWalletFromEntropy(String entropyHex) async {
-    try {
-      final entropy = _entropyFromHexInput(entropyHex);
-      if (entropy.isEmpty) {
-        _clearWalletData();
-        return;
-      }
-      try {
-        final wallet = await _walletProvider.generateWalletFromEntropy(
-          entropy,
-          passphrase: null,
-          doNotSave: true,
-        );
-        setState(() {
-          _currentWalletData = Map<String, dynamic>.from(wallet);
-          _isValidInput = true;
-        });
-      } catch (e) {
-        if (mounted) setState(() => _error = 'Error generating from entropy: $e');
-        _clearWalletData();
-        return;
-      }
-    } catch (e) {
-      _clearWalletData();
-    }
-  }
-
-  Future<void> _handleAdvancedCreate() async {
-    if (mounted) setState(() => _error = null);
-    if (!_isValidInput) return;
-
-    final walletName = _walletNameController.text.trim();
-    if (hasExistingWallet && walletName.isEmpty) {
-      if (mounted) setState(() => _error = 'Please enter a wallet name');
-      return;
-    }
-
-    try {
-      final entropyHex = _mnemonicController.text.trim();
-      List<int> entropy;
-      if (_isHexMode) {
-        entropy = _entropyFromHexInput(entropyHex);
-        if (entropy.length < 16 || entropy.length > 32 || entropy.length % 4 != 0) {
-          if (mounted) {
-            setState(
-              () => _error = 'Invalid entropy length. Must be 16-32 bytes and a multiple of 4.',
-            );
-          }
-          return;
-        }
-      } else {
-        final bytes = utf8.encode(entropyHex);
-        final hash = sha256.convert(bytes);
-        entropy = hash.bytes.sublist(0, 16);
-      }
-
-      try {
-        await _awaitBackendReady();
-      } catch (_) {
-        return;
-      }
-
-      // Derive the master seed from the entropy without committing it, then
-      // import the same mnemonic into the chosen provider's wallet.
-      final wallet = await _walletProvider.generateWalletFromEntropy(entropy, doNotSave: true);
-      await _createForProvider(
-        name: walletName.isEmpty ? _defaultWalletName : walletName,
-        customMnemonic: wallet['mnemonic'] as String?,
-      );
-      _currentWalletData = Map<String, dynamic>.from(wallet);
-      _isValidInput = true;
-      _setScreen(WelcomeScreen.success);
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Error creating wallet: $e');
-    }
-  }
-
-  List<int> _entropyFromHexInput(String entropyHex) {
-    final paddedHex = entropyHex.trim().padRight(((entropyHex.length + 31) ~/ 32) * 32, '0');
-    return hex.decode(paddedHex);
   }
 
   Future<void> _awaitBackendReady() async {
@@ -342,389 +196,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     } catch (_) {
       return false;
     }
-  }
-
-  // ignore: avoid_build_methods
-  Widget _buildMnemonicDisplay() {
-    if (_currentWalletData.isEmpty || !_currentWalletData.containsKey('mnemonic')) {
-      return const SizedBox.shrink();
-    }
-    final theme = SailTheme.of(context);
-    final words = _currentWalletData['mnemonic'].split(' ');
-    final binaryString = _currentWalletData['bip39_binary'] ?? '';
-    final checksumBinary = _currentWalletData['bip39_checksum'] ?? '';
-    final entropyBits = binaryString.length;
-    final checksumBits = entropyBits ~/ 32;
-    final totalBits = entropyBits + checksumBits;
-    final expectedWords = totalBits ~/ 11;
-    if (words.length != expectedWords) {
-      return const SizedBox.shrink();
-    }
-    final fullBinary = binaryString + checksumBinary;
-    final binaryStrings = <String>[];
-    for (int i = 0; i < fullBinary.length; i += 11) {
-      final end = i + 11 > fullBinary.length ? fullBinary.length : i + 11;
-      final chunk = fullBinary.substring(i, end).padRight(11, '0');
-      binaryStrings.add(chunk);
-    }
-    return SailCard(
-      padding: true,
-      secondary: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: SailText.primary10(
-              'Entropy ($entropyBits bits) + Checksum ($checksumBits bits) = $totalBits bits ÷ 11 = $expectedWords words',
-              color: theme.colors.textSecondary,
-            ),
-          ),
-          for (int row = 0; row < (words.length / 6).ceil(); row++)
-            Padding(
-              padding: EdgeInsets.only(bottom: row < (words.length / 6).ceil() - 1 ? 4 : 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  for (int col = 0; col < 6; col++) ...[
-                    if (row * 6 + col < words.length)
-                      SizedBox(
-                        width: 100,
-                        child: SailColumn(
-                          spacing: 2,
-                          children: [
-                            SailText.primary10(words[row * 6 + col], bold: true),
-                            if (row * 6 + col < binaryStrings.length)
-                              row * 6 + col == words.length - 1
-                                  ? RichText(
-                                      text: TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text: binaryStrings[row * 6 + col].substring(0, 7),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: theme.colors.textSecondary,
-                                              fontFamily: 'IBM Plex Mono',
-                                            ),
-                                          ),
-                                          TextSpan(
-                                            text: binaryStrings[row * 6 + col].substring(7),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: theme.colors.success,
-                                              fontFamily: 'IBM Plex Mono',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : SailText.primary10(
-                                      binaryStrings[row * 6 + col],
-                                      color: theme.colors.textSecondary,
-                                    ),
-                          ],
-                        ),
-                      ),
-                    if (col < 5 && row * 6 + col < words.length - 1) const SizedBox(width: 2),
-                  ],
-                ],
-              ),
-            ),
-          if (_currentWalletData.containsKey('mnemonic'))
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SizedBox(
-                  height: 40,
-                  child: SailButton(
-                    label: 'Copy Mnemonic',
-                    variant: ButtonVariant.secondary,
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: _currentWalletData['mnemonic']));
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Mnemonic copied to clipboard'),
-                            backgroundColor: SailTheme.of(context).colors.success,
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ignore: avoid_build_methods
-  Widget _buildInfoPanel() {
-    final theme = SailTheme.of(context);
-    final binaryString = _currentWalletData['bip39_binary'] ?? '';
-    final checksumBinary = _currentWalletData['bip39_checksum'] ?? '';
-    return SailCard(
-      padding: true,
-      secondary: true,
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SizedBox(width: 100, child: SailText.primary10('BIP39 Binary:', bold: true)),
-              Expanded(child: SailText.primary10(binaryString, color: theme.colors.textSecondary)),
-            ],
-          ),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              SizedBox(width: 100, child: SailText.primary10('Checksum:', bold: true)),
-              SailText.primary10(checksumBinary, color: theme.colors.success),
-              const SizedBox(width: SailStyleValues.padding16),
-              SailText.primary10('Hex:', bold: true),
-              const SizedBox(width: SailStyleValues.padding04),
-              SailText.primary10(
-                _currentWalletData['bip39_checksum_hex'] ?? '',
-                color: theme.colors.success,
-              ),
-              Expanded(child: Container()),
-            ],
-          ),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.primary10('Seed Hex:', bold: true),
-                    SailText.primary10(
-                      _currentWalletData['seed_hex'] ?? '',
-                      color: theme.colors.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.primary10('Master Key:', bold: true),
-                    SailText.primary10(
-                      _currentWalletData['master_key'] ?? '',
-                      color: theme.colors.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SailRow(
-            spacing: SailStyleValues.padding08,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SailText.primary10('Chain Code:', bold: true),
-                    SailText.primary10(
-                      _currentWalletData['chain_code'] ?? '',
-                      color: theme.colors.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ignore: avoid_build_methods
-  Widget _buildAdvancedScreen() {
-    final theme = SailTheme.of(context);
-    final errorBanner = _error;
-    return Stack(
-      children: [
-        // Main scrollable content
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
-            child: SizedBox(
-              width: 800,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 50), // Space for buttons
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    BootTitle(
-                      title: 'Create with custom entropy',
-                      subtitle:
-                          'Generate a wallet by providing your own entropy. Or leave the generation to us, but stay hooked in to all the nitty gritty byte-details. This is used to create your seed.',
-                    ),
-                    if (hasExistingWallet) ...[
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: 400,
-                        child: SailTextField(
-                          controller: _walletNameController,
-                          hintText: 'Wallet name (required)',
-                          textFieldType: TextFieldType.text,
-                          size: TextFieldSize.regular,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 50), // Spacing after title
-                    SailCard(
-                      padding: true,
-                      secondary: true,
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding12,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            children: [
-                              SailText.primary13('Custom Entropy'),
-                              SailCheckbox(
-                                value: _isHexMode,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _isHexMode = value;
-                                    _mnemonicController.clear();
-                                    _clearWalletData();
-                                  });
-                                },
-                                label: 'Hex',
-                              ),
-                              const Spacer(),
-                              if (_isHexMode)
-                                SailText.secondary12(
-                                  _mnemonicController.text.isEmpty
-                                      ? 'Enter up to 64 hex characters (0-9 and A-F)'
-                                      : (!RegExp(
-                                              r'^[0-9a-fA-F]+$',
-                                            ).hasMatch(_mnemonicController.text)
-                                            ? 'Invalid hex characters (only 0-9 and A-F allowed)'
-                                            : (_mnemonicController.text.length > 64
-                                                  ? 'Too many characters (maximum 64)'
-                                                  : 'Valid hex input')),
-                                  color: _mnemonicController.text.isEmpty
-                                      ? theme.colors.textSecondary
-                                      : (!RegExp(
-                                                  r'^[0-9a-fA-F]+$',
-                                                ).hasMatch(_mnemonicController.text) ||
-                                                _mnemonicController.text.length > 64
-                                            ? theme.colors.error
-                                            : theme.colors.success),
-                                ),
-                            ],
-                          ),
-                          SizedBox(
-                            height: 40,
-                            child: SailTextField(
-                              controller: _mnemonicController,
-                              hintText: _isHexMode ? 'Enter hex entropy (16-32 bytes)' : 'Enter text to hash',
-                              textFieldType: TextFieldType.text,
-                              size: TextFieldSize.small,
-                            ),
-                          ),
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Spacer(),
-                              SizedBox(
-                                height: 40,
-                                child: SailButton(
-                                  label: 'Random',
-                                  variant: ButtonVariant.secondary,
-                                  onPressed: () async {
-                                    setState(() {
-                                      _isHexMode = true;
-                                    });
-                                    final entropy = List.generate(
-                                      16,
-                                      (index) => Random.secure().nextInt(256),
-                                    );
-                                    final entropyHex = hex.encode(entropy);
-                                    _mnemonicController.text = entropyHex;
-                                    _onMnemonicChanged();
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_currentWalletData.containsKey('mnemonic')) const SizedBox(height: 16),
-                    if (_currentWalletData.containsKey('mnemonic')) _buildMnemonicDisplay(),
-                    if (_currentWalletData.containsKey('mnemonic')) const SizedBox(height: 16),
-                    if (_currentWalletData.containsKey('mnemonic')) _buildInfoPanel(),
-                    if (_currentWalletData.containsKey('mnemonic')) const SizedBox(height: 16),
-                    const SizedBox(height: 50), // Bottom spacing
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (errorBanner != null)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 56,
-            child: Center(
-              child: SizedBox(
-                width: 800,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding08),
-                  child: SailText.primary13(errorBanner, color: theme.colors.error),
-                ),
-              ),
-            ),
-          ),
-        BottomActionBar(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SailButton(
-              label: '← Back',
-              variant: ButtonVariant.secondary,
-              onPressed: () async {
-                // If we started on this screen and haven't navigated internally, pop the route
-                if (widget.initialScreen == _currentScreen && !_hasNavigatedInternally) {
-                  if (widget.onBack != null) {
-                    widget.onBack!();
-                  } else {
-                    await context.router.maybePop();
-                  }
-                } else {
-                  _setScreen(WelcomeScreen.initial);
-                }
-              },
-            ),
-            SailButton(
-              label: 'Create Wallet',
-              variant: ButtonVariant.primary,
-              disabled: !_isValidInput || _awaitingBackend,
-              loading: _awaitingBackend,
-              loadingLabel: 'Connecting to bitwindowd…',
-              onPressed: _handleAdvancedCreate,
-            ),
-          ],
-        ),
-      ],
-    );
   }
 
   // ignore: avoid_build_methods
@@ -836,14 +307,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                     label: 'Restore Wallet',
                     variant: ButtonVariant.ghost,
                     onPressed: () async => _setScreen(WelcomeScreen.restore),
-                  ),
-                  const SizedBox(width: 24),
-                  SailText.secondary15('·'),
-                  const SizedBox(width: 24),
-                  SailButton(
-                    label: 'Paranoid mode',
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async => _setScreen(WelcomeScreen.advanced),
                   ),
                   const SizedBox(width: 24),
                   SailText.secondary15('·'),
