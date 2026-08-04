@@ -174,6 +174,12 @@ class BitnamesTabPage extends StatelessWidget {
                                   hintText: 'Enter IPv6 address',
                                   controller: model.ipv6Controller,
                                 ),
+                                SailTextField(
+                                  label: 'Introduction fee (sats)',
+                                  hintText: '1000',
+                                  controller: model.paymailFeeController,
+                                  textFieldType: TextFieldType.number,
+                                ),
                                 SailCheckbox(
                                   label: 'Set Encryption Pubkey',
                                   value: model.useEncryptionKey,
@@ -208,6 +214,9 @@ class BitnamesTabPage extends StatelessWidget {
                                   label: 'Register',
                                   onPressed: () => model.registerBitname(context),
                                   loading: model.registerLoading,
+                                  disabled:
+                                      (model.useEncryptionKey && model.encryptionKey == null) ||
+                                      (model.useSigningKey && model.signingKey == null),
                                 ),
                               ],
                             ),
@@ -426,6 +435,7 @@ class BitnamesViewModel extends BaseViewModel {
   // Register state
   bool registerLoading = false;
   String? registerError;
+  bool _disposed = false;
 
   // New state variables
   bool useEncryptionKey = false;
@@ -447,20 +457,20 @@ class BitnamesViewModel extends BaseViewModel {
     encryptionKey = null;
     signingKey = null;
 
-    while (encryptionKey == null || signingKey == null) {
+    while (!_disposed && (encryptionKey == null || signingKey == null)) {
       try {
         if (encryptionKey == null) {
           encryptionKey = await bitnamesRPC.getNewEncryptionKey();
-          notifyListeners();
+          if (!_disposed) notifyListeners();
         }
 
         if (signingKey == null) {
           signingKey = await bitnamesRPC.getNewVerifyingKey();
-          notifyListeners();
+          if (!_disposed) notifyListeners();
         }
       } catch (e) {
         // If there's an error, wait a bit before retrying
-        await Future.delayed(const Duration(milliseconds: 500));
+        if (!_disposed) await Future.delayed(const Duration(milliseconds: 500));
       }
     }
   }
@@ -568,13 +578,21 @@ class BitnamesViewModel extends BaseViewModel {
       return;
     }
 
-    final name = registerNameController.text.trim();
+    final name = registerNameController.text.trim().toLowerCase();
     final commitment = commitmentController.text.trim().isEmpty ? null : commitmentController.text.trim();
     final ipv4 = ipv4Controller.text.trim().isEmpty ? null : ipv4Controller.text.trim();
     final ipv6 = ipv6Controller.text.trim().isEmpty ? null : ipv6Controller.text.trim();
+    final paymailFee = int.tryParse(
+      paymailFeeController.text.trim().isEmpty ? '1000' : paymailFeeController.text.trim(),
+    );
 
     if (name.isEmpty) {
       registerError = 'Name cannot be empty';
+      notifyListeners();
+      return;
+    }
+    if (paymailFee == null || paymailFee < 0) {
+      registerError = 'Introduction fee must be zero or greater';
       notifyListeners();
       return;
     }
@@ -605,7 +623,7 @@ class BitnamesViewModel extends BaseViewModel {
         BitNameData(
           commitment: commitment,
           encryptionPubkey: useEncryptionKey ? encryptionKey : null,
-          paymailFeeSats: 1000,
+          paymailFeeSats: paymailFee,
           signingPubkey: useSigningKey ? signingKey : null,
           socketAddrV4: ipv4,
           socketAddrV6: ipv6,
@@ -626,6 +644,7 @@ class BitnamesViewModel extends BaseViewModel {
       commitmentController.clear();
       ipv4Controller.clear();
       ipv6Controller.clear();
+      paymailFeeController.clear();
       useEncryptionKey = false;
       useSigningKey = false;
 
@@ -639,6 +658,7 @@ class BitnamesViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    _disposed = true;
     searchController.dispose();
     reserveNameController.dispose();
     registerNameController.dispose();
