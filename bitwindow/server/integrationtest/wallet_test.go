@@ -299,7 +299,18 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		defer cancel()
 		client := nodeA.WalletClient
 
-		seedResp, err := client.GetWalletSeed(ctx, connect.NewRequest(&pb.GetWalletSeedRequest{}))
+		enforcerList, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		require.NoError(t, err)
+		var enforcerID string
+		for _, w := range enforcerList.Msg.Wallets {
+			if w.WalletType == pb.WalletType_WALLET_TYPE_ENFORCER {
+				enforcerID = w.Id
+				break
+			}
+		}
+		require.NotEmpty(t, enforcerID, "expected an enforcer wallet")
+
+		seedResp, err := client.GetWalletSeed(ctx, connect.NewRequest(&pb.GetWalletSeedRequest{WalletId: enforcerID}))
 		require.NoError(t, err)
 		require.NotEmpty(t, seedResp.Msg.SeedHex)
 		require.Len(t, seedResp.Msg.SeedHex, 128) // 64 bytes = 128 hex chars

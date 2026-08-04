@@ -296,11 +296,24 @@ func (e *WalletEngine) IsUnlocked() bool {
 // GetEnforcerSeed returns the enforcer wallet's seed hex
 // Used by ChequeEngine for deriving cheque addresses
 func (e *WalletEngine) GetEnforcerSeed() (string, error) {
-	// Try orchestrator first
+	// Try orchestrator first. GetWalletSeed names its wallet, so resolve the
+	// enforcer's id before asking for its seed.
 	if e.orchClient != nil {
-		resp, err := e.orchClient.GetWalletSeed(context.Background(), connect.NewRequest(&orchpb.GetWalletSeedRequest{}))
+		ctx := context.Background()
+		list, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
 		if err == nil {
-			return resp.Msg.SeedHex, nil
+			enforcer, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
+				return w.WalletType == orchpb.WalletType_WALLET_TYPE_ENFORCER
+			})
+			if found {
+				resp, err := e.orchClient.GetWalletSeed(
+					ctx,
+					connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: enforcer.Id}),
+				)
+				if err == nil {
+					return resp.Msg.SeedHex, nil
+				}
+			}
 		}
 		// Fall through to local on error
 	}

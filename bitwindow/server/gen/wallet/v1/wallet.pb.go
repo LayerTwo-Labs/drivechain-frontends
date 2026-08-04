@@ -3483,7 +3483,7 @@ func (x *GetUTXODistributionResponse) GetBuckets() []*UTXOBucket {
 
 type UTXOBucket struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`                           // Formatted amount "0.005 BTC" or "Other (5)"
+	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`                           // Amount range without a unit, e.g. "0.005 - 0.01"
 	ValueSats     int64                  `protobuf:"varint,2,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"` // Total value in bucket
 	Count         int32                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`                          // Number of UTXOs (1 for individual, N for "Other")
 	Outpoints     []string               `protobuf:"bytes,4,rep,name=outpoints,proto3" json:"outpoints,omitempty"`                   // For click-to-highlight in table
