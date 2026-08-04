@@ -41,6 +41,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
   String _passphrase = '';
   String _singleScriptType = 'native-segwit';
   String _singleDerivationPath = '';
+  String _provider = 'electrum';
   MultisigWalletSpec? _multisigSpec;
   bool _isCreating = false;
 
@@ -126,6 +127,14 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           hardwareDeviceType: _hardwareDeviceType,
           hardwareFingerprint: _hardwareFingerprint,
         );
+      } else if (_provider == 'core') {
+        await walletProvider.createBitcoinCoreWallet(
+          name: _walletName,
+          gradient: _selectedGradient!,
+          customMnemonic: _mnemonic,
+          passphrase: _passphrase,
+          derivationPath: _singleDerivationPath.isEmpty ? null : _singleDerivationPath,
+        );
       } else {
         await walletProvider.createElectrumWallet(
           name: _walletName,
@@ -167,6 +176,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
               final s = result.single!;
               _singleScriptType = s.scriptType;
               _singleDerivationPath = s.derivationPath ?? '';
+              _provider = s.provider;
               if ((s.mnemonic ?? '').isNotEmpty) {
                 _method = WalletSetupMethod.importSeed;
                 _mnemonic = s.mnemonic!;
@@ -274,7 +284,18 @@ class _NameStepState extends State<_NameStep> {
   @override
   void initState() {
     super.initState();
-    widget.nameController.addListener(() => setState(() {}));
+    widget.nameController.addListener(_onNameChanged);
+  }
+
+  // The controller belongs to the wizard, so it outlives this step.
+  @override
+  void dispose() {
+    widget.nameController.removeListener(_onNameChanged);
+    super.dispose();
+  }
+
+  void _onNameChanged() {
+    if (mounted) setState(() {});
   }
 
   @override

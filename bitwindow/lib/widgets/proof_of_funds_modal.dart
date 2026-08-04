@@ -1082,15 +1082,9 @@ class ProofOfFundsViewModel extends BaseViewModel {
         return false;
       }
 
-      final walletId = _walletReader.activeWalletId;
-      if (walletId == null) {
-        log.e('No active wallet; cannot verify signatures');
-        return false;
-      }
-
       final signatureHex = hex.encode(base64Decode(signatureBase64));
       return await GetIt.I.get<BitwindowRPC>().wallet.verifyMessage(
-        walletId,
+        _walletReader.activeWalletId ?? '',
         message,
         signatureHex,
         publicKeyHex,

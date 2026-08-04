@@ -2033,8 +2033,9 @@ abstract class UtilsAPI {
     List<int> data,
   );
   Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(
-    List<String> txids,
-  );
+    List<String> txids, {
+    bool showRCB = true,
+  });
   Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet();
   Future<utilspb.ValidateWIFResponse> validateWIF(String wif);
   Future<utilspb.WIFToAddressResponse> wifToAddress(String wif);
@@ -2102,10 +2103,11 @@ class _UtilsAPILive implements UtilsAPI {
 
   @override
   Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(
-    List<String> txids,
-  ) async {
+    List<String> txids, {
+    bool showRCB = true,
+  }) async {
     try {
-      final request = utilspb.CalculateMerkleTreeRequest(txids: txids);
+      final request = utilspb.CalculateMerkleTreeRequest(txids: txids, showRcb: showRCB);
       return await _client.calculateMerkleTree(request);
     } catch (e) {
       final error = 'could not calculate merkle tree: ${extractConnectException(e)}';

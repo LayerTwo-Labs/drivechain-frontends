@@ -613,7 +613,7 @@ class MockUtilsAPI implements UtilsAPI {
   }
 
   @override
-  Future<CalculateMerkleTreeResponse> calculateMerkleTree(List<String> txids) {
+  Future<CalculateMerkleTreeResponse> calculateMerkleTree(List<String> txids, {bool showRCB = true}) {
     return Future.value(CalculateMerkleTreeResponse());
   }
 

@@ -407,6 +407,24 @@ class OrchestratorWalletRPC {
     await _unaryClient.closeDevice(wmpb.CloseDeviceRequest(device: device));
   }
 
+  /// Derives a wallet from entropy without saving it. Pass [sourceText] to have
+  /// arbitrary text hashed into entropy, or [entropy] for raw bytes.
+  Future<wmpb.PreviewWalletFromEntropyResponse> previewWalletFromEntropy({
+    List<int>? entropy,
+    String? sourceText,
+    int wordCount = 12,
+    String? passphrase,
+  }) {
+    return _unaryClient.previewWalletFromEntropy(
+      wmpb.PreviewWalletFromEntropyRequest(
+        entropy: entropy ?? const [],
+        sourceText: sourceText ?? '',
+        wordCount: wordCount,
+        passphrase: passphrase ?? '',
+      ),
+    );
+  }
+
   /// Derives a keystore's account key material from its source and intent.
   Future<wmpb.DeriveKeystoreResponse> deriveKeystore({
     String? mnemonic,
