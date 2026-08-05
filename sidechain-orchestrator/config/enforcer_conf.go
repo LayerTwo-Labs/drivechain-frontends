@@ -25,6 +25,7 @@ var derivedEnforcerSettings = []string{
 	"node-rpc-addr",
 	"node-zmq-addr-sequence",
 	"wallet-esplora-url",
+	"network-preset",
 }
 
 // ---------------------------------------------------------------------------
@@ -315,6 +316,16 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 	// blocks via the ZMQ feed, just doesn't backfill from a chain server.
 	if m.bitcoinConf.Network == NetworkRegtest && !seen["wallet-sync-source"] {
 		args = append(args, "--wallet-sync-source=disabled")
+	}
+
+	// Drynet runs on chain=main, so the enforcer would otherwise derive
+	// mainnet parameters from the node: month-scale vote windows and
+	// enforcement from genesis. The preset carries the generation's fork
+	// height and hours-scale thresholds, and namespaces its datadir.
+	if m.bitcoinConf.Network == NetworkDrynet && !seen["network-preset"] {
+		if gen := DrynetGeneration(); gen != "" {
+			args = append(args, fmt.Sprintf("--network-preset=%s", gen))
+		}
 	}
 
 	return args

@@ -429,6 +429,59 @@ func TestGetCliArgsOverlaysWhenConfigIsNil(t *testing.T) {
 	requireArg(t, args, "--node-rpc-addr=")
 }
 
+// ---------------------------------------------------------------------------
+// GetCliArgs network preset
+// ---------------------------------------------------------------------------
+
+func TestGetCliArgsEmitsNetworkPresetOnDrynetOnly(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	restore := DrynetGeneration()
+	t.Cleanup(func() { SetDrynetGeneration(restore) })
+	SetDrynetGeneration("drynet3")
+
+	rejectArgPrefix(t, m.GetCliArgs(), "--network-preset=")
+
+	m.bitcoinConf.Network = NetworkDrynet
+	requireArg(t, m.GetCliArgs(), "--network-preset=drynet3")
+
+	// Forknet also runs chain=main but has no preset in the enforcer.
+	m.bitcoinConf.Network = NetworkForknet
+	rejectArgPrefix(t, m.GetCliArgs(), "--network-preset=")
+}
+
+func TestGetCliArgsNetworkPresetFollowsGeneration(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkDrynet
+
+	restore := DrynetGeneration()
+	t.Cleanup(func() { SetDrynetGeneration(restore) })
+
+	SetDrynetGeneration("drynet3")
+	requireArg(t, m.GetCliArgs(), "--network-preset=drynet3")
+
+	SetDrynetGeneration("drynet4")
+	requireArg(t, m.GetCliArgs(), "--network-preset=drynet4")
+}
+
+func TestGetCliArgsPersistedNetworkPresetWins(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkDrynet
+
+	restore := DrynetGeneration()
+	t.Cleanup(func() { SetDrynetGeneration(restore) })
+	SetDrynetGeneration("drynet3")
+
+	m.Config.SetSetting("network-preset", "drynet1")
+
+	args := m.GetCliArgs()
+	requireArg(t, args, "--network-preset=drynet1")
+	rejectArg(t, args, "--network-preset=drynet3")
+}
+
 // requireArg asserts at least one element of args has the given prefix.
 // Pass a full "--flag=value" to assert presence-by-exact-content; pass
 // just "--flag=" to assert presence-by-key.
