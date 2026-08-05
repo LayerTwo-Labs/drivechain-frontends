@@ -365,7 +365,7 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet", "bitcoin")
+		networkName := EnforcerChainDirName(network)
 		return GetExistingFilesInDir(rootdir, []string{filepath.Join("validator", networkName), networkName}, log)
 
 	case "bitwindowd":
@@ -511,8 +511,7 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 	switch b.BinaryName {
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet", "bitcoin")
-		walletDir := filepath.Join(rootdir, "wallet", networkName)
+		walletDir := filepath.Join(rootdir, "wallet", EnforcerChainDirName(network))
 		if _, err := os.Stat(walletDir); err == nil {
 			paths = append(paths, walletDir)
 		}

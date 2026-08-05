@@ -47,18 +47,19 @@ func TestRolloverWipeLeavesSidechainDataAlone(t *testing.T) {
 	}
 }
 
-// The enforcer tracks one validator chain per network, not per generation, so a
-// drynet2 -> drynet3 rollover has to clear it or the new generation inherits the
-// old chain. Its wallet, like bitcoind's, must survive.
+// A drynet rollover clears the retiring generation's validator chain so its
+// blocks don't outlive it. Its wallet, like bitcoind's, must survive.
 func TestRolloverWipesEnforcerChainButKeepsWallet(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
 	root := config.EnforcerDirs.RootDir()
-	// drynet maps onto the "bitcoin" network name in the enforcer's layout.
-	chain := filepath.Join(root, "validator", "bitcoin")
-	wallet := filepath.Join(root, "wallet", "bitcoin")
+	// --network-preset gives each generation its own namespace under the
+	// "bitcoin" chain name drynet shares with mainnet.
+	dir := config.EnforcerChainDirName(config.NetworkDrynet)
+	chain := filepath.Join(root, "validator", dir)
+	wallet := filepath.Join(root, "wallet", dir)
 	for _, d := range []string{chain, wallet} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			t.Fatal(err)

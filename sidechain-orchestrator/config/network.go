@@ -62,6 +62,26 @@ func DrynetGeneration() string {
 	return netcatalog.EmbeddedDrynetID()
 }
 
+// EnforcerChainDirName is the enforcer's datadir namespace for a network —
+// the directory under validator/ and wallet/. Mainnet, forknet and drynet all
+// report chain=main, so the enforcer names all three "bitcoin"; drynet adds
+// the --network-preset suffix that keeps each generation apart. Must track the
+// enforcer's own chain_dir_name, or a reset resolves a directory it stopped
+// writing to.
+func EnforcerChainDirName(n Network) string {
+	switch n {
+	case NetworkMainnet, NetworkForknet:
+		return "bitcoin"
+	case NetworkDrynet:
+		if gen := DrynetGeneration(); gen != "" {
+			return "bitcoin-" + gen
+		}
+		return "bitcoin"
+	default:
+		return n.ReadableName()
+	}
+}
+
 // DatadirGroupForNetwork returns the datadir group a network belongs to.
 func DatadirGroupForNetwork(n Network) DatadirGroup {
 	switch n {
