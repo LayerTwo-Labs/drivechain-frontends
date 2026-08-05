@@ -6,9 +6,19 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
+
+// SwapNetwork's purge resolves the enforcer root from HOME and os.RemoveAll's
+// validator/ and wallet/ under it, so a test suite that runs against the real
+// HOME deletes the developer's own enforcer state.
+func TestRealDatadirsAreOutOfReach(t *testing.T) {
+	require.NotEmpty(t, realEnforcerRoot)
+	require.NotEqual(t, realEnforcerRoot, config.EnforcerDirs.RootDir(),
+		"TestMain must redirect HOME before any test resolves a datadir")
+}
 
 // The drynet rollover can fire while the user is on another network, so it
 // must only touch data that is actually partitioned by network. Sidechains

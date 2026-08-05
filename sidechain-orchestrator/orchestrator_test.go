@@ -17,7 +17,38 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
+
+// realEnforcerRoot is the enforcer datadir this package would have used had
+// TestMain not redirected HOME. Only TestRealDatadirsAreOutOfReach reads it.
+var realEnforcerRoot string
+
+// Datadirs resolve through os.UserHomeDir() at call time, so an unredirected
+// HOME points every path helper at the developer's real application data.
+// SwapNetwork's purge then os.RemoveAll's the real bip300301_enforcer
+// validator/ and wallet/, and the conf writer overwrites real bitcoin/
+// sidechain confs. Redirect once for the whole package rather than relying on
+// each test to remember.
+func TestMain(m *testing.M) {
+	realEnforcerRoot = config.EnforcerDirs.RootDir()
+
+	home, err := os.MkdirTemp("", "orchestrator-home")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "isolate HOME: %v\n", err)
+		os.Exit(1)
+	}
+	for _, key := range []string{"HOME", "USERPROFILE"} {
+		if err := os.Setenv(key, home); err != nil {
+			fmt.Fprintf(os.Stderr, "isolate %s: %v\n", key, err)
+			os.Exit(1)
+		}
+	}
+	code := m.Run()
+	_ = os.RemoveAll(home)
+	os.Exit(code)
+}
 
 func testLogger(t *testing.T) zerolog.Logger {
 	t.Helper()
