@@ -255,3 +255,21 @@ func TestEnforcerBackendUnsupportedOps(t *testing.T) {
 	_, err = p.Ensure(ctx, "w")
 	require.Error(t, err)
 }
+
+// The enforcer builds the transaction itself and its API has no raw output, so
+// a BMM bid or an M5 deposit must say so rather than silently drop the output.
+func TestEnforcerBackendRejectsRawOutputs(t *testing.T) {
+	backend := &EnforcerBackend{}
+
+	_, err := backend.Send(context.Background(), "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a0100", AmountSats: 0}},
+		FixedFeeSats: 1000,
+	})
+	require.ErrorContains(t, err, "core or electrum wallet")
+
+	_, err = backend.Send(context.Background(), "wallet", SendRequest{
+		ExternalInputs: []ExternalInput{{TxID: "aa", Vout: 0, AmountSats: 1}},
+		FixedFeeSats:   1000,
+	})
+	require.ErrorContains(t, err, "core or electrum wallet")
+}

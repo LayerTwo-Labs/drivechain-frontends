@@ -8,7 +8,7 @@ import "walletmanager.pb.dart" as walletmanagerv1walletmanager;
 import "walletmanager.connect.spec.dart" as specs;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type WalletManagerServiceClient (connect.Transport _transport) {
+extension type WalletManagerServiceClient(connect.Transport _transport) {
   /// Wallet lifecycle
   Future<walletmanagerv1walletmanager.GetWalletStatusResponse> getWalletStatus(
     walletmanagerv1walletmanager.GetWalletStatusRequest input, {
@@ -507,6 +507,24 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.sendTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+  Future<walletmanagerv1walletmanager.CreateDepositResponse> createDeposit(
+    walletmanagerv1walletmanager.CreateDepositRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.createDeposit,
       input,
       signal: signal,
       headers: headers,

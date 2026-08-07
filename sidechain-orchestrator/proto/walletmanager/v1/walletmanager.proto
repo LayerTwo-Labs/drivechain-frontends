@@ -51,6 +51,9 @@ service WalletManagerService {
   rpc EstimateFee(EstimateFeeRequest) returns (EstimateFeeResponse);
   rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+
+  // CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+  rpc CreateDeposit(CreateDepositRequest) returns (CreateDepositResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
   rpc ListUnspent(ListUnspentRequest) returns (ListUnspentResponse);
   rpc ListReceiveAddresses(ListReceiveAddressesRequest) returns (ListReceiveAddressesResponse);
@@ -591,6 +594,9 @@ message SendTransactionRequest {
   // wallet-funded inputs. Used for anyone-can-spend scripts (e.g. a sidechain
   // CTIP). They are added with an empty scriptSig and not signed.
   repeated ExternalInput external_inputs = 10;
+  // Signal BIP125, so a later transaction spending the same inputs replaces
+  // this one. Used to raise a BMM bid.
+  bool replaceable = 11;
 }
 
 message SendTransactionResponse {
@@ -1157,3 +1163,23 @@ message WatchWalletDataResponse {
   // healthy-but-quiet stream apart from a half-open connection.
   bool heartbeat = 9;
 }
+
+message CreateDepositRequest {
+  // Sidechain slot to credit, 0-255.
+  int32 slot = 1;
+  // Wallet that funds the deposit. Empty uses the active wallet.
+  string wallet_id = 2;
+  // Sidechain address credited with the deposit.
+  string destination = 3;
+  int64 amount_sats = 4;
+  // Mainchain fee. The deposit tx carries an unsigned CTIP input, so the fee
+  // cannot be estimated from a rate.
+  int64 fee_sats = 5;
+}
+
+message CreateDepositResponse {
+  string txid = 1;
+  // Treasury value after the deposit: the old CTIP plus the amount.
+  int64 treasury_sats = 2;
+}
+

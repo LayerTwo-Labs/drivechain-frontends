@@ -159,6 +159,9 @@ type SendRequest struct {
 	RequiredInputs        []RequiredInput
 	SubtractFeeFromAmount bool
 	ReplayProtect         bool
+	// Replaceable signals BIP125, so a later transaction spending the same
+	// inputs can replace this one.
+	Replaceable bool
 	// RawOutputs carry caller-supplied scriptPubKeys, placed in order before any
 	// address/op_return outputs (e.g. a sidechain OP_DRIVECHAIN treasury output).
 	RawOutputs []TxOutSpec

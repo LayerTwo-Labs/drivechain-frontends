@@ -329,14 +329,14 @@ func (s *Service) db() *sql.DB {
 }
 
 func (s *Service) openElectrumDB() error {
-	s.dbMu.Lock()
-	dir := s.networkDirLocked()
-	s.dbMu.Unlock()
-
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(s.bitwindowDir, 0700); err != nil {
+		return fmt.Errorf("create bitwindow dir: %w", err)
+	}
+	// the BIP47 and BMM stores write JSON straight into this directory
+	if err := os.MkdirAll(s.NetworkDir(), 0700); err != nil {
 		return fmt.Errorf("create network dir: %w", err)
 	}
-	db, err := OpenElectrumDB(context.Background(), filepath.Join(dir, "electrum.db"))
+	db, err := OpenElectrumDB(context.Background(), filepath.Join(s.bitwindowDir, "electrum.db"))
 	if err != nil {
 		return fmt.Errorf("open electrum db: %w", err)
 	}
@@ -347,33 +347,32 @@ func (s *Service) openElectrumDB() error {
 	return nil
 }
 
-// RebindNetwork points wallet state at another network's directory. The
-// previous handle is closed after the swap, so in-flight reads finish first.
+// Network returns the network wallet chain state is scoped to right now.
+func (s *Service) Network() string {
+	s.dbMu.RLock()
+	defer s.dbMu.RUnlock()
+	return s.network
+}
+
+// RebindNetwork points wallet state at another network. Rows are keyed by
+// network, so this is a field change rather than a database swap.
 func (s *Service) RebindNetwork(network string) error {
 	s.dbMu.Lock()
-	if network == s.network {
-		reopen := s.electrumDB == nil
-		s.dbMu.Unlock()
-		// A rebind that failed to open the database left the network set and no
-		// handle, so a retry has to finish that open.
-		if reopen {
-			return s.openElectrumDB()
-		}
-		return nil
-	}
-	previous := s.electrumDB
+	unchanged := network == s.network
 	s.network = network
-	s.electrumDB = nil
+	reopen := s.electrumDB == nil
 	s.dbMu.Unlock()
 
-	if previous != nil {
-		_ = previous.Close()
+	if reopen {
+		if err := s.openElectrumDB(); err != nil {
+			return err
+		}
 	}
-	if err := s.openElectrumDB(); err != nil {
-		return err
+	if unchanged {
+		return nil
 	}
 	s.syncReporter.reset()
-	s.log.Info().Str("network", network).Str("dir", s.NetworkDir()).Msg("wallet state rebound to network")
+	s.log.Info().Str("network", network).Msg("wallet state rebound to network")
 	return nil
 }
 

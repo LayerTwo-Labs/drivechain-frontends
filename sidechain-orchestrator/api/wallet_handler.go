@@ -832,6 +832,7 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		OpReturnHex:           req.Msg.OpReturnHex,
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
 		ReplayProtect:         req.Msg.ReplayProtect,
+		Replaceable:           req.Msg.Replaceable,
 	}
 	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
 		return wallet.RequiredInput{

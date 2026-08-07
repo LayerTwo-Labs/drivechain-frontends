@@ -227,6 +227,14 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.SendTransactionResponse.new,
   );
 
+  /// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+  static const createDeposit = connect.Spec(
+    '/$name/CreateDeposit',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.CreateDepositRequest.new,
+    walletmanagerv1walletmanager.CreateDepositResponse.new,
+  );
+
   static const listTransactions = connect.Spec(
     '/$name/ListTransactions',
     connect.StreamType.unary,

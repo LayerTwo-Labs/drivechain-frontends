@@ -949,6 +949,18 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 	return resp.Msg.Txid, nil
 }
 
+// CreateDeposit builds and broadcasts a BIP300 M5 deposit from any wallet.
+func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepositRequest) (string, error) {
+	if e.orchClient == nil {
+		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.CreateDeposit(ctx, connect.NewRequest(req))
+	if err != nil {
+		return "", fmt.Errorf("create deposit: %w", err)
+	}
+	return resp.Msg.Txid, nil
+}
+
 // GetElectrumUnspent returns an electrum wallet's UTXOs from the orchestrator,
 // which serves them over Esplora.
 func (e *WalletEngine) GetElectrumUnspent(ctx context.Context, walletId string) ([]*orchpb.UnspentOutput, error) {
