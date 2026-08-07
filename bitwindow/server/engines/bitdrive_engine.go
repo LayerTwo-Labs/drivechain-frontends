@@ -732,7 +732,8 @@ func ParseOPReturnParts(opReturnMessage string) (metadataB64, contentStr string,
 	return parts[0], parts[1], nil
 }
 
-// BytesEqual performs constant-time byte comparison
+// BytesEqual performs constant-time byte comparison for secret material.
+// Do not use bytes.Equal here: it short-circuits and leaks timing.
 func BytesEqual(a, b []byte) bool {
-	return bytes.Equal(a, b)
+	return subtle.ConstantTimeCompare(a, b) == 1
 }

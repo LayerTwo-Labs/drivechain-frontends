@@ -91,8 +91,10 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 		}
 
 		corsHandler := cors.New(cors.Options{
+			// Never combine AllowedOrigins: ["*"] with AllowCredentials: true.
+			// That reflects arbitrary Origins with credentials and enables
+			// cross-site abuse of authenticated browser sessions.
 			AllowedOrigins: []string{
-				"*",
 				"https://drivechain.live",
 				"https://api.drivechain.live",
 				"http://localhost:3000", // For local development
@@ -113,7 +115,7 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 				"Access-Control-Allow-Origin",
 				"Access-Control-Request-Headers",
 			},
-			AllowCredentials: true, // Allow credentials
+			AllowCredentials: true,
 		})
 
 		withCORS := corsHandler.Handler(s.mux)
