@@ -63,7 +63,9 @@ class _SignMessageTabState extends State<SignMessageTab> {
     try {
       setState(() => _error = null);
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final signature = await _wallet.signMessage(walletId, _messageController.text, _addressController.text);
       setState(() {
@@ -160,7 +162,9 @@ class _VerifyMessageTabState extends State<VerifyMessageTab> {
     try {
       setState(() => _error = null);
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final isValid = await _wallet.verifyMessage(
         walletId,

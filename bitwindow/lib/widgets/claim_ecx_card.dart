@@ -31,6 +31,7 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
 
   ClaimEcxStage _stage = ClaimEcxStage.idle;
   SweepPreview? _preview;
+  String? _previewedWif;
   String? _walletAddress;
   String? _walletAddressFor;
   bool _editingDestination = false;
@@ -61,8 +62,17 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
       setState(() {
         _stage = ClaimEcxStage.idle;
         _preview = null;
+        _previewedWif = null;
       });
       return;
+    }
+
+    if (_previewedWif != null && _previewedWif != wif) {
+      setState(() {
+        _stage = ClaimEcxStage.checking;
+        _preview = null;
+        _previewedWif = null;
+      });
     }
 
     _debounce = Timer(_checkDebounce, _check);
@@ -78,6 +88,7 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
       setState(() {
         _stage = ClaimEcxStage.invalid;
         _preview = null;
+        _previewedWif = null;
       });
       return;
     }
@@ -99,6 +110,7 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
 
       setState(() {
         _preview = preview;
+        _previewedWif = wif;
         _stage = preview.hasFunds ? ClaimEcxStage.funds : ClaimEcxStage.empty;
       });
     } catch (e) {
@@ -132,6 +144,12 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
   }
 
   Future<void> _claim() async {
+    final preview = _preview;
+    final previewedWif = _previewedWif;
+    if (preview == null || previewedWif == null || previewedWif != _wif) {
+      return;
+    }
+
     final walletId = _walletReader.activeWalletId;
     if (walletId == null) {
       setState(() {
@@ -153,16 +171,16 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
     try {
       final result = await _bitwindow.wallet.sweepCheque(
         walletId,
-        _wif,
+        previewedWif,
         _destination,
-        _preview?.feeSatPerVbyte ?? 0,
+        preview.feeSatPerVbyte,
       );
       if (!mounted) {
         return;
       }
       setState(() {
         _txid = result.txid;
-        _claimedSats = _preview?.receiveSats ?? result.amountSats;
+        _claimedSats = preview.receiveSats;
         _stage = ClaimEcxStage.claimed;
       });
     } catch (e) {
@@ -258,6 +276,7 @@ class _ClaimEcxCardState extends State<ClaimEcxCard> {
     setState(() {
       _stage = ClaimEcxStage.idle;
       _preview = null;
+      _previewedWif = null;
       _editingDestination = false;
       _walletAddress = null;
       _walletAddressFor = null;

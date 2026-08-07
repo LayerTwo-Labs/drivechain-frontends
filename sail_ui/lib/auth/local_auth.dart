@@ -36,8 +36,12 @@ class LocalAuth {
   static Future<bool> load({Duration timeout = const Duration(seconds: 15)}) async {
     final deadline = DateTime.now().add(timeout);
     while (true) {
-      if (await token() != null) return true;
-      if (!DateTime.now().isBefore(deadline)) return false;
+      if (await token() != null) {
+        return true;
+      }
+      if (!DateTime.now().isBefore(deadline)) {
+        return false;
+      }
       await Future<void>.delayed(const Duration(milliseconds: 200));
     }
   }
@@ -52,10 +56,14 @@ class LocalAuth {
 
   static Future<String?> _read() async {
     final path = _cookiePath;
-    if (path == null) return null;
+    if (path == null) {
+      return null;
+    }
     try {
       final file = io.File(path);
-      if (!await file.exists()) return null;
+      if (!await file.exists()) {
+        return null;
+      }
       final value = (await file.readAsString()).trim();
       return value.isEmpty ? null : value;
     } catch (_) {
@@ -77,14 +85,20 @@ class LocalAuth {
 
   /// True for the raw Connect/HTTP form of the same stale-token rejection.
   static bool isTokenRejectedHttpResponse(int statusCode, String body) {
-    if (statusCode != 401) return false;
+    if (statusCode != 401) {
+      return false;
+    }
 
     final trimmed = body.trim();
-    if (trimmed == tokenRejectedMessage) return true;
+    if (trimmed == tokenRejectedMessage) {
+      return true;
+    }
 
     try {
       final decoded = jsonDecode(trimmed);
-      if (decoded is! Map<String, dynamic>) return false;
+      if (decoded is! Map<String, dynamic>) {
+        return false;
+      }
       return decoded['code'] == 'unauthenticated' && decoded['message'] == tokenRejectedMessage;
     } catch (_) {
       return trimmed.endsWith(tokenRejectedMessage);
@@ -108,7 +122,9 @@ class LocalAuth {
       }
       return response;
     } finally {
-      if (client == null) httpClient.close();
+      if (client == null) {
+        httpClient.close();
+      }
     }
   }
 
@@ -135,11 +151,15 @@ class LocalAuth {
     return <I extends Object, O extends Object>(AnyFn<I, O> next) {
       return (req) async {
         final tok = await token();
-        if (tok != null) req.headers['authorization'] = 'Bearer $tok';
+        if (tok != null) {
+          req.headers['authorization'] = 'Bearer $tok';
+        }
         try {
           return await next(req);
         } catch (e) {
-          if (!_isTokenRejected(e)) rethrow;
+          if (!_isTokenRejected(e)) {
+            rethrow;
+          }
           // Cookie was rotated (orchestrator restarted). Refetch and, for unary
           // calls, retry once; streams recover on their supervisor's reconnect
           // now that the cache is cleared.

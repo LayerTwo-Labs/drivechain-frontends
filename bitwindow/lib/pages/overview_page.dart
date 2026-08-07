@@ -677,7 +677,9 @@ class BroadcastNewsViewModel extends BaseViewModel {
   bool nsfw = false;
 
   void setSubtype(int? value) {
-    if (value == null) return;
+    if (value == null) {
+      return;
+    }
     subtype = value;
     notifyListeners();
   }
@@ -789,7 +791,9 @@ class BroadcastNewsViewModel extends BaseViewModel {
         content: headline,
         dialogType: DialogType.success,
       );
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       Navigator.of(context).pop();
     } catch (e) {
       showSailToast(context, 'could not broadcast news: $e');
@@ -1086,7 +1090,9 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
         retentionDays: retentionDays,
       );
       await _newsProvider.fetch();
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       showSailToast(context, 'Topic created! txid: ${response.txid.substring(0, 8)}...');
       identifierController.clear();
       nameController.clear();
@@ -1105,7 +1111,9 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
 
   Future<void> addFromUrl(BuildContext context) async {
     final url = urlController.text.trim();
-    if (url.isEmpty) return;
+    if (url.isEmpty) {
+      return;
+    }
 
     // Parse URL format: {days}{identifier}Name
     // Example: 7{a1a1a1a1}US Weekly
@@ -1124,7 +1132,9 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     try {
       final response = await _api.misc.createTopic(identifier, name, retentionDays: days);
       await _newsProvider.fetch();
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       showSailToast(context, 'Subscribed to "$name"! txid: ${response.txid.substring(0, 8)}...');
       urlController.clear();
     } catch (e) {
@@ -1135,14 +1145,18 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
   Future<void> exportTopics(BuildContext context) async {
     final urls = topics.map((t) => '${t.retentionDays}{${t.topic}}${t.name}').join('\n');
     await Clipboard.setData(ClipboardData(text: urls));
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
     showSailToast(context, 'Topics exported to clipboard');
   }
 
   Future<void> importTopics(BuildContext context) async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text == null || data!.text!.isEmpty) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       showSailToast(context, 'Clipboard is empty');
       return;
     }
@@ -1177,7 +1191,9 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     }
 
     await _newsProvider.fetch();
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
 
     if (imported > 0) {
       showSailToast(context, 'Imported $imported topic(s)${failed > 0 ? ', $failed failed' : ''}');
@@ -1209,7 +1225,9 @@ class ManageNewsSubscriptionsViewModel extends BaseViewModel {
     }
 
     await _newsProvider.fetch();
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
 
     if (restored > 0) {
       showSailToast(context, 'Restored $restored default topic(s)');
@@ -1283,7 +1301,9 @@ class NewGraffitiViewModel extends BaseViewModel {
 
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final address = (await _orchestratorWallet.getNewAddress(walletId)).address;
       final txid = (await _orchestratorWallet.sendTransaction(
@@ -1301,10 +1321,14 @@ class NewGraffitiViewModel extends BaseViewModel {
         links: [NotificationLink(text: 'View transaction', url: mempoolTxUrl(txid, network))],
       );
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       messageController.clear();
     } catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       showSailToast(context, 'could not broadcast graffiti: $e');
     }
   }

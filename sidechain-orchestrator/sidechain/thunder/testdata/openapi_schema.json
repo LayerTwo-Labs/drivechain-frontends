@@ -108,6 +108,95 @@
         }
       }
     },
+    "create_transfer": {
+      "post": {
+        "description": "Create a tx that transfers funds to the specified address",
+        "operationId": "create_transfer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dest": {
+                    "type": "string"
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "value_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "create_withdrawal": {
+      "post": {
+        "description": "Creates a tx that initiates a withdrawal to the specified mainchain\naddress",
+        "operationId": "create_withdrawal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "mainchain_address": {
+                    "type": "string"
+                  },
+                  "mainchain_fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "forget_peer": {
       "post": {
         "description": "Delete peer from known_peers DB.\nConnections to the peer are not terminated.",
@@ -321,6 +410,151 @@
         }
       }
     },
+    "get_stxos": {
+      "post": {
+        "description": "Get stxos for addresses",
+        "operationId": "get_stxos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "outpoint",
+                      "output"
+                    ],
+                    "properties": {
+                      "outpoint": {
+                        "$ref": "#/components/schemas/OutPoint"
+                      },
+                      "output": {
+                        "$ref": "#/components/schemas/SpentOutput"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_transaction": {
+      "post": {
+        "description": "Get transaction by txid",
+        "operationId": "get_transaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "tx"
+                      ],
+                      "properties": {
+                        "block_hash": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "$ref": "#/components/schemas/BlockHash",
+                              "description": "Block hash, if in the active chain"
+                            }
+                          ]
+                        },
+                        "tx": {
+                          "$ref": "#/components/schemas/Transaction"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_utxos": {
+      "post": {
+        "description": "Get utxos for addresses",
+        "operationId": "get_utxos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "outpoint",
+                      "output"
+                    ],
+                    "properties": {
+                      "outpoint": {
+                        "$ref": "#/components/schemas/OutPoint"
+                      },
+                      "output": {
+                        "$ref": "#/components/schemas/Output"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "get_wallet_addresses": {
       "post": {
         "description": "Get wallet addresses, sorted by base58 encoding",
@@ -435,6 +669,7 @@
                   "type": "array",
                   "items": {
                     "type": "object",
+                    "description": "RPC output representation for peer + state",
                     "required": [
                       "address",
                       "status"
@@ -739,35 +974,122 @@
         }
       }
     },
-    "stop": {
+    "sign_transaction": {
       "post": {
-        "description": "Stop the node",
-        "operationId": "stop",
-        "responses": {}
-      }
-    },
-    "transfer": {
-      "post": {
-        "description": "Transfer funds to the specified address",
-        "operationId": "transfer",
+        "description": "Sign a transaction, and optionally broadcast it.",
+        "operationId": "sign_transaction",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "dest": {
-                    "type": "string"
+                  "broadcast": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
                   },
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  },
-                  "value_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
+                  "transaction": {
+                    "type": "object",
+                    "required": [
+                      "inputs",
+                      "proof",
+                      "outputs"
+                    ],
+                    "properties": {
+                      "inputs": {
+                        "type": "array",
+                        "items": {
+                          "type": "array",
+                          "items": false,
+                          "prefixItems": [
+                            {
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "Regular"
+                                  ],
+                                  "properties": {
+                                    "Regular": {
+                                      "type": "object",
+                                      "required": [
+                                        "txid",
+                                        "vout"
+                                      ],
+                                      "properties": {
+                                        "txid": {
+                                          "$ref": "#/components/schemas/Txid"
+                                        },
+                                        "vout": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "minimum": 0
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "Coinbase"
+                                  ],
+                                  "properties": {
+                                    "Coinbase": {
+                                      "type": "object",
+                                      "required": [
+                                        "merkle_root",
+                                        "vout"
+                                      ],
+                                      "properties": {
+                                        "merkle_root": {
+                                          "$ref": "#/components/schemas/MerkleRoot"
+                                        },
+                                        "vout": {
+                                          "type": "integer",
+                                          "format": "u-int32",
+                                          "minimum": 0
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "Deposit"
+                                  ],
+                                  "properties": {
+                                    "Deposit": {
+                                      "$ref": "#/components/schemas/bitcoin.OutPoint"
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "outputs": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Output"
+                        }
+                      },
+                      "proof": {
+                        "$ref": "#/components/schemas/utreexo.Proof",
+                        "description": "Utreexo proof for inputs"
+                      }
+                    }
                   }
                 }
               }
@@ -780,7 +1102,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "type": "object",
+                  "required": [
+                    "transaction",
+                    "authorizations"
+                  ],
+                  "properties": {
+                    "authorizations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Authorization"
+                      },
+                      "description": "Authorizations are called witnesses in Bitcoin."
+                    },
+                    "transaction": {
+                      "$ref": "#/components/schemas/Transaction"
+                    }
+                  }
                 }
               }
             }
@@ -788,33 +1126,36 @@
         }
       }
     },
-    "withdraw": {
+    "stop": {
       "post": {
-        "description": "Initiate a withdrawal to the specified mainchain address",
-        "operationId": "withdraw",
+        "description": "Stop the node",
+        "operationId": "stop",
+        "responses": {}
+      }
+    },
+    "submit_transaction": {
+      "post": {
+        "description": "Verify and broadcast a transaction",
+        "operationId": "submit_transaction",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "transaction",
+                  "authorizations"
+                ],
                 "properties": {
-                  "amount_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
+                  "authorizations": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Authorization"
+                    },
+                    "description": "Authorizations are called witnesses in Bitcoin."
                   },
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  },
-                  "mainchain_address": {
-                    "type": "string"
-                  },
-                  "mainchain_fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
+                  "transaction": {
+                    "$ref": "#/components/schemas/Transaction"
                   }
                 }
               }

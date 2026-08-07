@@ -19,7 +19,6 @@ import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fork_countdown_timer.dart';
-import 'package:bitwindow/widgets/mining_banner.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -100,7 +99,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   }
 
   void _onNetworkChange() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   bool _handleGlobalKeyEvent(KeyEvent event) {
@@ -373,7 +374,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
     final fileName = filePath.split('/').last;
     final target = navigationRegistry[fileName];
 
-    if (target == null) return;
+    if (target == null) {
+      return;
+    }
 
     tabsRouter?.setActiveIndex(_tabIndex(target.tabIndex));
 
@@ -978,7 +981,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                   .firstOrNull,
                               availableWallets: _walletReader.availableWallets,
                               onWalletSelected: (walletId) async {
-                                if (_isWalletSwitching) return;
+                                if (_isWalletSwitching) {
+                                  return;
+                                }
 
                                 final log = GetIt.I.get<Logger>();
                                 log.i('Switching to wallet: $walletId');
@@ -998,7 +1003,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 // Run the switch in a microtask to allow UI to update first
                                 await Future.microtask(() async {
                                   try {
-                                    if (!mounted) return;
+                                    if (!mounted) {
+                                      return;
+                                    }
                                     // Clear previous wallet data FIRST
                                     GetIt.I.get<TransactionProvider>().clear();
                                     GetIt.I.get<BalanceProvider>().clear();
@@ -1048,6 +1055,13 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                               onCreateWallet: () async {
                                 await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
                               },
+                              onEditWallet: (wallet) async {
+                                final renamed = await showRenameWalletDialog(context, wallet.name);
+                                if (renamed == null || renamed == wallet.name) {
+                                  return;
+                                }
+                                await _walletReader.updateWalletMetadata(wallet.id, renamed, wallet.gradient);
+                              },
                               onBackgroundChanged: (walletId, newBackgroundSvg) async {
                                 final wallet = _walletReader.availableWallets
                                     .where((w) => w.id == walletId)
@@ -1096,7 +1110,9 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                               ),
                             ],
                             onChanged: (BitcoinNetwork? network) async {
-                              if (network == null || _confProvider.hasPrivateBitcoinConf) return;
+                              if (network == null || _confProvider.hasPrivateBitcoinConf) {
+                                return;
+                              }
                               await swapNetworkWithDatadirPrompt(context, _confProvider, network);
                             },
                           ),
@@ -1115,13 +1131,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       children: [
                         Expanded(
                           child: ForkCountdownHeader(
-                            child: MiningBannerHeader(
-                              child: Column(
-                                children: [
-                                  const NotificationBanner(),
-                                  Expanded(child: child),
-                                ],
-                              ),
+                            child: Column(
+                              children: [
+                                const NotificationBanner(),
+                                Expanded(child: child),
+                              ],
                             ),
                           ),
                         ),
@@ -1202,7 +1216,9 @@ class _StatusBarState extends State<StatusBar> {
   }
 
   void _onChange() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   String _getTimeSinceLastBlock() {

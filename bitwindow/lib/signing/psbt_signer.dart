@@ -84,9 +84,13 @@ class HwiPsbtSigner implements PsbtSigner {
           msg.contains('not found') ||
           msg.contains('no device') ||
           msg.contains('libusb');
-      if (!needsDevice || !context.mounted) rethrow;
+      if (!needsDevice || !context.mounted) {
+        rethrow;
+      }
       final unlocked = await showHardwareDevicePicker(context);
-      if (unlocked == null) rethrow;
+      if (unlocked == null) {
+        rethrow;
+      }
       // A re-locked device has no fingerprint; sign by path and carry the
       // passphrase so a hidden wallet resolves to the same account.
       final byPath = wmpb.HardwareDeviceSelector(

@@ -225,7 +225,9 @@ class CreateTransactionViewModel extends BaseViewModel {
   }
 
   Future<void> createTransaction(BuildContext context) async {
-    if (!canCreateTransaction) return;
+    if (!canCreateTransaction) {
+      return;
+    }
 
     try {
       _error = null;
@@ -234,7 +236,9 @@ class CreateTransactionViewModel extends BaseViewModel {
 
       final amount = double.parse(amountController.text);
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final resp = await _multisigLounge.createSpendPsbt(
         group: multisigGroupToProto(group),
@@ -293,7 +297,9 @@ class CreateTransactionViewModel extends BaseViewModel {
   }
 
   Future<void> signWithWalletKeys(BuildContext context) async {
-    if (createdPSBT == null || !hasWalletKeys) return;
+    if (createdPSBT == null || !hasWalletKeys) {
+      return;
+    }
 
     try {
       _error = null;

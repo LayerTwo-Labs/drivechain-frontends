@@ -71,12 +71,20 @@ class GenericAppConfig {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! GenericAppConfig) return false;
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other is! GenericAppConfig) {
+      return false;
+    }
 
-    if (settings.length != other.settings.length) return false;
+    if (settings.length != other.settings.length) {
+      return false;
+    }
     for (final key in settings.keys) {
-      if (settings[key] != other.settings[key]) return false;
+      if (settings[key] != other.settings[key]) {
+        return false;
+      }
     }
 
     return true;

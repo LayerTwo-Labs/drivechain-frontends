@@ -42,7 +42,9 @@ class ChatProvider extends ChangeNotifier {
   List<ChatMessage> get messages => _messages;
 
   List<ChatMessage> get currentConversation {
-    if (_selectedContact == null || _selectedIdentity == null) return [];
+    if (_selectedContact == null || _selectedIdentity == null) {
+      return [];
+    }
     return _messages.where((m) {
       final isWithContact =
           m.senderPubkey == _selectedContact!.encryptionPubkey ||
@@ -84,7 +86,9 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    if (!bitnamesRPC.connected) return;
+    if (!bitnamesRPC.connected) {
+      return;
+    }
     await Future.wait([
       fetchIdentities(),
       _loadContacts(),
@@ -95,7 +99,9 @@ class ChatProvider extends ChangeNotifier {
     // Load cached data first for quick startup
     await _loadCachedData();
 
-    if (!bitnamesRPC.connected) return;
+    if (!bitnamesRPC.connected) {
+      return;
+    }
 
     try {
       // Load hash-name mappings for friendly names
@@ -165,7 +171,9 @@ class ChatProvider extends ChangeNotifier {
 
   /// Search for a BitName by plaintext name using Blake3 hash
   BitnameEntry? searchBitNameByPlaintext(String searchText) {
-    if (searchText.isEmpty) return null;
+    if (searchText.isEmpty) {
+      return null;
+    }
 
     try {
       final searchHash = blake3Hex(utf8.encode(searchText.toLowerCase()));
@@ -180,7 +188,9 @@ class ChatProvider extends ChangeNotifier {
 
   /// Get filtered BitNames based on search text
   List<BitnameEntry> getFilteredBitNames(String searchText) {
-    if (searchText.isEmpty) return myIdentities;
+    if (searchText.isEmpty) {
+      return myIdentities;
+    }
 
     final searchLower = searchText.toLowerCase();
 
@@ -388,7 +398,9 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> fetchPaymail() async {
-    if (!bitnamesRPC.connected || _selectedIdentity == null) return;
+    if (!bitnamesRPC.connected || _selectedIdentity == null) {
+      return;
+    }
 
     try {
       final paymail = await bitnamesRPC.getPaymail();
@@ -400,24 +412,32 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> _processPaymail(Map<String, dynamic> paymail) async {
-    if (paymail.isEmpty || _selectedIdentity == null) return;
+    if (paymail.isEmpty || _selectedIdentity == null) {
+      return;
+    }
 
     final myEncryptionPubkey = _selectedIdentity!.details.encryptionPubkey;
-    if (myEncryptionPubkey == null) return;
+    if (myEncryptionPubkey == null) {
+      return;
+    }
 
     for (final entry in paymail.entries) {
       final outpointKey = entry.key;
       final data = entry.value as Map<String, dynamic>;
 
       // Skip if we already have this message
-      if (_messages.any((m) => m.id == outpointKey)) continue;
+      if (_messages.any((m) => m.id == outpointKey)) {
+        continue;
+      }
 
       final senderAddress = data['address'] as String;
       final content = data['content'] as Map<String, dynamic>;
       final memoBytes = data['memo'] as List<dynamic>;
 
       // Skip if no memo (no message content)
-      if (memoBytes.isEmpty) continue;
+      if (memoBytes.isEmpty) {
+        continue;
+      }
 
       // Extract value from content (BitcoinSats format)
       int? valueSats;
@@ -545,11 +565,15 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<ChatContact?> lookupBitName(String nameOrHash) async {
-    if (!bitnamesRPC.connected) return null;
+    if (!bitnamesRPC.connected) {
+      return null;
+    }
 
     try {
       final data = await bitnamesRPC.getBitNameData(nameOrHash);
-      if (data == null || data.encryptionPubkey == null) return null;
+      if (data == null || data.encryptionPubkey == null) {
+        return null;
+      }
 
       // Get an address for this identity
       final address = await bitnamesRPC.getNewAddress();

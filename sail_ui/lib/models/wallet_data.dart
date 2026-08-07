@@ -147,8 +147,12 @@ class MasterWallet {
       'name': name,
     };
 
-    if (bip39Binary != null) json['bip39_binary'] = bip39Binary!;
-    if (bip39Checksum != null) json['bip39_checksum'] = bip39Checksum!;
+    if (bip39Binary != null) {
+      json['bip39_binary'] = bip39Binary!;
+    }
+    if (bip39Checksum != null) {
+      json['bip39_checksum'] = bip39Checksum!;
+    }
     if (bip39ChecksumHex != null) {
       json['bip39_checksum_hex'] = bip39ChecksumHex!;
     }

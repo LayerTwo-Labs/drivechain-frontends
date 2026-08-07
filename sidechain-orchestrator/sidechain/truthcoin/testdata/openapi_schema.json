@@ -238,6 +238,484 @@
         }
       }
     },
+    "create_trade": {
+      "post": {
+        "description": "Build and sign a Trade transaction with a caller-supplied\n`prev_block_hash`, returning the hex-encoded signed\n`AuthorizedTransaction` *without* submitting it to the mempool.\n\nIntended for tests that need to exercise the validator's\nchain-binding behavior (e.g. submitting a trade bound to an\nout-of-window block hash). The returned tx can be submitted via\n[`push_tx`].",
+        "operationId": "create_trade",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Request to build and sign (but not submit) a Trade transaction with\na caller-supplied `prev_block_hash`.\n\n`shares_amount` is positive for buy, negative for sell. For sells,\n`trader_address` must be supplied and must own the shares.",
+                "required": [
+                  "market_id",
+                  "outcome_index",
+                  "shares_amount",
+                  "limit_sats",
+                  "prev_block_hash"
+                ],
+                "properties": {
+                  "limit_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "market_id": {
+                    "type": "string"
+                  },
+                  "outcome_index": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "prev_block_hash": {
+                    "type": "string",
+                    "description": "Hex-encoded block hash to bind the trade's PoW preimage and\nchain-recency check to."
+                  },
+                  "shares_amount": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "trader_address": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Address",
+                        "description": "Address of the share-holder (required for sells; ignored for buys,\nin which case the wallet's first address is used as trader)."
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Hex-encoded signed `AuthorizedTransaction` plus its txid.",
+                  "required": [
+                    "signed_tx_hex",
+                    "txid"
+                  ],
+                  "properties": {
+                    "signed_tx_hex": {
+                      "type": "string"
+                    },
+                    "txid": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "decision_claim": {
+      "post": {
+        "description": "Claim one or more decisions.\ndecision_type: \"binary\", \"scaled\", or \"category\"",
+        "operationId": "decision_claim",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision_type",
+                  "decisions",
+                  "tx_fee_sats"
+                ],
+                "properties": {
+                  "decision_type": {
+                    "type": "string"
+                  },
+                  "decisions": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/DecisionClaimItem"
+                    }
+                  },
+                  "increment": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "format": "double",
+                    "description": "Step size for valid vote values. Honored only when\n`decision_type == \"scaled\"`. Defaults to `1.0` when omitted.\n`(max - min)` must be an integer multiple of `increment`."
+                  },
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "format": "double"
+                  },
+                  "max_listing_fee_sats": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "format": "double"
+                  },
+                  "tx_fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "txid",
+                    "decision_ids",
+                    "listing_fee_paid_sats"
+                  ],
+                  "properties": {
+                    "decision_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "listing_fee_paid_sats": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "txid": {
+                      "$ref": "#/components/schemas/Txid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "decision_fee_for_id": {
+      "post": {
+        "description": "Compute the listing fee (sats) for claiming a specific decision_id.\nThe tier (and therefore the price multiplier) is determined by the\nid's decision_index field.",
+        "operationId": "decision_fee_for_id",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "u-int64",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "decision_get": {
+      "post": {
+        "description": "Get a specific decision by ID (includes is_voting status)",
+        "operationId": "decision_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "decision_id_hex",
+                        "period_index",
+                        "decision_index",
+                        "content"
+                      ],
+                      "properties": {
+                        "content": {
+                          "$ref": "#/components/schemas/DecisionContentInfo"
+                        },
+                        "decision_id_hex": {
+                          "type": "string"
+                        },
+                        "decision_index": {
+                          "type": "integer",
+                          "format": "u-int32",
+                          "minimum": 0
+                        },
+                        "period_index": {
+                          "type": "integer",
+                          "format": "u-int32",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "decision_list": {
+      "post": {
+        "description": "List decisions with optional filtering by period and state",
+        "operationId": "decision_list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "period": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "format": "u-int32",
+                        "minimum": 0
+                      },
+                      "status": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "$ref": "#/components/schemas/DecisionState"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "decision_id_hex",
+                      "period_index",
+                      "decision_index",
+                      "state"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "$ref": "#/components/schemas/DecisionInfo"
+                          }
+                        ]
+                      },
+                      "decision_id_hex": {
+                        "type": "string"
+                      },
+                      "decision_index": {
+                        "type": "integer",
+                        "format": "u-int32",
+                        "minimum": 0
+                      },
+                      "period_index": {
+                        "type": "integer",
+                        "format": "u-int32",
+                        "minimum": 0
+                      },
+                      "state": {
+                        "$ref": "#/components/schemas/DecisionState"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "decision_listing_fee": {
+      "post": {
+        "description": "Get listing fee info for a period",
+        "operationId": "decision_listing_fee",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "p_period",
+                    "p_floor",
+                    "mints",
+                    "tier_prices",
+                    "last_reprice_block",
+                    "period_capacity",
+                    "claimed"
+                  ],
+                  "properties": {
+                    "claimed": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "last_reprice_block": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    },
+                    "mints": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "p_floor": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "p_period": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "period_capacity": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "tier_prices": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "decision_status": {
+      "post": {
+        "description": "Get decision system status and configuration",
+        "operationId": "decision_status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "is_testing_mode",
+                    "blocks_per_period",
+                    "current_period",
+                    "current_period_name"
+                  ],
+                  "properties": {
+                    "blocks_per_period": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    },
+                    "current_period": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    },
+                    "current_period_name": {
+                      "type": "string"
+                    },
+                    "is_testing_mode": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "decrypt_msg": {
       "post": {
         "operationId": "decrypt_msg",
@@ -301,6 +779,33 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "forget_peer": {
+      "post": {
+        "description": "Delete peer from known_peers DB.\nConnections to the peer are not terminated.",
+        "operationId": "forget_peer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null
                 }
               }
             }
@@ -477,7 +982,7 @@
     },
     "get_new_address": {
       "post": {
-        "description": "Get a new address",
+        "description": "Generate a new address",
         "operationId": "get_new_address",
         "responses": {
           "200": {
@@ -495,7 +1000,7 @@
     },
     "get_new_encryption_key": {
       "post": {
-        "description": "Get new encryption key",
+        "description": "Generate new encryption key",
         "operationId": "get_new_encryption_key",
         "responses": {
           "200": {
@@ -514,7 +1019,7 @@
     },
     "get_new_verifying_key": {
       "post": {
-        "description": "Get new verifying/signing key",
+        "description": "Generate new verifying/signing key",
         "operationId": "get_new_verifying_key",
         "responses": {
           "200": {
@@ -672,6 +1177,31 @@
                                     }
                                   }
                                 }
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "Payout"
+                                ],
+                                "properties": {
+                                  "Payout": {
+                                    "type": "object",
+                                    "required": [
+                                      "hash",
+                                      "vout"
+                                    ],
+                                    "properties": {
+                                      "hash": {
+                                        "$ref": "#/components/schemas/MerkleRoot"
+                                      },
+                                      "vout": {
+                                        "type": "integer",
+                                        "format": "u-int32",
+                                        "minimum": 0
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             ]
                           }
@@ -778,6 +1308,24 @@
         }
       }
     },
+    "get_voter_address": {
+      "post": {
+        "description": "Get the voter address (index 0), used for reputation\nand voting identity",
+        "operationId": "get_voter_address",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "get_wallet_addresses": {
       "post": {
         "description": "Get wallet addresses, sorted by base58 encoding",
@@ -852,21 +1400,6 @@
                                 "properties": {
                                   "BitcoinWithdrawal": {
                                     "$ref": "#/components/schemas/WithdrawalOutputContent"
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "description": "Votecoin amount (out of 1,000,000 fixed supply)",
-                                "required": [
-                                  "Votecoin"
-                                ],
-                                "properties": {
-                                  "Votecoin": {
-                                    "type": "integer",
-                                    "format": "u-int32",
-                                    "description": "Votecoin amount (out of 1,000,000 fixed supply)",
-                                    "minimum": 0
                                   }
                                 }
                               },
@@ -973,6 +1506,61 @@
         }
       }
     },
+    "list_open_periods_with_pricing": {
+      "post": {
+        "description": "List open voting periods with the price the next claim would pay\nfor the cheapest available unlocked slot in each. For the GUI's\nper-dimension period picker.",
+        "operationId": "list_open_periods_with_pricing",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "period_index",
+                      "cheapest_available_slot_sats",
+                      "cheapest_available_tier",
+                      "slots_available_by_tier"
+                    ],
+                    "properties": {
+                      "cheapest_available_slot_sats": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "description": "Sats charged for the next claim if dropped into this period\n(cheapest available unlocked slot's tier price).",
+                        "minimum": 0
+                      },
+                      "cheapest_available_tier": {
+                        "type": "integer",
+                        "format": "u-int8",
+                        "description": "Tier index (0..=4) of the cheapest available slot.",
+                        "minimum": 0
+                      },
+                      "period_index": {
+                        "type": "integer",
+                        "format": "u-int32",
+                        "minimum": 0
+                      },
+                      "slots_available_by_tier": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "format": "u-int32",
+                          "minimum": 0
+                        },
+                        "description": "Remaining unlocked slots per tier (length 5)."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "list_peers": {
       "post": {
         "description": "List peers",
@@ -1064,21 +1652,6 @@
                               },
                               {
                                 "type": "object",
-                                "description": "Votecoin amount (out of 1,000,000 fixed supply)",
-                                "required": [
-                                  "Votecoin"
-                                ],
-                                "properties": {
-                                  "Votecoin": {
-                                    "type": "integer",
-                                    "format": "u-int32",
-                                    "description": "Votecoin amount (out of 1,000,000 fixed supply)",
-                                    "minimum": 0
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
                                 "description": "Market funds UTXO - treasury (is_fee=false) or author fees (is_fee=true)",
                                 "required": [
                                   "MarketFunds"
@@ -1126,6 +1699,46 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "market_amplify_beta": {
+      "post": {
+        "operationId": "market_amplify_beta",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "market_id",
+                  "amount_sats"
+                ],
+                "properties": {
+                  "amount_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "market_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -1223,7 +1836,7 @@
     },
     "market_create": {
       "post": {
-        "description": "Create a new prediction market",
+        "description": "Create a prediction market, optionally claiming new decisions in\nthe same tx. Each dimension references either an existing claimed\ndecision or carries new-claim metadata that will be allocated a\nslot and claimed before the market is built.",
         "operationId": "market_create",
         "requestBody": {
           "content": {
@@ -1234,7 +1847,7 @@
                   "title",
                   "description",
                   "dimensions",
-                  "fee_sats"
+                  "tx_fee_sats"
                 ],
                 "properties": {
                   "beta": {
@@ -1242,30 +1855,16 @@
                       "number",
                       "null"
                     ],
-                    "format": "double",
-                    "description": "Advanced: LMSR liquidity parameter controlling price sensitivity.\nHigher beta = more liquid = smaller price moves per trade.\nMutually exclusive with initial_liquidity - specify one or the other."
-                  },
-                  "category_txids": {
-                    "type": [
-                      "array",
-                      "null"
-                    ],
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Txid(s) for categorical dimensions in hex format - required when using [[...]] notation\nEach txid must be a ClaimCategorySlots transaction"
+                    "format": "double"
                   },
                   "description": {
                     "type": "string"
                   },
                   "dimensions": {
-                    "type": "string",
-                    "description": "Dimension specification in bracket notation.\nExamples: \"[004008]\", \"[004008,004009]\", \"[[004008,004009]]\""
-                  },
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/DimensionInput"
+                    }
                   },
                   "initial_liquidity": {
                     "type": [
@@ -1273,27 +1872,16 @@
                       "null"
                     ],
                     "format": "u-int64",
-                    "description": "Initial liquidity in satoshis to fund the market (recommended).\nBeta is derived: β = liquidity / ln(num_outcomes)\nMutually exclusive with beta - specify one or the other.",
                     "minimum": 0
                   },
-                  "residual_names": {
+                  "max_listing_fee_sats": {
                     "type": [
-                      "array",
+                      "integer",
                       "null"
                     ],
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Names for residual outcomes in categorical dimensions (one per [[...]])\ne.g., [\"Bengals\"] when explicit slots are Steelers/Ravens/Browns"
-                  },
-                  "tags": {
-                    "type": [
-                      "array",
-                      "null"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
+                    "format": "u-int64",
+                    "description": "Optional cap on the total listing fee paid for new claims.\nIf the computed total exceeds this, the RPC errors before broadcasting.",
+                    "minimum": 0
                   },
                   "title": {
                     "type": "string"
@@ -1304,6 +1892,35 @@
                       "null"
                     ],
                     "format": "double"
+                  },
+                  "tx_fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "tx_pow_difficulty": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int8",
+                    "minimum": 0
+                  },
+                  "tx_pow_hash_selector": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int8",
+                    "minimum": 0
+                  },
+                  "tx_pow_ordering": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int8",
+                    "minimum": 0
                   }
                 }
               }
@@ -1316,7 +1933,26 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "type": "object",
+                  "required": [
+                    "txid",
+                    "market_id",
+                    "claimed_decisions"
+                  ],
+                  "properties": {
+                    "claimed_decisions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ClaimedDecisionInfo"
+                      }
+                    },
+                    "market_id": {
+                      "type": "string"
+                    },
+                    "txid": {
+                      "$ref": "#/components/schemas/Txid"
+                    }
+                  }
                 }
               }
             }
@@ -1363,7 +1999,10 @@
                         "treasury",
                         "total_volume_sats",
                         "liquidity",
-                        "decision_slots"
+                        "decision_ids",
+                        "tx_pow_hash_selector",
+                        "tx_pow_ordering",
+                        "tx_pow_difficulty"
                       ],
                       "properties": {
                         "beta": {
@@ -1372,10 +2011,10 @@
                         },
                         "created_at_height": {
                           "type": "integer",
-                          "format": "u-int64",
+                          "format": "u-int32",
                           "minimum": 0
                         },
-                        "decision_slots": {
+                        "decision_ids": {
                           "type": "array",
                           "items": {
                             "type": "string"
@@ -1389,7 +2028,7 @@
                             "integer",
                             "null"
                           ],
-                          "format": "u-int64",
+                          "format": "u-int32",
                           "minimum": 0
                         },
                         "liquidity": {
@@ -1442,6 +2081,21 @@
                         "treasury": {
                           "type": "number",
                           "format": "double"
+                        },
+                        "tx_pow_difficulty": {
+                          "type": "integer",
+                          "format": "u-int8",
+                          "minimum": 0
+                        },
+                        "tx_pow_hash_selector": {
+                          "type": "integer",
+                          "format": "u-int8",
+                          "minimum": 0
+                        },
+                        "tx_pow_ordering": {
+                          "type": "integer",
+                          "format": "u-int8",
+                          "minimum": 0
                         }
                       }
                     }
@@ -1478,7 +2132,7 @@
                     "properties": {
                       "created_at_height": {
                         "type": "integer",
-                        "format": "u-int64",
+                        "format": "u-int32",
                         "minimum": 0
                       },
                       "description": {
@@ -1565,7 +2219,7 @@
                     },
                     "last_updated_height": {
                       "type": "integer",
-                      "format": "u-int64",
+                      "format": "u-int32",
                       "minimum": 0
                     },
                     "positions": {
@@ -1781,21 +2435,6 @@
                               },
                               {
                                 "type": "object",
-                                "description": "Votecoin with fixed supply of 1,000,000 units (u32)",
-                                "required": [
-                                  "Votecoin"
-                                ],
-                                "properties": {
-                                  "Votecoin": {
-                                    "type": "integer",
-                                    "format": "u-int32",
-                                    "description": "Votecoin with fixed supply of 1,000,000 units (u32)",
-                                    "minimum": 0
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
                                 "required": [
                                   "Withdrawal"
                                 ],
@@ -2003,6 +2642,31 @@
                                         }
                                       }
                                     }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "required": [
+                                      "Payout"
+                                    ],
+                                    "properties": {
+                                      "Payout": {
+                                        "type": "object",
+                                        "required": [
+                                          "hash",
+                                          "vout"
+                                        ],
+                                        "properties": {
+                                          "hash": {
+                                            "$ref": "#/components/schemas/MerkleRoot"
+                                          },
+                                          "vout": {
+                                            "type": "integer",
+                                            "format": "u-int32",
+                                            "minimum": 0
+                                          }
+                                        }
+                                      }
+                                    }
                                   }
                                 ]
                               },
@@ -2039,6 +2703,33 @@
                       }
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "push_tx": {
+      "post": {
+        "description": "Submit a hex-encoded borsh-serialized `AuthorizedTransaction` directly\nto the mempool. Returns the transaction id on success.\n\nIntended for tests and advanced clients that need to submit a\npre-signed transaction (e.g. to exercise validator paths like\nstale `prev_block_hash` rejection).",
+        "operationId": "push_tx",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -2220,344 +2911,6 @@
         }
       }
     },
-    "slot_claim": {
-      "post": {
-        "description": "Claim a decision slot",
-        "operationId": "slot_claim",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  },
-                  "is_scaled": {
-                    "type": "boolean"
-                  },
-                  "is_standard": {
-                    "type": "boolean"
-                  },
-                  "max": {
-                    "oneOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "integer",
-                        "format": "int64"
-                      }
-                    ]
-                  },
-                  "min": {
-                    "oneOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "integer",
-                        "format": "int64"
-                      }
-                    ]
-                  },
-                  "option_0_label": {
-                    "oneOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "option_1_label": {
-                    "oneOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "period_index": {
-                    "type": "integer",
-                    "format": "u-int32",
-                    "minimum": 0
-                  },
-                  "question": {
-                    "type": "string"
-                  },
-                  "slot_index": {
-                    "type": "integer",
-                    "format": "u-int32",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "slot_claim_category": {
-      "post": {
-        "description": "Claim multiple slots as a category (atomic transaction).\nReturns the txid which also serves as the category identifier.\nAll category slots are binary (is_scaled=false) by design.",
-        "operationId": "slot_claim_category",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "description": "Request to claim multiple slots as a category (atomic transaction)",
-                "required": [
-                  "slots",
-                  "is_standard",
-                  "fee_sats"
-                ],
-                "properties": {
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "description": "Transaction fee in satoshis",
-                    "minimum": 0
-                  },
-                  "is_standard": {
-                    "type": "boolean",
-                    "description": "Whether these are standard slots"
-                  },
-                  "slots": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/CategorySlotItem"
-                    },
-                    "description": "List of slots to claim as a category"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "slot_get": {
-      "post": {
-        "description": "Get a specific slot by ID (includes is_voting status)",
-        "operationId": "slot_get",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "type": "null"
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "slot_id_hex",
-                        "period_index",
-                        "slot_index",
-                        "content"
-                      ],
-                      "properties": {
-                        "content": {
-                          "$ref": "#/components/schemas/SlotContentInfo"
-                        },
-                        "period_index": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
-                        },
-                        "slot_id_hex": {
-                          "type": "string"
-                        },
-                        "slot_index": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "slot_list": {
-      "post": {
-        "description": "List slots with optional filtering by period and state",
-        "operationId": "slot_list",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "period": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
-                        "format": "u-int32",
-                        "minimum": 0
-                      },
-                      "status": {
-                        "oneOf": [
-                          {
-                            "type": "null"
-                          },
-                          {
-                            "$ref": "#/components/schemas/SlotState"
-                          }
-                        ]
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "slot_id_hex",
-                      "period_index",
-                      "slot_index",
-                      "state"
-                    ],
-                    "properties": {
-                      "decision": {
-                        "oneOf": [
-                          {
-                            "type": "null"
-                          },
-                          {
-                            "$ref": "#/components/schemas/DecisionInfo"
-                          }
-                        ]
-                      },
-                      "period_index": {
-                        "type": "integer",
-                        "format": "u-int32",
-                        "minimum": 0
-                      },
-                      "slot_id_hex": {
-                        "type": "string"
-                      },
-                      "slot_index": {
-                        "type": "integer",
-                        "format": "u-int32",
-                        "minimum": 0
-                      },
-                      "state": {
-                        "$ref": "#/components/schemas/SlotState"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "slot_status": {
-      "post": {
-        "description": "Get slot system status and configuration",
-        "operationId": "slot_status",
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "is_testing_mode",
-                    "blocks_per_period",
-                    "current_period",
-                    "current_period_name"
-                  ],
-                  "properties": {
-                    "blocks_per_period": {
-                      "type": "integer",
-                      "format": "u-int32",
-                      "minimum": 0
-                    },
-                    "current_period": {
-                      "type": "integer",
-                      "format": "u-int32",
-                      "minimum": 0
-                    },
-                    "current_period_name": {
-                      "type": "string"
-                    },
-                    "is_testing_mode": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "stop": {
       "post": {
         "description": "Stop the node",
@@ -2655,9 +3008,8 @@
                 "type": "object",
                 "properties": {
                   "amount": {
-                    "type": "integer",
-                    "format": "u-int32",
-                    "minimum": 0
+                    "type": "number",
+                    "format": "double"
                   },
                   "dest": {
                     "type": "string"
@@ -2804,7 +3156,7 @@
                     "properties": {
                       "block_height": {
                         "type": "integer",
-                        "format": "u-int64",
+                        "format": "u-int32",
                         "minimum": 0
                       },
                       "decision_id": {
@@ -2824,7 +3176,7 @@
                       "vote_value": {
                         "type": "number",
                         "format": "double",
-                        "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions, this is the denormalized value within the\ndecision's min/max bounds. For binary decisions, this is 0.0 or 1.0."
+                        "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions, the denormalized value aligned to the\ndecision's increment. For binary decisions, this is 0.0 or 1.0."
                       },
                       "voter_address": {
                         "type": "string"
@@ -2914,16 +3266,6 @@
                           "format": "u-int32",
                           "minimum": 0
                         },
-                        "redistribution": {
-                          "oneOf": [
-                            {
-                              "type": "null"
-                            },
-                            {
-                              "$ref": "#/components/schemas/RedistributionInfo"
-                            }
-                          ]
-                        },
                         "start_height": {
                           "type": "integer",
                           "format": "u-int32",
@@ -2950,51 +3292,6 @@
         }
       }
     },
-    "vote_register": {
-      "post": {
-        "description": "Register as a voter",
-        "operationId": "vote_register",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "fee_sats"
-                ],
-                "properties": {
-                  "fee_sats": {
-                    "type": "integer",
-                    "format": "u-int64",
-                    "minimum": 0
-                  },
-                  "reputation_bond_sats": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
-                    "format": "u-int64",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "vote_submit": {
       "post": {
         "description": "Submit one or more votes (batch)",
@@ -3014,7 +3311,7 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "description": "A single vote in a batch submission.",
+                      "description": "A single vote in a ballot submission.",
                       "required": [
                         "decision_id",
                         "vote_value"
@@ -3026,7 +3323,7 @@
                         "vote_value": {
                           "type": "number",
                           "format": "double",
-                          "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions with min/max bounds, enter the actual value\nwithin those bounds. The system handles internal normalization.\nFor binary decisions, use 0.0 (No) or 1.0 (Yes)."
+                          "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions, the value must equal `min + k * increment`\nfor some non-negative integer `k`, with `vote_value \u003c= max`.\nFor binary decisions, use 0.0 (No) or 1.0 (Yes)."
                         }
                       }
                     }
@@ -3052,7 +3349,7 @@
     },
     "vote_voter": {
       "post": {
-        "description": "Get full voter information (registration, reputation, participation)",
+        "description": "Get full voter information",
         "operationId": "vote_voter",
         "requestBody": {
           "content": {
@@ -3077,20 +3374,12 @@
                       "type": "object",
                       "required": [
                         "address",
-                        "is_registered",
-                        "reputation",
                         "votecoin_balance",
                         "total_votes",
                         "periods_active",
-                        "accuracy_score",
-                        "registered_at_height",
                         "is_active"
                       ],
                       "properties": {
-                        "accuracy_score": {
-                          "type": "number",
-                          "format": "double"
-                        },
                         "address": {
                           "type": "string"
                         },
@@ -3107,22 +3396,10 @@
                         "is_active": {
                           "type": "boolean"
                         },
-                        "is_registered": {
-                          "type": "boolean"
-                        },
                         "periods_active": {
                           "type": "integer",
                           "format": "u-int32",
                           "minimum": 0
-                        },
-                        "registered_at_height": {
-                          "type": "integer",
-                          "format": "u-int64",
-                          "minimum": 0
-                        },
-                        "reputation": {
-                          "type": "number",
-                          "format": "double"
                         },
                         "total_votes": {
                           "type": "integer",
@@ -3130,9 +3407,8 @@
                           "minimum": 0
                         },
                         "votecoin_balance": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
+                          "type": "number",
+                          "format": "double"
                         }
                       }
                     }
@@ -3159,42 +3435,25 @@
                     "type": "object",
                     "required": [
                       "address",
-                      "reputation",
+                      "votecoin_balance",
                       "total_votes",
-                      "periods_active",
-                      "accuracy_score",
-                      "registered_at_height",
                       "is_active"
                     ],
                     "properties": {
-                      "accuracy_score": {
-                        "type": "number",
-                        "format": "double"
-                      },
                       "address": {
                         "type": "string"
                       },
                       "is_active": {
                         "type": "boolean"
                       },
-                      "periods_active": {
-                        "type": "integer",
-                        "format": "u-int32",
-                        "minimum": 0
-                      },
-                      "registered_at_height": {
-                        "type": "integer",
-                        "format": "u-int64",
-                        "minimum": 0
-                      },
-                      "reputation": {
-                        "type": "number",
-                        "format": "double"
-                      },
                       "total_votes": {
                         "type": "integer",
                         "format": "u-int64",
                         "minimum": 0
+                      },
+                      "votecoin_balance": {
+                        "type": "number",
+                        "format": "double"
                       }
                     }
                   }
@@ -3224,9 +3483,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "integer",
-                  "format": "u-int32",
-                  "minimum": 0
+                  "type": "number",
+                  "format": "double"
                 }
               }
             }
@@ -3305,6 +3563,24 @@
           }
         }
       },
+      "BallotItem": {
+        "type": "object",
+        "description": "A single vote in a ballot submission.",
+        "required": [
+          "decision_id",
+          "vote_value"
+        ],
+        "properties": {
+          "decision_id": {
+            "type": "string"
+          },
+          "vote_value": {
+            "type": "number",
+            "format": "double",
+            "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions, the value must equal `min + k * increment`\nfor some non-negative integer `k`, with `vote_value \u003c= max`.\nFor binary decisions, use 0.0 (No) or 1.0 (Yes)."
+          }
+        }
+      },
       "BitcoinContent": {
         "type": "integer",
         "format": "u-int64",
@@ -3321,6 +3597,19 @@
           "authorizations"
         ],
         "properties": {
+          "actor_proofs": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/Authorization"
+                }
+              ]
+            }
+          },
           "authorizations": {
             "type": "array",
             "items": {
@@ -3368,49 +3657,26 @@
           }
         }
       },
-      "CategoryClaimRequest": {
+      "ClaimedDecisionInfo": {
         "type": "object",
-        "description": "Request to claim multiple slots as a category (atomic transaction)",
         "required": [
-          "slots",
-          "is_standard",
-          "fee_sats"
+          "id",
+          "period_index",
+          "listing_fee_paid_sats"
         ],
         "properties": {
-          "fee_sats": {
+          "id": {
+            "type": "string"
+          },
+          "listing_fee_paid_sats": {
             "type": "integer",
             "format": "u-int64",
-            "description": "Transaction fee in satoshis",
             "minimum": 0
           },
-          "is_standard": {
-            "type": "boolean",
-            "description": "Whether these are standard slots"
-          },
-          "slots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CategorySlotItem"
-            },
-            "description": "List of slots to claim as a category"
-          }
-        }
-      },
-      "CategorySlotItem": {
-        "type": "object",
-        "description": "A single slot item for category claim",
-        "required": [
-          "slot_id_hex",
-          "question"
-        ],
-        "properties": {
-          "question": {
-            "type": "string",
-            "description": "Human readable question for voters (<1000 bytes)"
-          },
-          "slot_id_hex": {
-            "type": "string",
-            "description": "Slot ID in hex format (e.g., \"004008\")"
+          "period_index": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
           }
         }
       },
@@ -3421,7 +3687,7 @@
           "outcomes",
           "first_loading",
           "certainty",
-          "reputation_updates",
+          "score_changes",
           "outliers",
           "vote_matrix_dimensions",
           "algorithm_version"
@@ -3443,7 +3709,7 @@
           },
           "outcomes": {
             "type": "object",
-            "description": "Final consensus outcomes for each decision (slot_id_hex -> value).\nFor scaled decisions, values are in real units (e.g., 270 electoral votes).\nFor binary decisions, values are 0.0 or 1.0.",
+            "description": "Final consensus outcomes for each decision (decision_id_hex -\u003e value).\nFor scaled decisions, values are in real units (e.g., 270 electoral votes).\nFor binary decisions, values are 0.0 or 1.0.",
             "additionalProperties": {
               "type": "number",
               "format": "double"
@@ -3458,10 +3724,10 @@
               "type": "string"
             }
           },
-          "reputation_updates": {
+          "score_changes": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/ReputationUpdate"
+              "$ref": "#/components/schemas/ScoreChange"
             },
             "propertyNames": {
               "type": "string"
@@ -3483,63 +3749,47 @@
           }
         }
       },
-      "CreateMarketRequest": {
+      "DecisionClaimItem": {
         "type": "object",
         "required": [
-          "title",
-          "description",
-          "dimensions",
-          "fee_sats"
+          "period_index",
+          "header"
         ],
         "properties": {
-          "beta": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "format": "double",
-            "description": "Advanced: LMSR liquidity parameter controlling price sensitivity.\nHigher beta = more liquid = smaller price moves per trade.\nMutually exclusive with initial_liquidity - specify one or the other."
-          },
-          "category_txids": {
-            "type": [
-              "array",
-              "null"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "description": "Txid(s) for categorical dimensions in hex format - required when using [[...]] notation\nEach txid must be a ClaimCategorySlots transaction"
-          },
           "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "header": {
             "type": "string"
           },
-          "dimensions": {
-            "type": "string",
-            "description": "Dimension specification in bracket notation.\nExamples: \"[004008]\", \"[004008,004009]\", \"[[004008,004009]]\""
-          },
-          "fee_sats": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
-          },
-          "initial_liquidity": {
+          "option_0_label": {
             "type": [
-              "integer",
+              "string",
               "null"
-            ],
-            "format": "u-int64",
-            "description": "Initial liquidity in satoshis to fund the market (recommended).\nBeta is derived: β = liquidity / ln(num_outcomes)\nMutually exclusive with beta - specify one or the other.",
-            "minimum": 0
+            ]
           },
-          "residual_names": {
+          "option_1_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "option_labels": {
             "type": [
               "array",
               "null"
             ],
             "items": {
               "type": "string"
-            },
-            "description": "Names for residual outcomes in categorical dimensions (one per [[...]])\ne.g., [\"Bengals\"] when explicit slots are Steelers/Ravens/Browns"
+            }
+          },
+          "period_index": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
           },
           "tags": {
             "type": [
@@ -3549,41 +3799,457 @@
             "items": {
               "type": "string"
             }
-          },
-          "title": {
+          }
+        }
+      },
+      "DecisionClaimRequest": {
+        "type": "object",
+        "required": [
+          "decision_type",
+          "decisions",
+          "tx_fee_sats"
+        ],
+        "properties": {
+          "decision_type": {
             "type": "string"
           },
-          "trading_fee": {
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionClaimItem"
+            }
+          },
+          "increment": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Step size for valid vote values. Honored only when\n`decision_type == \"scaled\"`. Defaults to `1.0` when omitted.\n`(max - min)` must be an integer multiple of `increment`."
+          },
+          "max": {
             "type": [
               "number",
               "null"
             ],
             "format": "double"
+          },
+          "max_listing_fee_sats": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "min": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "tx_fee_sats": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
           }
         }
+      },
+      "DecisionClaimResponse": {
+        "type": "object",
+        "required": [
+          "txid",
+          "decision_ids",
+          "listing_fee_paid_sats"
+        ],
+        "properties": {
+          "decision_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "listing_fee_paid_sats": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "txid": {
+            "$ref": "#/components/schemas/Txid"
+          }
+        }
+      },
+      "DecisionDetails": {
+        "type": "object",
+        "required": [
+          "decision_id_hex",
+          "period_index",
+          "decision_index",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/DecisionContentInfo"
+          },
+          "decision_id_hex": {
+            "type": "string"
+          },
+          "decision_index": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "period_index": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          }
+        }
+      },
+      "DecisionFilter": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "status": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DecisionState"
+              }
+            ]
+          }
+        }
+      },
+      "DecisionListItem": {
+        "type": "object",
+        "required": [
+          "decision_id_hex",
+          "period_index",
+          "decision_index",
+          "state"
+        ],
+        "properties": {
+          "decision": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DecisionInfo"
+              }
+            ]
+          },
+          "decision_id_hex": {
+            "type": "string"
+          },
+          "decision_index": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "period_index": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "state": {
+            "$ref": "#/components/schemas/DecisionState"
+          }
+        }
+      },
+      "DecisionListingFeeInfo": {
+        "type": "object",
+        "required": [
+          "p_period",
+          "p_floor",
+          "mints",
+          "tier_prices",
+          "last_reprice_block",
+          "period_capacity",
+          "claimed"
+        ],
+        "properties": {
+          "claimed": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "last_reprice_block": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "mints": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "p_floor": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "p_period": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "period_capacity": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "tier_prices": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "u-int64",
+              "minimum": 0
+            }
+          }
+        }
+      },
+      "DecisionPeriodStatus": {
+        "type": "object",
+        "required": [
+          "is_testing_mode",
+          "blocks_per_period",
+          "current_period",
+          "current_period_name"
+        ],
+        "properties": {
+          "blocks_per_period": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "current_period": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "current_period_name": {
+            "type": "string"
+          },
+          "is_testing_mode": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DecisionState": {
+        "type": "string",
+        "enum": [
+          "Created",
+          "Claimed",
+          "Voting",
+          "Resolved",
+          "Invalid"
+        ]
       },
       "DecisionSummary": {
         "type": "object",
         "required": [
-          "slot_id_hex",
-          "question",
+          "decision_id_hex",
+          "header",
           "is_standard",
-          "is_scaled"
+          "decision_type"
         ],
         "properties": {
-          "is_scaled": {
-            "type": "boolean"
+          "decision_id_hex": {
+            "type": "string"
+          },
+          "decision_type": {
+            "$ref": "#/components/schemas/DecisionType"
+          },
+          "header": {
+            "type": "string"
           },
           "is_standard": {
             "type": "boolean"
-          },
-          "question": {
-            "type": "string"
-          },
-          "slot_id_hex": {
-            "type": "string"
           }
         }
+      },
+      "DecisionType": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "Binary"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "Scaled"
+            ],
+            "properties": {
+              "Scaled": {
+                "type": "object",
+                "required": [
+                  "min",
+                  "max",
+                  "increment"
+                ],
+                "properties": {
+                  "increment": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "max": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "min": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Category"
+            ],
+            "properties": {
+              "Category": {
+                "type": "object",
+                "required": [
+                  "options"
+                ],
+                "properties": {
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "DimensionInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Reuse an existing on-chain decision by ID (hex).",
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "existing"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Claim a new decision in this same tx.\n`decision_type` is \"binary\", \"scaled\", or \"category\".\nFor \"scaled\", `min`/`max` are required; `increment` defaults to 1.0.\nFor \"category\", `option_labels` (\u003e= 2) are required.",
+            "required": [
+              "period_index",
+              "decision_type",
+              "header",
+              "type"
+            ],
+            "properties": {
+              "decision_type": {
+                "type": "string"
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "header": {
+                "type": "string"
+              },
+              "increment": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "format": "double"
+              },
+              "max": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "format": "double"
+              },
+              "min": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "format": "double"
+              },
+              "option_0_label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "option_1_label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "option_labels": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "period_index": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              },
+              "tags": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "new"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Per-dimension input for `market_create`. Each dimension is either\na reference to an already-claimed decision (`Existing`) or a request to\nclaim a new decision (`New`). The wallet derives the `Single` vs\n`Categorical` `DimensionSpec` from the decision's type."
       },
       "EncryptionPubKey": {
         "type": "string",
@@ -3610,21 +4276,6 @@
             "properties": {
               "BitcoinWithdrawal": {
                 "$ref": "#/components/schemas/WithdrawalOutputContent"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "Votecoin amount (out of 1,000,000 fixed supply)",
-            "required": [
-              "Votecoin"
-            ],
-            "properties": {
-              "Votecoin": {
-                "type": "integer",
-                "format": "u-int32",
-                "description": "Votecoin amount (out of 1,000,000 fixed supply)",
-                "minimum": 0
               }
             }
           },
@@ -3794,6 +4445,111 @@
           }
         }
       },
+      "MarketCreateRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "dimensions",
+          "tx_fee_sats"
+        ],
+        "properties": {
+          "beta": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dimensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DimensionInput"
+            }
+          },
+          "initial_liquidity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "max_listing_fee_sats": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "u-int64",
+            "description": "Optional cap on the total listing fee paid for new claims.\nIf the computed total exceeds this, the RPC errors before broadcasting.",
+            "minimum": 0
+          },
+          "title": {
+            "type": "string"
+          },
+          "trading_fee": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "tx_fee_sats": {
+            "type": "integer",
+            "format": "u-int64",
+            "minimum": 0
+          },
+          "tx_pow_difficulty": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "u-int8",
+            "minimum": 0
+          },
+          "tx_pow_hash_selector": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "u-int8",
+            "minimum": 0
+          },
+          "tx_pow_ordering": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "u-int8",
+            "minimum": 0
+          }
+        }
+      },
+      "MarketCreateResponse": {
+        "type": "object",
+        "required": [
+          "txid",
+          "market_id",
+          "claimed_decisions"
+        ],
+        "properties": {
+          "claimed_decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimedDecisionInfo"
+            }
+          },
+          "market_id": {
+            "type": "string"
+          },
+          "txid": {
+            "$ref": "#/components/schemas/Txid"
+          }
+        }
+      },
       "MarketData": {
         "type": "object",
         "required": [
@@ -3810,7 +4566,10 @@
           "treasury",
           "total_volume_sats",
           "liquidity",
-          "decision_slots"
+          "decision_ids",
+          "tx_pow_hash_selector",
+          "tx_pow_ordering",
+          "tx_pow_difficulty"
         ],
         "properties": {
           "beta": {
@@ -3819,10 +4578,10 @@
           },
           "created_at_height": {
             "type": "integer",
-            "format": "u-int64",
+            "format": "u-int32",
             "minimum": 0
           },
-          "decision_slots": {
+          "decision_ids": {
             "type": "array",
             "items": {
               "type": "string"
@@ -3836,7 +4595,7 @@
               "integer",
               "null"
             ],
-            "format": "u-int64",
+            "format": "u-int32",
             "minimum": 0
           },
           "liquidity": {
@@ -3889,6 +4648,21 @@
           "treasury": {
             "type": "number",
             "format": "double"
+          },
+          "tx_pow_difficulty": {
+            "type": "integer",
+            "format": "u-int8",
+            "minimum": 0
+          },
+          "tx_pow_hash_selector": {
+            "type": "integer",
+            "format": "u-int8",
+            "minimum": 0
+          },
+          "tx_pow_ordering": {
+            "type": "integer",
+            "format": "u-int8",
+            "minimum": 0
           }
         }
       },
@@ -4028,7 +4802,7 @@
         "properties": {
           "created_at_height": {
             "type": "integer",
-            "format": "u-int64",
+            "format": "u-int32",
             "minimum": 0
           },
           "description": {
@@ -4155,6 +4929,31 @@
                 }
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Payout"
+            ],
+            "properties": {
+              "Payout": {
+                "type": "object",
+                "required": [
+                  "hash",
+                  "vout"
+                ],
+                "properties": {
+                  "hash": {
+                    "$ref": "#/components/schemas/MerkleRoot"
+                  },
+                  "vout": {
+                    "type": "integer",
+                    "format": "u-int32",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
           }
         ]
       },
@@ -4192,21 +4991,6 @@
             "properties": {
               "BitcoinSats": {
                 "$ref": "#/components/schemas/BitcoinContent"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "Votecoin with fixed supply of 1,000,000 units (u32)",
-            "required": [
-              "Votecoin"
-            ],
-            "properties": {
-              "Votecoin": {
-                "type": "integer",
-                "format": "u-int32",
-                "description": "Votecoin with fixed supply of 1,000,000 units (u32)",
-                "minimum": 0
               }
             }
           },
@@ -4294,6 +5078,43 @@
           "Connected"
         ]
       },
+      "PeriodPricingSummary": {
+        "type": "object",
+        "required": [
+          "period_index",
+          "cheapest_available_slot_sats",
+          "cheapest_available_tier",
+          "slots_available_by_tier"
+        ],
+        "properties": {
+          "cheapest_available_slot_sats": {
+            "type": "integer",
+            "format": "u-int64",
+            "description": "Sats charged for the next claim if dropped into this period\n(cheapest available unlocked slot's tier price).",
+            "minimum": 0
+          },
+          "cheapest_available_tier": {
+            "type": "integer",
+            "format": "u-int8",
+            "description": "Tier index (0..=4) of the cheapest available slot.",
+            "minimum": 0
+          },
+          "period_index": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
+          },
+          "slots_available_by_tier": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "u-int32",
+              "minimum": 0
+            },
+            "description": "Remaining unlocked slots per tier (length 5)."
+          }
+        }
+      },
       "PeriodStats": {
         "type": "object",
         "required": [
@@ -4324,108 +5145,18 @@
           }
         }
       },
-      "RedistributionInfo": {
+      "ScoreChange": {
         "type": "object",
         "required": [
-          "period_id",
-          "total_redistributed",
-          "winners_count",
-          "losers_count",
-          "unchanged_count",
-          "conservation_check",
-          "block_height",
-          "is_applied",
-          "slots_affected"
+          "old_score",
+          "new_score"
         ],
         "properties": {
-          "block_height": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
-          },
-          "conservation_check": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "is_applied": {
-            "type": "boolean"
-          },
-          "losers_count": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "period_id": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "slots_affected": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "total_redistributed": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
-          },
-          "unchanged_count": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "winners_count": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          }
-        }
-      },
-      "RegisterVoterRequest": {
-        "type": "object",
-        "required": [
-          "fee_sats"
-        ],
-        "properties": {
-          "fee_sats": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
-          },
-          "reputation_bond_sats": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "u-int64",
-            "minimum": 0
-          }
-        }
-      },
-      "ReputationUpdate": {
-        "type": "object",
-        "required": [
-          "old_reputation",
-          "new_reputation",
-          "votecoin_proportion",
-          "compliance_score"
-        ],
-        "properties": {
-          "compliance_score": {
+          "new_score": {
             "type": "number",
             "format": "double"
           },
-          "new_reputation": {
-            "type": "number",
-            "format": "double"
-          },
-          "old_reputation": {
-            "type": "number",
-            "format": "double"
-          },
-          "votecoin_proportion": {
+          "old_score": {
             "type": "number",
             "format": "double"
           }
@@ -4483,129 +5214,6 @@
       },
       "Signature": {
         "type": "string"
-      },
-      "SlotDetails": {
-        "type": "object",
-        "required": [
-          "slot_id_hex",
-          "period_index",
-          "slot_index",
-          "content"
-        ],
-        "properties": {
-          "content": {
-            "$ref": "#/components/schemas/SlotContentInfo"
-          },
-          "period_index": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "slot_id_hex": {
-            "type": "string"
-          },
-          "slot_index": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          }
-        }
-      },
-      "SlotFilter": {
-        "type": "object",
-        "properties": {
-          "period": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "status": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlotState"
-              }
-            ]
-          }
-        }
-      },
-      "SlotListItem": {
-        "type": "object",
-        "required": [
-          "slot_id_hex",
-          "period_index",
-          "slot_index",
-          "state"
-        ],
-        "properties": {
-          "decision": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/DecisionInfo"
-              }
-            ]
-          },
-          "period_index": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "slot_id_hex": {
-            "type": "string"
-          },
-          "slot_index": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "state": {
-            "$ref": "#/components/schemas/SlotState"
-          }
-        }
-      },
-      "SlotState": {
-        "type": "string",
-        "enum": [
-          "Available",
-          "Claimed",
-          "Voting",
-          "Ossified"
-        ]
-      },
-      "SlotStatus": {
-        "type": "object",
-        "required": [
-          "is_testing_mode",
-          "blocks_per_period",
-          "current_period",
-          "current_period_name"
-        ],
-        "properties": {
-          "blocks_per_period": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "current_period": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "current_period_name": {
-            "type": "string"
-          },
-          "is_testing_mode": {
-            "type": "boolean"
-          }
-        }
       },
       "Transaction": {
         "type": "object",
@@ -4725,6 +5333,31 @@
                       }
                     }
                   }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "Payout"
+                  ],
+                  "properties": {
+                    "Payout": {
+                      "type": "object",
+                      "required": [
+                        "hash",
+                        "vout"
+                      ],
+                      "properties": {
+                        "hash": {
+                          "$ref": "#/components/schemas/MerkleRoot"
+                        },
+                        "vout": {
+                          "type": "integer",
+                          "format": "u-int32",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
                 }
               ]
             }
@@ -4765,155 +5398,82 @@
         "oneOf": [
           {
             "type": "object",
-            "description": "Claim a decision slot",
+            "description": "Claim one or more decisions.\nBinary: 1 entry. Scaled: 1 entry. Category: 2+ entries.",
             "required": [
-              "ClaimDecisionSlot"
+              "ClaimDecision"
             ],
             "properties": {
-              "ClaimDecisionSlot": {
-                "type": "object",
-                "description": "Claim a decision slot",
-                "required": [
-                  "slot_id_bytes",
-                  "is_standard",
-                  "is_scaled",
-                  "question"
-                ],
-                "properties": {
-                  "is_scaled": {
-                    "type": "boolean",
-                    "description": "Scaled (true) or Binary (false) decision"
-                  },
-                  "is_standard": {
-                    "type": "boolean",
-                    "description": "Whether it is a Standard slot or not"
-                  },
-                  "max": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
-                    "format": "int64",
-                    "description": "Max value (only for scaled decisions)"
-                  },
-                  "min": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
-                    "format": "int64",
-                    "description": "Min value (only for scaled decisions)"
-                  },
-                  "option_0_label": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "description": "Custom label for option 0 (binary decisions). Defaults to \"No\"."
-                  },
-                  "option_1_label": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "description": "Custom label for option 1 (binary decisions). Defaults to \"Yes\"."
-                  },
-                  "question": {
-                    "type": "string",
-                    "description": "Human readable question for voters (<1000 bytes)"
-                  },
-                  "slot_id_bytes": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "format": "u-int8",
-                      "minimum": 0
-                    },
-                    "description": "3 byte slot ID"
-                  }
-                }
+              "ClaimDecision": {
+                "$ref": "#/components/schemas/ClaimDecisionPayload",
+                "description": "Claim one or more decisions.\nBinary: 1 entry. Scaled: 1 entry. Category: 2+ entries."
               }
             }
           },
           {
             "type": "object",
-            "description": "Create a prediction market using dimension bracket notation\n\nDimension notation examples:\n- Single binary: `[004008]`\n- Multiple independent: `[004008,004009]`\n- Categorical (mutually exclusive): `[[004008,004009,00400a]]`\n- Mixed dimensions: `[004008,[004009,00400a]]`",
+            "description": "Create a prediction market using dimension bracket notation.\nThe initial LMSR beta is derived from the treasury output amount\n(`beta = treasury / ln(num_outcomes)`), so no beta field is needed.",
             "required": [
               "CreateMarket"
             ],
             "properties": {
               "CreateMarket": {
                 "type": "object",
-                "description": "Create a prediction market using dimension bracket notation\n\nDimension notation examples:\n- Single binary: `[004008]`\n- Multiple independent: `[004008,004009]`\n- Categorical (mutually exclusive): `[[004008,004009,00400a]]`\n- Mixed dimensions: `[004008,[004009,00400a]]`",
+                "description": "Create a prediction market using dimension bracket notation.\nThe initial LMSR beta is derived from the treasury output amount\n(`beta = treasury / ln(num_outcomes)`), so no beta field is needed.",
                 "required": [
                   "title",
                   "description",
                   "dimension_specs",
-                  "b"
+                  "new_claims"
                 ],
                 "properties": {
-                  "b": {
-                    "type": "number",
-                    "format": "double",
-                    "description": "LMSR beta parameter (required - liquidity calculated as b * ln(num_states))"
-                  },
-                  "category_txids": {
-                    "type": [
-                      "array",
-                      "null"
-                    ],
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "type": "integer",
-                        "format": "u-int8",
-                        "minimum": 0
-                      }
-                    },
-                    "description": "Txid(s) for categorical dimensions - required when using [[...]] notation\nEach txid must be a ClaimCategorySlots transaction"
-                  },
                   "description": {
-                    "type": "string",
-                    "description": "Market description"
+                    "type": "string"
                   },
                   "dimension_specs": {
                     "type": "array",
                     "items": {
                       "type": "string"
-                    },
-                    "description": "Parsed dimension specifications (internal use)"
+                    }
                   },
-                  "residual_names": {
-                    "type": [
-                      "array",
-                      "null"
-                    ],
+                  "new_claims": {
+                    "type": "array",
                     "items": {
-                      "type": "string"
-                    },
-                    "description": "Names for residual outcomes in categorical dimensions (one per [[...]])\ne.g., [\"Bengals\"] for AFC North when explicit slots are Steelers/Ravens/Browns"
-                  },
-                  "tags": {
-                    "type": [
-                      "array",
-                      "null"
-                    ],
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Categorization tags"
+                      "$ref": "#/components/schemas/ClaimDecisionPayload"
+                    }
                   },
                   "title": {
-                    "type": "string",
-                    "description": "Market title"
+                    "type": "string"
                   },
                   "trading_fee": {
                     "type": [
                       "number",
                       "null"
                     ],
-                    "format": "double",
-                    "description": "Trading fee percentage"
+                    "format": "double"
+                  },
+                  "tx_pow_difficulty": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int8",
+                    "minimum": 0
+                  },
+                  "tx_pow_hash_selector": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int8",
+                    "minimum": 0
+                  },
+                  "tx_pow_ordering": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int8",
+                    "minimum": 0
                   }
                 }
               }
@@ -4921,46 +5481,53 @@
           },
           {
             "type": "object",
-            "description": "Trade shares in a prediction market (buy or sell)\nSign of shares determines direction: positive = buy, negative = sell",
+            "description": "Trade shares in a prediction market (buy or sell).\n`outcome_index` is the position within the market's tradeable outcomes\n(i.e. index into `Market::get_valid_state_combos()`), not a full-state\ncombo index. Abstain/invalid states are voter-only and never tradeable.",
             "required": [
               "Trade"
             ],
             "properties": {
               "Trade": {
                 "type": "object",
-                "description": "Trade shares in a prediction market (buy or sell)\nSign of shares determines direction: positive = buy, negative = sell",
+                "description": "Trade shares in a prediction market (buy or sell).\n`outcome_index` is the position within the market's tradeable outcomes\n(i.e. index into `Market::get_valid_state_combos()`), not a full-state\ncombo index. Abstain/invalid states are voter-only and never tradeable.",
                 "required": [
                   "market_id",
                   "outcome_index",
                   "shares",
                   "trader",
-                  "limit_sats"
+                  "limit_sats",
+                  "prev_block_hash"
                 ],
                 "properties": {
                   "limit_sats": {
                     "type": "integer",
                     "format": "u-int64",
-                    "description": "Slippage limit: max total cost for buy, min net proceeds for sell (in satoshis)",
                     "minimum": 0
                   },
                   "market_id": {
-                    "$ref": "#/components/schemas/MarketId",
-                    "description": "Market ID standardized across all transaction types per Bitcoin Hivemind specifications"
+                    "$ref": "#/components/schemas/MarketId"
                   },
                   "outcome_index": {
                     "type": "integer",
                     "format": "u-int32",
-                    "description": "Outcome index to trade shares for",
                     "minimum": 0
+                  },
+                  "prev_block_hash": {
+                    "$ref": "#/components/schemas/BlockHash"
                   },
                   "shares": {
                     "type": "integer",
-                    "format": "int64",
-                    "description": "Number of whole shares to trade (positive = buy, negative = sell)"
+                    "format": "int64"
                   },
                   "trader": {
-                    "$ref": "#/components/schemas/Address",
-                    "description": "Trader address (required for sell ownership validation)"
+                    "$ref": "#/components/schemas/Address"
+                  },
+                  "tx_pow_nonce": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "u-int64",
+                    "minimum": 0
                   }
                 }
               }
@@ -4968,66 +5535,40 @@
           },
           {
             "type": "object",
-            "description": "Submit a vote for a decision in the current voting period",
+            "description": "Submit a vote for a decision",
             "required": [
               "SubmitVote"
             ],
             "properties": {
               "SubmitVote": {
                 "type": "object",
-                "description": "Submit a vote for a decision in the current voting period",
+                "description": "Submit a vote for a decision",
                 "required": [
-                  "slot_id_bytes",
+                  "voter",
+                  "decision_id_bytes",
                   "vote_value",
                   "voting_period"
                 ],
                 "properties": {
-                  "slot_id_bytes": {
+                  "decision_id_bytes": {
                     "type": "array",
                     "items": {
                       "type": "integer",
                       "format": "u-int8",
                       "minimum": 0
-                    },
-                    "description": "3 byte slot ID of the decision being voted on"
+                    }
                   },
                   "vote_value": {
                     "type": "number",
-                    "format": "double",
-                    "description": "The vote value (0.0-1.0 for binary, scaled range for scaled decisions)"
+                    "format": "double"
+                  },
+                  "voter": {
+                    "$ref": "#/components/schemas/Address"
                   },
                   "voting_period": {
                     "type": "integer",
                     "format": "u-int32",
-                    "description": "The voting period this vote belongs to",
                     "minimum": 0
-                  }
-                }
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "Register as a voter (one-time setup)",
-            "required": [
-              "RegisterVoter"
-            ],
-            "properties": {
-              "RegisterVoter": {
-                "type": "object",
-                "description": "Register as a voter (one-time setup)",
-                "required": [
-                  "initial_data"
-                ],
-                "properties": {
-                  "initial_data": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "format": "u-int8",
-                      "minimum": 0
-                    },
-                    "description": "Reserved for future voter metadata"
                   }
                 }
               }
@@ -5037,28 +5578,30 @@
             "type": "object",
             "description": "Submit multiple votes efficiently",
             "required": [
-              "SubmitVoteBatch"
+              "SubmitBallot"
             ],
             "properties": {
-              "SubmitVoteBatch": {
+              "SubmitBallot": {
                 "type": "object",
                 "description": "Submit multiple votes efficiently",
                 "required": [
+                  "voter",
                   "votes",
                   "voting_period"
                 ],
                 "properties": {
+                  "voter": {
+                    "$ref": "#/components/schemas/Address"
+                  },
                   "votes": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/VoteBatchItem"
-                    },
-                    "description": "List of votes to submit"
+                      "$ref": "#/components/schemas/BallotItem"
+                    }
                   },
                   "voting_period": {
                     "type": "integer",
                     "format": "u-int32",
-                    "description": "The voting period these votes belong to",
                     "minimum": 0
                   }
                 }
@@ -5067,43 +5610,58 @@
           },
           {
             "type": "object",
-            "description": "Claim multiple decision slots as a category (atomic)\nThe txid becomes the implicit category identifier\nNOTE: All category slots are binary (is_scaled=false) by design",
             "required": [
-              "ClaimCategorySlots"
+              "TransferReputation"
             ],
             "properties": {
-              "ClaimCategorySlots": {
+              "TransferReputation": {
                 "type": "object",
-                "description": "Claim multiple decision slots as a category (atomic)\nThe txid becomes the implicit category identifier\nNOTE: All category slots are binary (is_scaled=false) by design",
                 "required": [
-                  "slots",
-                  "is_standard"
+                  "sender",
+                  "dest",
+                  "amount"
                 ],
                 "properties": {
-                  "is_standard": {
-                    "type": "boolean",
-                    "description": "Whether these are standard slots"
+                  "amount": {
+                    "type": "number",
+                    "format": "double"
                   },
-                  "slots": {
-                    "type": "array",
-                    "items": {
-                      "type": "array",
-                      "items": false,
-                      "prefixItems": [
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "integer",
-                            "format": "u-int8",
-                            "minimum": 0
-                          }
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "description": "List of (slot_id_bytes, question) pairs"
+                  "dest": {
+                    "$ref": "#/components/schemas/Address"
+                  },
+                  "sender": {
+                    "$ref": "#/components/schemas/Address"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Amplify a market's LMSR beta by funding its treasury.\nOnly the market author may submit this transaction.",
+            "required": [
+              "AmplifyBeta"
+            ],
+            "properties": {
+              "AmplifyBeta": {
+                "type": "object",
+                "description": "Amplify a market's LMSR beta by funding its treasury.\nOnly the market author may submit this transaction.",
+                "required": [
+                  "market_id",
+                  "amount",
+                  "market_author"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  },
+                  "market_author": {
+                    "$ref": "#/components/schemas/Address"
+                  },
+                  "market_id": {
+                    "$ref": "#/components/schemas/MarketId"
                   }
                 }
               }
@@ -5153,7 +5711,7 @@
           },
           "last_updated_height": {
             "type": "integer",
-            "format": "u-int64",
+            "format": "u-int32",
             "minimum": 0
           },
           "positions": {
@@ -5179,24 +5737,6 @@
       "VerifyingKey": {
         "type": "string",
         "description": "Wrapper around x25519 pubkeys"
-      },
-      "VoteBatchItem": {
-        "type": "object",
-        "description": "A single vote in a batch submission.",
-        "required": [
-          "decision_id",
-          "vote_value"
-        ],
-        "properties": {
-          "decision_id": {
-            "type": "string"
-          },
-          "vote_value": {
-            "type": "number",
-            "format": "double",
-            "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions with min/max bounds, enter the actual value\nwithin those bounds. The system handles internal normalization.\nFor binary decisions, use 0.0 (No) or 1.0 (Yes)."
-          }
-        }
       },
       "VoteFilter": {
         "type": "object",
@@ -5242,7 +5782,7 @@
         "properties": {
           "block_height": {
             "type": "integer",
-            "format": "u-int64",
+            "format": "u-int32",
             "minimum": 0
           },
           "decision_id": {
@@ -5262,7 +5802,7 @@
           "vote_value": {
             "type": "number",
             "format": "double",
-            "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions, this is the denormalized value within the\ndecision's min/max bounds. For binary decisions, this is 0.0 or 1.0."
+            "description": "The vote value in real units (e.g., 270 for electoral votes).\nFor scaled decisions, the denormalized value aligned to the\ndecision's increment. For binary decisions, this is 0.0 or 1.0."
           },
           "voter_address": {
             "type": "string"
@@ -5273,42 +5813,25 @@
         "type": "object",
         "required": [
           "address",
-          "reputation",
+          "votecoin_balance",
           "total_votes",
-          "periods_active",
-          "accuracy_score",
-          "registered_at_height",
           "is_active"
         ],
         "properties": {
-          "accuracy_score": {
-            "type": "number",
-            "format": "double"
-          },
           "address": {
             "type": "string"
           },
           "is_active": {
             "type": "boolean"
           },
-          "periods_active": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
-          },
-          "registered_at_height": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
-          },
-          "reputation": {
-            "type": "number",
-            "format": "double"
-          },
           "total_votes": {
             "type": "integer",
             "format": "u-int64",
             "minimum": 0
+          },
+          "votecoin_balance": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -5316,20 +5839,12 @@
         "type": "object",
         "required": [
           "address",
-          "is_registered",
-          "reputation",
           "votecoin_balance",
           "total_votes",
           "periods_active",
-          "accuracy_score",
-          "registered_at_height",
           "is_active"
         ],
         "properties": {
-          "accuracy_score": {
-            "type": "number",
-            "format": "double"
-          },
           "address": {
             "type": "string"
           },
@@ -5346,22 +5861,10 @@
           "is_active": {
             "type": "boolean"
           },
-          "is_registered": {
-            "type": "boolean"
-          },
           "periods_active": {
             "type": "integer",
             "format": "u-int32",
             "minimum": 0
-          },
-          "registered_at_height": {
-            "type": "integer",
-            "format": "u-int64",
-            "minimum": 0
-          },
-          "reputation": {
-            "type": "number",
-            "format": "double"
           },
           "total_votes": {
             "type": "integer",
@@ -5369,9 +5872,8 @@
             "minimum": 0
           },
           "votecoin_balance": {
-            "type": "integer",
-            "format": "u-int32",
-            "minimum": 0
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -5418,16 +5920,6 @@
             "type": "integer",
             "format": "u-int32",
             "minimum": 0
-          },
-          "redistribution": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/RedistributionInfo"
-              }
-            ]
           },
           "start_height": {
             "type": "integer",

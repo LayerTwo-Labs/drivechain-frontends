@@ -30,10 +30,14 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
   }
 
   void _onConfProviderChanged() {
-    if (_isDisposed) return;
+    if (_isDisposed) {
+      return;
+    }
     // Don't clobber the editor while the user is mid-edit — the conf
     // provider polls every 5s and would otherwise wipe in-progress changes.
-    if (hasUnsavedChanges) return;
+    if (hasUnsavedChanges) {
+      return;
+    }
     _rawConfigText = null;
     currentPreset = ConfigPreset.custom;
     loadConfig();
@@ -71,7 +75,9 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
   }
 
   void updateSetting(String key, dynamic value, {String? section}) {
-    if (workingConfig == null) return;
+    if (workingConfig == null) {
+      return;
+    }
 
     if (value == null || value.toString().isEmpty) {
       workingConfig!.removeSetting(key, section: section);
@@ -86,7 +92,9 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
   }
 
   Future<void> saveConfig() async {
-    if (workingConfig == null && _rawConfigText == null) return;
+    if (workingConfig == null && _rawConfigText == null) {
+      return;
+    }
 
     try {
       isLoading = true;
@@ -125,13 +133,17 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
   Future<void> applyAndRestart(BuildContext context) async {
     if (hasUnsavedChanges) {
       await saveConfig();
-      if (errorMessage != null) return;
+      if (errorMessage != null) {
+        return;
+      }
     }
     if (!canRestart) {
       log.w('applyAndRestart: BinaryProvider not registered, skipping restart');
       return;
     }
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => const L1RestartPage(
@@ -151,7 +163,9 @@ class BitcoinConfigEditorViewModel extends ChangeNotifier {
       final defaultContent = confProvider.getDefaultConfig();
       workingConfig = BitcoinConfig.parse(defaultContent);
     } else {
-      if (workingConfig == null) return;
+      if (workingConfig == null) {
+        return;
+      }
 
       final presetSettings = ConfigPresets.getPresetSettings(preset);
 

@@ -57,7 +57,9 @@ class CoreVariantProvider extends ChangeNotifier {
     required Iterable<String> visibleIds,
   }) {
     final ids = visibleIds.toList();
-    if (ids.contains(reportedActiveId)) return reportedActiveId;
+    if (ids.contains(reportedActiveId)) {
+      return reportedActiveId;
+    }
     return ids.isEmpty ? '' : ids.first;
   }
 
@@ -65,7 +67,9 @@ class CoreVariantProvider extends ChangeNotifier {
   /// downloads the new build if needed, and restarts. Errors are absorbed
   /// into [lastError]; UI surfaces them via [notifyListeners].
   Future<void> setVariant(String id) async {
-    if (_busy) return;
+    if (_busy) {
+      return;
+    }
     _busy = true;
     _lastError = null;
     notifyListeners();

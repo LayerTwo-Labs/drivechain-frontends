@@ -5,6 +5,7 @@ import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.connect.client.dart';
 import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
+import 'package:sail_ui/rpcs/orchestrator_bmm_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_multisig_lounge_rpc.dart';
 import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
 
@@ -29,6 +30,7 @@ class OrchestratorRPC {
   late OrchestratorServiceClient _unaryClient;
   late OrchestratorServiceClient _streamClient;
   late OrchestratorWalletRPC wallet;
+  late OrchestratorBmmRPC bmm;
   late OrchestratorMultisigLoungeRPC multisigLounge;
 
   /// btc-buf BitcoinService — single canonical bitcoind proxy for all
@@ -59,6 +61,7 @@ class OrchestratorRPC {
     _unaryClient = OrchestratorServiceClient(unaryTransport);
     _streamClient = OrchestratorServiceClient(streamTransport);
     wallet = OrchestratorWalletRPC.fromTransports(unary: unaryTransport, stream: streamTransport);
+    bmm = OrchestratorBmmRPC.fromTransports(unary: unaryTransport, stream: streamTransport);
     multisigLounge = OrchestratorMultisigLoungeRPC.fromTransport(unaryTransport);
     bitcoind = BitcoinServiceClient(unaryTransport);
   }
@@ -89,7 +92,9 @@ class OrchestratorRPC {
   /// transport rebuild — streaming consumers should use [StreamSupervisor]
   /// instead.
   bool recreateIfHttp2Error(Object e) {
-    if (!isHttp2ConnectionError(e)) return false;
+    if (!isHttp2ConnectionError(e)) {
+      return false;
+    }
     recreateConnection();
     return true;
   }
@@ -167,6 +172,10 @@ class OrchestratorRPC {
 
   Future<GetCoreMempoolInfoResponse> getCoreMempoolInfo() {
     return _unaryClient.getCoreMempoolInfo(GetCoreMempoolInfoRequest());
+  }
+
+  Future<GetBmmContextResponse> getBmmContext() {
+    return _unaryClient.getBmmContext(GetBmmContextRequest());
   }
 
   Future<CoreRawCallResponse> coreRawCall(

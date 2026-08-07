@@ -63,7 +63,9 @@ class FeeCoinNewsView extends ViewModelWidget<FeeCoinNewsViewModel> {
               SailDropdownButton<String>(
                 items: viewModel.topicItems,
                 onChanged: (value) {
-                  if (value != null) viewModel.setTopic(value);
+                  if (value != null) {
+                    viewModel.setTopic(value);
+                  }
                 },
                 value: viewModel.selectedTopic,
                 hint: 'Select topic',
@@ -110,14 +112,18 @@ class FeeCoinNewsViewModel extends BaseViewModel {
       .toList();
 
   List<CoinNews> get entries {
-    if (loading) return [...dummyData];
+    if (loading) {
+      return [...dummyData];
+    }
 
     return _newsProvider.news.where((news) => news.topic == selectedTopic).toList()
       ..sort((a, b) => b.feeSats.compareTo(a.feeSats));
   }
 
   Future<void> _loadTopic() async {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
 
     final loaded = (await _settings.getValue(FeeTopicSetting(_topicKey))).value;
     selectedTopic = loaded.isNotEmpty ? loaded : (topics.isNotEmpty ? topics.first.topic : null);
@@ -161,7 +167,9 @@ class FeeCoinNewsLargeView extends ViewModelWidget<FeeCoinNewsLargeViewModel> {
                         SailDropdownButton<String>(
                           items: viewModel.topicItems,
                           onChanged: (value) {
-                            if (value != null) viewModel.setLeftTopic(value);
+                            if (value != null) {
+                              viewModel.setLeftTopic(value);
+                            }
                           },
                           value: viewModel.leftTopic,
                         ),
@@ -191,7 +199,9 @@ class FeeCoinNewsLargeView extends ViewModelWidget<FeeCoinNewsLargeViewModel> {
                         SailDropdownButton<String>(
                           items: viewModel.topicItems,
                           onChanged: (value) {
-                            if (value != null) viewModel.setRightTopic(value);
+                            if (value != null) {
+                              viewModel.setRightTopic(value);
+                            }
                           },
                           value: viewModel.rightTopic,
                         ),
@@ -267,14 +277,18 @@ class FeeCoinNewsLargeViewModel extends BaseViewModel {
   List<CoinNews> get rightEntries => _entriesFor(rightTopic);
 
   List<CoinNews> _entriesFor(String topic) {
-    if (loading) return [...dummyData];
+    if (loading) {
+      return [...dummyData];
+    }
 
     return _newsProvider.news.where((news) => news.topic == topic).toList()
       ..sort((a, b) => b.feeSats.compareTo(a.feeSats));
   }
 
   Future<void> _loadTopics() async {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
 
     final left = (await _settings.getValue(FeeTopicSetting(_leftKey))).value;
     final right = (await _settings.getValue(FeeTopicSetting(_rightKey))).value;
@@ -347,7 +361,9 @@ class FeeCoinNewsTable extends StatelessWidget {
           emptyPlaceholder: 'No news articles yet',
           drawGrid: true,
           onSelectedRow: (rowId) {
-            if (rowId == null || onArticleSelected == null) return;
+            if (rowId == null || onArticleSelected == null) {
+              return;
+            }
             final index = int.tryParse(rowId);
             if (index != null && index < entries.length) {
               onArticleSelected!(entries[index]);

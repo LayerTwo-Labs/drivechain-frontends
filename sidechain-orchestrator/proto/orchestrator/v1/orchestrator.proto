@@ -130,6 +130,10 @@ service OrchestratorService {
   // Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
   rpc GetCoreMempoolInfo(GetCoreMempoolInfoRequest) returns (GetCoreMempoolInfoResponse);
 
+  // Parent-chain state the sidechain BMM tab bids against: the tip a request
+  // targets, the fee rate it competes with, mempool depth.
+  rpc GetBmmContext(GetBmmContextRequest) returns (GetBmmContextResponse);
+
   // Generic raw bitcoind RPC. Optional `wallet` field routes the call to
   // /wallet/{name} on bitcoind for wallet-scoped RPCs.
   rpc CoreRawCall(CoreRawCallRequest) returns (CoreRawCallResponse);
@@ -435,6 +439,9 @@ message GetSyncStatusResponse {
   // "Scanning external addresses — 12 checked, 3 used". The bottom-nav sync
   // display shows it alongside daemon sync status.
   string wallet_sync_status = 4;
+  // Tip the enforcer's own wallet is synced to. The wallet scans esplora
+  // separately from the validator, so it can lag behind `enforcer`.
+  ChainSync enforcer_wallet = 5;
 }
 
 // SidechainType keeps the response strongly-typed so callers don't have to
@@ -614,6 +621,21 @@ message GetCoreMempoolInfoResponse {
   bool full_rbf = 11;
 }
 
+message GetBmmContextRequest {}
+
+// Parent-chain state a BMM miner bids against. A sidechain block only
+// connects when a mainchain miner includes its commitment, so the tip is
+// the block the next request targets and the fee rate is what the bid
+// competes with. fee_rate_sat_vb is 0 when bitcoind cannot yet estimate.
+message GetBmmContextResponse {
+  int32 mainchain_height = 1;
+  string mainchain_tip = 2;
+  // Fee rate for confirmation in the next block, sat/vB.
+  double fee_rate_sat_vb = 3;
+  int64 mempool_txns = 4;
+  string warnings = 5;
+}
+
 message CoreRawCallRequest {
   // bitcoind RPC method name (e.g. "finalizepsbt").
   string method = 1;
@@ -660,6 +682,9 @@ message GetForkStatusResponse {
   bool show_countdown = 8;
   // Per-wallet claimable coins, with the exact UTXOs the sweep spends.
   repeated ForkWalletClaim claims = 9;
+  // Name of the fork being counted down to ("Drynet 4"), from the published
+  // catalog. A rehearsal must never read as the real eCash fork.
+  string network_name = 10;
 }
 
 message ForkWalletClaim {

@@ -28,7 +28,9 @@ class NetworkProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
-    if (!bitwindowd.connected || _isFetching) return;
+    if (!bitwindowd.connected || _isFetching) {
+      return;
+    }
     _isFetching = true;
 
     try {
@@ -83,7 +85,9 @@ class NetworkProvider extends ChangeNotifier {
 
   /// Get bandwidth history filtered to last N seconds
   List<BandwidthDataPoint> getHistoryForDuration(Duration duration) {
-    if (bandwidthHistory.isEmpty) return [];
+    if (bandwidthHistory.isEmpty) {
+      return [];
+    }
 
     final cutoff = DateTime.now().subtract(duration);
     return bandwidthHistory.where((dp) => dp.time.isAfter(cutoff)).toList();
@@ -91,13 +95,17 @@ class NetworkProvider extends ChangeNotifier {
 
   /// Get the current RX rate in bytes/sec
   double get currentRxRate {
-    if (bandwidthHistory.isEmpty) return 0;
+    if (bandwidthHistory.isEmpty) {
+      return 0;
+    }
     return bandwidthHistory.last.rxBytesPerSec;
   }
 
   /// Get the current TX rate in bytes/sec
   double get currentTxRate {
-    if (bandwidthHistory.isEmpty) return 0;
+    if (bandwidthHistory.isEmpty) {
+      return 0;
+    }
     return bandwidthHistory.last.txBytesPerSec;
   }
 

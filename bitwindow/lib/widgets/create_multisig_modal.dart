@@ -460,10 +460,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   String get bech32HRP => isMainnet ? 'bc' : 'tb';
 
   bool _isValidXpub(String xpub) {
-    if (xpub.isEmpty) return false;
+    if (xpub.isEmpty) {
+      return false;
+    }
 
-    if (!xpub.startsWith(xpubPrefix)) return false;
-    if (xpub.length < 100 || xpub.length > 120) return false;
+    if (!xpub.startsWith(xpubPrefix)) {
+      return false;
+    }
+    if (xpub.length < 100 || xpub.length > 120) {
+      return false;
+    }
     try {
       base58.decode(xpub);
       return true;
@@ -586,7 +592,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   }
 
   Future<void> nextStep() async {
-    if (!canProceed) return;
+    if (!canProceed) {
+      return;
+    }
 
     final nameAlreadyUsed = await _isNameAlreadyUsed(nameController.text.trim());
     if (nameAlreadyUsed) {
@@ -625,7 +633,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         throw Exception('HD Wallet not properly initialized. Please ensure wallet is set up.');
       }
 
-      if (!canGenerateKey) return;
+      if (!canGenerateKey) {
+        return;
+      }
 
       final accountIndex = await _hdWallet.getNextAccountIndex(_sessionUsedAccountIndices);
       _sessionUsedAccountIndices.add(accountIndex);
@@ -685,7 +695,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
         dialogTitle: 'Select Key File to Import',
       );
 
-      if (result == null || result.files.isEmpty) return;
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
 
       final file = result.files.first;
       if (file.path == null) {
@@ -743,7 +755,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   }
 
   Future<void> saveKey() async {
-    if (!canSaveKey) return;
+    if (!canSaveKey) {
+      return;
+    }
 
     if (keys.length >= n) {
       modalError = 'Cannot add more than $n keys to this multisig group';
@@ -840,7 +854,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   }
 
   Future<void> saveMultisigGroup(BuildContext context) async {
-    if (!canSaveGroup) return;
+    if (!canSaveGroup) {
+      return;
+    }
 
     try {
       modalError = null;
@@ -918,7 +934,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
   Future<String> _broadcastMultisigGroup(MultisigGroup group) async {
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final resp = await _multisigLounge.publishGroup(
         group: multisigGroupToProto(group),
@@ -1094,7 +1112,9 @@ class ImportMultisigModalViewModel extends BaseViewModel {
 
       final txid = txidController.text.trim();
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final resp = await _multisigLounge.importGroupFromTxid(txid: txid, walletId: walletId);
 
@@ -1124,7 +1144,9 @@ class ImportMultisigModalViewModel extends BaseViewModel {
   }
 
   Future<void> importGroup(BuildContext context) async {
-    if (importedGroup == null || processedKeys == null) return;
+    if (importedGroup == null || processedKeys == null) {
+      return;
+    }
 
     try {
       modalError = null;

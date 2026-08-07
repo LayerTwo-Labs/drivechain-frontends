@@ -162,7 +162,9 @@ class NotificationStreamProvider extends ChangeNotifier {
   }
 
   String _formatTxid(String txid) {
-    if (txid.length <= 16) return txid;
+    if (txid.length <= 16) {
+      return txid;
+    }
     return '${txid.substring(0, 8)}...${txid.substring(txid.length - 8)}';
   }
 

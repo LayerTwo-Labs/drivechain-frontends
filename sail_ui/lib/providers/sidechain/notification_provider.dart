@@ -36,7 +36,9 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   Future<void> _persist() async {
-    if (!GetIt.I.isRegistered<ClientSettings>()) return;
+    if (!GetIt.I.isRegistered<ClientSettings>()) {
+      return;
+    }
     await GetIt.I.get<ClientSettings>().setValue(
       NotificationHistorySetting(newValue: NotificationHistory(items: history)),
     );
@@ -45,7 +47,9 @@ class NotificationProvider extends ChangeNotifier {
   /// The banner to pin, or null. Only the newest unread one is ever shown.
   NotificationItem? get activeBanner {
     for (final item in history) {
-      if (item.style == NotificationStyle.banner && !item.read) return item;
+      if (item.style == NotificationStyle.banner && !item.read) {
+        return item;
+      }
     }
     return null;
   }
@@ -62,7 +66,9 @@ class NotificationProvider extends ChangeNotifier {
     String action = '',
     String? id,
   }) {
-    if (id != null && history.any((n) => n.id == id)) return;
+    if (id != null && history.any((n) => n.id == id)) {
+      return;
+    }
 
     final timestamp = DateTime.now();
     history.insert(
@@ -82,7 +88,9 @@ class NotificationProvider extends ChangeNotifier {
     notifyListeners();
 
     // A banner is already pinned on screen; a toast on top would double up.
-    if (style == NotificationStyle.banner) return;
+    if (style == NotificationStyle.banner) {
+      return;
+    }
 
     late final SailNotification notification;
     notification = SailNotification(
@@ -114,7 +122,9 @@ class NotificationProvider extends ChangeNotifier {
   /// Drops the pinned banner. The entry stays in the bell history.
   Future<void> markRead(String id) async {
     final i = history.indexWhere((n) => n.id == id);
-    if (i == -1 || history[i].read) return;
+    if (i == -1 || history[i].read) {
+      return;
+    }
     history[i] = history[i].copyWith(read: true);
     await _persist();
     notifyListeners();

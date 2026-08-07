@@ -29,7 +29,9 @@ class FileStorage implements KeyValueStore {
   FileStorage._(this.file);
 
   Future<void> _ensureLoaded() async {
-    if (_loaded) return;
+    if (_loaded) {
+      return;
+    }
 
     if (await file.exists()) {
       try {

@@ -11,6 +11,7 @@
   "[dart]": {
     "editor.rulers": [120]
   },
+  "dart.lineLength": 120,
   "cmake.sourceDirectory": "/Users/bo/code/drivechain-frontends/clients/bitwindow/linux",
   "files.exclude": {
     "**/.git": true,

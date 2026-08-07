@@ -5,14 +5,18 @@ import 'dart:typed_data';
 
 /// Retries an async operation with exponential backoff on Windows.
 Future<T> _withRetry<T>(Future<T> Function() op) async {
-  if (!io.Platform.isWindows) return op();
+  if (!io.Platform.isWindows) {
+    return op();
+  }
   const maxRetries = 5;
 
   for (var attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await op();
     } on io.FileSystemException {
-      if (attempt == maxRetries) rethrow;
+      if (attempt == maxRetries) {
+        rethrow;
+      }
       await Future.delayed(Duration(milliseconds: 100 * attempt));
     }
   }
@@ -227,7 +231,9 @@ class RetryDirectory implements io.Directory {
 /// Wraps [body] with IOOverrides that retry file/directory operations on Windows.
 /// On non-Windows platforms, simply calls [body] directly.
 R withWindowsFileRetry<R>(R Function() body) {
-  if (!io.Platform.isWindows) return body();
+  if (!io.Platform.isWindows) {
+    return body();
+  }
 
   return io.IOOverrides.runZoned(
     body,

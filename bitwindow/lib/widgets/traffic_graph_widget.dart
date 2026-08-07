@@ -102,10 +102,14 @@ class TrafficGraphContent extends StatelessWidget {
     // Find max value for Y axis scaling
     double maxY = 1024; // Minimum 1 KB/s
     for (final spot in rxSpots) {
-      if (spot.y > maxY) maxY = spot.y;
+      if (spot.y > maxY) {
+        maxY = spot.y;
+      }
     }
     for (final spot in txSpots) {
-      if (spot.y > maxY) maxY = spot.y;
+      if (spot.y > maxY) {
+        maxY = spot.y;
+      }
     }
     maxY = maxY * 1.1; // Add 10% padding
 
@@ -149,7 +153,9 @@ class TrafficGraphContent extends StatelessWidget {
                     interval: bandwidthHistory.length / 4,
                     getTitlesWidget: (value, meta) {
                       final seconds = (bandwidthHistory.length - value.toInt()) * 5;
-                      if (seconds == 0) return SailText.secondary12('now');
+                      if (seconds == 0) {
+                        return SailText.secondary12('now');
+                      }
                       return SailText.secondary12('-${seconds}s');
                     },
                   ),
@@ -216,8 +222,12 @@ class TrafficGraphContent extends StatelessWidget {
   }
 
   String _formatBandwidth(double bytesPerSec) {
-    if (bytesPerSec < 1024) return '${bytesPerSec.toStringAsFixed(0)} B/s';
-    if (bytesPerSec < 1024 * 1024) return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
+    if (bytesPerSec < 1024) {
+      return '${bytesPerSec.toStringAsFixed(0)} B/s';
+    }
+    if (bytesPerSec < 1024 * 1024) {
+      return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
+    }
     return '${(bytesPerSec / (1024 * 1024)).toStringAsFixed(1)} MB/s';
   }
 }
@@ -254,8 +264,12 @@ class TrafficGraphLegend extends StatelessWidget {
   }
 
   String _formatBandwidth(double bytesPerSec) {
-    if (bytesPerSec < 1024) return '${bytesPerSec.toStringAsFixed(0)} B/s';
-    if (bytesPerSec < 1024 * 1024) return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
+    if (bytesPerSec < 1024) {
+      return '${bytesPerSec.toStringAsFixed(0)} B/s';
+    }
+    if (bytesPerSec < 1024 * 1024) {
+      return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
+    }
     return '${(bytesPerSec / (1024 * 1024)).toStringAsFixed(1)} MB/s';
   }
 }

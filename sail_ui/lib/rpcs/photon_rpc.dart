@@ -130,7 +130,9 @@ class PhotonLive extends PhotonRPC {
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     final paramsJson = params != null ? jsonEncode(params) : '';
     final resp = await _client.callRaw(pb.CallRawRequest(method: method, paramsJson: paramsJson));
-    if (resp.resultJson.isEmpty) return null;
+    if (resp.resultJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.resultJson);
   }
 
@@ -198,7 +200,9 @@ class PhotonLive extends PhotonRPC {
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     final resp = await _client.getPendingWithdrawalBundle(pb.GetPendingWithdrawalBundleRequest());
-    if (resp.bundleJson.isEmpty) return null;
+    if (resp.bundleJson.isEmpty) {
+      return null;
+    }
     return PendingWithdrawalBundle.fromMap(jsonDecode(resp.bundleJson));
   }
 
@@ -215,7 +219,9 @@ class PhotonLive extends PhotonRPC {
   @override
   Future<List<Map<String, dynamic>>> listPeers() async {
     final resp = await _client.listPeers(pb.ListPeersRequest());
-    if (resp.peersJson.isEmpty) return [];
+    if (resp.peersJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.peersJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
@@ -228,7 +234,9 @@ class PhotonLive extends PhotonRPC {
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
     final resp = await _client.getBlock(pb.GetBlockRequest(hash: hash));
-    if (resp.blockJson.isEmpty) return null;
+    if (resp.blockJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.blockJson) as Map<String, dynamic>;
   }
 
@@ -253,14 +261,18 @@ class PhotonLive extends PhotonRPC {
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
     final resp = await _client.getWalletUtxos(pb.GetWalletUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
   @override
   Future<List<SidechainUTXO>> listAllUTXOs() async {
     final resp = await _client.listUtxos(pb.ListUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 

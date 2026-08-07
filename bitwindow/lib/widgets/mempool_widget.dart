@@ -230,11 +230,21 @@ class FeeDistributionChart extends StatelessWidget {
 
   Color _getColorForFeeRate(double feeRate, SailThemeData theme) {
     // Color gradient from green (low fee) to red (high fee)
-    if (feeRate < 2) return theme.colors.success;
-    if (feeRate < 5) return theme.colors.success.withValues(alpha: 0.7);
-    if (feeRate < 10) return theme.colors.orangeLight;
-    if (feeRate < 20) return theme.colors.orange;
-    if (feeRate < 50) return theme.colors.error.withValues(alpha: 0.7);
+    if (feeRate < 2) {
+      return theme.colors.success;
+    }
+    if (feeRate < 5) {
+      return theme.colors.success.withValues(alpha: 0.7);
+    }
+    if (feeRate < 10) {
+      return theme.colors.orangeLight;
+    }
+    if (feeRate < 20) {
+      return theme.colors.orange;
+    }
+    if (feeRate < 50) {
+      return theme.colors.error.withValues(alpha: 0.7);
+    }
     return theme.colors.error;
   }
 }

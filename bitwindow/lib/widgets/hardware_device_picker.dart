@@ -19,7 +19,9 @@ String hardwareDevicePassphrase(String path) => _devicePassphrases[path] ?? '';
 
 /// Starts a device enumeration now so the picker can show devices immediately.
 void prefetchHardwareDevices() {
-  if (_pinFlowActive) return;
+  if (_pinFlowActive) {
+    return;
+  }
   final f = GetIt.I.get<OrchestratorRPC>().wallet.enumerateHardwareDevices();
   _prefetch = f;
   f.then((d) => _lastDevices = d).catchError((_) => <wmpb.HardwareDevice>[]);
@@ -54,7 +56,9 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
     if (GetIt.I.isRegistered<HwiProvider>()) {
       final hwi = GetIt.I.get<HwiProvider>();
       hwi.suspended = true; // pause the 5s poll while we hold the device
-      if (hwi.devices.isNotEmpty) _devices = hwi.devices;
+      if (hwi.devices.isNotEmpty) {
+        _devices = hwi.devices;
+      }
     }
     _init();
   }
@@ -99,7 +103,10 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
   }
 
   Future<void> _enumerate({bool background = false}) async {
-    if (_pinFlowActive) return; // don't touch the device mid-PIN prompt
+    // don't touch the device mid-PIN prompt
+    if (_pinFlowActive) {
+      return;
+    }
     if (!background) {
       setState(() {
         _loading = true;
@@ -109,14 +116,18 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
     try {
       final devices = await GetIt.I.get<OrchestratorRPC>().wallet.enumerateHardwareDevices();
       _lastDevices = devices;
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _devices = devices;
         _loading = false;
         _error = null;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _error = _friendlyError(e);
         _loading = false;
@@ -185,7 +196,9 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
   }
 
   bool _isLocked(wmpb.HardwareDevice d) {
-    if (d.needsPin) return true;
+    if (d.needsPin) {
+      return true;
+    }
     final e = d.error.toLowerCase();
     return e.contains('lock') || e.contains('promptpin') || e.contains('pin');
   }
@@ -230,7 +243,9 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
           await wallet.closeDevice(device: sel);
         } catch (_) {}
         _pinFlowActive = false;
-        if (mounted) setState(() => _status = null);
+        if (mounted) {
+          setState(() => _status = null);
+        }
         await _enumerate();
         return;
       }
@@ -257,7 +272,9 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
       // Auto-select the just-unlocked device so the caller acts before re-lock.
       final devices = await wallet.enumerateHardwareDevices();
       final unlocked = devices.firstWhere((x) => x.path == d.path, orElse: () => d);
-      if (mounted) Navigator.of(context).pop(unlocked);
+      if (mounted) {
+        Navigator.of(context).pop(unlocked);
+      }
       return;
     }
   }
@@ -265,7 +282,9 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
   Future<void> _enterPassphrase(wmpb.HardwareDevice d) async {
     final wallet = GetIt.I.get<OrchestratorRPC>().wallet;
     final pass = await showThemedDialog<String>(context: context, builder: (context) => const DevicePassphraseDialog());
-    if (pass == null) return;
+    if (pass == null) {
+      return;
+    }
     _pinFlowActive = true;
     setState(() {
       _loading = true;
@@ -282,7 +301,9 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
           break;
         }
       }
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       if (match == null || match.fingerprint.isEmpty) {
         setState(() {
           _loading = false;
@@ -295,7 +316,9 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
       Navigator.of(context).pop(match);
     } catch (e) {
       _pinFlowActive = false;
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _loading = false;
         _status = null;
@@ -330,8 +353,12 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
       onTap: !selectable
           ? null
           : () async {
-              if (locked) return _unlock(d);
-              if (needsPass) return _enterPassphrase(d);
+              if (locked) {
+                return _unlock(d);
+              }
+              if (needsPass) {
+                return _enterPassphrase(d);
+              }
               Navigator.of(context).pop(d);
             },
       child: Opacity(

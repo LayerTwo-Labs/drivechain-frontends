@@ -233,6 +233,21 @@ void main() {
     });
   });
 
+  testWidgets('a new key clears the previous preview at once', (tester) async {
+    walletApi.preview = _preview(amountSats: 125000000000);
+    await pumpCard(tester);
+    await enterKey(tester, _validWif);
+    expect(find.text('Claim 1,249.99999548 ECX'), findsWidgets);
+
+    // typed, not yet checked: the old amount must not still be claimable
+    await tester.enterText(find.byType(SailTextField).first, '${_validWif}x');
+    await tester.pump();
+
+    expect(find.text('Claim 1,249.99999548 ECX'), findsNothing);
+    expect(find.text('SEND TO'), findsNothing);
+    expect(walletApi.sweptTo, isNull);
+  });
+
   group('formatEcx', () {
     test('groups thousands and always shows eight decimals', () {
       expect(formatEcx(125000000000), '1,250.00000000 ECX');

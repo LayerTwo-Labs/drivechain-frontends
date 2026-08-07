@@ -55,9 +55,9 @@ func linuxHome(home string) string { return home }
 // redirected home, matching RootDirNetwork on non-mainnet.
 func bitcoindRoot(home string) string {
 	if runtime.GOOS == "linux" {
-		return filepath.Join(linuxHome(home), ".drivechain")
+		return filepath.Join(linuxHome(home), ".ecash")
 	}
-	return filepath.Join(appRoot(home), "Drivechain")
+	return filepath.Join(appRoot(home), "Ecash")
 }
 
 // bitwindowRoot returns the Flutter bitwindow app root.

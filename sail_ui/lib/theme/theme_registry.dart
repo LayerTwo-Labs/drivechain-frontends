@@ -32,7 +32,9 @@ class SailThemeBundle {
   String get id => style.id;
 
   SailColor palette(Color accent, {required bool isLight}) {
-    if (!supportsDarkMode) return light(accent);
+    if (!supportsDarkMode) {
+      return light(accent);
+    }
     return isLight ? light(accent) : dark(accent);
   }
 }

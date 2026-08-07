@@ -210,7 +210,9 @@ class BitnamesLive extends BitnamesRPC {
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     final paramsJson = params != null ? jsonEncode(params) : '';
     final resp = await _client.callRaw(pb.CallRawRequest(method: method, paramsJson: paramsJson));
-    if (resp.resultJson.isEmpty) return null;
+    if (resp.resultJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.resultJson);
   }
 
@@ -258,7 +260,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<BitNameData?> getBitNameData(String name) async {
     final resp = await _client.getBitNameData(pb.GetBitNameDataRequest(name: name));
-    if (resp.dataJson.isEmpty) return null;
+    if (resp.dataJson.isEmpty) {
+      return null;
+    }
     final decoded = jsonDecode(resp.dataJson) as Map<String, dynamic>;
     return BitNameData.fromJson(decoded);
   }
@@ -280,7 +284,9 @@ class BitnamesLive extends BitnamesRPC {
     }
 
     final resp = await _client.listBitNames(pb.ListBitNamesRequest());
-    if (resp.bitnamesJson.isEmpty) return [];
+    if (resp.bitnamesJson.isEmpty) {
+      return [];
+    }
     final response = jsonDecode(resp.bitnamesJson) as List<dynamic>;
     return response.map<BitnameEntry>((item) {
       if (item is! List || item.length != 2) {
@@ -291,8 +297,12 @@ class BitnamesLive extends BitnamesRPC {
       final detailsMap = item[1] as Map<String, dynamic>;
 
       String? parseCommitment(dynamic value) {
-        if (value == null) return null;
-        if (value is String) return value;
+        if (value == null) {
+          return null;
+        }
+        if (value is String) {
+          return value;
+        }
         if (value is List) {
           return value.map((e) => e.toRadixString(16).padLeft(2, '0')).join('');
         }
@@ -321,7 +331,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<List<BitnamesPeerInfo>> listPeers() async {
     final resp = await _client.listPeers(pb.ListPeersRequest());
-    if (resp.peersJson.isEmpty) return [];
+    if (resp.peersJson.isEmpty) {
+      return [];
+    }
     final decoded = jsonDecode(resp.peersJson) as List<dynamic>;
     return decoded.map((e) => BitnamesPeerInfo.fromJson(e as Map<String, dynamic>)).toList();
   }
@@ -347,7 +359,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
     final resp = await _client.getBlock(pb.GetBlockRequest(hash: hash));
-    if (resp.blockJson.isEmpty) return null;
+    if (resp.blockJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.blockJson) as Map<String, dynamic>;
   }
 
@@ -380,7 +394,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     final resp = await _client.getPendingWithdrawalBundle(pb.GetPendingWithdrawalBundleRequest());
-    if (resp.bundleJson.isEmpty) return null;
+    if (resp.bundleJson.isEmpty) {
+      return null;
+    }
     final decoded = jsonDecode(resp.bundleJson);
     return PendingWithdrawalBundle.fromJson(decoded as Map<String, dynamic>);
   }
@@ -470,7 +486,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<Map<String, dynamic>> getPaymail() async {
     final resp = await _client.getPaymail(pb.GetPaymailRequest());
-    if (resp.paymailJson.isEmpty) return {};
+    if (resp.paymailJson.isEmpty) {
+      return {};
+    }
     return jsonDecode(resp.paymailJson) as Map<String, dynamic>;
   }
 
@@ -520,14 +538,18 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<List<dynamic>> getWalletUTXOs() async {
     final resp = await _client.getWalletUtxos(pb.GetWalletUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return jsonDecode(resp.utxosJson) as List<dynamic>;
   }
 
   @override
   Future<List<BitnamesUTXO>> listUTXOs() async {
     final resp = await _client.getWalletUtxos(pb.GetWalletUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     final decoded = jsonDecode(resp.utxosJson) as List<dynamic>;
     return decoded.map((e) => BitnamesUTXO.fromJson(e as Map<String, dynamic>)).toList();
   }
@@ -535,7 +557,9 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<List<SidechainUTXO>> listAllUTXOs() async {
     final resp = await _client.listUtxos(pb.ListUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     final decoded = jsonDecode(resp.utxosJson) as List<dynamic>;
     return decoded.map((e) => BitnamesUTXO.fromJson(e as Map<String, dynamic>)).toList();
   }
@@ -543,14 +567,18 @@ class BitnamesLive extends BitnamesRPC {
   @override
   Future<List<dynamic>> myUTXOs() async {
     final resp = await _client.myUtxos(pb.MyUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return jsonDecode(resp.utxosJson) as List<dynamic>;
   }
 
   @override
   Future<Map<String, dynamic>> openapiSchema() async {
     final resp = await _client.openapiSchema(pb.OpenapiSchemaRequest());
-    if (resp.schemaJson.isEmpty) return {};
+    if (resp.schemaJson.isEmpty) {
+      return {};
+    }
     return jsonDecode(resp.schemaJson) as Map<String, dynamic>;
   }
 

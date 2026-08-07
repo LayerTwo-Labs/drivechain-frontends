@@ -71,12 +71,16 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
         _newPasswordController.text,
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       // Password change successful, close dialog
       Navigator.of(context).pop(true);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _errorMessage = e.toString().contains('Incorrect old password')
             ? 'Incorrect current password'

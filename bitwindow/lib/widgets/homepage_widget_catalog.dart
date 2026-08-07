@@ -455,7 +455,9 @@ class RecentActionsViewModel extends BaseViewModel {
   }
 
   String _formatNumber(int number) {
-    if (number < 1000) return number.toString();
+    if (number < 1000) {
+      return number.toString();
+    }
     return '${(number / 1000).toStringAsFixed(0)} ${number % 1000}'.trim();
   }
 }

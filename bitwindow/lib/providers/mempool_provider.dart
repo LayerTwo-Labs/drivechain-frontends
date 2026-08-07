@@ -43,10 +43,18 @@ class FeeEstimate {
   });
 
   String get urgency {
-    if (blocks <= 1) return 'Next block';
-    if (blocks <= 3) return 'High priority';
-    if (blocks <= 6) return 'Medium priority';
-    if (blocks <= 24) return 'Low priority';
+    if (blocks <= 1) {
+      return 'Next block';
+    }
+    if (blocks <= 3) {
+      return 'High priority';
+    }
+    if (blocks <= 6) {
+      return 'Medium priority';
+    }
+    if (blocks <= 24) {
+      return 'Low priority';
+    }
     return 'Economy';
   }
 }
@@ -107,7 +115,9 @@ class MempoolProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
-    if (!api.connected || isFetching) return;
+    if (!api.connected || isFetching) {
+      return;
+    }
     isFetching = true;
 
     try {

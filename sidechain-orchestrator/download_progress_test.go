@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -143,7 +144,9 @@ func TestDownloadFile_ProgressMessages(t *testing.T) {
 func TestDownload_ConcurrentProtection(t *testing.T) {
 	// Set up a server that blocks forever (until test cleanup)
 	blockCh := make(chan struct{})
+	var requests atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
 		<-blockCh // Block until test ends
 	}))
 	defer srv.Close()
@@ -164,10 +167,14 @@ func TestDownload_ConcurrentProtection(t *testing.T) {
 	_, err := dm.Download(context.Background(), config, "default", true)
 	require.NoError(t, err)
 
-	// Second download of the same binary should fail
+	// Second download of the same binary attaches to the first rather than
+	// erroring, but must not start a second transfer.
 	_, err = dm.Download(context.Background(), config, "default", true)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "already being downloaded")
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool { return requests.Load() >= 1 }, 2*time.Second, 10*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+	assert.EqualValues(t, 1, requests.Load(), "the attached caller must not open its own transfer")
 }
 
 func TestDownload_ConcurrentProtection_DifferentBinaries(t *testing.T) {

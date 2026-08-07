@@ -31,7 +31,7 @@ class WalletSubtabs {
 final Map<String, NavigationTarget> navigationRegistry = {
   // Settings sections
   'settings_network.dart': NavigationTarget(tabIndex: TabIndices.settings, sectionIndex: 0),
-  'settings_security.dart': NavigationTarget(tabIndex: TabIndices.settings, sectionIndex: 1),
+  'settings_wallet.dart': NavigationTarget(tabIndex: TabIndices.settings, sectionIndex: 1),
   'settings_appearance.dart': NavigationTarget(tabIndex: TabIndices.settings, sectionIndex: 2),
   'settings_advanced.dart': NavigationTarget(tabIndex: TabIndices.settings, sectionIndex: 3),
   'settings_reset.dart': NavigationTarget(tabIndex: TabIndices.settings, sectionIndex: 4),

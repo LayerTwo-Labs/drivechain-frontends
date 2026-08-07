@@ -108,7 +108,9 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> autoRestoreFiles() async {
-    if (_isRestoring) return;
+    if (_isRestoring) {
+      return;
+    }
     _isRestoring = true;
 
     try {
@@ -170,7 +172,9 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> store() async {
-    if (_isStoring) return;
+    if (_isStoring) {
+      return;
+    }
     _isStoring = true;
     error = null;
 
@@ -215,7 +219,9 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> scanForFiles() async {
-    if (_isScanning) return;
+    if (_isScanning) {
+      return;
+    }
 
     _isScanning = true;
     _pendingDownloads.clear();
@@ -236,7 +242,9 @@ class BitDriveProvider extends ChangeNotifier {
   }
 
   Future<void> downloadPendingFiles() async {
-    if (_isDownloading || _pendingDownloads.isEmpty) return;
+    if (_isDownloading || _pendingDownloads.isEmpty) {
+      return;
+    }
 
     _isDownloading = true;
     error = null;

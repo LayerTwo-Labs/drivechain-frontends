@@ -203,7 +203,9 @@ class SidechainProposalViewModel extends BaseViewModel {
   }
 
   Future<void> proposeSidechain(BuildContext context) async {
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      return;
+    }
 
     isProposing = true;
     notifyListeners();

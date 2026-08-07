@@ -29,7 +29,9 @@ class SailApp extends StatefulWidget {
 
   static SailAppState of(BuildContext context) {
     final SailAppState? result = context.findAncestorStateOfType<SailAppState>();
-    if (result != null) return result;
+    if (result != null) {
+      return result;
+    }
     throw FlutterError.fromParts(<DiagnosticsNode>[
       ErrorSummary(
         'SailAppState.of() called with a context that does not contain a SailApp.',

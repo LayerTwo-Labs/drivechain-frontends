@@ -80,14 +80,18 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
 
     try {
       final resp = await GetIt.I.get<BitwindowRPC>().utils.calculateMerkleTree(txids, showRCB: _showRCB);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _tree = resp.levels.map((l) => l.hashes.toList()).toList();
         _rcbTree = resp.levels.any((l) => l.rcb.isNotEmpty) ? resp.levels.map((l) => l.rcb.toList()).toList() : null;
         _formattedText = resp.formattedText;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = 'Failed to calculate Merkle tree: $e');
+      if (mounted) {
+        setState(() => _error = 'Failed to calculate Merkle tree: $e');
+      }
     }
   }
 
@@ -187,7 +191,9 @@ class _MerkleTreeDialogState extends State<MerkleTreeDialog> {
                         value: _showRCB,
                         onChanged: (value) {
                           setState(() => _showRCB = value);
-                          if (_tree != null) unawaited(_calculateTree());
+                          if (_tree != null) {
+                            unawaited(_calculateTree());
+                          }
                         },
                       ),
                       const SizedBox(width: 8),

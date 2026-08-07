@@ -38,7 +38,9 @@ class ProcessManager extends ChangeNotifier {
   void _addToLogProvider(Binary binary, String line, {required bool isStderr}) {
     // Strip ANSI color codes for clean storage
     final cleanLine = line.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
-    if (cleanLine.isEmpty) return;
+    if (cleanLine.isEmpty) {
+      return;
+    }
 
     logProvider.addLog(
       FullProcessLogEntry(

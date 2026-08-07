@@ -96,7 +96,9 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
 
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       // Convert BTC to satoshis
       final satoshis = (amount * 100000000).toInt();
@@ -132,7 +134,9 @@ class _PaperCheckDialogState extends State<PaperCheckDialog> {
   }
 
   Future<void> _printPaperCheck() async {
-    if (_keypair == null || _txid == null) return;
+    if (_keypair == null || _txid == null) {
+      return;
+    }
 
     final pdf = pw.Document();
     final amount = _amountController.text.trim();

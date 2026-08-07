@@ -43,7 +43,9 @@ class TorConfigProvider extends ChangeNotifier {
   /// default. Returns the chain tip height on success, or null on failure (the
   /// previous config is kept; [lastError] holds the reason).
   Future<int?> apply(bool enabled, String proxy) async {
-    if (_busy) return null;
+    if (_busy) {
+      return null;
+    }
     _busy = true;
     _lastError = null;
     notifyListeners();

@@ -449,7 +449,9 @@ class StartersPageViewModel extends BaseViewModel {
   }
 
   Future<void> toggleStarterReveal(BuildContext context, String? starterName, bool reveal) async {
-    if (starterName == null) return;
+    if (starterName == null) {
+      return;
+    }
 
     if (reveal) {
       // Show warning dialog before revealing

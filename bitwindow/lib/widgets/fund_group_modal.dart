@@ -170,7 +170,9 @@ class FundGroupModalViewModel extends BaseViewModel {
       );
 
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final walletName = enhancedGroup.watchWalletName ?? 'multisig_${enhancedGroup.id}';
 

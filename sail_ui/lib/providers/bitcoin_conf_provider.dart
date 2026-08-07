@@ -101,7 +101,9 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   void _startPolling() {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => loadConfig());
   }
 
@@ -184,15 +186,25 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork) async {
-    if (hasPrivateBitcoinConf) return;
-    if (network == newNetwork) return;
+    if (hasPrivateBitcoinConf) {
+      return;
+    }
+    if (network == newNetwork) {
+      return;
+    }
 
     final plan = await prepareNetworkChange(targetNetwork: newNetwork);
-    if (plan.noOp) return;
+    if (plan.noOp) {
+      return;
+    }
 
-    if (!context.mounted) throw NetworkChangeDeclined(newNetwork);
+    if (!context.mounted) {
+      throw NetworkChangeDeclined(newNetwork);
+    }
     final dataDir = await resolveNetworkChangePlan(context, plan, newNetwork);
-    if (dataDir == null) throw NetworkChangeDeclined(newNetwork);
+    if (dataDir == null) {
+      throw NetworkChangeDeclined(newNetwork);
+    }
 
     await updateNetwork(newNetwork, dataDir: dataDir);
   }
@@ -204,10 +216,14 @@ class BitcoinConfProvider extends ChangeNotifier {
     NetworkChangePlan plan,
     BitcoinNetwork targetNetwork,
   ) async {
-    if (!plan.mustSelectDatadir) return '';
+    if (!plan.mustSelectDatadir) {
+      return '';
+    }
 
     final selected = await promptForBitcoinDataDir(context, targetNetwork);
-    if (selected == null || selected.isEmpty) return null;
+    if (selected == null || selected.isEmpty) {
+      return null;
+    }
     return selected;
   }
 
@@ -231,8 +247,12 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   Future<void> commitNetworkChange(BitcoinNetwork newNetwork) async {
-    if (hasPrivateBitcoinConf) return;
-    if (network == newNetwork) return;
+    if (hasPrivateBitcoinConf) {
+      return;
+    }
+    if (network == newNetwork) {
+      return;
+    }
     await updateNetwork(newNetwork);
   }
 
@@ -290,7 +310,9 @@ class BitcoinConfProvider extends ChangeNotifier {
 /// Falls back to the generation this build shipped with, which is what the
 /// backend also falls back to before its catalog loads.
 String drynetGeneration() {
-  if (!GetIt.I.isRegistered<BitcoinConfProvider>()) return _fallbackDrynetGeneration;
+  if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
+    return _fallbackDrynetGeneration;
+  }
   final gen = GetIt.I.get<BitcoinConfProvider>().drynetGeneration;
   return gen.isEmpty ? _fallbackDrynetGeneration : gen;
 }

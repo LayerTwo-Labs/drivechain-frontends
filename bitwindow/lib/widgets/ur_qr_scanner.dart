@@ -9,7 +9,9 @@ import 'package:sail_ui/sail_ui.dart';
 /// Windows and Linux have no plugin implementation, so callers must fall back
 /// to file/text import there.
 bool get urCameraScanSupported {
-  if (kIsWeb) return true;
+  if (kIsWeb) {
+    return true;
+  }
   return Platform.isMacOS || Platform.isIOS || Platform.isAndroid;
 }
 
@@ -47,11 +49,17 @@ class _URQrScannerState extends State<URQrScanner> {
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (_done) return;
+    if (_done) {
+      return;
+    }
     for (final barcode in capture.barcodes) {
       final raw = barcode.rawValue;
-      if (raw == null) continue;
-      if (!raw.toLowerCase().startsWith('ur:${URPsbt.type}/')) continue;
+      if (raw == null) {
+        continue;
+      }
+      if (!raw.toLowerCase().startsWith('ur:${URPsbt.type}/')) {
+        continue;
+      }
       try {
         _decoder.receive(raw);
       } catch (_) {
@@ -61,7 +69,9 @@ class _URQrScannerState extends State<URQrScanner> {
         _decoder = URPsbt.decoder();
         try {
           _decoder.receive(raw);
-          if (mounted) setState(() => _error = 'Different PSBT detected, restarting');
+          if (mounted) {
+            setState(() => _error = 'Different PSBT detected, restarting');
+          }
         } catch (_) {
           continue;
         }
@@ -73,7 +83,9 @@ class _URQrScannerState extends State<URQrScanner> {
         widget.onComplete(psbt);
         return;
       }
-      if (mounted) setState(() => _error = null);
+      if (mounted) {
+        setState(() => _error = null);
+      }
     }
   }
 

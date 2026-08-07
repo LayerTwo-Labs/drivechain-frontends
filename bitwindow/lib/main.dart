@@ -94,7 +94,9 @@ void main(List<String> args) async {
       });
     },
     (error, stack) {
-      if (isExpectedBootError(error)) return;
+      if (isExpectedBootError(error)) {
+        return;
+      }
       // Unexpected — keep the existing behavior of surfacing it.
       // ignore: avoid_print
       print('Unhandled error: $error\n$stack');

@@ -25,6 +25,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/version"
+	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -82,10 +83,8 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return nil
 	}
 
-	// orchestratord is the canonical owner of the bitcoin.conf — both the
-	// network identity and the RPC creds live there. We start it first, wait
-	// for it to be ready, then ask it for the network. bitwindowd never
-	// parses bitcoin.conf itself.
+	// orchestratord owns bitcoin.conf: the network identity and RPC creds both
+	// live there. Start it, then ask it for the network.
 	bootLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	bootCtx := bootLogger.WithContext(ctx)
 
@@ -107,9 +106,17 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// exit either way.
 	defer relayShutdownToOrchestratord(conf.OrchestratorAddr, bitwindowDir, bootLogger)
 
+	// Prefer the orchestrator, but fall back to the conf it writes: the network
+	// only picks our datadir, and dying here leaves nothing to report the fault.
 	network, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bitwindowDir, bootLogger)
 	if err != nil {
-		return fmt.Errorf("read network from orchestratord: %w", err)
+		fallback, confErr := orchconfig.ResolveNetwork(bitwindowDir)
+		if confErr != nil {
+			return fmt.Errorf("read network from orchestratord: %w (and from conf: %v)", err, confErr)
+		}
+		network = string(fallback)
+		bootLogger.Warn().Err(err).Str("network", network).
+			Msg("orchestratord unreachable, took the network from bitwindow-bitcoin.conf")
 	}
 
 	// Adopting a still-draining orchestratord (cancel its pending exit, await

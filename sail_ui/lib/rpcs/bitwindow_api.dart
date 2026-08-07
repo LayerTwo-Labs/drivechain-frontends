@@ -273,7 +273,9 @@ class BitwindowRPCLive extends BitwindowRPC {
     _notificationStreamSubscription?.cancel();
 
     // Don't start if we're stopping
-    if (stoppingBinary) return;
+    if (stoppingBinary) {
+      return;
+    }
 
     try {
       _notificationStreamSubscription =
@@ -657,6 +659,7 @@ abstract class WalletAPI {
     String walletId,
     int id,
   );
+  Future<SweepPreview> previewSweep(String privateKeyWif, {int feeSatPerVbyte = 0});
   Future<SweepChequeResult> sweepCheque(
     String walletId,
     String privateKeyWif,
@@ -711,6 +714,32 @@ class SweepChequeResult {
   final int amountSats;
 
   SweepChequeResult({required this.txid, required this.amountSats});
+}
+
+/// What a private key holds, and what sweeping it would cost.
+class SweepPreview {
+  final String address;
+  final SweepAddressKind addressKind;
+  final int amountSats;
+  final int outputCount;
+  final int feeSatPerVbyte;
+  final int feeSats;
+  final int receiveSats;
+
+  SweepPreview({
+    required this.address,
+    required this.addressKind,
+    required this.amountSats,
+    required this.outputCount,
+    required this.feeSatPerVbyte,
+    required this.feeSats,
+    required this.receiveSats,
+  });
+
+  bool get hasFunds => amountSats > 0;
+
+  /// True when the key holds coins the fee would eat entirely.
+  bool get dustBound => hasFunds && receiveSats == 0;
 }
 
 class _WalletAPILive implements WalletAPI {
@@ -986,6 +1015,30 @@ class _WalletAPILive implements WalletAPI {
         CheckChequeFundingRequest(walletId: walletId, id: Int64(id)),
       );
       return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<SweepPreview> previewSweep(String privateKeyWif, {int feeSatPerVbyte = 0}) async {
+    try {
+      final response = await _client.previewSweep(
+        PreviewSweepRequest(
+          privateKeyWif: privateKeyWif,
+          feeSatPerVbyte: Int64(feeSatPerVbyte),
+        ),
+      );
+      return SweepPreview(
+        address: response.address,
+        addressKind: response.addressKind,
+        amountSats: response.amountSats.toInt(),
+        outputCount: response.outputCount,
+        feeSatPerVbyte: response.feeSatPerVbyte.toInt(),
+        feeSats: response.feeSats.toInt(),
+        receiveSats: response.receiveSats.toInt(),
+      );
     } catch (e) {
       final error = extractConnectException(e);
       throw WalletException(error);
@@ -1311,6 +1364,15 @@ class _DrivechainAPILive implements DrivechainAPI {
   }
 }
 
+/// What a vote, comment or story would cost to put on chain.
+class NewsFeeEstimate {
+  final int vsize;
+  final double feeSatPerVbyte;
+  final int feeSats;
+
+  NewsFeeEstimate({required this.vsize, required this.feeSatPerVbyte, required this.feeSats});
+}
+
 abstract class MiscAPI {
   Future<List<OPReturn>> listOPReturns();
   Future<List<CoinNews>> listCoinNews();
@@ -1330,6 +1392,12 @@ abstract class MiscAPI {
     bool? nsfw,
     int? feeSatPerVbyte,
     int? feeSats,
+  });
+  Future<NewsFeeEstimate> estimateNewsFee(
+    NewsAction action, {
+    String body = '',
+    String headline = '',
+    String url = '',
   });
   Future<UpvoteNewsResponse> upvoteNews(
     String itemId, {
@@ -1396,10 +1464,18 @@ class _MiscAPILive implements MiscAPI {
         ..topic = topic
         ..headline = headline
         ..content = content;
-      if (url != null) request.url = url;
-      if (lang != null) request.lang = lang;
-      if (subtype != null) request.subtype = subtype;
-      if (nsfw != null) request.nsfw = nsfw;
+      if (url != null) {
+        request.url = url;
+      }
+      if (lang != null) {
+        request.lang = lang;
+      }
+      if (subtype != null) {
+        request.subtype = subtype;
+      }
+      if (nsfw != null) {
+        request.nsfw = nsfw;
+      }
 
       if (feeSatPerVbyte != null) {
         request.feeSatPerVbyte = Int64(feeSatPerVbyte);
@@ -1411,6 +1487,32 @@ class _MiscAPILive implements MiscAPI {
       return response;
     } catch (e) {
       final error = 'could not broadcast news: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<NewsFeeEstimate> estimateNewsFee(
+    NewsAction action, {
+    String body = '',
+    String headline = '',
+    String url = '',
+  }) async {
+    try {
+      final response = await _client.estimateNewsFee(
+        EstimateNewsFeeRequest()
+          ..action = action
+          ..body = body
+          ..headline = headline
+          ..url = url,
+      );
+      return NewsFeeEstimate(
+        vsize: response.vsize.toInt(),
+        feeSatPerVbyte: response.feeSatPerVbyte,
+        feeSats: response.feeSats.toInt(),
+      );
+    } catch (e) {
+      final error = 'could not estimate news fee: ${extractConnectException(e)}';
       throw BitwindowException(error);
     }
   }
@@ -1475,9 +1577,15 @@ class _MiscAPILive implements MiscAPI {
       final request = CommentNewsRequest()
         ..parentId = parentId
         ..body = body;
-      if (url != null) request.url = url;
-      if (lang != null) request.lang = lang;
-      if (replyQuote != null) request.replyQuote = replyQuote;
+      if (url != null) {
+        request.url = url;
+      }
+      if (lang != null) {
+        request.lang = lang;
+      }
+      if (replyQuote != null) {
+        request.replyQuote = replyQuote;
+      }
 
       if (feeSatPerVbyte != null) {
         request.feeSatPerVbyte = Int64(feeSatPerVbyte);
@@ -2192,6 +2300,8 @@ Future<dynamic> bitcoindRpcCall(String method, {List<dynamic>? params, String wa
   final orchestrator = GetIt.I.get<OrchestratorRPC>();
   final paramsJson = params == null ? '' : jsonEncode(params);
   final resp = await orchestrator.coreRawCall(method, paramsJson: paramsJson, wallet: wallet);
-  if (resp.resultJson.isEmpty) return null;
+  if (resp.resultJson.isEmpty) {
+    return null;
+  }
   return jsonDecode(resp.resultJson);
 }

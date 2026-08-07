@@ -214,7 +214,9 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   }
 
   Future<void> _writeKeyToMultisigJson() async {
-    if (keyInfo == null) return;
+    if (keyInfo == null) {
+      return;
+    }
 
     try {
       final keyName = keyNameController.text.trim();
@@ -234,7 +236,9 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   }
 
   Future<void> saveKey(BuildContext context) async {
-    if (keyInfo == null) return;
+    if (keyInfo == null) {
+      return;
+    }
 
     final keyName = keyNameController.text.trim();
     if (keyName.isEmpty) {
@@ -275,7 +279,9 @@ class MultisigKeyModalViewModel extends BaseViewModel {
   }
 
   Future<String?> _saveConfigFileWithPicker() async {
-    if (keyInfo == null) return null;
+    if (keyInfo == null) {
+      return null;
+    }
 
     final keyName = keyNameController.text.trim();
     final filename = '$keyName.conf';

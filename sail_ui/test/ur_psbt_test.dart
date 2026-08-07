@@ -65,14 +65,20 @@ class _CborPartReader {
     messageLen = _arg(_d[_p++]);
     checksum = _arg(_d[_p++]);
     final b = _d[_p++];
-    if ((b >> 5) != 2) throw const FormatException('expected byte string');
+    if ((b >> 5) != 2) {
+      throw const FormatException('expected byte string');
+    }
     dataLength = _arg(b);
   }
 
   int _arg(int b) {
     final ai = b & 0x1f;
-    if (ai < 24) return ai;
-    if (ai == 24) return _d[_p++];
+    if (ai < 24) {
+      return ai;
+    }
+    if (ai == 24) {
+      return _d[_p++];
+    }
     if (ai == 25) {
       final v = (_d[_p] << 8) | _d[_p + 1];
       _p += 2;

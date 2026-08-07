@@ -294,7 +294,9 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                   SailDropdownItem(value: 'upvote', label: 'Upvote Specific Bundle'),
                 ],
                 onChanged: (value) {
-                  if (value != null) setState(() => voteType = value);
+                  if (value != null) {
+                    setState(() => voteType = value);
+                  }
                 },
               ),
               if (voteType == 'upvote')
@@ -345,11 +347,15 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
   Future<void> _showGenerateM4BytesDialog() async {
     final result = await _m4Provider.generateM4Bytes();
     if (result == null) {
-      if (mounted) showSailToast(context, 'Failed to generate M4 bytes');
+      if (mounted) {
+        showSailToast(context, 'Failed to generate M4 bytes');
+      }
       return;
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     final textColor = context.sailTheme.colors.text;
 
@@ -402,7 +408,9 @@ class _M4ExplorerPageState extends State<M4ExplorerPage> {
                 variant: ButtonVariant.secondary,
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: result.hex));
-                  if (mounted) showSailToast(context, 'Copied to clipboard');
+                  if (mounted) {
+                    showSailToast(context, 'Copied to clipboard');
+                  }
                 },
               ),
             ],

@@ -22,11 +22,19 @@ class Pagination extends StatelessWidget {
   List<int> _visiblePages() {
     // Always show first, last, current, and 1 before/after current
     final pages = <int>{1, totalPages, currentPage};
-    if (currentPage > 1) pages.add(currentPage - 1);
-    if (currentPage < totalPages) pages.add(currentPage + 1);
+    if (currentPage > 1) {
+      pages.add(currentPage - 1);
+    }
+    if (currentPage < totalPages) {
+      pages.add(currentPage + 1);
+    }
     // Add 2 before/after for more context if possible
-    if (currentPage - 2 > 1) pages.add(currentPage - 2);
-    if (currentPage + 2 < totalPages) pages.add(currentPage + 2);
+    if (currentPage - 2 > 1) {
+      pages.add(currentPage - 2);
+    }
+    if (currentPage + 2 < totalPages) {
+      pages.add(currentPage + 2);
+    }
     final sorted = pages.toList()..sort();
     return sorted;
   }

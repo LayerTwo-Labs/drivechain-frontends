@@ -179,16 +179,24 @@ class PeersTable extends StatelessWidget {
   }
 
   String _formatPing(dynamic pingTime) {
-    if (pingTime == null) return '-';
+    if (pingTime == null) {
+      return '-';
+    }
     try {
       // pingTime is a protobuf Duration with seconds and nanos
       final seconds = pingTime.seconds.toDouble();
       final nanos = pingTime.nanos.toDouble();
       final totalMs = (seconds * 1000) + (nanos / 1000000);
 
-      if (totalMs <= 0) return '-';
-      if (totalMs < 1) return '${(totalMs * 1000).toStringAsFixed(0)} \u00B5s';
-      if (totalMs < 1000) return '${totalMs.toStringAsFixed(0)} ms';
+      if (totalMs <= 0) {
+        return '-';
+      }
+      if (totalMs < 1) {
+        return '${(totalMs * 1000).toStringAsFixed(0)} \u00B5s';
+      }
+      if (totalMs < 1000) {
+        return '${totalMs.toStringAsFixed(0)} ms';
+      }
       return '${(totalMs / 1000).toStringAsFixed(2)} s';
     } catch (e) {
       return '-';
@@ -196,14 +204,22 @@ class PeersTable extends StatelessWidget {
   }
 
   String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 
   String _formatDuration(dynamic connectedAt) {
-    if (connectedAt == null) return '-';
+    if (connectedAt == null) {
+      return '-';
+    }
     try {
       final int seconds = connectedAt.seconds.toInt();
       final connectedTime = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);

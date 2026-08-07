@@ -39,7 +39,9 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
 
   Future<void> _decode() async {
     final input = _controller.text.trim();
-    if (input.isEmpty) return;
+    if (input.isEmpty) {
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -51,7 +53,9 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
         input: input,
         walletId: _walletReader.activeWalletId ?? '',
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _decoded = decoded;
         _error = null;
@@ -59,7 +63,9 @@ class _LoadTransactionDialogState extends State<LoadTransactionDialog> {
       });
     } catch (e) {
       _log.e('failed to decode transaction: $e');
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _decoded = null;
         _error = _humanize(e);

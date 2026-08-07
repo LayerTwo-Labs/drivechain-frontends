@@ -213,21 +213,8 @@ func (o *Orchestrator) activeSnapshot(ctx context.Context) ActiveSnapshot {
 	return ActiveSnapshot{}
 }
 
-// catalogEntryForNetwork maps an active network to its catalog entry. Drynet is
-// keyed by family since its id carries the generation; the rest by id.
 func catalogEntryForNetwork(cat netcatalog.Catalog, n config.Network) (netcatalog.Network, bool) {
-	switch n {
-	case config.NetworkDrynet:
-		return cat.CurrentECash()
-	case config.NetworkMainnet:
-		return cat.ByID("bitcoin")
-	case config.NetworkSignet:
-		return cat.ByID("signet")
-	case config.NetworkForknet:
-		return cat.ByID("forknet")
-	default:
-		return netcatalog.Network{}, false
-	}
+	return cat.ForNetwork(string(n))
 }
 
 // applySnapshot downloads (when needed), verifies and loads a snapshot against

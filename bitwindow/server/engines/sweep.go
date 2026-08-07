@@ -37,9 +37,15 @@ func (k SweepAddressKind) String() string {
 const (
 	p2wpkhInputVbytes   = 68
 	p2pkhInputVbytes    = 148
-	sweepOutputVbytes   = 31
+	SweepOutputVbytes   = 31
 	sweepOverheadVbytes = 11
 )
+
+// ScriptOutputVbytes is what one output costs: 8 value + the script length
+// prefix + the script. A taproot output is 12 vbytes wider than a segwit one.
+func ScriptOutputVbytes(pkScript []byte) uint64 {
+	return uint64(8 + 1 + len(pkScript))
+}
 
 // SweepCandidate is one address a private key can spend from.
 type SweepCandidate struct {
@@ -120,18 +126,20 @@ func ResolveSweepSource(
 }
 
 // SweepVbytes is the size of a sweep that spends inputs of one kind into a
-// single output.
-func SweepVbytes(kind SweepAddressKind, inputs int) uint64 {
+// single output of outputVbytes.
+func SweepVbytes(kind SweepAddressKind, inputs int, outputVbytes uint64) uint64 {
 	perInput := p2wpkhInputVbytes
 	if kind == SweepAddressP2PKH {
 		perInput = p2pkhInputVbytes
 	}
-	return uint64(inputs*perInput + sweepOutputVbytes + sweepOverheadVbytes)
+	return uint64(inputs*perInput+sweepOverheadVbytes) + outputVbytes
 }
 
-// SweepFeeSats is what a sweep of the source costs at the given rate.
-func SweepFeeSats(source SweepSource, feeSatPerVbyte uint64) uint64 {
-	return SweepVbytes(source.Kind, len(source.UTXOs)) * feeSatPerVbyte
+// SweepFeeSats is what a sweep of the source costs at the given rate, paying to
+// an output of outputVbytes. Pass DefaultOutputVbytes when the destination is
+// not chosen yet: SweepOutputVbytes sizes the narrowest one.
+func SweepFeeSats(source SweepSource, feeSatPerVbyte uint64, outputVbytes uint64) uint64 {
+	return SweepVbytes(source.Kind, len(source.UTXOs), outputVbytes) * feeSatPerVbyte
 }
 
 // BuildSweepTx builds the unsigned sweep, paying everything the source holds
@@ -142,12 +150,6 @@ func BuildSweepTx(
 	feeSatPerVbyte uint64,
 	params *chaincfg.Params,
 ) (*wire.MsgTx, error) {
-	totalSats := source.TotalSats()
-	feeSats := SweepFeeSats(source, feeSatPerVbyte)
-	if totalSats <= feeSats {
-		return nil, fmt.Errorf("insufficient funds: total %d sats, fee %d sats", totalSats, feeSats)
-	}
-
 	destAddr, err := btcutil.DecodeAddress(destAddress, params)
 	if err != nil {
 		return nil, fmt.Errorf("decode destination address: %w", err)
@@ -159,6 +161,12 @@ func BuildSweepTx(
 	pkScript, err := txscript.PayToAddrScript(destAddr)
 	if err != nil {
 		return nil, fmt.Errorf("create output script: %w", err)
+	}
+
+	totalSats := source.TotalSats()
+	feeSats := SweepFeeSats(source, feeSatPerVbyte, ScriptOutputVbytes(pkScript))
+	if totalSats <= feeSats {
+		return nil, fmt.Errorf("insufficient funds: total %d sats, fee %d sats", totalSats, feeSats)
 	}
 
 	tx := wire.NewMsgTx(wire.TxVersion)

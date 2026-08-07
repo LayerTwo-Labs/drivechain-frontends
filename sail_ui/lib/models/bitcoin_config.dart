@@ -40,7 +40,9 @@ class BitcoinConfig {
         final v = int.tryParse(
           trimmed.substring(kBitcoinConfVersionCommentPrefix.length).trim(),
         );
-        if (v != null && v >= 0) config.configVersion = v;
+        if (v != null && v >= 0) {
+          config.configVersion = v;
+        }
         continue;
       }
 
@@ -166,22 +168,34 @@ class BitcoinConfig {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! BitcoinConfig) return false;
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other is! BitcoinConfig) {
+      return false;
+    }
 
     // Check global settings equality
-    if (globalSettings.length != other.globalSettings.length) return false;
+    if (globalSettings.length != other.globalSettings.length) {
+      return false;
+    }
     for (final key in globalSettings.keys) {
-      if (globalSettings[key] != other.globalSettings[key]) return false;
+      if (globalSettings[key] != other.globalSettings[key]) {
+        return false;
+      }
     }
 
     // Check network settings equality
     for (final network in networkSettings.keys) {
       final thisNetwork = networkSettings[network]!;
       final otherNetwork = other.networkSettings[network]!;
-      if (thisNetwork.length != otherNetwork.length) return false;
+      if (thisNetwork.length != otherNetwork.length) {
+        return false;
+      }
       for (final key in thisNetwork.keys) {
-        if (thisNetwork[key] != otherNetwork[key]) return false;
+        if (thisNetwork[key] != otherNetwork[key]) {
+          return false;
+        }
       }
     }
 

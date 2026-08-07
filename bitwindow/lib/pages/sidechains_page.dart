@@ -164,7 +164,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
     }
 
     final error = viewModel.isUsingBitcoinCoreWallet
-        ? 'Switch to your enforcer wallet to interact with sidechains'
+        ? 'Switch to your enforcer wallet to add or remove sidechains'
         : viewModel.error('sidechain');
 
     return SailCard(
@@ -369,7 +369,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
     int slot,
     SidechainOverview sidechain,
   ) {
-    final isDisabled = viewModel.isUsingBitcoinCoreWallet || !viewModel.isSidechainRunning(slot);
+    final isDisabled = !viewModel.isSidechainRunning(slot);
     final button = SailButton(
       label: 'Deposit',
       variant: ButtonVariant.primary,
@@ -378,15 +378,11 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
       onPressed: () => showDepositModal(context, slot, sidechain.info.title),
     );
 
-    if (!isDisabled) return button;
+    if (!isDisabled) {
+      return button;
+    }
 
-    final message = !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
-        ? 'Switch to your enforcer wallet and start the sidechain before depositing'
-        : viewModel.isUsingBitcoinCoreWallet
-        ? 'Switch to your enforcer wallet to deposit'
-        : 'Start the sidechain before depositing';
-
-    return SailTooltip(message: message, child: button);
+    return SailTooltip(message: 'Start the sidechain before depositing', child: button);
   }
 }
 
@@ -527,23 +523,19 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
     int slot,
     SidechainOverview sidechain,
   ) {
-    final tooltipMessage = !viewModel.isSidechainRunning(slot) && viewModel.isUsingBitcoinCoreWallet
-        ? 'Switch to your enforcer wallet and start the sidechain before depositing'
-        : viewModel.isUsingBitcoinCoreWallet
-        ? 'Switch to your enforcer wallet to deposit'
-        : !viewModel.isSidechainRunning(slot)
-        ? 'Start the sidechain before depositing'
-        : null;
+    final tooltipMessage = !viewModel.isSidechainRunning(slot) ? 'Start the sidechain before depositing' : null;
 
     final button = SailButton(
       label: 'Deposit',
       variant: ButtonVariant.primary,
       insideTable: true,
-      disabled: !viewModel.isSidechainRunning(slot) || viewModel.isUsingBitcoinCoreWallet,
+      disabled: !viewModel.isSidechainRunning(slot),
       onPressed: () => showDepositModal(context, slot, sidechain.info.title),
     );
 
-    if (tooltipMessage == null) return button;
+    if (tooltipMessage == null) {
+      return button;
+    }
     return SailTooltip(message: tooltipMessage, child: button);
   }
 }
@@ -581,7 +573,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   SyncInfo? _syncInfoFor(Binary b) {
     final type = _sidechainType(b);
-    if (type == null) return null;
+    if (type == null) {
+      return null;
+    }
     return _syncProvider.sidechains[type];
   }
 
@@ -628,7 +622,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   bool get isUsingBitcoinCoreWallet {
     final activeWallet = _walletReader.activeWallet;
-    if (activeWallet == null) return false;
+    if (activeWallet == null) {
+      return false;
+    }
     return activeWallet.walletType == BinaryType.BINARY_TYPE_BITCOIND && !activeWallet.isWatchOnly;
   }
 
@@ -681,8 +677,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         mismatched.add(binary.name);
       }
     }
-    if (mismatched.isEmpty) return null;
-    if (mismatched.length == 1) return mismatched.first;
+    if (mismatched.isEmpty) {
+      return null;
+    }
+    if (mismatched.length == 1) {
+      return mismatched.first;
+    }
     final last = mismatched.removeLast();
     return '${mismatched.join(', ')} and $last';
   }
@@ -854,11 +854,15 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   /// Shows green/orange/red icon with error tooltip on hover.
   Widget? sidechainStatusIcon(BuildContext context, int slot) {
     final sidechain = sidechainForSlot(slot);
-    if (sidechain == null) return null;
+    if (sidechain == null) {
+      return null;
+    }
 
     final theme = SailTheme.of(context);
     final rpc = rpcForSlot(slot);
-    if (rpc == null) return null;
+    if (rpc == null) {
+      return null;
+    }
 
     final isRunning = _binaryProvider.isConnected(sidechain);
     final isInitializing = _binaryProvider.isInitializing(sidechain);
@@ -931,9 +935,15 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   void _sortEntries() {
     _sortedSidechains.sort((a, b) {
-      if (a == null && b == null) return 0;
-      if (a == null) return sortAscending ? 1 : -1;
-      if (b == null) return sortAscending ? -1 : 1;
+      if (a == null && b == null) {
+        return 0;
+      }
+      if (a == null) {
+        return sortAscending ? 1 : -1;
+      }
+      if (b == null) {
+        return sortAscending ? -1 : 1;
+      }
 
       dynamic aValue;
       dynamic bValue;
@@ -1076,7 +1086,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       setBusy(true);
       await _api.wallet.createSidechainDeposit(
@@ -1241,7 +1253,9 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                               viewModel.notifyListeners(); // Make sure UI updates
                             }
                           } catch (e) {
-                            if (!context.mounted) return;
+                            if (!context.mounted) {
+                              return;
+                            }
                             showSailToast(context, 'Error accessing clipboard');
                           }
                         },
@@ -1475,7 +1489,9 @@ class _DepositModalState extends State<DepositModal> {
     final sidechain = binaryProvider.binaries.firstWhereOrNull(
       (b) => b is Sidechain && b.slot == slot,
     );
-    if (sidechain == null) return null;
+    if (sidechain == null) {
+      return null;
+    }
 
     // Get the RPC for this sidechain type
     // Thunder goes through orchestratord, so no direct SidechainRPC available here
@@ -1547,7 +1563,9 @@ class _DepositModalState extends State<DepositModal> {
 
     try {
       final walletId = walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       setState(() => isLoading = true);
 

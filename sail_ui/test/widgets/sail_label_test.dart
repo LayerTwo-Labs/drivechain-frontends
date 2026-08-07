@@ -60,7 +60,9 @@ void main() {
           if (span.children != null) {
             for (final c in span.children!) {
               walk(c);
-              if (located != null) return;
+              if (located != null) {
+                return;
+              }
             }
           }
         }

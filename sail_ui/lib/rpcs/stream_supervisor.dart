@@ -95,13 +95,17 @@ class StreamSupervisor<T> {
     if (_disposed) {
       throw StateError('$_tag: StreamSupervisor.start after dispose');
     }
-    if (_started) return;
+    if (_started) {
+      return;
+    }
     _started = true;
     _connect();
   }
 
   void _connect() {
-    if (_disposed) return;
+    if (_disposed) {
+      return;
+    }
     _sub?.cancel();
     _reconnectTimer?.cancel();
 
@@ -161,7 +165,9 @@ class StreamSupervisor<T> {
     _watchdog?.cancel();
     _watchdog = Timer.periodic(_heartbeatCheckInterval, (_) {
       final last = _lastFrameAt;
-      if (last == null) return;
+      if (last == null) {
+        return;
+      }
       if (_now().difference(last) > _heartbeatTimeout) {
         _logger.w(
           '$_tag: no frame in ${_heartbeatTimeout.inSeconds}s, declaring dead',
@@ -182,7 +188,9 @@ class StreamSupervisor<T> {
     _sub?.cancel();
     _sub = null;
 
-    if (_disposed) return;
+    if (_disposed) {
+      return;
+    }
 
     if (kind == _FailureKind.transport) {
       // Rebuild the underlying HTTP transport BEFORE the next subscribe —
@@ -203,7 +211,9 @@ class StreamSupervisor<T> {
   _FailureKind _classify(Object error) => _isTransportError(error) ? _FailureKind.transport : _FailureKind.stream;
 
   void _setHealthy(bool h) {
-    if (_healthy == h) return;
+    if (_healthy == h) {
+      return;
+    }
     _healthy = h;
     _healthController.add(h);
   }

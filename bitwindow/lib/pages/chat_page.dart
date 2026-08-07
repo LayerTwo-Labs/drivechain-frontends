@@ -472,7 +472,9 @@ class _AddContactDialogState extends State<_AddContactDialog> {
 
   BitnameEntry? _findMatchingBitName() {
     final query = searchController.text.trim();
-    if (query.isEmpty) return null;
+    if (query.isEmpty) {
+      return null;
+    }
 
     // Compute Blake3 hash of the search text
     final searchHash = blake3Hex(utf8.encode(query.toLowerCase()));
@@ -485,7 +487,9 @@ class _AddContactDialogState extends State<_AddContactDialog> {
 
   List<BitnameEntry> get filteredBitNames {
     final query = searchController.text.toLowerCase().trim();
-    if (query.isEmpty) return widget.model.allBitNames;
+    if (query.isEmpty) {
+      return widget.model.allBitNames;
+    }
 
     // Compute Blake3 hash of the search text
     String? searchHash;
@@ -528,7 +532,9 @@ class _AddContactDialogState extends State<_AddContactDialog> {
         Navigator.of(context).pop();
       }
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -808,7 +814,9 @@ class ChatViewModel extends BaseViewModel {
   }
 
   Future<void> sendMessage() async {
-    if (messageController.text.isEmpty) return;
+    if (messageController.text.isEmpty) {
+      return;
+    }
 
     final content = messageController.text;
     messageController.clear();

@@ -29,7 +29,9 @@ class AddressBookProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> fetch() async {
-    if (_isFetching) return;
+    if (_isFetching) {
+      return;
+    }
     _isFetching = true;
 
     try {

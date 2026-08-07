@@ -48,7 +48,9 @@ void main() {
     String? currentAuthor() {
       for (final text in tester.widgetList<Text>(find.byType(Text))) {
         final data = text.data ?? '';
-        if (data.startsWith('— ')) return data;
+        if (data.startsWith('— ')) {
+          return data;
+        }
       }
       return null;
     }
@@ -73,7 +75,9 @@ void main() {
     String? currentAuthor() {
       for (final text in tester.widgetList<Text>(find.byType(Text))) {
         final data = text.data ?? '';
-        if (data.startsWith('— ')) return data;
+        if (data.startsWith('— ')) {
+          return data;
+        }
       }
       return null;
     }

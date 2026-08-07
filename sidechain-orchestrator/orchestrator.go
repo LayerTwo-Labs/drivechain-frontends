@@ -195,11 +195,12 @@ type Orchestrator struct {
 	// getblockchaininfo — both the rich external Connect RPC
 	// (GetMainchainBlockchainInfo) and the lean GetSyncStatus dispatch read
 	// through it via a projection, so one HTTP call per TTL covers both.
-	syncConnMu     sync.Mutex
-	bitcoindInfo   *CachedConnection[*MainchainBlockchainInfo]
-	bitcoindSync   Connection[*ChainSyncResult]
-	enforcerSync   *CachedConnection[*ChainSyncResult]
-	sidechainSyncs map[string]*CachedConnection[*ChainSyncResult]
+	syncConnMu         sync.Mutex
+	bitcoindInfo       *CachedConnection[*MainchainBlockchainInfo]
+	bitcoindSync       Connection[*ChainSyncResult]
+	enforcerSync       *CachedConnection[*ChainSyncResult]
+	enforcerWalletSync *CachedConnection[*ChainSyncResult]
+	sidechainSyncs     map[string]*CachedConnection[*ChainSyncResult]
 
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
 	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
@@ -409,6 +410,18 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 
 // getOrCreateMonitor returns the ConnectionMonitor for a binary, creating one if needed.
 // Dart: each RPCConnection has its own connection timer + state.
+// enforcerReachable reports whether the enforcer answers RPC, whether or not
+// this process started it. A connect-only enforcer never enters ProcessManager.
+func (o *Orchestrator) enforcerReachable() bool {
+	if o.process.IsRunning("enforcer") {
+		return true
+	}
+	o.monitorsMu.Lock()
+	mon, ok := o.monitors["enforcer"]
+	o.monitorsMu.Unlock()
+	return ok && mon.Connected()
+}
+
 func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, startupPatterns []string) *ConnectionMonitor {
 	o.monitorsMu.Lock()
 	defer o.monitorsMu.Unlock()
@@ -2017,6 +2030,7 @@ func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.bitcoindInfo = nil
 	o.bitcoindSync = nil
 	o.enforcerSync = nil
+	o.enforcerWalletSync = nil
 	o.sidechainSyncs = nil
 	o.syncConnMu.Unlock()
 
@@ -2260,6 +2274,29 @@ func (o *Orchestrator) removeCoreBinary() {
 	o.log.Info().Str("path", path).Msg("removed bitcoind so the next boot fetches the build this chain needs")
 }
 
+// EnforcerValidator returns a client for the enforcer's validator service.
+func (o *Orchestrator) EnforcerValidator() (enforcerrpc.ValidatorServiceClient, error) {
+	cfg, ok := o.Configs()["enforcer"]
+	if !ok || cfg.Port == 0 {
+		return nil, fmt.Errorf("enforcer not configured")
+	}
+	return enforcerrpc.NewValidatorServiceClient(o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC()), nil
+}
+
+// ChainTip returns the mainchain tip the enforcer has validated.
+func (o *Orchestrator) ChainTip(ctx context.Context) (string, int32, error) {
+	validator, err := o.EnforcerValidator()
+	if err != nil {
+		return "", 0, err
+	}
+	resp, err := validator.GetChainTip(ctx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
+	if err != nil {
+		return "", 0, err
+	}
+	info := resp.Msg.GetBlockHeaderInfo()
+	return info.GetBlockHash().GetHex().GetValue(), int32(info.GetHeight()), nil
+}
+
 // Configs returns the binary configs.
 func (o *Orchestrator) Configs() map[string]BinaryConfig {
 	o.mu.RLock()
@@ -2479,6 +2516,32 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 	}, nil
 }
 
+// enforcerWalletSyncConnection is the raw WalletService.GetInfo RPC. The
+// wallet scans esplora on its own schedule, so its tip lags the validator's.
+type enforcerWalletSyncConnection struct{ o *Orchestrator }
+
+func (c *enforcerWalletSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, error) {
+	cfg, ok := c.o.Configs()["enforcer"]
+	if !ok || cfg.Port == 0 {
+		return nil, fmt.Errorf("enforcer not configured")
+	}
+	src := datasource.NewEnforcerSource(
+		nil,
+		func(context.Context) (enforcerrpc.WalletServiceClient, error) {
+			return enforcerrpc.NewWalletServiceClient(c.o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC()), nil
+		},
+	)
+	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	resp, err := src.WalletInfo(rpcCtx, &enforcerpb.GetInfoRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return &ChainSyncResult{
+		Blocks: int64(resp.GetTip().GetHeight()),
+	}, nil
+}
+
 // sidechainSyncConnection is the JSON-RPC `getblockcount` probe for one L2
 // sidechain. Headers stay zero — the GetSyncStatus merge step fills them
 // from the public explorer.
@@ -2556,6 +2619,14 @@ func (o *Orchestrator) syncConnectionFor(name string) Connection[*ChainSyncResul
 			}
 		}
 		return o.enforcerSync
+	case "enforcer-wallet":
+		if o.enforcerWalletSync == nil {
+			o.enforcerWalletSync = &CachedConnection[*ChainSyncResult]{
+				inner: &enforcerWalletSyncConnection{o: o},
+				ttl:   chainSyncCacheTTL,
+			}
+		}
+		return o.enforcerWalletSync
 	default:
 		if o.sidechainSyncs == nil {
 			o.sidechainSyncs = make(map[string]*CachedConnection[*ChainSyncResult])
@@ -2594,9 +2665,10 @@ type ChainSyncResult struct {
 // name. Frontends that aren't sidechains (e.g. bitwindow's own bitwindowd
 // daemon) are NOT in this map — the orchestrator knows nothing about them.
 type SyncStatus struct {
-	Mainchain  *ChainSyncResult
-	Enforcer   *ChainSyncResult
-	Sidechains map[string]*ChainSyncResult
+	Mainchain      *ChainSyncResult
+	Enforcer       *ChainSyncResult
+	EnforcerWallet *ChainSyncResult
+	Sidechains     map[string]*ChainSyncResult
 }
 
 // GetSyncStatus fans out concurrent probes — mainchain bitcoind, enforcer
@@ -2610,9 +2682,10 @@ type SyncStatus struct {
 // overall call only errors out when no probe could even be dispatched.
 func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	out := &SyncStatus{
-		Mainchain:  &ChainSyncResult{},
-		Enforcer:   &ChainSyncResult{},
-		Sidechains: make(map[string]*ChainSyncResult),
+		Mainchain:      &ChainSyncResult{},
+		Enforcer:       &ChainSyncResult{},
+		EnforcerWallet: &ChainSyncResult{},
+		Sidechains:     make(map[string]*ChainSyncResult),
 	}
 
 	// Pre-populate sidechain map with one slot per L2 sidechain. The
@@ -2653,7 +2726,21 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 				if !ok || cfg.Port == 0 {
 					return "enforcer not configured"
 				}
-				if !o.process.IsRunning("enforcer") {
+				if !o.enforcerReachable() {
+					return "not running"
+				}
+				return ""
+			},
+		},
+		{
+			slot: out.EnforcerWallet,
+			conn: o.syncConnectionFor("enforcer-wallet"),
+			validate: func() string {
+				cfg, ok := o.Configs()["enforcer"]
+				if !ok || cfg.Port == 0 {
+					return "enforcer not configured"
+				}
+				if !o.enforcerReachable() {
 					return "not running"
 				}
 				return ""
@@ -2727,6 +2814,13 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			out.Enforcer.Headers = out.Mainchain.Headers
 		} else {
 			out.Enforcer.Headers = out.Enforcer.Blocks
+		}
+	}
+	if out.EnforcerWallet.Error == "" {
+		if out.Mainchain.Error == "" {
+			out.EnforcerWallet.Headers = out.Mainchain.Headers
+		} else {
+			out.EnforcerWallet.Headers = out.EnforcerWallet.Blocks
 		}
 	}
 	// Sidechain headers come from the public explorer (fetched in parallel

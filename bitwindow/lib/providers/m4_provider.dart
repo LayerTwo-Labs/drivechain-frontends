@@ -52,8 +52,12 @@ class M4Provider extends ChangeNotifier {
 
   // Fetch M4 data for all active sidechains
   Future<void> fetchAll() async {
-    if (_disposed || _settingVote) return;
-    if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) return;
+    if (_disposed || _settingVote) {
+      return;
+    }
+    if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) {
+      return;
+    }
 
     isLoading = true;
     modelError = null;
@@ -114,7 +118,9 @@ class M4Provider extends ChangeNotifier {
     required String voteType,
     String? bundleHash,
   }) async {
-    if (_disposed) return;
+    if (_disposed) {
+      return;
+    }
     _settingVote = true;
     try {
       await _bitwindowRPC.m4.setVotePreference(
@@ -125,12 +131,16 @@ class M4Provider extends ChangeNotifier {
 
       // Only refresh vote preferences, not all data
       votePreferences = await _bitwindowRPC.m4.getVotePreferences();
-      if (_disposed) return;
+      if (_disposed) {
+        return;
+      }
       modelError = null;
       notifyListeners();
     } catch (e) {
       log.e('Failed to set vote preference: $e');
-      if (_disposed) return;
+      if (_disposed) {
+        return;
+      }
       modelError = e.toString();
       notifyListeners();
       rethrow;
@@ -140,14 +150,18 @@ class M4Provider extends ChangeNotifier {
   }
 
   Future<m4pb.GenerateM4BytesResponse?> generateM4Bytes() async {
-    if (_disposed) return null;
+    if (_disposed) {
+      return null;
+    }
     try {
       final resp = await _bitwindowRPC.m4.generateM4Bytes();
       modelError = null;
       return resp;
     } catch (e) {
       log.e('Failed to generate M4 bytes: $e');
-      if (_disposed) return null;
+      if (_disposed) {
+        return null;
+      }
       modelError = e.toString();
       notifyListeners();
       return null;

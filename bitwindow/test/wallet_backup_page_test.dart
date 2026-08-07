@@ -26,7 +26,9 @@ class _FakeWriter extends WalletWriterProvider {
     bool doNotSave = false,
   }) async {
     calls++;
-    if (gate != null) await gate!.future;
+    if (gate != null) {
+      await gate!.future;
+    }
     return {'mnemonic': List.generate(wordCount, (i) => 'word${i + 1}').join(' ')};
   }
 }

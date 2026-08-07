@@ -64,7 +64,9 @@ class BinaryProvider extends ChangeNotifier {
   /// until the next 5-min refresh tick fired — and on first-boot the toggle
   /// reconciles AFTER BinaryProvider.create has already cached prod dates.
   void _wireSettingsListener() {
-    if (!GetIt.I.isRegistered<SettingsProvider>()) return;
+    if (!GetIt.I.isRegistered<SettingsProvider>()) {
+      return;
+    }
     final settings = GetIt.I.get<SettingsProvider>();
     _lastKnownUseTestSidechains = settings.useTestSidechains;
     _settingsListener = () {
@@ -216,7 +218,9 @@ class BinaryProvider extends ChangeNotifier {
   /// owns the reboot isn't raced by an automatic one two seconds later.
   Future<void> stop(Binary binary, {bool skipDownstream = false, bool expectRestart = false}) async {
     if (_isDaemonBinary(binary)) {
-      if (expectRestart) _expectedStops.add(binary.name);
+      if (expectRestart) {
+        _expectedStops.add(binary.name);
+      }
       await _stopDaemonBinary(binary);
       return;
     }
@@ -299,7 +303,9 @@ class BinaryProvider extends ChangeNotifier {
           seenInFlight = true;
           continue;
         }
-        if (seenInFlight) break;
+        if (seenInFlight) {
+          break;
+        }
       } catch (e) {
         log.w('BinaryProvider: getDownloadStatus failed during update poll: $e');
       }
@@ -457,7 +463,9 @@ class BinaryProvider extends ChangeNotifier {
     log.i('BinaryProvider: starting daemon ${binary.name} with args: $args');
     await _processManager.start(binary, args, () async {
       final process = _processManager.runningProcesses[binary.name];
-      if (process == null) return;
+      if (process == null) {
+        return;
+      }
       try {
         Process.killPid(process.pid, ProcessSignal.sigint);
       } catch (e) {
@@ -466,7 +474,9 @@ class BinaryProvider extends ChangeNotifier {
       }
       final deadline = DateTime.now().add(const Duration(seconds: 10));
       while (DateTime.now().isBefore(deadline)) {
-        if (!await _processManager.isPidAlive(process.pid)) return;
+        if (!await _processManager.isPidAlive(process.pid)) {
+          return;
+        }
         await Future.delayed(const Duration(milliseconds: 100));
       }
     });
@@ -481,10 +491,14 @@ class BinaryProvider extends ChangeNotifier {
   /// Watch for daemon exit and auto-restart unless shutting down.
   void _watchDaemonExit(Binary binary) {
     final process = _processManager.runningProcesses[binary.name];
-    if (process == null) return;
+    if (process == null) {
+      return;
+    }
 
     _processManager.addListener(() {
-      if (_shuttingDown || _expectedStops.contains(binary.name)) return;
+      if (_shuttingDown || _expectedStops.contains(binary.name)) {
+        return;
+      }
       if (!_processManager.isRunning(binary)) {
         _syncDaemonConnectionState(binary, running: false);
         log.w('${binary.name} exited unexpectedly, restarting in 2s');
@@ -549,7 +563,9 @@ class BinaryProvider extends ChangeNotifier {
       if (binaries[i].type == type) {
         final prev = binaries[i];
         final next = updater(prev);
-        if (identical(prev, next)) return;
+        if (identical(prev, next)) {
+          return;
+        }
         binaries[i] = next;
         // BackendStateProvider's 1s poll flips Binary.metadata.binaryPath
         // here when a download completes — without this notify, every

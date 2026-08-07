@@ -31,7 +31,9 @@ class EnforcerConfig {
         final v = int.tryParse(
           trimmed.substring(kEnforcerConfVersionCommentPrefix.length).trim(),
         );
-        if (v != null && v >= 0) config.configVersion = v;
+        if (v != null && v >= 0) {
+          config.configVersion = v;
+        }
         continue;
       }
 
@@ -92,13 +94,23 @@ class EnforcerConfig {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! EnforcerConfig) return false;
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other is! EnforcerConfig) {
+      return false;
+    }
 
-    if (configVersion != other.configVersion) return false;
-    if (settings.length != other.settings.length) return false;
+    if (configVersion != other.configVersion) {
+      return false;
+    }
+    if (settings.length != other.settings.length) {
+      return false;
+    }
     for (final key in settings.keys) {
-      if (settings[key] != other.settings[key]) return false;
+      if (settings[key] != other.settings[key]) {
+        return false;
+      }
     }
 
     return true;

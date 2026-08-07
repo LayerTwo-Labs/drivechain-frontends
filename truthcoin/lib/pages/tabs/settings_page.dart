@@ -23,19 +23,17 @@ class SettingsTabPage extends StatefulWidget {
 }
 
 class SettingsTabPageState extends State<SettingsTabPage> {
+  static const _sectionCount = 3;
+
   late int _selectedIndex;
 
   @override
   void initState() {
     super.initState();
     SettingsTabPage._currentState = this;
-    // Use pending section if set, otherwise default to 0
-    if (SettingsTabPage._pendingSection != null) {
-      _selectedIndex = SettingsTabPage._pendingSection!.clamp(0, 2);
-      SettingsTabPage._pendingSection = null;
-    } else {
-      _selectedIndex = 0;
-    }
+    final pending = SettingsTabPage._pendingSection;
+    SettingsTabPage._pendingSection = null;
+    _selectedIndex = (pending ?? 0).clamp(0, _sectionCount - 1);
   }
 
   @override
@@ -47,7 +45,7 @@ class SettingsTabPageState extends State<SettingsTabPage> {
   }
 
   void setSelectedIndex(int index) {
-    if (index >= 0 && index < 3) {
+    if (index >= 0 && index < _sectionCount) {
       setState(() {
         _selectedIndex = index;
       });
@@ -56,65 +54,27 @@ class SettingsTabPageState extends State<SettingsTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return Container(
-      color: theme.colors.background,
-      padding: const EdgeInsets.all(SailStyleValues.padding12),
-      child: SelectionArea(
-        child: SingleChildScrollView(
-          child: SailColumn(
-            spacing: SailStyleValues.padding10,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailText.primary24(
-                'Settings',
-                bold: true,
-              ),
-              SailText.secondary13('Manage your Truthcoin settings.'),
-              const SailSpacing(SailStyleValues.padding10),
-              SailSeparator(
-                thickness: 1,
-                color: theme.colors.divider,
-              ),
-              const SailSpacing(SailStyleValues.padding10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SideNav(
-                    items: const [
-                      SideNavItem(label: 'Appearance'),
-                      SideNavItem(label: 'Reset'),
-                      SideNavItem(label: 'About'),
-                    ],
-                    selectedIndex: _selectedIndex,
-                    onItemSelected: (index) {
-                      setState(() {
-                        _selectedIndex = index;
-                      });
-                    },
-                  ),
-                  const SailSpacing(SailStyleValues.padding40),
-                  Expanded(
-                    child: [
-                      const SettingsGeneral(),
-                      SettingsReset(binary: Truthcoin(), appName: 'Truthcoin'),
-                      SettingsInfo(
-                        appName: 'Truthcoin',
-                        versionString: AppVersion.versionString,
-                        buildDate: AppVersion.buildDate,
-                        commitFull: AppVersion.commitFull,
-                        applicationName: AppVersion.appName,
-                      ),
-                    ][_selectedIndex],
-                  ),
-                ],
-              ),
-            ],
+    return SailSettingsScaffold(
+      subtitle: 'Manage your Truthcoin settings',
+      selectedIndex: _selectedIndex,
+      onSectionSelected: setSelectedIndex,
+      sections: [
+        SailSettingsSection(label: 'Appearance', builder: (_) => const SettingsAppearance()),
+        SailSettingsSection(
+          label: 'Reset',
+          builder: (_) => SettingsReset(binary: Truthcoin(), appName: 'Truthcoin'),
+        ),
+        SailSettingsSection(
+          label: 'About',
+          builder: (_) => SettingsInfo(
+            appName: 'Truthcoin',
+            versionString: AppVersion.versionString,
+            buildDate: AppVersion.buildDate,
+            commitFull: AppVersion.commitFull,
+            applicationName: AppVersion.appName,
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -28,8 +28,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
 	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
+	bmmrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1/bmmv1connect"
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -430,6 +432,34 @@ func run(cctx *cli.Context) error {
 			}
 		}()
 	}
+
+	// Wallet sync engine: keeps every electrum wallet on the current network
+	// warm, so switching wallets serves stored history with no scan wait.
+	if electrumBackend != nil {
+		walletSyncEngine := engines.NewWalletSyncEngine(log, walletSvc, walletEngine)
+		walletEngine.OnNetworkReset(walletSyncEngine.ResetForNetwork)
+		go func() {
+			if err := walletSyncEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				log.Error().Err(err).Msg("wallet sync engine exited")
+			}
+		}()
+	}
+
+	// BMM engine: bids for sidechain blocks on every new mainchain tip and
+	// connects the blocks miners take, with no frontend attached.
+	bmmHandler := api.NewBMMHandler(orch, walletHandler)
+	bmmStore := bmmstate.NewStore(walletSvc.NetworkDir(), 0)
+	bmmEngine := engines.NewBmmEngine(log, bmmHandler, orch, bmmStore)
+	bmmHandler.SetEngine(bmmEngine)
+	walletEngine.OnNetworkReset(func(dir string) { bmmStore.Rebind(dir) })
+	go func() {
+		if err := bmmEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("bmm engine exited")
+		}
+	}()
+
+	bmmPath, bmmH := bmmrpc.NewBMMServiceHandler(bmmHandler, connect.WithInterceptors(authIC))
+	mux.Handle(bmmPath, bmmH)
 
 	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors(authIC))
 	mux.Handle(walletPath, walletH)

@@ -27,7 +27,9 @@ class EnforcerConfigEditorViewModel extends ChangeNotifier {
   }
 
   void _onConfProviderChanged() {
-    if (_isDisposed) return;
+    if (_isDisposed) {
+      return;
+    }
     _rawConfigText = null;
     currentPreset = EnforcerConfigPreset.custom;
     loadConfig();
@@ -64,7 +66,9 @@ class EnforcerConfigEditorViewModel extends ChangeNotifier {
   }
 
   void updateSetting(String key, dynamic value) {
-    if (workingConfig == null) return;
+    if (workingConfig == null) {
+      return;
+    }
 
     if (value == null || value.toString().isEmpty) {
       workingConfig!.removeSetting(key);
@@ -78,7 +82,9 @@ class EnforcerConfigEditorViewModel extends ChangeNotifier {
   }
 
   Future<void> saveConfig() async {
-    if (workingConfig == null && _rawConfigText == null) return;
+    if (workingConfig == null && _rawConfigText == null) {
+      return;
+    }
 
     try {
       isLoading = true;
@@ -109,7 +115,9 @@ class EnforcerConfigEditorViewModel extends ChangeNotifier {
       final defaultContent = confProvider.getDefaultConfig();
       workingConfig = EnforcerConfig.parse(defaultContent);
     } else {
-      if (workingConfig == null) return;
+      if (workingConfig == null) {
+        return;
+      }
 
       final presetSettings = EnforcerConfigPresets.getPresetSettings(preset);
 

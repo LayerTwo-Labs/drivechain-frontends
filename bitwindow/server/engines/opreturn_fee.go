@@ -13,5 +13,5 @@ func OpReturnOutputVbytes(payloadLen int) uint64 {
 // OpReturnTxVbytes sizes the transaction that carries an OP_RETURN payload:
 // one segwit input, one change output, and the payload output.
 func OpReturnTxVbytes(payloadLen int) uint64 {
-	return uint64(p2wpkhInputVbytes+sweepOutputVbytes+sweepOverheadVbytes) + OpReturnOutputVbytes(payloadLen)
+	return uint64(p2wpkhInputVbytes+SweepOutputVbytes+sweepOverheadVbytes) + OpReturnOutputVbytes(payloadLen)
 }

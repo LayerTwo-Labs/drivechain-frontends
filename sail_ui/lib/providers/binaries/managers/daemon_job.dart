@@ -10,7 +10,9 @@ abstract final class DaemonJob {
   /// False when the platform has no job (everything but Windows) or the runner
   /// does not implement the channel, which must never block a daemon.
   static Future<bool> bind(int pid) async {
-    if (!Platform.isWindows) return false;
+    if (!Platform.isWindows) {
+      return false;
+    }
     try {
       return await _channel.invokeMethod<bool>('bind', {'pid': pid}) ?? false;
     } on MissingPluginException {

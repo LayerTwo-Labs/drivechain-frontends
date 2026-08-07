@@ -196,23 +196,41 @@ class _NetworkStatisticsPageState extends State<NetworkStatisticsPage> {
   }
 
   String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 
   String _formatBandwidth(double bytesPerSec) {
-    if (bytesPerSec < 1024) return '${bytesPerSec.toStringAsFixed(1)} B/s';
-    if (bytesPerSec < 1024 * 1024) return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
+    if (bytesPerSec < 1024) {
+      return '${bytesPerSec.toStringAsFixed(1)} B/s';
+    }
+    if (bytesPerSec < 1024 * 1024) {
+      return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
+    }
     return '${(bytesPerSec / (1024 * 1024)).toStringAsFixed(1)} MB/s';
   }
 
   String _formatHashrate(double hashrate) {
-    if (hashrate < 1000) return '${hashrate.toStringAsFixed(0)} H/s';
-    if (hashrate < 1000000) return '${(hashrate / 1000).toStringAsFixed(2)} KH/s';
-    if (hashrate < 1000000000) return '${(hashrate / 1000000).toStringAsFixed(2)} MH/s';
-    if (hashrate < 1000000000000) return '${(hashrate / 1000000000).toStringAsFixed(2)} GH/s';
+    if (hashrate < 1000) {
+      return '${hashrate.toStringAsFixed(0)} H/s';
+    }
+    if (hashrate < 1000000) {
+      return '${(hashrate / 1000).toStringAsFixed(2)} KH/s';
+    }
+    if (hashrate < 1000000000) {
+      return '${(hashrate / 1000000).toStringAsFixed(2)} MH/s';
+    }
+    if (hashrate < 1000000000000) {
+      return '${(hashrate / 1000000000).toStringAsFixed(2)} GH/s';
+    }
     return '${(hashrate / 1000000000000).toStringAsFixed(2)} TH/s';
   }
 }

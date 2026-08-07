@@ -31,7 +31,9 @@ class CoinSelectionProvider extends ChangeNotifier {
 
   /// Fetches all UTXO metadata and coin selection strategy from backend
   Future<void> fetch() async {
-    if (_isFetching) return;
+    if (_isFetching) {
+      return;
+    }
     _isFetching = true;
 
     try {
@@ -52,7 +54,9 @@ class CoinSelectionProvider extends ChangeNotifier {
         _strategy = newStrategy;
         changed = true;
       }
-      if (changed) notifyListeners();
+      if (changed) {
+        notifyListeners();
+      }
     } catch (e) {
       if (e.toString() != error) {
         error = e.toString();
