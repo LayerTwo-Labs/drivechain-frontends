@@ -92,6 +92,9 @@ const (
 	// WalletServiceCheckChequeFundingProcedure is the fully-qualified name of the WalletService's
 	// CheckChequeFunding RPC.
 	WalletServiceCheckChequeFundingProcedure = "/wallet.v1.WalletService/CheckChequeFunding"
+	// WalletServicePreviewSweepProcedure is the fully-qualified name of the WalletService's
+	// PreviewSweep RPC.
+	WalletServicePreviewSweepProcedure = "/wallet.v1.WalletService/PreviewSweep"
 	// WalletServiceSweepChequeProcedure is the fully-qualified name of the WalletService's SweepCheque
 	// RPC.
 	WalletServiceSweepChequeProcedure = "/wallet.v1.WalletService/SweepCheque"
@@ -158,6 +161,7 @@ type WalletServiceClient interface {
 	GetChequePrivateKey(context.Context, *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error)
 	ListCheques(context.Context, *connect.Request[v1.ListChequesRequest]) (*connect.Response[v1.ListChequesResponse], error)
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
+	PreviewSweep(context.Context, *connect.Request[v1.PreviewSweepRequest]) (*connect.Response[v1.PreviewSweepResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
 	// UTXO Coin Control
@@ -311,6 +315,12 @@ func NewWalletServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(walletServiceMethods.ByName("CheckChequeFunding")),
 			connect.WithClientOptions(opts...),
 		),
+		previewSweep: connect.NewClient[v1.PreviewSweepRequest, v1.PreviewSweepResponse](
+			httpClient,
+			baseURL+WalletServicePreviewSweepProcedure,
+			connect.WithSchema(walletServiceMethods.ByName("PreviewSweep")),
+			connect.WithClientOptions(opts...),
+		),
 		sweepCheque: connect.NewClient[v1.SweepChequeRequest, v1.SweepChequeResponse](
 			httpClient,
 			baseURL+WalletServiceSweepChequeProcedure,
@@ -414,6 +424,7 @@ type walletServiceClient struct {
 	getChequePrivateKey      *connect.Client[v1.GetChequePrivateKeyRequest, v1.GetChequePrivateKeyResponse]
 	listCheques              *connect.Client[v1.ListChequesRequest, v1.ListChequesResponse]
 	checkChequeFunding       *connect.Client[v1.CheckChequeFundingRequest, v1.CheckChequeFundingResponse]
+	previewSweep             *connect.Client[v1.PreviewSweepRequest, v1.PreviewSweepResponse]
 	sweepCheque              *connect.Client[v1.SweepChequeRequest, v1.SweepChequeResponse]
 	deleteCheque             *connect.Client[v1.DeleteChequeRequest, emptypb.Empty]
 	setUTXOMetadata          *connect.Client[v1.SetUTXOMetadataRequest, emptypb.Empty]
@@ -529,6 +540,11 @@ func (c *walletServiceClient) CheckChequeFunding(ctx context.Context, req *conne
 	return c.checkChequeFunding.CallUnary(ctx, req)
 }
 
+// PreviewSweep calls wallet.v1.WalletService.PreviewSweep.
+func (c *walletServiceClient) PreviewSweep(ctx context.Context, req *connect.Request[v1.PreviewSweepRequest]) (*connect.Response[v1.PreviewSweepResponse], error) {
+	return c.previewSweep.CallUnary(ctx, req)
+}
+
 // SweepCheque calls wallet.v1.WalletService.SweepCheque.
 func (c *walletServiceClient) SweepCheque(ctx context.Context, req *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error) {
 	return c.sweepCheque.CallUnary(ctx, req)
@@ -620,6 +636,7 @@ type WalletServiceHandler interface {
 	GetChequePrivateKey(context.Context, *connect.Request[v1.GetChequePrivateKeyRequest]) (*connect.Response[v1.GetChequePrivateKeyResponse], error)
 	ListCheques(context.Context, *connect.Request[v1.ListChequesRequest]) (*connect.Response[v1.ListChequesResponse], error)
 	CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error)
+	PreviewSweep(context.Context, *connect.Request[v1.PreviewSweepRequest]) (*connect.Response[v1.PreviewSweepResponse], error)
 	SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error)
 	DeleteCheque(context.Context, *connect.Request[v1.DeleteChequeRequest]) (*connect.Response[emptypb.Empty], error)
 	// UTXO Coin Control
@@ -769,6 +786,12 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(walletServiceMethods.ByName("CheckChequeFunding")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletServicePreviewSweepHandler := connect.NewUnaryHandler(
+		WalletServicePreviewSweepProcedure,
+		svc.PreviewSweep,
+		connect.WithSchema(walletServiceMethods.ByName("PreviewSweep")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletServiceSweepChequeHandler := connect.NewUnaryHandler(
 		WalletServiceSweepChequeProcedure,
 		svc.SweepCheque,
@@ -889,6 +912,8 @@ func NewWalletServiceHandler(svc WalletServiceHandler, opts ...connect.HandlerOp
 			walletServiceListChequesHandler.ServeHTTP(w, r)
 		case WalletServiceCheckChequeFundingProcedure:
 			walletServiceCheckChequeFundingHandler.ServeHTTP(w, r)
+		case WalletServicePreviewSweepProcedure:
+			walletServicePreviewSweepHandler.ServeHTTP(w, r)
 		case WalletServiceSweepChequeProcedure:
 			walletServiceSweepChequeHandler.ServeHTTP(w, r)
 		case WalletServiceDeleteChequeProcedure:
@@ -1002,6 +1027,10 @@ func (UnimplementedWalletServiceHandler) ListCheques(context.Context, *connect.R
 
 func (UnimplementedWalletServiceHandler) CheckChequeFunding(context.Context, *connect.Request[v1.CheckChequeFundingRequest]) (*connect.Response[v1.CheckChequeFundingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.CheckChequeFunding is not implemented"))
+}
+
+func (UnimplementedWalletServiceHandler) PreviewSweep(context.Context, *connect.Request[v1.PreviewSweepRequest]) (*connect.Response[v1.PreviewSweepResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wallet.v1.WalletService.PreviewSweep is not implemented"))
 }
 
 func (UnimplementedWalletServiceHandler) SweepCheque(context.Context, *connect.Request[v1.SweepChequeRequest]) (*connect.Response[v1.SweepChequeResponse], error) {

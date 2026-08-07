@@ -43,7 +43,6 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
@@ -1191,15 +1190,15 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("invalid fee, must be a BTC-amount greater than zero")
 	}
 
-	// Electrum wallets build the M5 deposit themselves (no local enforcer) and
-	// broadcast it through the orchestrator wallet manager.
-	if walletType == engines.WalletTypeElectrum {
-		return s.createElectrumSidechainDeposit(ctx, walletId, uint32(*slot), depositAddress, amount, fee)
+	// Electrum and Core wallets build the M5 deposit themselves (no local
+	// enforcer) and broadcast it through the orchestrator wallet manager.
+	if walletType == engines.WalletTypeElectrum || walletType == engines.WalletTypeBitcoinCore {
+		return s.createWalletSidechainDeposit(ctx, walletId, uint32(*slot), depositAddress, amount, fee)
 	}
 
 	// Enforcer wallets delegate construction to the enforcer.
 	if walletType != engines.WalletTypeEnforcer {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain deposits require an enforcer or electrum wallet"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain deposits require an enforcer, electrum or core wallet"))
 	}
 	if s.wallet == nil {
 		return nil, errors.New("wallet not connected")
@@ -1226,53 +1225,22 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	}), nil
 }
 
-// createElectrumSidechainDeposit builds and broadcasts a BIP300 M5 deposit from
-// an electrum wallet. The M5 must spend the sidechain's current CTIP (treasury)
-// and produce, in order: out[0] the new OP_DRIVECHAIN treasury (old CTIP value +
-// deposit), out[1] an OP_RETURN of the sidechain address. The orchestrator funds
-// the deposit amount + fee from the wallet and adds change.
-func (s *Server) createElectrumSidechainDeposit(
+// createWalletSidechainDeposit delegates the M5 to the orchestrator, which
+// assembles it and funds it from the wallet, whatever backend serves it.
+func (s *Server) createWalletSidechainDeposit(
 	ctx context.Context,
 	walletId string,
 	slot uint32,
 	depositAddress string,
 	amount, fee btcutil.Amount,
 ) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
-	// Current treasury UTXO. Nil means this is the first deposit to the slot, so
-	// there is no prior CTIP to spend and the treasury starts at the deposit.
-	ctipResp, err := s.data.Ctip(ctx, &validatorpb.GetCtipRequest{
-		SidechainNumber: wrapperspb.UInt32(slot),
+	txid, err := s.walletEngine.CreateDeposit(ctx, &orchpb.CreateDepositRequest{
+		Slot:        int32(slot),
+		WalletId:    walletId,
+		Destination: depositAddress,
+		AmountSats:  int64(amount),
+		FeeSats:     int64(fee),
 	})
-	if err != nil {
-		return nil, fmt.Errorf("get sidechain ctip: %w", err)
-	}
-
-	var ctipValue uint64
-	var externalInputs []*orchpb.ExternalInput
-	if ctip := ctipResp.Ctip; ctip != nil {
-		ctipValue = ctip.Value
-		externalInputs = []*orchpb.ExternalInput{{
-			Txid:      ctip.Txid.Hex.Value,
-			Vout:      int32(ctip.Vout),
-			ValueSats: int64(ctip.Value),
-		}}
-	}
-
-	// Treasury scriptPubKey: OP_DRIVECHAIN OP_PUSHBYTES_1 <slot> OP_TRUE. Built as
-	// raw bytes — minimal-push encoding would collapse a 1-16 slot to OP_N.
-	treasuryScript := []byte{0xB4, 0x01, byte(slot), 0x51}
-
-	req := &orchpb.SendTransactionRequest{
-		WalletId:     walletId,
-		FixedFeeSats: int64(fee),
-		RawOutputs: []*orchpb.RawOutput{
-			{ValueSats: int64(ctipValue) + int64(amount), ScriptHex: hex.EncodeToString(treasuryScript)},
-		},
-		OpReturnHex:    hex.EncodeToString([]byte(depositAddress)),
-		ExternalInputs: externalInputs,
-	}
-
-	txid, err := s.walletEngine.SendTransaction(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("broadcast sidechain deposit: %w", err)
 	}
@@ -2379,6 +2347,56 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 	}), nil
 }
 
+// PreviewSweep implements walletv1connect.WalletServiceHandler.
+// Reports what a private key holds and what sweeping it would cost.
+func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.PreviewSweepRequest]) (*connect.Response[pb.PreviewSweepResponse], error) {
+	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
+	}
+
+	source, err := engines.ResolveSweepSource(ctx, s.chequeChain, wifKey, s.chequeEngine.GetChainParams())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
+	}
+
+	feeSatPerVbyte, err := s.chequeSweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
+	if err != nil {
+		return nil, err
+	}
+
+	amountSats := source.TotalSats()
+	feeSats := engines.SweepFeeSats(source, feeSatPerVbyte)
+
+	var receiveSats uint64
+	if amountSats > feeSats {
+		receiveSats = amountSats - feeSats
+	}
+
+	return connect.NewResponse(&pb.PreviewSweepResponse{
+		Address:        source.Address,
+		AddressKind:    sweepAddressKindToPb(source.Kind),
+		AmountSats:     amountSats,
+		OutputCount:    uint32(len(source.UTXOs)),
+		FeeSatPerVbyte: feeSatPerVbyte,
+		FeeSats:        feeSats,
+		ReceiveSats:    receiveSats,
+	}), nil
+}
+
+func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
+	switch kind {
+	case engines.SweepAddressP2WPKH:
+		return pb.SweepAddressKind_SWEEP_ADDRESS_KIND_P2WPKH
+	case engines.SweepAddressP2PKH:
+		return pb.SweepAddressKind_SWEEP_ADDRESS_KIND_P2PKH
+	case engines.SweepAddressUnknown:
+		return pb.SweepAddressKind_SWEEP_ADDRESS_KIND_UNSPECIFIED
+	default:
+		return pb.SweepAddressKind_SWEEP_ADDRESS_KIND_UNSPECIFIED
+	}
+}
+
 // SweepCheque implements walletv1connect.WalletServiceHandler.
 // Sweeps a cheque using its WIF private key to the destination address.
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
@@ -2392,47 +2410,37 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
-	// Decode the WIF
 	wifKey, err := btcutil.DecodeWIF(c.Msg.PrivateKeyWif)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid WIF: %w", err))
 	}
 
-	// Derive address from the private key
-	pubKey := wifKey.PrivKey.PubKey()
-	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
-	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, s.chequeEngine.GetChainParams())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create address: %w", err))
-	}
+	params := s.chequeEngine.GetChainParams()
 
-	addressStr := address.EncodeAddress()
-
-	log.Debug().Str("address", addressStr).Msg("SweepCheque: querying UTXOs")
-
-	utxos, err := s.chequeChain.AddressUnspent(ctx, addressStr, time.Unix(0, 0))
+	source, err := engines.ResolveSweepSource(ctx, s.chequeChain, wifKey, params)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
 	}
-	if len(utxos) == 0 {
+	if len(source.UTXOs) == 0 {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("no funds found at this address"))
 	}
 
-	totalAmount := uint64(lo.SumBy(utxos, func(utxo engines.ChequeUTXO) int64 {
-		return utxo.ValueSats
-	}))
+	addressStr := source.Address
+	totalAmount := source.TotalSats()
+
+	log.Debug().Str("address", addressStr).Str("kind", source.Kind.String()).Msg("SweepCheque: sweeping")
 
 	feeSatPerVbyte, err := s.chequeSweepFeeRate(ctx, c.Msg.FeeSatPerVbyte)
 	if err != nil {
 		return nil, err
 	}
 
-	unsignedTx, err := s.buildSweepTx(c.Msg.DestinationAddress, utxos, feeSatPerVbyte)
+	unsignedTx, err := engines.BuildSweepTx(source, c.Msg.DestinationAddress, feeSatPerVbyte, params)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build transaction: %w", err))
 	}
 
-	signedTx, err := s.signSweepTx(unsignedTx, c.Msg.PrivateKeyWif, addressStr, utxos)
+	signedTx, err := engines.SignSweepTx(unsignedTx, source, wifKey, params)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sign transaction: %w", err))
 	}
@@ -2557,109 +2565,6 @@ func (s *Server) chequeToPb(c *cheques.Cheque) *pb.Cheque {
 	}
 
 	return pbCheque
-}
-
-// buildSweepTx builds an unsigned transaction to sweep cheque funds
-func (s *Server) buildSweepTx(
-	destAddress string,
-	utxos []engines.ChequeUTXO,
-	feeSatPerVbyte uint64,
-) (*wire.MsgTx, error) {
-	var totalSats uint64
-	for _, utxo := range utxos {
-		totalSats += uint64(utxo.ValueSats)
-	}
-
-	// Estimate transaction size (P2WPKH input is ~68 vbytes, P2WPKH output is ~31 vbytes, overhead ~11 vbytes)
-	estimatedVbytes := uint64(len(utxos)*68 + 31 + 11)
-	feeSats := estimatedVbytes * feeSatPerVbyte
-
-	// Check if we have enough to cover the fee
-	if totalSats <= feeSats {
-		return nil, fmt.Errorf("insufficient funds: total %d sats, fee %d sats", totalSats, feeSats)
-	}
-
-	// Parse destination address
-	destAddr, err := btcutil.DecodeAddress(destAddress, s.chequeEngine.GetChainParams())
-	if err != nil {
-		return nil, fmt.Errorf("decode destination address: %w", err)
-	}
-
-	// Create new transaction
-	tx := wire.NewMsgTx(wire.TxVersion)
-
-	// Add inputs from UTXOs
-	for _, utxo := range utxos {
-		txHash, err := chainhash.NewHashFromStr(utxo.TxID)
-		if err != nil {
-			return nil, fmt.Errorf("parse txid: %w", err)
-		}
-
-		outPoint := wire.NewOutPoint(txHash, uint32(utxo.Vout))
-		txIn := wire.NewTxIn(outPoint, nil, nil)
-		tx.AddTxIn(txIn)
-	}
-
-	// Add output (total minus fees)
-	pkScript, err := txscript.PayToAddrScript(destAddr)
-	if err != nil {
-		return nil, fmt.Errorf("create output script: %w", err)
-	}
-
-	outputSats := totalSats - feeSats
-	txOut := wire.NewTxOut(int64(outputSats), pkScript)
-	tx.AddTxOut(txOut)
-
-	return tx, nil
-}
-
-// signSweepTx signs a sweep transaction with the provided WIF key
-func (s *Server) signSweepTx(
-	tx *wire.MsgTx,
-	wifKey string,
-	sourceAddress string,
-	utxos []engines.ChequeUTXO,
-) (*wire.MsgTx, error) {
-	// Decode WIF private key
-	wif, err := btcutil.DecodeWIF(wifKey)
-	if err != nil {
-		return nil, fmt.Errorf("decode WIF: %w", err)
-	}
-
-	// Parse source address to get pubkey script
-	sourceAddr, err := btcutil.DecodeAddress(sourceAddress, s.chequeEngine.GetChainParams())
-	if err != nil {
-		return nil, fmt.Errorf("decode source address: %w", err)
-	}
-
-	sourcePkScript, err := txscript.PayToAddrScript(sourceAddr)
-	if err != nil {
-		return nil, fmt.Errorf("create source script: %w", err)
-	}
-
-	// Sign each input
-	for i, utxo := range utxos {
-		// For P2WPKH, we need to sign using witness v0
-		witnessScript, err := txscript.WitnessSignature(
-			tx, txscript.NewTxSigHashes(tx, txscript.NewCannedPrevOutputFetcher(
-				sourcePkScript,
-				utxo.ValueSats,
-			)),
-			i,
-			utxo.ValueSats,
-			sourcePkScript,
-			txscript.SigHashAll,
-			wif.PrivKey,
-			true, // compress pubkey
-		)
-		if err != nil {
-			return nil, fmt.Errorf("create witness signature for input %d: %w", i, err)
-		}
-
-		tx.TxIn[i].Witness = witnessScript
-	}
-
-	return tx, nil
 }
 
 // serializeTx serializes a transaction to hex string

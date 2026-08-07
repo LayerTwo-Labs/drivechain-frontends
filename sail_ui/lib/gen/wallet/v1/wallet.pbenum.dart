@@ -14,11 +14,12 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class AddressType extends $pb.ProtobufEnum {
-  static const AddressType ADDRESS_TYPE_UNSPECIFIED = AddressType._(0, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNSPECIFIED');
+  static const AddressType ADDRESS_TYPE_UNSPECIFIED =
+      AddressType._(0, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNSPECIFIED');
   static const AddressType ADDRESS_TYPE_SEGWIT = AddressType._(1, _omitEnumNames ? '' : 'ADDRESS_TYPE_SEGWIT');
   static const AddressType ADDRESS_TYPE_TAPROOT = AddressType._(2, _omitEnumNames ? '' : 'ADDRESS_TYPE_TAPROOT');
 
-  static const $core.List<AddressType> values = <AddressType> [
+  static const $core.List<AddressType> values = <AddressType>[
     ADDRESS_TYPE_UNSPECIFIED,
     ADDRESS_TYPE_SEGWIT,
     ADDRESS_TYPE_TAPROOT,
@@ -30,15 +31,41 @@ class AddressType extends $pb.ProtobufEnum {
   const AddressType._($core.int v, $core.String n) : super(v, n);
 }
 
+/// Script kind of the address a private key controls.
+class SweepAddressKind extends $pb.ProtobufEnum {
+  static const SweepAddressKind SWEEP_ADDRESS_KIND_UNSPECIFIED =
+      SweepAddressKind._(0, _omitEnumNames ? '' : 'SWEEP_ADDRESS_KIND_UNSPECIFIED');
+  static const SweepAddressKind SWEEP_ADDRESS_KIND_P2WPKH =
+      SweepAddressKind._(1, _omitEnumNames ? '' : 'SWEEP_ADDRESS_KIND_P2WPKH');
+  static const SweepAddressKind SWEEP_ADDRESS_KIND_P2PKH =
+      SweepAddressKind._(2, _omitEnumNames ? '' : 'SWEEP_ADDRESS_KIND_P2PKH');
+
+  static const $core.List<SweepAddressKind> values = <SweepAddressKind>[
+    SWEEP_ADDRESS_KIND_UNSPECIFIED,
+    SWEEP_ADDRESS_KIND_P2WPKH,
+    SWEEP_ADDRESS_KIND_P2PKH,
+  ];
+
+  static final $core.Map<$core.int, SweepAddressKind> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static SweepAddressKind? valueOf($core.int value) => _byValue[value];
+
+  const SweepAddressKind._($core.int v, $core.String n) : super(v, n);
+}
+
 /// Coin Selection Strategy
 class CoinSelectionStrategy extends $pb.ProtobufEnum {
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_UNSPECIFIED = CoinSelectionStrategy._(0, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_UNSPECIFIED');
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_LARGEST_FIRST = CoinSelectionStrategy._(1, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_LARGEST_FIRST');
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_SMALLEST_FIRST = CoinSelectionStrategy._(2, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_SMALLEST_FIRST');
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_RANDOM = CoinSelectionStrategy._(3, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_RANDOM');
-  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND = CoinSelectionStrategy._(4, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_UNSPECIFIED =
+      CoinSelectionStrategy._(0, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_UNSPECIFIED');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_LARGEST_FIRST =
+      CoinSelectionStrategy._(1, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_LARGEST_FIRST');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_SMALLEST_FIRST =
+      CoinSelectionStrategy._(2, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_SMALLEST_FIRST');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_RANDOM =
+      CoinSelectionStrategy._(3, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_RANDOM');
+  static const CoinSelectionStrategy COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND =
+      CoinSelectionStrategy._(4, _omitEnumNames ? '' : 'COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND');
 
-  static const $core.List<CoinSelectionStrategy> values = <CoinSelectionStrategy> [
+  static const $core.List<CoinSelectionStrategy> values = <CoinSelectionStrategy>[
     COIN_SELECTION_STRATEGY_UNSPECIFIED,
     COIN_SELECTION_STRATEGY_LARGEST_FIRST,
     COIN_SELECTION_STRATEGY_SMALLEST_FIRST,
@@ -51,6 +78,5 @@ class CoinSelectionStrategy extends $pb.ProtobufEnum {
 
   const CoinSelectionStrategy._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

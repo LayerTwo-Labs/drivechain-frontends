@@ -36,6 +36,7 @@ service WalletService {
   rpc GetChequePrivateKey(GetChequePrivateKeyRequest) returns (GetChequePrivateKeyResponse);
   rpc ListCheques(ListChequesRequest) returns (ListChequesResponse);
   rpc CheckChequeFunding(CheckChequeFundingRequest) returns (CheckChequeFundingResponse);
+  rpc PreviewSweep(PreviewSweepRequest) returns (PreviewSweepResponse);
   rpc SweepCheque(SweepChequeRequest) returns (SweepChequeResponse);
   rpc DeleteCheque(DeleteChequeRequest) returns (google.protobuf.Empty);
 
@@ -328,6 +329,32 @@ message CheckChequeFundingResponse {
   repeated string funded_txids = 3;
   optional google.protobuf.Timestamp funded_at = 4;
   uint32 min_confirmations = 5;
+}
+
+// Script kind of the address a private key controls.
+enum SweepAddressKind {
+  SWEEP_ADDRESS_KIND_UNSPECIFIED = 0;
+  SWEEP_ADDRESS_KIND_P2WPKH = 1;
+  SWEEP_ADDRESS_KIND_P2PKH = 2;
+}
+
+message PreviewSweepRequest {
+  string private_key_wif = 1;
+  // Zero asks the backend for its own estimate.
+  uint64 fee_sat_per_vbyte = 2;
+}
+
+// What a private key holds, and what sweeping it would cost. Reads only.
+message PreviewSweepResponse {
+  // The funded address, or the P2WPKH one when the key holds nothing.
+  string address = 1;
+  SweepAddressKind address_kind = 2;
+  uint64 amount_sats = 3;
+  uint32 output_count = 4;
+  uint64 fee_sat_per_vbyte = 5;
+  uint64 fee_sats = 6;
+  // amount_sats minus fee_sats. Zero when the fee exceeds the balance.
+  uint64 receive_sats = 7;
 }
 
 message SweepChequeRequest {

@@ -8,7 +8,7 @@ import "wallet.pb.dart" as walletv1wallet;
 import "wallet.connect.spec.dart" as specs;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type WalletServiceClient (connect.Transport _transport) {
+extension type WalletServiceClient(connect.Transport _transport) {
   Future<walletv1wallet.CreateBitcoinCoreWalletResponse> createBitcoinCoreWallet(
     walletv1wallet.CreateBitcoinCoreWalletRequest input, {
     connect.Headers? headers,
@@ -345,6 +345,23 @@ extension type WalletServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletService.checkChequeFunding,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletv1wallet.PreviewSweepResponse> previewSweep(
+    walletv1wallet.PreviewSweepRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletService.previewSweep,
       input,
       signal: signal,
       headers: headers,

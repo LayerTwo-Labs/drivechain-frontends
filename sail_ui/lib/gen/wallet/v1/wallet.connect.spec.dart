@@ -155,6 +155,13 @@ abstract final class WalletService {
     walletv1wallet.CheckChequeFundingResponse.new,
   );
 
+  static const previewSweep = connect.Spec(
+    '/$name/PreviewSweep',
+    connect.StreamType.unary,
+    walletv1wallet.PreviewSweepRequest.new,
+    walletv1wallet.PreviewSweepResponse.new,
+  );
+
   static const sweepCheque = connect.Spec(
     '/$name/SweepCheque',
     connect.StreamType.unary,

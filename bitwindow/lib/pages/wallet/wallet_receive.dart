@@ -2,6 +2,7 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/widgets/claim_ecx_card.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -11,6 +12,11 @@ import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+const _claimCardWidth = 420.0;
+
+/// Below this the claim card drops under the address card instead of beside it.
+const _claimBesideAddress = 1100.0;
 
 class ReceiveTab extends StatelessWidget {
   const ReceiveTab({super.key});
@@ -27,85 +33,106 @@ class ReceiveTab extends StatelessWidget {
           child: SailColumn(
             spacing: 16,
             children: [
-              SailRow(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: SailCard(
-                      title: 'Receive Bitcoin on L1',
-                      error: model.modelError,
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding16,
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Multisig wallets have a single address kind fixed by
-                          // their descriptor, so there's no address type to choose.
-                          if (!model.isMultisigWallet)
-                            SailDropdownButton<wmpb.AddressType>(
-                              value: model.addressType,
-                              onChanged: (type) {
-                                if (type != null) {
-                                  model.setAddressType(type);
-                                }
-                              },
-                              items: const [
-                                SailDropdownItem(
-                                  value: wmpb.AddressType.ADDRESS_TYPE_SEGWIT,
-                                  label: 'Segwit (bech32)',
-                                ),
-                                SailDropdownItem(
-                                  value: wmpb.AddressType.ADDRESS_TYPE_TAPROOT,
-                                  label: 'Taproot (bech32m)',
-                                ),
-                              ],
-                            ),
-                          SailRow(
-                            spacing: SailStyleValues.padding08,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final addressRow = SailRow(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    spacing: SailStyleValues.padding08,
+                    children: [
+                      Expanded(
+                        child: SailCard(
+                          title: 'Receive Bitcoin on L1',
+                          error: model.modelError,
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding16,
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: SailTextField(
-                                  loading: LoadingDetails(
-                                    enabled: model.address.isEmpty,
-                                    description: 'Waiting for enforcer to start and wallet to sync..',
-                                  ),
-                                  controller: TextEditingController(text: model.address),
-                                  hintText: 'A Drivechain address',
-                                  readOnly: true,
-                                  suffixWidget: CopyButton(text: model.address),
+                              // Multisig wallets have a single address kind fixed by
+                              // their descriptor, so there's no address type to choose.
+                              if (!model.isMultisigWallet)
+                                SailDropdownButton<wmpb.AddressType>(
+                                  value: model.addressType,
+                                  onChanged: (type) {
+                                    if (type != null) {
+                                      model.setAddressType(type);
+                                    }
+                                  },
+                                  items: const [
+                                    SailDropdownItem(
+                                      value: wmpb.AddressType.ADDRESS_TYPE_SEGWIT,
+                                      label: 'Segwit (bech32)',
+                                    ),
+                                    SailDropdownItem(
+                                      value: wmpb.AddressType.ADDRESS_TYPE_TAPROOT,
+                                      label: 'Taproot (bech32m)',
+                                    ),
+                                  ],
                                 ),
+                              SailRow(
+                                spacing: SailStyleValues.padding08,
+                                children: [
+                                  Expanded(
+                                    child: SailTextField(
+                                      loading: LoadingDetails(
+                                        enabled: model.address.isEmpty,
+                                        description: 'Waiting for enforcer to start and wallet to sync..',
+                                      ),
+                                      controller: TextEditingController(text: model.address),
+                                      hintText: 'A Drivechain address',
+                                      readOnly: true,
+                                      suffixWidget: CopyButton(text: model.address),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              if (model.addressDerivationPath.isNotEmpty)
+                                SailText.secondary12(model.addressDerivationPath, monospace: true),
+                              if (model.address.isEmpty)
+                                SailButton(
+                                  label: 'Generate new address',
+                                  onPressed: model.generateNewAddress,
+                                ),
                             ],
                           ),
-                          if (model.addressDerivationPath.isNotEmpty)
-                            SailText.secondary12(model.addressDerivationPath, monospace: true),
-                          if (model.address.isEmpty)
-                            SailButton(
-                              label: 'Generate new address',
-                              onPressed: model.generateNewAddress,
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 128,
-                    child: SailCard(
-                      padding: true,
-                      child: QrImageView(
-                        padding: EdgeInsets.zero,
-                        eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
-                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
-                        data: model.address,
-                        version: QrVersions.auto,
+                      SizedBox(
+                        width: 128,
+                        child: SailCard(
+                          padding: true,
+                          child: QrImageView(
+                            padding: EdgeInsets.zero,
+                            eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
+                            dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                            data: model.address,
+                            version: QrVersions.auto,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+
+                  if (constraints.maxWidth < _claimBesideAddress) {
+                    return SailColumn(
+                      spacing: SailStyleValues.padding16,
+                      children: [addressRow, const ClaimEcxCard()],
+                    );
+                  }
+
+                  return SailRow(
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: addressRow),
+                      const SizedBox(width: _claimCardWidth, child: ClaimEcxCard()),
+                    ],
+                  );
+                },
               ),
+
               if (!model.hideBip47)
                 SailCard(
                   title: 'Your BIP47 v3 Payment Code',
@@ -332,7 +359,9 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                         closeOnSelect: false,
                         onSelected: () async {
                           await Future.microtask(() async {
-                            if (!context.mounted) return;
+                            if (!context.mounted) {
+                              return;
+                            }
                             await showThemedDialog(
                               context: context,
                               builder: (context) => SailModal(

@@ -294,6 +294,21 @@ class MockWalletAPI implements WalletAPI {
   }
 
   @override
+  Future<SweepPreview> previewSweep(String privateKeyWif, {int feeSatPerVbyte = 0}) {
+    return Future.value(
+      SweepPreview(
+        address: 'mock_address',
+        addressKind: SweepAddressKind.SWEEP_ADDRESS_KIND_P2WPKH,
+        amountSats: 100000,
+        outputCount: 1,
+        feeSatPerVbyte: 1,
+        feeSats: 110,
+        receiveSats: 99890,
+      ),
+    );
+  }
+
+  @override
   Future<void> unlockWallet(String password) {
     return Future.value();
   }
@@ -404,6 +419,16 @@ class MockDrivechainAPI implements DrivechainAPI {
 }
 
 class MockMiscAPI implements MiscAPI {
+  @override
+  Future<NewsFeeEstimate> estimateNewsFee(
+    NewsAction action, {
+    String body = '',
+    String headline = '',
+    String url = '',
+  }) async {
+    return NewsFeeEstimate(vsize: 152, feeSatPerVbyte: 1, feeSats: 152);
+  }
+
   @override
   Future<List<OPReturn>> listOPReturns() async {
     return [];
