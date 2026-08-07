@@ -26,19 +26,24 @@ abstract class NotificationServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'Watch': return $1.Empty();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Watch':
+        return $1.Empty();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'Watch': return this.watch(ctx, request as $1.Empty);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Watch':
+        return this.watch(ctx, request as $1.Empty);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => NotificationServiceBase$json;
-  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => NotificationServiceBase$messageJson;
+  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson =>
+      NotificationServiceBase$messageJson;
 }
-

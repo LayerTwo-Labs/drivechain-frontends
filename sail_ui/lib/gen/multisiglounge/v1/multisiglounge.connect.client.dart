@@ -10,7 +10,7 @@ import "multisiglounge.connect.spec.dart" as specs;
 /// MultisigLoungeService builds watch-only multisig descriptors and validates
 /// PSBTs for the BitWindow multisig lounge. Pure stateless logic — no wallet,
 /// no signing, no broadcast.
-extension type MultisigLoungeServiceClient (connect.Transport _transport) {
+extension type MultisigLoungeServiceClient(connect.Transport _transport) {
   /// BuildDescriptors builds the receive (/0/*) and change (/1/*) watch-only
   /// wsh(sortedmulti) descriptors for a multisig group, with checksums.
   Future<multisigloungev1multisiglounge.BuildDescriptorsResponse> buildDescriptors(

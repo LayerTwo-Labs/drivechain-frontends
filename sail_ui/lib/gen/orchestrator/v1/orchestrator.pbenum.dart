@@ -18,16 +18,22 @@ import 'package:protobuf/protobuf.dart' as $pb;
 /// a frontend sees it, the binary is known to the orchestrator but doesn't
 /// have a typed enum value yet.
 class SidechainType extends $pb.ProtobufEnum {
-  static const SidechainType SIDECHAIN_TYPE_UNSPECIFIED = SidechainType._(0, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_UNSPECIFIED');
-  static const SidechainType SIDECHAIN_TYPE_THUNDER = SidechainType._(1, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_THUNDER');
+  static const SidechainType SIDECHAIN_TYPE_UNSPECIFIED =
+      SidechainType._(0, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_UNSPECIFIED');
+  static const SidechainType SIDECHAIN_TYPE_THUNDER =
+      SidechainType._(1, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_THUNDER');
   static const SidechainType SIDECHAIN_TYPE_ZSIDE = SidechainType._(2, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_ZSIDE');
-  static const SidechainType SIDECHAIN_TYPE_BITNAMES = SidechainType._(3, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITNAMES');
-  static const SidechainType SIDECHAIN_TYPE_BITASSETS = SidechainType._(4, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITASSETS');
-  static const SidechainType SIDECHAIN_TYPE_TRUTHCOIN = SidechainType._(5, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_TRUTHCOIN');
+  static const SidechainType SIDECHAIN_TYPE_BITNAMES =
+      SidechainType._(3, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITNAMES');
+  static const SidechainType SIDECHAIN_TYPE_BITASSETS =
+      SidechainType._(4, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_BITASSETS');
+  static const SidechainType SIDECHAIN_TYPE_TRUTHCOIN =
+      SidechainType._(5, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_TRUTHCOIN');
   static const SidechainType SIDECHAIN_TYPE_PHOTON = SidechainType._(6, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_PHOTON');
-  static const SidechainType SIDECHAIN_TYPE_COINSHIFT = SidechainType._(7, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_COINSHIFT');
+  static const SidechainType SIDECHAIN_TYPE_COINSHIFT =
+      SidechainType._(7, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_COINSHIFT');
 
-  static const $core.List<SidechainType> values = <SidechainType> [
+  static const $core.List<SidechainType> values = <SidechainType>[
     SIDECHAIN_TYPE_UNSPECIFIED,
     SIDECHAIN_TYPE_THUNDER,
     SIDECHAIN_TYPE_ZSIDE,
@@ -62,11 +68,13 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_PHOTON = BinaryType._(9, _omitEnumNames ? '' : 'BINARY_TYPE_PHOTON');
   static const BinaryType BINARY_TYPE_COINSHIFT = BinaryType._(10, _omitEnumNames ? '' : 'BINARY_TYPE_COINSHIFT');
   static const BinaryType BINARY_TYPE_GRPCURL = BinaryType._(11, _omitEnumNames ? '' : 'BINARY_TYPE_GRPCURL');
-  static const BinaryType BINARY_TYPE_ORCHESTRATORD = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_ORCHESTRATORD');
+  static const BinaryType BINARY_TYPE_ORCHESTRATORD =
+      BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_ORCHESTRATORD');
   static const BinaryType BINARY_TYPE_ZSIDED = BinaryType._(13, _omitEnumNames ? '' : 'BINARY_TYPE_ZSIDED');
-  static const BinaryType BINARY_TYPE_LIQUID_SIGNET = BinaryType._(14, _omitEnumNames ? '' : 'BINARY_TYPE_LIQUID_SIGNET');
+  static const BinaryType BINARY_TYPE_LIQUID_SIGNET =
+      BinaryType._(14, _omitEnumNames ? '' : 'BINARY_TYPE_LIQUID_SIGNET');
 
-  static const $core.List<BinaryType> values = <BinaryType> [
+  static const $core.List<BinaryType> values = <BinaryType>[
     BINARY_TYPE_UNSPECIFIED,
     BINARY_TYPE_BITCOIND,
     BINARY_TYPE_ENFORCER,
@@ -92,14 +100,15 @@ class BinaryType extends $pb.ProtobufEnum {
 
 /// DeletionType selects which category of a binary's files to gather/delete.
 class DeletionType extends $pb.ProtobufEnum {
-  static const DeletionType DELETION_TYPE_UNSPECIFIED = DeletionType._(0, _omitEnumNames ? '' : 'DELETION_TYPE_UNSPECIFIED');
+  static const DeletionType DELETION_TYPE_UNSPECIFIED =
+      DeletionType._(0, _omitEnumNames ? '' : 'DELETION_TYPE_UNSPECIFIED');
   static const DeletionType DELETION_TYPE_DATA = DeletionType._(1, _omitEnumNames ? '' : 'DELETION_TYPE_DATA');
   static const DeletionType DELETION_TYPE_WALLET = DeletionType._(2, _omitEnumNames ? '' : 'DELETION_TYPE_WALLET');
   static const DeletionType DELETION_TYPE_SETTINGS = DeletionType._(3, _omitEnumNames ? '' : 'DELETION_TYPE_SETTINGS');
   static const DeletionType DELETION_TYPE_LOGS = DeletionType._(4, _omitEnumNames ? '' : 'DELETION_TYPE_LOGS');
   static const DeletionType DELETION_TYPE_SOFTWARE = DeletionType._(5, _omitEnumNames ? '' : 'DELETION_TYPE_SOFTWARE');
 
-  static const $core.List<DeletionType> values = <DeletionType> [
+  static const $core.List<DeletionType> values = <DeletionType>[
     DELETION_TYPE_UNSPECIFIED,
     DELETION_TYPE_DATA,
     DELETION_TYPE_WALLET,
@@ -113,6 +122,5 @@ class DeletionType extends $pb.ProtobufEnum {
 
   const DeletionType._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

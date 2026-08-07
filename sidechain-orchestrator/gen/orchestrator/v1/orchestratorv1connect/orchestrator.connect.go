@@ -111,6 +111,9 @@ const (
 	// OrchestratorServiceGetCoreMempoolInfoProcedure is the fully-qualified name of the
 	// OrchestratorService's GetCoreMempoolInfo RPC.
 	OrchestratorServiceGetCoreMempoolInfoProcedure = "/orchestrator.v1.OrchestratorService/GetCoreMempoolInfo"
+	// OrchestratorServiceGetBmmContextProcedure is the fully-qualified name of the
+	// OrchestratorService's GetBmmContext RPC.
+	OrchestratorServiceGetBmmContextProcedure = "/orchestrator.v1.OrchestratorService/GetBmmContext"
 	// OrchestratorServiceCoreRawCallProcedure is the fully-qualified name of the OrchestratorService's
 	// CoreRawCall RPC.
 	OrchestratorServiceCoreRawCallProcedure = "/orchestrator.v1.OrchestratorService/CoreRawCall"
@@ -216,6 +219,9 @@ type OrchestratorServiceClient interface {
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error)
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
+	// Parent-chain state the sidechain BMM tab bids against: the tip a request
+	// targets, the fee rate it competes with, mempool depth.
+	GetBmmContext(context.Context, *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error)
 	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
 	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
 	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
@@ -396,6 +402,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetCoreMempoolInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		getBmmContext: connect.NewClient[v1.GetBmmContextRequest, v1.GetBmmContextResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetBmmContextProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetBmmContext")),
+			connect.WithClientOptions(opts...),
+		),
 		coreRawCall: connect.NewClient[v1.CoreRawCallRequest, v1.CoreRawCallResponse](
 			httpClient,
 			baseURL+OrchestratorServiceCoreRawCallProcedure,
@@ -439,6 +451,7 @@ type orchestratorServiceClient struct {
 	gatherFilesToDelete             *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
 	deleteFiles                     *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
 	getCoreMempoolInfo              *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
+	getBmmContext                   *connect.Client[v1.GetBmmContextRequest, v1.GetBmmContextResponse]
 	coreRawCall                     *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
 	getForkStatus                   *connect.Client[v1.GetForkStatusRequest, v1.GetForkStatusResponse]
 }
@@ -575,6 +588,11 @@ func (c *orchestratorServiceClient) GetCoreMempoolInfo(ctx context.Context, req 
 	return c.getCoreMempoolInfo.CallUnary(ctx, req)
 }
 
+// GetBmmContext calls orchestrator.v1.OrchestratorService.GetBmmContext.
+func (c *orchestratorServiceClient) GetBmmContext(ctx context.Context, req *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error) {
+	return c.getBmmContext.CallUnary(ctx, req)
+}
+
 // CoreRawCall calls orchestrator.v1.OrchestratorService.CoreRawCall.
 func (c *orchestratorServiceClient) CoreRawCall(ctx context.Context, req *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error) {
 	return c.coreRawCall.CallUnary(ctx, req)
@@ -683,6 +701,9 @@ type OrchestratorServiceHandler interface {
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
+	// Parent-chain state the sidechain BMM tab bids against: the tip a request
+	// targets, the fee rate it competes with, mempool depth.
+	GetBmmContext(context.Context, *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error)
 	// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
 	// /wallet/{name} on bitcoind for wallet-scoped RPCs.
 	CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error)
@@ -859,6 +880,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetCoreMempoolInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceGetBmmContextHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetBmmContextProcedure,
+		svc.GetBmmContext,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetBmmContext")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceCoreRawCallHandler := connect.NewUnaryHandler(
 		OrchestratorServiceCoreRawCallProcedure,
 		svc.CoreRawCall,
@@ -925,6 +952,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceDeleteFilesHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetCoreMempoolInfoProcedure:
 			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetBmmContextProcedure:
+			orchestratorServiceGetBmmContextHandler.ServeHTTP(w, r)
 		case OrchestratorServiceCoreRawCallProcedure:
 			orchestratorServiceCoreRawCallHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetForkStatusProcedure:
@@ -1040,6 +1069,10 @@ func (UnimplementedOrchestratorServiceHandler) DeleteFiles(context.Context, *con
 
 func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetCoreMempoolInfo is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetBmmContext(context.Context, *connect.Request[v1.GetBmmContextRequest]) (*connect.Response[v1.GetBmmContextResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetBmmContext is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) CoreRawCall(context.Context, *connect.Request[v1.CoreRawCallRequest]) (*connect.Response[v1.CoreRawCallResponse], error) {

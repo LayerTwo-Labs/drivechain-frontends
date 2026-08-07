@@ -31,25 +31,27 @@ class SpendDestination extends $pb.GeneratedMessage {
     return $result;
   }
   SpendDestination._() : super();
-  factory SpendDestination.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SpendDestination.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SpendDestination.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SpendDestination.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SpendDestination', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SpendDestination',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'address')
     ..aInt64(2, _omitFieldNames ? '' : 'sats')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SpendDestination clone() => SpendDestination()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SpendDestination copyWith(void Function(SpendDestination) updates) => super.copyWith((message) => updates(message as SpendDestination)) as SpendDestination;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SpendDestination copyWith(void Function(SpendDestination) updates) =>
+      super.copyWith((message) => updates(message as SpendDestination)) as SpendDestination;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -58,13 +60,17 @@ class SpendDestination extends $pb.GeneratedMessage {
   SpendDestination createEmptyInstance() => create();
   static $pb.PbList<SpendDestination> createRepeated() => $pb.PbList<SpendDestination>();
   @$core.pragma('dart2js:noInline')
-  static SpendDestination getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SpendDestination>(create);
+  static SpendDestination getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SpendDestination>(create);
   static SpendDestination? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get address => $_getSZ(0);
   @$pb.TagNumber(1)
-  set address($core.String v) { $_setString(0, v); }
+  set address($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasAddress() => $_has(0);
   @$pb.TagNumber(1)
@@ -73,7 +79,10 @@ class SpendDestination extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get sats => $_getI64(1);
   @$pb.TagNumber(2)
-  set sats($fixnum.Int64 v) { $_setInt64(1, v); }
+  set sats($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasSats() => $_has(1);
   @$pb.TagNumber(2)
@@ -103,27 +112,30 @@ class CreateSpendPsbtRequest extends $pb.GeneratedMessage {
     return $result;
   }
   CreateSpendPsbtRequest._() : super();
-  factory CreateSpendPsbtRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateSpendPsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CreateSpendPsbtRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CreateSpendPsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSpendPsbtRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSpendPsbtRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
-    ..pc<SpendDestination>(3, _omitFieldNames ? '' : 'destinations', $pb.PbFieldType.PM, subBuilder: SpendDestination.create)
+    ..pc<SpendDestination>(3, _omitFieldNames ? '' : 'destinations', $pb.PbFieldType.PM,
+        subBuilder: SpendDestination.create)
     ..a<$core.double>(4, _omitFieldNames ? '' : 'feeRateSatVb', $pb.PbFieldType.OD)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   CreateSpendPsbtRequest clone() => CreateSpendPsbtRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateSpendPsbtRequest copyWith(void Function(CreateSpendPsbtRequest) updates) => super.copyWith((message) => updates(message as CreateSpendPsbtRequest)) as CreateSpendPsbtRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CreateSpendPsbtRequest copyWith(void Function(CreateSpendPsbtRequest) updates) =>
+      super.copyWith((message) => updates(message as CreateSpendPsbtRequest)) as CreateSpendPsbtRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -132,13 +144,17 @@ class CreateSpendPsbtRequest extends $pb.GeneratedMessage {
   CreateSpendPsbtRequest createEmptyInstance() => create();
   static $pb.PbList<CreateSpendPsbtRequest> createRepeated() => $pb.PbList<CreateSpendPsbtRequest>();
   @$core.pragma('dart2js:noInline')
-  static CreateSpendPsbtRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSpendPsbtRequest>(create);
+  static CreateSpendPsbtRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSpendPsbtRequest>(create);
   static CreateSpendPsbtRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   GroupData get group => $_getN(0);
   @$pb.TagNumber(1)
-  set group(GroupData v) { setField(1, v); }
+  set group(GroupData v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroup() => $_has(0);
   @$pb.TagNumber(1)
@@ -149,7 +165,10 @@ class CreateSpendPsbtRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get walletId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set walletId($core.String v) { $_setString(1, v); }
+  set walletId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasWalletId() => $_has(1);
   @$pb.TagNumber(2)
@@ -163,7 +182,10 @@ class CreateSpendPsbtRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.double get feeRateSatVb => $_getN(3);
   @$pb.TagNumber(4)
-  set feeRateSatVb($core.double v) { $_setDouble(3, v); }
+  set feeRateSatVb($core.double v) {
+    $_setDouble(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasFeeRateSatVb() => $_has(3);
   @$pb.TagNumber(4)
@@ -185,25 +207,27 @@ class CreateSpendPsbtResponse extends $pb.GeneratedMessage {
     return $result;
   }
   CreateSpendPsbtResponse._() : super();
-  factory CreateSpendPsbtResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateSpendPsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CreateSpendPsbtResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CreateSpendPsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSpendPsbtResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateSpendPsbtResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
     ..aInt64(2, _omitFieldNames ? '' : 'feeSats')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   CreateSpendPsbtResponse clone() => CreateSpendPsbtResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateSpendPsbtResponse copyWith(void Function(CreateSpendPsbtResponse) updates) => super.copyWith((message) => updates(message as CreateSpendPsbtResponse)) as CreateSpendPsbtResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CreateSpendPsbtResponse copyWith(void Function(CreateSpendPsbtResponse) updates) =>
+      super.copyWith((message) => updates(message as CreateSpendPsbtResponse)) as CreateSpendPsbtResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -212,13 +236,17 @@ class CreateSpendPsbtResponse extends $pb.GeneratedMessage {
   CreateSpendPsbtResponse createEmptyInstance() => create();
   static $pb.PbList<CreateSpendPsbtResponse> createRepeated() => $pb.PbList<CreateSpendPsbtResponse>();
   @$core.pragma('dart2js:noInline')
-  static CreateSpendPsbtResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSpendPsbtResponse>(create);
+  static CreateSpendPsbtResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateSpendPsbtResponse>(create);
   static CreateSpendPsbtResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get psbtBase64 => $_getSZ(0);
   @$pb.TagNumber(1)
-  set psbtBase64($core.String v) { $_setString(0, v); }
+  set psbtBase64($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPsbtBase64() => $_has(0);
   @$pb.TagNumber(1)
@@ -228,7 +256,10 @@ class CreateSpendPsbtResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get feeSats => $_getI64(1);
   @$pb.TagNumber(2)
-  set feeSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  set feeSats($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasFeeSats() => $_has(1);
   @$pb.TagNumber(2)
@@ -250,25 +281,27 @@ class SyncGroupRequest extends $pb.GeneratedMessage {
     return $result;
   }
   SyncGroupRequest._() : super();
-  factory SyncGroupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SyncGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SyncGroupRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SyncGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncGroupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncGroupRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SyncGroupRequest clone() => SyncGroupRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SyncGroupRequest copyWith(void Function(SyncGroupRequest) updates) => super.copyWith((message) => updates(message as SyncGroupRequest)) as SyncGroupRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SyncGroupRequest copyWith(void Function(SyncGroupRequest) updates) =>
+      super.copyWith((message) => updates(message as SyncGroupRequest)) as SyncGroupRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -277,13 +310,17 @@ class SyncGroupRequest extends $pb.GeneratedMessage {
   SyncGroupRequest createEmptyInstance() => create();
   static $pb.PbList<SyncGroupRequest> createRepeated() => $pb.PbList<SyncGroupRequest>();
   @$core.pragma('dart2js:noInline')
-  static SyncGroupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncGroupRequest>(create);
+  static SyncGroupRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncGroupRequest>(create);
   static SyncGroupRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   GroupData get group => $_getN(0);
   @$pb.TagNumber(1)
-  set group(GroupData v) { setField(1, v); }
+  set group(GroupData v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroup() => $_has(0);
   @$pb.TagNumber(1)
@@ -294,7 +331,10 @@ class SyncGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get walletId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set walletId($core.String v) { $_setString(1, v); }
+  set walletId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasWalletId() => $_has(1);
   @$pb.TagNumber(2)
@@ -345,10 +385,13 @@ class MultisigUtxo extends $pb.GeneratedMessage {
     return $result;
   }
   MultisigUtxo._() : super();
-  factory MultisigUtxo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MultisigUtxo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory MultisigUtxo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory MultisigUtxo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigUtxo', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigUtxo',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
     ..aOS(3, _omitFieldNames ? '' : 'address')
@@ -358,19 +401,17 @@ class MultisigUtxo extends $pb.GeneratedMessage {
     ..aOB(7, _omitFieldNames ? '' : 'spendable')
     ..aOB(8, _omitFieldNames ? '' : 'solvable')
     ..aOB(9, _omitFieldNames ? '' : 'safe')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   MultisigUtxo clone() => MultisigUtxo()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MultisigUtxo copyWith(void Function(MultisigUtxo) updates) => super.copyWith((message) => updates(message as MultisigUtxo)) as MultisigUtxo;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  MultisigUtxo copyWith(void Function(MultisigUtxo) updates) =>
+      super.copyWith((message) => updates(message as MultisigUtxo)) as MultisigUtxo;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -385,7 +426,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -394,7 +438,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get vout => $_getIZ(1);
   @$pb.TagNumber(2)
-  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  set vout($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
@@ -403,7 +450,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get address => $_getSZ(2);
   @$pb.TagNumber(3)
-  set address($core.String v) { $_setString(2, v); }
+  set address($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasAddress() => $_has(2);
   @$pb.TagNumber(3)
@@ -412,7 +462,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $fixnum.Int64 get amountSats => $_getI64(3);
   @$pb.TagNumber(4)
-  set amountSats($fixnum.Int64 v) { $_setInt64(3, v); }
+  set amountSats($fixnum.Int64 v) {
+    $_setInt64(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasAmountSats() => $_has(3);
   @$pb.TagNumber(4)
@@ -421,7 +474,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.int get confirmations => $_getIZ(4);
   @$pb.TagNumber(5)
-  set confirmations($core.int v) { $_setUnsignedInt32(4, v); }
+  set confirmations($core.int v) {
+    $_setUnsignedInt32(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasConfirmations() => $_has(4);
   @$pb.TagNumber(5)
@@ -430,7 +486,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.String get scriptPubkey => $_getSZ(5);
   @$pb.TagNumber(6)
-  set scriptPubkey($core.String v) { $_setString(5, v); }
+  set scriptPubkey($core.String v) {
+    $_setString(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasScriptPubkey() => $_has(5);
   @$pb.TagNumber(6)
@@ -439,7 +498,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.bool get spendable => $_getBF(6);
   @$pb.TagNumber(7)
-  set spendable($core.bool v) { $_setBool(6, v); }
+  set spendable($core.bool v) {
+    $_setBool(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasSpendable() => $_has(6);
   @$pb.TagNumber(7)
@@ -448,7 +510,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.bool get solvable => $_getBF(7);
   @$pb.TagNumber(8)
-  set solvable($core.bool v) { $_setBool(7, v); }
+  set solvable($core.bool v) {
+    $_setBool(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasSolvable() => $_has(7);
   @$pb.TagNumber(8)
@@ -457,7 +522,10 @@ class MultisigUtxo extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.bool get safe => $_getBF(8);
   @$pb.TagNumber(9)
-  set safe($core.bool v) { $_setBool(8, v); }
+  set safe($core.bool v) {
+    $_setBool(8, v);
+  }
+
   @$pb.TagNumber(9)
   $core.bool hasSafe() => $_has(8);
   @$pb.TagNumber(9)
@@ -487,27 +555,29 @@ class SyncGroupResponse extends $pb.GeneratedMessage {
     return $result;
   }
   SyncGroupResponse._() : super();
-  factory SyncGroupResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SyncGroupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SyncGroupResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SyncGroupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncGroupResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncGroupResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'confirmedSats')
     ..aInt64(2, _omitFieldNames ? '' : 'pendingSats')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'utxoCount', $pb.PbFieldType.OU3)
     ..pc<MultisigUtxo>(4, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: MultisigUtxo.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SyncGroupResponse clone() => SyncGroupResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SyncGroupResponse copyWith(void Function(SyncGroupResponse) updates) => super.copyWith((message) => updates(message as SyncGroupResponse)) as SyncGroupResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SyncGroupResponse copyWith(void Function(SyncGroupResponse) updates) =>
+      super.copyWith((message) => updates(message as SyncGroupResponse)) as SyncGroupResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -516,13 +586,17 @@ class SyncGroupResponse extends $pb.GeneratedMessage {
   SyncGroupResponse createEmptyInstance() => create();
   static $pb.PbList<SyncGroupResponse> createRepeated() => $pb.PbList<SyncGroupResponse>();
   @$core.pragma('dart2js:noInline')
-  static SyncGroupResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncGroupResponse>(create);
+  static SyncGroupResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncGroupResponse>(create);
   static SyncGroupResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get confirmedSats => $_getI64(0);
   @$pb.TagNumber(1)
-  set confirmedSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  set confirmedSats($fixnum.Int64 v) {
+    $_setInt64(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasConfirmedSats() => $_has(0);
   @$pb.TagNumber(1)
@@ -531,7 +605,10 @@ class SyncGroupResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get pendingSats => $_getI64(1);
   @$pb.TagNumber(2)
-  set pendingSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  set pendingSats($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasPendingSats() => $_has(1);
   @$pb.TagNumber(2)
@@ -540,7 +617,10 @@ class SyncGroupResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get utxoCount => $_getIZ(2);
   @$pb.TagNumber(3)
-  set utxoCount($core.int v) { $_setUnsignedInt32(2, v); }
+  set utxoCount($core.int v) {
+    $_setUnsignedInt32(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasUtxoCount() => $_has(2);
   @$pb.TagNumber(3)
@@ -565,25 +645,27 @@ class RestoreHistoryRequest extends $pb.GeneratedMessage {
     return $result;
   }
   RestoreHistoryRequest._() : super();
-  factory RestoreHistoryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RestoreHistoryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory RestoreHistoryRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory RestoreHistoryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreHistoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreHistoryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   RestoreHistoryRequest clone() => RestoreHistoryRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  RestoreHistoryRequest copyWith(void Function(RestoreHistoryRequest) updates) => super.copyWith((message) => updates(message as RestoreHistoryRequest)) as RestoreHistoryRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  RestoreHistoryRequest copyWith(void Function(RestoreHistoryRequest) updates) =>
+      super.copyWith((message) => updates(message as RestoreHistoryRequest)) as RestoreHistoryRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -592,13 +674,17 @@ class RestoreHistoryRequest extends $pb.GeneratedMessage {
   RestoreHistoryRequest createEmptyInstance() => create();
   static $pb.PbList<RestoreHistoryRequest> createRepeated() => $pb.PbList<RestoreHistoryRequest>();
   @$core.pragma('dart2js:noInline')
-  static RestoreHistoryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreHistoryRequest>(create);
+  static RestoreHistoryRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreHistoryRequest>(create);
   static RestoreHistoryRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   GroupData get group => $_getN(0);
   @$pb.TagNumber(1)
-  set group(GroupData v) { setField(1, v); }
+  set group(GroupData v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroup() => $_has(0);
   @$pb.TagNumber(1)
@@ -609,7 +695,10 @@ class RestoreHistoryRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get walletId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set walletId($core.String v) { $_setString(1, v); }
+  set walletId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasWalletId() => $_has(1);
   @$pb.TagNumber(2)
@@ -632,25 +721,27 @@ class MultisigHistoryInput extends $pb.GeneratedMessage {
     return $result;
   }
   MultisigHistoryInput._() : super();
-  factory MultisigHistoryInput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MultisigHistoryInput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory MultisigHistoryInput.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory MultisigHistoryInput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigHistoryInput', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigHistoryInput',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   MultisigHistoryInput clone() => MultisigHistoryInput()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MultisigHistoryInput copyWith(void Function(MultisigHistoryInput) updates) => super.copyWith((message) => updates(message as MultisigHistoryInput)) as MultisigHistoryInput;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  MultisigHistoryInput copyWith(void Function(MultisigHistoryInput) updates) =>
+      super.copyWith((message) => updates(message as MultisigHistoryInput)) as MultisigHistoryInput;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -659,13 +750,17 @@ class MultisigHistoryInput extends $pb.GeneratedMessage {
   MultisigHistoryInput createEmptyInstance() => create();
   static $pb.PbList<MultisigHistoryInput> createRepeated() => $pb.PbList<MultisigHistoryInput>();
   @$core.pragma('dart2js:noInline')
-  static MultisigHistoryInput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigHistoryInput>(create);
+  static MultisigHistoryInput getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigHistoryInput>(create);
   static MultisigHistoryInput? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -674,7 +769,10 @@ class MultisigHistoryInput extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get vout => $_getIZ(1);
   @$pb.TagNumber(2)
-  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  set vout($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasVout() => $_has(1);
   @$pb.TagNumber(2)
@@ -729,10 +827,14 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
     return $result;
   }
   MultisigHistoryTx._() : super();
-  factory MultisigHistoryTx.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MultisigHistoryTx.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory MultisigHistoryTx.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory MultisigHistoryTx.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigHistoryTx', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigHistoryTx',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..aInt64(2, _omitFieldNames ? '' : 'amountSats')
     ..aOB(3, _omitFieldNames ? '' : 'isDeposit')
@@ -742,20 +844,19 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
     ..aOS(7, _omitFieldNames ? '' : 'status')
     ..aInt64(8, _omitFieldNames ? '' : 'time')
     ..aOS(9, _omitFieldNames ? '' : 'finalHex')
-    ..pc<MultisigHistoryInput>(10, _omitFieldNames ? '' : 'inputs', $pb.PbFieldType.PM, subBuilder: MultisigHistoryInput.create)
-    ..hasRequiredFields = false
-  ;
+    ..pc<MultisigHistoryInput>(10, _omitFieldNames ? '' : 'inputs', $pb.PbFieldType.PM,
+        subBuilder: MultisigHistoryInput.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   MultisigHistoryTx clone() => MultisigHistoryTx()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MultisigHistoryTx copyWith(void Function(MultisigHistoryTx) updates) => super.copyWith((message) => updates(message as MultisigHistoryTx)) as MultisigHistoryTx;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  MultisigHistoryTx copyWith(void Function(MultisigHistoryTx) updates) =>
+      super.copyWith((message) => updates(message as MultisigHistoryTx)) as MultisigHistoryTx;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -764,13 +865,17 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   MultisigHistoryTx createEmptyInstance() => create();
   static $pb.PbList<MultisigHistoryTx> createRepeated() => $pb.PbList<MultisigHistoryTx>();
   @$core.pragma('dart2js:noInline')
-  static MultisigHistoryTx getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigHistoryTx>(create);
+  static MultisigHistoryTx getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MultisigHistoryTx>(create);
   static MultisigHistoryTx? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -780,7 +885,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get amountSats => $_getI64(1);
   @$pb.TagNumber(2)
-  set amountSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  set amountSats($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasAmountSats() => $_has(1);
   @$pb.TagNumber(2)
@@ -790,7 +898,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool get isDeposit => $_getBF(2);
   @$pb.TagNumber(3)
-  set isDeposit($core.bool v) { $_setBool(2, v); }
+  set isDeposit($core.bool v) {
+    $_setBool(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasIsDeposit() => $_has(2);
   @$pb.TagNumber(3)
@@ -799,7 +910,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get destination => $_getSZ(3);
   @$pb.TagNumber(4)
-  set destination($core.String v) { $_setString(3, v); }
+  set destination($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasDestination() => $_has(3);
   @$pb.TagNumber(4)
@@ -808,7 +922,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.int get confirmations => $_getIZ(4);
   @$pb.TagNumber(5)
-  set confirmations($core.int v) { $_setUnsignedInt32(4, v); }
+  set confirmations($core.int v) {
+    $_setUnsignedInt32(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasConfirmations() => $_has(4);
   @$pb.TagNumber(5)
@@ -818,7 +935,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.int get signatureCount => $_getIZ(5);
   @$pb.TagNumber(6)
-  set signatureCount($core.int v) { $_setUnsignedInt32(5, v); }
+  set signatureCount($core.int v) {
+    $_setUnsignedInt32(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasSignatureCount() => $_has(5);
   @$pb.TagNumber(6)
@@ -828,7 +948,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.String get status => $_getSZ(6);
   @$pb.TagNumber(7)
-  set status($core.String v) { $_setString(6, v); }
+  set status($core.String v) {
+    $_setString(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasStatus() => $_has(6);
   @$pb.TagNumber(7)
@@ -838,7 +961,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $fixnum.Int64 get time => $_getI64(7);
   @$pb.TagNumber(8)
-  set time($fixnum.Int64 v) { $_setInt64(7, v); }
+  set time($fixnum.Int64 v) {
+    $_setInt64(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasTime() => $_has(7);
   @$pb.TagNumber(8)
@@ -847,7 +973,10 @@ class MultisigHistoryTx extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.String get finalHex => $_getSZ(8);
   @$pb.TagNumber(9)
-  set finalHex($core.String v) { $_setString(8, v); }
+  set finalHex($core.String v) {
+    $_setString(8, v);
+  }
+
   @$pb.TagNumber(9)
   $core.bool hasFinalHex() => $_has(8);
   @$pb.TagNumber(9)
@@ -868,24 +997,27 @@ class RestoreHistoryResponse extends $pb.GeneratedMessage {
     return $result;
   }
   RestoreHistoryResponse._() : super();
-  factory RestoreHistoryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RestoreHistoryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory RestoreHistoryResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory RestoreHistoryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreHistoryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
-    ..pc<MultisigHistoryTx>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: MultisigHistoryTx.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestoreHistoryResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+    ..pc<MultisigHistoryTx>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM,
+        subBuilder: MultisigHistoryTx.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   RestoreHistoryResponse clone() => RestoreHistoryResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  RestoreHistoryResponse copyWith(void Function(RestoreHistoryResponse) updates) => super.copyWith((message) => updates(message as RestoreHistoryResponse)) as RestoreHistoryResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  RestoreHistoryResponse copyWith(void Function(RestoreHistoryResponse) updates) =>
+      super.copyWith((message) => updates(message as RestoreHistoryResponse)) as RestoreHistoryResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -894,7 +1026,8 @@ class RestoreHistoryResponse extends $pb.GeneratedMessage {
   RestoreHistoryResponse createEmptyInstance() => create();
   static $pb.PbList<RestoreHistoryResponse> createRepeated() => $pb.PbList<RestoreHistoryResponse>();
   @$core.pragma('dart2js:noInline')
-  static RestoreHistoryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreHistoryResponse>(create);
+  static RestoreHistoryResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RestoreHistoryResponse>(create);
   static RestoreHistoryResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -920,26 +1053,28 @@ class SignTransactionRequest extends $pb.GeneratedMessage {
     return $result;
   }
   SignTransactionRequest._() : super();
-  factory SignTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SignTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SignTransactionRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SignTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignTransactionRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
     ..aOM<GroupData>(2, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
     ..aOS(3, _omitFieldNames ? '' : 'walletId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SignTransactionRequest clone() => SignTransactionRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SignTransactionRequest copyWith(void Function(SignTransactionRequest) updates) => super.copyWith((message) => updates(message as SignTransactionRequest)) as SignTransactionRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SignTransactionRequest copyWith(void Function(SignTransactionRequest) updates) =>
+      super.copyWith((message) => updates(message as SignTransactionRequest)) as SignTransactionRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -948,13 +1083,17 @@ class SignTransactionRequest extends $pb.GeneratedMessage {
   SignTransactionRequest createEmptyInstance() => create();
   static $pb.PbList<SignTransactionRequest> createRepeated() => $pb.PbList<SignTransactionRequest>();
   @$core.pragma('dart2js:noInline')
-  static SignTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignTransactionRequest>(create);
+  static SignTransactionRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignTransactionRequest>(create);
   static SignTransactionRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get psbtBase64 => $_getSZ(0);
   @$pb.TagNumber(1)
-  set psbtBase64($core.String v) { $_setString(0, v); }
+  set psbtBase64($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPsbtBase64() => $_has(0);
   @$pb.TagNumber(1)
@@ -965,7 +1104,10 @@ class SignTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   GroupData get group => $_getN(1);
   @$pb.TagNumber(2)
-  set group(GroupData v) { setField(2, v); }
+  set group(GroupData v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasGroup() => $_has(1);
   @$pb.TagNumber(2)
@@ -977,7 +1119,10 @@ class SignTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get walletId => $_getSZ(2);
   @$pb.TagNumber(3)
-  set walletId($core.String v) { $_setString(2, v); }
+  set walletId($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasWalletId() => $_has(2);
   @$pb.TagNumber(3)
@@ -1003,26 +1148,28 @@ class SignTransactionResponse extends $pb.GeneratedMessage {
     return $result;
   }
   SignTransactionResponse._() : super();
-  factory SignTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SignTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SignTransactionResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SignTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SignTransactionResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'addedSignatures', $pb.PbFieldType.OU3)
     ..aOB(3, _omitFieldNames ? '' : 'isComplete')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SignTransactionResponse clone() => SignTransactionResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SignTransactionResponse copyWith(void Function(SignTransactionResponse) updates) => super.copyWith((message) => updates(message as SignTransactionResponse)) as SignTransactionResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SignTransactionResponse copyWith(void Function(SignTransactionResponse) updates) =>
+      super.copyWith((message) => updates(message as SignTransactionResponse)) as SignTransactionResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1031,13 +1178,17 @@ class SignTransactionResponse extends $pb.GeneratedMessage {
   SignTransactionResponse createEmptyInstance() => create();
   static $pb.PbList<SignTransactionResponse> createRepeated() => $pb.PbList<SignTransactionResponse>();
   @$core.pragma('dart2js:noInline')
-  static SignTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignTransactionResponse>(create);
+  static SignTransactionResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SignTransactionResponse>(create);
   static SignTransactionResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get psbtBase64 => $_getSZ(0);
   @$pb.TagNumber(1)
-  set psbtBase64($core.String v) { $_setString(0, v); }
+  set psbtBase64($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPsbtBase64() => $_has(0);
   @$pb.TagNumber(1)
@@ -1047,7 +1198,10 @@ class SignTransactionResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get addedSignatures => $_getIZ(1);
   @$pb.TagNumber(2)
-  set addedSignatures($core.int v) { $_setUnsignedInt32(1, v); }
+  set addedSignatures($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasAddedSignatures() => $_has(1);
   @$pb.TagNumber(2)
@@ -1057,7 +1211,10 @@ class SignTransactionResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool get isComplete => $_getBF(2);
   @$pb.TagNumber(3)
-  set isComplete($core.bool v) { $_setBool(2, v); }
+  set isComplete($core.bool v) {
+    $_setBool(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasIsComplete() => $_has(2);
   @$pb.TagNumber(3)
@@ -1079,25 +1236,28 @@ class CombineAndBroadcastRequest extends $pb.GeneratedMessage {
     return $result;
   }
   CombineAndBroadcastRequest._() : super();
-  factory CombineAndBroadcastRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CombineAndBroadcastRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CombineAndBroadcastRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CombineAndBroadcastRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombineAndBroadcastRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombineAndBroadcastRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..pPS(1, _omitFieldNames ? '' : 'psbts')
     ..aOM<GroupData>(2, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   CombineAndBroadcastRequest clone() => CombineAndBroadcastRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CombineAndBroadcastRequest copyWith(void Function(CombineAndBroadcastRequest) updates) => super.copyWith((message) => updates(message as CombineAndBroadcastRequest)) as CombineAndBroadcastRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CombineAndBroadcastRequest copyWith(void Function(CombineAndBroadcastRequest) updates) =>
+      super.copyWith((message) => updates(message as CombineAndBroadcastRequest)) as CombineAndBroadcastRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1106,7 +1266,8 @@ class CombineAndBroadcastRequest extends $pb.GeneratedMessage {
   CombineAndBroadcastRequest createEmptyInstance() => create();
   static $pb.PbList<CombineAndBroadcastRequest> createRepeated() => $pb.PbList<CombineAndBroadcastRequest>();
   @$core.pragma('dart2js:noInline')
-  static CombineAndBroadcastRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombineAndBroadcastRequest>(create);
+  static CombineAndBroadcastRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombineAndBroadcastRequest>(create);
   static CombineAndBroadcastRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1116,7 +1277,10 @@ class CombineAndBroadcastRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   GroupData get group => $_getN(1);
   @$pb.TagNumber(2)
-  set group(GroupData v) { setField(2, v); }
+  set group(GroupData v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasGroup() => $_has(1);
   @$pb.TagNumber(2)
@@ -1136,24 +1300,27 @@ class CombineAndBroadcastResponse extends $pb.GeneratedMessage {
     return $result;
   }
   CombineAndBroadcastResponse._() : super();
-  factory CombineAndBroadcastResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CombineAndBroadcastResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CombineAndBroadcastResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CombineAndBroadcastResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombineAndBroadcastResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CombineAndBroadcastResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   CombineAndBroadcastResponse clone() => CombineAndBroadcastResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CombineAndBroadcastResponse copyWith(void Function(CombineAndBroadcastResponse) updates) => super.copyWith((message) => updates(message as CombineAndBroadcastResponse)) as CombineAndBroadcastResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CombineAndBroadcastResponse copyWith(void Function(CombineAndBroadcastResponse) updates) =>
+      super.copyWith((message) => updates(message as CombineAndBroadcastResponse)) as CombineAndBroadcastResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1162,13 +1329,17 @@ class CombineAndBroadcastResponse extends $pb.GeneratedMessage {
   CombineAndBroadcastResponse createEmptyInstance() => create();
   static $pb.PbList<CombineAndBroadcastResponse> createRepeated() => $pb.PbList<CombineAndBroadcastResponse>();
   @$core.pragma('dart2js:noInline')
-  static CombineAndBroadcastResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombineAndBroadcastResponse>(create);
+  static CombineAndBroadcastResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CombineAndBroadcastResponse>(create);
   static CombineAndBroadcastResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -1208,29 +1379,30 @@ class GroupKey extends $pb.GeneratedMessage {
     return $result;
   }
   GroupKey._() : super();
-  factory GroupKey.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GroupKey.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GroupKey.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GroupKey.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GroupKey', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GroupKey',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'owner')
     ..aOS(2, _omitFieldNames ? '' : 'xpub')
     ..aOS(3, _omitFieldNames ? '' : 'derivationPath')
     ..aOS(4, _omitFieldNames ? '' : 'fingerprint')
     ..aOS(5, _omitFieldNames ? '' : 'originPath')
     ..aOB(6, _omitFieldNames ? '' : 'isWallet')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GroupKey clone() => GroupKey()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GroupKey copyWith(void Function(GroupKey) updates) => super.copyWith((message) => updates(message as GroupKey)) as GroupKey;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GroupKey copyWith(void Function(GroupKey) updates) =>
+      super.copyWith((message) => updates(message as GroupKey)) as GroupKey;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1245,7 +1417,10 @@ class GroupKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get owner => $_getSZ(0);
   @$pb.TagNumber(1)
-  set owner($core.String v) { $_setString(0, v); }
+  set owner($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasOwner() => $_has(0);
   @$pb.TagNumber(1)
@@ -1254,7 +1429,10 @@ class GroupKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get xpub => $_getSZ(1);
   @$pb.TagNumber(2)
-  set xpub($core.String v) { $_setString(1, v); }
+  set xpub($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasXpub() => $_has(1);
   @$pb.TagNumber(2)
@@ -1264,7 +1442,10 @@ class GroupKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get derivationPath => $_getSZ(2);
   @$pb.TagNumber(3)
-  set derivationPath($core.String v) { $_setString(2, v); }
+  set derivationPath($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasDerivationPath() => $_has(2);
   @$pb.TagNumber(3)
@@ -1274,7 +1455,10 @@ class GroupKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get fingerprint => $_getSZ(3);
   @$pb.TagNumber(4)
-  set fingerprint($core.String v) { $_setString(3, v); }
+  set fingerprint($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasFingerprint() => $_has(3);
   @$pb.TagNumber(4)
@@ -1284,7 +1468,10 @@ class GroupKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get originPath => $_getSZ(4);
   @$pb.TagNumber(5)
-  set originPath($core.String v) { $_setString(4, v); }
+  set originPath($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasOriginPath() => $_has(4);
   @$pb.TagNumber(5)
@@ -1293,7 +1480,10 @@ class GroupKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool get isWallet => $_getBF(5);
   @$pb.TagNumber(6)
-  set isWallet($core.bool v) { $_setBool(5, v); }
+  set isWallet($core.bool v) {
+    $_setBool(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasIsWallet() => $_has(5);
   @$pb.TagNumber(6)
@@ -1348,10 +1538,13 @@ class GroupData extends $pb.GeneratedMessage {
     return $result;
   }
   GroupData._() : super();
-  factory GroupData.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GroupData.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GroupData.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GroupData.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GroupData', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GroupData',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
@@ -1362,19 +1555,17 @@ class GroupData extends $pb.GeneratedMessage {
     ..aOS(8, _omitFieldNames ? '' : 'descriptorChange')
     ..aOS(9, _omitFieldNames ? '' : 'watchWalletName')
     ..aOS(10, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GroupData clone() => GroupData()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GroupData copyWith(void Function(GroupData) updates) => super.copyWith((message) => updates(message as GroupData)) as GroupData;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GroupData copyWith(void Function(GroupData) updates) =>
+      super.copyWith((message) => updates(message as GroupData)) as GroupData;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1389,7 +1580,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1398,7 +1592,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
   @$pb.TagNumber(2)
-  set name($core.String v) { $_setString(1, v); }
+  set name($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
@@ -1407,7 +1604,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get n => $_getIZ(2);
   @$pb.TagNumber(3)
-  set n($core.int v) { $_setUnsignedInt32(2, v); }
+  set n($core.int v) {
+    $_setUnsignedInt32(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasN() => $_has(2);
   @$pb.TagNumber(3)
@@ -1416,7 +1616,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.int get m => $_getIZ(3);
   @$pb.TagNumber(4)
-  set m($core.int v) { $_setUnsignedInt32(3, v); }
+  set m($core.int v) {
+    $_setUnsignedInt32(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasM() => $_has(3);
   @$pb.TagNumber(4)
@@ -1429,7 +1632,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $fixnum.Int64 get created => $_getI64(5);
   @$pb.TagNumber(6)
-  set created($fixnum.Int64 v) { $_setInt64(5, v); }
+  set created($fixnum.Int64 v) {
+    $_setInt64(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasCreated() => $_has(5);
   @$pb.TagNumber(6)
@@ -1438,7 +1644,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.String get descriptorReceive => $_getSZ(6);
   @$pb.TagNumber(7)
-  set descriptorReceive($core.String v) { $_setString(6, v); }
+  set descriptorReceive($core.String v) {
+    $_setString(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasDescriptorReceive() => $_has(6);
   @$pb.TagNumber(7)
@@ -1447,7 +1656,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.String get descriptorChange => $_getSZ(7);
   @$pb.TagNumber(8)
-  set descriptorChange($core.String v) { $_setString(7, v); }
+  set descriptorChange($core.String v) {
+    $_setString(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasDescriptorChange() => $_has(7);
   @$pb.TagNumber(8)
@@ -1456,7 +1668,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.String get watchWalletName => $_getSZ(8);
   @$pb.TagNumber(9)
-  set watchWalletName($core.String v) { $_setString(8, v); }
+  set watchWalletName($core.String v) {
+    $_setString(8, v);
+  }
+
   @$pb.TagNumber(9)
   $core.bool hasWatchWalletName() => $_has(8);
   @$pb.TagNumber(9)
@@ -1465,7 +1680,10 @@ class GroupData extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   $core.String get txid => $_getSZ(9);
   @$pb.TagNumber(10)
-  set txid($core.String v) { $_setString(9, v); }
+  set txid($core.String v) {
+    $_setString(9, v);
+  }
+
   @$pb.TagNumber(10)
   $core.bool hasTxid() => $_has(9);
   @$pb.TagNumber(10)
@@ -1487,25 +1705,27 @@ class PublishGroupRequest extends $pb.GeneratedMessage {
     return $result;
   }
   PublishGroupRequest._() : super();
-  factory PublishGroupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PublishGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory PublishGroupRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PublishGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PublishGroupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PublishGroupRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   PublishGroupRequest clone() => PublishGroupRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  PublishGroupRequest copyWith(void Function(PublishGroupRequest) updates) => super.copyWith((message) => updates(message as PublishGroupRequest)) as PublishGroupRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PublishGroupRequest copyWith(void Function(PublishGroupRequest) updates) =>
+      super.copyWith((message) => updates(message as PublishGroupRequest)) as PublishGroupRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1514,13 +1734,17 @@ class PublishGroupRequest extends $pb.GeneratedMessage {
   PublishGroupRequest createEmptyInstance() => create();
   static $pb.PbList<PublishGroupRequest> createRepeated() => $pb.PbList<PublishGroupRequest>();
   @$core.pragma('dart2js:noInline')
-  static PublishGroupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PublishGroupRequest>(create);
+  static PublishGroupRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PublishGroupRequest>(create);
   static PublishGroupRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   GroupData get group => $_getN(0);
   @$pb.TagNumber(1)
-  set group(GroupData v) { setField(1, v); }
+  set group(GroupData v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroup() => $_has(0);
   @$pb.TagNumber(1)
@@ -1532,7 +1756,10 @@ class PublishGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get walletId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set walletId($core.String v) { $_setString(1, v); }
+  set walletId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasWalletId() => $_has(1);
   @$pb.TagNumber(2)
@@ -1550,24 +1777,26 @@ class PublishGroupResponse extends $pb.GeneratedMessage {
     return $result;
   }
   PublishGroupResponse._() : super();
-  factory PublishGroupResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PublishGroupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory PublishGroupResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PublishGroupResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PublishGroupResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PublishGroupResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   PublishGroupResponse clone() => PublishGroupResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  PublishGroupResponse copyWith(void Function(PublishGroupResponse) updates) => super.copyWith((message) => updates(message as PublishGroupResponse)) as PublishGroupResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PublishGroupResponse copyWith(void Function(PublishGroupResponse) updates) =>
+      super.copyWith((message) => updates(message as PublishGroupResponse)) as PublishGroupResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1576,13 +1805,17 @@ class PublishGroupResponse extends $pb.GeneratedMessage {
   PublishGroupResponse createEmptyInstance() => create();
   static $pb.PbList<PublishGroupResponse> createRepeated() => $pb.PbList<PublishGroupResponse>();
   @$core.pragma('dart2js:noInline')
-  static PublishGroupResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PublishGroupResponse>(create);
+  static PublishGroupResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PublishGroupResponse>(create);
   static PublishGroupResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -1604,25 +1837,28 @@ class ImportGroupFromTxidRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ImportGroupFromTxidRequest._() : super();
-  factory ImportGroupFromTxidRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ImportGroupFromTxidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ImportGroupFromTxidRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ImportGroupFromTxidRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportGroupFromTxidRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportGroupFromTxidRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ImportGroupFromTxidRequest clone() => ImportGroupFromTxidRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ImportGroupFromTxidRequest copyWith(void Function(ImportGroupFromTxidRequest) updates) => super.copyWith((message) => updates(message as ImportGroupFromTxidRequest)) as ImportGroupFromTxidRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ImportGroupFromTxidRequest copyWith(void Function(ImportGroupFromTxidRequest) updates) =>
+      super.copyWith((message) => updates(message as ImportGroupFromTxidRequest)) as ImportGroupFromTxidRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1631,13 +1867,17 @@ class ImportGroupFromTxidRequest extends $pb.GeneratedMessage {
   ImportGroupFromTxidRequest createEmptyInstance() => create();
   static $pb.PbList<ImportGroupFromTxidRequest> createRepeated() => $pb.PbList<ImportGroupFromTxidRequest>();
   @$core.pragma('dart2js:noInline')
-  static ImportGroupFromTxidRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportGroupFromTxidRequest>(create);
+  static ImportGroupFromTxidRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportGroupFromTxidRequest>(create);
   static ImportGroupFromTxidRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -1647,7 +1887,10 @@ class ImportGroupFromTxidRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get walletId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set walletId($core.String v) { $_setString(1, v); }
+  set walletId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasWalletId() => $_has(1);
   @$pb.TagNumber(2)
@@ -1669,25 +1912,28 @@ class ImportGroupFromTxidResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ImportGroupFromTxidResponse._() : super();
-  factory ImportGroupFromTxidResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ImportGroupFromTxidResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ImportGroupFromTxidResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ImportGroupFromTxidResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportGroupFromTxidResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ImportGroupFromTxidResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOM<GroupData>(1, _omitFieldNames ? '' : 'group', subBuilder: GroupData.create)
     ..p<$core.int>(2, _omitFieldNames ? '' : 'walletKeyIndices', $pb.PbFieldType.KU3)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ImportGroupFromTxidResponse clone() => ImportGroupFromTxidResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ImportGroupFromTxidResponse copyWith(void Function(ImportGroupFromTxidResponse) updates) => super.copyWith((message) => updates(message as ImportGroupFromTxidResponse)) as ImportGroupFromTxidResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ImportGroupFromTxidResponse copyWith(void Function(ImportGroupFromTxidResponse) updates) =>
+      super.copyWith((message) => updates(message as ImportGroupFromTxidResponse)) as ImportGroupFromTxidResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1696,13 +1942,17 @@ class ImportGroupFromTxidResponse extends $pb.GeneratedMessage {
   ImportGroupFromTxidResponse createEmptyInstance() => create();
   static $pb.PbList<ImportGroupFromTxidResponse> createRepeated() => $pb.PbList<ImportGroupFromTxidResponse>();
   @$core.pragma('dart2js:noInline')
-  static ImportGroupFromTxidResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportGroupFromTxidResponse>(create);
+  static ImportGroupFromTxidResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ImportGroupFromTxidResponse>(create);
   static ImportGroupFromTxidResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   GroupData get group => $_getN(0);
   @$pb.TagNumber(1)
-  set group(GroupData v) { setField(1, v); }
+  set group(GroupData v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroup() => $_has(0);
   @$pb.TagNumber(1)
@@ -1743,28 +1993,29 @@ class MultisigKey extends $pb.GeneratedMessage {
     return $result;
   }
   MultisigKey._() : super();
-  factory MultisigKey.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MultisigKey.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory MultisigKey.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory MultisigKey.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigKey', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigKey',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'xpub')
     ..aOS(2, _omitFieldNames ? '' : 'derivationPath')
     ..aOS(3, _omitFieldNames ? '' : 'fingerprint')
     ..aOS(4, _omitFieldNames ? '' : 'originPath')
     ..aOB(5, _omitFieldNames ? '' : 'isWallet')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   MultisigKey clone() => MultisigKey()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MultisigKey copyWith(void Function(MultisigKey) updates) => super.copyWith((message) => updates(message as MultisigKey)) as MultisigKey;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  MultisigKey copyWith(void Function(MultisigKey) updates) =>
+      super.copyWith((message) => updates(message as MultisigKey)) as MultisigKey;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1780,7 +2031,10 @@ class MultisigKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get xpub => $_getSZ(0);
   @$pb.TagNumber(1)
-  set xpub($core.String v) { $_setString(0, v); }
+  set xpub($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasXpub() => $_has(0);
   @$pb.TagNumber(1)
@@ -1790,7 +2044,10 @@ class MultisigKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get derivationPath => $_getSZ(1);
   @$pb.TagNumber(2)
-  set derivationPath($core.String v) { $_setString(1, v); }
+  set derivationPath($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasDerivationPath() => $_has(1);
   @$pb.TagNumber(2)
@@ -1800,7 +2057,10 @@ class MultisigKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get fingerprint => $_getSZ(2);
   @$pb.TagNumber(3)
-  set fingerprint($core.String v) { $_setString(2, v); }
+  set fingerprint($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasFingerprint() => $_has(2);
   @$pb.TagNumber(3)
@@ -1810,7 +2070,10 @@ class MultisigKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get originPath => $_getSZ(3);
   @$pb.TagNumber(4)
-  set originPath($core.String v) { $_setString(3, v); }
+  set originPath($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasOriginPath() => $_has(3);
   @$pb.TagNumber(4)
@@ -1820,7 +2083,10 @@ class MultisigKey extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool get isWallet => $_getBF(4);
   @$pb.TagNumber(5)
-  set isWallet($core.bool v) { $_setBool(4, v); }
+  set isWallet($core.bool v) {
+    $_setBool(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasIsWallet() => $_has(4);
   @$pb.TagNumber(5)
@@ -1847,26 +2113,27 @@ class MultisigGroup extends $pb.GeneratedMessage {
     return $result;
   }
   MultisigGroup._() : super();
-  factory MultisigGroup.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MultisigGroup.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory MultisigGroup.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory MultisigGroup.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigGroup', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MultisigGroup',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'm', $pb.PbFieldType.OU3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'n', $pb.PbFieldType.OU3)
     ..pc<MultisigKey>(3, _omitFieldNames ? '' : 'keys', $pb.PbFieldType.PM, subBuilder: MultisigKey.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   MultisigGroup clone() => MultisigGroup()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MultisigGroup copyWith(void Function(MultisigGroup) updates) => super.copyWith((message) => updates(message as MultisigGroup)) as MultisigGroup;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  MultisigGroup copyWith(void Function(MultisigGroup) updates) =>
+      super.copyWith((message) => updates(message as MultisigGroup)) as MultisigGroup;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1882,7 +2149,10 @@ class MultisigGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.int get m => $_getIZ(0);
   @$pb.TagNumber(1)
-  set m($core.int v) { $_setUnsignedInt32(0, v); }
+  set m($core.int v) {
+    $_setUnsignedInt32(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasM() => $_has(0);
   @$pb.TagNumber(1)
@@ -1892,7 +2162,10 @@ class MultisigGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get n => $_getIZ(1);
   @$pb.TagNumber(2)
-  set n($core.int v) { $_setUnsignedInt32(1, v); }
+  set n($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasN() => $_has(1);
   @$pb.TagNumber(2)
@@ -1917,25 +2190,27 @@ class BuildDescriptorsRequest extends $pb.GeneratedMessage {
     return $result;
   }
   BuildDescriptorsRequest._() : super();
-  factory BuildDescriptorsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory BuildDescriptorsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory BuildDescriptorsRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory BuildDescriptorsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BuildDescriptorsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BuildDescriptorsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOM<MultisigGroup>(1, _omitFieldNames ? '' : 'group', subBuilder: MultisigGroup.create)
     ..aOS(2, _omitFieldNames ? '' : 'scriptType')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   BuildDescriptorsRequest clone() => BuildDescriptorsRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  BuildDescriptorsRequest copyWith(void Function(BuildDescriptorsRequest) updates) => super.copyWith((message) => updates(message as BuildDescriptorsRequest)) as BuildDescriptorsRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  BuildDescriptorsRequest copyWith(void Function(BuildDescriptorsRequest) updates) =>
+      super.copyWith((message) => updates(message as BuildDescriptorsRequest)) as BuildDescriptorsRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1944,13 +2219,17 @@ class BuildDescriptorsRequest extends $pb.GeneratedMessage {
   BuildDescriptorsRequest createEmptyInstance() => create();
   static $pb.PbList<BuildDescriptorsRequest> createRepeated() => $pb.PbList<BuildDescriptorsRequest>();
   @$core.pragma('dart2js:noInline')
-  static BuildDescriptorsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BuildDescriptorsRequest>(create);
+  static BuildDescriptorsRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BuildDescriptorsRequest>(create);
   static BuildDescriptorsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   MultisigGroup get group => $_getN(0);
   @$pb.TagNumber(1)
-  set group(MultisigGroup v) { setField(1, v); }
+  set group(MultisigGroup v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroup() => $_has(0);
   @$pb.TagNumber(1)
@@ -1963,7 +2242,10 @@ class BuildDescriptorsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get scriptType => $_getSZ(1);
   @$pb.TagNumber(2)
-  set scriptType($core.String v) { $_setString(1, v); }
+  set scriptType($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasScriptType() => $_has(1);
   @$pb.TagNumber(2)
@@ -1985,25 +2267,27 @@ class BuildDescriptorsResponse extends $pb.GeneratedMessage {
     return $result;
   }
   BuildDescriptorsResponse._() : super();
-  factory BuildDescriptorsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory BuildDescriptorsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory BuildDescriptorsResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory BuildDescriptorsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BuildDescriptorsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BuildDescriptorsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'receiveDescriptor')
     ..aOS(2, _omitFieldNames ? '' : 'changeDescriptor')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   BuildDescriptorsResponse clone() => BuildDescriptorsResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  BuildDescriptorsResponse copyWith(void Function(BuildDescriptorsResponse) updates) => super.copyWith((message) => updates(message as BuildDescriptorsResponse)) as BuildDescriptorsResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  BuildDescriptorsResponse copyWith(void Function(BuildDescriptorsResponse) updates) =>
+      super.copyWith((message) => updates(message as BuildDescriptorsResponse)) as BuildDescriptorsResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -2012,14 +2296,18 @@ class BuildDescriptorsResponse extends $pb.GeneratedMessage {
   BuildDescriptorsResponse createEmptyInstance() => create();
   static $pb.PbList<BuildDescriptorsResponse> createRepeated() => $pb.PbList<BuildDescriptorsResponse>();
   @$core.pragma('dart2js:noInline')
-  static BuildDescriptorsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BuildDescriptorsResponse>(create);
+  static BuildDescriptorsResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BuildDescriptorsResponse>(create);
   static BuildDescriptorsResponse? _defaultInstance;
 
   /// Receive descriptor (/0/*) with checksum.
   @$pb.TagNumber(1)
   $core.String get receiveDescriptor => $_getSZ(0);
   @$pb.TagNumber(1)
-  set receiveDescriptor($core.String v) { $_setString(0, v); }
+  set receiveDescriptor($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasReceiveDescriptor() => $_has(0);
   @$pb.TagNumber(1)
@@ -2029,7 +2317,10 @@ class BuildDescriptorsResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get changeDescriptor => $_getSZ(1);
   @$pb.TagNumber(2)
-  set changeDescriptor($core.String v) { $_setString(1, v); }
+  set changeDescriptor($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasChangeDescriptor() => $_has(1);
   @$pb.TagNumber(2)
@@ -2055,26 +2346,28 @@ class ValidatePsbtRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ValidatePsbtRequest._() : super();
-  factory ValidatePsbtRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ValidatePsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ValidatePsbtRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ValidatePsbtRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidatePsbtRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidatePsbtRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'psbtBase64')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'requiredSigs', $pb.PbFieldType.OU3)
     ..aOM<MultisigGroup>(3, _omitFieldNames ? '' : 'group', subBuilder: MultisigGroup.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ValidatePsbtRequest clone() => ValidatePsbtRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ValidatePsbtRequest copyWith(void Function(ValidatePsbtRequest) updates) => super.copyWith((message) => updates(message as ValidatePsbtRequest)) as ValidatePsbtRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ValidatePsbtRequest copyWith(void Function(ValidatePsbtRequest) updates) =>
+      super.copyWith((message) => updates(message as ValidatePsbtRequest)) as ValidatePsbtRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -2083,13 +2376,17 @@ class ValidatePsbtRequest extends $pb.GeneratedMessage {
   ValidatePsbtRequest createEmptyInstance() => create();
   static $pb.PbList<ValidatePsbtRequest> createRepeated() => $pb.PbList<ValidatePsbtRequest>();
   @$core.pragma('dart2js:noInline')
-  static ValidatePsbtRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidatePsbtRequest>(create);
+  static ValidatePsbtRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidatePsbtRequest>(create);
   static ValidatePsbtRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get psbtBase64 => $_getSZ(0);
   @$pb.TagNumber(1)
-  set psbtBase64($core.String v) { $_setString(0, v); }
+  set psbtBase64($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPsbtBase64() => $_has(0);
   @$pb.TagNumber(1)
@@ -2099,7 +2396,10 @@ class ValidatePsbtRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get requiredSigs => $_getIZ(1);
   @$pb.TagNumber(2)
-  set requiredSigs($core.int v) { $_setUnsignedInt32(1, v); }
+  set requiredSigs($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasRequiredSigs() => $_has(1);
   @$pb.TagNumber(2)
@@ -2109,7 +2409,10 @@ class ValidatePsbtRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   MultisigGroup get group => $_getN(2);
   @$pb.TagNumber(3)
-  set group(MultisigGroup v) { setField(3, v); }
+  set group(MultisigGroup v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasGroup() => $_has(2);
   @$pb.TagNumber(3)
@@ -2145,28 +2448,30 @@ class ValidatePsbtResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ValidatePsbtResponse._() : super();
-  factory ValidatePsbtResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ValidatePsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ValidatePsbtResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ValidatePsbtResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidatePsbtResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ValidatePsbtResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'multisiglounge.v1'), createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'hasSignatures')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'signatureCount', $pb.PbFieldType.OU3)
     ..aOB(3, _omitFieldNames ? '' : 'isComplete')
     ..aOB(4, _omitFieldNames ? '' : 'finalizable')
     ..aOS(5, _omitFieldNames ? '' : 'error')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ValidatePsbtResponse clone() => ValidatePsbtResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ValidatePsbtResponse copyWith(void Function(ValidatePsbtResponse) updates) => super.copyWith((message) => updates(message as ValidatePsbtResponse)) as ValidatePsbtResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ValidatePsbtResponse copyWith(void Function(ValidatePsbtResponse) updates) =>
+      super.copyWith((message) => updates(message as ValidatePsbtResponse)) as ValidatePsbtResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -2175,14 +2480,18 @@ class ValidatePsbtResponse extends $pb.GeneratedMessage {
   ValidatePsbtResponse createEmptyInstance() => create();
   static $pb.PbList<ValidatePsbtResponse> createRepeated() => $pb.PbList<ValidatePsbtResponse>();
   @$core.pragma('dart2js:noInline')
-  static ValidatePsbtResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidatePsbtResponse>(create);
+  static ValidatePsbtResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ValidatePsbtResponse>(create);
   static ValidatePsbtResponse? _defaultInstance;
 
   /// At least one partial signature is present on some input.
   @$pb.TagNumber(1)
   $core.bool get hasSignatures => $_getBF(0);
   @$pb.TagNumber(1)
-  set hasSignatures($core.bool v) { $_setBool(0, v); }
+  set hasSignatures($core.bool v) {
+    $_setBool(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasHasSignatures() => $_has(0);
   @$pb.TagNumber(1)
@@ -2192,7 +2501,10 @@ class ValidatePsbtResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get signatureCount => $_getIZ(1);
   @$pb.TagNumber(2)
-  set signatureCount($core.int v) { $_setUnsignedInt32(1, v); }
+  set signatureCount($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasSignatureCount() => $_has(1);
   @$pb.TagNumber(2)
@@ -2202,7 +2514,10 @@ class ValidatePsbtResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool get isComplete => $_getBF(2);
   @$pb.TagNumber(3)
-  set isComplete($core.bool v) { $_setBool(2, v); }
+  set isComplete($core.bool v) {
+    $_setBool(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasIsComplete() => $_has(2);
   @$pb.TagNumber(3)
@@ -2212,7 +2527,10 @@ class ValidatePsbtResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool get finalizable => $_getBF(3);
   @$pb.TagNumber(4)
-  set finalizable($core.bool v) { $_setBool(3, v); }
+  set finalizable($core.bool v) {
+    $_setBool(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasFinalizable() => $_has(3);
   @$pb.TagNumber(4)
@@ -2222,7 +2540,10 @@ class ValidatePsbtResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get error => $_getSZ(4);
   @$pb.TagNumber(5)
-  set error($core.String v) { $_setString(4, v); }
+  set error($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasError() => $_has(4);
   @$pb.TagNumber(5)
@@ -2234,34 +2555,32 @@ class MultisigLoungeServiceApi {
   MultisigLoungeServiceApi(this._client);
 
   $async.Future<BuildDescriptorsResponse> buildDescriptors($pb.ClientContext? ctx, BuildDescriptorsRequest request) =>
-    _client.invoke<BuildDescriptorsResponse>(ctx, 'MultisigLoungeService', 'BuildDescriptors', request, BuildDescriptorsResponse())
-  ;
-  $async.Future<ValidatePsbtResponse> validatePsbt($pb.ClientContext? ctx, ValidatePsbtRequest request) =>
-    _client.invoke<ValidatePsbtResponse>(ctx, 'MultisigLoungeService', 'ValidatePsbt', request, ValidatePsbtResponse())
-  ;
-  $async.Future<PublishGroupResponse> publishGroup($pb.ClientContext? ctx, PublishGroupRequest request) =>
-    _client.invoke<PublishGroupResponse>(ctx, 'MultisigLoungeService', 'PublishGroup', request, PublishGroupResponse())
-  ;
-  $async.Future<ImportGroupFromTxidResponse> importGroupFromTxid($pb.ClientContext? ctx, ImportGroupFromTxidRequest request) =>
-    _client.invoke<ImportGroupFromTxidResponse>(ctx, 'MultisigLoungeService', 'ImportGroupFromTxid', request, ImportGroupFromTxidResponse())
-  ;
+      _client.invoke<BuildDescriptorsResponse>(
+          ctx, 'MultisigLoungeService', 'BuildDescriptors', request, BuildDescriptorsResponse());
+  $async.Future<ValidatePsbtResponse> validatePsbt($pb.ClientContext? ctx, ValidatePsbtRequest request) => _client
+      .invoke<ValidatePsbtResponse>(ctx, 'MultisigLoungeService', 'ValidatePsbt', request, ValidatePsbtResponse());
+  $async.Future<PublishGroupResponse> publishGroup($pb.ClientContext? ctx, PublishGroupRequest request) => _client
+      .invoke<PublishGroupResponse>(ctx, 'MultisigLoungeService', 'PublishGroup', request, PublishGroupResponse());
+  $async.Future<ImportGroupFromTxidResponse> importGroupFromTxid(
+          $pb.ClientContext? ctx, ImportGroupFromTxidRequest request) =>
+      _client.invoke<ImportGroupFromTxidResponse>(
+          ctx, 'MultisigLoungeService', 'ImportGroupFromTxid', request, ImportGroupFromTxidResponse());
   $async.Future<SignTransactionResponse> signTransaction($pb.ClientContext? ctx, SignTransactionRequest request) =>
-    _client.invoke<SignTransactionResponse>(ctx, 'MultisigLoungeService', 'SignTransaction', request, SignTransactionResponse())
-  ;
-  $async.Future<CombineAndBroadcastResponse> combineAndBroadcast($pb.ClientContext? ctx, CombineAndBroadcastRequest request) =>
-    _client.invoke<CombineAndBroadcastResponse>(ctx, 'MultisigLoungeService', 'CombineAndBroadcast', request, CombineAndBroadcastResponse())
-  ;
+      _client.invoke<SignTransactionResponse>(
+          ctx, 'MultisigLoungeService', 'SignTransaction', request, SignTransactionResponse());
+  $async.Future<CombineAndBroadcastResponse> combineAndBroadcast(
+          $pb.ClientContext? ctx, CombineAndBroadcastRequest request) =>
+      _client.invoke<CombineAndBroadcastResponse>(
+          ctx, 'MultisigLoungeService', 'CombineAndBroadcast', request, CombineAndBroadcastResponse());
   $async.Future<SyncGroupResponse> syncGroup($pb.ClientContext? ctx, SyncGroupRequest request) =>
-    _client.invoke<SyncGroupResponse>(ctx, 'MultisigLoungeService', 'SyncGroup', request, SyncGroupResponse())
-  ;
+      _client.invoke<SyncGroupResponse>(ctx, 'MultisigLoungeService', 'SyncGroup', request, SyncGroupResponse());
   $async.Future<RestoreHistoryResponse> restoreHistory($pb.ClientContext? ctx, RestoreHistoryRequest request) =>
-    _client.invoke<RestoreHistoryResponse>(ctx, 'MultisigLoungeService', 'RestoreHistory', request, RestoreHistoryResponse())
-  ;
+      _client.invoke<RestoreHistoryResponse>(
+          ctx, 'MultisigLoungeService', 'RestoreHistory', request, RestoreHistoryResponse());
   $async.Future<CreateSpendPsbtResponse> createSpendPsbt($pb.ClientContext? ctx, CreateSpendPsbtRequest request) =>
-    _client.invoke<CreateSpendPsbtResponse>(ctx, 'MultisigLoungeService', 'CreateSpendPsbt', request, CreateSpendPsbtResponse())
-  ;
+      _client.invoke<CreateSpendPsbtResponse>(
+          ctx, 'MultisigLoungeService', 'CreateSpendPsbt', request, CreateSpendPsbtResponse());
 }
-
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

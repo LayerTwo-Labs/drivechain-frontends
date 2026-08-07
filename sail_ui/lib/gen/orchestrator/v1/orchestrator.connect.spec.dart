@@ -261,6 +261,15 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetCoreMempoolInfoResponse.new,
   );
 
+  /// Parent-chain state the sidechain BMM tab bids against: the tip a request
+  /// targets, the fee rate it competes with, mempool depth.
+  static const getBmmContext = connect.Spec(
+    '/$name/GetBmmContext',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetBmmContextRequest.new,
+    orchestratorv1orchestrator.GetBmmContextResponse.new,
+  );
+
   /// Generic raw bitcoind RPC. Optional `wallet` field routes the call to
   /// /wallet/{name} on bitcoind for wallet-scoped RPCs.
   static const coreRawCall = connect.Spec(

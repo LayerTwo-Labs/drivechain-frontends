@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "sidechain_conf.pb.dart" as orchestratorv1sidechain_conf;
 import "sidechain_conf.connect.spec.dart" as specs;
 
-extension type SidechainConfServiceClient (connect.Transport _transport) {
+extension type SidechainConfServiceClient(connect.Transport _transport) {
   /// Get current sidechain configuration state.
   Future<orchestratorv1sidechain_conf.GetSidechainConfigResponse> getSidechainConfig(
     orchestratorv1sidechain_conf.GetSidechainConfigRequest input, {

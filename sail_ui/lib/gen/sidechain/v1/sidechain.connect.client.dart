@@ -8,7 +8,7 @@ import "sidechain.pb.dart" as sidechainv1sidechain;
 import "sidechain.connect.spec.dart" as specs;
 
 /// SidechainService provides API for sidechain monitoring and fast withdrawal detection
-extension type SidechainServiceClient (connect.Transport _transport) {
+extension type SidechainServiceClient(connect.Transport _transport) {
   /// GetDetectedWithdrawals returns all detected fast withdrawal transactions
   Future<sidechainv1sidechain.GetDetectedWithdrawalsResponse> getDetectedWithdrawals(
     sidechainv1sidechain.GetDetectedWithdrawalsRequest input, {

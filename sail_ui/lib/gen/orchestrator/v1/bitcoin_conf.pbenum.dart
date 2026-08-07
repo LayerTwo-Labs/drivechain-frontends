@@ -15,12 +15,15 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 /// WalletBackend is what serves the wallet's chain data.
 class WalletBackend extends $pb.ProtobufEnum {
-  static const WalletBackend WALLET_BACKEND_UNSPECIFIED = WalletBackend._(0, _omitEnumNames ? '' : 'WALLET_BACKEND_UNSPECIFIED');
-  static const WalletBackend WALLET_BACKEND_ELECTRUM = WalletBackend._(1, _omitEnumNames ? '' : 'WALLET_BACKEND_ELECTRUM');
+  static const WalletBackend WALLET_BACKEND_UNSPECIFIED =
+      WalletBackend._(0, _omitEnumNames ? '' : 'WALLET_BACKEND_UNSPECIFIED');
+  static const WalletBackend WALLET_BACKEND_ELECTRUM =
+      WalletBackend._(1, _omitEnumNames ? '' : 'WALLET_BACKEND_ELECTRUM');
   static const WalletBackend WALLET_BACKEND_CORE = WalletBackend._(2, _omitEnumNames ? '' : 'WALLET_BACKEND_CORE');
-  static const WalletBackend WALLET_BACKEND_ENFORCER = WalletBackend._(3, _omitEnumNames ? '' : 'WALLET_BACKEND_ENFORCER');
+  static const WalletBackend WALLET_BACKEND_ENFORCER =
+      WalletBackend._(3, _omitEnumNames ? '' : 'WALLET_BACKEND_ENFORCER');
 
-  static const $core.List<WalletBackend> values = <WalletBackend> [
+  static const $core.List<WalletBackend> values = <WalletBackend>[
     WALLET_BACKEND_UNSPECIFIED,
     WALLET_BACKEND_ELECTRUM,
     WALLET_BACKEND_CORE,
@@ -32,6 +35,5 @@ class WalletBackend extends $pb.ProtobufEnum {
 
   const WalletBackend._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');
