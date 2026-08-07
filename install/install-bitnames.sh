@@ -80,7 +80,7 @@ print_info "This may take a few minutes depending on your connection..."
 
 # Download to temp file first to avoid "Text file busy" error if BitNames is running
 if command -v curl &> /dev/null; then
-    curl -L --progress-bar -o "$APPIMAGE_TEMP" "$APPIMAGE_URL" || {
+    curl -fL --progress-bar -o "$APPIMAGE_TEMP" "$APPIMAGE_URL" || {
         print_error "Failed to download AppImage"
         rm -f "$APPIMAGE_TEMP"
         exit 1
@@ -91,6 +91,13 @@ elif command -v wget &> /dev/null; then
         rm -f "$APPIMAGE_TEMP"
         exit 1
     }
+fi
+
+# -f only rejects HTTP >=400; a proxy error page still arrives as a 200.
+if ! head -c 4 "$APPIMAGE_TEMP" | grep -q $'\x7fELF'; then
+    print_error "Downloaded file is not an ELF binary (possible download failure or MITM)"
+    rm -f "$APPIMAGE_TEMP"
+    exit 1
 fi
 
 # Remove old AppImage (works even if running) and move new one into place
@@ -106,7 +113,7 @@ chmod +x "$APPIMAGE_PATH"
 ICON_PATH="$HOME/.local/share/icons/$APP_NAME_LOWER.png"
 
 if command -v curl &> /dev/null; then
-    curl -sL -o "$ICON_PATH" "$ICON_URL" 2>/dev/null || {
+    curl -fsL -o "$ICON_PATH" "$ICON_URL" 2>/dev/null || {
         print_warning "Could not download icon, will try to extract from AppImage"
         ICON_PATH=""
     }
