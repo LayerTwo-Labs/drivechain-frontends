@@ -84,21 +84,27 @@ func (Subtype) EnumDescriptor() ([]byte, []int) {
 }
 
 type Item struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ItemIdHex     string                 `protobuf:"bytes,1,opt,name=item_id_hex,json=itemIdHex,proto3" json:"item_id_hex,omitempty"`
-	TopicHex      string                 `protobuf:"bytes,2,opt,name=topic_hex,json=topicHex,proto3" json:"topic_hex,omitempty"`
-	Headline      string                 `protobuf:"bytes,3,opt,name=headline,proto3" json:"headline,omitempty"`
-	Url           string                 `protobuf:"bytes,4,opt,name=url,proto3" json:"url,omitempty"`
-	Body          string                 `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
-	Subtype       Subtype                `protobuf:"varint,6,opt,name=subtype,proto3,enum=coinnews.v1.Subtype" json:"subtype,omitempty"`
-	Lang          string                 `protobuf:"bytes,7,opt,name=lang,proto3" json:"lang,omitempty"`
-	Nsfw          bool                   `protobuf:"varint,8,opt,name=nsfw,proto3" json:"nsfw,omitempty"`
-	AuthorXpkHex  string                 `protobuf:"bytes,9,opt,name=author_xpk_hex,json=authorXpkHex,proto3" json:"author_xpk_hex,omitempty"`
-	BlockHeight   uint32                 `protobuf:"varint,10,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	BlockTime     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
-	Points        int32                  `protobuf:"varint,12,opt,name=points,proto3" json:"points,omitempty"`
-	CommentCount  int32                  `protobuf:"varint,13,opt,name=comment_count,json=commentCount,proto3" json:"comment_count,omitempty"`
-	Score         float64                `protobuf:"fixed64,14,opt,name=score,proto3" json:"score,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	ItemIdHex    string                 `protobuf:"bytes,1,opt,name=item_id_hex,json=itemIdHex,proto3" json:"item_id_hex,omitempty"`
+	TopicHex     string                 `protobuf:"bytes,2,opt,name=topic_hex,json=topicHex,proto3" json:"topic_hex,omitempty"`
+	Headline     string                 `protobuf:"bytes,3,opt,name=headline,proto3" json:"headline,omitempty"`
+	Url          string                 `protobuf:"bytes,4,opt,name=url,proto3" json:"url,omitempty"`
+	Body         string                 `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
+	Subtype      Subtype                `protobuf:"varint,6,opt,name=subtype,proto3,enum=coinnews.v1.Subtype" json:"subtype,omitempty"`
+	Lang         string                 `protobuf:"bytes,7,opt,name=lang,proto3" json:"lang,omitempty"`
+	Nsfw         bool                   `protobuf:"varint,8,opt,name=nsfw,proto3" json:"nsfw,omitempty"`
+	AuthorXpkHex string                 `protobuf:"bytes,9,opt,name=author_xpk_hex,json=authorXpkHex,proto3" json:"author_xpk_hex,omitempty"`
+	BlockHeight  uint32                 `protobuf:"varint,10,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	BlockTime    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+	Points       int32                  `protobuf:"varint,12,opt,name=points,proto3" json:"points,omitempty"`
+	CommentCount int32                  `protobuf:"varint,13,opt,name=comment_count,json=commentCount,proto3" json:"comment_count,omitempty"`
+	Score        float64                `protobuf:"fixed64,14,opt,name=score,proto3" json:"score,omitempty"`
+	// Where the item sits on chain, for an explorer link.
+	Txid string `protobuf:"bytes,15,opt,name=txid,proto3" json:"txid,omitempty"`
+	Vout uint32 `protobuf:"varint,16,opt,name=vout,proto3" json:"vout,omitempty"`
+	// Confirmed tallies. points is their difference.
+	Upvotes       int32 `protobuf:"varint,17,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
+	Downvotes     int32 `protobuf:"varint,18,opt,name=downvotes,proto3" json:"downvotes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -231,19 +237,50 @@ func (x *Item) GetScore() float64 {
 	return 0
 }
 
+func (x *Item) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *Item) GetVout() uint32 {
+	if x != nil {
+		return x.Vout
+	}
+	return 0
+}
+
+func (x *Item) GetUpvotes() int32 {
+	if x != nil {
+		return x.Upvotes
+	}
+	return 0
+}
+
+func (x *Item) GetDownvotes() int32 {
+	if x != nil {
+		return x.Downvotes
+	}
+	return 0
+}
+
 type Comment struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ItemIdHex     string                 `protobuf:"bytes,1,opt,name=item_id_hex,json=itemIdHex,proto3" json:"item_id_hex,omitempty"`
-	ParentIdHex   string                 `protobuf:"bytes,2,opt,name=parent_id_hex,json=parentIdHex,proto3" json:"parent_id_hex,omitempty"`
-	AuthorXpkHex  string                 `protobuf:"bytes,3,opt,name=author_xpk_hex,json=authorXpkHex,proto3" json:"author_xpk_hex,omitempty"`
-	Body          string                 `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
-	Url           string                 `protobuf:"bytes,5,opt,name=url,proto3" json:"url,omitempty"`
-	Lang          string                 `protobuf:"bytes,6,opt,name=lang,proto3" json:"lang,omitempty"`
-	ReplyQuote    string                 `protobuf:"bytes,7,opt,name=reply_quote,json=replyQuote,proto3" json:"reply_quote,omitempty"`
-	BlockHeight   uint32                 `protobuf:"varint,8,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	BlockTime     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
-	Points        int32                  `protobuf:"varint,10,opt,name=points,proto3" json:"points,omitempty"`
-	Score         float64                `protobuf:"fixed64,11,opt,name=score,proto3" json:"score,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	ItemIdHex    string                 `protobuf:"bytes,1,opt,name=item_id_hex,json=itemIdHex,proto3" json:"item_id_hex,omitempty"`
+	ParentIdHex  string                 `protobuf:"bytes,2,opt,name=parent_id_hex,json=parentIdHex,proto3" json:"parent_id_hex,omitempty"`
+	AuthorXpkHex string                 `protobuf:"bytes,3,opt,name=author_xpk_hex,json=authorXpkHex,proto3" json:"author_xpk_hex,omitempty"`
+	Body         string                 `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	Url          string                 `protobuf:"bytes,5,opt,name=url,proto3" json:"url,omitempty"`
+	Lang         string                 `protobuf:"bytes,6,opt,name=lang,proto3" json:"lang,omitempty"`
+	ReplyQuote   string                 `protobuf:"bytes,7,opt,name=reply_quote,json=replyQuote,proto3" json:"reply_quote,omitempty"`
+	BlockHeight  uint32                 `protobuf:"varint,8,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	BlockTime    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+	Points       int32                  `protobuf:"varint,10,opt,name=points,proto3" json:"points,omitempty"`
+	Score        float64                `protobuf:"fixed64,11,opt,name=score,proto3" json:"score,omitempty"`
+	// Where the comment sits on chain, for an explorer link.
+	Txid          string `protobuf:"bytes,12,opt,name=txid,proto3" json:"txid,omitempty"`
+	Vout          uint32 `protobuf:"varint,13,opt,name=vout,proto3" json:"vout,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -351,6 +388,20 @@ func (x *Comment) GetPoints() int32 {
 func (x *Comment) GetScore() float64 {
 	if x != nil {
 		return x.Score
+	}
+	return 0
+}
+
+func (x *Comment) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *Comment) GetVout() uint32 {
+	if x != nil {
+		return x.Vout
 	}
 	return 0
 }
@@ -1087,7 +1138,7 @@ var File_coinnews_v1_coinnews_proto protoreflect.FileDescriptor
 
 const file_coinnews_v1_coinnews_proto_rawDesc = "" +
 	"\n" +
-	"\x1acoinnews/v1/coinnews.proto\x12\vcoinnews.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb4\x03\n" +
+	"\x1acoinnews/v1/coinnews.proto\x12\vcoinnews.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x04\n" +
 	"\x04Item\x12\x1e\n" +
 	"\vitem_id_hex\x18\x01 \x01(\tR\titemIdHex\x12\x1b\n" +
 	"\ttopic_hex\x18\x02 \x01(\tR\btopicHex\x12\x1a\n" +
@@ -1104,7 +1155,11 @@ const file_coinnews_v1_coinnews_proto_rawDesc = "" +
 	"block_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tblockTime\x12\x16\n" +
 	"\x06points\x18\f \x01(\x05R\x06points\x12#\n" +
 	"\rcomment_count\x18\r \x01(\x05R\fcommentCount\x12\x14\n" +
-	"\x05score\x18\x0e \x01(\x01R\x05score\"\xda\x02\n" +
+	"\x05score\x18\x0e \x01(\x01R\x05score\x12\x12\n" +
+	"\x04txid\x18\x0f \x01(\tR\x04txid\x12\x12\n" +
+	"\x04vout\x18\x10 \x01(\rR\x04vout\x12\x18\n" +
+	"\aupvotes\x18\x11 \x01(\x05R\aupvotes\x12\x1c\n" +
+	"\tdownvotes\x18\x12 \x01(\x05R\tdownvotes\"\x82\x03\n" +
 	"\aComment\x12\x1e\n" +
 	"\vitem_id_hex\x18\x01 \x01(\tR\titemIdHex\x12\"\n" +
 	"\rparent_id_hex\x18\x02 \x01(\tR\vparentIdHex\x12$\n" +
@@ -1119,7 +1174,9 @@ const file_coinnews_v1_coinnews_proto_rawDesc = "" +
 	"block_time\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tblockTime\x12\x16\n" +
 	"\x06points\x18\n" +
 	" \x01(\x05R\x06points\x12\x14\n" +
-	"\x05score\x18\v \x01(\x01R\x05score\"\x9a\x01\n" +
+	"\x05score\x18\v \x01(\x01R\x05score\x12\x12\n" +
+	"\x04txid\x18\f \x01(\tR\x04txid\x12\x12\n" +
+	"\x04vout\x18\r \x01(\rR\x04vout\"\x9a\x01\n" +
 	"\x05Topic\x12\x1b\n" +
 	"\ttopic_hex\x18\x01 \x01(\tR\btopicHex\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +

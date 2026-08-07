@@ -5,6 +5,8 @@ import 'dart:math';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/providers/news_provider.dart';
+import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/widgets/news_cost.dart';
 import 'package:bitwindow/widgets/pagination.dart';
 import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
@@ -114,6 +116,9 @@ class CoinNewsView extends ViewModelWidget<CoinNewsViewModel> {
   }
 }
 
+/// Height that fits four whole story rows per column.
+const double _largeWidgetHeight = 387;
+
 class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
   const CoinNewsLargeView({
     super.key,
@@ -122,114 +127,27 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
   @override
   Widget build(BuildContext context, CoinNewsLargeViewModel viewModel) {
     return SizedBox(
-      height: 300,
+      height: _largeWidgetHeight,
       child: SailRow(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: SailStyleValues.padding16,
         children: [
           Expanded(
-            child: SailCard(
-              child: SailColumn(
-                children: [
-                  SizedBox(
-                    height: 36,
-                    child: SailRow(
-                      children: [
-                        SailText.primary15('Coin News', bold: true),
-                        Expanded(child: Container()),
-                        SailDropdownButton(
-                          items: viewModel.topics
-                              .map(
-                                (topic) => SailDropdownItem(
-                                  value: topic.topic,
-                                  label: topic.confirmed ? topic.name : '${topic.name} (pending)',
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) => viewModel.setLeftTopic(value),
-                          value: viewModel.leftTopic,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: CoinNewsTable(
-                      entries: viewModel.leftEntries,
-                      onSort: viewModel.sortLeftEntries,
-                      loading: viewModel.loading,
-                      allTopics: viewModel.topics,
-                      shrinkWrap: false,
-                      condensed: true,
-                      onArticleSelected: (news) => showCoinNewsArticle(context, news),
-                      onUpvote: viewModel.upvote,
-                      onDownvote: viewModel.downvote,
-                    ),
-                  ),
-                ],
-              ),
+            child: _LargeColumn(
+              topic: viewModel.leftTopic,
+              onTopicChanged: viewModel.setLeftTopic,
+              entries: viewModel.entriesFor(viewModel.leftTopic),
+              outdatedCount: viewModel.outdatedCountFor(viewModel.leftTopic),
+              viewModel: viewModel,
             ),
           ),
           Expanded(
-            child: SailCard(
-              child: SailColumn(
-                children: [
-                  SizedBox(
-                    height: 36,
-                    child: SailRow(
-                      children: [
-                        SailDropdownButton(
-                          items: viewModel.topics
-                              .map(
-                                (topic) => SailDropdownItem(
-                                  value: topic.topic,
-                                  label: topic.confirmed ? topic.name : '${topic.name} (pending)',
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) => viewModel.setRightTopic(value),
-                          value: viewModel.rightTopic,
-                        ),
-                        Expanded(child: Container()),
-                        SailButton(
-                          label: 'Broadcast News',
-                          variant: ButtonVariant.primary,
-                          icon: SailSVGAsset.newspaper,
-                          onPressed: () => displayBroadcastNewsDialog(context),
-                          skipLoading: true,
-                        ),
-                        ExtraActionsDropdown(
-                          title: 'Extra Coin News Actions',
-                          items: [
-                            ExtraActionItem(
-                              label: 'Manage Topics',
-                              icon: SailSVGAsset.newspaper,
-                              onSelect: () => displayCreateTopicDialog(context),
-                            ),
-                            ExtraActionItem(
-                              label: 'Graffiti Explorer',
-                              icon: SailSVGAsset.sprayCan,
-                              onSelect: () => displayGraffitiExplorerDialog(context),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: CoinNewsTable(
-                      entries: viewModel.rightEntries,
-                      onSort: viewModel.sortRightEntries,
-                      loading: viewModel.loading,
-                      allTopics: viewModel.topics,
-                      shrinkWrap: false,
-                      condensed: true,
-                      onArticleSelected: (news) => showCoinNewsArticle(context, news),
-                      onUpvote: viewModel.upvote,
-                      onDownvote: viewModel.downvote,
-                    ),
-                  ),
-                ],
-              ),
+            child: _LargeColumn(
+              topic: viewModel.rightTopic,
+              onTopicChanged: viewModel.setRightTopic,
+              entries: viewModel.entriesFor(viewModel.rightTopic),
+              outdatedCount: viewModel.outdatedCountFor(viewModel.rightTopic),
+              viewModel: viewModel,
             ),
           ),
         ],
@@ -238,204 +156,247 @@ class CoinNewsLargeView extends ViewModelWidget<CoinNewsLargeViewModel> {
   }
 }
 
+class _LargeColumn extends StatelessWidget {
+  final String topic;
+  final void Function(String?) onTopicChanged;
+  final List<CoinNews> entries;
+  final int outdatedCount;
+  final CoinNewsLargeViewModel viewModel;
+
+  const _LargeColumn({
+    required this.topic,
+    required this.onTopicChanged,
+    required this.entries,
+    required this.outdatedCount,
+    required this.viewModel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailCard(
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailRow(
+            children: [
+              SailText.primary15('Coin News', bold: true),
+              Expanded(child: Container()),
+              SailDropdownButton<String>(
+                items: viewModel.topics
+                    .map(
+                      (t) => SailDropdownItem<String>(
+                        value: t.topic,
+                        label: t.confirmed ? t.name : '${t.name} (pending)',
+                      ),
+                    )
+                    .toList(),
+                onChanged: onTopicChanged,
+                value: topic,
+              ),
+            ],
+          ),
+          Expanded(child: _body(context)),
+          if (outdatedCount > 0 || viewModel.showOutdated) _outdatedLink(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _outdatedLink(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: SailButton(
+        label: viewModel.showOutdated ? 'Hide Outdated' : 'Show Outdated',
+        variant: ButtonVariant.link,
+        small: true,
+        onPressed: () async => viewModel.toggleOutdated(),
+      ),
+    );
+  }
+
+  Widget _body(BuildContext context) {
+    if (viewModel.loading) {
+      return Center(child: SailText.secondary12('Loading…'));
+    }
+    if (entries.isEmpty) {
+      return Center(
+        child: SailColumn(
+          spacing: SailStyleValues.padding04,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SailText.primary15('Nothing here yet', bold: true),
+            SailText.secondary12('Broadcast a story to start the feed.'),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: entries.length,
+      itemBuilder: (context, i) => _LargeStoryRow(
+        entry: entries[i],
+        allTopics: viewModel.topics,
+        outdated: viewModel.isOutdated(entries[i]),
+        onUpvote: () => viewModel.upvote(entries[i]),
+        onDownvote: () => viewModel.downvote(entries[i]),
+      ),
+    );
+  }
+}
+
+/// One ranked story: votes in a gutter, headline, then its origin.
+class _LargeStoryRow extends StatefulWidget {
+  final CoinNews entry;
+  final List<Topic> allTopics;
+  final bool outdated;
+  final Future<void> Function() onUpvote;
+  final Future<void> Function() onDownvote;
+
+  const _LargeStoryRow({
+    required this.entry,
+    required this.allTopics,
+    required this.outdated,
+    required this.onUpvote,
+    required this.onDownvote,
+  });
+
+  @override
+  State<_LargeStoryRow> createState() => _LargeStoryRowState();
+}
+
+class _LargeStoryRowState extends State<_LargeStoryRow> {
+  bool _hovered = false;
+
+  String get _topicName {
+    final match = widget.allTopics.firstWhereOrNull((t) => t.topic == widget.entry.topic);
+    return match?.name ?? widget.entry.topic;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final date = widget.entry.createTime.toDateTime().toLocal().toIso8601String().substring(0, 10);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: () => showCoinNewsArticle(context, widget.entry),
+        child: Opacity(
+          opacity: widget.outdated ? 0.5 : 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: _hovered ? theme.colors.backgroundSecondary : SailColorScheme.transparent,
+              border: Border(bottom: BorderSide(color: theme.colors.divider)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: SailStyleValues.padding08,
+                vertical: SailStyleValues.padding10,
+              ),
+              child: SailRow(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: SailStyleValues.padding12,
+                children: [
+                  _VotesCell(
+                    upvotes: widget.entry.upvotes.toInt(),
+                    downvotes: widget.entry.downvotes.toInt(),
+                    onUpvote: widget.onUpvote,
+                    onDownvote: widget.onDownvote,
+                  ),
+                  Expanded(
+                    child: SailColumn(
+                      spacing: SailStyleValues.padding04,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary13(widget.entry.headline, bold: true),
+                        SailText.secondary12('$_topicName · $date'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CoinNewsLargeViewModel extends BaseViewModel {
   final NewsProvider _newsProvider = GetIt.I.get<NewsProvider>();
-  final ClientSettings _settings = GetIt.I.get<ClientSettings>();
 
-  // Sorting state
-  bool _sortLeftAscending = false;
-  bool _sortRightAscending = false;
-  String _sortLeftColumn = 'date';
-  String _sortRightColumn = 'date';
   String leftTopic = 'a1a1a1a1';
   String rightTopic = 'a2a2a2a2';
 
-  // Selected article for side panel
-  CoinNews? selectedArticle;
-  String? selectedRowId;
-  bool selectedFromLeft = true;
+  /// Stories past their topic's retention are hidden until the user asks.
+  bool showOutdated = false;
 
-  void selectArticle(CoinNews news, {required bool fromLeft}) {
-    final entries = fromLeft ? leftEntries : rightEntries;
-    final index = entries.indexOf(news);
-    selectedRowId = index >= 0 ? index.toString() : null;
-    selectedArticle = news;
-    selectedFromLeft = fromLeft;
-    notifyListeners();
+  CoinNewsLargeViewModel() {
+    _newsProvider.addListener(notifyListeners);
   }
-
-  void clearSelection() {
-    selectedArticle = null;
-    selectedRowId = null;
-    notifyListeners();
-  }
-
-  Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
-  Future<void> downvote(CoinNews news) => _newsProvider.downvote(news);
 
   bool get loading => !_newsProvider.initialized;
   List<Topic> get topics => _newsProvider.topics;
 
-  CoinNewsLargeViewModel() {
-    _newsProvider.addListener(notifyListeners);
-    _loadLeftAndRightTopics();
-  }
+  Future<void> upvote(CoinNews news) => _newsProvider.upvote(news);
+  Future<void> downvote(CoinNews news) => _newsProvider.downvote(news);
 
-  List<CoinNews> get leftEntries {
-    if (loading) {
-      return [
-        ...dummyData,
-      ];
-    }
-
-    var filteredEntries = _newsProvider.news.where((news) => leftTopic == news.topic).toList();
-
-    // Apply sorting
-    filteredEntries.sort((a, b) {
-      dynamic aValue = '';
-      dynamic bValue = '';
-
-      switch (_sortLeftColumn) {
-        case 'date':
-          aValue = a.createTime.toDateTime().millisecondsSinceEpoch;
-          bValue = b.createTime.toDateTime().millisecondsSinceEpoch;
-          break;
-        case 'topic':
-          aValue = a.topic;
-          bValue = b.topic;
-          break;
-        case 'title':
-          aValue = a.headline;
-          bValue = b.headline;
-          break;
-        case 'readtime':
-          aValue = expectedReadTime(a.content);
-          bValue = expectedReadTime(b.content);
-          break;
-        case 'upvotes':
-          aValue = a.upvotes.toInt();
-          bValue = b.upvotes.toInt();
-          break;
-      }
-
-      return _sortLeftAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-    });
-
-    return filteredEntries;
-  }
-
-  List<CoinNews> get rightEntries {
-    if (loading) {
-      return [
-        ...dummyData,
-      ];
-    }
-
-    var filteredEntries = _newsProvider.news.where((news) => rightTopic == news.topic).toList();
-
-    // Apply sorting
-    filteredEntries.sort((a, b) {
-      dynamic aValue = '';
-      dynamic bValue = '';
-
-      switch (_sortRightColumn) {
-        case 'date':
-          aValue = a.createTime.toDateTime().millisecondsSinceEpoch;
-          bValue = b.createTime.toDateTime().millisecondsSinceEpoch;
-          break;
-        case 'topic':
-          aValue = a.topic;
-          bValue = b.topic;
-          break;
-        case 'title':
-          aValue = a.headline;
-          bValue = b.headline;
-          break;
-        case 'readtime':
-          aValue = expectedReadTime(a.content);
-          bValue = expectedReadTime(b.content);
-          break;
-        case 'upvotes':
-          aValue = a.upvotes.toInt();
-          bValue = b.upvotes.toInt();
-          break;
-      }
-
-      return _sortRightAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-    });
-
-    return filteredEntries;
-  }
-
-  Future<void> _loadLeftAndRightTopics() async {
-    if (Environment.isInTest) {
+  void setLeftTopic(String? topic) {
+    if (topic == null) {
       return;
     }
+    leftTopic = topic;
+    notifyListeners();
+  }
 
-    final setting = SelectedTopicsSetting();
-    final loadedSetting = await _settings.getValue(setting);
-    final config = loadedSetting.value;
-
-    if (config.selectedTopics.isEmpty && _newsProvider.topics.isNotEmpty) {
-      // Initialize with first and last if nothing is saved
-      leftTopic = _newsProvider.topics.first.topic;
-      rightTopic = _newsProvider.topics.last.topic;
-    } else {
-      leftTopic = config.leftTopic ?? _newsProvider.topics.first.topic;
-      rightTopic = config.rightTopic ?? _newsProvider.topics.last.topic;
+  void setRightTopic(String? topic) {
+    if (topic == null) {
+      return;
     }
-
+    rightTopic = topic;
     notifyListeners();
   }
 
-  Future<void> setLeftTopic(String topicId) async {
-    leftTopic = topicId;
-
-    // Get current config and update it
-    final currentSetting = await _settings.getValue(SelectedTopicsSetting());
-    final updatedConfig = currentSetting.value.copyWith(leftTopic: topicId);
-
-    // Persist the selection
-    final setting = SelectedTopicsSetting(newValue: updatedConfig);
-    await _settings.setValue(setting);
-
+  void toggleOutdated() {
+    showOutdated = !showOutdated;
     notifyListeners();
   }
 
-  Future<void> setRightTopic(String topicId) async {
-    rightTopic = topicId;
-
-    // Get current config and update it
-    final currentSetting = await _settings.getValue(SelectedTopicsSetting());
-    final updatedConfig = currentSetting.value.copyWith(rightTopic: topicId);
-
-    // Persist the selection
-    final setting = SelectedTopicsSetting(newValue: updatedConfig);
-    await _settings.setValue(setting);
-
-    notifyListeners();
-  }
-
-  void sortLeftEntries(String column) {
-    if (_sortLeftColumn == column) {
-      _sortLeftAscending = !_sortLeftAscending;
-    } else {
-      _sortLeftColumn = column;
-      // Default to descending for date column, ascending for others
-      _sortLeftAscending = column != 'date';
+  /// A story is outdated once it is older than its topic's retention. Topics
+  /// with retention 0 keep everything.
+  bool isOutdated(CoinNews news) {
+    final topic = topics.firstWhereOrNull((t) => t.topic == news.topic);
+    final days = topic?.retentionDays ?? 0;
+    if (days <= 0) {
+      return false;
     }
-    notifyListeners();
+    return news.createTime.toDateTime().isBefore(DateTime.now().subtract(Duration(days: days)));
   }
 
-  void sortRightEntries(String column) {
-    if (_sortRightColumn == column) {
-      _sortRightAscending = !_sortRightAscending;
-    } else {
-      _sortRightColumn = column;
-      // Default to descending for date column, ascending for others
-      _sortRightAscending = column != 'date';
+  int outdatedCountFor(String topic) {
+    return _allFor(topic).where(isOutdated).length;
+  }
+
+  List<CoinNews> entriesFor(String topic) {
+    final entries = _allFor(topic).where((news) => showOutdated || !isOutdated(news)).toList();
+    entries.sort((a, b) => b.score.compareTo(a.score));
+    return entries;
+  }
+
+  List<CoinNews> _allFor(String topic) {
+    if (loading) {
+      return [...dummyData];
     }
-    notifyListeners();
+    return _newsProvider.news.where((news) => news.topic == topic).toList();
+  }
+
+  @override
+  void dispose() {
+    _newsProvider.removeListener(notifyListeners);
+    super.dispose();
   }
 }
 
@@ -996,12 +957,22 @@ class _VoteButtonState extends State<_VoteButton> {
   bool _inFlight = false;
 
   Future<void> _handleTap() async {
-    if (_inFlight || widget.onTap == null) return;
+    if (_inFlight || widget.onTap == null) {
+      return;
+    }
+    if (!await NewsCost.confirmFirstTime(context, NewsAction.NEWS_ACTION_VOTE)) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() => _inFlight = true);
     try {
       await widget.onTap!();
     } finally {
-      if (mounted) setState(() => _inFlight = false);
+      if (mounted) {
+        setState(() => _inFlight = false);
+      }
     }
   }
 
@@ -1013,17 +984,20 @@ class _VoteButtonState extends State<_VoteButton> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        MouseRegion(
-          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          child: GestureDetector(
-            onTap: enabled ? _handleTap : null,
-            child: SailSVG.fromAsset(
-              widget.asset,
-              width: widget.size,
-              height: widget.size,
-              color: _hovered && enabled ? colors.primary : colors.icon,
+        NewsCostTooltip(
+          action: NewsAction.NEWS_ACTION_VOTE,
+          child: MouseRegion(
+            cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+            onEnter: (_) => setState(() => _hovered = true),
+            onExit: (_) => setState(() => _hovered = false),
+            child: GestureDetector(
+              onTap: enabled ? _handleTap : null,
+              child: SailSVG.fromAsset(
+                widget.asset,
+                width: widget.size,
+                height: widget.size,
+                color: _hovered && enabled ? colors.primary : colors.icon,
+              ),
             ),
           ),
         ),
@@ -1127,23 +1101,35 @@ class CoinNewsTable extends StatelessWidget {
             onSort(columns[columnIndex]);
           },
           onSelectedRow: (rowId) {
-            if (rowId == null || onArticleSelected == null) return;
+            if (rowId == null || onArticleSelected == null) {
+              return;
+            }
             final index = int.tryParse(rowId);
             if (index != null && index < entries.length) {
               onArticleSelected!(entries[index]);
             }
           },
           contextMenuItems: (rowId) {
+            final index = int.tryParse(rowId);
+            final news = index != null && index < entries.length ? entries[index] : null;
             return [
               SailMenuItem(
                 onSelected: () {
-                  final index = int.tryParse(rowId);
-                  if (index != null && index < entries.length && onArticleSelected != null) {
-                    onArticleSelected!(entries[index]);
+                  if (news != null && onArticleSelected != null) {
+                    onArticleSelected!(news);
                   }
                 },
                 child: SailText.primary12('Show Details'),
               ),
+              // The indexer does not always report the on-chain position.
+              if (news != null && news.txid.isNotEmpty)
+                SailMenuItem(
+                  onSelected: () async {
+                    final network = GetIt.I.get<BitcoinConfProvider>().network;
+                    await launchUrl(Uri.parse(mempoolTxUrl(news.txid, network)));
+                  },
+                  child: SailText.primary12('View on chain'),
+                ),
             ];
           },
         ),
@@ -1215,34 +1201,54 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
     setState(() => _loading = true);
     try {
       final comments = await api.misc.listComments(_itemId);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _comments = comments;
         _error = null;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _error = e.toString());
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   Future<void> _post() async {
     final body = _controller.text.trim();
-    if (body.isEmpty || _posting) return;
+    if (body.isEmpty || _posting) {
+      return;
+    }
+    if (!await NewsCost.confirmFirstTime(context, NewsAction.NEWS_ACTION_COMMENT)) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() => _posting = true);
     try {
       await api.misc.commentNews(_replyTo ?? _itemId, body);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       _controller.clear();
       setState(() => _replyTo = null);
       await _load();
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _error = e.toString());
     } finally {
-      if (mounted) setState(() => _posting = false);
+      if (mounted) {
+        setState(() => _posting = false);
+      }
     }
   }
 
@@ -1251,7 +1257,12 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
   /// (author, target) counts at most once on-chain (§8), so we vote — and
   /// bump — at most once per item per session.
   Future<void> _vote(Comment comment, {required bool up}) async {
-    if (_voted.contains(comment.itemId)) return;
+    if (_voted.contains(comment.itemId)) {
+      return;
+    }
+    if (!await NewsCost.confirmFirstTime(context, NewsAction.NEWS_ACTION_VOTE)) {
+      return;
+    }
     _voted.add(comment.itemId);
     try {
       if (up) {
@@ -1259,7 +1270,9 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
       } else {
         await api.misc.downvoteNews(comment.itemId);
       }
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       final idx = _comments.indexWhere((c) => c.itemId == comment.itemId);
       if (idx != -1) {
         final updated = _comments[idx].deepCopy();
@@ -1272,7 +1285,9 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
       }
     } catch (e) {
       _voted.remove(comment.itemId); // allow retry on failure
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     }
   }
 
@@ -1368,7 +1383,9 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
                                   codeblockPadding: const EdgeInsets.all(12),
                                 ),
                                 onTapLink: (_, href, _) async {
-                                  if (href == null) return;
+                                  if (href == null) {
+                                    return;
+                                  }
                                   await launchUrl(Uri.parse(href));
                                 },
                               ),
@@ -1529,10 +1546,14 @@ class _CoinNewsArticlePanelState extends State<CoinNewsArticlePanel> {
                 ),
               ),
               const SailSpacing(SailStyleValues.padding08),
-              SailButton(
-                label: 'Comment',
-                loading: _posting,
-                onPressed: () async => _post(),
+              NewsCostTooltip(
+                action: NewsAction.NEWS_ACTION_COMMENT,
+                body: _controller.text,
+                child: SailButton(
+                  label: 'Comment',
+                  loading: _posting,
+                  onPressed: () async => _post(),
+                ),
               ),
             ],
           ),

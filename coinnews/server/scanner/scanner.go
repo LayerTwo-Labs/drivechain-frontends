@@ -141,7 +141,7 @@ func (s *Scanner) indexPayload(ctx context.Context, data []byte, pos store.Block
 			return nil
 		}
 	}
-	return store.Index(ctx, s.DB, store.IndexEnv{Pos: pos, TypeTag: tag, Msg: msg})
+	return store.Index(ctx, s.DB, store.IndexEnv{Pos: pos, TypeTag: tag, Msg: msg, Payload: data})
 }
 
 // opReturnPayload extracts the data bytes pushed by a single-push

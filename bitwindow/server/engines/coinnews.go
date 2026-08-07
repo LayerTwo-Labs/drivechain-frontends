@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"sort"
 
@@ -56,7 +57,7 @@ func (p *Parser) indexCoinNewsForBlock(ctx context.Context, height uint32, block
 				BlockTime:   block.Header.Timestamp,
 				TxID:        txid,
 			}
-			if err := p.indexCoinNewsPayload(ctx, data, pos); err != nil {
+			if err := indexCoinNewsPayload(ctx, p.db, data, pos); err != nil {
 				return err
 			}
 		}
@@ -68,7 +69,7 @@ func (p *Parser) indexCoinNewsForBlock(ctx context.Context, height uint32, block
 // it. Returns nil for non-CoinNews bytes (silent skip), nil for
 // dropped messages (bad sig, malformed envelope), and a non-nil
 // error only on persistence failure — the caller surfaces that.
-func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnstore.BlockPos) error {
+func indexCoinNewsPayload(ctx context.Context, db *sql.DB, data []byte, pos cnstore.BlockPos) error {
 	tag, msg, err := codec.DecodeMessage(data)
 	if err != nil {
 		if errors.Is(err, codec.ErrNotCoinNews) {
@@ -93,7 +94,7 @@ func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnst
 		}
 		// §7: drop Comments whose parent is unresolvable. §4.2: the
 		// parent must be earlier than the comment in scan order.
-		parent, ok, err := cnstore.ResolveItem(ctx, p.db, m.Parent)
+		parent, ok, err := cnstore.ResolveItem(ctx, db, m.Parent)
 		if err != nil {
 			return err
 		}
@@ -109,7 +110,7 @@ func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnst
 		// §8: drop Votes against an unresolvable target. §4.2: a vote
 		// against a same-tx target must sit at a higher vout_index —
 		// covered by requiring the target to be strictly earlier.
-		target, ok, err := cnstore.ResolveItem(ctx, p.db, m.Target)
+		target, ok, err := cnstore.ResolveItem(ctx, db, m.Target)
 		if err != nil {
 			return err
 		}
@@ -120,7 +121,7 @@ func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnst
 	case *codec.Continuation:
 		// §9: continuations live in the head's tx or a later tx in the
 		// same block, after the head in scan order.
-		head, ok, err := cnstore.ResolveItem(ctx, p.db, m.Head)
+		head, ok, err := cnstore.ResolveItem(ctx, db, m.Head)
 		if err != nil {
 			return err
 		}
@@ -130,10 +131,10 @@ func (p *Parser) indexCoinNewsPayload(ctx context.Context, data []byte, pos cnst
 		}
 	}
 
-	if err := cnstore.Index(ctx, p.db, cnstore.IndexEnv{Pos: pos, TypeTag: tag, Msg: msg}); err != nil {
+	if err := cnstore.Index(ctx, db, cnstore.IndexEnv{Pos: pos, TypeTag: tag, Msg: msg}); err != nil {
 		return err
 	}
-	opreturns.InvalidateCoinNewsCache(p.db)
+	opreturns.InvalidateCoinNewsCache(db)
 	return nil
 }
 

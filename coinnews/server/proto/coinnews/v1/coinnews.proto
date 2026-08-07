@@ -57,6 +57,12 @@ message Item {
   int32  points       = 12;
   int32  comment_count = 13;
   double score        = 14;
+  // Where the item sits on chain, for an explorer link.
+  string txid         = 15;
+  uint32 vout         = 16;
+  // Confirmed tallies. points is their difference.
+  int32  upvotes      = 17;
+  int32  downvotes    = 18;
 }
 
 message Comment {
@@ -71,6 +77,9 @@ message Comment {
   google.protobuf.Timestamp block_time = 9;
   int32  points        = 10;
   double score         = 11;
+  // Where the comment sits on chain, for an explorer link.
+  string txid          = 12;
+  uint32 vout          = 13;
 }
 
 message Topic {

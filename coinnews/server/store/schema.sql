@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS cn_items (
     vout_index   INTEGER  NOT NULL,
     type_tag     INTEGER  NOT NULL,
     block_time   TIMESTAMP NOT NULL,
+    raw_payload  BLOB     NOT NULL,
     UNIQUE (txid, vout)
 );
 CREATE INDEX IF NOT EXISTS idx_cn_items_order ON cn_items (block_height, tx_index, vout_index);

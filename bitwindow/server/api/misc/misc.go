@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -35,12 +36,14 @@ func New(
 	timestampEngine *engines.TimestampEngine,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
+	remoteCoinNews engines.RemoteCoinNews,
 ) *Server {
 	return &Server{
 		database:        database,
 		timestampEngine: timestampEngine,
 		bitcoind:        bitcoind,
 		walletEngine:    walletEngine,
+		remoteCoinNews:  remoteCoinNews,
 	}
 }
 
@@ -49,6 +52,7 @@ type Server struct {
 	timestampEngine *engines.TimestampEngine
 	bitcoind        *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine    *engines.WalletEngine
+	remoteCoinNews  engines.RemoteCoinNews
 }
 
 // listOPReturnLimit is the cap for the gRPC ListOPReturn handler. The
@@ -197,6 +201,58 @@ func (s *Server) broadcastVote(ctx context.Context, req *miscv1.UpvoteNewsReques
 	}), nil
 }
 
+// EstimateNewsFee implements miscv1connect.MiscServiceHandler. It encodes the
+// payload the action would broadcast and prices the transaction that carries it.
+func (s *Server) EstimateNewsFee(ctx context.Context, req *connect.Request[miscv1.EstimateNewsFeeRequest]) (*connect.Response[miscv1.EstimateNewsFeeResponse], error) {
+	payload, err := newsPayloadFor(req.Msg)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	rate, err := s.walletEngine.EstimateFeeRate(ctx, 6)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("estimate fee rate: %w", err))
+	}
+
+	vsize := engines.OpReturnTxVbytes(len(payload))
+	return connect.NewResponse(&miscv1.EstimateNewsFeeResponse{
+		Vsize:          vsize,
+		FeeSatPerVbyte: rate,
+		FeeSats:        uint64(math.Ceil(float64(vsize) * rate)),
+	}), nil
+}
+
+// newsPayloadFor encodes the exact bytes the action would put in the OP_RETURN.
+// Signatures and ids are zero — only the length matters here.
+func newsPayloadFor(req *miscv1.EstimateNewsFeeRequest) ([]byte, error) {
+	switch req.Action {
+	case miscv1.NewsAction_NEWS_ACTION_VOTE:
+		return codec.EncodeVote(codec.Vote{Kind: codec.TypeUpvote})
+
+	case miscv1.NewsAction_NEWS_ACTION_COMMENT:
+		if strings.TrimSpace(req.Body) == "" {
+			return nil, errors.New("body must be set")
+		}
+		return codec.EncodeComment(codec.Comment{
+			TLVs: []codec.TLV{{Tag: codec.TLVBody, Value: []byte(req.Body)}},
+		})
+
+	case miscv1.NewsAction_NEWS_ACTION_STORY:
+		if strings.TrimSpace(req.Headline) == "" {
+			return nil, errors.New("headline must be set")
+		}
+		return opreturns.EncodeNewsMessageWithOptions(
+			opreturns.TopicID{}, req.Headline, req.Body, opreturns.StoryOptions{URL: req.Url},
+		)
+
+	case miscv1.NewsAction_NEWS_ACTION_UNSPECIFIED:
+		return nil, errors.New("action must be set")
+
+	default:
+		return nil, errors.New("action must be set")
+	}
+}
+
 // CreateTopic implements miscv1connect.MiscServiceHandler.
 func (s *Server) CreateTopic(ctx context.Context, req *connect.Request[miscv1.CreateTopicRequest]) (*connect.Response[miscv1.CreateTopicResponse], error) {
 	topicID, err := opreturns.ValidNewsTopicID(req.Msg.Topic)
@@ -283,6 +339,10 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
+	if s.remoteCoinNews != nil {
+		return s.listRemoteCoinNews(ctx, req.Msg.Topic)
+	}
+
 	news, err := opreturns.ListCoinNews(ctx, s.database)
 	if err != nil {
 		return nil, fmt.Errorf("list coin news: %w", err)
@@ -304,6 +364,41 @@ func (s *Server) ListCoinNews(ctx context.Context, req *connect.Request[miscv1.L
 	return connect.NewResponse(&miscv1.ListCoinNewsResponse{
 		CoinNews: lo.Map(news, coinNewsToProto),
 	}), nil
+}
+
+// listRemoteCoinNews serves the feed straight from the network's indexer.
+// The indexer already ranks and decodes, so nothing is re-parsed here.
+func (s *Server) listRemoteCoinNews(ctx context.Context, topic *string) (*connect.Response[miscv1.ListCoinNewsResponse], error) {
+	var topicHex string
+	if topic != nil {
+		// already validated as four-byte hex by the caller
+		topicHex = *topic
+	}
+
+	items, err := s.remoteCoinNews.ListFrontPage(ctx, topicHex, 100)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read coin news indexer: %w", err))
+	}
+
+	out := make([]*miscv1.CoinNews, len(items))
+	for i, item := range items {
+		out[i] = &miscv1.CoinNews{
+			Topic:      item.TopicHex,
+			Headline:   strings.ToValidUTF8(item.Headline, ""),
+			Content:    strings.ToValidUTF8(item.Body, ""),
+			CreateTime: timestamppb.New(item.BlockTime),
+			ItemId:     item.ItemIDHex,
+			Upvotes:    int64(item.Upvotes),
+			Downvotes:  int64(item.Downvotes),
+			Score:      item.Score,
+			Url:        item.URL,
+			Subtype:    item.Subtype,
+			Nsfw:       item.NSFW,
+			Txid:       item.TxID,
+			Vout:       item.Vout,
+		}
+	}
+	return connect.NewResponse(&miscv1.ListCoinNewsResponse{CoinNews: out}), nil
 }
 
 func coinNewsToProto(coinNews opreturns.CoinNews, _ int) *miscv1.CoinNews {

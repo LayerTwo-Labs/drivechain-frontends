@@ -24,8 +24,12 @@ type FeedItem struct {
 	BlockHeight  uint32
 	BlockTime    time.Time
 	Points       int
+	Upvotes      int
+	Downvotes    int
 	CommentCount int
 	Score        float64
+	TxID         string
+	Vout         uint32
 }
 
 // FeedSort selects the ordering for ListFeed.
@@ -60,7 +64,7 @@ func ListFeed(ctx context.Context, db *sql.DB, f FeedFilter) ([]FeedItem, error)
 		SELECT s.item_id, s.topic, s.headline,
 		       COALESCE(s.url, ''), COALESCE(s.body, ''), COALESCE(s.lang, ''),
 		       s.nsfw, s.subtype,
-		       i.block_height, i.block_time,
+		       i.block_height, i.block_time, i.txid, i.vout,
 		       COALESCE(t.up, 0) AS up,
 		       COALESCE(t.dn, 0) AS dn,
 		       COALESCE((SELECT COUNT(*) FROM cn_comments WHERE parent_id = s.item_id), 0) AS comments
@@ -104,20 +108,23 @@ func ListFeed(ctx context.Context, db *sql.DB, f FeedFilter) ([]FeedItem, error)
 	var out []FeedItem
 	for rows.Next() {
 		var (
-			fi              FeedItem
-			itemID          []byte
-			topic           []byte
-			subtype         byte
-			up, dn, ccount  int
+			fi             FeedItem
+			itemID         []byte
+			topic          []byte
+			subtype        byte
+			up, dn, ccount int
 		)
 		if err := rows.Scan(&itemID, &topic, &fi.Headline, &fi.URL, &fi.Body, &fi.Lang,
-			&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &up, &dn, &ccount); err != nil {
+			&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &fi.TxID, &fi.Vout,
+			&up, &dn, &ccount); err != nil {
 			return nil, err
 		}
 		copy(fi.ItemID[:], itemID)
 		copy(fi.Topic[:], topic)
 		fi.Subtype = codec.Subtype(subtype)
 		fi.Points = up - dn
+		fi.Upvotes = up
+		fi.Downvotes = dn
 		fi.CommentCount = ccount
 		ageHours := time.Since(fi.BlockTime).Hours()
 		if ageHours < 0 {
@@ -143,7 +150,7 @@ func GetItem(ctx context.Context, db *sql.DB, id codec.ItemID) (FeedItem, error)
 		SELECT s.item_id, s.topic, s.headline,
 		       COALESCE(s.url, ''), COALESCE(s.body, ''), COALESCE(s.lang, ''),
 		       s.nsfw, s.subtype,
-		       i.block_height, i.block_time,
+		       i.block_height, i.block_time, i.txid, i.vout,
 		       COALESCE(t.up, 0), COALESCE(t.dn, 0),
 		       COALESCE((SELECT COUNT(*) FROM cn_comments WHERE parent_id = s.item_id), 0)
 		FROM cn_stories s
@@ -160,19 +167,22 @@ func GetItem(ctx context.Context, db *sql.DB, id codec.ItemID) (FeedItem, error)
 		return FeedItem{}, sql.ErrNoRows
 	}
 	var (
-		fi              FeedItem
-		itemID, topic   []byte
-		subtype         byte
-		up, dn, ccount  int
+		fi             FeedItem
+		itemID, topic  []byte
+		subtype        byte
+		up, dn, ccount int
 	)
 	if err := rows.Scan(&itemID, &topic, &fi.Headline, &fi.URL, &fi.Body, &fi.Lang,
-		&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &up, &dn, &ccount); err != nil {
+		&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &fi.TxID, &fi.Vout,
+		&up, &dn, &ccount); err != nil {
 		return FeedItem{}, err
 	}
 	copy(fi.ItemID[:], itemID)
 	copy(fi.Topic[:], topic)
 	fi.Subtype = codec.Subtype(subtype)
 	fi.Points = up - dn
+	fi.Upvotes = up
+	fi.Downvotes = dn
 	fi.CommentCount = ccount
 	ageHours := time.Since(fi.BlockTime).Hours()
 	if ageHours < 0 {
@@ -184,17 +194,19 @@ func GetItem(ctx context.Context, db *sql.DB, id codec.ItemID) (FeedItem, error)
 
 // CommentRow is the materialised view of a comment plus its tally.
 type CommentRow struct {
-	ItemID       codec.ItemID
-	Parent       codec.ItemID
-	AuthorXPK    [32]byte
-	Body         string
-	URL          string
-	Lang         string
-	ReplyQuote   string
-	BlockHeight  uint32
-	BlockTime    time.Time
-	Points       int
-	Score        float64
+	ItemID      codec.ItemID
+	Parent      codec.ItemID
+	AuthorXPK   [32]byte
+	Body        string
+	URL         string
+	Lang        string
+	ReplyQuote  string
+	BlockHeight uint32
+	BlockTime   time.Time
+	Points      int
+	Score       float64
+	TxID        string
+	Vout        uint32
 }
 
 // ListThread returns every comment descendant of `root`, walking
@@ -209,7 +221,7 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 		)
 		SELECT c.item_id, c.parent_id, c.author_xpk,
 		       COALESCE(c.body, ''), COALESCE(c.url, ''), COALESCE(c.lang, ''), COALESCE(c.reply_quote, ''),
-		       i.block_height, i.block_time,
+		       i.block_height, i.block_time, i.txid, i.vout,
 		       COALESCE(t.up, 0), COALESCE(t.dn, 0)
 		FROM cn_comments c
 		JOIN cn_items i ON i.item_id = c.item_id
@@ -223,13 +235,13 @@ func ListThread(ctx context.Context, db *sql.DB, root codec.ItemID) ([]CommentRo
 	all := map[codec.ItemID][]CommentRow{}
 	for rows.Next() {
 		var (
-			c                 CommentRow
-			itemID, parent    []byte
-			xpk               []byte
-			up, dn            int
+			c              CommentRow
+			itemID, parent []byte
+			xpk            []byte
+			up, dn         int
 		)
 		if err := rows.Scan(&itemID, &parent, &xpk, &c.Body, &c.URL, &c.Lang, &c.ReplyQuote,
-			&c.BlockHeight, &c.BlockTime, &up, &dn); err != nil {
+			&c.BlockHeight, &c.BlockTime, &c.TxID, &c.Vout, &up, &dn); err != nil {
 			return nil, err
 		}
 		copy(c.ItemID[:], itemID)
@@ -280,7 +292,7 @@ func ListByAuthor(ctx context.Context, db *sql.DB, xpk [32]byte, limit, offset u
 		SELECT s.item_id, s.topic, s.headline,
 		       COALESCE(s.url, ''), COALESCE(s.body, ''), COALESCE(s.lang, ''),
 		       s.nsfw, s.subtype,
-		       i.block_height, i.block_time,
+		       i.block_height, i.block_time, i.txid, i.vout,
 		       COALESCE(t.up, 0), COALESCE(t.dn, 0),
 		       COALESCE((SELECT COUNT(*) FROM cn_comments WHERE parent_id = s.item_id), 0)
 		FROM cn_stories s
@@ -335,19 +347,22 @@ func scanFeedRows(rows *sql.Rows) ([]FeedItem, error) {
 	var out []FeedItem
 	for rows.Next() {
 		var (
-			fi              FeedItem
-			itemID, topic   []byte
-			subtype         byte
-			up, dn, ccount  int
+			fi             FeedItem
+			itemID, topic  []byte
+			subtype        byte
+			up, dn, ccount int
 		)
 		if err := rows.Scan(&itemID, &topic, &fi.Headline, &fi.URL, &fi.Body, &fi.Lang,
-			&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &up, &dn, &ccount); err != nil {
+			&fi.NSFW, &subtype, &fi.BlockHeight, &fi.BlockTime, &fi.TxID, &fi.Vout,
+			&up, &dn, &ccount); err != nil {
 			return nil, err
 		}
 		copy(fi.ItemID[:], itemID)
 		copy(fi.Topic[:], topic)
 		fi.Subtype = codec.Subtype(subtype)
 		fi.Points = up - dn
+		fi.Upvotes = up
+		fi.Downvotes = dn
 		fi.CommentCount = ccount
 		ageHours := time.Since(fi.BlockTime).Hours()
 		if ageHours < 0 {

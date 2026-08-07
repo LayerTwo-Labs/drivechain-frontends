@@ -12,15 +12,9 @@ import (
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
-func openTest(t *testing.T) *testStore {
-	t.Helper()
-	db, err := Open(context.Background(), t.TempDir()+"/coinnews.db")
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = db.Close() })
-	return &testStore{t: t}
-}
-
-type testStore struct{ t *testing.T }
+// testPayload stands in for the OP_RETURN bytes a message was decoded
+// from. These tests index already-decoded messages.
+var testPayload = []byte{0xcc, 0x00}
 
 // pos returns a BlockPos. Each call gets a unique txid (derived from
 // height) so cn_items rows don't collide across the test scenario —
@@ -69,11 +63,11 @@ func TestStore_FullCycle(t *testing.T) {
 	// Topic Creation: earliest-wins.
 	topic := codec.Topic{0x48, 0x4e, 0x53, 0x21}
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(100, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(100, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "first"},
 	}))
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(101, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(101, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 30, Name: "second"},
 	}))
 	topics, err := ListTopics(ctx, db)
@@ -83,7 +77,7 @@ func TestStore_FullCycle(t *testing.T) {
 
 	// Story.
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(102, 0, 0), TypeTag: codec.TypeStory,
+		Pos: pos(102, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
 		Msg: &codec.Story{
 			Topic: topic, Headline: "hello",
 			TLVs: []codec.TLV{
@@ -104,11 +98,11 @@ func TestStore_FullCycle(t *testing.T) {
 	var xpk [32]byte
 	_, _ = rand.Read(xpk[:])
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(103, 0, 0), TypeTag: codec.TypeUpvote,
+		Pos: pos(103, 0, 0), TypeTag: codec.TypeUpvote, Payload: testPayload,
 		Msg: &codec.Vote{Kind: codec.TypeUpvote, Target: storyID, AuthorXPK: xpk},
 	}))
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(104, 0, 0), TypeTag: codec.TypeDownvote,
+		Pos: pos(104, 0, 0), TypeTag: codec.TypeDownvote, Payload: testPayload,
 		Msg: &codec.Vote{Kind: codec.TypeDownvote, Target: storyID, AuthorXPK: xpk},
 	}))
 	feed, err = ListFeed(ctx, db, FeedFilter{Sort: SortNewest})

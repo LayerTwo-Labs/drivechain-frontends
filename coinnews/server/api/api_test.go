@@ -17,6 +17,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/coinnews/server/store"
 )
 
+var testPayload = []byte{0xcc, 0x00}
+
 func newHandler(t *testing.T) *Handler {
 	t.Helper()
 	db, err := store.Open(context.Background(), t.TempDir()+"/coinnews.db")
@@ -53,11 +55,11 @@ func TestHandler_ListTopicsAndFeed(t *testing.T) {
 	topic := codec.Topic{'B', 'T', 'C', '!'}
 
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(10, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(10, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 30, Name: "Bitcoin"},
 	}))
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(11, 0, 0), TypeTag: codec.TypeStory,
+		Pos: pos(11, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
 		Msg: &codec.Story{Topic: topic, Headline: "hello", TLVs: []codec.TLV{
 			{Tag: codec.TLVURL, Value: []byte("https://example.com/x")},
 		}},
@@ -113,12 +115,12 @@ func TestHandler_GetItem_RoundTrip(t *testing.T) {
 	topic := codec.Topic{'X', 'Y', 'Z', 0}
 
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(20, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(20, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "xyz"},
 	}))
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(21, 0, 0), TypeTag: codec.TypeStory,
-		Msg:  &codec.Story{Topic: topic, Headline: "hn-clone"},
+		Pos: pos(21, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Topic: topic, Headline: "hn-clone"},
 	}))
 
 	feed, err := store.ListFeed(ctx, h.DB, store.FeedFilter{Sort: store.SortNewest})
@@ -150,12 +152,12 @@ func TestHandler_ListByAuthor_OK(t *testing.T) {
 	h := newHandler(t)
 	topic := codec.Topic{'X', 'Y', 'Z', 0}
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(30, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(30, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "xyz"},
 	}))
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(31, 0, 0), TypeTag: codec.TypeStory,
-		Msg:  &codec.Story{Topic: topic, Headline: "story"},
+		Pos: pos(31, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Topic: topic, Headline: "story"},
 	}))
 	feed, err := store.ListFeed(ctx, h.DB, store.FeedFilter{Sort: store.SortNewest})
 	require.NoError(t, err)
@@ -165,7 +167,7 @@ func TestHandler_ListByAuthor_OK(t *testing.T) {
 	var xpk [32]byte
 	_, _ = rand.Read(xpk[:])
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(32, 0, 0), TypeTag: codec.TypeComment,
+		Pos: pos(32, 0, 0), TypeTag: codec.TypeComment, Payload: testPayload,
 		Msg: &codec.Comment{
 			Parent:    storyID,
 			AuthorXPK: xpk,
@@ -199,12 +201,12 @@ func TestHandler_ListThread(t *testing.T) {
 	h := newHandler(t)
 	topic := codec.Topic{'B', 'T', 'C', '!'}
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(50, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(50, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "btc"},
 	}))
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(51, 0, 0), TypeTag: codec.TypeStory,
-		Msg:  &codec.Story{Topic: topic, Headline: "root"},
+		Pos: pos(51, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Topic: topic, Headline: "root"},
 	}))
 	feed, err := store.ListFeed(ctx, h.DB, store.FeedFilter{Sort: store.SortNewest})
 	require.NoError(t, err)
@@ -213,7 +215,7 @@ func TestHandler_ListThread(t *testing.T) {
 	var xpk [32]byte
 	_, _ = rand.Read(xpk[:])
 	require.NoError(t, store.Index(ctx, h.DB, store.IndexEnv{
-		Pos: pos(52, 0, 0), TypeTag: codec.TypeComment,
+		Pos: pos(52, 0, 0), TypeTag: codec.TypeComment, Payload: testPayload,
 		Msg: &codec.Comment{
 			Parent:    feed[0].ItemID,
 			AuthorXPK: xpk,
