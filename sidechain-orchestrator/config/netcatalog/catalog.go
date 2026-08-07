@@ -56,6 +56,16 @@ type Network struct {
 		Ticker string `json:"ticker"`
 	} `json:"currency"`
 
+	// ForkHeight is the height the eCash fork activates at. Published so a new
+	// drynet, and the real fork, roll over without a code change.
+	ForkHeight int `json:"fork_height"`
+
+	// P2P is the seed node bitcoind connects through. Every drynet generation
+	// publishes its own address and port.
+	P2P struct {
+		Address string `json:"address"`
+	} `json:"p2p"`
+
 	Backends []Backend `json:"backends"`
 
 	ExplorerTxTemplate      string `json:"explorer_tx_template"`
@@ -114,6 +124,21 @@ func (c Catalog) ByID(id string) (Network, bool) {
 		}
 	}
 	return Network{}, false
+}
+
+// ForNetwork returns the catalog entry for a running network name. Drynet
+// resolves by family because its id carries the generation number.
+func (c Catalog) ForNetwork(network string) (Network, bool) {
+	switch network {
+	case "drynet":
+		return c.CurrentECash()
+	case "mainnet":
+		return c.ByID("bitcoin")
+	case "signet", "forknet":
+		return c.ByID(network)
+	default:
+		return Network{}, false
+	}
 }
 
 // CurrentECash returns the newest eCash generation (highest trailing number in

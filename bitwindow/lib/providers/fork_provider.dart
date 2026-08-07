@@ -57,6 +57,10 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
 
   bool simulated = false;
   int forkHeight = 0;
+
+  /// Name of the fork being counted down to ("Drynet 4"), from the published
+  /// catalog. Empty until it resolves.
+  String networkName = '';
   int currentHeight = 0;
   int currentHeaders = 0;
   int claimBoundary = 0;
@@ -92,6 +96,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   void clear() {
     simulated = false;
     forkHeight = 0;
+    networkName = '';
     currentHeight = 0;
     currentHeaders = 0;
     claimBoundary = 0;
@@ -112,13 +117,18 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> fetch() async {
-    if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) return;
-    if (_fetching) return;
+    if (!GetIt.I.get<BitcoinConfProvider>().drivechainFeaturesAvailable) {
+      return;
+    }
+    if (_fetching) {
+      return;
+    }
     _fetching = true;
     try {
       final s = await _orchestrator.getForkStatus();
       simulated = s.simulated;
       forkHeight = s.forkHeight;
+      networkName = s.networkName;
       currentHeight = s.currentHeight;
       currentHeaders = s.currentHeaders;
       claimBoundary = s.claimBoundary;
@@ -166,7 +176,9 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     final bucket = currentHeaders ~/ _reanchorEveryBlocks;
-    if (forkHeight == _anchorForkHeight && bucket == _anchorBucket && forkTargetDate != null) return;
+    if (forkHeight == _anchorForkHeight && bucket == _anchorBucket && forkTargetDate != null) {
+      return;
+    }
 
     _anchorForkHeight = forkHeight;
     _anchorBucket = bucket;

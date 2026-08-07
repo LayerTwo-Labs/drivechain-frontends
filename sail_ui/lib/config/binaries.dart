@@ -103,7 +103,9 @@ abstract class Binary {
 
   // Check if process has recent log activity (within last 30 seconds)
   bool get hasRecentStartupLogActivity {
-    if (startupLogs.isEmpty) return false;
+    if (startupLogs.isEmpty) {
+      return false;
+    }
     final lastLog = startupLogs.last;
     final now = DateTime.now();
     return now.difference(lastLog.timestamp).inSeconds < 30;
@@ -144,9 +146,13 @@ abstract class Binary {
   );
 
   bool _listEquals(List<String> a, List<String> b) {
-    if (a.length != b.length) return false;
+    if (a.length != b.length) {
+      return false;
+    }
     for (int i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
+      if (a[i] != b[i]) {
+        return false;
+      }
     }
     return true;
   }
@@ -419,7 +425,9 @@ class _GitHubCache {
 
   static DateTime? get(String url) {
     final entry = _cache[url];
-    if (entry == null) return null;
+    if (entry == null) {
+      return null;
+    }
 
     // Check if cache entry is still valid (1 minute TTL)
     if (DateTime.now().difference(entry.timestamp).inMinutes >= 1) {
@@ -460,9 +468,9 @@ class BitcoinCore extends Binary {
              DirectoryConfig(
                binary: {
                  ...allNetworks({
-                   OS.linux: '.drivechain',
-                   OS.macos: 'Drivechain',
-                   OS.windows: 'Drivechain',
+                   OS.linux: '.ecash',
+                   OS.macos: 'Ecash',
+                   OS.windows: 'Ecash',
                  }),
                  BitcoinNetwork.BITCOIN_NETWORK_MAINNET: {
                    OS.linux: '.bitcoin',
@@ -1129,7 +1137,9 @@ extension BinaryPaths on Binary {
         r'bip300301_enforcer\.log\.(\d{4}-\d{2}-\d{2})\.(\d+)$',
       ).firstMatch(bFileName);
 
-      if (aMatch == null || bMatch == null) return 0;
+      if (aMatch == null || bMatch == null) {
+        return 0;
+      }
 
       final aDate = aMatch.group(1)!;
       final bDate = bMatch.group(1)!;
@@ -1138,7 +1148,9 @@ extension BinaryPaths on Binary {
 
       // First compare by date (descending)
       final dateComparison = bDate.compareTo(aDate);
-      if (dateComparison != 0) return dateComparison;
+      if (dateComparison != 0) {
+        return dateComparison;
+      }
 
       // If dates are equal, compare by sequence number (descending)
       return bSeq.compareTo(aSeq);
@@ -1281,7 +1293,9 @@ extension BinaryPaths on Binary {
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
-          if (customDir != null) return customDir;
+          if (customDir != null) {
+            return customDir;
+          }
         }
         return rootDir();
 
@@ -1361,12 +1375,16 @@ extension BinaryDownload on Binary {
     final baseNameToFind = path.basenameWithoutExtension(binary).toLowerCase();
 
     final assetsDir = binDir(datadir.path);
-    if (!assetsDir.existsSync()) return false;
+    if (!assetsDir.existsSync()) {
+      return false;
+    }
 
     try {
       final files = assetsDir.listSync();
       return files.any((entity) {
-        if (entity is! File) return false;
+        if (entity is! File) {
+          return false;
+        }
         final fileName = path.basename(entity.path);
         final fileBaseName = path.basenameWithoutExtension(fileName).toLowerCase();
         return fileBaseName == baseNameToFind;
@@ -1386,7 +1404,9 @@ extension BinaryDownload on Binary {
   Future<String?> calculateHash(Directory datadir) async {
     try {
       final file = File(assetPath(datadir));
-      if (!await file.exists()) return null;
+      if (!await file.exists()) {
+        return null;
+      }
 
       final bytes = await file.readAsBytes();
       return sha256.convert(bytes).toString();
@@ -1494,9 +1514,13 @@ class DirectoryConfig {
     Map<BitcoinNetwork, Map<OS, String>> a,
     Map<BitcoinNetwork, Map<OS, String>> b,
   ) {
-    if (a.length != b.length) return false;
+    if (a.length != b.length) {
+      return false;
+    }
     for (final key in a.keys) {
-      if (!b.containsKey(key) || a[key] != b[key]) return false;
+      if (!b.containsKey(key) || a[key] != b[key]) {
+        return false;
+      }
     }
     return true;
   }
@@ -1577,8 +1601,12 @@ class MetadataConfig {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! MetadataConfig) return false;
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other is! MetadataConfig) {
+      return false;
+    }
 
     // Check alternative download config equality
     bool alternativeConfigsEqual;
@@ -1617,14 +1645,22 @@ class MetadataConfig {
     Map<BitcoinNetwork, Map<OS, String>> a,
     Map<BitcoinNetwork, Map<OS, String>> b,
   ) {
-    if (a.length != b.length) return false;
+    if (a.length != b.length) {
+      return false;
+    }
     for (final network in a.keys) {
-      if (!b.containsKey(network)) return false;
+      if (!b.containsKey(network)) {
+        return false;
+      }
       final aOsMap = a[network]!;
       final bOsMap = b[network]!;
-      if (aOsMap.length != bOsMap.length) return false;
+      if (aOsMap.length != bOsMap.length) {
+        return false;
+      }
       for (final os in aOsMap.keys) {
-        if (!bOsMap.containsKey(os) || aOsMap[os] != bOsMap[os]) return false;
+        if (!bOsMap.containsKey(os) || aOsMap[os] != bOsMap[os]) {
+          return false;
+        }
       }
     }
     return true;
@@ -1769,10 +1805,18 @@ OS _osFromJsonKey(String key) {
 }
 
 String colorToString(Color color) {
-  if (color == SailColorScheme.green) return 'green';
-  if (color == SailColorScheme.blue) return 'blue';
-  if (color == SailColorScheme.purple) return 'purple';
-  if (color == SailColorScheme.orange) return 'orange';
+  if (color == SailColorScheme.green) {
+    return 'green';
+  }
+  if (color == SailColorScheme.blue) {
+    return 'blue';
+  }
+  if (color == SailColorScheme.purple) {
+    return 'purple';
+  }
+  if (color == SailColorScheme.orange) {
+    return 'orange';
+  }
   return 'green';
 }
 
@@ -1794,7 +1838,9 @@ Map<BitcoinNetwork, Map<OS, String>> _networkMapFromJson(
 
   // Override specific networks
   for (final entry in json.entries) {
-    if (entry.key == 'default') continue;
+    if (entry.key == 'default') {
+      continue;
+    }
     final network = _networkFromJsonKey(entry.key);
     result[network] = leaf(entry.value as Map<String, dynamic>);
   }
@@ -1841,7 +1887,9 @@ Map<OS, String> _platformMapFromJson(Map<String, dynamic> json) {
   final result = <OS, String>{};
   for (final os in OS.values) {
     final file = fileForPlatform(json, os, _archForOS(os));
-    if (file != null && file.isNotEmpty) result[os] = file;
+    if (file != null && file.isNotEmpty) {
+      result[os] = file;
+    }
   }
   return result;
 }

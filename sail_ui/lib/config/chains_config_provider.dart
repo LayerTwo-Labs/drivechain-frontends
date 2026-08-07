@@ -120,10 +120,14 @@ class ChainsConfigProvider extends ChangeNotifier {
       final currentVersion = userConfig['version'] as int? ?? 0;
 
       final available = await _discoverMigrations();
-      if (available.isEmpty) return;
+      if (available.isEmpty) {
+        return;
+      }
 
       final pending = available.where((version) => version > currentVersion).toList();
-      if (pending.isEmpty) return;
+      if (pending.isEmpty) {
+        return;
+      }
 
       log.i('Config version $currentVersion → ${pending.last}: applying migrations');
 
@@ -184,7 +188,9 @@ class ChainsConfigProvider extends ChangeNotifier {
   /// Build a single Binary by its JSON key (e.g. "thunder").
   Binary? buildBinary(String key) {
     final config = getConfig(key);
-    if (config == null) return null;
+    if (config == null) {
+      return null;
+    }
     try {
       return binaryFromJson(key, config);
     } catch (e) {
@@ -208,7 +214,9 @@ class ChainsConfigProvider extends ChangeNotifier {
   ) async {
     final binaries = _rawConfig['binaries'] as Map<String, dynamic>? ?? {};
     final binaryConfig = binaries[binaryKey] as Map<String, dynamic>?;
-    if (binaryConfig == null) return;
+    if (binaryConfig == null) {
+      return;
+    }
 
     final hashes = (binaryConfig['hashes'] as Map<String, dynamic>?) ?? {};
     hashes[os] = {'sha256': sha256, 'size': size};
@@ -225,7 +233,9 @@ class ChainsConfigProvider extends ChangeNotifier {
   ) async {
     final binaries = _rawConfig['binaries'] as Map<String, dynamic>? ?? {};
     final binaryConfig = binaries[binaryKey] as Map<String, dynamic>?;
-    if (binaryConfig == null) return;
+    if (binaryConfig == null) {
+      return;
+    }
 
     binaryConfig[field] = value;
     await _writeConfig();

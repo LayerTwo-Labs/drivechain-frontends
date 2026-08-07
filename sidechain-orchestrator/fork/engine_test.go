@@ -40,7 +40,7 @@ func state(t *testing.T, tip Tip, w WalletScanner) *ForkState {
 
 func TestSignetSimulatesRecurringFork(t *testing.T) {
 	// tip just past the 288 boundary; a coin confirmed at 286 <= 288 is claimable.
-	st := state(t, Tip{Chain: "signet", Blocks: 290, Headers: 290}, walletsAt(286))
+	st := state(t, Tip{Network: "signet", Blocks: 290, Headers: 290}, walletsAt(286))
 	if !st.Simulated {
 		t.Fatal("signet must be simulated")
 	}
@@ -59,7 +59,7 @@ func TestSignetSimulatesRecurringFork(t *testing.T) {
 func TestSignetCountdownShowsOnceClaimed(t *testing.T) {
 	// Same tip, but the only coin is post-boundary (height 290 > 288), so
 	// nothing is claimable and the countdown to the next fork shows.
-	st := state(t, Tip{Chain: "signet", Blocks: 290, Headers: 290}, walletsAt(290))
+	st := state(t, Tip{Network: "signet", Blocks: 290, Headers: 290}, walletsAt(290))
 	if st.HasFundsToClaim {
 		t.Fatal("post-boundary coin must not be claimable")
 	}
@@ -70,7 +70,7 @@ func TestSignetCountdownShowsOnceClaimed(t *testing.T) {
 
 func TestFixedHeightNoClaimsBeforeFork(t *testing.T) {
 	// regtest forks at 400; at height 100 the fork hasn't happened, so no claims.
-	st := state(t, Tip{Chain: "regtest", Blocks: 100, Headers: 100}, walletsAt(51))
+	st := state(t, Tip{Network: "regtest", Blocks: 100, Headers: 100}, walletsAt(51))
 	if st.Simulated || st.ForkHeight != 400 || st.ClaimBoundary != 400 {
 		t.Fatalf("regtest fixed: sim=%v fork=%d claim=%d", st.Simulated, st.ForkHeight, st.ClaimBoundary)
 	}
@@ -84,7 +84,7 @@ func TestFixedHeightNoClaimsBeforeFork(t *testing.T) {
 
 func TestFixedHeightClaimsAfterFork(t *testing.T) {
 	// past height 400, a coin confirmed at 391 <= 400 is claimable, countdown gone.
-	st := state(t, Tip{Chain: "regtest", Blocks: 410, Headers: 410}, walletsAt(391))
+	st := state(t, Tip{Network: "regtest", Blocks: 410, Headers: 410}, walletsAt(391))
 	if !st.HasFundsToClaim {
 		t.Fatal("coin confirmed at height 391 <= 400 should be claimable")
 	}

@@ -20,6 +20,21 @@ func TestDrynetURLsFollowTheGeneration(t *testing.T) {
 	}
 }
 
+// Generations do not share one port: drynet4 seeds on 8533. A built name would
+// send bitcoind to a port nothing listens on, and it would find no peers.
+func TestDrynetPeerUsesThePublishedAddress(t *testing.T) {
+	original := DrynetGeneration()
+	t.Cleanup(func() { SetDrynetGeneration(original) })
+
+	SetDrynetGeneration("drynet4")
+	SetDrynetPeer("drynet4", "drynet4.drivechain.dev:8533")
+
+	m := &BitcoinConfManager{Network: NetworkDrynet}
+	if got := m.DrynetPeer(); got != "drynet4.drivechain.dev:8533" {
+		t.Errorf("DrynetPeer() = %q, want the published address", got)
+	}
+}
+
 // Before the catalog resolves, the embedded generation keeps the URLs valid.
 func TestDrynetGenerationFallsBackToEmbedded(t *testing.T) {
 	original := DrynetGeneration()

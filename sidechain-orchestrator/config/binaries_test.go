@@ -20,11 +20,11 @@ func TestBitcoinCoreSignetPath(t *testing.T) {
 	var want string
 	switch runtime.GOOS {
 	case "darwin":
-		want = filepath.Join(home(), "Library", "Application Support", "Drivechain")
+		want = filepath.Join(home(), "Library", "Application Support", "Ecash")
 	case "windows":
-		want = filepath.Join(home(), "AppData", "Roaming", "Drivechain")
+		want = filepath.Join(home(), "AppData", "Roaming", "Ecash")
 	default: // linux
-		want = filepath.Join(home(), ".drivechain")
+		want = filepath.Join(home(), ".ecash")
 	}
 	if p != want {
 		t.Errorf("BitcoinCore signet path = %q, want %q", p, want)
@@ -53,11 +53,11 @@ func TestBitcoinCoreForknetPath(t *testing.T) {
 	var want string
 	switch runtime.GOOS {
 	case "darwin":
-		want = filepath.Join(home(), "Library", "Application Support", "Drivechain")
+		want = filepath.Join(home(), "Library", "Application Support", "Ecash")
 	case "windows":
-		want = filepath.Join(home(), "AppData", "Roaming", "Drivechain")
+		want = filepath.Join(home(), "AppData", "Roaming", "Ecash")
 	default:
-		want = filepath.Join(home(), ".drivechain")
+		want = filepath.Join(home(), ".ecash")
 	}
 	if p != want {
 		t.Errorf("BitcoinCore forknet path = %q, want %q", p, want)
@@ -69,11 +69,11 @@ func TestBitcoinCoreDrynetPath(t *testing.T) {
 	var want string
 	switch runtime.GOOS {
 	case "darwin":
-		want = filepath.Join(home(), "Library", "Application Support", "Drivechain")
+		want = filepath.Join(home(), "Library", "Application Support", "Ecash")
 	case "windows":
-		want = filepath.Join(home(), "AppData", "Roaming", "Drivechain")
+		want = filepath.Join(home(), "AppData", "Roaming", "Ecash")
 	default:
-		want = filepath.Join(home(), ".drivechain")
+		want = filepath.Join(home(), ".ecash")
 	}
 	if p != want {
 		t.Errorf("BitcoinCore drynet path = %q, want %q", p, want)
