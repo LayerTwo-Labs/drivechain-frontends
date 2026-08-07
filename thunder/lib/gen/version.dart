@@ -1,25 +1,25 @@
 // Generated file - do not edit manually
-// Generated on: 2026-07-24T10:33:18Z
+// Generated on: 2026-08-07T03:13:16Z
 
 class AppVersion {
   /// Short commit hash (7 characters)
-  static const String commit = '2f108cc33';
+  static const String commit = '3e1b687a6';
   
   /// Full commit hash
-  static const String commitFull = '2f108cc3362afd9bacd9c562fe507bccdbc5c4c2';
+  static const String commitFull = '3e1b687a699ad798a0d8eda04536bf1b806cb72e';
   
   /// Build date in ISO 8601 format (UTC)
-  static const String buildDate = '2026-07-24T10:33:18Z';
+  static const String buildDate = '2026-08-07T03:13:16Z';
   
   /// Version from pubspec.yaml
-  static const String version = '1.0.278';
+  static const String version = '1.0.287';
   
   /// App name
   static const String appName = 'thunder';
   
   /// Combined version string for display
-  static const String versionString = 'v1.0.278 (2f108cc33)';
+  static const String versionString = 'v1.0.287 (3e1b687a6)';
   
   /// Build timestamp as Unix epoch
-  static const String buildTimestamp = '1784889198';
+  static const String buildTimestamp = '1786072396';
 }
