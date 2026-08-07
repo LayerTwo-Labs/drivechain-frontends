@@ -3,7 +3,6 @@ package wallet
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -40,9 +39,12 @@ const (
 	// electrumMaxScan caps per-chain derivation so a misbehaving backend
 	// can't drive an unbounded scan.
 	electrumMaxScan = 1000
-	// electrumScanTTL re-walks the cache this often even without a new block,
+	// electrumPollTTL re-walks the cache this often even without a new block,
 	// so mempool funds surface within seconds instead of at the next block.
-	electrumScanTTL = 15 * time.Second
+	electrumPollTTL = 15 * time.Second
+	// electrumPushTTL replaces the poll interval once push subscriptions carry
+	// mempool activity, leaving the re-walk as a safety net.
+	electrumPushTTL = 5 * time.Minute
 )
 
 // ElectrumBackend serves a wallet with no local Core or enforcer: it derives
@@ -64,13 +66,14 @@ type ElectrumBackend struct {
 	netParams ParamsFunc
 	log       zerolog.Logger
 
-	mu        sync.Mutex
-	watchKeys map[string][]WatchKey    // walletID -> extra keys to track
-	warm      map[string]bool          // walletID -> a live scan has run this process
-	warmScan  map[string]*electrumScan // walletID -> cached scan, served between blocks
-	tipAt     map[string]int           // walletID -> chain tip the cached scan reflects
-	scanAt    map[string]time.Time     // walletID -> when the cached scan was taken
-	lastScan  map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
+	mu          sync.Mutex
+	watchKeys   map[string][]WatchKey    // walletID -> extra keys to track
+	warm        map[string]bool          // walletID -> a scan is available to serve
+	liveScanned map[string]bool          // walletID -> a live walk finished this process
+	warmScan    map[string]*electrumScan // walletID -> cached scan, served between blocks
+	tipAt       map[string]int           // walletID -> chain tip the cached scan reflects
+	scanAt      map[string]time.Time     // walletID -> when the cached scan was taken
+	lastScan    map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
 
 	// generation changes on every network switch, so a read that checked out a
 	// scan before the switch can tell its result belongs to the previous chain.
@@ -98,19 +101,20 @@ var (
 // NewElectrumBackend creates an Esplora-backed wallet backend.
 func NewElectrumBackend(svc *Service, client ChainDataSource, params ParamsFunc, log zerolog.Logger) *ElectrumBackend {
 	b := &ElectrumBackend{
-		svc:       svc,
-		client:    client,
-		netParams: params,
-		log:       log.With().Str("component", "electrum-backend").Logger(),
-		watchKeys: make(map[string][]WatchKey),
-		warm:      make(map[string]bool),
-		warmScan:  make(map[string]*electrumScan),
-		tipAt:     make(map[string]int),
-		scanAt:    make(map[string]time.Time),
-		lastScan:  make(map[string][]byte),
-		scanLocks: make(map[string]*sync.Mutex),
-		subStatus: make(map[string]string),
-		shWallet:  make(map[string]string),
+		svc:         svc,
+		client:      client,
+		netParams:   params,
+		log:         log.With().Str("component", "electrum-backend").Logger(),
+		watchKeys:   make(map[string][]WatchKey),
+		warm:        make(map[string]bool),
+		liveScanned: make(map[string]bool),
+		warmScan:    make(map[string]*electrumScan),
+		tipAt:       make(map[string]int),
+		scanAt:      make(map[string]time.Time),
+		lastScan:    make(map[string][]byte),
+		scanLocks:   make(map[string]*sync.Mutex),
+		subStatus:   make(map[string]string),
+		shWallet:    make(map[string]string),
 	}
 	return b
 }
@@ -143,6 +147,7 @@ func (p *ElectrumBackend) dropScanCaches() {
 	p.tipAt = make(map[string]int)
 	p.scanAt = make(map[string]time.Time)
 	p.warm = make(map[string]bool)
+	p.liveScanned = make(map[string]bool)
 	p.lastScan = make(map[string][]byte)
 	p.mu.Unlock()
 
@@ -191,6 +196,7 @@ type scannedAddr struct {
 	index           uint32
 	hdPath          string
 	derivations     []keyDerivation // PSBT key-derivation records (signer key matching)
+	status          string          // electrum scripthash status; '' when unused or unknown
 	stats           EsploraAddressStats
 	// utxos and txs are the address's chain data, fetched alongside stats and
 	// cached on the scan so balance/utxo/history reads never re-hit Esplora.
@@ -475,14 +481,15 @@ func (p *ElectrumBackend) nextUnused(walletID string, kind ScriptKind, change bo
 	if w == nil {
 		return DerivedAddress{}, fmt.Errorf("wallet %s not found", walletID)
 	}
-	if addr, idx, ok := p.svc.firstUnusedAddress(walletID, kind, change); ok {
+	network := p.svc.Network()
+	if addr, idx, ok := p.svc.firstUnusedAddress(network, walletID, kind, change); ok {
 		return DerivedAddress{Address: addr, HDPath: p.hdPathFor(w, kind, change, idx), Index: int32(idx)}, nil
 	}
 	derivers, err := p.kindDerivers(w, kind)
 	if err != nil {
 		return DerivedAddress{}, err
 	}
-	index := uint32(p.svc.maxAddressIndex(walletID, kind, change) + 1)
+	index := uint32(p.svc.maxAddressIndex(network, walletID, kind, change) + 1)
 	a, err := derivers[chainIndex(change)](index)
 	if err != nil {
 		return DerivedAddress{}, err
@@ -715,8 +722,9 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 	finalizeScan(scan)
 	p.mu.Lock()
 	p.warmScan[walletID] = scan
+	tip := p.tipAt[walletID]
 	p.mu.Unlock()
-	p.persistScan(p.svc.db(), walletID, scan)
+	p.persistScan(p.svc.Network(), walletID, scan, tip)
 }
 
 // buildSentTx reconstructs the Esplora view of a just-broadcast send from the
@@ -1673,24 +1681,25 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	unlock := p.lockScan(walletID)
 	defer unlock()
 
-	// Captured with the generation below: both identify the chain this scan
-	// reads, so its result can only be written back to that chain.
-	scanDB := p.svc.db()
+	// Stamped before the walk: a switch part-way through leaves a scan built
+	// against the outgoing chain, so its result is discarded rather than stored.
+	network := p.svc.Network()
+	gen := p.chainGeneration()
 
 	if allowCache {
 		if scan := p.cachedScan(ctx, walletID); scan != nil {
 			return scan, nil
 		}
 		// Cold-boot fast path: rebuild the previous scan from disk with no network.
-		if scan, ok := p.loadColdScan(walletID, w); ok {
-			p.cacheScan(ctx, walletID, scan)
+		if scan, ok := p.loadColdScan(network, walletID, w); ok {
+			tip, hasTip := p.svc.loadSyncCheckpoint(network, walletID)
+			p.cacheScanAt(gen, walletID, scan, tip, hasTip)
+			// Without this the cache is served on the push TTL while nothing is
+			// subscribed, so an incoming payment would wait for the re-walk.
+			go p.subscribeScan(walletID, scan)
 			return scan, nil
 		}
 	}
-
-	// Stamped before the walk: a switch part-way through leaves a scan built
-	// against the outgoing chain, or a mix of both endpoints.
-	gen := p.chainGeneration()
 
 	scan := &electrumScan{
 		byAddr: make(map[string]scannedAddr),
@@ -1703,7 +1712,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	// (the initial sync). Warm wallets re-scan on routine balance polls, and
 	// streaming those would spin the bottom-nav "Scanning…" status forever.
 	p.mu.Lock()
-	initial := !p.warm[walletID]
+	initial := !p.liveScanned[walletID]
 	prior := p.warmScan[walletID]
 	p.mu.Unlock()
 	// prior holds the wallet's last known chain data (warm cache, else the
@@ -1711,11 +1720,14 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	// transactions from it instead of re-fetching, so only what moved hits
 	// the network.
 	if prior == nil {
-		if cold, _, ok := p.rebuildScanFromDisk(walletID, w); ok {
+		if cold, _, ok := p.rebuildScanFromDisk(network, walletID, w); ok {
 			prior = cold
 		}
 	}
 	defer p.svc.syncReporter.publish(walletID, SyncProgress{Phase: SyncIdle, Message: "Idle"})
+	if behind := p.blocksBehind(ctx, network, walletID); behind > 0 {
+		p.svc.syncReporter.publish(walletID, catchupProgress(behind))
+	}
 	for _, kind := range p.receiveKinds(w) {
 		derivers, err := p.kindDerivers(w, kind)
 		if err != nil {
@@ -1739,7 +1751,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	watch := append([]WatchKey(nil), p.watchKeys[walletID]...)
 	p.mu.Unlock()
 	for _, k := range watch {
-		a, err := p.watchKeyAddr(ctx, k, prior)
+		a, err := p.watchKeyAddr(ctx, walletID, k, prior)
 		if err != nil {
 			p.log.Warn().Err(err).Msg("electrum watch key derivation failed")
 			continue
@@ -1751,11 +1763,13 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	if gen != p.chainGeneration() {
 		return nil, fmt.Errorf("network changed during scan of wallet %s", walletID)
 	}
-	p.persistScan(scanDB, walletID, scan)
+	tip, tipErr := p.client.TipHeight(ctx)
+	p.persistScan(network, walletID, scan, tip)
 	p.mu.Lock()
 	p.warm[walletID] = true
+	p.liveScanned[walletID] = true
 	p.mu.Unlock()
-	p.cacheScan(ctx, walletID, scan)
+	p.cacheScanAt(gen, walletID, scan, tip, tipErr == nil)
 	go p.subscribeScan(walletID, scan)
 	return scan, nil
 }
@@ -1797,19 +1811,39 @@ func (p *ElectrumBackend) subscribeScan(walletID string, scan *electrumScan) {
 	defer cancel()
 	_, _ = ec.SubscribeHeaders(ctx)
 	for _, a := range scan.addrs {
-		sh, err := ec.ScriptHash(a.address)
-		if err != nil {
-			continue
-		}
-		status, err := ec.Subscribe(ctx, sh)
-		if err != nil {
-			continue
-		}
-		p.subMu.Lock()
-		p.shWallet[sh] = walletID
-		p.subStatus[sh] = status
-		p.subMu.Unlock()
+		p.statusFor(ctx, walletID, a.address)
 	}
+}
+
+// statusFor returns the server's scripthash status for an address, subscribing
+// on first sight so later reads are answered from push-maintained state.
+func (p *ElectrumBackend) statusFor(ctx context.Context, walletID, address string) (string, bool) {
+	if !p.pushCapable() {
+		return "", false
+	}
+	ec := p.client.(electrumSubscriber)
+	sh, err := ec.ScriptHash(address)
+	if err != nil {
+		return "", false
+	}
+
+	p.subMu.Lock()
+	status, known := p.subStatus[sh]
+	p.subMu.Unlock()
+	if known {
+		return status, true
+	}
+
+	p.startNotificationConsumer(ec)
+	status, err = ec.Subscribe(ctx, sh)
+	if err != nil {
+		return "", false
+	}
+	p.subMu.Lock()
+	p.shWallet[sh] = walletID
+	p.subStatus[sh] = status
+	p.subMu.Unlock()
+	return status, true
 }
 
 // consumeNotifications turns server pushes into cache invalidation + a change
@@ -1875,7 +1909,7 @@ func (p *ElectrumBackend) cachedScan(ctx context.Context, walletID string) *elec
 	p.mu.Lock()
 	scan := p.warmScan[walletID]
 	at, hasTip := p.tipAt[walletID]
-	fresh := time.Since(p.scanAt[walletID]) < electrumScanTTL
+	fresh := time.Since(p.scanAt[walletID]) < p.scanTTL()
 	gen := p.generation
 	p.mu.Unlock()
 	if scan == nil {
@@ -1896,6 +1930,36 @@ func (p *ElectrumBackend) cachedScan(ctx context.Context, walletID string) *elec
 	return nil // new block, or cache aged out: re-walk once to catch mempool activity
 }
 
+// blocksBehind reports how far a wallet's stored scan trails the chain tip, or
+// 0 when it has no checkpoint or the tip is unknown.
+func (p *ElectrumBackend) blocksBehind(ctx context.Context, network, walletID string) int {
+	stored, ok := p.svc.loadSyncCheckpoint(network, walletID)
+	if !ok {
+		return 0
+	}
+	tip, err := p.client.TipHeight(ctx)
+	if err != nil || tip <= stored {
+		return 0
+	}
+	return tip - stored
+}
+
+// pushCapable reports real push delivery. NetworkChainSource satisfies the
+// interface on every network, so only a live channel proves electrum is behind.
+func (p *ElectrumBackend) pushCapable() bool {
+	ec, ok := p.client.(electrumSubscriber)
+	return ok && ec.Notifications() != nil
+}
+
+// scanTTL is how long a cached scan is served without a new block. Pushes
+// already report mempool activity, so a subscribing client re-walks far less.
+func (p *ElectrumBackend) scanTTL() time.Duration {
+	if p.pushCapable() {
+		return electrumPushTTL
+	}
+	return electrumPollTTL
+}
+
 // chainGeneration reports the current cache epoch, which changes whenever the
 // network, endpoint or connection does.
 func (p *ElectrumBackend) chainGeneration() uint64 {
@@ -1904,38 +1968,35 @@ func (p *ElectrumBackend) chainGeneration() uint64 {
 	return p.generation
 }
 
-// cacheScan stores a completed scan as the in-memory cache, tagged with the
+// cacheScanAt stores a completed scan as the in-memory cache, tagged with the
 // chain tip it reflects so cachedScan can detect staleness on the next block.
-func (p *ElectrumBackend) cacheScan(ctx context.Context, walletID string, scan *electrumScan) {
-	gen := p.chainGeneration()
-	tip, err := p.client.TipHeight(ctx)
+func (p *ElectrumBackend) cacheScanAt(gen uint64, walletID string, scan *electrumScan, tip int, hasTip bool) {
 	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.generation != gen {
-		p.mu.Unlock()
 		return // switched mid-scan: storing this would re-cache the old chain
 	}
 	p.warmScan[walletID] = scan
 	p.scanAt[walletID] = time.Now()
-	if err == nil {
+	if hasTip {
 		p.tipAt[walletID] = tip
 	} else {
 		delete(p.tipAt, walletID) // unknown tip → force a refresh on the next read
 	}
-	p.mu.Unlock()
 }
 
 // loadColdScan rebuilds a wallet's scan from its persisted cache without any
 // network calls, used once per process before the first live scan. ok is false
 // when warm, when no cache exists, or on any derive error. On success it marks
 // the wallet warm so the next read serves the cache instead of re-walking.
-func (p *ElectrumBackend) loadColdScan(walletID string, w *WalletData) (*electrumScan, bool) {
+func (p *ElectrumBackend) loadColdScan(network, walletID string, w *WalletData) (*electrumScan, bool) {
 	p.mu.Lock()
 	warm := p.warm[walletID]
 	p.mu.Unlock()
 	if warm {
 		return nil, false
 	}
-	scan, ps, ok := p.rebuildScanFromDisk(walletID, w)
+	scan, ps, ok := p.rebuildScanFromDisk(network, walletID, w)
 	if !ok {
 		return nil, false
 	}
@@ -1952,8 +2013,8 @@ func (p *ElectrumBackend) loadColdScan(walletID string, w *WalletData) (*electru
 // disk, and no network call is made. It mutates no backend state, so reads that
 // only need the known chain (e.g. address allocation) can use it freely. ok is
 // false when no cache exists or the persisted addresses drift from derivation.
-func (p *ElectrumBackend) rebuildScanFromDisk(walletID string, w *WalletData) (*electrumScan, *persistedScan, bool) {
-	ps, ok := p.svc.loadElectrumScan(walletID)
+func (p *ElectrumBackend) rebuildScanFromDisk(network, walletID string, w *WalletData) (*electrumScan, *persistedScan, bool) {
+	ps, ok := p.svc.loadElectrumScan(network, walletID)
 	if !ok {
 		return nil, nil, false
 	}
@@ -1977,6 +2038,7 @@ func (p *ElectrumBackend) rebuildScanFromDisk(walletID string, w *WalletData) (*
 		if err != nil || a.address != pa.Address {
 			return nil, nil, false // cache drift — fall back to a live scan
 		}
+		a.status = pa.Status
 		a.stats = pa.Stats
 		a.utxos = pa.UTXOs
 		a.txs = pa.Txs
@@ -1999,7 +2061,7 @@ func finalizeScan(scan *electrumScan) {
 // persistScan writes the wallet's chain scan to disk, skipping the write when
 // nothing changed since the last persist. BIP47 watch keys (no hdPath) are not
 // part of the derivation chain and are excluded.
-func (p *ElectrumBackend) persistScan(db *sql.DB, walletID string, scan *electrumScan) {
+func (p *ElectrumBackend) persistScan(network, walletID string, scan *electrumScan, tip int) {
 	ps := persistedScan{WalletID: walletID}
 	ps.Addrs = lo.FilterMap(scan.addrs, func(a scannedAddr, _ int) (persistedAddr, bool) {
 		if a.hdPath == "" {
@@ -2007,7 +2069,7 @@ func (p *ElectrumBackend) persistScan(db *sql.DB, walletID string, scan *electru
 		}
 		return persistedAddr{
 			Kind: a.kind, Change: a.change, Index: a.index, Address: a.address,
-			Stats: a.stats, UTXOs: a.utxos, Txs: a.txs,
+			Status: a.status, Stats: a.stats, UTXOs: a.utxos, Txs: a.txs,
 		}, true
 	})
 	data, err := json.Marshal(ps)
@@ -2017,10 +2079,15 @@ func (p *ElectrumBackend) persistScan(db *sql.DB, walletID string, scan *electru
 	p.mu.Lock()
 	unchanged := bytes.Equal(p.lastScan[walletID], data)
 	p.mu.Unlock()
+	// A quiet wallet still advances: leaving the checkpoint behind would report
+	// a forever-growing catch-up and force a re-walk on the next cold load.
 	if unchanged {
+		if err := p.svc.saveSyncCheckpoint(network, walletID, tip); err != nil {
+			p.log.Warn().Err(err).Str("wallet", walletID).Msg("advance sync checkpoint failed")
+		}
 		return
 	}
-	if err := p.svc.saveElectrumScanTo(db, walletID, &ps); err != nil {
+	if err := p.svc.saveElectrumScan(network, walletID, &ps, tip); err != nil {
 		p.log.Warn().Err(err).Str("wallet", walletID).Msg("persist electrum scan failed")
 		return // don't record the write as done — retry on the next scan
 	}
@@ -2081,7 +2148,7 @@ func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string,
 		if err != nil {
 			return nil, err
 		}
-		if err := p.hydrate(ctx, &a, prior); err != nil {
+		if err := p.hydrate(ctx, walletID, &a, prior); err != nil {
 			return nil, err
 		}
 		out = append(out, a)
@@ -2096,14 +2163,25 @@ func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string,
 }
 
 // hydrate fills an address's stats and, when it has history, its UTXOs and
-// transactions. When prior holds the same address with identical stats the
-// chain data is unchanged since the last scan, so it is copied instead of
-// re-fetched — Esplora is only queried for what actually moved.
-func (p *ElectrumBackend) hydrate(ctx context.Context, a *scannedAddr, prior *electrumScan) error {
+// transactions, copying anything whose status or stats did not move.
+func (p *ElectrumBackend) hydrate(ctx context.Context, walletID string, a *scannedAddr, prior *electrumScan) error {
+	// Read before any fetch: data gathered after a status can only be newer.
+	status, hasStatus := p.statusFor(ctx, walletID, a.address)
+	if hasStatus && prior != nil {
+		if prev, ok := prior.byAddr[a.address]; ok && prev.status == status {
+			a.status = prev.status
+			a.stats = prev.stats
+			a.utxos = prev.utxos
+			a.txs = prev.txs
+			return nil
+		}
+	}
+
 	stats, err := p.client.AddressStats(ctx, a.address)
 	if err != nil {
 		return fmt.Errorf("address stats %s: %w", a.address, err)
 	}
+	a.status = status
 	a.stats = stats
 	if !stats.Used() {
 		return nil
@@ -2149,7 +2227,7 @@ func watchOnlyDescriptorString(w *WalletData) (string, error) {
 	return "", errors.New("watch-only electrum wallet has no descriptor or xpub")
 }
 
-func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, k WatchKey, prior *electrumScan) (scannedAddr, error) {
+func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, walletID string, k WatchKey, prior *electrumScan) (scannedAddr, error) {
 	net := p.params()
 	wif, err := btcutil.DecodeWIF(k.WIF)
 	if err != nil {
@@ -2161,7 +2239,7 @@ func (p *ElectrumBackend) watchKeyAddr(ctx context.Context, k WatchKey, prior *e
 		return scannedAddr{}, fmt.Errorf("watch key address: %w", err)
 	}
 	a := scannedAddr{address: addr.EncodeAddress(), priv: wif.PrivKey}
-	if err := p.hydrate(ctx, &a, prior); err != nil {
+	if err := p.hydrate(ctx, walletID, &a, prior); err != nil {
 		return scannedAddr{}, err
 	}
 	return a, nil

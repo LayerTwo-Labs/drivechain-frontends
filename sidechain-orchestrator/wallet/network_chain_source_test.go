@@ -327,6 +327,6 @@ func TestScanRejectsResultWhenNetworkSwitchesMidWalk(t *testing.T) {
 	assert.False(t, cached, "a scan from the outgoing chain must not be cached")
 	assert.False(t, warm, "the wallet must not be marked warm off a rejected scan")
 
-	_, persisted := svc.loadElectrumScan(w.ID)
+	_, persisted := svc.loadElectrumScan(svc.Network(), w.ID)
 	assert.False(t, persisted, "a rejected scan must not reach disk")
 }

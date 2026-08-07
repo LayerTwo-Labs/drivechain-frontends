@@ -1,7 +1,9 @@
 package wallet
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -14,6 +16,8 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -824,4 +828,72 @@ func asFloat(t *testing.T, v any) float64 {
 	f, ok := v.(float64)
 	require.True(t, ok, "expected numeric value, got %T", v)
 	return f
+}
+
+// A BIP300 M5 deposit needs both halves that only Core lacked: a bare
+// OP_DRIVECHAIN scriptPubKey, and the CTIP spent as an unsigned external input.
+func TestCoreBackendSendM5Deposit(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	const (
+		ctipTxid      = "77777777777777777777777777777777777777777777777777777777777777aa"
+		walletTxid    = "1111111111111111111111111111111111111111111111111111111111111111"
+		oldTreasury   = int64(500_000)
+		depositSats   = int64(120_000)
+		feeSats       = int64(2_000)
+		walletFunds   = int64(300_000)
+		sidechainSlot = 1
+	)
+	treasury := []byte{0xb4, 0x01, sidechainSlot, 0x51}
+	net := &chaincfg.RegressionNetParams
+
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": walletTxid, "vout": 0, "amount": float64(walletFunds) / 1e8, "spendable": true},
+		}, ""
+	})
+	fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) {
+		return p2wpkhAddr(t, fixedKey(0xBB), net), ""
+	})
+	var signedHex string
+	// Core can never sign the anyone-can-spend CTIP, so it reports incomplete.
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		signedHex = mustString(t, c.Params[0])
+		return map[string]any{"hex": signedHex, "complete": false}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "m5-txid", "" })
+
+	txid, err := backend.Send(context.Background(), coreID, SendRequest{
+		RawOutputs: []TxOutSpec{
+			{RawScriptHex: hex.EncodeToString(treasury), AmountSats: oldTreasury + depositSats},
+		},
+		OpReturnHex:  hex.EncodeToString([]byte("s1_depositaddress")),
+		FixedFeeSats: feeSats,
+		ExternalInputs: []ExternalInput{{
+			TxID: ctipTxid, Vout: 0, AmountSats: oldTreasury,
+			ScriptPubKeyHex: hex.EncodeToString(treasury),
+		}},
+	})
+	require.NoError(t, err, "an unsigned external input must not fail the send")
+	assert.Equal(t, "m5-txid", txid)
+	assert.Empty(t, fake.callsFor("createrawtransaction"),
+		"createrawtransaction cannot express a bare scriptPubKey")
+
+	raw, err := hex.DecodeString(signedHex)
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	require.Len(t, tx.TxIn, 2)
+	assert.Equal(t, ctipTxid, tx.TxIn[0].PreviousOutPoint.Hash.String(), "CTIP holds input 0")
+	assert.Empty(t, tx.TxIn[0].SignatureScript, "the CTIP is spent with an empty scriptSig")
+	assert.Equal(t, walletTxid, tx.TxIn[1].PreviousOutPoint.Hash.String())
+
+	require.Len(t, tx.TxOut, 3)
+	assert.Equal(t, treasury, tx.TxOut[0].PkScript, "treasury script is emitted verbatim")
+	assert.Equal(t, oldTreasury+depositSats, tx.TxOut[0].Value, "treasury grows by the deposit")
+	assert.Equal(t, byte(txscript.OP_RETURN), tx.TxOut[1].PkScript[0])
+	assert.Equal(t, walletFunds-depositSats-feeSats, tx.TxOut[2].Value,
+		"only the deposit and fee leave the wallet; the CTIP passes through")
 }

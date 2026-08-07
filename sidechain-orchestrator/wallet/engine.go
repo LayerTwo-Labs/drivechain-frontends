@@ -130,6 +130,27 @@ func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int) (flo
 	return eb.FeeRateForTarget(ctx, confTarget), nil
 }
 
+// SyncElectrumWallet brings a wallet's cached scan up to the chain tip, serving
+// the existing cache untouched when it is already current.
+func (e *WalletEngine) SyncElectrumWallet(ctx context.Context, walletID string) error {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return err
+	}
+	_, err = eb.scan(ctx, walletID, true)
+	return err
+}
+
+// ElectrumAvailable reports whether the current network has a wallet chain
+// source, so a background sync skips networks that cannot serve one.
+func (e *WalletEngine) ElectrumAvailable() bool {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return false
+	}
+	return eb.Available()
+}
+
 func (e *WalletEngine) RefreshElectrumScan(ctx context.Context, walletID string) error {
 	eb, err := e.electrumBackend()
 	if err != nil {

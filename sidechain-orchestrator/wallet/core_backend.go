@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -15,6 +16,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/tyler-smith/go-bip32"
@@ -427,7 +430,14 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		req.FeeRateSatPerVB > 0 ||
 		req.FixedFeeSats > 0 ||
 		len(req.RequiredInputs) > 0 ||
+		len(req.RawOutputs) > 0 ||
+		len(req.ExternalInputs) > 0 ||
 		req.ReplayProtect // custom serialization needs the raw-tx path
+
+	// External inputs carry no signature, so Core cannot size the fee for them.
+	if len(req.ExternalInputs) > 0 && req.FixedFeeSats <= 0 {
+		return "", errors.New("external inputs require a fixed fee")
+	}
 
 	if !needsRawPath {
 		destinations := lo.MapValues(req.DestinationsSats, func(sats int64, _ string) float64 {
@@ -449,21 +459,29 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	}
 
 	outputs, totalDestinationSats := buildSendOutputs(req)
-	inputs := make([]RawInput, 0, len(req.RequiredInputs))
+	inputs := make([]RawInput, 0, len(req.ExternalInputs)+len(req.RequiredInputs))
 	selectedInputAmountSats := int64(0)
+	// External inputs come first, so a sidechain CTIP stays at input 0.
+	for _, in := range req.ExternalInputs {
+		inputs = append(inputs, RawInput{TxID: in.TxID, Vout: in.Vout})
+		selectedInputAmountSats += in.AmountSats
+	}
 	for _, in := range req.RequiredInputs {
 		inputs = append(inputs, RawInput{TxID: in.TxID, Vout: in.Vout})
 		selectedInputAmountSats += in.AmountSats
 	}
 
 	if req.FixedFeeSats > 0 {
-		if len(inputs) == 0 {
-			inputs, selectedInputAmountSats, err = p.selectInputsForFixedFee(
-				ctx, walletID, totalDestinationSats+req.FixedFeeSats,
+		neededSats := totalDestinationSats + req.FixedFeeSats
+		if len(req.RequiredInputs) == 0 && selectedInputAmountSats < neededSats {
+			extra, extraSats, err := p.selectInputsForFixedFee(
+				ctx, walletID, neededSats-selectedInputAmountSats,
 			)
 			if err != nil {
 				return "", err
 			}
+			inputs = append(inputs, extra...)
+			selectedInputAmountSats += extraSats
 		}
 
 		changeSats := selectedInputAmountSats - totalDestinationSats - req.FixedFeeSats
@@ -483,16 +501,16 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 			outputs = append(outputs, TxOutSpec{Address: changeAddress, AmountBTC: float64(changeSats) / 1e8})
 		}
 
-		rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs), locktime)
+		rawHex, err := p.createRawTx(ctx, req, inputs, outputs, locktime)
 		if err != nil {
-			return "", fmt.Errorf("create raw transaction: %w", err)
+			return "", err
 		}
-		return p.signAndBroadcast(ctx, name, rawHex)
+		return p.signAndBroadcast(ctx, name, rawHex, len(req.ExternalInputs) > 0)
 	}
 
-	rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs), locktime)
+	rawHex, err := p.createRawTx(ctx, req, inputs, outputs, locktime)
 	if err != nil {
-		return "", fmt.Errorf("create raw transaction: %w", err)
+		return "", err
 	}
 
 	options := map[string]interface{}{}
@@ -505,7 +523,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 0 {
 		options["subtractFeeFromOutputs"] = lo.Range(len(req.DestinationsSats))
 	}
-	if req.ReplayProtect {
+	if req.ReplayProtect || req.Replaceable {
 		// Inputs Core selects during funding must also be non-final, else the
 		// locktime is ignored and there is no replay protection.
 		options["replaceable"] = true
@@ -515,7 +533,51 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	if err != nil {
 		return "", fmt.Errorf("fund raw transaction: %w", err)
 	}
-	return p.signAndBroadcast(ctx, name, funded.Hex)
+	return p.signAndBroadcast(ctx, name, funded.Hex, false)
+}
+
+// createRawTx builds the unsigned transaction. createrawtransaction takes only
+// addresses and OP_RETURN data, so bare scriptPubKeys are assembled here.
+func (p *CoreBackend) createRawTx(
+	ctx context.Context, req SendRequest, inputs []RawInput, outputs []TxOutSpec, locktime uint32,
+) (string, error) {
+	if len(req.RawOutputs) == 0 && len(req.ExternalInputs) == 0 {
+		rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs), locktime)
+		if err != nil {
+			return "", fmt.Errorf("create raw transaction: %w", err)
+		}
+		return rawHex, nil
+	}
+
+	tx := wire.NewMsgTx(wire.TxVersion)
+	tx.LockTime = locktime
+	sequence := wire.MaxTxInSequenceNum
+	if locktime != 0 || req.Replaceable {
+		sequence = wire.MaxTxInSequenceNum - 2
+	}
+	for _, in := range inputs {
+		hash, err := chainhash.NewHashFromStr(in.TxID)
+		if err != nil {
+			return "", fmt.Errorf("decode input txid %q: %w", in.TxID, err)
+		}
+		tx.AddTxIn(&wire.TxIn{
+			PreviousOutPoint: *wire.NewOutPoint(hash, uint32(in.Vout)),
+			Sequence:         sequence,
+		})
+	}
+	for _, out := range outputs {
+		txOut, err := outputToTxOut(out, p.net())
+		if err != nil {
+			return "", err
+		}
+		tx.AddTxOut(txOut)
+	}
+
+	var buf bytes.Buffer
+	if err := tx.Serialize(&buf); err != nil {
+		return "", fmt.Errorf("serialize transaction: %w", err)
+	}
+	return hex.EncodeToString(buf.Bytes()), nil
 }
 
 // rpcOutputs maps outputs onto createrawtransaction's wire shape.
@@ -582,12 +644,13 @@ func (p *CoreBackend) selectInputsForFixedFee(ctx context.Context, walletID stri
 
 // signAndBroadcast signs via Core and broadcasts. Any replay locktime is
 // already baked into rawHex, so the signature commits to it here.
-func (p *CoreBackend) signAndBroadcast(ctx context.Context, name, rawHex string) (string, error) {
+func (p *CoreBackend) signAndBroadcast(ctx context.Context, name, rawHex string, hasExternalInputs bool) (string, error) {
 	signed, err := p.rpc.SignRawTransactionWithWallet(ctx, name, rawHex)
 	if err != nil {
 		return "", fmt.Errorf("sign raw transaction: %w", err)
 	}
-	if !signed.Complete {
+	// An external input is never ours to sign, so Core always reports incomplete.
+	if !signed.Complete && !hasExternalInputs {
 		return "", errors.New("transaction signing incomplete")
 	}
 

@@ -397,6 +397,7 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 		Simulated:       s.Simulated,
 		HasFundsToClaim: s.HasFundsToClaim,
 		ShowCountdown:   s.ShowCountdown,
+		NetworkName:     s.NetworkName,
 		Claims:          claims,
 	}), nil
 }
@@ -449,6 +450,7 @@ func (h *Handler) GetSyncStatus(ctx context.Context, req *connect.Request[pb.Get
 	return connect.NewResponse(&pb.GetSyncStatusResponse{
 		Mainchain:        chainSyncToProto(s.Mainchain),
 		Enforcer:         chainSyncToProto(s.Enforcer),
+		EnforcerWallet:   chainSyncToProto(s.EnforcerWallet),
 		Sidechains:       sidechains,
 		WalletSyncStatus: walletSyncStatus,
 	}), nil
@@ -987,6 +989,75 @@ func (h *Handler) GetCoreMempoolInfo(ctx context.Context, _ *connect.Request[pb.
 		UnbroadcastCount:    info.UnbroadcastCount,
 		FullRbf:             info.FullRBF,
 	}), nil
+}
+
+func (h *Handler) GetBmmContext(ctx context.Context, _ *connect.Request[pb.GetBmmContextRequest]) (*connect.Response[pb.GetBmmContextResponse], error) {
+	rawChain, err := h.callCoreRPC(ctx, "getblockchaininfo", "[]", "")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	var chain struct {
+		Blocks        int32  `json:"blocks"`
+		BestBlockHash string `json:"bestblockhash"`
+		Warnings      any    `json:"warnings"`
+	}
+	if err := json.Unmarshal(rawChain, &chain); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getblockchaininfo: %w", err))
+	}
+
+	rawMempool, err := h.callCoreRPC(ctx, "getmempoolinfo", "[]", "")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	var mempool struct {
+		Size int64 `json:"size"`
+	}
+	if err := json.Unmarshal(rawMempool, &mempool); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode getmempoolinfo: %w", err))
+	}
+
+	return connect.NewResponse(&pb.GetBmmContextResponse{
+		MainchainHeight: chain.Blocks,
+		MainchainTip:    chain.BestBlockHash,
+		FeeRateSatVb:    h.nextBlockFeeRate(ctx),
+		MempoolTxns:     mempool.Size,
+		Warnings:        coreWarnings(chain.Warnings),
+	}), nil
+}
+
+// nextBlockFeeRate converts estimatesmartfee's BTC/kvB into sat/vB. A node
+// short of fee data answers without a feerate, which is not fatal here.
+func (h *Handler) nextBlockFeeRate(ctx context.Context) float64 {
+	raw, err := h.callCoreRPC(ctx, "estimatesmartfee", "[1]", "")
+	if err != nil {
+		return 0
+	}
+	var estimate struct {
+		FeeRate float64 `json:"feerate"`
+	}
+	if err := json.Unmarshal(raw, &estimate); err != nil || estimate.FeeRate <= 0 {
+		return 0
+	}
+	return estimate.FeeRate * 1e8 / 1000
+}
+
+// coreWarnings normalises getblockchaininfo's warnings, a string before
+// Bitcoin Core 25 and an array of strings after it.
+func coreWarnings(v any) string {
+	switch w := v.(type) {
+	case string:
+		return w
+	case []any:
+		parts := make([]string, 0, len(w))
+		for _, item := range w {
+			if s, ok := item.(string); ok && s != "" {
+				parts = append(parts, s)
+			}
+		}
+		return strings.Join(parts, "; ")
+	default:
+		return ""
+	}
 }
 
 // RawCoreCall exposes the bitcoind JSON-RPC bridge for in-process callers (e.g.

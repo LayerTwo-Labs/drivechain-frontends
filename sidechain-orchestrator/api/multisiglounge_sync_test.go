@@ -55,6 +55,9 @@ func newLoungeRegtest(t *testing.T) *loungeRegtest {
 		fmt.Sprintf("-rpcport=%d", rpcPort), fmt.Sprintf("-port=%d", p2pPort),
 		fmt.Sprintf("-bind=127.0.0.1:%d", p2pPort), "-listen=1").Run())
 	rt := &loungeRegtest{t: t, cli: cli, dataDir: dir, port: rpcPort}
+	// -daemon detaches, so the node outlives the test binary unless we stop it.
+	// Registered before the readiness wait: its t.Fatal path returns no handle.
+	t.Cleanup(rt.stop)
 
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
@@ -199,7 +202,6 @@ func newSyncHandler(rt *loungeRegtest) *MultisigLoungeHandler {
 
 func TestSyncGroupBalanceE2E(t *testing.T) {
 	rt := newLoungeRegtest(t)
-	defer rt.stop()
 	h := newSyncHandler(rt)
 	group := loungeSyncTestGroup(t)
 
@@ -231,7 +233,6 @@ func TestSyncGroupBalanceE2E(t *testing.T) {
 
 func TestRestoreHistoryE2E(t *testing.T) {
 	rt := newLoungeRegtest(t)
-	defer rt.stop()
 	h := newSyncHandler(rt)
 	group := loungeSyncTestGroup(t)
 	ctx := context.Background()
@@ -336,7 +337,6 @@ func oldBuggyFundGroupDescriptor(g *pb.GroupData, change bool) string {
 // the consensus bug is gone, and fund_group now agrees with everything else.
 func TestFundGroupDescriptorFix(t *testing.T) {
 	rt := newLoungeRegtest(t)
-	defer rt.stop()
 	group := loungeSyncTestGroup(t)
 
 	correctReceive, _, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(group))
@@ -370,7 +370,6 @@ func TestFundGroupDescriptorFix(t *testing.T) {
 // confirm the whole flow spends real multisig coins.
 func TestCreateSpendPsbtE2E(t *testing.T) {
 	rt := newLoungeRegtest(t)
-	defer rt.stop()
 	h := newSyncHandler(rt)
 	group := loungeSyncTestGroup(t)
 	ctx := context.Background()

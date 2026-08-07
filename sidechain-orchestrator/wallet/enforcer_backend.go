@@ -219,6 +219,15 @@ func (p *EnforcerBackend) Send(ctx context.Context, walletID string, req SendReq
 		)
 	}
 
+	// The enforcer builds the transaction itself and its API takes only
+	// addresses and an OP_RETURN, so a bare scriptPubKey cannot be expressed.
+	if len(req.RawOutputs) > 0 || len(req.ExternalInputs) > 0 {
+		return "", connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("raw outputs and external inputs need a core or electrum wallet"),
+		)
+	}
+
 	var feeRate *enforcerpb.SendTransactionRequest_FeeRate
 	if req.FeeRateSatPerVB > 0 {
 		feeRate = &enforcerpb.SendTransactionRequest_FeeRate{

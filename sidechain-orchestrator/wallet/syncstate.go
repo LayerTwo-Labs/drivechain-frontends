@@ -10,6 +10,7 @@ type SyncPhase string
 
 const (
 	SyncIdle     SyncPhase = "idle"     // no scan running
+	SyncCatchup  SyncPhase = "catchup"  // stored history served, chasing the tip
 	SyncScanning SyncPhase = "scanning" // walking a derivation chain
 	SyncDone     SyncPhase = "done"     // a scan just finished
 )
@@ -22,6 +23,7 @@ type SyncProgress struct {
 	Chain    string    // "external" or "change" while scanning
 	Scanned  int       // addresses checked so far this scan
 	Found    int       // used addresses found so far this scan
+	Behind   int       // blocks between the stored scan and the chain tip
 	Message  string    // human-readable description of the current step
 }
 
@@ -69,5 +71,15 @@ func scanProgress(chain string, scanned, found int) SyncProgress {
 		Scanned:  scanned,
 		Found:    found,
 		Message:  fmt.Sprintf("Scanning %s addresses — %d checked, %d used", chain, scanned, found),
+	}
+}
+
+// catchupProgress reports stored history being brought up to the chain tip.
+func catchupProgress(behind int) SyncProgress {
+	return SyncProgress{
+		Scanning: true,
+		Phase:    SyncCatchup,
+		Behind:   behind,
+		Message:  fmt.Sprintf("Catching up — %d blocks behind", behind),
 	}
 }

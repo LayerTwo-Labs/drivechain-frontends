@@ -121,6 +121,9 @@ const (
 	// WalletManagerServiceSendTransactionProcedure is the fully-qualified name of the
 	// WalletManagerService's SendTransaction RPC.
 	WalletManagerServiceSendTransactionProcedure = "/walletmanager.v1.WalletManagerService/SendTransaction"
+	// WalletManagerServiceCreateDepositProcedure is the fully-qualified name of the
+	// WalletManagerService's CreateDeposit RPC.
+	WalletManagerServiceCreateDepositProcedure = "/walletmanager.v1.WalletManagerService/CreateDeposit"
 	// WalletManagerServiceListTransactionsProcedure is the fully-qualified name of the
 	// WalletManagerService's ListTransactions RPC.
 	WalletManagerServiceListTransactionsProcedure = "/walletmanager.v1.WalletManagerService/ListTransactions"
@@ -275,6 +278,8 @@ type WalletManagerServiceClient interface {
 	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
 	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
 	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
@@ -524,6 +529,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+WalletManagerServiceSendTransactionProcedure,
 			connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
+			connect.WithClientOptions(opts...),
+		),
+		createDeposit: connect.NewClient[v1.CreateDepositRequest, v1.CreateDepositResponse](
+			httpClient,
+			baseURL+WalletManagerServiceCreateDepositProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("CreateDeposit")),
 			connect.WithClientOptions(opts...),
 		),
 		listTransactions: connect.NewClient[v1.ListTransactionsRequest, v1.ListTransactionsResponse](
@@ -776,6 +787,7 @@ type walletManagerServiceClient struct {
 	estimateFee                  *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
 	getNewAddress                *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
 	sendTransaction              *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	createDeposit                *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
 	listTransactions             *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
 	listUnspent                  *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
 	listReceiveAddresses         *connect.Client[v1.ListReceiveAddressesRequest, v1.ListReceiveAddressesResponse]
@@ -957,6 +969,11 @@ func (c *walletManagerServiceClient) GetNewAddress(ctx context.Context, req *con
 // SendTransaction calls walletmanager.v1.WalletManagerService.SendTransaction.
 func (c *walletManagerServiceClient) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return c.sendTransaction.CallUnary(ctx, req)
+}
+
+// CreateDeposit calls walletmanager.v1.WalletManagerService.CreateDeposit.
+func (c *walletManagerServiceClient) CreateDeposit(ctx context.Context, req *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
+	return c.createDeposit.CallUnary(ctx, req)
 }
 
 // ListTransactions calls walletmanager.v1.WalletManagerService.ListTransactions.
@@ -1185,6 +1202,8 @@ type WalletManagerServiceHandler interface {
 	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
+	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
 	ListUnspent(context.Context, *connect.Request[v1.ListUnspentRequest]) (*connect.Response[v1.ListUnspentResponse], error)
 	ListReceiveAddresses(context.Context, *connect.Request[v1.ListReceiveAddressesRequest]) (*connect.Response[v1.ListReceiveAddressesResponse], error)
@@ -1430,6 +1449,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceSendTransactionProcedure,
 		svc.SendTransaction,
 		connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceCreateDepositHandler := connect.NewUnaryHandler(
+		WalletManagerServiceCreateDepositProcedure,
+		svc.CreateDeposit,
+		connect.WithSchema(walletManagerServiceMethods.ByName("CreateDeposit")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceListTransactionsHandler := connect.NewUnaryHandler(
@@ -1708,6 +1733,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetNewAddressHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSendTransactionProcedure:
 			walletManagerServiceSendTransactionHandler.ServeHTTP(w, r)
+		case WalletManagerServiceCreateDepositProcedure:
+			walletManagerServiceCreateDepositHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListTransactionsProcedure:
 			walletManagerServiceListTransactionsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListUnspentProcedure:
@@ -1903,6 +1930,10 @@ func (UnimplementedWalletManagerServiceHandler) GetNewAddress(context.Context, *
 
 func (UnimplementedWalletManagerServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SendTransaction is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.CreateDeposit is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error) {
