@@ -71,7 +71,9 @@ class _UTXOsTabState extends State<UTXOsTab> {
 
   Future<void> _handleConsolidate(BuildContext context, List<UTXOBucket> smallBuckets) async {
     final walletId = _walletReader.activeWalletId;
-    if (walletId == null) return;
+    if (walletId == null) {
+      return;
+    }
 
     // Show the consolidation dialog
     await showThemedDialog(
@@ -296,12 +298,16 @@ class _UTXOTableState extends State<UTXOTable> {
   }
 
   int getDenialHops(UnspentOutput utxo) {
-    if (!utxo.hasDenialInfo()) return 0;
+    if (!utxo.hasDenialInfo()) {
+      return 0;
+    }
     return utxo.denialInfo.hopsCompleted;
   }
 
   String getDenialStatus(UnspentOutput utxo) {
-    if (!utxo.hasDenialInfo()) return '-';
+    if (!utxo.hasDenialInfo()) {
+      return '-';
+    }
 
     final hops = utxo.denialInfo.hopsCompleted;
     final totalHops = utxo.denialInfo.numHops;

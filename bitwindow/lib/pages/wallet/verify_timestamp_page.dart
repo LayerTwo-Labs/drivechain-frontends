@@ -162,7 +162,9 @@ class VerifyTimestampPage extends StatelessWidget {
   }
 
   String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return '-';
+    if (timestamp == null) {
+      return '-';
+    }
     try {
       final dt = DateTime.fromMillisecondsSinceEpoch(
         timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,

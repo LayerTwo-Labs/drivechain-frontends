@@ -29,16 +29,28 @@ class PersistentStatusBar extends StatelessWidget {
         final broken = <Binary>[];
         for (final type in monitored) {
           final binary = binaryProvider.binaries.where((b) => b.type == type).firstOrNull;
-          if (binary == null) continue;
-          if (binaryProvider.isConnected(binary)) continue;
-          if (binaryProvider.isInitializing(binary)) continue;
-          if (binaryProvider.isStopping(binary)) continue;
+          if (binary == null) {
+            continue;
+          }
+          if (binaryProvider.isConnected(binary)) {
+            continue;
+          }
+          if (binaryProvider.isInitializing(binary)) {
+            continue;
+          }
+          if (binaryProvider.isStopping(binary)) {
+            continue;
+          }
           final err = binaryProvider.connectionError(binary);
-          if (err == null || err.isEmpty) continue;
+          if (err == null || err.isEmpty) {
+            continue;
+          }
           broken.add(binary);
         }
 
-        if (broken.isEmpty) return const SizedBox.shrink();
+        if (broken.isEmpty) {
+          return const SizedBox.shrink();
+        }
 
         final label = broken.length == 1
             ? '${broken.first.name} is down'

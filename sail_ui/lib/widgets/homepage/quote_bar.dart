@@ -61,7 +61,9 @@ class _QuoteBarState extends State<QuoteBar> {
           )
           .toList();
 
-      if (!mounted || list.isEmpty) return;
+      if (!mounted || list.isEmpty) {
+        return;
+      }
 
       setState(() {
         _quotes = list;
@@ -75,7 +77,9 @@ class _QuoteBarState extends State<QuoteBar> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(_rotationInterval, (_) {
-      if (!mounted || _quotes.isEmpty) return;
+      if (!mounted || _quotes.isEmpty) {
+        return;
+      }
       setState(() {
         _index = (_index + 1) % _quotes.length;
       });
@@ -83,10 +87,14 @@ class _QuoteBarState extends State<QuoteBar> {
   }
 
   void _advance(int delta) {
-    if (_quotes.isEmpty) return;
+    if (_quotes.isEmpty) {
+      return;
+    }
     setState(() {
       _index = (_index + delta) % _quotes.length;
-      if (_index < 0) _index += _quotes.length;
+      if (_index < 0) {
+        _index += _quotes.length;
+      }
     });
     _startTimer();
   }

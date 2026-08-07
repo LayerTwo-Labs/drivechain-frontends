@@ -89,7 +89,9 @@ class _CashCheckPageState extends State<CashCheckPage> {
 
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final destinationAddress = (await _orchestratorWallet.getNewAddress(walletId)).address;
 
@@ -101,7 +103,9 @@ class _CashCheckPageState extends State<CashCheckPage> {
         0,
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       await context.router.replace(
         CashCheckSuccessRoute(
@@ -110,14 +114,20 @@ class _CashCheckPageState extends State<CashCheckPage> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       if (e.toString().toLowerCase().contains('wallet is locked')) {
         final isEncrypted = await _walletReader.isWalletEncrypted();
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         if (isEncrypted) {
           await _showUnlockDialog();
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
           if (_walletReader.isWalletUnlocked) {
             await _cashCheck();
           }

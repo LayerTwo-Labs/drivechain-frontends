@@ -53,7 +53,9 @@ class _ShutDownPageState extends State<ShutDownPage> {
 
     // Start timer to detect slow shutdown after 3 seconds
     _slowShutdownTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted || _progress >= 1.0) return;
+      if (!mounted || _progress >= 1.0) {
+        return;
+      }
       setState(() {
         _isSlowShutdown = true;
       });
@@ -61,7 +63,9 @@ class _ShutDownPageState extends State<ShutDownPage> {
 
     _streamSubscription = widget.shutdownStream.listen(
       (progress) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         setState(() {
           _progress = progress.completedCount / progress.totalCount;
@@ -83,7 +87,9 @@ class _ShutDownPageState extends State<ShutDownPage> {
         });
       },
       onDone: () {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         _slowShutdownTimer?.cancel();
         setState(() {
           _progress = 1.0;
@@ -92,7 +98,9 @@ class _ShutDownPageState extends State<ShutDownPage> {
         widget.onComplete();
       },
       onError: (error) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         _slowShutdownTimer?.cancel();
         setState(() {
           _currentMessage = 'Error during shutdown: $error';
@@ -102,7 +110,9 @@ class _ShutDownPageState extends State<ShutDownPage> {
   }
 
   void _handleForceKill() {
-    if (_isForceKill || _progress >= 1.0) return;
+    if (_isForceKill || _progress >= 1.0) {
+      return;
+    }
     widget.onForceKillRequested?.call();
   }
 

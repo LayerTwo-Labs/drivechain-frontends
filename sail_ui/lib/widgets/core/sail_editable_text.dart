@@ -17,6 +17,10 @@ class SailEditableText extends StatefulWidget {
   /// through, so a tab underneath keeps its own tap.
   final bool editOnDoubleTap;
 
+  /// Fills the available width and wraps onto more lines. For long values like
+  /// an xpub, which overflow the row when sized to their content.
+  final bool wrap;
+
   const SailEditableText({
     super.key,
     required this.value,
@@ -26,6 +30,7 @@ class SailEditableText extends StatefulWidget {
     this.minWidth = 24,
     this.showPencil = true,
     this.editOnDoubleTap = false,
+    this.wrap = false,
   });
 
   @override
@@ -41,14 +46,18 @@ class _SailEditableTextState extends State<SailEditableText> {
   void initState() {
     super.initState();
     _focus.addListener(() {
-      if (!_focus.hasFocus && _editing) _commit();
+      if (!_focus.hasFocus && _editing) {
+        _commit();
+      }
     });
   }
 
   @override
   void didUpdateWidget(SailEditableText old) {
     super.didUpdateWidget(old);
-    if (!_editing && widget.value != _controller.text) _controller.text = widget.value;
+    if (!_editing && widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
   }
 
   @override
@@ -73,7 +82,28 @@ class _SailEditableTextState extends State<SailEditableText> {
       return;
     }
     _controller.text = next;
-    if (next != widget.value) widget.onSubmitted(next);
+    if (next != widget.value) {
+      widget.onSubmitted(next);
+    }
+  }
+
+  void _showMenu(BuildContext context, Offset position) {
+    showSailMenu(
+      context: context,
+      preferredAnchorPoint: position,
+      menu: SailMenu(
+        width: 180,
+        items: [
+          SailMenuItem(
+            onSelected: () {
+              Navigator.of(context).pop();
+              _startEditing();
+            },
+            child: SailText.primary12(widget.tooltip ?? 'Edit label'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -81,38 +111,47 @@ class _SailEditableTextState extends State<SailEditableText> {
     final theme = SailTheme.of(context);
     final style = widget.style ?? SailStyleValues.fifteen.copyWith(color: theme.colors.text);
 
-    final field = ConstrainedBox(
-      constraints: BoxConstraints(minWidth: widget.minWidth),
-      child: IntrinsicWidth(
-        child: TextField(
-          controller: _controller,
-          focusNode: _focus,
-          style: style,
-          cursorColor: theme.colors.primary,
-          decoration: const InputDecoration(
-            isCollapsed: true,
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-          ),
-          onSubmitted: (_) => _commit(),
-        ),
+    final input = TextField(
+      controller: _controller,
+      focusNode: _focus,
+      style: style,
+      cursorColor: theme.colors.primary,
+      maxLines: widget.wrap ? null : 1,
+      decoration: const InputDecoration(
+        isCollapsed: true,
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
       ),
+      onSubmitted: (_) => _commit(),
     );
+
+    final field = widget.wrap
+        ? input
+        : ConstrainedBox(
+            constraints: BoxConstraints(minWidth: widget.minWidth),
+            child: IntrinsicWidth(child: input),
+          );
 
     Widget idle = IgnorePointer(child: field);
     if (widget.editOnDoubleTap) {
       idle = GestureDetector(
         behavior: HitTestBehavior.translucent,
         onDoubleTap: _startEditing,
-        onSecondaryTap: _startEditing,
+        onSecondaryTapDown: (details) => _showMenu(context, details.globalPosition),
         child: idle,
       );
+      // An enclosing SailCard puts a SelectionArea over this, whose
+      // double-click-to-select wins the gesture arena unless the subtree opts out.
+      idle = SelectionContainer.disabled(child: idle);
     }
 
+    final content = _editing ? field : idle;
+
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: widget.wrap ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _editing ? field : idle,
+        widget.wrap ? Expanded(child: content) : content,
         if (widget.showPencil) ...[
           const SizedBox(width: 6),
           SailTappable(

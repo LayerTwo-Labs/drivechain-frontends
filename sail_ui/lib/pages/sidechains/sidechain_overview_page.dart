@@ -180,11 +180,21 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   /// Whether the send form is valid and ready to submit
   bool get canSend {
-    if (!balanceInitialized) return false;
-    if (sidechainFee == null) return false;
-    if (bitcoinAddressController.text.trim().isEmpty) return false;
-    if (sendAmount == null || sendAmount! <= 0) return false;
-    if (sendAmount! > balance) return false;
+    if (!balanceInitialized) {
+      return false;
+    }
+    if (sidechainFee == null) {
+      return false;
+    }
+    if (bitcoinAddressController.text.trim().isEmpty) {
+      return false;
+    }
+    if (sendAmount == null || sendAmount! <= 0) {
+      return false;
+    }
+    if (sendAmount! > balance) {
+      return false;
+    }
     return true;
   }
 
@@ -255,14 +265,18 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
       return;
     }
 
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
 
     isSending = true;
     notifyListeners();
 
     try {
       final txid = await _doSidechainSend(context, address, sendAmount!);
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       await successDialog(
         context: context,

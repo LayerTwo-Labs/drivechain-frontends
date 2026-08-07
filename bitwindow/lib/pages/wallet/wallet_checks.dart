@@ -15,9 +15,13 @@ import 'package:url_launcher/url_launcher.dart';
 /// epoch 1970 in the UI. Exposed at the top level so unit tests can pin the
 /// formatting behavior without spinning up the full ChecksTable widget.
 String formatChequeDate(Timestamp? timestamp) {
-  if (timestamp == null) return '-';
+  if (timestamp == null) {
+    return '-';
+  }
   final dt = timestamp.toDateTime().toLocal();
-  if (dt.millisecondsSinceEpoch == 0) return '-';
+  if (dt.millisecondsSinceEpoch == 0) {
+    return '-';
+  }
   return DateFormat('MMM d, yyyy HH:mm').format(dt);
 }
 
@@ -265,7 +269,9 @@ class ChecksTable extends StatelessWidget {
   String _formatDate(Timestamp? timestamp) => formatChequeDate(timestamp);
 
   String _truncateAddress(String address) {
-    if (address.length <= 20) return address;
+    if (address.length <= 20) {
+      return address;
+    }
     return '${address.substring(0, 10)}...${address.substring(address.length - 10)}';
   }
 
@@ -337,7 +343,9 @@ class ChecksTable extends StatelessWidget {
       final checkProvider = GetIt.I.get<CheckProvider>();
       final success = await checkProvider.deleteCheck(check.id.toInt());
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       if (success) {
         showSailToast(context, 'Check deleted successfully');

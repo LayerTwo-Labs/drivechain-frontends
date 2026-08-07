@@ -61,9 +61,13 @@ class CrossPlatformMenuBar extends StatelessWidget {
       onSelected: () async {
         // The menu bar is app-wide but onSelected runs in this engine. When a
         // sub-window is key, dispatching here would edit a hidden field.
-        if (!await windowManager.isFocused()) return;
+        if (!await windowManager.isFocused()) {
+          return;
+        }
         final context = primaryFocus?.context;
-        if (context != null && context.mounted) Actions.maybeInvoke(context, intent);
+        if (context != null && context.mounted) {
+          Actions.maybeInvoke(context, intent);
+        }
       },
     );
   }
@@ -159,7 +163,9 @@ class _MenuAimController {
       _openId = null;
       _openRect = null;
     }
-    if (_pendingId == id) _clearPending();
+    if (_pendingId == id) {
+      _clearPending();
+    }
   }
 
   // Decide whether a freshly-hovered button may open now. If another dropdown
@@ -176,13 +182,17 @@ class _MenuAimController {
   }
 
   void cancelRequest(Object id) {
-    if (_pendingId == id) _clearPending();
+    if (_pendingId == id) {
+      _clearPending();
+    }
   }
 
   void _maybeReleasePending() {
     final rect = _pendingButtonRect;
     final loc = _loc;
-    if (_pendingId == null || rect == null || loc == null) return;
+    if (_pendingId == null || rect == null || loc == null) {
+      return;
+    }
     if (!rect.contains(loc)) {
       _clearPending(); // pointer left the pending button — it was a pass-through
       return;
@@ -206,8 +216,12 @@ class _MenuAimController {
     final rect = _openRect;
     final loc = _loc;
     final prev = _prevLoc;
-    if (rect == null || rect.isEmpty || loc == null || prev == null) return false;
-    if ((loc - prev).distance < _moveThreshold) return false;
+    if (rect == null || rect.isEmpty || loc == null || prev == null) {
+      return false;
+    }
+    if ((loc - prev).distance < _moveThreshold) {
+      return false;
+    }
     final base = rect.top - _edgeTolerance;
     return _pointInTriangle(loc, prev, Offset(rect.left, base), Offset(rect.right, base));
   }
@@ -255,7 +269,9 @@ class _MenuButtonState extends State<_MenuButton> {
   }
 
   void _open() {
-    if (!_controller.isOpen) _controller.open();
+    if (!_controller.isOpen) {
+      _controller.open();
+    }
     // Capture the dropdown's rect once it has laid out so the aim controller
     // can test the safety triangle against it.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -264,19 +280,25 @@ class _MenuButtonState extends State<_MenuButton> {
   }
 
   void _close() {
-    if (_controller.isOpen) _controller.close();
+    if (_controller.isOpen) {
+      _controller.close();
+    }
     widget.aim.notifyClosed(this);
   }
 
   Rect _panelRect() {
     final box = _menuKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return Rect.zero;
+    if (box == null || !box.hasSize) {
+      return Rect.zero;
+    }
     return box.localToGlobal(Offset.zero) & box.size;
   }
 
   Rect _buttonRect() {
     final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return Rect.zero;
+    if (box == null || !box.hasSize) {
+      return Rect.zero;
+    }
     return box.localToGlobal(Offset.zero) & box.size;
   }
 
@@ -453,9 +475,15 @@ class _MenuButtonState extends State<_MenuButton> {
       // Shortcuts are authored with `meta: true` for macOS Cmd. macOS hits the
       // native PlatformMenuBar path above, so this branch only runs on
       // Linux/Windows — map meta to Ctrl instead of rendering ⌘.
-      if (shortcut.control || shortcut.meta) keys.add('Ctrl');
-      if (shortcut.shift) keys.add('Shift');
-      if (shortcut.alt) keys.add('Alt');
+      if (shortcut.control || shortcut.meta) {
+        keys.add('Ctrl');
+      }
+      if (shortcut.shift) {
+        keys.add('Shift');
+      }
+      if (shortcut.alt) {
+        keys.add('Alt');
+      }
       keys.add(shortcut.trigger.keyLabel);
       return keys.join('+');
     }

@@ -662,8 +662,12 @@ class NextBundleViewModel extends BaseViewModel {
 
   /// Get filtered withdrawal outputs based on mineOnly toggle
   List<WithdrawalOutput> get filteredOutputs {
-    if (bundle == null) return [];
-    if (!mineOnly || myAddresses.isEmpty) return bundle!.withdrawalOutputs;
+    if (bundle == null) {
+      return [];
+    }
+    if (!mineOnly || myAddresses.isEmpty) {
+      return bundle!.withdrawalOutputs;
+    }
     return bundle!.withdrawalOutputs.where((w) => myAddresses.contains(w.mainAddress)).toList();
   }
 
@@ -684,7 +688,9 @@ class NextBundleViewModel extends BaseViewModel {
 
   Future<void> fetchMyAddresses() async {
     try {
-      if (enforcerRPC == null) return;
+      if (enforcerRPC == null) {
+        return;
+      }
       final addresses = await enforcerRPC!.getAddresses();
       myAddresses = addresses.toSet();
       notifyListeners();

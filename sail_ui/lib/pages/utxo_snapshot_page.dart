@@ -48,21 +48,31 @@ class _UTXOSnapshotPageState extends State<UTXOSnapshotPage> {
         sha256: widget.sha256,
       );
       await for (final update in stream) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         setState(() {
-          if (update.message.isNotEmpty) _status = update.message;
-          if (update.downloadPercent > 0) _percent = update.downloadPercent;
+          if (update.message.isNotEmpty) {
+            _status = update.message;
+          }
+          if (update.downloadPercent > 0) {
+            _percent = update.downloadPercent;
+          }
         });
       }
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _step.endTime = DateTime.now();
         _done = true;
       });
     } catch (e) {
       _log.e('UTXOSnapshotPage: apply failed: $e');
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _step.endTime = DateTime.now();
         _error = e.toString();

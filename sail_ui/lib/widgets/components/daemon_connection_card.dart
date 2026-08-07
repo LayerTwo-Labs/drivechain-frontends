@@ -249,10 +249,18 @@ String resolveDaemonStatusMessage({
   required bool initializingBinary,
   required String? initializingFallback,
 }) {
-  if (connectionError != null) return connectionError;
-  if (startupError != null) return startupError;
-  if (infoMessage != null) return infoMessage;
-  if (initializingBinary) return initializingFallback ?? 'Initializing...';
+  if (connectionError != null) {
+    return connectionError;
+  }
+  if (startupError != null) {
+    return startupError;
+  }
+  if (infoMessage != null) {
+    return infoMessage;
+  }
+  if (initializingBinary) {
+    return initializingFallback ?? 'Initializing...';
+  }
   return 'Not connected';
 }
 
@@ -277,16 +285,30 @@ Color resolveDaemonStatusColor({
   required bool isDownloading,
   required bool hasInfoMessage,
 }) {
-  if (connectionError != null) return theme.colors.error;
+  if (connectionError != null) {
+    return theme.colors.error;
+  }
   if (connected) {
-    if (isDownloading) return theme.colors.orangeLight;
-    if (hasInfoMessage) return theme.colors.info;
+    if (isDownloading) {
+      return theme.colors.orangeLight;
+    }
+    if (hasInfoMessage) {
+      return theme.colors.info;
+    }
     return theme.colors.success;
   }
-  if (startupError != null) return theme.colors.orangeLight;
-  if (initializingBinary) return theme.colors.orangeLight;
-  if (isDownloading) return theme.colors.orangeLight;
-  if (hasInfoMessage) return theme.colors.info;
+  if (startupError != null) {
+    return theme.colors.orangeLight;
+  }
+  if (initializingBinary) {
+    return theme.colors.orangeLight;
+  }
+  if (isDownloading) {
+    return theme.colors.orangeLight;
+  }
+  if (hasInfoMessage) {
+    return theme.colors.info;
+  }
   return theme.colors.orangeLight;
 }
 

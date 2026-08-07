@@ -164,8 +164,14 @@ class _NotificationRow extends StatelessWidget {
 
 String _timeAgo(DateTime t) {
   final d = DateTime.now().difference(t);
-  if (d.inSeconds < 60) return 'just now';
-  if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-  if (d.inHours < 24) return '${d.inHours}h ago';
+  if (d.inSeconds < 60) {
+    return 'just now';
+  }
+  if (d.inMinutes < 60) {
+    return '${d.inMinutes}m ago';
+  }
+  if (d.inHours < 24) {
+    return '${d.inHours}h ago';
+  }
   return '${d.inDays}d ago';
 }

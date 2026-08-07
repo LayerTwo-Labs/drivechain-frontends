@@ -54,7 +54,9 @@ class _SettingsInfoState extends State<SettingsInfo> {
   }
 
   Future<void> _performUpdate() async {
-    if (!Platform.isLinux) return;
+    if (!Platform.isLinux) {
+      return;
+    }
 
     final confirmed = await showThemedDialog<bool>(
       context: context,
@@ -66,7 +68,9 @@ class _SettingsInfoState extends State<SettingsInfo> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
 
     try {
       await _updateProvider.performUpdate();
@@ -83,78 +87,49 @@ class _SettingsInfoState extends State<SettingsInfo> {
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding20,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final theme = SailTheme.of(context);
+
+    return SailSettingsBody(
       children: [
-        SailText.primary20('About'),
-        SailText.secondary13('Application version and build information'),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        SailSettingsGroup(
+          title: 'Build',
           children: [
-            SailText.primary15('Version'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(widget.versionString),
+            SailSettingsRow(label: 'Application', trailing: SailText.secondary13(widget.applicationName)),
+            SailSettingsRow(label: 'Version', trailing: SailText.secondary13(widget.versionString)),
+            SailSettingsRow(label: 'Build date', trailing: SailText.secondary13(widget.buildDate)),
+            SailSettingsRow(label: 'Commit', trailing: SailText.secondary13(widget.commitFull)),
           ],
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        SailSettingsGroup(
+          title: 'Updates',
           children: [
-            SailText.primary15('Build Date'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(widget.buildDate),
-          ],
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Commit'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(widget.commitFull),
-          ],
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Application'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailText.secondary13(widget.applicationName),
-          ],
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Updates'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                SailButton(
-                  label: 'Check for Updates',
-                  loading: _updateProvider.checking || _updateProvider.updating,
-                  onPressed: () async => await _checkForUpdates(),
-                ),
-                if (_updateProvider.updateAvailable && Platform.isLinux)
+            SailSettingsRow(
+              label: 'Application updates',
+              description:
+                  _updateProvider.errorMessage ??
+                  (_updateProvider.updateAvailable
+                      ? 'Update available: v${_updateProvider.latestVersion}'
+                      : 'You are on the newest version'),
+              descriptionColor: _updateProvider.errorMessage != null ? theme.colors.error : null,
+              trailing: SailRow(
+                spacing: SailStyleValues.padding08,
+                children: [
                   SailButton(
-                    label: 'Install Update',
-                    variant: ButtonVariant.primary,
-                    onPressed: () async => await _performUpdate(),
+                    label: 'Check for updates',
+                    small: true,
+                    variant: ButtonVariant.secondary,
+                    loading: _updateProvider.checking || _updateProvider.updating,
+                    onPressed: () async => await _checkForUpdates(),
                   ),
-              ],
+                  if (_updateProvider.updateAvailable && Platform.isLinux)
+                    SailButton(
+                      label: 'Install',
+                      small: true,
+                      onPressed: () async => await _performUpdate(),
+                    ),
+                ],
+              ),
             ),
-            if (_updateProvider.errorMessage != null) ...[
-              const SailSpacing(4),
-              SailText.secondary12(
-                _updateProvider.errorMessage!,
-                color: SailTheme.of(context).colors.error,
-              ),
-            ] else if (_updateProvider.updateAvailable) ...[
-              const SailSpacing(4),
-              SailText.secondary12(
-                'Update available: v${_updateProvider.latestVersion}',
-                color: SailTheme.of(context).colors.primary,
-              ),
-            ],
           ],
         ),
       ],

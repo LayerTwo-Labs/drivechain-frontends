@@ -75,24 +75,34 @@ class _SailTooltipState extends State<SailTooltip> with SingleTickerProviderStat
   }
 
   void _hide() {
-    if (_entry == null) return;
+    if (_entry == null) {
+      return;
+    }
     _controller.reverse().whenComplete(() {
       // A re-show during the fade-out keeps the overlay alive.
-      if (_controller.status == AnimationStatus.dismissed) _removeOverlay();
+      if (_controller.status == AnimationStatus.dismissed) {
+        _removeOverlay();
+      }
     });
   }
 
   void _show() {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     if (_entry != null) {
       _controller.forward();
       return;
     }
     final overlay = Overlay.maybeOf(context);
-    if (overlay == null) return;
+    if (overlay == null) {
+      return;
+    }
 
     final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
+    if (renderBox == null) {
+      return;
+    }
     final size = renderBox.size;
 
     final overlayBox = overlay.context.findRenderObject() as RenderBox?;

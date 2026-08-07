@@ -162,7 +162,9 @@ class TimestampsTable extends StatelessWidget {
   }
 
   String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return '-';
+    if (timestamp == null) {
+      return '-';
+    }
     try {
       final dt = DateTime.fromMillisecondsSinceEpoch(
         timestamp.seconds * 1000 + timestamp.nanos ~/ 1000000,
@@ -174,7 +176,9 @@ class TimestampsTable extends StatelessWidget {
   }
 
   String _truncateHash(String hash) {
-    if (hash.length <= 20) return hash;
+    if (hash.length <= 20) {
+      return hash;
+    }
     return '${hash.substring(0, 10)}...${hash.substring(hash.length - 10)}';
   }
 

@@ -260,7 +260,9 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
 
       if (response.data != null && response.data['txid'] != null) {
         final txid = response.data['txid'];
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         final network = GetIt.I.get<BitcoinConfProvider>().network;
         final notificationProvider = GetIt.I.get<NotificationProvider>();

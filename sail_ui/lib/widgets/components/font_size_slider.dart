@@ -25,7 +25,9 @@ class FontSizeSlider extends StatelessWidget {
             divisions: sailFontScales.length - 1,
             onChanged: (double newIndex) async {
               final scale = sailFontScales[newIndex.round()];
-              if (scale == settingsProvider.fontScale) return;
+              if (scale == settingsProvider.fontScale) {
+                return;
+              }
 
               // Apply before persisting: dragging queues a serialized write per
               // snap point, and the text must not wait on disk to rescale.

@@ -32,7 +32,9 @@ class NotificationBanner extends StatelessWidget {
       animation: provider,
       builder: (context, _) {
         final item = provider.activeBanner;
-        if (item == null) return const SizedBox.shrink();
+        if (item == null) {
+          return const SizedBox.shrink();
+        }
 
         final theme = SailTheme.of(context);
         return GestureDetector(
@@ -41,7 +43,9 @@ class NotificationBanner extends StatelessWidget {
             final handler = GetIt.I.isRegistered<NotificationActions>()
                 ? GetIt.I.get<NotificationActions>()[item.action]
                 : null;
-            if (handler != null && !await handler(context)) return;
+            if (handler != null && !await handler(context)) {
+              return;
+            }
             await provider.markRead(item.id);
           },
           child: Container(

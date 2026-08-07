@@ -59,7 +59,9 @@ class SailErrorShadow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled) return child;
+    if (!enabled) {
+      return child;
+    }
 
     final theme = SailTheme.of(context);
     final blurRadius = small ? 6.0 : 24.0;

@@ -39,14 +39,18 @@ class _L1RestartPageState extends State<L1RestartPage> {
       // enough to pop the page.
       await _binaries.restartL1();
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _step.endTime = DateTime.now();
         _done = true;
       });
     } catch (e) {
       _log.e('L1RestartPage: restart failed: $e');
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _step.endTime = DateTime.now();
         _error = e.toString();

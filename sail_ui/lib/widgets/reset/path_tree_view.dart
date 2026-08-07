@@ -75,7 +75,9 @@ class TreeNode {
       entities.sort((a, b) => a.path.compareTo(b.path));
       for (final entity in entities) {
         final name = path.basename(entity.path);
-        if (node.children.containsKey(name)) continue;
+        if (node.children.containsKey(name)) {
+          continue;
+        }
         final isDir = entity is Directory;
         final child = TreeNode(
           name: name,

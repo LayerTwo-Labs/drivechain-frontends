@@ -13,7 +13,9 @@ import 'package:stacked/stacked.dart';
 /// is exhausted, so we treat that as "no scheduled next execution" rather
 /// than rendering it as a 1969 timestamp.
 bool denialHasScheduledNextExecution(DenialInfo info) {
-  if (!info.hasNextExecutionTime()) return false;
+  if (!info.hasNextExecutionTime()) {
+    return false;
+  }
   return info.nextExecutionTime.toDateTime().millisecondsSinceEpoch != 0;
 }
 
@@ -415,7 +417,9 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
                   onSort(['id', 'txid', 'vout', 'amount', 'next', 'status', 'actions'][columnIndex]);
                 },
                 onDoubleTap: (rowId) {
-                  if (widget.utxos.isEmpty) return;
+                  if (widget.utxos.isEmpty) {
+                    return;
+                  }
                   final utxo = widget.utxos.firstWhere(
                     (u) => u.output == rowId,
                   );
@@ -461,26 +465,50 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
         case 'amount':
           return sortAscending ? a.valueSats.compareTo(b.valueSats) : b.valueSats.compareTo(a.valueSats);
         case 'hops':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
-          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
-          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
+          if (!a.hasDenialInfo() && !b.hasDenialInfo()) {
+            return 0;
+          }
+          if (!a.hasDenialInfo()) {
+            return sortAscending ? 1 : -1;
+          }
+          if (!b.hasDenialInfo()) {
+            return sortAscending ? -1 : 1;
+          }
           aValue = a.denialInfo.executions.length;
           bValue = b.denialInfo.executions.length;
           return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
         case 'next':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
-          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
-          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
-          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) return 0;
-          if (!a.denialInfo.hasNextExecutionTime()) return sortAscending ? 1 : -1;
-          if (!b.denialInfo.hasNextExecutionTime()) return sortAscending ? -1 : 1;
+          if (!a.hasDenialInfo() && !b.hasDenialInfo()) {
+            return 0;
+          }
+          if (!a.hasDenialInfo()) {
+            return sortAscending ? 1 : -1;
+          }
+          if (!b.hasDenialInfo()) {
+            return sortAscending ? -1 : 1;
+          }
+          if (!a.denialInfo.hasNextExecutionTime() && !b.denialInfo.hasNextExecutionTime()) {
+            return 0;
+          }
+          if (!a.denialInfo.hasNextExecutionTime()) {
+            return sortAscending ? 1 : -1;
+          }
+          if (!b.denialInfo.hasNextExecutionTime()) {
+            return sortAscending ? -1 : 1;
+          }
           return sortAscending
               ? a.denialInfo.nextExecutionTime.toDateTime().compareTo(b.denialInfo.nextExecutionTime.toDateTime())
               : b.denialInfo.nextExecutionTime.toDateTime().compareTo(a.denialInfo.nextExecutionTime.toDateTime());
         case 'status':
-          if (!a.hasDenialInfo() && !b.hasDenialInfo()) return 0;
-          if (!a.hasDenialInfo()) return sortAscending ? 1 : -1;
-          if (!b.hasDenialInfo()) return sortAscending ? -1 : 1;
+          if (!a.hasDenialInfo() && !b.hasDenialInfo()) {
+            return 0;
+          }
+          if (!a.hasDenialInfo()) {
+            return sortAscending ? 1 : -1;
+          }
+          if (!b.hasDenialInfo()) {
+            return sortAscending ? -1 : 1;
+          }
           aValue = a.denialInfo.hasCancelTime()
               ? 'Cancelled'
               : a.denialInfo.hasPausedAt()
@@ -575,14 +603,22 @@ class _DeniabilityTableState extends State<DeniabilityTable> {
   }
 
   String _getDeniabilityStatus(UnspentOutput utxo) {
-    if (!utxo.hasDenialInfo()) return 'No deniability';
-    if (utxo.denialInfo.hasCancelTime()) return 'Cancelled';
-    if (utxo.denialInfo.hasPausedAt()) return 'Paused';
+    if (!utxo.hasDenialInfo()) {
+      return 'No deniability';
+    }
+    if (utxo.denialInfo.hasCancelTime()) {
+      return 'Cancelled';
+    }
+    if (utxo.denialInfo.hasPausedAt()) {
+      return 'Paused';
+    }
 
     final completedHops = utxo.denialInfo.executions.length;
     final totalHops = utxo.denialInfo.numHops;
 
-    if (!denialHasScheduledNextExecution(utxo.denialInfo)) return 'Completed';
+    if (!denialHasScheduledNextExecution(utxo.denialInfo)) {
+      return 'Completed';
+    }
     return 'Ongoing ($completedHops/$totalHops hops)';
   }
 }
@@ -594,10 +630,16 @@ class DeniabilityViewModel extends BaseViewModel {
   List<UnspentOutput> get utxos => transactionProvider.utxos;
 
   List<UnspentOutput> get utxosWithoutDenial => utxos.where((u) {
-    if (!u.hasDenialInfo()) return true;
+    if (!u.hasDenialInfo()) {
+      return true;
+    }
     // Has denial info but it's cancelled or completed
-    if (u.denialInfo.hasCancelTime()) return true;
-    if (!denialHasScheduledNextExecution(u.denialInfo)) return true;
+    if (u.denialInfo.hasCancelTime()) {
+      return true;
+    }
+    if (!denialHasScheduledNextExecution(u.denialInfo)) {
+      return true;
+    }
     return false;
   }).toList();
 

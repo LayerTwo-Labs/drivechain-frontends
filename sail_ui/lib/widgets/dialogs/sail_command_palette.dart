@@ -83,10 +83,14 @@ class _SailCommandPaletteState extends State<SailCommandPalette> {
   }
 
   void _handleKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) return;
+    if (event is! KeyDownEvent) {
+      return;
+    }
 
     final results = _allResults;
-    if (results.isEmpty) return;
+    if (results.isEmpty) {
+      return;
+    }
 
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       setState(() {

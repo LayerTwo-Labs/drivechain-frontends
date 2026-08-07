@@ -85,9 +85,13 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
   /// Builds the unsigned PSBT, signs it with [signer], then broadcasts.
   Future<void> _externalSign(BuildContext context, SendPageViewModel viewModel, PsbtSigner signer) async {
     final walletId = GetIt.I<WalletReaderProvider>().activeWalletId;
-    if (walletId == null) return;
+    if (walletId == null) {
+      return;
+    }
     final psbt = await viewModel.buildUnsignedPsbtForAirgap(context);
-    if (psbt == null || !context.mounted) return;
+    if (psbt == null || !context.mounted) {
+      return;
+    }
     try {
       final txid = await signAndBroadcast(
         context,
@@ -95,7 +99,9 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
         unsignedPsbtBase64: psbt,
         signer: signer,
       );
-      if (txid == null || !context.mounted) return;
+      if (txid == null || !context.mounted) {
+        return;
+      }
       showSailToast(context, 'Transaction broadcast', variant: SailToastVariant.success);
       await viewModel.onAirgapBroadcast();
     } catch (e) {
@@ -456,7 +462,9 @@ class SendPageViewModel extends BaseViewModel {
   List<UnspentOutput> get allUtxos => transactionsProvider.utxos.sorted(
     (a, b) {
       final dateCompare = b.receivedAt.toDateTime().compareTo(a.receivedAt.toDateTime());
-      if (dateCompare != 0) return dateCompare;
+      if (dateCompare != 0) {
+        return dateCompare;
+      }
       return a.output.compareTo(b.output);
     },
   );
@@ -600,7 +608,9 @@ class SendPageViewModel extends BaseViewModel {
       // 1. Sum up the amounts of all recipients except the one at 'index'
       double sumOtherRecipients = 0.0;
       for (int i = 0; i < recipients.length; i++) {
-        if (i == index) continue;
+        if (i == index) {
+          continue;
+        }
         final amountBTC = parseAmountInUnit(recipients[i].amountController.text, currentUnit);
         sumOtherRecipients += amountBTC;
       }
@@ -674,7 +684,9 @@ class SendPageViewModel extends BaseViewModel {
 
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       // Build destinations map for all recipients, summing amounts for duplicate addresses
       final destinations = <String, int>{};
@@ -721,7 +733,9 @@ class SendPageViewModel extends BaseViewModel {
   /// createPsbt) — the wallet's held keystores then sign in the panel.
   Future<void> _startMultisigSign(BuildContext context, WalletData wallet) async {
     final psbt = await buildUnsignedPsbtForAirgap(context);
-    if (psbt == null || !context.mounted) return;
+    if (psbt == null || !context.mounted) {
+      return;
+    }
     await showThemedDialog(
       context: context,
       builder: (context) => MultisigSignModal(
@@ -758,7 +772,9 @@ class SendPageViewModel extends BaseViewModel {
     setBusy(true);
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final destinations = <String, int>{};
       for (final r in recipients) {
@@ -821,8 +837,12 @@ class SendPageViewModel extends BaseViewModel {
   }
 
   Future<void> saveToAddressBook(BuildContext context, String address) async {
-    if (address.isEmpty) return;
-    if (!context.mounted) return;
+    if (address.isEmpty) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
 
     await showThemedDialog(
       context: context,
@@ -892,21 +912,27 @@ class SendPageViewModel extends BaseViewModel {
     // Electrum wallets have no Bitcoin Core; fee comes from esplora via the backend.
     try {
       final rate = await _orchestrator.wallet.estimateFee(confTarget);
-      if (rate != null && rate > 0) return rate;
+      if (rate != null && rate > 0) {
+        return rate;
+      }
     } catch (_) {
       // fall through to Bitcoin Core for core-backed wallets
     }
     final response = await _orchestrator.bitcoind.estimateSmartFee(
       EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
     );
-    if (!response.hasFeeRate() || response.feeRate <= 0) return null;
+    if (!response.hasFeeRate() || response.feeRate <= 0) {
+      return null;
+    }
     return btcPerKvbToSatPerVByte(response.feeRate);
   }
 
   Future<void> estimateFee(int confTarget) async {
     try {
       final satPerVByte = await _feeRateForTarget(confTarget);
-      if (satPerVByte == null) return;
+      if (satPerVByte == null) {
+        return;
+      }
       _setFeeFromSats(feeSatsForRate(satPerVByte: satPerVByte, txVBytes: _estimatedTxVBytes));
       selectedConfTarget = confTarget;
       notifyListeners();
@@ -1096,7 +1122,9 @@ class _SaveToAddressBookDialogState extends State<_SaveToAddressBookDialog> {
             SailButton(
               label: 'Save',
               onPressed: () async {
-                if (labelController.text.isEmpty) return;
+                if (labelController.text.isEmpty) {
+                  return;
+                }
                 try {
                   await widget.addressBookProvider.createEntry(
                     labelController.text,

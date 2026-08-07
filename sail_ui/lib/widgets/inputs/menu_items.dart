@@ -26,12 +26,23 @@ class SailMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveWidth = width ?? maxItemWidth;
-    final minWidth = effectiveWidth;
-    final maxWidth = effectiveWidth;
+    // With no width given, grow to the widest item so long labels are readable,
+    // never narrower than the standard item width.
+    if (width == null) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(minWidth: maxItemWidth),
+        child: IntrinsicWidth(child: _body(context)),
+      );
+    }
 
-    return Container(
-      constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: width!, maxWidth: width!),
+      child: _body(context),
+    );
+  }
+
+  Widget _body(BuildContext context) {
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: context.sailTheme.colors.background,
         borderRadius: SailStyleValues.borderRadius,
@@ -97,7 +108,9 @@ class _SailMenuItemState extends State<SailMenuItem> {
 
     var menu = context.findAncestorWidgetOfExactType<SailMenu>();
     var menuWidth = menu?.width;
-    if (menuWidth != null) menuWidth += menuPadding.horizontal * 2;
+    if (menuWidth != null) {
+      menuWidth += menuPadding.horizontal * 2;
+    }
 
     var highlightColor = context.sailTheme.colors.backgroundSecondary;
     var textColor = enabled ? context.sailTheme.colors.text : context.sailTheme.colors.textTertiary;

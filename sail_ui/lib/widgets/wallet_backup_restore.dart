@@ -665,14 +665,18 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
 
     try {
       final response = await GetIt.I.get<OrchestratorRPC>().wallet.listWalletBackups();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _localBackups = response.backups;
         _loadingBackups = false;
       });
     } catch (e) {
       log.e('Failed to load wallet backups: $e');
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _backupListError = 'Failed to load local wallet backups: $e';
         _loadingBackups = false;
@@ -703,7 +707,9 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
   }
 
   void _selectLocalBackup(wmpb.WalletBackup backup) {
-    if (!backup.valid) return;
+    if (!backup.valid) {
+      return;
+    }
     setState(() {
       _selectedBackup = backup;
       _selectedFile = null;
@@ -856,7 +862,9 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
     var password = '';
     if (backup.encrypted) {
       final entered = await _promptBackupPassword(backup);
-      if (entered == null) return;
+      if (entered == null) {
+        return;
+      }
       password = entered;
     }
 
@@ -874,7 +882,9 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
         backupId: backup.backupId,
         password: password,
       )) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         if (progress.steps.isNotEmpty) {
           _applyBackendRestorePlan(progress.steps);
         }
@@ -1010,12 +1020,16 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
     if (backup.hasCreatedAt()) {
       return DateFormat('yyyy-MM-dd HH:mm').format(backup.createdAt.toDateTime().toLocal());
     }
-    if (backup.sourceName.isNotEmpty) return backup.sourceName;
+    if (backup.sourceName.isNotEmpty) {
+      return backup.sourceName;
+    }
     return backup.backupId;
   }
 
   String _formatBackupBalance(wmpb.WalletBackup backup) {
-    if (backup.latestKnownBalance.isEmpty) return 'Balance unavailable';
+    if (backup.latestKnownBalance.isEmpty) {
+      return 'Balance unavailable';
+    }
 
     final confirmedSats = backup.latestKnownBalance.fold<int>(
       0,
@@ -1026,19 +1040,25 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
       (total, balance) => total + balance.pendingSats.toInt(),
     );
     final confirmed = formatBitcoin(satoshiToBTC(confirmedSats));
-    if (pendingSats == 0) return confirmed;
+    if (pendingSats == 0) {
+      return confirmed;
+    }
 
     final pending = formatBitcoin(satoshiToBTC(pendingSats));
     return '$confirmed + $pending pending';
   }
 
   String _formatBalanceBreakdown(wmpb.WalletBackup backup) {
-    if (backup.latestKnownBalance.isEmpty) return 'No latestKnownBalance metadata';
+    if (backup.latestKnownBalance.isEmpty) {
+      return 'No latestKnownBalance metadata';
+    }
     return backup.latestKnownBalance
         .map((balance) {
           final name = balance.displayName.isNotEmpty ? balance.displayName : _binaryDisplayName(balance.binary);
           final confirmed = formatBitcoin(satoshiToBTC(balance.confirmedSats.toInt()));
-          if (balance.pendingSats.toInt() == 0) return '$name: $confirmed';
+          if (balance.pendingSats.toInt() == 0) {
+            return '$name: $confirmed';
+          }
 
           final pending = formatBitcoin(satoshiToBTC(balance.pendingSats.toInt()));
           return '$name: $confirmed + $pending pending';

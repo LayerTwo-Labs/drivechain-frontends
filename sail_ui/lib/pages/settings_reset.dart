@@ -33,74 +33,90 @@ class _SettingsResetState extends State<SettingsReset> {
     _obliterateEverything = _deleteBlockchainData && _deleteLogs && _deleteSettings && _deleteWalletFiles;
   }
 
+  Widget _option({
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required String label,
+    required String description,
+    bool destructive = false,
+  }) {
+    return SailSettingsRow(
+      leading: SailCheckbox(value: value, onChanged: onChanged),
+      label: label,
+      description: description,
+      destructive: destructive,
+      onTap: () => onChanged(!value),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: SailColumn(
-            spacing: SailStyleValues.padding16,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary20('Reset'),
-              SailText.secondary13('Select what you want to reset and click the button below'),
-              const SailSpacing(SailStyleValues.padding08),
-              ResetOptionTile(
-                value: _deleteBlockchainData,
-                onChanged: (v) => setState(() {
-                  _deleteBlockchainData = v;
-                  _updateObliterate();
-                }),
-                title: 'Delete Blockchain Data',
-                subtitle: 'Resyncs the blockchain from scratch',
-                isDestructive: false,
-              ),
-              ResetOptionTile(
-                value: _deleteLogs,
-                onChanged: (v) => setState(() {
-                  _deleteLogs = v;
-                  _updateObliterate();
-                }),
-                title: 'Delete Log Files',
-                subtitle: 'Removes all debug and server log files',
-                isDestructive: false,
-              ),
-              ResetOptionTile(
-                value: _deleteSettings,
-                onChanged: (v) => setState(() {
-                  _deleteSettings = v;
-                  _updateObliterate();
-                }),
-                title: 'Delete ${widget.appName} Settings',
-                subtitle: 'Resets all configuration to defaults',
-                isDestructive: false,
-              ),
-              ResetOptionTile(
-                value: _deleteWalletFiles,
-                onChanged: (v) => setState(() {
-                  _deleteWalletFiles = v;
-                  _updateObliterate();
-                }),
-                title: 'Delete My Wallet Files',
-                subtitle: 'Backup your seed phrase first!',
-                isDestructive: true,
-              ),
-              ResetOptionTile(
-                value: _obliterateEverything,
-                onChanged: (v) => setState(() {
-                  _obliterateEverything = v;
-                  _deleteBlockchainData = v;
-                  _deleteLogs = v;
-                  _deleteSettings = v;
-                  _deleteWalletFiles = v;
-                }),
-                title: 'Fully Obliterate Everything',
-                subtitle: 'Deletes all ${widget.appName} data',
-                isDestructive: true,
-              ),
-            ],
-          ),
+        SailSettingsBody(
+          bottomPadding: 80,
+          children: [
+            SailSettingsGroup(
+              title: 'What to delete',
+              description: 'Pick the data to remove, then reset.',
+              children: [
+                _option(
+                  value: _deleteBlockchainData,
+                  onChanged: (v) => setState(() {
+                    _deleteBlockchainData = v;
+                    _updateObliterate();
+                  }),
+                  label: 'Blockchain data',
+                  description: 'Syncs the blockchain again from scratch',
+                ),
+                _option(
+                  value: _deleteLogs,
+                  onChanged: (v) => setState(() {
+                    _deleteLogs = v;
+                    _updateObliterate();
+                  }),
+                  label: 'Log files',
+                  description: 'Removes all debug and server logs',
+                ),
+                _option(
+                  value: _deleteSettings,
+                  onChanged: (v) => setState(() {
+                    _deleteSettings = v;
+                    _updateObliterate();
+                  }),
+                  label: '${widget.appName} settings',
+                  description: 'Sets all configuration back to the defaults',
+                ),
+                _option(
+                  value: _deleteWalletFiles,
+                  onChanged: (v) => setState(() {
+                    _deleteWalletFiles = v;
+                    _updateObliterate();
+                  }),
+                  label: 'Wallet files',
+                  description: 'Back up your seed phrase first',
+                  destructive: true,
+                ),
+              ],
+            ),
+            SailSettingsGroup(
+              children: [
+                _option(
+                  value: _obliterateEverything,
+                  onChanged: (v) => setState(() {
+                    _obliterateEverything = v;
+                    _deleteBlockchainData = v;
+                    _deleteLogs = v;
+                    _deleteSettings = v;
+                    _deleteWalletFiles = v;
+                  }),
+                  label: 'Obliterate everything',
+                  description: 'Deletes all ${widget.appName} data',
+                  destructive: true,
+                ),
+              ],
+            ),
+          ],
         ),
         BottomActionBar(
           maxWidth: double.infinity,

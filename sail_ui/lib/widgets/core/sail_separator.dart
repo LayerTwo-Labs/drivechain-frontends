@@ -63,7 +63,9 @@ class SailSeparator extends StatelessWidget {
               child: ColoredBox(color: lineColor),
             );
     }
-    if (padding == null) return line;
+    if (padding == null) {
+      return line;
+    }
     return Padding(padding: padding!, child: line);
   }
 }

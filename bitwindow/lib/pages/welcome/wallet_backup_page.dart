@@ -63,11 +63,15 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         wordCount: _wordCount,
         doNotSave: true,
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       _entropy.text = (wallet['entropy_hex'] as String?) ?? '';
       await _derive(_entropy.text);
     } catch (e) {
-      if (mounted) setState(() => _error = 'Error generating entropy: $e');
+      if (mounted) {
+        setState(() => _error = 'Error generating entropy: $e');
+      }
     }
   }
 
@@ -85,7 +89,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         wordCount: _wordCount,
         doNotSave: true,
       );
-      if (!mounted || id != _deriveId) return;
+      if (!mounted || id != _deriveId) {
+        return;
+      }
       final mnemonic = (wallet['mnemonic'] as String?) ?? '';
       setState(() {
         _words = mnemonic.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
@@ -93,7 +99,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         _busy = false;
       });
     } catch (e) {
-      if (!mounted || id != _deriveId) return;
+      if (!mounted || id != _deriveId) {
+        return;
+      }
       setState(() {
         _error = 'Error generating seed: $e';
         _busy = false;
@@ -126,7 +134,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         wordCount: _wordCount,
         doNotSave: true,
       );
-      if (!mounted || id != _deriveId) return;
+      if (!mounted || id != _deriveId) {
+        return;
+      }
       final mnemonic = (wallet['mnemonic'] as String?) ?? '';
       setState(() {
         _words = mnemonic.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
@@ -134,7 +144,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         _busy = false;
       });
     } catch (e) {
-      if (!mounted || id != _deriveId) return;
+      if (!mounted || id != _deriveId) {
+        return;
+      }
       setState(() {
         _error = 'Error deriving seed: $e';
         _busy = false;
@@ -157,7 +169,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           'currently generated seed. Are you sure?',
       confirmLabel: 'Yes, enable',
     );
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     _deriveId++;
     setState(() {
       _paranoid = true;
@@ -177,7 +191,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           'added security for advanced users. Are you sure?',
       confirmLabel: 'Yes, add one',
     );
-    if (ok) setState(() => _wantPassphrase = true);
+    if (ok) {
+      setState(() => _wantPassphrase = true);
+    }
   }
 
   Future<void> _startReenter(BuildContext context) async {
@@ -189,7 +205,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       cancelLabel: 'Not yet',
       warn: false,
     );
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     setState(() {
       for (final c in _reentered) {
         c.dispose();
@@ -364,7 +382,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                     child: SailDropdownButton<int>(
                       value: _wordCount,
                       onChanged: (v) async {
-                        if (v != null) await _setWordCount(v);
+                        if (v != null) {
+                          await _setWordCount(v);
+                        }
                       },
                       items: const [
                         SailDropdownItem<int>(value: 12, label: 'Use 12 Words'),
@@ -445,7 +465,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
               variant: ButtonVariant.secondary,
               onPressed: () async {
                 await _randomEntropy();
-                if (mounted) setState(() {});
+                if (mounted) {
+                  setState(() {});
+                }
               },
             ),
           ],

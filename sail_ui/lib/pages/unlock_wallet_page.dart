@@ -35,7 +35,9 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
   /// Automatically attempt decryption on each keystroke
   void _onPasswordChanged() {
     final password = _passwordController.text;
-    if (password.isEmpty || _isUnlocking) return;
+    if (password.isEmpty || _isUnlocking) {
+      return;
+    }
 
     // Store the password we're attempting to decrypt with
     _pendingPassword = password;
@@ -111,7 +113,9 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
       final walletReader = GetIt.I.get<WalletReaderProvider>();
       final success = await walletReader.unlockWallet(_passwordController.text);
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       if (success) {
         if (mounted) {
@@ -125,7 +129,9 @@ class _UnlockWalletPageState extends State<UnlockWalletPage> {
         });
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _errorMessage = 'Error unlocking wallet: $e';
         _isUnlocking = false;

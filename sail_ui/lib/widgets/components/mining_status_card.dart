@@ -116,7 +116,9 @@ class _StartStopButtonState extends State<_StartStopButton> {
   bool _busy = false;
 
   Future<void> _toggle() async {
-    if (_busy) return;
+    if (_busy) {
+      return;
+    }
     setState(() => _busy = true);
     try {
       if (widget.mining.isMining) {
@@ -125,7 +127,9 @@ class _StartStopButtonState extends State<_StartStopButton> {
         await widget.mining.startMining();
       }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 

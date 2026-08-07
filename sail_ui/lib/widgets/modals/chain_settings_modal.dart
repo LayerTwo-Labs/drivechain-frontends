@@ -119,7 +119,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       ),
     );
 
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
 
     if (resetStarted == true) {
       Navigator.of(context).pop();
@@ -435,7 +437,9 @@ class ChainSettingsViewModel extends BaseViewModel {
   bool get showUpdateButton => _binary.updateAvailable && !_isUpdating;
 
   Future<void> handleUpdate(BuildContext context) async {
-    if (_isUpdating) return;
+    if (_isUpdating) {
+      return;
+    }
 
     _isUpdating = true;
     notifyListeners();

@@ -38,7 +38,9 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
 
       if (enabled) {
         color = SailTheme.of(context).colors.primary;
-        if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
+        if (_pressed) {
+          color = Color.lerp(color, Colors.black, 0.2)!;
+        }
       } else {
         color = Theme.of(context).disabledColor;
       }
@@ -84,7 +86,9 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
       }
     } else {
       var color = SailTheme.of(context).colors.background;
-      if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
+      if (_pressed) {
+        color = Color.lerp(color, Colors.black, 0.2)!;
+      }
 
       if (chrome.terminalStyle) {
         visual = Container(
@@ -131,7 +135,9 @@ class _SailRadioButtonState<T> extends State<SailRadioButton<T>> {
       );
     }
 
-    if (!enabled) return visual;
+    if (!enabled) {
+      return visual;
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

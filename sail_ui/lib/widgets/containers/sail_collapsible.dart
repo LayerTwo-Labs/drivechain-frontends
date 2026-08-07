@@ -9,13 +9,17 @@ class SailCollapsibleController extends ChangeNotifier {
   bool get isOpen => _open;
 
   void open() {
-    if (_open) return;
+    if (_open) {
+      return;
+    }
     _open = true;
     notifyListeners();
   }
 
   void close() {
-    if (!_open) return;
+    if (!_open) {
+      return;
+    }
     _open = false;
     notifyListeners();
   }
@@ -79,7 +83,9 @@ class _SailCollapsibleState extends State<SailCollapsible> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       _controller.removeListener(_onControllerChanged);
-      if (_ownsController) _controller.dispose();
+      if (_ownsController) {
+        _controller.dispose();
+      }
       if (widget.controller != null) {
         _controller = widget.controller!;
         _ownsController = false;
@@ -101,12 +107,16 @@ class _SailCollapsibleState extends State<SailCollapsible> {
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
-    if (_ownsController) _controller.dispose();
+    if (_ownsController) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
   void _onControllerChanged() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _handleTriggerTap() {
@@ -129,7 +139,9 @@ class _SailCollapsibleState extends State<SailCollapsible> {
       ),
     );
 
-    if (widget.trigger == null) return body;
+    if (widget.trigger == null) {
+      return body;
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,

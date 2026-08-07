@@ -153,7 +153,9 @@ void showArticleDetails(
                               codeblockPadding: const EdgeInsets.all(16),
                             ),
                             onTapLink: (_, href, _) async {
-                              if (href == null) return;
+                              if (href == null) {
+                                return;
+                              }
                               await launchUrl(Uri.parse(href));
                             },
                           ),

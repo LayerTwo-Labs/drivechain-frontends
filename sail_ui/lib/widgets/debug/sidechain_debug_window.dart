@@ -99,7 +99,9 @@ class _SidechainInfoTabState extends State<SidechainInfoTab> {
       _autoRefreshEnabled = !_autoRefreshEnabled;
       if (_autoRefreshEnabled) {
         _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-          if (mounted) _loadInfo();
+          if (mounted) {
+            _loadInfo();
+          }
         });
       } else {
         _autoRefreshTimer?.cancel();
@@ -265,7 +267,9 @@ class _SidechainInfoTabState extends State<SidechainInfoTab> {
   }
 
   String _truncateHash(String hash) {
-    if (hash.length <= 20) return hash;
+    if (hash.length <= 20) {
+      return hash;
+    }
     return '${hash.substring(0, 10)}...${hash.substring(hash.length - 10)}';
   }
 }
@@ -407,7 +411,9 @@ class _SidechainPeersTabState extends State<SidechainPeersTab> {
       _autoRefreshEnabled = !_autoRefreshEnabled;
       if (_autoRefreshEnabled) {
         _autoRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-          if (mounted) _loadPeers();
+          if (mounted) {
+            _loadPeers();
+          }
         });
       } else {
         _autoRefreshTimer?.cancel();
@@ -737,7 +743,9 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
   }
 
   Future<void> _executeMethod() async {
-    if (_selectedMethod == null) return;
+    if (_selectedMethod == null) {
+      return;
+    }
 
     setState(() {
       _isExecuting = true;
@@ -815,7 +823,9 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
       }
 
       if (char == '[') {
-        if (depth > 0) currentItem.write(char);
+        if (depth > 0) {
+          currentItem.write(char);
+        }
         depth++;
         continue;
       }
@@ -851,21 +861,33 @@ class _SidechainRPCMethodsTabState extends State<SidechainRPCMethodsTab> {
   }
 
   dynamic _parseValue(String value) {
-    if (value == 'null') return null;
-    if (value == 'true') return true;
-    if (value == 'false') return false;
+    if (value == 'null') {
+      return null;
+    }
+    if (value == 'true') {
+      return true;
+    }
+    if (value == 'false') {
+      return false;
+    }
     if (value.startsWith('"') && value.endsWith('"')) {
       return value.substring(1, value.length - 1);
     }
     final asInt = int.tryParse(value);
-    if (asInt != null) return asInt;
+    if (asInt != null) {
+      return asInt;
+    }
     final asDouble = double.tryParse(value);
-    if (asDouble != null) return asDouble;
+    if (asDouble != null) {
+      return asDouble;
+    }
     return value;
   }
 
   String _formatResult(dynamic result) {
-    if (result == null) return 'null';
+    if (result == null) {
+      return 'null';
+    }
     if (result is Map || result is List) {
       try {
         const encoder = JsonEncoder.withIndent('  ');
@@ -1039,19 +1061,31 @@ class JsonEncoder {
     final currentIndent = indentStr * depth;
     final nextIndent = indentStr * (depth + 1);
 
-    if (object == null) return 'null';
-    if (object is bool) return object.toString();
-    if (object is num) return object.toString();
-    if (object is String) return '"${_escapeString(object)}"';
+    if (object == null) {
+      return 'null';
+    }
+    if (object is bool) {
+      return object.toString();
+    }
+    if (object is num) {
+      return object.toString();
+    }
+    if (object is String) {
+      return '"${_escapeString(object)}"';
+    }
 
     if (object is List) {
-      if (object.isEmpty) return '[]';
+      if (object.isEmpty) {
+        return '[]';
+      }
       final items = object.map((e) => '$nextIndent${_encode(e, depth + 1)}').join(',\n');
       return '[\n$items\n$currentIndent]';
     }
 
     if (object is Map) {
-      if (object.isEmpty) return '{}';
+      if (object.isEmpty) {
+        return '{}';
+      }
       final entries = object.entries.map((e) => '$nextIndent"${e.key}": ${_encode(e.value, depth + 1)}').join(',\n');
       return '{\n$entries\n$currentIndent}';
     }

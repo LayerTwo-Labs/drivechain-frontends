@@ -57,7 +57,9 @@ class _SailSwitchState extends State<SailSwitch> with SingleTickerProviderStateM
   }
 
   void _handleTap() {
-    if (!widget._isEnabled) return;
+    if (!widget._isEnabled) {
+      return;
+    }
     widget.onChanged!(!widget.value);
   }
 

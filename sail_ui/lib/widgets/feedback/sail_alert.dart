@@ -105,7 +105,9 @@ class SailAlert extends StatelessWidget {
       );
     }
     if (description != null) {
-      if (body.isNotEmpty) body.add(const SizedBox(height: 4));
+      if (body.isNotEmpty) {
+        body.add(const SizedBox(height: 4));
+      }
       body.add(
         Text(
           description!,

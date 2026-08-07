@@ -154,10 +154,14 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
     final menuAnchor = MenuAnchor(
       controller: _controller,
       onOpen: () {
-        if (mounted) setState(() => _open = true);
+        if (mounted) {
+          setState(() => _open = true);
+        }
       },
       onClose: () {
-        if (mounted) setState(() => _open = false);
+        if (mounted) {
+          setState(() => _open = false);
+        }
       },
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(
@@ -318,7 +322,9 @@ class _SailMultiSelectDropdownState extends State<SailMultiSelectDropdown> {
 
   List<SailDropdownItem> get filteredItems {
     final query = searchController.text.toLowerCase();
-    if (query.isEmpty) return widget.items;
+    if (query.isEmpty) {
+      return widget.items;
+    }
     return widget.items.where((item) {
       return item.displayLabel.toLowerCase().contains(query);
     }).toList();
@@ -611,7 +617,9 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
 
   List<SailDropdownItem> get filteredItems {
     final query = searchController.text.toLowerCase();
-    if (query.isEmpty) return widget.items;
+    if (query.isEmpty) {
+      return widget.items;
+    }
     return widget.items.where((item) {
       return item.displayLabel.toLowerCase().contains(query);
     }).toList();

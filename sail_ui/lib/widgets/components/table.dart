@@ -129,7 +129,9 @@ class _SailTableState extends State<SailTable> {
 
     // Still keep the post-frame callback to adjust to actual size
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       final parentWidth = context.size?.width ?? double.infinity;
       if (parentWidth.isFinite) {
         _resizeColumns(parentWidth, force: true);
@@ -319,7 +321,9 @@ class _SailTableState extends State<SailTable> {
   }
 
   void _resizeColumns(double parentWidth, {bool force = false}) {
-    if (parentWidth <= 0 || !mounted) return;
+    if (parentWidth <= 0 || !mounted) {
+      return;
+    }
 
     setState(() {
       _autoSizeColumns(parentWidth);
@@ -397,14 +401,18 @@ class _SailTableState extends State<SailTable> {
   }
 
   void _checkScrollPosition() {
-    if (widget.onScrollApproachingEnd == null) return;
+    if (widget.onScrollApproachingEnd == null) {
+      return;
+    }
     if (_verticalController.position.extentAfter < 100) {
       widget.onScrollApproachingEnd!();
     }
   }
 
   void _handleSort(int columnIndex) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final ascending = _sortColumnIndex != columnIndex || !_sortAscending;
     setState(() {
       _sortColumnIndex = columnIndex;
@@ -414,7 +422,9 @@ class _SailTableState extends State<SailTable> {
   }
 
   void _handleColumnResize(int column, double delta) {
-    if (!widget.resizableColumns || !mounted) return;
+    if (!widget.resizableColumns || !mounted) {
+      return;
+    }
 
     setState(() {
       final minWidth = defaultMinColumnWidth;
@@ -427,7 +437,9 @@ class _SailTableState extends State<SailTable> {
   }
 
   void _handleRowSelection(String rowId) {
-    if (!widget.selectableRows) return;
+    if (!widget.selectableRows) {
+      return;
+    }
     setState(() {
       _selectedId = _selectedId == rowId ? null : rowId;
     });

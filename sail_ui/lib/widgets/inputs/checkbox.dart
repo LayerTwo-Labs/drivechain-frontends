@@ -36,7 +36,9 @@ class _SailCheckboxState extends State<SailCheckbox> {
 
       if (enabled) {
         color = context.sailTheme.colors.text;
-        if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
+        if (_pressed) {
+          color = Color.lerp(color, Colors.black, 0.2)!;
+        }
       } else {
         color = context.sailTheme.colors.disabledBackground;
       }
@@ -72,7 +74,9 @@ class _SailCheckboxState extends State<SailCheckbox> {
       );
     } else {
       var color = context.sailTheme.colors.backgroundSecondary;
-      if (_pressed) color = Color.lerp(color, Colors.black, 0.2)!;
+      if (_pressed) {
+        color = Color.lerp(color, Colors.black, 0.2)!;
+      }
 
       final chrome = context.sailTheme.chrome;
       visual = Container(

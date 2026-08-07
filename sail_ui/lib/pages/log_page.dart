@@ -148,7 +148,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
 
   Future<void> _initializeLogView() async {
     final logFile = File(widget.logPath);
-    if (!logFile.existsSync()) return;
+    if (!logFile.existsSync()) {
+      return;
+    }
 
     // Read the last N lines initially
     await _readLastNLines(logFile);
@@ -159,7 +161,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
 
   Future<void> _readLastNLines(File logFile) async {
     final length = logFile.lengthSync();
-    if (length == 0) return;
+    if (length == 0) {
+      return;
+    }
 
     final raf = logFile.openSync(mode: FileMode.read);
     try {
@@ -229,7 +233,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
   }
 
   void _scrollListener() {
-    if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients) {
+      return;
+    }
 
     // Check if we're at the bottom
     final maxScroll = _scrollController.position.maxScrollExtent;
@@ -318,7 +324,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
     final logFile = File(widget.logPath);
 
     _tailTimer = Timer.periodic(const Duration(milliseconds: 100), (_) async {
-      if (!logFile.existsSync()) return;
+      if (!logFile.existsSync()) {
+        return;
+      }
 
       final length = await logFile.length();
       if (length < _lastPosition) {
@@ -370,7 +378,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
         // _scrollController.position while detached throws.
         if (wasAtBottom) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!_scrollController.hasClients) return;
+            if (!_scrollController.hasClients) {
+              return;
+            }
             _scrollController.jumpTo(
               _scrollController.position.maxScrollExtent,
             );
@@ -378,7 +388,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
         } else {
           // Restore previous scroll position
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!_scrollController.hasClients) return;
+            if (!_scrollController.hasClients) {
+              return;
+            }
             _scrollController.jumpTo(previousOffset.toDouble());
           });
         }
@@ -445,7 +457,9 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
   }
 
   void _scrollListener() {
-    if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients) {
+      return;
+    }
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     _stickToBottom = maxScroll - currentScroll <= 50.0;
@@ -661,7 +675,9 @@ class LogPageViewModel extends BaseViewModel {
     const int bufferSize = 4096;
     int end = fileLength;
     int start = end - bufferSize;
-    if (start < 0) start = 0;
+    if (start < 0) {
+      start = 0;
+    }
 
     while (lines.length < n && start >= 0) {
       raf.setPositionSync(start);
@@ -679,7 +695,9 @@ class LogPageViewModel extends BaseViewModel {
       }
       end = start;
       start -= bufferSize;
-      if (start < 0) start = 0;
+      if (start < 0) {
+        start = 0;
+      }
     }
 
     return lines.take(n).toList();
