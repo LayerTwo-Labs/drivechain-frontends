@@ -15,35 +15,47 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'enforcer_conf.pb.dart' as $5;
+import 'enforcer_conf.pb.dart' as $7;
 import 'enforcer_conf.pbjson.dart';
 
 export 'enforcer_conf.pb.dart';
 
 abstract class EnforcerConfServiceBase extends $pb.GeneratedService {
-  $async.Future<$5.GetEnforcerConfigResponse> getEnforcerConfig($pb.ServerContext ctx, $5.GetEnforcerConfigRequest request);
-  $async.Future<$5.WriteEnforcerConfigResponse> writeEnforcerConfig($pb.ServerContext ctx, $5.WriteEnforcerConfigRequest request);
-  $async.Future<$5.SyncNodeRpcFromBitcoinConfResponse> syncNodeRpcFromBitcoinConf($pb.ServerContext ctx, $5.SyncNodeRpcFromBitcoinConfRequest request);
+  $async.Future<$7.GetEnforcerConfigResponse> getEnforcerConfig(
+      $pb.ServerContext ctx, $7.GetEnforcerConfigRequest request);
+  $async.Future<$7.WriteEnforcerConfigResponse> writeEnforcerConfig(
+      $pb.ServerContext ctx, $7.WriteEnforcerConfigRequest request);
+  $async.Future<$7.SyncNodeRpcFromBitcoinConfResponse> syncNodeRpcFromBitcoinConf(
+      $pb.ServerContext ctx, $7.SyncNodeRpcFromBitcoinConfRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetEnforcerConfig': return $5.GetEnforcerConfigRequest();
-      case 'WriteEnforcerConfig': return $5.WriteEnforcerConfigRequest();
-      case 'SyncNodeRpcFromBitcoinConf': return $5.SyncNodeRpcFromBitcoinConfRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetEnforcerConfig':
+        return $7.GetEnforcerConfigRequest();
+      case 'WriteEnforcerConfig':
+        return $7.WriteEnforcerConfigRequest();
+      case 'SyncNodeRpcFromBitcoinConf':
+        return $7.SyncNodeRpcFromBitcoinConfRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetEnforcerConfig': return this.getEnforcerConfig(ctx, request as $5.GetEnforcerConfigRequest);
-      case 'WriteEnforcerConfig': return this.writeEnforcerConfig(ctx, request as $5.WriteEnforcerConfigRequest);
-      case 'SyncNodeRpcFromBitcoinConf': return this.syncNodeRpcFromBitcoinConf(ctx, request as $5.SyncNodeRpcFromBitcoinConfRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetEnforcerConfig':
+        return this.getEnforcerConfig(ctx, request as $7.GetEnforcerConfigRequest);
+      case 'WriteEnforcerConfig':
+        return this.writeEnforcerConfig(ctx, request as $7.WriteEnforcerConfigRequest);
+      case 'SyncNodeRpcFromBitcoinConf':
+        return this.syncNodeRpcFromBitcoinConf(ctx, request as $7.SyncNodeRpcFromBitcoinConfRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => EnforcerConfServiceBase$json;
-  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => EnforcerConfServiceBase$messageJson;
+  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson =>
+      EnforcerConfServiceBase$messageJson;
 }
-

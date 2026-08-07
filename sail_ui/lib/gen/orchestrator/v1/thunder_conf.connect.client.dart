@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "thunder_conf.pb.dart" as orchestratorv1thunder_conf;
 import "thunder_conf.connect.spec.dart" as specs;
 
-extension type ThunderConfServiceClient (connect.Transport _transport) {
+extension type ThunderConfServiceClient(connect.Transport _transport) {
   /// Get current Thunder sidechain configuration state.
   Future<orchestratorv1thunder_conf.GetThunderConfigResponse> getThunderConfig(
     orchestratorv1thunder_conf.GetThunderConfigRequest input, {

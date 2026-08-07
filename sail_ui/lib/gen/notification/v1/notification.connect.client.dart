@@ -8,7 +8,7 @@ import "notification.pb.dart" as notificationv1notification;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 import "notification.connect.spec.dart" as specs;
 
-extension type NotificationServiceClient (connect.Transport _transport) {
+extension type NotificationServiceClient(connect.Transport _transport) {
   /// Watch returns a stream of notification events
   Stream<notificationv1notification.WatchResponse> watch(
     googleprotobufempty.Empty input, {

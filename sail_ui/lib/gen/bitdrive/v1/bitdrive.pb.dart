@@ -38,26 +38,28 @@ class BitDriveMetadata extends $pb.GeneratedMessage {
     return $result;
   }
   BitDriveMetadata._() : super();
-  factory BitDriveMetadata.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory BitDriveMetadata.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory BitDriveMetadata.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory BitDriveMetadata.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BitDriveMetadata', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BitDriveMetadata',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'flags', $pb.PbFieldType.OU3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU3)
     ..aOS(3, _omitFieldNames ? '' : 'fileType')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   BitDriveMetadata clone() => BitDriveMetadata()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  BitDriveMetadata copyWith(void Function(BitDriveMetadata) updates) => super.copyWith((message) => updates(message as BitDriveMetadata)) as BitDriveMetadata;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  BitDriveMetadata copyWith(void Function(BitDriveMetadata) updates) =>
+      super.copyWith((message) => updates(message as BitDriveMetadata)) as BitDriveMetadata;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -66,14 +68,18 @@ class BitDriveMetadata extends $pb.GeneratedMessage {
   BitDriveMetadata createEmptyInstance() => create();
   static $pb.PbList<BitDriveMetadata> createRepeated() => $pb.PbList<BitDriveMetadata>();
   @$core.pragma('dart2js:noInline')
-  static BitDriveMetadata getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BitDriveMetadata>(create);
+  static BitDriveMetadata getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BitDriveMetadata>(create);
   static BitDriveMetadata? _defaultInstance;
 
   /// Flags (1 byte): bit 0 = encrypted, bit 1 = multisig
   @$pb.TagNumber(1)
   $core.int get flags => $_getIZ(0);
   @$pb.TagNumber(1)
-  set flags($core.int v) { $_setUnsignedInt32(0, v); }
+  set flags($core.int v) {
+    $_setUnsignedInt32(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFlags() => $_has(0);
   @$pb.TagNumber(1)
@@ -83,7 +89,10 @@ class BitDriveMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get timestamp => $_getIZ(1);
   @$pb.TagNumber(2)
-  set timestamp($core.int v) { $_setUnsignedInt32(1, v); }
+  set timestamp($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTimestamp() => $_has(1);
   @$pb.TagNumber(2)
@@ -93,7 +102,10 @@ class BitDriveMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get fileType => $_getSZ(2);
   @$pb.TagNumber(3)
-  set fileType($core.String v) { $_setString(2, v); }
+  set fileType($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasFileType() => $_has(2);
   @$pb.TagNumber(3)
@@ -128,28 +140,31 @@ class StoreFileRequest extends $pb.GeneratedMessage {
     return $result;
   }
   StoreFileRequest._() : super();
-  factory StoreFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StoreFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory StoreFileRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory StoreFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreFileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'content', $pb.PbFieldType.OY)
     ..aOS(2, _omitFieldNames ? '' : 'filename')
     ..aOS(3, _omitFieldNames ? '' : 'mimeType')
     ..aOB(4, _omitFieldNames ? '' : 'encrypt')
-    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..hasRequiredFields = false
-  ;
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   StoreFileRequest clone() => StoreFileRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  StoreFileRequest copyWith(void Function(StoreFileRequest) updates) => super.copyWith((message) => updates(message as StoreFileRequest)) as StoreFileRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  StoreFileRequest copyWith(void Function(StoreFileRequest) updates) =>
+      super.copyWith((message) => updates(message as StoreFileRequest)) as StoreFileRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -158,14 +173,18 @@ class StoreFileRequest extends $pb.GeneratedMessage {
   StoreFileRequest createEmptyInstance() => create();
   static $pb.PbList<StoreFileRequest> createRepeated() => $pb.PbList<StoreFileRequest>();
   @$core.pragma('dart2js:noInline')
-  static StoreFileRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreFileRequest>(create);
+  static StoreFileRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreFileRequest>(create);
   static StoreFileRequest? _defaultInstance;
 
   /// Raw file content (max 1MB)
   @$pb.TagNumber(1)
   $core.List<$core.int> get content => $_getN(0);
   @$pb.TagNumber(1)
-  set content($core.List<$core.int> v) { $_setBytes(0, v); }
+  set content($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasContent() => $_has(0);
   @$pb.TagNumber(1)
@@ -175,7 +194,10 @@ class StoreFileRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get filename => $_getSZ(1);
   @$pb.TagNumber(2)
-  set filename($core.String v) { $_setString(1, v); }
+  set filename($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasFilename() => $_has(1);
   @$pb.TagNumber(2)
@@ -185,7 +207,10 @@ class StoreFileRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get mimeType => $_getSZ(2);
   @$pb.TagNumber(3)
-  set mimeType($core.String v) { $_setString(2, v); }
+  set mimeType($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasMimeType() => $_has(2);
   @$pb.TagNumber(3)
@@ -195,7 +220,10 @@ class StoreFileRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool get encrypt => $_getBF(3);
   @$pb.TagNumber(4)
-  set encrypt($core.bool v) { $_setBool(3, v); }
+  set encrypt($core.bool v) {
+    $_setBool(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasEncrypt() => $_has(3);
   @$pb.TagNumber(4)
@@ -205,7 +233,10 @@ class StoreFileRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $fixnum.Int64 get feeSatPerVbyte => $_getI64(4);
   @$pb.TagNumber(5)
-  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(4, v); }
+  set feeSatPerVbyte($fixnum.Int64 v) {
+    $_setInt64(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasFeeSatPerVbyte() => $_has(4);
   @$pb.TagNumber(5)
@@ -231,26 +262,28 @@ class StoreFileResponse extends $pb.GeneratedMessage {
     return $result;
   }
   StoreFileResponse._() : super();
-  factory StoreFileResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StoreFileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory StoreFileResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory StoreFileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreFileResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreFileResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..aOS(2, _omitFieldNames ? '' : 'fileType')
     ..aOB(3, _omitFieldNames ? '' : 'encrypted')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   StoreFileResponse clone() => StoreFileResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  StoreFileResponse copyWith(void Function(StoreFileResponse) updates) => super.copyWith((message) => updates(message as StoreFileResponse)) as StoreFileResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  StoreFileResponse copyWith(void Function(StoreFileResponse) updates) =>
+      super.copyWith((message) => updates(message as StoreFileResponse)) as StoreFileResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -259,14 +292,18 @@ class StoreFileResponse extends $pb.GeneratedMessage {
   StoreFileResponse createEmptyInstance() => create();
   static $pb.PbList<StoreFileResponse> createRepeated() => $pb.PbList<StoreFileResponse>();
   @$core.pragma('dart2js:noInline')
-  static StoreFileResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreFileResponse>(create);
+  static StoreFileResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreFileResponse>(create);
   static StoreFileResponse? _defaultInstance;
 
   /// Transaction ID of the stored content
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -276,7 +313,10 @@ class StoreFileResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get fileType => $_getSZ(1);
   @$pb.TagNumber(2)
-  set fileType($core.String v) { $_setString(1, v); }
+  set fileType($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasFileType() => $_has(1);
   @$pb.TagNumber(2)
@@ -286,7 +326,10 @@ class StoreFileResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool get encrypted => $_getBF(2);
   @$pb.TagNumber(3)
-  set encrypted($core.bool v) { $_setBool(2, v); }
+  set encrypted($core.bool v) {
+    $_setBool(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasEncrypted() => $_has(2);
   @$pb.TagNumber(3)
@@ -305,24 +348,26 @@ class RetrieveContentRequest extends $pb.GeneratedMessage {
     return $result;
   }
   RetrieveContentRequest._() : super();
-  factory RetrieveContentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RetrieveContentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory RetrieveContentRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory RetrieveContentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RetrieveContentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RetrieveContentRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   RetrieveContentRequest clone() => RetrieveContentRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  RetrieveContentRequest copyWith(void Function(RetrieveContentRequest) updates) => super.copyWith((message) => updates(message as RetrieveContentRequest)) as RetrieveContentRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  RetrieveContentRequest copyWith(void Function(RetrieveContentRequest) updates) =>
+      super.copyWith((message) => updates(message as RetrieveContentRequest)) as RetrieveContentRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -331,14 +376,18 @@ class RetrieveContentRequest extends $pb.GeneratedMessage {
   RetrieveContentRequest createEmptyInstance() => create();
   static $pb.PbList<RetrieveContentRequest> createRepeated() => $pb.PbList<RetrieveContentRequest>();
   @$core.pragma('dart2js:noInline')
-  static RetrieveContentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RetrieveContentRequest>(create);
+  static RetrieveContentRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RetrieveContentRequest>(create);
   static RetrieveContentRequest? _defaultInstance;
 
   /// Transaction ID containing the OP_RETURN data
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -368,27 +417,29 @@ class RetrieveContentResponse extends $pb.GeneratedMessage {
     return $result;
   }
   RetrieveContentResponse._() : super();
-  factory RetrieveContentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RetrieveContentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory RetrieveContentResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory RetrieveContentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RetrieveContentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RetrieveContentResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'content', $pb.PbFieldType.OY)
     ..aOS(2, _omitFieldNames ? '' : 'fileType')
     ..aOB(3, _omitFieldNames ? '' : 'encrypted')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU3)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   RetrieveContentResponse clone() => RetrieveContentResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  RetrieveContentResponse copyWith(void Function(RetrieveContentResponse) updates) => super.copyWith((message) => updates(message as RetrieveContentResponse)) as RetrieveContentResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  RetrieveContentResponse copyWith(void Function(RetrieveContentResponse) updates) =>
+      super.copyWith((message) => updates(message as RetrieveContentResponse)) as RetrieveContentResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -397,14 +448,18 @@ class RetrieveContentResponse extends $pb.GeneratedMessage {
   RetrieveContentResponse createEmptyInstance() => create();
   static $pb.PbList<RetrieveContentResponse> createRepeated() => $pb.PbList<RetrieveContentResponse>();
   @$core.pragma('dart2js:noInline')
-  static RetrieveContentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RetrieveContentResponse>(create);
+  static RetrieveContentResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RetrieveContentResponse>(create);
   static RetrieveContentResponse? _defaultInstance;
 
   /// Decrypted/raw file content
   @$pb.TagNumber(1)
   $core.List<$core.int> get content => $_getN(0);
   @$pb.TagNumber(1)
-  set content($core.List<$core.int> v) { $_setBytes(0, v); }
+  set content($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasContent() => $_has(0);
   @$pb.TagNumber(1)
@@ -414,7 +469,10 @@ class RetrieveContentResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get fileType => $_getSZ(1);
   @$pb.TagNumber(2)
-  set fileType($core.String v) { $_setString(1, v); }
+  set fileType($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasFileType() => $_has(1);
   @$pb.TagNumber(2)
@@ -424,7 +482,10 @@ class RetrieveContentResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool get encrypted => $_getBF(2);
   @$pb.TagNumber(3)
-  set encrypted($core.bool v) { $_setBool(2, v); }
+  set encrypted($core.bool v) {
+    $_setBool(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasEncrypted() => $_has(2);
   @$pb.TagNumber(3)
@@ -434,7 +495,10 @@ class RetrieveContentResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.int get timestamp => $_getIZ(3);
   @$pb.TagNumber(4)
-  set timestamp($core.int v) { $_setUnsignedInt32(3, v); }
+  set timestamp($core.int v) {
+    $_setUnsignedInt32(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasTimestamp() => $_has(3);
   @$pb.TagNumber(4)
@@ -457,25 +521,27 @@ class ScanForFilesResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ScanForFilesResponse._() : super();
-  factory ScanForFilesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ScanForFilesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ScanForFilesResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ScanForFilesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ScanForFilesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ScanForFilesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..pc<PendingFile>(1, _omitFieldNames ? '' : 'pendingFiles', $pb.PbFieldType.PM, subBuilder: PendingFile.create)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'totalScanned', $pb.PbFieldType.OU3)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ScanForFilesResponse clone() => ScanForFilesResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ScanForFilesResponse copyWith(void Function(ScanForFilesResponse) updates) => super.copyWith((message) => updates(message as ScanForFilesResponse)) as ScanForFilesResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ScanForFilesResponse copyWith(void Function(ScanForFilesResponse) updates) =>
+      super.copyWith((message) => updates(message as ScanForFilesResponse)) as ScanForFilesResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -484,7 +550,8 @@ class ScanForFilesResponse extends $pb.GeneratedMessage {
   ScanForFilesResponse createEmptyInstance() => create();
   static $pb.PbList<ScanForFilesResponse> createRepeated() => $pb.PbList<ScanForFilesResponse>();
   @$core.pragma('dart2js:noInline')
-  static ScanForFilesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ScanForFilesResponse>(create);
+  static ScanForFilesResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ScanForFilesResponse>(create);
   static ScanForFilesResponse? _defaultInstance;
 
   /// Files found that are not yet downloaded
@@ -495,7 +562,10 @@ class ScanForFilesResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get totalScanned => $_getIZ(1);
   @$pb.TagNumber(2)
-  set totalScanned($core.int v) { $_setUnsignedInt32(1, v); }
+  set totalScanned($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTotalScanned() => $_has(1);
   @$pb.TagNumber(2)
@@ -529,28 +599,29 @@ class PendingFile extends $pb.GeneratedMessage {
     return $result;
   }
   PendingFile._() : super();
-  factory PendingFile.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PendingFile.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory PendingFile.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PendingFile.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PendingFile', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PendingFile',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
     ..aOB(2, _omitFieldNames ? '' : 'encrypted')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU3)
     ..aOS(4, _omitFieldNames ? '' : 'fileType')
     ..aOS(5, _omitFieldNames ? '' : 'filename')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   PendingFile clone() => PendingFile()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  PendingFile copyWith(void Function(PendingFile) updates) => super.copyWith((message) => updates(message as PendingFile)) as PendingFile;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PendingFile copyWith(void Function(PendingFile) updates) =>
+      super.copyWith((message) => updates(message as PendingFile)) as PendingFile;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -565,7 +636,10 @@ class PendingFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -574,7 +648,10 @@ class PendingFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool get encrypted => $_getBF(1);
   @$pb.TagNumber(2)
-  set encrypted($core.bool v) { $_setBool(1, v); }
+  set encrypted($core.bool v) {
+    $_setBool(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasEncrypted() => $_has(1);
   @$pb.TagNumber(2)
@@ -583,7 +660,10 @@ class PendingFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get timestamp => $_getIZ(2);
   @$pb.TagNumber(3)
-  set timestamp($core.int v) { $_setUnsignedInt32(2, v); }
+  set timestamp($core.int v) {
+    $_setUnsignedInt32(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasTimestamp() => $_has(2);
   @$pb.TagNumber(3)
@@ -592,7 +672,10 @@ class PendingFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get fileType => $_getSZ(3);
   @$pb.TagNumber(4)
-  set fileType($core.String v) { $_setString(3, v); }
+  set fileType($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasFileType() => $_has(3);
   @$pb.TagNumber(4)
@@ -601,7 +684,10 @@ class PendingFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get filename => $_getSZ(4);
   @$pb.TagNumber(5)
-  set filename($core.String v) { $_setString(4, v); }
+  set filename($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasFilename() => $_has(4);
   @$pb.TagNumber(5)
@@ -623,25 +709,28 @@ class DownloadPendingFilesResponse extends $pb.GeneratedMessage {
     return $result;
   }
   DownloadPendingFilesResponse._() : super();
-  factory DownloadPendingFilesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DownloadPendingFilesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory DownloadPendingFilesResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory DownloadPendingFilesResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DownloadPendingFilesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DownloadPendingFilesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'downloadedCount', $pb.PbFieldType.OU3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'failedCount', $pb.PbFieldType.OU3)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   DownloadPendingFilesResponse clone() => DownloadPendingFilesResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DownloadPendingFilesResponse copyWith(void Function(DownloadPendingFilesResponse) updates) => super.copyWith((message) => updates(message as DownloadPendingFilesResponse)) as DownloadPendingFilesResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  DownloadPendingFilesResponse copyWith(void Function(DownloadPendingFilesResponse) updates) =>
+      super.copyWith((message) => updates(message as DownloadPendingFilesResponse)) as DownloadPendingFilesResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -650,14 +739,18 @@ class DownloadPendingFilesResponse extends $pb.GeneratedMessage {
   DownloadPendingFilesResponse createEmptyInstance() => create();
   static $pb.PbList<DownloadPendingFilesResponse> createRepeated() => $pb.PbList<DownloadPendingFilesResponse>();
   @$core.pragma('dart2js:noInline')
-  static DownloadPendingFilesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DownloadPendingFilesResponse>(create);
+  static DownloadPendingFilesResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DownloadPendingFilesResponse>(create);
   static DownloadPendingFilesResponse? _defaultInstance;
 
   /// Number of files successfully downloaded
   @$pb.TagNumber(1)
   $core.int get downloadedCount => $_getIZ(0);
   @$pb.TagNumber(1)
-  set downloadedCount($core.int v) { $_setUnsignedInt32(0, v); }
+  set downloadedCount($core.int v) {
+    $_setUnsignedInt32(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasDownloadedCount() => $_has(0);
   @$pb.TagNumber(1)
@@ -667,7 +760,10 @@ class DownloadPendingFilesResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get failedCount => $_getIZ(1);
   @$pb.TagNumber(2)
-  set failedCount($core.int v) { $_setUnsignedInt32(1, v); }
+  set failedCount($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasFailedCount() => $_has(1);
   @$pb.TagNumber(2)
@@ -714,10 +810,13 @@ class BitDriveFile extends $pb.GeneratedMessage {
     return $result;
   }
   BitDriveFile._() : super();
-  factory BitDriveFile.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory BitDriveFile.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory BitDriveFile.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory BitDriveFile.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BitDriveFile', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BitDriveFile',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'filename')
     ..aOS(3, _omitFieldNames ? '' : 'fileType')
@@ -726,19 +825,17 @@ class BitDriveFile extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'txid')
     ..a<$core.int>(7, _omitFieldNames ? '' : 'timestamp', $pb.PbFieldType.OU3)
     ..aOM<$0.Timestamp>(8, _omitFieldNames ? '' : 'createdAt', subBuilder: $0.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   BitDriveFile clone() => BitDriveFile()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  BitDriveFile copyWith(void Function(BitDriveFile) updates) => super.copyWith((message) => updates(message as BitDriveFile)) as BitDriveFile;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  BitDriveFile copyWith(void Function(BitDriveFile) updates) =>
+      super.copyWith((message) => updates(message as BitDriveFile)) as BitDriveFile;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -753,7 +850,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $fixnum.Int64 get id => $_getI64(0);
   @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  set id($fixnum.Int64 v) {
+    $_setInt64(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -762,7 +862,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get filename => $_getSZ(1);
   @$pb.TagNumber(2)
-  set filename($core.String v) { $_setString(1, v); }
+  set filename($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasFilename() => $_has(1);
   @$pb.TagNumber(2)
@@ -771,7 +874,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get fileType => $_getSZ(2);
   @$pb.TagNumber(3)
-  set fileType($core.String v) { $_setString(2, v); }
+  set fileType($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasFileType() => $_has(2);
   @$pb.TagNumber(3)
@@ -780,7 +886,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $fixnum.Int64 get sizeBytes => $_getI64(3);
   @$pb.TagNumber(4)
-  set sizeBytes($fixnum.Int64 v) { $_setInt64(3, v); }
+  set sizeBytes($fixnum.Int64 v) {
+    $_setInt64(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasSizeBytes() => $_has(3);
   @$pb.TagNumber(4)
@@ -789,7 +898,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool get encrypted => $_getBF(4);
   @$pb.TagNumber(5)
-  set encrypted($core.bool v) { $_setBool(4, v); }
+  set encrypted($core.bool v) {
+    $_setBool(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasEncrypted() => $_has(4);
   @$pb.TagNumber(5)
@@ -798,7 +910,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.String get txid => $_getSZ(5);
   @$pb.TagNumber(6)
-  set txid($core.String v) { $_setString(5, v); }
+  set txid($core.String v) {
+    $_setString(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasTxid() => $_has(5);
   @$pb.TagNumber(6)
@@ -807,7 +922,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.int get timestamp => $_getIZ(6);
   @$pb.TagNumber(7)
-  set timestamp($core.int v) { $_setUnsignedInt32(6, v); }
+  set timestamp($core.int v) {
+    $_setUnsignedInt32(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasTimestamp() => $_has(6);
   @$pb.TagNumber(7)
@@ -816,7 +934,10 @@ class BitDriveFile extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $0.Timestamp get createdAt => $_getN(7);
   @$pb.TagNumber(8)
-  set createdAt($0.Timestamp v) { setField(8, v); }
+  set createdAt($0.Timestamp v) {
+    setField(8, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasCreatedAt() => $_has(7);
   @$pb.TagNumber(8)
@@ -836,24 +957,26 @@ class ListFilesResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ListFilesResponse._() : super();
-  factory ListFilesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListFilesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListFilesResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListFilesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFilesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFilesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..pc<BitDriveFile>(1, _omitFieldNames ? '' : 'files', $pb.PbFieldType.PM, subBuilder: BitDriveFile.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ListFilesResponse clone() => ListFilesResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListFilesResponse copyWith(void Function(ListFilesResponse) updates) => super.copyWith((message) => updates(message as ListFilesResponse)) as ListFilesResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListFilesResponse copyWith(void Function(ListFilesResponse) updates) =>
+      super.copyWith((message) => updates(message as ListFilesResponse)) as ListFilesResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -862,7 +985,8 @@ class ListFilesResponse extends $pb.GeneratedMessage {
   ListFilesResponse createEmptyInstance() => create();
   static $pb.PbList<ListFilesResponse> createRepeated() => $pb.PbList<ListFilesResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListFilesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFilesResponse>(create);
+  static ListFilesResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFilesResponse>(create);
   static ListFilesResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -884,25 +1008,26 @@ class GetFileRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GetFileRequest._() : super();
-  factory GetFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetFileRequest clone() => GetFileRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFileRequest copyWith(void Function(GetFileRequest) updates) => super.copyWith((message) => updates(message as GetFileRequest)) as GetFileRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetFileRequest copyWith(void Function(GetFileRequest) updates) =>
+      super.copyWith((message) => updates(message as GetFileRequest)) as GetFileRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -918,7 +1043,10 @@ class GetFileRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $fixnum.Int64 get id => $_getI64(0);
   @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  set id($fixnum.Int64 v) {
+    $_setInt64(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -927,7 +1055,10 @@ class GetFileRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get txid => $_getSZ(1);
   @$pb.TagNumber(2)
-  set txid($core.String v) { $_setString(1, v); }
+  set txid($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTxid() => $_has(1);
   @$pb.TagNumber(2)
@@ -949,25 +1080,27 @@ class GetFileResponse extends $pb.GeneratedMessage {
     return $result;
   }
   GetFileResponse._() : super();
-  factory GetFileResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFileResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetFileResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFileResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFileResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aOM<BitDriveFile>(1, _omitFieldNames ? '' : 'file', subBuilder: BitDriveFile.create)
     ..a<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'content', $pb.PbFieldType.OY)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetFileResponse clone() => GetFileResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFileResponse copyWith(void Function(GetFileResponse) updates) => super.copyWith((message) => updates(message as GetFileResponse)) as GetFileResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetFileResponse copyWith(void Function(GetFileResponse) updates) =>
+      super.copyWith((message) => updates(message as GetFileResponse)) as GetFileResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -976,13 +1109,17 @@ class GetFileResponse extends $pb.GeneratedMessage {
   GetFileResponse createEmptyInstance() => create();
   static $pb.PbList<GetFileResponse> createRepeated() => $pb.PbList<GetFileResponse>();
   @$core.pragma('dart2js:noInline')
-  static GetFileResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFileResponse>(create);
+  static GetFileResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFileResponse>(create);
   static GetFileResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   BitDriveFile get file => $_getN(0);
   @$pb.TagNumber(1)
-  set file(BitDriveFile v) { setField(1, v); }
+  set file(BitDriveFile v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFile() => $_has(0);
   @$pb.TagNumber(1)
@@ -994,7 +1131,10 @@ class GetFileResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.List<$core.int> get content => $_getN(1);
   @$pb.TagNumber(2)
-  set content($core.List<$core.int> v) { $_setBytes(1, v); }
+  set content($core.List<$core.int> v) {
+    $_setBytes(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasContent() => $_has(1);
   @$pb.TagNumber(2)
@@ -1012,24 +1152,26 @@ class DeleteFileRequest extends $pb.GeneratedMessage {
     return $result;
   }
   DeleteFileRequest._() : super();
-  factory DeleteFileRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeleteFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory DeleteFileRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory DeleteFileRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFileRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'id')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   DeleteFileRequest clone() => DeleteFileRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DeleteFileRequest copyWith(void Function(DeleteFileRequest) updates) => super.copyWith((message) => updates(message as DeleteFileRequest)) as DeleteFileRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  DeleteFileRequest copyWith(void Function(DeleteFileRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteFileRequest)) as DeleteFileRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1038,13 +1180,17 @@ class DeleteFileRequest extends $pb.GeneratedMessage {
   DeleteFileRequest createEmptyInstance() => create();
   static $pb.PbList<DeleteFileRequest> createRepeated() => $pb.PbList<DeleteFileRequest>();
   @$core.pragma('dart2js:noInline')
-  static DeleteFileRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFileRequest>(create);
+  static DeleteFileRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFileRequest>(create);
   static DeleteFileRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get id => $_getI64(0);
   @$pb.TagNumber(1)
-  set id($fixnum.Int64 v) { $_setInt64(0, v); }
+  set id($fixnum.Int64 v) {
+    $_setInt64(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1071,26 +1217,29 @@ class StoreMultisigDataRequest extends $pb.GeneratedMessage {
     return $result;
   }
   StoreMultisigDataRequest._() : super();
-  factory StoreMultisigDataRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StoreMultisigDataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory StoreMultisigDataRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory StoreMultisigDataRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreMultisigDataRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreMultisigDataRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'jsonData', $pb.PbFieldType.OY)
     ..aOB(2, _omitFieldNames ? '' : 'encrypt')
-    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..hasRequiredFields = false
-  ;
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'feeSatPerVbyte', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   StoreMultisigDataRequest clone() => StoreMultisigDataRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  StoreMultisigDataRequest copyWith(void Function(StoreMultisigDataRequest) updates) => super.copyWith((message) => updates(message as StoreMultisigDataRequest)) as StoreMultisigDataRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  StoreMultisigDataRequest copyWith(void Function(StoreMultisigDataRequest) updates) =>
+      super.copyWith((message) => updates(message as StoreMultisigDataRequest)) as StoreMultisigDataRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1099,14 +1248,18 @@ class StoreMultisigDataRequest extends $pb.GeneratedMessage {
   StoreMultisigDataRequest createEmptyInstance() => create();
   static $pb.PbList<StoreMultisigDataRequest> createRepeated() => $pb.PbList<StoreMultisigDataRequest>();
   @$core.pragma('dart2js:noInline')
-  static StoreMultisigDataRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreMultisigDataRequest>(create);
+  static StoreMultisigDataRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreMultisigDataRequest>(create);
   static StoreMultisigDataRequest? _defaultInstance;
 
   /// Multisig group data as JSON
   @$pb.TagNumber(1)
   $core.List<$core.int> get jsonData => $_getN(0);
   @$pb.TagNumber(1)
-  set jsonData($core.List<$core.int> v) { $_setBytes(0, v); }
+  set jsonData($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasJsonData() => $_has(0);
   @$pb.TagNumber(1)
@@ -1116,7 +1269,10 @@ class StoreMultisigDataRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool get encrypt => $_getBF(1);
   @$pb.TagNumber(2)
-  set encrypt($core.bool v) { $_setBool(1, v); }
+  set encrypt($core.bool v) {
+    $_setBool(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasEncrypt() => $_has(1);
   @$pb.TagNumber(2)
@@ -1126,7 +1282,10 @@ class StoreMultisigDataRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get feeSatPerVbyte => $_getI64(2);
   @$pb.TagNumber(3)
-  set feeSatPerVbyte($fixnum.Int64 v) { $_setInt64(2, v); }
+  set feeSatPerVbyte($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasFeeSatPerVbyte() => $_has(2);
   @$pb.TagNumber(3)
@@ -1144,24 +1303,26 @@ class StoreMultisigDataResponse extends $pb.GeneratedMessage {
     return $result;
   }
   StoreMultisigDataResponse._() : super();
-  factory StoreMultisigDataResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory StoreMultisigDataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory StoreMultisigDataResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory StoreMultisigDataResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreMultisigDataResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StoreMultisigDataResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   StoreMultisigDataResponse clone() => StoreMultisigDataResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  StoreMultisigDataResponse copyWith(void Function(StoreMultisigDataResponse) updates) => super.copyWith((message) => updates(message as StoreMultisigDataResponse)) as StoreMultisigDataResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  StoreMultisigDataResponse copyWith(void Function(StoreMultisigDataResponse) updates) =>
+      super.copyWith((message) => updates(message as StoreMultisigDataResponse)) as StoreMultisigDataResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1170,13 +1331,17 @@ class StoreMultisigDataResponse extends $pb.GeneratedMessage {
   StoreMultisigDataResponse createEmptyInstance() => create();
   static $pb.PbList<StoreMultisigDataResponse> createRepeated() => $pb.PbList<StoreMultisigDataResponse>();
   @$core.pragma('dart2js:noInline')
-  static StoreMultisigDataResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreMultisigDataResponse>(create);
+  static StoreMultisigDataResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StoreMultisigDataResponse>(create);
   static StoreMultisigDataResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get txid => $_getSZ(0);
   @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
+  set txid($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTxid() => $_has(0);
   @$pb.TagNumber(1)
@@ -1194,24 +1359,26 @@ class GetBitdriveDirResponse extends $pb.GeneratedMessage {
     return $result;
   }
   GetBitdriveDirResponse._() : super();
-  factory GetBitdriveDirResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetBitdriveDirResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetBitdriveDirResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetBitdriveDirResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBitdriveDirResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBitdriveDirResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'bitdrive.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'path')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetBitdriveDirResponse clone() => GetBitdriveDirResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetBitdriveDirResponse copyWith(void Function(GetBitdriveDirResponse) updates) => super.copyWith((message) => updates(message as GetBitdriveDirResponse)) as GetBitdriveDirResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetBitdriveDirResponse copyWith(void Function(GetBitdriveDirResponse) updates) =>
+      super.copyWith((message) => updates(message as GetBitdriveDirResponse)) as GetBitdriveDirResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1220,13 +1387,17 @@ class GetBitdriveDirResponse extends $pb.GeneratedMessage {
   GetBitdriveDirResponse createEmptyInstance() => create();
   static $pb.PbList<GetBitdriveDirResponse> createRepeated() => $pb.PbList<GetBitdriveDirResponse>();
   @$core.pragma('dart2js:noInline')
-  static GetBitdriveDirResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBitdriveDirResponse>(create);
+  static GetBitdriveDirResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBitdriveDirResponse>(create);
   static GetBitdriveDirResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get path => $_getSZ(0);
   @$pb.TagNumber(1)
-  set path($core.String v) { $_setString(0, v); }
+  set path($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPath() => $_has(0);
   @$pb.TagNumber(1)
@@ -1238,40 +1409,32 @@ class BitDriveServiceApi {
   BitDriveServiceApi(this._client);
 
   $async.Future<StoreFileResponse> storeFile($pb.ClientContext? ctx, StoreFileRequest request) =>
-    _client.invoke<StoreFileResponse>(ctx, 'BitDriveService', 'StoreFile', request, StoreFileResponse())
-  ;
+      _client.invoke<StoreFileResponse>(ctx, 'BitDriveService', 'StoreFile', request, StoreFileResponse());
   $async.Future<RetrieveContentResponse> retrieveContent($pb.ClientContext? ctx, RetrieveContentRequest request) =>
-    _client.invoke<RetrieveContentResponse>(ctx, 'BitDriveService', 'RetrieveContent', request, RetrieveContentResponse())
-  ;
+      _client.invoke<RetrieveContentResponse>(
+          ctx, 'BitDriveService', 'RetrieveContent', request, RetrieveContentResponse());
   $async.Future<ScanForFilesResponse> scanForFiles($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<ScanForFilesResponse>(ctx, 'BitDriveService', 'ScanForFiles', request, ScanForFilesResponse())
-  ;
+      _client.invoke<ScanForFilesResponse>(ctx, 'BitDriveService', 'ScanForFiles', request, ScanForFilesResponse());
   $async.Future<DownloadPendingFilesResponse> downloadPendingFiles($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<DownloadPendingFilesResponse>(ctx, 'BitDriveService', 'DownloadPendingFiles', request, DownloadPendingFilesResponse())
-  ;
+      _client.invoke<DownloadPendingFilesResponse>(
+          ctx, 'BitDriveService', 'DownloadPendingFiles', request, DownloadPendingFilesResponse());
   $async.Future<ListFilesResponse> listFiles($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<ListFilesResponse>(ctx, 'BitDriveService', 'ListFiles', request, ListFilesResponse())
-  ;
+      _client.invoke<ListFilesResponse>(ctx, 'BitDriveService', 'ListFiles', request, ListFilesResponse());
   $async.Future<GetFileResponse> getFile($pb.ClientContext? ctx, GetFileRequest request) =>
-    _client.invoke<GetFileResponse>(ctx, 'BitDriveService', 'GetFile', request, GetFileResponse())
-  ;
+      _client.invoke<GetFileResponse>(ctx, 'BitDriveService', 'GetFile', request, GetFileResponse());
   $async.Future<$1.Empty> deleteFile($pb.ClientContext? ctx, DeleteFileRequest request) =>
-    _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'DeleteFile', request, $1.Empty())
-  ;
-  $async.Future<StoreMultisigDataResponse> storeMultisigData($pb.ClientContext? ctx, StoreMultisigDataRequest request) =>
-    _client.invoke<StoreMultisigDataResponse>(ctx, 'BitDriveService', 'StoreMultisigData', request, StoreMultisigDataResponse())
-  ;
+      _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'DeleteFile', request, $1.Empty());
+  $async.Future<StoreMultisigDataResponse> storeMultisigData(
+          $pb.ClientContext? ctx, StoreMultisigDataRequest request) =>
+      _client.invoke<StoreMultisigDataResponse>(
+          ctx, 'BitDriveService', 'StoreMultisigData', request, StoreMultisigDataResponse());
   $async.Future<$1.Empty> wipeData($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'WipeData', request, $1.Empty())
-  ;
-  $async.Future<GetBitdriveDirResponse> getBitdriveDir($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<GetBitdriveDirResponse>(ctx, 'BitDriveService', 'GetBitdriveDir', request, GetBitdriveDirResponse())
-  ;
+      _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'WipeData', request, $1.Empty());
+  $async.Future<GetBitdriveDirResponse> getBitdriveDir($pb.ClientContext? ctx, $1.Empty request) => _client
+      .invoke<GetBitdriveDirResponse>(ctx, 'BitDriveService', 'GetBitdriveDir', request, GetBitdriveDirResponse());
   $async.Future<$1.Empty> openBitdriveDir($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'OpenBitdriveDir', request, $1.Empty())
-  ;
+      _client.invoke<$1.Empty>(ctx, 'BitDriveService', 'OpenBitdriveDir', request, $1.Empty());
 }
-
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

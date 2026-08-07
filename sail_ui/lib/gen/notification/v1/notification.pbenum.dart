@@ -14,12 +14,14 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class TransactionEvent_Type extends $pb.ProtobufEnum {
-  static const TransactionEvent_Type TYPE_UNSPECIFIED = TransactionEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
+  static const TransactionEvent_Type TYPE_UNSPECIFIED =
+      TransactionEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
   static const TransactionEvent_Type TYPE_RECEIVED = TransactionEvent_Type._(1, _omitEnumNames ? '' : 'TYPE_RECEIVED');
   static const TransactionEvent_Type TYPE_SENT = TransactionEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_SENT');
-  static const TransactionEvent_Type TYPE_CONFIRMED = TransactionEvent_Type._(3, _omitEnumNames ? '' : 'TYPE_CONFIRMED');
+  static const TransactionEvent_Type TYPE_CONFIRMED =
+      TransactionEvent_Type._(3, _omitEnumNames ? '' : 'TYPE_CONFIRMED');
 
-  static const $core.List<TransactionEvent_Type> values = <TransactionEvent_Type> [
+  static const $core.List<TransactionEvent_Type> values = <TransactionEvent_Type>[
     TYPE_UNSPECIFIED,
     TYPE_RECEIVED,
     TYPE_SENT,
@@ -33,11 +35,12 @@ class TransactionEvent_Type extends $pb.ProtobufEnum {
 }
 
 class TimestampEvent_Type extends $pb.ProtobufEnum {
-  static const TimestampEvent_Type TYPE_UNSPECIFIED = TimestampEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
+  static const TimestampEvent_Type TYPE_UNSPECIFIED =
+      TimestampEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
   static const TimestampEvent_Type TYPE_CREATED = TimestampEvent_Type._(1, _omitEnumNames ? '' : 'TYPE_CREATED');
   static const TimestampEvent_Type TYPE_CONFIRMED = TimestampEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_CONFIRMED');
 
-  static const $core.List<TimestampEvent_Type> values = <TimestampEvent_Type> [
+  static const $core.List<TimestampEvent_Type> values = <TimestampEvent_Type>[
     TYPE_UNSPECIFIED,
     TYPE_CREATED,
     TYPE_CONFIRMED,
@@ -51,12 +54,15 @@ class TimestampEvent_Type extends $pb.ProtobufEnum {
 
 class SystemEvent_Type extends $pb.ProtobufEnum {
   static const SystemEvent_Type TYPE_UNSPECIFIED = SystemEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
-  static const SystemEvent_Type TYPE_SERVICE_CONNECTED = SystemEvent_Type._(1, _omitEnumNames ? '' : 'TYPE_SERVICE_CONNECTED');
-  static const SystemEvent_Type TYPE_SERVICE_DISCONNECTED = SystemEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_SERVICE_DISCONNECTED');
-  static const SystemEvent_Type TYPE_SYNC_COMPLETED = SystemEvent_Type._(3, _omitEnumNames ? '' : 'TYPE_SYNC_COMPLETED');
+  static const SystemEvent_Type TYPE_SERVICE_CONNECTED =
+      SystemEvent_Type._(1, _omitEnumNames ? '' : 'TYPE_SERVICE_CONNECTED');
+  static const SystemEvent_Type TYPE_SERVICE_DISCONNECTED =
+      SystemEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_SERVICE_DISCONNECTED');
+  static const SystemEvent_Type TYPE_SYNC_COMPLETED =
+      SystemEvent_Type._(3, _omitEnumNames ? '' : 'TYPE_SYNC_COMPLETED');
   static const SystemEvent_Type TYPE_BLOCK_FOUND = SystemEvent_Type._(4, _omitEnumNames ? '' : 'TYPE_BLOCK_FOUND');
 
-  static const $core.List<SystemEvent_Type> values = <SystemEvent_Type> [
+  static const $core.List<SystemEvent_Type> values = <SystemEvent_Type>[
     TYPE_UNSPECIFIED,
     TYPE_SERVICE_CONNECTED,
     TYPE_SERVICE_DISCONNECTED,
@@ -71,11 +77,14 @@ class SystemEvent_Type extends $pb.ProtobufEnum {
 }
 
 class SidechainWithdrawalEvent_Type extends $pb.ProtobufEnum {
-  static const SidechainWithdrawalEvent_Type TYPE_UNSPECIFIED = SidechainWithdrawalEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
-  static const SidechainWithdrawalEvent_Type TYPE_DETECTED = SidechainWithdrawalEvent_Type._(1, _omitEnumNames ? '' : 'TYPE_DETECTED');
-  static const SidechainWithdrawalEvent_Type TYPE_CONFIRMED = SidechainWithdrawalEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_CONFIRMED');
+  static const SidechainWithdrawalEvent_Type TYPE_UNSPECIFIED =
+      SidechainWithdrawalEvent_Type._(0, _omitEnumNames ? '' : 'TYPE_UNSPECIFIED');
+  static const SidechainWithdrawalEvent_Type TYPE_DETECTED =
+      SidechainWithdrawalEvent_Type._(1, _omitEnumNames ? '' : 'TYPE_DETECTED');
+  static const SidechainWithdrawalEvent_Type TYPE_CONFIRMED =
+      SidechainWithdrawalEvent_Type._(2, _omitEnumNames ? '' : 'TYPE_CONFIRMED');
 
-  static const $core.List<SidechainWithdrawalEvent_Type> values = <SidechainWithdrawalEvent_Type> [
+  static const $core.List<SidechainWithdrawalEvent_Type> values = <SidechainWithdrawalEvent_Type>[
     TYPE_UNSPECIFIED,
     TYPE_DETECTED,
     TYPE_CONFIRMED,
@@ -86,6 +95,5 @@ class SidechainWithdrawalEvent_Type extends $pb.ProtobufEnum {
 
   const SidechainWithdrawalEvent_Type._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

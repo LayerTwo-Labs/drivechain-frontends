@@ -15,35 +15,47 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'thunder_conf.pb.dart' as $8;
+import 'thunder_conf.pb.dart' as $9;
 import 'thunder_conf.pbjson.dart';
 
 export 'thunder_conf.pb.dart';
 
 abstract class ThunderConfServiceBase extends $pb.GeneratedService {
-  $async.Future<$8.GetThunderConfigResponse> getThunderConfig($pb.ServerContext ctx, $8.GetThunderConfigRequest request);
-  $async.Future<$8.WriteThunderConfigResponse> writeThunderConfig($pb.ServerContext ctx, $8.WriteThunderConfigRequest request);
-  $async.Future<$8.SyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf($pb.ServerContext ctx, $8.SyncNetworkFromBitcoinConfRequest request);
+  $async.Future<$9.GetThunderConfigResponse> getThunderConfig(
+      $pb.ServerContext ctx, $9.GetThunderConfigRequest request);
+  $async.Future<$9.WriteThunderConfigResponse> writeThunderConfig(
+      $pb.ServerContext ctx, $9.WriteThunderConfigRequest request);
+  $async.Future<$9.SyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf(
+      $pb.ServerContext ctx, $9.SyncNetworkFromBitcoinConfRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetThunderConfig': return $8.GetThunderConfigRequest();
-      case 'WriteThunderConfig': return $8.WriteThunderConfigRequest();
-      case 'SyncNetworkFromBitcoinConf': return $8.SyncNetworkFromBitcoinConfRequest();
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetThunderConfig':
+        return $9.GetThunderConfigRequest();
+      case 'WriteThunderConfig':
+        return $9.WriteThunderConfigRequest();
+      case 'SyncNetworkFromBitcoinConf':
+        return $9.SyncNetworkFromBitcoinConfRequest();
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall(
+      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetThunderConfig': return this.getThunderConfig(ctx, request as $8.GetThunderConfigRequest);
-      case 'WriteThunderConfig': return this.writeThunderConfig(ctx, request as $8.WriteThunderConfigRequest);
-      case 'SyncNetworkFromBitcoinConf': return this.syncNetworkFromBitcoinConf(ctx, request as $8.SyncNetworkFromBitcoinConfRequest);
-      default: throw $core.ArgumentError('Unknown method: $methodName');
+      case 'GetThunderConfig':
+        return this.getThunderConfig(ctx, request as $9.GetThunderConfigRequest);
+      case 'WriteThunderConfig':
+        return this.writeThunderConfig(ctx, request as $9.WriteThunderConfigRequest);
+      case 'SyncNetworkFromBitcoinConf':
+        return this.syncNetworkFromBitcoinConf(ctx, request as $9.SyncNetworkFromBitcoinConfRequest);
+      default:
+        throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => ThunderConfServiceBase$json;
-  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => ThunderConfServiceBase$messageJson;
+  $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson =>
+      ThunderConfServiceBase$messageJson;
 }
-

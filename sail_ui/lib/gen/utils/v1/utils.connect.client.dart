@@ -8,7 +8,7 @@ import "utils.pb.dart" as utilsv1utils;
 import "utils.connect.spec.dart" as specs;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type UtilsServiceClient (connect.Transport _transport) {
+extension type UtilsServiceClient(connect.Transport _transport) {
   /// Bitcoin URI parsing (BIP-0021)
   Future<utilsv1utils.ParseBitcoinURIResponse> parseBitcoinURI(
     utilsv1utils.ParseBitcoinURIRequest input, {

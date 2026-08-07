@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "zside.pb.dart" as zsidev1zside;
 import "zside.connect.spec.dart" as specs;
 
-extension type ZSideServiceClient (connect.Transport _transport) {
+extension type ZSideServiceClient(connect.Transport _transport) {
   /// Get wallet balance (total and available, both transparent and shielded).
   Future<zsidev1zside.GetBalanceResponse> getBalance(
     zsidev1zside.GetBalanceRequest input, {

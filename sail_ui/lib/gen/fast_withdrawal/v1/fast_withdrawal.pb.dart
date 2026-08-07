@@ -39,26 +39,29 @@ class InitiateFastWithdrawalRequest extends $pb.GeneratedMessage {
     return $result;
   }
   InitiateFastWithdrawalRequest._() : super();
-  factory InitiateFastWithdrawalRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory InitiateFastWithdrawalRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory InitiateFastWithdrawalRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory InitiateFastWithdrawalRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'InitiateFastWithdrawalRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'fast_withdrawal.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'InitiateFastWithdrawalRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'fast_withdrawal.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sidechain')
     ..aInt64(2, _omitFieldNames ? '' : 'amount')
     ..aOS(3, _omitFieldNames ? '' : 'destination')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   InitiateFastWithdrawalRequest clone() => InitiateFastWithdrawalRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  InitiateFastWithdrawalRequest copyWith(void Function(InitiateFastWithdrawalRequest) updates) => super.copyWith((message) => updates(message as InitiateFastWithdrawalRequest)) as InitiateFastWithdrawalRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  InitiateFastWithdrawalRequest copyWith(void Function(InitiateFastWithdrawalRequest) updates) =>
+      super.copyWith((message) => updates(message as InitiateFastWithdrawalRequest)) as InitiateFastWithdrawalRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -67,14 +70,18 @@ class InitiateFastWithdrawalRequest extends $pb.GeneratedMessage {
   InitiateFastWithdrawalRequest createEmptyInstance() => create();
   static $pb.PbList<InitiateFastWithdrawalRequest> createRepeated() => $pb.PbList<InitiateFastWithdrawalRequest>();
   @$core.pragma('dart2js:noInline')
-  static InitiateFastWithdrawalRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<InitiateFastWithdrawalRequest>(create);
+  static InitiateFastWithdrawalRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<InitiateFastWithdrawalRequest>(create);
   static InitiateFastWithdrawalRequest? _defaultInstance;
 
   /// Sidechain name (thunder, bitnames, bitassets, etc.)
   @$pb.TagNumber(1)
   $core.String get sidechain => $_getSZ(0);
   @$pb.TagNumber(1)
-  set sidechain($core.String v) { $_setString(0, v); }
+  set sidechain($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -84,7 +91,10 @@ class InitiateFastWithdrawalRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get amount => $_getI64(1);
   @$pb.TagNumber(2)
-  set amount($fixnum.Int64 v) { $_setInt64(1, v); }
+  set amount($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasAmount() => $_has(1);
   @$pb.TagNumber(2)
@@ -94,7 +104,10 @@ class InitiateFastWithdrawalRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get destination => $_getSZ(2);
   @$pb.TagNumber(3)
-  set destination($core.String v) { $_setString(2, v); }
+  set destination($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasDestination() => $_has(2);
   @$pb.TagNumber(3)
@@ -132,29 +145,34 @@ class FastWithdrawalUpdate extends $pb.GeneratedMessage {
     return $result;
   }
   FastWithdrawalUpdate._() : super();
-  factory FastWithdrawalUpdate.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FastWithdrawalUpdate.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FastWithdrawalUpdate.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory FastWithdrawalUpdate.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FastWithdrawalUpdate', package: const $pb.PackageName(_omitMessageNames ? '' : 'fast_withdrawal.v1'), createEmptyInstance: create)
-    ..e<FastWithdrawalUpdate_Status>(1, _omitFieldNames ? '' : 'status', $pb.PbFieldType.OE, defaultOrMaker: FastWithdrawalUpdate_Status.STATUS_UNSPECIFIED, valueOf: FastWithdrawalUpdate_Status.valueOf, enumValues: FastWithdrawalUpdate_Status.values)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FastWithdrawalUpdate',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'fast_withdrawal.v1'), createEmptyInstance: create)
+    ..e<FastWithdrawalUpdate_Status>(1, _omitFieldNames ? '' : 'status', $pb.PbFieldType.OE,
+        defaultOrMaker: FastWithdrawalUpdate_Status.STATUS_UNSPECIFIED,
+        valueOf: FastWithdrawalUpdate_Status.valueOf,
+        enumValues: FastWithdrawalUpdate_Status.values)
     ..aOS(2, _omitFieldNames ? '' : 'txid')
     ..aOS(3, _omitFieldNames ? '' : 'error')
     ..aOS(4, _omitFieldNames ? '' : 'blockHash')
     ..aOM<$0.Timestamp>(5, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
     ..aOS(6, _omitFieldNames ? '' : 'message')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   FastWithdrawalUpdate clone() => FastWithdrawalUpdate()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FastWithdrawalUpdate copyWith(void Function(FastWithdrawalUpdate) updates) => super.copyWith((message) => updates(message as FastWithdrawalUpdate)) as FastWithdrawalUpdate;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  FastWithdrawalUpdate copyWith(void Function(FastWithdrawalUpdate) updates) =>
+      super.copyWith((message) => updates(message as FastWithdrawalUpdate)) as FastWithdrawalUpdate;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -163,13 +181,17 @@ class FastWithdrawalUpdate extends $pb.GeneratedMessage {
   FastWithdrawalUpdate createEmptyInstance() => create();
   static $pb.PbList<FastWithdrawalUpdate> createRepeated() => $pb.PbList<FastWithdrawalUpdate>();
   @$core.pragma('dart2js:noInline')
-  static FastWithdrawalUpdate getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FastWithdrawalUpdate>(create);
+  static FastWithdrawalUpdate getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FastWithdrawalUpdate>(create);
   static FastWithdrawalUpdate? _defaultInstance;
 
   @$pb.TagNumber(1)
   FastWithdrawalUpdate_Status get status => $_getN(0);
   @$pb.TagNumber(1)
-  set status(FastWithdrawalUpdate_Status v) { setField(1, v); }
+  set status(FastWithdrawalUpdate_Status v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasStatus() => $_has(0);
   @$pb.TagNumber(1)
@@ -179,7 +201,10 @@ class FastWithdrawalUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get txid => $_getSZ(1);
   @$pb.TagNumber(2)
-  set txid($core.String v) { $_setString(1, v); }
+  set txid($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTxid() => $_has(1);
   @$pb.TagNumber(2)
@@ -189,7 +214,10 @@ class FastWithdrawalUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get error => $_getSZ(2);
   @$pb.TagNumber(3)
-  set error($core.String v) { $_setString(2, v); }
+  set error($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasError() => $_has(2);
   @$pb.TagNumber(3)
@@ -199,7 +227,10 @@ class FastWithdrawalUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get blockHash => $_getSZ(3);
   @$pb.TagNumber(4)
-  set blockHash($core.String v) { $_setString(3, v); }
+  set blockHash($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasBlockHash() => $_has(3);
   @$pb.TagNumber(4)
@@ -209,7 +240,10 @@ class FastWithdrawalUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $0.Timestamp get timestamp => $_getN(4);
   @$pb.TagNumber(5)
-  set timestamp($0.Timestamp v) { setField(5, v); }
+  set timestamp($0.Timestamp v) {
+    setField(5, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasTimestamp() => $_has(4);
   @$pb.TagNumber(5)
@@ -221,7 +255,10 @@ class FastWithdrawalUpdate extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.String get message => $_getSZ(5);
   @$pb.TagNumber(6)
-  set message($core.String v) { $_setString(5, v); }
+  set message($core.String v) {
+    $_setString(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasMessage() => $_has(5);
   @$pb.TagNumber(6)
@@ -232,11 +269,11 @@ class FastWithdrawalServiceApi {
   $pb.RpcClient _client;
   FastWithdrawalServiceApi(this._client);
 
-  $async.Future<FastWithdrawalUpdate> initiateFastWithdrawal($pb.ClientContext? ctx, InitiateFastWithdrawalRequest request) =>
-    _client.invoke<FastWithdrawalUpdate>(ctx, 'FastWithdrawalService', 'InitiateFastWithdrawal', request, FastWithdrawalUpdate())
-  ;
+  $async.Future<FastWithdrawalUpdate> initiateFastWithdrawal(
+          $pb.ClientContext? ctx, InitiateFastWithdrawalRequest request) =>
+      _client.invoke<FastWithdrawalUpdate>(
+          ctx, 'FastWithdrawalService', 'InitiateFastWithdrawal', request, FastWithdrawalUpdate());
 }
-
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

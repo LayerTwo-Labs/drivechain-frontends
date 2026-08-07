@@ -21,13 +21,7 @@ import 'notification.pbenum.dart';
 
 export 'notification.pbenum.dart';
 
-enum WatchResponse_Event {
-  transaction, 
-  timestampEvent, 
-  system, 
-  sidechainWithdrawal, 
-  notSet
-}
+enum WatchResponse_Event { transaction, timestampEvent, system, sidechainWithdrawal, notSet }
 
 class WatchResponse extends $pb.GeneratedMessage {
   factory WatchResponse({
@@ -56,36 +50,38 @@ class WatchResponse extends $pb.GeneratedMessage {
     return $result;
   }
   WatchResponse._() : super();
-  factory WatchResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory WatchResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory WatchResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory WatchResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
   static const $core.Map<$core.int, WatchResponse_Event> _WatchResponse_EventByTag = {
-    2 : WatchResponse_Event.transaction,
-    3 : WatchResponse_Event.timestampEvent,
-    4 : WatchResponse_Event.system,
-    5 : WatchResponse_Event.sidechainWithdrawal,
-    0 : WatchResponse_Event.notSet
+    2: WatchResponse_Event.transaction,
+    3: WatchResponse_Event.timestampEvent,
+    4: WatchResponse_Event.system,
+    5: WatchResponse_Event.sidechainWithdrawal,
+    0: WatchResponse_Event.notSet
   };
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
     ..oo(0, [2, 3, 4, 5])
     ..aOM<$0.Timestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: $0.Timestamp.create)
     ..aOM<TransactionEvent>(2, _omitFieldNames ? '' : 'transaction', subBuilder: TransactionEvent.create)
     ..aOM<TimestampEvent>(3, _omitFieldNames ? '' : 'timestampEvent', subBuilder: TimestampEvent.create)
     ..aOM<SystemEvent>(4, _omitFieldNames ? '' : 'system', subBuilder: SystemEvent.create)
-    ..aOM<SidechainWithdrawalEvent>(5, _omitFieldNames ? '' : 'sidechainWithdrawal', subBuilder: SidechainWithdrawalEvent.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<SidechainWithdrawalEvent>(5, _omitFieldNames ? '' : 'sidechainWithdrawal',
+        subBuilder: SidechainWithdrawalEvent.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   WatchResponse clone() => WatchResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  WatchResponse copyWith(void Function(WatchResponse) updates) => super.copyWith((message) => updates(message as WatchResponse)) as WatchResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  WatchResponse copyWith(void Function(WatchResponse) updates) =>
+      super.copyWith((message) => updates(message as WatchResponse)) as WatchResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -103,7 +99,10 @@ class WatchResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $0.Timestamp get timestamp => $_getN(0);
   @$pb.TagNumber(1)
-  set timestamp($0.Timestamp v) { setField(1, v); }
+  set timestamp($0.Timestamp v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTimestamp() => $_has(0);
   @$pb.TagNumber(1)
@@ -114,7 +113,10 @@ class WatchResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   TransactionEvent get transaction => $_getN(1);
   @$pb.TagNumber(2)
-  set transaction(TransactionEvent v) { setField(2, v); }
+  set transaction(TransactionEvent v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTransaction() => $_has(1);
   @$pb.TagNumber(2)
@@ -125,7 +127,10 @@ class WatchResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   TimestampEvent get timestampEvent => $_getN(2);
   @$pb.TagNumber(3)
-  set timestampEvent(TimestampEvent v) { setField(3, v); }
+  set timestampEvent(TimestampEvent v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasTimestampEvent() => $_has(2);
   @$pb.TagNumber(3)
@@ -136,7 +141,10 @@ class WatchResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   SystemEvent get system => $_getN(3);
   @$pb.TagNumber(4)
-  set system(SystemEvent v) { setField(4, v); }
+  set system(SystemEvent v) {
+    setField(4, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasSystem() => $_has(3);
   @$pb.TagNumber(4)
@@ -147,7 +155,10 @@ class WatchResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   SidechainWithdrawalEvent get sidechainWithdrawal => $_getN(4);
   @$pb.TagNumber(5)
-  set sidechainWithdrawal(SidechainWithdrawalEvent v) { setField(5, v); }
+  set sidechainWithdrawal(SidechainWithdrawalEvent v) {
+    setField(5, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasSidechainWithdrawal() => $_has(4);
   @$pb.TagNumber(5)
@@ -179,27 +190,32 @@ class TransactionEvent extends $pb.GeneratedMessage {
     return $result;
   }
   TransactionEvent._() : super();
-  factory TransactionEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory TransactionEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory TransactionEvent.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory TransactionEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransactionEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
-    ..e<TransactionEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionEvent_Type.TYPE_UNSPECIFIED, valueOf: TransactionEvent_Type.valueOf, enumValues: TransactionEvent_Type.values)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransactionEvent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
+    ..e<TransactionEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE,
+        defaultOrMaker: TransactionEvent_Type.TYPE_UNSPECIFIED,
+        valueOf: TransactionEvent_Type.valueOf,
+        enumValues: TransactionEvent_Type.values)
     ..aOS(2, _omitFieldNames ? '' : 'txid')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'amountSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.OU3)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   TransactionEvent clone() => TransactionEvent()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  TransactionEvent copyWith(void Function(TransactionEvent) updates) => super.copyWith((message) => updates(message as TransactionEvent)) as TransactionEvent;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  TransactionEvent copyWith(void Function(TransactionEvent) updates) =>
+      super.copyWith((message) => updates(message as TransactionEvent)) as TransactionEvent;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -208,13 +224,17 @@ class TransactionEvent extends $pb.GeneratedMessage {
   TransactionEvent createEmptyInstance() => create();
   static $pb.PbList<TransactionEvent> createRepeated() => $pb.PbList<TransactionEvent>();
   @$core.pragma('dart2js:noInline')
-  static TransactionEvent getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransactionEvent>(create);
+  static TransactionEvent getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransactionEvent>(create);
   static TransactionEvent? _defaultInstance;
 
   @$pb.TagNumber(1)
   TransactionEvent_Type get type => $_getN(0);
   @$pb.TagNumber(1)
-  set type(TransactionEvent_Type v) { setField(1, v); }
+  set type(TransactionEvent_Type v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasType() => $_has(0);
   @$pb.TagNumber(1)
@@ -223,7 +243,10 @@ class TransactionEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get txid => $_getSZ(1);
   @$pb.TagNumber(2)
-  set txid($core.String v) { $_setString(1, v); }
+  set txid($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTxid() => $_has(1);
   @$pb.TagNumber(2)
@@ -232,7 +255,10 @@ class TransactionEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get amountSats => $_getI64(2);
   @$pb.TagNumber(3)
-  set amountSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  set amountSats($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasAmountSats() => $_has(2);
   @$pb.TagNumber(3)
@@ -241,7 +267,10 @@ class TransactionEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.int get confirmations => $_getIZ(3);
   @$pb.TagNumber(4)
-  set confirmations($core.int v) { $_setUnsignedInt32(3, v); }
+  set confirmations($core.int v) {
+    $_setUnsignedInt32(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasConfirmations() => $_has(3);
   @$pb.TagNumber(4)
@@ -275,28 +304,32 @@ class TimestampEvent extends $pb.GeneratedMessage {
     return $result;
   }
   TimestampEvent._() : super();
-  factory TimestampEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory TimestampEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory TimestampEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory TimestampEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TimestampEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
-    ..e<TimestampEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TimestampEvent_Type.TYPE_UNSPECIFIED, valueOf: TimestampEvent_Type.valueOf, enumValues: TimestampEvent_Type.values)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TimestampEvent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
+    ..e<TimestampEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE,
+        defaultOrMaker: TimestampEvent_Type.TYPE_UNSPECIFIED,
+        valueOf: TimestampEvent_Type.valueOf,
+        enumValues: TimestampEvent_Type.values)
     ..aInt64(2, _omitFieldNames ? '' : 'id')
     ..aOS(3, _omitFieldNames ? '' : 'filename')
     ..aOS(4, _omitFieldNames ? '' : 'txid')
     ..aInt64(5, _omitFieldNames ? '' : 'blockHeight')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   TimestampEvent clone() => TimestampEvent()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  TimestampEvent copyWith(void Function(TimestampEvent) updates) => super.copyWith((message) => updates(message as TimestampEvent)) as TimestampEvent;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  TimestampEvent copyWith(void Function(TimestampEvent) updates) =>
+      super.copyWith((message) => updates(message as TimestampEvent)) as TimestampEvent;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -311,7 +344,10 @@ class TimestampEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   TimestampEvent_Type get type => $_getN(0);
   @$pb.TagNumber(1)
-  set type(TimestampEvent_Type v) { setField(1, v); }
+  set type(TimestampEvent_Type v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasType() => $_has(0);
   @$pb.TagNumber(1)
@@ -320,7 +356,10 @@ class TimestampEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get id => $_getI64(1);
   @$pb.TagNumber(2)
-  set id($fixnum.Int64 v) { $_setInt64(1, v); }
+  set id($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasId() => $_has(1);
   @$pb.TagNumber(2)
@@ -329,7 +368,10 @@ class TimestampEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get filename => $_getSZ(2);
   @$pb.TagNumber(3)
-  set filename($core.String v) { $_setString(2, v); }
+  set filename($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasFilename() => $_has(2);
   @$pb.TagNumber(3)
@@ -338,7 +380,10 @@ class TimestampEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get txid => $_getSZ(3);
   @$pb.TagNumber(4)
-  set txid($core.String v) { $_setString(3, v); }
+  set txid($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasTxid() => $_has(3);
   @$pb.TagNumber(4)
@@ -347,7 +392,10 @@ class TimestampEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $fixnum.Int64 get blockHeight => $_getI64(4);
   @$pb.TagNumber(5)
-  set blockHeight($fixnum.Int64 v) { $_setInt64(4, v); }
+  set blockHeight($fixnum.Int64 v) {
+    $_setInt64(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasBlockHeight() => $_has(4);
   @$pb.TagNumber(5)
@@ -369,25 +417,29 @@ class SystemEvent extends $pb.GeneratedMessage {
     return $result;
   }
   SystemEvent._() : super();
-  factory SystemEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SystemEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SystemEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SystemEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SystemEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
-    ..e<SystemEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: SystemEvent_Type.TYPE_UNSPECIFIED, valueOf: SystemEvent_Type.valueOf, enumValues: SystemEvent_Type.values)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SystemEvent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
+    ..e<SystemEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE,
+        defaultOrMaker: SystemEvent_Type.TYPE_UNSPECIFIED,
+        valueOf: SystemEvent_Type.valueOf,
+        enumValues: SystemEvent_Type.values)
     ..aOS(2, _omitFieldNames ? '' : 'message')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SystemEvent clone() => SystemEvent()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SystemEvent copyWith(void Function(SystemEvent) updates) => super.copyWith((message) => updates(message as SystemEvent)) as SystemEvent;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SystemEvent copyWith(void Function(SystemEvent) updates) =>
+      super.copyWith((message) => updates(message as SystemEvent)) as SystemEvent;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -402,7 +454,10 @@ class SystemEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   SystemEvent_Type get type => $_getN(0);
   @$pb.TagNumber(1)
-  set type(SystemEvent_Type v) { setField(1, v); }
+  set type(SystemEvent_Type v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasType() => $_has(0);
   @$pb.TagNumber(1)
@@ -411,7 +466,10 @@ class SystemEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get message => $_getSZ(1);
   @$pb.TagNumber(2)
-  set message($core.String v) { $_setString(1, v); }
+  set message($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasMessage() => $_has(1);
   @$pb.TagNumber(2)
@@ -453,30 +511,35 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
     return $result;
   }
   SidechainWithdrawalEvent._() : super();
-  factory SidechainWithdrawalEvent.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SidechainWithdrawalEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SidechainWithdrawalEvent.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SidechainWithdrawalEvent.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SidechainWithdrawalEvent', package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
-    ..e<SidechainWithdrawalEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: SidechainWithdrawalEvent_Type.TYPE_UNSPECIFIED, valueOf: SidechainWithdrawalEvent_Type.valueOf, enumValues: SidechainWithdrawalEvent_Type.values)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SidechainWithdrawalEvent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'notification.v1'), createEmptyInstance: create)
+    ..e<SidechainWithdrawalEvent_Type>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE,
+        defaultOrMaker: SidechainWithdrawalEvent_Type.TYPE_UNSPECIFIED,
+        valueOf: SidechainWithdrawalEvent_Type.valueOf,
+        enumValues: SidechainWithdrawalEvent_Type.values)
     ..aOS(2, _omitFieldNames ? '' : 'txid')
     ..aOS(3, _omitFieldNames ? '' : 'sidechain')
     ..aInt64(4, _omitFieldNames ? '' : 'amount')
     ..aOS(5, _omitFieldNames ? '' : 'destination')
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'detectedAt', subBuilder: $0.Timestamp.create)
     ..aOS(7, _omitFieldNames ? '' : 'blockHash')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SidechainWithdrawalEvent clone() => SidechainWithdrawalEvent()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SidechainWithdrawalEvent copyWith(void Function(SidechainWithdrawalEvent) updates) => super.copyWith((message) => updates(message as SidechainWithdrawalEvent)) as SidechainWithdrawalEvent;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SidechainWithdrawalEvent copyWith(void Function(SidechainWithdrawalEvent) updates) =>
+      super.copyWith((message) => updates(message as SidechainWithdrawalEvent)) as SidechainWithdrawalEvent;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -485,13 +548,17 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
   SidechainWithdrawalEvent createEmptyInstance() => create();
   static $pb.PbList<SidechainWithdrawalEvent> createRepeated() => $pb.PbList<SidechainWithdrawalEvent>();
   @$core.pragma('dart2js:noInline')
-  static SidechainWithdrawalEvent getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SidechainWithdrawalEvent>(create);
+  static SidechainWithdrawalEvent getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SidechainWithdrawalEvent>(create);
   static SidechainWithdrawalEvent? _defaultInstance;
 
   @$pb.TagNumber(1)
   SidechainWithdrawalEvent_Type get type => $_getN(0);
   @$pb.TagNumber(1)
-  set type(SidechainWithdrawalEvent_Type v) { setField(1, v); }
+  set type(SidechainWithdrawalEvent_Type v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasType() => $_has(0);
   @$pb.TagNumber(1)
@@ -500,7 +567,10 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get txid => $_getSZ(1);
   @$pb.TagNumber(2)
-  set txid($core.String v) { $_setString(1, v); }
+  set txid($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTxid() => $_has(1);
   @$pb.TagNumber(2)
@@ -509,7 +579,10 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get sidechain => $_getSZ(2);
   @$pb.TagNumber(3)
-  set sidechain($core.String v) { $_setString(2, v); }
+  set sidechain($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasSidechain() => $_has(2);
   @$pb.TagNumber(3)
@@ -518,7 +591,10 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $fixnum.Int64 get amount => $_getI64(3);
   @$pb.TagNumber(4)
-  set amount($fixnum.Int64 v) { $_setInt64(3, v); }
+  set amount($fixnum.Int64 v) {
+    $_setInt64(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasAmount() => $_has(3);
   @$pb.TagNumber(4)
@@ -527,7 +603,10 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get destination => $_getSZ(4);
   @$pb.TagNumber(5)
-  set destination($core.String v) { $_setString(4, v); }
+  set destination($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasDestination() => $_has(4);
   @$pb.TagNumber(5)
@@ -536,7 +615,10 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $0.Timestamp get detectedAt => $_getN(5);
   @$pb.TagNumber(6)
-  set detectedAt($0.Timestamp v) { setField(6, v); }
+  set detectedAt($0.Timestamp v) {
+    setField(6, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasDetectedAt() => $_has(5);
   @$pb.TagNumber(6)
@@ -547,7 +629,10 @@ class SidechainWithdrawalEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.String get blockHash => $_getSZ(6);
   @$pb.TagNumber(7)
-  set blockHash($core.String v) { $_setString(6, v); }
+  set blockHash($core.String v) {
+    $_setString(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasBlockHash() => $_has(6);
   @$pb.TagNumber(7)
@@ -559,10 +644,8 @@ class NotificationServiceApi {
   NotificationServiceApi(this._client);
 
   $async.Future<WatchResponse> watch($pb.ClientContext? ctx, $1.Empty request) =>
-    _client.invoke<WatchResponse>(ctx, 'NotificationService', 'Watch', request, WatchResponse())
-  ;
+      _client.invoke<WatchResponse>(ctx, 'NotificationService', 'Watch', request, WatchResponse());
 }
-
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

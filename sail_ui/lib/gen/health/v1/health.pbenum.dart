@@ -14,12 +14,15 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class CheckResponse_Status extends $pb.ProtobufEnum {
-  static const CheckResponse_Status STATUS_UNSPECIFIED = CheckResponse_Status._(0, _omitEnumNames ? '' : 'STATUS_UNSPECIFIED');
+  static const CheckResponse_Status STATUS_UNSPECIFIED =
+      CheckResponse_Status._(0, _omitEnumNames ? '' : 'STATUS_UNSPECIFIED');
   static const CheckResponse_Status STATUS_SERVING = CheckResponse_Status._(1, _omitEnumNames ? '' : 'STATUS_SERVING');
-  static const CheckResponse_Status STATUS_NOT_SERVING = CheckResponse_Status._(2, _omitEnumNames ? '' : 'STATUS_NOT_SERVING');
-  static const CheckResponse_Status STATUS_SERVICE_UNKNOWN = CheckResponse_Status._(3, _omitEnumNames ? '' : 'STATUS_SERVICE_UNKNOWN');
+  static const CheckResponse_Status STATUS_NOT_SERVING =
+      CheckResponse_Status._(2, _omitEnumNames ? '' : 'STATUS_NOT_SERVING');
+  static const CheckResponse_Status STATUS_SERVICE_UNKNOWN =
+      CheckResponse_Status._(3, _omitEnumNames ? '' : 'STATUS_SERVICE_UNKNOWN');
 
-  static const $core.List<CheckResponse_Status> values = <CheckResponse_Status> [
+  static const $core.List<CheckResponse_Status> values = <CheckResponse_Status>[
     STATUS_UNSPECIFIED,
     STATUS_SERVING,
     STATUS_NOT_SERVING,
@@ -31,6 +34,5 @@ class CheckResponse_Status extends $pb.ProtobufEnum {
 
   const CheckResponse_Status._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');
