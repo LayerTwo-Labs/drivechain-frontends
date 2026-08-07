@@ -177,8 +177,6 @@ func (m *BitcoinConfManager) GetDefaultConfig() string {
 [main]
 port=8300
 rpcport=18301
-rpcbind=127.0.0.1
-rpcallowip=0.0.0.0/0
 assumevalid=0000000000000000000000000000000000000000000000000000000000000000
 minimumchainwork=0x00
 listenonion=0
@@ -192,8 +190,6 @@ fallbackfee=0.00021
 [main]
 port=8301
 rpcport=18302
-rpcbind=127.0.0.1
-rpcallowip=0.0.0.0/0
 addnode=%s
 uacomment=%s
 assumevalid=0000000000000000000000000000000000000000000000000000000000000000

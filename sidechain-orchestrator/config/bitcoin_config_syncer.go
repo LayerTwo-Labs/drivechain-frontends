@@ -517,8 +517,6 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 		defaults = []struct{ k, v string }{
 			{"port", "8300"},
 			{"rpcport", "18301"},
-			{"rpcbind", "127.0.0.1"},
-			{"rpcallowip", "0.0.0.0/0"},
 			{"assumevalid", "0000000000000000000000000000000000000000000000000000000000000000"},
 			{"minimumchainwork", "0x00"},
 			{"listenonion", "0"},
@@ -529,8 +527,6 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 		defaults = []struct{ k, v string }{
 			{"port", "8301"},
 			{"rpcport", "18302"},
-			{"rpcbind", "127.0.0.1"},
-			{"rpcallowip", "0.0.0.0/0"},
 			{"addnode", m.DrynetPeer()},
 			{"uacomment", m.Generation()},
 			{"assumevalid", "0000000000000000000000000000000000000000000000000000000000000000"},
