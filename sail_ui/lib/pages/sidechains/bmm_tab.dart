@@ -1,609 +1,565 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/gen/bmm/v1/bmm.pb.dart' as bmmpb;
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sail_ui/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BMMTab extends StatelessWidget {
   const BMMTab({super.key});
 
-  /// Get the status color based on attempt status
-  Color? _getStatusColor(BmmResult attempt, SailColor colors) {
-    if (attempt.raw.isEmpty) {
-      // Trying...
-      return colors.orange.withValues(alpha: 0.3);
-    } else if (attempt.error != null) {
-      // Error/Failed
-      return colors.error.withValues(alpha: 0.3);
-    } else {
-      // Success
-      return colors.success.withValues(alpha: 0.3);
-    }
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelBuilder.reactive(
+      viewModelBuilder: () => BMMViewModel(),
+      builder: (context, viewModel, child) {
+        return SailCard(
+          title: 'BMM',
+          subtitle: 'One sidechain block per mainchain block — bid below what the block is worth',
+          error: viewModel.bmmError,
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Controls(viewModel: viewModel),
+              _CurrentSlot(viewModel: viewModel),
+              _BidsOnNextBlock(viewModel: viewModel),
+              _HistoricBids(viewModel: viewModel),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Controls extends StatelessWidget {
+  final BMMViewModel viewModel;
+  const _Controls({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailRow(
+      spacing: SailStyleValues.padding08,
+      children: [
+        SailButton(
+          label: viewModel.running ? 'Stop auto-bidding' : 'Start auto-bidding',
+          onPressed: () async => viewModel.running ? await viewModel.stopBidding() : await viewModel.startBidding(),
+        ),
+        SailButton(
+          label: 'Bid manually',
+          variant: ButtonVariant.secondary,
+          onPressed: () async => _showManualBidDialog(context, viewModel),
+        ),
+        SailButton(
+          label: 'Grief',
+          variant: ButtonVariant.secondary,
+          onPressed: () async => viewModel.bmmProvider.griefBid(),
+        ),
+        Expanded(child: Container()),
+        SailText.primary13('Min bid:'),
+        SizedBox(
+          width: 130,
+          child: SailTextField(controller: viewModel.minBidController, hintText: '0.00005000'),
+        ),
+        SailText.primary13('Max bid:'),
+        SizedBox(
+          width: 130,
+          child: SailTextField(controller: viewModel.maxBidController, hintText: '0.00020000'),
+        ),
+      ],
+    );
   }
 
-  /// Get the status text color based on attempt status
-  Color _getStatusTextColor(BmmResult attempt, SailColor colors) {
-    if (attempt.raw.isEmpty) {
-      return colors.orange;
-    } else if (attempt.error != null) {
-      return colors.error;
-    } else {
-      return colors.success;
-    }
-  }
+  void _showManualBidDialog(BuildContext context, BMMViewModel viewModel) {
+    final controller = TextEditingController(text: viewModel.bmmProvider.minBidSats.toString());
+    final worth = viewModel.blockWorthSats;
 
-  /// Show Manual BMM Dialog for advanced control
-  void _showManualBMMDialog(BuildContext context, BMMViewModel viewModel) {
-    final theme = SailTheme.of(context);
     showThemedDialog(
       context: context,
       builder: (BuildContext context) {
+        final theme = SailTheme.of(context);
         return AlertDialog(
-          title: SailText.primary15('Manual BMM Control'),
+          title: SailText.primary15('Manual bid'),
           content: SizedBox(
-            width: 600,
-            child: SingleChildScrollView(
-              child: SailColumn(
-                spacing: SailStyleValues.padding16,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Last Attempt Details
-                  if (viewModel.attempts.isNotEmpty) ...[
-                    SailText.primary13('Last Attempt Details', bold: true),
-                    Container(
-                      padding: const EdgeInsets.all(SailStyleValues.padding12),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(
-                          viewModel.attempts.first,
-                          theme.colors,
-                        ),
-                        borderRadius: SailStyleValues.borderRadiusSmall,
-                        border: Border.all(color: theme.colors.border),
-                      ),
-                      child: SailColumn(
-                        spacing: SailStyleValues.padding08,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _CopyableField(
-                            label: 'Status',
-                            value: viewModel.attempts.first.status,
-                          ),
-                          _CopyableField(
-                            label: 'MC Transaction ID',
-                            value: viewModel.attempts.first.txid.isEmpty ? 'Pending...' : viewModel.attempts.first.txid,
-                          ),
-                          _CopyableField(
-                            label: 'MC Block Hash',
-                            value: viewModel.attempts.first.hashLastMainBlock.isEmpty
-                                ? 'Unknown'
-                                : viewModel.attempts.first.hashLastMainBlock,
-                          ),
-                          if (viewModel.attempts.first.bmmBlockCreated != null)
-                            _CopyableField(
-                              label: 'BMM Block Created (h*)',
-                              value: viewModel.attempts.first.bmmBlockCreated!,
-                            ),
-                          if (viewModel.attempts.first.bmmBlockSubmitted != null)
-                            _CopyableField(
-                              label: 'BMM Block Submitted',
-                              value: viewModel.attempts.first.bmmBlockSubmitted!,
-                            ),
-                          if (viewModel.attempts.first.bmmBlockSubmittedBlind != null)
-                            _CopyableField(
-                              label: 'BMM Block Submitted (Blind)',
-                              value: viewModel.attempts.first.bmmBlockSubmittedBlind!,
-                            ),
-                          _CopyableField(
-                            label: 'Transactions',
-                            value: viewModel.attempts.first.ntxn.toString(),
-                          ),
-                          _CopyableField(
-                            label: 'Fees (sats)',
-                            value: viewModel.attempts.first.nfees.toString(),
-                          ),
-                          if (viewModel.attempts.first.error != null)
-                            _CopyableField(
-                              label: 'Error',
-                              value: viewModel.attempts.first.error!,
-                              valueColor: theme.colors.error,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ] else
-                    SailText.secondary13(
-                      'No BMM attempts yet. Click "Mine Now" to create one.',
-                    ),
-
-                  Divider(color: theme.colors.divider),
-
-                  // Manual Mining Controls
-                  SailText.primary13('Manual Mining', bold: true),
-                  SailRow(
-                    spacing: SailStyleValues.padding08,
-                    children: [
-                      SailText.primary12('Bid Amount (BTC):'),
-                      SizedBox(
-                        width: 120,
-                        child: SailTextField(
-                          controller: viewModel.bidAmountController,
-                          hintText: '0.0001',
-                        ),
-                      ),
-                    ],
+            width: 480,
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.secondary13(
+                  'One bid for the next mainchain block. It costs nothing unless a miner takes it.',
+                ),
+                SailTextField(controller: controller, hintText: 'Bid in sats'),
+                if (worth > 0)
+                  SailText.secondary12(
+                    'This block collects $worth sats in fees. A bid above that loses money.',
+                    color: theme.colors.orange,
                   ),
-                  SailButton(
-                    label: 'Mine Single Block Now',
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      await viewModel.bmmProvider.makeAttempt();
-                    },
-                  ),
-
-                  Divider(color: theme.colors.divider),
-
-                  // Raw Data (for debugging)
-                  if (viewModel.attempts.isNotEmpty && viewModel.attempts.first.raw.isNotEmpty) ...[
-                    SailText.primary13('Raw Response Data', bold: true),
-                    Container(
-                      padding: const EdgeInsets.all(SailStyleValues.padding08),
-                      decoration: BoxDecoration(
-                        color: theme.colors.backgroundSecondary,
-                        borderRadius: SailStyleValues.borderRadiusSmall,
-                      ),
-                      child: SelectableText(
-                        viewModel.attempts.first.raw,
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 11,
-                          color: theme.colors.text,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              ],
             ),
           ),
           actions: [
             SailButton(
-              label: 'Close',
+              label: 'Cancel',
               variant: ButtonVariant.secondary,
               onPressed: () async => Navigator.of(context).pop(),
+            ),
+            SailButton(
+              label: 'Place bid',
+              onPressed: () async {
+                final sats = int.tryParse(controller.text.trim());
+                Navigator.of(context).pop();
+                if (sats != null && sats > 0) {
+                  await viewModel.bmmProvider.bidManually(sats);
+                }
+              },
             ),
           ],
         );
       },
     );
   }
+}
+
+/// The block being bid on: what it is worth, what we bid, what we stand to make.
+class _CurrentSlot extends StatelessWidget {
+  final BMMViewModel viewModel;
+  const _CurrentSlot({required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
-    return ViewModelBuilder.reactive(
-      viewModelBuilder: () => BMMViewModel(),
-      builder: (context, viewModel, child) {
-        return SailCard(
-          title: 'BMM',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final live = viewModel.bmmProvider.liveBid;
+
+    return Container(
+      padding: const EdgeInsets.all(SailStyleValues.padding12),
+      decoration: BoxDecoration(
+        color: theme.colors.backgroundSecondary,
+        borderRadius: SailStyleValues.borderRadiusSmall,
+      ),
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailRow(
+            spacing: SailStyleValues.padding08,
             children: [
-              SailRow(
-                spacing: SailStyleValues.padding04,
-                children: [
-                  SailButton(
-                    label: 'Start',
-                    disabled: viewModel.isMining,
-                    onPressed: () async => viewModel.bmmProvider.startMining(),
-                  ),
-                  const SizedBox(width: 8),
-                  SailButton(
-                    label: 'Stop',
-                    onPressed: () async => viewModel.bmmProvider.stopMining(),
-                    disabled: !viewModel.isMining,
-                    variant: ButtonVariant.secondary,
-                  ),
-                  const SizedBox(width: 8),
-                  SailButton(
-                    label: 'Mine Now',
-                    onPressed: () async => viewModel.bmmProvider.makeAttempt(),
-                    variant: ButtonVariant.secondary,
-                  ),
-                  const SizedBox(width: 8),
-                  SailButton(
-                    label: 'Manual',
-                    onPressed: () async => _showManualBMMDialog(context, viewModel),
-                    variant: ButtonVariant.secondary,
-                  ),
-                  const SizedBox(width: 16),
-                  SailText.primary15('Bid Amount:'),
-                  SizedBox(
-                    width: 120,
-                    child: SailTextField(
-                      controller: viewModel.bidAmountController,
-                      hintText: '0.0001',
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  SailText.primary15('Refresh:'),
-                  SizedBox(
-                    width: 150,
-                    child: SailTextField(
-                      controller: viewModel.intervalController,
-                      hintText: '1 Second(s)',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Statistics row
-              SailRow(
-                spacing: SailStyleValues.padding16,
-                children: [
-                  _StatChip(
-                    label: 'Success',
-                    value: viewModel.successCount.toString(),
-                    color: theme.colors.success,
-                  ),
-                  _StatChip(
-                    label: 'Failed',
-                    value: viewModel.failedCount.toString(),
-                    color: theme.colors.error,
-                  ),
-                  _StatChip(
-                    label: 'Pending',
-                    value: viewModel.pendingCount.toString(),
-                    color: theme.colors.orange,
-                  ),
-                  _StatChip(
-                    label: 'Total Profit',
-                    value: '${viewModel.totalProfit} ${activeTicker.subunit}',
-                    color: viewModel.totalProfit >= 0 ? theme.colors.success : theme.colors.error,
-                  ),
-                  const Spacer(),
-                  if (viewModel.attempts.isNotEmpty)
-                    SailButton(
-                      label: 'Clear History',
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async => viewModel.clearHistory(),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SailTable(
-                  getRowId: (index) =>
-                      viewModel.attempts[index].txid.isEmpty ? 'attempt-$index' : viewModel.attempts[index].txid,
-                  headerBuilder: (context) => [
-                    SailTableHeaderCell(name: 'MC txid'),
-                    SailTableHeaderCell(name: 'MC Block'),
-                    SailTableHeaderCell(name: 'SC Block'),
-                    SailTableHeaderCell(name: 'Txns'),
-                    SailTableHeaderCell(name: 'Fees (sats)'),
-                    SailTableHeaderCell(name: 'Bid (sats)'),
-                    SailTableHeaderCell(name: 'Profit (sats)'),
-                    SailTableHeaderCell(name: 'Status'),
-                  ],
-                  rowBuilder: (context, row, selected) {
-                    final attempt = viewModel.attempts[row];
-                    final shortTxid = attempt.txid.length > 10 ? '${attempt.txid.substring(0, 10)}..' : attempt.txid;
-                    final shortBlockHash = attempt.hashLastMainBlock.length > 10
-                        ? '${attempt.hashLastMainBlock.substring(0, 10)}..'
-                        : attempt.hashLastMainBlock;
-
-                    // Calculate profit: fees - bid amount (in satoshis)
-                    final bidSats = (viewModel.bmmProvider.bidAmount * 100000000).round();
-                    final profit = attempt.nfees - bidSats;
-                    final profitDisplay = attempt.raw.isEmpty ? '-' : profit.toString();
-                    final profitColor = profit >= 0 ? theme.colors.success : theme.colors.error;
-
-                    return [
-                      SailTableCell(
-                        value: shortTxid.isEmpty ? '-' : shortTxid,
-                        copyValue: attempt.txid,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: shortBlockHash.isEmpty ? '-' : shortBlockHash,
-                        copyValue: attempt.hashLastMainBlock,
-                        monospace: true,
-                      ),
-                      SailTableCell(
-                        value: attempt.bmmBlockCreated ?? '-',
-                        monospace: true,
-                      ),
-                      SailTableCell(value: attempt.ntxn.toString()),
-                      SailTableCell(
-                        value: attempt.nfees.toString(),
-                        monospace: true,
-                      ),
-                      SailTableCell(value: bidSats.toString(), monospace: true),
-                      SailTableCell(
-                        value: profitDisplay,
-                        monospace: true,
-                        textColor: attempt.raw.isNotEmpty ? profitColor : null,
-                      ),
-                      SailTableCell(
-                        value: attempt.status,
-                        textColor: _getStatusTextColor(attempt, theme.colors),
-                      ),
-                    ];
-                  },
-                  rowCount: viewModel.attempts.length,
-                  // Highlight rows based on status
-                  rowBackgroundColor: (index) {
-                    final attempt = viewModel.attempts[index];
-                    return _getStatusColor(attempt, theme.colors);
-                  },
-                  drawGrid: true,
-                  contextMenuItems: (rowId) {
-                    // Handle both empty txid (attempt-N format) and regular txid
-                    late final BmmResult attempt;
-                    if (rowId.startsWith('attempt-')) {
-                      final index = int.parse(
-                        rowId.replaceFirst('attempt-', ''),
-                      );
-                      attempt = viewModel.attempts[index];
-                    } else {
-                      attempt = viewModel.attempts.firstWhere(
-                        (a) => a.txid == rowId,
-                      );
-                    }
-                    return [
-                      SailMenuItem(
-                        onSelected: () {
-                          // Copy transaction ID to clipboard
-                          Clipboard.setData(ClipboardData(text: attempt.txid));
-                        },
-                        child: SailText.primary12('Copy TXID'),
-                      ),
-                      if (attempt.bmmBlockCreated != null)
-                        SailMenuItem(
-                          onSelected: () {
-                            // Copy block hash to clipboard
-                            Clipboard.setData(
-                              ClipboardData(text: attempt.bmmBlockCreated!),
-                            );
-                          },
-                          child: SailText.primary12('Copy Block Hash'),
-                        ),
-                      SailMenuItem(
-                        onSelected: () {
-                          // Show attempt details in a dialog
-                          showThemedDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: SailText.primary15(
-                                  'BMM Attempt Details',
-                                ),
-                                content: SailColumn(
-                                  spacing: SailStyleValues.padding08,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SailText.primary12(
-                                      'Transaction ID: ${attempt.txid}',
-                                    ),
-                                    SailText.primary12(
-                                      'Mainchain Block: ${attempt.hashLastMainBlock}',
-                                    ),
-                                    if (attempt.bmmBlockCreated != null)
-                                      SailText.primary12(
-                                        'Sidechain Block: ${attempt.bmmBlockCreated}',
-                                      ),
-                                    if (attempt.bmmBlockSubmitted != null)
-                                      SailText.primary12(
-                                        'Submitted Block: ${attempt.bmmBlockSubmitted}',
-                                      ),
-                                    if (attempt.bmmBlockSubmittedBlind != null)
-                                      SailText.primary12(
-                                        'Submitted Blind: ${attempt.bmmBlockSubmittedBlind}',
-                                      ),
-                                    SailText.primary12(
-                                      'Transactions: ${attempt.ntxn}',
-                                    ),
-                                    SailText.primary12(
-                                      'Fees: ${attempt.nfees}',
-                                    ),
-                                    if (attempt.error != null)
-                                      SailText.primary12(
-                                        'Error: ${attempt.error}',
-                                        color: theme.colors.error,
-                                      ),
-                                  ],
-                                ),
-                                actions: [
-                                  SailButton(
-                                    label: 'Close',
-                                    onPressed: () async => Navigator.of(context).pop(),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        },
-                        child: SailText.primary12('Show Details'),
-                      ),
-                    ];
-                  },
-                ),
-              ),
+              SailText.primary13('Current slot', bold: true),
+              SailText.secondary12(viewModel.slotStatus),
+              Expanded(child: Container()),
+              SailText.secondary12(viewModel.slotHint),
             ],
           ),
-        );
-      },
-    );
-  }
-}
-
-class BMMViewModel extends BaseViewModel {
-  final BMMProvider bmmProvider = GetIt.I.get<BMMProvider>();
-
-  final TextEditingController bidAmountController;
-  final TextEditingController intervalController;
-
-  Timer? _syncTimer;
-
-  BMMViewModel() : bidAmountController = TextEditingController(), intervalController = TextEditingController() {
-    // Initialize controllers with provider values
-    bidAmountController.text = bmmProvider.bidAmount.toString();
-    intervalController.text = bmmProvider.interval.inSeconds.toString();
-
-    // Listen for changes in the text fields
-    bidAmountController.addListener(_onBidAmountChanged);
-    intervalController.addListener(_onIntervalChanged);
-
-    // Listen for changes in provider and update controllers
-    bmmProvider.addListener(_syncControllers);
-
-    // Optionally, keep controllers in sync every second
-    _syncTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _syncControllers(),
-    );
-  }
-
-  bool get isMining => bmmProvider.isMining;
-
-  int get successCount => attempts.where((a) => a.raw.isNotEmpty && a.error == null).length;
-  int get failedCount => attempts.where((a) => a.error != null).length;
-  int get pendingCount => attempts.where((a) => a.raw.isEmpty).length;
-
-  int get totalProfit {
-    final bidSats = (bmmProvider.bidAmount * 100000000).round();
-    return attempts.where((a) => a.raw.isNotEmpty && a.error == null).fold(0, (sum, a) => sum + (a.nfees - bidSats));
-  }
-
-  void clearHistory() {
-    bmmProvider.attempts.clear();
-    notifyListeners();
-  }
-
-  void _onBidAmountChanged() {
-    final parsed = double.tryParse(bidAmountController.text);
-    if (parsed != null && parsed != bmmProvider.bidAmount) {
-      bmmProvider.setBidAmount(parsed);
-    }
-    notifyListeners();
-  }
-
-  void _onIntervalChanged() {
-    final parsed = int.tryParse(intervalController.text);
-    if (parsed != null && parsed != bmmProvider.interval.inSeconds) {
-      bmmProvider.setInterval(Duration(seconds: parsed));
-    }
-    notifyListeners();
-  }
-
-  void _syncControllers() {
-    if (bidAmountController.text != bmmProvider.bidAmount.toString()) {
-      bidAmountController.text = bmmProvider.bidAmount.toString();
-    }
-    if (intervalController.text != bmmProvider.interval.inSeconds.toString()) {
-      intervalController.text = bmmProvider.interval.inSeconds.toString();
-    }
-    notifyListeners();
-  }
-
-  List<BmmResult> get attempts => bmmProvider.attempts;
-
-  @override
-  void dispose() {
-    bidAmountController.removeListener(_onBidAmountChanged);
-    intervalController.removeListener(_onIntervalChanged);
-    bidAmountController.dispose();
-    intervalController.dispose();
-    bmmProvider.removeListener(_syncControllers);
-    _syncTimer?.cancel();
-    super.dispose();
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatChip({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: SailStyleValues.padding12,
-        vertical: SailStyleValues.padding04,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: SailStyleValues.borderRadiusSmall,
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SailText.primary12(label, color: color),
-          const SizedBox(width: 8),
-          SailText.primary12(value, bold: true, color: color),
+          SailRow(
+            spacing: SailStyleValues.padding32,
+            children: [
+              _Figure(label: 'Block worth', value: viewModel.formatSats(viewModel.blockWorthSats)),
+              _Figure(
+                label: 'Your bid',
+                value: live == null ? '—' : viewModel.formatSats(live.bidSats.toInt()),
+              ),
+              _Figure(label: 'Profit if won', value: viewModel.formatSats(viewModel.profitIfWon)),
+              _Figure(label: 'Sidechain block ready', value: viewModel.currentCriticalHash),
+              if (viewModel.bmmProvider.griefBidsSent > 0)
+                _Figure(
+                  label: 'Attack cost',
+                  value:
+                      '${viewModel.bmmProvider.griefBidsSent} fake, '
+                      '${viewModel.bmmProvider.griefSatsSpent} sats',
+                ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _CopyableField extends StatelessWidget {
+class _Figure extends StatelessWidget {
   final String label;
   final String value;
-  final Color? valueColor;
-
-  const _CopyableField({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
+  const _Figure({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return SailColumn(
+      spacing: 2,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 180, child: SailText.primary12('$label:', bold: true)),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: SelectableText(
-                  value,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: valueColor,
-                  ),
-                ),
-              ),
-              if (value.isNotEmpty && value != 'Pending...' && value != 'Unknown')
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 16),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: value));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Copied $label to clipboard'),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                ),
-            ],
-          ),
-        ),
+        SailText.secondary12(label),
+        SailText.primary15(value),
       ],
     );
+  }
+}
+
+/// Every bid we can see for this round, highest first. Ours are marked rather
+/// than reordered, so the running order of the auction stays readable.
+class _BidsOnNextBlock extends StatelessWidget {
+  final BMMViewModel viewModel;
+  const _BidsOnNextBlock({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final bids = viewModel.bmmProvider.currentBids;
+
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailText.primary15('Bids on next block', bold: true),
+        SailText.secondary13('Every bid we can see for this round, highest first. Yours are highlighted.'),
+        if (bids.isEmpty)
+          SailText.secondary13('No bids yet — press Start auto-bidding to bid on every new mainchain block.')
+        else
+          SizedBox(
+            height: (bids.length * 40) + 40,
+            child: SailTable(
+              getRowId: (index) => bids[index].txid.isEmpty ? 'bid-$index' : bids[index].txid,
+              headerBuilder: (context) => [
+                SailTableHeaderCell(name: 'Bid (sats)'),
+                SailTableHeaderCell(name: 'Bidder'),
+                SailTableHeaderCell(name: 'Sidechain block (h*)'),
+                SailTableHeaderCell(name: 'Mainchain txid'),
+                SailTableHeaderCell(name: 'Status'),
+              ],
+              rowBuilder: (context, row, selected) {
+                final bid = bids[row];
+                return [
+                  SailTableCell(value: bid.bidSats.toString(), monospace: true),
+                  SailTableCell(
+                    value: bid.isOurs ? 'You' : 'Other',
+                    textColor: bid.isOurs ? theme.colors.primary : null,
+                  ),
+                  SailTableCell(value: viewModel.shorten(bid.criticalHash), monospace: true),
+                  SailTableCell(value: viewModel.shorten(bid.txid), copyValue: bid.txid, monospace: true),
+                  SailTableCell(
+                    value: viewModel.bidStatus(bid, bids),
+                    textColor: viewModel.bidStatusColor(bid, bids, theme.colors),
+                  ),
+                ];
+              },
+              rowCount: bids.length,
+              rowBackgroundColor: (index) => bids[index].isOurs ? theme.colors.primary.withValues(alpha: 0.06) : null,
+              drawGrid: true,
+              onDoubleTap: viewModel.openTx,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// One row per mainchain block, with a drilldown to the bids it drew.
+class _HistoricBids extends StatelessWidget {
+  final BMMViewModel viewModel;
+  const _HistoricBids({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final rounds = viewModel.bmmProvider.history;
+
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailText.primary15('Historic bids', bold: true),
+            Expanded(child: Container()),
+            if (rounds.isNotEmpty)
+              SailButton(
+                label: 'Clear history',
+                variant: ButtonVariant.secondary,
+                onPressed: () async => viewModel.bmmProvider.clearHistory(),
+              ),
+          ],
+        ),
+        SailText.secondary13('One row per mainchain block. A bid you lost never confirmed, so it cost nothing.'),
+        if (rounds.isEmpty)
+          SailText.secondary13('No finished rounds yet.')
+        else
+          SizedBox(
+            height: (rounds.length * 40).clamp(80, 320).toDouble() + 40,
+            child: SailTable(
+              getRowId: (index) => rounds[index].prevMainHash,
+              headerBuilder: (context) => [
+                SailTableHeaderCell(name: 'MC block'),
+                SailTableHeaderCell(name: 'Result'),
+                SailTableHeaderCell(name: 'Your bid'),
+                SailTableHeaderCell(name: 'Block worth'),
+                SailTableHeaderCell(name: 'Profit'),
+                SailTableHeaderCell(name: 'Winner'),
+                SailTableHeaderCell(name: 'Bids'),
+              ],
+              rowBuilder: (context, row, selected) {
+                final round = rounds[row];
+                return [
+                  SailTableCell(
+                    value: viewModel.blockLabel(round),
+                    copyValue: round.includedInBlock,
+                    monospace: true,
+                  ),
+                  SailTableCell(
+                    value: round.result,
+                    textColor: viewModel.resultColor(round.result, theme.colors),
+                  ),
+                  SailTableCell(value: viewModel.ourBidOf(round), monospace: true),
+                  SailTableCell(value: round.blockWorthSats.toString(), monospace: true),
+                  SailTableCell(
+                    value: round.hasProfit ? round.profitSats.toString() : '—',
+                    monospace: true,
+                    textColor: round.hasProfit ? theme.colors.success : null,
+                  ),
+                  SailTableCell(value: viewModel.winnerOf(round), monospace: true),
+                  SailTableCell(value: '${round.ourBids.length + round.otherBids.length}'),
+                ];
+              },
+              rowCount: rounds.length,
+              drawGrid: true,
+              contextMenuItems: (rowId) => [
+                SailMenuItem(
+                  onSelected: () => viewModel.showAllBids(context, rowId),
+                  child: SailText.primary12('See all bids for block'),
+                ),
+              ],
+              onDoubleTap: (rowId) => viewModel.showAllBids(context, rowId),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class BMMViewModel extends BaseViewModel {
+  final BMMProvider bmmProvider = GetIt.I.get<BMMProvider>();
+  final BitcoinConfProvider _conf = GetIt.I.get<BitcoinConfProvider>();
+
+  final TextEditingController minBidController = TextEditingController();
+  final TextEditingController maxBidController = TextEditingController();
+
+  BMMViewModel() {
+    minBidController.text = bmmProvider.minBidAmount.toStringAsFixed(8);
+    maxBidController.text = bmmProvider.maxBidAmount.toStringAsFixed(8);
+    minBidController.addListener(_onBounds);
+    maxBidController.addListener(_onBounds);
+    bmmProvider.addListener(notifyListeners);
+  }
+
+  bool get running => bmmProvider.running;
+  String? get bmmError => bmmProvider.error;
+
+  int get blockWorthSats => bmmProvider.current?.blockWorthSats.toInt() ?? 0;
+
+  /// What the live bid stands to make, not money already earned: profit is only
+  /// real once the block connects.
+  int get profitIfWon {
+    final live = bmmProvider.liveBid;
+    if (live == null || blockWorthSats == 0) {
+      return 0;
+    }
+    return blockWorthSats - live.bidSats.toInt();
+  }
+
+  String get currentCriticalHash {
+    final live = bmmProvider.liveBid;
+    return live == null ? '—' : shorten(live.criticalHash);
+  }
+
+  String get slotStatus {
+    if (!running) {
+      return 'Not bidding';
+    }
+    return bmmProvider.liveBid == null ? 'Assembling' : 'Bid placed';
+  }
+
+  String get slotHint {
+    final live = bmmProvider.liveBid;
+    if (!running && live == null) {
+      return 'Press Start auto-bidding to bid for the next block';
+    }
+    if (live == null) {
+      return '';
+    }
+    return 'Waiting for a miner to commit to ${shorten(live.criticalHash)}';
+  }
+
+  void _onBounds() {
+    final min = double.tryParse(minBidController.text.trim());
+    if (min != null) {
+      bmmProvider.setMinBidAmount(min);
+    }
+    final max = double.tryParse(maxBidController.text.trim());
+    if (max != null) {
+      bmmProvider.setMaxBidAmount(max);
+    }
+  }
+
+  Future<void> startBidding() => bmmProvider.startBidding();
+  Future<void> stopBidding() => bmmProvider.stopBidding();
+
+  String formatSats(int sats) => sats == 0 ? '—' : '$sats sats';
+
+  String shorten(String hash) {
+    if (hash.isEmpty) {
+      return '—';
+    }
+    return hash.length > 12 ? '${hash.substring(0, 12)}..' : hash;
+  }
+
+  /// The block that decided the round, by height when the enforcer gave us one.
+  String blockLabel(bmmpb.Round round) {
+    if (round.includedInHeight > 0) {
+      return round.includedInHeight.toString();
+    }
+    return shorten(round.includedInBlock);
+  }
+
+  String ourBidOf(bmmpb.Round round) {
+    if (round.ourBids.isEmpty) {
+      return '—';
+    }
+    return round.ourBids.last.bidSats.toString();
+  }
+
+  String winnerOf(bmmpb.Round round) {
+    if (round.result == 'won') {
+      return 'You';
+    }
+    if (round.winnerCriticalHash.isNotEmpty) {
+      return shorten(round.winnerCriticalHash);
+    }
+    return '—';
+  }
+
+  Color? resultColor(String result, SailColor colors) => switch (result) {
+    'won' => colors.success,
+    'lost' => colors.textSecondary,
+    _ => null,
+  };
+
+  /// A replaced bid is superseded by our own raise, so it can never be mined.
+  String bidStatus(bmmpb.Bid bid, List<bmmpb.Bid> bids) {
+    if (bid.replacedByTxid.isNotEmpty) {
+      return 'Replaced by ${shorten(bid.replacedByTxid)}';
+    }
+    if (bid.state == 'failed') {
+      return 'Failed';
+    }
+    if (bids.isNotEmpty && bids.first.txid == bid.txid) {
+      return 'Leading';
+    }
+    return 'Outbid';
+  }
+
+  Color? bidStatusColor(bmmpb.Bid bid, List<bmmpb.Bid> bids, SailColor colors) {
+    if (bid.replacedByTxid.isNotEmpty) {
+      return colors.orange;
+    }
+    if (bid.state == 'failed') {
+      return colors.error;
+    }
+    if (bids.isNotEmpty && bids.first.txid == bid.txid) {
+      return colors.success;
+    }
+    return colors.textSecondary;
+  }
+
+  void openTx(String txid) {
+    if (txid.isEmpty || txid.startsWith('bid-')) {
+      return;
+    }
+    unawaited(launchUrl(Uri.parse(mempoolTxUrl(txid, _conf.network))));
+  }
+
+  Future<void> showAllBids(BuildContext context, String prevMainHash) async {
+    final round = await bmmProvider.roundBids(prevMainHash);
+    if (!context.mounted) {
+      return;
+    }
+
+    await showThemedDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final theme = SailTheme.of(context);
+        final bids = [...round.ourBids, ...round.otherBids]..sort((a, b) => b.bidSats.compareTo(a.bidSats));
+
+        return AlertDialog(
+          title: SailText.primary15('Bids for mainchain block ${blockLabel(round)}'),
+          content: SizedBox(
+            width: 900,
+            child: SailColumn(
+              spacing: SailStyleValues.padding12,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.secondary13(
+                  'A losing bid never confirms and leaves the mempool, so this is every bid we saw '
+                  'while the block was pending — not proof that it was all of them.',
+                ),
+                SizedBox(
+                  height: (bids.length * 40) + 40,
+                  child: SailTable(
+                    getRowId: (index) => bids[index].txid.isEmpty ? 'bid-$index' : bids[index].txid,
+                    headerBuilder: (context) => [
+                      SailTableHeaderCell(name: 'Bid (sats)'),
+                      SailTableHeaderCell(name: 'Bidder'),
+                      SailTableHeaderCell(name: 'Sidechain block (h*)'),
+                      SailTableHeaderCell(name: 'Mainchain txid'),
+                      SailTableHeaderCell(name: 'Outcome'),
+                    ],
+                    rowBuilder: (context, row, selected) {
+                      final bid = bids[row];
+                      return [
+                        SailTableCell(value: bid.bidSats.toString(), monospace: true),
+                        SailTableCell(value: bid.isOurs ? 'You' : 'Other'),
+                        SailTableCell(value: shorten(bid.criticalHash), monospace: true),
+                        SailTableCell(value: shorten(bid.txid), copyValue: bid.txid, monospace: true),
+                        SailTableCell(value: outcomeOf(bid, round)),
+                      ];
+                    },
+                    rowCount: bids.length,
+                    rowBackgroundColor: (index) =>
+                        bids[index].isOurs ? theme.colors.primary.withValues(alpha: 0.06) : null,
+                    drawGrid: true,
+                    onDoubleTap: openTx,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop()),
+          ],
+        );
+      },
+    );
+  }
+
+  String outcomeOf(bmmpb.Bid bid, bmmpb.Round round) {
+    if (bid.replacedByTxid.isNotEmpty) {
+      return 'Replaced';
+    }
+    if (bid.txid.isNotEmpty && bid.txid == round.winnerTxid) {
+      return 'Won';
+    }
+    if (bid.criticalHash.isNotEmpty && bid.criticalHash == round.winnerCriticalHash) {
+      return 'Won';
+    }
+    return 'Lost';
+  }
+
+  @override
+  void dispose() {
+    bmmProvider.removeListener(notifyListeners);
+    minBidController.dispose();
+    maxBidController.dispose();
+    super.dispose();
   }
 }
