@@ -270,7 +270,9 @@ class BlockExplorerViewModel extends BaseViewModel {
 
   void _onSearch() {
     final search = searchController.text.trim();
-    if (search.isEmpty) return;
+    if (search.isEmpty) {
+      return;
+    }
 
     // If enter is pressed
     if (search.endsWith('\n')) {
@@ -478,7 +480,9 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
   }
 
   Future<void> _loadTransaction() async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -496,7 +500,9 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
         txid: widget.txid,
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _details = details;
         error = null;
@@ -504,7 +510,9 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
       });
     } catch (e) {
       log.e('failed to load transaction details for txid=${widget.txid}: $e');
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _details = null;
         error = humanizeTransactionLoadError(e);
@@ -693,7 +701,9 @@ class _OutputsTab extends StatelessWidget {
   String _decodeOpReturnData(String scriptPubkeyHex) {
     // scriptPubkeyHex for OP_RETURN: "6a" (OP_RETURN) + push opcode + data
     // Skip the OP_RETURN byte (6a) and the push length byte
-    if (scriptPubkeyHex.length < 4) return '';
+    if (scriptPubkeyHex.length < 4) {
+      return '';
+    }
     try {
       // Skip 6a (OP_RETURN), then read push opcode
       var hex = scriptPubkeyHex.substring(2);
@@ -795,7 +805,9 @@ class BorderedSection extends StatelessWidget {
 Future<void> showTransactionDetails(BuildContext context, String txid) async {
   // Ensure we're running on a new frame
   await Future.microtask(() async {
-    if (!context.mounted) return;
+    if (!context.mounted) {
+      return;
+    }
     return showThemedDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {

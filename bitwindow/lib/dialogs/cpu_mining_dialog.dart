@@ -47,14 +47,18 @@ class _CpuMiningDialogState extends State<CpuMiningDialog> {
       final walletId = _walletReader.activeWalletId;
       if (walletId != null) {
         final address = await _orchestratorWallet.getNewAddress(walletId);
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         setState(() {
           _coinbaseAddressController.text = address.address;
           _isLoadingAddress = false;
         });
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _isLoadingAddress = false;
       });

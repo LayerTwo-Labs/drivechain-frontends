@@ -50,14 +50,18 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
     final forPsbt = _psbt;
     try {
       final s = await _wallet.multisigPsbtStatus(walletId: widget.walletId, psbtBase64: forPsbt);
-      if (!mounted || forPsbt != _psbt) return;
+      if (!mounted || forPsbt != _psbt) {
+        return;
+      }
       setState(() {
         _signatures = s.signatures;
         _finalizable = s.finalizable;
         _signed = s.cosignerSigned;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = 'Failed to read signing status: $e');
+      if (mounted) {
+        setState(() => _error = 'Failed to read signing status: $e');
+      }
     }
   }
 
@@ -71,7 +75,9 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
     } catch (e) {
       setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _busyKey = null);
+      if (mounted) {
+        setState(() => _busyKey = null);
+      }
     }
   }
 
@@ -105,9 +111,13 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
           msg.contains('not found') ||
           msg.contains('no device') ||
           msg.contains('libusb');
-      if (!needsDevice || !mounted) rethrow;
+      if (!needsDevice || !mounted) {
+        rethrow;
+      }
       final unlocked = await showHardwareDevicePicker(context);
-      if (unlocked == null) rethrow;
+      if (unlocked == null) {
+        rethrow;
+      }
       // Sign the just-unlocked device by path: a re-locked device has no
       // fingerprint, and path skips the re-enumeration that races auto-lock.
       final byPath = wmpb.HardwareDeviceSelector(
@@ -124,7 +134,9 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
       context: context,
       builder: (context) => const _ImportPsbtDialog(),
     );
-    if (imported == null || imported.isEmpty) return;
+    if (imported == null || imported.isEmpty) {
+      return;
+    }
     await _run('import', () async {
       final combined = await _wallet.combinePsbt(psbtsBase64: [_psbt, imported]);
       _psbt = combined;
@@ -134,7 +146,9 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
 
   Future<void> _copyPsbt() async {
     await Clipboard.setData(ClipboardData(text: _psbt));
-    if (mounted) showSailToast(context, 'PSBT copied', variant: SailToastVariant.success);
+    if (mounted) {
+      showSailToast(context, 'PSBT copied', variant: SailToastVariant.success);
+    }
   }
 
   Future<void> _broadcast() => _run('broadcast', () async {
@@ -147,7 +161,9 @@ class _MultisigSignModalState extends State<MultisigSignModal> {
       dialogType: DialogType.success,
       links: [NotificationLink(text: 'View transaction', url: mempoolTxUrl(txid, network))],
     );
-    if (mounted) Navigator.of(context).pop(txid);
+    if (mounted) {
+      Navigator.of(context).pop(txid);
+    }
   });
 
   @override
@@ -336,7 +352,9 @@ class _ImportPsbtDialogState extends State<_ImportPsbtDialog> {
                 small: true,
                 onPressed: () async {
                   final data = await Clipboard.getData(Clipboard.kTextPlain);
-                  if (data?.text != null) _controller.text = data!.text!.trim();
+                  if (data?.text != null) {
+                    _controller.text = data!.text!.trim();
+                  }
                 },
               ),
             ),

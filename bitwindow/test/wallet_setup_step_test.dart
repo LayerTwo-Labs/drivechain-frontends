@@ -65,5 +65,12 @@ void main() {
       expect(r.originPath, isNull);
       expect(r.xpub, 'tpubDC6RvHt');
     });
+
+    test('keeps the fingerprint when the origin carries no path', () {
+      final r = parseKeyExpression('[6386d31b]xpub6DRLRDFmCHcRv');
+      expect(r.fingerprint, '6386d31b');
+      expect(r.originPath, isNull);
+      expect(r.xpub, 'xpub6DRLRDFmCHcRv');
+    });
   });
 }

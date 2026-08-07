@@ -18,6 +18,8 @@ linter:
     use_decorated_box: true
 
     # Readability
+    curly_braces_in_flow_control_structures: true
+    always_put_control_body_on_new_line: true
     comment_references: false
     avoid_escaping_inner_quotes: true
     prefer_if_null_operators: true

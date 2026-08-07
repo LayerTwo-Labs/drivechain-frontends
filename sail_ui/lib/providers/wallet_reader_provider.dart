@@ -64,8 +64,12 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   WalletReaderProvider(this.bitwindowAppDir);
 
   void _ensureSupervisor() {
-    if (Environment.isInTest) return;
-    if (_supervisor != null) return;
+    if (Environment.isInTest) {
+      return;
+    }
+    if (_supervisor != null) {
+      return;
+    }
     _supervisor = StreamSupervisor<wmpb.WatchWalletDataResponse>(
       subscribe: () => _client.watchWalletData(),
       onEvent: _onResponse,
@@ -78,7 +82,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   void _onResponse(wmpb.WatchWalletDataResponse resp) {
     // Heartbeat frames carry no payload — supervisor uses them only for
     // liveness detection, no state to apply here.
-    if (resp.heartbeat) return;
+    if (resp.heartbeat) {
+      return;
+    }
     _applyState(
       protoWallets: resp.wallets,
       newActiveId: resp.activeWalletId.isEmpty ? null : resp.activeWalletId,
@@ -184,7 +190,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> init() async {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
     if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
       // bootBackendManagedSidechain calls back into init() once the
       // orchestrator is registered + ready; bail without crashing.
@@ -198,7 +206,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     // even when the orchestrator already has the wallet on disk.
     // listWallets + getWalletStatus return the same fields the stream
     // would push, so we can populate the provider directly.
-    if (wallets.isNotEmpty) return;
+    if (wallets.isNotEmpty) {
+      return;
+    }
     await _seedWalletsIfEmpty('init');
   }
 
@@ -236,14 +246,20 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<bool> _seedWalletsIfEmpty(String phase) async {
-    if (wallets.isNotEmpty) return true;
+    if (wallets.isNotEmpty) {
+      return true;
+    }
     final results = await _fetchWalletSeed(phase);
-    if (results == null || wallets.isNotEmpty) return wallets.isNotEmpty;
+    if (results == null || wallets.isNotEmpty) {
+      return wallets.isNotEmpty;
+    }
 
     // Stream may have delivered while we awaited — let it win.
     final list = results[0] as dynamic;
     final status = results[1] as dynamic;
-    if (list.wallets.isEmpty) return false;
+    if (list.wallets.isEmpty) {
+      return false;
+    }
     _applyState(
       protoWallets: list.wallets,
       newActiveId: list.activeWalletId.isEmpty ? null : list.activeWalletId as String,
@@ -253,7 +269,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<bool> _waitForWalletState(Duration timeout) async {
-    if (wallets.isNotEmpty) return true;
+    if (wallets.isNotEmpty) {
+      return true;
+    }
 
     final completer = Completer<bool>();
     late VoidCallback listener;
@@ -291,7 +309,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   /// short-circuits immediately.
   Future<bool> hasWallet() async {
     // Trust the streamed state when we have one.
-    if (hasWalletOnDisk) return true;
+    if (hasWalletOnDisk) {
+      return true;
+    }
 
     const maxAttempts = 10;
     const delay = Duration(milliseconds: 500);
@@ -403,15 +423,23 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   /// Resolves whatever the backend needs before a wallet switch — moving onto a
   /// Core wallet can need a datadir this network was never given.
   Future<String> resolveSwitchRequirements(BuildContext context, String walletId) async {
-    if (!GetIt.I.isRegistered<BitcoinConfProvider>()) return '';
+    if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
+      return '';
+    }
 
     final conf = GetIt.I.get<BitcoinConfProvider>();
     final plan = await conf.prepareNetworkChange(walletId: walletId);
-    if (!plan.mustSelectDatadir) return '';
+    if (!plan.mustSelectDatadir) {
+      return '';
+    }
 
-    if (!context.mounted) throw NetworkChangeDeclined(conf.network);
+    if (!context.mounted) {
+      throw NetworkChangeDeclined(conf.network);
+    }
     final dataDir = await conf.resolveNetworkChangePlan(context, plan, conf.network);
-    if (dataDir == null) throw NetworkChangeDeclined(conf.network);
+    if (dataDir == null) {
+      throw NetworkChangeDeclined(conf.network);
+    }
     return dataDir;
   }
 
@@ -449,7 +477,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
 
   String? getSidechainMnemonic(int slot) {
     final wallet = enforcerWallet;
-    if (wallet == null) return null;
+    if (wallet == null) {
+      return null;
+    }
     return wallet.sidechains.where((sc) => sc.slot == slot).firstOrNull?.mnemonic;
   }
 

@@ -44,6 +44,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   String? error;
 
   bool _isFetching = false;
+  bool _refetchQueued = false;
   Timer? _fetchTimer; // Timer to periodically fetch transactions
 
   // A recreated transport abandons in-flight requests without ever completing
@@ -108,7 +109,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
 
   // call this function from anywhere to refetch transaction list
   Future<void> fetch() async {
+    // Queue rather than drop: a wallet swap during a poll would otherwise wait
+    // for the next timer tick, leaving the new wallet's list empty meanwhile.
     if (_isFetching) {
+      _refetchQueued = true;
       return;
     }
     _isFetching = true;
@@ -251,6 +255,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
       // The wallet changed while this was in flight, so these results are stale.
       if (_walletReader.activeWalletId != walletId) {
         clear();
+        _refetchQueued = true;
         return;
       }
 
@@ -270,6 +275,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
       }
     } finally {
       _isFetching = false;
+      if (_refetchQueued) {
+        _refetchQueued = false;
+        unawaited(fetch());
+      }
     }
   }
 

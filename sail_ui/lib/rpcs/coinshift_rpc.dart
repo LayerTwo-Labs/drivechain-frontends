@@ -172,7 +172,9 @@ class CoinShiftLive extends CoinShiftRPC {
   Future<dynamic> callRAW(String method, [List<dynamic>? params]) async {
     final paramsJson = params != null ? jsonEncode(params) : '';
     final resp = await _client.callRaw(pb.CallRawRequest(method: method, paramsJson: paramsJson));
-    if (resp.resultJson.isEmpty) return null;
+    if (resp.resultJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.resultJson);
   }
 
@@ -240,7 +242,9 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     final resp = await _client.getPendingWithdrawalBundle(pb.GetPendingWithdrawalBundleRequest());
-    if (resp.bundleJson.isEmpty) return null;
+    if (resp.bundleJson.isEmpty) {
+      return null;
+    }
     return PendingWithdrawalBundle.fromMap(jsonDecode(resp.bundleJson));
   }
 
@@ -257,7 +261,9 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<List<Map<String, dynamic>>> listPeers() async {
     final resp = await _client.listPeers(pb.ListPeersRequest());
-    if (resp.peersJson.isEmpty) return [];
+    if (resp.peersJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.peersJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
@@ -270,7 +276,9 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
     final resp = await _client.getBlock(pb.GetBlockRequest(hash: hash));
-    if (resp.blockJson.isEmpty) return null;
+    if (resp.blockJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.blockJson) as Map<String, dynamic>;
   }
 
@@ -295,14 +303,18 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
     final resp = await _client.getWalletUtxos(pb.GetWalletUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
   @override
   Future<List<SidechainUTXO>> listAllUTXOs() async {
     final resp = await _client.listUtxos(pb.ListUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
@@ -392,14 +404,18 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<CoinShiftSwap?> getSwapStatus(String swapId) async {
     final resp = await _client.getSwapStatus(pb.GetSwapStatusRequest(swapId: swapId));
-    if (resp.swapJson.isEmpty) return null;
+    if (resp.swapJson.isEmpty) {
+      return null;
+    }
     return CoinShiftSwap.fromMap(jsonDecode(resp.swapJson) as Map<String, dynamic>);
   }
 
   @override
   Future<List<CoinShiftSwap>> listSwaps() async {
     final resp = await _client.listSwaps(pb.ListSwapsRequest());
-    if (resp.swapsJson.isEmpty) return [];
+    if (resp.swapsJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.swapsJson) as List<dynamic>)
         .map((e) => CoinShiftSwap.fromMap(e as Map<String, dynamic>))
         .toList();
@@ -408,7 +424,9 @@ class CoinShiftLive extends CoinShiftRPC {
   @override
   Future<List<CoinShiftSwap>> listSwapsByRecipient(String recipient) async {
     final resp = await _client.listSwapsByRecipient(pb.ListSwapsByRecipientRequest(recipient: recipient));
-    if (resp.swapsJson.isEmpty) return [];
+    if (resp.swapsJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.swapsJson) as List<dynamic>)
         .map((e) => CoinShiftSwap.fromMap(e as Map<String, dynamic>))
         .toList();
@@ -451,7 +469,9 @@ class CoinShiftSwapCreateResult {
   }
 
   static String _parseSwapId(dynamic value) {
-    if (value is String) return value;
+    if (value is String) {
+      return value;
+    }
     if (value is List) {
       return (value).map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join();
     }
@@ -600,7 +620,9 @@ class CoinShiftSwap {
   }
 
   static String _parseSwapId(dynamic value) {
-    if (value is String) return value;
+    if (value is String) {
+      return value;
+    }
     if (value is List) {
       return (value).map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join();
     }
@@ -608,11 +630,17 @@ class CoinShiftSwap {
   }
 
   static String? _extractTxid(dynamic value) {
-    if (value == null) return null;
-    if (value is String) return value;
+    if (value == null) {
+      return null;
+    }
+    if (value is String) {
+      return value;
+    }
     if (value is Map<String, dynamic>) {
       // Handle {Some: "txid"} or similar wrapper
-      if (value.containsKey('Some')) return value['Some'] as String?;
+      if (value.containsKey('Some')) {
+        return value['Some'] as String?;
+      }
     }
     return null;
   }

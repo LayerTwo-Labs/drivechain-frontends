@@ -60,7 +60,9 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> init() async {
-    if (_initialized) return;
+    if (_initialized) {
+      return;
+    }
 
     try {
       await _loadMnemonic();
@@ -242,7 +244,9 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
       final masterKey = chain.forPath('m') as ExtendedPrivateKey;
       final masterPubKey = masterKey.publicKey();
       final masterQ = masterPubKey.q;
-      if (masterQ == null) return {};
+      if (masterQ == null) {
+        return {};
+      }
 
       final masterPubBytes = masterQ.getEncoded(true);
       final fingerprintBytes = hash160(Uint8List.fromList(masterPubBytes));
@@ -354,7 +358,9 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
         if (!_canDeriveChild(xpub)) {}
       }
       final q = extendedPublicKey.q;
-      if (q == null) return {};
+      if (q == null) {
+        return {};
+      }
       final pubKeyBytes = q.getEncoded(true);
       final pubKeyHex = hex.encode(pubKeyBytes);
 

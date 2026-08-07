@@ -34,7 +34,9 @@ class BitcoinURI {
       final queryParts = parts[1].split('&');
       for (final param in queryParts) {
         final keyValue = param.split('=');
-        if (keyValue.length != 2) continue;
+        if (keyValue.length != 2) {
+          continue;
+        }
 
         // Check for required parameters we don't understand
         if (keyValue[0].startsWith('req-')) {

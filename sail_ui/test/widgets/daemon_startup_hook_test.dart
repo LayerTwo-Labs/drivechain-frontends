@@ -134,7 +134,9 @@ void main() {
       var attempts = 0;
       Future<void> fakeListBinaries() async {
         attempts++;
-        if (attempts < 3) throw StateError('not ready');
+        if (attempts < 3) {
+          throw StateError('not ready');
+        }
       }
 
       for (var i = 0; i < 10; i++) {

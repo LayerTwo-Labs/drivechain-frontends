@@ -132,7 +132,9 @@ class EnforcerLive extends EnforcerRPC {
         'zmqpubsequence',
         bitcoinConf.network.toCoreNetwork(),
       );
-      if (fromConf != null && fromConf.isNotEmpty) zmqSequence = fromConf;
+      if (fromConf != null && fromConf.isNotEmpty) {
+        zmqSequence = fromConf;
+      }
     } catch (_) {}
     args.add('--node-zmq-addr-sequence=$zmqSequence');
 

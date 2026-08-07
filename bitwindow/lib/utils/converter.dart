@@ -94,14 +94,22 @@ bool _looksBech32(String s) => RegExp(r'^(bc|tb|bcrt)1[02-9ac-hj-np-z]{6,}$').ha
 
 ConverterFormat _detect(String input) {
   final trimmed = input.trim();
-  if (trimmed.isEmpty) return ConverterFormat.ascii;
-  if (_looksBech32(trimmed)) return ConverterFormat.bech32;
+  if (trimmed.isEmpty) {
+    return ConverterFormat.ascii;
+  }
+  if (_looksBech32(trimmed)) {
+    return ConverterFormat.bech32;
+  }
   if (Base58Check.decode(trimmed)?.checksumValid ?? false) {
     final decoded = Base58Check.decode(trimmed)!;
-    if (decoded.payload.length == 32 || decoded.payload.length == 33) return ConverterFormat.wif;
+    if (decoded.payload.length == 32 || decoded.payload.length == 33) {
+      return ConverterFormat.wif;
+    }
     return ConverterFormat.base58check;
   }
-  if (_looksHex(trimmed)) return ConverterFormat.hex;
+  if (_looksHex(trimmed)) {
+    return ConverterFormat.hex;
+  }
   return ConverterFormat.ascii;
 }
 
@@ -110,7 +118,9 @@ Uint8List _toBytes(String input, ConverterFormat format) {
   final trimmed = input.trim();
   switch (format) {
     case ConverterFormat.hex:
-      if (!_looksHex(trimmed)) throw const FormatException('not valid hex');
+      if (!_looksHex(trimmed)) {
+        throw const FormatException('not valid hex');
+      }
       return Uint8List.fromList(conv.hex.decode(trimmed));
     case ConverterFormat.base64:
       return Uint8List.fromList(base64.decode(trimmed));
@@ -119,13 +129,19 @@ Uint8List _toBytes(String input, ConverterFormat format) {
       return Uint8List.fromList(decoded);
     case ConverterFormat.base58check:
       final decoded = Base58Check.decode(trimmed);
-      if (decoded == null) throw const FormatException('not valid Base58Check');
+      if (decoded == null) {
+        throw const FormatException('not valid Base58Check');
+      }
       return Uint8List.fromList(decoded.payload);
     case ConverterFormat.wif:
       // A bad checksum here would present a mistyped key as spendable.
       final wif = Base58Check.decode(trimmed);
-      if (wif == null) throw const FormatException('not valid Base58Check');
-      if (!wif.checksumValid) throw const FormatException('WIF checksum does not match');
+      if (wif == null) {
+        throw const FormatException('not valid Base58Check');
+      }
+      if (!wif.checksumValid) {
+        throw const FormatException('WIF checksum does not match');
+      }
       return Uint8List.fromList(wif.payload);
     case ConverterFormat.bech32:
       // HRP-agnostic, so bcrt1 decodes as readily as bc1 and tb1, and the
@@ -197,7 +213,9 @@ List<ConverterRow> _keys(Uint8List bytes, ConverterFormat detected, BitcoinNetwo
   final rows = <ConverterRow>[];
 
   final isSecret = bytes.length == 32 || (bytes.length == 33 && detected == ConverterFormat.wif);
-  if (!isSecret) return rows;
+  if (!isSecret) {
+    return rows;
+  }
 
   final secret = Uint8List.fromList(bytes.sublist(0, 32));
   rows.add(ConverterRow('Private key (hex)', _hex(secret)));

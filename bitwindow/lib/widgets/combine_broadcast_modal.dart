@@ -220,7 +220,9 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                                       value: tx.id,
                                       groupValue: _selectedTransaction?.id ?? '',
                                       onChanged: (String value) {
-                                        if (_isProcessing) return;
+                                        if (_isProcessing) {
+                                          return;
+                                        }
                                         final tx = _eligibleTransactions.firstWhere((t) => t.id == value);
                                         setState(() => _selectedTransaction = tx);
                                       },

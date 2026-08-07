@@ -433,6 +433,7 @@ func TestDeleteFiles_DeletesNestedDirectoryTree(t *testing.T) {
 // exists (no wallet service in this harness) or a wallet_backups/ sibling
 // holds it — what must never happen is the keys vanishing entirely.
 func TestDeleteFiles_WalletPathNotHardDeleted(t *testing.T) {
+	redirectHome(t)
 	o := newResetTestOrchestrator(t)
 
 	// Seed a thunder wallet at the exact location GatherFilesToDelete reports.
@@ -486,14 +487,14 @@ func TestIsWalletPath(t *testing.T) {
 
 	wallets := []string{
 		"/home/u/.local/share/thunder/wallet.mdb",    // every L2 sidechain
-		"/home/u/.drivechain/signet/wallet.dat",      // bitcoind legacy
+		"/home/u/.ecash/signet/wallet.dat",           // bitcoind non-mainnet
 		"/home/u/.bitcoin/signet/wallets",            // bitcoind wallets dir
 		"/home/u/.bitcoin/signet/wallets/default",    // inside wallets dir
 		"/home/u/bip300301_enforcer/wallet/bitcoin",  // enforcer wallet dir
 		"/home/u/.local/share/bitwindow/wallet.json", // bitwindowd / frontend
 		"/home/u/.local/share/bitwindow/wallet_encryption.json",
-		`C:\Users\u\AppData\Roaming\bitwindow\wallet.json`,             // windows separators
-		`C:\Users\u\AppData\Roaming\Drivechain\signet\wallets\default`, // windows wallets dir
+		`C:\Users\u\AppData\Roaming\bitwindow\wallet.json`,        // windows separators
+		`C:\Users\u\AppData\Roaming\Ecash\signet\wallets\default`, // windows wallets dir
 		`C:\Users\u\AppData\Roaming\Thunder\wallet.mdb`,
 	}
 	for _, p := range wallets {

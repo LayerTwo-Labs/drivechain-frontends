@@ -311,7 +311,9 @@ class TruthcoinLive extends TruthcoinRPC {
   Future<dynamic> callRAW(String method, [dynamic params]) async {
     final paramsJson = params != null ? jsonEncode(params) : '';
     final resp = await _client.callRaw(pb.CallRawRequest(method: method, paramsJson: paramsJson));
-    if (resp.resultJson.isEmpty) return null;
+    if (resp.resultJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.resultJson);
   }
 
@@ -379,7 +381,9 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async {
     final resp = await _client.getPendingWithdrawalBundle(pb.GetPendingWithdrawalBundleRequest());
-    if (resp.bundleJson.isEmpty) return null;
+    if (resp.bundleJson.isEmpty) {
+      return null;
+    }
     return PendingWithdrawalBundle.fromMap(jsonDecode(resp.bundleJson));
   }
 
@@ -391,7 +395,9 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<List<Map<String, dynamic>>> listPeers() async {
     final resp = await _client.listPeers(pb.ListPeersRequest());
-    if (resp.peersJson.isEmpty) return [];
+    if (resp.peersJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.peersJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
@@ -404,7 +410,9 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<Map<String, dynamic>?> getBlock(String hash) async {
     final resp = await _client.getBlock(pb.GetBlockRequest(hash: hash));
-    if (resp.blockJson.isEmpty) return null;
+    if (resp.blockJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.blockJson) as Map<String, dynamic>;
   }
 
@@ -429,14 +437,18 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<List<SidechainUTXO>> listUTXOs() async {
     final resp = await _client.getWalletUtxos(pb.GetWalletUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
   @override
   Future<List<SidechainUTXO>> listAllUTXOs() async {
     final resp = await _client.listUtxos(pb.ListUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
@@ -470,14 +482,18 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<Map<String, dynamic>?> getTransaction(String txid) async {
     final resp = await _client.getTransaction(pb.GetTransactionRequest(txid: txid));
-    if (resp.transactionJson.isEmpty) return null;
+    if (resp.transactionJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.transactionJson) as Map<String, dynamic>;
   }
 
   @override
   Future<Map<String, dynamic>?> getTransactionInfo(String txid) async {
     final resp = await _client.getTransactionInfo(pb.GetTransactionInfoRequest(txid: txid));
-    if (resp.transactionInfoJson.isEmpty) return null;
+    if (resp.transactionInfoJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.transactionInfoJson) as Map<String, dynamic>;
   }
 
@@ -490,14 +506,18 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<List<SidechainUTXO>> myUtxos() async {
     final resp = await _client.myUtxos(pb.MyUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
   @override
   Future<List<SidechainUTXO>> myUnconfirmedUtxos() async {
     final resp = await _client.myUnconfirmedUtxos(pb.MyUnconfirmedUtxosRequest());
-    if (resp.utxosJson.isEmpty) return [];
+    if (resp.utxosJson.isEmpty) {
+      return [];
+    }
     return SidechainUTXO.fromJsonList(jsonDecode(resp.utxosJson) as List<dynamic>);
   }
 
@@ -551,14 +571,18 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<List<Map<String, dynamic>>> marketList() async {
     final resp = await _client.marketList(pb.MarketListRequest());
-    if (resp.marketsJson.isEmpty) return [];
+    if (resp.marketsJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.marketsJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   @override
   Future<Map<String, dynamic>?> marketGet(String marketId) async {
     final resp = await _client.marketGet(pb.MarketGetRequest(marketId: marketId));
-    if (resp.marketJson.isEmpty) return null;
+    if (resp.marketJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.marketJson) as Map<String, dynamic>;
   }
 
@@ -637,14 +661,18 @@ class TruthcoinLive extends TruthcoinRPC {
         status: status,
       ),
     );
-    if (resp.slotsJson.isEmpty) return [];
+    if (resp.slotsJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.slotsJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   @override
   Future<Map<String, dynamic>?> slotGet(String slotId) async {
     final resp = await _client.slotGet(pb.SlotGetRequest(slotId: slotId));
-    if (resp.slotJson.isEmpty) return null;
+    if (resp.slotJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.slotJson) as Map<String, dynamic>;
   }
 
@@ -705,14 +733,18 @@ class TruthcoinLive extends TruthcoinRPC {
   @override
   Future<Map<String, dynamic>?> voteVoter(String address) async {
     final resp = await _client.voteVoter(pb.VoteVoterRequest(address: address));
-    if (resp.voterJson.isEmpty) return null;
+    if (resp.voterJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.voterJson) as Map<String, dynamic>;
   }
 
   @override
   Future<List<Map<String, dynamic>>> voteVoters() async {
     final resp = await _client.voteVoters(pb.VoteVotersRequest());
-    if (resp.votersJson.isEmpty) return [];
+    if (resp.votersJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.votersJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
@@ -743,14 +775,18 @@ class TruthcoinLive extends TruthcoinRPC {
         periodId: periodId,
       ),
     );
-    if (resp.votesJson.isEmpty) return [];
+    if (resp.votesJson.isEmpty) {
+      return [];
+    }
     return (jsonDecode(resp.votesJson) as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
   @override
   Future<Map<String, dynamic>?> votePeriod({int? periodId}) async {
     final resp = await _client.votePeriod(pb.VotePeriodRequest(periodId: periodId));
-    if (resp.periodJson.isEmpty) return null;
+    if (resp.periodJson.isEmpty) {
+      return null;
+    }
     return jsonDecode(resp.periodJson) as Map<String, dynamic>;
   }
 

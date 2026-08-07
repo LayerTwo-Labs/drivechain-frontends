@@ -28,7 +28,9 @@ class HwiProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
-    if (_isFetching || suspended) return;
+    if (_isFetching || suspended) {
+      return;
+    }
     _isFetching = true;
     try {
       final d = await GetIt.I.get<OrchestratorRPC>().wallet.enumerateHardwareDevices();
@@ -45,7 +47,9 @@ class HwiProvider extends ChangeNotifier {
   }
 
   void _startTimer() {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => fetch());
   }

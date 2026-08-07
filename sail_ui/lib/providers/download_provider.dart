@@ -26,9 +26,13 @@ class DownloadProgress {
   /// Fraction in [0, 1]; falls back to 0 when total is unknown so the UI
   /// can still show an indeterminate state instead of a NaN bar.
   double get progressFraction {
-    if (mbTotal <= 0) return 0;
+    if (mbTotal <= 0) {
+      return 0;
+    }
     final f = mbDownloaded / mbTotal;
-    if (f.isNaN || f.isInfinite) return 0;
+    if (f.isNaN || f.isInfinite) {
+      return 0;
+    }
     return f.clamp(0.0, 1.0);
   }
 
@@ -88,7 +92,9 @@ class DownloadProvider extends ChangeNotifier {
   }
 
   Future<void> _tick() async {
-    if (_isFetching) return;
+    if (_isFetching) {
+      return;
+    }
     _isFetching = true;
     try {
       await fetch();
@@ -111,7 +117,9 @@ class DownloadProvider extends ChangeNotifier {
       final resp = await _orchestrator.getDownloadStatus();
       final next = <BinaryType, DownloadProgress>{};
       for (final s in resp.downloads) {
-        if (s.binary == BinaryType.BINARY_TYPE_UNSPECIFIED) continue;
+        if (s.binary == BinaryType.BINARY_TYPE_UNSPECIFIED) {
+          continue;
+        }
         next[s.binary] = DownloadProgress(
           binary: s.binary,
           mbDownloaded: s.mbDownloaded.toInt(),

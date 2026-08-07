@@ -75,8 +75,12 @@ class URDecoder {
   int? get expectedCount => _single != null ? 1 : _seqLen;
 
   bool get isComplete {
-    if (_single != null) return true;
-    if (_seqLen == null) return false;
+    if (_single != null) {
+      return true;
+    }
+    if (_seqLen == null) {
+      return false;
+    }
     return _parts.length == _seqLen;
   }
 
@@ -97,7 +101,9 @@ class URDecoder {
 
     final header = body.substring(0, slash);
     final dash = header.indexOf('-');
-    if (dash == -1) throw const FormatException('malformed multipart header');
+    if (dash == -1) {
+      throw const FormatException('malformed multipart header');
+    }
     final seqNum = int.parse(header.substring(0, dash));
     final payload = ByteWords.decode(body.substring(slash + 1));
 
@@ -118,8 +124,12 @@ class URDecoder {
 
   /// Assembled PSBT bytes. Throws if not yet [isComplete] or checksum fails.
   Uint8List result() {
-    if (_single != null) return _single!;
-    if (!isComplete) throw StateError('UR not complete');
+    if (_single != null) {
+      return _single!;
+    }
+    if (!isComplete) {
+      throw StateError('UR not complete');
+    }
 
     final builder = BytesBuilder();
     for (var i = 1; i <= _seqLen!; i++) {
@@ -217,7 +227,9 @@ Uint8List _cborEncodePart({
 _Part _cborDecodePart(Uint8List data) {
   final r = _CborReader(data);
   final arrayLen = r.readArrayHeader();
-  if (arrayLen != 5) throw const FormatException('multipart array must have 5 items');
+  if (arrayLen != 5) {
+    throw const FormatException('multipart array must have 5 items');
+  }
   final seqNum = r.readUint();
   final seqLen = r.readUint();
   final messageLen = r.readUint();
@@ -233,8 +245,12 @@ class _CborReader {
 
   int _readArgument(int initialByte) {
     final ai = initialByte & 0x1f;
-    if (ai < 24) return ai;
-    if (ai == 24) return _data[_pos++];
+    if (ai < 24) {
+      return ai;
+    }
+    if (ai == 24) {
+      return _data[_pos++];
+    }
     if (ai == 25) {
       final v = (_data[_pos] << 8) | _data[_pos + 1];
       _pos += 2;
@@ -257,19 +273,25 @@ class _CborReader {
 
   int readUint() {
     final b = _data[_pos++];
-    if ((b >> 5) != 0) throw const FormatException('expected cbor uint');
+    if ((b >> 5) != 0) {
+      throw const FormatException('expected cbor uint');
+    }
     return _readArgument(b);
   }
 
   int readArrayHeader() {
     final b = _data[_pos++];
-    if ((b >> 5) != 4) throw const FormatException('expected cbor array');
+    if ((b >> 5) != 4) {
+      throw const FormatException('expected cbor array');
+    }
     return _readArgument(b);
   }
 
   Uint8List readByteString() {
     final b = _data[_pos++];
-    if ((b >> 5) != 2) throw const FormatException('expected cbor byte string');
+    if ((b >> 5) != 2) {
+      throw const FormatException('expected cbor byte string');
+    }
     final len = _readArgument(b);
     final out = Uint8List.sublistView(_data, _pos, _pos + len);
     _pos += len;
@@ -348,10 +370,14 @@ class ByteWords {
     for (var i = 0; i < bytes.length; i++) {
       final key = s.substring(i * 2, i * 2 + 2);
       final idx = _minimalIndex[key];
-      if (idx == null) throw FormatException('invalid byteword "$key"');
+      if (idx == null) {
+        throw FormatException('invalid byteword "$key"');
+      }
       bytes[i] = idx;
     }
-    if (bytes.length < 5) throw const FormatException('bytewords too short for checksum');
+    if (bytes.length < 5) {
+      throw const FormatException('bytewords too short for checksum');
+    }
     final payload = Uint8List.sublistView(bytes, 0, bytes.length - 4);
     final crc =
         (bytes[bytes.length - 4] << 24) |

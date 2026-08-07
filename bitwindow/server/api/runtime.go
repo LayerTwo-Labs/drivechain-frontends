@@ -277,7 +277,8 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		miscSvc := api_misc.New(rt.db, rt.timestampEngine, s.Bitcoind, rt.walletEngine)
+		miscSvc := api_misc.New(rt.db, rt.timestampEngine, s.Bitcoind, rt.walletEngine,
+			engines.NewRemoteCoinNews(s.svcs.BitwindowDir, string(conf.BitcoinCoreNetwork)))
 		path, h := miscv1connect.NewMiscServiceHandler(miscSvc, stdOpts...)
 		register(path, h)
 	}

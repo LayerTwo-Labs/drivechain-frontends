@@ -37,7 +37,9 @@ class AddressBookViewModel extends BaseViewModel {
   }
 
   Future<void> createEntry() async {
-    if (labelController.text.isEmpty || addressController.text.isEmpty) return;
+    if (labelController.text.isEmpty || addressController.text.isEmpty) {
+      return;
+    }
 
     try {
       setBusy(true);
@@ -57,7 +59,9 @@ class AddressBookViewModel extends BaseViewModel {
   }
 
   Future<void> updateLabel(Int64 id) async {
-    if (editLabelController.text.isEmpty) return;
+    if (editLabelController.text.isEmpty) {
+      return;
+    }
 
     try {
       setBusy(true);
@@ -97,7 +101,9 @@ class AddressBookViewModel extends BaseViewModel {
 
       final jsonl = await _provider.exportLabels();
       if (jsonl.isEmpty) {
-        if (context.mounted) showSailToast(context, 'No labels to export');
+        if (context.mounted) {
+          showSailToast(context, 'No labels to export');
+        }
         return;
       }
 
@@ -108,12 +114,18 @@ class AddressBookViewModel extends BaseViewModel {
         type: FileType.custom,
         allowedExtensions: ['jsonl'],
       );
-      if (result == null) return;
+      if (result == null) {
+        return;
+      }
 
       await File(result).writeAsString(jsonl);
-      if (context.mounted) showSailToast(context, 'Labels exported to $result');
+      if (context.mounted) {
+        showSailToast(context, 'Labels exported to $result');
+      }
     } catch (e) {
-      if (context.mounted) showSailToast(context, 'Export failed: $e');
+      if (context.mounted) {
+        showSailToast(context, 'Export failed: $e');
+      }
     } finally {
       setBusy(false);
     }
@@ -128,7 +140,9 @@ class AddressBookViewModel extends BaseViewModel {
         allowedExtensions: ['jsonl'],
         dialogTitle: 'Import Labels (BIP329)',
       );
-      if (result == null || result.files.single.path == null) return;
+      if (result == null || result.files.single.path == null) {
+        return;
+      }
 
       final jsonl = await File(result.files.single.path!).readAsString();
       final summary = await _provider.importLabels(jsonl);
@@ -138,7 +152,9 @@ class AddressBookViewModel extends BaseViewModel {
         showSailToast(context, 'Imported $imported labels, skipped ${summary.skipped}');
       }
     } catch (e) {
-      if (context.mounted) showSailToast(context, 'Import failed: $e');
+      if (context.mounted) {
+        showSailToast(context, 'Import failed: $e');
+      }
     } finally {
       setBusy(false);
     }
@@ -508,7 +524,9 @@ class _CreateDialogState extends State<_CreateDialog> {
               label: 'Create',
               onPressed: () async {
                 await widget.viewModel.createEntry();
-                if (context.mounted) Navigator.pop(context);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               },
               disabled:
                   widget.viewModel.labelController.text.isEmpty || widget.viewModel.addressController.text.isEmpty,

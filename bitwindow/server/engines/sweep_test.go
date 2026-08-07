@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -162,8 +163,8 @@ func TestResolveSweepSourceReturnsChainError(t *testing.T) {
 }
 
 func TestSweepVbytesChargesMoreForLegacyInputs(t *testing.T) {
-	witness := SweepVbytes(SweepAddressP2WPKH, 1)
-	legacy := SweepVbytes(SweepAddressP2PKH, 1)
+	witness := SweepVbytes(SweepAddressP2WPKH, 1, SweepOutputVbytes)
+	legacy := SweepVbytes(SweepAddressP2PKH, 1, SweepOutputVbytes)
 
 	if witness != 110 {
 		t.Errorf("expected 110 vbytes for one witness input, got %d", witness)
@@ -275,5 +276,36 @@ func assertInputVerifies(t *testing.T, tx *wire.MsgTx, source SweepSource, value
 	}
 	if err := vm.Execute(); err != nil {
 		t.Fatalf("script did not verify: %v", err)
+	}
+}
+
+func TestSweepPaysForTheDestinationItActuallyUses(t *testing.T) {
+	wif := newWIF(t, true)
+	candidates, _ := SweepCandidates(wif, &chaincfg.SigNetParams)
+	source := SweepSource{Address: candidates[0].Address, Kind: SweepAddressP2WPKH, UTXOs: testUTXOs()}
+
+	// a taproot output is 43 vbytes, twelve wider than segwit's 31
+	taprootAddr, err := btcutil.NewAddressTaproot(
+		schnorr.SerializePubKey(wif.PrivKey.PubKey()), &chaincfg.SigNetParams,
+	)
+	if err != nil {
+		t.Fatalf("derive taproot address: %v", err)
+	}
+	tx, err := BuildSweepTx(source, taprootAddr.EncodeAddress(), 10, &chaincfg.SigNetParams)
+	if err != nil {
+		t.Fatalf("build to taproot: %v", err)
+	}
+
+	// 100000 - ((68 + 11 + 43) * 10)
+	if tx.TxOut[0].Value != 98_780 {
+		t.Errorf("expected 98780 sats out for a taproot destination, got %d", tx.TxOut[0].Value)
+	}
+
+	segwit, err := BuildSweepTx(source, destAddress, 10, &chaincfg.SigNetParams)
+	if err != nil {
+		t.Fatalf("build to segwit: %v", err)
+	}
+	if segwit.TxOut[0].Value <= tx.TxOut[0].Value {
+		t.Error("a wider destination must cost more fee, not less")
 	}
 }

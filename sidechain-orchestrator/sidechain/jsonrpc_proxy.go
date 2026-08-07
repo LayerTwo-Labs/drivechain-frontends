@@ -73,6 +73,30 @@ func (p *JSONRPCProxy) Mine(ctx context.Context, feeSats int64) (json.RawMessage
 	return p.Client.CallRaw(ctx, "mine", []any{feeSats})
 }
 
+func (p *JSONRPCProxy) GetBlockTemplate(ctx context.Context) (*BlockTemplate, error) {
+	var template BlockTemplate
+	if err := p.Client.Call(ctx, "get_block_template", nil, &template); err != nil {
+		return nil, err
+	}
+	return &template, nil
+}
+
+func (p *JSONRPCProxy) ConnectBlock(ctx context.Context, block json.RawMessage, mainBlockHash string) (bool, error) {
+	var connected bool
+	if err := p.Client.Call(ctx, "connect_block", []any{block, mainBlockHash}, &connected); err != nil {
+		return false, err
+	}
+	return connected, nil
+}
+
+func (p *JSONRPCProxy) GetBmmInclusions(ctx context.Context, criticalHash string) ([]string, error) {
+	var inclusions []string
+	if err := p.Client.Call(ctx, "get_bmm_inclusions", []any{criticalHash}, &inclusions); err != nil {
+		return nil, err
+	}
+	return inclusions, nil
+}
+
 func (p *JSONRPCProxy) GetPendingWithdrawalBundle(ctx context.Context) (json.RawMessage, error) {
 	return p.Client.CallRaw(ctx, "pending_withdrawal_bundle", nil)
 }

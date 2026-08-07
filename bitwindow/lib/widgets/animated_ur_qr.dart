@@ -51,7 +51,9 @@ class _AnimatedURQRState extends State<AnimatedURQR> {
     _index = 0;
     if (_frames.length > 1) {
       _timer = Timer.periodic(Duration(milliseconds: (1000 / widget.fps).round()), (_) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         setState(() => _index = (_index + 1) % _frames.length);
       });
     }

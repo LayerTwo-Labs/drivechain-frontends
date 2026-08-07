@@ -69,7 +69,9 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
   }
 
   void _startPolling() {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadFromBackend());
   }
 

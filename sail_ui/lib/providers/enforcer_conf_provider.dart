@@ -39,7 +39,9 @@ class EnforcerConfProvider extends ChangeNotifier {
   }
 
   void _startPolling() {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
     _pollTimer = Timer.periodic(
       const Duration(seconds: 5),
       (_) => _loadFromBackend(),
@@ -76,7 +78,9 @@ class EnforcerConfProvider extends ChangeNotifier {
   }
 
   bool get nodeRpcDiffers {
-    if (currentConfig == null) return false;
+    if (currentConfig == null) {
+      return false;
+    }
     final expected = getExpectedNodeRpcSettings();
     final localUser = currentConfig!.getSetting('node-rpc-user') ?? '';
     final localPass = currentConfig!.getSetting('node-rpc-pass') ?? '';
@@ -149,7 +153,9 @@ class EnforcerConfProvider extends ChangeNotifier {
 
   List<String> getCliArgs(BitcoinNetwork network) {
     final args = <String>[];
-    if (currentConfig == null) return args;
+    if (currentConfig == null) {
+      return args;
+    }
 
     for (final entry in currentConfig!.settings.entries) {
       final key = entry.key;

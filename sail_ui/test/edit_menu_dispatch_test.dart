@@ -28,8 +28,12 @@ void main() {
 
   testWidgets('Paste intent from menu inserts clipboard text', (tester) async {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'Clipboard.getData') return {'text': 'twelve words go here'};
-      if (call.method == 'Clipboard.hasStrings') return {'value': true};
+      if (call.method == 'Clipboard.getData') {
+        return {'text': 'twelve words go here'};
+      }
+      if (call.method == 'Clipboard.hasStrings') {
+        return {'value': true};
+      }
       return null;
     });
 
@@ -43,7 +47,9 @@ void main() {
   testWidgets('Select All + Copy intents from menu copy field text', (tester) async {
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String;
+      if (call.method == 'Clipboard.setData') {
+        copied = (call.arguments as Map)['text'] as String;
+      }
       return null;
     });
 

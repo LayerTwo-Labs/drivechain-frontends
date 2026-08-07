@@ -39,11 +39,15 @@ class _RemoveEncryptionPageState extends State<RemoveEncryptionPage> {
       final walletReader = GetIt.I.get<WalletReaderProvider>();
       await walletReader.removeEncryption(_passwordController.text);
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       await GetIt.I.get<AppRouter>().replace(SuccessRoute(title: 'Encryption Removed'));
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _errorMessage = e.toString().contains('Incorrect password')
             ? 'Incorrect password'

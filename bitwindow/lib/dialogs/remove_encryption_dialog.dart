@@ -46,11 +46,15 @@ class _RemoveEncryptionDialogState extends State<RemoveEncryptionDialog> {
       final walletReader = GetIt.I.get<WalletReaderProvider>();
       await walletReader.removeEncryption(_passwordController.text);
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       Navigator.of(context).pop(true);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _errorMessage = e.toString().contains('Incorrect password')
             ? 'Incorrect password'

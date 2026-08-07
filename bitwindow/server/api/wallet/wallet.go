@@ -2366,7 +2366,7 @@ func (s *Server) PreviewSweep(ctx context.Context, c *connect.Request[pb.Preview
 	}
 
 	amountSats := source.TotalSats()
-	feeSats := engines.SweepFeeSats(source, feeSatPerVbyte)
+	feeSats := engines.SweepFeeSats(source, feeSatPerVbyte, engines.SweepOutputVbytes)
 
 	var receiveSats uint64
 	if amountSats > feeSats {

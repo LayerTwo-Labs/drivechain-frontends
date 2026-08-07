@@ -1706,6 +1706,12 @@ class MockSyncProvider implements SyncProvider {
   SyncInfo? enforcerSyncInfo;
 
   @override
+  String? enforcerWalletError;
+
+  @override
+  SyncInfo? enforcerWalletSyncInfo;
+
+  @override
   String? mainchainError;
 
   @override

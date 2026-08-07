@@ -92,7 +92,9 @@ class MultisigGroup {
   };
 
   static Map<String, List<AddressInfo>> _parseAddresses(dynamic json) {
-    if (json == null) return {'receive': [], 'change': []};
+    if (json == null) {
+      return {'receive': [], 'change': []};
+    }
     final Map<String, List<AddressInfo>> result = {'receive': [], 'change': []};
     if (json is Map) {
       if (json['receive'] is List) {
@@ -106,7 +108,9 @@ class MultisigGroup {
   }
 
   static List<UtxoInfo> _parseUtxos(dynamic json) {
-    if (json == null || json is! List) return [];
+    if (json == null || json is! List) {
+      return [];
+    }
     return json.map((u) => UtxoInfo.fromJson(u)).toList();
   }
 

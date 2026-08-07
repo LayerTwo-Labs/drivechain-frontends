@@ -143,14 +143,20 @@ class PidFileManager {
           '/NH',
         ]);
 
-        if (result.exitCode != 0) return null;
+        if (result.exitCode != 0) {
+          return null;
+        }
 
         final output = result.stdout.toString().trim();
-        if (output.isEmpty || output.contains('No tasks')) return null;
+        if (output.isEmpty || output.contains('No tasks')) {
+          return null;
+        }
 
         // Parse CSV: first quoted value is the image name
         final match = RegExp(r'"([^"]+)"').firstMatch(output);
-        if (match == null) return null;
+        if (match == null) {
+          return null;
+        }
 
         // Remove .exe suffix for comparison
         var name = match.group(1) ?? '';
@@ -164,7 +170,9 @@ class PidFileManager {
       // Output: just the command name (e.g., "bitwindowd")
       final result = await Process.run('ps', ['-p', '$pid', '-o', 'comm=']);
 
-      if (result.exitCode != 0) return null;
+      if (result.exitCode != 0) {
+        return null;
+      }
 
       final name = result.stdout.toString().trim();
       return name.isEmpty ? null : name;
@@ -179,7 +187,9 @@ class PidFileManager {
   /// This prevents adopting a wrong process when the OS has reused a PID.
   Future<bool> verifyProcessName(int pid, Binary binary) async {
     final processName = await getProcessName(pid);
-    if (processName == null) return false;
+    if (processName == null) {
+      return false;
+    }
 
     // The process name should contain the binary name
     // e.g., processName="bip300301-enforcer" should match binary.binaryName="bip300301-enforcer"

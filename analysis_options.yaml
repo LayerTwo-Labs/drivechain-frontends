@@ -1,3 +1,9 @@
 analyzer:
   exclude:
     - "**"
+
+# Applies to any Dart file whose nearest options file is this one. Without it
+# the formatter defaults to trailing_commas: automate and strips the commas.
+formatter:
+  trailing_commas: preserve
+  page_width: 120

@@ -64,6 +64,7 @@ require (
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
 	github.com/LayerTwo-Labs/sidesail/bitwindow/server/cpuminer v0.0.0
 	github.com/LayerTwo-Labs/sidesail/coinnews/codec v0.0.0
+	github.com/LayerTwo-Labs/sidesail/coinnews/server v0.0.0
 	github.com/LayerTwo-Labs/sidesail/sqlitemigrate v0.0.0
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
@@ -76,3 +77,5 @@ replace github.com/LayerTwo-Labs/sidesail/coinnews/codec => ../../coinnews/codec
 replace github.com/LayerTwo-Labs/sidesail/sqlitemigrate => ../../sqlitemigrate
 
 replace github.com/LayerTwo-Labs/sidesail/bitwindow/server/cpuminer => ./cpuminer
+
+replace github.com/LayerTwo-Labs/sidesail/coinnews/server => ../../coinnews/server

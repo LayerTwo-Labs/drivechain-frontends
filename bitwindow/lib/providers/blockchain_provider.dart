@@ -44,7 +44,9 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
 
   // call this function from anywhere to refetch blockchain info
   Future<void> fetch() async {
-    if (!bitwindowd.connected || _isFetching) return;
+    if (!bitwindowd.connected || _isFetching) {
+      return;
+    }
     _isFetching = true;
 
     try {
@@ -137,7 +139,9 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> loadMoreBlocks() async {
-    if (!hasMoreBlocks || isLoadingMoreBlocks) return;
+    if (!hasMoreBlocks || isLoadingMoreBlocks) {
+      return;
+    }
 
     isLoadingMoreBlocks = true;
     try {

@@ -58,7 +58,9 @@ class Base58Check {
 
   /// Decode Base58 string to bytes
   static Uint8List _base58Decode(String input) {
-    if (input.isEmpty) return Uint8List(0);
+    if (input.isEmpty) {
+      return Uint8List(0);
+    }
 
     // Count leading zeros
     int leadingZeros = 0;
@@ -88,7 +90,9 @@ class Base58Check {
 
   /// Encode bytes to Base58 string
   static String _base58Encode(Uint8List input) {
-    if (input.isEmpty) return '';
+    if (input.isEmpty) {
+      return '';
+    }
 
     // Count leading zeros
     int leadingZeros = 0;
@@ -132,7 +136,9 @@ class Base58Check {
 
   /// Convert BigInt to bytes
   static List<int> _bigIntToBytes(BigInt value) {
-    if (value == BigInt.zero) return [0];
+    if (value == BigInt.zero) {
+      return [0];
+    }
 
     final bytes = <int>[];
     while (value > BigInt.zero) {
@@ -144,9 +150,13 @@ class Base58Check {
 
   /// Compare two byte arrays for equality
   static bool _bytesEqual(List<int> a, List<int> b) {
-    if (a.length != b.length) return false;
+    if (a.length != b.length) {
+      return false;
+    }
     for (int i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
+      if (a[i] != b[i]) {
+        return false;
+      }
     }
     return true;
   }

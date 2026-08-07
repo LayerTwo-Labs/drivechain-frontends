@@ -114,7 +114,9 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
 
   // Calculate stroke width - must match the painter exactly
   double _getStrokeWidth(int valueSats, int totalInputSats) {
-    if (totalInputSats == 0) return 3.0;
+    if (totalInputSats == 0) {
+      return 3.0;
+    }
     final ratio = valueSats / totalInputSats;
     return math.max(2.0, ratio * 120).clamp(2.0, 50.0);
   }
@@ -157,7 +159,9 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
       final cy = _bezierY(t, y0, y1, y2, y3);
       final dx = point.dx - cx;
       final dy = point.dy - cy;
-      if (dx * dx + dy * dy < hitRadius * hitRadius) return true;
+      if (dx * dx + dy * dy < hitRadius * hitRadius) {
+        return true;
+      }
     }
     return false;
   }
@@ -187,7 +191,9 @@ class _TransactionFlowDiagramState extends State<TransactionFlowDiagram> {
       final cy = _bezierY(t, y0, y1, y2, y3);
       final dx = point.dx - cx;
       final dy = point.dy - cy;
-      if (dx * dx + dy * dy < hitRadius * hitRadius) return true;
+      if (dx * dx + dy * dy < hitRadius * hitRadius) {
+        return true;
+      }
     }
     return false;
   }
@@ -326,8 +332,12 @@ class _TooltipContent extends StatelessWidget {
   });
 
   String _truncateAddress(String address) {
-    if (address.isEmpty) return '???';
-    if (address.length <= 16) return address;
+    if (address.isEmpty) {
+      return '???';
+    }
+    if (address.length <= 16) {
+      return address;
+    }
     return '${address.substring(0, 8)}...${address.substring(address.length - 6)}';
   }
 
@@ -477,7 +487,9 @@ class _BowtiePainter extends CustomPainter {
   });
 
   double _getStrokeWidth(int valueSats) {
-    if (maxValue == 0 || totalInputSats == 0) return 3.0;
+    if (maxValue == 0 || totalInputSats == 0) {
+      return 3.0;
+    }
     // Scale between 2 and 40 based on proportion of total
     final ratio = valueSats / totalInputSats;
     return math.max(2.0, ratio * 120).clamp(2.0, 50.0);

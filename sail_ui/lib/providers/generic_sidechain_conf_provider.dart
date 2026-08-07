@@ -62,7 +62,9 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
   }
 
   Future<void> _saveConfig() async {
-    if (currentConfig == null) return;
+    if (currentConfig == null) {
+      return;
+    }
     try {
       final confPath = _getConfigPath();
       final file = File(confPath);
@@ -76,7 +78,9 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
 
   /// Sync network setting from BitcoinConfProvider
   Future<void> syncNetworkFromBitcoinConf() async {
-    if (currentConfig == null) return;
+    if (currentConfig == null) {
+      return;
+    }
 
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = bitcoinConfProvider.network;
@@ -176,14 +180,18 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
   List<String> getCliArgs() {
     final args = <String>[];
 
-    if (currentConfig == null) return args;
+    if (currentConfig == null) {
+      return args;
+    }
 
     for (final entry in currentConfig!.settings.entries) {
       final key = entry.key;
       final value = entry.value;
 
       // Skip keys that shouldn't be passed as CLI args
-      if (skippedCliKeys.contains(key)) continue;
+      if (skippedCliKeys.contains(key)) {
+        continue;
+      }
 
       if (value == 'true') {
         args.add('--$key');

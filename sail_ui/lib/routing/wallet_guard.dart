@@ -31,7 +31,9 @@ class WalletGuard extends AutoRouteGuard {
     }
 
     void resumeAfterWalletCreation() {
-      if (resolver.isResolved) return;
+      if (resolver.isResolved) {
+        return;
+      }
       unawaited(() async {
         final walletNowExists = await walletReader.hasWallet();
         if (!resolver.isResolved) {

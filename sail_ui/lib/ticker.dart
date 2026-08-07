@@ -28,7 +28,9 @@ class Ticker {
 /// The active network's currency naming. Falls back to Bitcoin before the
 /// provider is registered (tests, early boot).
 Ticker get activeTicker {
-  if (!GetIt.I.isRegistered<BitcoinConfProvider>()) return Ticker.bitcoin;
+  if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
+    return Ticker.bitcoin;
+  }
   return tickerForNetwork(GetIt.I.get<BitcoinConfProvider>().network);
 }
 

@@ -55,12 +55,16 @@ class _EncryptWalletDialogState extends State<EncryptWalletDialog> {
       final walletReader = GetIt.I.get<WalletReaderProvider>();
       await walletReader.encryptWallet(_passwordController.text);
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       // Encryption successful, close dialog
       Navigator.of(context).pop(true);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _errorMessage = 'Error encrypting wallet: $e';
         _isEncrypting = false;

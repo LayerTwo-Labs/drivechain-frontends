@@ -44,7 +44,9 @@ class BackendStateProvider extends ChangeNotifier {
   /// Start polling `listBinaries()` once per second. Call this after the
   /// daemon process is running and serving gRPC. Idempotent.
   void startWatching() {
-    if (Environment.isInTest) return;
+    if (Environment.isInTest) {
+      return;
+    }
     _pollTimer?.cancel();
     // Kick a poll immediately so the UI gets a snapshot without waiting a
     // full tick on first connect.
@@ -53,7 +55,9 @@ class BackendStateProvider extends ChangeNotifier {
   }
 
   Future<void> _poll() async {
-    if (_polling) return;
+    if (_polling) {
+      return;
+    }
     _polling = true;
     try {
       final resp = await _orchestrator.listBinaries();
@@ -74,7 +78,9 @@ class BackendStateProvider extends ChangeNotifier {
     for (final status in statuses) {
       binaries[status.name] = status;
       final rpc = _syncConnectionState(status);
-      if (rpc != null) changedRpcs.add(rpc);
+      if (rpc != null) {
+        changedRpcs.add(rpc);
+      }
       _syncBinaryPath(status);
     }
     for (final rpc in changedRpcs) {
@@ -88,7 +94,9 @@ class BackendStateProvider extends ChangeNotifier {
   /// Returns the RPC if state changed (caller batches notifyListeners), null otherwise.
   RPCConnection? _syncConnectionState(BinaryStatusMsg status) {
     final rpc = _rpcForBinaryName(status.name);
-    if (rpc == null) return null;
+    if (rpc == null) {
+      return null;
+    }
 
     // Always derive from the current status. When the orchestrator stops reporting
     // a startup_error (empty string), null it out so the UI doesn't keep rendering
@@ -121,16 +129,22 @@ class BackendStateProvider extends ChangeNotifier {
   /// so the frontend stops trying to second-guess from a list of guessed
   /// paths and just uses what was reported.
   void _syncBinaryPath(BinaryStatusMsg status) {
-    if (!GetIt.I.isRegistered<BinaryProvider>()) return;
+    if (!GetIt.I.isRegistered<BinaryProvider>()) {
+      return;
+    }
     final type = _binaryTypeFromName(status.name);
-    if (type == null) return;
+    if (type == null) {
+      return;
+    }
 
     final reported = status.binaryPath;
     final next = reported.isEmpty ? null : File(reported);
 
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     binaryProvider.updateBinary(type, (b) {
-      if (b.metadata.binaryPath?.path == next?.path) return b;
+      if (b.metadata.binaryPath?.path == next?.path) {
+        return b;
+      }
       return b.copyWith(
         metadata: b.metadata.copyWith(
           remoteTimestamp: b.metadata.remoteTimestamp,

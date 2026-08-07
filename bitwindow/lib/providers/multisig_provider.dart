@@ -100,7 +100,9 @@ class TransactionStatusManager {
   }
 
   static bool _isValidStatusTransition(TxStatus from, TxStatus to) {
-    if (from == to) return true;
+    if (from == to) {
+      return true;
+    }
 
     const validTransitions = {
       TxStatus.needsSignatures: [TxStatus.awaitingSignedPSBTs, TxStatus.readyToCombine, TxStatus.voided],
@@ -128,7 +130,9 @@ class PSBTValidator {
   static Future<bool> hasAnySignatures(String psbtBase64, int totalKeysInGroup) async {
     try {
       final res = await _validate(psbtBase64, totalKeysInGroup);
-      if (res.error.isNotEmpty) return false;
+      if (res.error.isNotEmpty) {
+        return false;
+      }
       return res.hasSignatures;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error in hasAnySignatures: $e');
@@ -140,7 +144,9 @@ class PSBTValidator {
   static Future<bool> hasValidSignatures(String psbtBase64, int requiredSigs, {int? totalKeys}) async {
     try {
       final res = await _validate(psbtBase64, requiredSigs);
-      if (res.error.isNotEmpty) return false;
+      if (res.error.isNotEmpty) {
+        return false;
+      }
       return res.finalizable || res.signatureCount >= requiredSigs;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error checking valid signatures: $e');
@@ -151,7 +157,9 @@ class PSBTValidator {
   static Future<bool> isReadyForBroadcast(String psbtBase64, int requiredSigs) async {
     try {
       final res = await _validate(psbtBase64, requiredSigs);
-      if (res.error.isNotEmpty) return false;
+      if (res.error.isNotEmpty) {
+        return false;
+      }
       return res.finalizable;
     } catch (e) {
       return false;
@@ -161,7 +169,9 @@ class PSBTValidator {
   static Future<int> countSignatures(String psbtBase64, {int? totalKeys}) async {
     try {
       final res = await _validate(psbtBase64, totalKeys ?? 0);
-      if (res.error.isNotEmpty) return 0;
+      if (res.error.isNotEmpty) {
+        return 0;
+      }
       return res.signatureCount;
     } catch (e) {
       GetIt.I.get<Logger>().e('Error counting signatures: $e');
@@ -181,7 +191,9 @@ class BalanceManager {
 
     return await FileOperationLock.withLock(lockKey, () async {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) return;
+      if (walletId == null) {
+        return;
+      }
 
       final resp = await _multisigLounge.syncGroup(
         group: multisigGroupToProto(group),
@@ -399,7 +411,9 @@ class MultisigRPCSigner {
   }) async {
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final resp = await _multisigLounge.signTransaction(
         psbtBase64: psbtBase64,
@@ -841,8 +855,12 @@ class WalletRPCManager {
   Future<String> getNewAddress(String walletName, {String? label, String? addressType}) async {
     return await withWallet<String>(walletName, () async {
       final params = <dynamic>[];
-      if (label != null) params.add(label);
-      if (addressType != null) params.add(addressType);
+      if (label != null) {
+        params.add(label);
+      }
+      if (addressType != null) {
+        params.add(addressType);
+      }
 
       return await callWalletRPC<String>(walletName, 'getnewaddress', params);
     });
@@ -928,7 +946,9 @@ class MultisigStorage {
 
   static Future<void> restoreTransactionHistory(MultisigGroup group) async {
     final walletId = _walletReader.activeWalletId;
-    if (walletId == null) return;
+    if (walletId == null) {
+      return;
+    }
 
     try {
       final resp = await _multisigLounge.restoreHistory(

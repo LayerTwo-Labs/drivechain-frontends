@@ -63,7 +63,9 @@ abstract class SidechainRPC extends RPCConnection {
       _ => null,
     };
 
-    if (sidechainKey == null) return null;
+    if (sidechainKey == null) {
+      return null;
+    }
 
     try {
       final dio = Dio();
@@ -460,7 +462,9 @@ class PendingWithdrawalBundle {
   }
 
   static PendingWithdrawalBundle? fromJson(Map<String, dynamic> json) {
-    if (json.isEmpty) return null;
+    if (json.isEmpty) {
+      return null;
+    }
     return PendingWithdrawalBundle.fromMap(json);
   }
 
@@ -556,8 +560,12 @@ class BmmResult {
   final String raw; // raw JSON string, empty means "Trying..."
 
   String get status {
-    if (raw.isEmpty) return 'Trying...';
-    if (error != null) return 'Error: $error';
+    if (raw.isEmpty) {
+      return 'Trying...';
+    }
+    if (error != null) {
+      return 'Error: $error';
+    }
     return 'Success';
   }
 
@@ -598,7 +606,9 @@ class BmmResult {
   }
 
   factory BmmResult.fromMap(Map<String, dynamic>? map) {
-    if (map == null) throw Exception('Null mining result');
+    if (map == null) {
+      throw Exception('Null mining result');
+    }
 
     return BmmResult(
       hashLastMainBlock: map['hash_last_main_block'] ?? '',
@@ -642,6 +652,8 @@ class BmmResult {
 
 // Helper function for handling empty strings
 String? ifNonEmpty(String? input) {
-  if (input == null || input.isEmpty) return null;
+  if (input == null || input.isEmpty) {
+    return null;
+  }
   return input;
 }

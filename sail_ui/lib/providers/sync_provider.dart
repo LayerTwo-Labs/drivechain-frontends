@@ -27,7 +27,9 @@ class SyncInfo {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
     return other is SyncInfo &&
         other.progressCurrent == progressCurrent &&
         other.progressGoal == progressGoal &&
@@ -84,8 +86,12 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   /// and chews ~37% CPU on the Flutter side (issue #1754). Download
   /// progress runs on its own DownloadProvider timer.
   static bool connectionWantsAggressivePoll(SyncInfo? info, String? error) {
-    if (info == null) return false;
-    if (error != null && error.isNotEmpty) return false;
+    if (info == null) {
+      return false;
+    }
+    if (error != null && error.isNotEmpty) {
+      return false;
+    }
     return !info.isSynced;
   }
 
@@ -113,7 +119,9 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   /// True while bitcoind is still pulling its initial header set.
   bool get inHeaderSync {
     final m = mainchainSyncInfo;
-    if (m == null) return true;
+    if (m == null) {
+      return true;
+    }
     return m.progressGoal < 10;
   }
 
@@ -125,6 +133,11 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
 
   SyncInfo? enforcerSyncInfo;
   String? enforcerError;
+
+  /// Tip the enforcer's own wallet is synced to. It scans esplora separately
+  /// from the validator, so it can lag behind [enforcerSyncInfo].
+  SyncInfo? enforcerWalletSyncInfo;
+  String? enforcerWalletError;
 
   /// Per-sidechain sync state, keyed by [SidechainType]. Populated from
   /// `GetSyncStatusResponse.sidechains` on every poll. Includes every L2
@@ -177,7 +190,9 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   /// production callers should go through [_fetch].
   @visibleForTesting
   void maybeFireNewBlock(int newBlocks) {
-    if (newBlocks <= _lastMainchainBlocks) return;
+    if (newBlocks <= _lastMainchainBlocks) {
+      return;
+    }
     _lastMainchainBlocks = newBlocks;
     for (final cb in _newBlockListeners.toList(growable: false)) {
       try {
@@ -220,7 +235,9 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> _tick() async {
-    if (_isFetching) return;
+    if (_isFetching) {
+      return;
+    }
     _isFetching = true;
 
     try {
@@ -283,6 +300,13 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
         changed = true;
       }
 
+      final newEnforcerWallet = _toSyncInfo(resp.enforcerWallet);
+      if (_diff(enforcerWalletSyncInfo, newEnforcerWallet) || enforcerWalletError != _errOrNull(resp.enforcerWallet)) {
+        enforcerWalletSyncInfo = newEnforcerWallet;
+        enforcerWalletError = _errOrNull(resp.enforcerWallet);
+        changed = true;
+      }
+
       final newSidechains = <orch_pb.SidechainType, SyncInfo>{};
       final newSidechainErrors = <orch_pb.SidechainType, String?>{};
       for (final entry in resp.sidechains) {
@@ -307,6 +331,10 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       }
       if (enforcerError != orchErr) {
         enforcerError = orchErr;
+        changed = true;
+      }
+      if (enforcerWalletError != orchErr) {
+        enforcerWalletError = orchErr;
         changed = true;
       }
       if (sidechainErrors.values.any((e) => e != orchErr)) {
@@ -337,7 +365,9 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       }
     }
 
-    if (changed) notifyListeners();
+    if (changed) {
+      notifyListeners();
+    }
   }
 
   /// Builds a SyncInfo from the proto.
@@ -357,21 +387,29 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   bool _diff(SyncInfo? a, SyncInfo? b) {
-    if (a == null || b == null) return true;
+    if (a == null || b == null) {
+      return true;
+    }
     return a != b;
   }
 
   bool _sidechainMapEquals<V>(Map<orch_pb.SidechainType, V> a, Map<orch_pb.SidechainType, V> b) {
-    if (a.length != b.length) return false;
+    if (a.length != b.length) {
+      return false;
+    }
     for (final k in a.keys) {
-      if (!b.containsKey(k) || a[k] != b[k]) return false;
+      if (!b.containsKey(k) || a[k] != b[k]) {
+        return false;
+      }
     }
     return true;
   }
 
   /// Manual one-shot fetch — same as a single tick but without rescheduling.
   Future<void> fetch() async {
-    if (_isFetching) return;
+    if (_isFetching) {
+      return;
+    }
     _isFetching = true;
     try {
       await _fetch();

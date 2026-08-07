@@ -16,7 +16,9 @@ void main() {
   });
 
   tearDown(() async {
-    if (dir.existsSync()) await dir.delete(recursive: true);
+    if (dir.existsSync()) {
+      await dir.delete(recursive: true);
+    }
   });
 
   void writeCookie(String value) {

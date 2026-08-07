@@ -18,7 +18,9 @@ class ClientSettings {
       log.e('could not get $setting value', error: err);
       jsonString = null;
     }
-    if (jsonString == null) return setting.withValue(null);
+    if (jsonString == null) {
+      return setting.withValue(null);
+    }
 
     final value = setting.fromJson(jsonString);
 

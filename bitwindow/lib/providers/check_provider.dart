@@ -21,9 +21,13 @@ bool applyFundingResponse(
   int id,
   CheckChequeFundingResponse resp,
 ) {
-  if (resp.fundedTxids.isEmpty) return false;
+  if (resp.fundedTxids.isEmpty) {
+    return false;
+  }
   final index = checks.indexWhere((c) => c.id == id);
-  if (index == -1) return false;
+  if (index == -1) {
+    return false;
+  }
   checks[index] = Cheque(
     id: checks[index].id,
     derivationIndex: checks[index].derivationIndex,
@@ -79,7 +83,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
         return;
       }
       final hasUnfunded = _checks.any((c) => !c.funded);
-      if (!hasUnfunded) return;
+      if (!hasUnfunded) {
+        return;
+      }
       await _checkUnfundedChecks();
     });
   }
@@ -135,7 +141,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
 
   Future<Cheque> createCheck(int expectedAmountSats) async {
     final walletId = _walletReader.activeWalletId;
-    if (walletId == null) throw Exception('No active wallet');
+    if (walletId == null) {
+      throw Exception('No active wallet');
+    }
     final resp = await _bitwindowRPC.wallet.createCheque(walletId, expectedAmountSats);
 
     final check = Cheque(
@@ -153,7 +161,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
   Future<Cheque?> getCheck(int id) async {
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
       return await _bitwindowRPC.wallet.getCheque(walletId, id);
     } catch (e) {
       log.e('Failed to get check: $e');
@@ -164,7 +174,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
   Future<bool> checkCheckFunding(int id) async {
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
       final resp = await _bitwindowRPC.wallet.checkChequeFunding(walletId, id);
 
       if (applyFundingResponse(_checks, id, resp)) {
@@ -180,7 +192,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
 
   Future<String> sweepCheck(String privateKeyWif, String destinationAddress, int feeSatPerVbyte) async {
     final walletId = _walletReader.activeWalletId;
-    if (walletId == null) throw Exception('No active wallet');
+    if (walletId == null) {
+      throw Exception('No active wallet');
+    }
     final result = await _bitwindowRPC.wallet.sweepCheque(
       walletId,
       privateKeyWif,
@@ -198,7 +212,9 @@ class CheckProvider extends ChangeNotifier implements NetworkScoped {
       }
 
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
       await _bitwindowRPC.wallet.deleteCheque(walletId, id);
       _checks.removeWhere((c) => c.id == id);
       notifyListeners();

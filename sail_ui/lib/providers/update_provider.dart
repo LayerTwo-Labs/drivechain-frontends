@@ -67,7 +67,9 @@ class UpdateProvider extends ChangeNotifier {
   String get _installScriptUrl => '$installScriptBaseUrl/install-$_appname.sh';
 
   Future<void> _checkForUpdates() async {
-    if (checking) return;
+    if (checking) {
+      return;
+    }
 
     checking = true;
     errorMessage = null;

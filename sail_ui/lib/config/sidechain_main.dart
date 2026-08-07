@@ -374,7 +374,9 @@ Binary resolveFromConfig(BinaryType type, Binary Function() fallback) {
   if (GetIt.I.isRegistered<ChainsConfigProvider>()) {
     final configProvider = GetIt.I.get<ChainsConfigProvider>();
     final binary = configProvider.buildBinaryByType(type);
-    if (binary != null) return binary;
+    if (binary != null) {
+      return binary;
+    }
   }
   return fallback();
 }

@@ -45,7 +45,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
   }
 
   void _convert() {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     setState(() => _result = convert(_input.text, _format, _conf.network));
   }
 
@@ -77,7 +79,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
                             )
                             .toList(),
                         onChanged: (value) {
-                          if (value == null) return;
+                          if (value == null) {
+                            return;
+                          }
                           setState(() => _format = value);
                           _convert();
                         },
@@ -122,7 +126,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
   }
 
   Widget _section(String title, List<ConverterRow> rows) {
-    if (rows.isEmpty) return const SizedBox.shrink();
+    if (rows.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return SailCard(
       title: title,
       child: SailColumn(

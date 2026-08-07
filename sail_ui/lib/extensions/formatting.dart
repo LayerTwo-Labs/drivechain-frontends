@@ -18,7 +18,9 @@ String formatWithThousandSpacers(dynamic value) {
 /// reports progress in megabytes, so [valueMB] is in megabytes; this picks
 /// KB / MB / GB based on size and rounds to a sensible number of decimals.
 String formatDataSizeFromMB(num valueMB) {
-  if (valueMB < 0) return '';
+  if (valueMB < 0) {
+    return '';
+  }
   if (valueMB < 1) {
     final kb = valueMB * 1024;
     return '${kb.toStringAsFixed(0)} KB';

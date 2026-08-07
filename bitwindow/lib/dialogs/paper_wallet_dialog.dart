@@ -51,7 +51,9 @@ class _PaperWalletDialogState extends State<PaperWalletDialog> {
   }
 
   Future<void> _printPaperWallet() async {
-    if (_keypair == null) return;
+    if (_keypair == null) {
+      return;
+    }
 
     final pdf = pw.Document();
 

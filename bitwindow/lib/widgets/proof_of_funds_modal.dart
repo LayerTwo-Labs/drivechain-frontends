@@ -763,7 +763,9 @@ class ProofOfFundsViewModel extends BaseViewModel {
 
   Future<List<UTXO>> _getUnspentOutputs() async {
     final walletId = _walletReader.activeWalletId;
-    if (walletId == null) throw Exception('No active wallet');
+    if (walletId == null) {
+      throw Exception('No active wallet');
+    }
 
     final response = await orchestratorWallet.listUnspent(walletId);
     final unspents = response.utxos;
@@ -1004,13 +1006,17 @@ class ProofOfFundsViewModel extends BaseViewModel {
       final totalLines = lines.length - startIndex;
 
       for (int i = startIndex; i < lines.length; i++) {
-        if (lines[i].trim().isEmpty) continue;
+        if (lines[i].trim().isEmpty) {
+          continue;
+        }
 
         final progress = 0.2 + (0.7 * ((i - startIndex) / totalLines));
         onProgress?.call(progress, 'Verifying signature ${i - startIndex + 1} of $totalLines...');
 
         final fields = _parseCSVLine(lines[i]);
-        if (fields.length < 7) continue;
+        if (fields.length < 7) {
+          continue;
+        }
 
         final address = fields[2];
         final message = fields[3];

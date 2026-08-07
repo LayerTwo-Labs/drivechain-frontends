@@ -37,14 +37,18 @@ class CodeSearchService {
   }
 
   List<CodeSearchResult> search(String query) {
-    if (query.isEmpty || query.length < 2) return [];
+    if (query.isEmpty || query.length < 2) {
+      return [];
+    }
 
     final results = <CodeSearchResult>[];
     final lowerQuery = query.toLowerCase();
 
     for (final filePath in _dartFiles) {
       final content = _fileContents[filePath];
-      if (content == null) continue;
+      if (content == null) {
+        continue;
+      }
 
       final lines = content.split('\n');
       for (int i = 0; i < lines.length; i++) {

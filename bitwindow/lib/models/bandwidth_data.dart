@@ -32,8 +32,12 @@ class BandwidthDataPoint {
         rxRate = (totalRxBytes - previous.totalRxBytes) / elapsed;
         txRate = (totalTxBytes - previous.totalTxBytes) / elapsed;
         // Clamp negative rates (can happen if counter resets)
-        if (rxRate < 0) rxRate = 0;
-        if (txRate < 0) txRate = 0;
+        if (rxRate < 0) {
+          rxRate = 0;
+        }
+        if (txRate < 0) {
+          txRate = 0;
+        }
       }
     }
 

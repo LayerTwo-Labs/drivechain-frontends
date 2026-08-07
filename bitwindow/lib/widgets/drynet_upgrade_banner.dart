@@ -25,7 +25,9 @@ class DrynetUpgradeWatcher {
   void dispose() => _poll?.cancel();
 
   Future<void> _check() async {
-    if (!GetIt.I.isRegistered<NotificationProvider>()) return;
+    if (!GetIt.I.isRegistered<NotificationProvider>()) {
+      return;
+    }
     final GetPendingNetworkGenerationResponse pending;
     try {
       pending = await GetIt.I.get<OrchestratorRPC>().getPendingNetworkGeneration();
@@ -62,8 +64,12 @@ Future<bool> openDrynetUpgrade(BuildContext context) async {
   } catch (e) {
     return false;
   }
-  if (pending.pendingGeneration.isEmpty) return true;
-  if (!context.mounted) return false;
+  if (pending.pendingGeneration.isEmpty) {
+    return true;
+  }
+  if (!context.mounted) {
+    return false;
+  }
 
   final switched = await showThemedDialog<bool>(
     context: context,
@@ -81,9 +87,13 @@ Future<bool> confirmPendingDrynetUpgrade(BuildContext context) async {
   } catch (e) {
     return true; // Orchestrator not reachable; the swap itself will report it.
   }
-  if (pending.pendingGeneration.isEmpty) return true;
+  if (pending.pendingGeneration.isEmpty) {
+    return true;
+  }
 
-  if (!context.mounted) return false;
+  if (!context.mounted) {
+    return false;
+  }
   final applied = await showThemedDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -125,14 +135,18 @@ class _DrynetUpgradeDialogState extends State<DrynetUpgradeDialog> {
   /// Keeps the dialog on the generation that is actually published: the catalog
   /// refresh runs detached and can supersede the one the banner opened with.
   Future<void> _reload() async {
-    if (_progress.isNotEmpty) return;
+    if (_progress.isNotEmpty) {
+      return;
+    }
     final GetPendingNetworkGenerationResponse fresh;
     try {
       fresh = await _orchestrator.getPendingNetworkGeneration();
     } catch (e) {
       return;
     }
-    if (!mounted || fresh.pendingGeneration == _pending.pendingGeneration) return;
+    if (!mounted || fresh.pendingGeneration == _pending.pendingGeneration) {
+      return;
+    }
     if (fresh.pendingGeneration.isEmpty) {
       Navigator.of(context).pop(true);
       return;
@@ -155,22 +169,30 @@ class _DrynetUpgradeDialogState extends State<DrynetUpgradeDialog> {
     try {
       await _orchestrator.confirmPendingNetworkGeneration();
     } catch (e) {
-      if (mounted) setState(() => _error = 'Could not switch over: $e');
+      if (mounted) {
+        setState(() => _error = 'Could not switch over: $e');
+      }
       return;
     }
 
-    if (mounted) setState(() => _progress = 'Restarting the backends on ${_pending.pendingGeneration}...');
+    if (mounted) {
+      setState(() => _progress = 'Restarting the backends on ${_pending.pendingGeneration}...');
+    }
     try {
       await rebootBitwindowBackend(_log);
       await NetworkScopedRegistry.clearAll();
     } catch (e) {
       // The switch is recorded and applies on any later start, so this is a
       // restart that needs retrying, not an upgrade that failed.
-      if (mounted) setState(() => _error = 'Switched over — restart BitWindow to finish: $e');
+      if (mounted) {
+        setState(() => _error = 'Switched over — restart BitWindow to finish: $e');
+      }
       return;
     }
 
-    if (mounted) Navigator.of(context).pop(true);
+    if (mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override

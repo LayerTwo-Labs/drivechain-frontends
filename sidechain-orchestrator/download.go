@@ -179,8 +179,11 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	case hasSCVariant:
 		inFlightKey = config.Name + ":test"
 	}
-	if _, loaded := d.inFlight.LoadOrStore(inFlightKey, true); loaded {
-		return nil, fmt.Errorf("%s is already being downloaded", config.Name)
+	// A second caller attaches to the running download instead of failing.
+	// SwapNetwork drops the core binary and restarts L1, so two paths ask at once.
+	done := make(chan struct{})
+	if existing, loaded := d.inFlight.LoadOrStore(inFlightKey, done); loaded {
+		return d.attachToInFlight(ctx, existing.(chan struct{}), config.Name, binPath), nil
 	}
 
 	ch := make(chan DownloadProgress, 100)
@@ -195,6 +198,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 
 	go func() {
 		defer d.inFlight.Delete(inFlightKey)
+		defer close(done)
 		defer d.state.Delete(stateKey)
 		defer close(ch)
 
@@ -1031,4 +1035,24 @@ func StripPlatformSuffix(name string) string {
 	}
 
 	return result
+}
+
+// attachToInFlight waits for an already-running download of the same binary and
+// reports success iff it left a binary on disk.
+func (d *DownloadManager) attachToInFlight(ctx context.Context, done chan struct{}, name, binPath string) chan DownloadProgress {
+	ch := make(chan DownloadProgress, 1)
+	go func() {
+		defer close(ch)
+		select {
+		case <-done:
+			if _, err := os.Stat(binPath); err != nil {
+				ch <- DownloadProgress{Error: fmt.Errorf("%s download finished without a binary", name)}
+				return
+			}
+			ch <- DownloadProgress{Message: binPath, Done: true}
+		case <-ctx.Done():
+			ch <- DownloadProgress{Error: ctx.Err()}
+		}
+	}()
+	return ch
 }
