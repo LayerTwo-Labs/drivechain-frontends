@@ -463,7 +463,9 @@ class HDWalletViewModel extends BaseViewModel {
           final publicKey = extendedPrivateKey.publicKey();
 
           final q = publicKey.q;
-          if (q == null) continue;
+          if (q == null) {
+            continue;
+          }
 
           final pubKeyBytes = q.getEncoded(true);
           final pubKeyHex = hex.encode(pubKeyBytes);

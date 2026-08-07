@@ -318,8 +318,12 @@ class _MyFilesTab extends StatelessWidget {
   }
 
   String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
@@ -415,7 +419,9 @@ class BitDriveViewModel extends BaseViewModel {
   }
 
   Future<void> openBitdriveDir() async {
-    if (_bitdriveDir == null) return;
+    if (_bitdriveDir == null) {
+      return;
+    }
     try {
       await bitwindowd.bitdrive.openBitdriveDir();
     } catch (e) {

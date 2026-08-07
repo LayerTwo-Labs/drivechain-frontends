@@ -39,7 +39,9 @@ class StaticField extends StatelessWidget {
                 variant: ButtonVariant.icon,
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: value));
-                  if (!context.mounted) return;
+                  if (!context.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Copied $label to clipboard'),

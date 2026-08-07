@@ -46,7 +46,9 @@ class _SailMnemonicGridState extends State<SailMnemonicGrid> {
   @override
   void didUpdateWidget(SailMnemonicGrid old) {
     super.didUpdateWidget(old);
-    if (_nodes.length != _count) _syncNodes();
+    if (_nodes.length != _count) {
+      _syncNodes();
+    }
   }
 
   void _syncNodes() {
@@ -75,7 +77,9 @@ class _SailMnemonicGridState extends State<SailMnemonicGrid> {
 
   @override
   Widget build(BuildContext context) {
-    if (_count == 0) return const SizedBox.shrink();
+    if (_count == 0) {
+      return const SizedBox.shrink();
+    }
     final columns = widget.columns;
     final rows = (_count + columns - 1) ~/ columns;
     final showBits = widget.bits != null && widget.bits!.length == widget.words.length;
@@ -106,7 +110,9 @@ class _SailMnemonicGridState extends State<SailMnemonicGrid> {
   }
 
   Widget _cell(BuildContext context, int index, bool showBits) {
-    if (index >= _count) return const SizedBox.shrink();
+    if (index >= _count) {
+      return const SizedBox.shrink();
+    }
     final theme = SailTheme.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,

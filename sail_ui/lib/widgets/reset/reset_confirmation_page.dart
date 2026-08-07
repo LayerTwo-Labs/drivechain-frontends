@@ -12,7 +12,9 @@ import 'package:sail_ui/sail_ui.dart';
 enum ResetHeaderState { confirm, success, partial }
 
 ResetHeaderState resetHeaderState({required bool deletionComplete, required int errorCount}) {
-  if (!deletionComplete) return ResetHeaderState.confirm;
+  if (!deletionComplete) {
+    return ResetHeaderState.confirm;
+  }
   return errorCount == 0 ? ResetHeaderState.success : ResetHeaderState.partial;
 }
 
@@ -59,7 +61,9 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
   Future<void> _gather() async {
     try {
       final resp = await GetIt.I.get<OrchestratorRPC>().gatherFilesToDelete(widget.request);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _items = resp.files
             .map((f) => DeleteItem(path: f.path, isWallet: f.deletionType == DeletionType.DELETION_TYPE_WALLET))
@@ -68,7 +72,9 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
       });
     } catch (e) {
       widget.log.e('Could not gather reset files: $e');
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _gatherError = e.toString();
         _gathering = false;
@@ -86,14 +92,18 @@ class _ResetConfirmationPageState extends State<ResetConfirmationPage> {
 
     try {
       await for (final event in GetIt.I.get<OrchestratorRPC>().deleteFiles(widget.request)) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         setState(() {
           _stoppingBinaries = false;
           final item = pathToItem[event.path];
           if (item != null) {
             _currentIndex = _items.indexOf(item);
             item.status = event.error.isEmpty ? DeleteItemStatus.success : DeleteItemStatus.error;
-            if (event.error.isNotEmpty) item.errorMessage = event.error;
+            if (event.error.isNotEmpty) {
+              item.errorMessage = event.error;
+            }
           }
         });
       }

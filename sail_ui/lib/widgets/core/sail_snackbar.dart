@@ -15,7 +15,9 @@ void showSnackBar(
     'Either message or widget must be provided',
   );
 
-  if (!context.mounted) return;
+  if (!context.mounted) {
+    return;
+  }
   final theme = SailTheme.of(context);
   final messenger = ScaffoldMessenger.of(context);
 

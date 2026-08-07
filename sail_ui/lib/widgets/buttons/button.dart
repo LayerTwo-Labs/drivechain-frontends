@@ -69,7 +69,9 @@ class _SailButtonState extends State<SailButton> {
   bool get _isLoading => (widget.loading || _internalLoading) && !widget.skipLoading;
 
   Future<void> _handlePress() async {
-    if (widget.onPressed == null || _isLoading) return;
+    if (widget.onPressed == null || _isLoading) {
+      return;
+    }
 
     try {
       setState(() => _internalLoading = true);
@@ -444,7 +446,9 @@ class PasteButton extends StatelessWidget {
             onPaste(clipboardData!.text!);
           }
         } catch (e) {
-          if (!context.mounted) return;
+          if (!context.mounted) {
+            return;
+          }
           showSnackBar(context, 'Error accessing clipboard');
         }
       },

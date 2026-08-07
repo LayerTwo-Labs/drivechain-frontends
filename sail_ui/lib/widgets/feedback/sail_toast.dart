@@ -23,7 +23,9 @@ void showSailToast(
   SailToastPosition position = SailToastPosition.topRight,
 }) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
-  if (overlay == null) return;
+  if (overlay == null) {
+    return;
+  }
   _SailToastHost.of(overlay).enqueue(
     _SailToastSpec(
       message: message,
@@ -63,7 +65,9 @@ class _SailToastHost {
 
   static _SailToastHost of(OverlayState overlay) {
     final existing = _hosts[overlay];
-    if (existing != null) return existing;
+    if (existing != null) {
+      return existing;
+    }
     final host = _SailToastHost._(overlay);
     _hosts[overlay] = host;
     return host;
@@ -88,7 +92,9 @@ class _SailToastHost {
   }
 
   void _ensureOverlay() {
-    if (_overlayEntry != null) return;
+    if (_overlayEntry != null) {
+      return;
+    }
     _overlayEntry = OverlayEntry(
       builder: (ctx) {
         return Positioned.fill(
@@ -222,7 +228,9 @@ class _ToastCardState extends State<_ToastCard> with SingleTickerProviderStateMi
   }
 
   void _sync() {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     if (widget.entry.visible.value) {
       _ctrl.forward();
     } else {

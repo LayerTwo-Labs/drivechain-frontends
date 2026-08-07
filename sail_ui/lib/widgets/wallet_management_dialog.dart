@@ -75,14 +75,18 @@ class _WalletManagementDialogState extends State<WalletManagementDialog> {
   }
 
   Future<void> _delete() async {
-    if (widget.onDelete == null) return;
+    if (widget.onDelete == null) {
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => _DeleteConfirmationDialog(walletName: widget.existingWallet!.name),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
 
     setState(() => _isLoading = true);
 

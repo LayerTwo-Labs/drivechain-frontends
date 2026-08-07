@@ -93,17 +93,25 @@ class _CreateCheckPageState extends State<CreateCheckPage> {
 
     try {
       final check = await _checkProvider.createCheck(sats);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await context.router.replace(CheckDetailRoute(checkId: check.id.toInt()));
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       if (e.toString().toLowerCase().contains('wallet is locked')) {
         final isEncrypted = await _walletReader.isWalletEncrypted();
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         if (isEncrypted) {
           await _showUnlockDialog();
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
           if (_walletReader.isWalletUnlocked) {
             await _createCheck();
           }

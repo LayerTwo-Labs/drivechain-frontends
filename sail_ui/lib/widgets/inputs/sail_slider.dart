@@ -67,7 +67,9 @@ class _SailSliderState extends State<SailSlider> {
 
   double _snap(double v) {
     final divisions = widget.divisions;
-    if (divisions == null || divisions <= 0) return v.clamp(widget.min, widget.max);
+    if (divisions == null || divisions <= 0) {
+      return v.clamp(widget.min, widget.max);
+    }
     final step = (widget.max - widget.min) / divisions;
     final snapped = widget.min + ((v - widget.min) / step).round() * step;
     return snapped.clamp(widget.min, widget.max);
@@ -80,7 +82,9 @@ class _SailSliderState extends State<SailSlider> {
   }
 
   void _emit(double localX, double trackWidth) {
-    if (!widget._isEnabled) return;
+    if (!widget._isEnabled) {
+      return;
+    }
     final v = _valueAt(localX, trackWidth);
     if (!widget.isRange) {
       widget.onChanged!(v);
@@ -99,7 +103,9 @@ class _SailSliderState extends State<SailSlider> {
   int _nearestThumb(double v) {
     final toStart = (v - widget.rangeStart).abs();
     final toEnd = (widget.rangeEnd - v).abs();
-    if (toStart == toEnd) return v >= widget.rangeEnd ? 1 : 0;
+    if (toStart == toEnd) {
+      return v >= widget.rangeEnd ? 1 : 0;
+    }
     return toStart < toEnd ? 0 : 1;
   }
 
@@ -129,7 +135,9 @@ class _SailSliderState extends State<SailSlider> {
             behavior: HitTestBehavior.opaque,
             onTapDown: (d) => _emit(d.localPosition.dx - thumbRadius, trackWidth),
             onHorizontalDragStart: (d) {
-              if (!widget.isRange) return;
+              if (!widget.isRange) {
+                return;
+              }
               _held = _nearestThumb(_valueAt(d.localPosition.dx - thumbRadius, trackWidth));
             },
             onHorizontalDragUpdate: (d) => _emit(d.localPosition.dx - thumbRadius, trackWidth),
@@ -191,7 +199,9 @@ class _SailSliderState extends State<SailSlider> {
       },
     );
 
-    if (widget.label == null) return track;
+    if (widget.label == null) {
+      return track;
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

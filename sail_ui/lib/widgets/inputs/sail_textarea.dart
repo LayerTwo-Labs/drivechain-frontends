@@ -51,7 +51,9 @@ class _SailTextareaState extends State<SailTextarea> {
   TextEditingController? _internal;
 
   TextEditingController get _effective {
-    if (widget.controller != null) return widget.controller!;
+    if (widget.controller != null) {
+      return widget.controller!;
+    }
     return _internal ??= TextEditingController(text: widget.value ?? '');
   }
 

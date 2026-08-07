@@ -18,7 +18,9 @@ class SailAvatar extends StatelessWidget {
   });
 
   String? _initialsFromName(String? name) {
-    if (name == null || name.trim().isEmpty) return null;
+    if (name == null || name.trim().isEmpty) {
+      return null;
+    }
     final parts = name.trim().split(RegExp(r'\s+'));
     final letters = parts.take(2).map((p) => p.isEmpty ? '' : p[0].toUpperCase()).join();
     return letters.isEmpty ? null : letters;

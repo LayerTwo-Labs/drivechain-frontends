@@ -70,11 +70,15 @@ class CheckDetailViewModel extends BaseViewModel {
   }
 
   Future<void> fundWithWallet(BuildContext context) async {
-    if (_check == null) return;
+    if (_check == null) {
+      return;
+    }
 
     try {
       final walletId = _walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       final amountSats = _check!.expectedAmountSats.toInt();
 
@@ -92,10 +96,14 @@ class CheckDetailViewModel extends BaseViewModel {
         links: [NotificationLink(text: 'View transaction', url: mempoolTxUrl(txid, network))],
       );
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       Navigator.of(context).pop();
     } catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       showSailToast(
         context,
@@ -105,7 +113,9 @@ class CheckDetailViewModel extends BaseViewModel {
   }
 
   Future<void> sweepCheck(BuildContext context) async {
-    if (_check == null || _check!.fundedTxids.isEmpty) return;
+    if (_check == null || _check!.fundedTxids.isEmpty) {
+      return;
+    }
 
     final destinationAddress = _transactionProvider.address;
     if (destinationAddress.isEmpty) {
@@ -130,7 +140,9 @@ class CheckDetailViewModel extends BaseViewModel {
         0,
       );
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       showSailToast(
         context,
@@ -139,14 +151,20 @@ class CheckDetailViewModel extends BaseViewModel {
 
       Navigator.of(context).pop();
     } catch (e) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       if (e.toString().toLowerCase().contains('wallet is locked')) {
         final isEncrypted = await _walletReader.isWalletEncrypted();
-        if (!context.mounted) return;
+        if (!context.mounted) {
+          return;
+        }
         if (isEncrypted) {
           await _showUnlockDialog(context);
-          if (!context.mounted) return;
+          if (!context.mounted) {
+            return;
+          }
           if (_walletReader.isWalletUnlocked) {
             await sweepCheck(context);
           }

@@ -394,6 +394,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('connectionStatus', connectionStatus);
     track('mainchainSyncInfo', syncProvider.mainchainSyncInfo);
     track('enforcerSyncInfo', syncProvider.enforcerSyncInfo);
+    track('enforcerWalletSyncInfo', syncProvider.enforcerWalletSyncInfo);
     track('additionalSyncInfo', additionalSyncInfo);
     notifyIfChanged(); // Use change tracking for normal updates
   }
@@ -465,9 +466,15 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       // A message means work that isn't a plain binary fetch, e.g. the UTXO
       // snapshot, and it names itself.
       final labelled = dp.downloads.values.where((d) => d.message.isNotEmpty);
-      if (labelled.isNotEmpty) return '${labelled.first.message}...';
-      if (dp.statusFor(BinaryType.BINARY_TYPE_BITCOIND) != null) return 'Downloading mainchain...';
-      if (dp.statusFor(BinaryType.BINARY_TYPE_ENFORCER) != null) return 'Downloading enforcer...';
+      if (labelled.isNotEmpty) {
+        return '${labelled.first.message}...';
+      }
+      if (dp.statusFor(BinaryType.BINARY_TYPE_BITCOIND) != null) {
+        return 'Downloading mainchain...';
+      }
+      if (dp.statusFor(BinaryType.BINARY_TYPE_ENFORCER) != null) {
+        return 'Downloading enforcer...';
+      }
       final additionalType = additionalConnection.rpc.binary.type;
       if (dp.statusFor(additionalType) != null) {
         return 'Downloading ${additionalConnection.name}...';
@@ -490,20 +497,26 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
         rpc: mainchain,
         binaryLabel: 'Bitcoin Core',
       );
-      if (mainchainLine != null) return mainchainLine;
+      if (mainchainLine != null) {
+        return mainchainLine;
+      }
 
       final enforcerLine = _statusLineFor(
         rpc: enforcer,
         binaryLabel: 'Enforcer',
       );
-      if (enforcerLine != null) return enforcerLine;
+      if (enforcerLine != null) {
+        return enforcerLine;
+      }
     }
 
     final additionalLine = _statusLineFor(
       rpc: additionalConnection.rpc,
       binaryLabel: additionalConnection.name,
     );
-    if (additionalLine != null) return additionalLine;
+    if (additionalLine != null) {
+      return additionalLine;
+    }
 
     if (needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
       return 'Syncing mainchain blocks';
@@ -532,9 +545,15 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   ///  4. initializingBinary -> show latest startup log line, or "Initializing [name]…"
   ///  5. else (!connected)  -> "Waiting for [name]"
   String? _statusLineFor({required RPCConnection rpc, required String binaryLabel}) {
-    if (rpc.connectionError != null) return rpc.connectionError;
-    if (rpc.connected) return null;
-    if (rpc.startupError != null) return rpc.startupError;
+    if (rpc.connectionError != null) {
+      return rpc.connectionError;
+    }
+    if (rpc.connected) {
+      return null;
+    }
+    if (rpc.startupError != null) {
+      return rpc.startupError;
+    }
     if (rpc.initializingBinary) {
       return rpc.binary.startupLogs.lastOrNull?.message ?? 'Initializing $binaryLabel…';
     }
@@ -558,13 +577,17 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
     // Electrum wallets run no L1 daemons, so there are no block-sync bars to
     // show — the electrum scan status is rendered separately.
-    if (!viewModel.needsBackends) return const SizedBox.shrink();
+    if (!viewModel.needsBackends) {
+      return const SizedBox.shrink();
+    }
     final mainchainConnected = viewModel.syncProvider.mainchainSyncInfo != null;
     final enforcerConnected = viewModel.syncProvider.enforcerSyncInfo != null;
+    final enforcerWalletConnected = viewModel.syncProvider.enforcerWalletSyncInfo != null;
     final additionalConnected = viewModel.additionalSyncInfo != null;
 
     final mainchainSynced = mainchainConnected && viewModel.syncProvider.mainchainSyncInfo!.isSynced;
     final enforcerSynced = enforcerConnected && viewModel.syncProvider.enforcerSyncInfo!.isSynced;
+    final enforcerWalletSynced = enforcerWalletConnected && viewModel.syncProvider.enforcerWalletSyncInfo!.isSynced;
     final additionalSynced = additionalConnected && viewModel.additionalSyncInfo!.isSynced;
 
     return ConstrainedBox(
@@ -586,6 +609,14 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
             ChainLoader(
               name: viewModel.syncProvider.enforcer.name,
               syncInfo: viewModel.syncProvider.enforcerSyncInfo!,
+              justPercent: true,
+            ),
+            DividerDot(),
+          ],
+          if (enforcerWalletConnected && !enforcerWalletSynced) ...[
+            ChainLoader(
+              name: 'Enforcer wallet',
+              syncInfo: viewModel.syncProvider.enforcerWalletSyncInfo!,
               justPercent: true,
             ),
             DividerDot(),
@@ -862,7 +893,9 @@ class ElectrumScanStatus extends StatelessWidget {
       listenable: syncProvider,
       builder: (context, _) {
         final status = syncProvider.walletSyncStatus;
-        if (status.isEmpty) return const SizedBox.shrink();
+        if (status.isEmpty) {
+          return const SizedBox.shrink();
+        }
         return Padding(
           padding: const EdgeInsets.only(right: SailStyleValues.padding08),
           child: Tooltip(
@@ -937,12 +970,16 @@ class _MiningStatusState extends State<MiningStatus> {
   @override
   Widget build(BuildContext context) {
     final mining = _mining;
-    if (mining == null) return const SizedBox.shrink();
+    if (mining == null) {
+      return const SizedBox.shrink();
+    }
 
     return ListenableBuilder(
       listenable: mining,
       builder: (context, _) {
-        if (!mining.isMining) return const SizedBox.shrink();
+        if (!mining.isMining) {
+          return const SizedBox.shrink();
+        }
 
         final theme = SailTheme.of(context);
         final blocks = mining.blocksFound;
@@ -979,14 +1016,18 @@ class _BalanceRefreshButtonState extends State<_BalanceRefreshButton> {
   bool _busy = false;
 
   Future<void> _refresh() async {
-    if (_busy) return;
+    if (_busy) {
+      return;
+    }
     setState(() => _busy = true);
     try {
       await GetIt.I.get<OrchestratorRPC>().wallet.rescanWallet();
       await GetIt.I.get<BalanceProvider>().fetch();
     } catch (_) {
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 

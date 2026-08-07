@@ -31,7 +31,9 @@ Future<({DateTime start, DateTime end})?> showSailDateRangePicker({
     lastDate: lastDate,
     builder: _themedPickerBuilder,
   );
-  if (picked == null) return null;
+  if (picked == null) {
+    return null;
+  }
   return (start: picked.start, end: picked.end);
 }
 

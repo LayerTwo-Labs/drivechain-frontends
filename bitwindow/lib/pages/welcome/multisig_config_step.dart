@@ -94,12 +94,20 @@ class MultisigWalletSpec {
       'wsh' => 'P2WSH',
       _ => null,
     };
-    if (format == null) return null;
+    if (format == null) {
+      return null;
+    }
     // Coldcard needs a master fingerprint per cosigner.
-    if (cosigners.any((c) => (c.fingerprint ?? '').isEmpty)) return null;
+    if (cosigners.any((c) => (c.fingerprint ?? '').isEmpty)) {
+      return null;
+    }
     var name = walletName.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '');
-    if (name.isEmpty) name = 'multisig';
-    if (name.length > 20) name = name.substring(0, 20);
+    if (name.isEmpty) {
+      name = 'multisig';
+    }
+    if (name.length > 20) {
+      name = name.substring(0, 20);
+    }
     final b = StringBuffer()
       ..writeln('# Coldcard Multisig setup file')
       ..writeln('Name: $name')
@@ -108,7 +116,9 @@ class MultisigWalletSpec {
       ..writeln();
     for (final c in cosigners) {
       final path = (c.originPath ?? '').isEmpty ? '' : 'm/${c.originPath}';
-      if (path.isNotEmpty) b.writeln('Derivation: $path');
+      if (path.isNotEmpty) {
+        b.writeln('Derivation: $path');
+      }
       b.writeln('${(c.fingerprint ?? '').toUpperCase()}: ${c.xpub}');
     }
     return b.toString();
@@ -121,9 +131,15 @@ bool isPlausibleXpub(String input) {
 
 ({String xpub, String? fingerprint, String? originPath}) parseKeyExpression(String raw) {
   final trimmed = raw.trim();
-  final m = RegExp(r'^\[([0-9a-fA-F]{8})/(.+?)\](.+)$').firstMatch(trimmed);
+  // The path is optional: a cosigner may carry only a fingerprint.
+  final m = RegExp(r'^\[([0-9a-fA-F]{8})(?:/([^\]]*))?\](.+)$').firstMatch(trimmed);
   if (m != null) {
-    return (xpub: m.group(3)!.trim(), fingerprint: m.group(1), originPath: m.group(2));
+    final path = m.group(2);
+    return (
+      xpub: m.group(3)!.trim(),
+      fingerprint: m.group(1),
+      originPath: path == null || path.isEmpty ? null : path,
+    );
   }
   return (xpub: trimmed, fingerprint: null, originPath: null);
 }
@@ -225,17 +241,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     _descriptorFocus.dispose();
     _path.dispose();
     _pathFocus.dispose();
-    for (final controller in _labelControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
-  }
-
-  // Held per key, because building one in build() leaks a controller per frame.
-  final Map<CosignerKeystore, TextEditingController> _labelControllers = {};
-
-  TextEditingController _labelController(CosignerKeystore k) {
-    return _labelControllers.putIfAbsent(k, () => TextEditingController(text: k.owner));
   }
 
   // The standard paths for the selected keystore's policy, prefilling the
@@ -260,13 +266,19 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       }
       return;
     }
-    if (!mounted || _selectedTab != index || _policyKey != requested) return;
+    if (!mounted || _selectedTab != index || _policyKey != requested) {
+      return;
+    }
     setState(() {
       _pathOptions = paths.options;
       _standardPath = paths.defaultPath;
       final k = _keystores[index];
-      if (k.derivationPath.isEmpty) k.derivationPath = paths.defaultPath;
-      if (!_pathFocus.hasFocus) _path.text = k.derivationPath;
+      if (k.derivationPath.isEmpty) {
+        k.derivationPath = paths.defaultPath;
+      }
+      if (!_pathFocus.hasFocus) {
+        _path.text = k.derivationPath;
+      }
       _pathError = null;
     });
   }
@@ -291,7 +303,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       }
       return;
     }
-    if (!mounted || !_isCurrentPath(index, raw)) return;
+    if (!mounted || !_isCurrentPath(index, raw)) {
+      return;
+    }
     // A single-sig wallet is its one keystore, so a standard path names its
     // script type.
     _update(() {
@@ -302,9 +316,13 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       }
       // A watch-only key cannot be re-derived, so the path is simply the origin
       // the user vouches for.
-      if (k.isFilled && !k.held && !k.isHardware) k.originPath = path.normalized.substring(2);
+      if (k.isFilled && !k.held && !k.isHardware) {
+        k.originPath = path.normalized.substring(2);
+      }
     });
-    if (!k.isFilled || !k.held) return;
+    if (!k.isFilled || !k.held) {
+      return;
+    }
 
     final derived = await _derive(index, mnemonic: k.mnemonic, passphrase: k.passphrase);
     if (derived == null || !mounted || _keystores[index] != k || !_isCurrentPath(index, raw)) {
@@ -337,11 +355,17 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     final generation = ++_rederiveGeneration;
     for (var i = 0; i < _keystores.length; i++) {
       final k = _keystores[i];
-      if (!k.held) continue;
+      if (!k.held) {
+        continue;
+      }
       k.derivationPath = '';
       final derived = await _derive(i, mnemonic: k.mnemonic, passphrase: k.passphrase);
-      if (!mounted || generation != _rederiveGeneration) return;
-      if (derived == null || _keystores[i] != k) continue;
+      if (!mounted || generation != _rederiveGeneration) {
+        return;
+      }
+      if (derived == null || _keystores[i] != k) {
+        continue;
+      }
       _setKeystore(i, _rederived(k, derived));
     }
   }
@@ -350,7 +374,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   // came with its own origin keeps it.
   void _resetPendingPaths() {
     for (final k in _keystores) {
-      if (k.originPath == null) k.derivationPath = '';
+      if (k.originPath == null) {
+        k.derivationPath = '';
+      }
     }
     _pathError = null;
   }
@@ -394,7 +420,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       }
       return;
     }
-    if (!mounted || _descriptor.text != raw) return;
+    if (!mounted || _descriptor.text != raw) {
+      return;
+    }
 
     _update(() {
       _error = null;
@@ -406,7 +434,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       final previous = List.of(_keystores);
       _keystores = policy.keys.asMap().entries.map((e) {
         final kept = previous.where((k) => k.xpub == e.value.xpub);
-        if (kept.isNotEmpty) return kept.first;
+        if (kept.isNotEmpty) {
+          return kept.first;
+        }
         return CosignerKeystore(owner: 'Key ${e.key + 1}')
           ..xpub = e.value.xpub
           ..fingerprint = e.value.fingerprint.isEmpty ? null : e.value.fingerprint
@@ -414,7 +444,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
           ..derivationPath = e.value.originPath.isEmpty ? '' : 'm/${e.value.originPath}'
           ..source = CosignerSource.xpub;
       }).toList();
-      if (_selectedTab >= _total) _selectedTab = _total - 1;
+      if (_selectedTab >= _total) {
+        _selectedTab = _total - 1;
+      }
       _resetPendingPaths();
     });
     await _loadPathOptions();
@@ -429,13 +461,17 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     } else if (_total < _keystores.length) {
       _keystores = _keystores.sublist(0, _total);
     }
-    if (_selectedTab >= _total) _selectedTab = _total - 1;
+    if (_selectedTab >= _total) {
+      _selectedTab = _total - 1;
+    }
   }
 
   String get _descriptorPreview {
     final parts = List.generate(_total, (i) {
       final k = _keystores[i];
-      if (!k.isFilled) return k.owner.replaceAll(' ', '');
+      if (!k.isFilled) {
+        return k.owner.replaceAll(' ', '');
+      }
       if (k.fingerprint != null && k.originPath != null) {
         return '[${k.fingerprint}/${k.originPath}]${k.xpub}';
       }
@@ -540,7 +576,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     } catch (e) {
       setState(() => _error = 'Failed to build descriptor: $e');
     } finally {
-      if (mounted) setState(() => _building = false);
+      if (mounted) {
+        setState(() => _building = false);
+      }
     }
   }
 
@@ -555,7 +593,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   void _setKeystore(int index, CosignerKeystore k) {
     _update(() {
       _keystores[index] = k;
-      if (index == _selectedTab && !_pathFocus.hasFocus) _path.text = k.derivationPath;
+      if (index == _selectedTab && !_pathFocus.hasFocus) {
+        _path.text = k.derivationPath;
+      }
     });
   }
 
@@ -693,25 +733,6 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
             ],
           ),
           const SizedBox(height: 16),
-          if (_total > 1) ...[
-            _labeledRow(
-              'M of N',
-              SizedBox(
-                width: 362,
-                child: SailSlider.range(
-                  rangeStart: _threshold.toDouble(),
-                  rangeEnd: _total.toDouble(),
-                  min: 1,
-                  max: _total.toDouble(),
-                  divisions: _total - 1,
-                  label: _quorumLabel,
-                  onRangeChanged: (start, end) => _onQuorumChanged(start.round(), end.round()),
-                ),
-              ),
-              alignTop: true,
-            ),
-            const SizedBox(height: 12),
-          ],
           _labeledRow('Descriptor', _descriptorField(context), alignTop: true),
           if (_descriptorError != null)
             Padding(
@@ -744,7 +765,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       value: _coreAvailable ? _provider : 'electrum',
       enabled: _coreAvailable,
       onChanged: (v) async {
-        if (v == null) return;
+        if (v == null) {
+          return;
+        }
         setState(() => _provider = v);
       },
       items: const [
@@ -766,7 +789,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         _addressTypeNote = null;
         _resetPendingPaths();
         // A second key brings M of N into play, so show the settings holding it.
-        if (_total > 1) _settingsOpen = true;
+        if (_total > 1) {
+          _settingsOpen = true;
+        }
       }
       _resizeKeystores();
     });
@@ -811,7 +836,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     return SailDropdownButton<String>(
       value: _scriptType,
       onChanged: (v) async {
-        if (v == null) return;
+        if (v == null) {
+          return;
+        }
         _update(() {
           _scriptType = v;
           _addressTypeNote = null;
@@ -862,14 +889,18 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         allowedExtensions: ['txt', 'json', 'conf'],
         dialogTitle: 'Import multisig config',
       );
-      if (result == null || result.files.isEmpty) return;
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
       final path = result.files.first.path;
       if (path == null) {
         setState(() => _error = 'Could not read the selected file');
         return;
       }
       final fileContent = await File(path).readAsString();
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       await _applyConfig(context, fileContent);
     } catch (e) {
       setState(() => _error = 'Failed to import config: $e');
@@ -904,7 +935,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
           ),
         ),
       );
-      if (ok != true) return;
+      if (ok != true) {
+        return;
+      }
     }
 
     setState(() {
@@ -918,7 +951,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         // the multisig wallet instead of a single-sig one from the first leg.
         _threshold = resp.m;
         _total = resp.n;
-        if (resp.scriptType.isNotEmpty) _scriptType = resp.scriptType;
+        if (resp.scriptType.isNotEmpty) {
+          _scriptType = resp.scriptType;
+        }
         _keystores = resp.cosigners.asMap().entries.map((e) {
           final c = e.value;
           return CosignerKeystore(owner: 'Key ${e.key + 1}')
@@ -928,12 +963,16 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
             ..derivationPath = c.originPath.isEmpty ? '' : 'm/${c.originPath}'
             ..source = CosignerSource.xpub;
         }).toList();
-        if (_selectedTab >= _total) _selectedTab = _total - 1;
+        if (_selectedTab >= _total) {
+          _selectedTab = _total - 1;
+        }
       });
     } catch (e) {
       setState(() => _error = 'Could not parse descriptor: $e');
     } finally {
-      if (mounted) setState(() => _building = false);
+      if (mounted) {
+        setState(() => _building = false);
+      }
     }
   }
 
@@ -945,6 +984,18 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailText.primary16('Keys', bold: true),
+          if (_total > 1) ...[
+            const SizedBox(height: 12),
+            SailSlider.range(
+              rangeStart: _threshold.toDouble(),
+              rangeEnd: _total.toDouble(),
+              min: 1,
+              max: _total.toDouble(),
+              divisions: _total - 1,
+              label: _quorumLabel,
+              onRangeChanged: (start, end) => _onQuorumChanged(start.round(), end.round()),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -986,7 +1037,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   }
 
   void _addKey() {
-    if (_total >= _maxCosigners) return;
+    if (_total >= _maxCosigners) {
+      return;
+    }
     _update(() {
       _total += 1;
       _resizeKeystores();
@@ -1002,12 +1055,18 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   }
 
   void _removeKey(int index) {
-    if (_total <= 1) return;
+    if (_total <= 1) {
+      return;
+    }
     _update(() {
       _keystores.removeAt(index);
       _total = _keystores.length;
-      if (_threshold > _total) _threshold = _total;
-      if (_selectedTab >= _total) _selectedTab = _total - 1;
+      if (_threshold > _total) {
+        _threshold = _total;
+      }
+      if (_selectedTab >= _total) {
+        _selectedTab = _total - 1;
+      }
       if (_total == 1) {
         _scriptType = 'wpkh';
         _resetPendingPaths();
@@ -1019,7 +1078,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       }
     });
     unawaited(_loadPathOptions());
-    if (_total == 1) unawaited(_rederiveHeldKeystores());
+    if (_total == 1) {
+      unawaited(_rederiveHeldKeystores());
+    }
   }
 
   // A filled key can be renamed; an empty slot has nothing to name yet.
@@ -1058,7 +1119,17 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SailText.primary16('${k.owner} Details', bold: true),
+                  Row(
+                    children: [
+                      SailText.primary16('${k.owner} Details', bold: true),
+                      const SizedBox(width: 10),
+                      if (k.held) ...[
+                        SailSVG.icon(SailSVGAsset.iconSuccess, width: 14, color: theme.colors.success),
+                        const SizedBox(width: 6),
+                      ],
+                      SailText.secondary13(_badgeLabel(k), color: _badgeColor(theme, k)),
+                    ],
+                  ),
                   SailText.secondary13('This key is added to your set. Below are the details.'),
                 ],
               ),
@@ -1072,32 +1143,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               ),
           ],
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const SizedBox(width: 110),
-            if (k.held) ...[
-              SailSVG.icon(SailSVGAsset.iconSuccess, width: 14, color: theme.colors.success),
-              const SizedBox(width: 6),
-            ],
-            SailText.secondary13(_badgeLabel(k), color: _badgeColor(theme, k)),
-          ],
-        ),
         const SizedBox(height: 16),
-        _labeledRow(
-          'Label',
-          SizedBox(
-            width: 384,
-            child: SailTextField(
-              key: ValueKey('label-$index-${k.xpub}'),
-              controller: _labelController(k),
-              hintText: 'Key ${index + 1}',
-              size: TextFieldSize.small,
-              onChanged: (v) => _update(() => k.owner = v.trim().isEmpty ? 'Key ${index + 1}' : v),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
         _derivationRow(context, index),
         const SizedBox(height: 12),
         Row(
@@ -1108,9 +1154,13 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               child: k.source == CosignerSource.xpub
                   ? SailEditableText(
                       value: k.xpub,
-                      style: SailStyleValues.thirteen,
+                      style: SailStyleValues.thirteen.copyWith(
+                        fontFamily: 'IBMPlexMono',
+                        color: theme.colors.textSecondary,
+                      ),
                       tooltip: 'Edit the xpub',
                       editOnDoubleTap: true,
+                      wrap: true,
                       onSubmitted: (v) => _replaceXpub(index, v),
                     )
                   : SailText.secondary13(k.xpub, monospace: true),
@@ -1201,7 +1251,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               hint: 'Standard paths',
               enabled: editable,
               onChanged: (v) async {
-                if (v == null) return;
+                if (v == null) {
+                  return;
+                }
                 _path.text = v;
                 await _onPathChanged(index, v);
               },
@@ -1230,14 +1282,22 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   }
 
   String _badgeLabel(CosignerKeystore k) {
-    if (k.held) return 'On disk (can sign)';
-    if (k.isHardware) return 'Hardware (${k.hardwareDeviceType})';
+    if (k.held) {
+      return 'On disk (can sign)';
+    }
+    if (k.isHardware) {
+      return 'Hardware (${k.hardwareDeviceType})';
+    }
     return 'Watch-only';
   }
 
   Color _badgeColor(SailThemeData theme, CosignerKeystore k) {
-    if (k.held) return theme.colors.primary;
-    if (k.isHardware) return theme.colors.success;
+    if (k.held) {
+      return theme.colors.primary;
+    }
+    if (k.isHardware) {
+      return theme.colors.success;
+    }
     return theme.colors.orange;
   }
 
@@ -1362,10 +1422,14 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     final seed = await Navigator.of(
       context,
     ).push<SeedBackup>(MaterialPageRoute(builder: (_) => const WalletBackupPage()));
-    if (seed == null || seed.mnemonic.isEmpty) return;
+    if (seed == null || seed.mnemonic.isEmpty) {
+      return;
+    }
 
     final derived = await _derive(index, mnemonic: seed.mnemonic, passphrase: seed.passphrase);
-    if (derived == null) return;
+    if (derived == null) {
+      return;
+    }
     _setKeystore(
       index,
       CosignerKeystore(owner: _keystores[index].owner)
@@ -1386,7 +1450,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       context: context,
       builder: (context) => _PasteXpubDialog(defaultOwner: 'Key ${index + 1}'),
     );
-    if (k != null) _setKeystore(index, k);
+    if (k != null) {
+      _setKeystore(index, k);
+    }
   }
 
   Future<void> _addFromFile(BuildContext context, int index) async {
@@ -1397,7 +1463,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         allowedExtensions: ['json', 'conf', 'txt'],
         dialogTitle: 'Select cosigner key file',
       );
-      if (result == null || result.files.isEmpty) return;
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
       final path = result.files.first.path;
       if (path == null) {
         setState(() => _error = 'Could not read the selected file');
@@ -1420,7 +1488,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       context: context,
       builder: (context) => const _XpubQrScannerDialog(),
     );
-    if (raw == null) return;
+    if (raw == null) {
+      return;
+    }
     final k = _keystoreFromRaw(raw, 'Key ${index + 1}');
     if (k == null) {
       setState(() => _error = 'Scanned code is not an extended public key');
@@ -1432,7 +1502,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   Future<void> _addFromDevice(BuildContext context, int index) async {
     setState(() => _error = null);
     final device = await showHardwareDevicePicker(context);
-    if (device == null) return;
+    if (device == null) {
+      return;
+    }
 
     final derived = await _derive(
       index,
@@ -1443,7 +1515,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         passphrase: hardwareDevicePassphrase(device.path),
       ),
     );
-    if (derived == null) return;
+    if (derived == null) {
+      return;
+    }
     _setKeystore(
       index,
       CosignerKeystore(owner: device.model.isNotEmpty ? device.model : 'Key ${index + 1}')
@@ -1463,7 +1537,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
 /// if it is not a plausible extended key.
 CosignerKeystore? _keystoreFromRaw(String raw, String owner) {
   final parsed = parseKeyExpression(raw);
-  if (!isPlausibleXpub(parsed.xpub)) return null;
+  if (!isPlausibleXpub(parsed.xpub)) {
+    return null;
+  }
   return CosignerKeystore(owner: owner)
     ..xpub = parsed.xpub
     ..fingerprint = parsed.fingerprint
@@ -1478,7 +1554,9 @@ CosignerKeystore? _parseKeyFile(String content) {
   try {
     final json = jsonDecode(content) as Map<String, dynamic>;
     final xpub = (json['xpub'] ?? json['extended_public_key'] ?? json['pubkey'] ?? '') as String;
-    if (!isPlausibleXpub(xpub)) return null;
+    if (!isPlausibleXpub(xpub)) {
+      return null;
+    }
     final path = (json['path'] ?? json['derivation_path'] ?? json['bip32_path'] ?? '') as String;
     final origin =
         (json['origin_path'] ?? json['origin'] ?? (path.startsWith('m/') ? path.substring(2) : path)) as String;
@@ -1582,7 +1660,9 @@ Future<void> showMultisigExportDialog(
                               type: FileType.custom,
                               allowedExtensions: ['txt'],
                             );
-                            if (p == null) return;
+                            if (p == null) {
+                              return;
+                            }
                             await File(p).writeAsString(coldcardConfig);
                             if (context.mounted) {
                               showSailToast(context, 'Saved', variant: SailToastVariant.success);
@@ -1661,7 +1741,9 @@ class _PasteXpubDialogState extends State<_PasteXpubDialog> {
                 small: true,
                 onPressed: () async {
                   final data = await Clipboard.getData(Clipboard.kTextPlain);
-                  if (data?.text != null) _key.text = data!.text!.trim();
+                  if (data?.text != null) {
+                    _key.text = data!.text!.trim();
+                  }
                 },
               ),
             ),
@@ -1716,10 +1798,14 @@ class _XpubQrScannerDialogState extends State<_XpubQrScannerDialog> {
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (_done) return;
+    if (_done) {
+      return;
+    }
     for (final b in capture.barcodes) {
       final raw = b.rawValue;
-      if (raw == null || raw.isEmpty) continue;
+      if (raw == null || raw.isEmpty) {
+        continue;
+      }
       _done = true;
       Navigator.of(context).pop(raw.trim());
       return;

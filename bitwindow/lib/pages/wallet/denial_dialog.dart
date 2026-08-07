@@ -102,7 +102,9 @@ class _DenialDialogState extends State<DenialDialog> {
     final userSizes = targetSizeControllers
         .map((c) {
           final text = c.text.trim();
-          if (text.isEmpty) return null;
+          if (text.isEmpty) {
+            return null;
+          }
           // Parse as the current unit and convert to sats
           return parseAmountToSatoshis(text, currentUnit);
         })
@@ -110,7 +112,9 @@ class _DenialDialogState extends State<DenialDialog> {
         .where((s) => s > 0)
         .toList();
 
-    if (userSizes.isEmpty) return null;
+    if (userSizes.isEmpty) {
+      return null;
+    }
 
     // Create a sparse array of size 'hops', initialized to 0 (meaning random split)
     final distributed = List<int>.filled(hops, 0);
@@ -440,7 +444,9 @@ class _ConsolidateDialogState extends State<ConsolidateDialog> {
 
     try {
       final walletId = walletReader.activeWalletId;
-      if (walletId == null) throw Exception('No active wallet');
+      if (walletId == null) {
+        throw Exception('No active wallet');
+      }
 
       // Get a new address to consolidate to
       final address = (await orchestratorWallet.getNewAddress(walletId)).address;

@@ -40,60 +40,41 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
         onCancel: () async => Navigator.of(dialogContext).pop(false),
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
     await _settingsProvider.updateUseTestSidechains(value);
   }
 
   @override
   Widget build(BuildContext context) {
-    return SailColumn(
-      spacing: SailStyleValues.padding32,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return SailSettingsBody(
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        SailSettingsGroup(
+          title: 'Developer options',
           children: [
-            SailText.primary20('Advanced'),
-            SailText.secondary13('Developer options and experimental features'),
-          ],
-        ),
-        // Only show Test Sidechains option on networks that support sidechains
-        if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary15('Test Sidechains'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailToggle(
-                label: 'Use Test Sidechains',
-                value: _settingsProvider.useTestSidechains,
-                onChanged: _onTestSidechainsToggle,
+            if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
+              SailSettingsRow(
+                label: 'Test sidechains',
+                description: 'Download and run alternative frontends for sidechains',
+                trailing: SailToggle(
+                  value: _settingsProvider.useTestSidechains,
+                  onChanged: _onTestSidechainsToggle,
+                ),
               ),
-              const SailSpacing(4),
-              SailText.secondary12(
-                'Download and run alternative frontends for sidechains',
+            SailSettingsRow(
+              label: 'Paranoid mode',
+              description:
+                  'Lock chains_config.json. Edit the file by hand to change download URLs or versions. Takes effect on next launch.',
+              trailing: SailToggle(
+                value: _settingsProvider.bitwindowSettings.paranoidMode,
+                onChanged: (value) async {
+                  await _settingsProvider.updateParanoidMode(value);
+                },
               ),
-            ],
-          ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Paranoid Mode'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailToggle(
-              label: 'Lock chains_config.json',
-              value: _settingsProvider.bitwindowSettings.paranoidMode,
-              onChanged: (value) async {
-                await _settingsProvider.updateParanoidMode(value);
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'Prevent automatic updates to chains_config.json. You must manually edit the file to change download URLs or versions. Takes effect on next launch.',
             ),
           ],
         ),
-        SailSpacing(SailStyleValues.padding64),
       ],
     );
   }

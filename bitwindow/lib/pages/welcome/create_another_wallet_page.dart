@@ -19,7 +19,9 @@ enum WalletSetupMethod { generate, importSeed, importDescriptor, multisig }
 /// Loose form-layer check for an xpub-style key or a descriptor.
 bool isPlausibleXpubOrDescriptor(String input) {
   final trimmed = input.trim();
-  if (trimmed.isEmpty) return false;
+  if (trimmed.isEmpty) {
+    return false;
+  }
   if (RegExp(r'^[xyztuv]pub[1-9A-HJ-NP-Za-km-z]{50,120}$').hasMatch(trimmed)) {
     return true;
   }
@@ -276,7 +278,9 @@ class _NameStep extends StatefulWidget {
 /// wallet's name.
 bool isWalletNameTaken(String name, Iterable<String> existingNames) {
   final normalized = name.trim().toLowerCase();
-  if (normalized.isEmpty) return false;
+  if (normalized.isEmpty) {
+    return false;
+  }
   return existingNames.any((n) => n.trim().toLowerCase() == normalized);
 }
 
@@ -295,7 +299,9 @@ class _NameStepState extends State<_NameStep> {
   }
 
   void _onNameChanged() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override

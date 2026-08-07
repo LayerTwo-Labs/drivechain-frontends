@@ -75,7 +75,9 @@ class CLIConsole {
     final exeSuffix = Platform.isWindows ? '.exe' : '';
 
     final bindir = binDir(GetIt.I.get<BinaryProvider>().appDir.path);
-    if (!bindir.existsSync()) return available;
+    if (!bindir.existsSync()) {
+      return available;
+    }
 
     for (final cliName in _binaryToCLI.values) {
       final found = _findExecutable(bindir, '$cliName$exeSuffix');
@@ -90,12 +92,18 @@ class CLIConsole {
 
   static File? _findExecutable(Directory bindir, String filename) {
     final direct = File(path.join(bindir.path, filename));
-    if (direct.existsSync()) return direct;
+    if (direct.existsSync()) {
+      return direct;
+    }
 
     for (final entity in bindir.listSync()) {
-      if (entity is! Directory) continue;
+      if (entity is! Directory) {
+        continue;
+      }
       final inSubdir = File(path.join(entity.path, filename));
-      if (inSubdir.existsSync()) return inSubdir;
+      if (inSubdir.existsSync()) {
+        return inSubdir;
+      }
     }
     return null;
   }
@@ -128,7 +136,9 @@ class CLIConsole {
     }
 
     final enforcer = _buildEnforcerService();
-    if (enforcer != null) services.add(enforcer);
+    if (enforcer != null) {
+      services.add(enforcer);
+    }
 
     return services;
   }
@@ -140,7 +150,9 @@ class CLIConsole {
   /// `enforcer-cli cusf.mainchain.v1.ValidatorService/GetChainTip`
   /// `enforcer-cli cusf.mainchain.v1.WalletService/GetBalance {}`
   static ConsoleService? _buildEnforcerService() {
-    if (!GetIt.I.isRegistered<EnforcerRPC>()) return null;
+    if (!GetIt.I.isRegistered<EnforcerRPC>()) {
+      return null;
+    }
     final rpc = GetIt.I.get<EnforcerRPC>();
     final commands = <String>['enforcer-cli', ...rpc.getMethods()];
     return ConsoleService(
@@ -172,7 +184,9 @@ class CLIConsole {
   }
 
   static String _formatJson(dynamic value) {
-    if (value == null) return '';
+    if (value == null) {
+      return '';
+    }
     if (value is String) {
       try {
         return const JsonEncoder.withIndent('  ').convert(jsonDecode(value));
@@ -204,9 +218,13 @@ class CLIConsole {
     final out = StringBuffer();
     final stdout = result.stdout;
     final stderr = result.stderr;
-    if (stdout is String && stdout.isNotEmpty) out.write(stdout);
+    if (stdout is String && stdout.isNotEmpty) {
+      out.write(stdout);
+    }
     if (stderr is String && stderr.isNotEmpty) {
-      if (out.isNotEmpty) out.write('\n');
+      if (out.isNotEmpty) {
+        out.write('\n');
+      }
       out.write(stderr);
     }
 

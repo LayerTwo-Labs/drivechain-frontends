@@ -10,13 +10,17 @@ class SailPopoverController extends ChangeNotifier {
   bool get isOpen => _open;
 
   void show() {
-    if (_open) return;
+    if (_open) {
+      return;
+    }
     _open = true;
     notifyListeners();
   }
 
   void hide() {
-    if (!_open) return;
+    if (!_open) {
+      return;
+    }
     _open = false;
     notifyListeners();
   }
@@ -78,7 +82,9 @@ class _SailPopoverState extends State<SailPopover> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       _controller.removeListener(_sync);
-      if (_ownsController) _controller.dispose();
+      if (_ownsController) {
+        _controller.dispose();
+      }
       _controller = widget.controller ?? SailPopoverController();
       _ownsController = widget.controller == null;
       _controller.addListener(_sync);
@@ -89,16 +95,24 @@ class _SailPopoverState extends State<SailPopover> {
   @override
   void dispose() {
     _controller.removeListener(_sync);
-    if (_ownsController) _controller.dispose();
+    if (_ownsController) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
   void _sync() {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     if (_controller.isOpen) {
-      if (!_portal.isShowing) _portal.show();
+      if (!_portal.isShowing) {
+        _portal.show();
+      }
     } else {
-      if (_portal.isShowing) _portal.hide();
+      if (_portal.isShowing) {
+        _portal.hide();
+      }
     }
   }
 

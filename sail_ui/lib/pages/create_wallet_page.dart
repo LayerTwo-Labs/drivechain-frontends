@@ -75,7 +75,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   String? _error;
 
   void _clearErrorOnInput() {
-    if (_error != null && mounted) setState(() => _error = null);
+    if (_error != null && mounted) {
+      setState(() => _error = null);
+    }
   }
 
   void _setScreen(WelcomeScreen screen) {
@@ -160,15 +162,23 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   }
 
   Future<void> _awaitBackendReady() async {
-    if (!GetIt.I.isRegistered<OrchestratorRPC>()) return;
+    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+      return;
+    }
     final orchestrator = GetIt.I.get<OrchestratorRPC>();
-    if (await _probeWalletManager(orchestrator)) return;
+    if (await _probeWalletManager(orchestrator)) {
+      return;
+    }
 
-    if (mounted) setState(() => _awaitingBackend = true);
+    if (mounted) {
+      setState(() => _awaitingBackend = true);
+    }
 
     final ready = ValueNotifier<bool>(false);
     final timer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
-      if (await _probeWalletManager(orchestrator)) ready.value = true;
+      if (await _probeWalletManager(orchestrator)) {
+        ready.value = true;
+      }
     });
 
     try {
@@ -185,7 +195,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     } finally {
       timer.cancel();
       ready.dispose();
-      if (mounted && _awaitingBackend) setState(() => _awaitingBackend = false);
+      if (mounted && _awaitingBackend) {
+        setState(() => _awaitingBackend = false);
+      }
     }
   }
 
@@ -320,7 +332,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                         )
                         .toList(),
                     onChanged: (p) {
-                      if (p != null) setState(() => _selectedProvider = p);
+                      if (p != null) {
+                        setState(() => _selectedProvider = p);
+                      }
                     },
                   ),
                 ],
@@ -593,12 +607,16 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   // backend validates range and the full-path override, so this only parses.
   int _resolvedAccountIndex() {
     final raw = _accountController.text.trim();
-    if (raw.isEmpty) return 0;
+    if (raw.isEmpty) {
+      return 0;
+    }
     return int.tryParse(raw) ?? 0;
   }
 
   Future<void> _handleFastMode() async {
-    if (mounted) setState(() => _error = null);
+    if (mounted) {
+      setState(() => _error = null);
+    }
     try {
       final walletName = _walletNameController.text.trim();
 
@@ -636,19 +654,29 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   }
 
   Future<void> _handleRestore() async {
-    if (mounted) setState(() => _error = null);
+    if (mounted) {
+      setState(() => _error = null);
+    }
 
     // A chosen backup file takes precedence over the seed phrase.
     final backupFile = _selectedBackupFile;
     if (backupFile != null && widget.onRestoreFromFile != null) {
-      if (mounted) setState(() => _awaitingBackend = true);
+      if (mounted) {
+        setState(() => _awaitingBackend = true);
+      }
       try {
         await widget.onRestoreFromFile!(backupFile);
-        if (mounted) _setScreen(WelcomeScreen.success);
+        if (mounted) {
+          _setScreen(WelcomeScreen.success);
+        }
       } catch (e) {
-        if (mounted) setState(() => _error = 'Failed to restore from backup file: $e');
+        if (mounted) {
+          setState(() => _error = 'Failed to restore from backup file: $e');
+        }
       } finally {
-        if (mounted) setState(() => _awaitingBackend = false);
+        if (mounted) {
+          setState(() => _awaitingBackend = false);
+        }
       }
       return;
     }
@@ -663,7 +691,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     final walletName = _walletNameController.text.trim();
 
     if (hasExistingWallet && walletName.isEmpty) {
-      if (mounted) setState(() => _error = 'Please enter a wallet name');
+      if (mounted) {
+        setState(() => _error = 'Please enter a wallet name');
+      }
       return;
     }
 
@@ -685,7 +715,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         _setScreen(WelcomeScreen.success);
       }
     } catch (e) {
-      if (mounted) setState(() => _error = 'Failed to generate wallet: $e');
+      if (mounted) {
+        setState(() => _error = 'Failed to generate wallet: $e');
+      }
     }
   }
 
@@ -758,7 +790,9 @@ Future<void> awaitBackendReady(
   ValueListenable<bool> ready, {
   Duration timeout = const Duration(seconds: 60),
 }) async {
-  if (ready.value) return;
+  if (ready.value) {
+    return;
+  }
 
   final completer = Completer<void>();
   void listener() {

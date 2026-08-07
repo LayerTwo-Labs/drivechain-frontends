@@ -54,7 +54,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _loadSnapshotStatus() async {
     try {
       final status = await _binaryProvider.getSnapshotStatus();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _snapshotStatus = status;
         // Pre-fill with the snapshot published for this network, unless the
@@ -70,7 +72,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
   String? _snapshotStatusText() {
     final status = _snapshotStatus;
-    if (status == null) return null;
+    if (status == null) {
+      return null;
+    }
     if (status.hasActiveSnapshot) {
       if (status.activeValidated) {
         return 'Snapshot loaded and fully validated (block ${status.activeHeight}).';
@@ -110,7 +114,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
   Future<void> _applyElectrumServer() async {
     final tip = await _electrumProvider.setServer(_electrumServerController.text.trim());
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final err = _electrumProvider.lastError;
     if (err != null) {
       showSailToast(
@@ -129,7 +135,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 
   Future<void> _resetElectrumServer() async {
     final tip = await _electrumProvider.setServer('');
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final err = _electrumProvider.lastError;
     if (err != null) {
       showSailToast(
@@ -157,7 +165,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _applyTorConfig(bool enabled) async {
     final proxy = _torProxyController.text.trim();
     final tip = await _torProvider.apply(enabled, proxy);
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final err = _torProvider.lastError;
     if (err != null) {
       showSailToast(
@@ -179,7 +189,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 
   Future<void> _handleNetworkChange(BitcoinNetwork? network) async {
-    if (network == null) return;
+    if (network == null) {
+      return;
+    }
 
     if (_confProvider.hasPrivateBitcoinConf) {
       if (mounted) {
@@ -207,7 +219,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       if (result != null) {
         // Backend validates writability via the RPC.
         await _confProvider.updateDataDir(result, forNetwork: _confProvider.network);
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         await Navigator.of(context).push<bool>(
           sailRoute(
             builder: (_) => const L1RestartPage(
@@ -255,7 +269,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isPickingSnapshot = false);
+      if (mounted) {
+        setState(() => _isPickingSnapshot = false);
+      }
     }
   }
 
@@ -283,7 +299,9 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   }
 
   Future<void> _handleVariantChange(String? id) async {
-    if (id == null || id == _variantProvider.activeId) return;
+    if (id == null || id == _variantProvider.activeId) {
+      return;
+    }
 
     final confirmed = await showThemedDialog<bool>(
       context: context,
@@ -302,10 +320,14 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
         ),
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
 
     await _variantProvider.setVariant(id);
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     final err = _variantProvider.lastError;
     if (err != null) {
       showSailToast(
@@ -326,275 +348,208 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
         _confProvider.detectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
-    return SailColumn(
-      spacing: SailStyleValues.padding32,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return SailSettingsBody(
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        SailSettingsGroup(
+          title: 'Bitcoin network',
           children: [
-            SailText.primary20('Network & Node'),
-            SailText.secondary13('Configure Bitcoin network and node settings'),
+            SailSettingsRow(
+              label: 'Network',
+              description: _confProvider.hasPrivateBitcoinConf
+                  ? 'Your own bitcoin.conf file controls the network'
+                  : 'The network this node connects to',
+              trailing: SailDropdownButton<BitcoinNetwork>(
+                value: _confProvider.network,
+                enabled: !_confProvider.hasPrivateBitcoinConf,
+                items: [
+                  BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
+                  BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
+                  BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
+                  BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
+                  BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
+                  BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
+                ].map((n) => SailDropdownItem<BitcoinNetwork>(value: n, label: n.toDisplayName())).toList(),
+                onChanged: (BitcoinNetwork? network) async {
+                  if (network != null && !_confProvider.hasPrivateBitcoinConf) {
+                    await _handleNetworkChange(network);
+                  }
+                },
+              ),
+            ),
+            if (showDataDir)
+              SailSettingsRow(
+                label: 'Data directory',
+                description: canEditDataDir
+                    ? 'Where Bitcoin Core writes chain data (2.5TB+ on mainnet)'
+                    : 'Your own bitcoin.conf file controls the data directory',
+                trailing: canEditDataDir
+                    ? SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailButton(
+                            label: 'Browse',
+                            small: true,
+                            variant: ButtonVariant.secondary,
+                            loading: _isSelectingDataDir,
+                            onPressed: () async => await _selectDataDirectory(),
+                          ),
+                          if (_confProvider.detectedDataDir != null)
+                            SailButton(
+                              label: 'Clear',
+                              small: true,
+                              variant: ButtonVariant.ghost,
+                              onPressed: () async => await _clearDataDir(),
+                            ),
+                        ],
+                      )
+                    : null,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SailStyleValues.padding08,
+                    vertical: SailStyleValues.padding04,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colors.border),
+                    borderRadius: theme.chrome.radiusSmall,
+                    color: theme.colors.backgroundSecondary,
+                  ),
+                  child: SailText.secondary12(_confProvider.detectedDataDir ?? 'Default directory'),
+                ),
+              ),
+            SailSettingsRow(
+              label: 'bitcoin.conf',
+              description: 'Edit the Bitcoin Core configuration file',
+              trailing: SailButton(
+                label: 'Edit',
+                small: true,
+                variant: ButtonVariant.secondary,
+                onPressed: () async {
+                  await Future.delayed(const Duration(milliseconds: 100));
+                  final router = GetIt.I.get<AppRouter>();
+                  await router.push(BitcoinConfEditorRoute());
+                },
+              ),
+            ),
           ],
         ),
-        if (_variantProvider.isVisible)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary15('Bitcoin Core Variant'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailDropdownButton<String>(
-                value: _variantProvider.activeId,
-                enabled: !_variantProvider.busy,
-                items: _variantProvider.variants
-                    .map(
-                      (v) => SailDropdownItem<String>(
-                        value: v.id,
-                        label: v.installed ? v.displayName : '${v.displayName} (will download)',
-                      ),
-                    )
-                    .toList(),
-                onChanged: (String? id) async => _handleVariantChange(id),
+        SailSettingsGroup(
+          title: 'Bitcoin Core',
+          children: [
+            if (_variantProvider.isVisible)
+              SailSettingsRow(
+                label: 'Build',
+                description: 'Which Bitcoin Core build the orchestrator runs',
+                trailing: SailDropdownButton<String>(
+                  value: _variantProvider.activeId,
+                  enabled: !_variantProvider.busy,
+                  items: _variantProvider.variants
+                      .map(
+                        (v) => SailDropdownItem<String>(
+                          value: v.id,
+                          label: v.installed ? v.displayName : '${v.displayName} (will download)',
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (String? id) async => _handleVariantChange(id),
+                ),
               ),
-              const SailSpacing(4),
-              SailText.secondary12('Choose which Bitcoin Core build the orchestrator runs'),
-            ],
-          ),
-        if (_isElectrumWallet)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary15('Electrum Server'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailRow(
+            SailSettingsRow(
+              label: 'UTXO snapshot',
+              description: _snapshotStatusText() ?? 'Load an assumeutxo snapshot to skip the historical download',
+              child: SailRow(
                 spacing: SailStyleValues.padding08,
                 children: [
                   Expanded(
                     child: SailTextField(
-                      controller: _electrumServerController,
-                      hintText: _electrumProvider.defaultUrl.isEmpty ? 'https://...' : _electrumProvider.defaultUrl,
-                      enabled: !_electrumProvider.busy,
-                      maxLines: 1,
-                      onSubmitted: (_) async => _applyElectrumServer(),
+                      controller: _snapshotController,
+                      hintText: 'https://example.com/utxo-957600.dat',
                     ),
                   ),
                   SailButton(
-                    label: 'Apply / Test',
+                    label: 'Choose file',
                     small: true,
-                    loading: _electrumProvider.busy,
-                    onPressed: () async => _applyElectrumServer(),
+                    variant: ButtonVariant.secondary,
+                    loading: _isPickingSnapshot,
+                    onPressed: () async => await _pickSnapshotFile(),
                   ),
-                  if (_electrumProvider.isOverride)
-                    SailButton(
-                      label: 'Reset',
-                      small: true,
-                      variant: ButtonVariant.secondary,
-                      onPressed: () async => _resetElectrumServer(),
-                    ),
+                  SailButton(
+                    label: 'Load',
+                    small: true,
+                    onPressed: () async => await _applySnapshot(),
+                  ),
                 ],
               ),
-              const SailSpacing(4),
-              SailText.secondary12(
-                _electrumProvider.isOverride
-                    ? 'Using a custom Esplora server. Reset to return to the network default.'
-                    : 'Esplora API endpoint this electrum wallet reads from and broadcasts to',
-              ),
-            ],
-          ),
+            ),
+          ],
+        ),
         if (_isElectrumWallet)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          SailSettingsGroup(
+            title: 'Connection',
             children: [
-              SailText.primary15('Tor Routing'),
-              const SailSpacing(SailStyleValues.padding08),
-              SailToggle(
-                label: 'Route through Tor',
-                value: _torProvider.enabled,
-                onChanged: (v) async => _applyTorConfig(v),
-              ),
-              const SailSpacing(SailStyleValues.padding08),
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: SailTextField(
-                      controller: _torProxyController,
-                      hintText: _torProvider.defaultProxy.isEmpty ? '127.0.0.1:9050' : _torProvider.defaultProxy,
-                      enabled: !_torProvider.busy,
-                      maxLines: 1,
-                      onSubmitted: (_) async => _applyTorConfig(true),
-                    ),
-                  ),
-                  SailButton(
-                    label: 'Apply / Test',
-                    small: true,
-                    loading: _torProvider.busy,
-                    onPressed: () async => _applyTorConfig(true),
-                  ),
-                ],
-              ),
-              const SailSpacing(4),
-              SailText.secondary12(
-                'SOCKS5 proxy (system Tor 127.0.0.1:9050 or Tor Browser 127.0.0.1:9150) '
-                'used to hide your IP from the Esplora server and reach .onion endpoints',
-              ),
-            ],
-          ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Bitcoin Network'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailDropdownButton<BitcoinNetwork>(
-              value: _confProvider.network,
-              enabled: !_confProvider.hasPrivateBitcoinConf,
-              items: [
-                SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
-                  label: BitcoinNetwork.BITCOIN_NETWORK_MAINNET.toDisplayName(),
-                ),
-                SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                  label: BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toDisplayName(),
-                ),
-                SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
-                  label: BitcoinNetwork.BITCOIN_NETWORK_DRYNET.toDisplayName(),
-                ),
-                SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                  label: BitcoinNetwork.BITCOIN_NETWORK_SIGNET.toDisplayName(),
-                ),
-                SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
-                  label: BitcoinNetwork.BITCOIN_NETWORK_TESTNET.toDisplayName(),
-                ),
-                SailDropdownItem<BitcoinNetwork>(
-                  value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
-                  label: BitcoinNetwork.BITCOIN_NETWORK_REGTEST.toDisplayName(),
-                ),
-              ],
-              onChanged: (BitcoinNetwork? network) async {
-                if (network != null && !_confProvider.hasPrivateBitcoinConf) {
-                  await _handleNetworkChange(network);
-                }
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              !_confProvider.hasPrivateBitcoinConf
-                  ? 'Select the Bitcoin network to connect to'
-                  : 'Network is controlled by your bitcoin.conf file',
-            ),
-          ],
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('Bitcoin Conf Configuration'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailButton(
-              label: 'Edit Bitcoin Core Settings',
-              onPressed: () async {
-                await Future.delayed(const Duration(milliseconds: 100));
-                final router = GetIt.I.get<AppRouter>();
-                await router.push(BitcoinConfEditorRoute());
-              },
-            ),
-            const SailSpacing(4),
-            SailText.secondary12('Configure your Bitcoin Core conf'),
-          ],
-        ),
-        if (showDataDir)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SailText.primary15(switch (_confProvider.network) {
-                BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'Bitcoin Data Directory — Forknet',
-                BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'Bitcoin Data Directory — Drynet',
-                _ => 'Bitcoin Data Directory — Default',
-              }),
-              const SailSpacing(SailStyleValues.padding08),
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(SailStyleValues.padding12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: theme.colors.border),
-                        borderRadius: SailStyleValues.borderRadiusSmall,
-                        color: canEditDataDir ? null : theme.colors.backgroundSecondary,
-                      ),
-                      child: SailText.secondary13(
-                        _confProvider.detectedDataDir ?? 'Default directory',
+              SailSettingsRow(
+                label: 'Esplora server',
+                description: _electrumProvider.isOverride
+                    ? 'Custom server. Reset to return to the network default.'
+                    : 'The endpoint this wallet reads from and broadcasts to',
+                child: SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    Expanded(
+                      child: SailTextField(
+                        controller: _electrumServerController,
+                        hintText: _electrumProvider.defaultUrl.isEmpty ? 'https://...' : _electrumProvider.defaultUrl,
+                        enabled: !_electrumProvider.busy,
+                        maxLines: 1,
+                        onSubmitted: (_) async => _applyElectrumServer(),
                       ),
                     ),
-                  ),
-                  if (canEditDataDir) ...[
                     SailButton(
-                      label: 'Browse',
+                      label: 'Apply',
                       small: true,
-                      loading: _isSelectingDataDir,
-                      onPressed: () async => await _selectDataDirectory(),
+                      loading: _electrumProvider.busy,
+                      onPressed: () async => _applyElectrumServer(),
                     ),
-                    if (_confProvider.detectedDataDir != null)
+                    if (_electrumProvider.isOverride)
                       SailButton(
-                        label: 'Clear',
+                        label: 'Reset',
                         small: true,
-                        variant: ButtonVariant.secondary,
-                        onPressed: () async => await _clearDataDir(),
+                        variant: ButtonVariant.ghost,
+                        onPressed: () async => _resetElectrumServer(),
                       ),
                   ],
-                ],
+                ),
               ),
-              const SailSpacing(4),
-              SailText.secondary12(
-                canEditDataDir
-                    ? 'Directory where Bitcoin data files are stored (2.5TB+ for mainnet)'
-                    : 'Data directory is controlled by your bitcoin.conf file',
+              SailSettingsRow(
+                label: 'Tor routing',
+                description: 'Hides your IP from the Esplora server and reaches .onion endpoints',
+                trailing: SailToggle(
+                  value: _torProvider.enabled,
+                  onChanged: (v) async => _applyTorConfig(v),
+                ),
+                child: SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    Expanded(
+                      child: SailTextField(
+                        controller: _torProxyController,
+                        hintText: _torProvider.defaultProxy.isEmpty ? '127.0.0.1:9050' : _torProvider.defaultProxy,
+                        enabled: !_torProvider.busy,
+                        maxLines: 1,
+                        onSubmitted: (_) async => _applyTorConfig(true),
+                      ),
+                    ),
+                    SailButton(
+                      label: 'Apply',
+                      small: true,
+                      loading: _torProvider.busy,
+                      onPressed: () async => _applyTorConfig(true),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary15('UTXO Snapshot'),
-            const SailSpacing(SailStyleValues.padding08),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              children: [
-                Expanded(
-                  child: SailTextField(
-                    controller: _snapshotController,
-                    hintText: 'https://example.com/utxo-957600.dat',
-                  ),
-                ),
-                SailButton(
-                  label: 'Choose file',
-                  small: true,
-                  variant: ButtonVariant.secondary,
-                  loading: _isPickingSnapshot,
-                  onPressed: () async => await _pickSnapshotFile(),
-                ),
-                SailButton(
-                  label: 'Load',
-                  small: true,
-                  onPressed: () async => await _applySnapshot(),
-                ),
-              ],
-            ),
-            const SailSpacing(4),
-            SailText.secondary12(
-              'Skip the historical download by loading an assumeutxo snapshot. Bitcoin Core will only validate whatever comes after the snapshot and backfill history afterwards. This allows for a much faster initial sync.',
-            ),
-            if (_snapshotStatusText() != null) ...[
-              const SailSpacing(SailStyleValues.padding08),
-              SailText.secondary12(_snapshotStatusText()!),
-            ],
-          ],
-        ),
-        SailSpacing(SailStyleValues.padding64),
       ],
     );
   }
@@ -607,21 +562,33 @@ Future<void> swapNetworkWithDatadirPrompt(
   BitcoinConfProvider provider,
   BitcoinNetwork network,
 ) async {
-  if (provider.network == network) return;
+  if (provider.network == network) {
+    return;
+  }
 
   final plan = await provider.prepareNetworkChange(targetNetwork: network);
-  if (plan.noOp) return;
+  if (plan.noOp) {
+    return;
+  }
 
-  if (!context.mounted) return;
+  if (!context.mounted) {
+    return;
+  }
   final dataDir = await provider.resolveNetworkChangePlan(context, plan, network);
-  if (dataDir == null) return;
+  if (dataDir == null) {
+    return;
+  }
 
-  if (!context.mounted) return;
+  if (!context.mounted) {
+    return;
+  }
   if (network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET && !await confirmPendingDrynetUpgrade(context)) {
     return;
   }
 
-  if (!context.mounted) return;
+  if (!context.mounted) {
+    return;
+  }
   await Navigator.of(context).push<bool>(
     sailRoute(
       builder: (_) => NetworkSwapPage(fromNetwork: provider.network, toNetwork: network, dataDir: dataDir),

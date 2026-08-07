@@ -90,7 +90,9 @@ class DropdownSettingRow extends StatelessWidget {
             value: value,
             items: options.map((opt) => SailDropdownItem<String>(value: opt, label: opt)).toList(),
             onChanged: (value) {
-              if (value != null) onChanged(value);
+              if (value != null) {
+                onChanged(value);
+              }
             },
           ),
         ],

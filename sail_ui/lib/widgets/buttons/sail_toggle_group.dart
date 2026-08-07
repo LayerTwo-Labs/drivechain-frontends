@@ -48,7 +48,9 @@ class SailToggleGroup<T> extends StatelessWidget {
     } else {
       final next = List<T>.from(values);
       if (nowOn) {
-        if (!next.contains(value)) next.add(value);
+        if (!next.contains(value)) {
+          next.add(value);
+        }
       } else {
         next.remove(value);
       }

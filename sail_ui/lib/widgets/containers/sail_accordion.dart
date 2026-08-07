@@ -57,7 +57,9 @@ class _SailAccordionState extends State<SailAccordion> {
       final isOpen = _open.contains(id);
       if (widget.type == SailAccordionType.single) {
         if (isOpen) {
-          if (widget.collapsible) _open.remove(id);
+          if (widget.collapsible) {
+            _open.remove(id);
+          }
         } else {
           _open = {id};
         }

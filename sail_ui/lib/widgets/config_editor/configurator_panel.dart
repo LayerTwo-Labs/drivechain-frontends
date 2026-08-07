@@ -45,7 +45,9 @@ class _ConfiguratorPanelContentState extends State<_ConfiguratorPanelContent> {
   }
 
   void _onConfigChanged() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _onSearchChanged() {
@@ -551,9 +553,13 @@ class _BitcoinAmountInputState extends State<_BitcoinAmountInput> {
   }
 
   String _formatBitcoinAmount(String value) {
-    if (value.isEmpty) return value;
+    if (value.isEmpty) {
+      return value;
+    }
     final number = double.tryParse(value);
-    if (number == null) return value;
+    if (number == null) {
+      return value;
+    }
     if (value.contains('e') || value.contains('E')) {
       return number.toStringAsFixed(8).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
     }
@@ -713,7 +719,9 @@ class _FileInputState extends State<_FileInput> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

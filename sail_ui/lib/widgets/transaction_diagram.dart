@@ -235,6 +235,8 @@ class _Node extends StatelessWidget {
 }
 
 String _short(String s) {
-  if (s.length <= 20) return s;
+  if (s.length <= 20) {
+    return s;
+  }
   return '${s.substring(0, 10)}...${s.substring(s.length - 6)}';
 }

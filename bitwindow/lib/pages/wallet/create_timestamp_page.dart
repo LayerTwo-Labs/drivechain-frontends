@@ -20,7 +20,9 @@ class CreateTimestampViewModel extends BaseViewModel {
   String? modelError;
 
   String get fileSizeFormatted {
-    if (selectedFileSize == null) return '';
+    if (selectedFileSize == null) {
+      return '';
+    }
     final kb = selectedFileSize! / 1024;
     if (kb < 1024) {
       return '${kb.toStringAsFixed(1)} KB';

@@ -53,12 +53,16 @@ class WalletDropdown extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     SailText.primary13(wallet.name),
-                    if (onEditWallet != null) ...[
+                    if (onEditWallet != null && wallet.id != currentWallet?.id) ...[
                       const Spacer(),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => onEditWallet!(wallet),
-                        child: Icon(Icons.edit, size: 16, color: theme.colors.primary),
+                      const SizedBox(width: 12),
+                      SailTappable(
+                        onTap: () async => onEditWallet!(wallet),
+                        child: SailText.primary12(
+                          'Edit',
+                          decoration: TextDecoration.underline,
+                          color: theme.colors.textSecondary,
+                        ),
                       ),
                     ],
                   ],

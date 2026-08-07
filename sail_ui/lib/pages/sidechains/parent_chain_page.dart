@@ -210,7 +210,9 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
         btcToSatoshi(mainchainFee!),
       );
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       unawaited(_balanceProvider.fetch());
       unawaited(_transactionsProvider.fetch());
@@ -224,7 +226,9 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     } catch (error) {
       log.e('Could not execute withdrawal: ', error: error);
       withdrawError = error.toString();
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       await errorDialog(
         context: context,

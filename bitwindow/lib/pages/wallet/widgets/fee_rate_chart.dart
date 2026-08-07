@@ -27,7 +27,9 @@ class FeeRateChart extends StatelessWidget {
 
     double maxY = 1;
     for (final p in points) {
-      if (p.satPerVByte > maxY) maxY = p.satPerVByte;
+      if (p.satPerVByte > maxY) {
+        maxY = p.satPerVByte;
+      }
     }
     maxY = maxY * 1.2;
 
@@ -63,7 +65,9 @@ class FeeRateChart extends StatelessWidget {
                 interval: 1,
                 getTitlesWidget: (value, meta) {
                   final i = value.toInt();
-                  if (i < 0 || i >= points.length) return const SizedBox.shrink();
+                  if (i < 0 || i >= points.length) {
+                    return const SizedBox.shrink();
+                  }
                   return SailText.secondary12('${points[i].confTarget}');
                 },
               ),
@@ -114,11 +118,17 @@ class FeeRateChart extends StatelessWidget {
               }).toList(),
             ),
             touchCallback: (event, response) {
-              if (event is! FlTapUpEvent) return;
+              if (event is! FlTapUpEvent) {
+                return;
+              }
               final spot = response?.lineBarSpots?.firstOrNull;
-              if (spot == null) return;
+              if (spot == null) {
+                return;
+              }
               final i = spot.x.toInt();
-              if (i < 0 || i >= points.length) return;
+              if (i < 0 || i >= points.length) {
+                return;
+              }
               onSelected(points[i]);
             },
           ),

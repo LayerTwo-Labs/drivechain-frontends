@@ -85,7 +85,9 @@ class _ConsoleViewState extends State<ConsoleView> {
   }
 
   void _handleSubmitted(String text) async {
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      return;
+    }
 
     ConsoleService service;
     String command;
@@ -184,7 +186,9 @@ class _ConsoleViewState extends State<ConsoleView> {
   }
 
   void _handleKeyPress(KeyEvent event) {
-    if (event is! KeyDownEvent) return;
+    if (event is! KeyDownEvent) {
+      return;
+    }
 
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (_historyIndex > 0) {

@@ -76,14 +76,20 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
       _query = '';
       _highlighted = 0;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _searchFocus.requestFocus();
+        if (mounted) {
+          _searchFocus.requestFocus();
+        }
       });
     }
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   List<SailComboboxItem<T>> get _filtered {
-    if (_query.isEmpty) return widget.items;
+    if (_query.isEmpty) {
+      return widget.items;
+    }
     final q = _query.toLowerCase();
     if (widget.filter != null) {
       return widget.items.where((i) => widget.filter!(i, q)).toList();
@@ -92,9 +98,13 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
   }
 
   String _displayLabel() {
-    if (widget.value == null) return widget.placeholder;
+    if (widget.value == null) {
+      return widget.placeholder;
+    }
     for (final i in widget.items) {
-      if (i.value == widget.value) return i.label;
+      if (i.value == widget.value) {
+        return i.label;
+      }
     }
     return widget.placeholder;
   }
@@ -110,21 +120,27 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
     }
     final filtered = _filtered;
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (filtered.isEmpty) return KeyEventResult.handled;
+      if (filtered.isEmpty) {
+        return KeyEventResult.handled;
+      }
       setState(() {
         _highlighted = (_highlighted + 1) % filtered.length;
       });
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      if (filtered.isEmpty) return KeyEventResult.handled;
+      if (filtered.isEmpty) {
+        return KeyEventResult.handled;
+      }
       setState(() {
         _highlighted = (_highlighted - 1 + filtered.length) % filtered.length;
       });
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      if (filtered.isEmpty) return KeyEventResult.handled;
+      if (filtered.isEmpty) {
+        return KeyEventResult.handled;
+      }
       if (_highlighted >= 0 && _highlighted < filtered.length) {
         _select(filtered[_highlighted]);
       }
