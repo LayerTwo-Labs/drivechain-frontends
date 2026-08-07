@@ -8,7 +8,7 @@ import "misc.pb.dart" as miscv1misc;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 import "misc.connect.spec.dart" as specs;
 
-extension type MiscServiceClient (connect.Transport _transport) {
+extension type MiscServiceClient(connect.Transport _transport) {
   Future<miscv1misc.ListOPReturnResponse> listOPReturn(
     googleprotobufempty.Empty input, {
     connect.Headers? headers,
@@ -158,6 +158,24 @@ extension type MiscServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.MiscService.listComments,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// What a vote or comment would cost to broadcast. Builds nothing.
+  Future<miscv1misc.EstimateNewsFeeResponse> estimateNewsFee(
+    miscv1misc.EstimateNewsFeeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.MiscService.estimateNewsFee,
       input,
       signal: signal,
       headers: headers,

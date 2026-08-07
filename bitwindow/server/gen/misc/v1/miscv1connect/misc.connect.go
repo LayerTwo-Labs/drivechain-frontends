@@ -57,6 +57,9 @@ const (
 	// MiscServiceListCommentsProcedure is the fully-qualified name of the MiscService's ListComments
 	// RPC.
 	MiscServiceListCommentsProcedure = "/misc.v1.MiscService/ListComments"
+	// MiscServiceEstimateNewsFeeProcedure is the fully-qualified name of the MiscService's
+	// EstimateNewsFee RPC.
+	MiscServiceEstimateNewsFeeProcedure = "/misc.v1.MiscService/EstimateNewsFee"
 	// MiscServiceTimestampFileProcedure is the fully-qualified name of the MiscService's TimestampFile
 	// RPC.
 	MiscServiceTimestampFileProcedure = "/misc.v1.MiscService/TimestampFile"
@@ -83,6 +86,8 @@ type MiscServiceClient interface {
 	CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error)
 	// Returns the full reply thread rooted at an Item, ranked per §13.
 	ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error)
+	// What a vote or comment would cost to broadcast. Builds nothing.
+	EstimateNewsFee(context.Context, *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error)
 	// File timestamping
 	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
 	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
@@ -154,6 +159,12 @@ func NewMiscServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(miscServiceMethods.ByName("ListComments")),
 			connect.WithClientOptions(opts...),
 		),
+		estimateNewsFee: connect.NewClient[v1.EstimateNewsFeeRequest, v1.EstimateNewsFeeResponse](
+			httpClient,
+			baseURL+MiscServiceEstimateNewsFeeProcedure,
+			connect.WithSchema(miscServiceMethods.ByName("EstimateNewsFee")),
+			connect.WithClientOptions(opts...),
+		),
 		timestampFile: connect.NewClient[v1.TimestampFileRequest, v1.TimestampFileResponse](
 			httpClient,
 			baseURL+MiscServiceTimestampFileProcedure,
@@ -186,6 +197,7 @@ type miscServiceClient struct {
 	listCoinNews    *connect.Client[v1.ListCoinNewsRequest, v1.ListCoinNewsResponse]
 	commentNews     *connect.Client[v1.CommentNewsRequest, v1.CommentNewsResponse]
 	listComments    *connect.Client[v1.ListCommentsRequest, v1.ListCommentsResponse]
+	estimateNewsFee *connect.Client[v1.EstimateNewsFeeRequest, v1.EstimateNewsFeeResponse]
 	timestampFile   *connect.Client[v1.TimestampFileRequest, v1.TimestampFileResponse]
 	listTimestamps  *connect.Client[emptypb.Empty, v1.ListTimestampsResponse]
 	verifyTimestamp *connect.Client[v1.VerifyTimestampRequest, v1.VerifyTimestampResponse]
@@ -236,6 +248,11 @@ func (c *miscServiceClient) ListComments(ctx context.Context, req *connect.Reque
 	return c.listComments.CallUnary(ctx, req)
 }
 
+// EstimateNewsFee calls misc.v1.MiscService.EstimateNewsFee.
+func (c *miscServiceClient) EstimateNewsFee(ctx context.Context, req *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error) {
+	return c.estimateNewsFee.CallUnary(ctx, req)
+}
+
 // TimestampFile calls misc.v1.MiscService.TimestampFile.
 func (c *miscServiceClient) TimestampFile(ctx context.Context, req *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {
 	return c.timestampFile.CallUnary(ctx, req)
@@ -266,6 +283,8 @@ type MiscServiceHandler interface {
 	CommentNews(context.Context, *connect.Request[v1.CommentNewsRequest]) (*connect.Response[v1.CommentNewsResponse], error)
 	// Returns the full reply thread rooted at an Item, ranked per §13.
 	ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error)
+	// What a vote or comment would cost to broadcast. Builds nothing.
+	EstimateNewsFee(context.Context, *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error)
 	// File timestamping
 	TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error)
 	ListTimestamps(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[v1.ListTimestampsResponse], error)
@@ -333,6 +352,12 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(miscServiceMethods.ByName("ListComments")),
 		connect.WithHandlerOptions(opts...),
 	)
+	miscServiceEstimateNewsFeeHandler := connect.NewUnaryHandler(
+		MiscServiceEstimateNewsFeeProcedure,
+		svc.EstimateNewsFee,
+		connect.WithSchema(miscServiceMethods.ByName("EstimateNewsFee")),
+		connect.WithHandlerOptions(opts...),
+	)
 	miscServiceTimestampFileHandler := connect.NewUnaryHandler(
 		MiscServiceTimestampFileProcedure,
 		svc.TimestampFile,
@@ -371,6 +396,8 @@ func NewMiscServiceHandler(svc MiscServiceHandler, opts ...connect.HandlerOption
 			miscServiceCommentNewsHandler.ServeHTTP(w, r)
 		case MiscServiceListCommentsProcedure:
 			miscServiceListCommentsHandler.ServeHTTP(w, r)
+		case MiscServiceEstimateNewsFeeProcedure:
+			miscServiceEstimateNewsFeeHandler.ServeHTTP(w, r)
 		case MiscServiceTimestampFileProcedure:
 			miscServiceTimestampFileHandler.ServeHTTP(w, r)
 		case MiscServiceListTimestampsProcedure:
@@ -420,6 +447,10 @@ func (UnimplementedMiscServiceHandler) CommentNews(context.Context, *connect.Req
 
 func (UnimplementedMiscServiceHandler) ListComments(context.Context, *connect.Request[v1.ListCommentsRequest]) (*connect.Response[v1.ListCommentsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.ListComments is not implemented"))
+}
+
+func (UnimplementedMiscServiceHandler) EstimateNewsFee(context.Context, *connect.Request[v1.EstimateNewsFeeRequest]) (*connect.Response[v1.EstimateNewsFeeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("misc.v1.MiscService.EstimateNewsFee is not implemented"))
 }
 
 func (UnimplementedMiscServiceHandler) TimestampFile(context.Context, *connect.Request[v1.TimestampFileRequest]) (*connect.Response[v1.TimestampFileResponse], error) {

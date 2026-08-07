@@ -170,6 +170,10 @@ func marshalItem(fi store.FeedItem) *pb.Item {
 		Points:       int32(fi.Points),
 		CommentCount: int32(fi.CommentCount),
 		Score:        fi.Score,
+		Txid:         fi.TxID,
+		Vout:         fi.Vout,
+		Upvotes:      int32(fi.Upvotes),
+		Downvotes:    int32(fi.Downvotes),
 	}
 }
 
@@ -186,6 +190,8 @@ func marshalComment(c store.CommentRow) *pb.Comment {
 		BlockTime:    timestamppb.New(c.BlockTime),
 		Points:       int32(c.Points),
 		Score:        c.Score,
+		Txid:         c.TxID,
+		Vout:         c.Vout,
 	}
 }
 

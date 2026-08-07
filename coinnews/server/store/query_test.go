@@ -22,12 +22,12 @@ func TestListFeed_TopicFilter(t *testing.T) {
 	b := codec.Topic{'B', 'B', 'B', 'B'}
 	for i, top := range []codec.Topic{a, b} {
 		require.NoError(t, Index(ctx, db, IndexEnv{
-			Pos: pos(uint32(100+i*10), 0, 0), TypeTag: codec.TypeTopicCreation,
+			Pos: pos(uint32(100+i*10), 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 			Msg: &codec.TopicCreation{Topic: top, RetentionDays: 7, Name: string(top[:])},
 		}))
 		require.NoError(t, Index(ctx, db, IndexEnv{
-			Pos: pos(uint32(101+i*10), 0, 0), TypeTag: codec.TypeStory,
-			Msg:  &codec.Story{Topic: top, Headline: "h-" + string(top[:])},
+			Pos: pos(uint32(101+i*10), 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+			Msg: &codec.Story{Topic: top, Headline: "h-" + string(top[:])},
 		}))
 	}
 
@@ -50,17 +50,17 @@ func TestListFeed_SubtypeFilter(t *testing.T) {
 
 	topic := codec.Topic{'X', 'X', 'X', 'X'}
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(200, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(200, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "x"},
 	}))
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(201, 0, 0), TypeTag: codec.TypeStory,
+		Pos: pos(201, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
 		Msg: &codec.Story{Topic: topic, Headline: "ask one", TLVs: []codec.TLV{
 			{Tag: codec.TLVSubtype, Value: []byte{byte(codec.SubtypeAsk)}},
 		}},
 	}))
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(202, 0, 0), TypeTag: codec.TypeStory,
+		Pos: pos(202, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
 		Msg: &codec.Story{Topic: topic, Headline: "show one", TLVs: []codec.TLV{
 			{Tag: codec.TLVSubtype, Value: []byte{byte(codec.SubtypeShow)}},
 		}},
@@ -82,13 +82,13 @@ func TestListFeed_FrontPageOrdering(t *testing.T) {
 
 	topic := codec.Topic{1, 2, 3, 4}
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(300, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(300, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "t"},
 	}))
 	for i := uint32(0); i < 3; i++ {
 		require.NoError(t, Index(ctx, db, IndexEnv{
-			Pos: pos(301+i, 0, 0), TypeTag: codec.TypeStory,
-			Msg:  &codec.Story{Topic: topic, Headline: "story"},
+			Pos: pos(301+i, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+			Msg: &codec.Story{Topic: topic, Headline: "story"},
 		}))
 	}
 	feed, err := ListFeed(ctx, db, FeedFilter{Sort: SortScoreDesc})
@@ -105,12 +105,12 @@ func TestListThread_RecursiveWalk(t *testing.T) {
 
 	topic := codec.Topic{'T', 'T', 'T', 'T'}
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(400, 0, 0), TypeTag: codec.TypeTopicCreation,
+		Pos: pos(400, 0, 0), TypeTag: codec.TypeTopicCreation, Payload: testPayload,
 		Msg: &codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: "t"},
 	}))
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(401, 0, 0), TypeTag: codec.TypeStory,
-		Msg:  &codec.Story{Topic: topic, Headline: "root"},
+		Pos: pos(401, 0, 0), TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Topic: topic, Headline: "root"},
 	}))
 	feed, err := ListFeed(ctx, db, FeedFilter{Sort: SortNewest})
 	require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestListThread_RecursiveWalk(t *testing.T) {
 	_, _ = rand.Read(xpkA[:])
 	_, _ = rand.Read(xpkB[:])
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(402, 0, 0), TypeTag: codec.TypeComment,
+		Pos: pos(402, 0, 0), TypeTag: codec.TypeComment, Payload: testPayload,
 		Msg: &codec.Comment{Parent: root, AuthorXPK: xpkA, TLVs: []codec.TLV{
 			{Tag: codec.TLVBody, Value: []byte("first")},
 		}},
@@ -130,7 +130,7 @@ func TestListThread_RecursiveWalk(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cs, 1)
 	require.NoError(t, Index(ctx, db, IndexEnv{
-		Pos: pos(403, 0, 0), TypeTag: codec.TypeComment,
+		Pos: pos(403, 0, 0), TypeTag: codec.TypeComment, Payload: testPayload,
 		Msg: &codec.Comment{Parent: cs[0].ItemID, AuthorXPK: xpkB, TLVs: []codec.TLV{
 			{Tag: codec.TLVBody, Value: []byte("nested")},
 		}},

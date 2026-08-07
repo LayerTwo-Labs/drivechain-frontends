@@ -6,10 +6,8 @@ package store
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
 	_ "embed"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -75,7 +73,8 @@ type BlockPos struct {
 type IndexEnv struct {
 	Pos     BlockPos
 	TypeTag codec.TypeTag
-	Msg     any // *codec.TopicCreation | *codec.Story | *codec.Comment | *codec.Vote | *codec.Continuation
+	Msg     any    // *codec.TopicCreation | *codec.Story | *codec.Comment | *codec.Vote | *codec.Continuation
+	Payload []byte // the raw OP_RETURN bytes Msg was decoded from
 }
 
 // Index dispatches one decoded CoinNews Message into the right table(s).
@@ -121,6 +120,12 @@ func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 }
 
 func registerItem(ctx context.Context, tx *sql.Tx, env IndexEnv) (codec.ItemID, error) {
+	// INSERT OR IGNORE below would swallow the NOT NULL violation and leave
+	// every dependent insert to fail on the foreign key instead.
+	if len(env.Payload) == 0 {
+		return codec.ItemID{}, fmt.Errorf("coinnews: empty payload for %s:%d", env.Pos.TxID, env.Pos.VoutIndex)
+	}
+
 	var txidBytes [32]byte
 	raw, err := hex.DecodeString(strings.TrimSpace(env.Pos.TxID))
 	if err != nil || len(raw) != 32 {
@@ -134,9 +139,9 @@ func registerItem(ctx context.Context, tx *sql.Tx, env IndexEnv) (codec.ItemID, 
 
 	_, err = tx.ExecContext(ctx, `
 		INSERT OR IGNORE INTO cn_items
-			(item_id, txid, vout, block_height, tx_index, vout_index, type_tag, block_time)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, id[:], env.Pos.TxID, env.Pos.VoutIndex, env.Pos.BlockHeight, env.Pos.TxIndex, env.Pos.VoutIndex, byte(env.TypeTag), env.Pos.BlockTime)
+			(item_id, txid, vout, block_height, tx_index, vout_index, type_tag, block_time, raw_payload)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, id[:], env.Pos.TxID, env.Pos.VoutIndex, env.Pos.BlockHeight, env.Pos.TxIndex, env.Pos.VoutIndex, byte(env.TypeTag), env.Pos.BlockTime, env.Payload)
 	if err != nil {
 		return codec.ItemID{}, fmt.Errorf("coinnews: insert cn_items: %w", err)
 	}
@@ -333,16 +338,4 @@ func HashTxIDLE(displayHex string) ([32]byte, error) {
 	var out [32]byte
 	copy(out[:], raw)
 	return out, nil
-}
-
-// hashOutpoint is exposed for tests that need to compute ItemIDs from
-// natural-order txid bytes.
-func hashOutpoint(txid [32]byte, vout uint32) [12]byte {
-	var buf [36]byte
-	copy(buf[:32], txid[:])
-	binary.LittleEndian.PutUint32(buf[32:], vout)
-	sum := sha256.Sum256(buf[:])
-	var out [12]byte
-	copy(out[:], sum[:12])
-	return out
 }

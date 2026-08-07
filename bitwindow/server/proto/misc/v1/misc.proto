@@ -19,6 +19,8 @@ service MiscService {
   rpc CommentNews(CommentNewsRequest) returns (CommentNewsResponse);
   // Returns the full reply thread rooted at an Item, ranked per §13.
   rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
+  // What a vote or comment would cost to broadcast. Builds nothing.
+  rpc EstimateNewsFee(EstimateNewsFeeRequest) returns (EstimateNewsFeeResponse);
 
   // File timestamping
   rpc TimestampFile(TimestampFileRequest) returns (TimestampFileResponse);
@@ -100,6 +102,28 @@ message ListTopicsResponse {
   repeated Topic topics = 1;
 }
 
+// What the user is about to put on chain.
+enum NewsAction {
+  NEWS_ACTION_UNSPECIFIED = 0;
+  NEWS_ACTION_VOTE = 1;
+  NEWS_ACTION_COMMENT = 2;
+  NEWS_ACTION_STORY = 3;
+}
+
+message EstimateNewsFeeRequest {
+  NewsAction action = 1;
+  // Text the action carries. A vote ignores this — its payload is fixed size.
+  string body = 2;
+  string headline = 3;
+  string url = 4;
+}
+
+message EstimateNewsFeeResponse {
+  uint64 vsize = 1;
+  double fee_sat_per_vbyte = 2;
+  uint64 fee_sats = 3;
+}
+
 message ListCoinNewsRequest {
   // if set, only return news for this topic
   optional string topic = 1;
@@ -127,6 +151,10 @@ message CoinNews {
   // 0=link, 1=text, 2=ask, 3=show, 4=poll, 5=job
   int32 subtype = 12;
   bool nsfw = 13;
+  // Where the item sits on chain. Empty when the source cannot say, in
+  // which case the client hides its explorer link.
+  string txid = 14;
+  uint32 vout = 15;
 }
 
 message ListCoinNewsResponse {

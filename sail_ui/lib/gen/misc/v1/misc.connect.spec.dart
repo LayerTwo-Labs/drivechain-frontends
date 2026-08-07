@@ -78,6 +78,14 @@ abstract final class MiscService {
     miscv1misc.ListCommentsResponse.new,
   );
 
+  /// What a vote or comment would cost to broadcast. Builds nothing.
+  static const estimateNewsFee = connect.Spec(
+    '/$name/EstimateNewsFee',
+    connect.StreamType.unary,
+    miscv1misc.EstimateNewsFeeRequest.new,
+    miscv1misc.EstimateNewsFeeResponse.new,
+  );
+
   /// File timestamping
   static const timestampFile = connect.Spec(
     '/$name/TimestampFile',

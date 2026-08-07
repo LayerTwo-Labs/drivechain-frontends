@@ -84,6 +84,30 @@ export declare type Item = Message<"coinnews.v1.Item"> & {
    * @generated from field: double score = 14;
    */
   score: number;
+
+  /**
+   * Where the item sits on chain, for an explorer link.
+   *
+   * @generated from field: string txid = 15;
+   */
+  txid: string;
+
+  /**
+   * @generated from field: uint32 vout = 16;
+   */
+  vout: number;
+
+  /**
+   * Confirmed tallies. points is their difference.
+   *
+   * @generated from field: int32 upvotes = 17;
+   */
+  upvotes: number;
+
+  /**
+   * @generated from field: int32 downvotes = 18;
+   */
+  downvotes: number;
 };
 
 /**
@@ -159,6 +183,30 @@ export declare type ItemJson = {
    * @generated from field: double score = 14;
    */
   score?: number | "NaN" | "Infinity" | "-Infinity";
+
+  /**
+   * Where the item sits on chain, for an explorer link.
+   *
+   * @generated from field: string txid = 15;
+   */
+  txid?: string;
+
+  /**
+   * @generated from field: uint32 vout = 16;
+   */
+  vout?: number;
+
+  /**
+   * Confirmed tallies. points is their difference.
+   *
+   * @generated from field: int32 upvotes = 17;
+   */
+  upvotes?: number;
+
+  /**
+   * @generated from field: int32 downvotes = 18;
+   */
+  downvotes?: number;
 };
 
 /**
@@ -225,6 +273,18 @@ export declare type Comment = Message<"coinnews.v1.Comment"> & {
    * @generated from field: double score = 11;
    */
   score: number;
+
+  /**
+   * Where the comment sits on chain, for an explorer link.
+   *
+   * @generated from field: string txid = 12;
+   */
+  txid: string;
+
+  /**
+   * @generated from field: uint32 vout = 13;
+   */
+  vout: number;
 };
 
 /**
@@ -285,6 +345,18 @@ export declare type CommentJson = {
    * @generated from field: double score = 11;
    */
   score?: number | "NaN" | "Infinity" | "-Infinity";
+
+  /**
+   * Where the comment sits on chain, for an explorer link.
+   *
+   * @generated from field: string txid = 12;
+   */
+  txid?: string;
+
+  /**
+   * @generated from field: uint32 vout = 13;
+   */
+  vout?: number;
 };
 
 /**
