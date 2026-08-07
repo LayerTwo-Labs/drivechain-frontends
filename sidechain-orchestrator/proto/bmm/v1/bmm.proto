@@ -1,0 +1,204 @@
+syntax = "proto3";
+
+package bmm.v1;
+
+import "orchestrator/v1/orchestrator.proto";
+
+// BMMService drives blind merged mining for a sidechain, paid for by any
+// wallet rather than the enforcer's. A bid is an M8 whose fee buys inclusion;
+// the block it commits to connects once a miner takes that M8.
+//
+// A bid names the mainchain tip it was built on, so it is only valid in the
+// very next block. A round is one such tip: every bid competing for it, and
+// what became of them.
+service BMMService {
+  // Start bids on every new mainchain tip and connects the blocks miners take,
+  // until Stop. Bids are funded by whichever wallet is active at the time, and
+  // are raised toward max_bid_sats when a competitor outbids us.
+  rpc Start(StartRequest) returns (StartResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
+  rpc ClearHistory(ClearHistoryRequest) returns (ClearHistoryResponse);
+
+  // Watch streams the round being bid on now plus recent finished rounds. The
+  // full state goes out on every frame, so a reconnect needs no delta merge.
+  rpc Watch(WatchRequest) returns (stream WatchResponse);
+
+  // GetRoundBids returns every bid seen for one round. A losing bid never
+  // confirms and leaves the mempool, so this is limited to what was observed
+  // while that round was open.
+  rpc GetRoundBids(GetRoundBidsRequest) returns (GetRoundBidsResponse);
+
+  // CreateBid assembles a sidechain block and broadcasts one M8 bid for it;
+  // ConnectBid connects that block once a miner includes the bid. Use these to
+  // drive a single attempt by hand; Start does both on a loop.
+  rpc CreateBid(CreateBidRequest) returns (CreateBidResponse);
+  rpc ConnectBid(ConnectBidRequest) returns (ConnectBidResponse);
+  // ListBids reads the competing bids for the slot out of the mainchain
+  // mempool, highest bid first.
+  rpc ListBids(ListBidsRequest) returns (ListBidsResponse);
+
+  // GriefBid bids on a slot with a commitment to no real block, then never
+  // connects it, so an honest block loses the slot for that mainchain block.
+  // A teaching tool for the BMM stall attack; rejected on mainnet.
+  rpc GriefBid(GriefBidRequest) returns (GriefBidResponse);
+}
+
+message StartRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+  // Opening bid for each round, paid as the M8's fee.
+  int64 min_bid_sats = 2;
+  // Ceiling for raises. A bid is never raised above this, nor above what the
+  // block is worth, since either loses money.
+  int64 max_bid_sats = 3;
+}
+
+message StartResponse {}
+
+message StopRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+}
+
+message StopResponse {}
+
+message ClearHistoryRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+}
+
+message ClearHistoryResponse {}
+
+message WatchRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+}
+
+message WatchResponse {
+  bool running = 1;
+  int64 min_bid_sats = 2;
+  int64 max_bid_sats = 3;
+  // The round being bid on now, absent when no tip has been seen yet.
+  Round current = 4;
+  // Finished rounds, newest first.
+  repeated Round history = 5;
+}
+
+// Round is one mainchain tip and the contest for the sidechain block after it.
+message Round {
+  // Mainchain block the bids build on. Identifies the round.
+  string prev_main_hash = 1;
+  int32 prev_main_height = 2;
+  // One of: open, won, lost, skipped.
+  string result = 3;
+  // Fees the block we assembled would collect. A bid above this loses money.
+  int64 block_worth_sats = 4;
+  // Our live bid for the round; earlier raised bids carry replaced_by_txid.
+  repeated Bid our_bids = 5;
+  // Bids seen in the mempool for this round, ours excluded, highest first.
+  repeated Bid other_bids = 6;
+  // Sidechain block hash that won the round, when known.
+  string winner_critical_hash = 7;
+  // Winning bid, when we saw it. Empty when the winner was never in our view.
+  string winner_txid = 8;
+  int64 winner_bid_sats = 9;
+  // Mainchain block that carried the winning M8.
+  string included_in_block = 10;
+  int32 included_in_height = 14;
+  // Fees less our bid, set only when we won.
+  int64 profit_sats = 11;
+  bool has_profit = 12;
+  int64 started_at_unix = 13;
+}
+
+// Bid is one M8 broadcast for a round.
+message Bid {
+  string txid = 1;
+  // Sidechain block hash the bid commits to.
+  string critical_hash = 2;
+  // Fee the bid pays, which is what a miner collects for including it.
+  int64 bid_sats = 3;
+  bool is_ours = 4;
+  // Set when this bid was replaced by a raise. The replacement evicts it from
+  // the mempool, so it is only visible here.
+  string replaced_by_txid = 5;
+  // One of: live, replaced, connected, missed, failed. Only set for our bids.
+  string state = 6;
+  string error = 7;
+  // Mainchain tip the bid builds on. A bid for any other tip is already dead.
+  string prev_main_hash = 8;
+}
+
+message GetRoundBidsRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+  string prev_main_hash = 2;
+}
+
+message GetRoundBidsResponse {
+  Round round = 1;
+}
+
+message CreateBidRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+  // Wallet that funds the bid. Empty uses the active wallet.
+  string wallet_id = 2;
+  // Bid, paid as the M8's fee so that a miner collects it.
+  int64 bid_sats = 3;
+  // Raise an earlier bid by spending its inputs again, which replaces it
+  // rather than bidding against it. Only works within the same slot.
+  string replace_txid = 4;
+  // Refuse the bid unless the sidechain builds on this mainchain tip. Stops a
+  // sidechain that has not caught up from spending on an already-dead round.
+  string expect_prev_main_hash = 5;
+  // Lower the bid to what the block collects in fees. Above that it loses money.
+  bool cap_to_block_worth = 6;
+}
+
+message CreateBidResponse {
+  // Sidechain block hash committed to by the bid.
+  string critical_hash = 1;
+  // The M8 transaction that was broadcast.
+  string bmm_txid = 2;
+  // Fees the block collects if it connects. A bid above this loses money.
+  int64 fees_sats = 3;
+  // Opaque block, to hand back to ConnectBid.
+  string block_json = 4;
+  // Mainchain tip the bid builds on.
+  string prev_main_hash = 5;
+  // Bid actually broadcast, which cap_to_block_worth may have lowered.
+  int64 bid_sats = 6;
+}
+
+message ConnectBidRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+  string critical_hash = 2;
+  // block_json as returned by CreateBid.
+  string block_json = 3;
+}
+
+message ConnectBidResponse {
+  // False while no mainchain block includes the bid yet.
+  bool connected = 1;
+  // Mainchain block that included the bid, when connected.
+  string main_block_hash = 2;
+}
+
+message ListBidsRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+}
+
+message ListBidsResponse {
+  // Highest bid first.
+  repeated Bid bids = 1;
+}
+
+message GriefBidRequest {
+  orchestrator.v1.BinaryType sidechain = 1;
+  // Wallet that funds the bid. Empty uses the active wallet.
+  string wallet_id = 2;
+  // Bid, paid as the M8's fee so that a miner collects it.
+  int64 bid_sats = 3;
+}
+
+message GriefBidResponse {
+  // Random hash committed to. No block exists for it, so it never connects.
+  string critical_hash = 1;
+  // The M8 transaction that was broadcast.
+  string bmm_txid = 2;
+}
