@@ -117,9 +117,13 @@ func (o *Orchestrator) PendingDrynetUpgrade() PendingDrynetUpgrade {
 		return PendingDrynetUpgrade{}
 	}
 	entry, _ := pending.CurrentECash()
+	peer := entry.P2P.Address
+	if peer == "" {
+		peer = config.DrynetPeerFor(id)
+	}
 	return PendingDrynetUpgrade{
 		ID:              id,
-		Peer:            config.DrynetPeerFor(id),
+		Peer:            peer,
 		Snapshot:        entry.AssumeUTXO,
 		UserManagedConf: o.drynetSwitchIsManual(),
 	}
@@ -217,6 +221,7 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 		o.configs[name] = expandDrynetPlaceholder(raw, id)
 	}
 	conf := o.BitcoinConf
+	enforcerConf := o.EnforcerConf
 	o.mu.Unlock()
 
 	if id == "" {
@@ -225,6 +230,31 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 	// The URL helpers and the conf writer both build drynet hostnames from the
 	// generation, so both need the resolved id.
 	config.SetDrynetGeneration(id)
+
+	// Fork heights ride along in the catalog, so a new drynet — and the real
+	// fork — activate without a release.
+	for _, n := range c.Networks {
+		net := config.NetworkFromString(n.ID)
+		config.SetForkHeight(net, n.ForkHeight)
+		config.SetNetworkDisplayName(net, n.DisplayName)
+		// Every drynet generation is a new id, so key the live one by family.
+		if n.Family == netcatalog.FamilyECash {
+			config.SetForkHeight(config.NetworkDrynet, n.ForkHeight)
+			config.SetNetworkDisplayName(config.NetworkDrynet, n.DisplayName)
+			config.SetDrynetPeer(n.ID, n.P2P.Address)
+		}
+	}
+
+	// The esplora host and network preset carry the generation, so a rollover
+	// that updates only bitcoin.conf leaves the enforcer on the retired fork.
+	if enforcerConf != nil {
+		switch changed, err := enforcerConf.RetargetDrynetGeneration(id); {
+		case err != nil:
+			o.log.Warn().Err(err).Msg("could not rewrite bitwindow-enforcer.conf for the new generation")
+		case changed:
+			o.log.Info().Str("generation", id).Msg("rewrote bitwindow-enforcer.conf for the new drynet generation")
+		}
+	}
 	if conf == nil {
 		return
 	}

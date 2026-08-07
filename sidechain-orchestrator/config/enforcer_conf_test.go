@@ -461,3 +461,38 @@ func rejectArgPrefix(t *testing.T, args []string, prefix string) {
 		}
 	}
 }
+
+// A generation rollover must reach the enforcer conf: a persisted preset or
+// esplora host still names the retired fork, and the enforcer would keep it.
+func TestRetargetDrynetGenerationRewritesPersistedValues(t *testing.T) {
+	m, dir := newTestEnforcerManager(t)
+	require.NoError(t, m.WriteConfig(strings.Join([]string{
+		"network-preset=drynet3",
+		"wallet-esplora-url=https://esplora.drynet3.drivechain.dev",
+		"enable-wallet=true",
+	}, "\n")))
+
+	changed, err := m.RetargetDrynetGeneration("drynet4")
+	require.NoError(t, err)
+	require.True(t, changed)
+
+	require.Equal(t, "drynet4", m.Config.GetSetting("network-preset"))
+	require.Equal(t, "https://esplora.drynet4.drivechain.dev", m.Config.GetSetting("wallet-esplora-url"))
+	require.Equal(t, "true", m.Config.GetSetting("enable-wallet"))
+
+	onDisk, err := os.ReadFile(filepath.Join(dir, bitwindowEnforcerConfFilename))
+	require.NoError(t, err)
+	require.Contains(t, string(onDisk), "network-preset=drynet4")
+	require.NotContains(t, string(onDisk), "drynet3")
+}
+
+// A conf that names no generation must be left alone, so every start doesn't
+// rewrite the file.
+func TestRetargetDrynetGenerationLeavesOtherConfigsAlone(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.WriteConfig("enable-wallet=true\nenable-mempool=true"))
+
+	changed, err := m.RetargetDrynetGeneration("drynet4")
+	require.NoError(t, err)
+	require.False(t, changed)
+}

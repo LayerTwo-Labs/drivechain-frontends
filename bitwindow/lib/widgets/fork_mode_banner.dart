@@ -21,7 +21,9 @@ class ForkModeBanner extends StatelessWidget {
         // Claim card only — the countdown is handled globally by
         // ForkCountdownTimer, and is hidden by the engine while coins are
         // unclaimed, so the two never overlap.
-        if (!_fork.hasFundsToClaim) return const SizedBox.shrink();
+        if (!_fork.hasFundsToClaim) {
+          return const SizedBox.shrink();
+        }
         return _ClaimEcashCard(fork: _fork);
       },
     );

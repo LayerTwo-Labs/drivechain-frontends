@@ -198,3 +198,31 @@ func TestGenerationChangeDropsTheCoreBinary(t *testing.T) {
 
 	require.NoFileExists(t, core, "the retired generation's bitcoind must be gone")
 }
+
+// Generations publish their own seed port — drynet4 answers on 8533 — so a
+// built name sends bitcoind somewhere nothing listens.
+func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NotNil(t, o.BitcoinConf)
+	require.NotNil(t, o.EnforcerConf)
+
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDrynet, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkDrynet))
+	o.coreReachable = func() bool { return false }
+	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet2\nenable-wallet=true"))
+
+	published := catalogWithDrynet(t, "drynet9")
+	for i := range published.Networks {
+		if published.Networks[i].Family == netcatalog.FamilyECash {
+			published.Networks[i].P2P.Address = "drynet9.drivechain.dev:8533"
+		}
+	}
+	require.NoError(t, netcatalog.Save(o.BitwindowDir, published))
+
+	o.ResolveNetworkCatalog(context.Background())
+
+	require.Equal(t, "drynet9", config.DrynetGeneration())
+	require.Equal(t, "drynet9.drivechain.dev:8533", o.BitcoinConf.Config.GetEffectiveSetting("addnode", "main"))
+	require.Equal(t, "drynet9", o.EnforcerConf.Config.GetSetting("network-preset"))
+	require.Equal(t, "true", o.EnforcerConf.Config.GetSetting("enable-wallet"))
+}

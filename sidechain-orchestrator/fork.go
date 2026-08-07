@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/samber/lo"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -48,7 +49,13 @@ func (o *Orchestrator) ForkTip(ctx context.Context) (fork.Tip, error) {
 	if err != nil {
 		return fork.Tip{}, err
 	}
-	return fork.Tip{Chain: info.Chain, Blocks: info.Blocks, Headers: info.Headers}, nil
+	return fork.Tip{
+		Network:     o.Network,
+		Blocks:      info.Blocks,
+		Headers:     info.Headers,
+		ForkHeight:  config.PublishedForkHeight(config.NetworkFromString(o.Network)),
+		DisplayName: config.PublishedDisplayName(config.NetworkFromString(o.Network)),
+	}, nil
 }
 
 // forkWalletScanner adapts wallet.Service + wallet.WalletEngine + the enforcer

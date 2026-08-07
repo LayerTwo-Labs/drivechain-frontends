@@ -39,7 +39,63 @@ const (
 var (
 	drynetGenerationMu sync.RWMutex
 	drynetGeneration   string
+	drynetPeers        = map[string]string{}
+	forkHeights        = map[Network]int{}
+	displayNames       = map[Network]string{}
 )
+
+// SetDrynetPeer records the seed address published for a drynet generation.
+func SetDrynetPeer(generation, address string) {
+	if generation == "" || address == "" {
+		return
+	}
+	drynetGenerationMu.Lock()
+	defer drynetGenerationMu.Unlock()
+	drynetPeers[generation] = address
+}
+
+// PublishedDrynetPeer returns the catalog's seed address for a generation,
+// empty when the catalog carried none.
+func PublishedDrynetPeer(generation string) string {
+	drynetGenerationMu.RLock()
+	defer drynetGenerationMu.RUnlock()
+	return drynetPeers[generation]
+}
+
+// SetNetworkDisplayName records a network's published name ("Drynet 4"), so the
+// UI names the fork that is actually coming.
+func SetNetworkDisplayName(network Network, name string) {
+	drynetGenerationMu.Lock()
+	defer drynetGenerationMu.Unlock()
+	if name != "" {
+		displayNames[network] = name
+	}
+}
+
+// PublishedDisplayName returns a network's catalog name, empty when unset.
+func PublishedDisplayName(network Network) string {
+	drynetGenerationMu.RLock()
+	defer drynetGenerationMu.RUnlock()
+	return displayNames[network]
+}
+
+// SetForkHeight records a network's published fork height. Called once the
+// catalog is loaded, before anything counts down to it.
+func SetForkHeight(network Network, height int) {
+	drynetGenerationMu.Lock()
+	defer drynetGenerationMu.Unlock()
+	if height > 0 {
+		forkHeights[network] = height
+	}
+}
+
+// PublishedForkHeight returns a network's catalog fork height, 0 when the
+// catalog carried none.
+func PublishedForkHeight(network Network) int {
+	drynetGenerationMu.RLock()
+	defer drynetGenerationMu.RUnlock()
+	return forkHeights[network]
+}
 
 // SetDrynetGeneration records the resolved drynet generation. Called once the
 // network catalog is loaded, before anything dials.

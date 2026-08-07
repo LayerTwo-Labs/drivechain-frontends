@@ -32,9 +32,9 @@
       "directories": {
         "binary": {
           "default": {
-            "linux": ".drivechain",
-            "macos": "Drivechain",
-            "windows": "Drivechain"
+            "linux": ".ecash",
+            "macos": "Ecash",
+            "windows": "Ecash"
           },
           "mainnet": {
             "linux": ".bitcoin",

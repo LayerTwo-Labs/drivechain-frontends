@@ -103,15 +103,18 @@ func (m *BitcoinConfManager) DrynetPeer() string {
 }
 
 // DrynetPeerFor is the seed node for a given drynet generation, empty when the
-// generation is.
+// generation is. Falls back to a built name when the catalog publishes none.
 func DrynetPeerFor(generation string) string {
 	if generation == "" {
 		return ""
 	}
+	if address := PublishedDrynetPeer(generation); address != "" {
+		return address
+	}
 	return fmt.Sprintf("%s.drivechain.dev:%d", generation, drynetP2PPort)
 }
 
-// drynetP2PPort is the port every drynet generation listens on.
+// drynetP2PPort is the fallback seed port; generations publish their own.
 const drynetP2PPort = 8335
 
 // GetConfFilePath returns the resolved -conf= path to pass to bitcoind.
@@ -436,4 +439,28 @@ func (m *BitcoinConfManager) getConfigFileInfo() configFileInfo {
 
 func (m *BitcoinConfManager) getBitWindowConfigPath() string {
 	return filepath.Join(m.BitwindowDir, bitwindowBitcoinConfFilename)
+}
+
+// ResolveNetwork reads the network out of bitwindow-bitcoin.conf, so a caller
+// can align with the orchestrator while it is down. Never writes that file.
+func ResolveNetwork(bitwindowDir string) (Network, error) {
+	m := &BitcoinConfManager{
+		BitwindowDir: bitwindowDir,
+		Network:      NetworkSignet,
+		log:          zerolog.Nop(),
+	}
+
+	content, err := os.ReadFile(m.getBitWindowConfigPath())
+	if err != nil {
+		return "", fmt.Errorf("read %s: %w", bitwindowBitcoinConfFilename, err)
+	}
+	m.parseAndApplyConfig(string(content))
+
+	// A user's own bitcoin.conf overrides ours, same as on the load path.
+	m.tryLoadPrivateConfig()
+
+	if m.Network == "" {
+		return "", fmt.Errorf("no network configured in %s", bitwindowBitcoinConfFilename)
+	}
+	return m.Network, nil
 }

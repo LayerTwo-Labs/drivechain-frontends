@@ -57,11 +57,15 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
       listenable: _fork,
       builder: (context, _) {
         final target = _fork.forkTargetDate;
-        if (!_fork.showCountdown || target == null) return const SizedBox.shrink();
+        if (!_fork.showCountdown || target == null) {
+          return const SizedBox.shrink();
+        }
 
         final theme = SailTheme.of(context);
         var remaining = target.difference(DateTime.now());
-        if (remaining.isNegative) remaining = Duration.zero;
+        if (remaining.isNegative) {
+          remaining = Duration.zero;
+        }
 
         final hms =
             '${_two(remaining.inHours % 24)}:${_two(remaining.inMinutes % 60)}:${_two(remaining.inSeconds % 60)}';
@@ -83,7 +87,13 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
                 decoration: BoxDecoration(color: theme.colors.orange, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
-              SailText.secondary12('HARDFORK · T-MINUS', bold: true, color: theme.colors.textSecondary),
+              SailText.secondary12(
+                _fork.networkName.isEmpty
+                    ? 'HARDFORK · T-MINUS'
+                    : '${_fork.networkName.toUpperCase()} HARDFORK · T-MINUS',
+                bold: true,
+                color: theme.colors.textSecondary,
+              ),
               const SizedBox(width: 10),
               Text(
                 countdown,
@@ -116,7 +126,9 @@ class _ForkCountdownTimerState extends State<ForkCountdownTimer> {
     final s = n.toString();
     final buf = StringBuffer();
     for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      if (i > 0 && (s.length - i) % 3 == 0) {
+        buf.write(',');
+      }
       buf.write(s[i]);
     }
     return buf.toString();

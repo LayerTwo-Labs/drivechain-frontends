@@ -20,11 +20,11 @@ const signetForkInterval = 144
 
 // ForkHeightFor is the fixed fork height for non-simulated networks — the single
 // source of truth for per-network fork heights.
-func ForkHeightFor(chain string) int {
-	switch chain {
+func ForkHeightFor(network string) int {
+	switch network {
 	case "regtest":
 		return 400
-	default: // main, signet (non-sim path is unused for signet), testnet, ...
+	default: // mainnet, forknet, testnet, ...
 		return 100_000
 	}
 }
@@ -33,9 +33,17 @@ func ForkHeightFor(chain string) int {
 // package so the engine imports nothing app-specific (no import cycle, easy to
 // fake in tests).
 type Tip struct {
-	Chain   string
+	// Network is the drivechain network, not Core's chain: drynet and forknet
+	// are both chain=main, so Core cannot tell them apart.
+	Network string
 	Blocks  int
 	Headers int
+	// ForkHeight is the height published for this network, 0 when none is.
+	// The catalog carries it so a new drynet needs no release.
+	ForkHeight int
+	// DisplayName names the fork that is coming ("Drynet 4"), so a rehearsal is
+	// never mistaken for the real eCash fork.
+	DisplayName string
 }
 
 // TipSource yields the current mainchain tip. The orchestrator satisfies this.
@@ -101,6 +109,9 @@ type ForkState struct {
 	HasFundsToClaim bool
 	ShowCountdown   bool
 	Claims          []WalletClaim
+	// NetworkName names the fork being counted down to ("Drynet 4"), so a
+	// rehearsal never reads as the real eCash fork.
+	NetworkName string
 }
 
 // Engine computes ForkState. Construct with NewEngine; call State.
@@ -153,6 +164,7 @@ func (e *Engine) compute(ctx context.Context) (*ForkState, error) {
 	st := &ForkState{
 		Simulated:      simulated,
 		ForkHeight:     forkHeight,
+		NetworkName:    tip.DisplayName,
 		ClaimBoundary:  claimBoundary,
 		CurrentHeight:  tip.Blocks,
 		CurrentHeaders: tip.Headers,
@@ -184,12 +196,15 @@ func (e *Engine) compute(ctx context.Context) (*ForkState, error) {
 // recurring fork every 144 blocks: claimBoundary = last boundary (by confirmed
 // tip), forkHeight = next boundary (by header tip).
 func heightsFor(tip Tip) (bool, int, int) {
-	if tip.Chain == "signet" {
+	if tip.Network == "signet" {
 		claimBoundary := (tip.Blocks / signetForkInterval) * signetForkInterval
 		forkHeight := (tip.Headers/signetForkInterval)*signetForkInterval + signetForkInterval
 		return true, forkHeight, claimBoundary
 	}
-	h := ForkHeightFor(tip.Chain)
+	h := tip.ForkHeight
+	if h <= 0 {
+		h = ForkHeightFor(tip.Network)
+	}
 	return false, h, h
 }
 

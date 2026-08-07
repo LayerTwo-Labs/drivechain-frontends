@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -436,4 +437,29 @@ func (m *EnforcerConfManager) reloadConfigFromFileSystem() {
 // ~/Library/Application Support/bip300301_enforcer/.
 func (m *EnforcerConfManager) getConfigPath() string {
 	return filepath.Join(m.ConfigDir, bitwindowEnforcerConfFilename)
+}
+
+var drynetGenerationPattern = regexp.MustCompile(`drynet\d+`)
+
+// RetargetDrynetGeneration rewrites persisted settings that name an older
+// drynet generation, and reports whether the file changed.
+func (m *EnforcerConfManager) RetargetDrynetGeneration(generation string) (bool, error) {
+	if m.Config == nil || generation == "" {
+		return false, nil
+	}
+
+	changed := false
+	for key, value := range m.Config.Settings {
+		retargeted := drynetGenerationPattern.ReplaceAllString(value, generation)
+		if retargeted == value {
+			continue
+		}
+		m.Config.Settings[key] = retargeted
+		changed = true
+	}
+	if !changed {
+		return false, nil
+	}
+
+	return true, m.SaveConfig()
 }
