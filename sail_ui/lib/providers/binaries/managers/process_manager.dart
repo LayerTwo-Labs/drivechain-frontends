@@ -80,7 +80,11 @@ class ProcessManager extends ChangeNotifier {
     );
     // Before anything else it might spawn: job membership is inherited, so
     // binding the child covers its whole tree.
-    await DaemonJob.bind(process.pid);
+    final bound = await DaemonJob.bind(process.pid);
+    if (!bound && Platform.isWindows) {
+      // Anything it already spawned stayed outside the job and will outlive us.
+      log.e('[${binary.name}] not bound to the daemon job (pid ${process.pid})');
+    }
 
     runningProcesses[binary.name] = SailProcess(
       binary: binary,
