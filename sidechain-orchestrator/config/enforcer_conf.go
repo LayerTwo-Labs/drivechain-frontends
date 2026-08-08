@@ -23,6 +23,7 @@ const bitwindowEnforcerConfFilename = "bitwindow-enforcer.conf"
 var derivedEnforcerSettings = []string{
 	"node-rpc-user",
 	"node-rpc-pass",
+	"node-rpc-cookie-path",
 	"node-rpc-addr",
 	"node-zmq-addr-sequence",
 	"wallet-esplora-url",
@@ -170,8 +171,7 @@ func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
 
 	if m.bitcoinConf.Config == nil {
 		return map[string]string{
-			"node-rpc-user":          "user",
-			"node-rpc-pass":          "password",
+			"node-rpc-cookie-path":   m.bitcoinConf.GetRPCCookiePath(),
 			"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
 			"node-zmq-addr-sequence": defaultZmqSequence,
 		}
@@ -179,27 +179,26 @@ func (m *EnforcerConfManager) GetExpectedNodeRpcSettings() map[string]string {
 
 	networkSection := CoreSectionForNetwork(m.bitcoinConf.Network)
 
-	username := m.bitcoinConf.Config.GetEffectiveSetting("rpcuser", networkSection)
-	if username == "" {
-		username = "user"
-	}
-
-	password := m.bitcoinConf.Config.GetEffectiveSetting("rpcpassword", networkSection)
-	if password == "" {
-		password = "password"
-	}
-
 	zmqSequence := m.bitcoinConf.Config.GetEffectiveSetting("zmqpubsequence", networkSection)
 	if zmqSequence == "" {
 		zmqSequence = defaultZmqSequence
 	}
 
-	return map[string]string{
-		"node-rpc-user":          username,
-		"node-rpc-pass":          password,
+	settings := map[string]string{
 		"node-rpc-addr":          fmt.Sprintf("%s:%d", host, port),
 		"node-zmq-addr-sequence": zmqSequence,
 	}
+
+	username := m.bitcoinConf.Config.GetEffectiveSetting("rpcuser", networkSection)
+	password := m.bitcoinConf.Config.GetEffectiveSetting("rpcpassword", networkSection)
+	if username != "" && password != "" {
+		settings["node-rpc-user"] = username
+		settings["node-rpc-pass"] = password
+		return settings
+	}
+
+	settings["node-rpc-cookie-path"] = m.bitcoinConf.GetRPCCookiePath()
+	return settings
 }
 
 // GetDefaultConfig generates the default enforcer config content.
@@ -295,7 +294,15 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 	}
 
 	expected := m.GetExpectedNodeRpcSettings()
-	for _, key := range []string{"node-rpc-user", "node-rpc-pass", "node-rpc-addr", "node-zmq-addr-sequence"} {
+	// The enforcer takes a user or a cookie, never both, so a persisted auth
+	// mode drops the derived one rather than being merged with it.
+	if seen["node-rpc-user"] || seen["node-rpc-pass"] {
+		delete(expected, "node-rpc-cookie-path")
+	} else if seen["node-rpc-cookie-path"] {
+		delete(expected, "node-rpc-user")
+		delete(expected, "node-rpc-pass")
+	}
+	for _, key := range []string{"node-rpc-user", "node-rpc-pass", "node-rpc-cookie-path", "node-rpc-addr", "node-zmq-addr-sequence"} {
 		if seen[key] {
 			continue
 		}

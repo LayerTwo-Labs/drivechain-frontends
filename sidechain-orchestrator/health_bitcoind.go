@@ -20,17 +20,23 @@ const PresyncMessagePrefix = "Pre-synchronizing blockheaders"
 // success signal would freeze the UI at 0/0, so the checker synthesises
 // a presync startup error in that one case. One RPC only.
 type BitcoindHealthCheck struct {
-	URL      string
-	User     string
-	Password string
-	Timeout  time.Duration
+	URL         string
+	User        string
+	Password    string
+	Credentials CredentialsFunc
+	Timeout     time.Duration
 }
 
 func (h *BitcoindHealthCheck) Check(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
 	defer cancel()
 
-	raw, err := CallBitcoindRPC(ctx, h.URL, h.User, h.Password, "getblockchaininfo", nil)
+	user, password, err := resolveCredentials(h.Credentials, h.User, h.Password)
+	if err != nil {
+		return fmt.Errorf("resolve credentials: %w", err)
+	}
+
+	raw, err := CallBitcoindRPC(ctx, h.URL, user, password, "getblockchaininfo", nil)
 	if err != nil {
 		return err
 	}

@@ -96,12 +96,9 @@ func (o *Orchestrator) ApplyUserSnapshot(ctx context.Context, src SnapshotSource
 
 // bitcoindDatadir returns the datadir bitcoind writes to on the active network.
 func (o *Orchestrator) bitcoindDatadir() string {
-	if o.BitcoinConf != nil && o.BitcoinConf.DetectedDataDir != "" {
-		return o.BitcoinConf.DetectedDataDir
+	if o.BitcoinConf != nil {
+		return o.BitcoinConf.DataDir()
 	}
-	// DetectedDataDir is empty whenever the user has set no explicit datadir=,
-	// which is the normal case on signet, testnet and regtest — Core is simply
-	// running in its platform default. Resolve that rather than refusing.
 	return config.BitcoinCoreDirs.DatadirNetwork(config.NetworkFromString(o.Network), "")
 }
 

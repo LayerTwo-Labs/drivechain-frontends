@@ -469,18 +469,7 @@ func (o *Orchestrator) discoverPid(cfg BinaryConfig) int {
 	// 2. For Bitcoin Core: check native bitcoind.pid in datadir
 	// Dart: BitcoinCorePidTracker watches {datadir}/{network}/bitcoind.pid
 	if cfg.Name == "bitcoind" && o.BitcoinConf != nil {
-		// Build path: {datadir}/{network-subdir}/bitcoind.pid
-		dataDir := o.BitcoinConf.DetectedDataDir
-		if dataDir == "" {
-			dataDir = config.BitcoinCoreDirs.RootDirNetwork(o.BitcoinConf.Network)
-		}
-		networkSubdir := config.CoreSectionForNetwork(o.BitcoinConf.Network)
-		pidPath := ""
-		if networkSubdir == "main" {
-			pidPath = dataDir + "/bitcoind.pid"
-		} else {
-			pidPath = dataDir + "/" + networkSubdir + "/bitcoind.pid"
-		}
+		pidPath := filepath.Join(o.BitcoinConf.DataDir(), "bitcoind.pid")
 
 		if data, err := os.ReadFile(pidPath); err == nil {
 			if pid, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil && pid > 0 {
@@ -941,11 +930,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 		if coreCfg.Port == 0 {
 			coreCfg.Port = o.BitcoinConf.GetRPCPort()
 		}
-		if o.BitcoinConf.Config != nil {
-			section := o.BitcoinConf.Network.CoreSection()
-			coreHealthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-			coreHealthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
-		}
+		coreHealthOpts.Credentials = o.BitcoinConf.GetRPCCredentials
 	}
 	coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
 	coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
@@ -1313,11 +1298,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		if config.Port == 0 {
 			config.Port = o.BitcoinConf.GetRPCPort()
 		}
-		if o.BitcoinConf.Config != nil {
-			section := o.BitcoinConf.Network.CoreSection()
-			healthOpts.User = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-			healthOpts.Password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
-		}
+		healthOpts.Credentials = o.BitcoinConf.GetRPCCredentials
 		startupPatterns = bitcoindStartupPatterns
 		if len(opts.TargetArgs) == 0 {
 			confPath := o.BitcoinConf.GetConfFilePath()
@@ -3019,11 +3000,9 @@ func (o *Orchestrator) CoreStatusClient() (*CoreStatusClient, error) {
 	}
 
 	port := o.BitcoinConf.GetRPCPort()
-	var user, password string
-	if o.BitcoinConf.Config != nil {
-		section := o.BitcoinConf.Network.CoreSection()
-		user = o.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-		password = o.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+	user, password, err := o.BitcoinConf.GetRPCCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("core rpc credentials: %w", err)
 	}
 
 	// Cache the client (and therefore its underlying http.Client + connection

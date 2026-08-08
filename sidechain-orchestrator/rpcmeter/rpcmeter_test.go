@@ -32,6 +32,7 @@ func TestRecordAccumulates(t *testing.T) {
 	gb := m.stats["GetBlock"]
 	if gb == nil {
 		t.Fatal("GetBlock not recorded")
+		return
 	}
 	if gb.count != 2 {
 		t.Errorf("GetBlock count = %d, want 2", gb.count)

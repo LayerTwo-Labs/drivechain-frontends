@@ -39,11 +39,12 @@ func (h *TCPHealthCheck) Check(ctx context.Context) error {
 
 // JSONRPCHealthCheck sends a JSON-RPC request to verify the service is responding.
 type JSONRPCHealthCheck struct {
-	URL      string
-	Method   string
-	User     string
-	Password string
-	Timeout  time.Duration
+	URL         string
+	Method      string
+	User        string
+	Password    string
+	Credentials CredentialsFunc
+	Timeout     time.Duration
 }
 
 func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
@@ -65,8 +66,12 @@ func (h *JSONRPCHealthCheck) Check(ctx context.Context) error {
 		return fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if h.User != "" {
-		req.SetBasicAuth(h.User, h.Password)
+	user, password, err := resolveCredentials(h.Credentials, h.User, h.Password)
+	if err != nil {
+		return fmt.Errorf("resolve credentials: %w", err)
+	}
+	if user != "" {
+		req.SetBasicAuth(user, password)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -143,10 +148,23 @@ func (h *ConnectRPCHealthCheck) Check(ctx context.Context) error {
 	return nil
 }
 
+// CredentialsFunc resolves RPC credentials at request time. Core rewrites its
+// auth cookie on every restart, so a pair captured once goes stale.
+type CredentialsFunc func() (string, string, error)
+
+// resolveCredentials prefers the per-request resolver over the static pair.
+func resolveCredentials(resolve CredentialsFunc, user, password string) (string, string, error) {
+	if resolve == nil {
+		return user, password, nil
+	}
+	return resolve()
+}
+
 // HealthCheckOpts provides optional configuration for health checkers.
 type HealthCheckOpts struct {
-	User     string
-	Password string
+	User        string
+	Password    string
+	Credentials CredentialsFunc
 }
 
 // NewHealthChecker creates the appropriate health checker for a binary config.
@@ -177,10 +195,11 @@ func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecke
 		// interpretation — no separate probes.
 		if config.IsBitcoinCore {
 			return &BitcoindHealthCheck{
-				URL:      fmt.Sprintf("http://%s:%d", host, config.Port),
-				User:     opt.User,
-				Password: opt.Password,
-				Timeout:  timeout,
+				URL:         fmt.Sprintf("http://%s:%d", host, config.Port),
+				User:        opt.User,
+				Password:    opt.Password,
+				Credentials: opt.Credentials,
+				Timeout:     timeout,
 			}
 		}
 		method := config.HealthCheckRPC
@@ -188,11 +207,12 @@ func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecke
 			method = "getblockcount"
 		}
 		return &JSONRPCHealthCheck{
-			URL:      fmt.Sprintf("http://%s:%d", host, config.Port),
-			Method:   method,
-			User:     opt.User,
-			Password: opt.Password,
-			Timeout:  timeout,
+			URL:         fmt.Sprintf("http://%s:%d", host, config.Port),
+			Method:      method,
+			User:        opt.User,
+			Password:    opt.Password,
+			Credentials: opt.Credentials,
+			Timeout:     timeout,
 		}
 	case HealthCheckConnectRPC:
 		path := strings.TrimPrefix(config.HealthCheckRPC, "/")

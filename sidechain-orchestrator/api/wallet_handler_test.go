@@ -78,6 +78,7 @@ func TestBuildWatchWalletDataResponseStartersAttachToEnforcer(t *testing.T) {
 
 	if enf == nil || c == nil {
 		t.Fatal("missing wallet metadata in response")
+		return
 	}
 
 	if enf.L1 != enforcer.L1.Mnemonic {

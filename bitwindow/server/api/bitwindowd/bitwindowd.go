@@ -1180,9 +1180,18 @@ func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.E
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read bitcoin config from orchestrator: %w", err))
 	}
 	miner, err := cpuminer.New(cpuminer.Config{
-		RpcURL:          fmt.Sprintf("http://localhost:%d", confResp.Msg.RpcPort),
-		RpcUser:         confResp.Msg.RpcUser,
-		RpcPass:         confResp.Msg.RpcPassword,
+		RpcURL: fmt.Sprintf("http://localhost:%d", confResp.Msg.RpcPort),
+		// Re-resolve creds per request: Core rotates its cookie on restart, so a
+		// pair snapshotted here would 401 the moment bitcoind restarts.
+		Credentials: func() (string, string, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			resp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
+			if err != nil {
+				return "", "", fmt.Errorf("read bitcoin config from orchestrator: %w", err)
+			}
+			return resp.Msg.RpcUser, resp.Msg.RpcPassword, nil
+		},
 		Routines:        1,
 		CoinbaseAddress: address,
 	})
