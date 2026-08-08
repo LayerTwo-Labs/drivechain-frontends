@@ -437,6 +437,16 @@ func gbtWorkDecode(val gbtRpcResponse, coinbaseAddr string, coinbaseSig string) 
 	return &work, nil
 }
 
+// Credentials resolves the basic-auth pair for Core's RPC on each call.
+// Core rewrites its cookie on every restart, so pinning a pair captured when
+// mining started would 401 after the first restart.
+type Credentials func() (user, pass string, err error)
+
+// StaticCredentials returns a resolver that always yields the same pair.
+func StaticCredentials(user, pass string) Credentials {
+	return func() (string, string, error) { return user, pass, nil }
+}
+
 type Config struct {
 	Routines          int // Number of miner routines to run. Defaults to 1.
 	CoinbaseAddress   string
@@ -445,9 +455,8 @@ type Config struct {
 	// Maximum time to spend scanning the current work. Defaults to 1 minute.
 	ScanTime time.Duration
 
-	RpcURL  string
-	RpcUser string
-	RpcPass string
+	RpcURL      string
+	Credentials Credentials
 }
 
 func New(cfg Config) (*Miner, error) {
@@ -467,8 +476,7 @@ func New(cfg Config) (*Miner, error) {
 		routines:          cfg.Routines,
 		scanTime:          cfg.ScanTime,
 		rpcURL:            cfg.RpcURL,
-		rpcUser:           cfg.RpcUser,
-		rpcPass:           cfg.RpcPass,
+		credentials:       cfg.Credentials,
 		coinbaseAddress:   cfg.CoinbaseAddress,
 		coinbaseSignature: cfg.CoinbaseSignature,
 	}, nil
@@ -479,8 +487,8 @@ type Miner struct {
 	coinbaseAddress, coinbaseSignature string
 	scanTime                           time.Duration
 
-	rpcURL           string
-	rpcUser, rpcPass string
+	rpcURL      string
+	credentials Credentials
 
 	fetchWork singleflight.Group
 	work      atomic.Pointer[Work]

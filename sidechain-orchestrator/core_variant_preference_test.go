@@ -70,6 +70,7 @@ func TestEmbeddedConfig_SignetFallbackPicksPatched(t *testing.T) {
 	}
 	if core == nil {
 		t.Fatal("no Bitcoin Core binary in embedded config")
+		return
 	}
 
 	available := FilterVariantsForNetwork(core.Variants, "signet")

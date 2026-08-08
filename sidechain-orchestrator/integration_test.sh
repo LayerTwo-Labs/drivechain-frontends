@@ -8,16 +8,16 @@ CTL="$ORCH_DIR/bin/orchestratorctl"
 DATADIR=$(mktemp -d)
 BITWINDOW_DIR=$(mktemp -d)
 
-# Use the same creds as orchestrator's default bitcoin config
-RPC_USER=user
-RPC_PASS=password
+# No rpcuser/rpcpassword: the orchestrator's default conf sets none either, so
+# Core writes a cookie and both sides authenticate with it. bitcoin-cli picks
+# the cookie up from -datadir.
 RPC_PORT=18443
 
 ORCH_PID=""
 
 cleanup() {
     echo -e "\n--- Cleanup ---"
-    $BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT stop 2>/dev/null || true
+    $BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT stop 2>/dev/null || true
     [ -n "$ORCH_PID" ] && kill $ORCH_PID 2>/dev/null || true
     sleep 1
     rm -rf "$DATADIR" "$BITWINDOW_DIR"
@@ -26,14 +26,22 @@ cleanup() {
 trap cleanup EXIT
 
 echo "=== 1. Start Bitcoin Core (regtest) ==="
-$BITCOIND -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT -daemon -fallbackfee=0.0001
+$BITCOIND -regtest -datadir=$DATADIR -rpcport=$RPC_PORT -daemon -fallbackfee=0.0001
 sleep 3
-$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT getblockchaininfo | grep '"chain"'
+$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT getblockchaininfo | grep '"chain"'
 echo "Bitcoin Core running ✅"
 
 echo -e "\n=== 2. Config ==="
 mkdir -p "$BITWINDOW_DIR"
-echo "Using orchestrator default config (rpcuser=user, rpcpassword=password) ✅"
+# Point the orchestrator at Core's datadir so its cookie resolver reads the
+# same $DATADIR/regtest/.cookie bitcoind wrote, not the platform default.
+cat > "$BITWINDOW_DIR/bitwindow-bitcoin.conf" <<EOF
+chain=regtest
+[regtest]
+datadir=$DATADIR
+rpcport=$RPC_PORT
+EOF
+echo "Wrote bitwindow-bitcoin.conf pointing at $DATADIR (cookie auth) ✅"
 
 echo -e "\n=== 3. Start orchestratord ==="
 $ORCH_DIR/bin/orchestratord \
@@ -67,14 +75,14 @@ echo "$OUTPUT"
 echo "Exit code: $EXIT_CODE"
 if [ $EXIT_CODE -ne 0 ]; then
     echo "DEBUG: Checking if Core is reachable..."
-    $BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT getblockchaininfo | head -3
+    $BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT getblockchaininfo | head -3
     echo "DEBUG: Core is reachable. Issue is orchestrator->Core connection."
 fi
 echo "$OUTPUT" | grep -q "wallet created" || { echo "FAIL: core wallet not created"; exit 1; }
 echo "bitcoinCore wallet created ✅"
 
 echo -e "\n=== 7. Verify Bitcoin Core has the new wallet ==="
-CORE_WALLETS=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT listwallets 2>&1)
+CORE_WALLETS=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT listwallets 2>&1)
 echo "Core wallets: $CORE_WALLETS"
 echo "$CORE_WALLETS" | grep -q "wallet_" || { echo "FAIL: Core wallet not found in bitcoind"; exit 1; }
 echo "Core wallet exists in bitcoind ✅"
@@ -90,14 +98,14 @@ echo -e "\n=== 9. Get a new address from Core wallet ==="
 # Find the core wallet name
 CORE_WALLET_NAME=$(echo "$CORE_WALLETS" | grep -o '"wallet_[^"]*"' | tr -d '"' | head -1)
 echo "Core wallet name: $CORE_WALLET_NAME"
-NEW_ADDR=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+NEW_ADDR=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     -rpcwallet="$CORE_WALLET_NAME" getnewaddress 2>&1)
 echo "New address: $NEW_ADDR"
 [ -n "$NEW_ADDR" ] || { echo "FAIL: could not get new address"; exit 1; }
 echo "Address from Core wallet ✅"
 
 echo -e "\n=== 10. List descriptors in Core wallet ==="
-$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     -rpcwallet="$CORE_WALLET_NAME" listdescriptors 2>&1 | grep '"desc"' | head -4
 echo "Descriptors imported ✅"
 
@@ -110,7 +118,7 @@ echo "$OUTPUT" | grep -q "wallet created" || { echo "FAIL: restored wallet not c
 echo "Restored from seed ✅"
 
 echo -e "\n=== 12. Verify restored wallet created in Core ==="
-CORE_WALLETS2=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT listwallets 2>&1)
+CORE_WALLETS2=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT listwallets 2>&1)
 echo "Core wallets after restore: $CORE_WALLETS2"
 # Should have 2 wallet_ entries now
 WALLET_COUNT=$(echo "$CORE_WALLETS2" | grep -c "wallet_")
@@ -121,7 +129,7 @@ echo -e "\n=== 13. Verify restored wallet has correct address ==="
 # The "abandon" mnemonic is well-known — we can verify the derived address
 RESTORED_WALLET_NAME=$(echo "$CORE_WALLETS2" | grep -o '"wallet_[^"]*"' | tr -d '"' | tail -1)
 echo "Restored wallet name: $RESTORED_WALLET_NAME"
-RESTORED_ADDR=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+RESTORED_ADDR=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     -rpcwallet="$RESTORED_WALLET_NAME" getnewaddress 2>&1)
 echo "Restored wallet address: $RESTORED_ADDR"
 [ -n "$RESTORED_ADDR" ] || { echo "FAIL: could not get address from restored wallet"; exit 1; }
@@ -129,36 +137,36 @@ echo "Restored wallet has working address ✅"
 
 echo -e "\n=== 14. Add watch-only wallet ==="
 # Use the xpub from the first Core wallet's descriptors
-XPUB=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+XPUB=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     -rpcwallet="$CORE_WALLET_NAME" listdescriptors 2>&1 | grep -o 'tpub[A-Za-z0-9]*' | head -1)
 echo "Using xpub from Core wallet: ${XPUB:0:20}..."
 [ -n "$XPUB" ] || { echo "FAIL: could not extract xpub"; exit 1; }
 
 # Create watch-only directly in Core (the orchestrator watch-only flow)
-$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     createwallet "watch_test" true true "" false true false 2>&1
 
 # Build descriptor with correct checksum
 RECV_DESC="wpkh($XPUB/0/*)"
 # Use bitcoin-cli getdescriptorinfo to get the proper checksum
-RECV_INFO=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+RECV_INFO=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     getdescriptorinfo "$RECV_DESC" 2>&1)
 RECV_DESC_WITH_CHECKSUM=$(echo "$RECV_INFO" | grep '"descriptor"' | sed 's/.*: "//;s/",//')
 echo "Receive descriptor: $RECV_DESC_WITH_CHECKSUM"
 
 CHANGE_DESC="wpkh($XPUB/1/*)"
-CHANGE_INFO=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+CHANGE_INFO=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     getdescriptorinfo "$CHANGE_DESC" 2>&1)
 CHANGE_DESC_WITH_CHECKSUM=$(echo "$CHANGE_INFO" | grep '"descriptor"' | sed 's/.*: "//;s/",//')
 echo "Change descriptor: $CHANGE_DESC_WITH_CHECKSUM"
 
 # Import into watch-only wallet
-IMPORT_RESULT=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+IMPORT_RESULT=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     -rpcwallet=watch_test importdescriptors "[{\"desc\":\"$RECV_DESC_WITH_CHECKSUM\",\"active\":true,\"internal\":false,\"timestamp\":\"now\",\"range\":[0,999]},{\"desc\":\"$CHANGE_DESC_WITH_CHECKSUM\",\"active\":true,\"internal\":true,\"timestamp\":\"now\",\"range\":[0,999]}]" 2>&1)
 echo "Import result: $IMPORT_RESULT"
 echo "$IMPORT_RESULT" | grep -q '"success": true' || { echo "FAIL: descriptor import failed"; exit 1; }
 
-WATCH_ADDR=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT \
+WATCH_ADDR=$($BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT \
     -rpcwallet=watch_test getnewaddress 2>&1)
 echo "Watch-only address: $WATCH_ADDR"
 [ -n "$WATCH_ADDR" ] || { echo "FAIL: could not get watch-only address"; exit 1; }
@@ -168,7 +176,7 @@ echo -e "\n=== 15. Final state ==="
 echo "Orchestrator wallets:"
 $CTL wallet list
 echo -e "\nBitcoin Core wallets:"
-$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcuser=$RPC_USER -rpcpassword=$RPC_PASS -rpcport=$RPC_PORT listwallets
+$BITCOIN_CLI -regtest -datadir=$DATADIR -rpcport=$RPC_PORT listwallets
 
 echo -e "\n--- Delete all ---"
 echo "y" | $CTL wallet delete --all

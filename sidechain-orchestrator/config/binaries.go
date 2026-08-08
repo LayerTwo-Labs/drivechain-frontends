@@ -115,7 +115,7 @@ func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string)
 		if network == NetworkMainnet || network == NetworkForknet || network == NetworkDrynet {
 			return baseDir
 		}
-		return filepath.Join(baseDir, network.ReadableName())
+		return filepath.Join(baseDir, network.CoreChainDir())
 	case "bitwindowd":
 		return filepath.Join(baseDir, network.ReadableName())
 	default:
@@ -784,6 +784,16 @@ func compareVersions(a, b string) int {
 
 // ReadableName returns a human-readable network name.
 // Dart: toReadableNet() extension
+// CoreChainDir is the subdirectory Bitcoin Core writes under its datadir.
+// Matches ReadableName everywhere except testnet, which Core stores as
+// testnet3.
+func (n Network) CoreChainDir() string {
+	if n == NetworkTestnet {
+		return "testnet3"
+	}
+	return n.ReadableName()
+}
+
 func (n Network) ReadableName() string {
 	switch n {
 	case NetworkMainnet:

@@ -905,11 +905,9 @@ func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet st
 	}
 
 	port := h.orch.BitcoinConf.GetRPCPort()
-	var user, password string
-	if h.orch.BitcoinConf.Config != nil {
-		section := h.orch.BitcoinConf.Network.CoreSection()
-		user = h.orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-		password = h.orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+	user, password, err := h.orch.BitcoinConf.GetRPCCredentials()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("core rpc credentials: %w", err))
 	}
 
 	if paramsJSON == "" {
@@ -927,9 +925,7 @@ func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet st
 		return nil, fmt.Errorf("build %s request: %w", method, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if user != "" {
-		req.SetBasicAuth(user, password)
-	}
+	req.SetBasicAuth(user, password)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

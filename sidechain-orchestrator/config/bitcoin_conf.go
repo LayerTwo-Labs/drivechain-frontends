@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
@@ -149,6 +150,90 @@ func (m *BitcoinConfManager) GetRPCHost() string {
 	return "127.0.0.1"
 }
 
+// isLocalCore reports whether Core runs on this machine. A cookie only
+// authenticates the node that wrote it, so a remote rpcconnect must not get
+// the local one.
+func (m *BitcoinConfManager) isLocalCore() bool {
+	host := m.GetRPCHost()
+	return host == "127.0.0.1" || host == "localhost" || host == "::1"
+}
+
+// DataDir returns the directory bitcoind writes to on the active network.
+// datadir= is optional — signet, testnet and regtest normally run in Core's
+// platform default — so an unset DetectedDataDir resolves to that default
+// rather than being an error.
+func (m *BitcoinConfManager) DataDir() string {
+	return BitcoinCoreDirs.DatadirNetwork(m.Network, m.DetectedDataDir)
+}
+
+// GetRPCCookiePath returns the path Core writes its auth cookie to. An
+// rpccookiefile setting wins, absolute or relative to the network datadir.
+func (m *BitcoinConfManager) GetRPCCookiePath() string {
+	datadir := m.DataDir()
+	if m.Config != nil {
+		if custom := m.Config.GetEffectiveSetting("rpccookiefile", CoreSectionForNetwork(m.Network)); custom != "" {
+			if filepath.IsAbs(custom) {
+				return custom
+			}
+			return filepath.Join(datadir, custom)
+		}
+	}
+	return filepath.Join(datadir, ".cookie")
+}
+
+// GetRPCCredentials returns the basic-auth pair for Core's RPC: rpcuser and
+// rpcpassword when the conf sets them, otherwise the cookie Core writes when
+// it has no configured password.
+//
+// The cookie is read fresh every call — Core rewrites it on each restart, so
+// a cached value goes stale silently.
+func (m *BitcoinConfManager) GetRPCCredentials() (string, string, error) {
+	return m.resolveRPCCredentials()
+}
+
+// GetExplicitRPCCredentials returns the configured rpcuser/rpcpassword, both
+// empty when the conf relies on cookie auth. Callers that pass a cookie path
+// separately use this so an empty pair falls through to cookie authentication.
+func (m *BitcoinConfManager) GetExplicitRPCCredentials() (string, string) {
+	if m.Config == nil {
+		return "", ""
+	}
+	section := CoreSectionForNetwork(m.Network)
+	return m.Config.GetEffectiveSetting("rpcuser", section), m.Config.GetEffectiveSetting("rpcpassword", section)
+}
+
+func (m *BitcoinConfManager) resolveRPCCredentials() (string, string, error) {
+	if m.Config != nil {
+		section := CoreSectionForNetwork(m.Network)
+		user := m.Config.GetEffectiveSetting("rpcuser", section)
+		password := m.Config.GetEffectiveSetting("rpcpassword", section)
+		if user != "" && password != "" {
+			return user, password, nil
+		}
+	}
+
+	if m.isLocalCore() {
+		if user, password, ok := m.cookieCredentials(); ok {
+			return user, password, nil
+		}
+	}
+	return "", "", fmt.Errorf("no core credentials: no rpcuser/rpcpassword and no cookie at %s", m.GetRPCCookiePath())
+}
+
+// cookieCredentials reads Core's auth cookie, false when it is absent or
+// unreadable.
+func (m *BitcoinConfManager) cookieCredentials() (string, string, bool) {
+	raw, err := os.ReadFile(m.GetRPCCookiePath())
+	if err != nil {
+		return "", "", false
+	}
+	user, password, found := strings.Cut(strings.TrimSpace(string(raw)), ":")
+	if !found {
+		return "", "", false
+	}
+	return user, password, true
+}
+
 // GetDefaultConfig generates the default bitcoin.conf content.
 // Port of getDefaultConfig() from bitcoin_conf_provider.dart.
 //
@@ -210,8 +295,6 @@ fallbackfee=0.00021
 # source: bitwindow bitcoin config settings
 
 # Common settings for all networks
-rpcuser=user
-rpcpassword=password
 server=1
 listen=1
 txindex=1

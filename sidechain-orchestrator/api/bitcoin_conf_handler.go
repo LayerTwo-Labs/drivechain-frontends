@@ -43,12 +43,17 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		network == config.NetworkSignet ||
 		network == config.NetworkRegtest
 
-	var configContent, rpcUser, rpcPassword, defaultDatadir, forknetDatadir, drynetDatadir string
+	// Resolved, not raw: consumers use these to authenticate to Core, so on a
+	// cookie-authenticated install the raw settings are empty and they must
+	// get the cookie pair instead. Empty when Core is not up yet.
+	rpcUser, rpcPassword, err := h.conf.GetRPCCredentials()
+	if err != nil {
+		rpcUser, rpcPassword = "", ""
+	}
+
+	var configContent, defaultDatadir, forknetDatadir, drynetDatadir string
 	if h.conf.Config != nil {
 		configContent = h.conf.Config.Serialize()
-		section := h.conf.Network.CoreSection()
-		rpcUser = h.conf.Config.GetEffectiveSetting("rpcuser", section)
-		rpcPassword = h.conf.Config.GetEffectiveSetting("rpcpassword", section)
 		defaultDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupDefault)
 		forknetDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupForknet)
 		drynetDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupDrynet)

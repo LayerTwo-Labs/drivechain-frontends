@@ -78,3 +78,31 @@ func TestSetBitcoinConfigNetwork_NoConfManager(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
+
+// On a cookie-authenticated install the conf sets no rpcuser/rpcpassword, but
+// consumers (the cpuminer, the btc-buf proxy) use these fields to authenticate
+// — so they must carry the cookie pair, not be empty.
+func TestGetBitcoinConfigReportsCookieCredentials(t *testing.T) {
+	bitwindowDir := t.TempDir()
+	// Seed a datadir so the cookie resolves under a temp dir; without it
+	// GetRPCCookiePath falls back to the real ~/.bitcoin and the test would
+	// overwrite a live cookie.
+	datadir := t.TempDir()
+	confPath := filepath.Join(bitwindowDir, "bitwindow-bitcoin.conf")
+	confContent := "chain=signet\n[signet]\ndatadir=" + datadir + "\nrpcport=18443\n"
+	require.NoError(t, os.WriteFile(confPath, []byte(confContent), 0o644))
+
+	orch := orchestrator.New(t.TempDir(), "signet", bitwindowDir, []orchestrator.BinaryConfig{}, zerolog.New(io.Discard))
+	require.NotNil(t, orch.BitcoinConf)
+	require.Equal(t, datadir, orch.BitcoinConf.DetectedDataDir, "datadir must load from the conf, else the cookie hits ~/.bitcoin")
+
+	cookie := orch.BitcoinConf.GetRPCCookiePath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(cookie), 0o755))
+	require.NoError(t, os.WriteFile(cookie, []byte("__cookie__:s3cret"), 0o600))
+	t.Cleanup(func() { _ = os.Remove(cookie) })
+
+	resp, err := NewBitcoinConfHandler(orch).GetBitcoinConfig(context.Background(), connect.NewRequest(&pb.GetBitcoinConfigRequest{}))
+	require.NoError(t, err)
+	assert.Equal(t, "__cookie__", resp.Msg.RpcUser)
+	assert.Equal(t, "s3cret", resp.Msg.RpcPassword)
+}

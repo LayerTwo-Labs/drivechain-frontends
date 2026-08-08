@@ -1,12 +1,31 @@
 package orchestrator
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// coreConfWithCookie builds a conf manager pointed at a datadir holding the
+// cookie Core would have written, so credential resolution succeeds.
+func coreConfWithCookie(t *testing.T, network config.Network) *config.BitcoinConfManager {
+	t.Helper()
+	datadir := t.TempDir()
+	cfg := config.NewBitcoinConfig()
+	cfg.SetSetting("datadir", datadir)
+	// DataDir() reads DetectedDataDir, not the setting; without it the cookie
+	// resolves to the real ~/.bitcoin and the test clobbers a live cookie.
+	m := &config.BitcoinConfManager{Network: network, Config: cfg, DetectedDataDir: datadir}
+
+	cookie := m.GetRPCCookiePath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(cookie), 0o755))
+	require.NoError(t, os.WriteFile(cookie, []byte("__cookie__:secret"), 0o600))
+	return m
+}
 
 // The orchestrator's chatty pollers (CoreStatusClient + GetSyncStatus) used
 // to construct a fresh *http.Client per RPC call, throwing away the
@@ -16,7 +35,7 @@ import (
 
 func TestCoreStatusClient_ReusedAcrossCalls(t *testing.T) {
 	o := newTestOrchestrator(t)
-	o.BitcoinConf = &config.BitcoinConfManager{Network: config.Network("signet")}
+	o.BitcoinConf = coreConfWithCookie(t, config.Network("signet"))
 
 	first, err := o.CoreStatusClient()
 	require.NoError(t, err)
@@ -28,12 +47,12 @@ func TestCoreStatusClient_ReusedAcrossCalls(t *testing.T) {
 
 func TestCoreStatusClient_RebuiltOnConfigChange(t *testing.T) {
 	o := newTestOrchestrator(t)
-	o.BitcoinConf = &config.BitcoinConfManager{Network: config.Network("signet")}
+	o.BitcoinConf = coreConfWithCookie(t, config.Network("signet"))
 
 	first, err := o.CoreStatusClient()
 	require.NoError(t, err)
 
-	o.BitcoinConf = &config.BitcoinConfManager{Network: config.Network("mainnet")}
+	o.BitcoinConf = coreConfWithCookie(t, config.Network("mainnet"))
 	second, err := o.CoreStatusClient()
 	require.NoError(t, err)
 

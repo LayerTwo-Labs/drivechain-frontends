@@ -49,8 +49,14 @@ func (m *Miner) jsonRpcCall(
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "bitwindow-cpuminer")
 
-	if m.rpcUser != "" || m.rpcPass != "" {
-		req.SetBasicAuth(m.rpcUser, m.rpcPass)
+	if m.credentials != nil {
+		user, pass, err := m.credentials()
+		if err != nil {
+			return nil, fmt.Errorf("resolve rpc credentials: %w", err)
+		}
+		if user != "" || pass != "" {
+			req.SetBasicAuth(user, pass)
+		}
 	}
 
 	resp, err := m.client.Do(req)

@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	connectrpc.com/connect v1.19.1
-	github.com/barebitcoin/btc-buf v0.0.0-20251202201854-efb1eb3c5e20
+	github.com/barebitcoin/btc-buf v0.0.0-20260808135359-de9b065669bd
 	github.com/btcsuite/btcd v0.25.0
 	github.com/btcsuite/btcd/btcec/v2 v2.3.6
 	github.com/btcsuite/btcd/btcutil v1.1.6

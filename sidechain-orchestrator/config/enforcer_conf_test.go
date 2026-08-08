@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -495,4 +496,72 @@ func TestRetargetDrynetGenerationLeavesOtherConfigsAlone(t *testing.T) {
 	changed, err := m.RetargetDrynetGeneration("drynet4")
 	require.NoError(t, err)
 	require.False(t, changed)
+}
+
+// newCookieEnforcerManager mirrors newTestEnforcerManager but leaves the
+// bitcoin conf without rpcuser/rpcpassword, so Core's cookie is the only
+// credential — the default for a fresh install.
+func newCookieEnforcerManager(t *testing.T) (*EnforcerConfManager, string) {
+	t.Helper()
+	tmpDir := t.TempDir()
+	datadir := t.TempDir()
+	writeCookie(t, datadir, NetworkSignet, "__cookie__:s3cret")
+
+	bitcoinConf := &BitcoinConfManager{
+		BitwindowDir: tmpDir,
+		Network:      NetworkSignet,
+		Config:       NewBitcoinConfig(),
+		log:          zerolog.Nop(),
+	}
+	bitcoinConf.Config.SetSetting("datadir", datadir)
+	bitcoinConf.DetectedDataDir = datadir
+
+	return &EnforcerConfManager{
+		bitcoinConf: bitcoinConf,
+		ConfigDir:   tmpDir,
+		log:         zerolog.Nop(),
+	}, datadir
+}
+
+func hasArgPrefix(args []string, prefix string) bool {
+	for _, a := range args {
+		if strings.HasPrefix(a, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestGetCliArgs_NoConfCredsUsesCookiePath(t *testing.T) {
+	m, datadir := newCookieEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	args := m.GetCliArgs()
+	assert.Contains(t, args, "--node-rpc-cookie-path="+filepath.Join(datadir, "signet", ".cookie"))
+	assert.False(t, hasArgPrefix(args, "--node-rpc-user="), "cookie and user are mutually exclusive: %v", args)
+	assert.False(t, hasArgPrefix(args, "--node-rpc-pass="), "cookie and pass are mutually exclusive: %v", args)
+}
+
+// The enforcer refuses a user and a cookie together, so a persisted auth mode
+// must suppress the derived one.
+func TestGetCliArgs_PersistedUserSuppressesDerivedCookie(t *testing.T) {
+	m, _ := newCookieEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.Config.Settings["node-rpc-user"] = "legacy-user"
+	m.Config.Settings["node-rpc-pass"] = "legacy-pass"
+
+	args := m.GetCliArgs()
+	assert.Contains(t, args, "--node-rpc-user=legacy-user")
+	assert.False(t, hasArgPrefix(args, "--node-rpc-cookie-path="), "got %v", args)
+}
+
+func TestGetCliArgs_PersistedCookieSuppressesDerivedUser(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.Config.Settings["node-rpc-cookie-path"] = "/custom/.cookie"
+
+	args := m.GetCliArgs()
+	assert.Contains(t, args, "--node-rpc-cookie-path=/custom/.cookie")
+	assert.False(t, hasArgPrefix(args, "--node-rpc-user="), "got %v", args)
+	assert.False(t, hasArgPrefix(args, "--node-rpc-pass="), "got %v", args)
 }

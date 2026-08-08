@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -331,11 +332,12 @@ func run(cctx *cli.Context) error {
 				Host: orch.BitcoinConf.GetRPCHost(),
 				Port: orch.BitcoinConf.GetRPCPort(),
 			}
-			if orch.BitcoinConf.Config != nil {
-				section := orch.BitcoinConf.Network.CoreSection()
-				endpoint.User = orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-				endpoint.Password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
+			user, password, err := orch.BitcoinConf.GetRPCCredentials()
+			if err != nil {
+				log.Warn().Err(err).Msg("core wallet rpc has no credentials")
+				return endpoint
 			}
+			endpoint.User, endpoint.Password = user, password
 			return endpoint
 		}
 		coreRPC := wallet.NewCoreRPCClient(coreEndpoint)
@@ -488,25 +490,30 @@ func run(cctx *cli.Context) error {
 		meterIC := rpcmeter.New(ctx, log, coreMeterInterval).Interceptor()
 
 		swappable := newSwappableHandler()
-		if proxy, err := startCoreProxy(ctx, orch, log); err != nil {
-			log.Warn().Err(err).Msg("failed to start bitcoin core proxy")
-		} else {
-			_, coreH := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors(authIC, meterIC))
-			swappable.swap(coreH)
+		// The proxy authenticates via the cookie file and re-reads it on Core
+		// restarts, so it only needs rebuilding on a network swap.
+		var coreProxyMu sync.Mutex
+		rebuildCoreProxy := func(reason string) {
+			coreProxyMu.Lock()
+			defer coreProxyMu.Unlock()
+
+			proxy, err := startCoreProxy(ctx, orch, log)
+			if err != nil {
+				log.Warn().Err(err).Str("reason", reason).Msg("failed to start bitcoin core proxy")
+				return
+			}
+			_, h := corerpc.NewBitcoinServiceHandler(proxy, connect.WithInterceptors(authIC, meterIC))
+			swappable.swap(h)
+			log.Info().Str("reason", reason).Msg("bitcoin core proxy ready")
 		}
+		rebuildCoreProxy("startup")
 		// The path is constant; register once.
 		corePath, _ := corerpc.NewBitcoinServiceHandler(noopBitcoinService{}, connect.WithInterceptors(authIC, meterIC))
 		mux.Handle(corePath, swappable)
 		log.Info().Str("service", "bitcoin.bitcoind.v1alpha.BitcoinService").Msg("registered bitcoin core proxy")
 
 		orch.BitcoinConf.OnNetworkChanged = func() {
-			rebuilt, err := startCoreProxy(ctx, orch, log)
-			if err != nil {
-				log.Error().Err(err).Msg("rebuild bitcoin core proxy after network swap")
-				return
-			}
-			_, h := corerpc.NewBitcoinServiceHandler(rebuilt, connect.WithInterceptors(authIC, meterIC))
-			swappable.swap(h)
+			rebuildCoreProxy("network swap")
 			log.Info().Str("network", string(orch.BitcoinConf.Network)).Msg("rebuilt bitcoin core proxy for new network")
 		}
 	}
@@ -686,15 +693,13 @@ type noopBitcoinService struct {
 // once Core comes up.
 func startCoreProxy(ctx context.Context, orch *orchestrator.Orchestrator, log zerolog.Logger) (*coreproxy.Bitcoind, error) {
 	port := orch.BitcoinConf.GetRPCPort()
-	var user, password string
-	if orch.BitcoinConf.Config != nil {
-		section := orch.BitcoinConf.Network.CoreSection()
-		user = orch.BitcoinConf.Config.GetEffectiveSetting("rpcuser", section)
-		password = orch.BitcoinConf.Config.GetEffectiveSetting("rpcpassword", section)
-	}
-
 	host := fmt.Sprintf("%s:%d", orch.BitcoinConf.GetRPCHost(), port)
-	log.Info().Str("host", host).Str("user", user).Msg("starting Bitcoin Core proxy")
+
+	// Explicit creds win; otherwise pass the cookie path so the proxy re-reads
+	// it on Core restarts instead of pinning a rotated-out cookie. Empty creds
+	// fall through to cookie auth, so the proxy can start before Core writes it.
+	explicitUser, explicitPass := orch.BitcoinConf.GetExplicitRPCCredentials()
+	log.Info().Str("host", host).Str("user", explicitUser).Msg("starting Bitcoin Core proxy")
 
 	// Quiet the proxy's connection logs — its rpcclient retries on a tight
 	// loop while bitcoind is starting and floods stdout otherwise.
@@ -702,7 +707,8 @@ func startCoreProxy(ctx context.Context, orch *orchestrator.Orchestrator, log ze
 	initCtx := proxyLog.WithContext(ctx)
 
 	return coreproxy.NewBitcoind(
-		initCtx, host, user, password,
+		initCtx, host, explicitUser, explicitPass,
+		coreproxy.WithCookiePath(orch.BitcoinConf.GetRPCCookiePath()),
 		coreproxy.WithLogging(func(_ context.Context) *zerolog.Logger { return &proxyLog }),
 		coreproxy.WithoutInitialConnectionCheck(),
 	)

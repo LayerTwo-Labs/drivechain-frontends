@@ -73,8 +73,7 @@ func realMain() error {
 		Routines:          *routines,
 		ScanTime:          *scanTime,
 		RpcURL:            *rpcURL,
-		RpcUser:           *rpcUser,
-		RpcPass:           *rpcPass,
+		Credentials:       cpuminer.StaticCredentials(*rpcUser, *rpcPass),
 		CoinbaseAddress:   *coinbaseAddr,
 		CoinbaseSignature: *coinbaseSig,
 	})
