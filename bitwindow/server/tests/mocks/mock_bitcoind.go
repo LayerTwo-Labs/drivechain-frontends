@@ -43,6 +43,21 @@ func (m *MockBitcoinServiceClient) EXPECT() *MockBitcoinServiceClientMockRecorde
 	return m.recorder
 }
 
+// AbortRescan mocks base method.
+func (m *MockBitcoinServiceClient) AbortRescan(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.AbortRescanRequest]) (*connect.Response[bitcoindv1alpha.AbortRescanResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AbortRescan", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.AbortRescanResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AbortRescan indicates an expected call of AbortRescan.
+func (mr *MockBitcoinServiceClientMockRecorder) AbortRescan(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortRescan", reflect.TypeOf((*MockBitcoinServiceClient)(nil).AbortRescan), arg0, arg1)
+}
+
 // AnalyzePsbt mocks base method.
 func (m *MockBitcoinServiceClient) AnalyzePsbt(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.AnalyzePsbtRequest]) (*connect.Response[bitcoindv1alpha.AnalyzePsbtResponse], error) {
 	m.ctrl.T.Helper()
@@ -523,6 +538,21 @@ func (mr *MockBitcoinServiceClientMockRecorder) ListAccounts(arg0, arg1 any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccounts", reflect.TypeOf((*MockBitcoinServiceClient)(nil).ListAccounts), arg0, arg1)
 }
 
+// ListDescriptors mocks base method.
+func (m *MockBitcoinServiceClient) ListDescriptors(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.ListDescriptorsRequest]) (*connect.Response[bitcoindv1alpha.ListDescriptorsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDescriptors", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.ListDescriptorsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDescriptors indicates an expected call of ListDescriptors.
+func (mr *MockBitcoinServiceClientMockRecorder) ListDescriptors(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDescriptors", reflect.TypeOf((*MockBitcoinServiceClient)(nil).ListDescriptors), arg0, arg1)
+}
+
 // ListSinceBlock mocks base method.
 func (m *MockBitcoinServiceClient) ListSinceBlock(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.ListSinceBlockRequest]) (*connect.Response[bitcoindv1alpha.ListSinceBlockResponse], error) {
 	m.ctrl.T.Helper()
@@ -596,6 +626,21 @@ func (m *MockBitcoinServiceClient) LoadWallet(arg0 context.Context, arg1 *connec
 func (mr *MockBitcoinServiceClientMockRecorder) LoadWallet(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadWallet", reflect.TypeOf((*MockBitcoinServiceClient)(nil).LoadWallet), arg0, arg1)
+}
+
+// RescanBlockchain mocks base method.
+func (m *MockBitcoinServiceClient) RescanBlockchain(arg0 context.Context, arg1 *connect.Request[bitcoindv1alpha.RescanBlockchainRequest]) (*connect.Response[bitcoindv1alpha.RescanBlockchainResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RescanBlockchain", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[bitcoindv1alpha.RescanBlockchainResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RescanBlockchain indicates an expected call of RescanBlockchain.
+func (mr *MockBitcoinServiceClientMockRecorder) RescanBlockchain(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RescanBlockchain", reflect.TypeOf((*MockBitcoinServiceClient)(nil).RescanBlockchain), arg0, arg1)
 }
 
 // Send mocks base method.
