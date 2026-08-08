@@ -55,7 +55,8 @@ while :; do
       cp -r "$rel" "$build_dir/$rel"
       echo "mirrored $rel"
       copied=1
-    done < <(go mod edit -json "$module_dir/go.mod" | jq -r '.Replace[]?.New.Path')
+      # jq.exe writes stdout in text mode, so every path arrives CR-terminated.
+    done < <(go mod edit -json "$module_dir/go.mod" | jq -r '.Replace[]?.New.Path' | tr -d '\r')
   done < <(find "$build_dir" -name go.mod -not -path "*/vendor/*")
 
   if [ "$copied" -eq 0 ]; then
