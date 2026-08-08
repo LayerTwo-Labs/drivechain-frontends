@@ -11,9 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-
 	"github.com/LayerTwo-Labs/sidesail/ecash-broadcaster/gen/ecash/v1/ecashv1connect"
 )
 
@@ -30,9 +27,13 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle(ecashv1connect.NewECashBroadcastServiceHandler(h))
 
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 	srv := &http.Server{
-		Addr:    *listen,
-		Handler: h2c.NewHandler(mux, &http2.Server{}),
+		Addr:      *listen,
+		Handler:   mux,
+		Protocols: protocols,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
