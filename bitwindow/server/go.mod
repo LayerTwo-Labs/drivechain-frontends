@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	connectrpc.com/connect v1.20.0
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/barebitcoin/btc-buf v0.0.0-20260808135359-de9b065669bd
+	github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633
 	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/btcsuite/btcd/btcutil v1.2.0
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
@@ -21,7 +21,7 @@ require (
 )
 
 require (
-	connectrpc.com/grpchealth v1.4.0 // indirect
+	connectrpc.com/grpchealth v1.5.0 // indirect
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/btcsuite/btcd v0.25.0
 	github.com/btcsuite/btcd/btcec/v2 v2.5.0
@@ -42,7 +42,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.54.0
-	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6 // indirect
+	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -54,9 +54,16 @@ require (
 )
 
 require (
+	github.com/btcsuite/btcd/address/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/btcutil/psbt v1.2.0 // indirect
+	github.com/btcsuite/btcd/btcutil/v2 v2.0.1 // indirect
+	github.com/btcsuite/btcd/chaincfg/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/chainhash/v2 v2.0.0 // indirect
+	github.com/btcsuite/btcd/wire/v2 v2.0.1 // indirect
 	github.com/kcalvinalvin/anet v0.0.0-20251112173137-d8ddc1f6dbee // indirect
+	github.com/tidwall/gjson v1.19.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 )
 
 require (

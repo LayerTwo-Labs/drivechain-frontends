@@ -10,8 +10,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
@@ -183,8 +181,7 @@ func startTestOrchService(t *testing.T, orch *orchestrator.Orchestrator) (rpc.Or
 	mux := http.NewServeMux()
 	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
 	mux.Handle(path, h)
-	srv := httptest.NewUnstartedServer(h2c.NewHandler(mux, &http2.Server{}))
-	srv.Start()
-	client := rpc.NewOrchestratorServiceClient(srv.Client(), srv.URL, connect.WithGRPC())
+	srv := h2cServer(mux)
+	client := rpc.NewOrchestratorServiceClient(h2cClient(), srv.URL, connect.WithGRPC())
 	return client, srv.Close
 }

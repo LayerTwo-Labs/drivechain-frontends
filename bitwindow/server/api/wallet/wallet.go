@@ -426,7 +426,7 @@ func (s *Server) sendWithRequiredInputs(
 	}
 
 	sendResp, err := bitcoind.SendRawTransaction(ctx, connect.NewRequest(&corepb.SendRawTransactionRequest{
-		HexString: signResp.Msg.Hex,
+		Tx: &corepb.RawTransaction{Hex: signResp.Msg.Hex},
 	}))
 	if err != nil {
 		return "", fmt.Errorf("broadcast transaction: %w", err)

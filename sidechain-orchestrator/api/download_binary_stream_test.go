@@ -15,13 +15,29 @@ import (
 	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 )
+
+// h2cServer serves cleartext HTTP/2, which connect-go's gRPC protocol needs.
+// Uses net/http's native support in place of the deprecated x/net/http2/h2c.
+func h2cServer(h http.Handler) *httptest.Server {
+	srv := httptest.NewUnstartedServer(h)
+	srv.Config.Protocols = new(http.Protocols)
+	srv.Config.Protocols.SetHTTP1(true)
+	srv.Config.Protocols.SetUnencryptedHTTP2(true)
+	srv.Start()
+	return srv
+}
+
+// h2cClient dials cleartext HTTP/2 by prior knowledge.
+func h2cClient() *http.Client {
+	tr := &http.Transport{Protocols: new(http.Protocols)}
+	tr.Protocols.SetUnencryptedHTTP2(true)
+	return &http.Client{Transport: tr}
+}
 
 // TestDownloadBinary_DispatchesAndCompletes is the regression guard for the
 // unary DownloadBinary contract: the RPC returns immediately, the goroutine
@@ -53,11 +69,10 @@ func TestDownloadBinary_DispatchesAndCompletes(t *testing.T) {
 	mux := http.NewServeMux()
 	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
 	mux.Handle(path, h)
-	connectSrv := httptest.NewUnstartedServer(h2c.NewHandler(mux, &http2.Server{}))
-	connectSrv.Start()
+	connectSrv := h2cServer(mux)
 	defer connectSrv.Close()
 
-	client := rpc.NewOrchestratorServiceClient(connectSrv.Client(), connectSrv.URL, connect.WithGRPC())
+	client := rpc.NewOrchestratorServiceClient(h2cClient(), connectSrv.URL, connect.WithGRPC())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -98,10 +113,10 @@ func TestDownloadBinary_RejectsUnknownBinary(t *testing.T) {
 	mux := http.NewServeMux()
 	path, h := rpc.NewOrchestratorServiceHandler(NewHandler(orch))
 	mux.Handle(path, h)
-	srv := httptest.NewServer(h2c.NewHandler(mux, &http2.Server{}))
+	srv := h2cServer(mux)
 	defer srv.Close()
 
-	client := rpc.NewOrchestratorServiceClient(srv.Client(), srv.URL, connect.WithGRPC())
+	client := rpc.NewOrchestratorServiceClient(h2cClient(), srv.URL, connect.WithGRPC())
 	_, err := client.DownloadBinary(context.Background(), connect.NewRequest(&pb.DownloadBinaryRequest{
 		Name: "no-such-binary",
 	}))

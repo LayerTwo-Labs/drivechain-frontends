@@ -166,7 +166,7 @@ func (c *CoreChequeChain) Broadcast(ctx context.Context, txHex string) (string, 
 		return "", fmt.Errorf("bitcoind not available: %w", err)
 	}
 	res, err := bitcoind.SendRawTransaction(ctx, connect.NewRequest(&corepb.SendRawTransactionRequest{
-		HexString: txHex,
+		Tx: &corepb.RawTransaction{Hex: txHex},
 	}))
 	if err != nil {
 		return "", err
