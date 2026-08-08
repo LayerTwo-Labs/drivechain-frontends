@@ -9,6 +9,8 @@ on:
       - "drivechain_lints/**"
       - "sidechain-orchestrator/**"
       - "sqlitemigrate/**"
+      - "coinnews/codec/**"
+      - "coinnews/server/**"
       - "bitwindow/**"
       - "thunder/**"
       - "truthcoin/**"
@@ -102,6 +104,8 @@ jobs:
               - 'sail_ui/**'
               - 'sidechain-orchestrator/**'
               - 'sqlitemigrate/**'
+              - 'coinnews/codec/**'
+              - 'coinnews/server/**'
               - 'drivechain_lints/**'
               - '.github/workflows/**'
 
@@ -222,20 +226,10 @@ jobs:
           cp -r scripts "$BUILD_DIR/"
           cp -r sail_ui "$BUILD_DIR/"
           cp -r drivechain_lints "$BUILD_DIR/"
-          # Copy sidechain-orchestrator for Go module replace directives
-          if [ -d "sidechain-orchestrator" ]; then
-            cp -r sidechain-orchestrator "$BUILD_DIR/"
-          fi
-          # Copy sqlitemigrate: both sidechain-orchestrator (../sqlitemigrate) and
-          # bitwindow/server (../../sqlitemigrate) replace-resolve to $BUILD_DIR/sqlitemigrate
-          if [ -d "sqlitemigrate" ]; then
-            cp -r sqlitemigrate "$BUILD_DIR/"
-          fi
-          # Copy coinnews/codec for bitwindow's Go module replace directive
-          if [ -d "coinnews/codec" ]; then
-            mkdir -p "$BUILD_DIR/coinnews"
-            cp -r coinnews/codec "$BUILD_DIR/coinnews/"
-          fi
+          # Every client embeds the orchestrator daemon.
+          cp -r sidechain-orchestrator "$BUILD_DIR/"
+          # Pull in whatever those modules replace-resolve to outside their own dir.
+          ./scripts/mirror-go-replace-deps.sh "$BUILD_DIR"
 
           # Recreate assets/bin directory
           mkdir -p "$BUILD_DIR/${{ matrix.client }}/assets/bin"
