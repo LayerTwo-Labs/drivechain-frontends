@@ -1,7 +1,7 @@
 # Build context is the coinnews/ directory (NOT coinnews/server), so
 # both the server source and the codec module are available — the
 # server's go.mod has `replace => ../codec`, so codec must be present.
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # go-sqlite3 is a cgo package: needs a C toolchain to build.
 RUN apk add --no-cache gcc musl-dev

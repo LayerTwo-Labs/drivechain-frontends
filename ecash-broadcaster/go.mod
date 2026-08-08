@@ -1,6 +1,6 @@
 module github.com/LayerTwo-Labs/sidesail/ecash-broadcaster
 
-go 1.25
+go 1.26.0
 
 require (
 	connectrpc.com/connect v1.18.1
