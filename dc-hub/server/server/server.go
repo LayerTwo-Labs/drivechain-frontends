@@ -27,8 +27,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 // New creates a new Server with interceptors applied.
@@ -120,8 +118,7 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 		withCORS.ServeHTTP(w, r)
 	})
 
-	// Use h2c, so we can serve HTTP/2 without TLS.
-	return h2c.NewHandler(handler, &http2.Server{})
+	return handler
 }
 
 func (s *Server) Serve(ctx context.Context, address string) error {
@@ -164,8 +161,13 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 			Msg("could not close listener")
 	}()
 
+	// cleartext HTTP/2 alongside HTTP/1, which connect-go's gRPC protocol needs
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 	s.server = &http.Server{
-		Handler: s.Handler(ctx),
+		Handler:   s.Handler(ctx),
+		Protocols: protocols,
 	}
 	return s.server.Serve(lis)
 }

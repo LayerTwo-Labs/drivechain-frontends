@@ -17,14 +17,21 @@ import (
 
 	"connectrpc.com/grpcreflect"
 	"github.com/rs/zerolog"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	"github.com/LayerTwo-Labs/sidesail/coinnews/server/api"
 	connectrpc "github.com/LayerTwo-Labs/sidesail/coinnews/server/gen/coinnews/v1/coinnewsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/coinnews/server/scanner"
 	"github.com/LayerTwo-Labs/sidesail/coinnews/server/store"
 )
+
+// h2cProtocols serves cleartext HTTP/2 alongside HTTP/1, which connect-go's
+// gRPC protocol needs.
+func h2cProtocols() *http.Protocols {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+	return protocols
+}
 
 func main() {
 	var (
@@ -102,7 +109,8 @@ func main() {
 	log.Info().Str("listen", *listen).Str("rpc_path", path).Msg("coinnews-server: starting")
 	srv := &http.Server{
 		Addr:              *listen,
-		Handler:           h2c.NewHandler(corsMiddleware(mux), &http2.Server{}),
+		Handler:           corsMiddleware(mux),
+		Protocols:         h2cProtocols(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

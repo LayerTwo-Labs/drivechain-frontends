@@ -92,15 +92,15 @@ func (c *Client) GetBlockHash(ctx context.Context, height uint32) (string, error
 // Block is the verbose=2 representation we care about. Only fields
 // the scanner reads are unmarshalled.
 type Block struct {
-	Hash         string `json:"hash"`
-	Height       uint32 `json:"height"`
-	Time         int64  `json:"time"`
-	Mediantime   int64  `json:"mediantime"`
-	Tx           []struct {
+	Hash       string `json:"hash"`
+	Height     uint32 `json:"height"`
+	Time       int64  `json:"time"`
+	Mediantime int64  `json:"mediantime"`
+	Tx         []struct {
 		Txid string `json:"txid"`
 		Vout []struct {
 			ScriptPubKey struct {
-				Hex string `json:"hex"`
+				Hex  string `json:"hex"`
 				Type string `json:"type"`
 			} `json:"scriptPubKey"`
 		} `json:"vout"`
