@@ -3,6 +3,13 @@
 
 #include <windows.h>
 
+#include <string>
+
+// Name of this process's daemon job: "bitwindow-daemons-<pid>". Named so a test
+// can open the exact job — an unnamed job can't be told apart from the job a CI
+// runner already put every process in.
+std::wstring DaemonJobName();
+
 // Creates the job object that owns the daemon tree. Call once at startup.
 void CreateDaemonJob();
 

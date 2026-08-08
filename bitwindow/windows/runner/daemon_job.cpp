@@ -8,11 +8,16 @@ HANDLE g_daemon_job = nullptr;
 
 }  // namespace
 
+std::wstring DaemonJobName() {
+  return L"bitwindow-daemons-" + std::to_wstring(::GetCurrentProcessId());
+}
+
 void CreateDaemonJob() {
   if (g_daemon_job != nullptr) {
     return;
   }
-  HANDLE job = ::CreateJobObjectW(nullptr, nullptr);
+  const std::wstring name = DaemonJobName();
+  HANDLE job = ::CreateJobObjectW(nullptr, name.c_str());
   if (job == nullptr) {
     return;
   }
