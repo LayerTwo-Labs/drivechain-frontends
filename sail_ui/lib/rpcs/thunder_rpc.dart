@@ -15,7 +15,7 @@ import 'package:sail_ui/gen/thunder/v1/thunder.pb.dart' as pb;
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/models/core_transaction.dart';
 
 /// API to the thunder server.
 abstract class ThunderRPC extends SidechainRPC {

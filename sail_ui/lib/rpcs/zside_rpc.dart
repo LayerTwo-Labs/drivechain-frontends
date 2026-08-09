@@ -15,7 +15,7 @@ import 'package:sail_ui/gen/zside/v1/zside.pb.dart' as pb;
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/models/core_transaction.dart';
 
 // List of all methods the zside-cli (thunder-orchard-cli) supports
 final zsideRPCMethods = [

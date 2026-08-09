@@ -18,7 +18,7 @@ import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
 import 'package:sail_ui/settings/client_settings.dart';
 import 'package:sail_ui/settings/hash_plaintext_settings.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/models/core_transaction.dart';
 
 /// API to the bitnames server.
 abstract class BitnamesRPC extends SidechainRPC {
