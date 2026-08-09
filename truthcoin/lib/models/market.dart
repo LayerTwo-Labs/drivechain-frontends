@@ -1,4 +1,4 @@
-import 'package:sail_ui/bitcoin.dart';
+import 'package:sidechain_core/bitcoin.dart';
 
 /// Market state enum matching the original truthcoin implementation
 enum MarketState {

@@ -13,6 +13,8 @@ dependencies:
     sdk: flutter
   sail_ui:
     path: ../sail_ui
+  sidechain_core:
+    path: ../sidechain_core
 
   cupertino_icons: ^1.0.9
   dart_coin_rpc:

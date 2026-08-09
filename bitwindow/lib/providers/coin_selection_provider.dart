@@ -2,9 +2,9 @@ import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as pb;
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 /// Provider for UTXO metadata and coin selection strategy state.
 /// Read-only state holder - mutations go through BitwindowRPC.wallet.

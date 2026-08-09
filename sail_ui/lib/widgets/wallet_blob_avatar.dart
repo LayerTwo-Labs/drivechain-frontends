@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:sail_ui/models/wallet_gradient.dart';
+import 'package:sidechain_core/models/wallet_gradient.dart';
 
 /// SVG-based avatar for wallet visualization
 class WalletBlobAvatar extends StatelessWidget {

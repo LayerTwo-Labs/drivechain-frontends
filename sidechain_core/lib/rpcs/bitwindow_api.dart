@@ -1,0 +1,2307 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:connectrpc/protobuf.dart';
+import 'package:connectrpc/protocol/connect.dart' as connect;
+import 'package:fixnum/fixnum.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
+import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
+import 'package:sidechain_core/gen/multisig/v1/multisig.connect.client.dart';
+import 'package:sidechain_core/gen/utils/v1/utils.pb.dart' as utilspb;
+import 'package:sidechain_core/gen/m4/v1/m4.connect.client.dart';
+import 'package:sidechain_core/gen/m4/v1/m4.pb.dart' as m4pb;
+import 'package:sidechain_core/gen/notification/v1/notification.connect.client.dart';
+import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.connect.client.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/sidechain_core.dart';
+
+/// API to the drivechain server.
+abstract class BitwindowRPC extends RPCConnection {
+  BitwindowRPC({required super.binaryType});
+
+  BitwindowAPI get bitwindowd;
+  WalletAPI get wallet;
+  DrivechainAPI get drivechain;
+  MiscAPI get misc;
+  M4API get m4;
+  NotificationAPI get notifications;
+  BitDriveAPI get bitdrive;
+  MultisigAPI get multisig;
+  UtilsAPI get utils;
+
+  /// Stream of notification events
+  Stream<WatchResponse> get notificationStream;
+
+  Future<dynamic> callRAW(String url, [String body = '{}']);
+  List<String> getMethods();
+}
+
+class BitwindowRPCLive extends BitwindowRPC {
+  @override
+  late BitwindowAPI bitwindowd;
+  @override
+  late WalletAPI wallet;
+  @override
+  late DrivechainAPI drivechain;
+  @override
+  late MiscAPI misc;
+  @override
+  late M4API m4;
+  @override
+  late NotificationAPI notifications;
+  @override
+  late BitDriveAPI bitdrive;
+  @override
+  late MultisigAPI multisig;
+  @override
+  late UtilsAPI utils;
+
+  final String _host;
+  final int _port;
+
+  BitwindowRPCLive({required String host, required int port})
+    : _host = host,
+      _port = port,
+      super(binaryType: BinaryType.BINARY_TYPE_BITWINDOWD) {
+    _initializeConnection(host: host, port: port);
+  }
+
+  void _initializeConnection({required String host, required int port}) async {
+    final httpClient = keepaliveHttpClient();
+    final baseUrl = 'http://$host:$port';
+    final transport = connect.Transport(
+      baseUrl: baseUrl,
+      codec: const ProtoCodec(),
+      httpClient: httpClient,
+      interceptors: [LocalAuth.interceptor()],
+    );
+
+    bitwindowd = _BitwindowAPILive(BitwindowdServiceClient(transport));
+    wallet = _WalletAPILive(WalletServiceClient(transport));
+    drivechain = _DrivechainAPILive(DrivechainServiceClient(transport));
+    misc = _MiscAPILive(MiscServiceClient(transport));
+    m4 = _M4APILive(M4ServiceClient(transport));
+    notifications = _NotificationAPILive(NotificationServiceClient(transport));
+    bitdrive = _BitDriveAPILive(BitDriveServiceClient(transport));
+    multisig = _MultisigAPILive(MultisigServiceClient(transport));
+    utils = _UtilsAPILive(UtilsServiceClient(transport));
+
+    // Go ConnectionMonitor is the source of truth for connection state.
+  }
+
+  @override
+  Future<List<String>> binaryArgs() async {
+    final bitwBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
+    // bitwindowd queries orchestratord at startup for network + bitcoind
+    // creds — no flags needed here. Forward any extras callers added.
+    return [...bitwBinary.extraBootArgs];
+  }
+
+  @override
+  Future<(double, double)> balance() async {
+    return await _withRecreate(() async {
+      // Route through orchestrator — balance is a shared wallet primitive.
+      // Prefer the cached activeWalletId from the wallet-data stream, but
+      // fall back to a direct getWalletStatus() call so balance still
+      // loads even if the stream hasn't delivered data yet.
+      final orchestratorWallet = GetIt.I.get<OrchestratorRPC>().wallet;
+      final walletReader = GetIt.I.get<WalletReaderProvider>();
+      var walletId = walletReader.activeWalletId;
+      if (walletId == null) {
+        final status = await orchestratorWallet.getWalletStatus();
+        if (!status.hasWallet || status.activeWalletId.isEmpty) {
+          throw Exception('No active wallet');
+        }
+        walletId = status.activeWalletId;
+      }
+      final resp = await orchestratorWallet.getBalance(walletId);
+      return (
+        satoshiToBTC(resp.confirmedSats.round()),
+        satoshiToBTC(resp.unconfirmedSats.round()),
+      );
+    });
+  }
+
+  @override
+  Future<void> stopRPC() async {
+    await _withRecreate(() async {
+      await bitwindowd.stop();
+    });
+  }
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async {
+    return await _withRecreate(() async {
+      final syncInfo = await bitwindowd.getSyncInfo();
+      return BlockchainInfo(
+        chain: 'signet',
+        bestBlockHash: syncInfo.tipBlockHash,
+        difficulty: 0,
+        time: syncInfo.tipBlockTime.toInt(),
+        medianTime: 0,
+        initialBlockDownload: false,
+        chainWork: '0',
+        blocks: syncInfo.tipBlockHeight.toInt(),
+        headers: syncInfo.headerHeight.toInt(),
+        verificationProgress: syncInfo.syncProgress,
+        sizeOnDisk: 0,
+        pruned: false,
+        warnings: [],
+        startupMessage: syncInfo.startupMessage,
+      );
+    });
+  }
+
+  @override
+  Future<dynamic> callRAW(String url, [String body = '{}']) async {
+    try {
+      final response = await LocalAuth.postJsonWithAuth(
+        Uri.parse('http://$_host:$_port/$url'),
+        body: body,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Request failed: ${response.body}');
+      }
+
+      return response.body;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  List<String> getMethods() {
+    return [
+      'bitcoind.v1.BitcoindService/EstimateSmartFee',
+      'bitcoind.v1.BitcoindService/GetBlock',
+      'bitcoind.v1.BitcoindService/GetBlockchainInfo',
+      'bitcoind.v1.BitcoindService/GetRawTransaction',
+      'bitcoind.v1.BitcoindService/ListBlocks',
+      'bitcoind.v1.BitcoindService/ListPeers',
+      'bitcoind.v1.BitcoindService/ListRecentTransactions',
+      'bitwindowd.v1.BitwindowdService/GetSyncInfo',
+      'bitwindowd.v1.BitwindowdService/CancelDenial',
+      'bitwindowd.v1.BitwindowdService/CreateAddressBookEntry',
+      'bitwindowd.v1.BitwindowdService/CreateDenial',
+      'bitwindowd.v1.BitwindowdService/DeleteAddressBookEntry',
+      'bitwindowd.v1.BitwindowdService/ListAddressBook',
+      'bitwindowd.v1.BitwindowdService/ListDenials',
+      'bitwindowd.v1.BitwindowdService/Stop',
+      'bitwindowd.v1.BitwindowdService/UpdateAddressBookEntry',
+      'drivechain.v1.DrivechainService/ListSidechainProposals',
+      'drivechain.v1.DrivechainService/ListSidechains',
+      'drivechain.v1.DrivechainService/ListWithdrawals',
+      'drivechain.v1.DrivechainService/ProposeSidechain',
+      'misc.v1.MiscService/BroadcastNews',
+      'misc.v1.MiscService/UpvoteNews',
+      'misc.v1.MiscService/DownvoteNews',
+      'misc.v1.MiscService/CommentNews',
+      'misc.v1.MiscService/ListComments',
+      'misc.v1.MiscService/CreateTopic',
+      'misc.v1.MiscService/ListCoinNews',
+      'misc.v1.MiscService/ListOPReturn',
+      'misc.v1.MiscService/ListTopics',
+      'm4.v1.M4Service/GenerateM4Bytes',
+      'm4.v1.M4Service/GetM4History',
+      'm4.v1.M4Service/GetVotePreferences',
+      'm4.v1.M4Service/SetVotePreference',
+      'notification.v1.NotificationService/Watch',
+      'wallet.v1.WalletService/CreateSidechainDeposit',
+      'wallet.v1.WalletService/GetBalance',
+      'wallet.v1.WalletService/GetNewAddress',
+      'wallet.v1.WalletService/ListSidechainDeposits',
+      'wallet.v1.WalletService/ListTransactions',
+      'wallet.v1.WalletService/SendTransaction',
+      'wallet.v1.WalletService/SignMessage',
+      'wallet.v1.WalletService/VerifyMessage',
+      'bitdrive.v1.BitDriveService/StoreFile',
+      'bitdrive.v1.BitDriveService/RetrieveContent',
+      'bitdrive.v1.BitDriveService/ScanForFiles',
+      'bitdrive.v1.BitDriveService/DownloadPendingFiles',
+      'bitdrive.v1.BitDriveService/ListFiles',
+      'bitdrive.v1.BitDriveService/GetFile',
+      'bitdrive.v1.BitDriveService/DeleteFile',
+      'bitdrive.v1.BitDriveService/StoreMultisigData',
+      'bitdrive.v1.BitDriveService/WipeData',
+      'multisig.v1.MultisigService/ListGroups',
+      'multisig.v1.MultisigService/SaveGroup',
+      'multisig.v1.MultisigService/DeleteGroup',
+      'multisig.v1.MultisigService/ListTransactions',
+      'multisig.v1.MultisigService/GetTransaction',
+      'multisig.v1.MultisigService/GetTransactionByTxid',
+      'multisig.v1.MultisigService/SaveTransaction',
+      'multisig.v1.MultisigService/ListSoloKeys',
+      'multisig.v1.MultisigService/AddSoloKey',
+      'multisig.v1.MultisigService/GetNextAccountIndex',
+      'utils.v1.UtilsService/ParseBitcoinURI',
+      'utils.v1.UtilsService/ValidateBitcoinURI',
+      'utils.v1.UtilsService/DecodeBase58Check',
+      'utils.v1.UtilsService/EncodeBase58Check',
+      'utils.v1.UtilsService/CalculateMerkleTree',
+      'utils.v1.UtilsService/GeneratePaperWallet',
+      'utils.v1.UtilsService/ValidateWIF',
+      'utils.v1.UtilsService/WIFToAddress',
+    ];
+  }
+
+  // Keep track of the current stream subscription
+  StreamSubscription<WatchResponse>? _notificationStreamSubscription;
+
+  final StreamController<WatchResponse> _notificationStreamController = StreamController<WatchResponse>.broadcast();
+
+  /// Stream of notification events
+  @override
+  Stream<WatchResponse> get notificationStream => _notificationStreamController.stream;
+
+  @override
+  void onConnectionStateChanged(bool isConnected) {
+    if (isConnected) {
+      log.i('Connection state changed to true, starting notification stream');
+      startNotificationStream();
+    } else {
+      log.i('Connection state changed to false, stopping notification stream');
+      _notificationStreamSubscription?.cancel();
+    }
+  }
+
+  void startNotificationStream() {
+    // Cancel any existing subscription first
+    _notificationStreamSubscription?.cancel();
+
+    // Don't start if we're stopping
+    if (stoppingBinary) {
+      return;
+    }
+
+    try {
+      _notificationStreamSubscription =
+          notifications.watch().listen(
+            (event) {
+              // Broadcast to notification stream listeners
+              _notificationStreamController.add(event);
+            },
+            onError: (error) {
+              log.e('Notification stream error: $error');
+              if (error is Exception) {
+                log.e('Error details: ${error.toString()}');
+              }
+
+              // If we're still connected and not stopping, try to restart the stream after a delay
+              if (connected && !stoppingBinary) {
+                log.i(
+                  'Notification stream dropped, but still connected, restarting in 5 seconds...',
+                );
+                Future.delayed(const Duration(seconds: 5), () {
+                  if (connected && !stoppingBinary) {
+                    startNotificationStream();
+                  }
+                });
+              }
+            },
+            cancelOnError: false,
+          )..onDone(() {
+            log.i('Notification stream completed');
+            // If we're still connected and not stopping, restart the stream
+            if (connected && !stoppingBinary) {
+              log.i(
+                'Stream completed but still connected, restarting notification stream in 5 seconds...',
+              );
+              Future.delayed(const Duration(seconds: 5), () {
+                if (connected && !stoppingBinary) {
+                  startNotificationStream();
+                }
+              });
+            }
+          });
+    } catch (e) {
+      log.e('Failed to start notification stream: $e');
+      // Connection is probably dead, don't crash - just log it
+    }
+  }
+
+  @override
+  void dispose() {
+    _notificationStreamSubscription?.cancel();
+    _notificationStreamController.close();
+    super.dispose();
+  }
+
+  void _recreateConnection() {
+    log.w('Recreating HTTP/2 connection for bitwindowd');
+    _initializeConnection(host: _host, port: _port);
+  }
+
+  Future<T> _withRecreate<T>(Future<T> Function() operation) async {
+    try {
+      return await operation();
+    } catch (e) {
+      final errorString = e.toString().toLowerCase();
+
+      // Only recreate when the HTTP/2 connection itself is dropped or exhausted
+      // These specific errors indicate the HTTP/2 client connection was terminated or stream limit reached
+      if (errorString.contains('http/2 connection is finishing') ||
+          errorString.contains('connection closed') ||
+          errorString.contains('stream closed') ||
+          errorString.contains('_cancreatenewstream')) {
+        log.w('HTTP/2 connection dropped, recreating: ${e.toString()}');
+        _recreateConnection();
+        // Retry the operation with the new connection
+        return await operation();
+      }
+      rethrow;
+    }
+  }
+}
+
+abstract class BitwindowAPI {
+  Future<void> stop({bool skipDownstream = false});
+
+  // CPU mining (drynet only)
+  Future<void> startMining();
+  Future<void> stopMining();
+  Future<GetMiningStatusResponse> getMiningStatus();
+
+  // Denial methods here
+  Future<void> createDenial({
+    required String txid,
+    required int vout,
+    required int numHops,
+    required int delaySeconds,
+    List<int>? targetUtxoSizes,
+  });
+  Future<void> cancelDenial(Int64 id);
+  Future<void> pauseDenial(Int64 id);
+  Future<void> resumeDenial(Int64 id);
+  Future<GetSyncInfoResponse> getSyncInfo();
+
+  // Address book methods here
+  Future<List<AddressBookEntry>> listAddressBook();
+  Future<void> createAddressBookEntry(
+    String label,
+    String address,
+    Direction direction,
+  );
+  Future<void> updateAddressBookEntry(Int64 id, String label);
+  Future<void> deleteAddressBookEntry(Int64 id);
+
+  // Transaction note methods here
+  Future<void> setTransactionNote(String txid, String note, {String walletId = ''});
+
+  // BIP329 label import/export
+  Future<String> exportLabels();
+  Future<ImportLabelsResponse> importLabels(String jsonl);
+
+  Future<GetFireplaceStatsResponse> getFireplaceStats();
+
+  Future<List<RecentTransaction>> listRecentTransactions();
+  Future<(List<Block>, bool)> listBlocks({
+    int startHeight = 0,
+    int pageSize = 50,
+  });
+
+  Future<GetNetworkStatsResponse> getNetworkStats();
+
+  /// Swap bitcoind network. bitwindowd forwards to orchestratord and exits
+  /// for a launcher restart so the DB rescopes to the new network folder.
+  Future<void> updateNetwork(String network, {String dataDir});
+}
+
+class _BitwindowAPILive implements BitwindowAPI {
+  final BitwindowdServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _BitwindowAPILive(this._client);
+
+  @override
+  Future<void> stop({bool skipDownstream = false}) async {
+    await _client.stop(
+      BitwindowdServiceStopRequest(skipDownstream: skipDownstream),
+    );
+  }
+
+  @override
+  Future<void> startMining() async {
+    try {
+      await _client.startMining(Empty());
+    } catch (e) {
+      throw BitwindowException('could not start mining: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> stopMining() async {
+    try {
+      await _client.stopMining(Empty());
+    } catch (e) {
+      throw BitwindowException('could not stop mining: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<GetMiningStatusResponse> getMiningStatus() async {
+    try {
+      return await _client.getMiningStatus(Empty());
+    } catch (e) {
+      throw BitwindowException('could not get mining status: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> createDenial({
+    required String txid,
+    required int vout,
+    required int numHops,
+    required int delaySeconds,
+    List<int>? targetUtxoSizes,
+  }) async {
+    final request = CreateDenialRequest(
+      txid: txid,
+      vout: vout,
+      numHops: numHops,
+      delaySeconds: delaySeconds,
+    );
+    if (targetUtxoSizes != null && targetUtxoSizes.isNotEmpty) {
+      request.targetUtxoSizes.addAll(targetUtxoSizes.map((s) => Int64(s)));
+    }
+    await _client.createDenial(request);
+  }
+
+  @override
+  Future<void> cancelDenial(Int64 id) async {
+    await _client.cancelDenial(CancelDenialRequest()..id = id);
+  }
+
+  @override
+  Future<void> pauseDenial(Int64 id) async {
+    await _client.pauseDenial(PauseDenialRequest()..id = id);
+  }
+
+  @override
+  Future<void> resumeDenial(Int64 id) async {
+    await _client.resumeDenial(ResumeDenialRequest()..id = id);
+  }
+
+  @override
+  Future<GetSyncInfoResponse> getSyncInfo() async {
+    final response = await _client.getSyncInfo(Empty());
+    return response;
+  }
+
+  @override
+  Future<List<AddressBookEntry>> listAddressBook() async {
+    final response = await _client.listAddressBook(Empty());
+    return response.entries;
+  }
+
+  @override
+  Future<void> createAddressBookEntry(
+    String label,
+    String address,
+    Direction direction,
+  ) async {
+    await _client.createAddressBookEntry(
+      CreateAddressBookEntryRequest()
+        ..label = label
+        ..address = address
+        ..direction = direction,
+    );
+  }
+
+  @override
+  Future<void> updateAddressBookEntry(Int64 id, String label) async {
+    await _client.updateAddressBookEntry(
+      UpdateAddressBookEntryRequest()
+        ..id = id
+        ..label = label,
+    );
+  }
+
+  @override
+  Future<void> deleteAddressBookEntry(Int64 id) async {
+    await _client.deleteAddressBookEntry(
+      DeleteAddressBookEntryRequest()..id = id,
+    );
+  }
+
+  @override
+  Future<void> setTransactionNote(String txid, String note, {String walletId = ''}) async {
+    await _client.setTransactionNote(
+      SetTransactionNoteRequest()
+        ..txid = txid
+        ..note = note
+        ..walletId = walletId,
+    );
+  }
+
+  @override
+  Future<String> exportLabels() async {
+    final response = await _client.exportLabels(Empty());
+    return response.jsonl;
+  }
+
+  @override
+  Future<ImportLabelsResponse> importLabels(String jsonl) async {
+    return _client.importLabels(
+      ImportLabelsRequest()..jsonl = jsonl,
+    );
+  }
+
+  @override
+  Future<GetFireplaceStatsResponse> getFireplaceStats() async {
+    final response = await _client.getFireplaceStats(Empty());
+    return response;
+  }
+
+  @override
+  Future<List<RecentTransaction>> listRecentTransactions() async {
+    try {
+      final response = await _client.listRecentTransactions(
+        ListRecentTransactionsRequest()..count = Int64(20),
+      );
+      return response.transactions;
+    } catch (e) {
+      final error = 'could not list unconfirmed transactions: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<(List<Block>, bool)> listBlocks({
+    int startHeight = 0,
+    int pageSize = 50,
+  }) async {
+    try {
+      final response = await _client.listBlocks(
+        ListBlocksRequest()
+          ..startHeight = startHeight
+          ..pageSize = pageSize,
+      );
+      return (response.recentBlocks, response.hasMore);
+    } catch (e) {
+      final error = 'could not list blocks: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<GetNetworkStatsResponse> getNetworkStats() async {
+    try {
+      final response = await _client.getNetworkStats(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not get network stats: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<void> updateNetwork(String network, {String dataDir = ''}) async {
+    try {
+      await _client.updateNetwork(UpdateNetworkRequest(network: network, dataDir: dataDir));
+    } catch (e) {
+      throw BitwindowException('could not update network: ${extractConnectException(e)}');
+    }
+  }
+}
+
+abstract class WalletAPI {
+  // pure bitcoind wallet stuff here
+  Future<String> sendTransaction(
+    String walletId,
+    Map<String, int> destinations, {
+    int? feeSatPerVbyte,
+    int? fixedFeeSats,
+    String? opReturnMessage,
+    String? label,
+    List<UnspentOutput> requiredInputs,
+  });
+  Future<GetBalanceResponse> getBalance(String walletId);
+  Future<String> getNewAddress(String walletId);
+  Future<List<WalletTransaction>> listTransactions(String walletId);
+  Future<List<UnspentOutput>> listUnspent(String walletId);
+  Future<List<ReceiveAddress>> listReceiveAddresses(String walletId);
+
+  // drivechain wallet stuff here
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(String walletId, int slot);
+  Future<String> createSidechainDeposit(
+    String walletId,
+    int slot,
+    String destination,
+    double amount,
+    double fee,
+  );
+  Future<String> signMessage(String walletId, String message, String address);
+  Future<bool> verifyMessage(
+    String walletId,
+    String message,
+    String signature,
+    String publicKey,
+  );
+  Future<GetStatsResponse> getStats(String walletId);
+
+  // wallet unlock/lock for cheques
+  Future<void> unlockWallet(String password);
+  Future<void> lockWallet();
+  Future<void> isWalletUnlocked();
+
+  // cheque operations
+  Future<CreateChequeResponse> createCheque(
+    String walletId,
+    int expectedAmountSats,
+  );
+  Future<Cheque> getCheque(String walletId, int id);
+  Future<List<Cheque>> listCheques(String walletId);
+  Future<CheckChequeFundingResponse> checkChequeFunding(
+    String walletId,
+    int id,
+  );
+  Future<SweepPreview> previewSweep(String privateKeyWif, {int feeSatPerVbyte = 0});
+  Future<SweepChequeResult> sweepCheque(
+    String walletId,
+    String privateKeyWif,
+    String destinationAddress,
+    int feeSatPerVbyte,
+  );
+  Future<void> deleteCheque(String walletId, int id);
+
+  // UTXO coin control
+  Future<void> setUTXOMetadata(
+    String outpoint, {
+    bool? isFrozen,
+    String? label,
+  });
+  Future<Map<String, UTXOMetadata>> getUTXOMetadata(List<String> outpoints);
+
+  // Coin selection preferences
+  Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy);
+  Future<CoinSelectionStrategy> getCoinSelectionStrategy();
+
+  // Transaction details (enriched with input values/addresses)
+  Future<GetTransactionDetailsResponse> getTransactionDetails(String txid);
+
+  // UTXO distribution for chart visualization
+  Future<GetUTXODistributionResponse> getUTXODistribution(
+    String walletId, {
+    int maxBuckets = 10,
+  });
+
+  // RBF - Replace-By-Fee for unconfirmed transactions (uses Core's automatic fee estimation)
+  Future<BumpFeeResponse> bumpFee(String txid);
+
+  // Coin Selection
+  Future<SelectCoinsResponse> selectCoins({
+    required String walletId,
+    required Int64 targetSats,
+    required Int64 feeSatsPerVbyte,
+    int numOutputs = 2,
+    CoinSelectionStrategy strategy = CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST,
+    List<String> frozenOutpoints = const [],
+    List<String> requiredOutpoints = const [],
+  });
+
+  // Backup / Restore
+  Future<CreateBackupResponse> createBackup();
+  Future<void> restoreBackup(List<int> backupData, String filename);
+  Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename);
+}
+
+class SweepChequeResult {
+  final String txid;
+  final int amountSats;
+
+  SweepChequeResult({required this.txid, required this.amountSats});
+}
+
+/// What a private key holds, and what sweeping it would cost.
+class SweepPreview {
+  final String address;
+  final SweepAddressKind addressKind;
+  final int amountSats;
+  final int outputCount;
+  final int feeSatPerVbyte;
+  final int feeSats;
+  final int receiveSats;
+
+  SweepPreview({
+    required this.address,
+    required this.addressKind,
+    required this.amountSats,
+    required this.outputCount,
+    required this.feeSatPerVbyte,
+    required this.feeSats,
+    required this.receiveSats,
+  });
+
+  bool get hasFunds => amountSats > 0;
+
+  /// True when the key holds coins the fee would eat entirely.
+  bool get dustBound => hasFunds && receiveSats == 0;
+}
+
+class _WalletAPILive implements WalletAPI {
+  final WalletServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _WalletAPILive(this._client);
+
+  @override
+  Future<String> sendTransaction(
+    String walletId,
+    Map<String, int> destinations, {
+    int? feeSatPerVbyte,
+    int? fixedFeeSats,
+    String? opReturnMessage,
+    String? label,
+    List<UnspentOutput>? requiredInputs,
+  }) async {
+    try {
+      final request = SendTransactionRequest(
+        walletId: walletId,
+        destinations: destinations.map((k, v) => MapEntry(k, Int64(v))),
+        feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
+        fixedFeeSats: fixedFeeSats != null ? Int64(fixedFeeSats) : null,
+        opReturnMessage: opReturnMessage,
+        label: label,
+        requiredInputs: requiredInputs,
+      );
+
+      final response = await _client.sendTransaction(request);
+      return response.txid;
+    } catch (e) {
+      final error = 'could not send transaction: ${extractConnectException(e)}';
+      log.e(error);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<GetBalanceResponse> getBalance(String walletId) async {
+    try {
+      return await _client.getBalance(GetBalanceRequest()..walletId = walletId);
+    } catch (e) {
+      final error = 'could not get balance: ${extractConnectException(e)}';
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> getNewAddress(String walletId) async {
+    try {
+      final response = await _client.getNewAddress(
+        GetNewAddressRequest()..walletId = walletId,
+      );
+      return response.address;
+    } catch (e) {
+      final error = 'could not get new address: ${extractConnectException(e)}';
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<WalletTransaction>> listTransactions(String walletId) async {
+    try {
+      final response = await _client.listTransactions(
+        ListTransactionsRequest()..walletId = walletId,
+      );
+      return response.transactions;
+    } catch (e) {
+      final error = 'could not list transactions: ${extractConnectException(e)}';
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<UnspentOutput>> listUnspent(String walletId) async {
+    try {
+      final response = await _client.listUnspent(
+        ListUnspentRequest()..walletId = walletId,
+      );
+      return response.utxos;
+    } catch (e) {
+      final error = 'could not list utxos: ${extractConnectException(e)}';
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<ReceiveAddress>> listReceiveAddresses(String walletId) async {
+    try {
+      final response = await _client.listReceiveAddresses(
+        ListReceiveAddressesRequest()..walletId = walletId,
+      );
+      return response.addresses;
+    } catch (e) {
+      final error = 'could not list receive addresses: ${extractConnectException(e)}';
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<ListSidechainDepositsResponse_SidechainDeposit>> listSidechainDeposits(String walletId, int slot) async {
+    try {
+      final response = await _client.listSidechainDeposits(
+        ListSidechainDepositsRequest()
+          ..walletId = walletId
+          ..slot = slot,
+      );
+      return response.deposits;
+    } catch (e) {
+      final error = 'could not list sidechain deposits: ${extractConnectException(e)}';
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> createSidechainDeposit(
+    String walletId,
+    int slot,
+    String destination,
+    double amount,
+    double fee,
+  ) async {
+    try {
+      final response = await _client.createSidechainDeposit(
+        CreateSidechainDepositRequest()
+          ..walletId = walletId
+          ..slot = Int64(slot)
+          ..destination = destination
+          ..amount = amount
+          ..fee = fee,
+      );
+      return response.txid;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<String> signMessage(String walletId, String message, String address) async {
+    try {
+      final response = await _client.signMessage(
+        SignMessageRequest()
+          ..walletId = walletId
+          ..message = message
+          ..address = address,
+      );
+      return response.signature;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<bool> verifyMessage(
+    String walletId,
+    String message,
+    String signature,
+    String publicKey,
+  ) async {
+    try {
+      final response = await _client.verifyMessage(
+        VerifyMessageRequest()
+          ..walletId = walletId
+          ..message = message
+          ..signature = signature
+          ..publicKey = publicKey,
+      );
+      return response.valid;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<GetStatsResponse> getStats(String walletId) async {
+    try {
+      final response = await _client.getStats(
+        GetStatsRequest()..walletId = walletId,
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> unlockWallet(String password) async {
+    try {
+      await _client.unlockWallet(UnlockWalletRequest(password: password));
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> lockWallet() async {
+    try {
+      await _client.lockWallet(Empty());
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> isWalletUnlocked() async {
+    try {
+      await _client.isWalletUnlocked(Empty());
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CreateChequeResponse> createCheque(
+    String walletId,
+    int expectedAmountSats,
+  ) async {
+    try {
+      final response = await _client.createCheque(
+        CreateChequeRequest(
+          walletId: walletId,
+          expectedAmountSats: Int64(expectedAmountSats),
+        ),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Cheque> getCheque(String walletId, int id) async {
+    try {
+      final response = await _client.getCheque(
+        GetChequeRequest(walletId: walletId, id: Int64(id)),
+      );
+      return response.cheque;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<List<Cheque>> listCheques(String walletId) async {
+    try {
+      final response = await _client.listCheques(
+        ListChequesRequest()..walletId = walletId,
+      );
+      return response.cheques;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CheckChequeFundingResponse> checkChequeFunding(
+    String walletId,
+    int id,
+  ) async {
+    try {
+      final response = await _client.checkChequeFunding(
+        CheckChequeFundingRequest(walletId: walletId, id: Int64(id)),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<SweepPreview> previewSweep(String privateKeyWif, {int feeSatPerVbyte = 0}) async {
+    try {
+      final response = await _client.previewSweep(
+        PreviewSweepRequest(
+          privateKeyWif: privateKeyWif,
+          feeSatPerVbyte: Int64(feeSatPerVbyte),
+        ),
+      );
+      return SweepPreview(
+        address: response.address,
+        addressKind: response.addressKind,
+        amountSats: response.amountSats.toInt(),
+        outputCount: response.outputCount,
+        feeSatPerVbyte: response.feeSatPerVbyte.toInt(),
+        feeSats: response.feeSats.toInt(),
+        receiveSats: response.receiveSats.toInt(),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<SweepChequeResult> sweepCheque(
+    String walletId,
+    String privateKeyWif,
+    String destinationAddress,
+    int feeSatPerVbyte,
+  ) async {
+    try {
+      final response = await _client.sweepCheque(
+        SweepChequeRequest(
+          walletId: walletId,
+          privateKeyWif: privateKeyWif,
+          destinationAddress: destinationAddress,
+          feeSatPerVbyte: Int64(feeSatPerVbyte),
+        ),
+      );
+      return SweepChequeResult(
+        txid: response.txid,
+        amountSats: response.amountSats.toInt(),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> deleteCheque(String walletId, int id) async {
+    try {
+      await _client.deleteCheque(
+        DeleteChequeRequest(walletId: walletId, id: Int64(id)),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> setUTXOMetadata(
+    String outpoint, {
+    bool? isFrozen,
+    String? label,
+  }) async {
+    try {
+      await _client.setUTXOMetadata(
+        SetUTXOMetadataRequest(
+          outpoint: outpoint,
+          isFrozen_2: isFrozen,
+          label: label,
+        ),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<Map<String, UTXOMetadata>> getUTXOMetadata(
+    List<String> outpoints,
+  ) async {
+    try {
+      final response = await _client.getUTXOMetadata(
+        GetUTXOMetadataRequest(outpoints: outpoints),
+      );
+      return response.metadata;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> setCoinSelectionStrategy(CoinSelectionStrategy strategy) async {
+    try {
+      await _client.setCoinSelectionStrategy(
+        SetCoinSelectionStrategyRequest(strategy: strategy),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CoinSelectionStrategy> getCoinSelectionStrategy() async {
+    try {
+      final response = await _client.getCoinSelectionStrategy(Empty());
+      return response.strategy;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<GetTransactionDetailsResponse> getTransactionDetails(
+    String txid,
+  ) async {
+    try {
+      final response = await _client.getTransactionDetails(
+        GetTransactionDetailsRequest(txid: txid),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<GetUTXODistributionResponse> getUTXODistribution(
+    String walletId, {
+    int maxBuckets = 10,
+  }) async {
+    try {
+      final response = await _client.getUTXODistribution(
+        GetUTXODistributionRequest(walletId: walletId, maxBuckets: maxBuckets),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<BumpFeeResponse> bumpFee(String txid) async {
+    try {
+      final response = await _client.bumpFee(BumpFeeRequest(txid: txid));
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<SelectCoinsResponse> selectCoins({
+    required String walletId,
+    required Int64 targetSats,
+    required Int64 feeSatsPerVbyte,
+    int numOutputs = 2,
+    CoinSelectionStrategy strategy = CoinSelectionStrategy.COIN_SELECTION_STRATEGY_LARGEST_FIRST,
+    List<String> frozenOutpoints = const [],
+    List<String> requiredOutpoints = const [],
+  }) async {
+    try {
+      final response = await _client.selectCoins(
+        SelectCoinsRequest(
+          walletId: walletId,
+          targetSats: targetSats,
+          feeSatsPerVbyte: feeSatsPerVbyte,
+          numOutputs: numOutputs,
+          strategy: strategy,
+          frozenOutpoints: frozenOutpoints,
+          requiredOutpoints: requiredOutpoints,
+        ),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<CreateBackupResponse> createBackup() async {
+    try {
+      final response = await _client.createBackup(Empty());
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<void> restoreBackup(List<int> backupData, String filename) async {
+    try {
+      await _client.restoreBackup(
+        RestoreBackupRequest(
+          backupData: backupData,
+          filename: filename,
+        ),
+      );
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+
+  @override
+  Future<ValidateBackupResponse> validateBackup(List<int> backupData, String filename) async {
+    try {
+      final response = await _client.validateBackup(
+        ValidateBackupRequest(
+          backupData: backupData,
+          filename: filename,
+        ),
+      );
+      return response;
+    } catch (e) {
+      final error = extractConnectException(e);
+      throw WalletException(error);
+    }
+  }
+}
+
+abstract class DrivechainAPI {
+  Future<List<ListSidechainsResponse_Sidechain>> listSidechains();
+  Future<List<SidechainProposal>> listSidechainProposals();
+  Future<ProposeSidechainResponse> proposeSidechain({
+    required int slot,
+    required String title,
+    String description = '',
+    int version = 0,
+    String hashid1 = '',
+    String hashid2 = '',
+  });
+  Future<List<WithdrawalBundle>> listWithdrawals({
+    required int sidechainId,
+    int startBlockHeight = 0,
+    int endBlockHeight = 0,
+  });
+  Future<ListRecentActionsResponse> listRecentActions({int limit = 10});
+}
+
+class _DrivechainAPILive implements DrivechainAPI {
+  final DrivechainServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _DrivechainAPILive(this._client);
+
+  @override
+  Future<List<ListSidechainsResponse_Sidechain>> listSidechains() async {
+    try {
+      final response = await _client.listSidechains(ListSidechainsRequest());
+      return response.sidechains;
+    } catch (e) {
+      final error = 'could not list sidechains: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+
+  @override
+  Future<List<SidechainProposal>> listSidechainProposals() async {
+    try {
+      final response = await _client.listSidechainProposals(
+        ListSidechainProposalsRequest(),
+      );
+      return response.proposals;
+    } catch (e) {
+      final error = 'could not list sidechain proposals: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+
+  @override
+  Future<ProposeSidechainResponse> proposeSidechain({
+    required int slot,
+    required String title,
+    String description = '',
+    int version = 0,
+    String hashid1 = '',
+    String hashid2 = '',
+  }) async {
+    try {
+      final request = ProposeSidechainRequest(
+        slot: slot,
+        title: title,
+        description: description,
+        version: version,
+        hashid1: hashid1,
+        hashid2: hashid2,
+      );
+      final response = await _client.proposeSidechain(request);
+      log.i('Successfully proposed sidechain $slot');
+      return response;
+    } catch (e) {
+      final error = 'could not propose sidechain: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+
+  @override
+  Future<List<WithdrawalBundle>> listWithdrawals({
+    required int sidechainId,
+    int startBlockHeight = 0,
+    int endBlockHeight = 0,
+  }) async {
+    try {
+      final request = ListWithdrawalsRequest(
+        sidechainId: sidechainId,
+        startBlockHeight: startBlockHeight,
+        endBlockHeight: endBlockHeight,
+      );
+      final response = await _client.listWithdrawals(request);
+      return response.bundles;
+    } catch (e) {
+      final error = 'could not list withdrawals: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+
+  @override
+  Future<ListRecentActionsResponse> listRecentActions({int limit = 10}) async {
+    try {
+      final request = ListRecentActionsRequest(limit: limit);
+      final response = await _client.listRecentActions(request);
+      return response;
+    } catch (e) {
+      final error = 'could not list recent actions: ${extractConnectException(e)}';
+      throw DrivechainException(error);
+    }
+  }
+}
+
+/// What a vote, comment or story would cost to put on chain.
+class NewsFeeEstimate {
+  final int vsize;
+  final double feeSatPerVbyte;
+  final int feeSats;
+
+  NewsFeeEstimate({required this.vsize, required this.feeSatPerVbyte, required this.feeSats});
+}
+
+abstract class MiscAPI {
+  Future<List<OPReturn>> listOPReturns();
+  Future<List<CoinNews>> listCoinNews();
+  Future<List<Topic>> listTopics();
+  Future<CreateTopicResponse> createTopic(
+    String topic,
+    String name, {
+    int retentionDays = 7,
+  });
+  Future<BroadcastNewsResponse> broadcastNews(
+    String topic,
+    String headline,
+    String content, {
+    String? url,
+    String? lang,
+    int? subtype,
+    bool? nsfw,
+    int? feeSatPerVbyte,
+    int? feeSats,
+  });
+  Future<NewsFeeEstimate> estimateNewsFee(
+    NewsAction action, {
+    String body = '',
+    String headline = '',
+    String url = '',
+  });
+  Future<UpvoteNewsResponse> upvoteNews(
+    String itemId, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  });
+  Future<UpvoteNewsResponse> downvoteNews(
+    String itemId, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  });
+  Future<CommentNewsResponse> commentNews(
+    String parentId,
+    String body, {
+    String? url,
+    String? lang,
+    String? replyQuote,
+    int? feeSatPerVbyte,
+    int? feeSats,
+  });
+  Future<List<Comment>> listComments(String itemId);
+  Future<TimestampFileResponse> timestampFile(
+    String filename,
+    List<int> fileData,
+  );
+  Future<List<FileTimestamp>> listTimestamps();
+  Future<VerifyTimestampResponse> verifyTimestamp(
+    List<int> fileData,
+    String filename,
+  );
+}
+
+class _MiscAPILive implements MiscAPI {
+  final MiscServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _MiscAPILive(this._client);
+
+  @override
+  Future<List<OPReturn>> listOPReturns() async {
+    try {
+      final response = await _client.listOPReturn(Empty());
+      return response.opReturns;
+    } catch (e) {
+      final error = 'could not list op returns: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<BroadcastNewsResponse> broadcastNews(
+    String topic,
+    String headline,
+    String content, {
+    String? url,
+    String? lang,
+    int? subtype,
+    bool? nsfw,
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    try {
+      final request = BroadcastNewsRequest()
+        ..topic = topic
+        ..headline = headline
+        ..content = content;
+      if (url != null) {
+        request.url = url;
+      }
+      if (lang != null) {
+        request.lang = lang;
+      }
+      if (subtype != null) {
+        request.subtype = subtype;
+      }
+      if (nsfw != null) {
+        request.nsfw = nsfw;
+      }
+
+      if (feeSatPerVbyte != null) {
+        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
+      } else if (feeSats != null) {
+        request.feeSats = Int64(feeSats);
+      }
+
+      final response = await _client.broadcastNews(request);
+      return response;
+    } catch (e) {
+      final error = 'could not broadcast news: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<NewsFeeEstimate> estimateNewsFee(
+    NewsAction action, {
+    String body = '',
+    String headline = '',
+    String url = '',
+  }) async {
+    try {
+      final response = await _client.estimateNewsFee(
+        EstimateNewsFeeRequest()
+          ..action = action
+          ..body = body
+          ..headline = headline
+          ..url = url,
+      );
+      return NewsFeeEstimate(
+        vsize: response.vsize.toInt(),
+        feeSatPerVbyte: response.feeSatPerVbyte,
+        feeSats: response.feeSats.toInt(),
+      );
+    } catch (e) {
+      final error = 'could not estimate news fee: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<UpvoteNewsResponse> upvoteNews(
+    String itemId, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    try {
+      final request = UpvoteNewsRequest()..itemId = itemId;
+
+      if (feeSatPerVbyte != null) {
+        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
+      } else if (feeSats != null) {
+        request.feeSats = Int64(feeSats);
+      }
+
+      final response = await _client.upvoteNews(request);
+      return response;
+    } catch (e) {
+      final error = 'could not upvote news: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<UpvoteNewsResponse> downvoteNews(
+    String itemId, {
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    try {
+      final request = UpvoteNewsRequest()..itemId = itemId;
+
+      if (feeSatPerVbyte != null) {
+        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
+      } else if (feeSats != null) {
+        request.feeSats = Int64(feeSats);
+      }
+
+      final response = await _client.downvoteNews(request);
+      return response;
+    } catch (e) {
+      final error = 'could not downvote news: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<CommentNewsResponse> commentNews(
+    String parentId,
+    String body, {
+    String? url,
+    String? lang,
+    String? replyQuote,
+    int? feeSatPerVbyte,
+    int? feeSats,
+  }) async {
+    try {
+      final request = CommentNewsRequest()
+        ..parentId = parentId
+        ..body = body;
+      if (url != null) {
+        request.url = url;
+      }
+      if (lang != null) {
+        request.lang = lang;
+      }
+      if (replyQuote != null) {
+        request.replyQuote = replyQuote;
+      }
+
+      if (feeSatPerVbyte != null) {
+        request.feeSatPerVbyte = Int64(feeSatPerVbyte);
+      } else if (feeSats != null) {
+        request.feeSats = Int64(feeSats);
+      }
+
+      final response = await _client.commentNews(request);
+      return response;
+    } catch (e) {
+      final error = 'could not comment on news: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<List<Comment>> listComments(String itemId) async {
+    try {
+      final response = await _client.listComments(ListCommentsRequest()..itemId = itemId);
+      return response.comments;
+    } catch (e) {
+      final error = 'could not list comments: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<CreateTopicResponse> createTopic(
+    String topic,
+    String name, {
+    int retentionDays = 7,
+  }) async {
+    try {
+      final response = await _client.createTopic(
+        CreateTopicRequest()
+          ..topic = topic
+          ..name = name
+          ..retentionDays = retentionDays,
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not create topic: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<List<CoinNews>> listCoinNews() async {
+    try {
+      final response = await _client.listCoinNews(ListCoinNewsRequest());
+      return response.coinNews;
+    } catch (e) {
+      final error = 'could not list coin news: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<List<Topic>> listTopics() async {
+    try {
+      final response = await _client.listTopics(Empty());
+      return response.topics;
+    } catch (e) {
+      final error = 'could not list topics: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<TimestampFileResponse> timestampFile(
+    String filename,
+    List<int> fileData,
+  ) async {
+    try {
+      final response = await _client.timestampFile(
+        TimestampFileRequest()
+          ..filename = filename
+          ..fileData = fileData,
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not timestamp file: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<List<FileTimestamp>> listTimestamps() async {
+    try {
+      final response = await _client.listTimestamps(Empty());
+      return response.timestamps;
+    } catch (e) {
+      final error = 'could not list timestamps: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<VerifyTimestampResponse> verifyTimestamp(
+    List<int> fileData,
+    String filename,
+  ) async {
+    try {
+      final response = await _client.verifyTimestamp(
+        VerifyTimestampRequest()
+          ..fileData = fileData
+          ..filename = filename,
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not verify timestamp: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+}
+
+abstract class M4API {
+  Future<List<m4pb.M4HistoryEntry>> getM4History({int limit = 6});
+  Future<List<m4pb.M4Vote>> getVotePreferences();
+  Future<void> setVotePreference({
+    required int sidechainSlot,
+    required String voteType,
+    String? bundleHash,
+  });
+  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes();
+}
+
+class _M4APILive implements M4API {
+  final M4ServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _M4APILive(this._client);
+
+  @override
+  Future<List<m4pb.M4HistoryEntry>> getM4History({int limit = 6}) async {
+    try {
+      final response = await _client.getM4History(
+        m4pb.GetM4HistoryRequest()..limit = limit,
+      );
+      return response.history;
+    } catch (e) {
+      final error = 'could not get M4 history: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<List<m4pb.M4Vote>> getVotePreferences() async {
+    try {
+      final response = await _client.getVotePreferences(
+        m4pb.GetVotePreferencesRequest(),
+      );
+      return response.preferences;
+    } catch (e) {
+      final error = 'could not get vote preferences: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<void> setVotePreference({
+    required int sidechainSlot,
+    required String voteType,
+    String? bundleHash,
+  }) async {
+    try {
+      final request = m4pb.SetVotePreferenceRequest()
+        ..sidechainSlot = sidechainSlot
+        ..voteType = voteType;
+
+      if (bundleHash != null) {
+        request.bundleHash = bundleHash;
+      }
+
+      await _client.setVotePreference(request);
+    } catch (e) {
+      final error = 'could not set vote preference: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+
+  @override
+  Future<m4pb.GenerateM4BytesResponse> generateM4Bytes() async {
+    try {
+      final response = await _client.generateM4Bytes(
+        m4pb.GenerateM4BytesRequest(),
+      );
+      return response;
+    } catch (e) {
+      final error = 'could not generate M4 bytes: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+}
+
+abstract class NotificationAPI {
+  Stream<WatchResponse> watch();
+}
+
+class _NotificationAPILive implements NotificationAPI {
+  final NotificationServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _NotificationAPILive(this._client);
+
+  @override
+  Stream<WatchResponse> watch() {
+    try {
+      final response = _client.watch(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not watch notifications: ${extractConnectException(e)}';
+      throw BitwindowException(error);
+    }
+  }
+}
+
+abstract class BitDriveAPI {
+  Future<bitdrivepb.StoreFileResponse> storeFile({
+    required List<int> content,
+    String? filename,
+    String? mimeType,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  });
+
+  Future<bitdrivepb.RetrieveContentResponse> retrieveContent(String txid);
+
+  Future<bitdrivepb.ScanForFilesResponse> scanForFiles();
+
+  Future<bitdrivepb.DownloadPendingFilesResponse> downloadPendingFiles();
+
+  Future<List<bitdrivepb.BitDriveFile>> listFiles();
+
+  Future<bitdrivepb.GetFileResponse> getFile({Int64? id, String? txid});
+
+  Future<void> deleteFile(Int64 id);
+
+  Future<bitdrivepb.StoreMultisigDataResponse> storeMultisigData({
+    required List<int> jsonData,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  });
+
+  Future<void> wipeData();
+
+  Future<String> getBitdriveDir();
+
+  Future<void> openBitdriveDir();
+}
+
+class _BitDriveAPILive implements BitDriveAPI {
+  final BitDriveServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _BitDriveAPILive(this._client);
+
+  @override
+  Future<bitdrivepb.StoreFileResponse> storeFile({
+    required List<int> content,
+    String? filename,
+    String? mimeType,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  }) async {
+    try {
+      final request = bitdrivepb.StoreFileRequest(
+        content: content,
+        filename: filename,
+        mimeType: mimeType,
+        encrypt: encrypt,
+        feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
+      );
+      final response = await _client.storeFile(request);
+      return response;
+    } catch (e) {
+      final error = 'could not store file: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.RetrieveContentResponse> retrieveContent(
+    String txid,
+  ) async {
+    try {
+      final request = bitdrivepb.RetrieveContentRequest(txid: txid);
+      final response = await _client.retrieveContent(request);
+      return response;
+    } catch (e) {
+      final error = 'could not retrieve content: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.ScanForFilesResponse> scanForFiles() async {
+    try {
+      final response = await _client.scanForFiles(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not scan for files: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.DownloadPendingFilesResponse> downloadPendingFiles() async {
+    try {
+      final response = await _client.downloadPendingFiles(Empty());
+      return response;
+    } catch (e) {
+      final error = 'could not download pending files: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<List<bitdrivepb.BitDriveFile>> listFiles() async {
+    try {
+      final response = await _client.listFiles(Empty());
+      return response.files;
+    } catch (e) {
+      final error = 'could not list files: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.GetFileResponse> getFile({Int64? id, String? txid}) async {
+    try {
+      final request = bitdrivepb.GetFileRequest(id: id, txid: txid);
+      final response = await _client.getFile(request);
+      return response;
+    } catch (e) {
+      final error = 'could not get file: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<void> deleteFile(Int64 id) async {
+    try {
+      await _client.deleteFile(bitdrivepb.DeleteFileRequest(id: id));
+    } catch (e) {
+      final error = 'could not delete file: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<bitdrivepb.StoreMultisigDataResponse> storeMultisigData({
+    required List<int> jsonData,
+    bool encrypt = false,
+    int? feeSatPerVbyte,
+  }) async {
+    try {
+      final request = bitdrivepb.StoreMultisigDataRequest(
+        jsonData: jsonData,
+        encrypt: encrypt,
+        feeSatPerVbyte: feeSatPerVbyte != null ? Int64(feeSatPerVbyte) : null,
+      );
+      final response = await _client.storeMultisigData(request);
+      return response;
+    } catch (e) {
+      final error = 'could not store multisig data: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<void> wipeData() async {
+    try {
+      await _client.wipeData(Empty());
+    } catch (e) {
+      final error = 'could not wipe data: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<String> getBitdriveDir() async {
+    try {
+      final response = await _client.getBitdriveDir(Empty());
+      return response.path;
+    } catch (e) {
+      final error = 'could not get bitdrive dir: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+
+  @override
+  Future<void> openBitdriveDir() async {
+    try {
+      await _client.openBitdriveDir(Empty());
+    } catch (e) {
+      final error = 'could not open bitdrive dir: ${extractConnectException(e)}';
+      throw BitDriveException(error);
+    }
+  }
+}
+
+class BitDriveException implements Exception {
+  final String message;
+  BitDriveException(this.message);
+  @override
+  String toString() => 'BitDriveException: $message';
+}
+
+// ─── MultisigAPI ──────────────────────────────────────────────────
+
+abstract class MultisigAPI {
+  Future<List<multisigpb.MultisigGroup>> listGroups();
+  Future<multisigpb.MultisigGroup> saveGroup(multisigpb.MultisigGroup group);
+  Future<void> deleteGroup(String groupId);
+  Future<List<multisigpb.MultisigTransaction>> listTransactions({String? groupId});
+  Future<multisigpb.MultisigTransaction> getTransaction(String transactionId);
+  Future<multisigpb.MultisigTransaction> getTransactionByTxid(String txid);
+  Future<multisigpb.MultisigTransaction> saveTransaction(multisigpb.MultisigTransaction transaction);
+  Future<List<multisigpb.SoloKey>> listSoloKeys();
+  Future<void> addSoloKey(multisigpb.SoloKey key);
+  Future<int> getNextAccountIndex({List<int>? additionalUsedIndices});
+}
+
+class _MultisigAPILive implements MultisigAPI {
+  final MultisigServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _MultisigAPILive(this._client);
+
+  @override
+  Future<List<multisigpb.MultisigGroup>> listGroups() async {
+    try {
+      final response = await _client.listGroups(Empty());
+      return response.groups;
+    } catch (e) {
+      throw MultisigException('could not list groups: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigGroup> saveGroup(multisigpb.MultisigGroup group) async {
+    try {
+      final response = await _client.saveGroup(multisigpb.SaveGroupRequest(group: group));
+      return response.group;
+    } catch (e) {
+      throw MultisigException('could not save group: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> deleteGroup(String groupId) async {
+    try {
+      await _client.deleteGroup(multisigpb.DeleteGroupRequest(groupId: groupId));
+    } catch (e) {
+      throw MultisigException('could not delete group: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<List<multisigpb.MultisigTransaction>> listTransactions({String? groupId}) async {
+    try {
+      final response = await _client.listTransactions(
+        multisigpb.ListTransactionsRequest(groupId: groupId ?? ''),
+      );
+      return response.transactions;
+    } catch (e) {
+      throw MultisigException('could not list transactions: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> getTransaction(String transactionId) async {
+    try {
+      return await _client.getTransaction(
+        multisigpb.GetTransactionRequest(transactionId: transactionId),
+      );
+    } catch (e) {
+      throw MultisigException('could not get transaction: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> getTransactionByTxid(String txid) async {
+    try {
+      return await _client.getTransactionByTxid(
+        multisigpb.GetTransactionByTxidRequest(txid: txid),
+      );
+    } catch (e) {
+      throw MultisigException('could not get transaction by txid: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<multisigpb.MultisigTransaction> saveTransaction(multisigpb.MultisigTransaction transaction) async {
+    try {
+      final response = await _client.saveTransaction(
+        multisigpb.SaveTransactionRequest(transaction: transaction),
+      );
+      return response.transaction;
+    } catch (e) {
+      throw MultisigException('could not save transaction: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<List<multisigpb.SoloKey>> listSoloKeys() async {
+    try {
+      final response = await _client.listSoloKeys(Empty());
+      return response.keys;
+    } catch (e) {
+      throw MultisigException('could not list solo keys: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> addSoloKey(multisigpb.SoloKey key) async {
+    try {
+      await _client.addSoloKey(multisigpb.AddSoloKeyRequest(key: key));
+    } catch (e) {
+      throw MultisigException('could not add solo key: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<int> getNextAccountIndex({List<int>? additionalUsedIndices}) async {
+    try {
+      final response = await _client.getNextAccountIndex(
+        multisigpb.GetNextAccountIndexRequest(
+          additionalUsedIndices: additionalUsedIndices,
+        ),
+      );
+      return response.nextIndex;
+    } catch (e) {
+      throw MultisigException('could not get next account index: ${extractConnectException(e)}');
+    }
+  }
+}
+
+class MultisigException implements Exception {
+  final String message;
+  MultisigException(this.message);
+  @override
+  String toString() => 'MultisigException: $message';
+}
+
+abstract class UtilsAPI {
+  Future<utilspb.ParseBitcoinURIResponse> parseBitcoinURI(String uri);
+  Future<utilspb.ValidateBitcoinURIResponse> validateBitcoinURI(String uri);
+  Future<utilspb.DecodeBase58CheckResponse> decodeBase58Check(String input);
+  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(
+    int versionByte,
+    List<int> data,
+  );
+  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(
+    List<String> txids, {
+    bool showRCB = true,
+  });
+  Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet();
+  Future<utilspb.ValidateWIFResponse> validateWIF(String wif);
+  Future<utilspb.WIFToAddressResponse> wifToAddress(String wif);
+}
+
+class _UtilsAPILive implements UtilsAPI {
+  final UtilsServiceClient _client;
+  Logger get log => GetIt.I.get<Logger>();
+
+  _UtilsAPILive(this._client);
+
+  @override
+  Future<utilspb.ParseBitcoinURIResponse> parseBitcoinURI(String uri) async {
+    try {
+      final request = utilspb.ParseBitcoinURIRequest(uri: uri);
+      return await _client.parseBitcoinURI(request);
+    } catch (e) {
+      final error = 'could not parse bitcoin URI: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.ValidateBitcoinURIResponse> validateBitcoinURI(
+    String uri,
+  ) async {
+    try {
+      final request = utilspb.ValidateBitcoinURIRequest(uri: uri);
+      return await _client.validateBitcoinURI(request);
+    } catch (e) {
+      final error = 'could not validate bitcoin URI: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.DecodeBase58CheckResponse> decodeBase58Check(
+    String input,
+  ) async {
+    try {
+      final request = utilspb.DecodeBase58CheckRequest(input: input);
+      return await _client.decodeBase58Check(request);
+    } catch (e) {
+      final error = 'could not decode base58check: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.EncodeBase58CheckResponse> encodeBase58Check(
+    int versionByte,
+    List<int> data,
+  ) async {
+    try {
+      final request = utilspb.EncodeBase58CheckRequest(
+        versionByte: versionByte,
+        data: data,
+      );
+      return await _client.encodeBase58Check(request);
+    } catch (e) {
+      final error = 'could not encode base58check: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.CalculateMerkleTreeResponse> calculateMerkleTree(
+    List<String> txids, {
+    bool showRCB = true,
+  }) async {
+    try {
+      final request = utilspb.CalculateMerkleTreeRequest(txids: txids, showRcb: showRCB);
+      return await _client.calculateMerkleTree(request);
+    } catch (e) {
+      final error = 'could not calculate merkle tree: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.GeneratePaperWalletResponse> generatePaperWallet() async {
+    try {
+      return await _client.generatePaperWallet(Empty());
+    } catch (e) {
+      final error = 'could not generate paper wallet: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.ValidateWIFResponse> validateWIF(String wif) async {
+    try {
+      final request = utilspb.ValidateWIFRequest(wif: wif);
+      return await _client.validateWIF(request);
+    } catch (e) {
+      final error = 'could not validate WIF: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+
+  @override
+  Future<utilspb.WIFToAddressResponse> wifToAddress(String wif) async {
+    try {
+      final request = utilspb.WIFToAddressRequest(wif: wif);
+      return await _client.wIFToAddress(request);
+    } catch (e) {
+      final error = 'could not convert WIF to address: ${extractConnectException(e)}';
+      throw UtilsException(error);
+    }
+  }
+}
+
+class UtilsException implements Exception {
+  final String message;
+  UtilsException(this.message);
+  @override
+  String toString() => 'UtilsException: $message';
+}
+
+class WalletException implements Exception {
+  final String message;
+  WalletException(this.message);
+  @override
+  String toString() => 'WalletException: $message';
+}
+
+class BitwindowException implements Exception {
+  final String message;
+  BitwindowException(this.message);
+  @override
+  String toString() => 'BitwindowException: $message';
+}
+
+class DrivechainException implements Exception {
+  final String message;
+  DrivechainException(this.message);
+  @override
+  String toString() => 'DrivechainException: $message';
+}
+
+// Helper extension
+extension StringExtension on String {
+  String capitalize() {
+    return '${this[0].toUpperCase()}${substring(1).toLowerCase()}';
+  }
+}
+
+/// Routes a raw bitcoind RPC through orchestratord's CoreRawCall passthrough.
+/// Use this when btc-buf doesn't type the method (finalizepsbt,
+/// descriptorprocesspsbt, decodepsbt, getdescriptorinfo, listwallets, …).
+/// Encodes [params] as a JSON array on the way in; decodes the JSON result
+/// on the way back. Returns null for empty results (void-style RPCs).
+Future<dynamic> bitcoindRpcCall(String method, {List<dynamic>? params, String wallet = ''}) async {
+  final orchestrator = GetIt.I.get<OrchestratorRPC>();
+  final paramsJson = params == null ? '' : jsonEncode(params);
+  final resp = await orchestrator.coreRawCall(method, paramsJson: paramsJson, wallet: wallet);
+  if (resp.resultJson.isEmpty) {
+    return null;
+  }
+  return jsonDecode(resp.resultJson);
+}

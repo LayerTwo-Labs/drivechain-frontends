@@ -12,7 +12,7 @@ import 'package:flutter/material.dart' show ColorScheme, MaterialApp, ThemeData;
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/config/backend_sidechain_runtime.dart';
+import 'package:sidechain_core/config/backend_sidechain_runtime.dart';
 import 'package:sail_ui/config/fonts.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';

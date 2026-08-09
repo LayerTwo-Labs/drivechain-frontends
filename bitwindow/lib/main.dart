@@ -48,7 +48,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl_standalone.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/config/fonts.dart';
-import 'package:sail_ui/providers/price_provider.dart';
+import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -164,6 +164,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<FormatterProvider>(() => FormatterProvider(settingsProvider));
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
+  BitcoinConfProvider.promptForDataDir = promptForBitcoinDataDir;
   final bitcoinConfProvider = await BitcoinConfProvider.create(GetIt.I.get<AppRouter>());
   GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
 

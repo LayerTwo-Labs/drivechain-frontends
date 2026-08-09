@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/rpcs/zside_rpc.dart';
+import 'package:sidechain_core/bitcoin.dart';
+import 'package:sidechain_core/rpcs/zside_rpc.dart';
 import 'package:zside/providers/zside_provider.dart';
 
 const lowestCastValueSats = 1;

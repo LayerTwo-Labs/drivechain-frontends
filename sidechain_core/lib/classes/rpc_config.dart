@@ -1,0 +1,290 @@
+import 'dart:io';
+
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:sidechain_core/sidechain_core.dart';
+
+class Config {
+  final String path;
+  final String host;
+  final int port;
+  final String username;
+  final String password;
+
+  const Config({
+    required this.path,
+    required this.host,
+    required this.port,
+    required this.username,
+    required this.password,
+  });
+}
+
+// Order of precedence:
+//
+// 1. Conf file
+// 2. Inspect cookie
+// 3. Defaults
+//
+CoreConnectionSettings readRPCConfig(
+  String datadir,
+  String confFile,
+  Binary chain,
+  BitcoinNetwork network, {
+  // if set, will force this network, irregardless of runtime argument
+  bool useCookieAuth = true,
+}) {
+  final log = GetIt.I.get<Logger>();
+
+  final conf = File(filePath([datadir, confFile]));
+  // mainnet, forknet and drynet use root datadir, other networks use subdirs
+  final networkDir = filePath([
+    datadir,
+    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+            network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+            network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET)
+        ? ''
+        : network.toReadableNet(),
+  ]);
+
+  final cookie = File(filePath([networkDir, '.cookie']));
+
+  // Use correct default port based on network
+  final defaultPort = switch (network) {
+    BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332, // real Bitcoin mainnet
+    BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301, // forknet
+    BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 18302, // drynet
+    BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
+    BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
+    BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 18443,
+    _ => 38332, // fallback to signet for unknown networks
+  };
+
+  // Default values
+  String host = '127.0.0.1';
+  int port = defaultPort;
+  String username = 'user';
+  String password = 'password';
+  Map<String, String> configValues = {};
+  Set<String> configFromFile = {};
+
+  if (conf.existsSync()) {
+    log.i('rpc: reading conf file at $conf');
+    final confContent = conf.readAsStringSync();
+
+    // Parse config with section support
+    final config = BitcoinConfig.parse(confContent);
+    final networkSection = network.toCoreNetwork();
+
+    // Get effective values (network section overrides global)
+    final rpcUser = config.getEffectiveSetting('rpcuser', networkSection);
+    if (rpcUser != null) {
+      username = rpcUser;
+      configFromFile.add('rpcuser');
+    }
+
+    final rpcPassword = config.getEffectiveSetting(
+      'rpcpassword',
+      networkSection,
+    );
+    if (rpcPassword != null) {
+      password = rpcPassword;
+      configFromFile.add('rpcpassword');
+    }
+
+    final rpcPortStr = config.getEffectiveSetting('rpcport', networkSection);
+    if (rpcPortStr != null) {
+      port = int.tryParse(rpcPortStr) ?? defaultPort;
+      configFromFile.add('rpcport');
+    }
+
+    final rpcHost =
+        config.getEffectiveSetting('rpcconnect', networkSection) ??
+        config.getEffectiveSetting('rpchost', networkSection);
+    if (rpcHost != null) {
+      host = rpcHost;
+      configFromFile.add('rpchost');
+    }
+
+    // Store all config values (global + network-specific merged)
+    configValues = Map.from(config.globalSettings);
+    if (config.networkSettings.containsKey(networkSection)) {
+      configValues.addAll(config.networkSettings[networkSection]!);
+    }
+    configFromFile.addAll(configValues.keys);
+
+    return CoreConnectionSettings.fromParsedConfig(
+      confPath: conf.path,
+      host: host,
+      port: port,
+      username: username,
+      password: password,
+      network: network,
+      configValues: configValues,
+      configFromFile: configFromFile,
+    );
+  }
+
+  if (useCookieAuth && cookie.existsSync()) {
+    final data = cookie.readAsStringSync();
+    final parts = data.split(':');
+    if (parts.length != 2) {
+      throw 'unexpected cookie file: $data';
+    }
+    final [cookieUsername, cookiePassword] = parts;
+
+    // Make sure to not include password here
+    log.t('rpc: read password from cookie file at $cookie');
+    log.i(
+      'resolved conf: $cookieUsername@$host:$port on ${network.toReadableNet()}',
+    );
+    return CoreConnectionSettings(
+      '', // no conf file path when using cookie
+      host,
+      port,
+      cookieUsername,
+      cookiePassword,
+      network,
+      configValues,
+    );
+  }
+
+  log.i(
+    'missing both conf ($conf) and cookie ($cookie), returning default settings',
+  );
+  return CoreConnectionSettings(
+    '',
+    host,
+    port,
+    username,
+    password,
+    network,
+    configValues,
+  );
+}
+
+List<String> bitcoinCoreBinaryArgs(CoreConnectionSettings conf) {
+  // Only include non-config args in the base args
+  final args = [
+    conf.username.isNotEmpty && !conf.isFromConfigFile('rpcuser') ? '-rpcuser=${conf.username}' : '',
+    conf.password.isNotEmpty && !conf.isFromConfigFile('rpcpassword') ? '-rpcpassword=${conf.password}' : '',
+  ];
+
+  // Add all additional config values that aren't from config file
+  args.addAll(
+    conf.getCliConfigArgs().where((arg) {
+      final paramName = arg.split('=')[0].replaceFirst('-', '');
+      return !conf.isFromConfigFile(paramName);
+    }),
+  );
+
+  return args.where((arg) => arg.isNotEmpty).toList();
+}
+
+// checks if the loaded bitcoin core config contains a specific
+// key, e.g:
+// # testchain.conf
+// regtest=1
+//
+// confKeyExists(args, 'regtest') => true
+bool _confKeyExists(List<String> args, String key) {
+  return args.any((arg) => arg.replaceAll('-', '').split('=').first == key);
+}
+
+void addEntryIfNotSet(List<String> args, String key, String value) {
+  Logger log = GetIt.I.get<Logger>();
+
+  if (_confKeyExists(args, key)) {
+    return;
+  }
+
+  // args are expected on the form -paramsdir=/home/.zside
+  final newEntry = '-$key=$value';
+  log.i('$key not present in conf, adding $newEntry');
+  args.add(newEntry);
+}
+
+extension NetworkExtensions on BitcoinNetwork {
+  String toReadableNet() {
+    switch (this) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+        return 'mainnet';
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+        return 'forknet';
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
+        return 'drynet';
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+        return 'signet';
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+        return 'regtest';
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+        return 'testnet';
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      default:
+        return 'unknown';
+    }
+  }
+
+  /// Get the config section name for this network
+  /// Note: mainnet, forknet and drynet all use 'main' since the forks run on
+  /// mainnet params and are not valid Bitcoin Core section names
+  String toCoreNetwork() {
+    switch (this) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
+        return 'main';
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+        return 'signet';
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+        return 'regtest';
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+        return 'test';
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      default:
+        return 'unknown';
+    }
+  }
+
+  /// Get the Bitcoin Core section name for Bitcoin Core settings (rpcport, etc.)
+  /// Mainnet, forknet and drynet all use 'main' for Bitcoin Core compatibility
+  String toCoreNetworkForBitcoinSettings() {
+    switch (this) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
+        return 'main';
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+        return 'signet';
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+        return 'regtest';
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+        return 'test';
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      default:
+        return 'unknown';
+    }
+  }
+
+  /// User-facing display name for this network
+  /// L2L prefix indicates private test networks maintained by LayerTwo Labs
+  String toDisplayName() {
+    switch (this) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+        return 'BTC Mainnet';
+      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
+        return 'L2L-Forknet';
+      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
+        return 'L2L-Drynet';
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+        return 'L2L-Signet';
+      case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
+        return 'Testnet3';
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+        return 'Regtest';
+      case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
+      default:
+        return 'Unknown';
+    }
+  }
+}

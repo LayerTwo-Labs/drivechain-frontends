@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:sail_ui/models/homepage_configuration.dart';
+import 'package:sidechain_core/models/homepage_configuration.dart';
 import 'package:sail_ui/widgets/homepage/homepage_widget_info.dart';
 
 abstract class HomepageProvider extends ChangeNotifier {

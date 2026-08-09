@@ -6,7 +6,7 @@ on:
       - "bitwindow/server/**"
       - "sidechain-orchestrator/**"
       - "dc-hub/server/**"
-      - "sail_ui/assets/chains_config.json"
+      - "sidechain_core/assets/chains_config.json"
       - ".github/workflows/go.yml"
 
 env:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: Validate chains_config.json copies are identical
         run: |
-          diff sidechain-orchestrator/chains_config.json sail_ui/assets/chains_config.json
+          diff sidechain-orchestrator/chains_config.json sidechain_core/assets/chains_config.json
           diff sidechain-orchestrator/chains_config.json sidechain-orchestrator/config/chains_config.json
 
   go-ci:

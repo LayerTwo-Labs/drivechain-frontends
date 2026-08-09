@@ -37,8 +37,8 @@ check_migrations() {
 
 # Bitcoin conf migrations
 check_migrations \
-    "$REPO_ROOT/sail_ui/lib/migrations/bitcoin_conf" \
-    "$REPO_ROOT/sail_ui/lib/migrations/bitcoin_conf/bitcoin_conf_migrations.dart" \
+    "$REPO_ROOT/sidechain_core/lib/migrations/bitcoin_conf" \
+    "$REPO_ROOT/sidechain_core/lib/migrations/bitcoin_conf/bitcoin_conf_migrations.dart" \
     "bitcoin_conf"
 
 if [ $EXIT_CODE -eq 0 ]; then

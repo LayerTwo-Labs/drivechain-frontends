@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/mocks/mocks.dart';
-import 'package:sail_ui/rpcs/bitcoind_connection.dart';
-import 'package:sail_ui/rpcs/rpc_sidechain.dart';
-import 'package:sail_ui/rpcs/truthcoin_rpc.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
+import 'package:sidechain_core/mocks/mocks.dart';
+import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
+import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
+import 'package:sidechain_core/rpcs/truthcoin_rpc.dart';
+import 'package:sidechain_core/providers/balance_provider.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 
 import '../fixtures/test_data.dart';

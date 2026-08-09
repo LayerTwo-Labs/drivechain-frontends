@@ -153,8 +153,6 @@ class CardHeader extends StatelessWidget {
   }
 }
 
-enum DialogType { info, error, success }
-
 class DialogHeader extends StatelessWidget {
   final Future<void> Function() onClose;
   final String title;
