@@ -517,6 +517,65 @@ func TestElectrumSendSidechainDepositInsufficientFunds(t *testing.T) {
 	assert.Empty(t, fake.broadcast, "nothing is broadcast when funding fails")
 }
 
+// TestElectrumFeeRateSendPricesExternalInputs proves a fee-rate send that spends
+// an external input pays for that input's vbytes too: the broadcast transaction
+// clears the requested rate over its whole vsize, not just the wallet inputs.
+func TestElectrumFeeRateSendPricesExternalInputs(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const (
+		walletAmount = int64(200_000)
+		oldCtip      = int64(500_000)
+		feeRate      = int64(20)
+		slot         = byte(1)
+	)
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: walletAmount, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "5555555555555555555555555555555555555555555555555555555555555555",
+		Vout: 0, Value: walletAmount,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	drivechainScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, slot, txscript.OP_TRUE}
+	treasuryPrev := wire.NewMsgTx(2)
+	treasuryPrev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	treasuryPrev.AddTxOut(wire.NewTxOut(oldCtip, drivechainScript))
+	var buf bytes.Buffer
+	require.NoError(t, treasuryPrev.Serialize(&buf))
+	ctipTxid := treasuryPrev.TxHash().String()
+	fake.hexByID[ctipTxid] = hex.EncodeToString(buf.Bytes())
+
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		FeeRateSatPerVB: feeRate,
+		RawOutputs: []TxOutSpec{
+			{RawScriptHex: hex.EncodeToString(drivechainScript), AmountSats: oldCtip},
+		},
+		ExternalInputs: []ExternalInput{{TxID: ctipTxid, Vout: 0, AmountSats: oldCtip}},
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+
+	var tx wire.MsgTx
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	require.Len(t, tx.TxIn, 2, "external CTIP input + wallet input")
+
+	outSats := int64(0)
+	for _, o := range tx.TxOut {
+		outSats += o.Value
+	}
+	fee := walletAmount + oldCtip - outSats
+	vsize := int64((3*tx.SerializeSizeStripped() + tx.SerializeSize() + 3) / 4)
+	assert.GreaterOrEqual(t, fee, feeRate*vsize,
+		"fee must cover the whole transaction, external input included")
+}
+
 // TestElectrumSendUpdatesCacheInstantly proves a send reflects in balance, UTXOs
 // and history immediately with no re-scan: the fake Esplora still reports the
 // pre-send state, so anything showing the spend came from the local applySpend.
@@ -975,7 +1034,7 @@ func TestCreateElectrumWatchOnlyRejectsBadDescriptor(t *testing.T) {
 
 func TestEstimateFeeSats(t *testing.T) {
 	// 1 native-segwit input (68 vB) + 62 vB of outputs: 11+68+62 = 141 vB at 2 sat/vB.
-	assert.Equal(t, int64(282), estimateFeeSats(1, inputVsize(ScriptNativeSegwit), 62, 2))
+	assert.Equal(t, int64(282), estimateFeeSats(1, inputVsize(ScriptNativeSegwit), 62, 0, 2))
 }
 
 func TestConfsFor(t *testing.T) {
@@ -1294,9 +1353,9 @@ func TestElectrumSendRejectsMultiOutputSubtractFee(t *testing.T) {
 func TestEstimateFeeSatsByScriptKind(t *testing.T) {
 	// 1 input + 2 outputs (62 vB total) at 2 sat/vB.
 	nativeIn, legacyIn, taprootIn := inputVsize(ScriptNativeSegwit), inputVsize(ScriptLegacy), inputVsize(ScriptTaproot)
-	assert.Equal(t, int64(2*(11+68+62)), estimateFeeSats(1, nativeIn, 62, 2))
-	assert.Equal(t, int64(2*(11+148+62)), estimateFeeSats(1, legacyIn, 62, 2))
-	assert.Greater(t, estimateFeeSats(1, legacyIn, 62, 2), estimateFeeSats(1, taprootIn, 62, 2))
+	assert.Equal(t, int64(2*(11+68+62)), estimateFeeSats(1, nativeIn, 62, 0, 2))
+	assert.Equal(t, int64(2*(11+148+62)), estimateFeeSats(1, legacyIn, 62, 0, 2))
+	assert.Greater(t, estimateFeeSats(1, legacyIn, 62, 0, 2), estimateFeeSats(1, taprootIn, 62, 0, 2))
 }
 
 // TestDustThresholdByType: dust scales with the output's script type — the
