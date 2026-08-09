@@ -36,8 +36,10 @@ class BackendStateProvider extends ChangeNotifier {
 
   Timer? _pollTimer;
   bool _polling = false;
+  int _consecutiveFailures = 0;
 
   static const Duration _pollInterval = Duration(seconds: 1);
+  static const int _failuresBeforeDisconnected = 5;
 
   BackendStateProvider(this._orchestrator);
 
@@ -61,16 +63,44 @@ class BackendStateProvider extends ChangeNotifier {
     _polling = true;
     try {
       final resp = await _orchestrator.listBinaries();
+      _consecutiveFailures = 0;
       _apply(resp.binaries);
     } catch (e) {
-      // Transport blip — keep last-known state on screen, try again next
-      // tick. The orchestrator-process keepalive watchdog (separate code
-      // path) will recreate the underlying HTTP/2 transport if it's truly
-      // dead.
+      // A blip keeps the last frame on screen, but an orchestrator that stays
+      // unreachable must stop reading as a healthy stack.
+      _consecutiveFailures++;
+      if (_consecutiveFailures == _failuresBeforeDisconnected) {
+        _log.w('BackendStateProvider: orchestrator unreachable, marking binaries disconnected: $e');
+        _markAllDisconnected();
+      }
       _log.d('BackendStateProvider: listBinaries failed: $e');
     } finally {
       _polling = false;
     }
+  }
+
+  void _markAllDisconnected() {
+    final changedRpcs = <RPCConnection>{};
+    for (final name in binaries.keys) {
+      final rpc = _rpcForBinaryName(name);
+      if (rpc == null) {
+        continue;
+      }
+      // An initializing binary is not connected either, and its spinner would
+      // otherwise run forever.
+      if (!rpc.connected && !rpc.initializingBinary && !rpc.stoppingBinary) {
+        continue;
+      }
+      rpc.connected = false;
+      rpc.initializingBinary = false;
+      rpc.stoppingBinary = false;
+      rpc.connectionError = 'orchestrator not reachable';
+      changedRpcs.add(rpc);
+    }
+    for (final rpc in changedRpcs) {
+      rpc.notifyListeners();
+    }
+    notifyListeners();
   }
 
   void _apply(List<BinaryStatusMsg> statuses) {
