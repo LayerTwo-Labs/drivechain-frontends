@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:uuid/uuid.dart';
 import 'package:sail_ui/sail_ui.dart';
 

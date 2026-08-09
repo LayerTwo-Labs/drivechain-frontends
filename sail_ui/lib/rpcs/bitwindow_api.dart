@@ -6,16 +6,16 @@ import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
-import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
-import 'package:sail_ui/gen/multisig/v1/multisig.connect.client.dart';
-import 'package:sail_ui/gen/utils/v1/utils.pb.dart' as utilspb;
-import 'package:sail_ui/gen/m4/v1/m4.connect.client.dart';
-import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
-import 'package:sail_ui/gen/notification/v1/notification.connect.client.dart';
-import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.connect.client.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
+import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
+import 'package:sidechain_core/gen/multisig/v1/multisig.connect.client.dart';
+import 'package:sidechain_core/gen/utils/v1/utils.pb.dart' as utilspb;
+import 'package:sidechain_core/gen/m4/v1/m4.connect.client.dart';
+import 'package:sidechain_core/gen/m4/v1/m4.pb.dart' as m4pb;
+import 'package:sidechain_core/gen/notification/v1/notification.connect.client.dart';
+import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.connect.client.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// API to the drivechain server.

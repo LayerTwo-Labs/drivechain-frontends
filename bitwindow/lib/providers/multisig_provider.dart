@@ -6,10 +6,10 @@ import 'package:bitwindow/widgets/create_multisig_modal.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart' as tspb;
+import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart' as tspb;
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
-import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
+import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
+import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sail_ui/sail_ui.dart';
 
 OrchestratorMultisigLoungeRPC get _multisigLounge => GetIt.I.get<OrchestratorRPC>().multisigLounge;

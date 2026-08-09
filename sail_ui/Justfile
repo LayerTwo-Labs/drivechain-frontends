@@ -13,10 +13,5 @@ lint: format fix analyze
 gen-version:
     cd ../ && bash scripts/generate-version.sh sail_ui
 
-gen-enforcer:
-    buf generate --template ../buf.dart.gen.yaml https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
-
-gen: gen-enforcer
-    buf generate --template ../buf.dart.gen.yaml ../bitwindow/server
-    buf generate --template ../buf.dart.gen.yaml https://github.com/barebitcoin/btc-buf.git
-    buf generate --template ../buf.dart.gen.yaml ../sidechain-orchestrator
+gen:
+    cd ../sidechain_core && just gen

@@ -4,7 +4,7 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as bwpb;
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
 import 'package:sail_ui/sail_ui.dart';
 
 /// One wallet's claimable pre-fork coins, with the exact UTXOs the sweep spends.

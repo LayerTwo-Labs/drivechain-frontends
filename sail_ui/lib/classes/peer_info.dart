@@ -1,4 +1,4 @@
-import 'package:sail_ui/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' as core_pb;
+import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' as core_pb;
 
 /// Plain-old-data representation of bitcoind's `getpeerinfo` response.
 /// Decoupled from any RPC client — populated either from a btc-buf

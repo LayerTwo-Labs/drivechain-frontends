@@ -1,8 +1,8 @@
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
-import 'package:sail_ui/gen/bmm/v1/bmm.connect.client.dart';
-import 'package:sail_ui/gen/bmm/v1/bmm.pb.dart' as bmmpb;
-import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pbenum.dart';
+import 'package:sidechain_core/gen/bmm/v1/bmm.connect.client.dart';
+import 'package:sidechain_core/gen/bmm/v1/bmm.pb.dart' as bmmpb;
+import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pbenum.dart';
 
 /// Blind merged mining, served by the orchestrator's BMMService. Bidding runs
 /// in the backend: [start] turns it on and [watch] reports what it does.

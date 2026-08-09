@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart';
+import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sail_ui/providers/binaries/binary_provider.dart';
 import 'package:sail_ui/rpcs/bitassets_rpc.dart';
 import 'package:sail_ui/rpcs/bitnames_rpc.dart';

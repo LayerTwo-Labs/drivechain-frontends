@@ -14,7 +14,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 // Re-export BinaryType so callers that only import this file (the historical
 // home of the now-deleted Dart enum) keep working without an extra import.
-export 'package:sail_ui/gen/orchestrator/v1/orchestrator.pbenum.dart' show BinaryType;
+export 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pbenum.dart' show BinaryType;
 
 const kBitwindowBitcoinConfFilename = 'bitwindow-bitcoin.conf';
 

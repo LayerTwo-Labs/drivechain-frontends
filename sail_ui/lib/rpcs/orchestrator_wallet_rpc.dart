@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:connectrpc/protocol/connect.dart' as connect;
 import 'package:fixnum/fixnum.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart' as bwpb;
-import 'package:sail_ui/gen/google/protobuf/empty.pb.dart' as emptypb;
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.connect.client.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
+import 'package:sidechain_core/gen/google/protobuf/empty.pb.dart' as emptypb;
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.connect.client.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
 /// Shared wallet RPC client backed by orchestrator WalletManagerService.
 ///
