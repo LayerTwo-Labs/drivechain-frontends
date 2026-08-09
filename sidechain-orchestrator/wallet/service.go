@@ -1315,6 +1315,11 @@ func (s *Service) RemoveEncryption(password string) error {
 
 	plaintext, err := Decrypt(string(data), key)
 	if err != nil {
+		// An earlier attempt may have written the plaintext and then failed to
+		// delete the metadata; finish that instead of blaming the password.
+		if s.dropStaleEncryptionMetadata(data) {
+			return s.loadWalletFile()
+		}
 		s.log.Warn().Msg("remove encryption failed: incorrect password")
 		return fmt.Errorf("incorrect password")
 	}
@@ -1332,8 +1337,12 @@ func (s *Service) RemoveEncryption(password string) error {
 		return fmt.Errorf("write wallet: %w", err)
 	}
 
-	// Remove metadata file
-	_ = os.Remove(s.metadataFilePath())
+	// Remove metadata file. Until it is gone the wallet is plaintext on disk while
+	// the metadata still claims encryption, so a failure here must not report success.
+	if err := os.Remove(s.metadataFilePath()); err != nil && !os.IsNotExist(err) {
+		s.log.Error().Err(err).Str("path", s.metadataFilePath()).Msg("failed to remove encryption metadata")
+		return fmt.Errorf("remove encryption metadata: %w", err)
+	}
 
 	s.encryptionKey = nil
 	s.unlockedPass = ""
@@ -1640,6 +1649,35 @@ func (s *Service) isEncrypted() bool {
 	return meta.Encrypted
 }
 
+// dropStaleEncryptionMetadata removes wallet_encryption.json when it claims the
+// wallet is encrypted while wallet.json holds readable plaintext. RemoveEncryption
+// writes the plaintext before deleting the metadata, so an interrupted run leaves
+// exactly that state, and the correct password then fails forever. Reports whether
+// the stale metadata was dropped. Must be called with mu held.
+func (s *Service) dropStaleEncryptionMetadata(walletData []byte) bool {
+	if !s.isEncrypted() || !isPlaintextWalletFile(walletData) {
+		return false
+	}
+	if err := os.Remove(s.metadataFilePath()); err != nil && !os.IsNotExist(err) {
+		s.log.Error().Err(err).Str("path", s.metadataFilePath()).Msg("could not remove stale encryption metadata")
+		return false
+	}
+	s.encryptionKey = nil
+	s.unlockedPass = ""
+	s.log.Warn().Msg("wallet file is plaintext but metadata claimed encrypted; dropped stale encryption metadata")
+	return true
+}
+
+// isPlaintextWalletFile reports whether data is an unencrypted wallet file.
+// Ciphertext is base64(iv):base64(ct), so it never parses as wallet JSON.
+func isPlaintextWalletFile(data []byte) bool {
+	var wf WalletFile
+	if err := json.Unmarshal(data, &wf); err != nil {
+		return false
+	}
+	return wf.Version > 0 || len(wf.Wallets) > 0
+}
+
 // locked reports whether the wallet file is encrypted but no key is held, so
 // the stored wallets are neither loaded nor writable. Must be called with mu held.
 func (s *Service) locked() bool {
@@ -1682,6 +1720,9 @@ func (s *Service) loadWalletFile() error {
 	s.log.Debug().Int("file_size", len(data)).Bool("encrypted", s.isEncrypted()).Msg("wallet file read")
 
 	jsonStr := string(data)
+
+	// Recover from an interrupted RemoveEncryption before trusting the metadata.
+	s.dropStaleEncryptionMetadata(data)
 
 	// If encrypted, try to decrypt
 	if s.isEncrypted() {
