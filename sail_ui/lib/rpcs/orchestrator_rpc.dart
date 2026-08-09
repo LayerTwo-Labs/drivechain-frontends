@@ -128,8 +128,10 @@ class OrchestratorRPC {
     );
   }
 
-  Future<StopBinaryResponse> stopBinary(String name, {bool force = false}) {
-    return _unaryClient.stopBinary(StopBinaryRequest(name: name, force: force));
+  /// Sidechains pass forceBackend: true to stop the daemon without closing
+  /// themselves — they are the GUI the orchestrator would otherwise stop too.
+  Future<StopBinaryResponse> stopBinary(String name, {bool force = false, bool forceBackend = false}) {
+    return _unaryClient.stopBinary(StopBinaryRequest(name: name, force: force, forceBackend: forceBackend));
   }
 
   Future<GetBTCPriceResponse> getBTCPrice() {
@@ -200,8 +202,10 @@ class OrchestratorRPC {
   /// immediately. Progress is polled out of [getSyncStatus] — the
   /// SyncProvider already shows download MB on the matching sidechain
   /// slot, so callers don't need to subscribe to anything.
-  Future<DownloadBinaryResponse> downloadBinary(String name, {bool force = false}) {
-    return _unaryClient.downloadBinary(DownloadBinaryRequest(name: name, force: force));
+  /// Sidechains pass forceBackend: true so an update installs the daemon they
+  /// run, not the Flutter bundle BitWindow would launch.
+  Future<DownloadBinaryResponse> downloadBinary(String name, {bool force = false, bool forceBackend = false}) {
+    return _unaryClient.downloadBinary(DownloadBinaryRequest(name: name, force: force, forceBackend: forceBackend));
   }
 
   // ─── server-streaming ─────────────────────────────────────────────────────
@@ -241,8 +245,8 @@ class OrchestratorRPC {
   /// can't surface a phantom "bitcoind is already running" error on Bitcoin
   /// Core's card. Use this for per-daemon Restart buttons; reserve
   /// [startWithL1] for full-chain bootstrap.
-  Future<RestartDaemonResponse> restartDaemon(String name) {
-    return _unaryClient.restartDaemon(RestartDaemonRequest(name: name));
+  Future<RestartDaemonResponse> restartDaemon(String name, {bool forceBackend = false}) {
+    return _unaryClient.restartDaemon(RestartDaemonRequest(name: name, forceBackend: forceBackend));
   }
 
   /// Restart the whole L1 stack (bitcoind + enforcer). The orchestrator owns

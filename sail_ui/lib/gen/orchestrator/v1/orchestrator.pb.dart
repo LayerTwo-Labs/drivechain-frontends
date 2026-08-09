@@ -884,6 +884,7 @@ class DownloadBinaryRequest extends $pb.GeneratedMessage {
   factory DownloadBinaryRequest({
     $core.String? name,
     $core.bool? force,
+    $core.bool? forceBackend,
   }) {
     final $result = create();
     if (name != null) {
@@ -891,6 +892,9 @@ class DownloadBinaryRequest extends $pb.GeneratedMessage {
     }
     if (force != null) {
       $result.force = force;
+    }
+    if (forceBackend != null) {
+      $result.forceBackend = forceBackend;
     }
     return $result;
   }
@@ -905,6 +909,7 @@ class DownloadBinaryRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..aOB(2, _omitFieldNames ? '' : 'force')
+    ..aOB(3, _omitFieldNames ? '' : 'forceBackend')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -951,6 +956,20 @@ class DownloadBinaryRequest extends $pb.GeneratedMessage {
   $core.bool hasForce() => $_has(1);
   @$pb.TagNumber(2)
   void clearForce() => clearField(2);
+
+  /// Download the daemon, never the sidechain's Flutter bundle. Sidechain apps
+  /// set this so an update installs the backend they actually run.
+  @$pb.TagNumber(3)
+  $core.bool get forceBackend => $_getBF(2);
+  @$pb.TagNumber(3)
+  set forceBackend($core.bool v) {
+    $_setBool(2, v);
+  }
+
+  @$pb.TagNumber(3)
+  $core.bool hasForceBackend() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearForceBackend() => clearField(3);
 }
 
 class DownloadBinaryResponse extends $pb.GeneratedMessage {
@@ -1124,6 +1143,7 @@ class StopBinaryRequest extends $pb.GeneratedMessage {
   factory StopBinaryRequest({
     $core.String? name,
     $core.bool? force,
+    $core.bool? forceBackend,
   }) {
     final $result = create();
     if (name != null) {
@@ -1131,6 +1151,9 @@ class StopBinaryRequest extends $pb.GeneratedMessage {
     }
     if (force != null) {
       $result.force = force;
+    }
+    if (forceBackend != null) {
+      $result.forceBackend = forceBackend;
     }
     return $result;
   }
@@ -1145,6 +1168,7 @@ class StopBinaryRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..aOB(2, _omitFieldNames ? '' : 'force')
+    ..aOB(3, _omitFieldNames ? '' : 'forceBackend')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -1191,6 +1215,18 @@ class StopBinaryRequest extends $pb.GeneratedMessage {
   $core.bool hasForce() => $_has(1);
   @$pb.TagNumber(2)
   void clearForce() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get forceBackend => $_getBF(2);
+  @$pb.TagNumber(3)
+  set forceBackend($core.bool v) {
+    $_setBool(2, v);
+  }
+
+  @$pb.TagNumber(3)
+  $core.bool hasForceBackend() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearForceBackend() => clearField(3);
 }
 
 class StopBinaryResponse extends $pb.GeneratedMessage {
@@ -1559,10 +1595,14 @@ class StartWithL1Response extends $pb.GeneratedMessage {
 class RestartDaemonRequest extends $pb.GeneratedMessage {
   factory RestartDaemonRequest({
     $core.String? name,
+    $core.bool? forceBackend,
   }) {
     final $result = create();
     if (name != null) {
       $result.name = name;
+    }
+    if (forceBackend != null) {
+      $result.forceBackend = forceBackend;
     }
     return $result;
   }
@@ -1576,6 +1616,7 @@ class RestartDaemonRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RestartDaemonRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'forceBackend')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -1610,6 +1651,20 @@ class RestartDaemonRequest extends $pb.GeneratedMessage {
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
   void clearName() => clearField(1);
+
+  /// Restart only the daemon, never the sidechain's Flutter bundle. A stopped
+  /// daemon keeps no boot mode to recover, so the caller states it.
+  @$pb.TagNumber(2)
+  $core.bool get forceBackend => $_getBF(1);
+  @$pb.TagNumber(2)
+  set forceBackend($core.bool v) {
+    $_setBool(1, v);
+  }
+
+  @$pb.TagNumber(2)
+  $core.bool hasForceBackend() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearForceBackend() => clearField(2);
 }
 
 class RestartDaemonResponse extends $pb.GeneratedMessage {

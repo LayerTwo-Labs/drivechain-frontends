@@ -335,7 +335,7 @@ func TestIntegration_SetCoreVariant_StopFailure(t *testing.T) {
 		o.process.AdoptProcess(o.configs["bitcoind"], 1)
 
 		var graceful, force atomic.Int32
-		o.stopBinary = func(_ context.Context, name string, f bool) error {
+		o.stopBinary = func(_ context.Context, name string, f bool, _ ...StopOptions) error {
 			require.Equal(t, "bitcoind", name)
 			if !f {
 				graceful.Add(1)
@@ -377,7 +377,7 @@ func TestIntegration_SetCoreVariant_StopFailure(t *testing.T) {
 		o.process.AdoptProcess(o.configs["bitcoind"], 1)
 
 		preDownloads := counts.knots.Load()
-		o.stopBinary = func(_ context.Context, _ string, _ bool) error {
+		o.stopBinary = func(_ context.Context, _ string, _ bool, _ ...StopOptions) error {
 			return errors.New("kill refused")
 		}
 		o.bootBitcoindForVariantSwap = func(_ context.Context) <-chan StartupProgress {

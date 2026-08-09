@@ -44,6 +44,10 @@ Binary defaultBinaryFor(BinaryType type) => switch (type) {
 abstract class Binary {
   Logger get log => GetIt.I.get<Logger>();
 
+  // A sidechain app runs its own daemon, so the alternative build — a GUI
+  // companion BitWindow launches — never applies to it.
+  static bool isSidechainApp = false;
+
   final String name;
   final String version;
   final String description;
@@ -209,7 +213,7 @@ abstract class Binary {
     // plain executable. Mirror sidechain-orchestrator/config.go
     // TestSidechainBinaryPath so chain-settings reads the right mtime
     // instead of the (likely missing) prod-path binary.
-    if (chainLayer == 2 && GetIt.I.get<SettingsProvider>().useTestSidechains) {
+    if (!isSidechainApp && chainLayer == 2 && GetIt.I.get<SettingsProvider>().useTestSidechains) {
       final testDir = Directory(path.join(binDir(appDir.path).path, 'test', baseBinary));
       if (testDir.existsSync()) {
         if (Platform.isMacOS) {
@@ -1562,8 +1566,9 @@ class MetadataConfig {
   final DownloadConfig? _alternativeDownloadConfig;
 
   // if test chains enabled, use those, but only if an alternative config exists
-  DownloadConfig get downloadConfig =>
-      _settingsProvider.useTestSidechains ? _alternativeDownloadConfig ?? _downloadConfig : _downloadConfig;
+  DownloadConfig get downloadConfig => _settingsProvider.useTestSidechains && !Binary.isSidechainApp
+      ? _alternativeDownloadConfig ?? _downloadConfig
+      : _downloadConfig;
 
   bool get hasAlternativeDownloadConfig => _alternativeDownloadConfig != null;
 

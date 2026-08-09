@@ -222,6 +222,9 @@ message GetBinaryVersionResponse {
 message DownloadBinaryRequest {
   string name = 1;
   bool force = 2;
+  // Download the daemon, never the sidechain's Flutter bundle. Sidechain apps
+  // set this so an update installs the backend they actually run.
+  bool force_backend = 3;
 }
 
 message DownloadBinaryResponse {}
@@ -243,6 +246,7 @@ message StartBinaryResponse {
 message StopBinaryRequest {
   string name = 1;
   bool force = 2;
+  bool force_backend = 3;
 }
 
 message StopBinaryResponse {}
@@ -282,6 +286,9 @@ message StartWithL1Response {}
 
 message RestartDaemonRequest {
   string name = 1;
+  // Restart only the daemon, never the sidechain's Flutter bundle. A stopped
+  // daemon keeps no boot mode to recover, so the caller states it.
+  bool force_backend = 2;
 }
 
 message RestartDaemonResponse {}
