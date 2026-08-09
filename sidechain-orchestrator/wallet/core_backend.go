@@ -46,6 +46,12 @@ type CoreBackend struct {
 	mu          sync.Mutex
 	coreWallets map[string]string // walletID -> Core wallet name
 
+	// walletID -> earliest retry of a BIP47 notification descriptor import
+	// that failed. A failure there doesn't block wallet loading, so the
+	// wallet stays cached and later Ensure calls retry the import, gated by
+	// walletLoadingBackoff so a persistently failing rescan can't hot-loop.
+	bip47NotifRetry map[string]time.Time
+
 	// Transient backoff: when bitcoind responds with a "still booting" error
 	// (-4 Wallet already loading, -28 Verifying blocks, …), Ensure returns
 	// the cached error for `walletLoadingBackoff` so the next ~5s of
@@ -62,11 +68,12 @@ var (
 // NewCoreBackend creates the Bitcoin Core wallet backend.
 func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zerolog.Logger) *CoreBackend {
 	return &CoreBackend{
-		svc:         svc,
-		rpc:         rpc,
-		log:         log.With().Str("component", "core-backend").Logger(),
-		params:      params,
-		coreWallets: make(map[string]string),
+		svc:             svc,
+		rpc:             rpc,
+		log:             log.With().Str("component", "core-backend").Logger(),
+		params:          params,
+		coreWallets:     make(map[string]string),
+		bip47NotifRetry: make(map[string]time.Time),
 	}
 }
 
@@ -93,6 +100,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 
 	// Check cache
 	if name, ok := p.coreWallets[walletID]; ok {
+		p.retryBip47NotificationDescriptor(ctx, walletID, name)
 		return name, nil
 	}
 
@@ -147,6 +155,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	if targetWallet.WalletType == WalletTypeBitcoinCore && !targetWallet.IsWatchOnly() {
 		if perr := p.ensureBip47NotificationDescriptor(ctx, walletName, targetWallet.Master.SeedHex); perr != nil {
 			p.log.Warn().Err(perr).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
+			p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
 		}
 	}
 
@@ -180,6 +189,7 @@ func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 func (p *CoreBackend) walletName(ctx context.Context, walletID string) (string, error) {
 	p.mu.Lock()
 	if name, ok := p.coreWallets[walletID]; ok {
+		p.retryBip47NotificationDescriptor(ctx, walletID, name)
 		p.mu.Unlock()
 		return name, nil
 	}
@@ -820,6 +830,28 @@ func importTimestamp(w *WalletData) any {
 		return int64(0)
 	}
 	return "now"
+}
+
+// retryBip47NotificationDescriptor re-imports a notification descriptor whose
+// earlier import failed, so a transient failure doesn't leave an already
+// cached wallet without it forever. No-op unless an import is outstanding and
+// its backoff has elapsed. Caller holds p.mu.
+func (p *CoreBackend) retryBip47NotificationDescriptor(ctx context.Context, walletID, walletName string) {
+	retryAt, pending := p.bip47NotifRetry[walletID]
+	if !pending || time.Now().Before(retryAt) {
+		return
+	}
+	w := p.svc.GetWalletByID(walletID)
+	if w == nil {
+		delete(p.bip47NotifRetry, walletID)
+		return
+	}
+	if err := p.ensureBip47NotificationDescriptor(ctx, walletName, w.Master.SeedHex); err != nil {
+		p.log.Warn().Err(err).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
+		p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
+		return
+	}
+	delete(p.bip47NotifRetry, walletID)
 }
 
 // createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
