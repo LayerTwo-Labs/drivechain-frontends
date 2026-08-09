@@ -15,7 +15,7 @@ import 'package:sail_ui/gen/photon/v1/photon.pb.dart' as pb;
 import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
 import 'package:sail_ui/rpcs/rpc_sidechain.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/models/core_transaction.dart';
 
 /// API to the photon server.
 abstract class PhotonRPC extends SidechainRPC {

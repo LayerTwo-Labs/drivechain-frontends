@@ -1,4 +1,4 @@
 export 'color.dart';
 export 'color_scheme.dart';
-export 'style.dart';
+export 'shadows.dart';
 export 'style_values.dart';
