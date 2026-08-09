@@ -27,6 +27,10 @@ func inputVsize(kind ScriptKind) int {
 	}
 }
 
+// externalInputVsize is the vbytes to spend one external (non-wallet, unsigned)
+// input: outpoint + sequence + empty scriptSig len.
+const externalInputVsize = 32 + 4 + 4 + 1
+
 // walletInputVsize returns the vbytes to spend one of a wallet's inputs, sized
 // from its descriptor — accurate for m-of-n multisig, where the witness scales
 // with the threshold and key count rather than a fixed 2-of-3 guess.
@@ -164,9 +168,10 @@ func dustForOutput(o TxOutSpec, net *chaincfg.Params) int64 {
 	return dustThreshold(addressKind(o.Address, net))
 }
 
-// estimateFeeSats returns the fee for a tx of nIn inputs (inVsize vbytes each)
-// and outVsize total output vbytes at feeRate sat/vB, plus ~11 vB of overhead.
-func estimateFeeSats(nIn, inVsize, outVsize int, feeRate float64) int64 {
-	vsize := 11 + nIn*inVsize + outVsize
+// estimateFeeSats returns the fee for a tx of nIn inputs (inVsize vbytes each),
+// outVsize total output vbytes and extraVsize vbytes of any further inputs, at
+// feeRate sat/vB, plus ~11 vB of overhead.
+func estimateFeeSats(nIn, inVsize, outVsize, extraVsize int, feeRate float64) int64 {
+	vsize := 11 + nIn*inVsize + outVsize + extraVsize
 	return int64(math.Ceil(float64(vsize) * feeRate))
 }

@@ -798,9 +798,9 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 
 	// External (non-wallet) inputs — e.g. an anyone-can-spend sidechain CTIP —
 	// contribute their value toward the outputs but are not signed by us. Their
-	// vsize is not added to fee estimation, so callers that supply them use a
-	// fixed fee (FixedFeeSats).
+	// vsize still ships in the transaction, so it is priced into the fee.
 	externalSats := int64(0)
+	extVsize := externalInputVsize * len(req.ExternalInputs)
 	for _, ei := range req.ExternalInputs {
 		externalSats += ei.AmountSats
 	}
@@ -857,7 +857,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		if withChange {
 			outVsize += outputVsizeForKind(d.Kind)
 		}
-		return estimateFeeSats(nIn, inVsize, outVsize, feeRate)
+		return estimateFeeSats(nIn, inVsize, outVsize, extVsize, feeRate)
 	}
 
 	i := 0
