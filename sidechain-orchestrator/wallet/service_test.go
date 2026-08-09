@@ -220,6 +220,56 @@ func TestServiceRemoveEncryption(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(data, &check), "wallet.json should be valid JSON after removing encryption")
 }
 
+// staleEncryptionMetadata returns a service whose wallet.json is plaintext while
+// wallet_encryption.json still claims encryption — what a RemoveEncryption that
+// died before deleting the metadata leaves behind. Skips Init so the file watcher
+// cannot reload (and heal) the hand-restored metadata concurrently.
+func staleEncryptionMetadata(t *testing.T, password string) (*Service, string) {
+	t.Helper()
+	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	svc := NewService(t.TempDir(), log)
+
+	_, err := svc.GenerateWallet("Stale Meta", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.EncryptWallet(password))
+
+	metaPath := svc.metadataFilePath()
+	metaBytes, err := os.ReadFile(metaPath)
+	require.NoError(t, err)
+	require.NoError(t, svc.RemoveEncryption(password))
+	require.NoError(t, os.WriteFile(metaPath, metaBytes, 0600))
+	require.True(t, svc.IsEncrypted())
+
+	return svc, metaPath
+}
+
+// Reloading a wallet left in that state must drop the stale metadata instead of
+// leaving the correct password rejected forever.
+func TestServiceStaleEncryptionMetadataDroppedOnLoad(t *testing.T) {
+	svc, metaPath := staleEncryptionMetadata(t, "mypass")
+
+	svc.mu.Lock()
+	err := svc.loadWalletFile()
+	svc.mu.Unlock()
+	require.NoError(t, err)
+
+	assert.False(t, svc.IsEncrypted())
+	assert.True(t, svc.IsUnlocked())
+	assert.Len(t, svc.ListWallets(), 1)
+	_, err = os.Stat(metaPath)
+	assert.True(t, os.IsNotExist(err), "stale encryption metadata should be gone")
+}
+
+// Retrying RemoveEncryption must also recover, rather than failing the correct
+// password against the plaintext wallet.json.
+func TestServiceStaleEncryptionMetadataRemoveEncryptionRetry(t *testing.T) {
+	svc, _ := staleEncryptionMetadata(t, "mypass")
+
+	require.NoError(t, svc.RemoveEncryption("mypass"))
+	assert.False(t, svc.IsEncrypted())
+	assert.Len(t, svc.ListWallets(), 1)
+}
+
 func TestServiceSwitchWallet(t *testing.T) {
 	svc := newTestService(t)
 
