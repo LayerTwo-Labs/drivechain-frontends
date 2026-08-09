@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
 enum CosignerSource { software, xpub, file, qr, device }

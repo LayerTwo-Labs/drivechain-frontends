@@ -4,8 +4,8 @@ import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.client.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.connect.client.dart';
+import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// API to the enforcer server

@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
+import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 import 'package:bitwindow/env.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';

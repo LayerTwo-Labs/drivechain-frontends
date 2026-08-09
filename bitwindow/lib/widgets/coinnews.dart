@@ -15,7 +15,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
+import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 

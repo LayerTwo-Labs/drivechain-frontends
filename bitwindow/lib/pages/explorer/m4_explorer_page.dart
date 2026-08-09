@@ -4,8 +4,8 @@ import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
-import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
+import 'package:sidechain_core/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
+import 'package:sidechain_core/gen/m4/v1/m4.pb.dart' as m4pb;
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()

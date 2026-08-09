@@ -1,7 +1,7 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
+import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart';
+import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 
 import 'mocks/api_mock.dart';
 

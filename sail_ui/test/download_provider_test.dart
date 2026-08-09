@@ -2,7 +2,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
+import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
 import 'package:sail_ui/sail_ui.dart';
 
 class _FakeOrchestratorRPC extends OrchestratorRPC {

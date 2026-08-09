@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sail_ui/config/binaries.dart';
-import 'package:sail_ui/gen/orchestrator/v1/orchestrator.pbenum.dart';
+import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pbenum.dart';
 
 /// Callback to gracefully shut down all running processes before an update.
 /// Should call BinaryProvider.onShutdown() or equivalent.

@@ -7,7 +7,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
+import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 

@@ -1223,6 +1223,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  sidechain_core:
+    dependency: "direct main"
+    description:
+      path: "../sidechain_core"
+      relative: true
+    source: path
+    version: "0.0.1"
   skeletonizer:
     dependency: "direct main"
     description:

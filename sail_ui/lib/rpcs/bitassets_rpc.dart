@@ -6,8 +6,8 @@ import 'package:convert/convert.dart' show hex;
 import 'package:fixnum/fixnum.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/bitassets/v1/bitassets.connect.client.dart';
-import 'package:sail_ui/gen/bitassets/v1/bitassets.pb.dart' as pb;
+import 'package:sidechain_core/gen/bitassets/v1/bitassets.connect.client.dart';
+import 'package:sidechain_core/gen/bitassets/v1/bitassets.pb.dart' as pb;
 import 'package:sail_ui/sail_ui.dart';
 
 abstract class BitAssetsRPC extends SidechainRPC {

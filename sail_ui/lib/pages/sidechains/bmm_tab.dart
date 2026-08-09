@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/bmm/v1/bmm.pb.dart' as bmmpb;
+import 'package:sidechain_core/gen/bmm/v1/bmm.pb.dart' as bmmpb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
