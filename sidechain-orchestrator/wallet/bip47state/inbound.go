@@ -38,23 +38,20 @@ type InboundNotification struct {
 type InboundStore struct {
 	path string
 
-	mu      sync.Mutex
-	loaded  bool
-	rows    map[string]*InboundNotification
-	cursors map[string]int
+	mu     sync.Mutex
+	loaded bool
+	rows   map[string]*InboundNotification
 }
 
 // inboundFile is the on-disk shape.
 type inboundFile struct {
-	Inbound     []*InboundNotification `json:"inbound"`
-	ScanCursors map[string]int         `json:"scan_cursors"`
+	Inbound []*InboundNotification `json:"inbound"`
 }
 
 func NewInboundStore(dir string) *InboundStore {
 	return &InboundStore{
-		path:    filepath.Join(dir, inboundFileName),
-		rows:    make(map[string]*InboundNotification),
-		cursors: make(map[string]int),
+		path: filepath.Join(dir, inboundFileName),
+		rows: make(map[string]*InboundNotification),
 	}
 }
 
@@ -81,9 +78,6 @@ func (s *InboundStore) ensureLoadedLocked() error {
 	for _, r := range file.Inbound {
 		s.rows[inboundKey(r.WalletID, r.SenderPaymentCode)] = r
 	}
-	if file.ScanCursors != nil {
-		s.cursors = file.ScanCursors
-	}
 	s.loaded = true
 	return nil
 }
@@ -100,10 +94,7 @@ func (s *InboundStore) flushLocked() error {
 		}
 		return rows[i].SenderPaymentCode < rows[j].SenderPaymentCode
 	})
-	data, err := json.MarshalIndent(inboundFile{
-		Inbound:     rows,
-		ScanCursors: s.cursors,
-	}, "", "  ")
+	data, err := json.MarshalIndent(inboundFile{Inbound: rows}, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode bip47 inbound state: %w", err)
 	}
@@ -195,29 +186,6 @@ func (s *InboundStore) ListByWallet(walletID string) ([]*InboundNotification, er
 	return out, nil
 }
 
-// ScanCursor returns the listtransactions skip-count for this wallet.
-func (s *InboundStore) ScanCursor(walletID string) (int, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.ensureLoadedLocked(); err != nil {
-		return 0, err
-	}
-	return s.cursors[walletID], nil
-}
-
-func (s *InboundStore) SetScanCursor(walletID string, n int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.ensureLoadedLocked(); err != nil {
-		return err
-	}
-	if s.cursors[walletID] == n {
-		return nil
-	}
-	s.cursors[walletID] = n
-	return s.flushLocked()
-}
-
 // Rebind points the store at another network's directory, dropping state
 // loaded from the previous one.
 func (s *InboundStore) Rebind(dir string) {
@@ -225,6 +193,5 @@ func (s *InboundStore) Rebind(dir string) {
 	defer s.mu.Unlock()
 	s.path = filepath.Join(dir, inboundFileName)
 	s.rows = make(map[string]*InboundNotification)
-	s.cursors = make(map[string]int)
 	s.loaded = false
 }

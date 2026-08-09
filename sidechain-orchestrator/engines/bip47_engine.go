@@ -55,6 +55,11 @@ type BIP47Engine struct {
 	// notifWatched records wallets whose own notification key has been
 	// registered with the backend this process, so we only do it once.
 	notifWatched map[string]bool
+	// scanned records every notification txid this process already examined,
+	// keyed by wallet. The store keys a sender's first txid only, so a second
+	// notification from a known sender, and a malformed one, would otherwise be
+	// fetched and decoded on every pass.
+	scanned map[string]map[string]bool
 }
 
 func NewBIP47Engine(log zerolog.Logger, svc *wallet.Service, walletEngine *wallet.WalletEngine, inbound *bip47state.InboundStore) *BIP47Engine {
@@ -64,6 +69,7 @@ func NewBIP47Engine(log zerolog.Logger, svc *wallet.Service, walletEngine *walle
 		engine:       walletEngine,
 		inbound:      inbound,
 		notifWatched: make(map[string]bool),
+		scanned:      make(map[string]map[string]bool),
 	}
 }
 
@@ -74,6 +80,7 @@ func (e *BIP47Engine) ResetForNetwork(networkDir string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.notifWatched = make(map[string]bool)
+	e.scanned = make(map[string]map[string]bool)
 }
 
 // Run loops until ctx is cancelled. Errors from a single tick are logged and
@@ -157,8 +164,8 @@ func (e *BIP47Engine) ensureNotificationWatched(ctx context.Context, backend wal
 	return nil
 }
 
-// scanWallet walks listtransactions forward from the persisted cursor looking
-// for receives at this wallet's BIP47 notification address. For each one, it
+// scanWallet walks the wallet's whole listtransactions history looking for
+// receives at this wallet's BIP47 notification address. For each one, it
 // fetches the full tx, extracts the OP_RETURN payload + first input's pubkey,
 // decodes the sender's payment code, and records the inbound notification.
 func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, net *chaincfg.Params) error {
@@ -168,13 +175,27 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 	}
 	wantAddr := notifAddr.EncodeAddress()
 
-	cursor, err := e.inbound.ScanCursor(walletID)
+	// Notifications already recorded need no second look — skipping them keeps
+	// the re-walk below free of repeated getrawtransaction calls.
+	known, err := e.inbound.ListByWallet(walletID)
 	if err != nil {
-		return fmt.Errorf("read scan cursor: %w", err)
+		return fmt.Errorf("list inbound: %w", err)
+	}
+	recorded := e.seenTxIDs(walletID)
+	for _, n := range known {
+		recorded[n.FirstNotificationTxID] = true
 	}
 
+	// skip counts from the newest entry, so it is a within-pass pagination
+	// offset only: every pass restarts at 0, otherwise newly arrived
+	// notifications land in the skipped prefix and are never seen. The walk
+	// does not stop at a remembered row: Core returns each page oldest-first
+	// while skip counts from the newest, so no single row bounds the history on
+	// every backend. `scanned` still keeps the costly getrawtransaction calls
+	// down to one per notification.
+	skip := 0
 	for {
-		batch, err := e.engine.Backend().ListTransactionsRange(ctx, walletID, bip47ListTxBatchSize, cursor)
+		batch, err := e.engine.Backend().ListTransactionsRange(ctx, walletID, bip47ListTxBatchSize, skip)
 		if err != nil {
 			return fmt.Errorf("listtransactions: %w", err)
 		}
@@ -182,11 +203,13 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 			break
 		}
 		for _, tx := range batch {
-			if tx.Category != "receive" || tx.Address != wantAddr {
+			if tx.Category != "receive" || tx.Address != wantAddr || recorded[tx.TxID] {
 				continue
 			}
 			senderCode, blockTime, err := e.decodeNotificationTx(ctx, walletID, tx.TxID, notifPriv)
 			if err != nil {
+				// A backend error here is transient, so leave the transaction
+				// unmarked and let the next pass retry it.
 				e.log.Debug().Err(err).Str("txid", tx.TxID).Msg("skip non-bip47 receive at notification address")
 				continue
 			}
@@ -201,16 +224,18 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 				e.log.Warn().Err(err).Str("txid", tx.TxID).Msg("record inbound failed")
 				continue
 			}
+			// Recorded, so no later pass has to decode it again. The store keys
+			// a sender's first txid only, so a second notification from a known
+			// sender needs this marker of its own.
+			e.markScanned(walletID, tx.TxID)
+			recorded[tx.TxID] = true
 			e.log.Info().
 				Str("wallet", walletID).
 				Str("sender", senderCode).
 				Str("txid", tx.TxID).
 				Msg("recorded inbound bip47 notification")
 		}
-		cursor += len(batch)
-		if err := e.inbound.SetScanCursor(walletID, cursor); err != nil {
-			return fmt.Errorf("save scan cursor: %w", err)
-		}
+		skip += len(batch)
 		if len(batch) < bip47ListTxBatchSize {
 			break
 		}
@@ -490,4 +515,28 @@ func pushedDataItems(script []byte) ([][]byte, error) {
 		i += size
 	}
 	return out, nil
+}
+
+// seenTxIDs returns a copy of the notification txids already examined for a
+// wallet, so the caller can add to it without holding the lock.
+func (e *BIP47Engine) seenTxIDs(walletID string) map[string]bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	out := make(map[string]bool, len(e.scanned[walletID]))
+	for txid := range e.scanned[walletID] {
+		out[txid] = true
+	}
+	return out
+}
+
+func (e *BIP47Engine) markScanned(walletID, txid string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.scanned == nil {
+		e.scanned = make(map[string]map[string]bool)
+	}
+	if e.scanned[walletID] == nil {
+		e.scanned[walletID] = make(map[string]bool)
+	}
+	e.scanned[walletID][txid] = true
 }
