@@ -4,9 +4,9 @@ import 'package:bitassets/providers/bitassets_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/rpcs/bitassets_rpc.dart';
-import 'package:sail_ui/settings/client_settings.dart';
-import 'package:sail_ui/settings/hash_plaintext_settings.dart';
+import 'package:sidechain_core/rpcs/bitassets_rpc.dart';
+import 'package:sidechain_core/settings/client_settings.dart';
+import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
 import 'package:thirds/blake3.dart';
 
 import 'mocks/rpc_mock_bitassets.dart';

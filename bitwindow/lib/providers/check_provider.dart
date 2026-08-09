@@ -1,15 +1,15 @@
-import 'package:sail_ui/providers/network_scoped.dart';
+import 'package:sidechain_core/providers/network_scoped.dart';
 import 'dart:async';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/providers/sync_provider.dart';
-import 'package:sail_ui/providers/wallet_reader_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sidechain_core/providers/sync_provider.dart';
+import 'package:sidechain_core/providers/wallet_reader_provider.dart';
+import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 /// Apply a CheckChequeFundingResponse to the in-memory cheque list. Returns
 /// true when [checks] was mutated and listeners should be notified.

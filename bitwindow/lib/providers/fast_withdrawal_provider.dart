@@ -1,4 +1,4 @@
-import 'package:sail_ui/providers/network_scoped.dart';
+import 'package:sidechain_core/providers/network_scoped.dart';
 import 'dart:convert';
 
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -6,9 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:sail_ui/rpcs/bitnames_rpc.dart';
-import 'package:sail_ui/rpcs/rpc_sidechain.dart';
-import 'package:sail_ui/rpcs/thunder_rpc.dart';
+import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
+import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
+import 'package:sidechain_core/rpcs/thunder_rpc.dart';
 
 enum FastWithdrawalStage {
   idle,

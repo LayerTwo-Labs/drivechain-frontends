@@ -1,4 +1,4 @@
-import 'package:sail_ui/providers/network_scoped.dart';
+import 'package:sidechain_core/providers/network_scoped.dart';
 import 'dart:async';
 
 import 'package:bitwindow/providers/blockchain_provider.dart';
@@ -7,17 +7,17 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/bitcoin.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/env.dart';
+import 'package:sidechain_core/bitcoin.dart';
+import 'package:sidechain_core/classes/rpc_connection.dart';
+import 'package:sidechain_core/env.dart';
 import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/wallet_reader_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
-import 'package:sail_ui/rpcs/orchestrator_rpc.dart';
-import 'package:sail_ui/rpcs/orchestrator_wallet_rpc.dart';
+import 'package:sidechain_core/providers/balance_provider.dart';
+import 'package:sidechain_core/providers/wallet_reader_provider.dart';
+import 'package:sidechain_core/rpcs/bitwindow_api.dart';
+import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
+import 'package:sidechain_core/rpcs/orchestrator_wallet_rpc.dart';
 
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions

@@ -1,5 +1,5 @@
 import 'package:fixnum/src/int64.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart';
 import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
 import 'package:sidechain_core/gen/bitwindowd/v1/bitwindowd.pb.dart';
@@ -9,7 +9,7 @@ import 'package:sidechain_core/gen/misc/v1/misc.pb.dart';
 import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
 import 'package:sidechain_core/gen/utils/v1/utils.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 class MockAPI extends BitwindowRPC {
   @override

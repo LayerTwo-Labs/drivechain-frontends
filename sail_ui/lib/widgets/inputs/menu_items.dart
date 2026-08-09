@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
-import 'package:sail_ui/utils/explorer_url.dart';
+import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _menuItemHeight = 33.0;

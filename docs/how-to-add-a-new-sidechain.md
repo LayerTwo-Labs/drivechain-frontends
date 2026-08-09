@@ -40,14 +40,14 @@ Keep these in mind and most of the "why" below is obvious.
 Add your binary entry to **all three** copies; CI (`.github/workflows/go.yml`,
 job "chains_config.json sync") fails if they differ by a single byte:
 
-- `sail_ui/assets/chains_config.json`
+- `sidechain_core/assets/chains_config.json`
 - `sidechain-orchestrator/chains_config.json`
 - `sidechain-orchestrator/config/chains_config.json`
 
 In the same change you **must**:
 
 - Bump the top-level `version`.
-- Add a matching migration file `sail_ui/assets/migrations/NNN_chains_config.json`
+- Add a matching migration file `sidechain_core/assets/migrations/NNN_chains_config.json`
   (next number). A migration is either a full config or a compact
   `"migration": "patch"` that deep-merges. **Skipping this freezes existing
   installs on stale config** — it has caused a real runtime crash.
@@ -62,7 +62,7 @@ Entry fields to set: `type: "sidechain"`, `slot`, `name`, `version`,
 - Add `BINARY_TYPE_<NAME>` to the enum in
   `sidechain-orchestrator/proto/orchestrator/v1/orchestrator.proto`.
 - **Regenerate with `just gen`.** Never hand-edit the generated files
-  (`sidechain-orchestrator/gen/**`, `sail_ui/lib/gen/**`). If `just gen` is
+  (`sidechain-orchestrator/gen/**`, `sidechain_core/lib/gen/**`). If `just gen` is
   broken, fix the justfile — don't shell out to `buf` manually and don't patch
   generated code by hand. Generated Go and Dart must both pick up the new value.
 
@@ -83,19 +83,19 @@ Entry fields to set: `type: "sidechain"`, `slot`, `name`, `version`,
 
 ### 4. Frontend wiring (`sail_ui` + `bitwindow`)
 
-- `sail_ui/lib/config/sidechains.dart` — add the `Sidechain` subclass (override
+- `sidechain_core/lib/config/sidechains.dart` — add the `Sidechain` subclass (override
   `slot`, `type`, `color`, `copyWith`) and add cases to `Sidechain.fromString`
   and `Sidechain.fromBinary`.
-- `sail_ui/lib/config/binaries.dart` — add cases to `defaultBinaryFor`, both
+- `sidechain_core/lib/config/binaries.dart` — add cases to `defaultBinaryFor`, both
   `BinaryPaths` switches, `_binaryTypeFromJsonKey`, `binaryTypeToJsonKey`, and
   `binaryFromJson`.
-- `sail_ui/lib/config/sidechain_main.dart` — add to `sidechainBinaries`.
-- `sail_ui/lib/providers/backend_state_provider.dart` — add to
+- `sidechain_core/lib/config/sidechains.dart` — add to `sidechainBinaries`.
+- `sidechain_core/lib/providers/backend_state_provider.dart` — add to
   `_binaryTypeFromName` and `_rpcForBinaryName` (the latter is how orchestrator
   status gets mirrored onto your RPC client).
-- `sail_ui/lib/providers/binaries/binary_provider.dart` — add to
+- `sidechain_core/lib/providers/binaries/binary_provider.dart` — add to
   `orchestratorName` (drives start/stop/download dispatch) and `_rpcFor`.
-- `sail_ui/lib/rpcs/<name>_rpc.dart` — the Dart RPC client, extending
+- `sidechain_core/lib/rpcs/<name>_rpc.dart` — the Dart RPC client, extending
   `SidechainRPC` (`rpc_sidechain.dart`). Implement `getDepositAddress`,
   `getBlockCount`, balance, etc. Register it in `bitwindow/lib/main.dart`
   (`GetIt.I.registerSingleton<...RPC>(...)`).
@@ -119,7 +119,7 @@ integrity verification** of a downloaded binary. Hashes are checked against both
 
 If Layer Two Labs does not develop/vet the chain, override
 `developedByLayerTwoLabs => false` on the `Sidechain` subclass
-(`sail_ui/lib/config/binaries.dart` defines the flag, default `true`). The
+(`sidechain_core/lib/config/binaries.dart` defines the flag, default `true`). The
 Download button shows a risk warning before downloading untrusted chains.
 
 ---
@@ -169,6 +169,6 @@ example of the deltas and the open design decisions.
 - `cd sidechain-orchestrator && go build ./... && go test ./...`
 - `cd sail_ui && dart analyze` and `cd bitwindow && dart analyze`
 - The three `chains_config.json` copies are byte-identical:
-  `diff sidechain-orchestrator/chains_config.json sail_ui/assets/chains_config.json`
+  `diff sidechain-orchestrator/chains_config.json sidechain_core/assets/chains_config.json`
 - Launch the app, confirm the new slot appears, downloads (warning if
   untrusted), starts, shows `connected`, and can produce a deposit address.

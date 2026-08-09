@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/providers/wallet_reader_provider.dart';
+import 'package:sidechain_core/providers/wallet_reader_provider.dart';
 
 typedef CreateWalletRoute = PageRouteInfo Function(VoidCallback onWalletCreated);
 

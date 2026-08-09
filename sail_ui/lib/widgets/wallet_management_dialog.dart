@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sail_ui/models/wallet_gradient.dart';
-import 'package:sail_ui/models/wallet_metadata.dart';
+import 'package:sidechain_core/models/wallet_gradient.dart';
+import 'package:sidechain_core/models/wallet_metadata.dart';
 import 'package:sail_ui/theme/theme.dart';
 import 'package:sail_ui/widgets/buttons/button.dart';
 import 'package:sail_ui/widgets/core/sail_text.dart';

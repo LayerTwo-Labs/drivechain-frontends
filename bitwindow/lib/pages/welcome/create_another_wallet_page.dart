@@ -429,14 +429,13 @@ class _BackgroundSelectionStep extends StatelessWidget {
                   ),
                   itemCount: allBackgrounds.length,
                   itemBuilder: (context, index) {
-                    final bgAsset = allBackgrounds[index];
-                    final bgFileName = bgAsset.toAssetPath().split('/').last;
+                    final bgFileName = allBackgrounds[index];
                     final isSelected = selectedGradient?.backgroundSvg == bgFileName;
                     final isTaken = takenBackgrounds.contains(bgFileName);
 
                     return _BackgroundTile(
                       key: ValueKey('${bgFileName}_$isSelected'),
-                      bgAsset: bgAsset,
+                      bgSvg: bgFileName,
                       isSelected: isSelected,
                       isTaken: isTaken,
                       onTap: () {
@@ -472,14 +471,14 @@ class _BackgroundSelectionStep extends StatelessWidget {
 }
 
 class _BackgroundTile extends StatefulWidget {
-  final SailSVGAsset bgAsset;
+  final String bgSvg;
   final bool isSelected;
   final bool isTaken;
   final VoidCallback onTap;
 
   const _BackgroundTile({
     super.key,
-    required this.bgAsset,
+    required this.bgSvg,
     required this.isSelected,
     required this.isTaken,
     required this.onTap,
@@ -524,7 +523,7 @@ class _BackgroundTileState extends State<_BackgroundTile> {
                   fit: StackFit.expand,
                   children: [
                     SizedBox.expand(
-                      child: FittedBox(fit: BoxFit.cover, child: SailSVG.fromAsset(widget.bgAsset)),
+                      child: BackgroundSvg(widget.bgSvg),
                     ),
                     if (widget.isTaken)
                       Container(

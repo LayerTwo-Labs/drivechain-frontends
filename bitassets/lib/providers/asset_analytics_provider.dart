@@ -3,9 +3,9 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/env.dart';
-import 'package:sail_ui/ticker.dart';
-import 'package:sail_ui/rpcs/bitassets_rpc.dart';
+import 'package:sidechain_core/env.dart';
+import 'package:sidechain_core/ticker.dart';
+import 'package:sidechain_core/rpcs/bitassets_rpc.dart';
 
 /// Represents a user's holding of a specific asset
 class AssetHolding {

@@ -5,6 +5,7 @@
 set -e
 
 packages=(
+  sidechain_core
   sail_ui
   bitwindow
   thunder

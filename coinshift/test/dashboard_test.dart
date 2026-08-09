@@ -8,14 +8,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/mocks/mocks.dart';
+import 'package:sidechain_core/mocks/mocks.dart';
 import 'package:sail_ui/pages/sidechains/parent_chain_page.dart';
-import 'package:sail_ui/providers/balance_provider.dart';
-import 'package:sail_ui/providers/sidechain/address_provider.dart';
-import 'package:sail_ui/providers/sidechain/sidechain_transactions_provider.dart';
-import 'package:sail_ui/rpcs/bitcoind_connection.dart';
-import 'package:sail_ui/rpcs/rpc_sidechain.dart';
-import 'package:sail_ui/rpcs/coinshift_rpc.dart';
+import 'package:sidechain_core/providers/balance_provider.dart';
+import 'package:sidechain_core/providers/sidechain/address_provider.dart';
+import 'package:sidechain_core/providers/sidechain/sidechain_transactions_provider.dart';
+import 'package:sidechain_core/rpcs/bitcoind_connection.dart';
+import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
+import 'package:sidechain_core/rpcs/coinshift_rpc.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';

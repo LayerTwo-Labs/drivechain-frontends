@@ -8,7 +8,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/pages/router.dart';
-import 'package:sail_ui/providers/price_provider.dart';
+import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 // register all global dependencies, for use in views, or in view models
@@ -82,6 +82,7 @@ Future<void> initSidechainDependencies({
   }
 
   // Initialize BitcoinConfProvider eagerly to load config before UI renders
+  BitcoinConfProvider.promptForDataDir = promptForBitcoinDataDir;
   final bitcoinConfProvider = await BitcoinConfProvider.create(router);
   if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
     GetIt.I.registerLazySingleton<BitcoinConfProvider>(() => bitcoinConfProvider);
@@ -353,32 +354,3 @@ List<Binary> get allBinaries => [
   ...sidechainBinaries,
   resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDED, () => ZSided()),
 ];
-
-List<Binary> get coreBinaries => [
-  resolveFromConfig(BinaryType.BINARY_TYPE_BITCOIND, () => BitcoinCore()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_ENFORCER, () => Enforcer()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_BITWINDOWD, () => BitWindow()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_ORCHESTRATORD, () => Orchestratord()),
-];
-
-List<Binary> get sidechainBinaries => [
-  resolveFromConfig(BinaryType.BINARY_TYPE_THUNDER, () => Thunder()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_TRUTHCOIN, () => Truthcoin()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_PHOTON, () => Photon()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_BITNAMES, () => BitNames()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_BITASSETS, () => BitAssets()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_COINSHIFT, () => CoinShift()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDE, () => ZSide()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_LIQUID_SIGNET, () => LiquidSignet()),
-];
-
-Binary resolveFromConfig(BinaryType type, Binary Function() fallback) {
-  if (GetIt.I.isRegistered<ChainsConfigProvider>()) {
-    final configProvider = GetIt.I.get<ChainsConfigProvider>();
-    final binary = configProvider.buildBinaryByType(type);
-    if (binary != null) {
-      return binary;
-    }
-  }
-  return fallback();
-}

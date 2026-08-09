@@ -49,14 +49,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.7.0"
-  asn1lib:
-    dependency: transitive
-    description:
-      name: asn1lib
-      sha256: "9a8f69025044eb466b9b60ef3bc3ac99b4dc6c158ae9c56d25eeccf5bc56d024"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.6.5"
   async:
     dependency: transitive
     description:
@@ -113,22 +105,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
-  base58check:
-    dependency: transitive
-    description:
-      name: base58check
-      sha256: "6c300dfc33e598d2fe26319e13f6243fea81eaf8204cb4c6b69ef20a625319a5"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.0"
-  bip39_mnemonic:
-    dependency: transitive
-    description:
-      name: bip39_mnemonic
-      sha256: dd6bdfc2547d986b2c00f99bba209c69c0b6fa5c1a185e1f728998282f1249d5
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.1"
   boolean_selector:
     dependency: transitive
     description:
@@ -321,14 +297,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0+8.4.0"
-  dart_bip32_bip44:
-    dependency: transitive
-    description:
-      name: dart_bip32_bip44
-      sha256: ca8417bac434f2ece417b03818d91fe2d1d036e5aa568743872dede401660560
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
   dart_coin_rpc:
     dependency: "direct main"
     description:
@@ -394,14 +362,6 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
-  encrypt:
-    dependency: transitive
-    description:
-      name: encrypt
-      sha256: "62d9aa4670cc2a8798bab89b39fc71b6dfbacf615de6cf5001fb39f7e4a996a2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.3"
   fake_async:
     dependency: transitive
     description:
@@ -681,14 +641,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.1"
-  js:
-    dependency: transitive
-    description:
-      name: js
-      sha256: "53385261521cc4a0c4658fd0ad07a7d14591cf8fc33abbceae306ddb974888dc"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.2"
   json_annotation:
     dependency: transitive
     description:
@@ -905,14 +857,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
-  pointycastle:
-    dependency: transitive
-    description:
-      name: pointycastle
-      sha256: "4be0097fcf3fd3e8449e53730c631200ebc7b88016acecab2b0da2f0149222fe"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.9.1"
   pool:
     dependency: transitive
     description:
@@ -1057,7 +1001,7 @@ packages:
     source: hosted
     version: "3.0.0"
   sidechain_core:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../sidechain_core"
       relative: true
@@ -1188,14 +1132,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.1"
-  unorm_dart:
-    dependency: transitive
-    description:
-      name: unorm_dart
-      sha256: "0c69186b03ca6addab0774bcc0f4f17b88d4ce78d9d4d8f0619e30a99ead58e7"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.2"
   url_launcher:
     dependency: transitive
     description:

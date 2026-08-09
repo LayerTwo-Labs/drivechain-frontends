@@ -3,10 +3,10 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/env.dart';
-import 'package:sail_ui/rpcs/bitassets_rpc.dart';
-import 'package:sail_ui/settings/client_settings.dart';
-import 'package:sail_ui/settings/hash_plaintext_settings.dart';
+import 'package:sidechain_core/env.dart';
+import 'package:sidechain_core/rpcs/bitassets_rpc.dart';
+import 'package:sidechain_core/settings/client_settings.dart';
+import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
 import 'package:thirds/blake3.dart';
 
 class BitAssetsProvider extends ChangeNotifier {

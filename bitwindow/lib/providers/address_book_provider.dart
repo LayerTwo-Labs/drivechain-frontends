@@ -1,9 +1,9 @@
-import 'package:sail_ui/providers/network_scoped.dart';
+import 'package:sidechain_core/providers/network_scoped.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/bitwindowd/v1/bitwindowd.pb.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 class AddressBookProvider extends ChangeNotifier implements NetworkScoped {
   @override

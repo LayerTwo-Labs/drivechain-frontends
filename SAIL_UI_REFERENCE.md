@@ -2,6 +2,13 @@
 
 This document serves as a quick reference for using the sail_ui design system components correctly.
 
+## Package layout
+
+- `sidechain_core` — headless sidechain runtime: generated protobuf (`lib/gen/`), RPC clients, providers, process supervision, models, settings, binary/chain config, formatting. Never imports sail_ui.
+- `sail_ui` — everything visual: widgets, theme/style, shared pages + router, app bootstrap. Depends on and re-exports sidechain_core, so `package:sail_ui/sail_ui.dart` exposes both.
+
+Reusing the backend without the UI = depend on `sidechain_core` only.
+
 ## Text Components
 
 ### SailText
