@@ -434,7 +434,7 @@ class ChainSettingsViewModel extends BaseViewModel {
   OS get os => getOS();
 
   // Show update button only if update is available and not currently updating
-  bool get showUpdateButton => _binary.updateAvailable && !_isUpdating;
+  bool get showUpdateButton => binary.updateAvailable && !_isUpdating;
 
   Future<void> handleUpdate(BuildContext context) async {
     if (_isUpdating) {
@@ -446,7 +446,7 @@ class ChainSettingsViewModel extends BaseViewModel {
 
     try {
       Navigator.of(context).pop();
-      await _binaryProvider.update(_binary);
+      await _binaryProvider.update(binary);
     } catch (e) {
       // Handle any errors during the update process
       // You might want to show a snackbar or dialog here
