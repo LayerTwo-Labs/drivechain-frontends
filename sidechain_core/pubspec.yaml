@@ -8,13 +8,38 @@ environment:
   flutter: 3.44.8
 
 dependencies:
+  auto_route: ^11.1.0
+  collection: ^1.19.1
   connectrpc: 1.0.0
+  convert: ^3.1.2
+  crypto: ^3.0.7
+  desktop_multi_window:
+    git:
+      url: https://github.com/octobocto/flutter-plugins.git
+      ref: 252f3f7910288500039c39ae2b944622a0e55152
+      path: packages/desktop_multi_window
+  dio: 5.11.0
   fixnum: ^1.1.1
   flutter:
     sdk: flutter
+  get_it: ^8.3.0
+  http: ^1.6.0
+  intl: ^0.20.3
+  logger: ^2.7.0
+  path: ^1.9.1
+  path_provider: ^2.1.6
   protobuf: ^4.2.0
+  thirds: ^0.2.0-alpha.1
+  uuid: ^4.6.0
+  web: ^1.1.1
+  window_manager: ^0.5.2
 
 dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
+
+flutter:
+  assets:
+    - assets/chains_config.json
+    - assets/migrations/

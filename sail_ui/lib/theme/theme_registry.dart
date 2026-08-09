@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// Identifies a theme bundle. The enum name is the persisted string id.
-/// Adding a theme = one new value + one new [SailThemeBundle] entry below.
-enum SailThemeStyle { sail, win95, ecash }
-
-extension SailThemeStyleStringer on SailThemeStyle {
-  String get id => name;
-}
-
 /// A complete, declarative theme: palette (per brightness) + chrome tokens.
 /// Brightness (light/dark/system via [SailThemeValues]) stays orthogonal;
 /// bundles that don't support dark mode resolve to their single [light] palette.

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sail_ui/models/homepage_configuration.dart';
+import 'package:sidechain_core/models/homepage_configuration.dart';
 import 'package:sail_ui/widgets/core/sail_svg.dart';
 
 class HomepageWidgetInfo {

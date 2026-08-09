@@ -1,4 +1,4 @@
-import 'package:sail_ui/providers/network_scoped.dart';
+import 'package:sidechain_core/providers/network_scoped.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -6,10 +6,10 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/drivechain/v1/drivechain.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
-import 'package:sail_ui/providers/bitcoin_conf_provider.dart';
-import 'package:sail_ui/providers/sync_provider.dart';
-import 'package:sail_ui/providers/wallet_reader_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sidechain_core/providers/bitcoin_conf_provider.dart';
+import 'package:sidechain_core/providers/sync_provider.dart';
+import 'package:sidechain_core/providers/wallet_reader_provider.dart';
+import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 class SidechainProvider extends ChangeNotifier implements NetworkScoped {
   @override

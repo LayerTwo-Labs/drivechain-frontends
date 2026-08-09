@@ -16,7 +16,7 @@ gen-router:
 upgrade:
     #!/usr/bin/env bash
     set -euo pipefail
-    for dir in sail_ui bitwindow thunder bitnames zside bitassets photon truthcoin coinshift; do
+    for dir in sidechain_core sail_ui bitwindow thunder bitnames zside bitassets photon truthcoin coinshift; do
         if [ -d "$dir" ]; then
             (cd "$dir" && flutter pub upgrade --tighten --major-versions)
         fi

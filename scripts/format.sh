@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DIRS=(bitwindow bitassets bitnames sail_ui thunder zside photon truthcoin coinshift)
+DIRS=(bitwindow bitassets bitnames sidechain_core sail_ui thunder zside photon truthcoin coinshift)
 
 has_cmd() { command -v "$1" &>/dev/null; }
 

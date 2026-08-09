@@ -1,0 +1,510 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
+import 'package:sidechain_core/config/binaries.dart';
+import 'package:sidechain_core/providers/binaries/managers/daemon_job.dart';
+import 'package:sidechain_core/providers/binaries/managers/pid_file_manager.dart';
+import 'package:sidechain_core/providers/log_provider.dart';
+
+class ProcessManager extends ChangeNotifier {
+  final Directory appDir;
+  final PidFileManager pidFileManager;
+
+  ProcessManager({required this.appDir, required this.pidFileManager});
+
+  Logger get log => GetIt.I.get<Logger>();
+  LogProvider get logProvider => GetIt.I.get<LogProvider>();
+
+  final Map<String, ExitTuple> _exitTuples = {};
+  ExitTuple? exited(Binary binary) => _exitTuples[binary.name];
+
+  final Map<String, SailProcess> runningProcesses = {};
+
+  final Map<String, Stream<String>> _stdoutStreams = {};
+  final Map<String, Stream<String>> _stderrStreams = {};
+  final Map<String, String> _finalErr = {};
+  final Map<String, List<String>> _stderrLogs = {}; // Buffer stderr logs for error detection
+
+  Stream<String>? stdout(Binary binary) => _stdoutStreams[binary.name];
+  Stream<String>? stderr(Binary binary) => _stderrStreams[binary.name];
+  List<String>? stderrLogs(Binary binary) => _stderrLogs[binary.name];
+  bool running(Binary binary) => runningProcesses.containsKey(binary.name);
+
+  /// Forward a line to the LogProvider and Logger for full log capture.
+  void _addToLogProvider(Binary binary, String line, {required bool isStderr}) {
+    // Strip ANSI color codes for clean storage
+    final cleanLine = line.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
+    if (cleanLine.isEmpty) {
+      return;
+    }
+
+    logProvider.addLog(
+      FullProcessLogEntry(
+        timestamp: DateTime.now(),
+        message: cleanLine,
+        isStderr: isStderr,
+        binaryType: binary.type,
+      ),
+    );
+
+    // Also write to debug.log via the logger.
+    log.i('[${binary.name}] $cleanLine');
+  }
+
+  Future<int> start(
+    Binary binary,
+    List<String> args,
+    Future<void> Function() cleanup, {
+    // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
+    Map<String, String> environment = const {},
+  }) async {
+    final file = await binary.resolveBinaryPath(appDir);
+
+    // Windows doesn't do executable permissions
+    if (!Platform.isWindows) {
+      await Process.run('chmod', ['+x', file.path]);
+      log.d('chmoded ${file.path}');
+    }
+
+    log.d('starting ${file.path} with args $args');
+
+    final process = await Process.start(
+      file.path,
+      args,
+      mode: ProcessStartMode.normal,
+      environment: environment,
+    );
+    // Before anything else it might spawn: job membership is inherited, so
+    // binding the child covers its whole tree.
+    final bound = await DaemonJob.bind(process.pid);
+    if (!bound && Platform.isWindows) {
+      // Anything it already spawned stayed outside the job and will outlive us.
+      log.e('[${binary.name}] not bound to the daemon job (pid ${process.pid})');
+    }
+
+    runningProcesses[binary.name] = SailProcess(
+      binary: binary,
+      pid: process.pid,
+      cleanup: cleanup,
+    );
+    _exitTuples.remove(binary.name);
+    _stderrLogs[binary.name] = []; // Initialize stderr log buffer
+
+    // Let output streaming chug in the background
+
+    // Capture stdout and stderr
+    final stdoutController = StreamController<String>();
+    final stderrController = StreamController<String>();
+
+    // Track when streams are fully drained so the exit handler can read all output
+    final stdoutDone = Completer<void>();
+    final stderrDone = Completer<void>();
+
+    // Add startup marker to LogProvider
+    logProvider.addStartupMarker(binary.type, binary.name);
+
+    log.d('Setting up stdout listener for ${file.path}');
+    process.stdout
+        .transform(systemEncoding.decoder)
+        .listen(
+          (data) {
+            stdoutController.add(data);
+            _finalErr[binary.name] = data;
+            if (!isSpam(data)) {
+              log.d('${file.path.split(Platform.pathSeparator).last}: $data');
+            }
+            // Process each line separately for log capture
+            for (final line in data.split('\n')) {
+              if (line.trim().isNotEmpty) {
+                _captureStartupLog(binary, line);
+                _addToLogProvider(binary, line, isStderr: false);
+              }
+            }
+          },
+          onError: (error, stack) {
+            log.e('Stdout stream error: $error\n$stack');
+          },
+          onDone: () {
+            log.d('stdout stream done for ${file.path}');
+            stdoutController.close();
+            stdoutDone.complete();
+          },
+        );
+
+    log.d('Setting up stderr listener for ${file.path}');
+    process.stderr
+        .transform(systemEncoding.decoder)
+        .listen(
+          (data) {
+            stderrController.add(data);
+            // Buffer stderr for error detection later (keep only last 100 lines)
+            final buffer = _stderrLogs[binary.name];
+            if (buffer != null) {
+              buffer.add(data);
+              if (buffer.length > 100) {
+                buffer.removeAt(0); // Remove oldest line
+              }
+            }
+            if (!isSpam(data)) {
+              // Strip ANSI color codes from the log output
+              final cleanData = data.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
+              log.e('${file.path}: $cleanData');
+            }
+            // Process each line separately for log capture
+            for (final line in data.split('\n')) {
+              if (line.trim().isNotEmpty) {
+                _captureStartupLog(binary, line);
+                _addToLogProvider(binary, line, isStderr: true);
+              }
+            }
+          },
+          onError: (error, stack) {
+            log.e('Stderr stream error: $error\n$stack');
+          },
+          onDone: () {
+            log.d('stderr stream done for ${file.path}');
+            stderrController.close();
+            stderrDone.complete();
+          },
+        );
+
+    // Store the streams for later access
+    _stdoutStreams[binary.name] = stdoutController.stream;
+    _stderrStreams[binary.name] = stderrController.stream;
+
+    // By default, this doesn't resolve to anything
+    var processExited = Completer<bool>();
+
+    // Register a handler for when the process stops.
+    unawaited(
+      process.exitCode.then((code) async {
+        try {
+          log.i(
+            'process exit handler for code=$code binary=$binary pid=${process.pid} triggered',
+          );
+
+          // Wait for stdout and stderr to fully drain before reading error output.
+          // Without this, there's a race where the exit handler fires before
+          // the streams have delivered all their data.
+          await Future.wait([stdoutDone.future, stderrDone.future]).timeout(
+            const Duration(seconds: 2),
+            onTimeout: () {
+              log.w(
+                'timed out waiting for streams to drain for ${binary.name}',
+              );
+              return [];
+            },
+          );
+
+          runningProcesses.remove(binary.name);
+          await pidFileManager.deletePidFile(binary);
+
+          var level = Level.info;
+          var message = '';
+          if (code != 0) {
+            // exit code bad, it crashed!
+            // Prefer stderr (where error messages belong), fall back to stdout
+            final stderrBuffer = _stderrLogs[binary.name];
+            final finalStdout = _finalErr[binary.name];
+            if (stderrBuffer != null && stderrBuffer.isNotEmpty) {
+              final raw = stderrBuffer.join('\n').replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
+              log.i(
+                'using buffered stderr for error message (${stderrBuffer.length} chunks)',
+              );
+              message = raw;
+            } else if (finalStdout != null) {
+              log.i('no stderr, using last stdout message: $finalStdout');
+              message = finalStdout;
+            } else {
+              log.i('no stderr or stdout logs present');
+              message = 'Process exited with code $code';
+            }
+          }
+
+          log.log(level, '"${file.path}" exited with code $code');
+
+          // Add exit marker to LogProvider
+          logProvider.addExitMarker(binary.type, binary.name, code);
+
+          // Resolve the process exit future
+          processExited.complete(true);
+
+          // Forward to listeners that the process finished.
+          _exitTuples[binary.name] = ExitTuple(code: code, message: message);
+          // Close the stream controllers
+          await stdoutController.close();
+          await stderrController.close();
+          _stderrStreams.remove(binary.name);
+          _stdoutStreams.remove(binary.name);
+          _finalErr.remove(binary.name);
+        } finally {
+          notifyListeners();
+        }
+      }),
+    );
+
+    // If the process exits within 0.5 second, it's not really properly started!
+    final exited = await Future.any([
+      Future.delayed(const Duration(milliseconds: 500), () {
+        return false;
+      }),
+      processExited.future,
+    ]);
+
+    if (exited) {
+      final tuple = _exitTuples[binary.name];
+      throw '"${file.path}" exited with code ${tuple?.code}: ${tuple?.message}';
+    }
+
+    log.d('started "${file.path}" with pid ${process.pid}');
+
+    // Write PID file so we can find this process after hot restart/crash
+    await pidFileManager.writePidFile(binary, process.pid);
+
+    notifyListeners();
+    return process.pid;
+  }
+
+  Future<void> kill(Binary binary) async {
+    final process = runningProcesses.values.firstWhereOrNull(
+      (p) => p.binary.name == binary.name,
+    );
+    if (process == null) {
+      log.w('Process not found for binary ${binary.name}');
+      return;
+    }
+
+    await _shutdownSingle(process);
+
+    // Wait for process to exit
+    while (runningProcesses.containsKey(binary.name)) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  bool isRunning(Binary binary) {
+    return runningProcesses.containsKey(binary.name);
+  }
+
+  Future<void> stopAll() async {
+    log.d('dispose process provider: killing all processes $runningProcesses');
+    await Future.wait(
+      runningProcesses.values.map((process) => _shutdownSingle(process)),
+    );
+  }
+
+  Future<void> _shutdownSingle(SailProcess process) async {
+    log.i('attempting nice shutdown for pid=${process.pid}');
+
+    try {
+      await process.cleanup();
+      log.d(
+        'nice shutdown callback completed for pid=${process.pid} binary=${process.binary.name}',
+      );
+    } catch (error) {
+      log.w(
+        'nice shutdown callback threw for pid=${process.pid} binary=${process.binary.name}: $error',
+      );
+    }
+
+    // cleanup() is a hook — returning normally does not prove the process
+    // exited. If the pid is still alive, force-kill it. Without this check
+    // an empty cleanup callback looked like a successful shutdown and
+    // bitwindowd was left orphaned when the Flutter app closed.
+    if (await isPidAlive(process.pid)) {
+      log.i(
+        'pid=${process.pid} binary=${process.binary.name} still alive after cleanup, force-killing',
+      );
+      await killPid(process.pid);
+    }
+
+    runningProcesses.remove(process.binary.name);
+    await pidFileManager.deletePidFile(process.binary);
+    notifyListeners();
+  }
+
+  /// Check if a PID is still alive
+  Future<bool> isPidAlive(int pid) async {
+    try {
+      if (Platform.isWindows) {
+        // On Windows, use tasklist to check if process exists
+        final result = await Process.run('tasklist', [
+          '/FI',
+          'PID eq $pid',
+          '/NH',
+        ]);
+        return result.stdout.toString().contains('$pid');
+      }
+
+      // On Unix-like systems, use ps to check if process exists
+      final result = await Process.run('ps', ['-p', '$pid']);
+      return result.exitCode == 0;
+    } catch (e) {
+      log.e('Could not check if PID $pid is alive: $e');
+      return false;
+    }
+  }
+
+  /// Wait for a PID to die, with timeout
+  /// Returns true if PID died within timeout, false if still alive after timeout
+  Future<bool> waitForPidDeath(int pid, Duration timeout) async {
+    final startTime = DateTime.now();
+
+    while (DateTime.now().difference(startTime) < timeout) {
+      final alive = await isPidAlive(pid);
+      if (!alive) {
+        log.d(
+          'PID $pid died after ${DateTime.now().difference(startTime).inMilliseconds}ms',
+        );
+        return true;
+      }
+
+      // Poll every 100ms
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    log.w('PID $pid still alive after ${timeout.inSeconds}s timeout');
+    return false;
+  }
+
+  /// Kill a process by PID (cross-platform force kill)
+  Future<void> killPid(int pid) async {
+    log.i('Force killing PID $pid');
+    // Cross-platform process killing
+    if (Platform.isWindows) {
+      // On Windows, use taskkill or just kill without signal
+      try {
+        await Process.run('taskkill', ['/F', '/PID', '$pid']);
+      } catch (e) {
+        // Fallback to Process.killPid without signal on Windows
+        Process.killPid(pid);
+      }
+    } else {
+      // On Unix-like systems, use SIGTERM first, then SIGKILL after a slight delay
+      try {
+        Process.killPid(pid, ProcessSignal.sigterm);
+        // Wait a bit for graceful shutdown
+        await Future.delayed(const Duration(milliseconds: 500));
+        // If still running, use SIGKILL
+        Process.killPid(pid, ProcessSignal.sigkill);
+      } catch (e) {
+        log.e('Failed to kill process $pid: $e');
+      }
+    }
+  }
+
+  void _captureStartupLog(Binary binary, String line) {
+    final patterns = binary.startupLogPatterns;
+    if (patterns.isEmpty) {
+      return;
+    }
+
+    final isInteresting = patterns.any((pattern) => pattern.hasMatch(line));
+    if (!isInteresting) {
+      return;
+    }
+
+    final timestamp = _extractTimestamp(line) ?? DateTime.now();
+    final cleanedMessage = _cleanMessage(line);
+
+    binary.addStartupLog(timestamp, cleanedMessage);
+  }
+
+  DateTime? _extractTimestamp(String line) {
+    // Bitcoin Core timestamp format: 2025-11-17T06:08:29Z
+    final timestampRegex = RegExp(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)');
+    final match = timestampRegex.firstMatch(line);
+    if (match != null) {
+      try {
+        return DateTime.parse(match.group(1)!);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  String _cleanMessage(String line) {
+    // Remove timestamp prefix if present
+    final cleaned = line.replaceFirst(
+      RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\s*'),
+      '',
+    );
+    // Strip ANSI color codes
+    return cleaned.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '').trim();
+  }
+}
+
+bool isSpam(String data) {
+  if (data.contains('tower_http::trace::on_response')) {
+    return true;
+  }
+
+  if (data.contains('tower_http') && data.contains('registry')) {
+    return true;
+  }
+
+  if (data.contains('Ripemd160') && data.contains('bip300301_enforcer')) {
+    return true;
+  }
+
+  if (data.contains('listed') && data.contains('wallet utxos in') && data.contains('bip300301_enforcer')) {
+    return true;
+  }
+
+  if (data.contains(': wallet sync complete in')) {
+    return true;
+  }
+
+  if (data.contains('initial_sync:sync_to_tip:sync_blocks')) {
+    if (data.contains('updated current chain tip')) {
+      return true;
+    }
+
+    // Extract block number (it's after "#" and before the first space)
+    final startIndex = data.indexOf('#') + 1;
+    final endIndex = data.indexOf(' ', startIndex);
+    if (startIndex >= 0 && endIndex > startIndex) {
+      final blockNumberStr = data.substring(startIndex, endIndex);
+      final blockNumber = int.tryParse(blockNumberStr);
+
+      if (blockNumber != null && blockNumber % 1000 != 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // btc-buf prints this for every single bitcoin core request
+  if (data.contains('rpc: fetch completed in')) {
+    return true;
+  }
+
+  return false;
+}
+
+class SailProcess {
+  final Binary binary;
+  final int pid;
+  final bool adopted;
+  Future<void> Function() cleanup;
+
+  SailProcess({
+    required this.binary,
+    required this.pid,
+    required this.cleanup,
+    this.adopted = false,
+  });
+}
+
+class ExitTuple {
+  final int code;
+  final String message;
+
+  ExitTuple({required this.code, required this.message});
+}

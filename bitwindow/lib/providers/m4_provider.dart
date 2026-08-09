@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/classes/rpc_connection.dart';
+import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/gen/drivechain/v1/drivechain.pb.dart' as drivechainpb;
 import 'package:sidechain_core/gen/m4/v1/m4.pb.dart' as m4pb;
-import 'package:sail_ui/providers/bitcoin_conf_provider.dart';
-import 'package:sail_ui/providers/sync_provider.dart';
-import 'package:sail_ui/rpcs/bitwindow_api.dart';
+import 'package:sidechain_core/providers/bitcoin_conf_provider.dart';
+import 'package:sidechain_core/providers/sync_provider.dart';
+import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 class M4Provider extends ChangeNotifier {
   final Logger log = Logger(level: Level.debug);

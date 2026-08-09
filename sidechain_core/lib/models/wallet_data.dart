@@ -1,0 +1,219 @@
+import 'dart:convert';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:uuid/uuid.dart';
+import 'package:sidechain_core/sidechain_core.dart';
+
+/// Main wallet data structure containing all wallet information
+class WalletData {
+  final int version;
+  final MasterWallet master;
+  final L1Wallet l1;
+  final List<SidechainWallet> sidechains;
+  final String id;
+  final String name;
+  final WalletGradient gradient;
+  final DateTime createdAt;
+
+  /// Local backend binary this wallet runs against. `BINARY_TYPE_UNSPECIFIED`
+  /// for electrum wallets, which run no local Bitcoin Core or enforcer.
+  final BinaryType walletType;
+
+  /// True iff this is an electrum wallet — keys are local but no local Bitcoin
+  /// Core or enforcer runs; chain data is served remotely.
+  final bool isElectrum;
+
+  /// True iff this is a watch-only wallet — no spending key, no BIP47.
+  final bool isWatchOnly;
+  // BIP47 v3 payment code from orchestrator's WatchWalletData stream.
+  // Not persisted — populated only from the proto, not from wallet.json.
+  final String bip47PaymentCode;
+
+  /// Multisig policy for a multisig wallet, from the WatchWalletData stream.
+  /// Null for non-multisig wallets. Not persisted (proto-only).
+  final wmpb.MultisigInfo? multisig;
+
+  bool get isMultisig => multisig != null;
+
+  /// Device type and master fingerprint for a single-sig hardware wallet.
+  final String hardwareDeviceType;
+  final String hardwareFingerprint;
+
+  bool get isHardware => hardwareDeviceType.isNotEmpty;
+
+  WalletData({
+    required this.version,
+    required this.master,
+    required this.l1,
+    required this.sidechains,
+    required this.id,
+    required this.name,
+    required this.gradient,
+    required this.createdAt,
+    required this.walletType,
+    this.isElectrum = false,
+    this.isWatchOnly = false,
+    this.bip47PaymentCode = '',
+    this.multisig,
+    this.hardwareDeviceType = '',
+    this.hardwareFingerprint = '',
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'version': version,
+      'master': master.toJson(),
+      'l1': l1.toJson(),
+      'sidechains': sidechains.map((s) => s.toJson()).toList(),
+      'id': id,
+      'name': name,
+      'gradient': gradient.toJson(),
+      'created_at': createdAt.toIso8601String(),
+      'wallet_type': isElectrum ? 'electrum' : walletType.name,
+    };
+  }
+
+  factory WalletData.fromJson(Map<String, dynamic> json) {
+    final walletId = json['id'] as String? ?? _generateId();
+    final walletTypeStr = json['wallet_type'] as String?;
+    final isElectrum = walletTypeStr == 'electrum';
+    final walletType = (walletTypeStr != null && !isElectrum)
+        ? BinaryType.values.firstWhere(
+            (e) => e.name == walletTypeStr,
+            orElse: () => BinaryType.BINARY_TYPE_BITCOIND,
+          )
+        : (isElectrum ? BinaryType.BINARY_TYPE_UNSPECIFIED : BinaryType.BINARY_TYPE_BITCOIND);
+
+    return WalletData(
+      version: json['version'] as int? ?? 1,
+      master: MasterWallet.fromJson(json['master'] as Map<String, dynamic>),
+      l1: L1Wallet.fromJson(json['l1'] as Map<String, dynamic>),
+      sidechains:
+          (json['sidechains'] as List<dynamic>?)
+              ?.map((s) => SidechainWallet.fromJson(s as Map<String, dynamic>))
+              .toList() ??
+          [],
+      id: walletId,
+      name: json['name'] as String? ?? 'Wallet 1',
+      gradient: json['gradient'] != null
+          ? WalletGradient.fromJson(json['gradient'] as Map<String, dynamic>)
+          : WalletGradient.fromWalletId(walletId),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      walletType: walletType,
+      isElectrum: isElectrum,
+    );
+  }
+
+  static String _generateId() {
+    return const Uuid().v4().replaceAll('-', '').toUpperCase();
+  }
+
+  String toJsonString() {
+    return jsonEncode(toJson());
+  }
+
+  factory WalletData.fromJsonString(String jsonString) {
+    return WalletData.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+  }
+}
+
+/// Master wallet containing the root seed and keys
+class MasterWallet {
+  final String mnemonic;
+  final String seedHex;
+  final String masterKey;
+  final String chainCode;
+  final String? bip39Binary;
+  final String? bip39Checksum;
+  final String? bip39ChecksumHex;
+  final String name;
+
+  MasterWallet({
+    required this.mnemonic,
+    required this.seedHex,
+    required this.masterKey,
+    required this.chainCode,
+    this.bip39Binary,
+    this.bip39Checksum,
+    this.bip39ChecksumHex,
+    this.name = 'Master',
+  });
+
+  Map<String, dynamic> toJson() {
+    final json = {
+      'mnemonic': mnemonic,
+      'seed_hex': seedHex,
+      'master_key': masterKey,
+      'chain_code': chainCode,
+      'name': name,
+    };
+
+    if (bip39Binary != null) {
+      json['bip39_binary'] = bip39Binary!;
+    }
+    if (bip39Checksum != null) {
+      json['bip39_checksum'] = bip39Checksum!;
+    }
+    if (bip39ChecksumHex != null) {
+      json['bip39_checksum_hex'] = bip39ChecksumHex!;
+    }
+
+    return json;
+  }
+
+  factory MasterWallet.fromJson(Map<String, dynamic> json) {
+    return MasterWallet(
+      mnemonic: json['mnemonic'] as String,
+      seedHex: json['seed_hex'] as String,
+      masterKey: json['master_key'] as String,
+      chainCode: json['chain_code'] as String,
+      bip39Binary: json['bip39_binary'] as String?,
+      bip39Checksum: json['bip39_checksum'] as String?,
+      bip39ChecksumHex: json['bip39_checksum_hex'] as String?,
+      name: json['name'] as String? ?? 'Master',
+    );
+  }
+}
+
+/// Layer 1 (Bitcoin Core) wallet
+class L1Wallet {
+  final String mnemonic;
+  final String name;
+
+  L1Wallet({required this.mnemonic, this.name = 'Bitcoin Core (Patched)'});
+
+  Map<String, dynamic> toJson() {
+    return {'mnemonic': mnemonic, 'name': name};
+  }
+
+  factory L1Wallet.fromJson(Map<String, dynamic> json) {
+    return L1Wallet(
+      mnemonic: json['mnemonic'] as String,
+      name: json['name'] as String? ?? 'Bitcoin Core (Patched)',
+    );
+  }
+}
+
+/// Sidechain wallet
+class SidechainWallet {
+  final int slot;
+  final String name;
+  final String mnemonic;
+
+  SidechainWallet({
+    required this.slot,
+    required this.name,
+    required this.mnemonic,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {'slot': slot, 'name': name, 'mnemonic': mnemonic};
+  }
+
+  factory SidechainWallet.fromJson(Map<String, dynamic> json) {
+    return SidechainWallet(
+      slot: json['slot'] as int,
+      name: json['name'] as String,
+      mnemonic: json['mnemonic'] as String,
+    );
+  }
+}
