@@ -151,7 +151,6 @@ Future<bool> _waitForBackendReady(OrchestratorRPC orchestrator) async {
 
 void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryType binaryType) {
   final logProvider = GetIt.I.get<LogProvider>();
-  final log = GetIt.I.get<Logger>();
 
   orchestrator
       .streamLogs(binaryName, tail: 100)
@@ -165,8 +164,6 @@ void _streamBinaryLogs(OrchestratorRPC orchestrator, String binaryName, BinaryTy
               binaryType: binaryType,
             ),
           );
-
-          log.i('[$binaryName] ${response.line}');
         },
         onError: (e) {
           Future.delayed(const Duration(seconds: 5), () {
