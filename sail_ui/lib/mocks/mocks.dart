@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/cusf/mainchain/v1/wallet.connect.client.dart';
-import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
+import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.connect.client.dart';
+import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class MockBitcoindConnection extends BitcoindConnection {

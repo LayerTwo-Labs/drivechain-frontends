@@ -2,7 +2,7 @@ import 'package:bitwindow/widgets/airgap_sign_step.dart';
 import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
 /// Produces a partial-signature PSBT for one keystore/leg.

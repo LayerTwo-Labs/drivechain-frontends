@@ -1,6 +1,6 @@
 import 'package:bitwindow/pages/wallet/denability_page.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
+import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 void main() {

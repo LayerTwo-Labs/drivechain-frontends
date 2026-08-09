@@ -5,12 +5,14 @@ on:
     paths:
       - "bitwindow/**"
       - "sail_ui/**"
+      - "sidechain_core/**"
       - ".github/workflows/smoke-test.yml"
   push:
     branches: [master]
     paths:
       - "bitwindow/**"
       - "sail_ui/**"
+      - "sidechain_core/**"
 
 env:
   FLUTTER_VERSION: "3.44.8"

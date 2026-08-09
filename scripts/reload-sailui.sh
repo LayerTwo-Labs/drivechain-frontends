@@ -17,5 +17,5 @@ done
 
 wait
 
-cd sail_ui
-flutter pub get
+(cd sidechain_core && flutter pub get)
+(cd sail_ui && flutter pub get)

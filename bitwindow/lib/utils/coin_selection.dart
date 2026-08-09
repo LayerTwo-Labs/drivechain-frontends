@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 
 /// Strategy for selecting UTXOs when building transactions
 enum CoinSelectionStrategy {

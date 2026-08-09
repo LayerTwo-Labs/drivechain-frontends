@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class TransactionFlowDiagram extends StatefulWidget {

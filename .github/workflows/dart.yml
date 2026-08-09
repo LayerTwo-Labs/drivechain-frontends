@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "sail_ui/**"
+      - "sidechain_core/**"
       - "drivechain_lints/**"
       - "thunder/**"
       - "truthcoin/**"
@@ -29,6 +30,7 @@ jobs:
       fail-fast: true
       matrix:
         package:
+          - sidechain_core
           - sail_ui
           - thunder
           - truthcoin
@@ -124,4 +126,4 @@ jobs:
 
       - name: Build
         run: flutter build linux
-        if: matrix.package != 'sail_ui'
+        if: matrix.package != 'sail_ui' && matrix.package != 'sidechain_core'

@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
-import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 
 import 'mocks/api_mock.dart';
 

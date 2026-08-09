@@ -4,7 +4,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/gen/bmm/v1/bmm.pb.dart' as bmmpb;
+import 'package:sidechain_core/gen/bmm/v1/bmm.pb.dart' as bmmpb;
 import 'package:sail_ui/sail_ui.dart';
 
 // Bidding runs in the backend. The provider only reflects what the stream says

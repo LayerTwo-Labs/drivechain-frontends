@@ -1,14 +1,14 @@
 import 'package:fixnum/src/int64.dart';
 import 'package:sail_ui/classes/rpc_connection.dart';
-import 'package:sail_ui/gen/bitdrive/v1/bitdrive.pb.dart';
-import 'package:sail_ui/gen/multisig/v1/multisig.pb.dart' as multisigpb;
-import 'package:sail_ui/gen/bitwindowd/v1/bitwindowd.pb.dart';
-import 'package:sail_ui/gen/drivechain/v1/drivechain.pb.dart';
-import 'package:sail_ui/gen/m4/v1/m4.pb.dart' as m4pb;
-import 'package:sail_ui/gen/misc/v1/misc.pb.dart';
-import 'package:sail_ui/gen/notification/v1/notification.pb.dart';
-import 'package:sail_ui/gen/utils/v1/utils.pb.dart';
-import 'package:sail_ui/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart';
+import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
+import 'package:sidechain_core/gen/bitwindowd/v1/bitwindowd.pb.dart';
+import 'package:sidechain_core/gen/drivechain/v1/drivechain.pb.dart';
+import 'package:sidechain_core/gen/m4/v1/m4.pb.dart' as m4pb;
+import 'package:sidechain_core/gen/misc/v1/misc.pb.dart';
+import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
+import 'package:sidechain_core/gen/utils/v1/utils.pb.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/rpcs/bitwindow_api.dart';
 
 class MockAPI extends BitwindowRPC {

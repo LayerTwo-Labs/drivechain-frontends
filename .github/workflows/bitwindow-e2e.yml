@@ -10,6 +10,7 @@ on:
     paths:
       - "bitwindow/**"
       - "sail_ui/**"
+      - "sidechain_core/**"
       - "sidechain-orchestrator/**"
       - "scripts/**"
       - ".github/workflows/bitwindow-e2e.yml"

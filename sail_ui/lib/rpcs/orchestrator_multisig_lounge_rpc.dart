@@ -1,6 +1,6 @@
 import 'package:connectrpc/protocol/connect.dart' as connect;
-import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.connect.client.dart';
-import 'package:sail_ui/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
+import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.connect.client.dart';
+import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 
 /// Wallet-multisig-lounge RPCs backed by orchestrator MultisigLoungeService:
 /// watch-only descriptor building, PSBT validation, and OP_RETURN group

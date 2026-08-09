@@ -1,7 +1,7 @@
 import 'package:bitwindow/pages/wallet/wallet_checks.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sail_ui/gen/google/protobuf/timestamp.pb.dart';
+import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 
 void main() {
   group('formatChequeDate', () {
