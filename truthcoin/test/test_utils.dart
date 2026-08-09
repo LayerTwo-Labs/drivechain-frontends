@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/sail_test_page.dart';
+import 'package:sail_ui/mocks/mocks.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:truthcoin/providers/market_provider.dart';
 import 'package:truthcoin/providers/voting_provider.dart';

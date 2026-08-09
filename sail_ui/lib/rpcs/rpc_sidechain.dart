@@ -7,7 +7,7 @@ import 'package:sail_ui/config/binaries.dart';
 import 'package:sail_ui/config/sidechains.dart';
 import 'package:sail_ui/providers/bitcoin_conf_provider.dart';
 import 'package:sail_ui/rpcs/thunder_utxo.dart';
-import 'package:sail_ui/widgets/components/core_transaction.dart';
+import 'package:sail_ui/models/core_transaction.dart';
 
 /// RPC connection for all sidechain nodes
 abstract class SidechainRPC extends RPCConnection {
