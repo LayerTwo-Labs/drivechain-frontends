@@ -40,22 +40,6 @@ func TestInboundStore_RoundTrip(t *testing.T) {
 	require.Equal(t, uint32(25), got3.ImportedThroughIndex)
 }
 
-func TestInboundStore_ScanCursor(t *testing.T) {
-	dir := t.TempDir()
-	s := NewInboundStore(dir)
-
-	n, err := s.ScanCursor("W1")
-	require.NoError(t, err)
-	require.Equal(t, 0, n)
-
-	require.NoError(t, s.SetScanCursor("W1", 42))
-
-	s2 := NewInboundStore(dir)
-	n2, err := s2.ScanCursor("W1")
-	require.NoError(t, err)
-	require.Equal(t, 42, n2)
-}
-
 func TestInboundStore_ListByWallet(t *testing.T) {
 	dir := t.TempDir()
 	s := NewInboundStore(dir)

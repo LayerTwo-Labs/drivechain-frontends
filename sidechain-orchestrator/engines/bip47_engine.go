@@ -157,8 +157,8 @@ func (e *BIP47Engine) ensureNotificationWatched(ctx context.Context, backend wal
 	return nil
 }
 
-// scanWallet walks listtransactions forward from the persisted cursor looking
-// for receives at this wallet's BIP47 notification address. For each one, it
+// scanWallet walks the wallet's whole listtransactions history looking for
+// receives at this wallet's BIP47 notification address. For each one, it
 // fetches the full tx, extracts the OP_RETURN payload + first input's pubkey,
 // decodes the sender's payment code, and records the inbound notification.
 func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, net *chaincfg.Params) error {
@@ -168,13 +168,23 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 	}
 	wantAddr := notifAddr.EncodeAddress()
 
-	cursor, err := e.inbound.ScanCursor(walletID)
+	// Notifications already recorded need no second look — skipping them keeps
+	// the re-walk below free of repeated getrawtransaction calls.
+	known, err := e.inbound.ListByWallet(walletID)
 	if err != nil {
-		return fmt.Errorf("read scan cursor: %w", err)
+		return fmt.Errorf("list inbound: %w", err)
+	}
+	recorded := make(map[string]bool, len(known))
+	for _, n := range known {
+		recorded[n.FirstNotificationTxID] = true
 	}
 
+	// skip counts from the newest entry, so it is a within-pass pagination
+	// offset only: every pass restarts at 0, otherwise newly arrived
+	// notifications land in the skipped prefix and are never seen.
+	skip := 0
 	for {
-		batch, err := e.engine.Backend().ListTransactionsRange(ctx, walletID, bip47ListTxBatchSize, cursor)
+		batch, err := e.engine.Backend().ListTransactionsRange(ctx, walletID, bip47ListTxBatchSize, skip)
 		if err != nil {
 			return fmt.Errorf("listtransactions: %w", err)
 		}
@@ -182,7 +192,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 			break
 		}
 		for _, tx := range batch {
-			if tx.Category != "receive" || tx.Address != wantAddr {
+			if tx.Category != "receive" || tx.Address != wantAddr || recorded[tx.TxID] {
 				continue
 			}
 			senderCode, blockTime, err := e.decodeNotificationTx(ctx, walletID, tx.TxID, notifPriv)
@@ -207,10 +217,7 @@ func (e *BIP47Engine) scanWallet(ctx context.Context, walletID, seedHex string, 
 				Str("txid", tx.TxID).
 				Msg("recorded inbound bip47 notification")
 		}
-		cursor += len(batch)
-		if err := e.inbound.SetScanCursor(walletID, cursor); err != nil {
-			return fmt.Errorf("save scan cursor: %w", err)
-		}
+		skip += len(batch)
 		if len(batch) < bip47ListTxBatchSize {
 			break
 		}
