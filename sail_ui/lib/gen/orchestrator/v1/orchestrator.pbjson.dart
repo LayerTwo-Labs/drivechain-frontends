@@ -232,13 +232,14 @@ const DownloadBinaryRequest$json = {
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
     {'1': 'force', '3': 2, '4': 1, '5': 8, '10': 'force'},
+    {'1': 'force_backend', '3': 3, '4': 1, '5': 8, '10': 'forceBackend'},
   ],
 };
 
 /// Descriptor for `DownloadBinaryRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List downloadBinaryRequestDescriptor =
     $convert.base64Decode('ChVEb3dubG9hZEJpbmFyeVJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIUCgVmb3JjZRgCIA'
-        'EoCFIFZm9yY2U=');
+        'EoCFIFZm9yY2USIwoNZm9yY2VfYmFja2VuZBgDIAEoCFIMZm9yY2VCYWNrZW5k');
 
 @$core.Deprecated('Use downloadBinaryResponseDescriptor instead')
 const DownloadBinaryResponse$json = {
@@ -295,13 +296,14 @@ const StopBinaryRequest$json = {
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
     {'1': 'force', '3': 2, '4': 1, '5': 8, '10': 'force'},
+    {'1': 'force_backend', '3': 3, '4': 1, '5': 8, '10': 'forceBackend'},
   ],
 };
 
 /// Descriptor for `StopBinaryRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List stopBinaryRequestDescriptor =
     $convert.base64Decode('ChFTdG9wQmluYXJ5UmVxdWVzdBISCgRuYW1lGAEgASgJUgRuYW1lEhQKBWZvcmNlGAIgASgIUg'
-        'Vmb3JjZQ==');
+        'Vmb3JjZRIjCg1mb3JjZV9iYWNrZW5kGAMgASgIUgxmb3JjZUJhY2tlbmQ=');
 
 @$core.Deprecated('Use stopBinaryResponseDescriptor instead')
 const StopBinaryResponse$json = {
@@ -395,12 +397,14 @@ const RestartDaemonRequest$json = {
   '1': 'RestartDaemonRequest',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'force_backend', '3': 2, '4': 1, '5': 8, '10': 'forceBackend'},
   ],
 };
 
 /// Descriptor for `RestartDaemonRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List restartDaemonRequestDescriptor =
-    $convert.base64Decode('ChRSZXN0YXJ0RGFlbW9uUmVxdWVzdBISCgRuYW1lGAEgASgJUgRuYW1l');
+    $convert.base64Decode('ChRSZXN0YXJ0RGFlbW9uUmVxdWVzdBISCgRuYW1lGAEgASgJUgRuYW1lEiMKDWZvcmNlX2JhY2'
+        'tlbmQYAiABKAhSDGZvcmNlQmFja2VuZA==');
 
 @$core.Deprecated('Use restartDaemonResponseDescriptor instead')
 const RestartDaemonResponse$json = {

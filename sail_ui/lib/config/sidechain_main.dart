@@ -119,6 +119,8 @@ Future<void> initSidechainDependencies({
     GetIt.I.registerSingleton<LogProvider>(LogProvider());
   }
 
+  Binary.isSidechainApp = true;
+
   // Load and register initial binary states
   final binaries = _initialBinaries(
     sidechainType,

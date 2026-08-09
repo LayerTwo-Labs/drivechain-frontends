@@ -75,7 +75,8 @@ func (h *Handler) GetBinaryVersion(ctx context.Context, req *connect.Request[pb.
 // transport blip / client disconnect can't cancel an in-flight download.
 // Progress is polled out of GetSyncStatus (DownloadManager.state-backed).
 func (h *Handler) DownloadBinary(ctx context.Context, req *connect.Request[pb.DownloadBinaryRequest]) (*connect.Response[pb.DownloadBinaryResponse], error) {
-	ch, err := h.orch.Download(context.Background(), req.Msg.Name, req.Msg.Force)
+	opts := orchestrator.DownloadOptions{ForceBackend: req.Msg.ForceBackend}
+	ch, err := h.orch.Download(context.Background(), req.Msg.Name, req.Msg.Force, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +101,8 @@ func (h *Handler) StartBinary(ctx context.Context, req *connect.Request[pb.Start
 }
 
 func (h *Handler) StopBinary(ctx context.Context, req *connect.Request[pb.StopBinaryRequest]) (*connect.Response[pb.StopBinaryResponse], error) {
-	if err := h.orch.Stop(ctx, req.Msg.Name, req.Msg.Force); err != nil {
+	opts := orchestrator.StopOptions{ForceBackend: req.Msg.ForceBackend}
+	if err := h.orch.Stop(ctx, req.Msg.Name, req.Msg.Force, opts); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.StopBinaryResponse{}), nil
@@ -155,7 +157,7 @@ func (h *Handler) StreamLogs(ctx context.Context, req *connect.Request[pb.Stream
 // blip can't kill an in-flight restart. Crucially, it does NOT cascade to
 // sibling daemons — restarting "enforcer" never spawns or adopts bitcoind.
 func (h *Handler) RestartDaemon(ctx context.Context, req *connect.Request[pb.RestartDaemonRequest]) (*connect.Response[pb.RestartDaemonResponse], error) {
-	ch, err := h.orch.RestartDaemon(context.Background(), req.Msg.Name)
+	ch, err := h.orch.RestartDaemon(context.Background(), req.Msg.Name, orchestrator.StopOptions{ForceBackend: req.Msg.ForceBackend})
 	if err != nil {
 		return nil, err
 	}

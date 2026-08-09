@@ -217,7 +217,7 @@ type Orchestrator struct {
 
 	// stopBinary is the Stop primitive used by SetCoreVariant. Production wires
 	// this to o.Stop; tests override it to inject force/graceful failures.
-	stopBinary func(ctx context.Context, name string, force bool) error
+	stopBinary func(ctx context.Context, name string, force bool, options ...StopOptions) error
 
 	// bootBitcoindForVariantSwap boots bitcoind after a variant swap. Returns
 	// a channel that is closed when boot is complete. Production wires this to
@@ -506,12 +506,16 @@ func (o *Orchestrator) UpdateConfigs(configs []BinaryConfig) {
 }
 
 // Download downloads a binary if missing (or forces re-download).
-func (o *Orchestrator) Download(ctx context.Context, name string, force bool) (<-chan DownloadProgress, error) {
+func (o *Orchestrator) Download(ctx context.Context, name string, force bool, options ...DownloadOptions) (<-chan DownloadProgress, error) {
+	var opts DownloadOptions
+	if len(options) > 0 {
+		opts = options[0]
+	}
 	config, err := o.getConfig(name)
 	if err != nil {
 		return nil, err
 	}
-	return o.download.Download(ctx, config, o.Network, force)
+	return o.download.DownloadWithOptions(ctx, config, o.Network, force, opts)
 }
 
 // Start starts a binary with the given args and env.
@@ -525,7 +529,19 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 
 // Stop stops a running binary and marks its monitor as stopped so
 // the restart timer won't automatically bring it back.
-func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error {
+// StopOptions tweaks Stop behaviour per-call.
+type StopOptions struct {
+	// ForceBackend leaves the sidechain's GUI companion running. Set by
+	// sidechain Flutter apps, which are that companion.
+	ForceBackend bool
+}
+
+func (o *Orchestrator) Stop(ctx context.Context, name string, force bool, options ...StopOptions) error {
+	var opts StopOptions
+	if len(options) > 0 {
+		opts = options[0]
+	}
+
 	// Validate the target up front so stopping an unknown/typo'd binary is a
 	// real error rather than a silent no-op success. A known-but-not-running
 	// binary still passes here and is handled as a no-op below.
@@ -542,7 +558,10 @@ func (o *Orchestrator) Stop(ctx context.Context, name string, force bool) error 
 	}
 	o.monitorsMu.Unlock()
 
-	_, guiErr := o.stopSidechainGUI(ctx, name, force)
+	var guiErr error
+	if !opts.ForceBackend {
+		_, guiErr = o.stopSidechainGUI(ctx, name, force)
+	}
 
 	// Stopping a daemon that isn't running is a no-op success, not an error:
 	// first-launch wallet restore stops the L1 stack before rebooting, and on
@@ -1030,7 +1049,12 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 //
 // The returned channel emits StartupProgress events the same way StartWithL1
 // does and is closed when the restart completes (or fails).
-func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan StartupProgress, error) {
+func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options ...StopOptions) (<-chan StartupProgress, error) {
+	var opts StopOptions
+	if len(options) > 0 {
+		opts = options[0]
+	}
+
 	config, err := o.getConfig(name)
 	if err != nil {
 		return nil, err
@@ -1045,15 +1069,16 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string) (<-chan S
 		// record. Without this, restarting a sidechain that was launched with
 		// --force-backend forgets the flag and spawns the flutter_frontend
 		// variant instead — a second GUI window on top of the existing one.
-		forceBackend := o.process.ForceBackendFor(name)
+		forceBackend := opts.ForceBackend || o.process.ForceBackendFor(name)
 
 		// Best-effort stop. If the binary isn't running, fall straight through
 		// to start.
 		if o.process.IsRunning(name) {
 			ch <- StartupProgress{Stage: "stopping-" + name, Message: fmt.Sprintf("stopping %s...", config.DisplayName)}
-			if err := o.Stop(ctx, name, false); err != nil {
+			stopOpts := StopOptions{ForceBackend: forceBackend}
+			if err := o.Stop(ctx, name, false, stopOpts); err != nil {
 				o.log.Warn().Err(err).Str("binary", name).Msg("graceful stop failed during restart, escalating to SIGKILL")
-				if killErr := o.Stop(ctx, name, true); killErr != nil {
+				if killErr := o.Stop(ctx, name, true, stopOpts); killErr != nil {
 					o.log.Error().Err(killErr).Str("binary", name).Msg("force kill also failed during restart")
 					ch <- StartupProgress{Error: fmt.Errorf("stop %s: %w", name, killErr)}
 					return

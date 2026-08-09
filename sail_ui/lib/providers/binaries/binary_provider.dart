@@ -189,7 +189,7 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     log.i('BinaryProvider: restarting $name via orchestrator');
-    await _orchestrator.restartDaemon(name);
+    await _orchestrator.restartDaemon(name, forceBackend: isSidechainApp && binary.chainLayer == 2);
   }
 
   /// Restart the whole L1 stack (bitcoind + enforcer) in one server-side call.
@@ -232,7 +232,7 @@ class BinaryProvider extends ChangeNotifier {
     }
 
     log.i('BinaryProvider: stopping $name via orchestrator');
-    await _orchestrator.stopBinary(name);
+    await _orchestrator.stopBinary(name, forceBackend: isSidechainApp && binary.chainLayer == 2);
   }
 
   Future<void> download(Binary binary, {bool shouldUpdate = false}) async {
@@ -248,7 +248,11 @@ class BinaryProvider extends ChangeNotifier {
     // and returns. SyncProvider's polled GetSyncStatus picks up MB progress
     // for the matching sidechain slot. Connection state once the binary's
     // up arrives via BackendStateProvider's listBinaries poll.
-    await _orchestrator.downloadBinary(name, force: shouldUpdate);
+    await _orchestrator.downloadBinary(
+      name,
+      force: shouldUpdate,
+      forceBackend: isSidechainApp && binary.chainLayer == 2,
+    );
   }
 
   /// Force-download a binary and restart it if it was running. Used by the
@@ -279,13 +283,13 @@ class BinaryProvider extends ChangeNotifier {
     // conflict and silently leave the old binary in place.
     if (wasRunning) {
       try {
-        await _orchestrator.stopBinary(name);
+        await _orchestrator.stopBinary(name, forceBackend: isSidechainApp && binary.chainLayer == 2);
       } catch (e) {
         log.w('BinaryProvider: stop before update failed for $name: $e');
       }
     }
 
-    await _orchestrator.downloadBinary(name, force: true);
+    await _orchestrator.downloadBinary(name, force: true, forceBackend: isSidechainApp && binary.chainLayer == 2);
 
     // Poll until the orchestrator drops the binary out of its in-flight map.
     // First tick might miss the entry if our poll lands before the server's

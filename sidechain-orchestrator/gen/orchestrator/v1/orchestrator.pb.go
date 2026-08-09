@@ -798,9 +798,12 @@ func (x *GetBinaryVersionResponse) GetIsTestBuild() bool {
 }
 
 type DownloadBinaryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Force         bool                   `protobuf:"varint,2,opt,name=force,proto3" json:"force,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Force bool                   `protobuf:"varint,2,opt,name=force,proto3" json:"force,omitempty"`
+	// Download the daemon, never the sidechain's Flutter bundle. Sidechain apps
+	// set this so an update installs the backend they actually run.
+	ForceBackend  bool `protobuf:"varint,3,opt,name=force_backend,json=forceBackend,proto3" json:"force_backend,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -845,6 +848,13 @@ func (x *DownloadBinaryRequest) GetName() string {
 func (x *DownloadBinaryRequest) GetForce() bool {
 	if x != nil {
 		return x.Force
+	}
+	return false
+}
+
+func (x *DownloadBinaryRequest) GetForceBackend() bool {
+	if x != nil {
+		return x.ForceBackend
 	}
 	return false
 }
@@ -993,6 +1003,7 @@ type StopBinaryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Force         bool                   `protobuf:"varint,2,opt,name=force,proto3" json:"force,omitempty"`
+	ForceBackend  bool                   `protobuf:"varint,3,opt,name=force_backend,json=forceBackend,proto3" json:"force_backend,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1037,6 +1048,13 @@ func (x *StopBinaryRequest) GetName() string {
 func (x *StopBinaryRequest) GetForce() bool {
 	if x != nil {
 		return x.Force
+	}
+	return false
+}
+
+func (x *StopBinaryRequest) GetForceBackend() bool {
+	if x != nil {
+		return x.ForceBackend
 	}
 	return false
 }
@@ -1322,8 +1340,11 @@ func (*StartWithL1Response) Descriptor() ([]byte, []int) {
 }
 
 type RestartDaemonRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Restart only the daemon, never the sidechain's Flutter bundle. A stopped
+	// daemon keeps no boot mode to recover, so the caller states it.
+	ForceBackend  bool `protobuf:"varint,2,opt,name=force_backend,json=forceBackend,proto3" json:"force_backend,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1363,6 +1384,13 @@ func (x *RestartDaemonRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *RestartDaemonRequest) GetForceBackend() bool {
+	if x != nil {
+		return x.ForceBackend
+	}
+	return false
 }
 
 type RestartDaemonResponse struct {
@@ -4150,10 +4178,11 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1f\n" +
 	"\vbinary_path\x18\x02 \x01(\tR\n" +
 	"binaryPath\x12\"\n" +
-	"\ris_test_build\x18\x03 \x01(\bR\visTestBuild\"A\n" +
+	"\ris_test_build\x18\x03 \x01(\bR\visTestBuild\"f\n" +
 	"\x15DownloadBinaryRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05force\x18\x02 \x01(\bR\x05force\"\x18\n" +
+	"\x05force\x18\x02 \x01(\bR\x05force\x12#\n" +
+	"\rforce_backend\x18\x03 \x01(\bR\fforceBackend\"\x18\n" +
 	"\x16DownloadBinaryResponse\"\xbf\x01\n" +
 	"\x12StartBinaryRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
@@ -4164,10 +4193,11 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"'\n" +
 	"\x13StartBinaryResponse\x12\x10\n" +
-	"\x03pid\x18\x01 \x01(\x05R\x03pid\"=\n" +
+	"\x03pid\x18\x01 \x01(\x05R\x03pid\"b\n" +
 	"\x11StopBinaryRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05force\x18\x02 \x01(\bR\x05force\"\x14\n" +
+	"\x05force\x18\x02 \x01(\bR\x05force\x12#\n" +
+	"\rforce_backend\x18\x03 \x01(\bR\fforceBackend\"\x14\n" +
 	"\x12StopBinaryResponse\";\n" +
 	"\x11StreamLogsRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
@@ -4189,9 +4219,10 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0eTargetEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x15\n" +
-	"\x13StartWithL1Response\"*\n" +
+	"\x13StartWithL1Response\"O\n" +
 	"\x14RestartDaemonRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\x17\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
+	"\rforce_backend\x18\x02 \x01(\bR\fforceBackend\"\x17\n" +
 	"\x15RestartDaemonResponse\"\x12\n" +
 	"\x10RestartL1Request\"\x13\n" +
 	"\x11RestartL1Response\"X\n" +
