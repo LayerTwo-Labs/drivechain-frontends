@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/btcsuite/btcd/btcutil"
@@ -230,6 +231,64 @@ func TestCoreBackendEnsureTransientBackoff(t *testing.T) {
 	_, err = backend.Ensure(ctx, coreID)
 	require.ErrorContains(t, err, "Verifying blocks")
 	assert.Len(t, fake.callsFor("listwallets"), 1)
+}
+
+// A failed BIP47 notification import doesn't break wallet loading, but the
+// wallet must not be cached as fully provisioned: later calls retry it.
+func TestCoreBackendRetriesFailedBip47NotificationImport(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	var mu sync.Mutex
+	failNotif := true
+	fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		mu.Lock()
+		fail := failNotif && len(descs) == 1 && strings.HasPrefix(descs[0].Desc, "pkh(")
+		mu.Unlock()
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": !fail}
+			if fail {
+				results[i]["error"] = map[string]any{"code": -1, "message": "rescan timed out"}
+			}
+		}
+		return results, ""
+	})
+	ctx := context.Background()
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.Len(t, fake.callsFor("importdescriptors"), 2)
+
+	// Within the backoff window the failed import isn't hammered.
+	_, err = backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Len(t, fake.callsFor("importdescriptors"), 2)
+
+	mu.Lock()
+	failNotif = false
+	mu.Unlock()
+	backend.mu.Lock()
+	backend.bip47NotifRetry[coreID] = time.Time{} // backoff elapsed
+	backend.mu.Unlock()
+
+	// Once the backoff elapses the notification descriptor is imported again.
+	_, err = backend.walletName(ctx, coreID)
+	require.NoError(t, err)
+	imports := fake.callsFor("importdescriptors")
+	require.Len(t, imports, 3)
+	var notif []ImportDescriptor
+	require.NoError(t, json.Unmarshal(imports[2].Params[0], &notif))
+	require.Len(t, notif, 1)
+	assert.True(t, strings.HasPrefix(notif[0].Desc, "pkh("))
+
+	// Now that it succeeded, no further imports.
+	_, err = backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Len(t, fake.callsFor("importdescriptors"), 3)
+	assert.Empty(t, backend.bip47NotifRetry)
 }
 
 func TestCoreBackendSendSimple(t *testing.T) {
