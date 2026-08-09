@@ -490,10 +490,10 @@ type keyOrigin struct {
 	path        []uint32
 }
 
-// groupKeyOrigins resolves each wallet key's [fingerprint/origin] into the
-// fingerprint + account path the PSBT BIP32 derivations carry. Keys without an
-// origin (non-wallet xpubs) contribute nothing — a group made entirely of such
-// keys cannot be verified and is rejected by the caller's per-input check.
+// groupKeyOrigins resolves each key's declared [fingerprint/origin] into the
+// fingerprint + account path the PSBT BIP32 derivations carry. Keys without one
+// contribute nothing: membership is proven by verifyInputScript, not by origin
+// metadata, so a group of bare xpubs is still verifiable.
 func groupKeyOrigins(g MultisigLoungeGroup) ([]keyOrigin, error) {
 	origins := make([]keyOrigin, 0, len(g.Keys))
 	for _, k := range g.Keys {
@@ -506,9 +506,6 @@ func groupKeyOrigins(g MultisigLoungeGroup) ([]keyOrigin, error) {
 		}
 		origins = append(origins, keyOrigin{fingerprint: fp, path: path})
 	}
-	if len(origins) == 0 {
-		return nil, errors.New("group has no wallet keys with derivable origins; cannot verify PSBT membership")
-	}
 	return origins, nil
 }
 
@@ -516,7 +513,7 @@ func groupKeyOrigins(g MultisigLoungeGroup) ([]keyOrigin, error) {
 // verifyInputScript: the k-of-n script the input actually commits to must be the
 // one the group's own cosigner keys re-derive, so an input the group cannot own
 // is refused whatever its metadata claims. The origin allow-list is kept as an
-// additional constraint, so deleting derivation records cannot weaken either.
+// additional constraint on records claiming a fingerprint the group declares.
 func verifyInputBelongsToGroup(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdkeychain.ExtendedKey, origins []keyOrigin) error {
 	if err := verifyInputOrigins(in, origins); err != nil {
 		return err
@@ -603,12 +600,15 @@ func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdke
 	return errors.New("does not belong to the multisig group (foreign input rejected)")
 }
 
-// verifyInputOrigins requires every BIP32 derivation record on the input to trace
-// to one of the group's cosigner origins (fingerprint + account path prefix).
+// verifyInputOrigins requires every BIP32 derivation record that claims one of
+// the group's fingerprints to trace to that fingerprint's origin (account path
+// prefix). Records claiming any other fingerprint are external cosigners — the
+// descriptor emits those keys bare, so Core tags them with the xpub's own
+// self-root fingerprint — and are left to verifyInputScript.
 func verifyInputOrigins(in psbt.PInput, origins []keyOrigin) error {
 	if len(in.TaprootBip32Derivation) > 0 {
 		for _, d := range in.TaprootBip32Derivation {
-			if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
+			if !originAllowed(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 				return errors.New("does not belong to the multisig group (foreign input rejected)")
 			}
 		}
@@ -618,11 +618,26 @@ func verifyInputOrigins(in psbt.PInput, origins []keyOrigin) error {
 		return errors.New("has no BIP32 derivation records; cannot verify it belongs to the group")
 	}
 	for _, d := range in.Bip32Derivation {
-		if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
+		if !originAllowed(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 			return errors.New("does not belong to the multisig group (foreign input rejected)")
 		}
 	}
 	return nil
+}
+
+// originAllowed reports whether a derivation record is consistent with the
+// group's origins: it either matches one, or claims a fingerprint the group does
+// not declare at all.
+func originAllowed(fingerprint uint32, path []uint32, origins []keyOrigin) bool {
+	if originMatches(fingerprint, path, origins) {
+		return true
+	}
+	for _, o := range origins {
+		if o.fingerprint == fingerprint {
+			return false
+		}
+	}
+	return true
 }
 
 // originMatches reports whether (fingerprint, path) starts with one of the
