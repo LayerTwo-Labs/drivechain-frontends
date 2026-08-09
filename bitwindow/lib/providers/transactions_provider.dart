@@ -131,6 +131,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
       }
       final String walletId = activeId;
 
+      // The receive address is local derivation, so it must not wait on the
+      // chain-data batch below, which stalls whenever the indexer is down.
+      unawaited(_updateReceiveAddress(walletId));
+
       // Run all updates in parallel
       final results = await Future.wait([
         update<List<WalletTransaction>>(
@@ -173,19 +177,6 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
           },
           (v) => walletTransactions = v,
           equals: const DeepCollectionEquality().equals,
-        ),
-        update<({String address, String path})>(
-          (address: address, path: addressDerivationPath),
-          () async {
-            final next = await orchestratorWallet.getNewAddress(walletId, addressType: addressType);
-            return (address: next.address, path: next.derivationPath);
-          },
-          (v) {
-            address = v.address;
-            addressDerivationPath = v.path;
-          },
-          // Always update - backend handles finding unused address
-          equals: (a, b) => false,
         ),
         update<List<UnspentOutput>>(
           utxos,
@@ -278,6 +269,35 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
       if (_refetchQueued) {
         _refetchQueued = false;
         unawaited(fetch());
+      }
+    }
+  }
+
+  Future<void> _updateReceiveAddress(String walletId) async {
+    final requestedType = addressType;
+    try {
+      await update<({String address, String path})>(
+        (address: address, path: addressDerivationPath),
+        () async {
+          final next = await orchestratorWallet.getNewAddress(walletId, addressType: requestedType);
+          return (address: next.address, path: next.derivationPath);
+        },
+        (v) {
+          // A wallet swap or type change while this was in flight would show
+          // the wrong address.
+          if (_walletReader.activeWalletId != walletId || addressType != requestedType) {
+            return;
+          }
+          address = v.address;
+          addressDerivationPath = v.path;
+        },
+        // Always update - backend handles finding unused address
+        equals: (a, b) => false,
+      );
+      notifyListeners();
+    } catch (e) {
+      if (!isExpectedBootError(e)) {
+        _log.w('TransactionProvider: address fetch failed: $e');
       }
     }
   }
