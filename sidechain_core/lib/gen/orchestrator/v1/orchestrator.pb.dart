@@ -5403,7 +5403,15 @@ class ForkClaimUtxo extends $pb.GeneratedMessage {
 }
 
 class ShutdownRequest extends $pb.GeneratedMessage {
-  factory ShutdownRequest() => create();
+  factory ShutdownRequest({
+    $core.bool? onlyIfLast,
+  }) {
+    final $result = create();
+    if (onlyIfLast != null) {
+      $result.onlyIfLast = onlyIfLast;
+    }
+    return $result;
+  }
   ShutdownRequest._() : super();
   factory ShutdownRequest.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -5413,6 +5421,7 @@ class ShutdownRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ShutdownRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'onlyIfLast')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -5435,6 +5444,20 @@ class ShutdownRequest extends $pb.GeneratedMessage {
   static ShutdownRequest getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ShutdownRequest>(create);
   static ShutdownRequest? _defaultInstance;
+
+  /// Drain only once no client is connected and the owner process is gone.
+  /// Unset means drain now, whoever else is attached.
+  @$pb.TagNumber(1)
+  $core.bool get onlyIfLast => $_getBF(0);
+  @$pb.TagNumber(1)
+  set onlyIfLast($core.bool v) {
+    $_setBool(0, v);
+  }
+
+  @$pb.TagNumber(1)
+  $core.bool hasOnlyIfLast() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOnlyIfLast() => clearField(1);
 }
 
 class ShutdownResponse extends $pb.GeneratedMessage {

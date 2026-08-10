@@ -1064,10 +1064,14 @@ final $typed_data.Uint8List forkClaimUtxoDescriptor =
 @$core.Deprecated('Use shutdownRequestDescriptor instead')
 const ShutdownRequest$json = {
   '1': 'ShutdownRequest',
+  '2': [
+    {'1': 'only_if_last', '3': 1, '4': 1, '5': 8, '10': 'onlyIfLast'},
+  ],
 };
 
 /// Descriptor for `ShutdownRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List shutdownRequestDescriptor = $convert.base64Decode('Cg9TaHV0ZG93blJlcXVlc3Q=');
+final $typed_data.Uint8List shutdownRequestDescriptor =
+    $convert.base64Decode('Cg9TaHV0ZG93blJlcXVlc3QSIAoMb25seV9pZl9sYXN0GAEgASgIUgpvbmx5SWZMYXN0');
 
 @$core.Deprecated('Use shutdownResponseDescriptor instead')
 const ShutdownResponse$json = {

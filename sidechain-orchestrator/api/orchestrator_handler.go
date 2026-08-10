@@ -330,7 +330,11 @@ func (h *Handler) ShutdownAll(ctx context.Context, req *connect.Request[pb.Shutd
 // exposed: when a fresh bitwindowd calls StartWithL1 mid-drain,
 // orchestratord adopts the in-flight drain itself (flips will-exit + awaits)
 // before booting the new stack. No caller-side glue.
-func (h *Handler) Shutdown(_ context.Context, _ *connect.Request[pb.ShutdownRequest]) (*connect.Response[pb.ShutdownResponse], error) {
+func (h *Handler) Shutdown(_ context.Context, req *connect.Request[pb.ShutdownRequest]) (*connect.Response[pb.ShutdownResponse], error) {
+	if req.Msg.GetOnlyIfLast() {
+		h.orch.ClientLeaving()
+		return connect.NewResponse(&pb.ShutdownResponse{}), nil
+	}
 	h.orch.BeginShutdown()
 	return connect.NewResponse(&pb.ShutdownResponse{}), nil
 }
