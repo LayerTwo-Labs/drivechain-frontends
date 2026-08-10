@@ -471,4 +471,21 @@ func TestService_ListSidechainDeposits(t *testing.T) {
 		require.Len(t, resp.Msg.Deposits, 1)
 		require.Equal(t, "slot0deposit", resp.Msg.Deposits[0].Txid)
 	})
+
+	t.Run("out of range slot is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		database := database.Test(t)
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database))
+
+		for _, slot := range []int32{-1, 256} {
+			_, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{
+				WalletId: "test-wallet-id-1234",
+				Slot:     slot,
+			}))
+			require.Error(t, err)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+			require.Contains(t, err.Error(), "slot must be 0-255")
+		}
+	})
 }
