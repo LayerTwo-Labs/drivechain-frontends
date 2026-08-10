@@ -140,12 +140,12 @@ func indexCoinNewsPayload(ctx context.Context, db *sql.DB, data []byte, pos cnst
 
 // coinNewsPayload extracts the bytes pushed by a single-push OP_RETURN
 // script. Returns ok=false for anything else (not OP_RETURN, multi-
-// push, OP_DRIVECHAIN, coinbase carrier).
+// push, OP_DRIVECHAIN, coinbase witness commitment).
 func coinNewsPayload(pkScript []byte) ([]byte, bool) {
 	if len(pkScript) < 2 || pkScript[0] != txscript.OP_RETURN {
 		return nil, false
 	}
-	if pkScript[1] == txscript.OP_DATA_36 {
+	if isWitnessCommitment(pkScript) {
 		return nil, false
 	}
 	if shouldSkip(pkScript) {

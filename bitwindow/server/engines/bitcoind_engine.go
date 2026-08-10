@@ -604,8 +604,7 @@ func (p *Parser) handleOpReturns(
 		}
 
 		isOPReturn := txout.PkScript[0] == txscript.OP_RETURN
-		isCoinbaseReturn := isOPReturn && txout.PkScript[1] == txscript.OP_DATA_36
-		if isCoinbaseReturn {
+		if isWitnessCommitment(txout.PkScript) {
 			continue
 		}
 		if shouldSkip(txout.PkScript) {
@@ -795,6 +794,19 @@ func parseOPReturnData(script []byte) ([]byte, bool) {
 	default:
 		return nil, false
 	}
+}
+
+// witnessCommitmentMagic prefixes the coinbase segwit commitment push (BIP141).
+var witnessCommitmentMagic = []byte{0xaa, 0x21, 0xa9, 0xed}
+
+// isWitnessCommitment reports whether a script is the coinbase segwit
+// commitment. The 36-byte push length alone isn't enough — real payloads
+// can also be exactly 36 bytes.
+func isWitnessCommitment(pkScript []byte) bool {
+	return len(pkScript) >= 6 &&
+		pkScript[0] == txscript.OP_RETURN &&
+		pkScript[1] == txscript.OP_DATA_36 &&
+		bytes.Equal(pkScript[2:6], witnessCommitmentMagic)
 }
 
 func shouldSkip(pkScript []byte) bool {
