@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"os/exec"
@@ -46,7 +47,9 @@ import (
 func main() {
 	start := time.Now()
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	// SIGTERM too, so `systemctl stop` / `docker stop` drain the server and
+	// relay Shutdown to orchestratord instead of orphaning it.
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	if err := realMain(ctx, cancel); err != nil {
 
