@@ -12,6 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
@@ -114,6 +115,56 @@ func TestOpReturnHandling(t *testing.T) {
 	assert.Equal(t, btcutil.Amount(100_000), news[0].Fee)
 	assert.Equal(t, "The Known Topic", news[0].Headline)
 	assert.Equal(t, "The Known Topic", news[0].TopicName)
+}
+
+// TestPurgeChainDerivedAtOrAbove proves the reorg purge covers the two
+// tables the replay can't heal on its own: op_returns keeps its stale
+// height through the upsert, and a confirmed timestamp is never
+// re-examined.
+func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := database.Test(t)
+	parser := &Parser{db: db}
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO op_returns (txid, vout, op_return_data, fee_sats, height, created_at)
+		VALUES ('below', 0, 'aa', 0, 100, CURRENT_TIMESTAMP),
+		       ('orphaned', 0, 'bb', 0, 200, CURRENT_TIMESTAMP),
+		       ('mempool', 0, 'cc', 0, NULL, CURRENT_TIMESTAMP)`)
+	require.NoError(t, err)
+
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO file_timestamps (filename, file_hash, txid, block_height, status, created_at, confirmed_at)
+		VALUES ('below.txt', 'hash-below', 'txid-below', 100, 'confirmed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+		       ('orphaned.txt', 'hash-orphaned', 'txid-orphaned', 200, 'confirmed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
+	require.NoError(t, err)
+
+	require.NoError(t, parser.purgeChainDerivedAtOrAbove(ctx, 181))
+
+	var txids []string
+	rows, err := db.QueryContext(ctx, `SELECT txid FROM op_returns ORDER BY txid`)
+	require.NoError(t, err)
+	defer rows.Close()
+	for rows.Next() {
+		var txid string
+		require.NoError(t, rows.Scan(&txid))
+		txids = append(txids, txid)
+	}
+	require.NoError(t, rows.Err())
+	assert.Equal(t, []string{"below", "mempool"}, txids,
+		"orphaned OP_RETURNs are wiped, confirmed-below and mempool rows survive")
+
+	below, err := timestamps.GetByHash(ctx, db, "hash-below")
+	require.NoError(t, err)
+	assert.Equal(t, timestamps.StatusConfirmed, below.Status, "timestamps below the rewind target stay confirmed")
+
+	orphaned, err := timestamps.GetByHash(ctx, db, "hash-orphaned")
+	require.NoError(t, err)
+	assert.Equal(t, timestamps.StatusConfirming, orphaned.Status, "orphaned timestamps go back to confirming")
+	assert.Nil(t, orphaned.BlockHeight, "orphaned timestamps lose their stale height")
+	assert.Nil(t, orphaned.ConfirmedAt, "orphaned timestamps lose their stale confirmation time")
 }
 
 func pkScript(t *testing.T, data []byte) []byte {
