@@ -66,6 +66,41 @@ func TestReserveNextIndex_Concurrent(t *testing.T) {
 	}
 }
 
+func TestReleaseIndexReusesIndexAfterFailedSend(t *testing.T) {
+	dir := t.TempDir()
+	st := bip47state.NewStore(dir)
+
+	idx, err := st.ReserveNextIndex("w1", "PMtest")
+	require.NoError(t, err)
+	require.NoError(t, st.ReleaseIndex("w1", "PMtest", idx))
+
+	// The release must survive a restart, not just the in-memory view.
+	st2 := bip47state.NewStore(dir)
+	again, err := st2.ReserveNextIndex("w1", "PMtest")
+	require.NoError(t, err)
+	assert.Equal(t, idx, again)
+}
+
+func TestReleaseIndexIgnoresStaleAndUnknown(t *testing.T) {
+	dir := t.TempDir()
+	st := bip47state.NewStore(dir)
+
+	first, err := st.ReserveNextIndex("w1", "PMtest")
+	require.NoError(t, err)
+	_, err = st.ReserveNextIndex("w1", "PMtest")
+	require.NoError(t, err)
+
+	// A concurrent send already reserved past `first`: releasing it must not
+	// rewind the counter onto an index that is now in flight.
+	require.NoError(t, st.ReleaseIndex("w1", "PMtest", first))
+	require.NoError(t, st.ReleaseIndex("w1", "PMunknown", 0))
+
+	state, err := st.GetState("w1", "PMtest")
+	require.NoError(t, err)
+	require.NotNil(t, state)
+	assert.Equal(t, uint32(2), state.NextSendIndex)
+}
+
 func TestPersistenceAcrossReopen(t *testing.T) {
 	dir := t.TempDir()
 	st := bip47state.NewStore(dir)

@@ -776,7 +776,7 @@ func mapExternalInputs(exts []*pb.ExternalInput) []wallet.ExternalInput {
 	})
 }
 
-func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
+func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (_ *connect.Response[pb.SendTransactionResponse], retErr error) {
 	// A transaction needs at least one output, but it doesn't have to be a
 	// payment: an OP_RETURN-only broadcast (e.g. coinnews) or a raw-script
 	// output (e.g. a sidechain deposit treasury) is a valid send on its own.
@@ -806,6 +806,13 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	if expansion.notificationTxHex != "" || !destinationsEqual(expansion.destinations, req.Msg.Destinations) {
 		req = connect.NewRequest(applyDestinationsToRequest(req.Msg, expansion.destinations))
 	}
+	// The reserved per-payment index is only consumed by a payment that goes
+	// out; release it again on every failure below so a retry reuses it.
+	defer func() {
+		if retErr != nil {
+			h.releaseBip47Index(walletID, expansion)
+		}
+	}()
 
 	const dustLimitSats int64 = 546
 	for address, sats := range req.Msg.Destinations {
