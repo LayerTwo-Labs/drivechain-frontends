@@ -258,5 +258,13 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 		}, nil).
 		AnyTimes()
 
+	// The OP_RETURN sweep reads the mempool before it deletes anything.
+	mock.EXPECT().
+		GetRawMempool(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.GetRawMempoolResponse]{
+			Msg: &corepb.GetRawMempoolResponse{},
+		}, nil).
+		AnyTimes()
+
 	return mock
 }
