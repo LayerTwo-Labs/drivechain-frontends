@@ -117,6 +117,14 @@ func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name required"))
 	}
 
+	// A managed name loads the existing wallet instead of creating one, and the
+	// import below would supersede its active descriptors with this seed's.
+	if strings.HasPrefix(coreWalletName, "wallet_") ||
+		strings.HasPrefix(coreWalletName, "watch_") ||
+		coreWalletName == engines.ChequeWalletName {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name %q is reserved for managed wallets", coreWalletName))
+	}
+
 	// Directly import to Bitcoin Core - no wallet.json needed
 	if err := s.walletEngine.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex, 0, ""); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("create Bitcoin Core wallet failed")

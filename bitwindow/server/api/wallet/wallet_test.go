@@ -3,10 +3,12 @@ package api_wallet_test
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
@@ -346,6 +348,41 @@ func TestService_IsWalletUnlocked(t *testing.T) {
 		_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		// The test wallet is unencrypted, so it should be considered unlocked
 		require.NoError(t, err)
+	})
+}
+
+func TestService_CreateBitcoinCoreWallet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("managed wallet names are rejected", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		for _, name := range []string{"wallet_deadbeef", "watch_deadbeef", engines.ChequeWalletName} {
+			_, err := cli.CreateBitcoinCoreWallet(context.Background(), connect.NewRequest(&walletv1.CreateBitcoinCoreWalletRequest{
+				SeedHex: strings.Repeat("00", 64),
+				Name:    name,
+			}))
+			require.Error(t, err)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+			require.Contains(t, err.Error(), "reserved for managed wallets")
+		}
 	})
 }
 
