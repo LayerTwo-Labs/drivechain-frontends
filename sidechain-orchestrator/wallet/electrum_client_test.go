@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net"
+	"sync/atomic"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcutil"
@@ -168,6 +169,52 @@ func TestElectrumClientTxResolvesPrevoutAndFee(t *testing.T) {
 	require.Len(t, tx.Vout, 1)
 	assert.Equal(t, int64(90000), tx.Vout[0].Value)
 	assert.Equal(t, int64(10000), tx.Fee, "fee = inputs - outputs")
+}
+
+// TestElectrumClientHeightCacheRevoked proves a later height-0 sighting clears
+// the cached confirmation height, so a tx reorged back into the mempool stops
+// reporting as confirmed at its old height.
+func TestElectrumClientHeightCacheRevoked(t *testing.T) {
+	ctx := context.Background()
+	addr, pkScript := signetAddr(t)
+
+	tx := wire.NewMsgTx(2)
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: chainhash.Hash{0x22}, Index: 0}, nil, nil))
+	tx.AddTxOut(wire.NewTxOut(70000, pkScript))
+	txHex := txToHex(t, tx)
+	txID := tx.TxHash().String()
+
+	var height atomic.Int64
+	height.Store(800000)
+	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+		switch method {
+		case "blockchain.scripthash.get_history":
+			return []map[string]interface{}{{"tx_hash": txID, "height": height.Load()}}
+		case "blockchain.transaction.get":
+			return txHex
+		case "blockchain.block.header":
+			return "00"
+		}
+		return nil
+	})
+	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+
+	txs, err := c.AddressTxs(ctx, addr)
+	require.NoError(t, err)
+	require.Len(t, txs, 1)
+	require.True(t, txs[0].Status.Confirmed)
+	require.Equal(t, 800000, txs[0].Status.BlockHeight)
+
+	height.Store(0) // reorged back into the mempool
+	txs, err = c.AddressTxs(ctx, addr)
+	require.NoError(t, err)
+	require.Len(t, txs, 1)
+	assert.False(t, txs[0].Status.Confirmed, "a height-0 sighting must revoke the cached height")
+
+	got, err := c.Tx(ctx, txID)
+	require.NoError(t, err)
+	assert.False(t, got.Status.Confirmed)
+	assert.Equal(t, 0, got.Status.BlockHeight)
 }
 
 func TestElectrumClientFeeRateConversion(t *testing.T) {
