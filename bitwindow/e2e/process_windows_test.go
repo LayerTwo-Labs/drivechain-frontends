@@ -65,7 +65,15 @@ func runTaskkill(pid int, force bool) error {
 // its RPC ports. In-run shutdown is the orchestrator's responsibility.
 func sweepPriorRunOrphans(t *testing.T) {
 	t.Helper()
-	for _, name := range []string{"bitwindowd.exe", "orchestratord.exe", "bitcoind.exe", "bip300301_enforcer.exe"} {
+	// A live app restarts a daemon it did not stop, so it goes first.
+	images := []string{
+		flutterAppProcessName() + ".exe",
+		"bitwindowd.exe",
+		"orchestratord.exe",
+		"bitcoind.exe",
+		"bip300301_enforcer.exe",
+	}
+	for _, name := range images {
 		_ = exec.Command("taskkill", "/F", "/IM", name).Run()
 	}
 }
