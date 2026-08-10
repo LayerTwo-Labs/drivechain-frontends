@@ -627,9 +627,8 @@ class TransactionStorage {
     String transactionId,
     String keyId,
     String psbt,
-    bool isSigned, {
-    int? signatureThreshold,
-  }) async {
+    bool isSigned,
+  ) async {
     final transaction = await getTransaction(transactionId);
     if (transaction == null) {
       throw Exception('Transaction not found: $transactionId');
@@ -641,10 +640,15 @@ class TransactionStorage {
       orElse: () => throw Exception('Group not found: ${transaction.groupId}'),
     );
 
-    final actualSignedStatus = await PSBTValidator.hasAnySignatures(psbt, group.n);
-
     final keyPSBTs = List<KeyPSBTStatus>.from(transaction.keyPSBTs);
     final existingIndex = keyPSBTs.indexWhere((k) => k.keyId == keyId);
+
+    // Only the owning group's keys may hold a PSBT slot on its transaction.
+    if (existingIndex == -1 && !group.keys.any((k) => k.xpub == keyId)) {
+      throw Exception('Key is not a member of group ${group.id}: $keyId');
+    }
+
+    final actualSignedStatus = await PSBTValidator.hasAnySignatures(psbt, group.n);
 
     final newKeyPSBT = KeyPSBTStatus(
       keyId: keyId,
@@ -660,8 +664,7 @@ class TransactionStorage {
     }
 
     final signedCount = keyPSBTs.where((k) => k.isSigned).length;
-    final threshold = signatureThreshold ?? transaction.requiredSignatures;
-    final newStatus = signedCount >= threshold ? TxStatus.readyToCombine : TxStatus.needsSignatures;
+    final newStatus = signedCount >= group.m ? TxStatus.readyToCombine : TxStatus.needsSignatures;
 
     final updatedTransaction = transaction.copyWith(
       keyPSBTs: keyPSBTs,
