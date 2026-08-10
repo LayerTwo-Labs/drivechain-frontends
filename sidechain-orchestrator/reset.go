@@ -481,20 +481,42 @@ func (o *Orchestrator) markResetBinaryStopped(name string) {
 // gen is the shutdown generation observed when the reset was issued. A drain
 // that began since then already snapshotted the running processes, so anything
 // started now would never be stopped — abort instead.
-func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan, gen uint64) {
+//
+// Returns the binaries that failed to start. A failure only strands that
+// binary's descendants; siblings are restarted regardless.
+func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan, gen uint64) []string {
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(len(plan.restart)+1)*resetRestartTimeout)
 	defer cancel()
 
+	var failed []string
+	// binary -> the failed ancestor that makes starting it pointless.
+	blocked := make(map[ResetBinary]string)
+
 	for _, item := range plan.restart {
+		name := item.binary.processName()
 		if o.shutdownGen.Load() != gen {
-			o.log.Info().Str("binary", item.binary.processName()).Msg("reset restart aborted: shutdown began after reset was issued")
-			return
+			o.log.Info().Str("binary", name).Msg("reset restart aborted: shutdown began after reset was issued")
+			return failed
+		}
+		if ancestor, ok := blocked[item.binary]; ok {
+			o.log.Warn().Str("binary", name).Str("depends_on", ancestor).Msg("reset restart skipped: dependency failed to start")
+			continue
 		}
 		if err := o.restartResetBinary(ctx, item.binary, item.forceBackend); err != nil {
-			o.log.Error().Err(err).Str("binary", item.binary.processName()).Msg("reset restart failed")
-			return
+			o.log.Error().Err(err).Str("binary", name).Msg("reset restart failed")
+			failed = append(failed, name)
+			for _, child := range resetDescendants(item.binary) {
+				if _, ok := blocked[child]; !ok {
+					blocked[child] = name
+				}
+			}
 		}
 	}
+
+	if len(failed) > 0 {
+		o.log.Error().Strs("failed", failed).Msg("reset restart finished with failures")
+	}
+	return failed
 }
 
 func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinary, forceBackend bool) error {

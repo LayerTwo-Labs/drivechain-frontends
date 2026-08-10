@@ -358,6 +358,46 @@ func TestResetRestart_AbortsWhenShutdownBeganAfterReset(t *testing.T) {
 	assert.False(t, o.process.IsRunning("thunder"))
 }
 
+// An orchestrator with no configs: every restart fails on the config lookup,
+// instantly and without side effects.
+func newRestartFailureOrchestrator(t *testing.T) *Orchestrator {
+	t.Helper()
+	dir := t.TempDir()
+	return New(dir, "signet", dir, nil, testLogger(t))
+}
+
+// Sidechains don't depend on each other, so one failing to start must not
+// strand the rest of them.
+func TestResetRestart_SiblingFailureDoesNotSkipOtherSidechains(t *testing.T) {
+	o := newRestartFailureOrchestrator(t)
+
+	plan := resetPlan{restart: []resetRestart{
+		{binary: ResetBinaryThunder},
+		{binary: ResetBinaryZSide},
+		{binary: ResetBinaryBitAssets},
+	}}
+
+	failed := o.restartResetPlan(context.Background(), plan, o.shutdownGen.Load())
+
+	assert.Equal(t, []string{"thunder", "zside", "bitassets"}, failed)
+}
+
+// A failed start does skip that binary's descendants: there's no point booting
+// a sidechain when bitcoind never came back.
+func TestResetRestart_FailureSkipsDescendants(t *testing.T) {
+	o := newRestartFailureOrchestrator(t)
+
+	plan := resetPlan{restart: []resetRestart{
+		{binary: ResetBinaryBitcoind},
+		{binary: ResetBinaryEnforcer},
+		{binary: ResetBinaryThunder},
+	}}
+
+	failed := o.restartResetPlan(context.Background(), plan, o.shutdownGen.Load())
+
+	assert.Equal(t, []string{"bitcoind"}, failed)
+}
+
 // ---------- DeleteFiles ----------------------------------------------------
 
 func TestDeleteFiles_DeletesSeededFiles(t *testing.T) {
