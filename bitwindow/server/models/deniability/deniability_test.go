@@ -187,6 +187,29 @@ func TestDeniability(t *testing.T) {
 		require.Nil(t, denial)
 	})
 
+	t.Run("GetByTip does not match the pre-hop vout", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		denial, err := Create(ctx, db, "test-wallet", "initial-txid", 7, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		// After a hop the tip is (hop-txid, 3), not (hop-txid, 7).
+		require.NoError(t, RecordExecution(ctx, db, denial.ID, "initial-txid", 7, "hop-txid", 3))
+
+		found, err := GetByTip(ctx, db, "hop-txid", ptr(int32(3)))
+		require.NoError(t, err)
+		require.NotNil(t, found)
+		require.Equal(t, denial.ID, found.ID)
+		require.Equal(t, "hop-txid", found.TipTXID)
+		require.Equal(t, int32(3), found.TipVout)
+
+		// The stale initial vout must not satisfy the lookup.
+		found, err = GetByTip(ctx, db, "hop-txid", ptr(int32(7)))
+		require.NoError(t, err)
+		require.Nil(t, found)
+	})
+
 	t.Run("Update", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
