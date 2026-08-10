@@ -528,11 +528,10 @@ func TestGetNextAccountIndex(t *testing.T) {
 	g := sampleGroup()
 	require.NoError(t, store.SaveGroup(ctx, g))
 
-	// extractAccountIndex reads parts[2] of the derivation path.
-	// For m/48'/8000'/0' → parts=[m,48',8000',0'] → parts[2]=8000' → 8000
+	// The shipped path shape is m/84'/coin'/account'.
 	keys := []multisig.Key{
-		{GroupID: g.ID, Owner: "a", Xpub: "x1", DerivationPath: "m/48'/8000'/0'", IsWallet: true},
-		{GroupID: g.ID, Owner: "b", Xpub: "x2", DerivationPath: "m/48'/8005'/0'", IsWallet: true},
+		{GroupID: g.ID, Owner: "a", Xpub: "x1", DerivationPath: "m/84'/1'/8000'", IsWallet: true},
+		{GroupID: g.ID, Owner: "b", Xpub: "x2", DerivationPath: "m/84'/1'/8005'", IsWallet: true},
 	}
 	require.NoError(t, store.ReplaceKeysForGroup(ctx, g.ID, keys))
 
@@ -544,4 +543,26 @@ func TestGetNextAccountIndex(t *testing.T) {
 	next, err = store.GetNextAccountIndex(ctx, []int{9000})
 	require.NoError(t, err)
 	assert.Equal(t, 9001, next)
+}
+
+func TestGetNextAccountIndexAdvancesAcrossSessions(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, g))
+
+	first, err := store.GetNextAccountIndex(ctx, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 8000, first)
+
+	// A key stored at the allocated index must push the next allocation forward,
+	// even though the caller passes no additionally used indices.
+	require.NoError(t, store.ReplaceKeysForGroup(ctx, g.ID, []multisig.Key{
+		{GroupID: g.ID, Owner: "a", Xpub: "x1", DerivationPath: "m/84'/1'/8000'", IsWallet: true},
+	}))
+
+	second, err := store.GetNextAccountIndex(ctx, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 8001, second, "second allocation reused the first account index")
 }
