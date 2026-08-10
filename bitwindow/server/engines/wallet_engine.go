@@ -1004,7 +1004,13 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 			e.mu.Unlock()
 			return resp.Msg.CoreWalletName, nil
 		}
-		// Fall through to local on error
+		// A warming-up orchestrator (Unavailable) or a starting bitcoind means
+		// the local path would fail the same way — propagate so the caller
+		// retries instead of storming bitcoind.
+		if connect.CodeOf(err) == connect.CodeUnavailable || IsBitcoinCoreStartupError(err.Error()) {
+			return "", err
+		}
+		// Otherwise fall through to local on error
 	}
 
 	e.mu.Lock()
@@ -1026,7 +1032,7 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 	}
 
 	// Generate wallet name from wallet ID
-	walletName := fmt.Sprintf("watch_%s", walletId[:8])
+	walletName := fmt.Sprintf("wallet_%s", walletId[:8])
 
 	// Get bitcoind client
 	bitcoindClient, err := e.bitcoindConnector(ctx)
