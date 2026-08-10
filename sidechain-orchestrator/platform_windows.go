@@ -102,6 +102,12 @@ func findPidByName(binaryName string) (int, error) {
 // daemons (bitcoind, enforcer, sidechains) trap this and flush cleanly; GUI
 // WM_CLOSE via plain taskkill does not reach them.
 func killProcess(pid int) error {
+	// Group 0 means "every process on our console" — that would CTRL_BREAK
+	// orchestratord itself.
+	if pid <= 0 {
+		return fmt.Errorf("refusing to signal invalid pid %d", pid)
+	}
+
 	ret, _, err := procGenerateConsoleCtrlEvent.Call(
 		uintptr(ctrlBreakEvent),
 		uintptr(uint32(pid)),
@@ -116,6 +122,10 @@ func killProcess(pid int) error {
 }
 
 func forceKillProcess(pid int) error {
+	if pid <= 0 {
+		return fmt.Errorf("refusing to signal invalid pid %d", pid)
+	}
+
 	cmd := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(pid))
 	if err := cmd.Run(); err != nil {
 		if !isPidAlive(pid) {

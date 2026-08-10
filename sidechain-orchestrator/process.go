@@ -697,6 +697,13 @@ func (pm *ProcessManager) AdoptProcessWithOptions(config BinaryConfig, pid int, 
 // AdoptProcessResolved registers an externally-found process when the PID file
 // name already tells us which on-disk variant it belongs to.
 func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, binPath, pidName string, forceBackend bool) {
+	// PID discovery returns 0 when every lookup misses. Claiming ownership of a
+	// process we cannot signal makes Stop report success without stopping it.
+	if pid <= 0 {
+		pm.log.Warn().Str("binary", config.Name).Int("pid", pid).Msg("refusing to adopt process with invalid pid")
+		return
+	}
+
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 

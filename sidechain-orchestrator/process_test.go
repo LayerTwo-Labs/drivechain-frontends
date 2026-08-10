@@ -228,3 +228,25 @@ func TestProcessNameMatches(t *testing.T) {
 		})
 	}
 }
+
+// A pid of 0 means discovery found nothing. Adopting it would make Stop
+// report success without ever signalling the daemon.
+func TestProcessManager_AdoptRejectsInvalidPid(t *testing.T) {
+	pm, _ := newTestProcessManager(t)
+	cfg := BinaryConfig{Name: "bitcoind", BinaryName: "bitcoind"}
+
+	pm.AdoptProcess(cfg, 0)
+	assert.False(t, pm.IsRunning("bitcoind"), "pid 0 must not be adopted")
+
+	pm.AdoptProcess(cfg, -1)
+	assert.False(t, pm.IsRunning("bitcoind"), "negative pid must not be adopted")
+
+	assert.Error(t, pm.Stop(context.Background(), "bitcoind", false))
+}
+
+func TestKillProcess_RejectsInvalidPid(t *testing.T) {
+	for _, pid := range []int{0, -1} {
+		assert.Error(t, killProcess(pid))
+		assert.Error(t, forceKillProcess(pid))
+	}
+}
