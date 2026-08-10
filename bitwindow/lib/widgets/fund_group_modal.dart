@@ -9,10 +9,7 @@ import 'package:stacked/stacked.dart';
 class FundGroupModal extends StatelessWidget {
   final List<MultisigGroup> groups;
 
-  const FundGroupModal({
-    super.key,
-    required this.groups,
-  });
+  const FundGroupModal({super.key, required this.groups});
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +32,7 @@ class FundGroupModal extends StatelessWidget {
                       hintText: 'Funding address',
                       controller: TextEditingController(text: viewModel.currentAddress),
                       readOnly: true,
-                      suffixWidget: CopyButton(
-                        text: viewModel.currentAddress,
-                      ),
+                      suffixWidget: CopyButton(text: viewModel.currentAddress),
                     ),
                     SailButton(
                       label: 'Close',
@@ -86,6 +81,11 @@ class FundGroupModal extends StatelessWidget {
                             const SizedBox(width: SailStyleValues.padding16),
                             SailButton(
                               label: 'Fund This Group',
+                              // Address generation moves Core's cursor, so a
+                              // second click would take a second address and
+                              // then overwrite the first one's record.
+                              disabled: viewModel.isBusy,
+                              loading: viewModel.isBusy,
                               onPressed: () async => viewModel.selectGroup(group),
                               variant: ButtonVariant.primary,
                             ),
@@ -182,12 +182,11 @@ class FundGroupModalViewModel extends BaseViewModel {
       // (Phase-1) descriptors. SyncGroup owns watch-wallet creation server-side.
       await _multisigLounge.syncGroup(group: multisigGroupToProto(enhancedGroup), walletId: walletId);
 
-      // The group carries the standard descriptors; build them if not yet
-      // persisted. These are the same descriptors SyncGroup imported.
-      String? descriptor = enhancedGroup.descriptorReceive;
+      // The group carries the standard descriptors; persist them if not yet
+      // stored. These are the same descriptors SyncGroup imported.
+      final descriptor = enhancedGroup.descriptorReceive;
       if (descriptor == null || descriptor.isEmpty) {
         final built = await MultisigDescriptorBuilder.buildWatchOnlyDescriptors(enhancedGroup);
-        descriptor = built.receive;
         updatedGroup = enhancedGroup.copyWith(
           descriptorReceive: built.receive,
           descriptorChange: built.change,
@@ -195,37 +194,81 @@ class FundGroupModalViewModel extends BaseViewModel {
         );
       }
 
-      int nextIndex = updatedGroup.nextReceiveIndex;
+      final receiveAddresses = List<AddressInfo>.from(updatedGroup.addresses['receive'] ?? []);
+      // Let the watch wallet hand out the address instead of deriving it at an
+      // index of our own: Core only emits indices inside the descriptor range
+      // SyncGroup imported, so the address is always one the wallet tracks.
+      final wantNext = updatedGroup.nextReceiveIndex;
 
-      final addresses = await bitcoindRpcCall(
-        'deriveaddresses',
-        params: [
-          descriptor,
-          [nextIndex, nextIndex],
-        ],
-      );
+      Map<dynamic, dynamic>? receiveDescriptor;
+      final descriptors = await bitcoindRpcCall('listdescriptors', wallet: walletName);
+      if (descriptors is Map && descriptors['descriptors'] is List) {
+        for (final d in descriptors['descriptors'] as List) {
+          if (d is Map && d['active'] == true && d['internal'] != true) {
+            receiveDescriptor = d;
+            break;
+          }
+        }
+      }
+      final coreNext = (receiveDescriptor?['next'] is int) ? receiveDescriptor!['next'] as int : 0;
 
-      if (addresses is! List || addresses.isEmpty) {
-        throw Exception('Failed to derive address from descriptor');
+      // A group funded through the earlier deriveaddresses flow left Core's own
+      // cursor at 0, so it would hand out addresses this group already holds.
+      // Move the cursor in one call. One call per address would take over a
+      // thousand round trips for a group at the old range boundary.
+      if (receiveDescriptor != null && coreNext < wantNext) {
+        // The range is a hard cap. A next_index outside it makes Core reject
+        // the import, and the cursor would stay at 0 while we record a high
+        // index — a reused address under the wrong label.
+        final currentRange = receiveDescriptor['range'];
+        var rangeEnd = wantNext + 100;
+        if (currentRange is List && currentRange.length == 2 && currentRange[1] is int) {
+          final existingEnd = currentRange[1] as int;
+          if (existingEnd > rangeEnd) {
+            rangeEnd = existingEnd;
+          }
+        }
+
+        final imported = await bitcoindRpcCall(
+          'importdescriptors',
+          params: [
+            [
+              {
+                'desc': receiveDescriptor['desc'],
+                'active': true,
+                'internal': false,
+                'range': [0, rangeEnd],
+                'next_index': wantNext,
+                'timestamp': 'now',
+              },
+            ],
+          ],
+          wallet: walletName,
+        );
+
+        // A silent failure here hands out index 0 again, so read the result.
+        if (imported is! List ||
+            imported.isEmpty ||
+            !(imported.first is Map && (imported.first as Map)['success'] == true)) {
+          throw Exception('Could not move the watch wallet cursor to index $wantNext');
+        }
       }
 
-      final newAddress = addresses.first as String;
+      final newAddress = await bitcoindRpcCall('getnewaddress', wallet: walletName);
+      if (newAddress is! String || newAddress.isEmpty) {
+        throw Exception('Failed to get a funding address from watch wallet $walletName');
+      }
 
-      // Update group with new address via backend RPC
-      final receiveAddresses = List<AddressInfo>.from(updatedGroup.addresses['receive'] ?? []);
-      receiveAddresses.add(
-        AddressInfo(
-          index: nextIndex,
-          address: newAddress,
-          used: false,
-        ),
-      );
+      // Core hands out the cursor it holds, so that is the index just used.
+      int nextIndex = coreNext > wantNext ? coreNext : wantNext;
+      if (nextIndex < 0) {
+        nextIndex = 0;
+      }
+
+      receiveAddresses.add(AddressInfo(index: nextIndex, address: newAddress, used: false));
 
       final finalGroup = updatedGroup.copyWith(
-        addresses: {
-          'receive': receiveAddresses,
-          'change': updatedGroup.addresses['change'] ?? [],
-        },
+        addresses: {'receive': receiveAddresses, 'change': updatedGroup.addresses['change'] ?? []},
         nextReceiveIndex: nextIndex + 1,
       );
 
