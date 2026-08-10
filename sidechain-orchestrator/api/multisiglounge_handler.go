@@ -518,10 +518,65 @@ func watchWalletName(g *pb.GroupData) string {
 	return "multisig_" + g.GetId()
 }
 
-// ensureWatchWallet makes sure the group's watch-only descriptor wallet exists
-// and has the Phase-1 receive/change descriptors imported. Idempotent: an
-// already-existing wallet is loaded, not recreated, and re-importing the same
-// descriptors is a no-op in Core.
+// multisigWatchRangeChunk is the granularity the watch wallet's descriptor range
+// grows in; the first import covers [0, 999].
+const multisigWatchRangeChunk = 1000
+
+// multisigWatchRangeLookahead keeps the imported range at least this far ahead of
+// the next index the watch wallet hands out.
+const multisigWatchRangeLookahead = 100
+
+// watchRangeEnd is the descriptor range end covering next+lookahead, rounded up
+// to a whole chunk so a growing wallet re-imports (and rescans) rarely.
+func watchRangeEnd(next int) int {
+	return ((next+multisigWatchRangeLookahead)/multisigWatchRangeChunk+1)*multisigWatchRangeChunk - 1
+}
+
+// watchDescriptorRange reports the imported range end covering both of the
+// wallet's active descriptors (-1 when either is missing) and the highest next
+// index Core will hand out from them.
+func (h *MultisigLoungeHandler) watchDescriptorRange(ctx context.Context, name string) (int, int, error) {
+	var res struct {
+		Descriptors []struct {
+			Active   bool  `json:"active"`
+			Internal bool  `json:"internal"`
+			Range    []int `json:"range"`
+			Next     int   `json:"next"`
+		} `json:"descriptors"`
+	}
+	if err := h.coreCallWallet(ctx, name, "listdescriptors", nil, &res); err != nil {
+		return 0, 0, fmt.Errorf("listdescriptors: %w", err)
+	}
+
+	end, next := -1, 0
+	var haveReceive, haveChange bool
+	for _, d := range res.Descriptors {
+		if !d.Active || len(d.Range) != 2 {
+			continue
+		}
+		if d.Internal {
+			haveChange = true
+		} else {
+			haveReceive = true
+		}
+		if end < 0 || d.Range[1] < end {
+			end = d.Range[1]
+		}
+		if d.Next > next {
+			next = d.Next
+		}
+	}
+	if !haveReceive || !haveChange {
+		return -1, next, nil
+	}
+	return end, next, nil
+}
+
+// ensureWatchWallet makes sure the group's watch-only descriptor wallet exists,
+// has the Phase-1 receive/change descriptors imported, and that their range
+// still covers the addresses the wallet is about to hand out. Idempotent: an
+// already-existing wallet is loaded, not recreated, and the descriptors are only
+// re-imported when the imported range falls short.
 func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.GroupData) (string, error) {
 	name := watchWalletName(g)
 
@@ -530,14 +585,39 @@ func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.Gro
 	if err := h.coreCall(ctx, "listwallets", nil, &loaded); err != nil {
 		return "", fmt.Errorf("listwallets: %w", err)
 	}
+	exists := false
 	for _, w := range loaded {
 		if w == name {
-			return name, nil
+			exists = true
+			break
 		}
 	}
 
 	// Try to load it; on failure create it fresh.
-	if err := h.coreCall(ctx, "loadwallet", []interface{}{name}, nil); err == nil {
+	if !exists {
+		if err := h.coreCall(ctx, "loadwallet", []interface{}{name}, nil); err == nil {
+			exists = true
+		}
+	}
+	if !exists {
+		// createwallet(name, disable_private_keys=true, blank=true, "", false, true, false)
+		if err := h.coreCall(ctx, "createwallet",
+			[]interface{}{name, true, true, "", false, true, false}, nil); err != nil {
+			// A concurrent create may have won the race; tolerate "already exists".
+			if !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "Database already exists") {
+				return "", fmt.Errorf("createwallet: %w", err)
+			}
+		}
+	}
+
+	// The imported range is a hard cap: an address past its end is derivable but
+	// invisible to the wallet, so keep it ahead of the next index Core hands out.
+	haveEnd, next, err := h.watchDescriptorRange(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	wantEnd := watchRangeEnd(next)
+	if haveEnd >= wantEnd {
 		return name, nil
 	}
 
@@ -546,18 +626,16 @@ func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.Gro
 		return "", fmt.Errorf("build descriptors: %w", err)
 	}
 
-	// createwallet(name, disable_private_keys=true, blank=true, "", false, true, false)
-	if err := h.coreCall(ctx, "createwallet",
-		[]interface{}{name, true, true, "", false, true, false}, nil); err != nil {
-		// A concurrent create may have won the race; tolerate "already exists".
-		if !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "Database already exists") {
-			return "", fmt.Errorf("createwallet: %w", err)
-		}
+	// A widened range covers scripts that may already have chain history, so it
+	// needs a rescan; a wallet that did not exist a moment ago has none.
+	var timestamp interface{} = int64(0)
+	if !exists {
+		timestamp = "now"
 	}
 
 	descs := []map[string]interface{}{
-		{"desc": receive, "active": true, "internal": false, "timestamp": "now", "range": []int{0, 999}},
-		{"desc": change, "active": true, "internal": true, "timestamp": "now", "range": []int{0, 999}},
+		{"desc": receive, "active": true, "internal": false, "timestamp": timestamp, "range": []int{0, wantEnd}},
+		{"desc": change, "active": true, "internal": true, "timestamp": timestamp, "range": []int{0, wantEnd}},
 	}
 	var importRes []struct {
 		Success bool `json:"success"`

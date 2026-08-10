@@ -182,12 +182,11 @@ class FundGroupModalViewModel extends BaseViewModel {
       // (Phase-1) descriptors. SyncGroup owns watch-wallet creation server-side.
       await _multisigLounge.syncGroup(group: multisigGroupToProto(enhancedGroup), walletId: walletId);
 
-      // The group carries the standard descriptors; build them if not yet
-      // persisted. These are the same descriptors SyncGroup imported.
-      String? descriptor = enhancedGroup.descriptorReceive;
+      // The group carries the standard descriptors; persist them if not yet
+      // stored. These are the same descriptors SyncGroup imported.
+      final descriptor = enhancedGroup.descriptorReceive;
       if (descriptor == null || descriptor.isEmpty) {
         final built = await MultisigDescriptorBuilder.buildWatchOnlyDescriptors(enhancedGroup);
-        descriptor = built.receive;
         updatedGroup = enhancedGroup.copyWith(
           descriptorReceive: built.receive,
           descriptorChange: built.change,
@@ -197,19 +196,14 @@ class FundGroupModalViewModel extends BaseViewModel {
 
       int nextIndex = updatedGroup.nextReceiveIndex;
 
-      final addresses = await bitcoindRpcCall(
-        'deriveaddresses',
-        params: [
-          descriptor,
-          [nextIndex, nextIndex],
-        ],
-      );
+      // Let the watch wallet hand out the address instead of deriving it at an
+      // index of our own: Core only emits indices inside the descriptor range
+      // SyncGroup imported, so the address is always one the wallet tracks.
+      final newAddress = await bitcoindRpcCall('getnewaddress', wallet: walletName);
 
-      if (addresses is! List || addresses.isEmpty) {
-        throw Exception('Failed to derive address from descriptor');
+      if (newAddress is! String || newAddress.isEmpty) {
+        throw Exception('Failed to get a funding address from watch wallet $walletName');
       }
-
-      final newAddress = addresses.first as String;
 
       // Update group with new address via backend RPC
       final receiveAddresses = List<AddressInfo>.from(updatedGroup.addresses['receive'] ?? []);
