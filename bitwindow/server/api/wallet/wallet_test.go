@@ -12,11 +12,13 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestService_GetBalance(t *testing.T) {
@@ -406,5 +408,67 @@ func TestService_UnlockWallet(t *testing.T) {
 		}))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "not encrypted")
+	})
+}
+
+func TestService_ListSidechainDeposits(t *testing.T) {
+	t.Parallel()
+
+	t.Run("slot 0 only returns slot 0 deposits", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		deposit := func(slot uint32, txid string) *mainchainv1.ListSidechainDepositTransactionsResponse_SidechainDepositTransaction {
+			return &mainchainv1.ListSidechainDepositTransactionsResponse_SidechainDepositTransaction{
+				SidechainNumber: wrapperspb.UInt32(slot),
+				Tx: &mainchainv1.WalletTransaction{
+					Txid:             &commonv1.ReverseHex{Hex: wrapperspb.String(txid)},
+					SentSats:         1000,
+					FeeSats:          10,
+					ConfirmationInfo: &mainchainv1.WalletTransaction_Confirmation{Height: 100},
+				},
+			}
+		}
+
+		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockWallet.EXPECT().
+			ListSidechainDepositTransactions(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[mainchainv1.ListSidechainDepositTransactionsResponse]{
+				Msg: &mainchainv1.ListSidechainDepositTransactionsResponse{
+					Transactions: []*mainchainv1.ListSidechainDepositTransactionsResponse_SidechainDepositTransaction{
+						deposit(0, "slot0deposit"),
+						deposit(9, "slot9deposit"),
+					},
+				},
+			}, nil).AnyTimes()
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.GetBlockchainInfoResponse]{
+				Msg: &bitcoindv1alpha.GetBlockchainInfoResponse{Blocks: 105},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet), apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{
+			WalletId: "test-wallet-id-1234",
+			Slot:     0,
+		}))
+		require.NoError(t, err)
+		require.Len(t, resp.Msg.Deposits, 1)
+		require.Equal(t, "slot0deposit", resp.Msg.Deposits[0].Txid)
 	})
 }
