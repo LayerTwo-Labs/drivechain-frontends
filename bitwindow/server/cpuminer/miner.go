@@ -586,10 +586,20 @@ func (m *Miner) Start(ctx context.Context) error {
 	return <-errs
 }
 
+// A persistent high-hash means our target is looser than the node's, so
+// refreshed work gets rejected just as fast: back off, then give up.
+const (
+	maxHighHashRejections = 5
+	highHashBackoff       = time.Second
+)
+
 // minerThread is the main mining thread
 func (m *Miner) runRoutine(ctx context.Context, routineID int) error {
 
 	maxNonce := uint32(0xffffffff/m.routines*(routineID+1) - 0x20)
+
+	// Consecutive high-hash rejections, reset by any other submit outcome.
+	highHashes := 0
 
 	for {
 		// Get work
@@ -637,9 +647,31 @@ func (m *Miner) runRoutine(ctx context.Context, routineID int) error {
 			zerolog.Ctx(ctx).Error().
 				Msgf("Block rejected with too high hash (too little work), nonce was: %d", work.nonce)
 
+			// Drop the cached template: rescanning it finds the same nonce and
+			// resubmits a byte-identical block, forever.
+			m.work.Store(nil)
+
+			highHashes++
+			if highHashes >= maxHighHashRejections {
+				return fmt.Errorf(
+					"block rejected: high-hash %d times in a row (mining target looser than the node's, check TESTING_HASH_GOAL)",
+					highHashes,
+				)
+			}
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(highHashBackoff):
+			}
+
+			continue
+
 		default:
 			return fmt.Errorf("block rejected: %s", *reason)
 		}
+
+		highHashes = 0
 	}
 }
 

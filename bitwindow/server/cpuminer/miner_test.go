@@ -2,8 +2,14 @@ package cpuminer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // Real segwit transaction from a drynet2 getblocktemplate response
@@ -63,5 +69,75 @@ func TestGbtWorkDecodeBangPrefixedSegwitRule(t *testing.T) {
 			"merkle root built from wtxids, not txids (is the \"!segwit\" rule handled?)\n got: %x\nwant: %x",
 			work.merkleroot[:], expected,
 		)
+	}
+}
+
+// A node answering "high-hash" used to leave the cached template in place, so
+// the routine rescanned it to the same nonce and resubmitted the identical
+// block in a tight loop, forever, while Start reported a healthy miner.
+func TestRunRoutineHighHashDoesNotLoopForever(t *testing.T) {
+	var templates, submits atomic.Int64
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Method string `json:"method"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("decode request: %v", err)
+			return
+		}
+
+		var result any
+		switch req.Method {
+		case "getblocktemplate":
+			templates.Add(1)
+			// Bits are loose enough that the first nonces solve the work.
+			result = gbtRpcResponse{
+				PreviousBlockhash: "00000000407919cf7c93944ad2a1f52f0b1d1924124905b51a2f9ae43335d200",
+				Bits:              "207fffff",
+				Height:            958370,
+				Curtime:           1784800000,
+				Version:           0x20000000,
+				Rules:             []string{"!segwit"},
+				CoinbaseTxn: json.RawMessage(
+					`{"data":"01000000","txid":"9d72a6f82b4ebe4447a5f21d596353514583abbebcf328b2fe5d6a0963c9b4e7"}`,
+				),
+			}
+
+		case "submitblock":
+			submits.Add(1)
+			result = "high-hash"
+
+		default:
+			t.Errorf("unexpected method %q", req.Method)
+			return
+		}
+
+		//nolint:errcheck
+		json.NewEncoder(w).Encode(map[string]any{"result": result})
+	}))
+	defer srv.Close()
+
+	miner, err := New(Config{Routines: 1, ScanTime: time.Second, RpcURL: srv.URL})
+	if err != nil {
+		t.Fatalf("new miner: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	err = miner.Start(ctx)
+	if err == nil || !strings.Contains(err.Error(), "high-hash") {
+		t.Fatalf("expected the routine to give up on repeated high-hash, got: %v", err)
+	}
+
+	if got := submits.Load(); got != maxHighHashRejections {
+		t.Fatalf("submitted %d blocks, want %d", got, maxHighHashRejections)
+	}
+
+	// Every rejection must refetch the template instead of resubmitting the
+	// cached one.
+	if got := templates.Load(); got < submits.Load() {
+		t.Fatalf("fetched %d templates for %d submissions", got, submits.Load())
 	}
 }
