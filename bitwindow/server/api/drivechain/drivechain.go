@@ -20,6 +20,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -543,17 +544,30 @@ func (s *Server) mergeBundles(existing, new []*pb.WithdrawalBundle) []*pb.Withdr
 		return b.M6Id
 	})
 
-	// Update or add new bundles
+	// Update or add new bundles. The existing entries belong to the shared
+	// cache, and a concurrent reader still holds them, so update a copy.
 	for _, b := range new {
-		if existingBundle, ok := bundleMap[b.M6Id]; ok {
-			// Update status if the new event changes it (e.g., pending -> succeeded/failed)
-			if b.Status == "succeeded" || b.Status == "failed" {
-				existingBundle.Status = b.Status
-				existingBundle.SequenceNumber = b.SequenceNumber
-				existingBundle.TransactionHex = b.TransactionHex
-			}
-		} else {
+		existingBundle, ok := bundleMap[b.M6Id]
+		if !ok {
 			bundleMap[b.M6Id] = b
+			continue
+		}
+		switch b.Status {
+		case "succeeded", "failed":
+			merged := proto.Clone(existingBundle).(*pb.WithdrawalBundle)
+			merged.Status = b.Status
+			merged.SequenceNumber = b.SequenceNumber
+			merged.TransactionHex = b.TransactionHex
+			bundleMap[b.M6Id] = merged
+		case "pending":
+			// A bundle can be re-proposed after it expires, which opens a fresh
+			// voting window at the new submission height.
+			merged := proto.Clone(existingBundle).(*pb.WithdrawalBundle)
+			merged.Status = b.Status
+			merged.BlockHeight = b.BlockHeight
+			merged.SequenceNumber = b.SequenceNumber
+			merged.TransactionHex = b.TransactionHex
+			bundleMap[b.M6Id] = merged
 		}
 	}
 
