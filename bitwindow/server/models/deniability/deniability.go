@@ -378,8 +378,8 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 	args := []any{tipTxID}
 
 	if tipVout != nil {
-		query += ` AND (e.to_vout = ? OR d.initial_vout = ?) `
-		args = append(args, tipVout)
+		// Same tip semantics as the txid filter, so both match a single outpoint.
+		query += ` AND COALESCE(e.to_vout, d.initial_vout) = ? `
 		args = append(args, tipVout)
 	}
 	row := db.QueryRowContext(ctx, query, args...)
