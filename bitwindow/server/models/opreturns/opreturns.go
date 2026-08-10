@@ -184,6 +184,81 @@ func List(ctx context.Context, db *sql.DB, limit int) ([]OPReturn, error) {
 	return opReturns, nil
 }
 
+// mempoolExpiry mirrors Core's default -mempoolexpiry. An unconfirmed
+// OP_RETURN older than that is gone from every mempool and is never
+// going to confirm.
+const mempoolExpiry = 336 * time.Hour
+
+// ReapExpiredMempool deletes unconfirmed OP_RETURNs past Core's mempool
+// expiry. Mempool rows arrive over ZMQ with a NULL height and only ever get one
+// when the transaction is mined, so a broadcast that was replaced, dropped or
+// double-spent would otherwise sit in List forever.
+//
+// mempoolTxIDs reports what the node still holds. It is only called when a row
+// is old enough to delete, because a node can run a longer -mempoolexpiry than
+// the default, and `Persist` keeps the original created_at across a rebroadcast,
+// so age alone does not prove the transaction is gone.
+func ReapExpiredMempool(ctx context.Context, db *sql.DB, mempoolTxIDs func() ([]string, error)) error {
+	cutoff := time.Now().Add(-mempoolExpiry)
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT txid FROM op_returns
+		WHERE height IS NULL AND datetime(created_at) < datetime(?)
+	`, cutoff)
+	if err != nil {
+		return fmt.Errorf("select expired mempool OP_RETURNs: %w", err)
+	}
+	defer rows.Close()
+
+	var candidates []string
+	for rows.Next() {
+		var txid string
+		if err := rows.Scan(&txid); err != nil {
+			return fmt.Errorf("scan expired mempool OP_RETURN: %w", err)
+		}
+		candidates = append(candidates, txid)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("read expired mempool OP_RETURNs: %w", err)
+	}
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	live := map[string]bool{}
+	if mempoolTxIDs != nil {
+		txids, err := mempoolTxIDs()
+		if err != nil {
+			return fmt.Errorf("read mempool: %w", err)
+		}
+		for _, txid := range txids {
+			live[txid] = true
+		}
+	}
+
+	reaped := 0
+	for _, txid := range candidates {
+		if live[txid] {
+			continue
+		}
+		if _, err := db.ExecContext(ctx,
+			`DELETE FROM op_returns WHERE txid = ? AND height IS NULL`, txid,
+		); err != nil {
+			return fmt.Errorf("reap expired mempool OP_RETURN %s: %w", txid, err)
+		}
+		reaped++
+	}
+
+	if reaped > 0 {
+		invalidateCaches(db)
+
+		zerolog.Ctx(ctx).Info().
+			Msgf("opreturns: reaped %d expired mempool OP_RETURN(s)", reaped)
+	}
+
+	return nil
+}
+
 func OPReturnToReadable(data []byte) string {
 	// First try to decode as hex
 	decoded, err := hex.DecodeString(string(data))
