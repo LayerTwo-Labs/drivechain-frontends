@@ -52,6 +52,8 @@ type Config struct {
 
 	SyncToHeight uint32 `long:"sync-to-height" description:"Sync to this height and then exit"`
 
+	OwnerPID int `long:"owner-pid" env:"BITWINDOWD_OWNER_PID" description:"Shut down once this process exits and no client is left. Unset means never"`
+
 	// BitcoinCoreNetwork is set by Finalize from orchestratord — never from
 	// CLI flags. Used downstream for Datadir scoping and chain-params lookup.
 	BitcoinCoreNetwork Network `no-flag:"true"`

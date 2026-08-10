@@ -229,7 +229,8 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 		// immediately (the drain runs in its own goroutine).
 		rpcCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if _, err := client.Shutdown(rpcCtx, connect.NewRequest(&orchpb.ShutdownRequest{})); err != nil {
+		// only_if_last: a sidechain frontend may hold orchestratord directly.
+		if _, err := client.Shutdown(rpcCtx, connect.NewRequest(&orchpb.ShutdownRequest{OnlyIfLast: true})); err != nil {
 			log.Warn().Err(err).Msg("relay Shutdown to orchestratord (continuing with bitwindowd teardown)")
 		} else {
 			log.Info().Msg("orchestratord Shutdown relayed; it will drain children in the background")
