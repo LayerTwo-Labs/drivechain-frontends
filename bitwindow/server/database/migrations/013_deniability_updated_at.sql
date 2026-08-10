@@ -1,4 +1,7 @@
 -- Drop and recreate denials table with updated_at column
+-- Executions belong to the dropped denials, and their denial_id would otherwise
+-- point at whatever new denial reuses the reset AUTOINCREMENT id.
+DELETE FROM executed_denials;
 DROP TABLE IF EXISTS denials;
 
 CREATE TABLE denials (
