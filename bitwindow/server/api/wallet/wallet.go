@@ -313,11 +313,8 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	}), nil
 }
 
-// sendWithRequiredInputs creates and broadcasts a transaction spending the
-// given required UTXOs. Input values are looked up from Bitcoin Core's own
-// UTXO set (callers do not reliably populate UnspentOutput.ValueSats), and any
-// remainder after destinations + fee is returned as change instead of being
-// silently paid to the miner.
+// sendWithRequiredInputs parses the "txid:vout" required inputs and broadcasts
+// a transaction spending exactly those UTXOs.
 func (s *Server) sendWithRequiredInputs(
 	ctx context.Context,
 	bitcoind corerpc.BitcoinServiceClient,
@@ -327,16 +324,7 @@ func (s *Server) sendWithRequiredInputs(
 	feeSatPerVbyte uint64,
 	fixedFeeSats uint64,
 ) (string, error) {
-	log := zerolog.Ctx(ctx)
-
-	const dustLimit = 546
-
-	type outpoint struct {
-		txid string
-		vout uint32
-	}
-
-	wanted := make([]outpoint, 0, len(requiredInputs))
+	wanted := make([]engines.CoreOutpoint, 0, len(requiredInputs))
 	for _, utxo := range requiredInputs {
 		parts := strings.Split(utxo.Output, ":")
 		if len(parts) != 2 {
@@ -346,101 +334,10 @@ func (s *Server) sendWithRequiredInputs(
 		if err != nil {
 			return "", fmt.Errorf("invalid vout in UTXO %s: %w", utxo.Output, err)
 		}
-		wanted = append(wanted, outpoint{txid: parts[0], vout: uint32(vout)})
+		wanted = append(wanted, engines.CoreOutpoint{Txid: parts[0], Vout: uint32(vout)})
 	}
 
-	// Resolve input values from Core rather than trusting the request.
-	unspent, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-		MinimumConfirmations: lo.ToPtr(uint32(0)),
-		Wallet:               walletName,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("list unspent: %w", err)
-	}
-	valueByOutpoint := make(map[outpoint]uint64, len(unspent.Msg.Unspent))
-	for _, u := range unspent.Msg.Unspent {
-		valueByOutpoint[outpoint{txid: u.Txid, vout: u.Vout}] = uint64(math.Round(u.Amount * 1e8))
-	}
-
-	var totalInSats uint64
-	inputs := make([]*corepb.CreateRawTransactionRequest_Input, 0, len(wanted))
-	for _, op := range wanted {
-		valSats, ok := valueByOutpoint[op]
-		if !ok {
-			return "", fmt.Errorf("required input %s:%d not found in wallet UTXO set", op.txid, op.vout)
-		}
-		totalInSats += valSats
-		inputs = append(inputs, &corepb.CreateRawTransactionRequest_Input{Txid: op.txid, Vout: op.vout})
-	}
-
-	var totalOutSats uint64
-	for _, sats := range destinationsSats {
-		totalOutSats += sats
-	}
-
-	// Explicit fixed fee wins; otherwise estimate from the rate (default
-	// 2 sat/vB, matching the cheque-sweep path). Output/input vbyte sizes
-	// mirror the P2WPKH estimate used in buildSweepTx.
-	var feeSats uint64
-	if fixedFeeSats > 0 {
-		feeSats = fixedFeeSats
-	} else {
-		rate := feeSatPerVbyte
-		if rate == 0 {
-			rate = 2
-		}
-		estVbytes := uint64(len(inputs)*68 + (len(destinationsSats)+1)*31 + 11)
-		feeSats = estVbytes * rate
-	}
-
-	if totalInSats < totalOutSats+feeSats {
-		return "", fmt.Errorf("required inputs (%d sats) insufficient for outputs + fee (%d sats)", totalInSats, totalOutSats+feeSats)
-	}
-
-	outputs := make(map[string]float64, len(destinationsSats)+1)
-	for addr, sats := range destinationsSats {
-		outputs[addr] = float64(sats) / 1e8
-	}
-
-	changeSats := totalInSats - totalOutSats - feeSats
-	if changeSats >= dustLimit {
-		changeResp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-			Wallet: walletName,
-		}))
-		if err != nil {
-			return "", fmt.Errorf("get change address: %w", err)
-		}
-		outputs[changeResp.Msg.Address] = float64(changeSats) / 1e8
-	}
-
-	createResp, err := bitcoind.CreateRawTransaction(ctx, connect.NewRequest(&corepb.CreateRawTransactionRequest{
-		Inputs:  inputs,
-		Outputs: outputs,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("create raw transaction: %w", err)
-	}
-	log.Debug().Msgf("created raw transaction with change: %s", createResp.Msg.Tx.Hex)
-
-	signResp, err := bitcoind.SignRawTransactionWithWallet(ctx, connect.NewRequest(&corepb.SignRawTransactionWithWalletRequest{
-		HexString: createResp.Msg.Tx.Hex,
-		Wallet:    walletName,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("sign transaction: %w", err)
-	}
-	if !signResp.Msg.Complete {
-		return "", fmt.Errorf("transaction signing incomplete")
-	}
-
-	sendResp, err := bitcoind.SendRawTransaction(ctx, connect.NewRequest(&corepb.SendRawTransactionRequest{
-		Tx: &corepb.RawTransaction{Hex: signResp.Msg.Hex},
-	}))
-	if err != nil {
-		return "", fmt.Errorf("broadcast transaction: %w", err)
-	}
-
-	return sendResp.Msg.Txid, nil
+	return engines.SendCoreWithRequiredInputs(ctx, bitcoind, walletName, wanted, destinationsSats, feeSatPerVbyte, fixedFeeSats)
 }
 
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
