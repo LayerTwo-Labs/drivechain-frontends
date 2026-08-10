@@ -292,7 +292,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
 			return werr
 		}
-		txid, err = e.sendBitcoinCoreTransaction(ctx, walletId, destinations)
+		txid, err = e.sendBitcoinCoreTransaction(ctx, walletId, utxo, destinations, fee)
 	case WalletTypeElectrum:
 		txid, err = e.sendElectrumTransaction(ctx, walletId, utxo, destinations, fee)
 	default:
@@ -374,11 +374,14 @@ func (e *DeniabilityEngine) sendEnforcerTransaction(
 	return sendResp.Msg.Txid.Hex.Value, nil
 }
 
-// sendBitcoinCoreTransaction sends a transaction via Bitcoin Core
+// sendBitcoinCoreTransaction sends a transaction via Bitcoin Core, spending the
+// chosen UTXO into the denial destinations.
 func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 	ctx context.Context,
 	walletId string,
+	utxo *pb.ListUnspentOutputsResponse_Output,
 	destinations map[string]uint64,
+	fee uint64,
 ) (string, error) {
 	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
@@ -390,20 +393,9 @@ func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 		return "", fmt.Errorf("get bitcoind client: %w", err)
 	}
 
-	// Convert satoshi amounts to BTC (Bitcoin Core uses BTC, not satoshis)
-	btcDestinations := lo.MapValues(destinations, func(sats uint64, _ string) float64 {
-		return float64(sats) / 1e8
-	})
-
-	resp, err := bitcoind.Send(ctx, connect.NewRequest(&corepb.SendRequest{
-		Destinations: btcDestinations,
-		Wallet:       coreWalletName,
-	}))
-	if err != nil {
-		return "", fmt.Errorf("bitcoin core send: %w", err)
-	}
-
-	return resp.Msg.Txid, nil
+	return SendCoreWithRequiredInputs(ctx, bitcoind, coreWalletName, []CoreOutpoint{
+		{Txid: utxo.Txid.Hex.Value, Vout: utxo.Vout},
+	}, destinations, 0, fee)
 }
 
 // sendElectrumTransaction sends a transaction via the orchestrator wallet
