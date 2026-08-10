@@ -94,6 +94,11 @@ type WalletEngine struct {
 	// Maps walletId -> Bitcoin Core wallet name (cache)
 	coreWallets map[string]string
 
+	// Wallet ids already checked for a pre-rename watch_<prefix> wallet. The
+	// answer cannot change while the process runs, and the frontend polls this
+	// path, so the check must not repeat a listwallets and loadwallet each time.
+	legacyChecked map[string]bool
+
 	// Coalesces concurrent EnsureBitcoinCoreWallet calls for the same
 	// walletId into a single in-flight execution. The frontend polls
 	// listTransactions every 5s, and each call before the cache populates
@@ -993,6 +998,29 @@ func (e *WalletEngine) GetElectrumTransactions(ctx context.Context, walletId str
 
 // EnsureWatchOnlyWallet ensures a watch-only wallet exists in Bitcoin Core
 func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
+	// This path named the wallet watch_<prefix> before it was aligned with the
+	// orchestrator, and that wallet holds the scan state for this wallet's
+	// history. Check it before delegation: the orchestrator only ever derives
+	// wallet_<prefix>, so it would create an empty wallet beside the populated
+	// one and the balance would read as zero until a manual rescan.
+	e.mu.RLock()
+	cached, ok := e.coreWallets[walletId]
+	e.mu.RUnlock()
+	if ok {
+		return cached, nil
+	}
+
+	legacy, err := e.legacyWatchOnlyWallet(ctx, walletId)
+	if err != nil {
+		return "", err
+	}
+	if legacy != "" {
+		e.mu.Lock()
+		e.coreWallets[walletId] = legacy
+		e.mu.Unlock()
+		return legacy, nil
+	}
+
 	// Try orchestrator first (it handles full and watch-only Core wallets)
 	if e.orchClient != nil {
 		resp, err := e.orchClient.CreateBitcoinCoreWallet(ctx, connect.NewRequest(&orchpb.CreateBitcoinCoreWalletRequest{
@@ -1004,7 +1032,13 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 			e.mu.Unlock()
 			return resp.Msg.CoreWalletName, nil
 		}
-		// Fall through to local on error
+		// A starting bitcoind fails the local path the same way, so propagate
+		// instead of storming it. A transport failure means the orchestrator is
+		// down, and the local path is exactly the fallback for that.
+		if IsBitcoinCoreStartupError(err.Error()) {
+			return "", err
+		}
+		// Otherwise fall through to local on error
 	}
 
 	e.mu.Lock()
@@ -1026,7 +1060,7 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 	}
 
 	// Generate wallet name from wallet ID
-	walletName := fmt.Sprintf("watch_%s", walletId[:8])
+	walletName := fmt.Sprintf("wallet_%s", walletId[:8])
 
 	// Get bitcoind client
 	bitcoindClient, err := e.bitcoindConnector(ctx)
@@ -1475,4 +1509,80 @@ func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int32) (f
 		rate = 1
 	}
 	return rate, nil
+}
+
+// legacyWatchOnlyWallet returns the pre-rename watch_<prefix> wallet name when
+// Bitcoin Core can serve it, or "" when no such wallet exists. A load failure
+// that does not say the wallet is absent returns an error instead: to treat it
+// as absent would create a second wallet and hide the first one's scan state.
+// The answer is remembered, because the frontend polls this path.
+func (e *WalletEngine) legacyWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
+	if e.bitcoindConnector == nil || len(walletId) < 8 {
+		return "", nil
+	}
+
+	e.mu.RLock()
+	checked := e.legacyChecked[walletId]
+	e.mu.RUnlock()
+	if checked {
+		return "", nil
+	}
+
+	// Two polls that both find the wallet unloaded would both call loadwallet,
+	// and the loser gets an "already loading" error. Coalesce them, as the
+	// wallet-ensure path beside this one already does.
+	found, err, _ := e.ensureGroup.Do("legacy:"+walletId, func() (interface{}, error) {
+		return e.probeLegacyWatchOnlyWallet(ctx, walletId)
+	})
+	if err != nil {
+		return "", err
+	}
+	return found.(string), nil
+}
+
+func (e *WalletEngine) probeLegacyWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
+	name := fmt.Sprintf("watch_%s", walletId[:8])
+
+	// A failure here is not proof that the legacy wallet is absent. To read it
+	// that way lets the orchestrator create wallet_<prefix> beside a populated
+	// watch_<prefix>, which hides that wallet's balance and scan history. The
+	// frontend polls this path, so a propagated error costs one cycle.
+	bitcoindClient, err := e.bitcoindConnector(ctx)
+	if err != nil {
+		return "", fmt.Errorf("check for a legacy watch-only wallet: %w", err)
+	}
+	listResp, err := bitcoindClient.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
+	if err != nil {
+		return "", fmt.Errorf("check for a legacy watch-only wallet: %w", err)
+	}
+	if lo.Contains(listResp.Msg.Wallets, name) {
+		return name, nil
+	}
+
+	if _, err := bitcoindClient.LoadWallet(ctx, connect.NewRequest(&corepb.LoadWalletRequest{Filename: name})); err != nil {
+		if isWalletNotFoundError(err.Error()) {
+			e.markLegacyChecked(walletId)
+			return "", nil
+		}
+		return "", fmt.Errorf("load legacy watch-only wallet %s: %w", name, err)
+	}
+	return name, nil
+}
+
+func (e *WalletEngine) markLegacyChecked(walletId string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.legacyChecked == nil {
+		e.legacyChecked = make(map[string]bool)
+	}
+	e.legacyChecked[walletId] = true
+}
+
+// isWalletNotFoundError reports whether Core says the wallet does not exist,
+// rather than that it could not be loaded right now.
+func isWalletNotFoundError(msg string) bool {
+	m := strings.ToLower(msg)
+	return strings.Contains(m, "not found") ||
+		strings.Contains(m, "does not exist") ||
+		strings.Contains(m, "no such file")
 }
