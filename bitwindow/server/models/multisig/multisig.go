@@ -1120,19 +1120,39 @@ func nullStr(s string) interface{} {
 	return s
 }
 
+// Read the account component of "m/purpose'/coin'/account'/...". The root is
+// optional: the keystore parser accepts a rootless "purpose'/coin'/account'"
+// too, and its account sits one component earlier. A short non-standard path
+// falls back to its last component.
 func extractAccountIndex(path string) int {
 	parts := splitPath(path)
+	if len(parts) > 0 && (parts[0] == "m" || parts[0] == "M") {
+		parts = parts[1:]
+	}
 	if len(parts) >= 3 {
-		idx := trimQuote(parts[2])
-		n := 0
-		for _, c := range idx {
-			if c >= '0' && c <= '9' {
-				n = n*10 + int(c-'0')
-			}
-		}
-		return n
+		return parseIndex(parts[2])
+	}
+	if len(parts) >= 2 {
+		return parseIndex(parts[1])
 	}
 	return 0
+}
+
+// Parse a path component ("8000'" -> 8000), 0 if it isn't a plain number.
+// BIP32 writes the hardened marker as ', h or H, and all three are accepted.
+func parseIndex(part string) int {
+	idx := trimHardened(part)
+	if idx == "" {
+		return 0
+	}
+	n := 0
+	for _, c := range idx {
+		if c < '0' || c > '9' {
+			return 0
+		}
+		n = n*10 + int(c-'0')
+	}
+	return n
 }
 
 func splitPath(path string) []string {
@@ -1155,9 +1175,12 @@ func splitPath(path string) []string {
 	return result
 }
 
-func trimQuote(s string) string {
-	if len(s) > 0 && s[len(s)-1] == '\'' {
-		return s[:len(s)-1]
+func trimHardened(s string) string {
+	if len(s) > 0 {
+		switch s[len(s)-1] {
+		case '\'', 'h', 'H':
+			return s[:len(s)-1]
+		}
 	}
 	return s
 }
