@@ -13,6 +13,7 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -305,6 +306,38 @@ func TestCoinNewsIndexer_BroadcastBytesListAsCoinNews(t *testing.T) {
 	assert.Equal(t, "US Weekly", news[0].TopicName)
 	assert.Equal(t, "Broadcast headline", news[0].Headline)
 	assert.Equal(t, "Broadcast body", news[0].Content)
+}
+
+// TestCoinNewsIndexer_Accepts36BytePayload: a 36-byte CoinNews payload
+// pushes as OP_DATA_36 — the same opcode the coinbase segwit commitment
+// uses. Only the commitment (0xaa21a9ed magic) may be skipped.
+func TestCoinNewsIndexer_Accepts36BytePayload(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	p := newCoinNewsParser(t)
+
+	topic := codec.Topic{0x33, 0x33, 0x33, 0x33}
+	// "CN"(2) + type(1) + topic(4) + retention(1) + compactsize(1) + name(27) = 36.
+	const name = "twenty-seven-char-topicname"
+	payload, err := codec.EncodeTopicCreation(codec.TopicCreation{Topic: topic, RetentionDays: 7, Name: name})
+	require.NoError(t, err)
+	require.Len(t, payload, 36)
+
+	block := blockOf(t, [][]byte{payload}, time.Now().UTC())
+	require.Equal(t, byte(txscript.OP_DATA_36), block.Transactions[0].TxOut[0].PkScript[1])
+
+	require.NoError(t, p.indexCoinNewsBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
+		lo.T2(uint32(920_000), block),
+	}))
+
+	var got string
+	require.NoError(t, p.db.QueryRowContext(ctx, `SELECT name FROM cn_topics WHERE topic = ?`, topic[:]).Scan(&got))
+	assert.Equal(t, name, got, "36-byte CoinNews payload MUST be indexed")
+
+	// Negative control: the coinbase witness commitment stays skipped.
+	commitment := append([]byte{txscript.OP_RETURN, txscript.OP_DATA_36, 0xaa, 0x21, 0xa9, 0xed}, make([]byte, 32)...)
+	_, ok := coinNewsPayload(commitment)
+	assert.False(t, ok, "coinbase witness commitment MUST stay skipped")
 }
 
 // TestCoinNewsIndexer_PurgeAtOrAbove proves the reorg purge wipes
