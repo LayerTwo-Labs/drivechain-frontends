@@ -50,6 +50,7 @@ func (o *Orchestrator) BeginShutdown() bool {
 	o.shutdownState = shutdownStateDrainingExit
 	o.shutdownIdle = make(chan struct{})
 	idleCh := o.shutdownIdle
+	o.shutdownGen.Add(1)
 	o.shutdownMu.Unlock()
 
 	go o.runShutdown(idleCh)

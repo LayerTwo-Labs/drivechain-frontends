@@ -238,6 +238,18 @@ func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string, specs ..
 	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownBudget)
 	defer cancel()
 
+	// A drain already in flight took its process snapshot before this reset, so
+	// anything restarted afterwards would never be stopped, and the generation
+	// alone cannot tell that drain apart from a later one.
+	if o.drainsActive.Load() > 0 {
+		return nil, fmt.Errorf("shutdown in progress: retry the reset once it completes")
+	}
+
+	// Captured before our own stop. stopResetPlan stops each binary directly and
+	// never bumps the generation, so an increment from here on is someone else's
+	// drain — including one that starts during the file-lock sleep below.
+	gen := o.shutdownGen.Load()
+
 	if useResetPlan {
 		if err := o.stopResetPlan(shutdownCtx, plan); err != nil {
 			return nil, fmt.Errorf("shutdown binaries: %w", err)
@@ -303,7 +315,7 @@ func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string, specs ..
 		}
 
 		if useResetPlan {
-			go o.restartResetPlan(context.Background(), plan)
+			go o.restartResetPlan(context.Background(), plan, gen)
 		}
 	}()
 
@@ -485,8 +497,12 @@ func (o *Orchestrator) markResetBinaryStopped(name string) {
 	}
 }
 
+// gen is the shutdown generation observed when the reset was issued. A drain
+// that began since then already snapshotted the running processes, so anything
+// started now would never be stopped — abort instead.
+//
 // A failure only strands that binary's descendants; siblings still restart.
-func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan) []string {
+func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan, gen uint64) []string {
 	// An overall cap, plus a fresh per-item deadline below. One binary that
 	// never becomes healthy must not consume its siblings' restart budget.
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(len(plan.restart)+1)*resetRestartTimeout)
@@ -498,13 +514,31 @@ func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan) []s
 
 	for _, item := range plan.restart {
 		name := item.binary.processName()
+		if o.shutdownGen.Load() != gen {
+			o.log.Info().Str("binary", name).Msg("reset restart aborted: shutdown began after reset was issued")
+			return failed
+		}
 		if ancestor, ok := blocked[item.binary]; ok {
 			o.log.Warn().Str("binary", name).Str("depends_on", ancestor).Msg("reset restart skipped: dependency failed to start")
 			continue
 		}
+
 		itemCtx, itemCancel := context.WithTimeout(ctx, resetRestartTimeout)
 		err := o.restartResetBinary(itemCtx, item.binary, item.forceBackend)
 		itemCancel()
+
+		// A drain that began while this binary was starting snapshotted the
+		// process list without it, so nothing else will ever stop it. Check
+		// this whether or not startup reported an error: a start that fails
+		// late, after the process connects, still leaves the child running.
+		if o.shutdownGen.Load() != gen {
+			o.log.Warn().Str("binary", name).Msg("shutdown began during reset restart: stopping the binary it missed")
+			if stopErr := o.stopResetBinary(context.Background(), item.binary); stopErr != nil {
+				o.log.Error().Err(stopErr).Str("binary", name).Msg("could not stop the binary the drain missed")
+			}
+			return failed
+		}
+
 		if err != nil {
 			o.log.Error().Err(err).Str("binary", name).Msg("reset restart failed")
 			failed = append(failed, name)
