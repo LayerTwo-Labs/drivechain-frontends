@@ -184,6 +184,34 @@ func List(ctx context.Context, db *sql.DB, limit int) ([]OPReturn, error) {
 	return opReturns, nil
 }
 
+// mempoolExpiry mirrors Core's default -mempoolexpiry. An unconfirmed
+// OP_RETURN older than that is gone from every mempool and is never
+// going to confirm.
+const mempoolExpiry = 336 * time.Hour
+
+// ReapExpiredMempool deletes unconfirmed OP_RETURNs past Core's mempool
+// expiry. Mempool rows arrive over ZMQ with a NULL height and only ever
+// get one when the transaction is mined, so a broadcast that was
+// replaced, dropped or double-spent would otherwise sit in List forever.
+func ReapExpiredMempool(ctx context.Context, db *sql.DB) error {
+	result, err := db.ExecContext(ctx, `
+		DELETE FROM op_returns
+		WHERE height IS NULL AND datetime(created_at) < datetime(?)
+	`, time.Now().Add(-mempoolExpiry))
+	if err != nil {
+		return fmt.Errorf("reap expired mempool OP_RETURNs: %w", err)
+	}
+
+	if rows, _ := result.RowsAffected(); rows > 0 {
+		invalidateCaches(db)
+
+		zerolog.Ctx(ctx).Info().
+			Msgf("opreturns: reaped %d expired mempool OP_RETURN(s)", rows)
+	}
+
+	return nil
+}
+
 func OPReturnToReadable(data []byte) string {
 	// First try to decode as hex
 	decoded, err := hex.DecodeString(string(data))

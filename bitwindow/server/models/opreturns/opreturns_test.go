@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -476,6 +477,33 @@ func TestBackfillCoinNewsBlockTime(t *testing.T) {
 		"row without a matching processed_blocks entry must be left alone")
 	assert.WithinDuration(t, syncTime, got("mempool"), time.Second,
 		"mempool row (NULL height) must be left alone")
+}
+
+// A mempool OP_RETURN that never got mined must stop being listed once
+// it is past the point where any mempool could still be holding it.
+func TestReapExpiredMempool(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+
+	height := uint32(800000)
+	stale := time.Now().Add(-mempoolExpiry - time.Hour)
+	recent := time.Now().Add(-time.Hour)
+
+	require.NoError(t, Persist(ctx, db, []OPReturn{
+		{TxID: "expired-mempool", Vout: 0, Data: []byte{0x01}, CreatedAt: &stale},
+		{TxID: "pending-mempool", Vout: 0, Data: []byte{0x02}, CreatedAt: &recent},
+		{TxID: "old-confirmed", Vout: 0, Data: []byte{0x03}, Height: &height, CreatedAt: &stale},
+	}))
+
+	require.NoError(t, ReapExpiredMempool(ctx, db))
+
+	got, err := List(ctx, db, 0)
+	require.NoError(t, err)
+
+	txids := lo.Map(got, func(o OPReturn, _ int) string { return o.TxID })
+	slices.Sort(txids)
+	assert.Equal(t, []string{"old-confirmed", "pending-mempool"}, txids,
+		"only unconfirmed OP_RETURNs past mempool expiry are reaped")
 }
 
 func TestPersistConfirmedConflictUpdatesCreateTimeToBlockTime(t *testing.T) {

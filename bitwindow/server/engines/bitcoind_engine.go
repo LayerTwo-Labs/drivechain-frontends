@@ -67,6 +67,12 @@ func (p *Parser) Run(ctx context.Context) error {
 	alertTicker := time.NewTicker(2 * time.Second)
 	defer alertTicker.Stop()
 
+	// Unconfirmed OP_RETURNs never expire on their own. Sweep on start —
+	// sessions are often shorter than the tick — and hourly after that.
+	reapTicker := time.NewTicker(time.Hour)
+	defer reapTicker.Stop()
+	p.reapExpiredMempool(ctx)
+
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: started parser ticker")
 
@@ -76,6 +82,9 @@ func (p *Parser) Run(ctx context.Context) error {
 			zerolog.Ctx(ctx).Info().Err(ctx.Err()).
 				Msgf("bitcoind_engine/parser: stopping parser ticker")
 			return nil
+
+		case <-reapTicker.C:
+			p.reapExpiredMempool(ctx)
 
 		case <-alertTicker.C:
 
@@ -94,6 +103,14 @@ func (p *Parser) Run(ctx context.Context) error {
 				Msgf("bitcoind_engine/parser: finished processing block tick")
 
 		}
+	}
+}
+
+// reapExpiredMempool drops unconfirmed OP_RETURNs that can no longer
+// confirm. Best-effort: a failed sweep is retried on the next tick.
+func (p *Parser) reapExpiredMempool(ctx context.Context) {
+	if err := opreturns.ReapExpiredMempool(ctx, p.db); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msgf("unable to reap expired mempool OP_RETURNs")
 	}
 }
 
