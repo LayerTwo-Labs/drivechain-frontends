@@ -26,6 +26,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/rs/zerolog"
@@ -151,6 +152,7 @@ type Orchestrator struct {
 	download   *DownloadManager
 	process    *ProcessManager
 	pidManager *PidFileManager
+	clients    *lease.Lease
 	log        zerolog.Logger
 
 	// Dart: RPCConnection instances — one per binary, for persistent health monitoring

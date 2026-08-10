@@ -43,6 +43,7 @@ import (
 	truthcoinrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
@@ -119,6 +120,11 @@ func main() {
 				Name:    "logfile",
 				Usage:   "append logs to this file instead of stdout (used when bitwindowd spawns us detached and our stdout has no reader)",
 				EnvVars: []string{"ORCHESTRATOR_LOGFILE"},
+			},
+			&cli.IntFlag{
+				Name:    "owner-pid",
+				Usage:   "shut down once this process exits (the frontend that owns us)",
+				EnvVars: []string{"ORCHESTRATOR_OWNER_PID"},
 			},
 		},
 		Action: run,
@@ -579,10 +585,19 @@ func run(cctx *cli.Context) error {
 	protocols := new(http.Protocols)
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
+	clients := lease.New(cctx.Int("owner-pid"), lease.DefaultGrace, func() {
+		log.Info().Msg("no clients left and the owner is gone, shutting down")
+		orch.BeginShutdown()
+	})
+	orch.SetLease(clients)
+
 	srv := &http.Server{
+		ConnState: clients.ConnState,
 		Handler:   mux,
 		Protocols: protocols,
 		HTTP2:     &http.HTTP2Config{SendPingTimeout: 30 * time.Second},
+		// A socket that never sends a request would hold the lease forever.
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	// Bind listener first so we know the port is ours before logging.
@@ -605,6 +620,8 @@ func run(cctx *cli.Context) error {
 			errs <- fmt.Errorf("serve: %w", err)
 		}
 	}()
+
+	go clients.Run(ctx)
 
 	// Auto-boot sidechains specified via --binary flags
 	binariesToBoot := cctx.StringSlice("binary")
