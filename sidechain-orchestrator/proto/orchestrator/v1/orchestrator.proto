@@ -713,5 +713,9 @@ message ForkClaimUtxo {
 
 // ─── Detached-daemon lifecycle ──────────────────────────────────────────────
 
-message ShutdownRequest {}
+message ShutdownRequest {
+  // Drain only once no client is connected and the owner process is gone.
+  // Unset means drain now, whoever else is attached.
+  bool only_if_last = 1;
+}
 message ShutdownResponse {}

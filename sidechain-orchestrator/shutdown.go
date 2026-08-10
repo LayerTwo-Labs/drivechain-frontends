@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 )
 
 // Internal orchestratord shutdown state. The wire format (GetShutdownState
@@ -20,6 +22,20 @@ func (o *Orchestrator) ShutdownDraining() (draining, willExit bool) {
 	o.shutdownMu.Lock()
 	defer o.shutdownMu.Unlock()
 	return o.shutdownState != shutdownStateRunning, o.shutdownState == shutdownStateDrainingExit
+}
+
+// SetLease hands over the client lease so a leaving frontend can waive its
+// grace period.
+func (o *Orchestrator) SetLease(l *lease.Lease) {
+	o.clients = l
+}
+
+// ClientLeaving records that a frontend is quitting. The stack still only
+// drains once nobody is connected and the owner process is gone.
+func (o *Orchestrator) ClientLeaving() {
+	if o.clients != nil {
+		o.clients.Goodbye()
+	}
 }
 
 // BeginShutdown kicks off the orchestratord shutdown sequence. Idempotent:

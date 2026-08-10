@@ -4056,7 +4056,10 @@ func (x *ForkClaimUtxo) GetLabel() string {
 }
 
 type ShutdownRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Drain only once no client is connected and the owner process is gone.
+	// Unset means drain now, whoever else is attached.
+	OnlyIfLast    bool `protobuf:"varint,1,opt,name=only_if_last,json=onlyIfLast,proto3" json:"only_if_last,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4089,6 +4092,13 @@ func (x *ShutdownRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ShutdownRequest.ProtoReflect.Descriptor instead.
 func (*ShutdownRequest) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *ShutdownRequest) GetOnlyIfLast() bool {
+	if x != nil {
+		return x.OnlyIfLast
+	}
+	return false
 }
 
 type ShutdownResponse struct {
@@ -4400,8 +4410,10 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\boutpoint\x18\x01 \x01(\tR\boutpoint\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04sats\x18\x03 \x01(\x04R\x04sats\x12\x14\n" +
-	"\x05label\x18\x04 \x01(\tR\x05label\"\x11\n" +
-	"\x0fShutdownRequest\"\x12\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\"3\n" +
+	"\x0fShutdownRequest\x12 \n" +
+	"\fonly_if_last\x18\x01 \x01(\bR\n" +
+	"onlyIfLast\"\x12\n" +
 	"\x10ShutdownResponse*\xf7\x01\n" +
 	"\rSidechainType\x12\x1e\n" +
 	"\x1aSIDECHAIN_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
