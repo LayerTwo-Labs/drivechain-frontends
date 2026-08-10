@@ -169,6 +169,7 @@ type ProcessManager struct {
 	mu         sync.Mutex
 	processes  map[string]*ManagedProcess // keyed by config name
 	lastExited map[string]*ManagedProcess // last exited process, keyed by config name — keeps its logs readable
+	starting   map[string]bool            // names reserved by an in-flight StartWithOptions
 
 	// OnExit is called when a process exits. The orchestrator uses this to
 	// pipe exit errors into ConnectionMonitor.connectionError for the UI.
@@ -188,6 +189,7 @@ func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.L
 		log:        log.With().Str("component", "process").Logger(),
 		processes:  make(map[string]*ManagedProcess),
 		lastExited: make(map[string]*ManagedProcess),
+		starting:   make(map[string]bool),
 	}
 }
 
@@ -250,12 +252,20 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 		processName = config.Name
 	}
 
+	// Reserve the slot under the lock that checks it, so concurrent starts
+	// cannot both fork a daemon and have the second registration orphan the first.
 	pm.mu.Lock()
-	if _, exists := pm.processes[processName]; exists {
+	if _, exists := pm.processes[processName]; exists || pm.starting[processName] {
 		pm.mu.Unlock()
 		return 0, fmt.Errorf("%s is already running", processName)
 	}
+	pm.starting[processName] = true
 	pm.mu.Unlock()
+	defer func() {
+		pm.mu.Lock()
+		delete(pm.starting, processName)
+		pm.mu.Unlock()
+	}()
 
 	binPath, pidName := pm.resolvePaths(config, opts.ForceBackend)
 	if opts.PidName != "" {
