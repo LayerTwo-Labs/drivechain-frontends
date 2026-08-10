@@ -70,7 +70,7 @@ func (m *BitcoinConfManager) LoadConfig(isFirst bool) error {
 		return err
 	}
 
-	m.parseAndApplyConfig(content)
+	m.parseAndApplyConfig(content, NetworkSignet)
 
 	if m.tryLoadPrivateConfig() {
 		return nil // Private config loaded, we're done, just use that
@@ -121,6 +121,12 @@ const drynetP2PPort = 8335
 // GetConfFilePath returns the resolved -conf= path to pass to bitcoind.
 // Mirrors the confFile() logic from binaries.dart.
 func (m *BitcoinConfManager) GetConfFilePath() string {
+	// A loaded private conf wins: re-resolving here would run against a network
+	// that conf itself may have changed, and hand bitcoind a different file
+	// than the one our state came from.
+	if m.HasPrivateConf && m.ConfigPath != "" {
+		return m.ConfigPath
+	}
 	confInfo := m.getConfigFileInfo()
 	return confInfo.path
 }

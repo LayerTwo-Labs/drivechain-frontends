@@ -187,15 +187,20 @@ func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 
 // parseAndApplyConfig parses config content and updates state (network, datadir).
 // Dart: _parseAndApplyConfig (L244)
-func (m *BitcoinConfManager) parseAndApplyConfig(content string) {
+func (m *BitcoinConfManager) parseAndApplyConfig(content string, fallbackNetwork Network) {
 	m.Config = ParseBitcoinConfig(content)
-	m.loadStateFromConfig()
+	m.loadStateFromConfig(fallbackNetwork)
 }
 
 // tryLoadPrivateConfig checks for user's private bitcoin.conf and loads if exists.
 // Returns true if private config was loaded.
 // Dart: _tryLoadPrivateConfig (L251)
 func (m *BitcoinConfManager) tryLoadPrivateConfig() bool {
+	// The network whose root dir the conf is looked up under. A private conf
+	// with no chain selector belongs to that network — reclassifying it as
+	// signet would point us at a different conf than bitcoind is launched with.
+	discoveredUnder := m.Network
+
 	confInfo := m.getConfigFileInfo()
 	m.HasPrivateConf = confInfo.hasPrivateConf
 	m.ConfigPath = confInfo.path
@@ -209,7 +214,7 @@ func (m *BitcoinConfManager) tryLoadPrivateConfig() bool {
 		return false
 	}
 
-	m.parseAndApplyConfig(string(privateContent))
+	m.parseAndApplyConfig(string(privateContent), discoveredUnder)
 	return true
 }
 
@@ -226,7 +231,7 @@ func (m *BitcoinConfManager) handleNetworkChangeIfNeeded(oldNetwork Network, isF
 		return
 	}
 
-	m.loadStateFromConfig()
+	m.loadStateFromConfig(m.Network)
 
 	if m.OnNetworkChanged != nil {
 		m.OnNetworkChanged()
@@ -241,12 +246,12 @@ func (m *BitcoinConfManager) handleNetworkChangeIfNeeded(oldNetwork Network, isF
 // only honours top-level datadir) and where bitcoind itself reads from. A
 // user with their own bitcoin.conf may put datadir under [main] — that still
 // wins. Empty here means "no datadir is configured anywhere".
-func (m *BitcoinConfManager) loadStateFromConfig() {
+func (m *BitcoinConfManager) loadStateFromConfig(fallbackNetwork Network) {
 	if m.Config == nil {
 		return
 	}
 
-	m.Network = NetworkFromConfig(m.Config)
+	m.Network = NetworkFromConfig(m.Config, fallbackNetwork)
 	m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
 
 	// Ensure datadir exists — Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't

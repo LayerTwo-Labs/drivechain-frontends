@@ -268,7 +268,10 @@ func CoreSectionForNetwork(n Network) string {
 
 // NetworkFromConfig detects the network from a parsed BitcoinConfig.
 // Handles forknet/drynet detection (chain=main + drivechain=1 in [main]).
-func NetworkFromConfig(conf *BitcoinConfig) Network {
+// fallback is returned when the config carries no chain=/testnet=/signet=/
+// regtest= selector at all — signet for our own managed conf, but the network
+// the file was found under for a user's private bitcoin.conf.
+func NetworkFromConfig(conf *BitcoinConfig, fallback Network) Network {
 	chainSetting := conf.GetSetting("chain")
 	if chainSetting != "" {
 		switch strings.ToLower(chainSetting) {
@@ -306,7 +309,7 @@ func NetworkFromConfig(conf *BitcoinConfig) Network {
 		return NetworkRegtest
 	}
 
-	return NetworkSignet
+	return fallback
 }
 
 // NetworkFromString converts a string (e.g. CLI flag) to a Network value.

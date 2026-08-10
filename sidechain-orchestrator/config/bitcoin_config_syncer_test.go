@@ -509,11 +509,11 @@ func TestDrynetFallsBackToEmbeddedGeneration(t *testing.T) {
 // through the detector to prove they don't collide.
 func TestNetworkFromConfigDistinguishesDrynetFromForknet(t *testing.T) {
 	forknet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkForknet}).GetDefaultConfig())
-	if got := NetworkFromConfig(forknet); got != NetworkForknet {
+	if got := NetworkFromConfig(forknet, NetworkSignet); got != NetworkForknet {
 		t.Errorf("forknet config detected as %q, want forknet", got)
 	}
 	drynet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
-	if got := NetworkFromConfig(drynet); got != NetworkDrynet {
+	if got := NetworkFromConfig(drynet, NetworkSignet); got != NetworkDrynet {
 		t.Errorf("drynet config detected as %q, want drynet", got)
 	}
 }
@@ -524,7 +524,7 @@ func TestNetworkFromConfigDistinguishesDrynetFromForknet(t *testing.T) {
 func TestNetworkFromConfigDetectsFutureDrynetGeneration(t *testing.T) {
 	conf := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
 	conf.SetSetting("uacomment", "drynet3", "main")
-	if got := NetworkFromConfig(conf); got != NetworkDrynet {
+	if got := NetworkFromConfig(conf, NetworkSignet); got != NetworkDrynet {
 		t.Errorf("drynet3 config detected as %q, want drynet", got)
 	}
 }
@@ -533,9 +533,54 @@ func TestNetworkFromConfigDetectsFutureDrynetGeneration(t *testing.T) {
 // config back through the detector to prove it is not read as mainnet.
 func TestNetworkFromConfigDetectsDrynet(t *testing.T) {
 	drynet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
-	if got := NetworkFromConfig(drynet); got != NetworkDrynet {
+	if got := NetworkFromConfig(drynet, NetworkSignet); got != NetworkDrynet {
 		t.Errorf("drynet config detected as %q, want drynet", got)
 	}
+}
+
+// A user's own bitcoin.conf carrying no chain selector is mainnet (Bitcoin
+// Core's default), so it must stay on the network whose root dir it was found
+// under — and it is the file bitcoind gets launched with. Reading it as signet
+// re-resolved the conf path against ~/.drivechain and handed bitcoind the
+// managed conf while orchestrator state came from the private one.
+func TestPrivateConfWithoutChainKeepsDiscoveryNetworkAndPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	privatePath := filepath.Join(BitcoinCoreDirs.RootDirNetwork(NetworkMainnet), "bitcoin.conf")
+	require.NoError(t, os.MkdirAll(filepath.Dir(privatePath), 0755))
+	require.NoError(t, os.WriteFile(privatePath, []byte("server=1\nrpcport=9999\n"), 0644))
+
+	m := newTestManager(t.TempDir())
+	m.Network = NetworkMainnet
+	require.NoError(t, m.LoadConfig(true))
+
+	require.True(t, m.HasPrivateConf)
+	require.Equal(t, NetworkMainnet, m.Network)
+	require.Equal(t, privatePath, m.GetConfFilePath(), "bitcoind must be launched with the conf we loaded state from")
+	require.Equal(t, 9999, m.GetRPCPort())
+}
+
+// Control case: the same conf with an explicit chain=main. Isolates the absent
+// selector as the trigger for the network/conf-path split above.
+func TestPrivateConfWithExplicitChainMain(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	privatePath := filepath.Join(BitcoinCoreDirs.RootDirNetwork(NetworkMainnet), "bitcoin.conf")
+	require.NoError(t, os.MkdirAll(filepath.Dir(privatePath), 0755))
+	require.NoError(t, os.WriteFile(privatePath, []byte("chain=main\nserver=1\nrpcport=9999\n"), 0644))
+
+	m := newTestManager(t.TempDir())
+	m.Network = NetworkMainnet
+	require.NoError(t, m.LoadConfig(true))
+
+	require.True(t, m.HasPrivateConf)
+	require.Equal(t, NetworkMainnet, m.Network)
+	require.Equal(t, privatePath, m.GetConfFilePath())
+	require.Equal(t, 9999, m.GetRPCPort())
 }
 
 // ---------------------------------------------------------------------------
@@ -668,7 +713,7 @@ func TestDetectedDataDirPrefersPerNetworkSection(t *testing.T) {
 	m.Config.SetSetting("datadir", "/global/path")
 	m.Config.SetSetting("datadir", "/main/path", "main")
 
-	m.loadStateFromConfig()
+	m.loadStateFromConfig(NetworkSignet)
 
 	require.Equal(t, NetworkMainnet, m.Network)
 	require.Equal(t, "/main/path", m.DetectedDataDir)
