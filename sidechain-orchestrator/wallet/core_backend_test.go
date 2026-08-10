@@ -939,6 +939,61 @@ func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
 	assert.Equal(t, "bech32m", mintedType)
 }
 
+// TestCoreBackendNextChangeAddressKind pins change addresses to the wallet's own
+// script kind: a tr()-only wallet has no bech32 ScriptPubKeyMan to serve.
+func TestCoreBackendNextChangeAddressKind(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	ctx := context.Background()
+
+	t.Run("default wallet stays bech32", func(t *testing.T) {
+		backend, fake, coreID := newCoreBackendFixture(t)
+		fake.stubEnsureFlow()
+
+		change := p2wpkhAddr(t, fixedKey(0x31), net)
+		var requestedType string
+		fake.handle("getrawchangeaddress", func(c bitcoindCall) (any, string) {
+			if len(c.Params) > 0 {
+				requestedType = mustString(t, c.Params[0])
+			}
+			return change, ""
+		})
+
+		addr, err := backend.NextChangeAddress(ctx, coreID)
+		require.NoError(t, err)
+		assert.Equal(t, change, addr)
+		assert.Equal(t, "bech32", requestedType)
+	})
+
+	t.Run("taproot wallet requests bech32m", func(t *testing.T) {
+		svc := newTestService(t)
+		_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+		require.NoError(t, err)
+		core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "m/86'/1'/0'", testSlots)
+		require.NoError(t, err)
+
+		fake := newFakeBitcoind(t)
+		backend := NewCoreBackend(svc, fake.client(t), net, zerolog.New(zerolog.NewTestWriter(t)))
+		coreID := core.ID
+		require.Equal(t, ScriptTaproot, backend.walletScriptKind(coreID))
+
+		fake.stubEnsureFlow()
+
+		change := p2trAddr(t, fixedKey(0x32), net)
+		var requestedType string
+		fake.handle("getrawchangeaddress", func(c bitcoindCall) (any, string) {
+			if len(c.Params) > 0 {
+				requestedType = mustString(t, c.Params[0])
+			}
+			return change, ""
+		})
+
+		addr, err := backend.NextChangeAddress(ctx, coreID)
+		require.NoError(t, err)
+		assert.Equal(t, change, addr)
+		assert.Equal(t, "bech32m", requestedType)
+	})
+}
+
 func mustString(t *testing.T, raw json.RawMessage) string {
 	t.Helper()
 	var s string

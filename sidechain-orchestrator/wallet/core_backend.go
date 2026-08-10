@@ -385,7 +385,12 @@ func (p *CoreBackend) NextChangeAddress(ctx context.Context, walletID string) (s
 	if err != nil {
 		return "", err
 	}
-	return p.rpc.GetRawChangeAddress(ctx, name)
+	kind := p.walletScriptKind(walletID)
+	addressType, ok := coreAddressType(kind)
+	if !ok {
+		return "", fmt.Errorf("unsupported address kind %s for the Bitcoin Core backend", kind)
+	}
+	return p.rpc.GetRawChangeAddress(ctx, name, addressType)
 }
 
 // WatchKeys imports each key as a pkh() descriptor. Per-key import failures
