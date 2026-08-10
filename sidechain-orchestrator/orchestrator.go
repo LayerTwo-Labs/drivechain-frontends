@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -2381,11 +2382,13 @@ func (o *Orchestrator) ChainTip(ctx context.Context) (string, int32, error) {
 	return info.GetBlockHash().GetHex().GetValue(), int32(info.GetHeight()), nil
 }
 
-// Configs returns the binary configs.
+// Configs returns a snapshot of the binary configs. Handing out the live map
+// would let a config reload write it while a caller ranges over it, which Go
+// turns into an unrecoverable fatal error.
 func (o *Orchestrator) Configs() map[string]BinaryConfig {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
-	return o.configs
+	return maps.Clone(o.configs)
 }
 
 // GetBTCPrice returns the current BTC/USD price, caching for 10 seconds.
