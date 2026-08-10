@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -27,6 +28,42 @@ func TestProcessManager_StartAndStop(t *testing.T) {
 	require.NoError(t, pm.Stop(context.Background(), "sleep-test", false))
 	time.Sleep(200 * time.Millisecond)
 	assert.False(t, pm.IsRunning("sleep-test"))
+}
+
+func TestProcessManager_ConcurrentStartSpawnsOnce(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "sleep")
+
+	const starters = 4
+	var wg sync.WaitGroup
+	pids := make([]int, starters)
+	errs := make([]error, starters)
+	for i := range starters {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			pids[i], errs[i] = pm.Start(context.Background(), BinaryConfig{
+				Name: "sleep-test", BinaryName: "sleep",
+			}, []string{"30"}, nil)
+		}()
+	}
+	wg.Wait()
+
+	proc := pm.Get("sleep-test")
+	require.NotNil(t, proc)
+
+	var started int
+	for i := range starters {
+		if errs[i] == nil {
+			started++
+			assert.Equal(t, proc.Pid, pids[i], "the tracked process must be the one we started")
+		} else {
+			assert.ErrorContains(t, errs[i], "already running")
+		}
+	}
+	assert.Equal(t, 1, started, "concurrent starts must not fork a second daemon the manager loses track of")
+
+	require.NoError(t, pm.Stop(context.Background(), "sleep-test", false))
 }
 
 func TestProcessManager_LastExit(t *testing.T) {
