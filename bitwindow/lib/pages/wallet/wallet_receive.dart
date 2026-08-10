@@ -420,15 +420,12 @@ class ReceivePageViewModel extends BaseViewModel {
   wmpb.AddressType get addressType => transactionsProvider.addressType;
   Future<void> setAddressType(wmpb.AddressType type) => transactionsProvider.setAddressType(type);
 
-  /// BIP47 payment codes derive from a single master seed and a single-key
-  /// receive branch, so they don't apply to watch-only wallets (no seed) or
-  /// multisig wallets (no single seed; funds land on multisig script addresses).
-  /// Hide the BIP47 card for both so the receive tab doesn't show a row the user
-  /// can't populate.
+  /// Hide the BIP47 card for the wallets the backend derives no code for, so
+  /// the receive tab shows no row that can never fill.
   bool get hideBip47 {
     final reader = GetIt.I.get<WalletReaderProvider>();
     final active = reader.activeWallet;
-    return active != null && (active.isWatchOnly || active.isMultisig);
+    return active != null && (active.isWatchOnly || active.isMultisig || active.isEnforcer);
   }
 
   /// A multisig wallet's address kind is fixed by its descriptor, so the receive
