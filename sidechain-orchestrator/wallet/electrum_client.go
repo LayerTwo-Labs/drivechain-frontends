@@ -463,9 +463,11 @@ func (c *ElectrumClient) AddressStats(ctx context.Context, address string) (Espl
 	}
 	confirmed, mempool := 0, 0
 	for _, h := range hist {
+		// Cache every item, so a tx that fell back to the mempool loses its
+		// height here too, not only on the AddressTxs and AddressUTXOs paths.
+		c.rememberHeight(h.TxHash, h.Height)
 		if h.Height > 0 {
 			confirmed++
-			c.rememberHeight(h.TxHash, h.Height)
 		} else {
 			mempool++
 		}
@@ -698,13 +700,17 @@ func (c *ElectrumClient) blockTime(ctx context.Context, height int) int64 {
 	return ts
 }
 
+// rememberHeight caches a tx's confirmation height. A height <= 0 revokes any
+// cached height, so a tx reorged back into the mempool stops reporting as
+// confirmed.
 func (c *ElectrumClient) rememberHeight(txid string, height int) {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
 	if height <= 0 {
+		delete(c.heightByTx, txid)
 		return
 	}
-	c.cacheMu.Lock()
 	c.heightByTx[txid] = height
-	c.cacheMu.Unlock()
 }
 
 func (c *ElectrumClient) knownHeight(txid string) int {
