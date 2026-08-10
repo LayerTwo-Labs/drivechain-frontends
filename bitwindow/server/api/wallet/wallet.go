@@ -1015,6 +1015,10 @@ func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addr
 
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
+	if c.Msg.Slot < 0 || c.Msg.Slot > 255 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("slot must be 0-255"))
+	}
+
 	walletId := c.Msg.WalletId
 
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
