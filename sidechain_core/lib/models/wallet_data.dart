@@ -34,6 +34,10 @@ class WalletData {
 
   bool get isMultisig => multisig != null;
 
+  /// True iff this wallet runs against the enforcer, whose wallet service can
+  /// watch no key but its own and so never derives a BIP47 payment code.
+  bool get isEnforcer => walletType == BinaryType.BINARY_TYPE_ENFORCER;
+
   /// Device type and master fingerprint for a single-sig hardware wallet.
   final String hardwareDeviceType;
   final String hardwareFingerprint;
