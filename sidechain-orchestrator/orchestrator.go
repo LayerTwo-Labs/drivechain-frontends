@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -2280,34 +2281,13 @@ func (o *Orchestrator) removeCoreBinary() {
 	o.log.Info().Str("path", path).Msg("removed bitcoind so the next boot fetches the build this chain needs")
 }
 
-// EnforcerValidator returns a client for the enforcer's validator service.
-func (o *Orchestrator) EnforcerValidator() (enforcerrpc.ValidatorServiceClient, error) {
-	cfg, ok := o.Configs()["enforcer"]
-	if !ok || cfg.Port == 0 {
-		return nil, fmt.Errorf("enforcer not configured")
-	}
-	return enforcerrpc.NewValidatorServiceClient(o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC()), nil
-}
-
-// ChainTip returns the mainchain tip the enforcer has validated.
-func (o *Orchestrator) ChainTip(ctx context.Context) (string, int32, error) {
-	validator, err := o.EnforcerValidator()
-	if err != nil {
-		return "", 0, err
-	}
-	resp, err := validator.GetChainTip(ctx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
-	if err != nil {
-		return "", 0, err
-	}
-	info := resp.Msg.GetBlockHeaderInfo()
-	return info.GetBlockHash().GetHex().GetValue(), int32(info.GetHeight()), nil
-}
-
-// Configs returns the binary configs.
+// Configs returns a snapshot of the binary configs. Handing out the live map
+// would let a config reload write it while a caller ranges over it, which Go
+// turns into an unrecoverable fatal error.
 func (o *Orchestrator) Configs() map[string]BinaryConfig {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
-	return o.configs
+	return maps.Clone(o.configs)
 }
 
 // GetBTCPrice returns the current BTC/USD price, caching for 10 seconds.
