@@ -196,23 +196,25 @@ func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListS
 	// Loop over all sidechains and get their chaintip if available
 	sidechainList := make([]*pb.ListSidechainsResponse_Sidechain, 0, len(sidechains.Sidechains))
 	for _, sidechain := range sidechains.Sidechains {
-		declaration := sidechain.Declaration.GetV0()
+		// The enforcer reports a nil declaration for descriptions that aren't a v0
+		// declaration, which is legal. Use nil-safe getters throughout.
+		declaration := sidechain.GetDeclaration().GetV0()
 
 		sc := &pb.ListSidechainsResponse_Sidechain{
-			Title:            declaration.Title.Value,
-			Description:      declaration.Description.Value,
-			Hashid1:          declaration.HashId_1.Hex.Value,
-			Hashid2:          declaration.HashId_2.Hex.Value,
-			Slot:             sidechain.SidechainNumber.Value,
-			VoteCount:        sidechain.VoteCount.Value,
-			ProposalHeight:   sidechain.ProposalHeight.Value,
-			ActivationHeight: sidechain.ActivationHeight.Value,
-			DescriptionHex:   sidechain.Description.Hex.Value,
+			Title:            declaration.GetTitle().GetValue(),
+			Description:      declaration.GetDescription().GetValue(),
+			Hashid1:          declaration.GetHashId_1().GetHex().GetValue(),
+			Hashid2:          declaration.GetHashId_2().GetHex().GetValue(),
+			Slot:             sidechain.GetSidechainNumber().GetValue(),
+			VoteCount:        sidechain.GetVoteCount().GetValue(),
+			ProposalHeight:   sidechain.GetProposalHeight().GetValue(),
+			ActivationHeight: sidechain.GetActivationHeight().GetValue(),
+			DescriptionHex:   sidechain.GetDescription().GetHex().GetValue(),
 		}
 
 		// Try to get ctip (may not exist if no deposits yet)
 		ctipResponse, err := s.data.Ctip(ctx,
-			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sidechain.SidechainNumber.Value)},
+			&validatorpb.GetCtipRequest{SidechainNumber: wrapperspb.UInt32(sc.Slot)},
 		)
 		if err == nil && ctipResponse.Ctip != nil && ctipResponse.Ctip.Txid != nil {
 			txidHash, err := chainhash.NewHashFromStr(ctipResponse.Ctip.Txid.Hex.Value)

@@ -101,6 +101,62 @@ func TestService_ListSidechains(t *testing.T) {
 		assert.Equal(t, uint32(0), resp.Msg.Sidechains[0].Slot)
 	})
 
+	t.Run("handles nil declaration", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+
+		mockValidator := mocks.NewMockValidatorServiceClient(ctrl)
+
+		mockValidator.EXPECT().
+			GetChainTip(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[mainchainv1.GetChainTipResponse]{
+				Msg: &mainchainv1.GetChainTipResponse{
+					BlockHeaderInfo: &mainchainv1.BlockHeaderInfo{
+						Height: 100,
+						BlockHash: &commonv1.ReverseHex{
+							Hex: wrapperspb.String("0000000000000000000000000000000000000000000000000000000000000001"),
+						},
+					},
+				},
+			}, nil)
+
+		// The enforcer reports a nil declaration when the description doesn't
+		// decode as a v0 declaration, which the spec allows.
+		mockValidator.EXPECT().
+			GetSidechains(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
+				Msg: &mainchainv1.GetSidechainsResponse{
+					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
+						{
+							SidechainNumber: wrapperspb.UInt32(7),
+							Declaration:     nil,
+							Description: &commonv1.ConsensusHex{
+								Hex: wrapperspb.String("deadbeef"),
+							},
+							VoteCount:        wrapperspb.UInt32(100),
+							ProposalHeight:   wrapperspb.UInt32(50),
+							ActivationHeight: wrapperspb.UInt32(60),
+						},
+					},
+				},
+			}, nil)
+
+		mockValidator.EXPECT().
+			GetCtip(gomock.Any(), gomock.Any()).
+			Return(nil, connect.NewError(connect.CodeNotFound, nil))
+
+		cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+
+		resp, err := cli.ListSidechains(context.Background(), connect.NewRequest(&pb.ListSidechainsRequest{}))
+		require.NoError(t, err)
+		require.Len(t, resp.Msg.Sidechains, 1)
+		assert.Empty(t, resp.Msg.Sidechains[0].Title)
+		assert.Equal(t, uint32(7), resp.Msg.Sidechains[0].Slot)
+		assert.Equal(t, "deadbeef", resp.Msg.Sidechains[0].DescriptionHex)
+	})
+
 	t.Run("handles empty sidechains", func(t *testing.T) {
 		t.Parallel()
 
