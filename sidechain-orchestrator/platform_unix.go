@@ -74,6 +74,10 @@ func findPidByName(binaryName string) (int, error) {
 
 // killProcess sends SIGTERM, then SIGKILL if the process doesn't exit.
 func killProcess(pid int) error {
+	if pid <= 0 {
+		return fmt.Errorf("refusing to signal invalid pid %d", pid)
+	}
+
 	proc, err := os.FindProcess(pid)
 	if err != nil {
 		return fmt.Errorf("find process %d: %w", pid, err)
@@ -92,6 +96,10 @@ func killProcess(pid int) error {
 
 // forceKillProcess sends SIGKILL immediately.
 func forceKillProcess(pid int) error {
+	if pid <= 0 {
+		return fmt.Errorf("refusing to signal invalid pid %d", pid)
+	}
+
 	proc, err := os.FindProcess(pid)
 	if err != nil {
 		return fmt.Errorf("find process %d: %w", pid, err)
