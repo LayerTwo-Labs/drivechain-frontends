@@ -201,6 +201,9 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
       final txId = _txIdController.text.trim();
 
       var existingTx = await TransactionStorage.getTransaction(txId);
+      if (existingTx != null && existingTx.groupId != _selectedGroupId) {
+        throw Exception('PSBT targets a transaction in another group');
+      }
 
       if (keyOwner == null) {
         throw Exception('key_owner is required in PSBT import data');
@@ -273,7 +276,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
           targetKey.xpub,
           cleanPsbt,
           true,
-          signatureThreshold: group.m,
         );
       } else {
         final allRelevantKeys = <MultisigKey>[];
@@ -302,7 +304,6 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
               key.xpub,
               cleanPsbt,
               false,
-              signatureThreshold: group.m,
             );
           }
         }
