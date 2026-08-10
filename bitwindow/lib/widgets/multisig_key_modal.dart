@@ -218,21 +218,17 @@ class MultisigKeyModalViewModel extends BaseViewModel {
       return;
     }
 
-    try {
-      final keyName = keyNameController.text.trim();
+    final keyName = keyNameController.text.trim();
 
-      final soloKeyData = {
-        'xpub': keyInfo!['xpub'],
-        'owner': keyName,
-        'path': keyInfo!['path'],
-        'fingerprint': keyInfo!['fingerprint'],
-        'origin_path': keyInfo!['originPath'],
-      };
+    final soloKeyData = {
+      'xpub': keyInfo!['xpub'],
+      'owner': keyName,
+      'path': keyInfo!['path'],
+      'fingerprint': keyInfo!['fingerprint'],
+      'origin_path': keyInfo!['originPath'],
+    };
 
-      await MultisigStorage.addSoloKey(soloKeyData);
-    } catch (e) {
-      // Failed to save key to storage - not critical
-    }
+    await MultisigStorage.addSoloKey(soloKeyData);
   }
 
   Future<void> saveKey(BuildContext context) async {
