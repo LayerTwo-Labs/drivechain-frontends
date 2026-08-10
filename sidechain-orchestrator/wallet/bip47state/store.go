@@ -166,6 +166,27 @@ func (s *Store) ReserveNextIndex(walletID, recipientCode string) (uint32, error)
 	return idx, nil
 }
 
+// ReleaseIndex gives back an index reserved by ReserveNextIndex for a send that
+// never went out, so the next send reuses it. No-op unless idx is still the most
+// recent reservation.
+func (s *Store) ReleaseIndex(walletID, recipientCode string, idx uint32) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.ensureLoadedLocked(); err != nil {
+		return err
+	}
+	r, ok := s.rows[key(walletID, recipientCode)]
+	if !ok || r.NextSendIndex != idx+1 {
+		return nil
+	}
+	r.NextSendIndex = idx
+	if err := s.flushLocked(); err != nil {
+		r.NextSendIndex = idx + 1
+		return err
+	}
+	return nil
+}
+
 // Rebind points the store at another network's directory, dropping state
 // loaded from the previous one.
 func (s *Store) Rebind(dir string) {

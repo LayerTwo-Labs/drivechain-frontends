@@ -29,8 +29,11 @@ type bip47Expansion struct {
 	// hex) the wallet handler must sign + broadcast BEFORE the payment.
 	notificationTxHex string
 	// recipientCode is the recipient's payment code, used to MarkNotified
-	// after a successful broadcast.
+	// after a successful broadcast. Empty when passthrough.
 	recipientCode string
+	// sendIndex is the per-payment index reserved for this send, released
+	// again when the payment does not go out.
+	sendIndex uint32
 }
 
 // expandBip47Destinations inspects the requested destinations for a BIP47
@@ -94,10 +97,12 @@ func (h *WalletHandler) expandBip47Destinations(
 	expansion := &bip47Expansion{
 		destinations:  result.Destinations,
 		recipientCode: result.RecipientCode,
+		sendIndex:     result.Index,
 	}
 
 	state, err := h.bip47State.GetState(walletID, result.RecipientCode)
 	if err != nil {
+		h.releaseBip47Index(walletID, expansion)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read bip47 state: %w", err))
 	}
 	if state != nil && state.NotificationTxID != nil {
@@ -106,10 +111,23 @@ func (h *WalletHandler) expandBip47Destinations(
 
 	rawHex, _, err := h.buildBip47NotificationTx(ctx, walletID, seedHex, result.Recipient, netParams)
 	if err != nil {
+		h.releaseBip47Index(walletID, expansion)
 		return nil, err
 	}
 	expansion.notificationTxHex = rawHex
 	return expansion, nil
+}
+
+// releaseBip47Index gives back the per-payment index reserved for a send that
+// failed, so the retry derives the same address instead of burning an index.
+// No-op for passthrough (non-BIP47) expansions.
+func (h *WalletHandler) releaseBip47Index(walletID string, expansion *bip47Expansion) {
+	if expansion == nil || expansion.recipientCode == "" || h.bip47State == nil {
+		return
+	}
+	// Best-effort: the send already failed, and a skipped index is absorbed by
+	// the recipient's gap limit.
+	_ = h.bip47State.ReleaseIndex(walletID, expansion.recipientCode, expansion.sendIndex)
 }
 
 // buildBip47NotificationTx assembles the unsigned notification transaction by
