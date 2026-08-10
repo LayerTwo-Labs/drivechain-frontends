@@ -1048,7 +1048,8 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 	var response pb.ListSidechainDepositsResponse
 	for _, tx := range deposits.Transactions {
-		if c.Msg.Slot != 0 && tx.SidechainNumber.Value != uint32(c.Msg.Slot) {
+		// Slot 0 is a real sidechain slot, not an "all slots" sentinel.
+		if tx.SidechainNumber.Value != uint32(c.Msg.Slot) {
 			continue
 		}
 
