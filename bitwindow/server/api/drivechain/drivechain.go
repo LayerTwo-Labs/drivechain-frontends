@@ -547,8 +547,16 @@ func (s *Server) mergeBundles(existing, new []*pb.WithdrawalBundle) []*pb.Withdr
 	for _, b := range new {
 		if existingBundle, ok := bundleMap[b.M6Id]; ok {
 			// Update status if the new event changes it (e.g., pending -> succeeded/failed)
-			if b.Status == "succeeded" || b.Status == "failed" {
+			switch b.Status {
+			case "succeeded", "failed":
 				existingBundle.Status = b.Status
+				existingBundle.SequenceNumber = b.SequenceNumber
+				existingBundle.TransactionHex = b.TransactionHex
+			case "pending":
+				// A bundle can be re-proposed after expiring, which opens a fresh
+				// voting window at the new submission height.
+				existingBundle.Status = b.Status
+				existingBundle.BlockHeight = b.BlockHeight
 				existingBundle.SequenceNumber = b.SequenceNumber
 				existingBundle.TransactionHex = b.TransactionHex
 			}
