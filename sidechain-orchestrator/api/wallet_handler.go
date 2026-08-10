@@ -800,10 +800,14 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	if expansion.notificationTxHex != "" || !destinationsEqual(expansion.destinations, req.Msg.Destinations) {
 		req = connect.NewRequest(applyDestinationsToRequest(req.Msg, expansion.destinations))
 	}
-
+	// The reserved per-payment index is only released for a failure that
+	// happens before the payment goes out. A broadcast that times out may
+	// still have published the payment, and reusing that address would defeat
+	// the address isolation BIP47 exists for.
 	const dustLimitSats int64 = 546
 	for address, sats := range req.Msg.Destinations {
 		if sats < dustLimitSats {
+			h.releaseBip47Index(walletID, expansion)
 			return nil, connect.NewError(
 				connect.CodeInvalidArgument,
 				fmt.Errorf("amount to %s is below dust limit (%d sats)", address, dustLimitSats),
@@ -814,6 +818,8 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	if expansion.notificationTxHex != "" {
 		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex)
 		if err != nil {
+			// The payment never went out, so its index is still free.
+			h.releaseBip47Index(walletID, expansion)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast bip47 notification: %w", err))
 		}
 		_ = notifTxID
