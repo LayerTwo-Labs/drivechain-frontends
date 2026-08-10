@@ -13,6 +13,7 @@ import (
 
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	codec "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 )
 
@@ -186,6 +187,36 @@ func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error 
 		if _, err := tx.ExecContext(ctx, q, fromHeight); err != nil {
 			return err
 		}
+	}
+	return tx.Commit()
+}
+
+// purgeChainDerivedAtOrAbove drops the block-derived op_returns and
+// file_timestamps state from blocks at or above `fromHeight`. Neither
+// heals itself on replay: the op_returns upsert keeps the old height
+// (`COALESCE(excluded.height, op_returns.height)`), and a confirmed
+// timestamp is never re-examined. Mempool OP_RETURNs have a NULL height
+// and are left alone; reset timestamps go back through the confirming
+// loop, which re-confirms them against the new chain or fails them.
+func (p *Parser) purgeChainDerivedAtOrAbove(ctx context.Context, fromHeight uint32) error {
+	tx, err := p.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck // committed on success
+
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM op_returns WHERE height >= ?`, fromHeight,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE file_timestamps
+		SET status = ?, block_height = NULL, confirmed_at = NULL
+		WHERE block_height >= ?`,
+		timestamps.StatusConfirming, fromHeight,
+	); err != nil {
+		return err
 	}
 	return tx.Commit()
 }

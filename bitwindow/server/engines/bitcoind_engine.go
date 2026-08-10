@@ -234,6 +234,10 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		if err := p.purgeM4AtOrAbove(ctx, lastProcessedHeight+1); err != nil {
 			return fmt.Errorf("purge m4 on reorg: %w", err)
 		}
+
+		if err := p.purgeChainDerivedAtOrAbove(ctx, lastProcessedHeight+1); err != nil {
+			return fmt.Errorf("purge chain-derived rows on reorg: %w", err)
+		}
 	}
 
 	const batchSize = 30
@@ -468,7 +472,11 @@ func (p *Parser) handleTimestamp(
 			if newConfirmedAt == nil {
 				newConfirmedAt = confirmedAt
 			}
-			if err := timestamps.Update(ctx, p.db, existing.ID, existing.TxID, blockHeight, timestamps.StatusConfirmed, newConfirmedAt); err != nil {
+			// Record the transaction being processed, not the stored one. After
+			// a reorg the replacement branch can carry a different transaction
+			// for the same file hash, and the stored id then points at a
+			// transaction that no longer exists.
+			if err := timestamps.Update(ctx, p.db, existing.ID, &txid, blockHeight, timestamps.StatusConfirmed, newConfirmedAt); err != nil {
 				return fmt.Errorf("update existing timestamp: %w", err)
 			}
 		}
