@@ -1019,6 +1019,7 @@ func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, di
 		return fmt.Errorf("list wallets: %w", err)
 	}
 
+	created := false
 	if !lo.Contains(existing, walletName) {
 		if err := p.rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); err != nil {
 			if strings.Contains(err.Error(), "already exists") {
@@ -1029,22 +1030,29 @@ func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, di
 				return fmt.Errorf("create wallet: %w", err)
 			}
 		}
+		created = true
+	}
 
-		results, err := p.rpc.ImportDescriptors(ctx, walletName, descriptors)
-		if err != nil {
-			return fmt.Errorf("import descriptors: %w", err)
-		}
+	// Import unconditionally: a createwallet that succeeded before a failing
+	// import leaves the wallet listed but with no active descriptor, and
+	// re-importing an identical one is a no-op in Core (timestamp "now", no
+	// rescan).
+	results, err := p.rpc.ImportDescriptors(ctx, walletName, descriptors)
+	if err != nil {
+		return fmt.Errorf("import descriptors: %w", err)
+	}
 
-		for i, r := range results {
-			if !r.Success {
-				errMsg := "unknown"
-				if r.Error != nil {
-					errMsg = r.Error.Message
-				}
-				return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
+	for i, r := range results {
+		if !r.Success {
+			errMsg := "unknown"
+			if r.Error != nil {
+				errMsg = r.Error.Message
 			}
+			return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
 		}
+	}
 
+	if created {
 		p.log.Info().Str("wallet", walletName).Msg("created Bitcoin Core wallet")
 	}
 
