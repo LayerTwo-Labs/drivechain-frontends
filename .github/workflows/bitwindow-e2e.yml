@@ -148,7 +148,7 @@ jobs:
         working-directory: bitwindow/e2e
         run:
           go test -tags e2e -v -timeout 25m -run
-          'TestFlutterProcessIsNotInAJob|TestDaemonsAreInTheJob|TestForceKillingAppReapsDaemons'
+          'TestFlutterProcessIsNotInTheDaemonJob|TestDaemonsAreInTheJob|TestForceKillingAppReapsDaemons'
           ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/job-object
