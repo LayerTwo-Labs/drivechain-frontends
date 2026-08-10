@@ -494,6 +494,75 @@ func TestCoreBackendSendFixedFeeSelectsInputsAndChange(t *testing.T) {
 	assert.Equal(t, builtHex, mustString(t, signs[0].Params[0]))
 }
 
+func TestCoreBackendSendFixedFeeResolvesRequiredInputValue(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	net := &chaincfg.RegressionNetParams
+	dest := p2wpkhAddr(t, fixedKey(0xCC), net)
+	change := p2wpkhAddr(t, fixedKey(0xDD), net)
+	pinned := strings.Repeat("55", 32)
+
+	fake.handle("listunspent", func(c bitcoindCall) (any, string) {
+		// minconf 0 so a pinned unconfirmed output still resolves.
+		var minConf int
+		require.NoError(t, json.Unmarshal(c.Params[0], &minConf))
+		assert.Equal(t, 0, minConf)
+		return []map[string]any{
+			{"txid": pinned, "vout": 2, "amount": 0.001, "spendable": true},
+		}, ""
+	})
+	fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) { return change, "" })
+	fake.handle("createrawtransaction", func(bitcoindCall) (any, string) { return "deadbeef", "" })
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "txid-pinned", "" })
+
+	// AmountSats left at zero, as callers that only know the outpoint send it.
+	txid, err := backend.Send(context.Background(), coreID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FixedFeeSats:     1_000,
+		RequiredInputs:   []RequiredInput{{TxID: pinned, Vout: 2}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "txid-pinned", txid)
+
+	creates := fake.callsFor("createrawtransaction")
+	require.Len(t, creates, 1)
+	var inputs []RawInput
+	require.NoError(t, json.Unmarshal(creates[0].Params[0], &inputs))
+	require.Len(t, inputs, 1)
+	assert.Equal(t, pinned, inputs[0].TxID)
+	assert.Equal(t, 2, inputs[0].Vout)
+
+	// Change is 100k on-chain - 50k dest - 1k fee, not burned by the zero amount.
+	var outputs []map[string]any
+	require.NoError(t, json.Unmarshal(creates[0].Params[1], &outputs))
+	require.Len(t, outputs, 2)
+	assert.Equal(t, 0.0005, outputs[0][dest])
+	assert.Equal(t, 0.00049, outputs[1][change])
+}
+
+func TestCoreBackendSendFixedFeeRejectsForeignRequiredInput(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	net := &chaincfg.RegressionNetParams
+	dest := p2wpkhAddr(t, fixedKey(0xCC), net)
+	foreign := strings.Repeat("66", 32)
+
+	fake.handle("listunspent", func(bitcoindCall) (any, string) { return []map[string]any{}, "" })
+
+	_, err := backend.Send(context.Background(), coreID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FixedFeeSats:     1_000,
+		RequiredInputs:   []RequiredInput{{TxID: foreign, Vout: 0, AmountSats: 1_000_000}},
+	})
+	require.ErrorContains(t, err, "is not a wallet UTXO")
+	assert.Empty(t, fake.callsFor("createrawtransaction"))
+}
+
 func TestCoreBackendSendReplayProtect(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()

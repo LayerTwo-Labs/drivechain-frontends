@@ -474,29 +474,25 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	}
 
 	outputs, totalDestinationSats := buildSendOutputs(req)
-	inputs := make([]RawInput, 0, len(req.ExternalInputs)+len(req.RequiredInputs))
-	selectedInputAmountSats := int64(0)
-	// External inputs come first, so a sidechain CTIP stays at input 0.
-	for _, in := range req.ExternalInputs {
-		inputs = append(inputs, RawInput{TxID: in.TxID, Vout: in.Vout})
-		selectedInputAmountSats += in.AmountSats
-	}
+	inputs := make([]RawInput, 0, len(req.RequiredInputs))
 	for _, in := range req.RequiredInputs {
 		inputs = append(inputs, RawInput{TxID: in.TxID, Vout: in.Vout})
-		selectedInputAmountSats += in.AmountSats
 	}
 
 	if req.FixedFeeSats > 0 {
-		neededSats := totalDestinationSats + req.FixedFeeSats
-		if len(req.RequiredInputs) == 0 && selectedInputAmountSats < neededSats {
-			extra, extraSats, err := p.selectInputsForFixedFee(
-				ctx, walletID, neededSats-selectedInputAmountSats,
+		selectedInputAmountSats := int64(0)
+		if len(inputs) == 0 {
+			inputs, selectedInputAmountSats, err = p.selectInputsForFixedFee(
+				ctx, walletID, totalDestinationSats+req.FixedFeeSats,
 			)
 			if err != nil {
 				return "", err
 			}
-			inputs = append(inputs, extra...)
-			selectedInputAmountSats += extraSats
+		} else {
+			selectedInputAmountSats, err = p.requiredInputValueSats(ctx, name, req.RequiredInputs)
+			if err != nil {
+				return "", err
+			}
 		}
 
 		changeSats := selectedInputAmountSats - totalDestinationSats - req.FixedFeeSats
@@ -624,6 +620,30 @@ func buildSendOutputs(req SendRequest) ([]TxOutSpec, int64) {
 		outputs = append(outputs, TxOutSpec{OpReturnHex: req.OpReturnHex})
 	}
 	return outputs, totalDestinationSats
+}
+
+// requiredInputValueSats sums the pinned outpoints' on-chain values. The
+// caller-supplied amounts are never trusted: an absent or understated one
+// would silently shrink the change output and burn the difference as fee.
+// minconf 0 so a pinned unconfirmed output (e.g. a replacement's own change)
+// still resolves.
+func (p *CoreBackend) requiredInputValueSats(ctx context.Context, name string, required []RequiredInput) (int64, error) {
+	utxos, err := p.rpc.ListUnspentMinConf(ctx, name, 0)
+	if err != nil {
+		return 0, fmt.Errorf("list unspent: %w", err)
+	}
+
+	totalSats := int64(0)
+	for _, in := range required {
+		utxo, ok := lo.Find(utxos, func(u UTXO) bool {
+			return u.TxID == in.TxID && u.Vout == in.Vout
+		})
+		if !ok {
+			return 0, fmt.Errorf("required input %s:%d is not a wallet UTXO", in.TxID, in.Vout)
+		}
+		totalSats += int64(math.Round(utxo.Amount * 1e8))
+	}
+	return totalSats, nil
 }
 
 // selectInputsForFixedFee picks spendable UTXOs largest-first until they
