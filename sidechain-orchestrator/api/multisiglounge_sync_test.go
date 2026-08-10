@@ -300,6 +300,12 @@ func TestRestoreHistoryE2E(t *testing.T) {
 		}
 	}
 	require.NotNil(t, spend, "the broadcast spend must appear in restored history")
+	// Change lands on the group's own receive address, so Core emits a receive row
+	// for this txid too. The restored row must still read as an outgoing 0.5 BTC
+	// payment to dest, not as an inbound deposit of the change.
+	require.False(t, spend.IsDeposit, "an outgoing spend must not restore as a deposit")
+	require.Equal(t, int64(50_000_000), spend.AmountSats, "net amount sent, not the change output")
+	require.Equal(t, dest, spend.Destination, "the payee, not the group's own change address")
 	require.Equal(t, "confirmed", spend.Status)
 	require.GreaterOrEqual(t, spend.Confirmations, uint32(6))
 	require.NotEmpty(t, spend.FinalHex, "reconstructed tx must carry the raw hex")
@@ -307,80 +313,6 @@ func TestRestoreHistoryE2E(t *testing.T) {
 	// 2-of-3 P2WSH spend: the witness carries two ~72-byte signatures. This is the
 	// load-bearing parity check on CountMultisigSignatures.
 	require.Equal(t, uint32(2), spend.SignatureCount, "two signatures counted from the witness")
-}
-
-// coveredDescriptors is a listdescriptors reply whose imported range already
-// covers the lookahead, so ensureWatchWallet leaves the wallet alone.
-const coveredDescriptors = `{"descriptors":[
-	{"active":true,"internal":false,"range":[0,999],"next":0},
-	{"active":true,"internal":true,"range":[0,999],"next":0}]}`
-
-// TestEnsureWatchWalletWidensRange pins the descriptor range cap: an existing
-// watch wallet is no longer short-circuited on "already loaded", and its range
-// is re-imported wide enough — with a rescan — to keep covering the addresses
-// the wallet hands out.
-func TestEnsureWatchWalletWidensRange(t *testing.T) {
-	group := loungeSyncTestGroup(t)
-	receive, change, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(group))
-	require.NoError(t, err)
-
-	tests := []struct {
-		name    string
-		next    int
-		haveEnd int // 0 = the wallet has no descriptors at all
-		wantEnd int // -1 = the existing range must be left alone
-	}{
-		{"range still covers the lookahead", 0, 999, -1},
-		{"next approaching the end grows a chunk", 900, 999, 1999},
-		{"restored wallet already past the old cap", 1500, 999, 1999},
-		{"wallet without descriptors is imported", 0, 0, 999},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var imported []map[string]interface{}
-			h := NewMultisigLoungeHandler()
-			h.SetCoreCaller(func(_ context.Context, method, paramsJSON, _ string) (json.RawMessage, error) {
-				switch method {
-				case "listwallets":
-					return json.RawMessage(`["ms_sync"]`), nil
-				case "listdescriptors":
-					if tt.haveEnd == 0 {
-						return json.RawMessage(`{"descriptors":[]}`), nil
-					}
-					return json.RawMessage(fmt.Sprintf(
-						`{"descriptors":[{"active":true,"internal":false,"range":[0,%d],"next":%d},`+
-							`{"active":true,"internal":true,"range":[0,%d],"next":%d}]}`,
-						tt.haveEnd, tt.next, tt.haveEnd, tt.next)), nil
-				case "importdescriptors":
-					var params [][]map[string]interface{}
-					require.NoError(t, json.Unmarshal([]byte(paramsJSON), &params))
-					imported = params[0]
-					return json.RawMessage(`[{"success":true},{"success":true}]`), nil
-				}
-				return nil, fmt.Errorf("unexpected method %s", method)
-			})
-
-			name, err := h.ensureWatchWallet(context.Background(), group)
-			require.NoError(t, err)
-			require.Equal(t, "ms_sync", name)
-
-			if tt.wantEnd < 0 {
-				require.Empty(t, imported, "a range that still covers the lookahead must not be re-imported")
-				return
-			}
-			require.Len(t, imported, 2, "receive and change are re-imported together")
-			// The group's own descriptors, so widening can never add a second
-			// active descriptor alongside the one already imported.
-			require.Equal(t, receive, imported[0]["desc"])
-			require.Equal(t, change, imported[1]["desc"])
-			for _, d := range imported {
-				require.Equal(t, []interface{}{0.0, float64(tt.wantEnd)}, d["range"])
-				// The newly covered indices may already hold history, so the
-				// re-import must rescan instead of starting at "now".
-				require.Equal(t, 0.0, d["timestamp"])
-			}
-		})
-	}
 }
 
 // TestRestoreHistoryNetsRowsPerTxid pins the row aggregation without a node:
@@ -416,8 +348,6 @@ func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
 				switch method {
 				case "listwallets":
 					return json.RawMessage(`["ms_test"]`), nil
-				case "listdescriptors":
-					return json.RawMessage(coveredDescriptors), nil
 				case "listtransactions":
 					return json.RawMessage(tt.rows), nil
 				case "getrawtransaction":

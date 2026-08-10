@@ -749,6 +749,8 @@ func (h *MultisigLoungeHandler) RestoreHistory(
 	// listtransactions("*", 1000, 0, include_watchonly=true)
 	var txs []struct {
 		Txid          string  `json:"txid"`
+		Address       string  `json:"address"`
+		Category      string  `json:"category"`
 		Amount        float64 `json:"amount"`
 		Confirmations int32   `json:"confirmations"`
 		Time          int64   `json:"time"`
@@ -772,8 +774,42 @@ func (h *MultisigLoungeHandler) RestoreHistory(
 			continue // skip txs we can't fetch (matches Dart's per-tx tolerance)
 		}
 
+		// Core emits one row per wallet-relevant output, and lists a tx's receive
+		// rows before its send rows. Net every row for the txid, or a spend whose
+		// change pays a group address reads as an inbound deposit of that change.
+		net := 0.0
+		owned := map[string]bool{}
+		for _, r := range txs {
+			if r.Txid != wtx.Txid {
+				continue
+			}
+			net += r.Amount
+			if r.Category == "receive" && r.Address != "" {
+				owned[r.Address] = true
+			}
+		}
+
+		// The payee is the first output paid outside the group; change back to the
+		// group is either omitted or paired with a receive row. A deposit or a
+		// self-send has no external payee, so fall back to the group's own address.
+		payee := ""
+		for _, r := range txs {
+			if r.Txid != wtx.Txid || r.Address == "" {
+				continue
+			}
+			if r.Category == "send" && !owned[r.Address] {
+				payee = r.Address
+				break
+			}
+			if payee == "" {
+				payee = r.Address
+			}
+		}
+
 		destination := "Unknown"
-		if len(raw.Vout) > 0 && raw.Vout[0].ScriptPubKey.Address != "" {
+		if payee != "" {
+			destination = payee
+		} else if len(raw.Vout) > 0 && raw.Vout[0].ScriptPubKey.Address != "" {
 			destination = raw.Vout[0].ScriptPubKey.Address
 		}
 
@@ -784,8 +820,8 @@ func (h *MultisigLoungeHandler) RestoreHistory(
 
 		out = append(out, &pb.MultisigHistoryTx{
 			Txid:           wtx.Txid,
-			AmountSats:     btcToSatsInt(absFloat(wtx.Amount)),
-			IsDeposit:      wtx.Amount > 0,
+			AmountSats:     btcToSatsInt(absFloat(net)),
+			IsDeposit:      net > 0,
 			Destination:    destination,
 			Confirmations:  uint32(maxInt32(wtx.Confirmations, 0)),
 			SignatureCount: uint32(wallet.CountMultisigSignatures(raw.Vin)),
