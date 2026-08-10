@@ -29,6 +29,8 @@ var (
 // here: CI runners already put every process in one.
 func openDaemonJob(t *testing.T, appPIDs []int) (syscall.Handle, int) {
 	t.Helper()
+	var handles []syscall.Handle
+	var owners []int
 	for _, pid := range appPIDs {
 		name, err := syscall.UTF16PtrFromString(fmt.Sprintf("bitwindow-daemons-%d", pid))
 		if err != nil {
@@ -38,11 +40,21 @@ func openDaemonJob(t *testing.T, appPIDs []int) (syscall.Handle, int) {
 			uintptr(jobObjectQuery), 0, uintptr(unsafe.Pointer(name)),
 		)
 		if ret != 0 {
-			return syscall.Handle(ret), pid
+			handles = append(handles, syscall.Handle(ret))
+			owners = append(owners, pid)
 		}
 	}
-	t.Fatalf("no daemon job found for app pids %s; the runner never created one", prettyPIDs(appPIDs))
-	return 0, 0
+	// Reading the wrong app's job reports every daemon as an escapee.
+	if len(owners) > 1 {
+		for _, h := range handles {
+			_ = syscall.CloseHandle(h)
+		}
+		t.Fatalf("app pids %s each own a daemon job; a prior run leaked an app", prettyPIDs(owners))
+	}
+	if len(owners) == 0 {
+		t.Fatalf("no daemon job found for app pids %s; the runner never created one", prettyPIDs(appPIDs))
+	}
+	return handles[0], owners[0]
 }
 
 // isProcessInJob reports whether pid belongs to job.
