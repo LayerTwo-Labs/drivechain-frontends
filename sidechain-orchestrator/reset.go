@@ -260,6 +260,10 @@ func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string, specs ..
 		}
 	}
 
+	// Captured after our own stop so the restart only aborts on a drain that
+	// began after this reset was issued.
+	gen := o.shutdownGen.Load()
+
 	events := make(chan DeleteEvent, len(paths)+1)
 	go func() {
 		defer close(events)
@@ -295,7 +299,7 @@ func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string, specs ..
 		}
 
 		if useResetPlan {
-			go o.restartResetPlan(context.Background(), plan)
+			go o.restartResetPlan(context.Background(), plan, gen)
 		}
 	}()
 
@@ -474,11 +478,18 @@ func (o *Orchestrator) markResetBinaryStopped(name string) {
 	}
 }
 
-func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan) {
+// gen is the shutdown generation observed when the reset was issued. A drain
+// that began since then already snapshotted the running processes, so anything
+// started now would never be stopped — abort instead.
+func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan, gen uint64) {
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(len(plan.restart)+1)*resetRestartTimeout)
 	defer cancel()
 
 	for _, item := range plan.restart {
+		if o.shutdownGen.Load() != gen {
+			o.log.Info().Str("binary", item.binary.processName()).Msg("reset restart aborted: shutdown began after reset was issued")
+			return
+		}
 		if err := o.restartResetBinary(ctx, item.binary, item.forceBackend); err != nil {
 			o.log.Error().Err(err).Str("binary", item.binary.processName()).Msg("reset restart failed")
 			return

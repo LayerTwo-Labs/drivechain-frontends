@@ -325,6 +325,39 @@ func TestResetPlan_DoesNotRestartBinariesThatWereNotRunning(t *testing.T) {
 	assert.Empty(t, plan.restart)
 }
 
+// A drain that begins after a reset was issued must cancel the reset's
+// detached restart: the drain already took its snapshot of running processes,
+// so anything started now is never stopped.
+func TestResetRestart_AbortsWhenShutdownBeganAfterReset(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+	fakeRunningForReset(t, o, ResetBinaryThunder)
+
+	plan := o.buildResetPlan([]GatherSpec{
+		{Binary: ResetBinaryThunder, Categories: []ResetCategory{catData}},
+	})
+	require.Equal(t, []ResetBinary{ResetBinaryThunder}, resetRestartBinaries(plan))
+
+	gen := o.shutdownGen.Load()
+
+	// Drop the fake process first: ShutdownAll signals real PIDs.
+	o.process.Remove("thunder")
+	ch, err := o.ShutdownAll(context.Background(), false)
+	require.NoError(t, err)
+	for range ch {
+	}
+	require.NotEqual(t, gen, o.shutdownGen.Load(), "ShutdownAll must bump the shutdown generation")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	o.restartResetPlan(ctx, plan, gen)
+
+	o.monitorsMu.Lock()
+	_, started := o.monitors["thunder"]
+	o.monitorsMu.Unlock()
+	assert.False(t, started, "restart must not start thunder after a drain began")
+	assert.False(t, o.process.IsRunning("thunder"))
+}
+
 // ---------- DeleteFiles ----------------------------------------------------
 
 func TestDeleteFiles_DeletesSeededFiles(t *testing.T) {

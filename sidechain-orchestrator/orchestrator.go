@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -233,6 +234,10 @@ type Orchestrator struct {
 	shutdownMu    sync.Mutex
 	shutdownState int32         // shutdownState* constants
 	shutdownIdle  chan struct{} // closed when a drain completes; nil between drains
+
+	// Bumped by every drain. Detached work that outlives its caller (the reset
+	// restart) captures it up front and bails if it moved.
+	shutdownGen atomic.Uint64
 }
 
 // DownloadStateForTest exposes the DownloadManager's per-binary state to
@@ -1518,6 +1523,7 @@ func forwardDownload(downloadCh <-chan DownloadProgress, startupCh chan<- Startu
 
 // ShutdownAll stops all running binaries in reverse dependency order.
 func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan ShutdownProgress, error) {
+	o.shutdownGen.Add(1)
 	running := o.process.ListRunning()
 	ch := make(chan ShutdownProgress, len(running)+1)
 
