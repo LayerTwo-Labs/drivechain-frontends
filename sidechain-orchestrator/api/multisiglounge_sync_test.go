@@ -300,6 +300,12 @@ func TestRestoreHistoryE2E(t *testing.T) {
 		}
 	}
 	require.NotNil(t, spend, "the broadcast spend must appear in restored history")
+	// Change lands on the group's own receive address, so Core emits a receive row
+	// for this txid too. The restored row must still read as an outgoing 0.5 BTC
+	// payment to dest, not as an inbound deposit of the change.
+	require.False(t, spend.IsDeposit, "an outgoing spend must not restore as a deposit")
+	require.Equal(t, int64(50_000_000), spend.AmountSats, "net amount sent, not the change output")
+	require.Equal(t, dest, spend.Destination, "the payee, not the group's own change address")
 	require.Equal(t, "confirmed", spend.Status)
 	require.GreaterOrEqual(t, spend.Confirmations, uint32(6))
 	require.NotEmpty(t, spend.FinalHex, "reconstructed tx must carry the raw hex")
@@ -307,6 +313,64 @@ func TestRestoreHistoryE2E(t *testing.T) {
 	// 2-of-3 P2WSH spend: the witness carries two ~72-byte signatures. This is the
 	// load-bearing parity check on CountMultisigSignatures.
 	require.Equal(t, uint32(2), spend.SignatureCount, "two signatures counted from the witness")
+}
+
+// TestRestoreHistoryNetsRowsPerTxid pins the row aggregation without a node:
+// listtransactions returns one row per wallet-relevant output, receive rows
+// first, so direction, amount and payee must come from all rows of a txid.
+func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
+	// 1 BTC in, 0.5 to an external payee, change back to a group address (which
+	// Core reports as a send row plus a receive row, not as change).
+	const spendRows = `[
+		{"txid":"aa","address":"grp","category":"receive","amount":0.4999,"confirmations":7,"time":100},
+		{"txid":"aa","address":"grp","category":"send","amount":-0.4999,"confirmations":7,"time":100},
+		{"txid":"aa","address":"payee","category":"send","amount":-0.5,"confirmations":7,"time":100}
+	]`
+	const depositRows = `[{"txid":"aa","address":"grp","category":"receive","amount":1.0,"confirmations":7,"time":100}]`
+	// The group's own address is vout[0], as when Core randomises change first.
+	const raw = `{"txid":"aa","hex":"0100","vin":[{"txid":"bb","vout":0}],
+		"vout":[{"scriptPubKey":{"address":"grp"}},{"scriptPubKey":{"address":"payee"}}]}`
+
+	tests := []struct {
+		name        string
+		rows        string
+		isDeposit   bool
+		amountSats  int64
+		destination string
+	}{
+		{"spend with change to a group address", spendRows, false, 50_000_000, "payee"},
+		{"deposit", depositRows, true, 100_000_000, "grp"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewMultisigLoungeHandler()
+			h.SetCoreCaller(func(_ context.Context, method, _, _ string) (json.RawMessage, error) {
+				switch method {
+				case "listwallets":
+					return json.RawMessage(`["ms_test"]`), nil
+				case "listtransactions":
+					return json.RawMessage(tt.rows), nil
+				case "gettransaction":
+					// The complete detail set, which a listtransactions page
+					// may split across its count boundary.
+					return json.RawMessage(`{"details":` + tt.rows + `}`), nil
+				case "getrawtransaction":
+					return json.RawMessage(raw), nil
+				}
+				return nil, fmt.Errorf("unexpected method %s", method)
+			})
+
+			resp, err := h.RestoreHistory(context.Background(), connect.NewRequest(&pb.RestoreHistoryRequest{
+				Group: &pb.GroupData{Id: "restore", WatchWalletName: "ms_test"},
+			}))
+			require.NoError(t, err)
+			require.Len(t, resp.Msg.Transactions, 1)
+			tx := resp.Msg.Transactions[0]
+			require.Equal(t, tt.isDeposit, tx.IsDeposit)
+			require.Equal(t, tt.amountSats, tx.AmountSats)
+			require.Equal(t, tt.destination, tx.Destination)
+		})
+	}
 }
 
 // oldBuggyFundGroupDescriptor reproduces the pre-Phase-6 fund_group_modal inline
