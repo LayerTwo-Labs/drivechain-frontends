@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/connect.dart' as connect;
@@ -96,8 +97,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   Future<List<String>> binaryArgs() async {
     final bitwBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
     // bitwindowd queries orchestratord at startup for network + bitcoind
-    // creds — no flags needed here. Forward any extras callers added.
-    return [...bitwBinary.extraBootArgs];
+    // creds. It only needs our pid, to know when we are gone.
+    return ['--owner-pid=$pid', ...bitwBinary.extraBootArgs];
   }
 
   @override

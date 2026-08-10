@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/config/binaries.dart';
-import 'package:sidechain_core/providers/binaries/managers/daemon_job.dart';
 import 'package:sidechain_core/providers/binaries/managers/pid_file_manager.dart';
 import 'package:sidechain_core/providers/log_provider.dart';
 
@@ -78,13 +77,6 @@ class ProcessManager extends ChangeNotifier {
       mode: ProcessStartMode.normal,
       environment: environment,
     );
-    // Before anything else it might spawn: job membership is inherited, so
-    // binding the child covers its whole tree.
-    final bound = await DaemonJob.bind(process.pid);
-    if (!bound && Platform.isWindows) {
-      // Anything it already spawned stayed outside the job and will outlive us.
-      log.e('[${binary.name}] not bound to the daemon job (pid ${process.pid})');
-    }
 
     runningProcesses[binary.name] = SailProcess(
       binary: binary,
@@ -288,13 +280,6 @@ class ProcessManager extends ChangeNotifier {
 
   bool isRunning(Binary binary) {
     return runningProcesses.containsKey(binary.name);
-  }
-
-  Future<void> stopAll() async {
-    log.d('dispose process provider: killing all processes $runningProcesses');
-    await Future.wait(
-      runningProcesses.values.map((process) => _shutdownSingle(process)),
-    );
   }
 
   Future<void> _shutdownSingle(SailProcess process) async {

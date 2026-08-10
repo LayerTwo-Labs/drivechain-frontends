@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -86,13 +87,9 @@ Future<void> bootBackendManagedSidechain({
       final orchestratord = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD);
       orchestratord.addBootArg('--binary=$targetBinaryName');
       orchestratord.addBootArg('--force-backend');
+      // Detached from us, so it needs our pid to know when we are gone.
+      orchestratord.addBootArg('--owner-pid=$pid');
       log.i('bootBackendManagedSidechain: starting orchestratord with --binary=$targetBinaryName --force-backend');
-      // We're spawning the backend stack ourselves — claim ownership so
-      // onShutdown() will tear it down on exit. The hot-start branch above
-      // doesn't call this: attaching to an already-running orchestratord
-      // (typically bitwindow's) must NOT kill that stack when this app
-      // closes.
-      binaryProvider.markBackendOriginator();
       await binaryProvider.start(orchestratord);
 
       log.i('bootBackendManagedSidechain: waiting for orchestratord readiness');
