@@ -398,8 +398,8 @@ func (c *CoreRPCClient) SendRawTransaction(ctx context.Context, hexString string
 	return txid, nil
 }
 
-func (c *CoreRPCClient) GetRawChangeAddress(ctx context.Context, walletName string) (string, error) {
-	result, err := c.call(ctx, walletName, "getrawchangeaddress", "bech32")
+func (c *CoreRPCClient) GetRawChangeAddress(ctx context.Context, walletName, addressType string) (string, error) {
+	result, err := c.call(ctx, walletName, "getrawchangeaddress", addressType)
 	if err != nil {
 		return "", err
 	}
