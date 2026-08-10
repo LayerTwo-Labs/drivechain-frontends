@@ -71,7 +71,7 @@ func (m *BitcoinConfManager) LoadConfig(isFirst bool) error {
 		return err
 	}
 
-	m.parseAndApplyConfig(content)
+	m.parseAndApplyConfig(content, NetworkSignet)
 
 	if m.tryLoadPrivateConfig() {
 		return nil // Private config loaded, we're done, just use that
@@ -120,6 +120,12 @@ func DrynetPeerFor(generation string) string {
 // GetConfFilePath returns the resolved -conf= path to pass to bitcoind.
 // Mirrors the confFile() logic from binaries.dart.
 func (m *BitcoinConfManager) GetConfFilePath() string {
+	// A loaded private conf wins: re-resolving here would run against a network
+	// that conf itself may have changed, and hand bitcoind a different file
+	// than the one our state came from.
+	if m.HasPrivateConf && m.ConfigPath != "" {
+		return m.ConfigPath
+	}
 	confInfo := m.getConfigFileInfo()
 	return confInfo.path
 }
@@ -485,7 +491,7 @@ func (m *BitcoinConfManager) wipeStaleChainData(config *BitcoinConfig, networks 
 	}
 	// m.Network is still the CLI/build seed here, so the live network comes from
 	// the config being migrated.
-	activeGroup := DatadirGroupForNetwork(NetworkFromConfig(config))
+	activeGroup := DatadirGroupForNetwork(NetworkFromConfig(config, NetworkSignet))
 
 	for _, n := range networks {
 		group := DatadirGroupForNetwork(n)
@@ -545,7 +551,7 @@ func ResolveNetwork(bitwindowDir string) (Network, error) {
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", bitwindowBitcoinConfFilename, err)
 	}
-	m.parseAndApplyConfig(string(content))
+	m.parseAndApplyConfig(string(content), NetworkSignet)
 
 	// A user's own bitcoin.conf overrides ours, same as on the load path.
 	m.tryLoadPrivateConfig()
