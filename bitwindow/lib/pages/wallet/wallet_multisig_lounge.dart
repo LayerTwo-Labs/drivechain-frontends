@@ -1016,7 +1016,10 @@ class MultisigLoungeViewModel extends BaseViewModel {
 
   Future<void> fundGroup(BuildContext context, MultisigGroup group) async {
     try {
-      await _getNewAddress(group);
+      // Make sure the watch wallet is loaded. The modal asks it for the
+      // address, so taking one here would consume a second one and leave a
+      // gap in the group's recorded addresses.
+      await _ensureWatchWalletLoaded(group);
 
       if (context.mounted) {
         await showThemedDialog<bool>(
@@ -1056,7 +1059,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
     }
   }
 
-  Future<String> _getNewAddress(MultisigGroup group) async {
+  Future<void> _ensureWatchWalletLoaded(MultisigGroup group) async {
     final walletName = group.watchWalletName ?? 'multisig_${group.id}';
 
     try {
@@ -1064,8 +1067,6 @@ class MultisigLoungeViewModel extends BaseViewModel {
     } catch (e) {
       await BalanceManager.updateGroupBalance(group);
     }
-
-    return await _walletManager.getNewAddress(walletName);
   }
 
   Future<void> createTransaction(

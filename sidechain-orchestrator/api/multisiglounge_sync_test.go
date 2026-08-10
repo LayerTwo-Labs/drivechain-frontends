@@ -356,6 +356,12 @@ func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
 					return json.RawMessage(`{"details":` + tt.rows + `}`), nil
 				case "getrawtransaction":
 					return json.RawMessage(raw), nil
+				case "listdescriptors":
+					// The watch wallet already covers the indices it hands out.
+					return json.RawMessage(`{"descriptors":[
+						{"desc":"wsh(x)","active":true,"internal":false,"range":[0,999],"next":0},
+						{"desc":"wsh(y)","active":true,"internal":true,"range":[0,999],"next":0}
+					]}`), nil
 				}
 				return nil, fmt.Errorf("unexpected method %s", method)
 			})
