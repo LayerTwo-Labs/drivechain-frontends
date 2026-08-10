@@ -49,6 +49,16 @@ func killProcessGroup(cmd *exec.Cmd) error {
 	return runTaskkill(cmd.Process.Pid, true)
 }
 
+// forceKillPID kills one process and nothing it spawned — no /T, so the
+// daemons have to reap themselves.
+func forceKillPID(pid int) error {
+	out, err := exec.Command("taskkill", "/F", "/PID", strconv.Itoa(pid)).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("taskkill /F /PID %d: %w (output: %s)", pid, err, string(out))
+	}
+	return nil
+}
+
 func runTaskkill(pid int, force bool) error {
 	args := []string{"/PID", strconv.Itoa(pid), "/T"}
 	if force {

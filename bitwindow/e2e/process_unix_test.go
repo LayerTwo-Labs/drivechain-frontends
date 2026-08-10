@@ -37,6 +37,15 @@ func killProcessGroup(cmd *exec.Cmd) error {
 	return signalGroup(cmd, syscall.SIGKILL)
 }
 
+// forceKillPID kills one process and nothing it spawned, so the daemons have
+// to reap themselves.
+func forceKillPID(pid int) error {
+	if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+		return fmt.Errorf("kill -9 %d: %w", pid, err)
+	}
+	return nil
+}
+
 func signalGroup(cmd *exec.Cmd, sig syscall.Signal) error {
 	if cmd == nil || cmd.Process == nil {
 		return errors.New("no process")

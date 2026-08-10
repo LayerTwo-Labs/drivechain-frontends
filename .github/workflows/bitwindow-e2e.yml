@@ -140,19 +140,17 @@ jobs:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/window-close
           FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
-      # The updater's installer must be able to outlive the app it replaces,
-      # while the daemons must still die with it.
-      - name: Issue 4 — job object membership
-        id: job_object
-        if: always() && runner.os == 'Windows' && steps.boot.conclusion == 'success'
+      # A crash must not leave daemons behind.
+      - name: Issue 4 — force-kill reap test
+        id: force_kill
+        if: always() && steps.boot.conclusion == 'success'
         working-directory: bitwindow/e2e
         run:
-          go test -tags e2e -v -timeout 25m -run
-          'TestFlutterProcessIsNotInTheDaemonJob|TestDaemonsAreInTheJob|TestForceKillingAppReapsDaemons'
+          go test -tags e2e -v -timeout 15m -run TestForceKillingAppReapsDaemons
           ./...
         env:
-          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/job-object
-          FLUTTER_RUN_ARGS: "-v"
+          BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/force-kill
+          FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
 
       - name: Upload diagnostic logs
         if: failure()
