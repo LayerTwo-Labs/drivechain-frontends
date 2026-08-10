@@ -698,13 +698,17 @@ func (c *ElectrumClient) blockTime(ctx context.Context, height int) int64 {
 	return ts
 }
 
+// rememberHeight caches a tx's confirmation height. A height <= 0 revokes any
+// cached height, so a tx reorged back into the mempool stops reporting as
+// confirmed.
 func (c *ElectrumClient) rememberHeight(txid string, height int) {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
 	if height <= 0 {
+		delete(c.heightByTx, txid)
 		return
 	}
-	c.cacheMu.Lock()
 	c.heightByTx[txid] = height
-	c.cacheMu.Unlock()
 }
 
 func (c *ElectrumClient) knownHeight(txid string) int {
