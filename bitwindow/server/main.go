@@ -30,6 +30,7 @@ import (
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -93,6 +94,12 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// and point the orchestrator (Bitcoind proxy) client at it for local auth.
 	bitwindowDir := conf.BitwindowDir()
 	dial.SetCookieDir(bitwindowDir)
+
+	clients := lease.New(conf.OwnerPID, lease.DefaultGrace, func() {
+		bootLogger.Info().Msg("no clients left and the owner is gone, shutting down")
+		cancelCtx()
+	})
+	go clients.Run(ctx)
 
 	if _, err := startOrchestratord(bootCtx, conf); err != nil {
 		return fmt.Errorf("start orchestratord: %w", err)
@@ -249,6 +256,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	if err != nil {
 		return err
 	}
+	srv.SetLease(clients)
 
 	log.Info().Msgf("server: listening on %s", conf.APIHost)
 
@@ -389,6 +397,11 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	args := []string{
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
+	}
+	// The frontend owns the whole tree, not us: a bitwindowd restart must not
+	// drain the stack the frontend is still using.
+	if conf.OwnerPID > 0 {
+		args = append(args, "--owner-pid", strconv.Itoa(conf.OwnerPID))
 	}
 
 	// Detached: orchestratord owns its own lifecycle and outlives bitwindowd.
@@ -564,7 +577,9 @@ func relayShutdownToOrchestratord(addr, bitwindowDir string, log zerolog.Logger)
 	client := orchrpc.NewOrchestratorServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	if _, err := client.Shutdown(ctx, connect.NewRequest(&orchpb.ShutdownRequest{})); err != nil {
+	// only_if_last: we cannot see a sidechain frontend attached straight to
+	// orchestratord, so let its own lease decide.
+	if _, err := client.Shutdown(ctx, connect.NewRequest(&orchpb.ShutdownRequest{OnlyIfLast: true})); err != nil {
 		log.Warn().Err(err).Msg("relay Shutdown to orchestratord on exit (continuing)")
 		return
 	}

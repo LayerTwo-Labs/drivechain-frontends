@@ -19,6 +19,7 @@ import (
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
@@ -73,6 +74,7 @@ type Services struct {
 type Server struct {
 	// long-lived (stable across network swaps)
 	server  *http.Server
+	clients *lease.Lease
 	topSwap *swappableHandler
 
 	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
@@ -99,6 +101,18 @@ type Server struct {
 
 	// Root context (server lifetime). Forks runtime engine ctxs.
 	rootCtx context.Context
+}
+
+// SetLease hands over the client lease so the server can report live
+// connections. Call before Serve.
+func (s *Server) SetLease(l *lease.Lease) {
+	s.clients = l
+}
+
+func (s *Server) leaseConnState(c net.Conn, state http.ConnState) {
+	if s.clients != nil {
+		s.clients.ConnState(c, state)
+	}
 }
 
 // New creates a Server with long-lived connectors started, builds the
@@ -252,7 +266,14 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	protocols := new(http.Protocols)
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
-	s.server = &http.Server{Handler: s.Handler(), Protocols: protocols}
+	s.server = &http.Server{
+		ConnState: s.leaseConnState,
+		Handler:   s.Handler(),
+		Protocols: protocols,
+		HTTP2:     &http.HTTP2Config{SendPingTimeout: 30 * time.Second},
+		// A socket that never sends a request would hold the lease forever.
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 	return s.server.Serve(lis)
 }
 
