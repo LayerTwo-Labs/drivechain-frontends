@@ -188,6 +188,21 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		log.Info().Msg("restore: imported transactions")
 	}
 
+	// Import DB-backed data before writing any file, so a backup that fails to
+	// import leaves the current wallet in place.
+	if multisigJSON != nil {
+		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
+			return fmt.Errorf("import multisig data: %w", err)
+		}
+		log.Info().Msg("restore: imported multisig data")
+	}
+	if txJSON != nil {
+		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
+			return fmt.Errorf("import transactions: %w", err)
+		}
+		log.Info().Msg("restore: imported transactions")
+	}
+
 	// Restore wallet.json
 	walletPath := filepath.Join(e.walletDir, "wallet.json")
 	if err := os.WriteFile(walletPath, walletJSON, 0600); err != nil {

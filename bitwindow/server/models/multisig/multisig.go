@@ -1076,11 +1076,9 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 					SignedAt:      signedAt,
 				})
 			}
-			if len(psbts) > 0 {
-				if err := s.ReplaceTxKeyPSBTs(ctx, t.ID, psbts); err != nil {
-					return fmt.Errorf("replace key psbts for tx %s: %w", t.ID, err)
-				}
-			}
+		}
+		if err := replaceTxKeyPSBTsOn(ctx, s.db, t.ID, psbts); err != nil {
+			return fmt.Errorf("replace key psbts for tx %s: %w", t.ID, err)
 		}
 
 		// Import inputs
@@ -1100,11 +1098,9 @@ func (s *Store) ImportTransactionsFromJSON(ctx context.Context, data []byte) err
 					Confirmations: getInt(inpMap, "confirmations"),
 				})
 			}
-			if len(txInputs) > 0 {
-				if err := s.ReplaceTxInputs(ctx, t.ID, txInputs); err != nil {
-					return fmt.Errorf("replace inputs for tx %s: %w", t.ID, err)
-				}
-			}
+		}
+		if err := replaceTxInputsOn(ctx, s.db, t.ID, txInputs); err != nil {
+			return fmt.Errorf("replace inputs for tx %s: %w", t.ID, err)
 		}
 	}
 
@@ -1120,19 +1116,33 @@ func nullStr(s string) interface{} {
 	return s
 }
 
+// Read the account component of "m/purpose'/coin'/account'/...". Short
+// non-standard paths fall back to the last component.
 func extractAccountIndex(path string) int {
 	parts := splitPath(path)
+	if len(parts) >= 4 {
+		return parseIndex(parts[3])
+	}
 	if len(parts) >= 3 {
-		idx := trimQuote(parts[2])
-		n := 0
-		for _, c := range idx {
-			if c >= '0' && c <= '9' {
-				n = n*10 + int(c-'0')
-			}
-		}
-		return n
+		return parseIndex(parts[2])
 	}
 	return 0
+}
+
+// Parse a path component ("8000'" -> 8000), 0 if it isn't a plain number.
+func parseIndex(part string) int {
+	idx := trimQuote(part)
+	if idx == "" {
+		return 0
+	}
+	n := 0
+	for _, c := range idx {
+		if c < '0' || c > '9' {
+			return 0
+		}
+		n = n*10 + int(c-'0')
+	}
+	return n
 }
 
 func splitPath(path string) []string {
