@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -730,9 +729,4 @@ func ParseOPReturnParts(opReturnMessage string) (metadataB64, contentStr string,
 		return "", "", fmt.Errorf("invalid format: expected metadata|content")
 	}
 	return parts[0], parts[1], nil
-}
-
-// BytesEqual performs constant-time byte comparison
-func BytesEqual(a, b []byte) bool {
-	return bytes.Equal(a, b)
 }
