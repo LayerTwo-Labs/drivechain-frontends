@@ -101,7 +101,6 @@ void main() {
       binaries: [BitWindow(), Orchestratord()],
       shutdownEnabled: false,
     );
-    provider.markBackendOriginator();
 
     var completed = false;
     final result = await provider.onShutdown(
@@ -114,7 +113,6 @@ void main() {
 
     expect(result, isTrue);
     expect(completed, isFalse);
-    expect(provider.isBackendOriginator, isTrue);
   });
 
   test(

@@ -297,8 +297,10 @@ class OrchestratorRPC {
   /// Survives the caller's exit. Idempotent. If bitwindow is relaunched
   /// mid-drain, the next [startWithL1] transparently adopts it server-side
   /// — no separate cancel/await calls needed here.
-  Future<ShutdownResponse> shutdown() {
-    return _unaryClient.shutdown(ShutdownRequest());
+  /// Pass [onlyIfLast] when quitting: the backend then drains only once no
+  /// client is left and the owner process is gone.
+  Future<ShutdownResponse> shutdown({bool onlyIfLast = false}) {
+    return _unaryClient.shutdown(ShutdownRequest(onlyIfLast: onlyIfLast));
   }
 
   /// Delete the files for [items] (the same selection passed to

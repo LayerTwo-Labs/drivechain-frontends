@@ -738,18 +738,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
   //
   // Multi-instance: _adoptOrphanedProcesses (in the BinaryProvider
   // constructor) reads bitwindowd's PID file and registers the still-alive
-  // process if found. A second bitwindow launched while the first is still
-  // open hot-attaches that way — isConnected(bitwindow) is already true,
-  // start() becomes a no-op (see _startDaemonBinary's isRunning early
-  // return), and we skip markBackendOriginator so this window's close
-  // doesn't tear the shared backend out from under the first one. Same
-  // pattern as sidechain hot-start in backend_sidechain_runtime.dart.
+  // process if found, so start() becomes a no-op.
   log.i('STARTUP: starting bitwindowd');
-  if (binaryProvider.isConnected(bitwindow)) {
-    log.i('STARTUP: bitwindowd was adopted from a sibling bitwindow; not claiming originator');
-  } else {
-    binaryProvider.markBackendOriginator();
-  }
   await binaryProvider.start(bitwindow);
 
   // 1b. Local auth is on by default; the kill switch is ORCHESTRATOR_LOCAL_AUTH
