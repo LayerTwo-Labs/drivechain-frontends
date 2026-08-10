@@ -111,7 +111,6 @@ func (s *Server) Handler(ctx context.Context) http.Handler {
 				"Access-Control-Allow-Origin",
 				"Access-Control-Request-Headers",
 			},
-			AllowCredentials: true, // Allow credentials
 		})
 
 		withCORS := corsHandler.Handler(s.mux)
