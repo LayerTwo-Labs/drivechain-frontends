@@ -1,0 +1,419 @@
+//
+//  Generated code. Do not modify.
+//  source: inquisition/v1/inquisition.proto
+//
+// @dart = 2.12
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+
+import 'dart:convert' as $convert;
+import 'dart:core' as $core;
+import 'dart:typed_data' as $typed_data;
+
+@$core.Deprecated('Use getBalanceRequestDescriptor instead')
+const GetBalanceRequest$json = {
+  '1': 'GetBalanceRequest',
+};
+
+/// Descriptor for `GetBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBalanceRequestDescriptor = $convert.base64Decode(
+    'ChFHZXRCYWxhbmNlUmVxdWVzdA==');
+
+@$core.Deprecated('Use getBalanceResponseDescriptor instead')
+const GetBalanceResponse$json = {
+  '1': 'GetBalanceResponse',
+  '2': [
+    {'1': 'total_sats', '3': 1, '4': 1, '5': 3, '10': 'totalSats'},
+    {'1': 'available_sats', '3': 2, '4': 1, '5': 3, '10': 'availableSats'},
+  ],
+};
+
+/// Descriptor for `GetBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
+    'ChJHZXRCYWxhbmNlUmVzcG9uc2USHQoKdG90YWxfc2F0cxgBIAEoA1IJdG90YWxTYXRzEiUKDm'
+    'F2YWlsYWJsZV9zYXRzGAIgASgDUg1hdmFpbGFibGVTYXRz');
+
+@$core.Deprecated('Use getBlockCountRequestDescriptor instead')
+const GetBlockCountRequest$json = {
+  '1': 'GetBlockCountRequest',
+};
+
+/// Descriptor for `GetBlockCountRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBlockCountRequestDescriptor = $convert.base64Decode(
+    'ChRHZXRCbG9ja0NvdW50UmVxdWVzdA==');
+
+@$core.Deprecated('Use getBlockCountResponseDescriptor instead')
+const GetBlockCountResponse$json = {
+  '1': 'GetBlockCountResponse',
+  '2': [
+    {'1': 'count', '3': 1, '4': 1, '5': 3, '10': 'count'},
+  ],
+};
+
+/// Descriptor for `GetBlockCountResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBlockCountResponseDescriptor = $convert.base64Decode(
+    'ChVHZXRCbG9ja0NvdW50UmVzcG9uc2USFAoFY291bnQYASABKANSBWNvdW50');
+
+@$core.Deprecated('Use getBlockchainInfoRequestDescriptor instead')
+const GetBlockchainInfoRequest$json = {
+  '1': 'GetBlockchainInfoRequest',
+};
+
+/// Descriptor for `GetBlockchainInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBlockchainInfoRequestDescriptor = $convert.base64Decode(
+    'ChhHZXRCbG9ja2NoYWluSW5mb1JlcXVlc3Q=');
+
+@$core.Deprecated('Use getBlockchainInfoResponseDescriptor instead')
+const GetBlockchainInfoResponse$json = {
+  '1': 'GetBlockchainInfoResponse',
+  '2': [
+    {'1': 'chain', '3': 1, '4': 1, '5': 9, '10': 'chain'},
+    {'1': 'blocks', '3': 2, '4': 1, '5': 3, '10': 'blocks'},
+    {'1': 'headers', '3': 3, '4': 1, '5': 3, '10': 'headers'},
+    {'1': 'best_block_hash', '3': 4, '4': 1, '5': 9, '10': 'bestBlockHash'},
+    {'1': 'difficulty', '3': 5, '4': 1, '5': 1, '10': 'difficulty'},
+    {'1': 'time', '3': 6, '4': 1, '5': 3, '10': 'time'},
+    {'1': 'median_time', '3': 7, '4': 1, '5': 3, '10': 'medianTime'},
+    {'1': 'verification_progress', '3': 8, '4': 1, '5': 1, '10': 'verificationProgress'},
+    {'1': 'initial_block_download', '3': 9, '4': 1, '5': 8, '10': 'initialBlockDownload'},
+    {'1': 'chain_work', '3': 10, '4': 1, '5': 9, '10': 'chainWork'},
+    {'1': 'size_on_disk', '3': 11, '4': 1, '5': 3, '10': 'sizeOnDisk'},
+    {'1': 'pruned', '3': 12, '4': 1, '5': 8, '10': 'pruned'},
+    {'1': 'warnings', '3': 13, '4': 3, '5': 9, '10': 'warnings'},
+  ],
+};
+
+/// Descriptor for `GetBlockchainInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBlockchainInfoResponseDescriptor = $convert.base64Decode(
+    'ChlHZXRCbG9ja2NoYWluSW5mb1Jlc3BvbnNlEhQKBWNoYWluGAEgASgJUgVjaGFpbhIWCgZibG'
+    '9ja3MYAiABKANSBmJsb2NrcxIYCgdoZWFkZXJzGAMgASgDUgdoZWFkZXJzEiYKD2Jlc3RfYmxv'
+    'Y2tfaGFzaBgEIAEoCVINYmVzdEJsb2NrSGFzaBIeCgpkaWZmaWN1bHR5GAUgASgBUgpkaWZmaW'
+    'N1bHR5EhIKBHRpbWUYBiABKANSBHRpbWUSHwoLbWVkaWFuX3RpbWUYByABKANSCm1lZGlhblRp'
+    'bWUSMwoVdmVyaWZpY2F0aW9uX3Byb2dyZXNzGAggASgBUhR2ZXJpZmljYXRpb25Qcm9ncmVzcx'
+    'I0ChZpbml0aWFsX2Jsb2NrX2Rvd25sb2FkGAkgASgIUhRpbml0aWFsQmxvY2tEb3dubG9hZBId'
+    'CgpjaGFpbl93b3JrGAogASgJUgljaGFpbldvcmsSIAoMc2l6ZV9vbl9kaXNrGAsgASgDUgpzaX'
+    'plT25EaXNrEhYKBnBydW5lZBgMIAEoCFIGcHJ1bmVkEhoKCHdhcm5pbmdzGA0gAygJUgh3YXJu'
+    'aW5ncw==');
+
+@$core.Deprecated('Use getSidechainInfoRequestDescriptor instead')
+const GetSidechainInfoRequest$json = {
+  '1': 'GetSidechainInfoRequest',
+};
+
+/// Descriptor for `GetSidechainInfoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSidechainInfoRequestDescriptor = $convert.base64Decode(
+    'ChdHZXRTaWRlY2hhaW5JbmZvUmVxdWVzdA==');
+
+@$core.Deprecated('Use getSidechainInfoResponseDescriptor instead')
+const GetSidechainInfoResponse$json = {
+  '1': 'GetSidechainInfoResponse',
+  '2': [
+    {'1': 'synced', '3': 1, '4': 1, '5': 8, '10': 'synced'},
+    {'1': 'mainchain_tip', '3': 2, '4': 1, '5': 9, '10': 'mainchainTip'},
+    {'1': 'last_error', '3': 3, '4': 1, '5': 9, '10': 'lastError'},
+  ],
+};
+
+/// Descriptor for `GetSidechainInfoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSidechainInfoResponseDescriptor = $convert.base64Decode(
+    'ChhHZXRTaWRlY2hhaW5JbmZvUmVzcG9uc2USFgoGc3luY2VkGAEgASgIUgZzeW5jZWQSIwoNbW'
+    'FpbmNoYWluX3RpcBgCIAEoCVIMbWFpbmNoYWluVGlwEh0KCmxhc3RfZXJyb3IYAyABKAlSCWxh'
+    'c3RFcnJvcg==');
+
+@$core.Deprecated('Use getMainchainTipRequestDescriptor instead')
+const GetMainchainTipRequest$json = {
+  '1': 'GetMainchainTipRequest',
+};
+
+/// Descriptor for `GetMainchainTipRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMainchainTipRequestDescriptor = $convert.base64Decode(
+    'ChZHZXRNYWluY2hhaW5UaXBSZXF1ZXN0');
+
+@$core.Deprecated('Use getMainchainTipResponseDescriptor instead')
+const GetMainchainTipResponse$json = {
+  '1': 'GetMainchainTipResponse',
+  '2': [
+    {'1': 'block_hash', '3': 1, '4': 1, '5': 9, '10': 'blockHash'},
+  ],
+};
+
+/// Descriptor for `GetMainchainTipResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMainchainTipResponseDescriptor = $convert.base64Decode(
+    'ChdHZXRNYWluY2hhaW5UaXBSZXNwb25zZRIdCgpibG9ja19oYXNoGAEgASgJUglibG9ja0hhc2'
+    'g=');
+
+@$core.Deprecated('Use getBmmCommitmentRequestDescriptor instead')
+const GetBmmCommitmentRequest$json = {
+  '1': 'GetBmmCommitmentRequest',
+  '2': [
+    {'1': 'mainchain_block_hash', '3': 1, '4': 1, '5': 9, '10': 'mainchainBlockHash'},
+  ],
+};
+
+/// Descriptor for `GetBmmCommitmentRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBmmCommitmentRequestDescriptor = $convert.base64Decode(
+    'ChdHZXRCbW1Db21taXRtZW50UmVxdWVzdBIwChRtYWluY2hhaW5fYmxvY2tfaGFzaBgBIAEoCV'
+    'ISbWFpbmNoYWluQmxvY2tIYXNo');
+
+@$core.Deprecated('Use getBmmCommitmentResponseDescriptor instead')
+const GetBmmCommitmentResponse$json = {
+  '1': 'GetBmmCommitmentResponse',
+  '2': [
+    {'1': 'commitment', '3': 1, '4': 1, '5': 9, '10': 'commitment'},
+  ],
+};
+
+/// Descriptor for `GetBmmCommitmentResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBmmCommitmentResponseDescriptor = $convert.base64Decode(
+    'ChhHZXRCbW1Db21taXRtZW50UmVzcG9uc2USHgoKY29tbWl0bWVudBgBIAEoCVIKY29tbWl0bW'
+    'VudA==');
+
+@$core.Deprecated('Use getNewAddressRequestDescriptor instead')
+const GetNewAddressRequest$json = {
+  '1': 'GetNewAddressRequest',
+};
+
+/// Descriptor for `GetNewAddressRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNewAddressRequestDescriptor = $convert.base64Decode(
+    'ChRHZXROZXdBZGRyZXNzUmVxdWVzdA==');
+
+@$core.Deprecated('Use getNewAddressResponseDescriptor instead')
+const GetNewAddressResponse$json = {
+  '1': 'GetNewAddressResponse',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+  ],
+};
+
+/// Descriptor for `GetNewAddressResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getNewAddressResponseDescriptor = $convert.base64Decode(
+    'ChVHZXROZXdBZGRyZXNzUmVzcG9uc2USGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcw==');
+
+@$core.Deprecated('Use sendRequestDescriptor instead')
+const SendRequest$json = {
+  '1': 'SendRequest',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'amount_sats', '3': 2, '4': 1, '5': 3, '10': 'amountSats'},
+    {'1': 'subtract_fee_from_amount', '3': 3, '4': 1, '5': 8, '10': 'subtractFeeFromAmount'},
+  ],
+};
+
+/// Descriptor for `SendRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sendRequestDescriptor = $convert.base64Decode(
+    'CgtTZW5kUmVxdWVzdBIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNzEh8KC2Ftb3VudF9zYXRzGA'
+    'IgASgDUgphbW91bnRTYXRzEjcKGHN1YnRyYWN0X2ZlZV9mcm9tX2Ftb3VudBgDIAEoCFIVc3Vi'
+    'dHJhY3RGZWVGcm9tQW1vdW50');
+
+@$core.Deprecated('Use sendResponseDescriptor instead')
+const SendResponse$json = {
+  '1': 'SendResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `SendResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sendResponseDescriptor = $convert.base64Decode(
+    'CgxTZW5kUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZA==');
+
+@$core.Deprecated('Use estimateFeeRequestDescriptor instead')
+const EstimateFeeRequest$json = {
+  '1': 'EstimateFeeRequest',
+};
+
+/// Descriptor for `EstimateFeeRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List estimateFeeRequestDescriptor = $convert.base64Decode(
+    'ChJFc3RpbWF0ZUZlZVJlcXVlc3Q=');
+
+@$core.Deprecated('Use estimateFeeResponseDescriptor instead')
+const EstimateFeeResponse$json = {
+  '1': 'EstimateFeeResponse',
+  '2': [
+    {'1': 'sats_per_kvb', '3': 1, '4': 1, '5': 3, '10': 'satsPerKvb'},
+  ],
+};
+
+/// Descriptor for `EstimateFeeResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List estimateFeeResponseDescriptor = $convert.base64Decode(
+    'ChNFc3RpbWF0ZUZlZVJlc3BvbnNlEiAKDHNhdHNfcGVyX2t2YhgBIAEoA1IKc2F0c1Blckt2Yg'
+    '==');
+
+@$core.Deprecated('Use listUtxosRequestDescriptor instead')
+const ListUtxosRequest$json = {
+  '1': 'ListUtxosRequest',
+};
+
+/// Descriptor for `ListUtxosRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listUtxosRequestDescriptor = $convert.base64Decode(
+    'ChBMaXN0VXR4b3NSZXF1ZXN0');
+
+@$core.Deprecated('Use utxoDescriptor instead')
+const Utxo$json = {
+  '1': 'Utxo',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 3, '10': 'vout'},
+    {'1': 'address', '3': 3, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'value_sats', '3': 4, '4': 1, '5': 3, '10': 'valueSats'},
+    {'1': 'confirmations', '3': 5, '4': 1, '5': 3, '10': 'confirmations'},
+  ],
+};
+
+/// Descriptor for `Utxo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List utxoDescriptor = $convert.base64Decode(
+    'CgRVdHhvEhIKBHR4aWQYASABKAlSBHR4aWQSEgoEdm91dBgCIAEoA1IEdm91dBIYCgdhZGRyZX'
+    'NzGAMgASgJUgdhZGRyZXNzEh0KCnZhbHVlX3NhdHMYBCABKANSCXZhbHVlU2F0cxIkCg1jb25m'
+    'aXJtYXRpb25zGAUgASgDUg1jb25maXJtYXRpb25z');
+
+@$core.Deprecated('Use listUtxosResponseDescriptor instead')
+const ListUtxosResponse$json = {
+  '1': 'ListUtxosResponse',
+  '2': [
+    {'1': 'utxos', '3': 1, '4': 3, '5': 11, '6': '.inquisition.v1.Utxo', '10': 'utxos'},
+  ],
+};
+
+/// Descriptor for `ListUtxosResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listUtxosResponseDescriptor = $convert.base64Decode(
+    'ChFMaXN0VXR4b3NSZXNwb25zZRIqCgV1dHhvcxgBIAMoCzIULmlucXVpc2l0aW9uLnYxLlV0eG'
+    '9SBXV0eG9z');
+
+@$core.Deprecated('Use listTransactionsRequestDescriptor instead')
+const ListTransactionsRequest$json = {
+  '1': 'ListTransactionsRequest',
+  '2': [
+    {'1': 'count', '3': 1, '4': 1, '5': 3, '10': 'count'},
+  ],
+};
+
+/// Descriptor for `ListTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionsRequestDescriptor = $convert.base64Decode(
+    'ChdMaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBIUCgVjb3VudBgBIAEoA1IFY291bnQ=');
+
+@$core.Deprecated('Use transactionDescriptor instead')
+const Transaction$json = {
+  '1': 'Transaction',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'amount_sats', '3': 2, '4': 1, '5': 3, '10': 'amountSats'},
+    {'1': 'confirmations', '3': 3, '4': 1, '5': 3, '10': 'confirmations'},
+    {'1': 'time', '3': 4, '4': 1, '5': 3, '10': 'time'},
+    {'1': 'address', '3': 5, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'category', '3': 6, '4': 1, '5': 9, '10': 'category'},
+  ],
+};
+
+/// Descriptor for `Transaction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transactionDescriptor = $convert.base64Decode(
+    'CgtUcmFuc2FjdGlvbhISCgR0eGlkGAEgASgJUgR0eGlkEh8KC2Ftb3VudF9zYXRzGAIgASgDUg'
+    'phbW91bnRTYXRzEiQKDWNvbmZpcm1hdGlvbnMYAyABKANSDWNvbmZpcm1hdGlvbnMSEgoEdGlt'
+    'ZRgEIAEoA1IEdGltZRIYCgdhZGRyZXNzGAUgASgJUgdhZGRyZXNzEhoKCGNhdGVnb3J5GAYgAS'
+    'gJUghjYXRlZ29yeQ==');
+
+@$core.Deprecated('Use listTransactionsResponseDescriptor instead')
+const ListTransactionsResponse$json = {
+  '1': 'ListTransactionsResponse',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.inquisition.v1.Transaction', '10': 'transactions'},
+  ],
+};
+
+/// Descriptor for `ListTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64Decode(
+    'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USPwoMdHJhbnNhY3Rpb25zGAEgAygLMhsuaW5xdW'
+    'lzaXRpb24udjEuVHJhbnNhY3Rpb25SDHRyYW5zYWN0aW9ucw==');
+
+@$core.Deprecated('Use stopRequestDescriptor instead')
+const StopRequest$json = {
+  '1': 'StopRequest',
+};
+
+/// Descriptor for `StopRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List stopRequestDescriptor = $convert.base64Decode(
+    'CgtTdG9wUmVxdWVzdA==');
+
+@$core.Deprecated('Use stopResponseDescriptor instead')
+const StopResponse$json = {
+  '1': 'StopResponse',
+};
+
+/// Descriptor for `StopResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List stopResponseDescriptor = $convert.base64Decode(
+    'CgxTdG9wUmVzcG9uc2U=');
+
+const $core.Map<$core.String, $core.dynamic> InquisitionServiceBase$json = {
+  '1': 'InquisitionService',
+  '2': [
+    {'1': 'GetBalance', '2': '.inquisition.v1.GetBalanceRequest', '3': '.inquisition.v1.GetBalanceResponse'},
+    {'1': 'GetBlockCount', '2': '.inquisition.v1.GetBlockCountRequest', '3': '.inquisition.v1.GetBlockCountResponse'},
+    {'1': 'GetBlockchainInfo', '2': '.inquisition.v1.GetBlockchainInfoRequest', '3': '.inquisition.v1.GetBlockchainInfoResponse'},
+    {'1': 'GetSidechainInfo', '2': '.inquisition.v1.GetSidechainInfoRequest', '3': '.inquisition.v1.GetSidechainInfoResponse'},
+    {'1': 'GetMainchainTip', '2': '.inquisition.v1.GetMainchainTipRequest', '3': '.inquisition.v1.GetMainchainTipResponse'},
+    {'1': 'GetBmmCommitment', '2': '.inquisition.v1.GetBmmCommitmentRequest', '3': '.inquisition.v1.GetBmmCommitmentResponse'},
+    {'1': 'GetNewAddress', '2': '.inquisition.v1.GetNewAddressRequest', '3': '.inquisition.v1.GetNewAddressResponse'},
+    {'1': 'Send', '2': '.inquisition.v1.SendRequest', '3': '.inquisition.v1.SendResponse'},
+    {'1': 'EstimateFee', '2': '.inquisition.v1.EstimateFeeRequest', '3': '.inquisition.v1.EstimateFeeResponse'},
+    {'1': 'ListUtxos', '2': '.inquisition.v1.ListUtxosRequest', '3': '.inquisition.v1.ListUtxosResponse'},
+    {'1': 'ListTransactions', '2': '.inquisition.v1.ListTransactionsRequest', '3': '.inquisition.v1.ListTransactionsResponse'},
+    {'1': 'Stop', '2': '.inquisition.v1.StopRequest', '3': '.inquisition.v1.StopResponse'},
+  ],
+};
+
+@$core.Deprecated('Use inquisitionServiceDescriptor instead')
+const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> InquisitionServiceBase$messageJson = {
+  '.inquisition.v1.GetBalanceRequest': GetBalanceRequest$json,
+  '.inquisition.v1.GetBalanceResponse': GetBalanceResponse$json,
+  '.inquisition.v1.GetBlockCountRequest': GetBlockCountRequest$json,
+  '.inquisition.v1.GetBlockCountResponse': GetBlockCountResponse$json,
+  '.inquisition.v1.GetBlockchainInfoRequest': GetBlockchainInfoRequest$json,
+  '.inquisition.v1.GetBlockchainInfoResponse': GetBlockchainInfoResponse$json,
+  '.inquisition.v1.GetSidechainInfoRequest': GetSidechainInfoRequest$json,
+  '.inquisition.v1.GetSidechainInfoResponse': GetSidechainInfoResponse$json,
+  '.inquisition.v1.GetMainchainTipRequest': GetMainchainTipRequest$json,
+  '.inquisition.v1.GetMainchainTipResponse': GetMainchainTipResponse$json,
+  '.inquisition.v1.GetBmmCommitmentRequest': GetBmmCommitmentRequest$json,
+  '.inquisition.v1.GetBmmCommitmentResponse': GetBmmCommitmentResponse$json,
+  '.inquisition.v1.GetNewAddressRequest': GetNewAddressRequest$json,
+  '.inquisition.v1.GetNewAddressResponse': GetNewAddressResponse$json,
+  '.inquisition.v1.SendRequest': SendRequest$json,
+  '.inquisition.v1.SendResponse': SendResponse$json,
+  '.inquisition.v1.EstimateFeeRequest': EstimateFeeRequest$json,
+  '.inquisition.v1.EstimateFeeResponse': EstimateFeeResponse$json,
+  '.inquisition.v1.ListUtxosRequest': ListUtxosRequest$json,
+  '.inquisition.v1.ListUtxosResponse': ListUtxosResponse$json,
+  '.inquisition.v1.Utxo': Utxo$json,
+  '.inquisition.v1.ListTransactionsRequest': ListTransactionsRequest$json,
+  '.inquisition.v1.ListTransactionsResponse': ListTransactionsResponse$json,
+  '.inquisition.v1.Transaction': Transaction$json,
+  '.inquisition.v1.StopRequest': StopRequest$json,
+  '.inquisition.v1.StopResponse': StopResponse$json,
+};
+
+/// Descriptor for `InquisitionService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
+final $typed_data.Uint8List inquisitionServiceDescriptor = $convert.base64Decode(
+    'ChJJbnF1aXNpdGlvblNlcnZpY2USUwoKR2V0QmFsYW5jZRIhLmlucXVpc2l0aW9uLnYxLkdldE'
+    'JhbGFuY2VSZXF1ZXN0GiIuaW5xdWlzaXRpb24udjEuR2V0QmFsYW5jZVJlc3BvbnNlElwKDUdl'
+    'dEJsb2NrQ291bnQSJC5pbnF1aXNpdGlvbi52MS5HZXRCbG9ja0NvdW50UmVxdWVzdBolLmlucX'
+    'Vpc2l0aW9uLnYxLkdldEJsb2NrQ291bnRSZXNwb25zZRJoChFHZXRCbG9ja2NoYWluSW5mbxIo'
+    'LmlucXVpc2l0aW9uLnYxLkdldEJsb2NrY2hhaW5JbmZvUmVxdWVzdBopLmlucXVpc2l0aW9uLn'
+    'YxLkdldEJsb2NrY2hhaW5JbmZvUmVzcG9uc2USZQoQR2V0U2lkZWNoYWluSW5mbxInLmlucXVp'
+    'c2l0aW9uLnYxLkdldFNpZGVjaGFpbkluZm9SZXF1ZXN0GiguaW5xdWlzaXRpb24udjEuR2V0U2'
+    'lkZWNoYWluSW5mb1Jlc3BvbnNlEmIKD0dldE1haW5jaGFpblRpcBImLmlucXVpc2l0aW9uLnYx'
+    'LkdldE1haW5jaGFpblRpcFJlcXVlc3QaJy5pbnF1aXNpdGlvbi52MS5HZXRNYWluY2hhaW5UaX'
+    'BSZXNwb25zZRJlChBHZXRCbW1Db21taXRtZW50EicuaW5xdWlzaXRpb24udjEuR2V0Qm1tQ29t'
+    'bWl0bWVudFJlcXVlc3QaKC5pbnF1aXNpdGlvbi52MS5HZXRCbW1Db21taXRtZW50UmVzcG9uc2'
+    'USXAoNR2V0TmV3QWRkcmVzcxIkLmlucXVpc2l0aW9uLnYxLkdldE5ld0FkZHJlc3NSZXF1ZXN0'
+    'GiUuaW5xdWlzaXRpb24udjEuR2V0TmV3QWRkcmVzc1Jlc3BvbnNlEkEKBFNlbmQSGy5pbnF1aX'
+    'NpdGlvbi52MS5TZW5kUmVxdWVzdBocLmlucXVpc2l0aW9uLnYxLlNlbmRSZXNwb25zZRJWCgtF'
+    'c3RpbWF0ZUZlZRIiLmlucXVpc2l0aW9uLnYxLkVzdGltYXRlRmVlUmVxdWVzdBojLmlucXVpc2'
+    'l0aW9uLnYxLkVzdGltYXRlRmVlUmVzcG9uc2USUAoJTGlzdFV0eG9zEiAuaW5xdWlzaXRpb24u'
+    'djEuTGlzdFV0eG9zUmVxdWVzdBohLmlucXVpc2l0aW9uLnYxLkxpc3RVdHhvc1Jlc3BvbnNlEm'
+    'UKEExpc3RUcmFuc2FjdGlvbnMSJy5pbnF1aXNpdGlvbi52MS5MaXN0VHJhbnNhY3Rpb25zUmVx'
+    'dWVzdBooLmlucXVpc2l0aW9uLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXNwb25zZRJBCgRTdG9wEh'
+    'suaW5xdWlzaXRpb24udjEuU3RvcFJlcXVlc3QaHC5pbnF1aXNpdGlvbi52MS5TdG9wUmVzcG9u'
+    'c2U=');
+

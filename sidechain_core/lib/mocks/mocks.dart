@@ -232,6 +232,98 @@ class MockBitwindowRPC extends BitwindowRPC {
   }
 }
 
+class MockInquisitionRPC extends InquisitionRPC {
+  MockInquisitionRPC() : super(binaryType: BinaryType.BINARY_TYPE_INQUISITION);
+
+  bool _connected = false;
+
+  @override
+  bool get connected => _connected;
+
+  void setConnected(bool value) {
+    _connected = value;
+    notifyListeners();
+  }
+
+  @override
+  Future<InquisitionPegInfo> getPegInfo() async => const InquisitionPegInfo(synced: false);
+
+  @override
+  Future<String> getMainchainTip() async => '';
+
+  @override
+  Future<String?> getBmmCommitment(String mainchainBlockHash) async => null;
+
+  @override
+  Future<(double, double)> balance() async => (0.0, 0.0);
+
+  @override
+  Future<List<String>> binaryArgs() async => [];
+
+  @override
+  Future<int> getBlockCount() async => 0;
+
+  @override
+  Future<BlockchainInfo> getBlockchainInfo() async => BlockchainInfo(
+    chain: 'regtest',
+    blocks: 0,
+    headers: 0,
+    bestBlockHash: '',
+    difficulty: 0,
+    time: 0,
+    medianTime: 0,
+    verificationProgress: 0,
+    initialBlockDownload: false,
+    chainWork: '',
+    sizeOnDisk: 0,
+    pruned: false,
+    warnings: [],
+  );
+
+  @override
+  List<String> getMethods() => [];
+
+  @override
+  Future<dynamic> callRAW(String method, [dynamic params]) async => null;
+
+  @override
+  Future<void> stopRPC() async {}
+
+  @override
+  Future<String> getDepositAddress() async => 's119_bcrt1qmock_000000';
+
+  @override
+  Future<String> getSideAddress() async => 'bcrt1qmock';
+
+  @override
+  Future<double> sideEstimateFee() async => 0.00001;
+
+  @override
+  Future<String> sideSend(String address, double amount, bool subtractFeeFromAmount) async => '';
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async => [];
+
+  @override
+  Future<List<SidechainUTXO>> listAllUTXOs() async => [];
+
+  @override
+  Future<List<CoreTransaction>> listTransactions() async => [];
+
+  @override
+  Future<BmmResult> mine(int feeSats) async => throw UnsupportedError('blind-merge-mined');
+
+  @override
+  Future<PendingWithdrawalBundle?> getPendingWithdrawalBundle() async => throw UnsupportedError('withdrawals unwired');
+
+  @override
+  Future<int?> getLatestFailedWithdrawalBundleHeight() async => throw UnsupportedError('withdrawals unwired');
+
+  @override
+  Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async =>
+      throw UnsupportedError('withdrawals unwired');
+}
+
 class MockThunderRPC extends ThunderRPC {
   MockThunderRPC() : super(binaryType: BinaryType.BINARY_TYPE_THUNDER);
 
