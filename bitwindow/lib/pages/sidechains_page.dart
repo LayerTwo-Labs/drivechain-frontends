@@ -593,6 +593,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _sidechainProvider.addListener(_onChange);
     _sidechainProvider.fetch();
 
+    _walletReader.addListener(_onChange);
+
     _binaryProvider.addListener(_onChange);
     _binaryProvider.addListener(notifyListeners);
     _syncProvider.addListener(_onChange);
@@ -626,6 +628,31 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return false;
     }
     return activeWallet.walletType == BinaryType.BINARY_TYPE_BITCOIND && !activeWallet.isWatchOnly;
+  }
+
+  String? _depositWalletId;
+
+  String? get depositWalletId {
+    final selected = _depositWalletId;
+    if (selected != null && _walletReader.wallets.any((w) => w.id == selected)) {
+      return selected;
+    }
+    return _walletReader.activeWalletId;
+  }
+
+  void setDepositWalletId(String walletId) {
+    _depositWalletId = walletId;
+    notifyListeners();
+  }
+
+  WalletData? get depositWallet => _walletReader.wallets.where((w) => w.id == depositWalletId).firstOrNull;
+
+  bool get depositWalletUnsupported {
+    final wallet = depositWallet;
+    if (wallet == null) {
+      return false;
+    }
+    return wallet.walletType == BinaryType.BINARY_TYPE_BITCOIND && !wallet.isWatchOnly;
   }
 
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;
@@ -1085,9 +1112,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     try {
-      final walletId = _walletReader.activeWalletId;
+      final walletId = depositWalletId;
       if (walletId == null) {
-        throw Exception('No active wallet');
+        throw Exception('No wallet selected to fund the deposit');
       }
 
       setBusy(true);
@@ -1117,6 +1144,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   @override
   void dispose() {
     _sidechainProvider.removeListener(_onChange);
+    _walletReader.removeListener(_onChange);
     addressController.removeListener(_onChange);
     depositAmountController.removeListener(_onChange);
     feeController.removeListener(_onChange);
@@ -1137,6 +1165,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     // UI state that affects rendering
     track('showOnlyFilled', showOnlyFilled);
     track('selectedIndex', selectedIndex);
+    track('depositWalletId', depositWalletId);
+    track('depositWalletUnsupported', depositWalletUnsupported);
 
     // Sorting state
     track('sortColumn', sortColumn);
@@ -1213,20 +1243,90 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
   }
 }
 
+class FromWalletField extends StatelessWidget {
+  final String? selectedWalletId;
+  final ValueChanged<String> onChanged;
+  final bool enabled;
+
+  const FromWalletField({
+    super.key,
+    required this.selectedWalletId,
+    required this.onChanged,
+    this.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final walletReader = GetIt.I<WalletReaderProvider>();
+
+    return ListenableBuilder(
+      listenable: walletReader,
+      builder: (context, _) {
+        // Watch-only wallets hold no keys, so they can't fund a deposit.
+        final wallets = walletReader.wallets.where((w) => !w.isWatchOnly).toList();
+        if (wallets.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return SailColumn(
+          spacing: SailStyleValues.padding08,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.primary13('From Wallet', bold: true),
+            SizedBox(
+              width: double.infinity,
+              child: SailDropdownButton<String>(
+                value: selectedWalletId,
+                hint: 'Select a wallet',
+                enabled: enabled,
+                items: wallets
+                    .map(
+                      (wallet) => SailDropdownItem<String>(
+                        value: wallet.id,
+                        label: wallet.name,
+                        child: SailRow(
+                          spacing: SailStyleValues.padding08,
+                          children: [
+                            WalletBlobAvatar(gradient: wallet.gradient, size: 20),
+                            SailText.primary13(wallet.name),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (walletId) {
+                  if (walletId != null) {
+                    onChanged(walletId);
+                  }
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
   const MakeDepositsView({super.key});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    final isDisabled = viewModel.isUsingBitcoinCoreWallet;
+    final isDisabled = viewModel.depositWalletUnsupported;
 
     return SailCard(
-      error: isDisabled ? 'Switch to your enforcer wallet to interact with sidechains' : null,
+      error: isDisabled ? 'Select your enforcer wallet to fund sidechain deposits' : null,
       bottomPadding: false,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            FromWalletField(
+              selectedWalletId: viewModel.depositWalletId,
+              onChanged: viewModel.setDepositWalletId,
+            ),
+            const SizedBox(height: SailStyleValues.padding08),
             SailRow(
               spacing: SailStyleValues.padding08,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1301,6 +1401,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
               label: 'Deposit',
               disabled:
                   isDisabled ||
+                  viewModel.depositWalletId == null ||
                   viewModel.addressController.text == '' ||
                   viewModel.depositAmountController.text == '' ||
                   viewModel.feeController.text == '',
@@ -1460,6 +1561,16 @@ class _DepositModalState extends State<DepositModal> {
   bool isFetchingAddress = true;
   String? depositAddress;
   String? fetchError;
+  String? selectedWalletId;
+
+  String? get fromWalletId {
+    final walletReader = GetIt.I<WalletReaderProvider>();
+    final selected = selectedWalletId;
+    if (selected != null && walletReader.wallets.any((w) => w.id == selected)) {
+      return selected;
+    }
+    return walletReader.activeWalletId;
+  }
 
   @override
   void initState() {
@@ -1556,15 +1667,14 @@ class _DepositModalState extends State<DepositModal> {
     }
 
     final api = GetIt.I<BitwindowRPC>();
-    final walletReader = GetIt.I<WalletReaderProvider>();
     final transactionsProvider = GetIt.I<TransactionProvider>();
     final balanceProvider = GetIt.I<BalanceProvider>();
     final sidechainProvider = GetIt.I<SidechainProvider>();
 
     try {
-      final walletId = walletReader.activeWalletId;
+      final walletId = fromWalletId;
       if (walletId == null) {
-        throw Exception('No active wallet');
+        throw Exception('No wallet selected to fund the deposit');
       }
 
       setState(() => isLoading = true);
@@ -1615,6 +1725,11 @@ class _DepositModalState extends State<DepositModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              FromWalletField(
+                selectedWalletId: fromWalletId,
+                onChanged: (walletId) => setState(() => selectedWalletId = walletId),
+              ),
+              const SailSpacing(SailStyleValues.padding16),
               SailRow(
                 spacing: SailStyleValues.padding08,
                 children: [
@@ -1667,7 +1782,11 @@ class _DepositModalState extends State<DepositModal> {
               SailButton(
                 label: 'Deposit',
                 loading: isLoading,
-                disabled: depositAddress == null || amountController.text.isEmpty || feeController.text.isEmpty,
+                disabled:
+                    depositAddress == null ||
+                    fromWalletId == null ||
+                    amountController.text.isEmpty ||
+                    feeController.text.isEmpty,
                 onPressed: _deposit,
               ),
             ],
