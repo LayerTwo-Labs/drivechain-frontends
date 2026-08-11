@@ -13,29 +13,6 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-@$core.Deprecated('Use getBalanceRequestDescriptor instead')
-const GetBalanceRequest$json = {
-  '1': 'GetBalanceRequest',
-};
-
-/// Descriptor for `GetBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBalanceRequestDescriptor = $convert.base64Decode(
-    'ChFHZXRCYWxhbmNlUmVxdWVzdA==');
-
-@$core.Deprecated('Use getBalanceResponseDescriptor instead')
-const GetBalanceResponse$json = {
-  '1': 'GetBalanceResponse',
-  '2': [
-    {'1': 'total_sats', '3': 1, '4': 1, '5': 3, '10': 'totalSats'},
-    {'1': 'available_sats', '3': 2, '4': 1, '5': 3, '10': 'availableSats'},
-  ],
-};
-
-/// Descriptor for `GetBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBalanceResponseDescriptor = $convert.base64Decode(
-    'ChJHZXRCYWxhbmNlUmVzcG9uc2USHQoKdG90YWxfc2F0cxgBIAEoA1IJdG90YWxTYXRzEiUKDm'
-    'F2YWlsYWJsZV9zYXRzGAIgASgDUg1hdmFpbGFibGVTYXRz');
-
 @$core.Deprecated('Use getBlockCountRequestDescriptor instead')
 const GetBlockCountRequest$json = {
   '1': 'GetBlockCountRequest',
@@ -348,7 +325,6 @@ final $typed_data.Uint8List stopResponseDescriptor = $convert.base64Decode(
 const $core.Map<$core.String, $core.dynamic> InquisitionServiceBase$json = {
   '1': 'InquisitionService',
   '2': [
-    {'1': 'GetBalance', '2': '.inquisition.v1.GetBalanceRequest', '3': '.inquisition.v1.GetBalanceResponse'},
     {'1': 'GetBlockCount', '2': '.inquisition.v1.GetBlockCountRequest', '3': '.inquisition.v1.GetBlockCountResponse'},
     {'1': 'GetBlockchainInfo', '2': '.inquisition.v1.GetBlockchainInfoRequest', '3': '.inquisition.v1.GetBlockchainInfoResponse'},
     {'1': 'GetSidechainInfo', '2': '.inquisition.v1.GetSidechainInfoRequest', '3': '.inquisition.v1.GetSidechainInfoResponse'},
@@ -365,8 +341,6 @@ const $core.Map<$core.String, $core.dynamic> InquisitionServiceBase$json = {
 
 @$core.Deprecated('Use inquisitionServiceDescriptor instead')
 const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> InquisitionServiceBase$messageJson = {
-  '.inquisition.v1.GetBalanceRequest': GetBalanceRequest$json,
-  '.inquisition.v1.GetBalanceResponse': GetBalanceResponse$json,
   '.inquisition.v1.GetBlockCountRequest': GetBlockCountRequest$json,
   '.inquisition.v1.GetBlockCountResponse': GetBlockCountResponse$json,
   '.inquisition.v1.GetBlockchainInfoRequest': GetBlockchainInfoRequest$json,
@@ -395,25 +369,23 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Inquisitio
 
 /// Descriptor for `InquisitionService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
 final $typed_data.Uint8List inquisitionServiceDescriptor = $convert.base64Decode(
-    'ChJJbnF1aXNpdGlvblNlcnZpY2USUwoKR2V0QmFsYW5jZRIhLmlucXVpc2l0aW9uLnYxLkdldE'
-    'JhbGFuY2VSZXF1ZXN0GiIuaW5xdWlzaXRpb24udjEuR2V0QmFsYW5jZVJlc3BvbnNlElwKDUdl'
-    'dEJsb2NrQ291bnQSJC5pbnF1aXNpdGlvbi52MS5HZXRCbG9ja0NvdW50UmVxdWVzdBolLmlucX'
-    'Vpc2l0aW9uLnYxLkdldEJsb2NrQ291bnRSZXNwb25zZRJoChFHZXRCbG9ja2NoYWluSW5mbxIo'
-    'LmlucXVpc2l0aW9uLnYxLkdldEJsb2NrY2hhaW5JbmZvUmVxdWVzdBopLmlucXVpc2l0aW9uLn'
-    'YxLkdldEJsb2NrY2hhaW5JbmZvUmVzcG9uc2USZQoQR2V0U2lkZWNoYWluSW5mbxInLmlucXVp'
-    'c2l0aW9uLnYxLkdldFNpZGVjaGFpbkluZm9SZXF1ZXN0GiguaW5xdWlzaXRpb24udjEuR2V0U2'
-    'lkZWNoYWluSW5mb1Jlc3BvbnNlEmIKD0dldE1haW5jaGFpblRpcBImLmlucXVpc2l0aW9uLnYx'
-    'LkdldE1haW5jaGFpblRpcFJlcXVlc3QaJy5pbnF1aXNpdGlvbi52MS5HZXRNYWluY2hhaW5UaX'
-    'BSZXNwb25zZRJlChBHZXRCbW1Db21taXRtZW50EicuaW5xdWlzaXRpb24udjEuR2V0Qm1tQ29t'
-    'bWl0bWVudFJlcXVlc3QaKC5pbnF1aXNpdGlvbi52MS5HZXRCbW1Db21taXRtZW50UmVzcG9uc2'
-    'USXAoNR2V0TmV3QWRkcmVzcxIkLmlucXVpc2l0aW9uLnYxLkdldE5ld0FkZHJlc3NSZXF1ZXN0'
-    'GiUuaW5xdWlzaXRpb24udjEuR2V0TmV3QWRkcmVzc1Jlc3BvbnNlEkEKBFNlbmQSGy5pbnF1aX'
-    'NpdGlvbi52MS5TZW5kUmVxdWVzdBocLmlucXVpc2l0aW9uLnYxLlNlbmRSZXNwb25zZRJWCgtF'
-    'c3RpbWF0ZUZlZRIiLmlucXVpc2l0aW9uLnYxLkVzdGltYXRlRmVlUmVxdWVzdBojLmlucXVpc2'
-    'l0aW9uLnYxLkVzdGltYXRlRmVlUmVzcG9uc2USUAoJTGlzdFV0eG9zEiAuaW5xdWlzaXRpb24u'
-    'djEuTGlzdFV0eG9zUmVxdWVzdBohLmlucXVpc2l0aW9uLnYxLkxpc3RVdHhvc1Jlc3BvbnNlEm'
-    'UKEExpc3RUcmFuc2FjdGlvbnMSJy5pbnF1aXNpdGlvbi52MS5MaXN0VHJhbnNhY3Rpb25zUmVx'
-    'dWVzdBooLmlucXVpc2l0aW9uLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXNwb25zZRJBCgRTdG9wEh'
-    'suaW5xdWlzaXRpb24udjEuU3RvcFJlcXVlc3QaHC5pbnF1aXNpdGlvbi52MS5TdG9wUmVzcG9u'
-    'c2U=');
+    'ChJJbnF1aXNpdGlvblNlcnZpY2USXAoNR2V0QmxvY2tDb3VudBIkLmlucXVpc2l0aW9uLnYxLk'
+    'dldEJsb2NrQ291bnRSZXF1ZXN0GiUuaW5xdWlzaXRpb24udjEuR2V0QmxvY2tDb3VudFJlc3Bv'
+    'bnNlEmgKEUdldEJsb2NrY2hhaW5JbmZvEiguaW5xdWlzaXRpb24udjEuR2V0QmxvY2tjaGFpbk'
+    'luZm9SZXF1ZXN0GikuaW5xdWlzaXRpb24udjEuR2V0QmxvY2tjaGFpbkluZm9SZXNwb25zZRJl'
+    'ChBHZXRTaWRlY2hhaW5JbmZvEicuaW5xdWlzaXRpb24udjEuR2V0U2lkZWNoYWluSW5mb1JlcX'
+    'Vlc3QaKC5pbnF1aXNpdGlvbi52MS5HZXRTaWRlY2hhaW5JbmZvUmVzcG9uc2USYgoPR2V0TWFp'
+    'bmNoYWluVGlwEiYuaW5xdWlzaXRpb24udjEuR2V0TWFpbmNoYWluVGlwUmVxdWVzdBonLmlucX'
+    'Vpc2l0aW9uLnYxLkdldE1haW5jaGFpblRpcFJlc3BvbnNlEmUKEEdldEJtbUNvbW1pdG1lbnQS'
+    'Jy5pbnF1aXNpdGlvbi52MS5HZXRCbW1Db21taXRtZW50UmVxdWVzdBooLmlucXVpc2l0aW9uLn'
+    'YxLkdldEJtbUNvbW1pdG1lbnRSZXNwb25zZRJcCg1HZXROZXdBZGRyZXNzEiQuaW5xdWlzaXRp'
+    'b24udjEuR2V0TmV3QWRkcmVzc1JlcXVlc3QaJS5pbnF1aXNpdGlvbi52MS5HZXROZXdBZGRyZX'
+    'NzUmVzcG9uc2USQQoEU2VuZBIbLmlucXVpc2l0aW9uLnYxLlNlbmRSZXF1ZXN0GhwuaW5xdWlz'
+    'aXRpb24udjEuU2VuZFJlc3BvbnNlElYKC0VzdGltYXRlRmVlEiIuaW5xdWlzaXRpb24udjEuRX'
+    'N0aW1hdGVGZWVSZXF1ZXN0GiMuaW5xdWlzaXRpb24udjEuRXN0aW1hdGVGZWVSZXNwb25zZRJQ'
+    'CglMaXN0VXR4b3MSIC5pbnF1aXNpdGlvbi52MS5MaXN0VXR4b3NSZXF1ZXN0GiEuaW5xdWlzaX'
+    'Rpb24udjEuTGlzdFV0eG9zUmVzcG9uc2USZQoQTGlzdFRyYW5zYWN0aW9ucxInLmlucXVpc2l0'
+    'aW9uLnYxLkxpc3RUcmFuc2FjdGlvbnNSZXF1ZXN0GiguaW5xdWlzaXRpb24udjEuTGlzdFRyYW'
+    '5zYWN0aW9uc1Jlc3BvbnNlEkEKBFN0b3ASGy5pbnF1aXNpdGlvbi52MS5TdG9wUmVxdWVzdBoc'
+    'LmlucXVpc2l0aW9uLnYxLlN0b3BSZXNwb25zZQ==');
 

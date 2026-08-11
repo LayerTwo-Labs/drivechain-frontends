@@ -33,9 +33,6 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// InquisitionServiceGetBalanceProcedure is the fully-qualified name of the InquisitionService's
-	// GetBalance RPC.
-	InquisitionServiceGetBalanceProcedure = "/inquisition.v1.InquisitionService/GetBalance"
 	// InquisitionServiceGetBlockCountProcedure is the fully-qualified name of the InquisitionService's
 	// GetBlockCount RPC.
 	InquisitionServiceGetBlockCountProcedure = "/inquisition.v1.InquisitionService/GetBlockCount"
@@ -71,9 +68,6 @@ const (
 
 // InquisitionServiceClient is a client for the inquisition.v1.InquisitionService service.
 type InquisitionServiceClient interface {
-	// Get wallet balance. Peg-ins arrive in the coinbase, so an immature deposit
-	// counts as pending.
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	// Get current block count.
 	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
 	// Get the node's chain state.
@@ -109,12 +103,6 @@ func NewInquisitionServiceClient(httpClient connect.HTTPClient, baseURL string, 
 	baseURL = strings.TrimRight(baseURL, "/")
 	inquisitionServiceMethods := v1.File_inquisition_v1_inquisition_proto.Services().ByName("InquisitionService").Methods()
 	return &inquisitionServiceClient{
-		getBalance: connect.NewClient[v1.GetBalanceRequest, v1.GetBalanceResponse](
-			httpClient,
-			baseURL+InquisitionServiceGetBalanceProcedure,
-			connect.WithSchema(inquisitionServiceMethods.ByName("GetBalance")),
-			connect.WithClientOptions(opts...),
-		),
 		getBlockCount: connect.NewClient[v1.GetBlockCountRequest, v1.GetBlockCountResponse](
 			httpClient,
 			baseURL+InquisitionServiceGetBlockCountProcedure,
@@ -186,7 +174,6 @@ func NewInquisitionServiceClient(httpClient connect.HTTPClient, baseURL string, 
 
 // inquisitionServiceClient implements InquisitionServiceClient.
 type inquisitionServiceClient struct {
-	getBalance        *connect.Client[v1.GetBalanceRequest, v1.GetBalanceResponse]
 	getBlockCount     *connect.Client[v1.GetBlockCountRequest, v1.GetBlockCountResponse]
 	getBlockchainInfo *connect.Client[v1.GetBlockchainInfoRequest, v1.GetBlockchainInfoResponse]
 	getSidechainInfo  *connect.Client[v1.GetSidechainInfoRequest, v1.GetSidechainInfoResponse]
@@ -198,11 +185,6 @@ type inquisitionServiceClient struct {
 	listUtxos         *connect.Client[v1.ListUtxosRequest, v1.ListUtxosResponse]
 	listTransactions  *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
 	stop              *connect.Client[v1.StopRequest, v1.StopResponse]
-}
-
-// GetBalance calls inquisition.v1.InquisitionService.GetBalance.
-func (c *inquisitionServiceClient) GetBalance(ctx context.Context, req *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return c.getBalance.CallUnary(ctx, req)
 }
 
 // GetBlockCount calls inquisition.v1.InquisitionService.GetBlockCount.
@@ -262,9 +244,6 @@ func (c *inquisitionServiceClient) Stop(ctx context.Context, req *connect.Reques
 
 // InquisitionServiceHandler is an implementation of the inquisition.v1.InquisitionService service.
 type InquisitionServiceHandler interface {
-	// Get wallet balance. Peg-ins arrive in the coinbase, so an immature deposit
-	// counts as pending.
-	GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error)
 	// Get current block count.
 	GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error)
 	// Get the node's chain state.
@@ -296,12 +275,6 @@ type InquisitionServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewInquisitionServiceHandler(svc InquisitionServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	inquisitionServiceMethods := v1.File_inquisition_v1_inquisition_proto.Services().ByName("InquisitionService").Methods()
-	inquisitionServiceGetBalanceHandler := connect.NewUnaryHandler(
-		InquisitionServiceGetBalanceProcedure,
-		svc.GetBalance,
-		connect.WithSchema(inquisitionServiceMethods.ByName("GetBalance")),
-		connect.WithHandlerOptions(opts...),
-	)
 	inquisitionServiceGetBlockCountHandler := connect.NewUnaryHandler(
 		InquisitionServiceGetBlockCountProcedure,
 		svc.GetBlockCount,
@@ -370,8 +343,6 @@ func NewInquisitionServiceHandler(svc InquisitionServiceHandler, opts ...connect
 	)
 	return "/inquisition.v1.InquisitionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case InquisitionServiceGetBalanceProcedure:
-			inquisitionServiceGetBalanceHandler.ServeHTTP(w, r)
 		case InquisitionServiceGetBlockCountProcedure:
 			inquisitionServiceGetBlockCountHandler.ServeHTTP(w, r)
 		case InquisitionServiceGetBlockchainInfoProcedure:
@@ -402,10 +373,6 @@ func NewInquisitionServiceHandler(svc InquisitionServiceHandler, opts ...connect
 
 // UnimplementedInquisitionServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedInquisitionServiceHandler struct{}
-
-func (UnimplementedInquisitionServiceHandler) GetBalance(context.Context, *connect.Request[v1.GetBalanceRequest]) (*connect.Response[v1.GetBalanceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inquisition.v1.InquisitionService.GetBalance is not implemented"))
-}
 
 func (UnimplementedInquisitionServiceHandler) GetBlockCount(context.Context, *connect.Request[v1.GetBlockCountRequest]) (*connect.Response[v1.GetBlockCountResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inquisition.v1.InquisitionService.GetBlockCount is not implemented"))

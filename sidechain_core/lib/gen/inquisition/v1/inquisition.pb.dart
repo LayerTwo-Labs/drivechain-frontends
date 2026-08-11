@@ -15,102 +15,6 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-class GetBalanceRequest extends $pb.GeneratedMessage {
-  factory GetBalanceRequest() => create();
-  GetBalanceRequest._() : super();
-  factory GetBalanceRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetBalanceRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBalanceRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'inquisition.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetBalanceRequest clone() => GetBalanceRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetBalanceRequest copyWith(void Function(GetBalanceRequest) updates) => super.copyWith((message) => updates(message as GetBalanceRequest)) as GetBalanceRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetBalanceRequest create() => GetBalanceRequest._();
-  GetBalanceRequest createEmptyInstance() => create();
-  static $pb.PbList<GetBalanceRequest> createRepeated() => $pb.PbList<GetBalanceRequest>();
-  @$core.pragma('dart2js:noInline')
-  static GetBalanceRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBalanceRequest>(create);
-  static GetBalanceRequest? _defaultInstance;
-}
-
-class GetBalanceResponse extends $pb.GeneratedMessage {
-  factory GetBalanceResponse({
-    $fixnum.Int64? totalSats,
-    $fixnum.Int64? availableSats,
-  }) {
-    final $result = create();
-    if (totalSats != null) {
-      $result.totalSats = totalSats;
-    }
-    if (availableSats != null) {
-      $result.availableSats = availableSats;
-    }
-    return $result;
-  }
-  GetBalanceResponse._() : super();
-  factory GetBalanceResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetBalanceResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBalanceResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'inquisition.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'totalSats')
-    ..aInt64(2, _omitFieldNames ? '' : 'availableSats')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetBalanceResponse clone() => GetBalanceResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetBalanceResponse copyWith(void Function(GetBalanceResponse) updates) => super.copyWith((message) => updates(message as GetBalanceResponse)) as GetBalanceResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetBalanceResponse create() => GetBalanceResponse._();
-  GetBalanceResponse createEmptyInstance() => create();
-  static $pb.PbList<GetBalanceResponse> createRepeated() => $pb.PbList<GetBalanceResponse>();
-  @$core.pragma('dart2js:noInline')
-  static GetBalanceResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBalanceResponse>(create);
-  static GetBalanceResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $fixnum.Int64 get totalSats => $_getI64(0);
-  @$pb.TagNumber(1)
-  set totalSats($fixnum.Int64 v) { $_setInt64(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasTotalSats() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearTotalSats() => clearField(1);
-
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get availableSats => $_getI64(1);
-  @$pb.TagNumber(2)
-  set availableSats($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasAvailableSats() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearAvailableSats() => clearField(2);
-}
-
 class GetBlockCountRequest extends $pb.GeneratedMessage {
   factory GetBlockCountRequest() => create();
   GetBlockCountRequest._() : super();
@@ -1485,9 +1389,6 @@ class InquisitionServiceApi {
   $pb.RpcClient _client;
   InquisitionServiceApi(this._client);
 
-  $async.Future<GetBalanceResponse> getBalance($pb.ClientContext? ctx, GetBalanceRequest request) =>
-    _client.invoke<GetBalanceResponse>(ctx, 'InquisitionService', 'GetBalance', request, GetBalanceResponse())
-  ;
   $async.Future<GetBlockCountResponse> getBlockCount($pb.ClientContext? ctx, GetBlockCountRequest request) =>
     _client.invoke<GetBlockCountResponse>(ctx, 'InquisitionService', 'GetBlockCount', request, GetBlockCountResponse())
   ;

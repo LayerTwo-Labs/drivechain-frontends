@@ -21,7 +21,6 @@ import 'inquisition.pbjson.dart';
 export 'inquisition.pb.dart';
 
 abstract class InquisitionServiceBase extends $pb.GeneratedService {
-  $async.Future<$5.GetBalanceResponse> getBalance($pb.ServerContext ctx, $5.GetBalanceRequest request);
   $async.Future<$5.GetBlockCountResponse> getBlockCount($pb.ServerContext ctx, $5.GetBlockCountRequest request);
   $async.Future<$5.GetBlockchainInfoResponse> getBlockchainInfo($pb.ServerContext ctx, $5.GetBlockchainInfoRequest request);
   $async.Future<$5.GetSidechainInfoResponse> getSidechainInfo($pb.ServerContext ctx, $5.GetSidechainInfoRequest request);
@@ -36,7 +35,6 @@ abstract class InquisitionServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetBalance': return $5.GetBalanceRequest();
       case 'GetBlockCount': return $5.GetBlockCountRequest();
       case 'GetBlockchainInfo': return $5.GetBlockchainInfoRequest();
       case 'GetSidechainInfo': return $5.GetSidechainInfoRequest();
@@ -54,7 +52,6 @@ abstract class InquisitionServiceBase extends $pb.GeneratedService {
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetBalance': return this.getBalance(ctx, request as $5.GetBalanceRequest);
       case 'GetBlockCount': return this.getBlockCount(ctx, request as $5.GetBlockCountRequest);
       case 'GetBlockchainInfo': return this.getBlockchainInfo(ctx, request as $5.GetBlockchainInfoRequest);
       case 'GetSidechainInfo': return this.getSidechainInfo(ctx, request as $5.GetSidechainInfoRequest);

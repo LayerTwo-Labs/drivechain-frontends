@@ -10,25 +10,6 @@ import "inquisition.connect.spec.dart" as specs;
 /// Inquisition is a Bitcoin Core fork run as a drivechain sidechain, so its RPC
 /// surface is Core's rather than the CUSF one the other sidechains expose.
 extension type InquisitionServiceClient (connect.Transport _transport) {
-  /// Get wallet balance. Peg-ins arrive in the coinbase, so an immature deposit
-  /// counts as pending.
-  Future<inquisitionv1inquisition.GetBalanceResponse> getBalance(
-    inquisitionv1inquisition.GetBalanceRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.InquisitionService.getBalance,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   /// Get current block count.
   Future<inquisitionv1inquisition.GetBlockCountResponse> getBlockCount(
     inquisitionv1inquisition.GetBlockCountRequest input, {

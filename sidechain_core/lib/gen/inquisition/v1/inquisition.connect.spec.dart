@@ -12,15 +12,6 @@ abstract final class InquisitionService {
   /// Fully-qualified name of the InquisitionService service.
   static const name = 'inquisition.v1.InquisitionService';
 
-  /// Get wallet balance. Peg-ins arrive in the coinbase, so an immature deposit
-  /// counts as pending.
-  static const getBalance = connect.Spec(
-    '/$name/GetBalance',
-    connect.StreamType.unary,
-    inquisitionv1inquisition.GetBalanceRequest.new,
-    inquisitionv1inquisition.GetBalanceResponse.new,
-  );
-
   /// Get current block count.
   static const getBlockCount = connect.Spec(
     '/$name/GetBlockCount',
