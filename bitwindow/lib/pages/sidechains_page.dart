@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/utils/deposit_fee.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
@@ -581,7 +583,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   final TextEditingController addressController = TextEditingController();
   final TextEditingController depositAmountController = TextEditingController();
-  final TextEditingController feeController = TextEditingController(text: '0.0001');
+  final TextEditingController feeController = TextEditingController();
+  late final DepositFeeEstimate depositFee = DepositFeeEstimate(feeController);
 
   SidechainsViewModel() {
     initChangeTracker();
@@ -589,6 +592,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     addressController.addListener(_onChange);
     depositAmountController.addListener(_onChange);
     feeController.addListener(_onChange);
+    unawaited(setDepositFeeTarget(depositFee.confTarget, keepEdits: true));
 
     _sidechainProvider.addListener(_onChange);
     _sidechainProvider.fetch();
@@ -633,6 +637,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   String? _depositWalletId;
 
   String? get depositWalletId => _walletReader.resolveFundingWalletId(_depositWalletId);
+
+  Future<void> setDepositFeeTarget(int confTarget, {bool keepEdits = false}) async {
+    await depositFee.refresh(confTarget, keepEdits: keepEdits);
+    notifyListeners();
+  }
 
   void setDepositWalletId(String walletId) {
     _depositWalletId = walletId;
@@ -1226,6 +1235,73 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
   }
 }
 
+/// The deposit fee, on a rate the backend estimated for a block target.
+class DepositFeeFields extends StatelessWidget {
+  final DepositFeeEstimate estimate;
+  final ValueChanged<int> onTargetChanged;
+
+  const DepositFeeFields({
+    super.key,
+    required this.estimate,
+    required this.onTargetChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailRow(
+          spacing: SailStyleValues.padding08,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              flex: 2,
+              child: NumericField(
+                label: 'Fee',
+                controller: estimate.controller,
+                hintText: '0.00000000',
+              ),
+            ),
+            UnitDropdown(value: Unit.BTC, onChanged: (_) => {}, enabled: false),
+            Expanded(
+              flex: 2,
+              child: SailColumn(
+                spacing: SailStyleValues.padding08,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary13('Fee target', bold: true),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SailDropdownButton<int>(
+                      value: estimate.confTarget,
+                      items: depositFeeTargets
+                          .map(
+                            (target) => SailDropdownItem<int>(
+                              value: target,
+                              label: depositFeeTargetLabel(target),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (target) {
+                        if (target != null) {
+                          onTargetChanged(target);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SailText.secondary12(estimate.hint, color: context.sailTheme.colors.textTertiary),
+      ],
+    );
+  }
+}
+
 class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
   const MakeDepositsView({super.key});
 
@@ -1301,6 +1377,11 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: SailStyleValues.padding08),
+            DepositFeeFields(
+              estimate: viewModel.depositFee,
+              onTargetChanged: viewModel.setDepositFeeTarget,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
@@ -1466,7 +1547,8 @@ class DepositModal extends StatefulWidget {
 
 class _DepositModalState extends State<DepositModal> {
   final TextEditingController amountController = TextEditingController();
-  final TextEditingController feeController = TextEditingController(text: '0.0001');
+  final TextEditingController feeController = TextEditingController();
+  late final DepositFeeEstimate depositFee = DepositFeeEstimate(feeController);
 
   bool isLoading = false;
   bool isFetchingAddress = true;
@@ -1480,8 +1562,16 @@ class _DepositModalState extends State<DepositModal> {
   void initState() {
     super.initState();
     _fetchDepositAddress();
+    unawaited(_setFeeTarget(depositFee.confTarget, keepEdits: true));
     amountController.addListener(_onTextChanged);
     feeController.addListener(_onTextChanged);
+  }
+
+  Future<void> _setFeeTarget(int confTarget, {bool keepEdits = false}) async {
+    await depositFee.refresh(confTarget, keepEdits: keepEdits);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _onTextChanged() {
@@ -1687,6 +1777,8 @@ class _DepositModalState extends State<DepositModal> {
                   ),
                 ],
               ),
+              const SailSpacing(SailStyleValues.padding08),
+              DepositFeeFields(estimate: depositFee, onTargetChanged: _setFeeTarget),
               const SailSpacing(SailStyleValues.padding08),
               SailText.secondary13(
                 'The sidechain may also deduct a fee from your deposit.',
