@@ -82,7 +82,7 @@ func (p *CoreBackend) ResetNetworkState() {
 
 // net reports the params of the network in use right now.
 func (p *CoreBackend) net() *chaincfg.Params {
-	return p.params.resolve()
+	return p.params.Resolve()
 }
 
 // Ensure ensures a Bitcoin Core wallet exists for a wallet.json wallet.
@@ -982,40 +982,47 @@ func (p *CoreBackend) createWatchOnlyWallet(ctx context.Context, walletName stri
 
 // createAndImport creates a Core wallet and imports descriptors.
 func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, disablePrivateKeys bool, descriptors []ImportDescriptor) error {
-	existing, err := p.rpc.ListWallets(ctx)
+	return createAndImport(ctx, p.rpc, p.log, walletName, disablePrivateKeys, descriptors)
+}
+
+func createAndImport(
+	ctx context.Context, rpc *CoreRPCClient, log zerolog.Logger,
+	walletName string, disablePrivateKeys bool, descriptors []ImportDescriptor,
+) error {
+	existing, err := rpc.ListWallets(ctx)
 	if err != nil {
 		return fmt.Errorf("list wallets: %w", err)
 	}
 
-	if !lo.Contains(existing, walletName) {
-		if err := p.rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); err != nil {
-			if strings.Contains(err.Error(), "already exists") {
-				if loadErr := p.rpc.LoadWallet(ctx, walletName); loadErr != nil {
-					return fmt.Errorf("load existing wallet: %w", loadErr)
-				}
-			} else {
-				return fmt.Errorf("create wallet: %w", err)
-			}
-		}
-
-		results, err := p.rpc.ImportDescriptors(ctx, walletName, descriptors)
-		if err != nil {
-			return fmt.Errorf("import descriptors: %w", err)
-		}
-
-		for i, r := range results {
-			if !r.Success {
-				errMsg := "unknown"
-				if r.Error != nil {
-					errMsg = r.Error.Message
-				}
-				return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
-			}
-		}
-
-		p.log.Info().Str("wallet", walletName).Msg("created Bitcoin Core wallet")
+	if lo.Contains(existing, walletName) {
+		return nil
 	}
 
+	if err := rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); err != nil {
+		if !strings.Contains(err.Error(), "already exists") {
+			return fmt.Errorf("create wallet: %w", err)
+		}
+		if loadErr := rpc.LoadWallet(ctx, walletName); loadErr != nil {
+			return fmt.Errorf("load existing wallet: %w", loadErr)
+		}
+	}
+
+	results, err := rpc.ImportDescriptors(ctx, walletName, descriptors)
+	if err != nil {
+		return fmt.Errorf("import descriptors: %w", err)
+	}
+
+	for i, r := range results {
+		if !r.Success {
+			errMsg := "unknown"
+			if r.Error != nil {
+				errMsg = r.Error.Message
+			}
+			return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
+		}
+	}
+
+	log.Info().Str("wallet", walletName).Msg("created Bitcoin Core wallet")
 	return nil
 }
 

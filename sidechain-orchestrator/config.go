@@ -45,7 +45,7 @@ type BinaryConfig struct {
 	// Directory configuration — Dart: DirectoryConfig class
 	DataDir        map[string]string // os -> subdir under AppDir() (default for all networks)
 	DataDirMainnet map[string]string // os -> subdir (mainnet override, empty = use DataDir)
-	IsBitcoinCore  bool              // Linux appdir exception: ~/ instead of ~/.local/share
+	IsBitcoinCore  bool              // built on Bitcoin Core: Core datadir layout, Core JSON-RPC, cookie auth
 
 	// Flutter frontend directory — Dart: flutterFrontendDir() extension (L1306-1353)
 	// Per-OS subdir under the platform app support dir. Empty = no frontend.
@@ -83,6 +83,13 @@ type BinaryConfig struct {
 
 	// Dependencies: names of binaries that must be running before this one
 	Dependencies []string
+}
+
+// IsMainchainCore reports the Bitcoin Core node serving as the mainchain, as
+// opposed to a Core derived sidechain. Core variants, bitcoin.conf and the
+// mainchain credentials all belong to this one binary.
+func (c BinaryConfig) IsMainchainCore() bool {
+	return c.IsBitcoinCore && c.ChainLayer == 1
 }
 
 // RPCHost returns the host the binary's RPC is reached on.

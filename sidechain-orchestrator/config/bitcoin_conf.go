@@ -223,15 +223,25 @@ func (m *BitcoinConfManager) resolveRPCCredentials() (string, string, error) {
 // cookieCredentials reads Core's auth cookie, false when it is absent or
 // unreadable.
 func (m *BitcoinConfManager) cookieCredentials() (string, string, bool) {
-	raw, err := os.ReadFile(m.GetRPCCookiePath())
+	user, password, err := ReadCookieFile(m.GetRPCCookiePath())
 	if err != nil {
 		return "", "", false
 	}
+	return user, password, true
+}
+
+// ReadCookieFile reads the "user:password" auth cookie a Bitcoin Core node
+// writes into its datadir on every start.
+func ReadCookieFile(path string) (user, password string, err error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", "", fmt.Errorf("read rpc cookie %s: %w", path, err)
+	}
 	user, password, found := strings.Cut(strings.TrimSpace(string(raw)), ":")
 	if !found {
-		return "", "", false
+		return "", "", fmt.Errorf("malformed rpc cookie %s", path)
 	}
-	return user, password, true
+	return user, password, nil
 }
 
 // GetDefaultConfig generates the default bitcoin.conf content.

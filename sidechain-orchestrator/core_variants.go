@@ -69,7 +69,7 @@ func ActiveCoreBinaryPath(dataDir, bitwindowDir string, configs []BinaryConfig, 
 		}
 	}
 	for _, c := range configs {
-		if !c.IsBitcoinCore {
+		if !c.IsMainchainCore() {
 			continue
 		}
 		if v, ok := c.Variants[variantID]; ok {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -19,6 +20,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/inquisition"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -534,6 +536,8 @@ func binaryTypeFromName(name string) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_ENFORCER
 	case "bitwindowd":
 		return pb.BinaryType_BINARY_TYPE_BITWINDOWD
+	case "inquisition":
+		return pb.BinaryType_BINARY_TYPE_INQUISITION
 	case "thunder":
 		return pb.BinaryType_BINARY_TYPE_THUNDER
 	case "zside":
@@ -573,7 +577,7 @@ func (h *Handler) GetMainchainBalance(ctx context.Context, req *connect.Request[
 }
 
 func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[pb.GetSidechainBalanceRequest]) (*connect.Response[pb.GetSidechainBalanceResponse], error) {
-	name, displayName, err := sidechainBalanceTarget(req.Msg.Sidechain)
+	name, displayName, err := sidechainNames(req.Msg.Sidechain)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
@@ -582,7 +586,7 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("sidechain %s is not configured", name))
 	}
 
-	confirmedSats, pendingSats, err := fetchSidechainBalance(ctx, req.Msg.Sidechain, cfg.Port)
+	confirmedSats, pendingSats, err := h.fetchSidechainBalance(ctx, req.Msg.Sidechain, cfg.Port)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
@@ -603,7 +607,9 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
-func sidechainBalanceTarget(binary pb.BinaryType) (name, displayName string, err error) {
+// sidechainNames maps a sidechain binary to its config key and the name shown
+// to the user.
+func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) {
 	switch binary {
 	case pb.BinaryType_BINARY_TYPE_THUNDER:
 		return "thunder", "Thunder", nil
@@ -619,12 +625,14 @@ func sidechainBalanceTarget(binary pb.BinaryType) (name, displayName string, err
 		return "photon", "Photon", nil
 	case pb.BinaryType_BINARY_TYPE_COINSHIFT:
 		return "coinshift", "CoinShift", nil
+	case pb.BinaryType_BINARY_TYPE_INQUISITION:
+		return "inquisition", "Inquisition", nil
 	default:
 		return "", "", fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
 }
 
-func fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, port int) (confirmedSats, pendingSats int64, err error) {
+func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, port int) (confirmedSats, pendingSats int64, err error) {
 	switch binary {
 	case pb.BinaryType_BINARY_TYPE_THUNDER:
 		resp, err := thunder.NewClient("localhost", port).Balance(ctx)
@@ -675,9 +683,22 @@ func fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, port int) 
 		}
 		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
 		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_INQUISITION:
+		total, available, err := inquisition.NewClient("localhost", port, h.inquisitionCookiePath()).GetBalance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(total, available)
+		return confirmed, pending, nil
 	default:
 		return 0, 0, fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
+}
+
+// inquisitionCookiePath is the .cookie the node writes into its datadir.
+func (h *Handler) inquisitionCookiePath() string {
+	network := config.NetworkFromString(h.orch.CurrentNetwork())
+	return filepath.Join(config.InquisitionDirs.DatadirNetwork(network, ""), ".cookie")
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {
@@ -750,6 +771,8 @@ func resetBinaryFromType(t pb.BinaryType) orchestrator.ResetBinary {
 		return orchestrator.ResetBinaryOrchestratord
 	case pb.BinaryType_BINARY_TYPE_ZSIDED:
 		return orchestrator.ResetBinaryZSided
+	case pb.BinaryType_BINARY_TYPE_INQUISITION:
+		return orchestrator.ResetBinaryInquisition
 	default:
 		return orchestrator.ResetBinaryUnknown
 	}
@@ -783,6 +806,8 @@ func binaryTypeFromResetBinary(binary orchestrator.ResetBinary) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_ORCHESTRATORD
 	case orchestrator.ResetBinaryZSided:
 		return pb.BinaryType_BINARY_TYPE_ZSIDED
+	case orchestrator.ResetBinaryInquisition:
+		return pb.BinaryType_BINARY_TYPE_INQUISITION
 	default:
 		return pb.BinaryType_BINARY_TYPE_UNSPECIFIED
 	}

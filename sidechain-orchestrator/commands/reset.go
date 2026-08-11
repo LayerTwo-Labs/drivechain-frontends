@@ -66,6 +66,7 @@ func resetSpecs(cctx *cli.Context) []*pb.SingleDeletion {
 	}
 	if cctx.Bool("sidechains") {
 		bins = append(bins,
+			pb.BinaryType_BINARY_TYPE_INQUISITION,
 			pb.BinaryType_BINARY_TYPE_THUNDER,
 			pb.BinaryType_BINARY_TYPE_ZSIDE,
 			pb.BinaryType_BINARY_TYPE_BITNAMES,

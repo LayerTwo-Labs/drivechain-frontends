@@ -16,7 +16,7 @@ import (
 // cannot be resolved (no bitcoincore entry, missing variant id).
 func bitcoindBinaryPath(dataDir string, configs []orchestrator.BinaryConfig, variantID string) string {
 	for _, c := range configs {
-		if !c.IsBitcoinCore {
+		if !c.IsMainchainCore() {
 			continue
 		}
 		if v, ok := c.Variants[variantID]; ok {
