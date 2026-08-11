@@ -49,11 +49,15 @@ void main() {
     await GetIt.I.reset();
   });
 
-  Future<void> pumpField(WidgetTester tester, {required void Function(String) onChanged}) async {
+  Future<void> pumpField(
+    WidgetTester tester, {
+    required void Function(String) onChanged,
+    double width = 400,
+  }) async {
     await tester.pumpSailPage(
       Center(
         child: SizedBox(
-          width: 400,
+          width: width,
           child: FromWalletField(
             selectedWalletId: walletReader.activeWalletId,
             onChanged: onChanged,
@@ -95,6 +99,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Watcher'), findsNothing);
+  });
+
+  // The field shares a row with the amount input, so it gets a narrow slot.
+  testWidgets('a long wallet name does not overflow the amount row slot', (tester) async {
+    walletReader.wallets = [_wallet('enforcer-1', 'Enforcer Wallet With A Very Long Name')];
+    walletReader.activeWalletId = 'enforcer-1';
+
+    await pumpField(tester, onChanged: (_) {}, width: 150);
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('renders nothing without a spendable wallet', (tester) async {

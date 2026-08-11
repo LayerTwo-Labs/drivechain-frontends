@@ -645,16 +645,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     notifyListeners();
   }
 
-  WalletData? get depositWallet => _walletReader.wallets.where((w) => w.id == depositWalletId).firstOrNull;
-
-  bool get depositWalletUnsupported {
-    final wallet = depositWallet;
-    if (wallet == null) {
-      return false;
-    }
-    return wallet.walletType == BinaryType.BINARY_TYPE_BITCOIND && !wallet.isWatchOnly;
-  }
-
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;
   List<SidechainOverview?> _sortedSidechains = [];
 
@@ -1166,7 +1156,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('showOnlyFilled', showOnlyFilled);
     track('selectedIndex', selectedIndex);
     track('depositWalletId', depositWalletId);
-    track('depositWalletUnsupported', depositWalletUnsupported);
 
     // Sorting state
     track('sortColumn', sortColumn);
@@ -1243,16 +1232,18 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
   }
 }
 
+// Horizontal padding plus chevron that SailDropdownButton draws around its
+// current selection.
+const double _dropdownChrome = 45;
+
 class FromWalletField extends StatelessWidget {
   final String? selectedWalletId;
   final ValueChanged<String> onChanged;
-  final bool enabled;
 
   const FromWalletField({
     super.key,
     required this.selectedWalletId,
     required this.onChanged,
-    this.enabled = true,
   });
 
   @override
@@ -1268,40 +1259,53 @@ class FromWalletField extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        return SailColumn(
-          spacing: SailStyleValues.padding08,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailText.primary13('From Wallet', bold: true),
-            SizedBox(
-              width: double.infinity,
-              child: SailDropdownButton<String>(
-                value: selectedWalletId,
-                hint: 'Select a wallet',
-                enabled: enabled,
-                items: wallets
-                    .map(
-                      (wallet) => SailDropdownItem<String>(
-                        value: wallet.id,
-                        label: wallet.name,
-                        child: SailRow(
-                          spacing: SailStyleValues.padding08,
-                          children: [
-                            WalletBlobAvatar(gradient: wallet.gradient, size: 20),
-                            SailText.primary13(wallet.name),
-                          ],
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (walletId) {
-                  if (walletId != null) {
-                    onChanged(walletId);
-                  }
-                },
-              ),
-            ),
-          ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // The dropdown trigger sizes to its content, so cap the wallet row
+            // to the slot minus the padding and chevron drawn around it.
+            final rowWidth = constraints.hasBoundedWidth
+                ? max(0.0, constraints.maxWidth - _dropdownChrome)
+                : double.infinity;
+
+            return SailColumn(
+              spacing: SailStyleValues.padding08,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13('From Wallet', bold: true),
+                SizedBox(
+                  width: double.infinity,
+                  child: SailDropdownButton<String>(
+                    value: selectedWalletId,
+                    hint: 'Select a wallet',
+                    items: wallets
+                        .map(
+                          (wallet) => SailDropdownItem<String>(
+                            value: wallet.id,
+                            label: wallet.name,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: rowWidth),
+                              child: SailRow(
+                                spacing: SailStyleValues.padding08,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  WalletBlobAvatar(gradient: wallet.gradient, size: 20),
+                                  Flexible(child: SailText.primary13(wallet.name)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (walletId) {
+                      if (walletId != null) {
+                        onChanged(walletId);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -1313,20 +1317,12 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    final isDisabled = viewModel.depositWalletUnsupported;
-
     return SailCard(
-      error: isDisabled ? 'Select your enforcer wallet to fund sidechain deposits' : null,
       bottomPadding: false,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            FromWalletField(
-              selectedWalletId: viewModel.depositWalletId,
-              onChanged: viewModel.setDepositWalletId,
-            ),
-            const SizedBox(height: SailStyleValues.padding08),
             SailRow(
               spacing: SailStyleValues.padding08,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1338,35 +1334,32 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                     controller: viewModel.addressController,
                     hintText: 's${viewModel._selectedIndex ?? 0}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
                     size: TextFieldSize.small,
-                    enabled: !isDisabled,
                   ),
                 ),
                 SailButton(
                   variant: ButtonVariant.icon,
-                  onPressed: isDisabled
-                      ? null
-                      : () async {
-                          try {
-                            final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                            if (clipboardData?.text != null) {
-                              viewModel.addressController.text = clipboardData!.text!;
-                              viewModel.notifyListeners(); // Make sure UI updates
-                            }
-                          } catch (e) {
-                            if (!context.mounted) {
-                              return;
-                            }
-                            showSailToast(context, 'Error accessing clipboard');
-                          }
-                        },
+                  onPressed: () async {
+                    try {
+                      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (clipboardData?.text != null) {
+                        viewModel.addressController.text = clipboardData!.text!;
+                        viewModel.notifyListeners(); // Make sure UI updates
+                      }
+                    } catch (e) {
+                      if (!context.mounted) {
+                        return;
+                      }
+                      showSailToast(context, 'Error accessing clipboard');
+                    }
+                  },
                   icon: SailSVGAsset.iconCopy,
                 ),
                 SailTooltip(
-                  message: isDisabled ? 'Disabled' : (viewModel.formatError ?? 'Format as deposit address'),
+                  message: viewModel.formatError ?? 'Format as deposit address',
                   child: SailButton(
                     variant: ButtonVariant.icon,
                     onPressed: viewModel.formatAddress,
-                    disabled: isDisabled || viewModel.formatError != null,
+                    disabled: viewModel.formatError != null,
                     icon: SailSVGAsset.iconFormat,
                   ),
                 ),
@@ -1378,16 +1371,21 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
-                  flex: 2, // take up 2/3 of the space
+                  flex: 2,
                   child: NumericField(
                     label: 'Deposit Amount',
                     controller: viewModel.depositAmountController,
                     hintText: '0.00',
-                    enabled: !isDisabled,
                   ),
                 ),
                 UnitDropdown(value: Unit.BTC, onChanged: (_) => {}, enabled: false),
-                Expanded(child: Container()),
+                Expanded(
+                  flex: 2,
+                  child: FromWalletField(
+                    selectedWalletId: viewModel.depositWalletId,
+                    onChanged: viewModel.setDepositWalletId,
+                  ),
+                ),
               ],
             ),
             Padding(
@@ -1400,7 +1398,6 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
             SailButton(
               label: 'Deposit',
               disabled:
-                  isDisabled ||
                   viewModel.depositWalletId == null ||
                   viewModel.addressController.text == '' ||
                   viewModel.depositAmountController.text == '' ||
@@ -1725,11 +1722,6 @@ class _DepositModalState extends State<DepositModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              FromWalletField(
-                selectedWalletId: fromWalletId,
-                onChanged: (walletId) => setState(() => selectedWalletId = walletId),
-              ),
-              const SailSpacing(SailStyleValues.padding16),
               SailRow(
                 spacing: SailStyleValues.padding08,
                 children: [
@@ -1770,7 +1762,13 @@ class _DepositModalState extends State<DepositModal> {
                     ),
                   ),
                   UnitDropdown(value: Unit.BTC, onChanged: (_) {}, enabled: false),
-                  Expanded(child: Container()),
+                  Expanded(
+                    flex: 2,
+                    child: FromWalletField(
+                      selectedWalletId: fromWalletId,
+                      onChanged: (walletId) => setState(() => selectedWalletId = walletId),
+                    ),
+                  ),
                 ],
               ),
               const SailSpacing(SailStyleValues.padding08),
