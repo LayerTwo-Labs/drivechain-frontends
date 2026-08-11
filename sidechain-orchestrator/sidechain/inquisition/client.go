@@ -192,13 +192,21 @@ func (c *Client) Transfer(ctx context.Context, address string, amountSats, _ int
 	return c.SendToAddress(ctx, address, amountSats, false)
 }
 
+// FallbackFeeRate is what a chain with no fee history estimates at, in BTC/kvB.
+const FallbackFeeRate = 0.00001
+
 // EstimateSmartFee returns the fee rate in BTC/kvB for a six block target.
+// Regtest has no fee history, and a zero rate builds an unrelayable
+// transaction, so an unanswered estimate falls back to a usable default.
 func (c *Client) EstimateSmartFee(ctx context.Context) (float64, error) {
 	result, err := unmarshal[struct {
 		FeeRate float64 `json:"feerate"`
 	}](c, ctx, "estimatesmartfee", []any{6})
 	if err != nil {
 		return 0, err
+	}
+	if result.FeeRate <= 0 {
+		return FallbackFeeRate, nil
 	}
 	return result.FeeRate, nil
 }

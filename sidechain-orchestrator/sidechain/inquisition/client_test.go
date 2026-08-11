@@ -129,3 +129,16 @@ func TestWithdrawalsFailLoudly(t *testing.T) {
 	_, err := client.Withdraw(context.Background(), "bc1qexample", 1, 1, 1)
 	require.ErrorIs(t, err, errWithdrawalsUnwired)
 }
+
+// Regtest answers estimatesmartfee with errors and no rate; a zero rate builds
+// an unrelayable transaction.
+func TestFeeEstimateFallsBackWithoutHistory(t *testing.T) {
+	srv, _ := fakeNode(t, map[string]json.RawMessage{
+		"estimatesmartfee": json.RawMessage(`{"errors":["Insufficient data or no feerate found"],"blocks":6}`),
+	})
+	defer srv.Close()
+
+	rate, err := clientFor(t, srv, cookieFile(t, "user:pass")).EstimateSmartFee(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, FallbackFeeRate, rate)
+}
