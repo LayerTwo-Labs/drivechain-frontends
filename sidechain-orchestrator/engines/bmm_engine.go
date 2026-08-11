@@ -62,6 +62,8 @@ type MainchainTip interface {
 type bmmTarget struct {
 	minBidSats int64
 	maxBidSats int64
+	// walletID funds every bid. Empty spends from the active wallet.
+	walletID string
 	// lastTip is the tip this sidechain last opened a round on. Per sidechain,
 	// so starting one does not have to wait out another's round.
 	lastTip string
@@ -101,8 +103,8 @@ func NewBmmEngine(log zerolog.Logger, backend BmmBackend, tip MainchainTip, stor
 }
 
 // Start bids for sidechain on every new mainchain tip until Stop, raising
-// toward maxBidSats when outbid. Bids are funded by the active wallet.
-func (e *BmmEngine) Start(sidechain pb.BinaryType, minBidSats, maxBidSats int64) error {
+// toward maxBidSats when outbid. walletID funds every bid.
+func (e *BmmEngine) Start(sidechain pb.BinaryType, walletID string, minBidSats, maxBidSats int64) error {
 	if minBidSats <= 0 {
 		return fmt.Errorf("min_bid_sats must be positive")
 	}
@@ -111,7 +113,7 @@ func (e *BmmEngine) Start(sidechain pb.BinaryType, minBidSats, maxBidSats int64)
 	}
 
 	e.mu.Lock()
-	target := bmmTarget{minBidSats: minBidSats, maxBidSats: maxBidSats}
+	target := bmmTarget{minBidSats: minBidSats, maxBidSats: maxBidSats, walletID: walletID}
 	if existing, ok := e.targets[sidechain]; ok {
 		target.lastTip = existing.lastTip
 	} else if round, ok := e.current[sidechain]; ok {
@@ -136,12 +138,13 @@ func (e *BmmEngine) Stop(sidechain pb.BinaryType) {
 	e.notify()
 }
 
-// Running reports whether the engine bids for sidechain, with its bid bounds.
-func (e *BmmEngine) Running(sidechain pb.BinaryType) (bool, int64, int64) {
+// Running reports whether the engine bids for sidechain, with the wallet it
+// spends from and its bid bounds.
+func (e *BmmEngine) Running(sidechain pb.BinaryType) (bool, string, int64, int64) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	t, ok := e.targets[sidechain]
-	return ok, t.minBidSats, t.maxBidSats
+	return ok, t.walletID, t.minBidSats, t.maxBidSats
 }
 
 // Current returns the round being bid on, or nil.
@@ -380,7 +383,7 @@ func (e *BmmEngine) openRound(
 	e.current[sidechain] = round
 	e.mu.Unlock()
 
-	e.placeBid(ctx, sidechain, round, target.minBidSats, "")
+	e.placeBid(ctx, sidechain, round, target.walletID, target.minBidSats, "")
 	e.notify()
 }
 
@@ -430,10 +433,12 @@ func (e *BmmEngine) ourTxids(sidechain pb.BinaryType) map[string]bool {
 // placeBid broadcasts an M8 and records it. replaceTxid raises an earlier bid,
 // which evicts that one from the mempool.
 func (e *BmmEngine) placeBid(
-	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round, bidSats int64, replaceTxid string,
+	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round,
+	walletID string, bidSats int64, replaceTxid string,
 ) {
 	resp, err := e.backend.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
 		Sidechain:          sidechain,
+		WalletId:           walletID,
 		BidSats:            bidSats,
 		ReplaceTxid:        replaceTxid,
 		ExpectPrevMainHash: round.PrevMainHash,
@@ -475,6 +480,7 @@ func (e *BmmEngine) placeBid(
 		IsOurs:       true,
 		State:        BidLive,
 		BlockJSON:    resp.Msg.BlockJson,
+		WalletID:     walletID,
 	})
 
 	e.log.Info().Stringer("sidechain", sidechain).Str("txid", resp.Msg.BmmTxid).
@@ -522,9 +528,16 @@ func (e *BmmEngine) maybeRaise(ctx context.Context, sidechain pb.BinaryType, tar
 		return
 	}
 
+	// The raise respends the live bid's inputs, so only the wallet that funded
+	// it can sign them.
+	walletID := live.WalletID
+	if walletID == "" {
+		walletID = target.walletID
+	}
+
 	e.log.Info().Stringer("sidechain", sidechain).
 		Int64("from_sats", live.BidSats).Int64("to_sats", next).Msg("raising bmm bid")
-	e.placeBid(ctx, sidechain, round, next, live.Txid)
+	e.placeBid(ctx, sidechain, round, walletID, next, live.Txid)
 	e.notify()
 }
 

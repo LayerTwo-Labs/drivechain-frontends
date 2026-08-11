@@ -49,15 +49,15 @@ const (
 	BMMServiceConnectBidProcedure = "/bmm.v1.BMMService/ConnectBid"
 	// BMMServiceListBidsProcedure is the fully-qualified name of the BMMService's ListBids RPC.
 	BMMServiceListBidsProcedure = "/bmm.v1.BMMService/ListBids"
-	// BMMServiceGriefBidProcedure is the fully-qualified name of the BMMService's GriefBid RPC.
-	BMMServiceGriefBidProcedure = "/bmm.v1.BMMService/GriefBid"
+	// BMMServiceAttackBidProcedure is the fully-qualified name of the BMMService's AttackBid RPC.
+	BMMServiceAttackBidProcedure = "/bmm.v1.BMMService/AttackBid"
 )
 
 // BMMServiceClient is a client for the bmm.v1.BMMService service.
 type BMMServiceClient interface {
 	// Start bids on every new mainchain tip and connects the blocks miners take,
-	// until Stop. Bids are funded by whichever wallet is active at the time, and
-	// are raised toward max_bid_sats when a competitor outbids us.
+	// until Stop. Bids are funded by the wallet the request names, and are
+	// raised toward max_bid_sats when a competitor outbids us.
 	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
 	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
 	ClearHistory(context.Context, *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error)
@@ -76,10 +76,10 @@ type BMMServiceClient interface {
 	// ListBids reads the competing bids for the slot out of the mainchain
 	// mempool, highest bid first.
 	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
-	// GriefBid bids on a slot with a commitment to no real block, then never
+	// AttackBid bids on a slot with a commitment to no real block, then never
 	// connects it, so an honest block loses the slot for that mainchain block.
 	// A teaching tool for the BMM stall attack; rejected on mainnet.
-	GriefBid(context.Context, *connect.Request[v1.GriefBidRequest]) (*connect.Response[v1.GriefBidResponse], error)
+	AttackBid(context.Context, *connect.Request[v1.AttackBidRequest]) (*connect.Response[v1.AttackBidResponse], error)
 }
 
 // NewBMMServiceClient constructs a client for the bmm.v1.BMMService service. By default, it uses
@@ -141,10 +141,10 @@ func NewBMMServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(bMMServiceMethods.ByName("ListBids")),
 			connect.WithClientOptions(opts...),
 		),
-		griefBid: connect.NewClient[v1.GriefBidRequest, v1.GriefBidResponse](
+		attackBid: connect.NewClient[v1.AttackBidRequest, v1.AttackBidResponse](
 			httpClient,
-			baseURL+BMMServiceGriefBidProcedure,
-			connect.WithSchema(bMMServiceMethods.ByName("GriefBid")),
+			baseURL+BMMServiceAttackBidProcedure,
+			connect.WithSchema(bMMServiceMethods.ByName("AttackBid")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -160,7 +160,7 @@ type bMMServiceClient struct {
 	createBid    *connect.Client[v1.CreateBidRequest, v1.CreateBidResponse]
 	connectBid   *connect.Client[v1.ConnectBidRequest, v1.ConnectBidResponse]
 	listBids     *connect.Client[v1.ListBidsRequest, v1.ListBidsResponse]
-	griefBid     *connect.Client[v1.GriefBidRequest, v1.GriefBidResponse]
+	attackBid    *connect.Client[v1.AttackBidRequest, v1.AttackBidResponse]
 }
 
 // Start calls bmm.v1.BMMService.Start.
@@ -203,16 +203,16 @@ func (c *bMMServiceClient) ListBids(ctx context.Context, req *connect.Request[v1
 	return c.listBids.CallUnary(ctx, req)
 }
 
-// GriefBid calls bmm.v1.BMMService.GriefBid.
-func (c *bMMServiceClient) GriefBid(ctx context.Context, req *connect.Request[v1.GriefBidRequest]) (*connect.Response[v1.GriefBidResponse], error) {
-	return c.griefBid.CallUnary(ctx, req)
+// AttackBid calls bmm.v1.BMMService.AttackBid.
+func (c *bMMServiceClient) AttackBid(ctx context.Context, req *connect.Request[v1.AttackBidRequest]) (*connect.Response[v1.AttackBidResponse], error) {
+	return c.attackBid.CallUnary(ctx, req)
 }
 
 // BMMServiceHandler is an implementation of the bmm.v1.BMMService service.
 type BMMServiceHandler interface {
 	// Start bids on every new mainchain tip and connects the blocks miners take,
-	// until Stop. Bids are funded by whichever wallet is active at the time, and
-	// are raised toward max_bid_sats when a competitor outbids us.
+	// until Stop. Bids are funded by the wallet the request names, and are
+	// raised toward max_bid_sats when a competitor outbids us.
 	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
 	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
 	ClearHistory(context.Context, *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error)
@@ -231,10 +231,10 @@ type BMMServiceHandler interface {
 	// ListBids reads the competing bids for the slot out of the mainchain
 	// mempool, highest bid first.
 	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
-	// GriefBid bids on a slot with a commitment to no real block, then never
+	// AttackBid bids on a slot with a commitment to no real block, then never
 	// connects it, so an honest block loses the slot for that mainchain block.
 	// A teaching tool for the BMM stall attack; rejected on mainnet.
-	GriefBid(context.Context, *connect.Request[v1.GriefBidRequest]) (*connect.Response[v1.GriefBidResponse], error)
+	AttackBid(context.Context, *connect.Request[v1.AttackBidRequest]) (*connect.Response[v1.AttackBidResponse], error)
 }
 
 // NewBMMServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -292,10 +292,10 @@ func NewBMMServiceHandler(svc BMMServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(bMMServiceMethods.ByName("ListBids")),
 		connect.WithHandlerOptions(opts...),
 	)
-	bMMServiceGriefBidHandler := connect.NewUnaryHandler(
-		BMMServiceGriefBidProcedure,
-		svc.GriefBid,
-		connect.WithSchema(bMMServiceMethods.ByName("GriefBid")),
+	bMMServiceAttackBidHandler := connect.NewUnaryHandler(
+		BMMServiceAttackBidProcedure,
+		svc.AttackBid,
+		connect.WithSchema(bMMServiceMethods.ByName("AttackBid")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/bmm.v1.BMMService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -316,8 +316,8 @@ func NewBMMServiceHandler(svc BMMServiceHandler, opts ...connect.HandlerOption) 
 			bMMServiceConnectBidHandler.ServeHTTP(w, r)
 		case BMMServiceListBidsProcedure:
 			bMMServiceListBidsHandler.ServeHTTP(w, r)
-		case BMMServiceGriefBidProcedure:
-			bMMServiceGriefBidHandler.ServeHTTP(w, r)
+		case BMMServiceAttackBidProcedure:
+			bMMServiceAttackBidHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -359,6 +359,6 @@ func (UnimplementedBMMServiceHandler) ListBids(context.Context, *connect.Request
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.ListBids is not implemented"))
 }
 
-func (UnimplementedBMMServiceHandler) GriefBid(context.Context, *connect.Request[v1.GriefBidRequest]) (*connect.Response[v1.GriefBidResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.GriefBid is not implemented"))
+func (UnimplementedBMMServiceHandler) AttackBid(context.Context, *connect.Request[v1.AttackBidRequest]) (*connect.Response[v1.AttackBidResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.AttackBid is not implemented"))
 }

@@ -13,8 +13,8 @@ import "orchestrator/v1/orchestrator.proto";
 // what became of them.
 service BMMService {
   // Start bids on every new mainchain tip and connects the blocks miners take,
-  // until Stop. Bids are funded by whichever wallet is active at the time, and
-  // are raised toward max_bid_sats when a competitor outbids us.
+  // until Stop. Bids are funded by the wallet the request names, and are
+  // raised toward max_bid_sats when a competitor outbids us.
   rpc Start(StartRequest) returns (StartResponse);
   rpc Stop(StopRequest) returns (StopResponse);
   rpc ClearHistory(ClearHistoryRequest) returns (ClearHistoryResponse);
@@ -37,10 +37,10 @@ service BMMService {
   // mempool, highest bid first.
   rpc ListBids(ListBidsRequest) returns (ListBidsResponse);
 
-  // GriefBid bids on a slot with a commitment to no real block, then never
+  // AttackBid bids on a slot with a commitment to no real block, then never
   // connects it, so an honest block loses the slot for that mainchain block.
   // A teaching tool for the BMM stall attack; rejected on mainnet.
-  rpc GriefBid(GriefBidRequest) returns (GriefBidResponse);
+  rpc AttackBid(AttackBidRequest) returns (AttackBidResponse);
 }
 
 message StartRequest {
@@ -50,6 +50,8 @@ message StartRequest {
   // Ceiling for raises. A bid is never raised above this, nor above what the
   // block is worth, since either loses money.
   int64 max_bid_sats = 3;
+  // Wallet that funds every bid. Empty uses the active wallet.
+  string wallet_id = 4;
 }
 
 message StartResponse {}
@@ -78,6 +80,8 @@ message WatchResponse {
   Round current = 4;
   // Finished rounds, newest first.
   repeated Round history = 5;
+  // Wallet that funds the bids. Empty means the active wallet.
+  string wallet_id = 6;
 }
 
 // Round is one mainchain tip and the contest for the sidechain block after it.
@@ -188,7 +192,7 @@ message ListBidsResponse {
   repeated Bid bids = 1;
 }
 
-message GriefBidRequest {
+message AttackBidRequest {
   orchestrator.v1.BinaryType sidechain = 1;
   // Wallet that funds the bid. Empty uses the active wallet.
   string wallet_id = 2;
@@ -196,7 +200,7 @@ message GriefBidRequest {
   int64 bid_sats = 3;
 }
 
-message GriefBidResponse {
+message AttackBidResponse {
   // Random hash committed to. No block exists for it, so it never connects.
   string critical_hash = 1;
   // The M8 transaction that was broadcast.

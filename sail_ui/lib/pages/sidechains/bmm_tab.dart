@@ -25,6 +25,7 @@ class BMMTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _Controls(viewModel: viewModel),
+              _FundingWallet(viewModel: viewModel),
               _CurrentSlot(viewModel: viewModel),
               _BidsOnNextBlock(viewModel: viewModel),
               _HistoricBids(viewModel: viewModel),
@@ -55,9 +56,9 @@ class _Controls extends StatelessWidget {
           onPressed: () async => _showManualBidDialog(context, viewModel),
         ),
         SailButton(
-          label: 'Grief',
+          label: 'Attack',
           variant: ButtonVariant.secondary,
-          onPressed: () async => viewModel.bmmProvider.griefBid(),
+          onPressed: () async => viewModel.bmmProvider.attackBid(),
         ),
         Expanded(child: Container()),
         SailText.primary13('Min bid:'),
@@ -125,6 +126,46 @@ class _Controls extends StatelessWidget {
   }
 }
 
+/// The wallet every bid spends from, with what it holds.
+class _FundingWallet extends StatelessWidget {
+  final BMMViewModel viewModel;
+  const _FundingWallet({required this.viewModel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return SailColumn(
+      spacing: SailStyleValues.padding04,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SailRow(
+          spacing: SailStyleValues.padding08,
+          children: [
+            SailText.secondary13('Funding wallet:'),
+            SizedBox(
+              width: 260,
+              child: WalletPicker(
+                selectedWalletId: viewModel.fundingWalletId,
+                onChanged: viewModel.setFundingWallet,
+                rawOutputs: true,
+              ),
+            ),
+            SailText.secondary13(
+              viewModel.fundingBalanceLabel,
+              color: viewModel.fundingWarning ? theme.colors.orange : null,
+            ),
+          ],
+        ),
+        SailText.secondary12(
+          'Bids spend from this wallet. It does not change the active wallet.',
+          color: theme.colors.textTertiary,
+        ),
+      ],
+    );
+  }
+}
+
 /// The block being bid on: what it is worth, what we bid, what we stand to make.
 class _CurrentSlot extends StatelessWidget {
   final BMMViewModel viewModel;
@@ -164,12 +205,12 @@ class _CurrentSlot extends StatelessWidget {
               ),
               _Figure(label: 'Profit if won', value: viewModel.formatSats(viewModel.profitIfWon)),
               _Figure(label: 'Sidechain block ready', value: viewModel.currentCriticalHash),
-              if (viewModel.bmmProvider.griefBidsSent > 0)
+              if (viewModel.bmmProvider.attackBidsSent > 0)
                 _Figure(
                   label: 'Attack cost',
                   value:
-                      '${viewModel.bmmProvider.griefBidsSent} fake, '
-                      '${viewModel.bmmProvider.griefSatsSpent} sats',
+                      '${viewModel.bmmProvider.attackBidsSent} fake, '
+                      '${viewModel.bmmProvider.attackSatsSpent} sats',
                 ),
             ],
           ),
@@ -355,6 +396,28 @@ class BMMViewModel extends BaseViewModel {
 
   bool get running => bmmProvider.running;
   String? get bmmError => bmmProvider.error;
+
+  String? get fundingWalletId => bmmProvider.fundingWalletId;
+  void setFundingWallet(String walletId) => bmmProvider.setFundingWalletId(walletId);
+
+  bool get fundingBalanceTooLow => bmmProvider.fundingBalanceTooLow;
+
+  bool get fundingWarning => fundingWalletId == null || fundingBalanceTooLow;
+
+  String get fundingBalanceLabel {
+    if (fundingWalletId == null) {
+      return BMMProvider.noFundingWallet;
+    }
+    final sats = bmmProvider.fundingBalanceSats;
+    if (sats == null) {
+      return 'Reading balance…';
+    }
+    final balance = 'Balance ${satoshiToBTC(sats).toStringAsFixed(8)} BTC';
+    if (!fundingBalanceTooLow) {
+      return balance;
+    }
+    return '$balance — under the max bid of ${bmmProvider.maxBidAmount.toStringAsFixed(8)} BTC';
+  }
 
   int get blockWorthSats => bmmProvider.current?.blockWorthSats.toInt() ?? 0;
 

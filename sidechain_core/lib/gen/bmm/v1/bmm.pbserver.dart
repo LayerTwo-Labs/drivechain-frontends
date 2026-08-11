@@ -29,7 +29,7 @@ abstract class BMMServiceBase extends $pb.GeneratedService {
   $async.Future<$3.CreateBidResponse> createBid($pb.ServerContext ctx, $3.CreateBidRequest request);
   $async.Future<$3.ConnectBidResponse> connectBid($pb.ServerContext ctx, $3.ConnectBidRequest request);
   $async.Future<$3.ListBidsResponse> listBids($pb.ServerContext ctx, $3.ListBidsRequest request);
-  $async.Future<$3.GriefBidResponse> griefBid($pb.ServerContext ctx, $3.GriefBidRequest request);
+  $async.Future<$3.AttackBidResponse> attackBid($pb.ServerContext ctx, $3.AttackBidRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -49,8 +49,8 @@ abstract class BMMServiceBase extends $pb.GeneratedService {
         return $3.ConnectBidRequest();
       case 'ListBids':
         return $3.ListBidsRequest();
-      case 'GriefBid':
-        return $3.GriefBidRequest();
+      case 'AttackBid':
+        return $3.AttackBidRequest();
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -75,8 +75,8 @@ abstract class BMMServiceBase extends $pb.GeneratedService {
         return this.connectBid(ctx, request as $3.ConnectBidRequest);
       case 'ListBids':
         return this.listBids(ctx, request as $3.ListBidsRequest);
-      case 'GriefBid':
-        return this.griefBid(ctx, request as $3.GriefBidRequest);
+      case 'AttackBid':
+        return this.attackBid(ctx, request as $3.AttackBidRequest);
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }

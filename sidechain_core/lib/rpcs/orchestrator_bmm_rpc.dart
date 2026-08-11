@@ -24,10 +24,12 @@ class OrchestratorBmmRPC {
     required BinaryType sidechain,
     required int minBidSats,
     required int maxBidSats,
+    String? walletId,
   }) async {
     await _unaryClient.start(
       bmmpb.StartRequest(
         sidechain: sidechain,
+        walletId: walletId ?? '',
         minBidSats: Int64(minBidSats),
         maxBidSats: Int64(maxBidSats),
       ),
@@ -78,13 +80,13 @@ class OrchestratorBmmRPC {
 
   /// Bids on a slot with a commitment to no real block. Demonstrates the BMM
   /// stall attack; the backend rejects it on mainnet.
-  Future<bmmpb.GriefBidResponse> griefBid({
+  Future<bmmpb.AttackBidResponse> attackBid({
     required BinaryType sidechain,
     required int bidSats,
     String? walletId,
   }) {
-    return _unaryClient.griefBid(
-      bmmpb.GriefBidRequest(
+    return _unaryClient.attackBid(
+      bmmpb.AttackBidRequest(
         sidechain: sidechain,
         walletId: walletId ?? '',
         bidSats: Int64(bidSats),

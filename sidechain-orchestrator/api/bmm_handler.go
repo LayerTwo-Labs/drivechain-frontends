@@ -51,7 +51,7 @@ func (h *BMMHandler) Start(
 	if _, err := h.sidechainConfig(req.Msg.Sidechain); err != nil {
 		return nil, err
 	}
-	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.MinBidSats, req.Msg.MaxBidSats); err != nil {
+	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId, req.Msg.MinBidSats, req.Msg.MaxBidSats); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return connect.NewResponse(&bmmpb.StartResponse{}), nil
@@ -122,7 +122,7 @@ func (h *BMMHandler) Watch(
 }
 
 func (h *BMMHandler) state(sidechain pb.BinaryType) (*bmmpb.WatchResponse, error) {
-	running, minBid, maxBid := h.engine.Running(sidechain)
+	running, walletID, minBid, maxBid := h.engine.Running(sidechain)
 
 	history, err := h.engine.History(sidechain)
 	if err != nil {
@@ -131,6 +131,7 @@ func (h *BMMHandler) state(sidechain pb.BinaryType) (*bmmpb.WatchResponse, error
 
 	out := &bmmpb.WatchResponse{
 		Running:    running,
+		WalletId:   walletID,
 		MinBidSats: minBid,
 		MaxBidSats: maxBid,
 		History:    lo.Map(history, func(r bmmstate.Round, _ int) *bmmpb.Round { return roundToProto(r) }),
@@ -363,16 +364,16 @@ func (h *BMMHandler) ListBids(
 	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
 }
 
-// GriefBid bids on a slot with a commitment to no real block and never
+// AttackBid bids on a slot with a commitment to no real block and never
 // connects it, stalling an honest producer. Rejected on mainnet.
-func (h *BMMHandler) GriefBid(
-	ctx context.Context, req *connect.Request[bmmpb.GriefBidRequest],
-) (*connect.Response[bmmpb.GriefBidResponse], error) {
+func (h *BMMHandler) AttackBid(
+	ctx context.Context, req *connect.Request[bmmpb.AttackBidRequest],
+) (*connect.Response[bmmpb.AttackBidResponse], error) {
 	if req.Msg.BidSats <= 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("bid_sats must be positive"))
 	}
 	if h.orch != nil && h.orch.CurrentNetwork() == "mainnet" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("grief bids are disabled on mainnet"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("attack bids are disabled on mainnet"))
 	}
 
 	cfg, proxy, err := h.sidechainTarget(req.Msg.Sidechain)
@@ -417,7 +418,7 @@ func (h *BMMHandler) GriefBid(
 		return nil, err
 	}
 
-	return connect.NewResponse(&bmmpb.GriefBidResponse{
+	return connect.NewResponse(&bmmpb.AttackBidResponse{
 		CriticalHash: criticalHash,
 		BmmTxid:      send.Msg.Txid,
 	}), nil

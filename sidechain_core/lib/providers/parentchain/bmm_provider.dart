@@ -11,6 +11,7 @@ import 'package:sidechain_core/sidechain_core.dart';
 class BMMProvider extends ChangeNotifier {
   final SidechainRPC sidechainRPC;
   final OrchestratorBmmRPC _bmm;
+  final WalletReaderProvider? _walletReader;
   final Logger _log;
 
   StreamSupervisor<bmmpb.WatchResponse>? _supervisor;
@@ -18,6 +19,11 @@ class BMMProvider extends ChangeNotifier {
   bool running = false;
   double minBidAmount = 0.00005;
   double maxBidAmount = 0.0002;
+
+  String? _selectedWalletId;
+
+  /// Confirmed balance of the funding wallet, null until a fetch lands.
+  int? fundingBalanceSats;
 
   /// The round being bid on, absent when no tip has been seen yet.
   bmmpb.Round? current;
@@ -30,15 +36,87 @@ class BMMProvider extends ChangeNotifier {
   BMMProvider({
     SidechainRPC? sidechainRPC,
     OrchestratorBmmRPC? bmm,
+    WalletReaderProvider? walletReader,
     Logger? logger,
   }) : sidechainRPC = sidechainRPC ?? GetIt.I.get<SidechainRPC>(),
        _bmm = bmm ?? GetIt.I.get<OrchestratorRPC>().bmm,
+       _walletReader =
+           walletReader ?? (GetIt.I.isRegistered<WalletReaderProvider>() ? GetIt.I.get<WalletReaderProvider>() : null),
        _log = logger ?? GetIt.I.get<Logger>() {
+    _resolvedWalletId = fundingWalletId;
+    _walletReader?.addListener(_onWalletsChanged);
     _listen();
+    unawaited(refreshFundingBalance());
   }
+
+  String? _resolvedWalletId;
 
   int get minBidSats => btcToSatoshi(minBidAmount);
   int get maxBidSats => btcToSatoshi(maxBidAmount);
+
+  /// Wallet every bid spends from. Selecting it never changes the active
+  /// wallet. A bid goes out as a raw M8 output, which the enforcer rejects.
+  String? get fundingWalletId => _walletReader?.resolveFundingWalletId(_selectedWalletId, rawOutputs: true);
+
+  void setFundingWalletId(String walletId) {
+    _selectedWalletId = walletId;
+    _resolvedWalletId = fundingWalletId;
+    fundingBalanceSats = null;
+    notifyListeners();
+    unawaited(refreshFundingBalance());
+    if (running) {
+      unawaited(startBidding());
+    }
+  }
+
+  /// True once we know the funding wallet cannot cover the highest bid.
+  bool get fundingBalanceTooLow {
+    final balance = fundingBalanceSats;
+    return balance != null && balance < maxBidSats;
+  }
+
+  Future<void> refreshFundingBalance() async {
+    final walletId = fundingWalletId;
+    if (walletId == null) {
+      return;
+    }
+    try {
+      final balance = await GetIt.I.get<OrchestratorRPC>().wallet.getBalance(walletId);
+      // Another wallet may have been picked while this read was in flight.
+      if (walletId != fundingWalletId) {
+        return;
+      }
+      fundingBalanceSats = balance.confirmedSats.round();
+      notifyListeners();
+    } catch (e) {
+      _log.d('BMMProvider: read funding balance: $e');
+    }
+  }
+
+  void _onWalletsChanged() {
+    final resolved = fundingWalletId;
+    if (resolved != _resolvedWalletId) {
+      _resolvedWalletId = resolved;
+      fundingBalanceSats = null;
+      unawaited(refreshFundingBalance());
+      if (running) {
+        unawaited(_retarget(resolved));
+      }
+    }
+    notifyListeners();
+  }
+
+  /// The engine keeps bidding from the wallet it started with, so a wallet that
+  /// goes away has to move the running loop, not only the display.
+  Future<void> _retarget(String? walletId) async {
+    if (walletId != null) {
+      await startBidding();
+      return;
+    }
+    await stopBidding();
+    error = noFundingWallet;
+    notifyListeners();
+  }
 
   /// Our live bid for the current round, if any.
   bmmpb.Bid? get liveBid {
@@ -91,7 +169,14 @@ class BMMProvider extends ChangeNotifier {
 
   void _apply(bmmpb.WatchResponse state) {
     running = state.running;
+    if (state.walletId.isNotEmpty) {
+      _selectedWalletId = state.walletId;
+    }
+    final previousRound = current?.prevMainHash;
     current = state.hasCurrent() ? state.current : null;
+    if (current != null && current!.prevMainHash != previousRound) {
+      unawaited(refreshFundingBalance());
+    }
     history = state.history;
     if (state.minBidSats > 0) {
       minBidAmount = satoshiToBTC(state.minBidSats.toInt());
@@ -103,10 +188,21 @@ class BMMProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set when no wallet can fund a bid. An empty wallet id would fall back to
+  /// the active wallet, which is the enforcer this path cannot use.
+  static const noFundingWallet = 'No wallet can fund a bid. A bid needs a core or electrum wallet.';
+
   Future<void> startBidding() async {
+    final walletId = fundingWalletId;
+    if (walletId == null) {
+      error = noFundingWallet;
+      notifyListeners();
+      return;
+    }
     try {
       await _bmm.start(
         sidechain: sidechainRPC.binaryType,
+        walletId: walletId,
         minBidSats: minBidSats,
         maxBidSats: maxBidSats,
       );
@@ -129,28 +225,46 @@ class BMMProvider extends ChangeNotifier {
 
   /// One bid outside the automated loop, for the manual dialog.
   Future<void> bidManually(int bidSats) async {
+    final walletId = fundingWalletId;
+    if (walletId == null) {
+      error = noFundingWallet;
+      notifyListeners();
+      return;
+    }
     try {
-      await _bmm.createBid(sidechain: sidechainRPC.binaryType, bidSats: bidSats);
+      await _bmm.createBid(sidechain: sidechainRPC.binaryType, walletId: walletId, bidSats: bidSats);
       error = null;
+      unawaited(refreshFundingBalance());
     } catch (e) {
       error = e.toString();
       notifyListeners();
     }
   }
 
-  int griefBidsSent = 0;
-  int griefSatsSpent = 0;
-  String? griefTxid;
+  int attackBidsSent = 0;
+  int attackSatsSpent = 0;
+  String? attackTxid;
 
   /// Broadcast an M8 committing to no real block, stalling the honest producer
   /// if a miner takes it. Rejected on mainnet by the backend.
-  Future<void> griefBid() async {
+  Future<void> attackBid() async {
+    final walletId = fundingWalletId;
+    if (walletId == null) {
+      error = noFundingWallet;
+      notifyListeners();
+      return;
+    }
     try {
-      final res = await _bmm.griefBid(sidechain: sidechainRPC.binaryType, bidSats: minBidSats);
-      griefBidsSent++;
-      griefSatsSpent += minBidSats;
-      griefTxid = res.bmmTxid;
+      final res = await _bmm.attackBid(
+        sidechain: sidechainRPC.binaryType,
+        walletId: walletId,
+        bidSats: minBidSats,
+      );
+      attackBidsSent++;
+      attackSatsSpent += minBidSats;
+      attackTxid = res.bmmTxid;
       error = null;
+      unawaited(refreshFundingBalance());
     } catch (e) {
       error = e.toString();
     }
@@ -174,6 +288,7 @@ class BMMProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _walletReader?.removeListener(_onWalletsChanged);
     unawaited(_supervisor?.dispose());
     super.dispose();
   }

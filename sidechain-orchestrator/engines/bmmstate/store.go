@@ -24,6 +24,9 @@ type Bid struct {
 	PrevMainHash   string `json:"prev_main_hash,omitempty"`
 	Error          string `json:"error,omitempty"`
 	BlockJSON      string `json:"block_json,omitempty"`
+	// WalletID funded the bid. A raise replaces its inputs, so it can only be
+	// funded by the same wallet.
+	WalletID string `json:"wallet_id,omitempty"`
 }
 
 // Round is one mainchain tip and everything that competed for it.

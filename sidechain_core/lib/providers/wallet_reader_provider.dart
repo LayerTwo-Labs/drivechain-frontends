@@ -58,6 +58,21 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
       )
       .toList();
 
+  /// Wallets that can fund a transaction: no watch-only, no multisig. The
+  /// enforcer builds its own transactions, so it takes no raw output.
+  List<WalletData> fundingWallets({bool rawOutputs = false}) =>
+      wallets.where((w) => !w.isWatchOnly && !w.isMultisig).where((w) => !rawOutputs || !w.isEnforcer).toList();
+
+  /// The wallet that funds a transaction: [selectedWalletId] while it can
+  /// spend, else the active wallet, else any spendable one.
+  String? resolveFundingWalletId(String? selectedWalletId, {bool rawOutputs = false}) {
+    final candidates = fundingWallets(rawOutputs: rawOutputs);
+    if (selectedWalletId != null && candidates.any((w) => w.id == selectedWalletId)) {
+      return selectedWalletId;
+    }
+    return candidates.where((w) => w.id == activeWalletId).firstOrNull?.id ?? candidates.firstOrNull?.id;
+  }
+
   bool get isWalletUnlocked => wallets.isNotEmpty;
   bool get isWalletLocked => !isWalletUnlocked;
 

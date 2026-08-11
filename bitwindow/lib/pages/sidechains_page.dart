@@ -632,7 +632,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   String? _depositWalletId;
 
-  String? get depositWalletId => FromWalletField.resolveFundingWalletId(_walletReader, _depositWalletId);
+  String? get depositWalletId => _walletReader.resolveFundingWalletId(_depositWalletId);
 
   void setDepositWalletId(String walletId) {
     _depositWalletId = walletId;
@@ -1226,102 +1226,6 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
   }
 }
 
-// Horizontal padding plus chevron that SailDropdownButton draws around its
-// current selection.
-const double _dropdownChrome = 45;
-
-class FromWalletField extends StatelessWidget {
-  final String? selectedWalletId;
-  final ValueChanged<String> onChanged;
-
-  const FromWalletField({
-    super.key,
-    required this.selectedWalletId,
-    required this.onChanged,
-  });
-
-  /// Wallets that can fund a deposit. Watch-only wallets hold no keys, and
-  /// multisig wallets sign through the PSBT lounge, which this path never
-  /// drives — the deposit is built and broadcast in one call.
-  static List<WalletData> fundingWallets(WalletReaderProvider walletReader) =>
-      walletReader.wallets.where((w) => !w.isWatchOnly && !w.isMultisig).toList();
-
-  /// The wallet a deposit will actually be funded from: the selection while it
-  /// can still spend, else the active wallet, else any spendable wallet. Null
-  /// when nothing can sign, which disables the deposit.
-  static String? resolveFundingWalletId(WalletReaderProvider walletReader, String? selectedWalletId) {
-    final wallets = fundingWallets(walletReader);
-    if (selectedWalletId != null && wallets.any((w) => w.id == selectedWalletId)) {
-      return selectedWalletId;
-    }
-    return wallets.firstWhereOrNull((w) => w.id == walletReader.activeWalletId)?.id ?? wallets.firstOrNull?.id;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final walletReader = GetIt.I<WalletReaderProvider>();
-
-    return ListenableBuilder(
-      listenable: walletReader,
-      builder: (context, _) {
-        final wallets = fundingWallets(walletReader);
-        if (wallets.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            // The dropdown trigger sizes to its content, so cap the wallet row
-            // to the slot minus the padding and chevron drawn around it.
-            final rowWidth = constraints.hasBoundedWidth
-                ? max(0.0, constraints.maxWidth - _dropdownChrome)
-                : double.infinity;
-
-            return SailColumn(
-              spacing: SailStyleValues.padding08,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SailText.primary13('From Wallet', bold: true),
-                SizedBox(
-                  width: double.infinity,
-                  child: SailDropdownButton<String>(
-                    value: selectedWalletId,
-                    hint: 'Select a wallet',
-                    items: wallets
-                        .map(
-                          (wallet) => SailDropdownItem<String>(
-                            value: wallet.id,
-                            label: wallet.name,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: rowWidth),
-                              child: SailRow(
-                                spacing: SailStyleValues.padding08,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  WalletBlobAvatar(gradient: wallet.gradient, size: 20),
-                                  Flexible(child: SailText.primary13(wallet.name)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (walletId) {
-                      if (walletId != null) {
-                        onChanged(walletId);
-                      }
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
 class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
   const MakeDepositsView({super.key});
 
@@ -1570,7 +1474,7 @@ class _DepositModalState extends State<DepositModal> {
   String? fetchError;
   String? selectedWalletId;
 
-  String? get fromWalletId => FromWalletField.resolveFundingWalletId(GetIt.I<WalletReaderProvider>(), selectedWalletId);
+  String? get fromWalletId => GetIt.I<WalletReaderProvider>().resolveFundingWalletId(selectedWalletId);
 
   @override
   void initState() {

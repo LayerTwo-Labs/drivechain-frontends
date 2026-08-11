@@ -22,6 +22,7 @@ class StartRequest extends $pb.GeneratedMessage {
     $2.BinaryType? sidechain,
     $fixnum.Int64? minBidSats,
     $fixnum.Int64? maxBidSats,
+    $core.String? walletId,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -32,6 +33,9 @@ class StartRequest extends $pb.GeneratedMessage {
     }
     if (maxBidSats != null) {
       $result.maxBidSats = maxBidSats;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
     }
     return $result;
   }
@@ -49,6 +53,7 @@ class StartRequest extends $pb.GeneratedMessage {
         enumValues: $2.BinaryType.values)
     ..aInt64(2, _omitFieldNames ? '' : 'minBidSats')
     ..aInt64(3, _omitFieldNames ? '' : 'maxBidSats')
+    ..aOS(4, _omitFieldNames ? '' : 'walletId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -109,6 +114,19 @@ class StartRequest extends $pb.GeneratedMessage {
   $core.bool hasMaxBidSats() => $_has(2);
   @$pb.TagNumber(3)
   void clearMaxBidSats() => clearField(3);
+
+  /// Wallet that funds every bid. Empty uses the active wallet.
+  @$pb.TagNumber(4)
+  $core.String get walletId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set walletId($core.String v) {
+    $_setString(3, v);
+  }
+
+  @$pb.TagNumber(4)
+  $core.bool hasWalletId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearWalletId() => clearField(4);
 }
 
 class StartResponse extends $pb.GeneratedMessage {
@@ -392,6 +410,7 @@ class WatchResponse extends $pb.GeneratedMessage {
     $fixnum.Int64? maxBidSats,
     Round? current,
     $core.Iterable<Round>? history,
+    $core.String? walletId,
   }) {
     final $result = create();
     if (running != null) {
@@ -409,6 +428,9 @@ class WatchResponse extends $pb.GeneratedMessage {
     if (history != null) {
       $result.history.addAll(history);
     }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
     return $result;
   }
   WatchResponse._() : super();
@@ -424,6 +446,7 @@ class WatchResponse extends $pb.GeneratedMessage {
     ..aInt64(3, _omitFieldNames ? '' : 'maxBidSats')
     ..aOM<Round>(4, _omitFieldNames ? '' : 'current', subBuilder: Round.create)
     ..pc<Round>(5, _omitFieldNames ? '' : 'history', $pb.PbFieldType.PM, subBuilder: Round.create)
+    ..aOS(6, _omitFieldNames ? '' : 'walletId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -500,6 +523,19 @@ class WatchResponse extends $pb.GeneratedMessage {
   /// Finished rounds, newest first.
   @$pb.TagNumber(5)
   $core.List<Round> get history => $_getList(4);
+
+  /// Wallet that funds the bids. Empty means the active wallet.
+  @$pb.TagNumber(6)
+  $core.String get walletId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set walletId($core.String v) {
+    $_setString(5, v);
+  }
+
+  @$pb.TagNumber(6)
+  $core.bool hasWalletId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearWalletId() => clearField(6);
 }
 
 /// Round is one mainchain tip and the contest for the sidechain block after it.
@@ -1655,8 +1691,8 @@ class ListBidsResponse extends $pb.GeneratedMessage {
   $core.List<Bid> get bids => $_getList(0);
 }
 
-class GriefBidRequest extends $pb.GeneratedMessage {
-  factory GriefBidRequest({
+class AttackBidRequest extends $pb.GeneratedMessage {
+  factory AttackBidRequest({
     $2.BinaryType? sidechain,
     $core.String? walletId,
     $fixnum.Int64? bidSats,
@@ -1673,14 +1709,14 @@ class GriefBidRequest extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  GriefBidRequest._() : super();
-  factory GriefBidRequest.fromBuffer($core.List<$core.int> i,
+  AttackBidRequest._() : super();
+  factory AttackBidRequest.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(i, r);
-  factory GriefBidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+  factory AttackBidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GriefBidRequest',
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AttackBidRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
     ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE,
         defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED,
@@ -1693,23 +1729,23 @@ class GriefBidRequest extends $pb.GeneratedMessage {
   @$core.Deprecated('Using this can add significant overhead to your binary. '
       'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
       'Will be removed in next major version')
-  GriefBidRequest clone() => GriefBidRequest()..mergeFromMessage(this);
+  AttackBidRequest clone() => AttackBidRequest()..mergeFromMessage(this);
   @$core.Deprecated('Using this can add significant overhead to your binary. '
       'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
       'Will be removed in next major version')
-  GriefBidRequest copyWith(void Function(GriefBidRequest) updates) =>
-      super.copyWith((message) => updates(message as GriefBidRequest)) as GriefBidRequest;
+  AttackBidRequest copyWith(void Function(AttackBidRequest) updates) =>
+      super.copyWith((message) => updates(message as AttackBidRequest)) as AttackBidRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GriefBidRequest create() => GriefBidRequest._();
-  GriefBidRequest createEmptyInstance() => create();
-  static $pb.PbList<GriefBidRequest> createRepeated() => $pb.PbList<GriefBidRequest>();
+  static AttackBidRequest create() => AttackBidRequest._();
+  AttackBidRequest createEmptyInstance() => create();
+  static $pb.PbList<AttackBidRequest> createRepeated() => $pb.PbList<AttackBidRequest>();
   @$core.pragma('dart2js:noInline')
-  static GriefBidRequest getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GriefBidRequest>(create);
-  static GriefBidRequest? _defaultInstance;
+  static AttackBidRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AttackBidRequest>(create);
+  static AttackBidRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $2.BinaryType get sidechain => $_getN(0);
@@ -1750,8 +1786,8 @@ class GriefBidRequest extends $pb.GeneratedMessage {
   void clearBidSats() => clearField(3);
 }
 
-class GriefBidResponse extends $pb.GeneratedMessage {
-  factory GriefBidResponse({
+class AttackBidResponse extends $pb.GeneratedMessage {
+  factory AttackBidResponse({
     $core.String? criticalHash,
     $core.String? bmmTxid,
   }) {
@@ -1764,14 +1800,14 @@ class GriefBidResponse extends $pb.GeneratedMessage {
     }
     return $result;
   }
-  GriefBidResponse._() : super();
-  factory GriefBidResponse.fromBuffer($core.List<$core.int> i,
+  AttackBidResponse._() : super();
+  factory AttackBidResponse.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(i, r);
-  factory GriefBidResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+  factory AttackBidResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GriefBidResponse',
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AttackBidResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'criticalHash')
     ..aOS(2, _omitFieldNames ? '' : 'bmmTxid')
@@ -1780,23 +1816,23 @@ class GriefBidResponse extends $pb.GeneratedMessage {
   @$core.Deprecated('Using this can add significant overhead to your binary. '
       'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
       'Will be removed in next major version')
-  GriefBidResponse clone() => GriefBidResponse()..mergeFromMessage(this);
+  AttackBidResponse clone() => AttackBidResponse()..mergeFromMessage(this);
   @$core.Deprecated('Using this can add significant overhead to your binary. '
       'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
       'Will be removed in next major version')
-  GriefBidResponse copyWith(void Function(GriefBidResponse) updates) =>
-      super.copyWith((message) => updates(message as GriefBidResponse)) as GriefBidResponse;
+  AttackBidResponse copyWith(void Function(AttackBidResponse) updates) =>
+      super.copyWith((message) => updates(message as AttackBidResponse)) as AttackBidResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GriefBidResponse create() => GriefBidResponse._();
-  GriefBidResponse createEmptyInstance() => create();
-  static $pb.PbList<GriefBidResponse> createRepeated() => $pb.PbList<GriefBidResponse>();
+  static AttackBidResponse create() => AttackBidResponse._();
+  AttackBidResponse createEmptyInstance() => create();
+  static $pb.PbList<AttackBidResponse> createRepeated() => $pb.PbList<AttackBidResponse>();
   @$core.pragma('dart2js:noInline')
-  static GriefBidResponse getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GriefBidResponse>(create);
-  static GriefBidResponse? _defaultInstance;
+  static AttackBidResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AttackBidResponse>(create);
+  static AttackBidResponse? _defaultInstance;
 
   /// Random hash committed to. No block exists for it, so it never connects.
   @$pb.TagNumber(1)
@@ -1845,8 +1881,8 @@ class BMMServiceApi {
       _client.invoke<ConnectBidResponse>(ctx, 'BMMService', 'ConnectBid', request, ConnectBidResponse());
   $async.Future<ListBidsResponse> listBids($pb.ClientContext? ctx, ListBidsRequest request) =>
       _client.invoke<ListBidsResponse>(ctx, 'BMMService', 'ListBids', request, ListBidsResponse());
-  $async.Future<GriefBidResponse> griefBid($pb.ClientContext? ctx, GriefBidRequest request) =>
-      _client.invoke<GriefBidResponse>(ctx, 'BMMService', 'GriefBid', request, GriefBidResponse());
+  $async.Future<AttackBidResponse> attackBid($pb.ClientContext? ctx, AttackBidRequest request) =>
+      _client.invoke<AttackBidResponse>(ctx, 'BMMService', 'AttackBid', request, AttackBidResponse());
 }
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
