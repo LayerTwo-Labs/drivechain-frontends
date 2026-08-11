@@ -796,6 +796,50 @@
         }
       },
       "hashes": {}
+    },
+    "inquisition": {
+      "type": "sidechain",
+      "slot": 119,
+      "name": "Inquisition",
+      "version": "29.4.0",
+      "description": "Covenant sidechain in slot 119: CTV, CAT, CSFS, APO, CCV.",
+      "repo_url": "https://github.com/sohibit/bitcoin",
+      "port": 18743,
+      "chain_layer": 2,
+      "is_bitcoin_core": true,
+      "color": "orange",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": ["Done loading"],
+      "directories": {
+        "binary": {
+          "default": {
+            "linux": ".inquisition",
+            "macos": "Inquisition",
+            "windows": "Inquisition"
+          }
+        },
+        "flutter_frontend": {
+          "linux": "com.layertwolabs.inquisition",
+          "macos": "com.layertwolabs.inquisition",
+          "windows": "10520LayertwoLabs/Inquisition"
+        }
+      },
+      "download": {
+        "binary": "inquisition",
+        "files": {
+          "default": {
+            "base_url": "https://github.com/sohibit/bitcoin/releases/download/v29.4-inq/",
+            "linux-x86_64": "",
+            "macos-x86_64": "",
+            "macos-arm64": "",
+            "windows-x86_64": ""
+          }
+        }
+      },
+      "hashes": {}
     }
   }
 }

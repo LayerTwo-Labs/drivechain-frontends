@@ -228,6 +228,73 @@ class LiquidSignet extends Sidechain {
   );
 }
 
+/// Bitcoin Inquisition fork carrying the covenant opcodes, run as a drivechain
+/// sidechain. Core-derived like Liquid Signet, so it speaks Core-style JSON-RPC
+/// rather than the CUSF interface the Rust sidechains use.
+class Inquisition extends Sidechain {
+  Inquisition({
+    super.name = 'Inquisition',
+    super.version = '29.4.0',
+    super.description = 'Covenant sidechain: CTV, CAT, CSFS, APO, CCV',
+    super.repoUrl = 'https://github.com/sohibit/bitcoin',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.port = 18743,
+    super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
+  }) : super(
+         directories: directories ?? DirectoryConfig(binary: allPlatforms('inquisition'), flutterFrontend: const {}),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 binary: 'inquisition',
+                 files: allPlatforms(''),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: false,
+             ),
+       );
+
+  @override
+  int get slot => 119;
+
+  @override
+  BinaryType get type => BinaryType.BINARY_TYPE_INQUISITION;
+
+  @override
+  Color get color => Colors.orange;
+
+  @override
+  bool get developedByLayerTwoLabs => false;
+
+  @override
+  Inquisition copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+  }) => Inquisition(
+    name: name,
+    version: version ?? this.version,
+    description: description ?? this.description,
+    repoUrl: repoUrl ?? this.repoUrl,
+    directories: directories ?? this.directories,
+    metadata: metadata ?? this.metadata,
+    port: port ?? this.port,
+    chainLayer: chainLayer ?? this.chainLayer,
+    downloadInfo: downloadInfo ?? this.downloadInfo,
+    extraBootArgs: extraBootArgs,
+  );
+}
+
 File? getWalletFile(Directory appDir) {
   final walletDir = File(path.join(appDir.path, 'wallet.json'));
   return walletDir.existsSync() ? walletDir : null;
