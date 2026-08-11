@@ -21,94 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type GetBalanceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetBalanceRequest) Reset() {
-	*x = GetBalanceRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetBalanceRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetBalanceRequest) ProtoMessage() {}
-
-func (x *GetBalanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetBalanceRequest.ProtoReflect.Descriptor instead.
-func (*GetBalanceRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{0}
-}
-
-type GetBalanceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TotalSats     int64                  `protobuf:"varint,1,opt,name=total_sats,json=totalSats,proto3" json:"total_sats,omitempty"`
-	AvailableSats int64                  `protobuf:"varint,2,opt,name=available_sats,json=availableSats,proto3" json:"available_sats,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetBalanceResponse) Reset() {
-	*x = GetBalanceResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetBalanceResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetBalanceResponse) ProtoMessage() {}
-
-func (x *GetBalanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetBalanceResponse.ProtoReflect.Descriptor instead.
-func (*GetBalanceResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GetBalanceResponse) GetTotalSats() int64 {
-	if x != nil {
-		return x.TotalSats
-	}
-	return 0
-}
-
-func (x *GetBalanceResponse) GetAvailableSats() int64 {
-	if x != nil {
-		return x.AvailableSats
-	}
-	return 0
-}
-
 type GetBlockCountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -117,7 +29,7 @@ type GetBlockCountRequest struct {
 
 func (x *GetBlockCountRequest) Reset() {
 	*x = GetBlockCountRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[2]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -129,7 +41,7 @@ func (x *GetBlockCountRequest) String() string {
 func (*GetBlockCountRequest) ProtoMessage() {}
 
 func (x *GetBlockCountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[2]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -142,7 +54,7 @@ func (x *GetBlockCountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockCountRequest.ProtoReflect.Descriptor instead.
 func (*GetBlockCountRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{2}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{0}
 }
 
 type GetBlockCountResponse struct {
@@ -154,7 +66,7 @@ type GetBlockCountResponse struct {
 
 func (x *GetBlockCountResponse) Reset() {
 	*x = GetBlockCountResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[3]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -166,7 +78,7 @@ func (x *GetBlockCountResponse) String() string {
 func (*GetBlockCountResponse) ProtoMessage() {}
 
 func (x *GetBlockCountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[3]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -179,7 +91,7 @@ func (x *GetBlockCountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockCountResponse.ProtoReflect.Descriptor instead.
 func (*GetBlockCountResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{3}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetBlockCountResponse) GetCount() int64 {
@@ -197,7 +109,7 @@ type GetBlockchainInfoRequest struct {
 
 func (x *GetBlockchainInfoRequest) Reset() {
 	*x = GetBlockchainInfoRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[4]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -209,7 +121,7 @@ func (x *GetBlockchainInfoRequest) String() string {
 func (*GetBlockchainInfoRequest) ProtoMessage() {}
 
 func (x *GetBlockchainInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[4]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,7 +134,7 @@ func (x *GetBlockchainInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockchainInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetBlockchainInfoRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{4}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{2}
 }
 
 type GetBlockchainInfoResponse struct {
@@ -246,7 +158,7 @@ type GetBlockchainInfoResponse struct {
 
 func (x *GetBlockchainInfoResponse) Reset() {
 	*x = GetBlockchainInfoResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[5]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +170,7 @@ func (x *GetBlockchainInfoResponse) String() string {
 func (*GetBlockchainInfoResponse) ProtoMessage() {}
 
 func (x *GetBlockchainInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[5]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +183,7 @@ func (x *GetBlockchainInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockchainInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetBlockchainInfoResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{5}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetBlockchainInfoResponse) GetChain() string {
@@ -373,7 +285,7 @@ type GetSidechainInfoRequest struct {
 
 func (x *GetSidechainInfoRequest) Reset() {
 	*x = GetSidechainInfoRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[6]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -385,7 +297,7 @@ func (x *GetSidechainInfoRequest) String() string {
 func (*GetSidechainInfoRequest) ProtoMessage() {}
 
 func (x *GetSidechainInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[6]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -398,7 +310,7 @@ func (x *GetSidechainInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSidechainInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetSidechainInfoRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{6}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{4}
 }
 
 type GetSidechainInfoResponse struct {
@@ -412,7 +324,7 @@ type GetSidechainInfoResponse struct {
 
 func (x *GetSidechainInfoResponse) Reset() {
 	*x = GetSidechainInfoResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[7]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -424,7 +336,7 @@ func (x *GetSidechainInfoResponse) String() string {
 func (*GetSidechainInfoResponse) ProtoMessage() {}
 
 func (x *GetSidechainInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[7]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -437,7 +349,7 @@ func (x *GetSidechainInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSidechainInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetSidechainInfoResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{7}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetSidechainInfoResponse) GetSynced() bool {
@@ -469,7 +381,7 @@ type GetMainchainTipRequest struct {
 
 func (x *GetMainchainTipRequest) Reset() {
 	*x = GetMainchainTipRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[8]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -481,7 +393,7 @@ func (x *GetMainchainTipRequest) String() string {
 func (*GetMainchainTipRequest) ProtoMessage() {}
 
 func (x *GetMainchainTipRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[8]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -494,7 +406,7 @@ func (x *GetMainchainTipRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMainchainTipRequest.ProtoReflect.Descriptor instead.
 func (*GetMainchainTipRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{8}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{6}
 }
 
 type GetMainchainTipResponse struct {
@@ -506,7 +418,7 @@ type GetMainchainTipResponse struct {
 
 func (x *GetMainchainTipResponse) Reset() {
 	*x = GetMainchainTipResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[9]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -518,7 +430,7 @@ func (x *GetMainchainTipResponse) String() string {
 func (*GetMainchainTipResponse) ProtoMessage() {}
 
 func (x *GetMainchainTipResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[9]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -531,7 +443,7 @@ func (x *GetMainchainTipResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMainchainTipResponse.ProtoReflect.Descriptor instead.
 func (*GetMainchainTipResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{9}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetMainchainTipResponse) GetBlockHash() string {
@@ -550,7 +462,7 @@ type GetBmmCommitmentRequest struct {
 
 func (x *GetBmmCommitmentRequest) Reset() {
 	*x = GetBmmCommitmentRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[10]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -562,7 +474,7 @@ func (x *GetBmmCommitmentRequest) String() string {
 func (*GetBmmCommitmentRequest) ProtoMessage() {}
 
 func (x *GetBmmCommitmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[10]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -575,7 +487,7 @@ func (x *GetBmmCommitmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBmmCommitmentRequest.ProtoReflect.Descriptor instead.
 func (*GetBmmCommitmentRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{10}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetBmmCommitmentRequest) GetMainchainBlockHash() string {
@@ -594,7 +506,7 @@ type GetBmmCommitmentResponse struct {
 
 func (x *GetBmmCommitmentResponse) Reset() {
 	*x = GetBmmCommitmentResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[11]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +518,7 @@ func (x *GetBmmCommitmentResponse) String() string {
 func (*GetBmmCommitmentResponse) ProtoMessage() {}
 
 func (x *GetBmmCommitmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[11]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +531,7 @@ func (x *GetBmmCommitmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBmmCommitmentResponse.ProtoReflect.Descriptor instead.
 func (*GetBmmCommitmentResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{11}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetBmmCommitmentResponse) GetCommitment() string {
@@ -637,7 +549,7 @@ type GetNewAddressRequest struct {
 
 func (x *GetNewAddressRequest) Reset() {
 	*x = GetNewAddressRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[12]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -649,7 +561,7 @@ func (x *GetNewAddressRequest) String() string {
 func (*GetNewAddressRequest) ProtoMessage() {}
 
 func (x *GetNewAddressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[12]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -662,7 +574,7 @@ func (x *GetNewAddressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNewAddressRequest.ProtoReflect.Descriptor instead.
 func (*GetNewAddressRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{12}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{10}
 }
 
 type GetNewAddressResponse struct {
@@ -674,7 +586,7 @@ type GetNewAddressResponse struct {
 
 func (x *GetNewAddressResponse) Reset() {
 	*x = GetNewAddressResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[13]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +598,7 @@ func (x *GetNewAddressResponse) String() string {
 func (*GetNewAddressResponse) ProtoMessage() {}
 
 func (x *GetNewAddressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[13]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +611,7 @@ func (x *GetNewAddressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNewAddressResponse.ProtoReflect.Descriptor instead.
 func (*GetNewAddressResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{13}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetNewAddressResponse) GetAddress() string {
@@ -720,7 +632,7 @@ type SendRequest struct {
 
 func (x *SendRequest) Reset() {
 	*x = SendRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[14]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -732,7 +644,7 @@ func (x *SendRequest) String() string {
 func (*SendRequest) ProtoMessage() {}
 
 func (x *SendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[14]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -745,7 +657,7 @@ func (x *SendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendRequest.ProtoReflect.Descriptor instead.
 func (*SendRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{14}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SendRequest) GetAddress() string {
@@ -778,7 +690,7 @@ type SendResponse struct {
 
 func (x *SendResponse) Reset() {
 	*x = SendResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[15]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -790,7 +702,7 @@ func (x *SendResponse) String() string {
 func (*SendResponse) ProtoMessage() {}
 
 func (x *SendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[15]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -803,7 +715,7 @@ func (x *SendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendResponse.ProtoReflect.Descriptor instead.
 func (*SendResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{15}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SendResponse) GetTxid() string {
@@ -821,7 +733,7 @@ type EstimateFeeRequest struct {
 
 func (x *EstimateFeeRequest) Reset() {
 	*x = EstimateFeeRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[16]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -833,7 +745,7 @@ func (x *EstimateFeeRequest) String() string {
 func (*EstimateFeeRequest) ProtoMessage() {}
 
 func (x *EstimateFeeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[16]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -846,7 +758,7 @@ func (x *EstimateFeeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstimateFeeRequest.ProtoReflect.Descriptor instead.
 func (*EstimateFeeRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{16}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{14}
 }
 
 type EstimateFeeResponse struct {
@@ -858,7 +770,7 @@ type EstimateFeeResponse struct {
 
 func (x *EstimateFeeResponse) Reset() {
 	*x = EstimateFeeResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[17]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -870,7 +782,7 @@ func (x *EstimateFeeResponse) String() string {
 func (*EstimateFeeResponse) ProtoMessage() {}
 
 func (x *EstimateFeeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[17]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -883,7 +795,7 @@ func (x *EstimateFeeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstimateFeeResponse.ProtoReflect.Descriptor instead.
 func (*EstimateFeeResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{17}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *EstimateFeeResponse) GetSatsPerKvb() int64 {
@@ -901,7 +813,7 @@ type ListUtxosRequest struct {
 
 func (x *ListUtxosRequest) Reset() {
 	*x = ListUtxosRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[18]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -913,7 +825,7 @@ func (x *ListUtxosRequest) String() string {
 func (*ListUtxosRequest) ProtoMessage() {}
 
 func (x *ListUtxosRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[18]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -926,7 +838,7 @@ func (x *ListUtxosRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUtxosRequest.ProtoReflect.Descriptor instead.
 func (*ListUtxosRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{18}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{16}
 }
 
 type Utxo struct {
@@ -942,7 +854,7 @@ type Utxo struct {
 
 func (x *Utxo) Reset() {
 	*x = Utxo{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[19]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -954,7 +866,7 @@ func (x *Utxo) String() string {
 func (*Utxo) ProtoMessage() {}
 
 func (x *Utxo) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[19]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -967,7 +879,7 @@ func (x *Utxo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Utxo.ProtoReflect.Descriptor instead.
 func (*Utxo) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{19}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Utxo) GetTxid() string {
@@ -1014,7 +926,7 @@ type ListUtxosResponse struct {
 
 func (x *ListUtxosResponse) Reset() {
 	*x = ListUtxosResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[20]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1026,7 +938,7 @@ func (x *ListUtxosResponse) String() string {
 func (*ListUtxosResponse) ProtoMessage() {}
 
 func (x *ListUtxosResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[20]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1039,7 +951,7 @@ func (x *ListUtxosResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUtxosResponse.ProtoReflect.Descriptor instead.
 func (*ListUtxosResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{20}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListUtxosResponse) GetUtxos() []*Utxo {
@@ -1058,7 +970,7 @@ type ListTransactionsRequest struct {
 
 func (x *ListTransactionsRequest) Reset() {
 	*x = ListTransactionsRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[21]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1070,7 +982,7 @@ func (x *ListTransactionsRequest) String() string {
 func (*ListTransactionsRequest) ProtoMessage() {}
 
 func (x *ListTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[21]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1083,7 +995,7 @@ func (x *ListTransactionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTransactionsRequest.ProtoReflect.Descriptor instead.
 func (*ListTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{21}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListTransactionsRequest) GetCount() int64 {
@@ -1107,7 +1019,7 @@ type Transaction struct {
 
 func (x *Transaction) Reset() {
 	*x = Transaction{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[22]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1119,7 +1031,7 @@ func (x *Transaction) String() string {
 func (*Transaction) ProtoMessage() {}
 
 func (x *Transaction) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[22]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1132,7 +1044,7 @@ func (x *Transaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Transaction.ProtoReflect.Descriptor instead.
 func (*Transaction) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{22}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Transaction) GetTxid() string {
@@ -1186,7 +1098,7 @@ type ListTransactionsResponse struct {
 
 func (x *ListTransactionsResponse) Reset() {
 	*x = ListTransactionsResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[23]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1198,7 +1110,7 @@ func (x *ListTransactionsResponse) String() string {
 func (*ListTransactionsResponse) ProtoMessage() {}
 
 func (x *ListTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[23]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1211,7 +1123,7 @@ func (x *ListTransactionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTransactionsResponse.ProtoReflect.Descriptor instead.
 func (*ListTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{23}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListTransactionsResponse) GetTransactions() []*Transaction {
@@ -1229,7 +1141,7 @@ type StopRequest struct {
 
 func (x *StopRequest) Reset() {
 	*x = StopRequest{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[24]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1241,7 +1153,7 @@ func (x *StopRequest) String() string {
 func (*StopRequest) ProtoMessage() {}
 
 func (x *StopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[24]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1254,7 +1166,7 @@ func (x *StopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopRequest.ProtoReflect.Descriptor instead.
 func (*StopRequest) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{24}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{22}
 }
 
 type StopResponse struct {
@@ -1265,7 +1177,7 @@ type StopResponse struct {
 
 func (x *StopResponse) Reset() {
 	*x = StopResponse{}
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[25]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1277,7 +1189,7 @@ func (x *StopResponse) String() string {
 func (*StopResponse) ProtoMessage() {}
 
 func (x *StopResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inquisition_v1_inquisition_proto_msgTypes[25]
+	mi := &file_inquisition_v1_inquisition_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1290,19 +1202,14 @@ func (x *StopResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopResponse.ProtoReflect.Descriptor instead.
 func (*StopResponse) Descriptor() ([]byte, []int) {
-	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{25}
+	return file_inquisition_v1_inquisition_proto_rawDescGZIP(), []int{23}
 }
 
 var File_inquisition_v1_inquisition_proto protoreflect.FileDescriptor
 
 const file_inquisition_v1_inquisition_proto_rawDesc = "" +
 	"\n" +
-	" inquisition/v1/inquisition.proto\x12\x0einquisition.v1\"\x13\n" +
-	"\x11GetBalanceRequest\"Z\n" +
-	"\x12GetBalanceResponse\x12\x1d\n" +
-	"\n" +
-	"total_sats\x18\x01 \x01(\x03R\ttotalSats\x12%\n" +
-	"\x0eavailable_sats\x18\x02 \x01(\x03R\ravailableSats\"\x16\n" +
+	" inquisition/v1/inquisition.proto\x12\x0einquisition.v1\"\x16\n" +
 	"\x14GetBlockCountRequest\"-\n" +
 	"\x15GetBlockCountResponse\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\x03R\x05count\"\x1a\n" +
@@ -1380,10 +1287,8 @@ const file_inquisition_v1_inquisition_proto_rawDesc = "" +
 	"\x18ListTransactionsResponse\x12?\n" +
 	"\ftransactions\x18\x01 \x03(\v2\x1b.inquisition.v1.TransactionR\ftransactions\"\r\n" +
 	"\vStopRequest\"\x0e\n" +
-	"\fStopResponse2\xd8\b\n" +
-	"\x12InquisitionService\x12S\n" +
-	"\n" +
-	"GetBalance\x12!.inquisition.v1.GetBalanceRequest\x1a\".inquisition.v1.GetBalanceResponse\x12\\\n" +
+	"\fStopResponse2\x83\b\n" +
+	"\x12InquisitionService\x12\\\n" +
 	"\rGetBlockCount\x12$.inquisition.v1.GetBlockCountRequest\x1a%.inquisition.v1.GetBlockCountResponse\x12h\n" +
 	"\x11GetBlockchainInfo\x12(.inquisition.v1.GetBlockchainInfoRequest\x1a).inquisition.v1.GetBlockchainInfoResponse\x12e\n" +
 	"\x10GetSidechainInfo\x12'.inquisition.v1.GetSidechainInfoRequest\x1a(.inquisition.v1.GetSidechainInfoResponse\x12b\n" +
@@ -1409,64 +1314,60 @@ func file_inquisition_v1_inquisition_proto_rawDescGZIP() []byte {
 	return file_inquisition_v1_inquisition_proto_rawDescData
 }
 
-var file_inquisition_v1_inquisition_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_inquisition_v1_inquisition_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_inquisition_v1_inquisition_proto_goTypes = []any{
-	(*GetBalanceRequest)(nil),         // 0: inquisition.v1.GetBalanceRequest
-	(*GetBalanceResponse)(nil),        // 1: inquisition.v1.GetBalanceResponse
-	(*GetBlockCountRequest)(nil),      // 2: inquisition.v1.GetBlockCountRequest
-	(*GetBlockCountResponse)(nil),     // 3: inquisition.v1.GetBlockCountResponse
-	(*GetBlockchainInfoRequest)(nil),  // 4: inquisition.v1.GetBlockchainInfoRequest
-	(*GetBlockchainInfoResponse)(nil), // 5: inquisition.v1.GetBlockchainInfoResponse
-	(*GetSidechainInfoRequest)(nil),   // 6: inquisition.v1.GetSidechainInfoRequest
-	(*GetSidechainInfoResponse)(nil),  // 7: inquisition.v1.GetSidechainInfoResponse
-	(*GetMainchainTipRequest)(nil),    // 8: inquisition.v1.GetMainchainTipRequest
-	(*GetMainchainTipResponse)(nil),   // 9: inquisition.v1.GetMainchainTipResponse
-	(*GetBmmCommitmentRequest)(nil),   // 10: inquisition.v1.GetBmmCommitmentRequest
-	(*GetBmmCommitmentResponse)(nil),  // 11: inquisition.v1.GetBmmCommitmentResponse
-	(*GetNewAddressRequest)(nil),      // 12: inquisition.v1.GetNewAddressRequest
-	(*GetNewAddressResponse)(nil),     // 13: inquisition.v1.GetNewAddressResponse
-	(*SendRequest)(nil),               // 14: inquisition.v1.SendRequest
-	(*SendResponse)(nil),              // 15: inquisition.v1.SendResponse
-	(*EstimateFeeRequest)(nil),        // 16: inquisition.v1.EstimateFeeRequest
-	(*EstimateFeeResponse)(nil),       // 17: inquisition.v1.EstimateFeeResponse
-	(*ListUtxosRequest)(nil),          // 18: inquisition.v1.ListUtxosRequest
-	(*Utxo)(nil),                      // 19: inquisition.v1.Utxo
-	(*ListUtxosResponse)(nil),         // 20: inquisition.v1.ListUtxosResponse
-	(*ListTransactionsRequest)(nil),   // 21: inquisition.v1.ListTransactionsRequest
-	(*Transaction)(nil),               // 22: inquisition.v1.Transaction
-	(*ListTransactionsResponse)(nil),  // 23: inquisition.v1.ListTransactionsResponse
-	(*StopRequest)(nil),               // 24: inquisition.v1.StopRequest
-	(*StopResponse)(nil),              // 25: inquisition.v1.StopResponse
+	(*GetBlockCountRequest)(nil),      // 0: inquisition.v1.GetBlockCountRequest
+	(*GetBlockCountResponse)(nil),     // 1: inquisition.v1.GetBlockCountResponse
+	(*GetBlockchainInfoRequest)(nil),  // 2: inquisition.v1.GetBlockchainInfoRequest
+	(*GetBlockchainInfoResponse)(nil), // 3: inquisition.v1.GetBlockchainInfoResponse
+	(*GetSidechainInfoRequest)(nil),   // 4: inquisition.v1.GetSidechainInfoRequest
+	(*GetSidechainInfoResponse)(nil),  // 5: inquisition.v1.GetSidechainInfoResponse
+	(*GetMainchainTipRequest)(nil),    // 6: inquisition.v1.GetMainchainTipRequest
+	(*GetMainchainTipResponse)(nil),   // 7: inquisition.v1.GetMainchainTipResponse
+	(*GetBmmCommitmentRequest)(nil),   // 8: inquisition.v1.GetBmmCommitmentRequest
+	(*GetBmmCommitmentResponse)(nil),  // 9: inquisition.v1.GetBmmCommitmentResponse
+	(*GetNewAddressRequest)(nil),      // 10: inquisition.v1.GetNewAddressRequest
+	(*GetNewAddressResponse)(nil),     // 11: inquisition.v1.GetNewAddressResponse
+	(*SendRequest)(nil),               // 12: inquisition.v1.SendRequest
+	(*SendResponse)(nil),              // 13: inquisition.v1.SendResponse
+	(*EstimateFeeRequest)(nil),        // 14: inquisition.v1.EstimateFeeRequest
+	(*EstimateFeeResponse)(nil),       // 15: inquisition.v1.EstimateFeeResponse
+	(*ListUtxosRequest)(nil),          // 16: inquisition.v1.ListUtxosRequest
+	(*Utxo)(nil),                      // 17: inquisition.v1.Utxo
+	(*ListUtxosResponse)(nil),         // 18: inquisition.v1.ListUtxosResponse
+	(*ListTransactionsRequest)(nil),   // 19: inquisition.v1.ListTransactionsRequest
+	(*Transaction)(nil),               // 20: inquisition.v1.Transaction
+	(*ListTransactionsResponse)(nil),  // 21: inquisition.v1.ListTransactionsResponse
+	(*StopRequest)(nil),               // 22: inquisition.v1.StopRequest
+	(*StopResponse)(nil),              // 23: inquisition.v1.StopResponse
 }
 var file_inquisition_v1_inquisition_proto_depIdxs = []int32{
-	19, // 0: inquisition.v1.ListUtxosResponse.utxos:type_name -> inquisition.v1.Utxo
-	22, // 1: inquisition.v1.ListTransactionsResponse.transactions:type_name -> inquisition.v1.Transaction
-	0,  // 2: inquisition.v1.InquisitionService.GetBalance:input_type -> inquisition.v1.GetBalanceRequest
-	2,  // 3: inquisition.v1.InquisitionService.GetBlockCount:input_type -> inquisition.v1.GetBlockCountRequest
-	4,  // 4: inquisition.v1.InquisitionService.GetBlockchainInfo:input_type -> inquisition.v1.GetBlockchainInfoRequest
-	6,  // 5: inquisition.v1.InquisitionService.GetSidechainInfo:input_type -> inquisition.v1.GetSidechainInfoRequest
-	8,  // 6: inquisition.v1.InquisitionService.GetMainchainTip:input_type -> inquisition.v1.GetMainchainTipRequest
-	10, // 7: inquisition.v1.InquisitionService.GetBmmCommitment:input_type -> inquisition.v1.GetBmmCommitmentRequest
-	12, // 8: inquisition.v1.InquisitionService.GetNewAddress:input_type -> inquisition.v1.GetNewAddressRequest
-	14, // 9: inquisition.v1.InquisitionService.Send:input_type -> inquisition.v1.SendRequest
-	16, // 10: inquisition.v1.InquisitionService.EstimateFee:input_type -> inquisition.v1.EstimateFeeRequest
-	18, // 11: inquisition.v1.InquisitionService.ListUtxos:input_type -> inquisition.v1.ListUtxosRequest
-	21, // 12: inquisition.v1.InquisitionService.ListTransactions:input_type -> inquisition.v1.ListTransactionsRequest
-	24, // 13: inquisition.v1.InquisitionService.Stop:input_type -> inquisition.v1.StopRequest
-	1,  // 14: inquisition.v1.InquisitionService.GetBalance:output_type -> inquisition.v1.GetBalanceResponse
-	3,  // 15: inquisition.v1.InquisitionService.GetBlockCount:output_type -> inquisition.v1.GetBlockCountResponse
-	5,  // 16: inquisition.v1.InquisitionService.GetBlockchainInfo:output_type -> inquisition.v1.GetBlockchainInfoResponse
-	7,  // 17: inquisition.v1.InquisitionService.GetSidechainInfo:output_type -> inquisition.v1.GetSidechainInfoResponse
-	9,  // 18: inquisition.v1.InquisitionService.GetMainchainTip:output_type -> inquisition.v1.GetMainchainTipResponse
-	11, // 19: inquisition.v1.InquisitionService.GetBmmCommitment:output_type -> inquisition.v1.GetBmmCommitmentResponse
-	13, // 20: inquisition.v1.InquisitionService.GetNewAddress:output_type -> inquisition.v1.GetNewAddressResponse
-	15, // 21: inquisition.v1.InquisitionService.Send:output_type -> inquisition.v1.SendResponse
-	17, // 22: inquisition.v1.InquisitionService.EstimateFee:output_type -> inquisition.v1.EstimateFeeResponse
-	20, // 23: inquisition.v1.InquisitionService.ListUtxos:output_type -> inquisition.v1.ListUtxosResponse
-	23, // 24: inquisition.v1.InquisitionService.ListTransactions:output_type -> inquisition.v1.ListTransactionsResponse
-	25, // 25: inquisition.v1.InquisitionService.Stop:output_type -> inquisition.v1.StopResponse
-	14, // [14:26] is the sub-list for method output_type
-	2,  // [2:14] is the sub-list for method input_type
+	17, // 0: inquisition.v1.ListUtxosResponse.utxos:type_name -> inquisition.v1.Utxo
+	20, // 1: inquisition.v1.ListTransactionsResponse.transactions:type_name -> inquisition.v1.Transaction
+	0,  // 2: inquisition.v1.InquisitionService.GetBlockCount:input_type -> inquisition.v1.GetBlockCountRequest
+	2,  // 3: inquisition.v1.InquisitionService.GetBlockchainInfo:input_type -> inquisition.v1.GetBlockchainInfoRequest
+	4,  // 4: inquisition.v1.InquisitionService.GetSidechainInfo:input_type -> inquisition.v1.GetSidechainInfoRequest
+	6,  // 5: inquisition.v1.InquisitionService.GetMainchainTip:input_type -> inquisition.v1.GetMainchainTipRequest
+	8,  // 6: inquisition.v1.InquisitionService.GetBmmCommitment:input_type -> inquisition.v1.GetBmmCommitmentRequest
+	10, // 7: inquisition.v1.InquisitionService.GetNewAddress:input_type -> inquisition.v1.GetNewAddressRequest
+	12, // 8: inquisition.v1.InquisitionService.Send:input_type -> inquisition.v1.SendRequest
+	14, // 9: inquisition.v1.InquisitionService.EstimateFee:input_type -> inquisition.v1.EstimateFeeRequest
+	16, // 10: inquisition.v1.InquisitionService.ListUtxos:input_type -> inquisition.v1.ListUtxosRequest
+	19, // 11: inquisition.v1.InquisitionService.ListTransactions:input_type -> inquisition.v1.ListTransactionsRequest
+	22, // 12: inquisition.v1.InquisitionService.Stop:input_type -> inquisition.v1.StopRequest
+	1,  // 13: inquisition.v1.InquisitionService.GetBlockCount:output_type -> inquisition.v1.GetBlockCountResponse
+	3,  // 14: inquisition.v1.InquisitionService.GetBlockchainInfo:output_type -> inquisition.v1.GetBlockchainInfoResponse
+	5,  // 15: inquisition.v1.InquisitionService.GetSidechainInfo:output_type -> inquisition.v1.GetSidechainInfoResponse
+	7,  // 16: inquisition.v1.InquisitionService.GetMainchainTip:output_type -> inquisition.v1.GetMainchainTipResponse
+	9,  // 17: inquisition.v1.InquisitionService.GetBmmCommitment:output_type -> inquisition.v1.GetBmmCommitmentResponse
+	11, // 18: inquisition.v1.InquisitionService.GetNewAddress:output_type -> inquisition.v1.GetNewAddressResponse
+	13, // 19: inquisition.v1.InquisitionService.Send:output_type -> inquisition.v1.SendResponse
+	15, // 20: inquisition.v1.InquisitionService.EstimateFee:output_type -> inquisition.v1.EstimateFeeResponse
+	18, // 21: inquisition.v1.InquisitionService.ListUtxos:output_type -> inquisition.v1.ListUtxosResponse
+	21, // 22: inquisition.v1.InquisitionService.ListTransactions:output_type -> inquisition.v1.ListTransactionsResponse
+	23, // 23: inquisition.v1.InquisitionService.Stop:output_type -> inquisition.v1.StopResponse
+	13, // [13:24] is the sub-list for method output_type
+	2,  // [2:13] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -1483,7 +1384,7 @@ func file_inquisition_v1_inquisition_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_inquisition_v1_inquisition_proto_rawDesc), len(file_inquisition_v1_inquisition_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

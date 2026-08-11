@@ -5,10 +5,6 @@ package inquisition.v1;
 // Inquisition is a Bitcoin Core fork run as a drivechain sidechain, so its RPC
 // surface is Core's rather than the CUSF one the other sidechains expose.
 service InquisitionService {
-  // Get wallet balance. Peg-ins arrive in the coinbase, so an immature deposit
-  // counts as pending.
-  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
-
   // Get current block count.
   rpc GetBlockCount(GetBlockCountRequest) returns (GetBlockCountResponse);
 
@@ -41,13 +37,6 @@ service InquisitionService {
 
   // Stop the node.
   rpc Stop(StopRequest) returns (StopResponse);
-}
-
-message GetBalanceRequest {}
-
-message GetBalanceResponse {
-  int64 total_sats = 1;
-  int64 available_sats = 2;
 }
 
 message GetBlockCountRequest {}

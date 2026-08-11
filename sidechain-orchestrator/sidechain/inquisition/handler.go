@@ -23,14 +23,6 @@ func NewHandler(client *Client) *Handler {
 	return &Handler{client: client}
 }
 
-func (h *Handler) GetBalance(ctx context.Context, _ *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
-	total, available, err := h.client.GetBalance(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&pb.GetBalanceResponse{TotalSats: total, AvailableSats: available}), nil
-}
-
 func (h *Handler) GetBlockCount(ctx context.Context, _ *connect.Request[pb.GetBlockCountRequest]) (*connect.Response[pb.GetBlockCountResponse], error) {
 	count, err := h.client.GetBlockCount(ctx)
 	if err != nil {
