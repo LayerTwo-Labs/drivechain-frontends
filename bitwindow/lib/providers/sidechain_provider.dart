@@ -83,10 +83,13 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
     _isFetching = true;
 
     try {
-      final walletId = _walletReader.activeWalletId;
-      if (walletId == null) {
+      if (_walletReader.activeWalletId == null) {
         throw Exception('No active wallet');
       }
+
+      // Deposit history is the enforcer's global list rather than per-wallet,
+      // and the backend rejects the lookup for every other wallet type.
+      final historyWalletId = _walletReader.enforcerWallet?.id;
 
       final newSidechains = await bitwindowd.drivechain.listSidechains();
       final newSidechainProposals = await bitwindowd.drivechain.listSidechainProposals();
@@ -96,7 +99,9 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
 
       // Fill in the slots with the data retrieved from the API
       for (var sidechain in newSidechains) {
-        final deposits = await bitwindowd.wallet.listSidechainDeposits(walletId, sidechain.slot);
+        final deposits = historyWalletId == null
+            ? <ListSidechainDepositsResponse_SidechainDeposit>[]
+            : await bitwindowd.wallet.listSidechainDeposits(historyWalletId, sidechain.slot);
         final withdrawals = await bitwindowd.drivechain.listWithdrawals(sidechainId: sidechain.slot);
         updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits, withdrawals);
       }
