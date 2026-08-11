@@ -38,6 +38,7 @@ Binary defaultBinaryFor(BinaryType type) => switch (type) {
   BinaryType.BINARY_TYPE_ORCHESTRATORD => Orchestratord(),
   BinaryType.BINARY_TYPE_ZSIDED => ZSided(),
   BinaryType.BINARY_TYPE_LIQUID_SIGNET => LiquidSignet(),
+  BinaryType.BINARY_TYPE_INQUISITION => Inquisition(),
   _ => _unsupportedBinaryType(type),
 };
 
@@ -1095,6 +1096,9 @@ extension BinaryPaths on Binary {
       BinaryType.BINARY_TYPE_TRUTHCOIN ||
       BinaryType.BINARY_TYPE_PHOTON ||
       BinaryType.BINARY_TYPE_COINSHIFT => _findLatestDirVersionedLog(),
+      // Core-derived, so the bitcoind layout: debug.log under the network dir,
+      // not the versioned-directory logs the Rust sidechains write.
+      BinaryType.BINARY_TYPE_INQUISITION => filePath([datadirNetwork(), 'debug.log']),
       BinaryType.BINARY_TYPE_ENFORCER => _findLatestEnforcerLog(),
       BinaryType.BINARY_TYPE_GRPCURL || BinaryType.BINARY_TYPE_ORCHESTRATORD || BinaryType.BINARY_TYPE_ZSIDED => '',
       BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
@@ -1294,6 +1298,7 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_PHOTON:
       case BinaryType.BINARY_TYPE_COINSHIFT:
       case BinaryType.BINARY_TYPE_LIQUID_SIGNET:
+      case BinaryType.BINARY_TYPE_INQUISITION:
         if (GetIt.I.isRegistered<GenericSidechainConfProvider>()) {
           final provider = GetIt.I<GenericSidechainConfProvider>();
           final customDir = provider.currentConfig?.getSetting('datadir');
@@ -1323,7 +1328,10 @@ extension BinaryPaths on Binary {
     final baseDir = datadir();
 
     switch (type) {
+      // Inquisition is Bitcoin Core derived, so it takes the per-network subdir
+      // the CUSF sidechains do not have.
       case BinaryType.BINARY_TYPE_BITCOIND:
+      case BinaryType.BINARY_TYPE_INQUISITION:
         if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
             network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
             network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET) {
@@ -1989,6 +1997,7 @@ BinaryType _binaryTypeFromJsonKey(String key) {
     'photon' => BinaryType.BINARY_TYPE_PHOTON,
     'coinshift' => BinaryType.BINARY_TYPE_COINSHIFT,
     'liquid-signet' => BinaryType.BINARY_TYPE_LIQUID_SIGNET,
+    'inquisition' => BinaryType.BINARY_TYPE_INQUISITION,
     'zside' => BinaryType.BINARY_TYPE_ZSIDE,
     _ => throw ArgumentError('Unknown binary key: $key'),
   };
@@ -2009,6 +2018,7 @@ String binaryTypeToJsonKey(BinaryType type) {
     BinaryType.BINARY_TYPE_PHOTON => 'photon',
     BinaryType.BINARY_TYPE_COINSHIFT => 'coinshift',
     BinaryType.BINARY_TYPE_LIQUID_SIGNET => 'liquid-signet',
+    BinaryType.BINARY_TYPE_INQUISITION => 'inquisition',
     BinaryType.BINARY_TYPE_ZSIDE => 'zside',
     BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
     _ => _unsupportedBinaryType(type),
@@ -2172,6 +2182,16 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       chainLayer: chainLayer,
     ),
     BinaryType.BINARY_TYPE_LIQUID_SIGNET => LiquidSignet(
+      name: name,
+      version: version,
+      description: description,
+      repoUrl: repoUrl,
+      directories: directories,
+      metadata: metadata,
+      port: port,
+      chainLayer: chainLayer,
+    ),
+    BinaryType.BINARY_TYPE_INQUISITION => Inquisition(
       name: name,
       version: version,
       description: description,
