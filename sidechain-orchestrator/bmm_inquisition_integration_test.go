@@ -164,12 +164,12 @@ func TestInquisitionBMM(t *testing.T) {
 	require.NoError(t, sidechain.call(ctx, "getblockcount", nil, &height))
 	require.Zero(t, height, "sidechain should start empty")
 
-	for i := int64(1); i <= 3; i++ {
+	blindMergeMine := func(cycle int64) {
 		bid, err := bmm.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
 			Sidechain: orchpb.BinaryType_BINARY_TYPE_INQUISITION,
 			BidSats:   1000,
 		}))
-		require.NoError(t, err, "cycle %d: create bid", i)
+		require.NoError(t, err, "cycle %d: create bid", cycle)
 		require.NotEmpty(t, bid.Msg.BmmTxid, "bid must be broadcast on the mainchain")
 		require.NotEmpty(t, bid.Msg.PrevMainHash)
 
@@ -193,8 +193,61 @@ func TestInquisitionBMM(t *testing.T) {
 		require.NotEmpty(t, connected.MainBlockHash)
 
 		require.NoError(t, sidechain.call(ctx, "getblockcount", nil, &height))
-		require.Equal(t, i, height, "cycle %d should have extended the sidechain", i)
+		require.Equal(t, cycle, height, "cycle %d should have extended the sidechain", cycle)
 	}
+
+	for i := int64(1); i <= 3; i++ {
+		blindMergeMine(i)
+	}
+
+	// A deposit through the same RPC BitWindow calls. The M5 pays an
+	// OP_DRIVECHAIN treasury output, which relays only because this build
+	// treats it as standard -- the mainchain node runs no -acceptnonstdtxn.
+	const depositSats = 50_000_000
+	require.NoError(t, sidechain.call(ctx, "createwallet", []any{"deposit"}, nil))
+	var sideAddress string
+	require.NoError(t, sidechain.call(ctx, "getnewaddress", nil, &sideAddress))
+
+	deposit, err := wallets.CreateDeposit(ctx, connect.NewRequest(&wmpb.CreateDepositRequest{
+		Slot:        inquisitionSlot,
+		Destination: sideAddress,
+		AmountSats:  depositSats,
+		FeeSats:     10_000,
+	}))
+	require.NoError(t, err, "create deposit")
+	require.NotEmpty(t, deposit.Msg.Txid)
+	require.EqualValues(t, depositSats, deposit.Msg.TreasurySats, "first deposit starts the treasury")
+
+	// The deposit must confirm at or below the mainchain tip the next template
+	// builds on, or it falls outside the range that coinbase covers.
+	mineMainchain(ctx, t, enforcer, 1, addr.Msg.Address)
+	blindMergeMine(4)
+
+	var addressInfo struct {
+		ScriptPubKey string `json:"scriptPubKey"`
+	}
+	require.NoError(t, sidechain.call(ctx, "getaddressinfo", []any{sideAddress}, &addressInfo))
+
+	var credited string
+	require.NoError(t, sidechain.call(ctx, "getblockhash", []any{4}, &credited))
+	var deposited struct {
+		Tx []struct {
+			Vout []struct {
+				Value        float64 `json:"value"`
+				ScriptPubKey struct {
+					Hex string `json:"hex"`
+				} `json:"scriptPubKey"`
+			} `json:"vout"`
+		} `json:"tx"`
+	}
+	require.NoError(t, sidechain.call(ctx, "getblock", []any{credited, 2}, &deposited))
+	var paid float64
+	for _, out := range deposited.Tx[0].Vout {
+		if out.ScriptPubKey.Hex == addressInfo.ScriptPubKey {
+			paid += out.Value
+		}
+	}
+	require.InDelta(t, float64(depositSats)/1e8, paid, 1e-9, "deposit must credit the destination")
 
 	// Every satoshi on this chain arrives through the peg, so with no deposits
 	// and no fees the coinbase of a blind merge mined block pays nothing.
