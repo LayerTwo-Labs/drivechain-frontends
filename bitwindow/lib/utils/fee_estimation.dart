@@ -1,3 +1,30 @@
+import 'package:fixnum/fixnum.dart';
+import 'package:get_it/get_it.dart';
+import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show EstimateSmartFeeRequest;
+import 'package:sail_ui/sail_ui.dart';
+
+/// Fee rate in ${activeTicker.feeRate} for a confirmation target in blocks.
+/// Null when neither the wallet backend nor Bitcoin Core can estimate one.
+Future<double?> feeRateForTarget(int confTarget) async {
+  final orchestrator = GetIt.I<OrchestratorRPC>();
+  // Electrum wallets have no Bitcoin Core; fee comes from esplora via the backend.
+  try {
+    final rate = await orchestrator.wallet.estimateFee(confTarget);
+    if (rate != null && rate > 0) {
+      return rate;
+    }
+  } catch (_) {
+    // fall through to Bitcoin Core for core-backed wallets
+  }
+  final response = await orchestrator.bitcoind.estimateSmartFee(
+    EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
+  );
+  if (!response.hasFeeRate() || response.feeRate <= 0) {
+    return null;
+  }
+  return btcPerKvbToSatPerVByte(response.feeRate);
+}
+
 /// Convert a bitcoind `estimatesmartfee` rate (BTC/kvB) to ${activeTicker.feeRate}.
 double btcPerKvbToSatPerVByte(double btcPerKvb) {
   return (btcPerKvb * 100000000) / 1000;

@@ -17,11 +17,9 @@ import 'package:bitwindow/utils/coin_selection.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
 import 'package:bitwindow/utils/fee_estimation.dart';
 import 'package:collection/collection.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sidechain_core/gen/bitcoin/bitcoind/v1alpha/bitcoin.pb.dart' show EstimateSmartFeeRequest;
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as pb;
 import 'package:sidechain_core/gen/wallet/v1/wallet.pbserver.dart' hide CoinSelectionStrategy;
 import 'package:sail_ui/sail_ui.dart';
@@ -908,28 +906,9 @@ class SendPageViewModel extends BaseViewModel {
     }
   }
 
-  Future<double?> _feeRateForTarget(int confTarget) async {
-    // Electrum wallets have no Bitcoin Core; fee comes from esplora via the backend.
-    try {
-      final rate = await _orchestrator.wallet.estimateFee(confTarget);
-      if (rate != null && rate > 0) {
-        return rate;
-      }
-    } catch (_) {
-      // fall through to Bitcoin Core for core-backed wallets
-    }
-    final response = await _orchestrator.bitcoind.estimateSmartFee(
-      EstimateSmartFeeRequest()..confTarget = Int64(confTarget),
-    );
-    if (!response.hasFeeRate() || response.feeRate <= 0) {
-      return null;
-    }
-    return btcPerKvbToSatPerVByte(response.feeRate);
-  }
-
   Future<void> estimateFee(int confTarget) async {
     try {
-      final satPerVByte = await _feeRateForTarget(confTarget);
+      final satPerVByte = await feeRateForTarget(confTarget);
       if (satPerVByte == null) {
         return;
       }
@@ -947,7 +926,7 @@ class SendPageViewModel extends BaseViewModel {
     try {
       final results = await Future.wait(
         feeRateConfTargets.map((t) async {
-          final rate = await _feeRateForTarget(t);
+          final rate = await feeRateForTarget(t);
           return rate == null ? null : FeeRatePoint(confTarget: t, satPerVByte: rate);
         }),
       );
