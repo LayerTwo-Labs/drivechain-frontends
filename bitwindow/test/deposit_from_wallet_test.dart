@@ -1,7 +1,9 @@
-import 'package:bitwindow/pages/sidechains_page.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
@@ -23,27 +25,17 @@ WalletData _wallet(String id, String name, {bool watchOnly = false, bool multisi
   );
 }
 
-class _FakeWalletReader extends ChangeNotifier implements WalletReaderProvider {
-  @override
-  List<WalletData> wallets = [];
-
-  @override
-  String? activeWalletId;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized({
     'flutter.test.automatic_wait_for_timers': 'false',
   });
 
-  late _FakeWalletReader walletReader;
+  late WalletReaderProvider walletReader;
 
   setUp(() async {
     await GetIt.I.reset();
-    walletReader = _FakeWalletReader();
+    GetIt.I.registerSingleton<Logger>(Logger(level: Level.off));
+    walletReader = WalletReaderProvider(Directory.systemTemp);
     GetIt.I.registerSingleton<WalletReaderProvider>(walletReader);
   });
 
@@ -136,7 +128,7 @@ void main() {
             child: SizedBox(
               width: 400,
               child: FromWalletField(
-                selectedWalletId: FromWalletField.resolveFundingWalletId(walletReader, null),
+                selectedWalletId: walletReader.resolveFundingWalletId(null),
                 onChanged: (_) {},
               ),
             ),
@@ -155,7 +147,7 @@ void main() {
   });
 
   group('resolveFundingWalletId', () {
-    String? resolve(String? selected) => FromWalletField.resolveFundingWalletId(walletReader, selected);
+    String? resolve(String? selected) => walletReader.resolveFundingWalletId(selected);
 
     test('keeps a spendable selection', () {
       walletReader.wallets = [_wallet('enforcer-1', 'Enforcer'), _wallet('core-1', 'Savings')];

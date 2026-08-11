@@ -20,6 +20,7 @@ const StartRequest$json = {
     {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
     {'1': 'min_bid_sats', '3': 2, '4': 1, '5': 3, '10': 'minBidSats'},
     {'1': 'max_bid_sats', '3': 3, '4': 1, '5': 3, '10': 'maxBidSats'},
+    {'1': 'wallet_id', '3': 4, '4': 1, '5': 9, '10': 'walletId'},
   ],
 };
 
@@ -27,7 +28,8 @@ const StartRequest$json = {
 final $typed_data.Uint8List startRequestDescriptor =
     $convert.base64Decode('CgxTdGFydFJlcXVlc3QSOQoJc2lkZWNoYWluGAEgASgOMhsub3JjaGVzdHJhdG9yLnYxLkJpbm'
         'FyeVR5cGVSCXNpZGVjaGFpbhIgCgxtaW5fYmlkX3NhdHMYAiABKANSCm1pbkJpZFNhdHMSIAoM'
-        'bWF4X2JpZF9zYXRzGAMgASgDUgptYXhCaWRTYXRz');
+        'bWF4X2JpZF9zYXRzGAMgASgDUgptYXhCaWRTYXRzEhsKCXdhbGxldF9pZBgEIAEoCVIId2FsbG'
+        'V0SWQ=');
 
 @$core.Deprecated('Use startResponseDescriptor instead')
 const StartResponse$json = {
@@ -101,6 +103,7 @@ const WatchResponse$json = {
     {'1': 'max_bid_sats', '3': 3, '4': 1, '5': 3, '10': 'maxBidSats'},
     {'1': 'current', '3': 4, '4': 1, '5': 11, '6': '.bmm.v1.Round', '10': 'current'},
     {'1': 'history', '3': 5, '4': 3, '5': 11, '6': '.bmm.v1.Round', '10': 'history'},
+    {'1': 'wallet_id', '3': 6, '4': 1, '5': 9, '10': 'walletId'},
   ],
 };
 
@@ -109,7 +112,7 @@ final $typed_data.Uint8List watchResponseDescriptor =
     $convert.base64Decode('Cg1XYXRjaFJlc3BvbnNlEhgKB3J1bm5pbmcYASABKAhSB3J1bm5pbmcSIAoMbWluX2JpZF9zYX'
         'RzGAIgASgDUgptaW5CaWRTYXRzEiAKDG1heF9iaWRfc2F0cxgDIAEoA1IKbWF4QmlkU2F0cxIn'
         'CgdjdXJyZW50GAQgASgLMg0uYm1tLnYxLlJvdW5kUgdjdXJyZW50EicKB2hpc3RvcnkYBSADKA'
-        'syDS5ibW0udjEuUm91bmRSB2hpc3Rvcnk=');
+        'syDS5ibW0udjEuUm91bmRSB2hpc3RvcnkSGwoJd2FsbGV0X2lkGAYgASgJUgh3YWxsZXRJZA==');
 
 @$core.Deprecated('Use roundDescriptor instead')
 const Round$json = {
@@ -292,9 +295,9 @@ const ListBidsResponse$json = {
 final $typed_data.Uint8List listBidsResponseDescriptor =
     $convert.base64Decode('ChBMaXN0Qmlkc1Jlc3BvbnNlEh8KBGJpZHMYASADKAsyCy5ibW0udjEuQmlkUgRiaWRz');
 
-@$core.Deprecated('Use griefBidRequestDescriptor instead')
-const GriefBidRequest$json = {
-  '1': 'GriefBidRequest',
+@$core.Deprecated('Use attackBidRequestDescriptor instead')
+const AttackBidRequest$json = {
+  '1': 'AttackBidRequest',
   '2': [
     {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
     {'1': 'wallet_id', '3': 2, '4': 1, '5': 9, '10': 'walletId'},
@@ -302,25 +305,25 @@ const GriefBidRequest$json = {
   ],
 };
 
-/// Descriptor for `GriefBidRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List griefBidRequestDescriptor =
-    $convert.base64Decode('Cg9HcmllZkJpZFJlcXVlc3QSOQoJc2lkZWNoYWluGAEgASgOMhsub3JjaGVzdHJhdG9yLnYxLk'
-        'JpbmFyeVR5cGVSCXNpZGVjaGFpbhIbCgl3YWxsZXRfaWQYAiABKAlSCHdhbGxldElkEhkKCGJp'
-        'ZF9zYXRzGAMgASgDUgdiaWRTYXRz');
+/// Descriptor for `AttackBidRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List attackBidRequestDescriptor =
+    $convert.base64Decode('ChBBdHRhY2tCaWRSZXF1ZXN0EjkKCXNpZGVjaGFpbhgBIAEoDjIbLm9yY2hlc3RyYXRvci52MS'
+        '5CaW5hcnlUeXBlUglzaWRlY2hhaW4SGwoJd2FsbGV0X2lkGAIgASgJUgh3YWxsZXRJZBIZCghi'
+        'aWRfc2F0cxgDIAEoA1IHYmlkU2F0cw==');
 
-@$core.Deprecated('Use griefBidResponseDescriptor instead')
-const GriefBidResponse$json = {
-  '1': 'GriefBidResponse',
+@$core.Deprecated('Use attackBidResponseDescriptor instead')
+const AttackBidResponse$json = {
+  '1': 'AttackBidResponse',
   '2': [
     {'1': 'critical_hash', '3': 1, '4': 1, '5': 9, '10': 'criticalHash'},
     {'1': 'bmm_txid', '3': 2, '4': 1, '5': 9, '10': 'bmmTxid'},
   ],
 };
 
-/// Descriptor for `GriefBidResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List griefBidResponseDescriptor =
-    $convert.base64Decode('ChBHcmllZkJpZFJlc3BvbnNlEiMKDWNyaXRpY2FsX2hhc2gYASABKAlSDGNyaXRpY2FsSGFzaB'
-        'IZCghibW1fdHhpZBgCIAEoCVIHYm1tVHhpZA==');
+/// Descriptor for `AttackBidResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List attackBidResponseDescriptor =
+    $convert.base64Decode('ChFBdHRhY2tCaWRSZXNwb25zZRIjCg1jcml0aWNhbF9oYXNoGAEgASgJUgxjcml0aWNhbEhhc2'
+        'gSGQoIYm1tX3R4aWQYAiABKAlSB2JtbVR4aWQ=');
 
 const $core.Map<$core.String, $core.dynamic> BMMServiceBase$json = {
   '1': 'BMMService',
@@ -333,7 +336,7 @@ const $core.Map<$core.String, $core.dynamic> BMMServiceBase$json = {
     {'1': 'CreateBid', '2': '.bmm.v1.CreateBidRequest', '3': '.bmm.v1.CreateBidResponse'},
     {'1': 'ConnectBid', '2': '.bmm.v1.ConnectBidRequest', '3': '.bmm.v1.ConnectBidResponse'},
     {'1': 'ListBids', '2': '.bmm.v1.ListBidsRequest', '3': '.bmm.v1.ListBidsResponse'},
-    {'1': 'GriefBid', '2': '.bmm.v1.GriefBidRequest', '3': '.bmm.v1.GriefBidResponse'},
+    {'1': 'AttackBid', '2': '.bmm.v1.AttackBidRequest', '3': '.bmm.v1.AttackBidResponse'},
   ],
 };
 
@@ -357,8 +360,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BMMService
   '.bmm.v1.ConnectBidResponse': ConnectBidResponse$json,
   '.bmm.v1.ListBidsRequest': ListBidsRequest$json,
   '.bmm.v1.ListBidsResponse': ListBidsResponse$json,
-  '.bmm.v1.GriefBidRequest': GriefBidRequest$json,
-  '.bmm.v1.GriefBidResponse': GriefBidResponse$json,
+  '.bmm.v1.AttackBidRequest': AttackBidRequest$json,
+  '.bmm.v1.AttackBidResponse': AttackBidResponse$json,
 };
 
 /// Descriptor for `BMMService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -372,5 +375,5 @@ final $typed_data.Uint8List bMMServiceDescriptor =
         'QmlkEhguYm1tLnYxLkNyZWF0ZUJpZFJlcXVlc3QaGS5ibW0udjEuQ3JlYXRlQmlkUmVzcG9uc2'
         'USQwoKQ29ubmVjdEJpZBIZLmJtbS52MS5Db25uZWN0QmlkUmVxdWVzdBoaLmJtbS52MS5Db25u'
         'ZWN0QmlkUmVzcG9uc2USPQoITGlzdEJpZHMSFy5ibW0udjEuTGlzdEJpZHNSZXF1ZXN0GhguYm'
-        '1tLnYxLkxpc3RCaWRzUmVzcG9uc2USPQoIR3JpZWZCaWQSFy5ibW0udjEuR3JpZWZCaWRSZXF1'
-        'ZXN0GhguYm1tLnYxLkdyaWVmQmlkUmVzcG9uc2U=');
+        '1tLnYxLkxpc3RCaWRzUmVzcG9uc2USQAoJQXR0YWNrQmlkEhguYm1tLnYxLkF0dGFja0JpZFJl'
+        'cXVlc3QaGS5ibW0udjEuQXR0YWNrQmlkUmVzcG9uc2U=');

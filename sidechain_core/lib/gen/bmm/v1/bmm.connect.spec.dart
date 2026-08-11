@@ -17,8 +17,8 @@ abstract final class BMMService {
   static const name = 'bmm.v1.BMMService';
 
   /// Start bids on every new mainchain tip and connects the blocks miners take,
-  /// until Stop. Bids are funded by whichever wallet is active at the time, and
-  /// are raised toward max_bid_sats when a competitor outbids us.
+  /// until Stop. Bids are funded by the wallet the request names, and are
+  /// raised toward max_bid_sats when a competitor outbids us.
   static const start = connect.Spec(
     '/$name/Start',
     connect.StreamType.unary,
@@ -85,13 +85,13 @@ abstract final class BMMService {
     bmmv1bmm.ListBidsResponse.new,
   );
 
-  /// GriefBid bids on a slot with a commitment to no real block, then never
+  /// AttackBid bids on a slot with a commitment to no real block, then never
   /// connects it, so an honest block loses the slot for that mainchain block.
   /// A teaching tool for the BMM stall attack; rejected on mainnet.
-  static const griefBid = connect.Spec(
-    '/$name/GriefBid',
+  static const attackBid = connect.Spec(
+    '/$name/AttackBid',
     connect.StreamType.unary,
-    bmmv1bmm.GriefBidRequest.new,
-    bmmv1bmm.GriefBidResponse.new,
+    bmmv1bmm.AttackBidRequest.new,
+    bmmv1bmm.AttackBidResponse.new,
   );
 }

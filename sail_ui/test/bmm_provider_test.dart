@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +18,7 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
   int manualBids = 0;
   int? lastMinBid;
   int? lastMaxBid;
+  String? lastWalletId;
   Object? throwOnStart;
 
   void emit(bmmpb.WatchResponse state) => _controller.add(state);
@@ -29,6 +31,7 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
     required BinaryType sidechain,
     required int minBidSats,
     required int maxBidSats,
+    String? walletId,
   }) async {
     if (throwOnStart != null) {
       throw throwOnStart!;
@@ -36,6 +39,7 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
     startCalls++;
     lastMinBid = minBidSats;
     lastMaxBid = maxBidSats;
+    lastWalletId = walletId;
   }
 
   @override
@@ -64,6 +68,20 @@ class _FakeSidechainRPC implements SidechainRPC {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+WalletData _wallet(String id, String name, {BinaryType type = BinaryType.BINARY_TYPE_BITCOIND}) {
+  return WalletData(
+    version: 1,
+    master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: ''),
+    l1: L1Wallet(mnemonic: ''),
+    sidechains: const [],
+    id: id,
+    name: name,
+    gradient: WalletGradient.fromWalletId(id),
+    createdAt: DateTime(2026),
+    walletType: type,
+  );
+}
+
 bmmpb.Bid _bid({
   required String txid,
   required int sats,
@@ -84,9 +102,14 @@ bmmpb.Bid _bid({
 void main() {
   late _FakeBmmRPC bmm;
 
-  BMMProvider newProvider() => BMMProvider(
+  WalletReaderProvider walletsOf(String activeId) => WalletReaderProvider(Directory.systemTemp)
+    ..wallets = [_wallet('main-1', 'Main wallet'), _wallet('spare-1', 'Spare wallet')]
+    ..activeWalletId = activeId;
+
+  BMMProvider newProvider({WalletReaderProvider? walletReader}) => BMMProvider(
     sidechainRPC: _FakeSidechainRPC(),
     bmm: bmm,
+    walletReader: walletReader ?? walletsOf('main-1'),
     logger: Logger(level: Level.off),
   );
 
@@ -107,6 +130,75 @@ void main() {
     expect(bmm.startCalls, 1);
     expect(bmm.lastMinBid, 10000);
     expect(bmm.lastMaxBid, 50000);
+  });
+
+  test('bids spend from the picked wallet, and the active wallet stays put', () async {
+    final walletReader = walletsOf('main-1');
+    final provider = newProvider(walletReader: walletReader);
+
+    await provider.startBidding();
+    expect(bmm.lastWalletId, 'main-1');
+
+    provider.setFundingWalletId('spare-1');
+    await provider.startBidding();
+
+    expect(bmm.lastWalletId, 'spare-1');
+    expect(walletReader.activeWalletId, 'main-1');
+  });
+
+  // A wallet that cannot cover the top bid is worth a warning, not a block.
+  test('a balance under the max bid reads as too low', () async {
+    final provider = newProvider(walletReader: walletsOf('main-1'));
+    provider.setMaxBidAmount(0.0002);
+
+    provider.fundingBalanceSats = 1200;
+    expect(provider.fundingBalanceTooLow, isTrue);
+
+    provider.fundingBalanceSats = 40000;
+    expect(provider.fundingBalanceTooLow, isFalse);
+  });
+
+  // A bid goes out as a raw M8 output, which the enforcer wallet service
+  // rejects. Its own BMM endpoint is a path this code does not drive.
+  test('the picker skips an enforcer wallet', () async {
+    final walletReader = WalletReaderProvider(Directory.systemTemp)
+      ..wallets = [
+        _wallet('enforcer-1', 'Enforcer', type: BinaryType.BINARY_TYPE_ENFORCER),
+        _wallet('core-1', 'Savings'),
+      ]
+      ..activeWalletId = 'enforcer-1';
+    final provider = newProvider(walletReader: walletReader);
+
+    expect(provider.fundingWalletId, 'core-1');
+
+    provider.setFundingWalletId('enforcer-1');
+    expect(provider.fundingWalletId, 'core-1');
+  });
+
+  // An empty wallet id falls back to the active wallet in the backend, so a
+  // bid with no funding wallet must not be sent at all.
+  test('bidding stops when no wallet can fund it', () async {
+    final walletReader = WalletReaderProvider(Directory.systemTemp)
+      ..wallets = [_wallet('enforcer-1', 'Enforcer', type: BinaryType.BINARY_TYPE_ENFORCER)]
+      ..activeWalletId = 'enforcer-1';
+    final provider = newProvider(walletReader: walletReader);
+
+    await provider.startBidding();
+    await provider.bidManually(10000);
+    await provider.attackBid();
+
+    expect(bmm.startCalls, 0);
+    expect(bmm.manualBids, 0);
+    expect(provider.error, BMMProvider.noFundingWallet);
+  });
+
+  test('the running loop reports the wallet it spends from', () async {
+    final provider = newProvider(walletReader: walletsOf('main-1'));
+
+    bmm.emit(bmmpb.WatchResponse(running: true, walletId: 'spare-1'));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(provider.fundingWalletId, 'spare-1');
   });
 
   test('stop turns bidding off', () async {

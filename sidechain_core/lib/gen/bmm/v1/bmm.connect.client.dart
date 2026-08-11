@@ -15,8 +15,8 @@ import "bmm.connect.spec.dart" as specs;
 /// what became of them.
 extension type BMMServiceClient(connect.Transport _transport) {
   /// Start bids on every new mainchain tip and connects the blocks miners take,
-  /// until Stop. Bids are funded by whichever wallet is active at the time, and
-  /// are raised toward max_bid_sats when a competitor outbids us.
+  /// until Stop. Bids are funded by the wallet the request names, and are
+  /// raised toward max_bid_sats when a competitor outbids us.
   Future<bmmv1bmm.StartResponse> start(
     bmmv1bmm.StartRequest input, {
     connect.Headers? headers,
@@ -163,18 +163,18 @@ extension type BMMServiceClient(connect.Transport _transport) {
     );
   }
 
-  /// GriefBid bids on a slot with a commitment to no real block, then never
+  /// AttackBid bids on a slot with a commitment to no real block, then never
   /// connects it, so an honest block loses the slot for that mainchain block.
   /// A teaching tool for the BMM stall attack; rejected on mainnet.
-  Future<bmmv1bmm.GriefBidResponse> griefBid(
-    bmmv1bmm.GriefBidRequest input, {
+  Future<bmmv1bmm.AttackBidResponse> attackBid(
+    bmmv1bmm.AttackBidRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.BMMService.griefBid,
+      specs.BMMService.attackBid,
       input,
       signal: signal,
       headers: headers,
