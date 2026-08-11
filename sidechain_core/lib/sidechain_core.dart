@@ -179,6 +179,7 @@ export 'rpcs/orchestrator_wallet_rpc.dart';
 export 'rpcs/bitcoind_connection.dart';
 export 'classes/peer_info.dart';
 export 'rpcs/rpc_sidechain.dart';
+export 'rpcs/inquisition_rpc.dart';
 export 'rpcs/thunder_rpc.dart';
 export 'rpcs/thunder_utxo.dart';
 export 'rpcs/truthcoin_rpc.dart';
