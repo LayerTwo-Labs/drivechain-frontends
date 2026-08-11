@@ -127,7 +127,7 @@ func (p *ElectrumBackend) params() *chaincfg.Params {
 			return n
 		}
 	}
-	return p.netParams.resolve()
+	return p.netParams.Resolve()
 }
 
 // Available reports whether the current network has a wallet chain source.

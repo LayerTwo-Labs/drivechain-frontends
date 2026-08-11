@@ -30,6 +30,7 @@ func makeBitcoindCoreConfig(baseURL string) BinaryConfig {
 		Name:           "bitcoind",
 		BinaryName:     "bitcoind",
 		IsBitcoinCore:  true,
+		ChainLayer:     1,
 		DownloadSource: DownloadSourceDirect,
 		Variants: map[string]CoreVariantSpec{
 			"core":    mkVariant("core", "bitcoin", []string{"mainnet", "signet", "testnet", "regtest"}),
@@ -91,7 +92,7 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 
 	var core BinaryConfig
 	for _, c := range configs {
-		if c.IsBitcoinCore {
+		if c.IsMainchainCore() {
 			core = c
 			break
 		}

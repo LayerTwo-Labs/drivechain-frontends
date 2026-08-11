@@ -12,7 +12,8 @@ func StaticParams(p *chaincfg.Params) ParamsFunc {
 	return func() *chaincfg.Params { return p }
 }
 
-func (f ParamsFunc) resolve() *chaincfg.Params {
+// Resolve returns the params, nil when no resolver is wired.
+func (f ParamsFunc) Resolve() *chaincfg.Params {
 	if f == nil {
 		return nil
 	}

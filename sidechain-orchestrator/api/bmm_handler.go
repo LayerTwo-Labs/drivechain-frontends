@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
@@ -23,6 +25,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/inquisition"
 )
 
 // BMMHandler serves BMMService. It owns bid assembly; the engine drives it on
@@ -457,7 +460,26 @@ func (h *BMMHandler) sidechainTarget(
 	if err != nil {
 		return orchestrator.BinaryConfig{}, nil, err
 	}
-	return cfg, sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port), nil
+	proxy, err := sidechainProxy(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
+	if err != nil {
+		return orchestrator.BinaryConfig{}, nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	return cfg, proxy, nil
+}
+
+// sidechainProxy returns the RPC client for a sidechain. A Core derived chain
+// speaks Core's JSON-RPC authenticated by the cookie its node writes on start;
+// the CUSF chains speak a bare JSON-RPC with no credentials.
+func sidechainProxy(cfg orchestrator.BinaryConfig, network config.Network) (sidechain.SidechainRPCProxy, error) {
+	if !cfg.IsBitcoinCore {
+		return sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port), nil
+	}
+	dirs, ok := config.DirConfigByName(cfg.Name)
+	if !ok {
+		return nil, fmt.Errorf("no directory config for %s", cfg.Name)
+	}
+	cookie := filepath.Join(dirs.DatadirNetwork(network, ""), ".cookie")
+	return inquisition.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
 }
 
 // sidechainConfig resolves a sidechain binary to its config, with the slot it
@@ -468,7 +490,7 @@ func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryC
 			connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not wired"),
 		)
 	}
-	name, _, err := sidechainBalanceTarget(binary)
+	name, _, err := sidechainNames(binary)
 	if err != nil {
 		return orchestrator.BinaryConfig{}, err
 	}

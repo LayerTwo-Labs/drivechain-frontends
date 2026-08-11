@@ -46,3 +46,8 @@ type SidechainRPCProxy interface {
 	// Raw passthrough for debug console
 	CallRaw(ctx context.Context, method string, params any) (json.RawMessage, error)
 }
+
+// CoreWalletName is the wallet a Bitcoin Core derived sidechain loads. Core
+// creates none on its own, so the orchestrator seeds this one from the chain's
+// slot starter and every wallet RPC is scoped to it.
+const CoreWalletName = "orchestrator"

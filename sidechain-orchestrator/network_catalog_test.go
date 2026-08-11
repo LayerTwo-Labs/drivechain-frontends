@@ -8,6 +8,7 @@ func drynetVariantConfig() BinaryConfig {
 	return BinaryConfig{
 		Name:          "bitcoind",
 		IsBitcoinCore: true,
+		ChainLayer:    1,
 		Variants: map[string]CoreVariantSpec{
 			"drynet": {
 				ID:        "drynet",

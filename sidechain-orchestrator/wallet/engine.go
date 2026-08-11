@@ -203,7 +203,7 @@ func (e *WalletEngine) SetTorConfig(ctx context.Context, enabled bool, proxyAddr
 
 // Network returns the chain parameters of the network in use right now.
 func (e *WalletEngine) Network() *chaincfg.Params {
-	return e.params.resolve()
+	return e.params.Resolve()
 }
 
 // ResolveWalletID returns the wallet ID to use. If empty, returns active wallet ID.

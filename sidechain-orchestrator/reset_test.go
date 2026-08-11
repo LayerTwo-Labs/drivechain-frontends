@@ -551,3 +551,16 @@ func TestBinaryWalletPaths_BitcoindUsesNetworkAwareDatadir(t *testing.T) {
 		assert.NotEqual(t, bareRootWallets, p, "must not point at bare-root <override>/wallets")
 	}
 }
+
+// A binary whose files a reset can delete must also be one a reset can stop
+// and restart. Adding it to dirConfig alone deletes a live daemon's blocks
+// and chainstate out from under it and never brings it back.
+func TestResetOrdersCoverEveryDeletableBinary(t *testing.T) {
+	for binary := ResetBinaryUnknown + 1; binary < resetBinaryCount; binary++ {
+		if _, ok := binary.dirConfig(); !ok {
+			continue
+		}
+		assert.Contains(t, resetStopOrder, binary, "%s is deletable but never stopped", binary.processName())
+		assert.Contains(t, resetStartOrder, binary, "%s is deletable but never restarted", binary.processName())
+	}
+}

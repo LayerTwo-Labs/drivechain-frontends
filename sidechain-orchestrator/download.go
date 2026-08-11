@@ -66,7 +66,7 @@ type DownloadManager struct {
 	state sync.Map
 
 	// CoreVariant returns the active Bitcoin Core variant spec to use for
-	// download/extract. It is consulted only when config.IsBitcoinCore. May
+	// download/extract. It is consulted only for the mainchain Core node. May
 	// be left nil — in that case the download falls back to the legacy
 	// per-network file selection (default vs. variant).
 	CoreVariant func() (CoreVariantSpec, bool)
@@ -329,7 +329,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 
 // activeVariant resolves the Core variant for the given config, if applicable.
 func (d *DownloadManager) activeVariant(config BinaryConfig) (CoreVariantSpec, bool) {
-	if !config.IsBitcoinCore || d.CoreVariant == nil {
+	if !config.IsMainchainCore() || d.CoreVariant == nil {
 		return CoreVariantSpec{}, false
 	}
 	return d.CoreVariant()
@@ -338,7 +338,7 @@ func (d *DownloadManager) activeVariant(config BinaryConfig) (CoreVariantSpec, b
 // activeSidechainVariant resolves the test-build spec for a layer-2 binary.
 // Returns ok=false when the toggle is off or the config has no alt fields.
 func (d *DownloadManager) activeSidechainVariant(config BinaryConfig) (sidechainVariantSpec, bool) {
-	if config.IsBitcoinCore || d.SidechainVariant == nil {
+	if config.IsMainchainCore() || d.SidechainVariant == nil {
 		return sidechainVariantSpec{}, false
 	}
 	return d.SidechainVariant(config)

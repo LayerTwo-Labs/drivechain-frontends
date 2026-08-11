@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -36,6 +37,7 @@ import (
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	inquisitionrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/inquisition/v1/inquisitionv1connect"
 	multisigloungerpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1/multisigloungev1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
@@ -50,6 +52,7 @@ import (
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	coinshiftsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	inquisitionsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/inquisition"
 	photonsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	thundersvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -324,6 +327,7 @@ func run(cctx *cli.Context) error {
 		}
 		return params
 	})
+	orch.NetParams = netParams
 	if _, perr := bip47send.NetworkParams(currentNetwork()); perr != nil {
 		log.Warn().Err(perr).Str("network", currentNetwork()).Msg("unrecognised network; BIP47 features will be disabled")
 	}
@@ -573,6 +577,18 @@ func run(cctx *cli.Context) error {
 		case "zside":
 			h := zsidesvc.NewHandler(proxy)
 			path, handler := zsiderpc.NewZSideServiceHandler(h, connect.WithInterceptors(authIC))
+			mux.Handle(path, handler)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "inquisition":
+			// Core derived: its own client, authenticated by the node's cookie.
+			dirs, ok := config.DirConfigByName(name)
+			if !ok {
+				log.Warn().Str("sidechain", name).Msg("no directory config; skipping RPC service")
+				continue
+			}
+			cookie := filepath.Join(dirs.DatadirNetwork(config.Network(orch.Network), ""), ".cookie")
+			h := inquisitionsvc.NewHandler(inquisitionsvc.NewClient(cfg.RPCHost(), cfg.Port, cookie))
+			path, handler := inquisitionrpc.NewInquisitionServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		}

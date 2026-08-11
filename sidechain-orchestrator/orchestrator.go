@@ -136,7 +136,8 @@ type Orchestrator struct {
 	BitcoinConf    *config.BitcoinConfManager
 	EnforcerConf   *config.EnforcerConfManager
 	SidechainConfs map[string]*config.SidechainConfManager
-	WalletSvc      *wallet.Service // for seed injection into sidechain/enforcer args
+	WalletSvc      *wallet.Service   // for seed injection into sidechain/enforcer args
+	NetParams      wallet.ParamsFunc // chain params of the active network
 	Settings       *SettingsStore
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
@@ -282,7 +283,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	// ranked last in the fallback order — pure alphabetical was silently
 	// picking it over vanilla / drivechain-patched on signet.
 	variantResolver := func(c BinaryConfig) (CoreVariantSpec, bool) {
-		if !c.IsBitcoinCore {
+		if !c.IsMainchainCore() {
 			return CoreVariantSpec{}, false
 		}
 		id := orch.Settings.CoreVariant()
@@ -613,7 +614,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 
 	proc := o.process.Get(name)
 	binPath := BinaryPath(o.DataDir, config.BinaryName)
-	if config.IsBitcoinCore && o.Settings != nil {
+	if config.IsMainchainCore() && o.Settings != nil {
 		if v, ok := config.Variants[o.Settings.CoreVariant()]; ok {
 			binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 		}
@@ -869,6 +870,11 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 	if config.ChainLayer != 2 || config.Slot <= 0 || o.WalletSvc == nil {
 		return
 	}
+	// Core exits on an unknown option, so a Core derived sidechain takes the
+	// same starter over RPC instead — see ensureCoreSidechainWallet.
+	if config.IsBitcoinCore {
+		return
+	}
 	if _, err := o.WalletSvc.GetOrDeriveSidechainStarter(config.Slot, config.DisplayName); err != nil {
 		o.log.Warn().Err(err).Int("slot", config.Slot).Msg("could not ensure sidechain starter")
 	}
@@ -879,6 +885,33 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 	}
 	opts.TargetArgs = append(opts.TargetArgs, fmt.Sprintf("--mnemonic-seed-phrase-path=%s", scPath))
 	o.log.Info().Str("path", scPath).Int("slot", config.Slot).Msg("injected sidechain starter")
+}
+
+// ensureCoreSidechainWallet gives a Core derived sidechain the wallet its slot
+// starter describes, which is what the CUSF chains get from the seed flag. The
+// node must be accepting RPC; Core creates no wallet on its own, so without
+// this every wallet call answers "no wallet is loaded".
+func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg BinaryConfig) error {
+	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
+		return nil
+	}
+	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
+	if err != nil {
+		return fmt.Errorf("sidechain starter: %w", err)
+	}
+	dirs, ok := config.DirConfigByName(cfg.Name)
+	if !ok {
+		return fmt.Errorf("no directory config for %s", cfg.Name)
+	}
+	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), ".cookie")
+	user, password, err := config.ReadCookieFile(cookiePath)
+	if err != nil {
+		return err
+	}
+	rpc := wallet.NewCoreRPCClient(wallet.StaticCoreEndpoint(cfg.RPCHost(), cfg.Port, user, password))
+	return wallet.EnsureCoreWalletFromMnemonic(
+		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, o.NetParams.Resolve(),
+	)
 }
 
 // pointSidechainAtRemoteMainchain rewires a ChainLayer-2 target to a hosted
@@ -1321,7 +1354,7 @@ func enforcerEnv() map[string]string {
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress, prefetched <-chan error) {
 	var startupPatterns []string
 	var healthOpts HealthCheckOpts
-	if config.IsBitcoinCore && o.BitcoinConf != nil {
+	if config.IsMainchainCore() && o.BitcoinConf != nil {
 		if config.Port == 0 {
 			config.Port = o.BitcoinConf.GetRPCPort()
 		}
@@ -1420,6 +1453,10 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 			failBoot(targetMon, ch, "wait for "+config.Name, err)
 			return
 		}
+		if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
+			failBoot(targetMon, ch, "wallet for "+config.Name, err)
+			return
+		}
 		ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 		return
 	}
@@ -1451,6 +1488,11 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("waiting for %s to accept connections...", config.DisplayName)}
 	if err := waitForConnectedOrExit(ctx, targetMon, targetProc); err != nil {
 		failBoot(targetMon, ch, "wait for "+config.Name, err)
+		return
+	}
+
+	if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
+		failBoot(targetMon, ch, "wallet for "+config.Name, err)
 		return
 	}
 
@@ -1732,7 +1774,7 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 			}
 		} else if isTestPid {
 			binPath = TestSidechainBinaryPath(o.DataDir, realBinaryName)
-		} else if config.IsBitcoinCore && o.process.CoreVariant != nil {
+		} else if config.IsMainchainCore() && o.process.CoreVariant != nil {
 			if v, ok := o.process.CoreVariant(config); ok {
 				binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 			}

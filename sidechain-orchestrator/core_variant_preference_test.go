@@ -63,7 +63,7 @@ func TestEmbeddedConfig_SignetFallbackPicksPatched(t *testing.T) {
 
 	var core *BinaryConfig
 	for i := range configs {
-		if configs[i].IsBitcoinCore {
+		if configs[i].IsMainchainCore() {
 			core = &configs[i]
 			break
 		}

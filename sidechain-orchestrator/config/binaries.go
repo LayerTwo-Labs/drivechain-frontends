@@ -56,7 +56,7 @@ type BinaryDirConfig struct {
 	Port               int
 	DataDir            map[string]string // os -> subdir (default for all networks)
 	DataDirMainnet     map[string]string // os -> subdir (mainnet override)
-	IsBitcoinCore      bool              // Linux appdir exception
+	IsBitcoinCore      bool              // built on Bitcoin Core: Core datadir layout and Linux appdir
 	FlutterFrontendDir map[string]string // os -> Flutter app data subdir
 }
 
@@ -110,7 +110,7 @@ func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string)
 	if b.BinaryName == "bitcoind" && bitcoinOverride != "" {
 		baseDir = bitcoinOverride
 	}
-	switch b.BinaryName {
+	switch b.layoutKey() {
 	case "bitcoind":
 		if network == NetworkMainnet || network == NetworkForknet || network == NetworkDrynet {
 			return baseDir
@@ -121,6 +121,15 @@ func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string)
 	default:
 		return baseDir
 	}
+}
+
+// layoutKey collapses every Bitcoin Core derived binary onto bitcoind, whose
+// on-disk layout they share.
+func (b BinaryDirConfig) layoutKey() string {
+	if b.IsBitcoinCore {
+		return "bitcoind"
+	}
+	return b.BinaryName
 }
 
 // RootDir returns the root data directory (same for all networks).
@@ -267,6 +276,7 @@ var (
 	TruthcoinDirs   = MustDirConfig("truthcoin")
 	PhotonDirs      = MustDirConfig("photon")
 	CoinShiftDirs   = MustDirConfig("coinshift")
+	InquisitionDirs = MustDirConfig("inquisition")
 )
 
 // DirConfigByName returns the BinaryDirConfig for a given binary name.
@@ -352,7 +362,7 @@ func DeleteFilesWithRetry(paths []string, log zerolog.Logger) {
 // GetBlockchainDataPaths returns blockchain data file paths for a binary.
 // Dart: getBlockchainDataPaths (L334-381)
 func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Network, log zerolog.Logger) []string {
-	switch b.BinaryName {
+	switch b.layoutKey() {
 	case "bitcoind":
 		paths := GetExistingFilesInDir(networkDir, []string{
 			".lock", "anchors.dat", "banlist.json", "bitcoin.pid", "bitcoind.pid",
@@ -508,7 +518,7 @@ func renameAside(p string, log zerolog.Logger) string {
 func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log zerolog.Logger) []string {
 	var paths []string
 
-	switch b.BinaryName {
+	switch b.layoutKey() {
 	case "bip300301-enforcer":
 		rootdir := b.RootDir()
 		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet", "bitcoin")
@@ -554,7 +564,7 @@ func (b BinaryDirConfig) GetSettingsPaths(networkDir string, network Network, lo
 		paths = append(paths, GetExistingFilesInDir(dir, []string{"settings.json", "debug.log"}, log)...)
 	}
 
-	switch b.BinaryName {
+	switch b.layoutKey() {
 	case "bitcoind":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"settings.json"}, log)...)
 		rootDir := b.RootDirNetwork(network)
@@ -611,7 +621,7 @@ func (b BinaryDirConfig) GetAllDatadirPaths(networkDir string) []string {
 func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []string {
 	var paths []string
 
-	switch b.BinaryName {
+	switch b.layoutKey() {
 	case "bitcoind":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"debug.log"}, log)...)
 
@@ -642,7 +652,7 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 // LogPath returns the log file path for this binary.
 // Dart: logPath (L1378-1392)
 func (b BinaryDirConfig) LogPath(networkDir string) string {
-	switch b.BinaryName {
+	switch b.layoutKey() {
 	case "bitcoind":
 		return filepath.Join(networkDir, "debug.log")
 

@@ -49,6 +49,10 @@ const (
 	ResetBinaryGRPCurl
 	ResetBinaryOrchestratord
 	ResetBinaryZSided
+	ResetBinaryInquisition
+
+	// resetBinaryCount bounds iteration over the values above.
+	resetBinaryCount
 )
 
 // GatherSpec is one binary plus the categories of its data to gather.
@@ -101,6 +105,8 @@ func (b ResetBinary) processName() string {
 		return "orchestratord"
 	case ResetBinaryZSided:
 		return "zsided"
+	case ResetBinaryInquisition:
+		return "inquisition"
 	default:
 		return ""
 	}
@@ -128,6 +134,8 @@ func (b ResetBinary) dirConfig() (config.BinaryDirConfig, bool) {
 		return config.PhotonDirs, true
 	case ResetBinaryCoinShift:
 		return config.CoinShiftDirs, true
+	case ResetBinaryInquisition:
+		return config.InquisitionDirs, true
 	default:
 		return config.BinaryDirConfig{}, false
 	}
@@ -313,6 +321,7 @@ type resetPlan struct {
 }
 
 var resetSidechainBinaries = []ResetBinary{
+	ResetBinaryInquisition,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,
@@ -323,6 +332,7 @@ var resetSidechainBinaries = []ResetBinary{
 }
 
 var resetStopOrder = []ResetBinary{
+	ResetBinaryInquisition,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,
@@ -339,6 +349,7 @@ var resetStartOrder = []ResetBinary{
 	ResetBinaryBitcoind,
 	ResetBinaryEnforcer,
 	ResetBinaryBitwindowd,
+	ResetBinaryInquisition,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,
