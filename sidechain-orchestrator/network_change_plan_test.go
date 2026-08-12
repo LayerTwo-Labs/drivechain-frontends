@@ -61,6 +61,30 @@ func TestPlanNetworkChangeDatadirFollowsWalletBackend(t *testing.T) {
 	}
 }
 
+// The boot prompt reads a plan with no request at all. Before a wallet exists
+// nothing is about to start Core, so it must not demand a Bitcoin datadir —
+// that is what made wallet creation open the 700GB directory picker.
+func TestPlanNetworkChangeWithoutWalletAsksForNothing(t *testing.T) {
+	o := planFixture(t, "drynet")
+
+	plan := o.PlanNetworkChange(NetworkChangeRequest{})
+
+	require.False(t, plan.MustSelectDatadir)
+	require.False(t, plan.NeedsLocalBackends)
+	require.False(t, plan.NoChainSource, "no wallet is not an electrum wallet")
+}
+
+// An explicit swap onto a network is a move onto its local node, so it still
+// has to have somewhere to put the chain.
+func TestPlanNetworkChangeWithoutWalletStillGuardsAnExplicitSwap(t *testing.T) {
+	o := planFixture(t, "signet")
+
+	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: "drynet"})
+
+	require.True(t, plan.MustSelectDatadir)
+	require.True(t, plan.NeedsLocalBackends)
+}
+
 // Staying put must not be reported as a change, or the frontend tears down
 // providers for nothing.
 func TestPlanNetworkChangeNoOp(t *testing.T) {

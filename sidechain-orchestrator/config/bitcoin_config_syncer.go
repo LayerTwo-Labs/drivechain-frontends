@@ -416,8 +416,11 @@ func (m *BitcoinConfManager) CopyConfigDownstream() error {
 // forNetwork must be a known Network value; the group resolution depends on
 // it (forknet vs default).
 func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) error {
-	if m.HasPrivateConf || m.Config == nil {
-		return nil
+	if m.HasPrivateConf {
+		return fmt.Errorf("your own bitcoin.conf sets the data directory, so it has to be changed there")
+	}
+	if m.Config == nil {
+		return fmt.Errorf("bitcoin config not loaded")
 	}
 
 	cleanDataDir := strings.ReplaceAll(strings.TrimSpace(dataDir), "\\ ", " ")
@@ -458,6 +461,11 @@ func (m *BitcoinConfManager) materializeDatadirForGroup(g DatadirGroup) {
 func (m *BitcoinConfManager) HasDatadirForNetwork(n Network) bool {
 	if m.Config == nil {
 		return false
+	}
+	// A user's own bitcoin.conf is not ours to write, so we can't require
+	// anything of it — prompting would loop, since the pick can't be saved.
+	if m.HasPrivateConf {
+		return true
 	}
 	if n == NetworkForknet {
 		return m.Config.GetGroupDatadir(DatadirGroupForknet) != ""

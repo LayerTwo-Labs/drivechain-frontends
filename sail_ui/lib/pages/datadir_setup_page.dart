@@ -79,6 +79,15 @@ class _DataDirSetupPageState extends State<DataDirSetupPage> {
         forNetwork: _targetNetwork,
       );
 
+      // A pick that didn't persist would send the user through this page again
+      // on the next boot, with no sign anything went wrong.
+      if (!_confProvider.hasDataDirFor(_targetNetwork)) {
+        setState(() {
+          _errorMessage = 'Could not save the data directory — check the BitWindow log';
+        });
+        return;
+      }
+
       // sleep for 500 millis because windows file stuff sucks, and we cant await
       await Future.delayed(const Duration(milliseconds: 500));
 
