@@ -59,7 +59,7 @@ dependencies:
       ref: 252f3f7910288500039c39ae2b944622a0e55152
       path: packages/desktop_multi_window
   convert: ^3.1.2
-  bip39_mnemonic: ^4.0.1
+  bip39_mnemonic: ^4.1.0
   dart_bip32_bip44: ^0.2.0
   bs58: ^1.0.2
   auto_updater: ^1.0.0
