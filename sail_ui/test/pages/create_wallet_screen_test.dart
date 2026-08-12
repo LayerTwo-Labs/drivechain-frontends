@@ -50,6 +50,37 @@ void main() {
     expect(find.text('Paste a seed phrase'), findsOneWidget);
   });
 
+  // The paste button is the only way to reach the seed field, and the restore
+  // screen scrolls too — so it carries the same unbounded-height hazard.
+  testWidgets('paste opens a restore screen that lays out', (tester) async {
+    await _pumpPage(tester);
+
+    await tester.tap(find.text('Paste a seed phrase'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Paste your seed phrase'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'Paste your seed phrase — 12 or 24 words, separated by spaces'),
+      findsOneWidget,
+    );
+  });
+
+  // Electrum takes a passphrase like every other backend; the field used to be
+  // disabled there, which made a typed value unclearable and every restore fail.
+  testWidgets('the passphrase field stays usable on electrum', (tester) async {
+    await _pumpPage(tester);
+    await tester.tap(find.text('Paste a seed phrase'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'Optional passphrase'), 'hunter2');
+    await tester.tap(find.text('Electrum'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('hunter2'), findsOneWidget, reason: 'switching provider must not discard what was typed');
+  });
+
   // Both actions are equally weighted, which is the point of the row.
   testWidgets('the two actions are the same height', (tester) async {
     await _pumpPage(tester);
