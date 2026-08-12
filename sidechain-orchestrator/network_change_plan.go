@@ -53,11 +53,19 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 		targetBackend = req.WalletBackend
 	}
 
+	// With no wallet nothing is about to start Core, so only an explicit network
+	// change is heading for a local node. Treating "no wallet" as Core is what
+	// made a fresh boot demand a Bitcoin datadir before wallet creation.
+	needsLocalBackends := targetBackend != wallet.WalletTypeElectrum
+	if targetBackend == "" && req.Network == "" {
+		needsLocalBackends = false
+	}
+
 	plan := NetworkChangePlan{
 		Network:            target,
 		WalletBackend:      targetBackend,
 		DatadirGroup:       config.DatadirGroupForNetwork(target),
-		NeedsLocalBackends: targetBackend != wallet.WalletTypeElectrum,
+		NeedsLocalBackends: needsLocalBackends,
 		NoOp:               target == current && targetBackend == currentBackend,
 	}
 
@@ -67,8 +75,11 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 
 	// Electrum runs no local Bitcoin backends, so nothing is downloaded and no
 	// chain directory is needed — the same predicate StartWithL1 uses.
-	if !plan.NeedsLocalBackends {
+	if targetBackend == wallet.WalletTypeElectrum {
 		plan.NoChainSource = len(config.WalletChainSourceURLsForNetwork(target)) == 0
+		return plan
+	}
+	if !plan.NeedsLocalBackends {
 		return plan
 	}
 
@@ -80,13 +91,16 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 	return plan
 }
 
+// activeWalletBackend returns the backend of the wallet in use, empty when no
+// wallet is active. Empty is not Core: assuming Core before the user has any
+// wallet is what made a fresh boot demand a Bitcoin datadir.
 func (o *Orchestrator) activeWalletBackend() wallet.WalletType {
 	if o.WalletSvc == nil {
-		return wallet.WalletTypeBitcoinCore
+		return ""
 	}
 	w := o.WalletSvc.ActiveWallet()
 	if w == nil {
-		return wallet.WalletTypeBitcoinCore
+		return ""
 	}
 	return w.WalletType
 }

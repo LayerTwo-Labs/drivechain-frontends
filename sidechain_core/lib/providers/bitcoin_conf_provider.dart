@@ -246,6 +246,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       await loadConfig();
     } catch (e) {
       log.e('BitcoinConfProvider: failed to update datadir: $e');
+      rethrow;
     }
   }
 
