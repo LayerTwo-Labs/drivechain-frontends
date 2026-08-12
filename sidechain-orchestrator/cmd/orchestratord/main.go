@@ -247,6 +247,7 @@ func run(cctx *cli.Context) error {
 		return nil
 	}
 	walletSvc.GetBinaryWalletPaths = orch.BinaryWalletPaths
+	walletSvc.GetEnforcerWalletPaths = orch.EnforcerWalletPaths
 	if orch.BitcoinConf != nil {
 		walletSvc.CoreDataDir = config.BitcoinCoreDirs.RootDirNetwork(orch.BitcoinConf.Network)
 	}

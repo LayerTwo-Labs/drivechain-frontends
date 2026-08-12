@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -91,6 +92,9 @@ type StartOpts struct {
 	// sidechain Flutter frontends when self-booting their backend so the
 	// toggle doesn't swap in another Flutter bundle inside them.
 	ForceBackend bool
+	// swapHeld marks a boot issued by an enforcer wallet swap, which is the one
+	// boot allowed to run while a swap is in progress.
+	swapHeld bool
 }
 
 // failBoot routes a StartWithL1 failure to all the places the frontend can
@@ -166,6 +170,19 @@ type Orchestrator struct {
 	// sequence so two concurrent SetCoreVariant calls can't race the on-disk
 	// state into an inconsistent shape.
 	coreVariantMu sync.Mutex
+
+	// swapEnforcerMu serialises the whole enforcer wallet swap for the same
+	// reason: its stop -> back up -> commit -> restart sequence is not safe to
+	// interleave with a second one.
+	swapEnforcerMu sync.Mutex
+	// swapPendingBoot is set when a swap gave up waiting on an enforcer boot
+	// that is still running. The lock is released once it fires, so a retry
+	// cannot interleave with the boot the previous swap left behind. Guarded by
+	// swapEnforcerMu, which is held for the whole swap.
+	swapPendingBoot <-chan error
+	// swapEnforcerActive is true while a swap owns the enforcer, so other boot
+	// paths can refuse instead of racing it.
+	swapEnforcerActive atomic.Bool
 
 	// testSidechainsMu serialises the stop -> persist -> wipe sequence for
 	// SetTestSidechains. Same reason as coreVariantMu.
@@ -537,6 +554,8 @@ type StopOptions struct {
 	// ForceBackend leaves the sidechain's GUI companion running. Set by
 	// sidechain Flutter apps, which are that companion.
 	ForceBackend bool
+	// swapHeld is carried through RestartDaemon into StartOpts.swapHeld.
+	swapHeld bool
 }
 
 func (o *Orchestrator) Stop(ctx context.Context, name string, force bool, options ...StopOptions) error {
@@ -1121,7 +1140,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 			}
 		}
 
-		opts := StartOpts{ForceBackend: forceBackend}
+		opts := StartOpts{ForceBackend: forceBackend, swapHeld: opts.swapHeld}
 
 		switch name {
 		case "bitcoind":
@@ -1156,6 +1175,17 @@ func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
 // If prefetched is non-nil, the enforcer binary is already being downloaded
 // in parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) {
+	// A boot that is not the swap's own would write a starter file from the
+	// wallet as it stands mid-swap and leave the daemon's state derived from a
+	// seed that is about to be replaced. Refuse rather than race.
+	if !opts.swapHeld && o.swapEnforcerActive.Load() {
+		o.log.Warn().Msg("refusing to start the enforcer while an enforcer wallet swap is in progress")
+		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
+		mon.SetConnectionError("an enforcer wallet swap is in progress; the enforcer starts again when it finishes")
+		mon.SetInitializing(false)
+		return
+	}
+
 	// 1. Wait for wallet to exist — enforcer needs the L1 seed.
 	if o.WalletSvc != nil && !o.WalletSvc.HasWallet() {
 		o.log.Info().Msg("waiting for wallet before starting enforcer")

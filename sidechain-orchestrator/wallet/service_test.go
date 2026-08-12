@@ -1051,6 +1051,7 @@ func TestServiceRestoreWalletBackupWithProgressReportsPlanAndStepStatuses(t *tes
 		{ID: restoreStepBackupCurrent, Name: "Backing up current wallet"},
 		{ID: restoreStepRestoreFiles, Name: "Restoring wallet files"},
 		{ID: restoreStepLoadWallet, Name: "Loading restored wallet"},
+		{ID: restoreStepClearEnforcer, Name: "Clearing enforcer state"},
 		{ID: restoreStepComplete, Name: "Restore complete"},
 	}, plan)
 
@@ -1069,6 +1070,8 @@ func TestServiceRestoreWalletBackupWithProgressReportsPlanAndStepStatuses(t *tes
 		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepRestoreFiles,
 		string(RestoreWalletBackupStepStarted) + ":" + restoreStepLoadWallet,
 		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepLoadWallet,
+		string(RestoreWalletBackupStepStarted) + ":" + restoreStepClearEnforcer,
+		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepClearEnforcer,
 		string(RestoreWalletBackupStepStarted) + ":" + restoreStepComplete,
 		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepComplete,
 	}, events)

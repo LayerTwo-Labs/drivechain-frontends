@@ -74,6 +74,7 @@ const (
 	restoreStepBackupCurrent = "backup-current-wallet"
 	restoreStepRestoreFiles  = "restore-wallet-files"
 	restoreStepLoadWallet    = "load-restored-wallet"
+	restoreStepClearEnforcer = "clear-enforcer-state"
 	restoreStepComplete      = "restore-complete"
 )
 
@@ -163,7 +164,9 @@ func (s *Service) ListWalletBackups() ([]WalletBackupInfo, error) {
 
 	var backups []WalletBackupInfo
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		// Hidden entries are snapshots still being written; they become visible
+		// under their real name once every file has landed.
+		if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
 		dir := filepath.Join(root, entry.Name())
@@ -237,6 +240,11 @@ func (s *Service) restoreWalletBackup(backupID, password string, progress Restor
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	previousL1Mnemonic := ""
+	if w := s.enforcerWallet(); w != nil {
+		previousL1Mnemonic = w.L1.Mnemonic
+	}
+
 	if err := runStep(restoreStepBackupCurrent, func() error {
 		return s.moveMasterWalletFilesToBackup()
 	}); err != nil {
@@ -279,6 +287,13 @@ func (s *Service) restoreWalletBackup(backupID, password string, progress Restor
 		return err
 	}
 
+	if err := runStep(restoreStepClearEnforcer, func() error {
+		s.clearEnforcerStateForSeed(previousL1Mnemonic)
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	if err := runStep(restoreStepComplete, func() error {
 		s.notifyChanged()
 		return nil
@@ -287,6 +302,35 @@ func (s *Service) restoreWalletBackup(backupID, password string, progress Restor
 	}
 
 	return nil
+}
+
+// clearEnforcerStateForSeed moves the enforcer's per-network wallet directories
+// aside when the restore brought back a different L1 seed. The daemon's BDK
+// state belongs to the seed it was built from; pairing it with another one is
+// the mismatch that wedges the enforcer in checkpoint-sync loops. The caller
+// owns restarting the enforcer, which then rescans from clean state.
+//
+// Best-effort by design: the wallet files are already restored by this point,
+// and a rename the running daemon blocks must not turn a completed restore into
+// a reported failure. Must be called with mu held.
+func (s *Service) clearEnforcerStateForSeed(previousL1Mnemonic string) {
+	if s.GetEnforcerWalletPaths == nil {
+		return
+	}
+	restored := ""
+	if w := s.enforcerWallet(); w != nil {
+		restored = w.L1.Mnemonic
+	}
+	if restored == previousL1Mnemonic {
+		return
+	}
+
+	for _, path := range s.GetEnforcerWalletPaths() {
+		if _, err := s.moveToBackup(path); err != nil {
+			s.log.Error().Err(err).Str("path", path).
+				Msg("could not move enforcer wallet aside after restoring a different seed; stop the enforcer and retry")
+		}
+	}
 }
 
 func (s *Service) resolveWalletBackupForRestore(backupID string) (*WalletBackupInfo, string, string, bool, error) {
@@ -337,6 +381,7 @@ func restoreWalletBackupSteps(encrypted bool) []RestoreWalletBackupStep {
 		RestoreWalletBackupStep{ID: restoreStepBackupCurrent, Name: "Backing up current wallet"},
 		RestoreWalletBackupStep{ID: restoreStepRestoreFiles, Name: "Restoring wallet files"},
 		RestoreWalletBackupStep{ID: restoreStepLoadWallet, Name: "Loading restored wallet"},
+		RestoreWalletBackupStep{ID: restoreStepClearEnforcer, Name: "Clearing enforcer state"},
 		RestoreWalletBackupStep{ID: restoreStepComplete, Name: "Restore complete"},
 	)
 	return steps

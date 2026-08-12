@@ -23,6 +23,11 @@ service WalletManagerService {
   rpc ListWalletBackups(ListWalletBackupsRequest) returns (ListWalletBackupsResponse);
   rpc RestoreWalletBackup(RestoreWalletBackupRequest) returns (RestoreWalletBackupResponse);
   rpc RestoreWalletBackupStream(RestoreWalletBackupRequest) returns (stream RestoreWalletBackupProgressResponse);
+  // SwapEnforcerWallet loads a different seed into the enforcer: stops the
+  // daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
+  // entry in wallet.json from the given mnemonic, and restarts the daemon.
+  // Sidechain starters keep the seed their daemons were built from.
+  rpc SwapEnforcerWallet(SwapEnforcerWalletRequest) returns (stream SwapEnforcerWalletProgressResponse);
   rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
   // Create an electrum wallet: keys are generated locally, but no local Bitcoin
   // Core or enforcer runs — chain data is served remotely via the datasource.
@@ -363,6 +368,47 @@ message RestoreWalletBackupProgressStatus {
 message RestoreWalletBackupProgressResponse {
   repeated RestoreWalletBackupStep steps = 1;
   RestoreWalletBackupProgressStatus status = 2;
+}
+
+// ============================================================================
+// Swap Enforcer Wallet
+// ============================================================================
+
+message SwapEnforcerWalletRequest {
+  // BIP39 mnemonic to load into the enforcer. There is no passphrase option:
+  // the enforcer is handed mnemonic words and derives its own seed from them,
+  // so a passphrased seed could never be the one it runs on.
+  string mnemonic = 1;
+  // Optional name for the swapped-in wallet. Empty keeps the current name.
+  string name = 2;
+}
+
+message SwapEnforcerWalletStep {
+  string step_id = 1;
+  string name = 2;
+}
+
+enum SwapEnforcerWalletStepState {
+  SWAP_ENFORCER_WALLET_STEP_STATE_UNSPECIFIED = 0;
+  SWAP_ENFORCER_WALLET_STEP_STATE_STARTED = 1;
+  SWAP_ENFORCER_WALLET_STEP_STATE_COMPLETED = 2;
+  SWAP_ENFORCER_WALLET_STEP_STATE_FAILED = 3;
+}
+
+message SwapEnforcerWalletProgressStatus {
+  string step_id = 1;
+  SwapEnforcerWalletStepState state = 2;
+  string error = 3;
+  bool complete = 4;
+  // Free-form context for the step, e.g. the backup directory it wrote.
+  string detail = 5;
+}
+
+message SwapEnforcerWalletProgressResponse {
+  repeated SwapEnforcerWalletStep steps = 1;
+  SwapEnforcerWalletProgressStatus status = 2;
+  // ID of the swapped-in enforcer wallet, set on the final message.
+  string wallet_id = 3;
 }
 
 // ============================================================================
