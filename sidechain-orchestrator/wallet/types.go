@@ -45,6 +45,10 @@ type WalletData struct {
 	// wallet imports the single descriptor matching that purpose. Empty means
 	// the standard purposes at AccountIndex.
 	DerivationPath string `json:"derivation_path,omitempty"`
+	// Imported means the seed came from a mnemonic the user supplied, so it may
+	// already have history. Core imports its descriptors with a rescan from
+	// genesis; a freshly generated seed scans from the tip.
+	Imported bool `json:"imported,omitempty"`
 	// Multisig, when set, makes this an m-of-n multisig wallet. Cosigners that
 	// carry a mnemonic or xprv are held on disk and can sign; the rest are
 	// watch-only legs.

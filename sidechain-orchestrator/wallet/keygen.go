@@ -213,5 +213,6 @@ func GenerateFullWallet(name string, customMnemonic string, passphrase string, s
 		Sidechains: sidechains,
 		Name:       name,
 		WalletType: walletType,
+		Imported:   customMnemonic != "",
 	}, nil
 }

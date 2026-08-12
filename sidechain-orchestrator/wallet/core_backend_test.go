@@ -897,3 +897,35 @@ func TestCoreBackendSendM5Deposit(t *testing.T) {
 	assert.Equal(t, walletFunds-depositSats-feeSats, tx.TxOut[2].Value,
 		"only the deposit and fee leave the wallet; the CTIP passes through")
 }
+
+// A wallet restored from someone's existing seed has history older than the
+// import, so Core has to rescan from genesis to find its coins.
+func TestImportTimestampRescansRestoredSeeds(t *testing.T) {
+	if got := importTimestamp(&WalletData{Imported: true}); got != int64(0) {
+		t.Errorf("importTimestamp(imported) = %v, want int64(0) — a rescan from genesis", got)
+	}
+	if got := importTimestamp(&WalletData{}); got != "now" {
+		t.Errorf("importTimestamp(generated) = %v, want \"now\"", got)
+	}
+}
+
+// The flag is what tells the two apart, and it is set at generation time.
+func TestGenerateFullWalletMarksImportedSeeds(t *testing.T) {
+	const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+	restored, err := GenerateFullWallet("restored", mnemonic, "", nil, WalletTypeBitcoinCore)
+	if err != nil {
+		t.Fatalf("GenerateFullWallet(custom): %v", err)
+	}
+	if !restored.Imported {
+		t.Error("a wallet built from a supplied mnemonic must be marked imported")
+	}
+
+	fresh, err := GenerateFullWallet("fresh", "", "", nil, WalletTypeBitcoinCore)
+	if err != nil {
+		t.Fatalf("GenerateFullWallet(generated): %v", err)
+	}
+	if fresh.Imported {
+		t.Error("a generated wallet has no history and must not be marked imported")
+	}
+}
