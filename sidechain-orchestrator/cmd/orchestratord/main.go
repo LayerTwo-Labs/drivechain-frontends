@@ -383,6 +383,9 @@ func run(cctx *cli.Context) error {
 			enforcerrpc.ValidatorServiceName,
 			enforcerrpc.WalletServiceName,
 			cryptorpc.CryptoServiceName,
+			// Mining, so a regtest operator can produce the mainchain block
+			// that takes a BMM bid without reaching past the orchestrator.
+			"cusf.mainchain.v1.MiningService",
 		} {
 			mux.Handle("/"+svc+"/", localauth.Middleware(authDir, enforcerBridge))
 		}
