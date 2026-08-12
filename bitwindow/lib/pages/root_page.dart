@@ -164,11 +164,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         label: 'Import Wallet Seed',
         category: 'Wallet',
         onSelected: () => GetIt.I.get<AppRouter>().push(
-          SailCreateWalletRoute(
-            homeRoute: const RootRoute(),
-            initialScreen: WelcomeScreen.restore,
-            onRestoreFromFile: restoreBitwindowWalletFromFile,
-          ),
+          CreateAnotherWalletRoute(),
         ),
       ),
       CommandItem(
@@ -491,11 +487,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       label: 'Import Wallet Seed',
                       onSelected: () async {
                         await GetIt.I.get<AppRouter>().push(
-                          SailCreateWalletRoute(
-                            homeRoute: const RootRoute(),
-                            initialScreen: WelcomeScreen.restore,
-                            onRestoreFromFile: restoreBitwindowWalletFromFile,
-                          ),
+                          CreateAnotherWalletRoute(),
                         );
                       },
                     ),

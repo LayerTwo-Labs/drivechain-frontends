@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/dialogs/network_statistics_dialog.dart';
-import 'package:bitwindow/main.dart' show restoreBitwindowWalletFromFile;
 import 'package:bitwindow/pages/chat_page.dart';
 import 'package:bitwindow/pages/configure_homepage.dart';
 import 'package:bitwindow/pages/console_page.dart';
@@ -90,11 +89,7 @@ class AppRouter extends RootStackRouter {
       guards: [
         DataDirGuard(),
         WalletGuard(
-          createWalletRoute: (onWalletCreated) => SailCreateWalletRoute(
-            homeRoute: const RootRoute(),
-            onWalletCreated: onWalletCreated,
-            onRestoreFromFile: restoreBitwindowWalletFromFile,
-          ),
+          createWalletRoute: (onWalletCreated) => CreateAnotherWalletRoute(onWalletCreated: onWalletCreated),
         ),
         PasswordGuard(),
       ],
@@ -110,10 +105,6 @@ class AppRouter extends RootStackRouter {
     AutoRoute(
       path: '/configure-home',
       page: ConfigureHomeRoute.page,
-    ),
-    AutoRoute(
-      path: '/create-wallet',
-      page: SailCreateWalletRoute.page,
     ),
     AutoRoute(
       path: '/create-another-wallet',

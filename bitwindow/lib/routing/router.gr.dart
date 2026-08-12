@@ -200,18 +200,58 @@ class ConsoleRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [CreateAnotherWalletPage]
-class CreateAnotherWalletRoute extends PageRouteInfo<void> {
-  const CreateAnotherWalletRoute({List<PageRouteInfo>? children})
-    : super(CreateAnotherWalletRoute.name, initialChildren: children);
+class CreateAnotherWalletRoute
+    extends PageRouteInfo<CreateAnotherWalletRouteArgs> {
+  CreateAnotherWalletRoute({
+    Key? key,
+    VoidCallback? onWalletCreated,
+    List<PageRouteInfo>? children,
+  }) : super(
+         CreateAnotherWalletRoute.name,
+         args: CreateAnotherWalletRouteArgs(
+           key: key,
+           onWalletCreated: onWalletCreated,
+         ),
+         initialChildren: children,
+       );
 
   static const String name = 'CreateAnotherWalletRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const CreateAnotherWalletPage();
+      final args = data.argsAs<CreateAnotherWalletRouteArgs>(
+        orElse: () => const CreateAnotherWalletRouteArgs(),
+      );
+      return CreateAnotherWalletPage(
+        key: args.key,
+        onWalletCreated: args.onWalletCreated,
+      );
     },
   );
+}
+
+class CreateAnotherWalletRouteArgs {
+  const CreateAnotherWalletRouteArgs({this.key, this.onWalletCreated});
+
+  final Key? key;
+
+  final VoidCallback? onWalletCreated;
+
+  @override
+  String toString() {
+    return 'CreateAnotherWalletRouteArgs{key: $key, onWalletCreated: $onWalletCreated}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CreateAnotherWalletRouteArgs) return false;
+    return key == other.key && onWalletCreated == other.onWalletCreated;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ onWalletCreated.hashCode;
 }
 
 /// generated route for
