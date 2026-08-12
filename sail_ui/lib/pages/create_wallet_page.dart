@@ -213,135 +213,229 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   // ignore: avoid_build_methods
   Widget _buildInitialScreen() {
     final theme = SailTheme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0),
-        child: SizedBox(
-          width: 800,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              BootTitle(
-                title: hasExistingWallet ? 'Create Another Wallet' : 'Set up your wallet',
-                subtitle: hasExistingWallet
-                    ? "Let's create another wallet. This will add a new wallet to your collection without affecting your existing wallets."
-                    : "Welcome to ${widget.appName}! Let's begin by setting up your wallet.",
-              ),
-              if (hasExistingWallet) ...[
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: 400,
-                  child: SailTextField(
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          child: SizedBox(
+            width: 560,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                BootTitle(
+                  title: hasExistingWallet ? 'Add a wallet' : 'Set up your wallet',
+                  subtitle: hasExistingWallet
+                      ? 'Runs alongside your existing wallets. Nothing you already have is touched.'
+                      : 'Pick where ${widget.appName} reads chain data from. The seed phrase is the same either way.',
+                ),
+                if (hasExistingWallet) ...[
+                  SailTextField(
                     controller: _walletNameController,
                     hintText: 'Wallet name (required)',
                     textFieldType: TextFieldType.text,
                     size: TextFieldSize.regular,
                   ),
+                  const SizedBox(height: 24),
+                ],
+                _buildProviderCards(theme),
+                const SizedBox(height: 24),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: _buildGenerateButton(theme)),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildActionCard(
+                        theme: theme,
+                        title: 'Paste a seed phrase',
+                        subtitle: 'Import an existing 12 or 24-word mnemonic',
+                        onPressed: (_isGenerating || _awaitingBackend) ? null : () => _setScreen(WelcomeScreen.restore),
+                      ),
+                    ),
+                  ],
                 ),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: SailStyleValues.padding08),
+                    child: SailText.primary13(_error!, color: theme.colors.error),
+                  ),
+                const SizedBox(height: 16),
+                _buildDerivationOptions(theme),
+                const SizedBox(height: 32),
               ],
-              const SizedBox(height: 16),
-              SizedBox(width: 400, child: _buildDerivationOptions(theme)),
-              const SizedBox(height: 32),
-              Spacer(),
-              SizedBox(
-                width: 400,
-                height: 64,
-                child: MouseRegion(
-                  cursor: (_isGenerating || _awaitingBackend) ? SystemMouseCursors.basic : SystemMouseCursors.click,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [theme.colors.primary, theme.colors.primary],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-                      ],
-                    ),
-                    child: TextButton(
-                      onPressed: (_isGenerating || _awaitingBackend)
-                          ? null
-                          : () {
-                              setState(() => _isGenerating = true);
-                              // Schedule the wallet generation to run after this frame
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                _handleFastMode();
-                              });
-                            },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: SailText.primary15(
-                              _awaitingBackend
-                                  ? 'Connecting to bitwindowd…'
-                                  : _isGenerating
-                                  ? 'Generating Your Wallet'
-                                  : hasExistingWallet
-                                  ? 'Create Another Wallet'
-                                  : 'Generate Wallet',
-                              color: Colors.white,
-                              bold: true,
-                            ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // _buildProviderCards renders the wallet type as a choice rather than a
+  // dropdown. Bitcoin Core stays visible while unavailable so it reads as
+  // "not yet" instead of missing.
+  Widget _buildProviderCards(SailThemeData theme) {
+    final available = _availableProviders;
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SailText.secondary12('WALLET TYPE', bold: true),
+        for (final provider in InitialWalletProvider.values)
+          _buildProviderCard(theme, provider, enabled: available.contains(provider)),
+      ],
+    );
+  }
+
+  Widget _buildProviderCard(SailThemeData theme, InitialWalletProvider provider, {required bool enabled}) {
+    final selected = _selectedProvider == provider;
+    final description = enabled ? provider.description : '${provider.description} · needs an enforcer wallet first';
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: MouseRegion(
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        child: GestureDetector(
+          onTap: enabled ? () => setState(() => _selectedProvider = provider) : null,
+          child: Container(
+            padding: const EdgeInsets.all(SailStyleValues.padding12),
+            decoration: BoxDecoration(
+              color: theme.colors.backgroundSecondary,
+              border: Border.all(
+                color: selected ? theme.colors.primary : theme.colors.border,
+                width: selected ? 1.5 : 1,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: selected ? theme.colors.primary : theme.colors.textSecondary, width: 1.5),
+                  ),
+                  child: selected
+                      ? Center(
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: theme.colors.primary),
                           ),
-                          if (_awaitingBackend || _isGenerating)
-                            SizedBox(
-                              width: 15,
-                              height: 15,
-                              child: LoadingIndicator.insideButton(Colors.white),
-                            ),
-                        ],
-                      ),
-                    ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SailColumn(
+                    spacing: 2,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailText.primary15(provider.label, bold: true),
+                      SailText.secondary12(description),
+                    ],
                   ),
                 ),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: SailStyleValues.padding08),
-                  child: SailText.primary13(_error!, color: theme.colors.error),
-                ),
-              const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenerateButton(SailThemeData theme) {
+    final busy = _isGenerating || _awaitingBackend;
+    return MouseRegion(
+      cursor: busy ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colors.primary,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+          ],
+        ),
+        child: TextButton(
+          onPressed: busy
+              ? null
+              : () {
+                  setState(() => _isGenerating = true);
+                  // Schedule the wallet generation to run after this frame
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _handleFastMode();
+                  });
+                },
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SailButton(
-                    label: 'Restore Wallet',
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async => _setScreen(WelcomeScreen.restore),
+                  Flexible(
+                    child: SailText.primary15(
+                      _awaitingBackend
+                          ? 'Connecting to bitwindowd…'
+                          : _isGenerating
+                          ? 'Generating your wallet'
+                          : 'Create a new wallet',
+                      color: Colors.white,
+                      bold: true,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  const SizedBox(width: 24),
-                  SailText.secondary15('·'),
-                  const SizedBox(width: 24),
-                  SailDropdownButton<InitialWalletProvider>(
-                    variant: ButtonVariant.ghost,
-                    value: _selectedProvider,
-                    items: _availableProviders
-                        .map(
-                          (p) => SailDropdownItem<InitialWalletProvider>(value: p, label: p.label),
-                        )
-                        .toList(),
-                    onChanged: (p) {
-                      if (p != null) {
-                        setState(() => _selectedProvider = p);
-                      }
-                    },
-                  ),
+                  if (busy) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(width: 15, height: 15, child: LoadingIndicator.insideButton(Colors.white)),
+                  ],
                 ],
               ),
-              const Spacer(),
-              const Spacer(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 4),
+              SailText.primary12(
+                'Generates a fresh 12-word seed phrase',
+                color: Colors.white70,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required SailThemeData theme,
+    required String title,
+    required String subtitle,
+    required VoidCallback? onPressed,
+  }) {
+    return MouseRegion(
+      cursor: onPressed == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colors.backgroundSecondary,
+          border: Border.all(color: theme.colors.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: TextButton(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SailText.primary15(title, bold: true, textAlign: TextAlign.center),
+              const SizedBox(height: 4),
+              SailText.secondary12(subtitle, textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -364,9 +458,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
               children: [
                 const SizedBox(height: 32),
                 BootTitle(
-                  title: 'Restore your wallet',
+                  title: 'Paste your seed phrase',
                   subtitle:
-                      'Restore your mainchain wallet and all sidechain wallets from a seed phrase, local wallet backup, or backup file.',
+                      'Restores your mainchain wallet and every sidechain wallet from a seed phrase, local wallet backup, or backup file.',
                 ),
                 const SizedBox(height: 24),
                 if (hasExistingWallet) ...[
@@ -378,9 +472,11 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                   ),
                   const SizedBox(height: 16),
                 ],
+                _buildProviderCards(theme),
+                const SizedBox(height: 16),
                 SailTextField(
                   controller: _mnemonicController,
-                  hintText: 'Enter BIP39 mnemonic (12 or 24 words)',
+                  hintText: 'Paste your seed phrase — 12 or 24 words, separated by spaces',
                   maxLines: 3,
                   textFieldType: TextFieldType.text,
                   size: TextFieldSize.regular,
@@ -587,16 +683,11 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
           derivationPath: derivationPath,
         );
       case InitialWalletProvider.electrum:
-        // The electrum create RPC carries no passphrase field, so importing a
-        // passphrase-protected seed would silently derive the wrong wallet.
-        // Refuse rather than create an unrecoverable wallet.
-        if (passphrase != null && passphrase.isNotEmpty) {
-          throw Exception('BIP39 passphrases are not yet supported for Electrum wallets');
-        }
         await _walletProvider.createElectrumWallet(
           name: name,
           gradient: WalletGradient.fromWalletId(name),
           customMnemonic: customMnemonic,
+          passphrase: passphrase,
           account: account,
           derivationPath: derivationPath,
         );
