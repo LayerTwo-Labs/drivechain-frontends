@@ -1330,7 +1330,31 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               ),
             ],
           ),
-          child: SailText.primary16('Generate Key', bold: true, color: SailColorScheme.white),
+          child: SailText.primary16('Generate new seed', bold: true, color: SailColorScheme.white),
+        ),
+      ),
+    );
+  }
+
+  // Equal weight to generating: a user who already has a seed has nowhere else
+  // to put it, and the ghost row below reads as fine print.
+  Widget _pasteSeedButton(BuildContext context, int index) {
+    final theme = SailTheme.of(context);
+    final enabled = _pathError == null;
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: SailTappable(
+        onTap: enabled ? () async => _addSoftwareKeystore(context, index, mode: SeedEntryMode.importExisting) : null,
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 18),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: theme.colors.backgroundSecondary,
+            border: Border.all(color: theme.colors.border),
+          ),
+          child: SailText.primary16('Paste seed phrase', bold: true),
         ),
       ),
     );
@@ -1348,7 +1372,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const SizedBox(height: 8),
-        _generateKeyButton(context, index),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 12,
+          children: [
+            _generateKeyButton(context, index),
+            _pasteSeedButton(context, index),
+          ],
+        ),
         const SizedBox(height: 28),
         Wrap(
           alignment: WrapAlignment.center,
@@ -1417,11 +1449,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     }
   }
 
-  Future<void> _addSoftwareKeystore(BuildContext context, int index) async {
+  Future<void> _addSoftwareKeystore(
+    BuildContext context,
+    int index, {
+    SeedEntryMode mode = SeedEntryMode.generate,
+  }) async {
     setState(() => _error = null);
     final seed = await Navigator.of(
       context,
-    ).push<SeedBackup>(MaterialPageRoute(builder: (_) => const WalletBackupPage()));
+    ).push<SeedBackup>(MaterialPageRoute(builder: (_) => WalletBackupPage(mode: mode)));
     if (seed == null || seed.mnemonic.isEmpty) {
       return;
     }

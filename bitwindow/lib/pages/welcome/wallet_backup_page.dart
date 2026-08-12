@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -12,12 +13,19 @@ class SeedBackup {
   const SeedBackup(this.mnemonic, this.passphrase);
 }
 
-enum _Stage { backup, reenter }
+/// Where the seed comes from: minted here, or one the user already has.
+enum SeedEntryMode { generate, importExisting }
+
+enum _Stage { backup, reenter, import }
 
 /// Shows a freshly generated seed, offers a passphrase or the user's own
 /// entropy, then makes the user type the words back before accepting them.
+/// In [SeedEntryMode.importExisting] the same grid starts empty and the user
+/// pastes their own words into it.
 class WalletBackupPage extends StatefulWidget {
-  const WalletBackupPage({super.key});
+  final SeedEntryMode mode;
+
+  const WalletBackupPage({super.key, this.mode = SeedEntryMode.generate});
 
   @override
   State<WalletBackupPage> createState() => _WalletBackupPageState();
@@ -29,8 +37,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   final TextEditingController _entropy = TextEditingController();
   final TextEditingController _passphrase = TextEditingController();
   List<TextEditingController> _reentered = [];
+  List<TextEditingController> _imported = [];
 
-  _Stage _stage = _Stage.backup;
+  late _Stage _stage;
   List<String> _words = [];
   int _wordCount = 12;
   bool _paranoid = false;
@@ -42,6 +51,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.mode == SeedEntryMode.importExisting) {
+      _stage = _Stage.import;
+      _imported = List.generate(_wordCount, (_) => TextEditingController());
+      return;
+    }
+    _stage = _Stage.backup;
     unawaited(_generate());
   }
 
@@ -49,7 +64,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   void dispose() {
     _entropy.dispose();
     _passphrase.dispose();
-    for (final c in _reentered) {
+    for (final c in [..._reentered, ..._imported]) {
       c.dispose();
     }
     super.dispose();
@@ -155,8 +170,88 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   }
 
   Future<void> _setWordCount(int count) async {
+    if (_stage == _Stage.import) {
+      setState(() => _resizeImported(count));
+      return;
+    }
     setState(() => _wordCount = count);
     await (_paranoid ? _derive(_entropy.text) : _generate());
+  }
+
+  /// Grows or shrinks the input grid, keeping whatever is already typed.
+  /// Call inside setState.
+  void _resizeImported(int count) {
+    _wordCount = count;
+    final kept = _imported.take(count).toList();
+    final dropped = _imported.skip(count).toList();
+    _imported = [
+      ...kept,
+      ...List.generate(count - kept.length, (_) => TextEditingController()),
+    ];
+    // The TextFields holding these are still mounted until the rebuild lands.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final c in dropped) {
+        c.dispose();
+      }
+    });
+  }
+
+  List<String> get _importedWords =>
+      _imported.map((c) => c.text.trim().toLowerCase()).where((w) => w.isNotEmpty).toList();
+
+  int get _importedCount => _importedWords.length;
+
+  /// Valid only when every box is filled and the words form a real BIP39
+  /// sentence — a typo in one word changes the wallet silently, so the
+  /// checksum is what the Create button waits for.
+  bool get _importValid {
+    if (_importedCount != _imported.length) {
+      return false;
+    }
+    try {
+      Mnemonic.fromSentence(_importedWords.join(' '), Language.english);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Spreads a multi-word paste across the boxes. A full 12 or 24 words is the
+  /// whole phrase however it arrived, so it fills the grid from the start and
+  /// resizes it to fit; anything shorter fills forward from [index].
+  void _spread(int index, String value) {
+    final words = value.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.length < 2) {
+      setState(() {});
+      return;
+    }
+    final wholePhrase = words.length == 12 || words.length == 24;
+    final start = wholePhrase ? 0 : index;
+    setState(() {
+      if (wholePhrase && words.length != _imported.length) {
+        _resizeImported(words.length);
+      }
+      for (var i = 0; i < words.length && start + i < _imported.length; i++) {
+        _imported[start + i].text = words[i];
+      }
+    });
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text?.trim() ?? '';
+    if (text.isEmpty) {
+      setState(() => _error = 'Clipboard is empty');
+      return;
+    }
+    setState(() => _error = null);
+    _spread(0, text);
+  }
+
+  void _finishImport() {
+    Navigator.of(context).pop(
+      SeedBackup(_importedWords.join(' '), _wantPassphrase ? _passphrase.text : ''),
+    );
   }
 
   Future<void> _enableParanoid(BuildContext context) async {
@@ -328,7 +423,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 child: Center(
                   child: SizedBox(
                     width: 900,
-                    child: _stage == _Stage.backup ? _backupBody(context) : _reenterBody(context),
+                    child: switch (_stage) {
+                      _Stage.backup => _backupBody(context),
+                      _Stage.reenter => _reenterBody(context),
+                      _Stage.import => _importBody(context),
+                    },
                   ),
                 ),
               ),
@@ -500,6 +599,107 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     );
   }
 
+  Widget _importBody(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final complete = _importedCount == _imported.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _heading(
+          'Enter your seed phrase',
+          'Paste the words from your backup, or type them into the numbered boxes. '
+              'They rebuild the same keys, so any coins on them come back with the wallet.',
+        ),
+        SailCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SailText.primary16('Mnemonic Words (BIP39)', bold: true),
+                        SailText.secondary13('Paste the whole phrase into the first box, or fill them one by one.'),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    width: 210,
+                    child: SailDropdownButton<int>(
+                      value: _wordCount,
+                      onChanged: (v) async {
+                        if (v != null) {
+                          await _setWordCount(v);
+                        }
+                      },
+                      items: const [
+                        SailDropdownItem<int>(value: 12, label: 'Use 12 Words'),
+                        SailDropdownItem<int>(value: 24, label: 'Use 24 Words'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SailMnemonicGrid(
+                controllers: _imported,
+                onChanged: _spread,
+              ),
+              const SizedBox(height: 16),
+              _optionLinks(context),
+              if (_wantPassphrase) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 300,
+                  child: SailTextField(
+                    controller: _passphrase,
+                    hintText: 'Passphrase',
+                    size: TextFieldSize.small,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _importValid
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SailSVG.icon(SailSVGAsset.iconSuccess, width: 12, color: theme.colors.success),
+                              const SizedBox(width: 6),
+                              SailText.secondary13('Valid checksum', color: theme.colors.success),
+                            ],
+                          )
+                        : SailText.secondary13(
+                            complete
+                                ? 'These words are not a valid BIP39 phrase — check for a typo'
+                                : '$_importedCount of ${_imported.length} words entered',
+                            color: complete ? theme.colors.error : theme.colors.textSecondary,
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  SailButton(
+                    label: 'Paste from clipboard',
+                    variant: ButtonVariant.secondary,
+                    onPressed: _pasteFromClipboard,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          SailText.secondary12(_error!, color: theme.colors.error),
+        ],
+      ],
+    );
+  }
+
   Widget _reenterBody(BuildContext context) {
     final theme = SailTheme.of(context);
     return Column(
@@ -534,7 +734,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
 
   Widget _bottomBar(BuildContext context) {
     final theme = SailTheme.of(context);
-    final ready = _stage == _Stage.backup ? _words.isNotEmpty && !_busy : _reenterMatches;
+    final ready = switch (_stage) {
+      _Stage.backup => _words.isNotEmpty && !_busy,
+      _Stage.reenter => _reenterMatches,
+      _Stage.import => _importValid,
+    };
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
@@ -556,7 +760,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 label: 'Create Wallet',
                 loading: _busy,
                 disabled: !ready,
-                onPressed: () async => _stage == _Stage.backup ? await _startReenter(context) : _finish(),
+                onPressed: () async => switch (_stage) {
+                  _Stage.backup => await _startReenter(context),
+                  _Stage.reenter => _finish(),
+                  _Stage.import => _finishImport(),
+                },
               ),
             ],
           ),
