@@ -6,16 +6,28 @@ import (
 	"testing"
 )
 
+// embeddedGeneration is the drynet networks.json ships with. Bump it whenever
+// the embedded catalog is refreshed from the published document.
+const embeddedGeneration = "drynet4"
+
 func TestEmbeddedCatalogParses(t *testing.T) {
 	c, fromDisk := Load(t.TempDir())
 	if fromDisk {
 		t.Fatal("empty dir must not report a cached catalog")
 	}
-	if got := c.DrynetID(); got != "drynet2" {
-		t.Errorf("embedded DrynetID() = %q, want drynet2", got)
+	if got := c.DrynetID(); got != embeddedGeneration {
+		t.Errorf("embedded DrynetID() = %q, want %s", got, embeddedGeneration)
 	}
 	if _, ok := c.ByFamily(FamilyECash); !ok {
 		t.Error("embedded catalog must carry an ecash network")
+	}
+}
+
+// Every generation seeds on its own port, so the embedded document must carry
+// the peer — inventing one from the id is what wrote drynet4 with :8335.
+func TestEmbeddedCatalogPublishesPeers(t *testing.T) {
+	if got := EmbeddedPeer(embeddedGeneration); got == "" {
+		t.Errorf("EmbeddedPeer(%s) is empty, want the published seed address", embeddedGeneration)
 	}
 }
 
@@ -71,8 +83,8 @@ func TestCorruptCacheFallsBackToEmbedded(t *testing.T) {
 	if fromDisk {
 		t.Error("corrupt cache must not report as from disk")
 	}
-	if c.DrynetID() != "drynet2" {
-		t.Errorf("DrynetID() = %q, want the embedded drynet2", c.DrynetID())
+	if c.DrynetID() != embeddedGeneration {
+		t.Errorf("DrynetID() = %q, want the embedded %s", c.DrynetID(), embeddedGeneration)
 	}
 }
 

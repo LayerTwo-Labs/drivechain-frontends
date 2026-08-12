@@ -226,6 +226,20 @@ func EmbeddedDrynetID() string {
 	return c.DrynetID()
 }
 
+// EmbeddedPeer is the seed address the compiled-in catalog publishes for a
+// network id, empty when it lists none.
+func EmbeddedPeer(id string) string {
+	c, err := parse(embedded)
+	if err != nil {
+		return ""
+	}
+	n, ok := c.ByID(id)
+	if !ok {
+		return ""
+	}
+	return n.P2P.Address
+}
+
 // Fetch downloads and parses the live catalog.
 func Fetch(ctx context.Context, url string) (Catalog, error) {
 	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)

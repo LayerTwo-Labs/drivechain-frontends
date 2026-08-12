@@ -537,6 +537,10 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 		}
 	}
 	for _, kv := range defaults {
+		// An unpublished peer must not become `addnode=`, which bitcoind rejects.
+		if kv.v == "" {
+			continue
+		}
 		m.Config.SetSetting(kv.k, kv.v, "main")
 	}
 }

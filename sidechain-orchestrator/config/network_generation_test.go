@@ -15,7 +15,7 @@ func TestDrynetURLsFollowTheGeneration(t *testing.T) {
 	}
 
 	m := &BitcoinConfManager{Network: NetworkDrynet}
-	if got := m.DrynetPeer(); got != "drynet3.drivechain.dev:8335" {
+	if got := m.DrynetPeer(); got != "drynet3.drivechain.dev:8337" {
 		t.Errorf("DrynetPeer() = %q, want the drynet3 peer", got)
 	}
 }
