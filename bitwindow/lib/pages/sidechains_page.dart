@@ -1358,7 +1358,13 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     // Switching between an electrum and a backend-backed wallet changes nothing
     // else tracked here, so without this the tab keeps rendering the old gate.
-    track('l1Gate', l1Gate);
+    final gate = l1Gate;
+    if (track('l1Gate', gate) && gate == L1Gate.ready) {
+      // SidechainProvider only refetches once isSynced flips, which never
+      // happens on an empty regtest chain — the slot list would stay as it was
+      // when the daemons were still down.
+      unawaited(_sidechainProvider.fetch());
+    }
 
     // UI state that affects rendering
     track('showOnlyFilled', showOnlyFilled);
