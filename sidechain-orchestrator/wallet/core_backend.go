@@ -807,6 +807,16 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 	return nil
 }
 
+// importTimestamp is what Core rescans from. A restored seed can have history
+// of any age, and "now" would leave its balance at zero; a seed generated here
+// has none, so it scans from the tip.
+func importTimestamp(w *WalletData) any {
+	if w.Imported {
+		return int64(0)
+	}
+	return "now"
+}
+
 // createBitcoinCoreWallet creates a Bitcoin Core descriptor wallet from a seed.
 // With no derivation override it imports the standard BIP84 + BIP86 descriptors
 // at account 0; an AccountIndex shifts both to that account; an explicit
@@ -864,14 +874,14 @@ func (p *CoreBackend) createBitcoinCoreWallet(ctx context.Context, walletName st
 			ImportDescriptor{
 				Desc:      mustAddChecksum(fmt.Sprintf("%s[%s/%s]%s/0/*%s", open, fingerprint, origin, acctXprv, close)),
 				Active:    true,
-				Timestamp: "now",
+				Timestamp: importTimestamp(w),
 				Internal:  false,
 				Range:     []int{0, 999},
 			},
 			ImportDescriptor{
 				Desc:      mustAddChecksum(fmt.Sprintf("%s[%s/%s]%s/1/*%s", open, fingerprint, origin, acctXprv, close)),
 				Active:    true,
-				Timestamp: "now",
+				Timestamp: importTimestamp(w),
 				Internal:  true,
 				Range:     []int{0, 999},
 			},
