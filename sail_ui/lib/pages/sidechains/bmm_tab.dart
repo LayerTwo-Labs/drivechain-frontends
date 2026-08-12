@@ -64,7 +64,7 @@ class _Controls extends StatelessWidget {
         SailText.primary13('Min bid:'),
         SizedBox(
           width: 130,
-          child: SailTextField(controller: viewModel.minBidController, hintText: '0.00005000'),
+          child: SailTextField(controller: viewModel.minBidController, hintText: '0.00000100'),
         ),
         SailText.primary13('Max bid:'),
         SizedBox(
@@ -389,9 +389,9 @@ class BMMViewModel extends BaseViewModel {
   BMMViewModel() {
     minBidController.text = bmmProvider.minBidAmount.toStringAsFixed(8);
     maxBidController.text = bmmProvider.maxBidAmount.toStringAsFixed(8);
-    minBidController.addListener(_onBounds);
-    maxBidController.addListener(_onBounds);
-    bmmProvider.addListener(notifyListeners);
+    minBidController.addListener(_onMinBound);
+    maxBidController.addListener(_onMaxBound);
+    bmmProvider.addListener(_onProviderChanged);
   }
 
   bool get running => bmmProvider.running;
@@ -454,15 +454,37 @@ class BMMViewModel extends BaseViewModel {
     return 'Waiting for a miner to commit to ${shorten(live.criticalHash)}';
   }
 
-  void _onBounds() {
+  // One listener per field: editing one bound must not push the other, whose box
+  // may still show a value the watch stream has since moved on from.
+  void _onMinBound() {
     final min = double.tryParse(minBidController.text.trim());
     if (min != null) {
       bmmProvider.setMinBidAmount(min);
     }
+  }
+
+  void _onMaxBound() {
     final max = double.tryParse(maxBidController.text.trim());
     if (max != null) {
       bmmProvider.setMaxBidAmount(max);
     }
+  }
+
+  void _onProviderChanged() {
+    // Mirror bounds the backend reports, except while an edit is waiting to be
+    // pushed — that value is the user's, mid-typing.
+    if (!bmmProvider.boundsPushPending) {
+      _mirrorBound(minBidController, bmmProvider.minBidAmount);
+      _mirrorBound(maxBidController, bmmProvider.maxBidAmount);
+    }
+    notifyListeners();
+  }
+
+  void _mirrorBound(TextEditingController controller, double value) {
+    if (double.tryParse(controller.text.trim()) == value) {
+      return;
+    }
+    controller.text = value.toStringAsFixed(8);
   }
 
   Future<void> startBidding() => bmmProvider.startBidding();
@@ -620,7 +642,7 @@ class BMMViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    bmmProvider.removeListener(notifyListeners);
+    bmmProvider.removeListener(_onProviderChanged);
     minBidController.dispose();
     maxBidController.dispose();
     super.dispose();

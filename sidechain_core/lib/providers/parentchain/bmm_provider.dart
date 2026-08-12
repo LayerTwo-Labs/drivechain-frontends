@@ -17,13 +17,18 @@ class BMMProvider extends ChangeNotifier {
   StreamSupervisor<bmmpb.WatchResponse>? _supervisor;
 
   bool running = false;
-  double minBidAmount = 0.00005;
+  double minBidAmount = 0.000001;
   double maxBidAmount = 0.0002;
 
   String? _selectedWalletId;
 
   /// Confirmed balance of the funding wallet, null until a fetch lands.
   int? fundingBalanceSats;
+
+  /// Pending push of edited bounds to the backend. While it is armed the watch
+  /// stream's values are stale by definition, so they must not overwrite what
+  /// the user just typed.
+  Timer? _boundsPush;
 
   /// The round being bid on, absent when no tip has been seen yet.
   bmmpb.Round? current;
@@ -53,6 +58,10 @@ class BMMProvider extends ChangeNotifier {
 
   int get minBidSats => btcToSatoshi(minBidAmount);
   int get maxBidSats => btcToSatoshi(maxBidAmount);
+
+  /// True while an edited bound is waiting to be pushed. The bid fields read this
+  /// so they never overwrite what the user is still typing.
+  bool get boundsPushPending => _boundsPush?.isActive ?? false;
 
   /// Wallet every bid spends from. Selecting it never changes the active
   /// wallet. A bid goes out as a raw M8 output, which the enforcer rejects.
@@ -148,13 +157,34 @@ class BMMProvider extends ChangeNotifier {
   int get totalProfitSats => history.where((r) => r.hasProfit).fold(0, (sum, r) => sum + r.profitSats.toInt());
 
   void setMinBidAmount(double value) {
+    if (value == minBidAmount) {
+      return;
+    }
     minBidAmount = value;
+    _scheduleBoundsPush();
     notifyListeners();
   }
 
   void setMaxBidAmount(double value) {
+    if (value == maxBidAmount) {
+      return;
+    }
     maxBidAmount = value;
+    _scheduleBoundsPush();
     notifyListeners();
+  }
+
+  /// A running engine keeps bidding its old bounds until Start is called again,
+  /// so an edit has to reach the backend to mean anything. Debounced because
+  /// the bid fields push on every keystroke.
+  void _scheduleBoundsPush() {
+    _boundsPush?.cancel();
+    _boundsPush = Timer(const Duration(milliseconds: 600), () {
+      if (!running) {
+        return;
+      }
+      unawaited(startBidding());
+    });
   }
 
   void _listen() {
@@ -178,10 +208,11 @@ class BMMProvider extends ChangeNotifier {
       unawaited(refreshFundingBalance());
     }
     history = state.history;
-    if (state.minBidSats > 0) {
+    final edited = boundsPushPending;
+    if (!edited && state.minBidSats > 0) {
       minBidAmount = satoshiToBTC(state.minBidSats.toInt());
     }
-    if (state.maxBidSats > 0) {
+    if (!edited && state.maxBidSats > 0) {
       maxBidAmount = satoshiToBTC(state.maxBidSats.toInt());
     }
     error = null;
@@ -289,6 +320,7 @@ class BMMProvider extends ChangeNotifier {
   @override
   void dispose() {
     _walletReader?.removeListener(_onWalletsChanged);
+    _boundsPush?.cancel();
     unawaited(_supervisor?.dispose());
     super.dispose();
   }
