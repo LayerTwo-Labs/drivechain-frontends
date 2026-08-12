@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:bitwindow/main.dart' show restoreBitwindowWalletFromFile;
 import 'package:bitwindow/pages/welcome/wallet_backup_page.dart';
+import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/hardware_device_picker.dart';
 import 'package:bitwindow/widgets/ur_qr_scanner.dart' show urCameraScanSupported;
 import 'package:file_picker/file_picker.dart';
@@ -182,7 +184,22 @@ class SingleSigResult {
 class MultisigConfigStep extends StatefulWidget {
   final void Function(WalletSetupResult result) onConfigured;
 
-  const MultisigConfigStep({required this.onConfigured, super.key});
+  /// Called when a backup restore produced a wallet, so the caller can hand
+  /// control back the same way it does for a freshly created one — a route
+  /// guard may be holding a suspended navigation.
+  final Future<void> Function()? onRestored;
+
+  /// Reports whether a restore is in flight, so the host can freeze its own
+  /// navigation: the restore rewrites wallet state and restarts L1, and this
+  /// page must outlive it.
+  final ValueChanged<bool>? onRestoringChanged;
+
+  const MultisigConfigStep({
+    required this.onConfigured,
+    this.onRestored,
+    this.onRestoringChanged,
+    super.key,
+  });
 
   @override
   State<MultisigConfigStep> createState() => _MultisigConfigStepState();
@@ -201,12 +218,13 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   String _scriptType = 'wpkh'; // multi: wsh|sh-wsh|sh|tr; single: wpkh|sh-wpkh|pkh|tr
   int _selectedTab = 0;
   bool _settingsOpen = false;
-  String _provider = 'electrum'; // electrum | core
+  String _provider = 'electrum'; // electrum | core | enforcer
 
   /// One key is a single-sig wallet; the quorum slider is what makes it multisig.
   bool get _isSingle => _total == 1;
   bool _building = false;
   String? _error;
+  bool _restoringBackup = false;
   late List<CosignerKeystore> _keystores;
   final TextEditingController _descriptor = TextEditingController();
   final FocusNode _descriptorFocus = FocusNode();
@@ -221,6 +239,12 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   @override
   void initState() {
     super.initState();
+    // With no enforcer yet, the full node is the wallet to make: nothing else
+    // can serve chain data, and the backend promotes the first wallet to the
+    // enforcer whatever is picked here.
+    if (GetIt.I.get<WalletReaderProvider>().enforcerWallet == null) {
+      _provider = 'enforcer';
+    }
     _keystores = List.generate(_total, (i) => CosignerKeystore(owner: 'Key ${i + 1}'));
     _descriptor.text = _descriptorPreview;
     // Snapping back over a rejected descriptor would take away the text the
@@ -525,7 +549,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
           (k.mnemonic ?? '').isNotEmpty
               ? SingleSigResult(
                   scriptType: _singleHotScriptType(),
-                  provider: _coreAvailable ? _provider : 'electrum',
+                  provider: _effectiveProvider,
                   mnemonic: k.mnemonic,
                   passphrase: k.passphrase,
                   derivationPath: _derivationPathToSubmit(k),
@@ -690,12 +714,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
               SailButton(
                 label: '← Back',
                 variant: ButtonVariant.secondary,
+                disabled: _restoringBackup,
                 onPressed: () async => Navigator.of(context).maybePop(),
               ),
               SailButton(
                 label: 'Next',
                 loading: _building,
-                disabled: !_allFilled,
+                // A restore rewrites the wallet and restarts L1; stepping on
+                // through setup would race a second creation against it.
+                disabled: !_allFilled || _restoringBackup,
                 onPressed: () async => _next(),
               ),
             ],
@@ -760,9 +787,36 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   // backend only watches multisig through Electrum.
   bool get _coreAvailable => _isSingle && _keystores.first.held;
 
+  // The enforcer is the wallet that runs the local node and the backend keeps
+  // exactly one, so it is on offer only until one exists — and, like Core, only
+  // for a single key held as a seed.
+  bool get _hasEnforcerWallet => GetIt.I.get<WalletReaderProvider>().enforcerWallet != null;
+
+  bool get _enforcerAvailable => _coreAvailable && !_hasEnforcerWallet;
+
+  // Without an enforcer wallet the backend promotes whatever is created into
+  // one, so offering Core here would hand back a different type than picked.
+  bool get _bitcoinCoreAvailable => _coreAvailable && _hasEnforcerWallet;
+
+  /// The provider a wallet would actually be created with: what was picked,
+  /// unless it has stopped being on offer (a second key, a watch-only key, or
+  /// an enforcer that now exists).
+  String get _effectiveProvider {
+    if (!_coreAvailable) {
+      return 'electrum';
+    }
+    if (_provider == 'enforcer' && !_enforcerAvailable) {
+      return 'electrum';
+    }
+    if (_provider == 'core' && !_bitcoinCoreAvailable) {
+      return 'electrum';
+    }
+    return _provider;
+  }
+
   Widget _providerDropdown(BuildContext context) {
     return SailDropdownButton<String>(
-      value: _coreAvailable ? _provider : 'electrum',
+      value: _effectiveProvider,
       enabled: _coreAvailable,
       onChanged: (v) async {
         if (v == null) {
@@ -770,9 +824,10 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         }
         setState(() => _provider = v);
       },
-      items: const [
-        SailDropdownItem<String>(value: 'electrum', label: 'Electrum'),
-        SailDropdownItem<String>(value: 'core', label: 'Bitcoin Core'),
+      items: [
+        if (_enforcerAvailable) const SailDropdownItem<String>(value: 'enforcer', label: 'Enforcer'),
+        const SailDropdownItem<String>(value: 'electrum', label: 'Electrum'),
+        if (_bitcoinCoreAvailable) const SailDropdownItem<String>(value: 'core', label: 'Bitcoin Core'),
       ],
     );
   }
@@ -810,7 +865,11 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   // Electrum takes the script type directly, so a standard path is left off to
   // keep every address kind open. Core has no script-type input.
   String? _derivationPathToSubmit(CosignerKeystore k) {
-    if (_coreAvailable && _provider == 'core') {
+    // Electrum takes a script type; Core only takes a path, so dropping it
+    // there would silently ignore the address type just chosen. The enforcer
+    // honours neither — it mints its own addresses — so it gets the path only
+    // when the user set one explicitly.
+    if (_coreAvailable && _effectiveProvider == 'core') {
       return k.derivationPath.isNotEmpty ? k.derivationPath : _standardPath;
     }
     return k.derivationPath == _standardPath ? null : k.derivationPath;
@@ -832,6 +891,17 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   String _addressTypeLabel(String scriptType) => _addressTypes[scriptType] ?? scriptType;
 
   Widget _scriptDropdown(BuildContext context) {
+    // The enforcer mints addresses itself: it ignores the derivation path and
+    // refuses taproot outright, so offering a choice here would be a promise
+    // its backend cannot keep.
+    if (_effectiveProvider == 'enforcer') {
+      return SailDropdownButton<String>(
+        value: 'wpkh',
+        enabled: false,
+        onChanged: (_) async {},
+        items: const [SailDropdownItem<String>(value: 'wpkh', label: 'Native Segwit (bc1q...)')],
+      );
+    }
     final values = _isSingle ? const ['wpkh', 'tr', 'sh-wpkh', 'pkh'] : const ['wsh', 'tr', 'sh-wsh', 'sh'];
     return SailDropdownButton<String>(
       value: _scriptType,
@@ -1305,7 +1375,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   // and carries a lit edge rather than reading as another secondary button.
   Widget _generateKeyButton(BuildContext context, int index) {
     final theme = SailTheme.of(context);
-    final enabled = _pathError == null;
+    final enabled = _pathError == null && !_restoringBackup;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: SailTappable(
@@ -1340,7 +1410,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   // to put it, and the ghost row below reads as fine print.
   Widget _pasteSeedButton(BuildContext context, int index) {
     final theme = SailTheme.of(context);
-    final enabled = _pathError == null;
+    final enabled = _pathError == null && !_restoringBackup;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: SailTappable(
@@ -1363,10 +1433,11 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   Widget _sourcePicker(BuildContext context, int index) {
     final theme = SailTheme.of(context);
     final links = <(String, bool, Future<void> Function())>[
-      ('xPub/ Watch Only', true, () async => _addFromPaste(context, index)),
-      ('Import file', true, () async => _addFromFile(context, index)),
-      ('Scan QR', urCameraScanSupported, () async => _addFromQr(context, index)),
-      ('Hardware Wallet', _pathError == null, () async => _addFromDevice(context, index)),
+      ('xPub/ Watch Only', !_restoringBackup, () async => _addFromPaste(context, index)),
+      ('Import file', !_restoringBackup, () async => _addFromFile(context, index)),
+      ('Scan QR', urCameraScanSupported && !_restoringBackup, () async => _addFromQr(context, index)),
+      ('Hardware Wallet', _pathError == null && !_restoringBackup, () async => _addFromDevice(context, index)),
+      ('Restore backup', !_restoringBackup, () async => _restoreFromBackup(context)),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1488,6 +1559,41 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     );
     if (k != null) {
       _setKeystore(index, k);
+    }
+  }
+
+  /// Restores a whole wallet — master seed plus every sidechain wallet — from a
+  /// backup file. Unlike the other sources this doesn't fill a key slot: the
+  /// wallet already exists once the file lands, so it skips the rest of setup.
+  Future<void> _restoreFromBackup(BuildContext context) async {
+    setState(() => _error = null);
+    final result = await FilePicker.pickFiles(
+      dialogTitle: 'Upload wallet backup',
+      type: FileType.custom,
+      allowedExtensions: ['zip', 'json'],
+    );
+    final path = result?.files.singleOrNull?.path;
+    if (path == null) {
+      return;
+    }
+    setState(() => _restoringBackup = true);
+    widget.onRestoringChanged?.call(true);
+    try {
+      await restoreBitwindowWalletFromFile(File(path));
+      final restored = widget.onRestored;
+      if (restored != null) {
+        await restored();
+        return;
+      }
+      await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to restore from backup file: ${extractConnectException(e)}';
+          _restoringBackup = false;
+        });
+        widget.onRestoringChanged?.call(false);
+      }
     }
   }
 

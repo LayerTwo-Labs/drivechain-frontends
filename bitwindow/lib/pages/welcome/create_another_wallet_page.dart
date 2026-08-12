@@ -3,11 +3,16 @@ import 'package:bitwindow/pages/welcome/multisig_config_step.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
 class CreateAnotherWalletPage extends StatefulWidget {
-  const CreateAnotherWalletPage({super.key});
+  /// Set when a route guard is waiting on the first wallet: the guard resolves
+  /// the pending navigation itself, so this page must not replace the stack.
+  final VoidCallback? onWalletCreated;
+
+  const CreateAnotherWalletPage({super.key, this.onWalletCreated});
 
   @override
   State<CreateAnotherWalletPage> createState() => _CreateAnotherWalletPageState();
@@ -46,6 +51,10 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
   String _provider = 'electrum';
   MultisigWalletSpec? _multisigSpec;
   bool _isCreating = false;
+
+  /// True while the keys step is restoring a backup: this page must not be
+  /// popped out from under it.
+  bool _restoringBackup = false;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _accountController = TextEditingController();
@@ -88,6 +97,20 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
     }
   }
 
+  /// True while a route guard holds a suspended navigation waiting on this
+  /// wallet — the page must finish through [onWalletCreated], not by popping.
+  bool get _guarded => widget.onWalletCreated != null;
+
+  /// Hands control back: to the guard when one is waiting, otherwise home.
+  Future<void> _leaveSetup() async {
+    final resume = widget.onWalletCreated;
+    if (resume != null) {
+      resume();
+      return;
+    }
+    await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+  }
+
   Future<void> _createWallet() async {
     setState(() => _isCreating = true);
 
@@ -114,7 +137,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
             change: spec.changeDescriptor,
             coldcardConfig: spec.coldcardConfig(_walletName),
           );
-          await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+          await _leaveSetup();
         }
         return;
       }
@@ -129,6 +152,31 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           hardwareDeviceType: _hardwareDeviceType,
           hardwareFingerprint: _hardwareFingerprint,
         );
+      } else if (_provider == 'enforcer') {
+        // The full-node wallet. A pasted seed loads into it like any other.
+        final created = await walletProvider.generateWallet(
+          name: _walletName,
+          customMnemonic: _mnemonic,
+          passphrase: _passphrase,
+          derivationPath: _singleDerivationPath.isEmpty ? null : _singleDerivationPath,
+        );
+        // generateWallet carries no gradient, so the background chosen a step
+        // earlier has to be written back or the wallet falls back to a
+        // deterministic one the user never picked. The wallet already exists at
+        // this point: a failure here is cosmetic, and reporting it as a failed
+        // creation would invite a retry that mints a second wallet.
+        final walletId = created['wallet_id'] as String?;
+        if (walletId != null && walletId.isNotEmpty) {
+          try {
+            await GetIt.I.get<WalletReaderProvider>().updateWalletMetadata(
+              walletId,
+              _walletName,
+              _selectedGradient!,
+            );
+          } catch (e) {
+            GetIt.I.get<Logger>().w('could not set the wallet background: $e');
+          }
+        }
       } else if (_provider == 'core') {
         await walletProvider.createBitcoinCoreWallet(
           name: _walletName,
@@ -149,7 +197,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
       }
 
       if (mounted) {
-        await GetIt.I.get<AppRouter>().replaceAll([const RootRoute()]);
+        await _leaveSetup();
       }
     } catch (e) {
       if (mounted) {
@@ -169,6 +217,8 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
   List<Widget> _buildPages() {
     return [
       MultisigConfigStep(
+        onRestored: _leaveSetup,
+        onRestoringChanged: (restoring) => setState(() => _restoringBackup = restoring),
         onConfigured: (result) {
           setState(() {
             if (result.isMultisig) {
@@ -221,34 +271,53 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
 
     final List<Widget> pages = _buildPages();
 
-    return SailScaffold(
-      backgroundColor: theme.colors.background,
-      appBar: SailAppBar.build(
-        context,
-        // Always provide a leading so the material AppBar doesn't auto-imply its
-        // own oversized back button (which gets clipped by toolbarHeight). Step
-        // 0 pops the route; later steps walk back through the wizard.
-        leading: SailButton(
-          variant: ButtonVariant.icon,
-          icon: SailSVGAsset.chevronLeft,
-          onPressed: () async {
-            if (_currentStep > 0) {
-              _previousStep();
-            } else {
-              await GetIt.I.get<AppRouter>().maybePop();
-            }
-          },
-          iconHeight: 14,
-          iconWidth: 14,
-          small: true,
+    // Hiding the back button is not enough: an OS or hardware back still pops
+    // the guard's redirect route without resolving it. Popping is allowed only
+    // when nothing is waiting on this page and there is no wizard step to
+    // unwind; a blocked pop mid-wizard walks back a step instead.
+    return PopScope(
+      canPop: !_guarded && _currentStep == 0 && !_restoringBackup,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          return;
+        }
+        if (_currentStep > 0) {
+          _previousStep();
+        }
+      },
+      child: SailScaffold(
+        backgroundColor: theme.colors.background,
+        appBar: SailAppBar.build(
+          context,
+          // Always provide a leading so the material AppBar doesn't auto-imply its
+          // own oversized back button (which gets clipped by toolbarHeight). Step
+          // 0 pops the route; later steps walk back through the wizard. With a
+          // guard waiting on the first wallet there is nothing to go back to —
+          // popping would drop its redirect and strand the user with no root page.
+          leading: (_guarded && _currentStep == 0) || _restoringBackup
+              ? const SizedBox.shrink()
+              : SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.chevronLeft,
+                  onPressed: () async {
+                    if (_currentStep > 0) {
+                      _previousStep();
+                    } else {
+                      await GetIt.I.get<AppRouter>().maybePop();
+                    }
+                  },
+                  iconHeight: 14,
+                  iconWidth: 14,
+                  small: true,
+                ),
+          automaticallyImplyLeading: false,
         ),
-        automaticallyImplyLeading: false,
-      ),
-      body: SafeArea(
-        child: PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(),
-          children: pages,
+        body: SafeArea(
+          child: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            children: pages,
+          ),
         ),
       ),
     );
