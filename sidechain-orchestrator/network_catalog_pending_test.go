@@ -15,11 +15,25 @@ import (
 func catalogWithDrynet(t *testing.T, id string) netcatalog.Catalog {
 	t.Helper()
 	c, _ := netcatalog.Load(t.TempDir())
-	for i := range c.Networks {
-		if c.Networks[i].Family == netcatalog.FamilyECash {
-			c.Networks[i].ID = id
+	// One generation only, with a peer that matches its id: the embedded
+	// catalog lists several, and renaming them all leaves the last one's
+	// address on every entry.
+	networks := make([]netcatalog.Network, 0, len(c.Networks))
+	ecash := false
+	for _, n := range c.Networks {
+		if n.Family != netcatalog.FamilyECash {
+			networks = append(networks, n)
+			continue
 		}
+		if ecash {
+			continue
+		}
+		ecash = true
+		n.ID = id
+		n.P2P.Address = id + ".drivechain.dev:8335"
+		networks = append(networks, n)
 	}
+	c.Networks = networks
 	return c
 }
 

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
 )
@@ -103,8 +104,9 @@ func (m *BitcoinConfManager) DrynetPeer() string {
 	return DrynetPeerFor(m.Generation())
 }
 
-// DrynetPeerFor is the seed node for a given drynet generation, empty when the
-// generation is. Falls back to a built name when the catalog publishes none.
+// DrynetPeerFor is the seed node for a given drynet generation, empty when
+// neither the live catalog nor the embedded one publishes an address for it.
+// Every generation seeds on its own port, so a built-up name would be a guess.
 func DrynetPeerFor(generation string) string {
 	if generation == "" {
 		return ""
@@ -112,11 +114,8 @@ func DrynetPeerFor(generation string) string {
 	if address := PublishedDrynetPeer(generation); address != "" {
 		return address
 	}
-	return fmt.Sprintf("%s.drivechain.dev:%d", generation, drynetP2PPort)
+	return netcatalog.EmbeddedPeer(generation)
 }
-
-// drynetP2PPort is the fallback seed port; generations publish their own.
-const drynetP2PPort = 8335
 
 // GetConfFilePath returns the resolved -conf= path to pass to bitcoind.
 // Mirrors the confFile() logic from binaries.dart.
@@ -281,18 +280,21 @@ fallbackfee=0.00021
 	case NetworkDrynet:
 		// Drynet runs chain=main, so fallbackfee belongs here (not in the
 		// common block). It has no DNS seeds, so it needs an explicit peer.
+		addnode := ""
+		if peer := m.DrynetPeer(); peer != "" {
+			addnode = fmt.Sprintf("addnode=%s\n", peer)
+		}
 		mainSection = fmt.Sprintf(`# drynet-specific settings (drivechain testnet on mainnet params)
 [main]
 port=8301
 rpcport=18302
-addnode=%s
-uacomment=%s
+%suacomment=%s
 assumevalid=0000000000000000000000000000000000000000000000000000000000000000
 minimumchainwork=0x00
 listenonion=0
 drivechain=1
 fallbackfee=0.00021
-`, m.DrynetPeer(), m.Generation())
+`, addnode, m.Generation())
 	default:
 		mainSection = `# Mainnet-specific settings
 [main]

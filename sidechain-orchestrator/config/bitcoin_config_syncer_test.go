@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
@@ -430,11 +431,11 @@ func TestGetDefaultConfigFallbackfeeNotOnMainnet(t *testing.T) {
 }
 
 func TestGetDefaultConfigDrynetHasPeerAndFallbackfee(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkDrynet}
+	m := &BitcoinConfManager{Network: NetworkDrynet, DrynetID: "drynet4"}
 	conf := m.GetDefaultConfig()
 	for _, want := range []string{
 		"drivechain=1", "fallbackfee=0.00021",
-		"addnode=drynet2.drivechain.dev:8335", "uacomment=drynet2", "rpcport=18302",
+		"addnode=drynet4.drivechain.dev:8533", "uacomment=drynet4", "rpcport=18302",
 	} {
 		if !strings.Contains(conf, want) {
 			t.Errorf("drynet default config must include %q, got:\n%s", want, conf)
@@ -472,7 +473,7 @@ func TestUpdateNetworkWritesChainMainForForks(t *testing.T) {
 func TestDrynetGenerationDrivesPeerAndSentinel(t *testing.T) {
 	m := &BitcoinConfManager{Network: NetworkDrynet, DrynetID: "drynet3"}
 	conf := m.GetDefaultConfig()
-	for _, want := range []string{"addnode=drynet3.drivechain.dev:8335", "uacomment=drynet3"} {
+	for _, want := range []string{"addnode=drynet3.drivechain.dev:8337", "uacomment=drynet3"} {
 		if !strings.Contains(conf, want) {
 			t.Errorf("drynet3 config must include %q, got:\n%s", want, conf)
 		}
@@ -484,7 +485,7 @@ func TestDrynetGenerationDrivesPeerAndSentinel(t *testing.T) {
 	// applyMainSectionDefaults writes the same values on a network swap.
 	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), DrynetID: "drynet3", log: zerolog.Nop()}
 	m2.applyMainSectionDefaults(NetworkDrynet)
-	if got := m2.Config.GetSetting("addnode", "main"); got != "drynet3.drivechain.dev:8335" {
+	if got := m2.Config.GetSetting("addnode", "main"); got != "drynet3.drivechain.dev:8337" {
 		t.Errorf("addnode = %q, want the drynet3 peer", got)
 	}
 	if got := m2.Config.GetSetting("uacomment", "main"); got != "drynet3" {
@@ -496,11 +497,30 @@ func TestDrynetGenerationDrivesPeerAndSentinel(t *testing.T) {
 // still writes a reachable peer instead of an empty addnode.
 func TestDrynetFallsBackToEmbeddedGeneration(t *testing.T) {
 	m := &BitcoinConfManager{Network: NetworkDrynet}
-	if got := m.Generation(); got == "" {
+	generation := m.Generation()
+	if generation == "" {
 		t.Fatal("Generation() must fall back to the embedded catalog")
 	}
-	if got := m.DrynetPeer(); !strings.HasSuffix(got, ".drivechain.dev:8335") {
-		t.Errorf("DrynetPeer() = %q, want a drivechain.dev seed node", got)
+	if got := m.DrynetPeer(); got != netcatalog.EmbeddedPeer(generation) || got == "" {
+		t.Errorf("DrynetPeer() = %q, want the embedded seed address for %s", got, generation)
+	}
+}
+
+// A generation nothing has published an address for gets no addnode at all.
+// Guessing the port sent bitcoind somewhere nothing listens.
+func TestDrynetWithoutPublishedPeerWritesNoAddnode(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkDrynet, DrynetID: "drynet99"}
+	if got := m.DrynetPeer(); got != "" {
+		t.Errorf("DrynetPeer() = %q, want empty for an unpublished generation", got)
+	}
+	if conf := m.GetDefaultConfig(); strings.Contains(conf, "addnode=drynet") {
+		t.Errorf("unpublished generation must not write an addnode line, got:\n%s", conf)
+	}
+
+	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), DrynetID: "drynet99", log: zerolog.Nop()}
+	m2.applyMainSectionDefaults(NetworkDrynet)
+	if got := m2.Config.GetSetting("addnode", "main"); got != "" {
+		t.Errorf("addnode = %q, want it left unset", got)
 	}
 }
 
@@ -767,7 +787,7 @@ func TestUpdateNetworkWithinDefaultGroupKeepsDatadir(t *testing.T) {
 // applyMainSectionDefaults: signet → drynet adds drivechain=1 + alt ports
 // under [main]; drynet → mainnet strips them.
 func TestApplyMainSectionDefaultsDrynetThenMainnet(t *testing.T) {
-	m := &BitcoinConfManager{Config: NewBitcoinConfig(), log: zerolog.Nop()}
+	m := &BitcoinConfManager{Config: NewBitcoinConfig(), DrynetID: "drynet4", log: zerolog.Nop()}
 	m.Config.SetSetting("chain", "signet")
 
 	m.applyMainSectionDefaults(NetworkDrynet)
@@ -775,8 +795,8 @@ func TestApplyMainSectionDefaultsDrynetThenMainnet(t *testing.T) {
 	require.Equal(t, "8301", m.Config.GetSetting("port", "main"))
 	require.Equal(t, "18302", m.Config.GetSetting("rpcport", "main"))
 	require.Equal(t, "0.00021", m.Config.GetSetting("fallbackfee", "main"))
-	require.Equal(t, "drynet2.drivechain.dev:8335", m.Config.GetSetting("addnode", "main"))
-	require.Equal(t, "drynet2", m.Config.GetSetting("uacomment", "main"))
+	require.Equal(t, "drynet4.drivechain.dev:8533", m.Config.GetSetting("addnode", "main"))
+	require.Equal(t, "drynet4", m.Config.GetSetting("uacomment", "main"))
 
 	m.applyMainSectionDefaults(NetworkMainnet)
 	require.Equal(t, "", m.Config.GetSetting("drivechain", "main"))

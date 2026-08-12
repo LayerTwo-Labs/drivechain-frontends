@@ -11,18 +11,18 @@
         "name": "Bitcoin",
         "ticker": "BTC"
       },
+      "network_magic": "f9beb4d9",
+      "fork_height": null,
       "backends": [
         {
           "kind": "esplora",
           "url": "https://esplora.mainnet.drivechain.info",
-          "priority": 1,
           "tls": true,
           "label": "L2L Esplora"
         },
         {
           "kind": "electrum",
           "url": "ssl://explorer.mainnet.drivechain.info:50002",
-          "priority": 2,
           "tls": true,
           "label": "L2L electrs"
         }
@@ -38,12 +38,25 @@
         },
         "coinnews": {
           "url": "https://coinnews.mainnet.drivechain.info"
-        }
-      }
+        },
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": null,
+          "stratum": null
+        },
+        "fast_withdrawal": []
+      },
+      "p2p": {
+        "address": "node.mainnet.drivechain.info:8333"
+      },
+      "sidechains": [],
+      "assumeutxo": null
     },
     {
       "id": "signet",
-      "family": "signet",
+      "family": "bitcoin",
       "display_name": "L2L Signet",
       "description": "Bitcoin signet with Drivechain (BIP300/301) enforcement",
       "chain": "signet",
@@ -51,18 +64,18 @@
         "name": "Signet Bitcoin",
         "ticker": "sBTC"
       },
+      "network_magic": null,
+      "fork_height": null,
       "backends": [
         {
           "kind": "esplora",
           "url": "https://esplora.signet.drivechain.info",
-          "priority": 1,
           "tls": true,
           "label": "L2L Esplora"
         },
         {
           "kind": "electrum",
           "url": "ssl://node.signet.drivechain.info:50002",
-          "priority": 2,
           "tls": true,
           "label": "L2L electrs"
         }
@@ -78,8 +91,103 @@
         },
         "coinnews": {
           "url": "https://coinnews.signet.drivechain.info"
+        },
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": null,
+          "stratum": null
+        },
+        "fast_withdrawal": [
+          {
+            "url": "https://fw1.signet.drivechain.info"
+          }
+        ]
+      },
+      "p2p": {
+        "address": "node.signet.drivechain.info:38333"
+      },
+      "sidechains": [
+        {
+          "slot": 2,
+          "title": "BitNames",
+          "description": "A variant of Namecoin/BitDNS that aims to replace ICANN",
+          "image": "ghcr.io/layertwo-labs/bitnames:sha-2a9fd14",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4002",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 4,
+          "title": "BitAssets",
+          "description": "A sidechain for digital assets",
+          "image": "ghcr.io/layertwo-labs/bitassets:sha-8f8a627",
+          "version": "v0.13.1",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4004",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 9,
+          "title": "Thunder",
+          "description": "A sidechain with a large & growing blocksize, plus fraud proofs",
+          "image": "ghcr.io/layertwo-labs/thunder:sha-61cbd03",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4009",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 13,
+          "title": "Truthcoin",
+          "description": "A sidechain for decentralized prediction markets and oracle data",
+          "image": "ghcr.io/layertwo-labs/truthcoin:sha-de1aa6f",
+          "version": "sha-de1aa6f",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4013",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 98,
+          "title": "zSide",
+          "description": "Sidechain with private transactions",
+          "image": "ghcr.io/iwakura-rein/thunder-orchard:sha-7e34625",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4098",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 99,
+          "title": "Photon",
+          "description": "Sidechain using post-quantum cryptography",
+          "image": "ghcr.io/layertwo-labs/photon:sha-13ba3e4",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4099",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 255,
+          "title": "Coinshift",
+          "description": "Sidechain with a P2P, trustless L2-L1 swap system",
+          "image": "ghcr.io/layertwo-labs/coinshift:sha-9eeb5b2",
+          "version": "sha-9eeb5b2",
+          "p2p": {
+            "address": "node.signet.drivechain.info:4255",
+            "transport": "quic"
+          }
         }
-      }
+      ],
+      "assumeutxo": null
     },
     {
       "id": "drynet2",
@@ -91,25 +199,12 @@
         "name": "eCash",
         "ticker": "ECX"
       },
-      "backends": [
-        {
-          "kind": "esplora",
-          "url": "https://esplora.drynet2.drivechain.dev",
-          "priority": 1,
-          "tls": true,
-          "label": "L2L Esplora"
-        },
-        {
-          "kind": "electrum",
-          "url": "ssl://drynet2.drivechain.dev:50012",
-          "priority": 2,
-          "tls": true,
-          "label": "L2L electrs"
-        }
-      ],
-      "explorer_tx_template": "https://explorer.drynet2.drivechain.dev/tx/{txid}",
-      "explorer_address_template": "https://explorer.drynet2.drivechain.dev/address/{address}",
-      "explorer_block_template": "https://explorer.drynet2.drivechain.dev/block/{hash}",
+      "network_magic": "f9beb4d9",
+      "fork_height": 957600,
+      "backends": [],
+      "explorer_tx_template": null,
+      "explorer_address_template": null,
+      "explorer_block_template": null,
       "services": {
         "faucet": {
           "url": null,
@@ -118,14 +213,261 @@
         },
         "coinnews": {
           "url": "https://coinnews.drynet2.drivechain.dev"
-        }
+        },
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": null,
+          "stratum": null
+        },
+        "fast_withdrawal": [
+          {
+            "url": "https://fw1.drynet2.drivechain.dev"
+          }
+        ]
       },
+      "p2p": {
+        "address": "drynet2.drivechain.dev:8335"
+      },
+      "sidechains": [
+        {
+          "slot": 2,
+          "title": "BitNames",
+          "description": "A variant of Namecoin/BitDNS that aims to replace ICANN",
+          "image": "ghcr.io/layertwo-labs/bitnames:sha-2a9fd14",
+          "version": "v0.14.0",
+          "p2p": null
+        },
+        {
+          "slot": 4,
+          "title": "BitAssets",
+          "description": "A sidechain for digital assets",
+          "image": "ghcr.io/layertwo-labs/bitassets:sha-8f8a627",
+          "version": "v0.13.1",
+          "p2p": null
+        },
+        {
+          "slot": 9,
+          "title": "Thunder",
+          "description": "A sidechain with a large & growing blocksize, plus fraud proofs",
+          "image": "ghcr.io/layertwo-labs/thunder:sha-61cbd03",
+          "version": "v0.14.0",
+          "p2p": null
+        },
+        {
+          "slot": 13,
+          "title": "Truthcoin",
+          "description": "A sidechain for decentralized prediction markets and oracle data",
+          "image": "ghcr.io/layertwo-labs/truthcoin:sha-de1aa6f",
+          "version": "sha-de1aa6f",
+          "p2p": null
+        },
+        {
+          "slot": 98,
+          "title": "zSide",
+          "description": "Sidechain with private transactions",
+          "image": "ghcr.io/iwakura-rein/thunder-orchard:sha-7e34625",
+          "version": "v0.14.0",
+          "p2p": null
+        },
+        {
+          "slot": 99,
+          "title": "Photon",
+          "description": "Sidechain using post-quantum cryptography",
+          "image": "ghcr.io/layertwo-labs/photon:sha-13ba3e4",
+          "version": "v0.14.0",
+          "p2p": null
+        }
+      ],
       "assumeutxo": {
         "url": "https://data.drivechain.dev/drynet2/utxo-957600.dat",
         "height": 957600,
         "sha256": "473ae741a3a7c4c5c28c85a54aa166e0ea46d13d83ae0bf2142d332373ed155b",
         "size_bytes": 9498111432
       }
+    },
+    {
+      "id": "drynet3",
+      "family": "ecash",
+      "display_name": "Drynet 3",
+      "description": "Fork of mainnet with PoW difficulty reset",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "f9beb4d9",
+      "fork_height": 957600,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.drynet3.drivechain.dev",
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://drynet3.drivechain.dev:50012",
+          "tls": true,
+          "label": "L2L electrs"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.drynet3.drivechain.dev/tx/{txid}",
+      "explorer_address_template": "https://explorer.drynet3.drivechain.dev/address/{address}",
+      "explorer_block_template": "https://explorer.drynet3.drivechain.dev/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": "https://coinnews.drynet3.drivechain.dev"
+        },
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": "https://pool.drynet3.drivechain.dev",
+          "stratum": "stratum+tcp://pool.drynet3.drivechain.dev:3333"
+        },
+        "fast_withdrawal": [
+          {
+            "url": "https://fw1.drynet3.drivechain.dev"
+          }
+        ]
+      },
+      "p2p": {
+        "address": "drynet3.drivechain.dev:8337"
+      },
+      "sidechains": [
+        {
+          "slot": 2,
+          "title": "BitNames",
+          "description": "A variant of Namecoin/BitDNS that aims to replace ICANN",
+          "image": "ghcr.io/layertwo-labs/bitnames:sha-2a9fd14",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "drynet3.drivechain.dev:4002",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 4,
+          "title": "BitAssets",
+          "description": "A sidechain for digital assets",
+          "image": "ghcr.io/layertwo-labs/bitassets:sha-8f8a627",
+          "version": "v0.13.1",
+          "p2p": {
+            "address": "drynet3.drivechain.dev:4004",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 9,
+          "title": "Thunder",
+          "description": "A sidechain with a large & growing blocksize, plus fraud proofs",
+          "image": "ghcr.io/layertwo-labs/thunder:sha-8a6b732",
+          "version": "v0.17.0",
+          "p2p": {
+            "address": "drynet3.drivechain.dev:4009",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 13,
+          "title": "Truthcoin",
+          "description": "A sidechain for decentralized prediction markets and oracle data",
+          "image": "ghcr.io/layertwo-labs/truthcoin:sha-de1aa6f",
+          "version": "sha-de1aa6f",
+          "p2p": {
+            "address": "drynet3.drivechain.dev:4013",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 98,
+          "title": "zSide",
+          "description": "Sidechain with private transactions",
+          "image": "ghcr.io/iwakura-rein/thunder-orchard:sha-7e34625",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "drynet3.drivechain.dev:4098",
+            "transport": "quic"
+          }
+        },
+        {
+          "slot": 99,
+          "title": "Photon",
+          "description": "Sidechain using post-quantum cryptography",
+          "image": "ghcr.io/layertwo-labs/photon:sha-13ba3e4",
+          "version": "v0.14.0",
+          "p2p": {
+            "address": "drynet3.drivechain.dev:4099",
+            "transport": "quic"
+          }
+        }
+      ],
+      "assumeutxo": {
+        "url": "https://data.drivechain.dev/drynet3/utxo-957600.dat",
+        "height": 957600,
+        "sha256": "473ae741a3a7c4c5c28c85a54aa166e0ea46d13d83ae0bf2142d332373ed155b",
+        "size_bytes": 9498111432
+      }
+    },
+    {
+      "id": "drynet4",
+      "family": "ecash",
+      "display_name": "Drynet 4",
+      "description": "Fork of mainnet with PoW difficulty reset",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "eca5d404",
+      "fork_height": 961632,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.drynet4.drivechain.dev",
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://drynet4.drivechain.dev:50002",
+          "tls": true,
+          "label": "L2L electrs"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.drynet4.drivechain.dev/tx/{txid}",
+      "explorer_address_template": "https://explorer.drynet4.drivechain.dev/address/{address}",
+      "explorer_block_template": "https://explorer.drynet4.drivechain.dev/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": null
+        },
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": "https://pool.drynet4.drivechain.dev",
+          "stratum": "stratum+tcp://pool.drynet4.drivechain.dev:3333"
+        },
+        "fast_withdrawal": []
+      },
+      "p2p": {
+        "address": "drynet4.drivechain.dev:8533"
+      },
+      "sidechains": [],
+      "assumeutxo": null
     }
   ]
 }
