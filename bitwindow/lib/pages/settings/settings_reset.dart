@@ -4,7 +4,6 @@ import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
-import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class SettingsReset extends StatefulWidget {
@@ -232,7 +231,7 @@ class _SettingsResetState extends State<SettingsReset> {
 
       if (needsWalletCreation) {
         final router = GetIt.I.get<AppRouter>();
-        await router.replaceAll([SailCreateWalletRoute(homeRoute: const RootRoute())]);
+        await router.replaceAll([CreateAnotherWalletRoute()]);
       }
     }
   }
