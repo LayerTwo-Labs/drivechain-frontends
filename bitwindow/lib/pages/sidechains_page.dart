@@ -6,6 +6,8 @@ import 'package:bitwindow/utils/deposit_fee.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
+import 'package:bitwindow/routing/router.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
@@ -50,25 +52,149 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final hashWarning = viewModel.hashMismatchWarning;
 
-    final mainContent = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
-        const SizedBox(width: SailStyleValues.padding08),
-        Expanded(flex: 4, child: const DepositWithdrawView()),
-      ],
-    );
+    // Every slot, balance and withdrawal on this tab is BIP300 state, which only
+    // a local Core + enforcer can produce. Without them the tables are empty and
+    // the buttons fail, so say so instead of showing a dead page. A network that
+    // has no sidechains at all says so first — starting daemons wouldn't help.
+    final gated = viewModel.networkSupportsSidechains && viewModel.l1Gate != L1Gate.ready;
+
+    final Widget mainContent = gated
+        ? const _L1RequiredCard()
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
+              const SizedBox(width: SailStyleValues.padding08),
+              Expanded(flex: 4, child: const DepositWithdrawView()),
+            ],
+          );
 
     if (hashWarning == null) {
       return mainContent;
     }
 
+    // A possibly-tampered binary outranks the gate: the warning stays up through
+    // an hours-long sync rather than being hidden behind it.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _HashMismatchBanner(names: hashWarning),
         Expanded(child: mainContent),
       ],
+    );
+  }
+}
+
+/// Why the sidechains tab can't do anything yet.
+enum L1Gate { ready, stopped, starting, syncing }
+
+/// Sidechains live in the enforcer's view of the chain, so both daemons must be
+/// up *and* synced before any slot, balance or withdrawal on this tab is real.
+@visibleForTesting
+L1Gate resolveL1Gate({
+  required bool walletNeedsBackends,
+  required bool coreConnected,
+  required bool enforcerConnected,
+  required bool coming,
+  required bool synced,
+  required bool chainIsEmpty,
+}) {
+  // An electrum wallet reads BIP300 state from the hosted orchestrator instead
+  // (bitwindowd swaps the data source per call), and StartWithL1 is a no-op for
+  // it — gating here would block a working tab behind a button that does
+  // nothing.
+  if (!walletNeedsBackends) {
+    return L1Gate.ready;
+  }
+  if (!coreConnected || !enforcerConnected) {
+    return coming ? L1Gate.starting : L1Gate.stopped;
+  }
+  // A fresh regtest node sits at 0/0 with nothing to sync from, and isSynced
+  // needs a non-zero goal — waiting for it would block the tab until someone
+  // mines. The orchestrator calls that steady state too (health.go). Once the
+  // chain has any height this no longer applies: catching up is real syncing.
+  if (chainIsEmpty) {
+    return L1Gate.ready;
+  }
+  return synced ? L1Gate.ready : L1Gate.syncing;
+}
+
+/// Stands in for the whole tab while the L1 stack is missing, and doubles as the
+/// place to start it — the same daemons the bottom nav reports on.
+class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
+  const _L1RequiredCard();
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    final gate = viewModel.l1Gate;
+
+    return SailCard(
+      title: switch (gate) {
+        L1Gate.stopped => 'Sidechains need a fully synced Bitcoin Core node',
+        L1Gate.starting => 'Starting Bitcoin Core and the enforcer',
+        _ => 'Bitcoin Core is syncing',
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(SailStyleValues.padding12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 820,
+              child: SailText.secondary13(
+                switch (gate) {
+                  L1Gate.stopped =>
+                    'Deposits, withdrawals and the slot list are read from BIP300 state, which only a local '
+                        'Bitcoin Core plus the enforcer can produce. Both must be running and fully synced '
+                        'before this tab can do anything.',
+                  L1Gate.starting => 'Both daemons are coming up. The slot list appears once they are synced.',
+                  _ =>
+                    'The slot list and balances stay empty until Core and the enforcer have caught up with '
+                        'the chain tip. You can leave this tab — syncing carries on.',
+                },
+              ),
+            ),
+            const SailSpacing(SailStyleValues.padding16),
+            // The same cards the bottom nav shows, so status, sync progress and
+            // the per-daemon restart/logs controls stay in one implementation.
+            DaemonConnectionCard(
+              connection: viewModel.mainchainConnection,
+              syncInfo: viewModel.mainchainSyncInfo,
+              infoMessage: null,
+              restartDaemon: () => viewModel.restartDaemon(BitcoinCore()),
+              stopDaemon: () => viewModel.stopDaemon(BitcoinCore()),
+              navigateToLogs: viewModel.navigateToLogs,
+            ),
+            DaemonConnectionCard(
+              connection: viewModel.enforcerConnection,
+              syncInfo: viewModel.enforcerSyncInfo,
+              infoMessage: viewModel.enforcerInfoMessage,
+              restartDaemon: () => viewModel.restartDaemon(Enforcer()),
+              stopDaemon: () => viewModel.stopDaemon(Enforcer()),
+              navigateToLogs: viewModel.navigateToLogs,
+            ),
+            const SailSpacing(SailStyleValues.padding16),
+            Row(
+              children: [
+                if (gate == L1Gate.stopped)
+                  SailButton(
+                    label: 'Start Bitcoin Core + Enforcer',
+                    onPressed: viewModel.startL1,
+                  ),
+                if (gate == L1Gate.stopped) const SizedBox(width: SailStyleValues.padding12),
+                Flexible(
+                  child: SailText.secondary12(
+                    switch (gate) {
+                      L1Gate.stopped => 'Takes a while on first run — the chain has to download and verify.',
+                      _ => 'Progress also shows in the status bar below.',
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -617,6 +743,81 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   bool get loading => _enforcerRPC.initializingBinary;
 
+  /// What is missing before the tab can read BIP300 state. Sidechains live in
+  /// the enforcer's view of the chain, so a running *and* synced Core plus
+  /// enforcer is the floor — an electrum wallet has neither.
+  L1Gate get l1Gate => resolveL1Gate(
+    walletNeedsBackends: _walletReader.activeWalletNeedsBitcoinBackends,
+    coreConnected: _binaryProvider.isConnected(BitcoinCore()),
+    enforcerConnected: _binaryProvider.isConnected(Enforcer()),
+    coming:
+        _binaryProvider.isInitializing(BitcoinCore()) ||
+        _binaryProvider.isInitializing(Enforcer()) ||
+        _isDownloadingFor(BitcoinCore()) ||
+        _isDownloadingFor(Enforcer()),
+    synced: _syncProvider.isSynced,
+    chainIsEmpty: _regtestChainIsEmpty,
+  );
+
+  /// Regtest alone can legitimately sit at height 0 with nothing to sync from.
+  /// Any reported height means it is catching up like any other chain — and an
+  /// absent or failed sample is unknown, not empty, so it never opens the tab.
+  bool get _regtestChainIsEmpty {
+    if (_confProvider.network != BitcoinNetwork.BITCOIN_NETWORK_REGTEST) {
+      return false;
+    }
+    if (_syncProvider.mainchainError != null || _syncProvider.enforcerError != null) {
+      return false;
+    }
+    final mainchain = _syncProvider.mainchainSyncInfo;
+    final enforcer = _syncProvider.enforcerSyncInfo;
+    if (mainchain == null || enforcer == null) {
+      return false;
+    }
+    return mainchain.progressGoal == 0 &&
+        mainchain.progressCurrent == 0 &&
+        enforcer.progressGoal == 0 &&
+        enforcer.progressCurrent == 0;
+  }
+
+  RPCConnection get mainchainConnection => GetIt.I.get<BitcoindConnection>();
+  RPCConnection get enforcerConnection => _enforcerRPC;
+
+  SyncInfo? get mainchainSyncInfo => _syncProvider.mainchainSyncInfo;
+  SyncInfo? get enforcerSyncInfo => _syncProvider.enforcerSyncInfo;
+
+  /// The enforcer boots behind Core and reports 0/0 until headers land, which
+  /// reads as a fault unless we say what it is waiting for.
+  String? get enforcerInfoMessage {
+    if (mainchainConnection.initializingBinary) {
+      return 'Waiting for mainchain to finish initializing';
+    }
+    if (_syncProvider.inHeaderSync) {
+      return 'Waiting for L1 to sync headers...';
+    }
+    return null;
+  }
+
+  Binary _binaryFor(Binary binary) =>
+      _binaryProvider.binaries.firstWhere((b) => b.name == binary.name, orElse: () => binary);
+
+  Future<void> restartDaemon(Binary binary) => _binaryProvider.restart(_binaryFor(binary));
+
+  Future<void> stopDaemon(Binary binary) => _binaryProvider.stop(_binaryFor(binary));
+
+  Future<void> startL1() async {
+    // Starting the enforcer boots the whole L1 chain: Core first, then this.
+    await _binaryProvider.start(_binaryFor(Enforcer()));
+  }
+
+  /// The daemon cards enable "View logs" on their own and then call this
+  /// unconditionally, so it has to be supplied wherever a card is rendered.
+  void navigateToLogs(String title, String logPath, BinaryType binaryType) {
+    GetIt.I.get<AppRouter>().push(
+      LogRoute(title: title, logPath: logPath, binaryType: binaryType),
+    );
+  }
+
   /// Check if current network supports sidechains (L2L networks only)
   bool get networkSupportsSidechains {
     final network = _confProvider.network;
@@ -1154,6 +1355,10 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     // Core data that affects the UI
     track('sidechains', _sidechainProvider.sidechains);
     track('recentDeposits', recentDeposits);
+
+    // Switching between an electrum and a backend-backed wallet changes nothing
+    // else tracked here, so without this the tab keeps rendering the old gate.
+    track('l1Gate', l1Gate);
 
     // UI state that affects rendering
     track('showOnlyFilled', showOnlyFilled);
