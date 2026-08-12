@@ -31,13 +31,7 @@ import (
 // starters only appear after a sidechain is launched, and the Starters tab
 // shows blanks.
 func allSidechainSlots() []wallet.SidechainSlot {
-	return lo.Map(orchestrator.AllSidechains(), func(c orchestrator.BinaryConfig, _ int) wallet.SidechainSlot {
-		name := c.DisplayName
-		if name == "" {
-			name = c.Name
-		}
-		return wallet.SidechainSlot{Slot: c.Slot, Name: name}
-	})
+	return orchestrator.WalletSidechainSlots()
 }
 
 var _ rpc.WalletManagerServiceHandler = new(WalletHandler)

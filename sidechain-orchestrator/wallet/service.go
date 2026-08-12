@@ -51,6 +51,10 @@ type Service struct {
 	// Dart: deleteAllWallets deletes per-binary wallet paths (L600-608)
 	// Returns list of wallet file paths for all managed binaries
 	GetBinaryWalletPaths func() []string
+	// Returns the enforcer's per-network wallet directories, so a restore that
+	// changes the enforcer seed can move the daemon state derived from the old
+	// one out of the way.
+	GetEnforcerWalletPaths func() []string
 	// Dart: _deleteCoreMultisigWallets (L534) — path to Bitcoin Core datadir
 	CoreDataDir string
 

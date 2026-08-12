@@ -79,6 +79,9 @@ const (
 	// WalletManagerServiceRestoreWalletBackupStreamProcedure is the fully-qualified name of the
 	// WalletManagerService's RestoreWalletBackupStream RPC.
 	WalletManagerServiceRestoreWalletBackupStreamProcedure = "/walletmanager.v1.WalletManagerService/RestoreWalletBackupStream"
+	// WalletManagerServiceSwapEnforcerWalletProcedure is the fully-qualified name of the
+	// WalletManagerService's SwapEnforcerWallet RPC.
+	WalletManagerServiceSwapEnforcerWalletProcedure = "/walletmanager.v1.WalletManagerService/SwapEnforcerWallet"
 	// WalletManagerServiceCreateWatchOnlyWalletProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateWatchOnlyWallet RPC.
 	WalletManagerServiceCreateWatchOnlyWalletProcedure = "/walletmanager.v1.WalletManagerService/CreateWatchOnlyWallet"
@@ -252,6 +255,11 @@ type WalletManagerServiceClient interface {
 	ListWalletBackups(context.Context, *connect.Request[v1.ListWalletBackupsRequest]) (*connect.Response[v1.ListWalletBackupsResponse], error)
 	RestoreWalletBackup(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error)
 	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.ServerStreamForClient[v1.RestoreWalletBackupProgressResponse], error)
+	// SwapEnforcerWallet loads a different seed into the enforcer: stops the
+	// daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
+	// entry in wallet.json from the given mnemonic, and restarts the daemon.
+	// Sidechain starters keep the seed their daemons were built from.
+	SwapEnforcerWallet(context.Context, *connect.Request[v1.SwapEnforcerWalletRequest]) (*connect.ServerStreamForClient[v1.SwapEnforcerWalletProgressResponse], error)
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
 	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
 	// Core or enforcer runs — chain data is served remotely via the datasource.
@@ -445,6 +453,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+WalletManagerServiceRestoreWalletBackupStreamProcedure,
 			connect.WithSchema(walletManagerServiceMethods.ByName("RestoreWalletBackupStream")),
+			connect.WithClientOptions(opts...),
+		),
+		swapEnforcerWallet: connect.NewClient[v1.SwapEnforcerWalletRequest, v1.SwapEnforcerWalletProgressResponse](
+			httpClient,
+			baseURL+WalletManagerServiceSwapEnforcerWalletProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SwapEnforcerWallet")),
 			connect.WithClientOptions(opts...),
 		),
 		createWatchOnlyWallet: connect.NewClient[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse](
@@ -773,6 +787,7 @@ type walletManagerServiceClient struct {
 	listWalletBackups            *connect.Client[v1.ListWalletBackupsRequest, v1.ListWalletBackupsResponse]
 	restoreWalletBackup          *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupResponse]
 	restoreWalletBackupStream    *connect.Client[v1.RestoreWalletBackupRequest, v1.RestoreWalletBackupProgressResponse]
+	swapEnforcerWallet           *connect.Client[v1.SwapEnforcerWalletRequest, v1.SwapEnforcerWalletProgressResponse]
 	createWatchOnlyWallet        *connect.Client[v1.CreateWatchOnlyWalletRequest, v1.CreateWatchOnlyWalletResponse]
 	createElectrumWallet         *connect.Client[v1.CreateElectrumWalletRequest, v1.CreateElectrumWalletResponse]
 	createMultisigWallet         *connect.Client[v1.CreateMultisigWalletRequest, v1.CreateMultisigWalletResponse]
@@ -899,6 +914,11 @@ func (c *walletManagerServiceClient) RestoreWalletBackup(ctx context.Context, re
 // RestoreWalletBackupStream calls walletmanager.v1.WalletManagerService.RestoreWalletBackupStream.
 func (c *walletManagerServiceClient) RestoreWalletBackupStream(ctx context.Context, req *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.ServerStreamForClient[v1.RestoreWalletBackupProgressResponse], error) {
 	return c.restoreWalletBackupStream.CallServerStream(ctx, req)
+}
+
+// SwapEnforcerWallet calls walletmanager.v1.WalletManagerService.SwapEnforcerWallet.
+func (c *walletManagerServiceClient) SwapEnforcerWallet(ctx context.Context, req *connect.Request[v1.SwapEnforcerWalletRequest]) (*connect.ServerStreamForClient[v1.SwapEnforcerWalletProgressResponse], error) {
+	return c.swapEnforcerWallet.CallServerStream(ctx, req)
 }
 
 // CreateWatchOnlyWallet calls walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet.
@@ -1176,6 +1196,11 @@ type WalletManagerServiceHandler interface {
 	ListWalletBackups(context.Context, *connect.Request[v1.ListWalletBackupsRequest]) (*connect.Response[v1.ListWalletBackupsResponse], error)
 	RestoreWalletBackup(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.Response[v1.RestoreWalletBackupResponse], error)
 	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest], *connect.ServerStream[v1.RestoreWalletBackupProgressResponse]) error
+	// SwapEnforcerWallet loads a different seed into the enforcer: stops the
+	// daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
+	// entry in wallet.json from the given mnemonic, and restarts the daemon.
+	// Sidechain starters keep the seed their daemons were built from.
+	SwapEnforcerWallet(context.Context, *connect.Request[v1.SwapEnforcerWalletRequest], *connect.ServerStream[v1.SwapEnforcerWalletProgressResponse]) error
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
 	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
 	// Core or enforcer runs — chain data is served remotely via the datasource.
@@ -1365,6 +1390,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceRestoreWalletBackupStreamProcedure,
 		svc.RestoreWalletBackupStream,
 		connect.WithSchema(walletManagerServiceMethods.ByName("RestoreWalletBackupStream")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSwapEnforcerWalletHandler := connect.NewServerStreamHandler(
+		WalletManagerServiceSwapEnforcerWalletProcedure,
+		svc.SwapEnforcerWallet,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SwapEnforcerWallet")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceCreateWatchOnlyWalletHandler := connect.NewUnaryHandler(
@@ -1705,6 +1736,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceRestoreWalletBackupHandler.ServeHTTP(w, r)
 		case WalletManagerServiceRestoreWalletBackupStreamProcedure:
 			walletManagerServiceRestoreWalletBackupStreamHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSwapEnforcerWalletProcedure:
+			walletManagerServiceSwapEnforcerWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateWatchOnlyWalletProcedure:
 			walletManagerServiceCreateWatchOnlyWalletHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateElectrumWalletProcedure:
@@ -1874,6 +1907,10 @@ func (UnimplementedWalletManagerServiceHandler) RestoreWalletBackup(context.Cont
 
 func (UnimplementedWalletManagerServiceHandler) RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest], *connect.ServerStream[v1.RestoreWalletBackupProgressResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.RestoreWalletBackupStream is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SwapEnforcerWallet(context.Context, *connect.Request[v1.SwapEnforcerWalletRequest], *connect.ServerStream[v1.SwapEnforcerWalletProgressResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SwapEnforcerWallet is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error) {

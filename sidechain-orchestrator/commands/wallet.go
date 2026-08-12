@@ -83,6 +83,7 @@ var walletCommand = &cli.Command{
 		walletDeleteCommand,
 		walletBackupsCommand,
 		walletRestoreCommand,
+		walletSwapEnforcerCommand,
 		walletLockCommand,
 		walletUnlockCommand,
 		walletEncryptCommand,
@@ -207,6 +208,79 @@ var walletRestoreCommand = &cli.Command{
 			case pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_COMPLETED:
 				fmt.Printf("  ok    %s\n", name)
 			case pb.RestoreWalletBackupStepState_RESTORE_WALLET_BACKUP_STEP_STATE_FAILED:
+				if status.Error != "" {
+					fmt.Printf("  FAIL  %s (%s)\n", name, status.Error)
+				} else {
+					fmt.Printf("  FAIL  %s\n", name)
+				}
+			}
+		}
+		return stream.Err()
+	},
+}
+
+var walletSwapEnforcerCommand = &cli.Command{
+	Name:    "swap-enforcer-wallet",
+	Aliases: []string{"swap-enforcer"},
+	Usage:   "Load a different seed into the enforcer",
+	Description: "Stops the enforcer, moves its wallet to wallet_backups/, rewrites the\n" +
+		"enforcer entry in wallet.json from the given mnemonic, and restarts it.\n" +
+		"Nothing is deleted: the old wallet directory and wallet.json are kept.\n" +
+		"Sidechain starters keep the seed their daemons were built from.",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "mnemonic", Usage: "BIP39 mnemonic to load", Required: true},
+		&cli.StringFlag{Name: "name", Usage: "name for the swapped-in wallet (default: keep current)"},
+		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
+	},
+	Action: func(cctx *cli.Context) error {
+		if err := confirmOrAbort(cctx, "swap the enforcer wallet? the enforcer restarts on the new seed"); err != nil {
+			return err
+		}
+
+		client := newWalletClient(cctx)
+		stream, err := client.SwapEnforcerWallet(cctx.Context, connect.NewRequest(&pb.SwapEnforcerWalletRequest{
+			Mnemonic: cctx.String("mnemonic"),
+			Name:     cctx.String("name"),
+		}))
+		if err != nil {
+			return err
+		}
+
+		stepNames := map[string]string{}
+		for stream.Receive() {
+			msg := stream.Msg()
+			if len(msg.Steps) > 0 {
+				fmt.Println("swap plan:")
+				for _, step := range msg.Steps {
+					stepNames[step.StepId] = step.Name
+					fmt.Printf("  - %s\n", step.Name)
+				}
+				continue
+			}
+
+			status := msg.Status
+			if status == nil {
+				continue
+			}
+			if status.Complete {
+				fmt.Printf("enforcer wallet swapped: %s\n", msg.WalletId)
+				continue
+			}
+
+			name := stepNames[status.StepId]
+			if name == "" {
+				name = status.StepId
+			}
+			detail := ""
+			if status.Detail != "" {
+				detail = fmt.Sprintf(" (%s)", status.Detail)
+			}
+			switch status.State {
+			case pb.SwapEnforcerWalletStepState_SWAP_ENFORCER_WALLET_STEP_STATE_STARTED:
+				fmt.Printf("  start %s\n", name)
+			case pb.SwapEnforcerWalletStepState_SWAP_ENFORCER_WALLET_STEP_STATE_COMPLETED:
+				fmt.Printf("  ok    %s%s\n", name, detail)
+			case pb.SwapEnforcerWalletStepState_SWAP_ENFORCER_WALLET_STEP_STATE_FAILED:
 				if status.Error != "" {
 					fmt.Printf("  FAIL  %s (%s)\n", name, status.Error)
 				} else {
