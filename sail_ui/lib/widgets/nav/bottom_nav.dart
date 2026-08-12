@@ -16,6 +16,19 @@ MiningProvider? drynetMiningProvider() {
   return GetIt.I.get<MiningProvider>();
 }
 
+/// Whether a Bitcoin Core / enforcer card belongs in the daemon status dialog.
+///
+/// An electrum wallet needs neither daemon, so an idle card would read as a
+/// fault. But switching to an electrum wallet does not stop a running stack —
+/// while it is up, its sync progress is exactly what the user came to see.
+bool showDaemonCard({
+  required bool walletNeedsBackends,
+  required bool connected,
+  required bool initializing,
+}) {
+  return walletNeedsBackends || connected || initializing;
+}
+
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final List<Widget> balanceEndWidgets;
@@ -180,8 +193,20 @@ class BottomNav extends StatelessWidget {
         builder: ((context, model, child) {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
           // Electrum wallets run no local Core or enforcer by design, so their
-          // cards would sit at a misleading "Not connected" — omit them.
-          final needsBitcoinBackends = GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
+          // cards would sit at a misleading "Not connected" — omit them. Unless
+          // the daemons are up anyway: switching to an electrum wallet leaves
+          // them running, and hiding them loses the sync they still report.
+          final walletNeedsBackends = GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
+          final showMainchain = showDaemonCard(
+            walletNeedsBackends: walletNeedsBackends,
+            connected: model.mainchain.connected,
+            initializing: model.mainchain.initializingBinary,
+          );
+          final showEnforcer = showDaemonCard(
+            walletNeedsBackends: walletNeedsBackends,
+            connected: model.enforcer.connected,
+            initializing: model.enforcer.initializingBinary,
+          );
 
           return SailColumn(
             spacing: SailStyleValues.padding20,
@@ -193,7 +218,7 @@ class BottomNav extends StatelessWidget {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (needsBitcoinBackends &&
+                  if (showMainchain &&
                       (!model.mainchain.connected ||
                           !(model.syncProvider.mainchainSyncInfo?.isSynced ?? false) ||
                           !onlyShowAdditional))
@@ -214,7 +239,7 @@ class BottomNav extends StatelessWidget {
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenConfConfigurator,
                     ),
-                  if (needsBitcoinBackends &&
+                  if (showEnforcer &&
                       (!model.enforcer.connected ||
                           !(model.syncProvider.enforcerSyncInfo?.isSynced ?? false) ||
                           !onlyShowAdditional))
