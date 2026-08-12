@@ -172,6 +172,32 @@ func TestWriteConfig(t *testing.T) {
 // GetCliArgs tests
 // ---------------------------------------------------------------------------
 
+// Drynet forks mainnet, so the enforcer needs the generation's preset. Nothing
+// persists it — the conf carries no network-preset on a fresh install.
+func TestGetCliArgsDerivesDrynetNetworkPreset(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkDrynet
+	m.bitcoinConf.DrynetID = "drynet4"
+
+	require.Contains(t, m.GetCliArgs(), "--network-preset=drynet4")
+
+	// A persisted value wins, same as every other derived setting.
+	m.Config.Settings["network-preset"] = "drynet3"
+	require.Contains(t, m.GetCliArgs(), "--network-preset=drynet3")
+	require.NotContains(t, m.GetCliArgs(), "--network-preset=drynet4")
+}
+
+// Only drynet builds of the enforcer accept the flag.
+func TestGetCliArgsOmitsNetworkPresetOffDrynet(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	for _, arg := range m.GetCliArgs() {
+		require.NotContains(t, arg, "--network-preset")
+	}
+}
+
 func TestGetCliArgs(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
