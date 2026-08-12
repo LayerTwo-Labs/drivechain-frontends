@@ -240,20 +240,26 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                 ],
                 _buildProviderCards(theme),
                 const SizedBox(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: _buildGenerateButton(theme)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildActionCard(
-                        theme: theme,
-                        title: 'Paste a seed phrase',
-                        subtitle: 'Import an existing 12 or 24-word mnemonic',
-                        onPressed: (_isGenerating || _awaitingBackend) ? null : () => _setScreen(WelcomeScreen.restore),
+                // The scroll view leaves the height unbounded, so the row needs an
+                // intrinsic one before its children can stretch to match.
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _buildGenerateButton(theme)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildActionCard(
+                          theme: theme,
+                          title: 'Paste a seed phrase',
+                          subtitle: 'Import an existing 12 or 24-word mnemonic',
+                          onPressed: (_isGenerating || _awaitingBackend)
+                              ? null
+                              : () => _setScreen(WelcomeScreen.restore),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 if (_error != null)
                   Padding(
