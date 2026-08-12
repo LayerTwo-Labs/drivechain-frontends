@@ -27,6 +27,7 @@ var derivedEnforcerSettings = []string{
 	"node-rpc-addr",
 	"node-zmq-addr-sequence",
 	"wallet-esplora-url",
+	"network-preset",
 }
 
 // ---------------------------------------------------------------------------
@@ -314,6 +315,14 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 	if !seen["wallet-esplora-url"] {
 		if esploraURL := EsploraURLForNetwork(m.bitcoinConf.Network); esploraURL != "" {
 			args = append(args, fmt.Sprintf("--wallet-esplora-url=%s", esploraURL))
+		}
+	}
+
+	// Drynet forks mainnet, so the enforcer needs the generation's preset to
+	// validate against the right chain. Only drynet builds accept the flag.
+	if m.bitcoinConf.Network == NetworkDrynet && !seen["network-preset"] {
+		if generation := m.bitcoinConf.Generation(); generation != "" {
+			args = append(args, fmt.Sprintf("--network-preset=%s", generation))
 		}
 	}
 
