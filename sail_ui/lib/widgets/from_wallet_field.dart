@@ -13,14 +13,10 @@ class WalletPicker extends StatefulWidget {
   final String? selectedWalletId;
   final ValueChanged<String> onChanged;
 
-  /// Lists only wallets that can carry a raw output, which the enforcer cannot.
-  final bool rawOutputs;
-
   const WalletPicker({
     super.key,
     required this.selectedWalletId,
     required this.onChanged,
-    this.rawOutputs = false,
   });
 
   @override
@@ -57,7 +53,7 @@ class _WalletPickerState extends State<WalletPicker> {
     unawaited(_loadBalances());
   }
 
-  List<WalletData> get _wallets => _walletReader.fundingWallets(rawOutputs: widget.rawOutputs);
+  List<WalletData> get _wallets => _walletReader.fundingWallets();
 
   Future<void> _loadBalances() async {
     if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
