@@ -28,6 +28,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/inquisition"
 )
 
+// bmmAncestorWalk bounds the walk back from the tip when looking for the block
+// that decided a round the engine slept through.
+const bmmAncestorWalk = 200
+
 // BMMHandler serves BMMService. It owns bid assembly; the engine drives it on
 // a loop so both paths build an M8 exactly one way.
 type BMMHandler struct {
@@ -289,15 +293,20 @@ func (h *BMMHandler) ConnectBid(
 		return nil, err
 	}
 
-	inclusions, err := proxy.GetBmmInclusions(ctx, req.Msg.CriticalHash)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
-	}
-	if len(inclusions) == 0 {
-		return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+	// A sidechain reports an inclusion only for a block it already holds, and it
+	// gets ours from this very call.
+	mainBlockHash := req.Msg.MainBlockHash
+	if mainBlockHash == "" {
+		inclusions, err := proxy.GetBmmInclusions(ctx, req.Msg.CriticalHash)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
+		}
+		if len(inclusions) == 0 {
+			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+		}
+		mainBlockHash = inclusions[0]
 	}
 
-	mainBlockHash := inclusions[0]
 	connected, err := proxy.ConnectBlock(ctx, json.RawMessage(req.Msg.BlockJson), mainBlockHash)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("connect block: %w", err))
@@ -452,6 +461,32 @@ func (h *BMMHandler) Commitment(
 		return "", fmt.Errorf("get bmm commitment: %w", err)
 	}
 	return resp.Msg.GetCommitment().GetCommitment().GetHex().GetValue(), nil
+}
+
+// BlockAfter returns the mainchain block that follows prevMainHash on the chain
+// ending at tipHash, empty when the walk back from the tip never reaches it.
+func (h *BMMHandler) BlockAfter(ctx context.Context, prevMainHash, tipHash string) (string, error) {
+	if h.orch == nil {
+		return "", fmt.Errorf("orchestrator not wired")
+	}
+	validator, err := h.orch.EnforcerValidator()
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(&enforcerpb.GetBlockHeaderInfoRequest{
+		BlockHash:    &commonv1.ReverseHex{Hex: wrapperspb.String(tipHash)},
+		MaxAncestors: lo.ToPtr(uint32(bmmAncestorWalk)),
+	}))
+	if err != nil {
+		return "", fmt.Errorf("get block header info: %w", err)
+	}
+	for _, info := range resp.Msg.GetHeaderInfos() {
+		if info.GetPrevBlockHash().GetHex().GetValue() == prevMainHash {
+			return info.GetBlockHash().GetHex().GetValue(), nil
+		}
+	}
+	return "", nil
 }
 
 func (h *BMMHandler) sidechainTarget(

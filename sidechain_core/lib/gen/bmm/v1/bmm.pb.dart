@@ -1420,6 +1420,7 @@ class ConnectBidRequest extends $pb.GeneratedMessage {
     $2.BinaryType? sidechain,
     $core.String? criticalHash,
     $core.String? blockJson,
+    $core.String? mainBlockHash,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -1430,6 +1431,9 @@ class ConnectBidRequest extends $pb.GeneratedMessage {
     }
     if (blockJson != null) {
       $result.blockJson = blockJson;
+    }
+    if (mainBlockHash != null) {
+      $result.mainBlockHash = mainBlockHash;
     }
     return $result;
   }
@@ -1448,6 +1452,7 @@ class ConnectBidRequest extends $pb.GeneratedMessage {
         enumValues: $2.BinaryType.values)
     ..aOS(2, _omitFieldNames ? '' : 'criticalHash')
     ..aOS(3, _omitFieldNames ? '' : 'blockJson')
+    ..aOS(4, _omitFieldNames ? '' : 'mainBlockHash')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -1507,6 +1512,21 @@ class ConnectBidRequest extends $pb.GeneratedMessage {
   $core.bool hasBlockJson() => $_has(2);
   @$pb.TagNumber(3)
   void clearBlockJson() => clearField(3);
+
+  /// Mainchain block that carries the commitment. Empty asks the sidechain
+  /// which block included the bid, which only answers for a block it already
+  /// holds.
+  @$pb.TagNumber(4)
+  $core.String get mainBlockHash => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set mainBlockHash($core.String v) {
+    $_setString(3, v);
+  }
+
+  @$pb.TagNumber(4)
+  $core.bool hasMainBlockHash() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMainBlockHash() => clearField(4);
 }
 
 class ConnectBidResponse extends $pb.GeneratedMessage {

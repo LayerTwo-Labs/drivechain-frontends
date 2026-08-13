@@ -247,6 +247,7 @@ const ConnectBidRequest$json = {
     {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
     {'1': 'critical_hash', '3': 2, '4': 1, '5': 9, '10': 'criticalHash'},
     {'1': 'block_json', '3': 3, '4': 1, '5': 9, '10': 'blockJson'},
+    {'1': 'main_block_hash', '3': 4, '4': 1, '5': 9, '10': 'mainBlockHash'},
   ],
 };
 
@@ -254,7 +255,8 @@ const ConnectBidRequest$json = {
 final $typed_data.Uint8List connectBidRequestDescriptor =
     $convert.base64Decode('ChFDb25uZWN0QmlkUmVxdWVzdBI5CglzaWRlY2hhaW4YASABKA4yGy5vcmNoZXN0cmF0b3Iudj'
         'EuQmluYXJ5VHlwZVIJc2lkZWNoYWluEiMKDWNyaXRpY2FsX2hhc2gYAiABKAlSDGNyaXRpY2Fs'
-        'SGFzaBIdCgpibG9ja19qc29uGAMgASgJUglibG9ja0pzb24=');
+        'SGFzaBIdCgpibG9ja19qc29uGAMgASgJUglibG9ja0pzb24SJgoPbWFpbl9ibG9ja19oYXNoGA'
+        'QgASgJUg1tYWluQmxvY2tIYXNo');
 
 @$core.Deprecated('Use connectBidResponseDescriptor instead')
 const ConnectBidResponse$json = {

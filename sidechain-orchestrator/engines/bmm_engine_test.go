@@ -21,18 +21,22 @@ const testSidechain = pb.BinaryType_BINARY_TYPE_THUNDER
 type fakeBackend struct {
 	mu sync.Mutex
 
-	bids          int
-	connects      int
-	connected     bool
-	bidErr        error
-	feesSats      int64
-	others        []*bmmpb.Bid
-	commitment    string
-	commitmentErr error
-	lastReplace   string
-	lastBidSats   int64
-	lastExpectTip string
-	lastWalletID  string
+	bids              int
+	connects          int
+	connected         bool
+	lastMainBlockHash string
+	bidErr            error
+	feesSats          int64
+	others            []*bmmpb.Bid
+	commitment        string
+	commitmentByBlock map[string]string
+	commitmentErr     error
+	blockAfter        string
+	blockAfterErr     error
+	lastReplace       string
+	lastBidSats       int64
+	lastExpectTip     string
+	lastWalletID      string
 }
 
 func (f *fakeBackend) CreateBid(
@@ -64,14 +68,21 @@ func (f *fakeBackend) CreateBid(
 }
 
 func (f *fakeBackend) ConnectBid(
-	_ context.Context, _ *connect.Request[bmmpb.ConnectBidRequest],
+	_ context.Context, req *connect.Request[bmmpb.ConnectBidRequest],
 ) (*connect.Response[bmmpb.ConnectBidResponse], error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.connects++
+	f.lastMainBlockHash = req.Msg.MainBlockHash
+	// The handler echoes the block it connected on, resolving it itself only
+	// when the caller named none.
+	main := req.Msg.MainBlockHash
+	if main == "" {
+		main = "mainblock"
+	}
 	return connect.NewResponse(&bmmpb.ConnectBidResponse{
 		Connected:     f.connected,
-		MainBlockHash: "mainblock",
+		MainBlockHash: main,
 	}), nil
 }
 
@@ -83,10 +94,19 @@ func (f *fakeBackend) ListBids(
 	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: f.others}), nil
 }
 
-func (f *fakeBackend) Commitment(_ context.Context, _ pb.BinaryType, _ string) (string, error) {
+func (f *fakeBackend) Commitment(_ context.Context, _ pb.BinaryType, main string) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if c, ok := f.commitmentByBlock[main]; ok {
+		return c, nil
+	}
 	return f.commitment, f.commitmentErr
+}
+
+func (f *fakeBackend) BlockAfter(_ context.Context, _, _ string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.blockAfter, f.blockAfterErr
 }
 
 type fakeTip struct {
@@ -106,6 +126,13 @@ func (f *fakeTip) set(hash string) {
 	defer f.mu.Unlock()
 	f.hash = hash
 	f.height++
+}
+
+func (f *fakeTip) jump(hash string, blocks int32) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.hash = hash
+	f.height += blocks
 }
 
 func newEngine(t *testing.T) (*BmmEngine, *fakeBackend, *fakeTip, *bmmstate.Store) {
@@ -188,6 +215,7 @@ func TestBmmEngineSettlesAWonRound(t *testing.T) {
 	ctx := context.Background()
 	engine.tick(ctx)
 
+	backend.commitment = "critical"
 	backend.connected = true
 	tip.set("block-2")
 	engine.tick(ctx)
@@ -196,7 +224,7 @@ func TestBmmEngineSettlesAWonRound(t *testing.T) {
 	require.NoError(t, err)
 	won := history[len(history)-1]
 	assert.Equal(t, ResultWon, won.Result)
-	assert.Equal(t, "mainblock", won.IncludedInBlock)
+	assert.Equal(t, "block-2", won.IncludedInBlock)
 	assert.Equal(t, int64(10_000), won.WinnerBidSats)
 }
 
@@ -352,6 +380,115 @@ func TestBmmEngineRejectsBadBounds(t *testing.T) {
 	require.Error(t, engine.Start(testSidechain, "", 10_000, 9_000), "max below min")
 }
 
+// The sidechain never saw the block it just won, so it cannot look up which
+// mainchain block carried the commitment. We must name that block.
+func TestBmmEngineNamesTheMainBlockOnConnect(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.commitment = "critical"
+	backend.connected = true
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Equal(t, "block-2", backend.lastMainBlockHash)
+}
+
+// A sleeping laptop can leave the tip several blocks past the round. The block
+// that decided it still holds our commitment, so the round is a win and must
+// connect on that block, not on the tip.
+func TestBmmEngineWinsARoundTheTipOutran(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.blockAfter = "block-2"
+	backend.commitmentByBlock = map[string]string{"block-2": "critical", "block-5": "someone-else"}
+	backend.connected = true
+	tip.jump("block-5", 4)
+	engine.tick(ctx)
+
+	history := mustHistory(t, engine)
+	require.NotEmpty(t, history)
+	won := history[len(history)-1]
+	assert.Equal(t, ResultWon, won.Result)
+	assert.Equal(t, "block-2", won.IncludedInBlock)
+	assert.Equal(t, "block-2", backend.lastMainBlockHash)
+}
+
+// With no way to name the deciding block, the paid round is held for retry and
+// written down, so a restart can still resume it.
+func TestBmmEngineHoldsAnUndecidableRound(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.blockAfter = ""
+	backend.commitment = "someone-else"
+	tip.jump("block-5", 4)
+	engine.tick(ctx)
+
+	history := mustHistory(t, engine)
+	require.NotEmpty(t, history, "a paid round survives a restart")
+	for _, r := range history {
+		assert.NotEqual(t, ResultLost, r.Result, "a round we cannot decide is not a loss")
+	}
+}
+
+// A round parked by a failed lookup must be decided on the block that carried
+// the bid, not connected blind on whatever the tip is by then.
+func TestBmmEngineDecidesAParkedRoundOnRetry(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.blockAfterErr = errors.New("enforcer down")
+	tip.jump("block-5", 4)
+	engine.tick(ctx)
+
+	backend.blockAfterErr = nil
+	backend.blockAfter = "block-2"
+	backend.commitmentByBlock = map[string]string{"block-2": "critical"}
+	backend.connected = true
+	engine.retryConnects(ctx, testSidechain, tip.hash, tip.height)
+
+	history := mustHistory(t, engine)
+	require.NotEmpty(t, history)
+	assert.Equal(t, ResultWon, history[0].Result)
+	assert.Equal(t, "block-2", backend.lastMainBlockHash)
+}
+
+// Running out of retries proves nothing about who won, so an undecidable round
+// must never be written down as a loss.
+func TestBmmEngineNeverCallsAnUndecidableRoundLost(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.blockAfterErr = errors.New("enforcer down")
+	tip.jump("block-5", 4)
+	engine.tick(ctx)
+
+	for range bmmConnectAttempts + 1 {
+		engine.retryConnects(ctx, testSidechain, tip.hash, tip.height)
+	}
+
+	history := mustHistory(t, engine)
+	require.NotEmpty(t, history)
+	assert.Equal(t, ResultOpen, history[0].Result, "an undecided round stays open")
+}
+
 // History is on disk, so a restart keeps what past rounds cost and earned.
 func TestBmmEngineHistorySurvivesRestart(t *testing.T) {
 	engine, backend, tip, store := newEngine(t)
@@ -359,6 +496,7 @@ func TestBmmEngineHistorySurvivesRestart(t *testing.T) {
 
 	ctx := context.Background()
 	engine.tick(ctx)
+	backend.commitment = "critical"
 	backend.connected = true
 	tip.set("block-2")
 	engine.tick(ctx)
@@ -379,6 +517,7 @@ func TestBmmEngineClearHistory(t *testing.T) {
 
 	ctx := context.Background()
 	engine.tick(ctx)
+	backend.commitment = "critical"
 	backend.connected = true
 	tip.set("block-2")
 	engine.tick(ctx)
@@ -419,7 +558,7 @@ func TestBmmEngineResumesAWonBlockThatNeverConnected(t *testing.T) {
 
 	backend.connected = true
 	before := backend.connects
-	restarted.retryConnects(ctx, testSidechain)
+	restarted.retryConnects(ctx, testSidechain, tip.hash, tip.height)
 
 	assert.Greater(t, backend.connects, before, "the won block is retried after a restart")
 }
@@ -493,6 +632,7 @@ func TestBmmEngineSettlesAfterStop(t *testing.T) {
 	require.NotNil(t, engine.Current(testSidechain))
 
 	engine.Stop(testSidechain)
+	backend.commitment = "critical"
 	backend.connected = true
 	tip.set("block-2")
 	engine.tick(ctx)
@@ -537,8 +677,9 @@ func TestBmmEngineKeepsRoundPendingWhenTheCommitmentCannotBeRead(t *testing.T) {
 	}
 
 	backend.commitmentErr = nil
+	backend.commitment = "critical"
 	backend.connected = true
-	engine.retryConnects(ctx, testSidechain)
+	engine.retryConnects(ctx, testSidechain, tip.hash, tip.height)
 
 	settled := mustHistory(t, engine)
 	require.NotEmpty(t, settled)

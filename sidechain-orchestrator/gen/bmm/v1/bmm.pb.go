@@ -968,7 +968,11 @@ type ConnectBidRequest struct {
 	Sidechain    v1.BinaryType          `protobuf:"varint,1,opt,name=sidechain,proto3,enum=orchestrator.v1.BinaryType" json:"sidechain,omitempty"`
 	CriticalHash string                 `protobuf:"bytes,2,opt,name=critical_hash,json=criticalHash,proto3" json:"critical_hash,omitempty"`
 	// block_json as returned by CreateBid.
-	BlockJson     string `protobuf:"bytes,3,opt,name=block_json,json=blockJson,proto3" json:"block_json,omitempty"`
+	BlockJson string `protobuf:"bytes,3,opt,name=block_json,json=blockJson,proto3" json:"block_json,omitempty"`
+	// Mainchain block that carries the commitment. Empty asks the sidechain
+	// which block included the bid, which only answers for a block it already
+	// holds.
+	MainBlockHash string `protobuf:"bytes,4,opt,name=main_block_hash,json=mainBlockHash,proto3" json:"main_block_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1020,6 +1024,13 @@ func (x *ConnectBidRequest) GetCriticalHash() string {
 func (x *ConnectBidRequest) GetBlockJson() string {
 	if x != nil {
 		return x.BlockJson
+	}
+	return ""
+}
+
+func (x *ConnectBidRequest) GetMainBlockHash() string {
+	if x != nil {
+		return x.MainBlockHash
 	}
 	return ""
 }
@@ -1361,12 +1372,13 @@ const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\n" +
 	"block_json\x18\x04 \x01(\tR\tblockJson\x12$\n" +
 	"\x0eprev_main_hash\x18\x05 \x01(\tR\fprevMainHash\x12\x19\n" +
-	"\bbid_sats\x18\x06 \x01(\x03R\abidSats\"\x92\x01\n" +
+	"\bbid_sats\x18\x06 \x01(\x03R\abidSats\"\xba\x01\n" +
 	"\x11ConnectBidRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12#\n" +
 	"\rcritical_hash\x18\x02 \x01(\tR\fcriticalHash\x12\x1d\n" +
 	"\n" +
-	"block_json\x18\x03 \x01(\tR\tblockJson\"Z\n" +
+	"block_json\x18\x03 \x01(\tR\tblockJson\x12&\n" +
+	"\x0fmain_block_hash\x18\x04 \x01(\tR\rmainBlockHash\"Z\n" +
 	"\x12ConnectBidResponse\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12&\n" +
 	"\x0fmain_block_hash\x18\x02 \x01(\tR\rmainBlockHash\"L\n" +
