@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getNetworkConfig } from "@/lib/config";
 import {
   blockExplorerBase,
+  customNetworkMagic,
   findBackend,
   l1Binaries,
   RELEASES_BASE,
@@ -24,6 +25,7 @@ export default async function InfoPage() {
   const esplora = findBackend(net, "esplora");
   const electrum = findBackend(net, "electrum");
   const p2p = net.p2p;
+  const magic = customNetworkMagic(net);
   const explorer = blockExplorerBase(net);
   const snapshot = net.assumeutxo;
   const snapshotFile = snapshot?.url.split("/").pop();
@@ -53,6 +55,15 @@ export default async function InfoPage() {
               <InlineCode>{p2p.address}</InlineCode>
               <p className="text-muted-foreground">
                 A full {net.display_name} node: the peer you sync from.
+              </p>
+            </div>
+          )}
+          {magic && (
+            <div className="space-y-1">
+              <InlineCode>{magic}</InlineCode>
+              <p className="text-muted-foreground">
+                P2P network magic — {net.display_name} defines its own, so a stock Bitcoin client
+                never completes a handshake with it.
               </p>
             </div>
           )}
@@ -118,13 +129,17 @@ export default async function InfoPage() {
             <CardTitle>Sidechain peers</CardTitle>
             <CardDescription>
               BIP300 sidechains running on {net.display_name}. Sidechain p2p is QUIC over UDP — add
-              these as peers in the matching sidechain client.
+              these as peers in the matching sidechain client, passing the listed{" "}
+              <InlineCode>--network-magic</InlineCode> where there is one.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {sidechains.reachable.map((sc) => (
               <div key={sc.slot} className="space-y-1">
-                <InlineCode>{sc.p2p.address}</InlineCode>
+                <div className="flex flex-wrap items-center gap-2">
+                  <InlineCode>{sc.p2p.address}</InlineCode>
+                  {sc.network_magic && <InlineCode>--network-magic={sc.network_magic}</InlineCode>}
+                </div>
                 <p className="text-muted-foreground">
                   {sc.title} {sc.version} (L2-S{sc.slot}) — {sc.description}.
                 </p>

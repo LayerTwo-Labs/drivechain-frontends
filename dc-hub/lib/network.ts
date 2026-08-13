@@ -79,6 +79,8 @@ export interface Sidechain {
   version: string;
   // null when the daemon runs on this network without public p2p.
   p2p: SidechainP2p | null;
+  // Set only when the daemon overrides its built-in p2p magic.
+  network_magic: string | null;
 }
 
 export interface NetworkConfig {
@@ -95,6 +97,8 @@ export interface NetworkConfig {
   explorer_block_template: string | null;
   services: Services;
   p2p: P2p | null;
+  // L1 p2p message-start bytes, lowercase hex. null when not published.
+  network_magic: string | null;
   // Absent in configs published before the field existed, hence optional.
   sidechains?: Sidechain[];
   assumeutxo: AssumeUtxo | null;
@@ -126,6 +130,18 @@ export function blockExplorerBase(net: NetworkConfig): string | null {
 
 export function findBackend(net: NetworkConfig, kind: string): Backend | undefined {
   return net.backends.find((b) => b.kind === kind);
+}
+
+// Stock p2p magic per chain; not worth showing when a network reuses it.
+const STOCK_MAGIC_BY_CHAIN: Record<string, string> = {
+  main: "f9beb4d9",
+  signet: "0a03cf40",
+};
+
+/** The L1 p2p magic, but only when the network defines its own. */
+export function customNetworkMagic(net: NetworkConfig): string | null {
+  if (!net.network_magic) return null;
+  return net.network_magic === STOCK_MAGIC_BY_CHAIN[net.chain] ? null : net.network_magic;
 }
 
 /** The network's sidechains, split by whether their daemon has a public
