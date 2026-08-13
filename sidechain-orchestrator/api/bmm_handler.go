@@ -49,6 +49,42 @@ func (h *BMMHandler) SetEngine(engine *engines.BmmEngine) {
 	h.engine = engine
 }
 
+// requireEnforcerSynced rejects bidding until the enforcer has validated every
+// block Bitcoin Core knows about. A bid assembled against a trailing tip
+// commits to a prev-main-hash miners have already built past, so it can never
+// be included and the sats spent on it are lost.
+//
+// The rule matches SyncInfo.isSynced on the frontend, so both agree on when the
+// controls unlock: GetSyncStatus fills the enforcer's Headers from the
+// mainchain tip, leaving Blocks == Headers as "level with Core".
+func (h *BMMHandler) requireEnforcerSynced(ctx context.Context) error {
+	status, err := h.orch.GetSyncStatus(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read sync status: %w", err))
+	}
+	return enforcerBiddingBlocked(status)
+}
+
+// enforcerBiddingBlocked returns the reason bidding is unavailable for status,
+// or nil when it is allowed.
+func enforcerBiddingBlocked(status *orchestrator.SyncStatus) error {
+	if status == nil || status.Mainchain == nil || status.Enforcer == nil {
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("sync status unavailable"))
+	}
+	if msg := status.Mainchain.Error; msg != "" {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin core is not available: %s", msg))
+	}
+	if msg := status.Enforcer.Error; msg != "" {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("enforcer is not available: %s", msg))
+	}
+	if status.Enforcer.Headers <= 0 || status.Enforcer.Blocks != status.Enforcer.Headers {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+			"enforcer is still syncing: %d of %d blocks", status.Enforcer.Blocks, status.Enforcer.Headers,
+		))
+	}
+	return nil
+}
+
 func (h *BMMHandler) Start(
 	ctx context.Context, req *connect.Request[bmmpb.StartRequest],
 ) (*connect.Response[bmmpb.StartResponse], error) {
@@ -56,6 +92,9 @@ func (h *BMMHandler) Start(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bmm engine not wired"))
 	}
 	if _, err := h.sidechainConfig(req.Msg.Sidechain); err != nil {
+		return nil, err
+	}
+	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
 	}
 	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId, req.Msg.MinBidSats, req.Msg.MaxBidSats); err != nil {
@@ -210,6 +249,9 @@ func (h *BMMHandler) CreateBid(
 ) (*connect.Response[bmmpb.CreateBidResponse], error) {
 	if req.Msg.BidSats <= 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("bid_sats must be positive"))
+	}
+	if err := h.requireEnforcerSynced(ctx); err != nil {
+		return nil, err
 	}
 	cfg, proxy, err := h.sidechainTarget(req.Msg.Sidechain)
 	if err != nil {
@@ -386,6 +428,9 @@ func (h *BMMHandler) AttackBid(
 	}
 	if h.orch != nil && h.orch.CurrentNetwork() == "mainnet" {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("attack bids are disabled on mainnet"))
+	}
+	if err := h.requireEnforcerSynced(ctx); err != nil {
+		return nil, err
 	}
 
 	cfg, proxy, err := h.sidechainTarget(req.Msg.Sidechain)

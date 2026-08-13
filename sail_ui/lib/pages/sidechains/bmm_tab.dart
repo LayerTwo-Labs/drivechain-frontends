@@ -8,6 +8,24 @@ import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Reason bidding is unavailable, or null when it is allowed.
+///
+/// A bid commits to the tip the enforcer has validated, so one built while it
+/// trails Bitcoin Core names a block miners have already built past and can
+/// never be included. The orchestrator rejects those bids too — this only keeps
+/// the controls from offering an action that cannot succeed.
+String? bidBlockedReasonFor(SyncProvider sync) {
+  final enforcer = sync.enforcerSyncInfo;
+  if (enforcer == null || (sync.enforcerError?.isNotEmpty ?? false)) {
+    return 'Waiting for the enforcer to start';
+  }
+  if (enforcer.isSynced) {
+    return null;
+  }
+  return 'Enforcer is syncing — '
+      '${enforcer.progressCurrent.toInt()} of ${enforcer.progressGoal.toInt()} blocks';
+}
+
 class BMMTab extends StatelessWidget {
   const BMMTab({super.key});
 
@@ -43,23 +61,30 @@ class _Controls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Stopping stays available while the enforcer is behind: an engine started
+    // before it fell back has to be stoppable.
+    final blocked = !viewModel.canBid;
     return SailRow(
       spacing: SailStyleValues.padding08,
       children: [
         SailButton(
           label: viewModel.running ? 'Stop auto-bidding' : 'Start auto-bidding',
+          disabled: blocked && !viewModel.running,
           onPressed: () async => viewModel.running ? await viewModel.stopBidding() : await viewModel.startBidding(),
         ),
         SailButton(
           label: 'Bid manually',
           variant: ButtonVariant.secondary,
+          disabled: blocked,
           onPressed: () async => _showManualBidDialog(context, viewModel),
         ),
         SailButton(
           label: 'Attack',
           variant: ButtonVariant.secondary,
+          disabled: blocked,
           onPressed: () async => viewModel.bmmProvider.attackBid(),
         ),
+        if (viewModel.bidBlockedReason case final reason?) SailText.secondary13(reason),
         Expanded(child: Container()),
         SailText.primary13('Min bid:'),
         SizedBox(
@@ -382,6 +407,7 @@ class _HistoricBids extends StatelessWidget {
 class BMMViewModel extends BaseViewModel {
   final BMMProvider bmmProvider = GetIt.I.get<BMMProvider>();
   final BitcoinConfProvider _conf = GetIt.I.get<BitcoinConfProvider>();
+  final SyncProvider _sync = GetIt.I.get<SyncProvider>();
 
   final TextEditingController minBidController = TextEditingController();
   final TextEditingController maxBidController = TextEditingController();
@@ -392,7 +418,11 @@ class BMMViewModel extends BaseViewModel {
     minBidController.addListener(_onMinBound);
     maxBidController.addListener(_onMaxBound);
     bmmProvider.addListener(_onProviderChanged);
+    _sync.addListener(_onProviderChanged);
   }
+
+  bool get canBid => bidBlockedReason == null;
+  String? get bidBlockedReason => bidBlockedReasonFor(_sync);
 
   bool get running => bmmProvider.running;
   String? get bmmError => bmmProvider.error;
@@ -446,7 +476,7 @@ class BMMViewModel extends BaseViewModel {
   String get slotHint {
     final live = bmmProvider.liveBid;
     if (!running && live == null) {
-      return 'Press Start auto-bidding to bid for the next block';
+      return bidBlockedReason ?? 'Press Start auto-bidding to bid for the next block';
     }
     if (live == null) {
       return '';
@@ -643,6 +673,7 @@ class BMMViewModel extends BaseViewModel {
   @override
   void dispose() {
     bmmProvider.removeListener(_onProviderChanged);
+    _sync.removeListener(_onProviderChanged);
     minBidController.dispose();
     maxBidController.dispose();
     super.dispose();
