@@ -573,7 +573,15 @@ class StartupLogEntryMsg extends $pb.GeneratedMessage {
 }
 
 class ListBinariesRequest extends $pb.GeneratedMessage {
-  factory ListBinariesRequest() => create();
+  factory ListBinariesRequest({
+    $core.bool? forceBackend,
+  }) {
+    final $result = create();
+    if (forceBackend != null) {
+      $result.forceBackend = forceBackend;
+    }
+    return $result;
+  }
   ListBinariesRequest._() : super();
   factory ListBinariesRequest.fromBuffer($core.List<$core.int> i,
           [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
@@ -583,6 +591,7 @@ class ListBinariesRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListBinariesRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'forceBackend')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -605,6 +614,20 @@ class ListBinariesRequest extends $pb.GeneratedMessage {
   static ListBinariesRequest getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListBinariesRequest>(create);
   static ListBinariesRequest? _defaultInstance;
+
+  /// Same lever as launch: when true, skip the UseTestSidechains resolver and
+  /// report the prod backend for every layer-2 binary.
+  @$pb.TagNumber(1)
+  $core.bool get forceBackend => $_getBF(0);
+  @$pb.TagNumber(1)
+  set forceBackend($core.bool v) {
+    $_setBool(0, v);
+  }
+
+  @$pb.TagNumber(1)
+  $core.bool hasForceBackend() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearForceBackend() => clearField(1);
 }
 
 class ListBinariesResponse extends $pb.GeneratedMessage {
@@ -657,10 +680,14 @@ class ListBinariesResponse extends $pb.GeneratedMessage {
 class GetBinaryStatusRequest extends $pb.GeneratedMessage {
   factory GetBinaryStatusRequest({
     $core.String? name,
+    $core.bool? forceBackend,
   }) {
     final $result = create();
     if (name != null) {
       $result.name = name;
+    }
+    if (forceBackend != null) {
+      $result.forceBackend = forceBackend;
     }
     return $result;
   }
@@ -674,6 +701,7 @@ class GetBinaryStatusRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBinaryStatusRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'forceBackend')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -708,6 +736,20 @@ class GetBinaryStatusRequest extends $pb.GeneratedMessage {
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
   void clearName() => clearField(1);
+
+  /// Same lever as launch: when true, skip the UseTestSidechains resolver and
+  /// report the prod backend.
+  @$pb.TagNumber(2)
+  $core.bool get forceBackend => $_getBF(1);
+  @$pb.TagNumber(2)
+  set forceBackend($core.bool v) {
+    $_setBool(1, v);
+  }
+
+  @$pb.TagNumber(2)
+  $core.bool hasForceBackend() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearForceBackend() => clearField(2);
 }
 
 class GetBinaryStatusResponse extends $pb.GeneratedMessage {

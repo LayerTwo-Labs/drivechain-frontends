@@ -39,7 +39,8 @@ func NewHandler(orch *orchestrator.Orchestrator) *Handler {
 }
 
 func (h *Handler) ListBinaries(ctx context.Context, req *connect.Request[pb.ListBinariesRequest]) (*connect.Response[pb.ListBinariesResponse], error) {
-	pbStatuses := lo.Map(h.orch.ListAll(), func(s orchestrator.BinaryStatus, _ int) *pb.BinaryStatusMsg {
+	opts := orchestrator.DownloadOptions{ForceBackend: req.Msg.ForceBackend}
+	pbStatuses := lo.Map(h.orch.ListAllWithOptions(opts), func(s orchestrator.BinaryStatus, _ int) *pb.BinaryStatusMsg {
 		return statusToProto(s)
 	})
 	return connect.NewResponse(&pb.ListBinariesResponse{
@@ -48,7 +49,7 @@ func (h *Handler) ListBinaries(ctx context.Context, req *connect.Request[pb.List
 }
 
 func (h *Handler) GetBinaryStatus(ctx context.Context, req *connect.Request[pb.GetBinaryStatusRequest]) (*connect.Response[pb.GetBinaryStatusResponse], error) {
-	s := h.orch.Status(req.Msg.Name)
+	s := h.orch.StatusWithOptions(req.Msg.Name, orchestrator.DownloadOptions{ForceBackend: req.Msg.ForceBackend})
 	return connect.NewResponse(&pb.GetBinaryStatusResponse{
 		Status: statusToProto(s),
 	}), nil

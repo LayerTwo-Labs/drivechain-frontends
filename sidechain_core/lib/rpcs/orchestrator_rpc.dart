@@ -101,12 +101,14 @@ class OrchestratorRPC {
 
   // ─── unary ────────────────────────────────────────────────────────────────
 
-  Future<ListBinariesResponse> listBinaries() {
-    return _unaryClient.listBinaries(ListBinariesRequest());
+  /// Sidechains pass forceBackend: true so the status describes the daemon
+  /// they run, not the test build BitWindow launches.
+  Future<ListBinariesResponse> listBinaries({bool forceBackend = false}) {
+    return _unaryClient.listBinaries(ListBinariesRequest(forceBackend: forceBackend));
   }
 
-  Future<GetBinaryStatusResponse> getBinaryStatus(String name) {
-    return _unaryClient.getBinaryStatus(GetBinaryStatusRequest(name: name));
+  Future<GetBinaryStatusResponse> getBinaryStatus(String name, {bool forceBackend = false}) {
+    return _unaryClient.getBinaryStatus(GetBinaryStatusRequest(name: name, forceBackend: forceBackend));
   }
 
   /// Resolve a binary's path + --version server-side. The orchestrator owns

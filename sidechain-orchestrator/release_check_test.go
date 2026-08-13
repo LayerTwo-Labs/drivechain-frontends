@@ -46,7 +46,7 @@ func TestReleaseCheckerComparesLastModified(t *testing.T) {
 	// Downloaded after the release: nothing to update.
 	require.NoError(t, os.Chtimes(binPath, published.Add(time.Hour), published.Add(time.Hour)))
 	checker.Refresh(context.Background(), config, "signet")
-	check, ok := checker.Check(config, "signet")
+	check, ok := checker.Check(config, "signet", binPath)
 	require.True(t, ok)
 	assert.False(t, check.UpdateAvailable())
 	assert.Equal(t, published, check.Remote.UTC())
@@ -54,7 +54,7 @@ func TestReleaseCheckerComparesLastModified(t *testing.T) {
 	// Downloaded before the release: an update is waiting.
 	require.NoError(t, os.Chtimes(binPath, published.Add(-time.Hour), published.Add(-time.Hour)))
 	checker.Refresh(context.Background(), config, "signet")
-	check, ok = checker.Check(config, "signet")
+	check, ok = checker.Check(config, "signet", binPath)
 	require.True(t, ok)
 	assert.True(t, check.UpdateAvailable())
 }
@@ -76,11 +76,8 @@ func TestReleaseCheckerStaysQuietWhenTheProbeFails(t *testing.T) {
 	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
 	checker.Refresh(context.Background(), config, "signet")
 
-	check, ok := checker.Check(config, "signet")
-	require.True(t, ok)
-	assert.False(t, check.UpdateAvailable())
-	assert.True(t, check.Remote.IsZero())
-	assert.False(t, check.Local.IsZero(), "the local time still reads off disk")
+	_, ok := checker.Check(config, "signet", binPath)
+	assert.False(t, ok, "a failed probe leaves nothing to compare against")
 }
 
 // A binary that was never downloaded has nothing to compare against.
@@ -91,11 +88,12 @@ func TestReleaseCheckerNeedsALocalBinary(t *testing.T) {
 	}))
 	defer server.Close()
 
-	checker := NewReleaseChecker(NewDownloadManager(t.TempDir(), "", zerolog.Nop()), zerolog.Nop())
+	dataDir := t.TempDir()
+	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
 	config := releaseTestConfig(server.URL + "/")
 	checker.Refresh(context.Background(), config, "signet")
 
-	check, ok := checker.Check(config, "signet")
+	check, ok := checker.Check(config, "signet", BinaryPath(dataDir, config.BinaryName))
 	require.True(t, ok)
 	assert.False(t, check.UpdateAvailable())
 	assert.True(t, check.Local.IsZero())
@@ -129,7 +127,7 @@ func TestReleaseCheckerFollowsTheCoreVariant(t *testing.T) {
 	checker := NewReleaseChecker(downloads, zerolog.Nop())
 	checker.Refresh(context.Background(), config, "signet")
 
-	check, ok := checker.Check(config, "signet")
+	check, ok := checker.Check(config, "signet", binPath)
 	require.True(t, ok)
 	assert.True(t, check.UpdateAvailable(), "the variant download decides, not the empty config")
 }
@@ -168,7 +166,7 @@ func TestReleaseCheckerResolvesAGitHubAsset(t *testing.T) {
 	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
 	checker.Refresh(context.Background(), config, "signet")
 
-	check, ok := checker.Check(config, "signet")
+	check, ok := checker.Check(config, "signet", binPath)
 	require.True(t, ok)
 	assert.Equal(t, "/assets/zside.zip", assetPath, "the probe must hit the resolved asset")
 	assert.True(t, check.UpdateAvailable())
@@ -207,7 +205,7 @@ func TestReleaseCheckerDropsTheCheckWhenTheVariantChanges(t *testing.T) {
 	checker := NewReleaseChecker(downloads, zerolog.Nop())
 	checker.Refresh(context.Background(), config, "signet")
 
-	check, ok := checker.Check(config, "signet")
+	check, ok := checker.Check(config, "signet", binPath)
 	require.True(t, ok)
 	require.True(t, check.UpdateAvailable())
 
@@ -215,7 +213,7 @@ func TestReleaseCheckerDropsTheCheckWhenTheVariantChanges(t *testing.T) {
 	knots := newVariant("knots")
 	downloads.CoreVariant = func() (CoreVariantSpec, bool) { return knots, true }
 
-	_, ok = checker.Check(config, "signet")
+	_, ok = checker.Check(config, "signet", binPath)
 	assert.False(t, ok, "the patched variant's check must not describe knots")
 }
 
@@ -257,7 +255,82 @@ func TestReleaseCheckerRunFollowsANetworkSwap(t *testing.T) {
 	network = "regtest"
 	checker.Refresh(ctx, config, networkOf())
 
-	check, ok := checker.Check(config, "regtest")
+	check, ok := checker.Check(config, "regtest", BinaryPath(dataDir, config.BinaryName))
 	require.True(t, ok, "a refresh after the swap must answer for the new network")
 	assert.False(t, check.Remote.IsZero())
+}
+
+// A layer-2 binary with the test build enabled has two downloads: the test
+// build BitWindow launches and the prod backend a sidechain app runs. Each one
+// must answer for its own file, or the app that updates the backend keeps
+// reading the test build's age and offers the same update forever.
+func TestReleaseCheckerSeparatesTheTestBuildFromTheBackend(t *testing.T) {
+	published := time.Date(2026, 8, 6, 17, 44, 0, 0, time.UTC)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Last-Modified", published.Format(http.TimeFormat))
+	}))
+	defer server.Close()
+
+	dataDir := t.TempDir()
+	downloads := NewDownloadManager(dataDir, "", zerolog.Nop())
+	config := makeSidechainConfig(server.URL + "/")
+	downloads.SidechainVariant = func(c BinaryConfig) (sidechainVariantSpec, bool) {
+		return sidechainVariantSpec{
+			BinaryName: c.AltBinaryName,
+			BaseURL:    c.AltBaseURL("default"),
+			FileName:   fileForPlatform(c.AltFiles),
+		}, true
+	}
+
+	testPath := TestSidechainBinaryPath(dataDir, config.AltBinaryName)
+	require.NoError(t, os.MkdirAll(filepath.Dir(testPath), 0o755))
+	require.NoError(t, os.WriteFile(testPath, []byte("test build"), 0o755))
+	require.NoError(t, os.Chtimes(testPath, published.Add(-time.Hour), published.Add(-time.Hour)))
+
+	backendPath := BinaryPath(dataDir, config.BinaryName)
+	require.NoError(t, os.MkdirAll(filepath.Dir(backendPath), 0o755))
+	require.NoError(t, os.WriteFile(backendPath, []byte("backend"), 0o755))
+	require.NoError(t, os.Chtimes(backendPath, published.Add(time.Hour), published.Add(time.Hour)))
+
+	checker := NewReleaseChecker(downloads, zerolog.Nop())
+	checker.Refresh(context.Background(), config, "default")
+
+	stale, ok := checker.Check(config, "default", testPath)
+	require.True(t, ok)
+	assert.True(t, stale.UpdateAvailable(), "the test build predates the release")
+
+	fresh, ok := checker.Check(config, "default", backendPath)
+	require.True(t, ok)
+	assert.False(t, fresh.UpdateAvailable(), "the backend is newer than the release")
+}
+
+// The local mtime reads off disk on every call. A cached one would keep
+// offering the update the user already took until the next probe.
+func TestReleaseCheckerReadsTheLocalTimeLive(t *testing.T) {
+	published := time.Date(2026, 8, 6, 17, 44, 0, 0, time.UTC)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Last-Modified", published.Format(http.TimeFormat))
+	}))
+	defer server.Close()
+
+	dataDir := t.TempDir()
+	config := releaseTestConfig(server.URL + "/")
+	binPath := BinaryPath(dataDir, config.BinaryName)
+	require.NoError(t, os.MkdirAll(filepath.Dir(binPath), 0o755))
+	require.NoError(t, os.WriteFile(binPath, []byte("binary"), 0o755))
+	require.NoError(t, os.Chtimes(binPath, published.Add(-time.Hour), published.Add(-time.Hour)))
+
+	checker := NewReleaseChecker(NewDownloadManager(dataDir, "", zerolog.Nop()), zerolog.Nop())
+	checker.Refresh(context.Background(), config, "signet")
+
+	check, ok := checker.Check(config, "signet", binPath)
+	require.True(t, ok)
+	require.True(t, check.UpdateAvailable())
+
+	// The download lands. No probe runs in between.
+	require.NoError(t, os.Chtimes(binPath, published.Add(time.Hour), published.Add(time.Hour)))
+
+	check, ok = checker.Check(config, "signet", binPath)
+	require.True(t, ok)
+	assert.False(t, check.UpdateAvailable(), "the button must clear as soon as the file changes")
 }

@@ -160,10 +160,15 @@ final $typed_data.Uint8List startupLogEntryMsgDescriptor =
 @$core.Deprecated('Use listBinariesRequestDescriptor instead')
 const ListBinariesRequest$json = {
   '1': 'ListBinariesRequest',
+  '2': [
+    {'1': 'force_backend', '3': 1, '4': 1, '5': 8, '10': 'forceBackend'},
+  ],
 };
 
 /// Descriptor for `ListBinariesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listBinariesRequestDescriptor = $convert.base64Decode('ChNMaXN0QmluYXJpZXNSZXF1ZXN0');
+final $typed_data.Uint8List listBinariesRequestDescriptor =
+    $convert.base64Decode('ChNMaXN0QmluYXJpZXNSZXF1ZXN0EiMKDWZvcmNlX2JhY2tlbmQYASABKAhSDGZvcmNlQmFja2'
+        'VuZA==');
 
 @$core.Deprecated('Use listBinariesResponseDescriptor instead')
 const ListBinariesResponse$json = {
@@ -183,12 +188,14 @@ const GetBinaryStatusRequest$json = {
   '1': 'GetBinaryStatusRequest',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'force_backend', '3': 2, '4': 1, '5': 8, '10': 'forceBackend'},
   ],
 };
 
 /// Descriptor for `GetBinaryStatusRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getBinaryStatusRequestDescriptor =
-    $convert.base64Decode('ChZHZXRCaW5hcnlTdGF0dXNSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWU=');
+    $convert.base64Decode('ChZHZXRCaW5hcnlTdGF0dXNSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSIwoNZm9yY2VfYm'
+        'Fja2VuZBgCIAEoCFIMZm9yY2VCYWNrZW5k');
 
 @$core.Deprecated('Use getBinaryStatusResponseDescriptor instead')
 const GetBinaryStatusResponse$json = {

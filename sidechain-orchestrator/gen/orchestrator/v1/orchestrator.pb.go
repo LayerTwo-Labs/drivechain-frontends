@@ -545,7 +545,10 @@ func (x *StartupLogEntryMsg) GetMessage() string {
 }
 
 type ListBinariesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Same lever as launch: when true, skip the UseTestSidechains resolver and
+	// report the prod backend for every layer-2 binary.
+	ForceBackend  bool `protobuf:"varint,1,opt,name=force_backend,json=forceBackend,proto3" json:"force_backend,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -578,6 +581,13 @@ func (x *ListBinariesRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListBinariesRequest.ProtoReflect.Descriptor instead.
 func (*ListBinariesRequest) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ListBinariesRequest) GetForceBackend() bool {
+	if x != nil {
+		return x.ForceBackend
+	}
+	return false
 }
 
 type ListBinariesResponse struct {
@@ -625,8 +635,11 @@ func (x *ListBinariesResponse) GetBinaries() []*BinaryStatusMsg {
 }
 
 type GetBinaryStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Same lever as launch: when true, skip the UseTestSidechains resolver and
+	// report the prod backend.
+	ForceBackend  bool `protobuf:"varint,2,opt,name=force_backend,json=forceBackend,proto3" json:"force_backend,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -666,6 +679,13 @@ func (x *GetBinaryStatusRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *GetBinaryStatusRequest) GetForceBackend() bool {
+	if x != nil {
+		return x.ForceBackend
+	}
+	return false
 }
 
 type GetBinaryStatusResponse struct {
@@ -4207,12 +4227,14 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x19downloaded_timestamp_unix\x18\x1a \x01(\x03R\x17downloadedTimestampUnix\"U\n" +
 	"\x12StartupLogEntryMsg\x12%\n" +
 	"\x0etimestamp_unix\x18\x01 \x01(\x03R\rtimestampUnix\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x15\n" +
-	"\x13ListBinariesRequest\"T\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\":\n" +
+	"\x13ListBinariesRequest\x12#\n" +
+	"\rforce_backend\x18\x01 \x01(\bR\fforceBackend\"T\n" +
 	"\x14ListBinariesResponse\x12<\n" +
-	"\bbinaries\x18\x01 \x03(\v2 .orchestrator.v1.BinaryStatusMsgR\bbinaries\",\n" +
+	"\bbinaries\x18\x01 \x03(\v2 .orchestrator.v1.BinaryStatusMsgR\bbinaries\"Q\n" +
 	"\x16GetBinaryStatusRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"S\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
+	"\rforce_backend\x18\x02 \x01(\bR\fforceBackend\"S\n" +
 	"\x17GetBinaryStatusResponse\x128\n" +
 	"\x06status\x18\x01 \x01(\v2 .orchestrator.v1.BinaryStatusMsgR\x06status\"R\n" +
 	"\x17GetBinaryVersionRequest\x12\x12\n" +

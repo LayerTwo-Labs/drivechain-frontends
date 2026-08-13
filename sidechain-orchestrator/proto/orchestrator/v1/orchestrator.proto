@@ -191,7 +191,11 @@ message StartupLogEntryMsg {
 
 // ListBinaries
 
-message ListBinariesRequest {}
+message ListBinariesRequest {
+  // Same lever as launch: when true, skip the UseTestSidechains resolver and
+  // report the prod backend for every layer-2 binary.
+  bool force_backend = 1;
+}
 
 message ListBinariesResponse {
   repeated BinaryStatusMsg binaries = 1;
@@ -201,6 +205,9 @@ message ListBinariesResponse {
 
 message GetBinaryStatusRequest {
   string name = 1;
+  // Same lever as launch: when true, skip the UseTestSidechains resolver and
+  // report the prod backend.
+  bool force_backend = 2;
 }
 
 message GetBinaryStatusResponse {

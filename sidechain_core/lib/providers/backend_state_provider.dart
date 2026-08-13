@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
+import 'package:sidechain_core/config/binaries.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sidechain_core/providers/binaries/binary_provider.dart';
 import 'package:sidechain_core/rpcs/bitassets_rpc.dart';
@@ -62,7 +63,7 @@ class BackendStateProvider extends ChangeNotifier {
     }
     _polling = true;
     try {
-      final resp = await _orchestrator.listBinaries();
+      final resp = await _orchestrator.listBinaries(forceBackend: Binary.isSidechainApp);
       _consecutiveFailures = 0;
       _apply(resp.binaries);
     } catch (e) {
