@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -234,21 +235,36 @@ func enforcerOpReturnHex(req SendRequest) (string, error) {
 	if len(script) == 0 || script[0] != txscript.OP_RETURN {
 		return "", errors.New("raw outputs other than an OP_RETURN need a core or electrum wallet")
 	}
-	// The enforcer rebuilds the script from the payload, so any opcode past the
-	// single data push would broadcast a script the caller never asked for.
 	const scriptVersion = 0
 	tokenizer := txscript.MakeScriptTokenizer(scriptVersion, script[1:])
-	if !tokenizer.Next() || tokenizer.Data() == nil {
+	if !tokenizer.Next() || len(tokenizer.Data()) == 0 {
 		return "", errors.New("enforcer wallet: OP_RETURN must carry one data push")
 	}
 	payload := tokenizer.Data()
-	if tokenizer.Next() {
-		return "", errors.New("enforcer wallet: OP_RETURN must carry one data push")
-	}
-	if err := tokenizer.Err(); err != nil {
-		return "", fmt.Errorf("enforcer wallet: parse OP_RETURN script: %w", err)
+
+	// The enforcer sends back the script it builds from the payload alone. Any
+	// script that does not survive that round trip would go out changed.
+	if !bytes.Equal(script, opReturnScript(payload)) {
+		return "", errors.New("enforcer wallet: OP_RETURN must be one minimally encoded push")
 	}
 	return hex.EncodeToString(payload), nil
+}
+
+// opReturnScript builds the script the enforcer makes from an OP_RETURN
+// payload: the opcode, then one minimally encoded data push.
+func opReturnScript(payload []byte) []byte {
+	script := []byte{txscript.OP_RETURN}
+	switch n := len(payload); {
+	case n < txscript.OP_PUSHDATA1:
+		script = append(script, byte(n))
+	case n <= 0xff:
+		script = append(script, txscript.OP_PUSHDATA1, byte(n))
+	case n <= 0xffff:
+		script = append(script, txscript.OP_PUSHDATA2, byte(n), byte(n>>8))
+	default:
+		script = append(script, txscript.OP_PUSHDATA4, byte(n), byte(n>>8), byte(n>>16), byte(n>>24))
+	}
+	return append(script, payload...)
 }
 
 // Send relays to the enforcer's all-in-one SendTransaction: the daemon does
