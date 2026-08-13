@@ -423,7 +423,7 @@ class BMMViewModel extends BaseViewModel {
     minBidController.addListener(_onMinBound);
     maxBidController.addListener(_onMaxBound);
     bmmProvider.addListener(_onProviderChanged);
-    _sync.addListener(_onProviderChanged);
+    _sync.addListener(_onSyncChanged);
   }
 
   bool get canBid => bidBlockedReason == null;
@@ -503,6 +503,12 @@ class BMMViewModel extends BaseViewModel {
     if (max != null) {
       bmmProvider.setMaxBidAmount(max);
     }
+  }
+
+  // Sync progress moves constantly, and mirroring the bounds on every step
+  // would overwrite a bound the user is still typing.
+  void _onSyncChanged() {
+    notifyListeners();
   }
 
   void _onProviderChanged() {
@@ -678,7 +684,7 @@ class BMMViewModel extends BaseViewModel {
   @override
   void dispose() {
     bmmProvider.removeListener(_onProviderChanged);
-    _sync.removeListener(_onProviderChanged);
+    _sync.removeListener(_onSyncChanged);
     minBidController.dispose();
     maxBidController.dispose();
     super.dispose();
