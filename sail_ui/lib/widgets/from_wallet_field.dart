@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
@@ -8,7 +9,7 @@ import 'package:sail_ui/sail_ui.dart';
 const double _dropdownChrome = 45;
 
 /// Picks the wallet that funds a transaction. It never changes the active one.
-class WalletPicker extends StatelessWidget {
+class WalletPicker extends StatefulWidget {
   final String? selectedWalletId;
   final ValueChanged<String> onChanged;
 
@@ -23,13 +24,69 @@ class WalletPicker extends StatelessWidget {
   });
 
   @override
+  State<WalletPicker> createState() => _WalletPickerState();
+}
+
+class _WalletPickerState extends State<WalletPicker> {
+  final WalletReaderProvider _walletReader = GetIt.I<WalletReaderProvider>();
+  final Map<String, int> _balanceSats = {};
+  Timer? _refreshTimer;
+  String _lastWalletIds = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _walletReader.addListener(_onWalletsChanged);
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) => unawaited(_loadBalances()));
+    unawaited(_loadBalances());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _walletReader.removeListener(_onWalletsChanged);
+    super.dispose();
+  }
+
+  void _onWalletsChanged() {
+    final ids = _wallets.map((w) => w.id).join(',');
+    if (ids == _lastWalletIds) {
+      return;
+    }
+    _lastWalletIds = ids;
+    unawaited(_loadBalances());
+  }
+
+  List<WalletData> get _wallets => _walletReader.fundingWallets(rawOutputs: widget.rawOutputs);
+
+  Future<void> _loadBalances() async {
+    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+      return;
+    }
+    final rpc = GetIt.I<OrchestratorRPC>().wallet;
+    for (final wallet in _wallets) {
+      final int sats;
+      try {
+        sats = (await rpc.getBalance(wallet.id)).confirmedSats.round();
+      } catch (_) {
+        // One unreadable wallet must not blank the balance of the others.
+        continue;
+      }
+      if (!mounted || _balanceSats[wallet.id] == sats) {
+        continue;
+      }
+      setState(() => _balanceSats[wallet.id] = sats);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final walletReader = GetIt.I<WalletReaderProvider>();
+    final walletReader = _walletReader;
 
     return ListenableBuilder(
       listenable: walletReader,
       builder: (context, _) {
-        final wallets = walletReader.fundingWallets(rawOutputs: rawOutputs);
+        final wallets = _wallets;
         if (wallets.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -45,7 +102,7 @@ class WalletPicker extends StatelessWidget {
             return SizedBox(
               width: double.infinity,
               child: SailDropdownButton<String>(
-                value: selectedWalletId,
+                value: widget.selectedWalletId,
                 hint: 'Select a wallet',
                 items: wallets
                     .map(
@@ -60,6 +117,13 @@ class WalletPicker extends StatelessWidget {
                             children: [
                               WalletBlobAvatar(gradient: wallet.gradient, size: 20),
                               Flexible(child: SailText.primary13(wallet.name)),
+                              if (_balanceSats[wallet.id] != null)
+                                Flexible(
+                                  child: SailText.secondary13(
+                                    formatBitcoin(satoshiToBTC(_balanceSats[wallet.id]!)),
+                                    monospace: true,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -68,7 +132,7 @@ class WalletPicker extends StatelessWidget {
                     .toList(),
                 onChanged: (walletId) {
                   if (walletId != null) {
-                    onChanged(walletId);
+                    widget.onChanged(walletId);
                   }
                 },
               ),
