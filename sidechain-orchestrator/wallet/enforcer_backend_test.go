@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -272,6 +273,16 @@ func TestEnforcerBackendRawOpReturnBecomesMessage(t *testing.T) {
 	require.NotNil(t, fake.lastSend)
 	assert.Equal(t, "00bf000901", fake.lastSend.OpReturnMessage.GetHex().GetValue())
 	assert.Equal(t, uint64(1000), fake.lastSend.FeeRate.GetSats())
+
+	// A 76-byte payload passes the 75-byte direct push limit, so OP_PUSHDATA1
+	// is its minimal encoding.
+	payload := strings.Repeat("bb", 76)
+	_, err = backend.Send(context.Background(), "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a4c4c" + payload}},
+		FixedFeeSats: 1000,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, payload, fake.lastSend.OpReturnMessage.GetHex().GetValue())
 }
 
 // The enforcer builds the transaction itself, so anything it cannot express
@@ -310,6 +321,20 @@ func TestEnforcerBackendRejectsUnexpressibleOutputs(t *testing.T) {
 	// A bare OP_RETURN carries no payload at all.
 	_, err = backend.Send(ctx, "wallet", SendRequest{
 		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a"}},
+		FixedFeeSats: 1000,
+	})
+	require.ErrorContains(t, err, "one data push")
+
+	// OP_PUSHDATA1 for 1 byte. The enforcer would rebuild this as 6a01aa.
+	_, err = backend.Send(ctx, "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a4c01aa"}},
+		FixedFeeSats: 1000,
+	})
+	require.ErrorContains(t, err, "minimally encoded")
+
+	// An empty push gives an empty payload, which drops the output.
+	_, err = backend.Send(ctx, "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a4c00"}},
 		FixedFeeSats: 1000,
 	})
 	require.ErrorContains(t, err, "one data push")
