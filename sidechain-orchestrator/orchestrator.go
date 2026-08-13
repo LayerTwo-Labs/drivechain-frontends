@@ -2041,7 +2041,7 @@ func (o *Orchestrator) finishNetworkSwap(n config.Network, restartL1 bool) error
 func (o *Orchestrator) purgeNetworkSwapState(target config.Network) error {
 	paths := make(map[string]bool)
 
-	for _, path := range enforcerNetworkSwapStatePaths(config.EnforcerDirs.RootDir()) {
+	for _, path := range enforcerNetworkSwapStatePaths(config.Network(o.Network), target) {
 		paths[path] = true
 	}
 
@@ -2074,20 +2074,19 @@ func (o *Orchestrator) purgeNetworkSwapState(target config.Network) error {
 	return nil
 }
 
-func enforcerNetworkSwapStatePaths(root string) []string {
+// enforcerNetworkSwapStatePaths returns the enforcer state a swap from -> to
+// must drop. The enforcer files its validator chain and wallet per network, so
+// both survive a swap and are still valid on the way back; state only has to go
+// when the two networks share those directories, leaving the outgoing chain
+// where the incoming one will look for its own.
+func enforcerNetworkSwapStatePaths(from, to config.Network) []string {
+	if !config.EnforcerNetworksCollide(from, to) {
+		return nil
+	}
 	return []string{
-		filepath.Join(root, "validator"),
-		filepath.Join(root, "wallet"),
-		filepath.Join(root, "bitcoin"),
-		filepath.Join(root, "mainnet"),
-		// forknet/drynet2 are retired network names, still listed so an
-		// upgrade clears the state directories they left behind.
-		filepath.Join(root, "forknet"),
-		filepath.Join(root, "drynet2"),
-		filepath.Join(root, "drynet"),
-		filepath.Join(root, "signet"),
-		filepath.Join(root, "testnet"),
-		filepath.Join(root, "regtest"),
+		config.EnforcerValidatorDir(from),
+		config.EnforcerWalletDir(from),
+		filepath.Join(config.EnforcerDirs.RootDir(), config.EnforcerNetworkName(from)),
 	}
 }
 
