@@ -141,6 +141,17 @@ class BMMProvider extends ChangeNotifier {
     return null;
   }
 
+  /// Why our newest bid of the current round failed. The auto-bid loop runs in
+  /// the backend, so its failures reach the user only through here. An older
+  /// failure stays hidden, because a newer bid means the loop recovered.
+  String? get lastBidError {
+    final newest = current?.ourBids.lastOrNull;
+    if (newest == null || newest.state != 'failed' || newest.error.isEmpty) {
+      return null;
+    }
+    return newest.error;
+  }
+
   /// Every bid for the current round, ours and others, highest first.
   List<bmmpb.Bid> get currentBids {
     final round = current;
@@ -220,8 +231,8 @@ class BMMProvider extends ChangeNotifier {
   }
 
   /// Set when no wallet can fund a bid. An empty wallet id would fall back to
-  /// the active wallet, which is the enforcer this path cannot use.
-  static const noFundingWallet = 'No wallet can fund a bid. A bid needs a core or electrum wallet.';
+  /// the active wallet, which may be one that cannot spend.
+  static const noFundingWallet = 'No wallet can fund a bid. A bid needs a wallet that can spend.';
 
   Future<void> startBidding() async {
     final walletId = fundingWalletId;
