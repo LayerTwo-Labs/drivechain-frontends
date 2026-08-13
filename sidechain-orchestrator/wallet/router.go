@@ -57,6 +57,18 @@ func (r *BackendRouter) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
 	return b, ok
 }
 
+// DepositBackendFor returns the wallet's backend as a DepositBackend when it
+// builds the M5 itself (the enforcer). ok is false for the other backends, so
+// the caller builds the deposit outputs itself.
+func (r *BackendRouter) DepositBackendFor(walletID string) (DepositBackend, bool) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, false
+	}
+	b, ok := p.(DepositBackend)
+	return b, ok
+}
+
 func (r *BackendRouter) pick(walletID string) (Backend, error) {
 	w := r.svc.GetWalletByID(walletID)
 	if w == nil {

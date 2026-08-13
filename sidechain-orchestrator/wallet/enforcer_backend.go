@@ -267,6 +267,23 @@ func opReturnScript(payload []byte) []byte {
 	return append(script, payload...)
 }
 
+// CreateDeposit relays to the enforcer's deposit RPC: the daemon reads the
+// ctip, pays the new treasury output, and writes the destination OP_RETURN.
+func (p *EnforcerBackend) CreateDeposit(
+	ctx context.Context, slot uint8, destination string, amountSats, feeSats int64,
+) (string, error) {
+	resp, err := p.client.CreateDepositTransaction(ctx, connect.NewRequest(&enforcerpb.CreateDepositTransactionRequest{
+		SidechainId: wrapperspb.UInt32(uint32(slot)),
+		Address:     wrapperspb.String(destination),
+		ValueSats:   wrapperspb.UInt64(uint64(amountSats)),
+		FeeSats:     wrapperspb.UInt64(uint64(feeSats)),
+	}))
+	if err != nil {
+		return "", fmt.Errorf("enforcer/wallet: create deposit: %w", err)
+	}
+	return resp.Msg.GetTxid().GetHex().GetValue(), nil
+}
+
 // Send relays to the enforcer's all-in-one SendTransaction: the daemon does
 // coin selection, change, signing, and broadcast.
 func (p *EnforcerBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {

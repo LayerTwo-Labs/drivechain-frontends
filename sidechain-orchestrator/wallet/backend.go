@@ -71,6 +71,13 @@ type Bip47Backend interface {
 	EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error
 }
 
+// DepositBackend is a backend that builds the BIP300 M5 itself, so the caller
+// hands it the slot and the destination instead of a raw treasury output.
+type DepositBackend interface {
+	Backend
+	CreateDeposit(ctx context.Context, slot uint8, destination string, amountSats, feeSats int64) (string, error)
+}
+
 // ChainSource is wallet-agnostic chain access shared by all backends.
 type ChainSource interface {
 	GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error)

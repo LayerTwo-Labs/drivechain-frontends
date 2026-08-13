@@ -22,11 +22,19 @@ import (
 type fakeEnforcerClient struct {
 	enforcerrpc.WalletServiceClient
 
-	balance  *enforcerpb.GetBalanceResponse
-	unspent  *enforcerpb.ListUnspentOutputsResponse
-	txs      *enforcerpb.ListTransactionsResponse
-	newAddr  string
-	lastSend *enforcerpb.SendTransactionRequest
+	balance     *enforcerpb.GetBalanceResponse
+	unspent     *enforcerpb.ListUnspentOutputsResponse
+	txs         *enforcerpb.ListTransactionsResponse
+	newAddr     string
+	lastSend    *enforcerpb.SendTransactionRequest
+	lastDeposit *enforcerpb.CreateDepositTransactionRequest
+}
+
+func (f *fakeEnforcerClient) CreateDepositTransaction(ctx context.Context, req *connect.Request[enforcerpb.CreateDepositTransactionRequest]) (*connect.Response[enforcerpb.CreateDepositTransactionResponse], error) {
+	f.lastDeposit = req.Msg
+	return connect.NewResponse(&enforcerpb.CreateDepositTransactionResponse{
+		Txid: reverseHex("ccdd"),
+	}), nil
 }
 
 func (f *fakeEnforcerClient) GetBalance(ctx context.Context, _ *connect.Request[enforcerpb.GetBalanceRequest]) (*connect.Response[enforcerpb.GetBalanceResponse], error) {
@@ -344,4 +352,18 @@ func TestEnforcerBackendRejectsUnexpressibleOutputs(t *testing.T) {
 		FixedFeeSats:   1000,
 	})
 	require.ErrorContains(t, err, "core or electrum wallet")
+}
+
+func TestEnforcerBackendCreateDeposit(t *testing.T) {
+	fake := &fakeEnforcerClient{}
+	backend := NewEnforcerBackend(fake)
+
+	txid, err := backend.CreateDeposit(context.Background(), 4, "s4_addr", 100_000, 1_000)
+	require.NoError(t, err)
+	assert.Equal(t, "ccdd", txid)
+
+	assert.Equal(t, uint32(4), fake.lastDeposit.GetSidechainId().GetValue())
+	assert.Equal(t, "s4_addr", fake.lastDeposit.GetAddress().GetValue())
+	assert.Equal(t, uint64(100_000), fake.lastDeposit.GetValueSats().GetValue())
+	assert.Equal(t, uint64(1_000), fake.lastDeposit.GetFeeSats().GetValue())
 }
