@@ -234,14 +234,21 @@ func enforcerOpReturnHex(req SendRequest) (string, error) {
 	if len(script) == 0 || script[0] != txscript.OP_RETURN {
 		return "", errors.New("raw outputs other than an OP_RETURN need a core or electrum wallet")
 	}
-	pushes, err := txscript.PushedData(script)
-	if err != nil {
+	// The enforcer rebuilds the script from the payload, so any opcode past the
+	// single data push would broadcast a script the caller never asked for.
+	const scriptVersion = 0
+	tokenizer := txscript.MakeScriptTokenizer(scriptVersion, script[1:])
+	if !tokenizer.Next() || tokenizer.Data() == nil {
+		return "", errors.New("enforcer wallet: OP_RETURN must carry one data push")
+	}
+	payload := tokenizer.Data()
+	if tokenizer.Next() {
+		return "", errors.New("enforcer wallet: OP_RETURN must carry one data push")
+	}
+	if err := tokenizer.Err(); err != nil {
 		return "", fmt.Errorf("enforcer wallet: parse OP_RETURN script: %w", err)
 	}
-	if len(pushes) != 1 {
-		return "", fmt.Errorf("enforcer wallet: OP_RETURN must carry one push, got %d", len(pushes))
-	}
-	return hex.EncodeToString(pushes[0]), nil
+	return hex.EncodeToString(payload), nil
 }
 
 // Send relays to the enforcer's all-in-one SendTransaction: the daemon does
