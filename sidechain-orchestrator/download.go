@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -114,28 +115,8 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 
 // DownloadWithOptions is Download with per-call overrides (see DownloadOptions).
 func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config BinaryConfig, network string, force bool, opts DownloadOptions) (<-chan DownloadProgress, error) {
-	// Resolve variants once: callers don't have to know about them, but every
-	// path below (target binary path, download URL, extract dir) must agree
-	// on the choice. Core variants and sidechain test-builds are mutually
-	// exclusive — Core is always layer-1, test sidechains are layer-2.
-	variant, hasVariant := d.activeVariant(config)
-	scVariant, hasSCVariant := d.activeSidechainVariant(config)
-	if opts.ForceBackend {
-		hasSCVariant = false
-		scVariant = sidechainVariantSpec{}
-	}
-
-	binaryName := config.BinaryName
-	if hasSCVariant {
-		binaryName = scVariant.BinaryName
-	}
-
-	binPath := BinaryPath(d.dataDir, binaryName)
-	if hasVariant {
-		binPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
-	} else if hasSCVariant {
-		binPath = TestSidechainBinaryPath(d.dataDir, binaryName)
-	}
+	target := d.ResolveTarget(config, network, opts)
+	binPath := target.BinPath
 
 	if !force {
 		if _, err := os.Stat(binPath); err == nil {
@@ -146,39 +127,13 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		}
 	}
 
-	var fileName string
-	var baseURL string
-	switch {
-	case hasVariant:
-		f, err := variant.FileForPlatform()
-		if err != nil {
-			return nil, err
-		}
-		fileName = f
-		baseURL = variant.BaseURL
-	case hasSCVariant:
-		fileName = scVariant.FileName
-		baseURL = scVariant.BaseURL
-	default:
-		f, err := config.FileForPlatform()
-		if err != nil {
-			return nil, err
-		}
-		fileName = f
-		baseURL = config.BaseURL(network)
-	}
-
+	fileName := target.FileName
+	baseURL := target.BaseURL
 	if fileName == "" || baseURL == "" {
 		return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentPlatform())
 	}
 
-	inFlightKey := config.Name
-	switch {
-	case hasVariant:
-		inFlightKey = config.Name + ":" + variant.ID
-	case hasSCVariant:
-		inFlightKey = config.Name + ":test"
-	}
+	inFlightKey := target.InFlightKey
 	// A second caller attaches to the running download instead of failing.
 	// SwapNetwork drops the core binary and restarts L1, so two paths ask at once.
 	done := make(chan struct{})
@@ -248,11 +203,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		// JSON-parse an HTML 404 and abort the download with a confusing
 		// "decode response: invalid character '<'" error.
 		var downloadURL string
-		source := config.DownloadSource
-		if hasSCVariant {
-			source = DownloadSourceDirect
-		}
-		switch source {
+		switch target.Source {
 		case DownloadSourceGitHub:
 			url, err := d.resolveGitHubURL(ctx, baseURL, fileName)
 			if err != nil {
@@ -300,28 +251,15 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 			return
 		}
 
-		extractName := config.BinaryName
-		stripPrefix := ""
-		if hasSCVariant {
-			extractName = scVariant.BinaryName
-			stripPrefix = scVariant.ExtractSubfolder
-		}
-		hasCLI, err := d.extractBinary(savePath, config, extractName, stripPrefix, d.dataDir, network, hasSCVariant)
+		hasCLI, err := d.extractBinary(savePath, config, target.ExtractName, target.ExtractSubfolder, d.dataDir, network, target.IsTestBuild)
 		if err != nil {
 			d.log.Error().Err(err).Str("binary", config.Name).Msg("extract failed")
 			send(DownloadProgress{Error: fmt.Errorf("extract: %w", err)})
 			return
 		}
-		d.log.Info().Bool("has_cli", hasCLI).Str("binary", extractName).Msg("extraction complete")
+		d.log.Info().Bool("has_cli", hasCLI).Str("binary", target.ExtractName).Msg("extraction complete")
 
-		finalPath := BinaryPath(d.dataDir, extractName)
-		switch {
-		case hasVariant:
-			finalPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
-		case hasSCVariant:
-			finalPath = TestSidechainBinaryPath(d.dataDir, extractName)
-		}
-		send(DownloadProgress{Message: finalPath, Done: true})
+		send(DownloadProgress{Message: target.BinPath, Done: true})
 	}()
 
 	return ch, nil
@@ -1055,4 +993,82 @@ func (d *DownloadManager) attachToInFlight(ctx context.Context, done chan struct
 		}
 	}()
 	return ch
+}
+
+// DownloadTarget is where a binary lives on disk and where its archive comes
+// from, after Core variant and test sidechain resolution.
+type DownloadTarget struct {
+	BinPath  string
+	FileName string
+	BaseURL  string
+	// Source is DownloadSourceGitHub when FileName is an asset pattern that
+	// ResolveArchiveURL must look up, not a path to join onto BaseURL.
+	Source DownloadSource
+	// InFlightKey namespaces the download so a production and a test build of
+	// the same binary never wait on each other.
+	InFlightKey string
+	// ExtractName is the file to pull out of the archive, and ExtractSubfolder
+	// the directory prefix to strip off it.
+	ExtractName      string
+	ExtractSubfolder string
+	// IsTestBuild routes extraction to the test build directory.
+	IsTestBuild bool
+}
+
+// ResolveTarget picks the Core variant, the test sidechain build, or the plain
+// config. The downloader and the release check share it, so they can never
+// disagree about which file they act on.
+func (d *DownloadManager) ResolveTarget(config BinaryConfig, network string, opts DownloadOptions) DownloadTarget {
+	variant, hasVariant := d.activeVariant(config)
+	scVariant, hasSCVariant := d.activeSidechainVariant(config)
+	if opts.ForceBackend {
+		hasSCVariant = false
+		scVariant = sidechainVariantSpec{}
+	}
+
+	binaryName := config.BinaryName
+	if hasSCVariant {
+		binaryName = scVariant.BinaryName
+	}
+
+	target := DownloadTarget{
+		BinPath:     BinaryPath(d.dataDir, binaryName),
+		Source:      config.DownloadSource,
+		InFlightKey: config.Name,
+		ExtractName: config.BinaryName,
+		IsTestBuild: hasSCVariant,
+	}
+	switch {
+	case hasVariant:
+		target.BinPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
+		target.FileName, _ = variant.FileForPlatform()
+		target.BaseURL = variant.BaseURL
+		target.InFlightKey = config.Name + ":" + variant.ID
+	case hasSCVariant:
+		target.BinPath = TestSidechainBinaryPath(d.dataDir, binaryName)
+		target.FileName = scVariant.FileName
+		target.BaseURL = scVariant.BaseURL
+		target.InFlightKey = config.Name + ":test"
+		target.ExtractName = scVariant.BinaryName
+		target.ExtractSubfolder = scVariant.ExtractSubfolder
+		// Test builds always come straight from releases.drivechain.info, even
+		// when the production build of the same sidechain lives on GitHub.
+		target.Source = DownloadSourceDirect
+	default:
+		target.FileName, _ = config.FileForPlatform()
+		target.BaseURL = config.BaseURL(network)
+	}
+	return target
+}
+
+// ResolveArchiveURL turns a target into the URL of the archive itself. A GitHub
+// target needs a releases API call, because its FileName is an asset pattern.
+func (d *DownloadManager) ResolveArchiveURL(ctx context.Context, target DownloadTarget) (string, error) {
+	if target.FileName == "" || target.BaseURL == "" {
+		return "", errors.New("no download configured")
+	}
+	if target.Source == DownloadSourceGitHub {
+		return d.resolveGitHubURL(ctx, target.BaseURL, target.FileName)
+	}
+	return target.BaseURL + target.FileName, nil
 }

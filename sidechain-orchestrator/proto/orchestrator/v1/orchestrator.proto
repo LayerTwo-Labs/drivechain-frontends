@@ -175,6 +175,13 @@ message BinaryStatusMsg {
   // bin/test/<binary>/... for active sidechain alt-builds, the resolved
   // .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
   string binary_path = 23;
+  // A newer build is published than the one on disk. False while either side
+  // is unknown, so a failed check never claims an update.
+  bool update_available = 24;
+  // Last-Modified of the published download, 0 when unknown.
+  int64 remote_timestamp_unix = 25;
+  // Modification time of the binary on disk, 0 when not downloaded.
+  int64 downloaded_timestamp_unix = 26;
 }
 
 message StartupLogEntryMsg {

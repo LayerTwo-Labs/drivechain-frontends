@@ -60,6 +60,9 @@ type BinaryStatus struct {
 	Version         string // configured version string
 	RepoURL         string // source code repository URL
 	StartupLogs     []StartupLogLine
+	UpdateAvailable bool      // a newer build is published than the one on disk
+	RemoteTimestamp time.Time // Last-Modified of the published download
+	LocalTimestamp  time.Time // mtime of the binary on disk
 }
 
 // StartupProgress reports progress during StartWithL1. Download fields
@@ -137,6 +140,9 @@ type Orchestrator struct {
 	// drynetID is the live drynet generation ("drynet2"). Guarded by mu; read
 	// by UpdateConfigs to expand the placeholder in freshly loaded configs.
 	drynetID string
+
+	// releases reports whether a newer build of each binary is published.
+	releases *ReleaseChecker
 
 	BitcoinConf    *config.BitcoinConfManager
 	EnforcerConf   *config.EnforcerConfManager
@@ -280,14 +286,17 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		settings = &SettingsStore{bitwindowDir: bitwindowDir, current: defaultOrchestratorSettings()}
 	}
 
+	downloads := NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log)
+
 	orch := &Orchestrator{
+		releases:     NewReleaseChecker(downloads, log),
 		DataDir:      dataDir,
 		Network:      network,
 		BitwindowDir: bitwindowDir,
 		Settings:     settings,
 		configs:      lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
 		rawConfigs:   lo.SliceToMap(configs, func(c BinaryConfig) (string, BinaryConfig) { return c.Name, c }),
-		download:     NewDownloadManager(dataDir, ConfigFilePath(bitwindowDir), log),
+		download:     downloads,
 		process:      NewProcessManager(dataDir, pidMgr, log),
 		pidManager:   pidMgr,
 		monitors:     make(map[string]*ConnectionMonitor),
@@ -318,8 +327,10 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		return available[0], true
 	}
 	orch.download.CoreVariant = func() (CoreVariantSpec, bool) {
-		cfg, ok := orch.configs["bitcoind"]
-		if !ok {
+		// Through the locked accessor: a config reload rewrites this map while
+		// Status reads it on another goroutine.
+		cfg, err := orch.getConfig("bitcoind")
+		if err != nil {
 			return CoreVariantSpec{}, false
 		}
 		return variantResolver(cfg)
@@ -536,7 +547,33 @@ func (o *Orchestrator) Download(ctx context.Context, name string, force bool, op
 	if err != nil {
 		return nil, err
 	}
-	return o.download.DownloadWithOptions(ctx, config, o.Network, force, opts)
+	ch, err := o.download.DownloadWithOptions(ctx, config, o.Network, force, opts)
+	if err != nil {
+		return nil, err
+	}
+	return o.refreshReleaseWhenDone(ctx, config, ch), nil
+}
+
+// refreshReleaseWhenDone re-probes a binary once its download ends. The cached
+// check holds the old file's timestamp, and a ten minute wait would offer the
+// same update again.
+func (o *Orchestrator) refreshReleaseWhenDone(ctx context.Context, config BinaryConfig, in <-chan DownloadProgress) <-chan DownloadProgress {
+	if o.releases == nil {
+		return in
+	}
+	out := make(chan DownloadProgress, cap(in))
+	go func() {
+		defer close(out)
+		for p := range in {
+			select {
+			case out <- p:
+			case <-ctx.Done():
+				return
+			}
+		}
+		o.releases.Refresh(context.WithoutCancel(ctx), config, o.CurrentNetwork())
+	}()
+	return out
 }
 
 // Start starts a binary with the given args and env.
@@ -662,6 +699,14 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	}
 	if downloaded {
 		status.BinaryPath = binPath
+	}
+
+	if o.releases != nil {
+		if check, ok := o.releases.Check(config, o.CurrentNetwork()); ok {
+			status.UpdateAvailable = check.UpdateAvailable()
+			status.RemoteTimestamp = check.Remote
+			status.LocalTimestamp = check.Local
+		}
 	}
 
 	if proc != nil {
