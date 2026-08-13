@@ -15,6 +15,11 @@ import 'package:url_launcher/url_launcher.dart';
 /// never be included. The orchestrator rejects those bids too — this only keeps
 /// the controls from offering an action that cannot succeed.
 String? bidBlockedReasonFor(SyncProvider sync) {
+  // Without Core the enforcer's goal falls back to its own height, which reads
+  // as synced however far behind it is.
+  if (sync.mainchainSyncInfo == null || (sync.mainchainError?.isNotEmpty ?? false)) {
+    return 'Waiting for Bitcoin Core';
+  }
   final enforcer = sync.enforcerSyncInfo;
   if (enforcer == null || (sync.enforcerError?.isNotEmpty ?? false)) {
     return 'Waiting for the enforcer to start';

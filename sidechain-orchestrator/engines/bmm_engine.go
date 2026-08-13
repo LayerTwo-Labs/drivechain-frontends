@@ -383,8 +383,35 @@ func (e *BmmEngine) openRound(
 	e.current[sidechain] = round
 	e.mu.Unlock()
 
-	e.placeBid(ctx, sidechain, round, target.walletID, target.minBidSats, "")
+	if err := e.placeBid(ctx, sidechain, round, target.walletID, target.minBidSats, ""); err != nil {
+		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
+			e.log.Info().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid refused, retrying next tick")
+			e.retryTip(sidechain, tip)
+		} else {
+			e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid failed")
+		}
+	}
 	e.notify()
+}
+
+// retryTip unwinds a round whose opening bid was refused on a precondition, so
+// the next tick opens it again on the same tip. The sync snapshot the backend
+// gates on can trail the tip read here by one poll interval; without this the
+// tip stays marked, every later tick takes the maybeRaise path, and the block
+// is skipped for good.
+func (e *BmmEngine) retryTip(sidechain pb.BinaryType, tip string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if round, ok := e.current[sidechain]; ok && round != nil && round.PrevMainHash == tip {
+		delete(e.current, sidechain)
+	}
+	target, ok := e.targets[sidechain]
+	if !ok || target.lastTip != tip {
+		return
+	}
+	target.lastTip = ""
+	e.targets[sidechain] = target
 }
 
 // snapshotOthers records the competing bids. Once the round is decided these
@@ -435,7 +462,7 @@ func (e *BmmEngine) ourTxids(sidechain pb.BinaryType) map[string]bool {
 func (e *BmmEngine) placeBid(
 	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round,
 	walletID string, bidSats int64, replaceTxid string,
-) {
+) error {
 	resp, err := e.backend.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
 		Sidechain:          sidechain,
 		WalletId:           walletID,
@@ -455,8 +482,7 @@ func (e *BmmEngine) placeBid(
 			State:   BidFailed,
 			Error:   err.Error(),
 		})
-		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("bmm bid failed")
-		return
+		return err
 	}
 
 	if replaceTxid != "" {
@@ -485,6 +511,7 @@ func (e *BmmEngine) placeBid(
 
 	e.log.Info().Stringer("sidechain", sidechain).Str("txid", resp.Msg.BmmTxid).
 		Int64("bid_sats", bidSats).Int64("block_worth_sats", resp.Msg.FeesSats).Msg("bmm bid broadcast")
+	return nil
 }
 
 // maybeRaise replaces our live bid when a competitor has overtaken it, never
@@ -537,7 +564,12 @@ func (e *BmmEngine) maybeRaise(ctx context.Context, sidechain pb.BinaryType, tar
 
 	e.log.Info().Stringer("sidechain", sidechain).
 		Int64("from_sats", live.BidSats).Int64("to_sats", next).Msg("raising bmm bid")
-	e.placeBid(ctx, sidechain, round, walletID, next, live.Txid)
+	// The live bid stands when a raise is refused, so the round carries on at
+	// its current price rather than being unwound.
+	if err := e.placeBid(ctx, sidechain, round, walletID, next, live.Txid); err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
+			Int64("to_sats", next).Msg("raising bmm bid failed, keeping the live bid")
+	}
 	e.notify()
 }
 
