@@ -310,6 +310,7 @@ class _BidsOnNextBlock extends StatelessWidget {
                   SailTableCell(value: viewModel.shorten(bid.txid), copyValue: bid.txid, monospace: true),
                   SailTableCell(
                     value: viewModel.bidStatus(bid, bids),
+                    copyValue: bid.error.isEmpty ? null : bid.error,
                     textColor: viewModel.bidStatusColor(bid, bids, theme.colors),
                   ),
                 ];
@@ -429,7 +430,7 @@ class BMMViewModel extends BaseViewModel {
   String? get bidBlockedReason => bidBlockedReasonFor(_sync);
 
   bool get running => bmmProvider.running;
-  String? get bmmError => bmmProvider.error;
+  String? get bmmError => bmmProvider.error ?? bmmProvider.lastBidError;
 
   String? get fundingWalletId => bmmProvider.fundingWalletId;
   void setFundingWallet(String walletId) => bmmProvider.setFundingWalletId(walletId);

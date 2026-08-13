@@ -94,6 +94,7 @@ bmmpb.Bid _bid({
   bool ours = false,
   String state = 'live',
   String replacedBy = '',
+  String error = '',
 }) {
   return bmmpb.Bid(
     txid: txid,
@@ -102,6 +103,7 @@ bmmpb.Bid _bid({
     isOurs: ours,
     state: state,
     replacedByTxid: replacedBy,
+    error: error,
   );
 }
 
@@ -276,6 +278,50 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(provider.liveBid?.txid, 'second');
+  });
+
+  // The auto-bid loop runs in the backend, so a failure there reaches the user
+  // only through the bid it records.
+  test('a failed bid reports why it failed', () async {
+    final provider = newProvider();
+
+    expect(provider.lastBidError, isNull);
+
+    bmm.emit(
+      bmmpb.WatchResponse(
+        current: bmmpb.Round(
+          prevMainHash: 'tip-1',
+          ourBids: [
+            _bid(txid: 'first', sats: 10000, ours: true, state: 'failed', error: 'insufficient funds'),
+            _bid(txid: 'second', sats: 13000, ours: true, state: 'failed', error: 'wallet is locked'),
+          ],
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(provider.lastBidError, 'wallet is locked');
+  });
+
+  // A retry that lands after a failed raise means bidding recovered, so the
+  // old reason must leave the screen.
+  test('a later live bid clears the failure', () async {
+    final provider = newProvider();
+
+    bmm.emit(
+      bmmpb.WatchResponse(
+        current: bmmpb.Round(
+          prevMainHash: 'tip-1',
+          ourBids: [
+            _bid(txid: 'first', sats: 10000, ours: true, state: 'failed', error: 'insufficient funds'),
+            _bid(txid: 'second', sats: 13000, ours: true),
+          ],
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(provider.lastBidError, isNull);
   });
 
   // A bid no miner took never confirmed, so it neither cost nor earned.
