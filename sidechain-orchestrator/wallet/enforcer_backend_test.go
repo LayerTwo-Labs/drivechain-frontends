@@ -256,18 +256,50 @@ func TestEnforcerBackendUnsupportedOps(t *testing.T) {
 	require.Error(t, err)
 }
 
-// The enforcer builds the transaction itself and its API has no raw output, so
-// a BMM bid or an M5 deposit must say so rather than silently drop the output.
-func TestEnforcerBackendRejectsRawOutputs(t *testing.T) {
-	backend := &EnforcerBackend{}
+// A BMM bid carries its M8 as a zero-value OP_RETURN raw output, which the
+// enforcer takes as the payload it builds the scriptPubKey from.
+func TestEnforcerBackendRawOpReturnBecomesMessage(t *testing.T) {
+	fake := &fakeEnforcerClient{}
+	backend := NewEnforcerBackend(fake)
 
+	// OP_RETURN OP_PUSHBYTES_5 <M8 tag, slot 9>
 	_, err := backend.Send(context.Background(), "wallet", SendRequest{
-		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a0100", AmountSats: 0}},
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a0500bf000901"}},
+		FixedFeeSats: 1000,
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, fake.lastSend)
+	assert.Equal(t, "00bf000901", fake.lastSend.OpReturnMessage.GetHex().GetValue())
+	assert.Equal(t, uint64(1000), fake.lastSend.FeeRate.GetSats())
+}
+
+// The enforcer builds the transaction itself, so anything it cannot express
+// must be an error rather than a silently dropped output.
+func TestEnforcerBackendRejectsUnexpressibleOutputs(t *testing.T) {
+	backend := &EnforcerBackend{}
+	ctx := context.Background()
+
+	_, err := backend.Send(ctx, "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "00141111111111111111111111111111111111111111"}},
 		FixedFeeSats: 1000,
 	})
 	require.ErrorContains(t, err, "core or electrum wallet")
 
-	_, err = backend.Send(context.Background(), "wallet", SendRequest{
+	_, err = backend.Send(ctx, "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a0100", AmountSats: 500}},
+		FixedFeeSats: 1000,
+	})
+	require.ErrorContains(t, err, "zero-value")
+
+	_, err = backend.Send(ctx, "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a0100"}},
+		OpReturnHex:  "dead",
+		FixedFeeSats: 1000,
+	})
+	require.ErrorContains(t, err, "at most one OP_RETURN")
+
+	_, err = backend.Send(ctx, "wallet", SendRequest{
 		ExternalInputs: []ExternalInput{{TxID: "aa", Vout: 0, AmountSats: 1}},
 		FixedFeeSats:   1000,
 	})
