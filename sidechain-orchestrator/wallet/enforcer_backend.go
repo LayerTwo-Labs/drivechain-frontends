@@ -2,11 +2,13 @@ package wallet
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
 
 	"connectrpc.com/connect"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -209,6 +211,39 @@ func (p *EnforcerBackend) WatchKeys(ctx context.Context, walletID string, keys [
 	return p.unsupported("watching extra keys")
 }
 
+// enforcerOpReturnHex folds the request's OP_RETURN into the single payload the
+// enforcer's SendTransaction takes. The enforcer builds the scriptPubKey itself,
+// so a zero-value OP_RETURN is the only raw output it can express — which is
+// what a BMM bid needs.
+func enforcerOpReturnHex(req SendRequest) (string, error) {
+	if len(req.RawOutputs) == 0 {
+		return req.OpReturnHex, nil
+	}
+	if len(req.RawOutputs) > 1 || req.OpReturnHex != "" {
+		return "", errors.New("enforcer wallet takes at most one OP_RETURN")
+	}
+
+	out := req.RawOutputs[0]
+	if out.AmountSats != 0 {
+		return "", fmt.Errorf("enforcer wallet: OP_RETURN output must be zero-value, got %d sats", out.AmountSats)
+	}
+	script, err := hex.DecodeString(out.RawScriptHex)
+	if err != nil {
+		return "", fmt.Errorf("enforcer wallet: decode raw output script: %w", err)
+	}
+	if len(script) == 0 || script[0] != txscript.OP_RETURN {
+		return "", errors.New("raw outputs other than an OP_RETURN need a core or electrum wallet")
+	}
+	pushes, err := txscript.PushedData(script)
+	if err != nil {
+		return "", fmt.Errorf("enforcer wallet: parse OP_RETURN script: %w", err)
+	}
+	if len(pushes) != 1 {
+		return "", fmt.Errorf("enforcer wallet: OP_RETURN must carry one push, got %d", len(pushes))
+	}
+	return hex.EncodeToString(pushes[0]), nil
+}
+
 // Send relays to the enforcer's all-in-one SendTransaction: the daemon does
 // coin selection, change, signing, and broadcast.
 func (p *EnforcerBackend) Send(ctx context.Context, walletID string, req SendRequest) (string, error) {
@@ -219,13 +254,16 @@ func (p *EnforcerBackend) Send(ctx context.Context, walletID string, req SendReq
 		)
 	}
 
-	// The enforcer builds the transaction itself and its API takes only
-	// addresses and an OP_RETURN, so a bare scriptPubKey cannot be expressed.
-	if len(req.RawOutputs) > 0 || len(req.ExternalInputs) > 0 {
+	if len(req.ExternalInputs) > 0 {
 		return "", connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("raw outputs and external inputs need a core or electrum wallet"),
+			errors.New("external inputs need a core or electrum wallet"),
 		)
+	}
+
+	opReturnHex, err := enforcerOpReturnHex(req)
+	if err != nil {
+		return "", connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	var feeRate *enforcerpb.SendTransactionRequest_FeeRate
@@ -241,9 +279,9 @@ func (p *EnforcerBackend) Send(ctx context.Context, walletID string, req SendReq
 	}
 
 	var opReturn *commonv1.Hex
-	if req.OpReturnHex != "" {
+	if opReturnHex != "" {
 		opReturn = &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: req.OpReturnHex},
+			Hex: &wrapperspb.StringValue{Value: opReturnHex},
 		}
 	}
 
