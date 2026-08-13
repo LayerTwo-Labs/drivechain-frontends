@@ -53,6 +53,27 @@ func (h *WalletHandler) CreateDeposit(
 	}
 
 	treasurySats := oldTreasurySats + req.Msg.AmountSats
+
+	// The enforcer wallet takes no raw outputs, but it builds the whole M5
+	// itself from the slot and the destination.
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	if backend, ok := h.engine.DepositBackendFor(walletID); ok {
+		txid, err := backend.CreateDeposit(ctx, slot, req.Msg.Destination, req.Msg.AmountSats, req.Msg.FeeSats)
+		if err != nil {
+			return nil, rpcError(err)
+		}
+		return connect.NewResponse(&wpb.CreateDepositResponse{
+			Txid:         txid,
+			TreasurySats: treasurySats,
+		}), nil
+	}
+
 	send, err := h.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
 		WalletId:       req.Msg.WalletId,
 		RawOutputs:     []*wpb.RawOutput{{ValueSats: treasurySats, ScriptHex: treasuryHex}},
