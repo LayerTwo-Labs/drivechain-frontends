@@ -178,7 +178,6 @@ class _FundingWallet extends StatelessWidget {
               child: WalletPicker(
                 selectedWalletId: viewModel.fundingWalletId,
                 onChanged: viewModel.setFundingWallet,
-                rawOutputs: true,
               ),
             ),
             SailText.secondary13(

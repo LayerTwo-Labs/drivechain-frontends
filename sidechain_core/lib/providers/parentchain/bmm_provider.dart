@@ -64,8 +64,8 @@ class BMMProvider extends ChangeNotifier {
   bool get boundsPushPending => _boundsPush?.isActive ?? false;
 
   /// Wallet every bid spends from. Selecting it never changes the active
-  /// wallet. A bid goes out as a raw M8 output, which the enforcer rejects.
-  String? get fundingWalletId => _walletReader?.resolveFundingWalletId(_selectedWalletId, rawOutputs: true);
+  /// wallet.
+  String? get fundingWalletId => _walletReader?.resolveFundingWalletId(_selectedWalletId);
 
   void setFundingWalletId(String walletId) {
     _selectedWalletId = walletId;

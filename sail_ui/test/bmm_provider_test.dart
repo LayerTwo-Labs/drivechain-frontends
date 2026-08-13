@@ -68,8 +68,14 @@ class _FakeSidechainRPC implements SidechainRPC {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-WalletData _wallet(String id, String name, {BinaryType type = BinaryType.BINARY_TYPE_BITCOIND}) {
+WalletData _wallet(
+  String id,
+  String name, {
+  BinaryType type = BinaryType.BINARY_TYPE_BITCOIND,
+  bool watchOnly = false,
+}) {
   return WalletData(
+    isWatchOnly: watchOnly,
     version: 1,
     master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: ''),
     l1: L1Wallet(mnemonic: ''),
@@ -158,29 +164,29 @@ void main() {
     expect(provider.fundingBalanceTooLow, isFalse);
   });
 
-  // A bid goes out as a raw M8 output, which the enforcer wallet service
-  // rejects. Its own BMM endpoint is a path this code does not drive.
-  test('the picker skips an enforcer wallet', () async {
+  // The enforcer takes the M8 as an OP_RETURN payload, so it funds a bid like
+  // any other wallet.
+  test('the picker offers an enforcer wallet', () async {
     final walletReader = WalletReaderProvider(Directory.systemTemp)
       ..wallets = [
         _wallet('enforcer-1', 'Enforcer', type: BinaryType.BINARY_TYPE_ENFORCER),
         _wallet('core-1', 'Savings'),
       ]
-      ..activeWalletId = 'enforcer-1';
+      ..activeWalletId = 'core-1';
     final provider = newProvider(walletReader: walletReader);
 
     expect(provider.fundingWalletId, 'core-1');
 
     provider.setFundingWalletId('enforcer-1');
-    expect(provider.fundingWalletId, 'core-1');
+    expect(provider.fundingWalletId, 'enforcer-1');
   });
 
   // An empty wallet id falls back to the active wallet in the backend, so a
   // bid with no funding wallet must not be sent at all.
   test('bidding stops when no wallet can fund it', () async {
     final walletReader = WalletReaderProvider(Directory.systemTemp)
-      ..wallets = [_wallet('enforcer-1', 'Enforcer', type: BinaryType.BINARY_TYPE_ENFORCER)]
-      ..activeWalletId = 'enforcer-1';
+      ..wallets = [_wallet('watch-1', 'Watcher', watchOnly: true)]
+      ..activeWalletId = 'watch-1';
     final provider = newProvider(walletReader: walletReader);
 
     await provider.startBidding();
