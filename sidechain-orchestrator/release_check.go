@@ -23,9 +23,6 @@ type ReleaseCheck struct {
 	Remote time.Time
 	// Local is the mtime of the binary on disk, zero when not downloaded.
 	Local time.Time
-	// Source names the download the probe read. Every Core variant writes to
-	// the same binary path, so the download key is what separates them.
-	Source string
 }
 
 // UpdateAvailable reports whether the published download is newer than the
@@ -35,18 +32,20 @@ func (c ReleaseCheck) UpdateAvailable() bool {
 	return !c.Remote.IsZero() && !c.Local.IsZero() && c.Remote.After(c.Local)
 }
 
-// ReleaseChecker tracks whether a newer build of each binary is published.
+// ReleaseChecker tracks when each published binary was last built.
 //
 // The published archives keep a fixed "latest" name, so only the server's
 // Last-Modified separates one release from the next. Probes run on a timer and
 // land in a cache, because status is read far more often than releases ship.
+// Only the remote side is cached: the local mtime is a stat, and a stale one
+// would offer an update for a binary that was replaced seconds ago.
 type ReleaseChecker struct {
 	client    *http.Client
 	log       zerolog.Logger
 	downloads *DownloadManager
 
 	mu     sync.RWMutex
-	checks map[string]ReleaseCheck
+	remote map[string]time.Time
 }
 
 // NewReleaseChecker reads every download through the manager, so a Core
@@ -57,7 +56,7 @@ func NewReleaseChecker(downloads *DownloadManager, log zerolog.Logger) *ReleaseC
 		client:    &http.Client{Timeout: releaseCheckTimeout},
 		log:       log,
 		downloads: downloads,
-		checks:    make(map[string]ReleaseCheck),
+		remote:    make(map[string]time.Time),
 	}
 }
 
@@ -74,20 +73,37 @@ func (o *Orchestrator) StartReleaseChecks(ctx context.Context) {
 	go o.releases.Run(ctx, func() []BinaryConfig { return lo.Values(o.Configs()) }, o.CurrentNetwork)
 }
 
-// Check returns the cached result for a binary. ok is false until a probe runs,
-// and false when the cached probe describes a different file: a Core variant or
-// test sidechain change resolves another path, and the previous target's
-// timestamps say nothing about the new one.
-func (r *ReleaseChecker) Check(config BinaryConfig, network string) (ReleaseCheck, bool) {
-	target := r.downloads.ResolveTarget(config, network, DownloadOptions{})
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	check, ok := r.checks[config.Name]
-	if !ok || check.Source != target.InFlightKey {
+// Check compares the published build against the binary at binPath. ok is
+// false until a probe covers that path: a test sidechain build and the prod
+// backend are two downloads of one binary, and the other one's timestamp says
+// nothing about this file.
+func (r *ReleaseChecker) Check(config BinaryConfig, network, binPath string) (ReleaseCheck, bool) {
+	target, ok := lo.Find(r.targets(config, network), func(t DownloadTarget) bool {
+		return t.BinPath == binPath
+	})
+	if !ok {
 		return ReleaseCheck{}, false
 	}
-	return check, true
+
+	r.mu.RLock()
+	remote, ok := r.remote[target.InFlightKey]
+	r.mu.RUnlock()
+	if !ok {
+		return ReleaseCheck{}, false
+	}
+	return ReleaseCheck{Remote: remote, Local: localModTime(binPath)}, true
+}
+
+// targets lists every download that writes a binary for this config. A layer-2
+// binary with the test build enabled has two: the test build the launcher picks
+// and the prod backend a sidechain app runs.
+func (r *ReleaseChecker) targets(config BinaryConfig, network string) []DownloadTarget {
+	targets := []DownloadTarget{r.downloads.ResolveTarget(config, network, DownloadOptions{})}
+	backend := r.downloads.ResolveTarget(config, network, DownloadOptions{ForceBackend: true})
+	if backend.InFlightKey != targets[0].InFlightKey {
+		targets = append(targets, backend)
+	}
+	return targets
 }
 
 // Run probes every binary at once, then again on each tick, until ctx ends.
@@ -121,30 +137,23 @@ func (r *ReleaseChecker) Run(ctx context.Context, configs func() []BinaryConfig,
 	}
 }
 
-// Refresh probes one binary and stores the result. Call it after a download so
-// the update button clears at once instead of at the next tick.
+// Refresh probes every download of one binary and stores the published times.
 func (r *ReleaseChecker) Refresh(ctx context.Context, config BinaryConfig, network string) {
-	target := r.downloads.ResolveTarget(config, network, DownloadOptions{})
-
-	var check ReleaseCheck
-	remote, err := r.remoteTime(ctx, target)
-	if err != nil {
-		// A probe that fails leaves the binary with no remote time, which reads
-		// as "no update". Keep the local time so the reason stays visible.
-		r.log.Debug().Err(err).Str("binary", config.Name).Msg("release check failed")
-	} else {
-		check.Remote = remote
+	for _, target := range r.targets(config, network) {
+		remote, err := r.remoteTime(ctx, target)
+		if err != nil {
+			// A probe that fails leaves the binary with no remote time, which
+			// reads as "no update".
+			r.log.Debug().Err(err).Str("binary", config.Name).Msg("release check failed")
+			r.mu.Lock()
+			delete(r.remote, target.InFlightKey)
+			r.mu.Unlock()
+			continue
+		}
+		r.mu.Lock()
+		r.remote[target.InFlightKey] = remote
+		r.mu.Unlock()
 	}
-
-	// Read the mtime after the probe. A download that lands during the probe
-	// would otherwise let this write restore the pre-download time, and the
-	// update button would come back until the next tick.
-	check.Local = localModTime(target.BinPath)
-	check.Source = target.InFlightKey
-
-	r.mu.Lock()
-	r.checks[config.Name] = check
-	r.mu.Unlock()
 }
 
 // localModTime is the mtime of the binary on disk, zero when it is not there.

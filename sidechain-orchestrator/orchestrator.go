@@ -547,33 +547,7 @@ func (o *Orchestrator) Download(ctx context.Context, name string, force bool, op
 	if err != nil {
 		return nil, err
 	}
-	ch, err := o.download.DownloadWithOptions(ctx, config, o.Network, force, opts)
-	if err != nil {
-		return nil, err
-	}
-	return o.refreshReleaseWhenDone(ctx, config, ch), nil
-}
-
-// refreshReleaseWhenDone re-probes a binary once its download ends. The cached
-// check holds the old file's timestamp, and a ten minute wait would offer the
-// same update again.
-func (o *Orchestrator) refreshReleaseWhenDone(ctx context.Context, config BinaryConfig, in <-chan DownloadProgress) <-chan DownloadProgress {
-	if o.releases == nil {
-		return in
-	}
-	out := make(chan DownloadProgress, cap(in))
-	go func() {
-		defer close(out)
-		for p := range in {
-			select {
-			case out <- p:
-			case <-ctx.Done():
-				return
-			}
-		}
-		o.releases.Refresh(context.WithoutCancel(ctx), config, o.CurrentNetwork())
-	}()
-	return out
+	return o.download.DownloadWithOptions(ctx, config, o.Network, force, opts)
 }
 
 // Start starts a binary with the given args and env.
@@ -664,6 +638,13 @@ func (o *Orchestrator) stopSidechainGUI(ctx context.Context, name string, force 
 
 // Status returns the current status of a binary.
 func (o *Orchestrator) Status(name string) BinaryStatus {
+	return o.StatusWithOptions(name, DownloadOptions{})
+}
+
+// StatusWithOptions returns the current status of a binary. ForceBackend skips
+// the test sidechain resolver, so a sidechain app reports the daemon it runs
+// instead of the test build BitWindow launches.
+func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) BinaryStatus {
 	config, err := o.getConfig(name)
 	if err != nil {
 		return BinaryStatus{Name: name, Error: err.Error()}
@@ -676,7 +657,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 			binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 		}
 	}
-	if o.process.SidechainVariant != nil {
+	if o.process.SidechainVariant != nil && !opts.ForceBackend {
 		if sv, ok := o.process.SidechainVariant(config); ok {
 			binPath = TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
 		}
@@ -702,7 +683,7 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 	}
 
 	if o.releases != nil {
-		if check, ok := o.releases.Check(config, o.CurrentNetwork()); ok {
+		if check, ok := o.releases.Check(config, o.CurrentNetwork(), binPath); ok {
 			status.UpdateAvailable = check.UpdateAvailable()
 			status.RemoteTimestamp = check.Remote
 			status.LocalTimestamp = check.Local
@@ -744,6 +725,12 @@ func (o *Orchestrator) Status(name string) BinaryStatus {
 // ListAll returns the status of every configured binary,
 // sorted by chain layer (L1 first) then name.
 func (o *Orchestrator) ListAll() []BinaryStatus {
+	return o.ListAllWithOptions(DownloadOptions{})
+}
+
+// ListAllWithOptions is ListAll with the force-backend lever of
+// StatusWithOptions.
+func (o *Orchestrator) ListAllWithOptions(opts DownloadOptions) []BinaryStatus {
 	// Snapshot names and release before Status: it re-acquires o.mu via
 	// getConfig, and a queued writer would deadlock the nested read lock.
 	o.mu.RLock()
@@ -755,7 +742,7 @@ func (o *Orchestrator) ListAll() []BinaryStatus {
 
 	statuses := make([]BinaryStatus, 0, len(names))
 	for _, name := range names {
-		statuses = append(statuses, o.Status(name))
+		statuses = append(statuses, o.StatusWithOptions(name, opts))
 	}
 	sort.Slice(statuses, func(i, j int) bool {
 		if statuses[i].ChainLayer != statuses[j].ChainLayer {

@@ -15,27 +15,27 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'thunder_conf.pb.dart' as $9;
+import 'thunder_conf.pb.dart' as $10;
 import 'thunder_conf.pbjson.dart';
 
 export 'thunder_conf.pb.dart';
 
 abstract class ThunderConfServiceBase extends $pb.GeneratedService {
-  $async.Future<$9.GetThunderConfigResponse> getThunderConfig(
-      $pb.ServerContext ctx, $9.GetThunderConfigRequest request);
-  $async.Future<$9.WriteThunderConfigResponse> writeThunderConfig(
-      $pb.ServerContext ctx, $9.WriteThunderConfigRequest request);
-  $async.Future<$9.SyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf(
-      $pb.ServerContext ctx, $9.SyncNetworkFromBitcoinConfRequest request);
+  $async.Future<$10.GetThunderConfigResponse> getThunderConfig(
+      $pb.ServerContext ctx, $10.GetThunderConfigRequest request);
+  $async.Future<$10.WriteThunderConfigResponse> writeThunderConfig(
+      $pb.ServerContext ctx, $10.WriteThunderConfigRequest request);
+  $async.Future<$10.SyncNetworkFromBitcoinConfResponse> syncNetworkFromBitcoinConf(
+      $pb.ServerContext ctx, $10.SyncNetworkFromBitcoinConfRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'GetThunderConfig':
-        return $9.GetThunderConfigRequest();
+        return $10.GetThunderConfigRequest();
       case 'WriteThunderConfig':
-        return $9.WriteThunderConfigRequest();
+        return $10.WriteThunderConfigRequest();
       case 'SyncNetworkFromBitcoinConf':
-        return $9.SyncNetworkFromBitcoinConfRequest();
+        return $10.SyncNetworkFromBitcoinConfRequest();
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -45,11 +45,11 @@ abstract class ThunderConfServiceBase extends $pb.GeneratedService {
       $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'GetThunderConfig':
-        return this.getThunderConfig(ctx, request as $9.GetThunderConfigRequest);
+        return this.getThunderConfig(ctx, request as $10.GetThunderConfigRequest);
       case 'WriteThunderConfig':
-        return this.writeThunderConfig(ctx, request as $9.WriteThunderConfigRequest);
+        return this.writeThunderConfig(ctx, request as $10.WriteThunderConfigRequest);
       case 'SyncNetworkFromBitcoinConf':
-        return this.syncNetworkFromBitcoinConf(ctx, request as $9.SyncNetworkFromBitcoinConfRequest);
+        return this.syncNetworkFromBitcoinConf(ctx, request as $10.SyncNetworkFromBitcoinConfRequest);
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }

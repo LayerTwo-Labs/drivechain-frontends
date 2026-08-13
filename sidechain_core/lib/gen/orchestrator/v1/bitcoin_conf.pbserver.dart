@@ -15,35 +15,35 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'bitcoin_conf.pb.dart' as $6;
+import 'bitcoin_conf.pb.dart' as $7;
 import 'bitcoin_conf.pbjson.dart';
 
 export 'bitcoin_conf.pb.dart';
 
 abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
-  $async.Future<$6.GetBitcoinConfigResponse> getBitcoinConfig(
-      $pb.ServerContext ctx, $6.GetBitcoinConfigRequest request);
-  $async.Future<$6.NetworkChangePlan> prepareNetworkChange(
-      $pb.ServerContext ctx, $6.PrepareNetworkChangeRequest request);
-  $async.Future<$6.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
-      $pb.ServerContext ctx, $6.SetBitcoinConfigNetworkRequest request);
-  $async.Future<$6.SetBitcoinConfigDataDirResponse> setBitcoinConfigDataDir(
-      $pb.ServerContext ctx, $6.SetBitcoinConfigDataDirRequest request);
-  $async.Future<$6.WriteBitcoinConfigResponse> writeBitcoinConfig(
-      $pb.ServerContext ctx, $6.WriteBitcoinConfigRequest request);
+  $async.Future<$7.GetBitcoinConfigResponse> getBitcoinConfig(
+      $pb.ServerContext ctx, $7.GetBitcoinConfigRequest request);
+  $async.Future<$7.NetworkChangePlan> prepareNetworkChange(
+      $pb.ServerContext ctx, $7.PrepareNetworkChangeRequest request);
+  $async.Future<$7.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
+      $pb.ServerContext ctx, $7.SetBitcoinConfigNetworkRequest request);
+  $async.Future<$7.SetBitcoinConfigDataDirResponse> setBitcoinConfigDataDir(
+      $pb.ServerContext ctx, $7.SetBitcoinConfigDataDirRequest request);
+  $async.Future<$7.WriteBitcoinConfigResponse> writeBitcoinConfig(
+      $pb.ServerContext ctx, $7.WriteBitcoinConfigRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'GetBitcoinConfig':
-        return $6.GetBitcoinConfigRequest();
+        return $7.GetBitcoinConfigRequest();
       case 'PrepareNetworkChange':
-        return $6.PrepareNetworkChangeRequest();
+        return $7.PrepareNetworkChangeRequest();
       case 'SetBitcoinConfigNetwork':
-        return $6.SetBitcoinConfigNetworkRequest();
+        return $7.SetBitcoinConfigNetworkRequest();
       case 'SetBitcoinConfigDataDir':
-        return $6.SetBitcoinConfigDataDirRequest();
+        return $7.SetBitcoinConfigDataDirRequest();
       case 'WriteBitcoinConfig':
-        return $6.WriteBitcoinConfigRequest();
+        return $7.WriteBitcoinConfigRequest();
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -53,15 +53,15 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
       $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'GetBitcoinConfig':
-        return this.getBitcoinConfig(ctx, request as $6.GetBitcoinConfigRequest);
+        return this.getBitcoinConfig(ctx, request as $7.GetBitcoinConfigRequest);
       case 'PrepareNetworkChange':
-        return this.prepareNetworkChange(ctx, request as $6.PrepareNetworkChangeRequest);
+        return this.prepareNetworkChange(ctx, request as $7.PrepareNetworkChangeRequest);
       case 'SetBitcoinConfigNetwork':
-        return this.setBitcoinConfigNetwork(ctx, request as $6.SetBitcoinConfigNetworkRequest);
+        return this.setBitcoinConfigNetwork(ctx, request as $7.SetBitcoinConfigNetworkRequest);
       case 'SetBitcoinConfigDataDir':
-        return this.setBitcoinConfigDataDir(ctx, request as $6.SetBitcoinConfigDataDirRequest);
+        return this.setBitcoinConfigDataDir(ctx, request as $7.SetBitcoinConfigDataDirRequest);
       case 'WriteBitcoinConfig':
-        return this.writeBitcoinConfig(ctx, request as $6.WriteBitcoinConfigRequest);
+        return this.writeBitcoinConfig(ctx, request as $7.WriteBitcoinConfigRequest);
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
