@@ -170,15 +170,20 @@ class BackendStateProvider extends ChangeNotifier {
     final reported = status.binaryPath;
     final next = reported.isEmpty ? null : File(reported);
 
+    final remote = _timeOrNull(status.remoteTimestampUnix.toInt());
+    final downloaded = _timeOrNull(status.downloadedTimestampUnix.toInt());
+
     final binaryProvider = GetIt.I.get<BinaryProvider>();
     binaryProvider.updateBinary(type, (b) {
-      if (b.metadata.binaryPath?.path == next?.path) {
+      if (b.metadata.binaryPath?.path == next?.path &&
+          b.metadata.remoteTimestamp == remote &&
+          b.metadata.downloadedTimestamp == downloaded) {
         return b;
       }
       return b.copyWith(
         metadata: b.metadata.copyWith(
-          remoteTimestamp: b.metadata.remoteTimestamp,
-          downloadedTimestamp: b.metadata.downloadedTimestamp,
+          remoteTimestamp: remote,
+          downloadedTimestamp: downloaded,
           binaryPath: next,
           updateable: b.metadata.updateable,
         ),
@@ -240,3 +245,6 @@ class BackendStateProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// The orchestrator sends 0 for a timestamp it does not know.
+DateTime? _timeOrNull(int unix) => unix == 0 ? null : DateTime.fromMillisecondsSinceEpoch(unix * 1000, isUtc: true);
