@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -933,6 +934,8 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	)
 }
 
+var errEnforcerWalletRequired = errors.New("you must set your enforcer wallet as active to use sidechains")
+
 // pointSidechainAtRemoteMainchain rewires a ChainLayer-2 target to a hosted
 // orchestrator's CUSF mainchain service when the active wallet is electrum,
 // which runs no local enforcer. The --mainchain-grpc-url CLI flag overrides the
@@ -941,9 +944,9 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 // Returns false — boot already failed on ch — when the sidechain has no remote
 // mainchain to reach, so we never launch a daemon that cannot work.
 func (o *Orchestrator) pointSidechainAtRemoteMainchain(cfg BinaryConfig, opts *StartOpts, ch chan<- StartupProgress) bool {
-	fail := func(msg string) bool {
+	fail := func() bool {
 		mon := o.getOrCreateMonitor(cfg.Name, NewHealthChecker(cfg), nil)
-		failBoot(mon, ch, "start "+cfg.Name, fmt.Errorf("%s", msg))
+		failBoot(mon, ch, "start "+cfg.Name, errEnforcerWalletRequired)
 		return false
 	}
 
@@ -951,12 +954,12 @@ func (o *Orchestrator) pointSidechainAtRemoteMainchain(cfg BinaryConfig, opts *S
 	// have no way to reach a remote enforcer.
 	scm := o.SidechainConfs[cfg.Name]
 	if scm == nil || scm.Spec.PortStyle != "grpc" {
-		return fail(fmt.Sprintf("%s needs a local enforcer and cannot run with an electrum wallet", cfg.DisplayName))
+		return fail()
 	}
 
 	remote := config.RemoteOrchestratorURLForNetwork(config.Network(o.Network))
 	if remote == "" {
-		return fail(fmt.Sprintf("no hosted orchestrator for %s; cannot run %s with an electrum wallet", o.Network, cfg.DisplayName))
+		return fail()
 	}
 
 	opts.TargetArgs = append(opts.TargetArgs, "--mainchain-grpc-url="+remote)
