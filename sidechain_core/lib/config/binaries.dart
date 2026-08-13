@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:ffi' show Abi;
 import 'dart:io';
 
@@ -7,7 +6,6 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sidechain_core/sidechain_core.dart';
@@ -278,112 +276,6 @@ abstract class Binary {
     return paths;
   }
 
-  /// Check the Last-Modified header for a binary without downloading
-  Future<DateTime?> _checkReleaseDate() async {
-    try {
-      // Handle GitHub API URLs differently
-      final network = GetIt.I.get<BitcoinConfProvider>().network;
-      if (metadata.downloadConfig.baseUrl(network).contains('github.com')) {
-        return await _checkGithubReleaseDate();
-      } else {
-        return await _checkDirectReleaseDate();
-      }
-    } catch (e) {
-      log.w('Warning: Failed to check release date for $name: $e');
-      return null;
-    }
-  }
-
-  Future<DateTime?> _checkGithubReleaseDate() async {
-    final url = metadata.downloadConfig.baseUrl(
-      GetIt.I.get<BitcoinConfProvider>().network,
-    );
-
-    // Check cache first
-    final cached = _GitHubCache.get(url);
-    if (cached != null) {
-      return cached;
-    }
-
-    try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'User-Agent': 'Drivechain-Frontends',
-          'Accept': 'application/vnd.github.v3+json',
-        },
-      );
-
-      if (response.statusCode == 403) {
-        _GitHubCache.set(url, null); // Cache the failure too
-        return null;
-      }
-
-      if (response.statusCode != 200) {
-        _GitHubCache.set(url, null);
-        return null;
-      }
-
-      final publishedAt = json.decode(response.body)['published_at'] as String?;
-
-      if (publishedAt == null) {
-        log.d('No published_at field in GitHub release for $name');
-        _GitHubCache.set(url, null);
-        return null;
-      }
-
-      final releaseDate = DateTime.parse(publishedAt);
-      _GitHubCache.set(url, releaseDate); // Cache the result
-      return releaseDate;
-    } catch (e) {
-      log.d(
-        'Could not check GitHub release date for $name: ${e.toString().split('\n').first}',
-      );
-      _GitHubCache.set(url, null); // Cache the failure
-      return null;
-    }
-  }
-
-  Future<DateTime?> _checkDirectReleaseDate() async {
-    try {
-      final os = getOS();
-      final fileName = metadata.downloadConfig.files[GetIt.I.get<BitcoinConfProvider>().network]?[os];
-      final baseUrl = metadata.downloadConfig.baseUrl(
-        GetIt.I.get<BitcoinConfProvider>().network,
-      );
-      if (fileName == null || fileName.isEmpty || baseUrl.isEmpty) {
-        return null;
-      }
-
-      final downloadUrl = Uri.parse(baseUrl).resolve(fileName).toString();
-      final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
-      try {
-        final request = await client.headUrl(Uri.parse(downloadUrl));
-        final response = await request.close().timeout(const Duration(seconds: 5));
-
-        if (response.statusCode != 200) {
-          log.w(
-            'Warning: Could not check release date for $name: HTTP ${response.statusCode}',
-          );
-          return null;
-        }
-
-        final lastModified = response.headers.value('last-modified');
-        if (lastModified == null) {
-          log.w('Warning: No Last-Modified header for $name');
-          return null;
-        }
-
-        return HttpDate.parse(lastModified);
-      } finally {
-        client.close(force: true);
-      }
-    } catch (e) {
-      log.w('Warning: Failed to check direct release date for $name: $e');
-      return null;
-    }
-  }
-
   void _log(String message) {
     log.i('Binary: $message');
   }
@@ -422,37 +314,6 @@ abstract class Binary {
 
     extraBootArgs = List<String>.from(extraBootArgs)..add(arg);
   }
-}
-
-// Global cache for GitHub API responses (1 minute TTL)
-class _GitHubCache {
-  static final Map<String, _CacheEntry> _cache = {};
-
-  static DateTime? get(String url) {
-    final entry = _cache[url];
-    if (entry == null) {
-      return null;
-    }
-
-    // Check if cache entry is still valid (1 minute TTL)
-    if (DateTime.now().difference(entry.timestamp).inMinutes >= 1) {
-      _cache.remove(url);
-      return null;
-    }
-
-    return entry.releaseDate;
-  }
-
-  static void set(String url, DateTime? releaseDate) {
-    _cache[url] = _CacheEntry(releaseDate, DateTime.now());
-  }
-}
-
-class _CacheEntry {
-  final DateTime? releaseDate;
-  final DateTime timestamp;
-
-  _CacheEntry(this.releaseDate, this.timestamp);
 }
 
 class BitcoinCore extends Binary {
@@ -1444,10 +1305,9 @@ extension BinaryDownload on Binary {
   Future<Binary> updateMetadata(Directory appDir) async {
     try {
       final updatedLocal = await updateLocalMetadata(appDir);
-      final updatedReleaseDate = await updateReleaseDate(appDir);
       return copyWith(
         metadata: metadata.copyWith(
-          remoteTimestamp: updatedReleaseDate.metadata.remoteTimestamp,
+          remoteTimestamp: metadata.remoteTimestamp,
           downloadedTimestamp: updatedLocal.metadata.downloadedTimestamp,
           binaryPath: updatedLocal.metadata.binaryPath,
           updateable: updatedLocal.metadata.updateable,
@@ -1478,31 +1338,6 @@ extension BinaryDownload on Binary {
     } catch (e) {
       // Log error and return unchanged binary
       log.e('Error updating metadata for $name: $e');
-      return this;
-    }
-  }
-
-  /// Update metadata with current binary information
-  Future<Binary> updateReleaseDate(Directory appDir) async {
-    try {
-      DateTime? serverReleaseDate;
-      try {
-        serverReleaseDate = await _checkReleaseDate();
-      } catch (e) {
-        log.e('could not check release date: $e');
-      }
-
-      final updatedConfig = metadata.copyWith(
-        remoteTimestamp: serverReleaseDate,
-        downloadedTimestamp: metadata.downloadedTimestamp,
-        binaryPath: metadata.binaryPath,
-        updateable: metadata.updateable,
-      );
-
-      return copyWith(metadata: updatedConfig);
-    } catch (e) {
-      // Log error and return unchanged binary
-      log.e('Error updating release date for $name: $e');
       return this;
     }
   }

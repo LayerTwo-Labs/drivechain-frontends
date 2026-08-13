@@ -44,6 +44,9 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $core.String? repoUrl,
     $core.Iterable<StartupLogEntryMsg>? startupLogs,
     $core.String? binaryPath,
+    $core.bool? updateAvailable,
+    $fixnum.Int64? remoteTimestampUnix,
+    $fixnum.Int64? downloadedTimestampUnix,
   }) {
     final $result = create();
     if (name != null) {
@@ -115,6 +118,15 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (binaryPath != null) {
       $result.binaryPath = binaryPath;
     }
+    if (updateAvailable != null) {
+      $result.updateAvailable = updateAvailable;
+    }
+    if (remoteTimestampUnix != null) {
+      $result.remoteTimestampUnix = remoteTimestampUnix;
+    }
+    if (downloadedTimestampUnix != null) {
+      $result.downloadedTimestampUnix = downloadedTimestampUnix;
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -150,6 +162,9 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..pc<StartupLogEntryMsg>(22, _omitFieldNames ? '' : 'startupLogs', $pb.PbFieldType.PM,
         subBuilder: StartupLogEntryMsg.create)
     ..aOS(23, _omitFieldNames ? '' : 'binaryPath')
+    ..aOB(24, _omitFieldNames ? '' : 'updateAvailable')
+    ..aInt64(25, _omitFieldNames ? '' : 'remoteTimestampUnix')
+    ..aInt64(26, _omitFieldNames ? '' : 'downloadedTimestampUnix')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -442,6 +457,46 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasBinaryPath() => $_has(22);
   @$pb.TagNumber(23)
   void clearBinaryPath() => clearField(23);
+
+  /// A newer build is published than the one on disk. False while either side
+  /// is unknown, so a failed check never claims an update.
+  @$pb.TagNumber(24)
+  $core.bool get updateAvailable => $_getBF(23);
+  @$pb.TagNumber(24)
+  set updateAvailable($core.bool v) {
+    $_setBool(23, v);
+  }
+
+  @$pb.TagNumber(24)
+  $core.bool hasUpdateAvailable() => $_has(23);
+  @$pb.TagNumber(24)
+  void clearUpdateAvailable() => clearField(24);
+
+  /// Last-Modified of the published download, 0 when unknown.
+  @$pb.TagNumber(25)
+  $fixnum.Int64 get remoteTimestampUnix => $_getI64(24);
+  @$pb.TagNumber(25)
+  set remoteTimestampUnix($fixnum.Int64 v) {
+    $_setInt64(24, v);
+  }
+
+  @$pb.TagNumber(25)
+  $core.bool hasRemoteTimestampUnix() => $_has(24);
+  @$pb.TagNumber(25)
+  void clearRemoteTimestampUnix() => clearField(25);
+
+  /// Modification time of the binary on disk, 0 when not downloaded.
+  @$pb.TagNumber(26)
+  $fixnum.Int64 get downloadedTimestampUnix => $_getI64(25);
+  @$pb.TagNumber(26)
+  set downloadedTimestampUnix($fixnum.Int64 v) {
+    $_setInt64(25, v);
+  }
+
+  @$pb.TagNumber(26)
+  $core.bool hasDownloadedTimestampUnix() => $_has(25);
+  @$pb.TagNumber(26)
+  void clearDownloadedTimestampUnix() => clearField(26);
 }
 
 class StartupLogEntryMsg extends $pb.GeneratedMessage {
