@@ -52,6 +52,9 @@ type BmmBackend interface {
 	// Commitment reports the sidechain block hash a mainchain block committed
 	// to for this sidechain, empty when it carried none.
 	Commitment(ctx context.Context, sidechain pb.BinaryType, mainBlockHash string) (string, error)
+	// BlockAfter names the mainchain block following prevMainHash on the chain
+	// ending at tipHash, empty when the walk never reaches it.
+	BlockAfter(ctx context.Context, prevMainHash, tipHash string) (string, error)
 }
 
 // MainchainTip reports the mainchain tip the enforcer has validated.
@@ -259,7 +262,9 @@ func (e *BmmEngine) resumeUnconnected() {
 	defer e.mu.Unlock()
 	for i := range rounds {
 		round := rounds[i]
-		if round.Result != ResultWon {
+		// Open rounds are the ones the engine could not decide before it stopped;
+		// both they and won rounds may still hold a block already paid for.
+		if round.Result != ResultWon && round.Result != ResultOpen {
 			continue
 		}
 		live := liveBid(&round)
@@ -301,7 +306,7 @@ func (e *BmmEngine) tick(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
-		e.retryConnects(ctx, sidechain)
+		e.retryConnects(ctx, sidechain, tip, height)
 		if _, bidding := targets[sidechain]; bidding {
 			continue
 		}
@@ -571,36 +576,12 @@ func (e *BmmEngine) settleRound(ctx context.Context, sidechain pb.BinaryType, ne
 	}
 
 	live := liveBid(round)
-	if live != nil {
-		resp, err := e.backend.ConnectBid(ctx, connect.NewRequest(&bmmpb.ConnectBidRequest{
-			Sidechain:    sidechain,
-			CriticalHash: live.CriticalHash,
-			BlockJson:    live.BlockJSON,
-		}))
-		switch {
-		case err != nil:
-			e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("connect bid")
-		case resp.Msg.Connected:
-			live.State = BidConnected
-			round.Result = ResultWon
-			round.WinnerCriticalHash = live.CriticalHash
-			round.WinnerTxid = live.Txid
-			round.WinnerBidSats = live.BidSats
-			round.IncludedInBlock = resp.Msg.MainBlockHash
-			round.IncludedInHeight = newHeight
-			e.save(round)
-			return
-		}
-	}
-
 	commitment, err := e.backend.Commitment(ctx, sidechain, newTip)
 	if err != nil && live != nil {
 		// Without the commitment we cannot tell a loss from a win, and calling
 		// it lost would stop us connecting a block we may have paid for.
 		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read bmm commitment")
-		e.mu.Lock()
-		e.unconnected[sidechain] = append(e.unconnected[sidechain], round)
-		e.mu.Unlock()
+		e.park(sidechain, round)
 		return
 	}
 
@@ -608,19 +589,34 @@ func (e *BmmEngine) settleRound(ctx context.Context, sidechain pb.BinaryType, ne
 	round.IncludedInHeight = newHeight
 	round.WinnerCriticalHash = commitment
 
-	// The miner took our bid, the sidechain just has not accepted it yet. The
-	// fee is already paid, so giving up now would forfeit the block.
 	if commitment != "" && live != nil && commitment == live.CriticalHash {
 		round.Result = ResultWon
 		round.WinnerTxid = live.Txid
 		round.WinnerBidSats = live.BidSats
-		e.mu.Lock()
-		e.unconnected[sidechain] = append(e.unconnected[sidechain], round)
-		e.mu.Unlock()
+		// The fee is already paid, so a sidechain that rejects the block now is
+		// worth retrying rather than forfeiting.
+		if !e.connectWon(ctx, sidechain, round) {
+			e.park(sidechain, round)
+		}
 		e.save(round)
 		return
 	}
 
+	// The tip ran past the block that decided this round, so its commitment says
+	// nothing about our bid: settle on the deciding block instead.
+	if live != nil && newHeight > round.PrevMainHeight+1 {
+		if !e.settleOutrunRound(ctx, sidechain, round, live, newTip, newHeight) {
+			e.park(sidechain, round)
+		}
+		return
+	}
+
+	e.markLost(round, live, commitment)
+}
+
+// markLost records a round another bidder took, naming the winner when their
+// bid was in our snapshot of the round.
+func (e *BmmEngine) markLost(round *bmmstate.Round, live *bmmstate.Bid, commitment string) {
 	round.Result = ResultLost
 	if live != nil {
 		live.State = BidMissed
@@ -635,9 +631,59 @@ func (e *BmmEngine) settleRound(ctx context.Context, sidechain pb.BinaryType, ne
 	e.save(round)
 }
 
+// settleOutrunRound decides a round whose deciding block the engine slept
+// through, by walking back from the tip to that block.
+func (e *BmmEngine) settleOutrunRound(
+	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round, live *bmmstate.Bid,
+	tip string, tipHeight int32,
+) bool {
+	decider := tip
+	if tipHeight != round.PrevMainHeight+1 {
+		found, err := e.backend.BlockAfter(ctx, round.PrevMainHash, tip)
+		if err != nil || found == "" {
+			e.log.Warn().Err(err).Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
+				Msg("cannot name the block that decided this round")
+			return false
+		}
+		decider = found
+	}
+
+	commitment, err := e.backend.Commitment(ctx, sidechain, decider)
+	if err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Str("main_block", decider).
+			Msg("read bmm commitment of the deciding block")
+		return false
+	}
+
+	round.IncludedInBlock = decider
+	round.IncludedInHeight = round.PrevMainHeight + 1
+	round.WinnerCriticalHash = commitment
+
+	if commitment != live.CriticalHash {
+		e.markLost(round, live, commitment)
+		return true
+	}
+
+	round.Result = ResultWon
+	round.WinnerTxid = live.Txid
+	round.WinnerBidSats = live.BidSats
+	connected := e.connectWon(ctx, sidechain, round)
+	e.save(round)
+	return connected
+}
+
+// park queues a round for the retry pass and records it, so a restart mid-wait
+// can resume a block already paid for.
+func (e *BmmEngine) park(sidechain pb.BinaryType, round *bmmstate.Round) {
+	e.mu.Lock()
+	e.unconnected[sidechain] = append(e.unconnected[sidechain], round)
+	e.mu.Unlock()
+	e.save(round)
+}
+
 // retryConnects re-attempts blocks a miner took that the sidechain has not
 // accepted yet.
-func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType) {
+func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType, tip string, tipHeight int32) {
 	e.mu.Lock()
 	pending := e.unconnected[sidechain]
 	e.unconnected[sidechain] = nil
@@ -649,34 +695,78 @@ func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType) 
 
 	var stillPending []*bmmstate.Round
 	for _, round := range pending {
-		live := liveBid(round)
-		if live == nil {
-			continue
-		}
-		resp, err := e.backend.ConnectBid(ctx, connect.NewRequest(&bmmpb.ConnectBidRequest{
-			Sidechain:    sidechain,
-			CriticalHash: live.CriticalHash,
-			BlockJson:    live.BlockJSON,
-		}))
-		if err == nil && resp.Msg.Connected {
-			live.State = BidConnected
-			round.Result = ResultWon
-			round.WinnerCriticalHash = live.CriticalHash
-			round.WinnerTxid = live.Txid
-			round.WinnerBidSats = live.BidSats
-			round.IncludedInBlock = resp.Msg.MainBlockHash
-			e.save(round)
+		if e.retryRound(ctx, sidechain, round, tip, tipHeight) {
 			continue
 		}
 		round.BlocksWaited++
 		if round.BlocksWaited < bmmConnectAttempts {
 			stillPending = append(stillPending, round)
+			continue
+		}
+		// No commitment ever said another bidder took it, so it stays open and a
+		// restart can pick it up again.
+		if round.Result == ResultOpen {
+			e.log.Warn().Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
+				Msg("giving up on deciding this round for now")
 		}
 	}
 
 	e.mu.Lock()
 	e.unconnected[sidechain] = append(e.unconnected[sidechain], stillPending...)
 	e.mu.Unlock()
+}
+
+// retryRound settles a round still waiting: one whose deciding block was never
+// named has to be decided first, the rest only have to connect.
+func (e *BmmEngine) retryRound(
+	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round, tip string, tipHeight int32,
+) bool {
+	if round.Result == ResultOpen {
+		live := liveBid(round)
+		if live == nil {
+			return true
+		}
+		return e.settleOutrunRound(ctx, sidechain, round, live, tip, tipHeight)
+	}
+	if !e.connectWon(ctx, sidechain, round) {
+		return false
+	}
+	e.save(round)
+	return true
+}
+
+// connectWon hands the won block to the sidechain, naming the mainchain block
+// that carries the commitment — the sidechain cannot name a block it never saw.
+func (e *BmmEngine) connectWon(ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round) bool {
+	live := liveBid(round)
+	if live == nil {
+		return false
+	}
+	resp, err := e.backend.ConnectBid(ctx, connect.NewRequest(&bmmpb.ConnectBidRequest{
+		Sidechain:     sidechain,
+		CriticalHash:  live.CriticalHash,
+		BlockJson:     live.BlockJSON,
+		MainBlockHash: round.IncludedInBlock,
+	}))
+	if err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
+			Str("critical_hash", live.CriticalHash).Msg("connect won block")
+		return false
+	}
+	if !resp.Msg.Connected {
+		e.log.Warn().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
+			Str("main_block", round.IncludedInBlock).Msg("sidechain refused the won block")
+		return false
+	}
+	live.State = BidConnected
+	round.Result = ResultWon
+	round.WinnerCriticalHash = live.CriticalHash
+	round.WinnerTxid = live.Txid
+	round.WinnerBidSats = live.BidSats
+	if resp.Msg.MainBlockHash != "" {
+		round.IncludedInBlock = resp.Msg.MainBlockHash
+	}
+	return true
 }
 
 func (e *BmmEngine) save(round *bmmstate.Round) {
