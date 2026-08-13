@@ -200,6 +200,7 @@ func run(cctx *cli.Context) error {
 	configPath := orchestrator.ConfigFilePath(bitwindowDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
 	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
+	orch.StartReleaseChecks(ctx)
 
 	// Local RPC auth (bitcoind-style cookie). When enabled, a fresh token is
 	// written once this process owns the listener (see WriteCookie below) — it

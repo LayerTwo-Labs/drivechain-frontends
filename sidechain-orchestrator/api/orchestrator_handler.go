@@ -889,30 +889,41 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		}
 	})
 
+	var remoteUnix, downloadedUnix int64
+	if !s.RemoteTimestamp.IsZero() {
+		remoteUnix = s.RemoteTimestamp.Unix()
+	}
+	if !s.LocalTimestamp.IsZero() {
+		downloadedUnix = s.LocalTimestamp.Unix()
+	}
+
 	return &pb.BinaryStatusMsg{
-		Name:            s.Name,
-		DisplayName:     s.DisplayName,
-		Running:         s.Running,
-		Healthy:         s.Healthy,
-		Pid:             int32(s.Pid),
-		UptimeSeconds:   int64(s.Uptime.Seconds()),
-		ChainLayer:      int32(s.ChainLayer),
-		Port:            int32(s.Port),
-		Error:           s.Error,
-		Connected:       s.Connected,
-		StartupError:    s.StartupError,
-		ConnectionError: s.ConnectionError,
-		Stopping:        s.Stopping,
-		Initializing:    s.Initializing,
-		ConnectModeOnly: s.ConnectModeOnly,
-		Downloadable:    s.Downloadable,
-		Description:     s.Description,
-		Downloaded:      s.Downloaded,
-		BinaryPath:      s.BinaryPath,
-		PortInUse:       s.PortInUse,
-		Version:         s.Version,
-		RepoUrl:         s.RepoURL,
-		StartupLogs:     startupLogs,
+		UpdateAvailable:         s.UpdateAvailable,
+		RemoteTimestampUnix:     remoteUnix,
+		DownloadedTimestampUnix: downloadedUnix,
+		Name:                    s.Name,
+		DisplayName:             s.DisplayName,
+		Running:                 s.Running,
+		Healthy:                 s.Healthy,
+		Pid:                     int32(s.Pid),
+		UptimeSeconds:           int64(s.Uptime.Seconds()),
+		ChainLayer:              int32(s.ChainLayer),
+		Port:                    int32(s.Port),
+		Error:                   s.Error,
+		Connected:               s.Connected,
+		StartupError:            s.StartupError,
+		ConnectionError:         s.ConnectionError,
+		Stopping:                s.Stopping,
+		Initializing:            s.Initializing,
+		ConnectModeOnly:         s.ConnectModeOnly,
+		Downloadable:            s.Downloadable,
+		Description:             s.Description,
+		Downloaded:              s.Downloaded,
+		BinaryPath:              s.BinaryPath,
+		PortInUse:               s.PortInUse,
+		Version:                 s.Version,
+		RepoUrl:                 s.RepoURL,
+		StartupLogs:             startupLogs,
 	}
 }
 
