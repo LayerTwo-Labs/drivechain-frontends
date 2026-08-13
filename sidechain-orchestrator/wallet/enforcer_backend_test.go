@@ -299,6 +299,21 @@ func TestEnforcerBackendRejectsUnexpressibleOutputs(t *testing.T) {
 	})
 	require.ErrorContains(t, err, "at most one OP_RETURN")
 
+	// OP_RETURN OP_1 OP_PUSHBYTES_1 aa. The enforcer rebuilds the script from
+	// one payload, so it cannot carry the OP_1.
+	_, err = backend.Send(ctx, "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a5101aa"}},
+		FixedFeeSats: 1000,
+	})
+	require.ErrorContains(t, err, "one data push")
+
+	// A bare OP_RETURN carries no payload at all.
+	_, err = backend.Send(ctx, "wallet", SendRequest{
+		RawOutputs:   []TxOutSpec{{RawScriptHex: "6a"}},
+		FixedFeeSats: 1000,
+	})
+	require.ErrorContains(t, err, "one data push")
+
 	_, err = backend.Send(ctx, "wallet", SendRequest{
 		ExternalInputs: []ExternalInput{{TxID: "aa", Vout: 0, AmountSats: 1}},
 		FixedFeeSats:   1000,
