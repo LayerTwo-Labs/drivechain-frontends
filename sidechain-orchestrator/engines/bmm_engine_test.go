@@ -720,3 +720,43 @@ func TestBmmEngineDoesNotSettleAnOpenRoundOnStop(t *testing.T) {
 	assert.Nil(t, engine.Current(testSidechain))
 	assert.NotEmpty(t, mustHistory(t, engine), "the tip moved, so now it settles")
 }
+
+// The sync gate the backend applies reads a snapshot that can trail the tip the
+// engine just read. Skipping the block for good over a one-poll skew would cost
+// a round every time the enforcer catches up mid-tick.
+func TestBmmEngineRetriesAfterAPreconditionRefusal(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.bidErr = connect.NewError(connect.CodeFailedPrecondition, errors.New("enforcer is still syncing"))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	assert.Nil(t, engine.Current(testSidechain), "a refused opening bid leaves no round behind")
+
+	backend.mu.Lock()
+	backend.bidErr = nil
+	backend.mu.Unlock()
+
+	engine.tick(ctx)
+	assert.Equal(t, 1, backend.bids, "the same tip must be retried once the gate opens")
+	require.NotNil(t, engine.Current(testSidechain))
+}
+
+// Any other failure keeps the round on the books, so a real error stays visible
+// instead of being retried forever in silence.
+func TestBmmEngineDoesNotRetryOtherFailures(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.bidErr = errors.New("no block template")
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.NotNil(t, engine.Current(testSidechain))
+
+	backend.mu.Lock()
+	backend.bidErr = nil
+	backend.mu.Unlock()
+
+	engine.tick(ctx)
+	assert.Zero(t, backend.bids, "same tip, already handled")
+}
