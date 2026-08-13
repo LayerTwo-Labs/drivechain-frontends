@@ -186,13 +186,28 @@ func TestSwapNetwork_MultipleSwapsFireCallbackEachTime(t *testing.T) {
 	assert.Equal(t, int32(3), atomic.LoadInt32(&called), "OnNetworkChanged must fire on each actual network change")
 }
 
-func TestEnforcerNetworkSwapStatePathsCoverCheckpointStores(t *testing.T) {
-	root := t.TempDir()
-	paths := enforcerNetworkSwapStatePaths(root)
+// Networks the enforcer files separately keep their validator chain across a
+// swap: wiping them cost the user a full resync every time they looked at
+// another network and came back.
+func TestEnforcerNetworkSwapStatePathsSpareSeparateNetworks(t *testing.T) {
+	for _, tc := range []struct{ from, to config.Network }{
+		{config.NetworkSignet, config.NetworkRegtest},
+		{config.NetworkRegtest, config.NetworkSignet},
+		{config.NetworkSignet, config.NetworkMainnet},
+		{config.NetworkTestnet, config.NetworkSignet},
+		{config.NetworkSignet, config.NetworkSignet},
+	} {
+		assert.Empty(t, enforcerNetworkSwapStatePaths(tc.from, tc.to),
+			"%s -> %s must keep both networks' enforcer state", tc.from, tc.to)
+	}
+}
 
-	assert.Contains(t, paths, filepath.Join(root, "validator"))
-	assert.Contains(t, paths, filepath.Join(root, "wallet"))
-	assert.Contains(t, paths, filepath.Join(root, "bitcoin"))
-	assert.Contains(t, paths, filepath.Join(root, "signet"))
-	assert.Contains(t, paths, filepath.Join(root, "drynet"))
+// Networks that share the enforcer's directories are the one case where the
+// outgoing chain sits where the incoming one will look for its own.
+func TestEnforcerNetworkSwapStatePathsClearCollidingNetworks(t *testing.T) {
+	paths := enforcerNetworkSwapStatePaths(config.NetworkMainnet, config.NetworkDrynet)
+
+	require.NotEmpty(t, paths)
+	assert.Contains(t, paths, config.EnforcerValidatorDir(config.NetworkMainnet))
+	assert.Contains(t, paths, config.EnforcerWalletDir(config.NetworkMainnet))
 }

@@ -374,9 +374,8 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 		return append(paths, GetMatchingFilesInDir(networkDir, utxoSnapshotPattern, log)...)
 
 	case "bip300301-enforcer":
-		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet", "bitcoin")
-		return GetExistingFilesInDir(rootdir, []string{filepath.Join("validator", networkName), networkName}, log)
+		networkName := EnforcerNetworkName(network)
+		return GetExistingFilesInDir(b.RootDir(), []string{filepath.Join("validator", networkName), networkName}, log)
 
 	case "bitwindowd":
 		return GetExistingFilesInDir(networkDir, []string{"bitdrive", "bitwindow.db"}, log)
@@ -520,9 +519,7 @@ func (b BinaryDirConfig) GetWalletPaths(networkDir string, network Network, log 
 
 	switch b.layoutKey() {
 	case "bip300301-enforcer":
-		rootdir := b.RootDir()
-		networkName := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(network.ReadableName(), "mainnet", "bitcoin"), "forknet", "bitcoin"), "drynet", "bitcoin")
-		walletDir := filepath.Join(rootdir, "wallet", networkName)
+		walletDir := EnforcerWalletDir(network)
 		if _, err := os.Stat(walletDir); err == nil {
 			paths = append(paths, walletDir)
 		}
@@ -821,6 +818,37 @@ func (n Network) ReadableName() string {
 	default:
 		return string(n)
 	}
+}
+
+// EnforcerNetworkName is the directory name the enforcer files a network's
+// state under, in <root>/validator/<name> and <root>/wallet/<name>. It follows
+// the chain name Bitcoin Core reports, so mainnet and the networks that fork it
+// share one name.
+func EnforcerNetworkName(n Network) string {
+	switch n {
+	case NetworkMainnet, NetworkForknet, NetworkDrynet:
+		return "bitcoin"
+	default:
+		return n.ReadableName()
+	}
+}
+
+// EnforcerValidatorDir is the enforcer's validator database directory for
+// network.
+func EnforcerValidatorDir(n Network) string {
+	return filepath.Join(EnforcerDirs.RootDir(), "validator", EnforcerNetworkName(n))
+}
+
+// EnforcerWalletDir is the enforcer's BDK wallet directory for network.
+func EnforcerWalletDir(n Network) string {
+	return filepath.Join(EnforcerDirs.RootDir(), "wallet", EnforcerNetworkName(n))
+}
+
+// EnforcerNetworksCollide reports whether two networks share the enforcer's
+// on-disk directories, which is the only case where swapping between them
+// leaves one network's chain sitting where the other will look for its own.
+func EnforcerNetworksCollide(a, b Network) bool {
+	return a != b && EnforcerNetworkName(a) == EnforcerNetworkName(b)
 }
 
 // ---------------------------------------------------------------------------
