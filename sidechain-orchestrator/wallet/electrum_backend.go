@@ -2099,25 +2099,8 @@ func (p *ElectrumBackend) persistScan(network, walletID string, scan *electrumSc
 // chainDeriver derives the address+key at an index of one derivation chain.
 type chainDeriver func(index uint32) (scannedAddr, error)
 
-// receiveKinds lists the script kinds an electrum wallet derives receive
-// addresses for. A standard hot single-sig segwit or taproot wallet derives
-// both (BIP84 + BIP86) from its one seed, so the receive screen can switch
-// between them; its own kind is listed first as the primary used for change and
-// fee sizing. Every other wallet — watch-only, explicit-path, legacy, nested,
-// or multisig — is single-kind.
 func (p *ElectrumBackend) receiveKinds(w *WalletData) []ScriptKind {
-	primary := w.scriptKind()
-	if w.IsWatchOnly() || w.usesExplicitPath() {
-		return []ScriptKind{primary}
-	}
-	switch primary {
-	case ScriptNativeSegwit:
-		return []ScriptKind{ScriptNativeSegwit, ScriptTaproot}
-	case ScriptTaproot:
-		return []ScriptKind{ScriptTaproot, ScriptNativeSegwit}
-	default:
-		return []ScriptKind{primary}
-	}
+	return ReceiveKinds(w)
 }
 
 // kindDerivers returns the external (index 0) and change (index 1) address
