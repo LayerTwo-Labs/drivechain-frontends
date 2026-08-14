@@ -17,8 +17,7 @@ const orchestratorSettingsFile = "orchestrator_settings.json"
 
 // OrchestratorSettings is the on-disk shape of orchestrator_settings.json.
 type OrchestratorSettings struct {
-	CoreVariant       string `json:"core_variant"`
-	UseTestSidechains bool   `json:"use_test_sidechains"`
+	CoreVariant string `json:"core_variant"`
 	// ElectrumServerURL overrides the network's default Esplora endpoint for
 	// electrum wallets. Empty means "use the network default".
 	ElectrumServerURL string `json:"electrum_server_url"`
@@ -216,25 +215,4 @@ func (s *SettingsStore) SetTorConfig(enabled bool, proxy string) (bool, string, 
 	}
 	s.current = next
 	return prevEnabled, prevProxy, nil
-}
-
-func (s *SettingsStore) UseTestSidechains() bool {
-	return s.Get().UseTestSidechains
-}
-
-// SetUseTestSidechains persists the new value and returns the previous one.
-func (s *SettingsStore) SetUseTestSidechains(v bool) (bool, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	prev := s.current.UseTestSidechains
-	if prev == v {
-		return prev, nil
-	}
-	next := s.current
-	next.UseTestSidechains = v
-	if err := SaveSettings(s.bitwindowDir, next); err != nil {
-		return prev, err
-	}
-	s.current = next
-	return prev, nil
 }

@@ -355,7 +355,6 @@ func TestStatusChecksTheRequestedDownloadNotTheRunningOne(t *testing.T) {
 	dataDir, bwDir := t.TempDir(), t.TempDir()
 	cfg := makeSidechainConfig(server.URL + "/")
 	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, testLogger(t))
-	require.NoError(t, o.SetTestSidechains(context.Background(), true))
 
 	// The test build is older than its release, so an update is waiting. The
 	// production backend is newer than its release, so it has none.

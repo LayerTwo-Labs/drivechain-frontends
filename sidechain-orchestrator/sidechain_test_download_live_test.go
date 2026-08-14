@@ -36,9 +36,6 @@ func TestIntegrationLive_TestSidechains_DownloadAlt(t *testing.T) {
 	cfgs := AllDefaults()
 	o := New(dataDir, "signet", bwDir, cfgs, testLogger(t))
 
-	require.NoError(t, o.SetTestSidechains(context.Background(), true))
-	require.True(t, o.UseTestSidechains())
-
 	for _, cfg := range cfgs {
 		cfg := cfg
 		if cfg.ChainLayer != 2 || cfg.AltBinaryName == "" {

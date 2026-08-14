@@ -265,9 +265,10 @@ type BinaryStatusMsg struct {
 	Version         string                 `protobuf:"bytes,20,opt,name=version,proto3" json:"version,omitempty"`                                           // configured version string
 	RepoUrl         string                 `protobuf:"bytes,21,opt,name=repo_url,json=repoUrl,proto3" json:"repo_url,omitempty"`                            // source code repository URL
 	StartupLogs     []*StartupLogEntryMsg  `protobuf:"bytes,22,rep,name=startup_logs,json=startupLogs,proto3" json:"startup_logs,omitempty"`                // recent startup progress messages
-	// Absolute path to the launchable binary on disk (variant-aware: returns
-	// bin/test/<binary>/... for active sidechain alt-builds, the resolved
-	// .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
+	// Absolute path to the download this request selects (variant-aware: returns
+	// bin/test/<binary>/... for a sidechain frontend, the resolved
+	// .app/Contents/MacOS path on macOS, etc.). force_backend picks the daemon
+	// instead. Empty when that download is not on disk.
 	BinaryPath string `protobuf:"bytes,23,opt,name=binary_path,json=binaryPath,proto3" json:"binary_path,omitempty"`
 	// A newer build is published than the one on disk. False while either side
 	// is unknown, so a failed check never claims an update.

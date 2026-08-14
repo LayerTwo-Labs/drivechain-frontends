@@ -102,7 +102,7 @@ func NewDownloadManager(dataDir, configFilePath string, log zerolog.Logger) *Dow
 // equivalent of the original Download(ctx, config, network, force) call.
 type DownloadOptions struct {
 	// ForceBackend skips the SidechainVariant resolver so the prod-download
-	// URL/path is used even when UseTestSidechains is on. Set by sidechain
+	// URL/path is used instead of the frontend build. Set by sidechain
 	// Flutter frontends self-booting their backend.
 	ForceBackend bool
 }

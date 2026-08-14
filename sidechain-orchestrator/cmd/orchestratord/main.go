@@ -116,7 +116,7 @@ func main() {
 			},
 			&cli.BoolFlag{
 				Name:    "force-backend",
-				Usage:   "bypass UseTestSidechains for the --binary auto-boots; always launch the prod download",
+				Usage:   "launch the prod download for the --binary auto-boots instead of the frontend build",
 				EnvVars: []string{"ORCHESTRATOR_FORCE_BACKEND"},
 			},
 			&cli.StringFlag{
