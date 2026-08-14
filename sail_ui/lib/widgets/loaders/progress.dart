@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -28,7 +30,10 @@ class ProgressBar extends StatelessWidget {
 
     var textInsideBar = '${numberFormat.format(current)} / ${numberFormat.format(goal)}';
     if (justPercent) {
-      textInsideBar = '${((progress) * 100).toStringAsFixed(2)}%';
+      // A chain 4 blocks short of the tip rounds to 100.00% and reads as done.
+      final percent = progress * 100;
+      final shown = current < goal ? min(percent, 99.99) : percent;
+      textInsideBar = '${shown.toStringAsFixed(2)}%';
     } else if (hideProgressInside) {
       textInsideBar = '';
     }

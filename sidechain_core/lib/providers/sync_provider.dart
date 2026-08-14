@@ -16,13 +16,29 @@ class SyncInfo {
   final double progressGoal;
   final Timestamp? lastBlockAt;
 
+  /// Highest tip the node's peers announce, 0 when unknown.
+  final int peerBestHeight;
+
+  /// True when the node marked a branch at or above its own tip invalid.
+  final bool rejectedBranch;
+
   double get progress => progressGoal == 0 ? 0 : progressCurrent / progressGoal;
   bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
+
+  /// The node refuses a branch at or above its own tip. Blocks and headers
+  /// both read 100% here, because the node counts neither side of the branch
+  /// it threw away.
+  bool get offNetwork => rejectedBranch;
+
+  /// How far the peers' headers run past this node, 0 when they do not.
+  int get behindPeers => peerBestHeight > progressCurrent ? peerBestHeight - progressCurrent.toInt() : 0;
 
   SyncInfo({
     required this.progressCurrent,
     required this.progressGoal,
     required this.lastBlockAt,
+    this.peerBestHeight = 0,
+    this.rejectedBranch = false,
   });
 
   @override
@@ -33,11 +49,13 @@ class SyncInfo {
     return other is SyncInfo &&
         other.progressCurrent == progressCurrent &&
         other.progressGoal == progressGoal &&
-        other.lastBlockAt == lastBlockAt;
+        other.lastBlockAt == lastBlockAt &&
+        other.peerBestHeight == peerBestHeight &&
+        other.rejectedBranch == rejectedBranch;
   }
 
   @override
-  int get hashCode => Object.hash(progressCurrent, progressGoal, lastBlockAt);
+  int get hashCode => Object.hash(progressCurrent, progressGoal, lastBlockAt, peerBestHeight, rejectedBranch);
 }
 
 /// Represents a binary that has some sort of sync-status
@@ -378,6 +396,8 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       progressCurrent: blocks,
       progressGoal: headers,
       lastBlockAt: (cs?.time ?? Int64(0)) != Int64(0) ? Timestamp(seconds: cs!.time) : null,
+      peerBestHeight: cs?.peerBestHeight ?? 0,
+      rejectedBranch: cs?.rejectedBranch ?? false,
     );
   }
 

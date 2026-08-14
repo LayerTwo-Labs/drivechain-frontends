@@ -29,6 +29,19 @@ bool showDaemonCard({
   return walletNeedsBackends || connected || initializing;
 }
 
+/// Why Bitcoin Core sits still on a chain that moves, or null when it follows
+/// its peers. Both progress bars read 100% off the network, so only this
+/// message tells the user.
+String? offNetworkMessage(SyncInfo? syncInfo) {
+  if (syncInfo == null || !syncInfo.offNetwork) {
+    return null;
+  }
+  if (syncInfo.behindPeers > 0) {
+    return 'Off the network chain: Core rejects a block its peers accept, ${syncInfo.behindPeers} blocks behind';
+  }
+  return 'Core rejects a block at its own tip, so it can fall off the network chain';
+}
+
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final List<Widget> balanceEndWidgets;
@@ -221,6 +234,7 @@ class BottomNav extends StatelessWidget {
                   if (showMainchain &&
                       (!model.mainchain.connected ||
                           !(model.syncProvider.mainchainSyncInfo?.isSynced ?? false) ||
+                          (model.syncProvider.mainchainSyncInfo?.offNetwork ?? false) ||
                           !onlyShowAdditional))
                     DaemonConnectionCard(
                       connection: model.mainchain,
@@ -235,7 +249,7 @@ class BottomNav extends StatelessWidget {
                           (b) => b.name == BitcoinCore().name,
                         ),
                       ),
-                      infoMessage: null,
+                      infoMessage: offNetworkMessage(model.syncProvider.mainchainSyncInfo),
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenConfConfigurator,
                     ),
@@ -615,6 +629,8 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
     final enforcerWalletSynced = enforcerWalletConnected && viewModel.syncProvider.enforcerWalletSyncInfo!.isSynced;
     final additionalSynced = additionalConnected && viewModel.additionalSyncInfo!.isSynced;
 
+    final offNetwork = mainchainConnected && viewModel.syncProvider.mainchainSyncInfo!.offNetwork;
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: SailRow(
@@ -622,6 +638,14 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (offNetwork) ...[
+            SailText.primary12(
+              'Off chain',
+              bold: true,
+              color: context.sailTheme.colors.error,
+            ),
+            DividerDot(),
+          ],
           if (mainchainConnected && !mainchainSynced) ...[
             ChainLoader(
               name: viewModel.syncProvider.mainchain.name,

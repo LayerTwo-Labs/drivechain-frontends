@@ -494,10 +494,12 @@ func chainSyncToProto(s *orchestrator.ChainSyncResult) *pb.ChainSync {
 		return nil
 	}
 	return &pb.ChainSync{
-		Blocks:  int32(s.Blocks),
-		Headers: int32(s.Headers),
-		Time:    s.Time,
-		Error:   s.Error,
+		Blocks:         int32(s.Blocks),
+		Headers:        int32(s.Headers),
+		Time:           s.Time,
+		Error:          s.Error,
+		PeerBestHeight: int32(s.PeerBestHeight),
+		RejectedBranch: s.RejectedBranch,
 	}
 }
 

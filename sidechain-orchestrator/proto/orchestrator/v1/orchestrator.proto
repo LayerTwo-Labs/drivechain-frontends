@@ -520,6 +520,12 @@ message ChainSync {
   // Empty on success; otherwise a short description of why this daemon's
   // sync info isn't available (not running, RPC error, etc.).
   string error = 4;
+  // Highest tip the node's peers announce, 0 when unknown. Mainchain only.
+  int32 peer_best_height = 5;
+  // True when the node marked a branch at or above its own tip invalid.
+  // With a higher peer_best_height it means the node left the network's
+  // chain, which blocks and headers alone never show. Mainchain only.
+  bool rejected_branch = 6;
 }
 
 // GetDownloadStatus
