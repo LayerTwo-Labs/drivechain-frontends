@@ -28,24 +28,6 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
     setState(() {});
   }
 
-  Future<void> _onTestSidechainsToggle(bool value) async {
-    final confirmed = await showThemedDialog<bool>(
-      context: context,
-      builder: (dialogContext) => SailAlertCard(
-        title: value ? 'Switch to test sidechains?' : 'Switch to production sidechains?',
-        subtitle:
-            "Switching stops any running layer-2 binaries and removes them from disk. They'll redownload automatically on next start.",
-        confirmText: 'Switch',
-        onConfirm: () async => Navigator.of(dialogContext).pop(true),
-        onCancel: () async => Navigator.of(dialogContext).pop(false),
-      ),
-    );
-    if (confirmed != true) {
-      return;
-    }
-    await _settingsProvider.updateUseTestSidechains(value);
-  }
-
   @override
   Widget build(BuildContext context) {
     return SailSettingsBody(
@@ -53,15 +35,6 @@ class _SettingsAdvancedState extends State<SettingsAdvanced> {
         SailSettingsGroup(
           title: 'Developer options',
           children: [
-            if (GetIt.I.get<BitcoinConfProvider>().networkSupportsSidechains)
-              SailSettingsRow(
-                label: 'Test sidechains',
-                description: 'Download and run alternative frontends for sidechains',
-                trailing: SailToggle(
-                  value: _settingsProvider.useTestSidechains,
-                  onChanged: _onTestSidechainsToggle,
-                ),
-              ),
             SailSettingsRow(
               label: 'Paranoid mode',
               description:

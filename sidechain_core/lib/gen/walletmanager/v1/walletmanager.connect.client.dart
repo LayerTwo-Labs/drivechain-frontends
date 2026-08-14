@@ -265,6 +265,27 @@ extension type WalletManagerServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// SwapEnforcerWallet loads a different seed into the enforcer: stops the
+  /// daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
+  /// entry in wallet.json from the given mnemonic, and restarts the daemon.
+  /// Sidechain starters keep the seed their daemons were built from.
+  Stream<walletmanagerv1walletmanager.SwapEnforcerWalletProgressResponse> swapEnforcerWallet(
+    walletmanagerv1walletmanager.SwapEnforcerWalletRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.WalletManagerService.swapEnforcerWallet,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.CreateWatchOnlyWalletResponse> createWatchOnlyWallet(
     walletmanagerv1walletmanager.CreateWatchOnlyWalletRequest input, {
     connect.Headers? headers,
@@ -1040,42 +1061,6 @@ extension type WalletManagerServiceClient(connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.setCoreVariant,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// Test-sidechains toggle. When enabled, layer-2 binaries download/run from
-  /// the alternative_download config (test builds) instead of the default.
-  Future<walletmanagerv1walletmanager.GetTestSidechainsResponse> getTestSidechains(
-    walletmanagerv1walletmanager.GetTestSidechainsRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.WalletManagerService.getTestSidechains,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  Future<walletmanagerv1walletmanager.SetTestSidechainsResponse> setTestSidechains(
-    walletmanagerv1walletmanager.SetTestSidechainsRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.WalletManagerService.setTestSidechains,
       input,
       signal: signal,
       headers: headers,

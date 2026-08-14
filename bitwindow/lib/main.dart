@@ -785,7 +785,6 @@ Future<void> bootBitwindowBackend(Logger log) async {
       // the real one from orchestratord now — BinaryProvider listens to
       // SettingsProvider and re-fetches binary release timestamps with
       // the right (test vs prod) URL when this flips.
-      unawaited(GetIt.I.get<SettingsProvider>().reconcileUseTestSidechainsFromOrchestrator());
       if (bitwindowRpc != null) {
         bitwindowRpc.initializingBinary = false;
         bitwindowRpc.markStateChanged();

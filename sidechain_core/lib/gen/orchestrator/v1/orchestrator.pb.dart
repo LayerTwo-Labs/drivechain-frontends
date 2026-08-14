@@ -443,9 +443,10 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   @$pb.TagNumber(22)
   $core.List<StartupLogEntryMsg> get startupLogs => $_getList(21);
 
-  /// Absolute path to the launchable binary on disk (variant-aware: returns
-  /// bin/test/<binary>/... for active sidechain alt-builds, the resolved
-  /// .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
+  /// Absolute path to the download this request selects (variant-aware: returns
+  /// bin/test/<binary>/... for a sidechain frontend, the resolved
+  /// .app/Contents/MacOS path on macOS, etc.). force_backend picks the daemon
+  /// instead. Empty when that download is not on disk.
   @$pb.TagNumber(23)
   $core.String get binaryPath => $_getSZ(22);
   @$pb.TagNumber(23)

@@ -55,6 +55,29 @@ class RestoreWalletBackupStepState extends $pb.ProtobufEnum {
   const RestoreWalletBackupStepState._($core.int v, $core.String n) : super(v, n);
 }
 
+class SwapEnforcerWalletStepState extends $pb.ProtobufEnum {
+  static const SwapEnforcerWalletStepState SWAP_ENFORCER_WALLET_STEP_STATE_UNSPECIFIED =
+      SwapEnforcerWalletStepState._(0, _omitEnumNames ? '' : 'SWAP_ENFORCER_WALLET_STEP_STATE_UNSPECIFIED');
+  static const SwapEnforcerWalletStepState SWAP_ENFORCER_WALLET_STEP_STATE_STARTED =
+      SwapEnforcerWalletStepState._(1, _omitEnumNames ? '' : 'SWAP_ENFORCER_WALLET_STEP_STATE_STARTED');
+  static const SwapEnforcerWalletStepState SWAP_ENFORCER_WALLET_STEP_STATE_COMPLETED =
+      SwapEnforcerWalletStepState._(2, _omitEnumNames ? '' : 'SWAP_ENFORCER_WALLET_STEP_STATE_COMPLETED');
+  static const SwapEnforcerWalletStepState SWAP_ENFORCER_WALLET_STEP_STATE_FAILED =
+      SwapEnforcerWalletStepState._(3, _omitEnumNames ? '' : 'SWAP_ENFORCER_WALLET_STEP_STATE_FAILED');
+
+  static const $core.List<SwapEnforcerWalletStepState> values = <SwapEnforcerWalletStepState>[
+    SWAP_ENFORCER_WALLET_STEP_STATE_UNSPECIFIED,
+    SWAP_ENFORCER_WALLET_STEP_STATE_STARTED,
+    SWAP_ENFORCER_WALLET_STEP_STATE_COMPLETED,
+    SWAP_ENFORCER_WALLET_STEP_STATE_FAILED,
+  ];
+
+  static final $core.Map<$core.int, SwapEnforcerWalletStepState> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static SwapEnforcerWalletStepState? valueOf($core.int value) => _byValue[value];
+
+  const SwapEnforcerWalletStepState._($core.int v, $core.String n) : super(v, n);
+}
+
 class AddressType extends $pb.ProtobufEnum {
   static const AddressType ADDRESS_TYPE_UNSPECIFIED =
       AddressType._(0, _omitEnumNames ? '' : 'ADDRESS_TYPE_UNSPECIFIED');
