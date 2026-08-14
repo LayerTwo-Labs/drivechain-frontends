@@ -83,7 +83,6 @@ func Commands() []*cli.Command {
 		whichCommand,
 		walletCommand,
 		bmmCommand,
-		testSidechainsCommand,
 		resetCommand,
 	}
 

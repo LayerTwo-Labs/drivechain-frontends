@@ -92,8 +92,6 @@ func TestBinaryVersion_ResolvesAndRunsProd(t *testing.T) {
 	writeVersionScript(t, dataDir, "thunder", "thunder 3.4.5")
 
 	o := New(dataDir, "signet", t.TempDir(), []BinaryConfig{cfg}, log)
-	_, err := o.Settings.SetUseTestSidechains(true)
-	require.NoError(t, err)
 
 	// forceBackend=true must bypass the test-build resolver and run the prod
 	// binary at bin/thunder — even though test sidechains is enabled.
@@ -110,8 +108,6 @@ func TestBinaryVersion_TestBuildShortCircuits(t *testing.T) {
 	cfg := makeSidechainConfig("http://example.invalid/")
 
 	o := New(dataDir, "signet", t.TempDir(), []BinaryConfig{cfg}, log)
-	_, err := o.Settings.SetUseTestSidechains(true)
-	require.NoError(t, err)
 
 	// forceBackend=false with test sidechains on resolves the Flutter test
 	// build: no --version is attempted, is_test_build is reported, and the

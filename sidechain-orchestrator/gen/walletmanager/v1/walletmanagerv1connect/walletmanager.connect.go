@@ -214,12 +214,6 @@ const (
 	// WalletManagerServiceSetCoreVariantProcedure is the fully-qualified name of the
 	// WalletManagerService's SetCoreVariant RPC.
 	WalletManagerServiceSetCoreVariantProcedure = "/walletmanager.v1.WalletManagerService/SetCoreVariant"
-	// WalletManagerServiceGetTestSidechainsProcedure is the fully-qualified name of the
-	// WalletManagerService's GetTestSidechains RPC.
-	WalletManagerServiceGetTestSidechainsProcedure = "/walletmanager.v1.WalletManagerService/GetTestSidechains"
-	// WalletManagerServiceSetTestSidechainsProcedure is the fully-qualified name of the
-	// WalletManagerService's SetTestSidechains RPC.
-	WalletManagerServiceSetTestSidechainsProcedure = "/walletmanager.v1.WalletManagerService/SetTestSidechains"
 	// WalletManagerServiceGetElectrumServerProcedure is the fully-qualified name of the
 	// WalletManagerService's GetElectrumServer RPC.
 	WalletManagerServiceGetElectrumServerProcedure = "/walletmanager.v1.WalletManagerService/GetElectrumServer"
@@ -339,10 +333,6 @@ type WalletManagerServiceClient interface {
 	ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error)
 	GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error)
 	SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error)
-	// Test-sidechains toggle. When enabled, layer-2 binaries download/run from
-	// the alternative_download config (test builds) instead of the default.
-	GetTestSidechains(context.Context, *connect.Request[v1.GetTestSidechainsRequest]) (*connect.Response[v1.GetTestSidechainsResponse], error)
-	SetTestSidechains(context.Context, *connect.Request[v1.SetTestSidechainsRequest]) (*connect.Response[v1.SetTestSidechainsResponse], error)
 	// Electrum server (Esplora endpoint) selection for electrum wallets.
 	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
 	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
@@ -725,18 +715,6 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("SetCoreVariant")),
 			connect.WithClientOptions(opts...),
 		),
-		getTestSidechains: connect.NewClient[v1.GetTestSidechainsRequest, v1.GetTestSidechainsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceGetTestSidechainsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("GetTestSidechains")),
-			connect.WithClientOptions(opts...),
-		),
-		setTestSidechains: connect.NewClient[v1.SetTestSidechainsRequest, v1.SetTestSidechainsResponse](
-			httpClient,
-			baseURL+WalletManagerServiceSetTestSidechainsProcedure,
-			connect.WithSchema(walletManagerServiceMethods.ByName("SetTestSidechains")),
-			connect.WithClientOptions(opts...),
-		),
 		getElectrumServer: connect.NewClient[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse](
 			httpClient,
 			baseURL+WalletManagerServiceGetElectrumServerProcedure,
@@ -832,8 +810,6 @@ type walletManagerServiceClient struct {
 	listCoreVariants             *connect.Client[v1.ListCoreVariantsRequest, v1.ListCoreVariantsResponse]
 	getCoreVariant               *connect.Client[v1.GetCoreVariantRequest, v1.GetCoreVariantResponse]
 	setCoreVariant               *connect.Client[v1.SetCoreVariantRequest, v1.SetCoreVariantResponse]
-	getTestSidechains            *connect.Client[v1.GetTestSidechainsRequest, v1.GetTestSidechainsResponse]
-	setTestSidechains            *connect.Client[v1.SetTestSidechainsRequest, v1.SetTestSidechainsResponse]
 	getElectrumServer            *connect.Client[v1.GetElectrumServerRequest, v1.GetElectrumServerResponse]
 	setElectrumServer            *connect.Client[v1.SetElectrumServerRequest, v1.SetElectrumServerResponse]
 	getTorConfig                 *connect.Client[v1.GetTorConfigRequest, v1.GetTorConfigResponse]
@@ -1142,16 +1118,6 @@ func (c *walletManagerServiceClient) SetCoreVariant(ctx context.Context, req *co
 	return c.setCoreVariant.CallUnary(ctx, req)
 }
 
-// GetTestSidechains calls walletmanager.v1.WalletManagerService.GetTestSidechains.
-func (c *walletManagerServiceClient) GetTestSidechains(ctx context.Context, req *connect.Request[v1.GetTestSidechainsRequest]) (*connect.Response[v1.GetTestSidechainsResponse], error) {
-	return c.getTestSidechains.CallUnary(ctx, req)
-}
-
-// SetTestSidechains calls walletmanager.v1.WalletManagerService.SetTestSidechains.
-func (c *walletManagerServiceClient) SetTestSidechains(ctx context.Context, req *connect.Request[v1.SetTestSidechainsRequest]) (*connect.Response[v1.SetTestSidechainsResponse], error) {
-	return c.setTestSidechains.CallUnary(ctx, req)
-}
-
 // GetElectrumServer calls walletmanager.v1.WalletManagerService.GetElectrumServer.
 func (c *walletManagerServiceClient) GetElectrumServer(ctx context.Context, req *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error) {
 	return c.getElectrumServer.CallUnary(ctx, req)
@@ -1280,10 +1246,6 @@ type WalletManagerServiceHandler interface {
 	ListCoreVariants(context.Context, *connect.Request[v1.ListCoreVariantsRequest]) (*connect.Response[v1.ListCoreVariantsResponse], error)
 	GetCoreVariant(context.Context, *connect.Request[v1.GetCoreVariantRequest]) (*connect.Response[v1.GetCoreVariantResponse], error)
 	SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error)
-	// Test-sidechains toggle. When enabled, layer-2 binaries download/run from
-	// the alternative_download config (test builds) instead of the default.
-	GetTestSidechains(context.Context, *connect.Request[v1.GetTestSidechainsRequest]) (*connect.Response[v1.GetTestSidechainsResponse], error)
-	SetTestSidechains(context.Context, *connect.Request[v1.SetTestSidechainsRequest]) (*connect.Response[v1.SetTestSidechainsResponse], error)
 	// Electrum server (Esplora endpoint) selection for electrum wallets.
 	GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error)
 	SetElectrumServer(context.Context, *connect.Request[v1.SetElectrumServerRequest]) (*connect.Response[v1.SetElectrumServerResponse], error)
@@ -1662,18 +1624,6 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("SetCoreVariant")),
 		connect.WithHandlerOptions(opts...),
 	)
-	walletManagerServiceGetTestSidechainsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceGetTestSidechainsProcedure,
-		svc.GetTestSidechains,
-		connect.WithSchema(walletManagerServiceMethods.ByName("GetTestSidechains")),
-		connect.WithHandlerOptions(opts...),
-	)
-	walletManagerServiceSetTestSidechainsHandler := connect.NewUnaryHandler(
-		WalletManagerServiceSetTestSidechainsProcedure,
-		svc.SetTestSidechains,
-		connect.WithSchema(walletManagerServiceMethods.ByName("SetTestSidechains")),
-		connect.WithHandlerOptions(opts...),
-	)
 	walletManagerServiceGetElectrumServerHandler := connect.NewUnaryHandler(
 		WalletManagerServiceGetElectrumServerProcedure,
 		svc.GetElectrumServer,
@@ -1826,10 +1776,6 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetCoreVariantHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSetCoreVariantProcedure:
 			walletManagerServiceSetCoreVariantHandler.ServeHTTP(w, r)
-		case WalletManagerServiceGetTestSidechainsProcedure:
-			walletManagerServiceGetTestSidechainsHandler.ServeHTTP(w, r)
-		case WalletManagerServiceSetTestSidechainsProcedure:
-			walletManagerServiceSetTestSidechainsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetElectrumServerProcedure:
 			walletManagerServiceGetElectrumServerHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSetElectrumServerProcedure:
@@ -2087,14 +2033,6 @@ func (UnimplementedWalletManagerServiceHandler) GetCoreVariant(context.Context, 
 
 func (UnimplementedWalletManagerServiceHandler) SetCoreVariant(context.Context, *connect.Request[v1.SetCoreVariantRequest]) (*connect.Response[v1.SetCoreVariantResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetCoreVariant is not implemented"))
-}
-
-func (UnimplementedWalletManagerServiceHandler) GetTestSidechains(context.Context, *connect.Request[v1.GetTestSidechainsRequest]) (*connect.Response[v1.GetTestSidechainsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetTestSidechains is not implemented"))
-}
-
-func (UnimplementedWalletManagerServiceHandler) SetTestSidechains(context.Context, *connect.Request[v1.SetTestSidechainsRequest]) (*connect.Response[v1.SetTestSidechainsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetTestSidechains is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) GetElectrumServer(context.Context, *connect.Request[v1.GetElectrumServerRequest]) (*connect.Response[v1.GetElectrumServerResponse], error) {

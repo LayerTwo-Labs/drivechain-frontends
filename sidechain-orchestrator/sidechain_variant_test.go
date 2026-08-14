@@ -175,78 +175,6 @@ func TestDownload_SidechainVariant_CoexistsWithProd(t *testing.T) {
 	assert.Equal(t, "test-bin", string(test))
 }
 
-func TestOrchestrator_SetTestSidechains_PersistsAndWipes(t *testing.T) {
-	dataDir := t.TempDir()
-	bwDir := t.TempDir()
-	o := New(dataDir, "signet", bwDir, AllDefaults(), testLogger(t))
-
-	// Drop a stub binary in the prod path for every layer-2 chain so we can
-	// prove the wipe ran. Also stub a test-path binary for the same reason.
-	var l2 []BinaryConfig
-	for _, c := range o.Configs() {
-		if c.ChainLayer == 2 {
-			l2 = append(l2, c)
-		}
-	}
-	require.NotEmpty(t, l2, "embedded config must declare layer-2 binaries")
-
-	for _, c := range l2 {
-		prod := BinaryPath(dataDir, c.BinaryName)
-		require.NoError(t, os.MkdirAll(filepath.Dir(prod), 0o755))
-		require.NoError(t, os.WriteFile(prod, []byte("stub-prod"), 0o755))
-
-		if c.AltBinaryName != "" {
-			test := TestSidechainBinaryPath(dataDir, c.AltBinaryName)
-			require.NoError(t, os.MkdirAll(filepath.Dir(test), 0o755))
-			require.NoError(t, os.WriteFile(test, []byte("stub-test"), 0o755))
-		}
-	}
-
-	require.NoError(t, o.SetTestSidechains(context.Background(), true))
-
-	// Setting flipped + persisted to disk.
-	assert.True(t, o.UseTestSidechains())
-	persisted, err := LoadSettings(bwDir)
-	require.NoError(t, err)
-	assert.True(t, persisted.UseTestSidechains)
-
-	// Both prod and test stubs gone.
-	for _, c := range l2 {
-		_, err := os.Stat(BinaryPath(dataDir, c.BinaryName))
-		assert.True(t, os.IsNotExist(err), "prod path for %s must be wiped", c.Name)
-		if c.AltBinaryName != "" {
-			_, err := os.Stat(TestSidechainBinaryPath(dataDir, c.AltBinaryName))
-			assert.True(t, os.IsNotExist(err), "test path for %s must be wiped", c.Name)
-		}
-	}
-}
-
-func TestOrchestrator_SetTestSidechains_NoOpWhenSame(t *testing.T) {
-	dataDir := t.TempDir()
-	bwDir := t.TempDir()
-	o := New(dataDir, "signet", bwDir, AllDefaults(), testLogger(t))
-
-	// Drop a stub in a layer-2 prod path. A no-op SetTestSidechains(false)
-	// must NOT wipe it.
-	var sample BinaryConfig
-	for _, c := range o.Configs() {
-		if c.ChainLayer == 2 {
-			sample = c
-			break
-		}
-	}
-	prod := BinaryPath(dataDir, sample.BinaryName)
-	require.NoError(t, os.MkdirAll(filepath.Dir(prod), 0o755))
-	require.NoError(t, os.WriteFile(prod, []byte("untouched"), 0o755))
-
-	require.NoError(t, o.SetTestSidechains(context.Background(), false))
-	assert.False(t, o.UseTestSidechains())
-
-	got, err := os.ReadFile(prod)
-	require.NoError(t, err, "no-op flip must leave existing binaries intact")
-	assert.Equal(t, "untouched", string(got))
-}
-
 // End-to-end coverage of the test-sidechains toggle: spin up a fake release
 // server, drive Download through the orchestrator's resolver, and assert the
 // alt URL is hit and the binary lands in the per-test subfolder. Mirrors the
@@ -290,9 +218,6 @@ func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
 	}
 	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, testLogger(t))
 
-	require.NoError(t, o.SetTestSidechains(context.Background(), true))
-	assert.True(t, o.UseTestSidechains())
-
 	progress, err := o.Download(context.Background(), "thunder", true)
 	require.NoError(t, err)
 	last := drainProgress(t, progress)
@@ -314,9 +239,8 @@ func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
 	status := o.Status("thunder")
 	assert.True(t, status.Downloaded)
 
-	// Flip back: prod download must hit the prod URL and land in BinDir root.
-	require.NoError(t, o.SetTestSidechains(context.Background(), false))
-	progress, err = o.Download(context.Background(), "thunder", true)
+	// ForceBackend: the prod download must hit the prod URL and land in BinDir root.
+	progress, err = o.Download(context.Background(), "thunder", true, DownloadOptions{ForceBackend: true})
 	require.NoError(t, err)
 	drainProgress(t, progress)
 
@@ -425,14 +349,12 @@ func TestOrchestrator_ForceBackend_AdoptsProdPidWhenTestSidechainsEnabled(t *tes
 	t.Cleanup(func() { _ = pm.Stop(context.Background(), cfg.Name, true) })
 
 	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, log)
-	_, err = o.Settings.SetUseTestSidechains(true)
-	require.NoError(t, err)
-	require.True(t, o.UseTestSidechains())
 
 	require.NoError(t, o.AdoptOrphans(context.Background()))
 	require.True(t, o.process.IsRunning(cfg.Name), "prod PID should be adopted as force-backend fallback while test sidechains are enabled")
 
-	status := o.Status(cfg.Name)
+	// The path fields answer the request, so ask the way the backend was started.
+	status := o.StatusWithOptions(cfg.Name, DownloadOptions{ForceBackend: true})
 	assert.True(t, status.Running)
 	assert.True(t, status.Downloaded)
 	assert.Equal(t, BinaryPath(dataDir, "sleep"), status.BinaryPath)
@@ -531,7 +453,7 @@ func TestOrchestrator_AdoptsGUICompanionUnderGUISlot(t *testing.T) {
 	assert.True(t, os.IsNotExist(err), "stopping adopted GUI companion must remove its PID file")
 }
 
-func TestOrchestrator_SidechainVariantResolver_ReturnsAltOnlyWhenEnabled(t *testing.T) {
+func TestOrchestrator_SidechainVariantResolver_ReturnsAltForLayerTwo(t *testing.T) {
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()
 	o := New(dataDir, "signet", bwDir, AllDefaults(), testLogger(t))
@@ -546,19 +468,14 @@ func TestOrchestrator_SidechainVariantResolver_ReturnsAltOnlyWhenEnabled(t *test
 	}
 	require.NotEmpty(t, sample.Name)
 
-	// Toggle off => resolver returns ok=false (production path).
-	_, ok := o.process.SidechainVariant(sample)
-	assert.False(t, ok)
-
-	// Toggle on => resolver returns the alt fields.
-	require.NoError(t, o.SetTestSidechains(context.Background(), true))
+	// A layer-2 config with alt fields resolves to the frontend build.
 	spec, ok := o.process.SidechainVariant(sample)
 	require.True(t, ok)
 	assert.Equal(t, sample.AltBinaryName, spec.BinaryName)
 	assert.Equal(t, fileForPlatform(sample.AltFiles), spec.FileName)
 	assert.Equal(t, sample.AltBaseURL(o.Network), spec.BaseURL)
 
-	// Toggle on, but bitcoind (layer 1) must still be ineligible.
+	// bitcoind is layer 1, so it stays ineligible.
 	core, ok := o.Configs()["bitcoind"]
 	require.True(t, ok)
 	_, ok = o.process.SidechainVariant(core)

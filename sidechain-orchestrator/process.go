@@ -196,7 +196,7 @@ func NewProcessManager(dataDir string, pidManager *PidFileManager, log zerolog.L
 // a "<bin>-test" PID-file name so prod and test PID files don't collide and
 // adopt-orphan can attribute them to the right config. If forceBackend is
 // true, the SidechainVariant resolver is skipped — the caller wants the
-// prod-download binary regardless of the UseTestSidechains toggle.
+// prod-download binary instead of the frontend build.
 func (pm *ProcessManager) resolvePaths(config BinaryConfig, forceBackend bool) (binPath, pidName string) {
 	binPath = BinaryPath(pm.dataDir, config.BinaryName)
 	pidName = config.BinaryName
@@ -220,7 +220,7 @@ func (pm *ProcessManager) resolvePaths(config BinaryConfig, forceBackend bool) (
 // ProcessStartOptions tweaks process.Start behaviour per-call.
 type ProcessStartOptions struct {
 	// ForceBackend skips the SidechainVariant resolver so the prod-download
-	// binary is launched even when UseTestSidechains is on. Set by sidechain
+	// binary is launched instead of the frontend build. Set by sidechain
 	// Flutter frontends self-booting their backend.
 	ForceBackend bool
 

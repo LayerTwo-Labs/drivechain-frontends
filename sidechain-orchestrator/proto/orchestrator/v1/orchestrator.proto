@@ -171,9 +171,10 @@ message BinaryStatusMsg {
   string version = 20;         // configured version string
   string repo_url = 21;        // source code repository URL
   repeated StartupLogEntryMsg startup_logs = 22; // recent startup progress messages
-  // Absolute path to the launchable binary on disk (variant-aware: returns
-  // bin/test/<binary>/... for active sidechain alt-builds, the resolved
-  // .app/Contents/MacOS path on macOS, etc.). Empty when not downloaded.
+  // Absolute path to the download this request selects (variant-aware: returns
+  // bin/test/<binary>/... for a sidechain frontend, the resolved
+  // .app/Contents/MacOS path on macOS, etc.). force_backend picks the daemon
+  // instead. Empty when that download is not on disk.
   string binary_path = 23;
   // A newer build is published than the one on disk. False while either side
   // is unknown, so a failed check never claims an update.

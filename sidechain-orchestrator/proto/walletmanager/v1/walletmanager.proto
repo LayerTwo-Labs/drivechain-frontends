@@ -120,8 +120,6 @@ service WalletManagerService {
 
   // Test-sidechains toggle. When enabled, layer-2 binaries download/run from
   // the alternative_download config (test builds) instead of the default.
-  rpc GetTestSidechains(GetTestSidechainsRequest) returns (GetTestSidechainsResponse);
-  rpc SetTestSidechains(SetTestSidechainsRequest) returns (SetTestSidechainsResponse);
 
   // Electrum server (Esplora endpoint) selection for electrum wallets.
   rpc GetElectrumServer(GetElectrumServerRequest) returns (GetElectrumServerResponse);
@@ -1122,17 +1120,6 @@ message SetCoreVariantResponse {}
 // Test-sidechains toggle
 // ============================================================================
 
-message GetTestSidechainsRequest {}
-
-message GetTestSidechainsResponse {
-  bool enabled = 1;
-}
-
-message SetTestSidechainsRequest {
-  bool enabled = 1;
-}
-
-message SetTestSidechainsResponse {}
 
 message GetElectrumServerRequest {}
 

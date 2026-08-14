@@ -92,7 +92,7 @@ type StartOpts struct {
 	CoreArgs     []string
 	EnforcerArgs []string
 	Immediate    bool // start target without waiting for L1
-	// ForceBackend bypasses UseTestSidechains for the target binary. Set by
+	// ForceBackend skips the frontend build for the target binary. Set by
 	// sidechain Flutter frontends when self-booting their backend so the
 	// toggle doesn't swap in another Flutter bundle inside them.
 	ForceBackend bool
@@ -192,8 +192,6 @@ type Orchestrator struct {
 	swapEnforcerActive atomic.Bool
 
 	// testSidechainsMu serialises the stop -> persist -> wipe sequence for
-	// SetTestSidechains. Same reason as coreVariantMu.
-	testSidechainsMu sync.Mutex
 
 	// swapNetworkMu serialises the stop -> persist -> restart sequence for
 	// SwapNetwork. Same reason as coreVariantMu.
@@ -337,14 +335,11 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	}
 	orch.process.CoreVariant = variantResolver
 
-	// Sidechain variant resolver: returns the alt fields from BinaryConfig
-	// when the test toggle is on AND the config actually has alt download
-	// data. Anything else falls back to the production fields.
+	// Sidechain variant resolver: returns the alt fields from BinaryConfig,
+	// which are the Flutter frontend build. A layer-2 binary without them, and
+	// a caller that asks for ForceBackend, fall back to the production daemon.
 	sidechainVariantResolver := func(c BinaryConfig) (sidechainVariantSpec, bool) {
 		if c.ChainLayer != 2 || c.AltBinaryName == "" {
-			return sidechainVariantSpec{}, false
-		}
-		if !orch.Settings.UseTestSidechains() {
 			return sidechainVariantSpec{}, false
 		}
 		fileName := fileForPlatform(c.AltFiles)
@@ -556,6 +551,19 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	if err != nil {
 		return 0, err
 	}
+	// A layer-2 binary starts its frontend, which then asks for the backend slot
+	// under this same name, so the frontend takes the GUI slot instead.
+	if config.ChainLayer == 2 && o.process.SidechainVariant != nil {
+		if sv, ok := o.process.SidechainVariant(config); ok {
+			guiName := sidechainGUIProcessName(config.Name)
+			return o.process.StartWithOptions(ctx, config, args, env, ProcessStartOptions{
+				ProcessName: guiName,
+				PidName:     guiName,
+				// A Linux bundle reads its sibling lib/ and data/ trees.
+				WorkDir: filepath.Dir(TestSidechainBinaryPath(o.DataDir, sv.BinaryName)),
+			})
+		}
+	}
 	return o.process.Start(ctx, config, args, env)
 }
 
@@ -665,11 +673,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 			requestedPath = TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
 		}
 	}
-	binPath := requestedPath
-	if proc != nil && proc.BinPath != "" {
-		binPath = proc.BinPath
-	}
-	_, statErr := os.Stat(binPath)
+	_, statErr := os.Stat(requestedPath)
 	downloaded := statErr == nil
 	status := BinaryStatus{
 		Name:         config.Name,
@@ -683,7 +687,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 		RepoURL:      config.RepoURL,
 	}
 	if downloaded {
-		status.BinaryPath = binPath
+		status.BinaryPath = requestedPath
 	}
 
 	if o.releases != nil {
@@ -759,7 +763,7 @@ func (o *Orchestrator) ListAllWithOptions(opts DownloadOptions) []BinaryStatus {
 
 // Logs returns a channel of log entries for a binary and a cancel function.
 func (o *Orchestrator) Logs(name string) (<-chan LogEntry, func(), error) {
-	proc := o.process.Get(name)
+	proc := o.logProcess(name)
 	if proc == nil {
 		return nil, nil, fmt.Errorf("%s is not running", name)
 	}
@@ -769,11 +773,21 @@ func (o *Orchestrator) Logs(name string) (<-chan LogEntry, func(), error) {
 
 // RecentLogs returns the most recent log entries for a binary.
 func (o *Orchestrator) RecentLogs(name string, n int) ([]LogEntry, error) {
-	proc := o.process.Get(name)
+	proc := o.logProcess(name)
 	if proc == nil {
 		return nil, fmt.Errorf("%s is not running", name)
 	}
 	return proc.RecentLogs(n), nil
+}
+
+// logProcess resolves a logical binary name to the process that holds its logs.
+// A sidechain the user starts runs as its frontend in the GUI slot, so asking
+// for "thunder" before its backend registers must reach that frontend.
+func (o *Orchestrator) logProcess(name string) *ManagedProcess {
+	if proc := o.process.Get(name); proc != nil {
+		return proc
+	}
+	return o.process.Get(sidechainGUIProcessName(name))
 }
 
 // prefetchBinary downloads a binary in the background and signals completion
@@ -1441,18 +1455,29 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	// the chain before the target RPC is reachable.
 	targetMon.StartConnectionTimer(ctx)
 
-	if targetMon.Connected() {
-		o.log.Info().Str("binary", config.Name).Msg("target already running, not booting")
-		ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("%s already running", config.DisplayName)}
+	// A call that opens the frontend must reach the launch below even when the
+	// backend already answers: a backend that outlived its window would
+	// otherwise stop Start from opening the window again.
+	opensFrontend := false
+	if !opts.ForceBackend && config.ChainLayer == 2 && o.process.SidechainVariant != nil {
+		_, opensFrontend = o.process.SidechainVariant(config)
+	}
 
+	if targetMon.Connected() {
+		// Adopt first, whichever way this call goes. An unadopted daemon would
+		// survive Stop, because Stop closes only what o.process tracks.
 		if !o.process.IsRunning(config.Name) {
 			pid := o.discoverPid(config)
 			o.process.AdoptProcessWithOptions(config, pid, ProcessStartOptions{ForceBackend: opts.ForceBackend})
 			o.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted externally-running target process")
 		}
 
-		ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
-		return
+		if !opensFrontend {
+			o.log.Info().Str("binary", config.Name).Msg("target already running, not booting")
+			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("%s already running", config.DisplayName)}
+			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+			return
+		}
 	}
 
 	// Mark initializing for the download + start + wait window. testConnection
@@ -1481,12 +1506,13 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		}
 	}
 
-	// GUI bundle (test sidechain): launch the sidechain's own Flutter app as a
-	// managed GUI companion and stop here. It intentionally uses a separate
-	// process slot, so the app's StartWithL1(ForceBackend=true) callback can
-	// still start the real backend daemon under config.Name while BitWindow's
-	// Stop(config.Name) can also close the GUI.
-	if !opts.ForceBackend && config.ChainLayer == 2 && o.process.SidechainVariant != nil {
+	// Launch the sidechain's own Flutter app as a managed GUI companion and stop
+	// here. It uses a separate process slot, so the app's
+	// StartWithL1(ForceBackend=true) callback can still start the real backend
+	// daemon under config.Name while BitWindow's Stop(config.Name) closes the
+	// GUI. It runs after the download above, because the bundle has to be on
+	// disk before it can open.
+	if opensFrontend {
 		if sv, ok := o.process.SidechainVariant(config); ok {
 			guiName := sidechainGUIProcessName(config.Name)
 			if !o.process.IsRunning(guiName) {
@@ -1786,32 +1812,26 @@ func (o *Orchestrator) callEnforcerStopRPC() error {
 }
 
 // AdoptOrphans reads PID files from a previous session and adopts any
-// processes that are still alive. Layer-2 PID files are namespaced by mode
-// (e.g. thunder.pid vs thunder-test.pid) so we can attribute the right
-// owner when the user has flipped the test-sidechains toggle between runs.
+// processes that are still alive. A layer-2 binary writes thunder-test.pid for
+// the frontend build and thunder.pid for a ForceBackend daemon, so the
+// frontend build is adopted first.
 func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 	pids := o.pidManager.ListPidFiles()
-	useTest := o.UseTestSidechains()
 	pidNames := make([]string, 0, len(pids))
 	for pidName := range pids {
 		pidNames = append(pidNames, pidName)
 	}
 	sort.SliceStable(pidNames, func(i, j int) bool {
-		return adoptPriority(pidNames[i], useTest) < adoptPriority(pidNames[j], useTest)
+		return adoptPriority(pidNames[i]) < adoptPriority(pidNames[j])
 	})
 
 	for _, pidName := range pidNames {
 		pid := pids[pidName]
-		// Test PID files are only meaningful while the test-sidechains toggle is
-		// active. Prod PID files are always eligible: sidechain Flutter apps use
-		// --force-backend to run prod backends even when the global toggle is on.
-		// GUI companion PID files are adopted regardless of the toggle so Stop()
-		// can clean up a frontend the orchestrator previously opened.
+		// A prod PID file stays eligible: a sidechain Flutter app runs its own
+		// backend with --force-backend. A GUI companion PID file is adopted too,
+		// so Stop() can clean up a frontend the orchestrator opened.
 		isTestPid := strings.HasSuffix(pidName, "-test")
 		isGUIPid := strings.HasSuffix(pidName, "-gui")
-		if isTestPid && !useTest {
-			continue
-		}
 
 		realBinaryName := pidName
 		if isGUIPid {
@@ -1842,6 +1862,9 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 				binPath = TestSidechainBinaryPath(o.DataDir, realBinaryName)
 			}
 		} else if isTestPid {
+			// A -test PID is a frontend from an older layout. It goes in the GUI
+			// slot, so the backend slot stays free for <sidechain>.pid.
+			config.Name = sidechainGUIProcessName(config.Name)
 			binPath = TestSidechainBinaryPath(o.DataDir, realBinaryName)
 		} else if config.IsMainchainCore() && o.process.CoreVariant != nil {
 			if v, ok := o.process.CoreVariant(config); ok {
@@ -1855,18 +1878,11 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 	return nil
 }
 
-func adoptPriority(pidName string, useTest bool) int {
-	isTestPid := strings.HasSuffix(pidName, "-test")
-	switch {
-	case useTest && isTestPid:
+func adoptPriority(pidName string) int {
+	if strings.HasSuffix(pidName, "-test") {
 		return 0
-	case !useTest && !isTestPid:
-		return 0
-	case useTest && !isTestPid:
-		return 1
-	default:
-		return 2
 	}
+	return 1
 }
 
 // ProcessManager returns the underlying process manager (for direct access if needed).
@@ -2260,86 +2276,6 @@ func (o *Orchestrator) PersistTorConfig(enabled bool, proxy string) error {
 	}
 	_, _, err := o.Settings.SetTorConfig(enabled, proxy)
 	return err
-}
-
-// UseTestSidechains reports the persisted test-sidechains preference.
-func (o *Orchestrator) UseTestSidechains() bool {
-	if o.Settings == nil {
-		return false
-	}
-	return o.Settings.UseTestSidechains()
-}
-
-// SetTestSidechains flips the persisted test-sidechains toggle. The flow is:
-//  1. Stop every running layer-2 (sidechain) binary, escalating to SIGKILL on
-//     graceful failure.
-//  2. Persist the new value before any wipe so a crash leaves coherent state.
-//  3. Wipe on-disk binaries for both production and test layouts so the next
-//     launch redownloads from the correct source.
-//
-// We don't auto-restart anything: the frontend triggers redownload + start
-// on the user's next StartWithL1.
-func (o *Orchestrator) SetTestSidechains(ctx context.Context, enabled bool) error {
-	if o.Settings == nil {
-		return fmt.Errorf("orchestrator settings not initialised")
-	}
-
-	o.testSidechainsMu.Lock()
-	defer o.testSidechainsMu.Unlock()
-
-	if o.Settings.UseTestSidechains() == enabled {
-		return nil
-	}
-
-	// Collect every layer-2 config once; we'll iterate twice (stop + wipe).
-	var l2 []BinaryConfig
-	for _, c := range o.Configs() {
-		if c.ChainLayer == 2 {
-			l2 = append(l2, c)
-		}
-	}
-
-	for _, c := range l2 {
-		if !o.process.IsRunning(c.Name) {
-			continue
-		}
-		if err := o.stopBinary(ctx, c.Name, false); err != nil {
-			o.log.Warn().Err(err).Str("binary", c.Name).Msg("graceful stop failed during test-sidechains switch, escalating to SIGKILL")
-			if killErr := o.stopBinary(ctx, c.Name, true); killErr != nil {
-				return fmt.Errorf("stop %s for test-sidechains switch: graceful failed (%v) and force kill failed: %w", c.Name, err, killErr)
-			}
-		}
-	}
-
-	if _, err := o.Settings.SetUseTestSidechains(enabled); err != nil {
-		return fmt.Errorf("persist test-sidechains: %w", err)
-	}
-
-	for _, c := range l2 {
-		o.wipeSidechainBinaries(c)
-	}
-	return nil
-}
-
-// wipeSidechainBinaries removes both prod and test on-disk layouts for a
-// layer-2 config so the next download writes to a clean slot. Logs every
-// removal so the user has a paper trail of what got nuked.
-func (o *Orchestrator) wipeSidechainBinaries(c BinaryConfig) {
-	prodPath := BinaryPath(o.DataDir, c.BinaryName)
-	if err := os.Remove(prodPath); err == nil {
-		o.log.Info().Str("binary", c.Name).Str("path", prodPath).Msg("wiped sidechain binary (prod) for test-sidechains switch")
-	} else if !os.IsNotExist(err) {
-		o.log.Warn().Err(err).Str("path", prodPath).Msg("could not remove prod sidechain binary")
-	}
-
-	if c.AltBinaryName != "" {
-		testPath := TestSidechainBinaryPath(o.DataDir, c.AltBinaryName)
-		if err := os.Remove(testPath); err == nil {
-			o.log.Info().Str("binary", c.Name).Str("path", testPath).Msg("wiped sidechain binary (test) for test-sidechains switch")
-		} else if !os.IsNotExist(err) {
-			o.log.Warn().Err(err).Str("path", testPath).Msg("could not remove test sidechain binary")
-		}
-	}
 }
 
 // stopBitcoindForVariantSwap stops bitcoind, escalating to SIGKILL on graceful
