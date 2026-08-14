@@ -76,11 +76,6 @@ class _FakeOrchestratorWallet implements OrchestratorWalletRPC {
   }
 
   @override
-  Future<wmpb.GetTestSidechainsResponse> getTestSidechains() async {
-    return wmpb.GetTestSidechainsResponse();
-  }
-
-  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

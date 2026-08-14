@@ -14,7 +14,6 @@ class SettingsProvider extends ChangeNotifier {
 
   // Individual setting variables
   bool debugMode = false;
-  bool useTestSidechains = true;
   BitwindowSettings bitwindowSettings = BitwindowSettings();
   SailFontValues font = SailFontValues.inter;
   double fontScale = 1.0;
@@ -36,7 +35,6 @@ class SettingsProvider extends ChangeNotifier {
   /// Load all settings from storage
   Future<void> _loadAllSettings() async {
     await _loadDebugMode();
-    await _loadUseTestSidechains();
     await _loadBitwindowSettings();
     await _loadFont();
     await _loadFontScale();
@@ -67,70 +65,6 @@ class SettingsProvider extends ChangeNotifier {
       debugMode = !value;
       notifyListeners();
       log.e('Failed to update debug mode', error: e);
-      rethrow;
-    }
-  }
-
-  /// Load use test sidechains setting. The orchestrator owns the source of
-  /// truth (it has to so that orchestratord launches the right binary even
-  /// without a Flutter UI running) — ClientSettings is just a UI-side cache
-  /// so first paint doesn't have to await an RPC.
-  Future<void> _loadUseTestSidechains() async {
-    // Cache first so the toggle doesn't flicker on first paint.
-    final setting = UseTestSidechainsSetting();
-    final loadedSetting = await clientSettings.getValue(setting);
-    useTestSidechains = loadedSetting.value;
-    notifyListeners();
-
-    // Reconcile against the orchestrator if it's already registered. On most
-    // boots it isn't — SettingsProvider.create runs before the orchestrator
-    // is registered — and callers must invoke [reconcileUseTestSidechainsFromOrchestrator]
-    // once orchestratord becomes ready.
-    await reconcileUseTestSidechainsFromOrchestrator();
-  }
-
-  /// Re-fetch the test-sidechains flag from orchestratord and update the
-  /// local cache + listeners if it differs. Safe to call multiple times;
-  /// no-op when OrchestratorRPC isn't registered yet.
-  Future<void> reconcileUseTestSidechainsFromOrchestrator() async {
-    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
-      return;
-    }
-    try {
-      final resp = await GetIt.I.get<OrchestratorRPC>().wallet.getTestSidechains();
-      if (useTestSidechains != resp.enabled) {
-        useTestSidechains = resp.enabled;
-        notifyListeners();
-        // Push back to the cache so a future startup with no orchestrator
-        // (e.g. headless tooling) sees the right initial value.
-        await clientSettings.setValue(UseTestSidechainsSetting(newValue: resp.enabled));
-      }
-    } catch (e) {
-      log.d('Could not reconcile test-sidechains with orchestrator: $e');
-    }
-  }
-
-  /// Update use test sidechains setting. The orchestrator handles stop +
-  /// wipe + persistence; we just mirror the result into the local cache.
-  Future<void> updateUseTestSidechains(bool value) async {
-    if (useTestSidechains == value) {
-      return;
-    }
-
-    final previous = useTestSidechains;
-    try {
-      useTestSidechains = value;
-      notifyListeners();
-
-      await GetIt.I.get<OrchestratorRPC>().wallet.setTestSidechains(value);
-
-      // Cache the new value so headless boots get it for free.
-      await clientSettings.setValue(UseTestSidechainsSetting(newValue: value));
-    } catch (e) {
-      // Revert on error
-      useTestSidechains = previous;
-      notifyListeners();
-      log.e('Failed to update use test sidechains', error: e);
       rethrow;
     }
   }

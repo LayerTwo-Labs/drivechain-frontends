@@ -117,6 +117,17 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.RestoreWalletBackupProgressResponse.new,
   );
 
+  /// SwapEnforcerWallet loads a different seed into the enforcer: stops the
+  /// daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
+  /// entry in wallet.json from the given mnemonic, and restarts the daemon.
+  /// Sidechain starters keep the seed their daemons were built from.
+  static const swapEnforcerWallet = connect.Spec(
+    '/$name/SwapEnforcerWallet',
+    connect.StreamType.server,
+    walletmanagerv1walletmanager.SwapEnforcerWalletRequest.new,
+    walletmanagerv1walletmanager.SwapEnforcerWalletProgressResponse.new,
+  );
+
   static const createWatchOnlyWallet = connect.Spec(
     '/$name/CreateWatchOnlyWallet',
     connect.StreamType.unary,
@@ -458,22 +469,6 @@ abstract final class WalletManagerService {
     connect.StreamType.unary,
     walletmanagerv1walletmanager.SetCoreVariantRequest.new,
     walletmanagerv1walletmanager.SetCoreVariantResponse.new,
-  );
-
-  /// Test-sidechains toggle. When enabled, layer-2 binaries download/run from
-  /// the alternative_download config (test builds) instead of the default.
-  static const getTestSidechains = connect.Spec(
-    '/$name/GetTestSidechains',
-    connect.StreamType.unary,
-    walletmanagerv1walletmanager.GetTestSidechainsRequest.new,
-    walletmanagerv1walletmanager.GetTestSidechainsResponse.new,
-  );
-
-  static const setTestSidechains = connect.Spec(
-    '/$name/SetTestSidechains',
-    connect.StreamType.unary,
-    walletmanagerv1walletmanager.SetTestSidechainsRequest.new,
-    walletmanagerv1walletmanager.SetTestSidechainsResponse.new,
   );
 
   /// Electrum server (Esplora endpoint) selection for electrum wallets.

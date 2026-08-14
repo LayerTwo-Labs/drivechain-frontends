@@ -195,7 +195,6 @@ export 'settings/font_size_settings.dart';
 export 'settings/hash_plaintext_settings.dart';
 export 'settings/secure_store.dart';
 export 'settings/news_warning_settings.dart';
-export 'settings/test_sidechains_settings.dart';
 export 'settings/bitwindow_settings.dart';
 export 'settings/notification_history_setting.dart';
 export 'settings/theme_settings.dart';

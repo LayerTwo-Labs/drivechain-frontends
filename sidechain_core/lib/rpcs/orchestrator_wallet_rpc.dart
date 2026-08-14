@@ -594,14 +594,6 @@ class OrchestratorWalletRPC {
     return _unaryClient.setCoreVariant(wmpb.SetCoreVariantRequest(id: id));
   }
 
-  Future<wmpb.GetTestSidechainsResponse> getTestSidechains() {
-    return _unaryClient.getTestSidechains(wmpb.GetTestSidechainsRequest());
-  }
-
-  Future<wmpb.SetTestSidechainsResponse> setTestSidechains(bool enabled) {
-    return _unaryClient.setTestSidechains(wmpb.SetTestSidechainsRequest(enabled: enabled));
-  }
-
   Future<wmpb.GetElectrumServerResponse> getElectrumServer() {
     return _unaryClient.getElectrumServer(wmpb.GetElectrumServerRequest());
   }

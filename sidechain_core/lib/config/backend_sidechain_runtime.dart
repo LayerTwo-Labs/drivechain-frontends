@@ -82,7 +82,7 @@ Future<void> bootBackendManagedSidechain({
       binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Starting orchestratord...');
 
       // Pass --binary flag so orchestratord auto-boots the sidechain with deps.
-      // --force-backend pairs with it so the auto-boot ignores UseTestSidechains
+      // --force-backend pairs with it so the auto-boot skips the frontend build
       // (see hot-start path above for the rationale).
       final orchestratord = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD);
       orchestratord.addBootArg('--binary=$targetBinaryName');
