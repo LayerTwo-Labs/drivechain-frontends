@@ -726,13 +726,17 @@ const ChainSync$json = {
     {'1': 'headers', '3': 2, '4': 1, '5': 5, '10': 'headers'},
     {'1': 'time', '3': 3, '4': 1, '5': 3, '10': 'time'},
     {'1': 'error', '3': 4, '4': 1, '5': 9, '10': 'error'},
+    {'1': 'peer_best_height', '3': 5, '4': 1, '5': 5, '10': 'peerBestHeight'},
+    {'1': 'rejected_branch', '3': 6, '4': 1, '5': 8, '10': 'rejectedBranch'},
   ],
 };
 
 /// Descriptor for `ChainSync`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List chainSyncDescriptor =
     $convert.base64Decode('CglDaGFpblN5bmMSFgoGYmxvY2tzGAEgASgFUgZibG9ja3MSGAoHaGVhZGVycxgCIAEoBVIHaG'
-        'VhZGVycxISCgR0aW1lGAMgASgDUgR0aW1lEhQKBWVycm9yGAQgASgJUgVlcnJvcg==');
+        'VhZGVycxISCgR0aW1lGAMgASgDUgR0aW1lEhQKBWVycm9yGAQgASgJUgVlcnJvchIoChBwZWVy'
+        'X2Jlc3RfaGVpZ2h0GAUgASgFUg5wZWVyQmVzdEhlaWdodBInCg9yZWplY3RlZF9icmFuY2gYBi'
+        'ABKAhSDnJlamVjdGVkQnJhbmNo');
 
 @$core.Deprecated('Use getDownloadStatusRequestDescriptor instead')
 const GetDownloadStatusRequest$json = {

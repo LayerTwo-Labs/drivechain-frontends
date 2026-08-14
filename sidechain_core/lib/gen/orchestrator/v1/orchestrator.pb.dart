@@ -3492,6 +3492,8 @@ class ChainSync extends $pb.GeneratedMessage {
     $core.int? headers,
     $fixnum.Int64? time,
     $core.String? error,
+    $core.int? peerBestHeight,
+    $core.bool? rejectedBranch,
   }) {
     final $result = create();
     if (blocks != null) {
@@ -3505,6 +3507,12 @@ class ChainSync extends $pb.GeneratedMessage {
     }
     if (error != null) {
       $result.error = error;
+    }
+    if (peerBestHeight != null) {
+      $result.peerBestHeight = peerBestHeight;
+    }
+    if (rejectedBranch != null) {
+      $result.rejectedBranch = rejectedBranch;
     }
     return $result;
   }
@@ -3520,6 +3528,8 @@ class ChainSync extends $pb.GeneratedMessage {
     ..a<$core.int>(2, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.O3)
     ..aInt64(3, _omitFieldNames ? '' : 'time')
     ..aOS(4, _omitFieldNames ? '' : 'error')
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'peerBestHeight', $pb.PbFieldType.O3)
+    ..aOB(6, _omitFieldNames ? '' : 'rejectedBranch')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -3595,6 +3605,34 @@ class ChainSync extends $pb.GeneratedMessage {
   $core.bool hasError() => $_has(3);
   @$pb.TagNumber(4)
   void clearError() => clearField(4);
+
+  /// Highest tip the node's peers announce, 0 when unknown. Mainchain only.
+  @$pb.TagNumber(5)
+  $core.int get peerBestHeight => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set peerBestHeight($core.int v) {
+    $_setSignedInt32(4, v);
+  }
+
+  @$pb.TagNumber(5)
+  $core.bool hasPeerBestHeight() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPeerBestHeight() => clearField(5);
+
+  /// True when the node marked a branch at or above its own tip invalid.
+  /// With a higher peer_best_height it means the node left the network's
+  /// chain, which blocks and headers alone never show. Mainchain only.
+  @$pb.TagNumber(6)
+  $core.bool get rejectedBranch => $_getBF(5);
+  @$pb.TagNumber(6)
+  set rejectedBranch($core.bool v) {
+    $_setBool(5, v);
+  }
+
+  @$pb.TagNumber(6)
+  $core.bool hasRejectedBranch() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRejectedBranch() => clearField(6);
 }
 
 class GetDownloadStatusRequest extends $pb.GeneratedMessage {

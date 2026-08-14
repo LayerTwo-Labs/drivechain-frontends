@@ -2678,9 +2678,15 @@ type ChainSync struct {
 	Time int64 `protobuf:"varint,3,opt,name=time,proto3" json:"time,omitempty"`
 	// Empty on success; otherwise a short description of why this daemon's
 	// sync info isn't available (not running, RPC error, etc.).
-	Error         string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	// Highest tip the node's peers announce, 0 when unknown. Mainchain only.
+	PeerBestHeight int32 `protobuf:"varint,5,opt,name=peer_best_height,json=peerBestHeight,proto3" json:"peer_best_height,omitempty"`
+	// True when the node marked a branch at or above its own tip invalid.
+	// With a higher peer_best_height it means the node left the network's
+	// chain, which blocks and headers alone never show. Mainchain only.
+	RejectedBranch bool `protobuf:"varint,6,opt,name=rejected_branch,json=rejectedBranch,proto3" json:"rejected_branch,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ChainSync) Reset() {
@@ -2739,6 +2745,20 @@ func (x *ChainSync) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *ChainSync) GetPeerBestHeight() int32 {
+	if x != nil {
+		return x.PeerBestHeight
+	}
+	return 0
+}
+
+func (x *ChainSync) GetRejectedBranch() bool {
+	if x != nil {
+		return x.RejectedBranch
+	}
+	return false
 }
 
 type GetDownloadStatusRequest struct {
@@ -4370,12 +4390,14 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0fenforcer_wallet\x18\x05 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x0eenforcerWallet\"u\n" +
 	"\x0fSidechainStatus\x122\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1e.orchestrator.v1.SidechainTypeR\x04type\x12.\n" +
-	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"g\n" +
+	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"\xba\x01\n" +
 	"\tChainSync\x12\x16\n" +
 	"\x06blocks\x18\x01 \x01(\x05R\x06blocks\x12\x18\n" +
 	"\aheaders\x18\x02 \x01(\x05R\aheaders\x12\x12\n" +
 	"\x04time\x18\x03 \x01(\x03R\x04time\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"\x1a\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12(\n" +
+	"\x10peer_best_height\x18\x05 \x01(\x05R\x0epeerBestHeight\x12'\n" +
+	"\x0frejected_branch\x18\x06 \x01(\bR\x0erejectedBranch\"\x1a\n" +
 	"\x18GetDownloadStatusRequest\"Z\n" +
 	"\x19GetDownloadStatusResponse\x12=\n" +
 	"\tdownloads\x18\x01 \x03(\v2\x1f.orchestrator.v1.DownloadStatusR\tdownloads\"\x9f\x01\n" +
