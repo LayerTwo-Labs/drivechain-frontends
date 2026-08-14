@@ -651,17 +651,21 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	}
 
 	proc := o.process.Get(name)
-	binPath := BinaryPath(o.DataDir, config.BinaryName)
+	// requestedPath is the download this caller's own options select. A running
+	// process can come from the other one — a sidechain app boots its prod
+	// backend under the same name — so the release check must not read its path.
+	requestedPath := BinaryPath(o.DataDir, config.BinaryName)
 	if config.IsMainchainCore() && o.Settings != nil {
 		if v, ok := config.Variants[o.Settings.CoreVariant()]; ok {
-			binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
+			requestedPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 		}
 	}
 	if o.process.SidechainVariant != nil && !opts.ForceBackend {
 		if sv, ok := o.process.SidechainVariant(config); ok {
-			binPath = TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
+			requestedPath = TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
 		}
 	}
+	binPath := requestedPath
 	if proc != nil && proc.BinPath != "" {
 		binPath = proc.BinPath
 	}
@@ -683,7 +687,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	}
 
 	if o.releases != nil {
-		if check, ok := o.releases.Check(config, o.CurrentNetwork(), binPath); ok {
+		if check, ok := o.releases.Check(config, o.CurrentNetwork(), requestedPath); ok {
 			status.UpdateAvailable = check.UpdateAvailable()
 			status.RemoteTimestamp = check.Remote
 			status.LocalTimestamp = check.Local
