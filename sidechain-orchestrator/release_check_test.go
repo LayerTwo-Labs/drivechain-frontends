@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -333,4 +334,52 @@ func TestReleaseCheckerReadsTheLocalTimeLive(t *testing.T) {
 	check, ok = checker.Check(config, "signet", binPath)
 	require.True(t, ok)
 	assert.False(t, check.UpdateAvailable(), "the button must clear as soon as the file changes")
+}
+
+// A sidechain app boots its production backend under the same name, so the
+// running process can be the other download. The check must follow the
+// caller's own options, because that is what its update button will replace.
+func TestStatusChecksTheRequestedDownloadNotTheRunningOne(t *testing.T) {
+	testBuilt := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	prodBuilt := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		built := prodBuilt
+		if strings.Contains(r.URL.Path, "test") {
+			built = testBuilt
+		}
+		w.Header().Set("Last-Modified", built.Format(http.TimeFormat))
+	}))
+	defer server.Close()
+
+	dataDir, bwDir := t.TempDir(), t.TempDir()
+	cfg := makeSidechainConfig(server.URL + "/")
+	o := New(dataDir, "signet", bwDir, []BinaryConfig{cfg}, testLogger(t))
+	require.NoError(t, o.SetTestSidechains(context.Background(), true))
+
+	// The test build is older than its release, so an update is waiting. The
+	// production backend is newer than its release, so it has none.
+	testPath := TestSidechainBinaryPath(dataDir, cfg.AltBinaryName)
+	prodPath := BinaryPath(dataDir, cfg.BinaryName)
+	for path, built := range map[string]time.Time{
+		testPath: testBuilt.Add(-time.Hour),
+		prodPath: prodBuilt.Add(time.Hour),
+	} {
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte("bin"), 0o755))
+		require.NoError(t, os.Chtimes(path, built, built))
+	}
+
+	o.releases.Refresh(context.Background(), cfg, "signet")
+
+	// The sidechain app launched the production backend under the same name.
+	o.process.mu.Lock()
+	o.process.processes[cfg.Name] = &ManagedProcess{Config: cfg, Pid: 1, BinPath: prodPath}
+	o.process.mu.Unlock()
+
+	status := o.Status(cfg.Name)
+	assert.True(t, status.UpdateAvailable, "a default request must read the test build it would replace")
+
+	backend := o.StatusWithOptions(cfg.Name, DownloadOptions{ForceBackend: true})
+	assert.False(t, backend.UpdateAvailable, "force_backend must read the production build")
 }
