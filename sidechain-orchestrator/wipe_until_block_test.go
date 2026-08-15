@@ -18,6 +18,8 @@ type fakeCore struct {
 	methods []string
 	// headers answers getblockheader by hash: height and confirmations.
 	headers map[string][2]int64
+	// parents answers getblockheader by hash with a previousblockhash.
+	parents map[string]string
 }
 
 func (f *fakeCore) start(t *testing.T) *CoreStatusClient {
@@ -58,6 +60,10 @@ func (f *fakeCore) start(t *testing.T) *CoreStatusClient {
 				t.Errorf("decode getblockheader hash: %v", err)
 				return
 			}
+			if parent, ok := f.parents[hash]; ok {
+				result = fmt.Sprintf(`{"previousblockhash":%q}`, parent)
+				break
+			}
 			header, ok := f.headers[hash]
 			if !ok {
 				http.Error(w, `{"result":null,"error":{"code":-5,"message":"Block not found"}}`, http.StatusOK)
@@ -83,7 +89,7 @@ func TestRollBackCoreInvalidatesTheBlockAboveTheHeight(t *testing.T) {
 		hashes: map[int64]string{979001: "0000000000000000000abc"},
 	}
 
-	hash, err := rollBackCore(context.Background(), core.start(t), 979000)
+	hash, err := rollBackCore(context.Background(), core.start(t), 979000, "")
 	if err != nil {
 		t.Fatalf("rollBackCore: %v", err)
 	}
@@ -98,7 +104,7 @@ func TestRollBackCoreInvalidatesTheBlockAboveTheHeight(t *testing.T) {
 func TestRollBackCoreRejectsAHeightAtOrAboveTheTip(t *testing.T) {
 	core := &fakeCore{tips: []int64{979000}}
 
-	_, err := rollBackCore(context.Background(), core.start(t), 979000)
+	_, err := rollBackCore(context.Background(), core.start(t), 979000, "")
 	if err == nil {
 		t.Fatal("rollBackCore accepted the tip height, want an error")
 	}
@@ -115,7 +121,7 @@ func TestRollBackCoreFailsWhenTheTipDoesNotMove(t *testing.T) {
 		hashes: map[int64]string{979001: "0000000000000000000abc"},
 	}
 
-	if _, err := rollBackCore(context.Background(), core.start(t), 979000); err == nil {
+	if _, err := rollBackCore(context.Background(), core.start(t), 979000, ""); err == nil {
 		t.Fatal("rollBackCore reported success with an unchanged tip")
 	}
 }
@@ -165,5 +171,21 @@ func TestResolveRollbackHeightPassesAPlainHeight(t *testing.T) {
 	}
 	if len(core.methods) != 0 {
 		t.Errorf("rpc calls = %v, want none for a plain height", core.methods)
+	}
+}
+
+// A reorg can put another block at the height between the header read and the
+// invalidation, and its child is not the block the caller named.
+func TestRollBackCoreRefusesWhenTheNamedBlockMoved(t *testing.T) {
+	core := &fakeCore{
+		tips:    []int64{979472, 979000},
+		hashes:  map[int64]string{979001: "0000000000000000000abc"},
+		headers: map[string][2]int64{},
+		parents: map[string]string{"0000000000000000000abc": "0000000000000000000fff"},
+	}
+
+	_, err := rollBackCore(context.Background(), core.start(t), 979000, "0000000000000000000eee")
+	if err == nil {
+		t.Fatal("rollBackCore invalidated a block whose parent is not the named one")
 	}
 }

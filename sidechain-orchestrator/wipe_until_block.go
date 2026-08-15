@@ -78,7 +78,7 @@ func (o *Orchestrator) WipeUntilBlock(ctx context.Context, target RollbackTarget
 		return WipeUntilBlockResult{}, err
 	}
 
-	hash, err := rollBackCore(ctx, client, height)
+	hash, err := rollBackCore(ctx, client, height, target.Hash)
 	if err != nil {
 		return WipeUntilBlockResult{}, err
 	}
@@ -159,7 +159,7 @@ func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
 
 // rollBackCore invalidates the first block above height and returns its hash.
 // Core disconnects the branch down to height and keeps every block on disk.
-func rollBackCore(ctx context.Context, client *CoreStatusClient, height uint32) (string, error) {
+func rollBackCore(ctx context.Context, client *CoreStatusClient, height uint32, keepHash string) (string, error) {
 	tip, err := client.GetBlockCount(ctx)
 	if err != nil {
 		return "", fmt.Errorf("read core tip: %w", err)
@@ -171,6 +171,17 @@ func rollBackCore(ctx context.Context, client *CoreStatusClient, height uint32) 
 	hash, err := blockHashAt(ctx, client, int64(height)+1)
 	if err != nil {
 		return "", err
+	}
+	// A reorg between the header read and this one can put another block at
+	// the height, and its child is not the block the caller named.
+	if keepHash != "" {
+		parent, err := blockParentHash(ctx, client, hash)
+		if err != nil {
+			return "", err
+		}
+		if parent != keepHash {
+			return "", fmt.Errorf("block %s no longer sits at height %d", keepHash, height)
+		}
 	}
 	if _, err := client.call(ctx, "invalidateblock", hash); err != nil {
 		return "", fmt.Errorf("invalidate block %s: %w", hash, err)
@@ -184,6 +195,21 @@ func rollBackCore(ctx context.Context, client *CoreStatusClient, height uint32) 
 		return "", fmt.Errorf("core tip is %d after the rollback, want %d", newTip, height)
 	}
 	return hash, nil
+}
+
+// blockParentHash reads the hash of the block a block builds on.
+func blockParentHash(ctx context.Context, client *CoreStatusClient, hash string) (string, error) {
+	raw, err := client.call(ctx, "getblockheader", hash)
+	if err != nil {
+		return "", fmt.Errorf("get block header %s: %w", hash, err)
+	}
+	var header struct {
+		PreviousBlockHash string `json:"previousblockhash"`
+	}
+	if err := json.Unmarshal(raw, &header); err != nil {
+		return "", fmt.Errorf("decode block header %s: %w", hash, err)
+	}
+	return header.PreviousBlockHash, nil
 }
 
 func blockHashAt(ctx context.Context, client *CoreStatusClient, height int64) (string, error) {
