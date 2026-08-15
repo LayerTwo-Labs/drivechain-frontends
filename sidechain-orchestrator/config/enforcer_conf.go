@@ -1,10 +1,16 @@
 package config
 
 import (
+	"context"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -335,6 +341,97 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 	}
 
 	return args
+}
+
+const (
+	esploraProbeTimeout  = 5 * time.Second
+	electrumProbeTimeout = 5 * time.Second
+)
+
+// EsploraArgURL returns the URL of the --wallet-esplora-url argument.
+func EsploraArgURL(args []string) (string, bool) {
+	for _, arg := range args {
+		if url, ok := strings.CutPrefix(arg, "--wallet-esplora-url="); ok {
+			return url, true
+		}
+	}
+	return "", false
+}
+
+// EsploraReachable reports whether an esplora server answers its tip query.
+func EsploraReachable(ctx context.Context, baseURL string) bool {
+	ctx, cancel := context.WithTimeout(ctx, esploraProbeTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSuffix(baseURL, "/")+"/blocks/tip/height", nil)
+	if err != nil {
+		return false
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer res.Body.Close() //nolint:errcheck // cleanup
+	return res.StatusCode == http.StatusOK
+}
+
+// ElectrumReachable reports whether an electrum server answers a version
+// handshake. A TLS terminator in front of a dead electrs accepts the
+// connection and then serves nothing, so a dial alone proves nothing.
+func ElectrumReachable(ctx context.Context, host string, port uint16) bool {
+	if host == "" {
+		return false
+	}
+	name, secure := strings.CutPrefix(host, "ssl://")
+	address := fmt.Sprintf("%s:%d", name, port)
+
+	ctx, cancel := context.WithTimeout(ctx, electrumProbeTimeout)
+	defer cancel()
+
+	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
+	if err != nil {
+		return false
+	}
+	if secure {
+		conn = tls.Client(conn, &tls.Config{ServerName: name, MinVersion: tls.VersionTLS12})
+	}
+	defer conn.Close() //nolint:errcheck // cleanup
+
+	deadline, _ := ctx.Deadline()
+	if err := conn.SetDeadline(deadline); err != nil {
+		return false
+	}
+	if _, err := conn.Write([]byte(`{"jsonrpc":"2.0","id":0,"method":"server.version","params":["bitwindow","1.4"]}` + "\n")); err != nil {
+		return false
+	}
+
+	var reply struct {
+		Result []string `json:"result"`
+	}
+	if err := json.NewDecoder(conn).Decode(&reply); err != nil {
+		return false
+	}
+	return len(reply.Result) > 0
+}
+
+// WithElectrumFallback points the enforcer wallet at an electrum server in
+// place of esplora. A pinned wallet-sync-source wins, and so does an empty host.
+func WithElectrumFallback(args []string, host string, port uint16) []string {
+	pinned := slices.ContainsFunc(args, func(arg string) bool {
+		return strings.HasPrefix(arg, "--wallet-sync-source=")
+	})
+	if host == "" || pinned {
+		return args
+	}
+
+	out := slices.DeleteFunc(slices.Clone(args), func(arg string) bool {
+		return strings.HasPrefix(arg, "--wallet-esplora-url=")
+	})
+	return append(out,
+		"--wallet-sync-source=electrum",
+		fmt.Sprintf("--wallet-electrum-host=%s", host),
+		fmt.Sprintf("--wallet-electrum-port=%d", port),
+	)
 }
 
 // ---------------------------------------------------------------------------

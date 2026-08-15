@@ -918,6 +918,29 @@ func (o *Orchestrator) prepareEnforcerArgs(opts *StartOpts) {
 	}
 	opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
 	o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
+	o.applyElectrumFallback(opts)
+}
+
+// applyElectrumFallback moves the enforcer wallet to electrum when the
+// network's esplora server does not answer. A dead sync backend otherwise
+// blocks the enforcer before it opens its gRPC port.
+func (o *Orchestrator) applyElectrumFallback(opts *StartOpts) {
+	if o.BitcoinConf == nil {
+		return
+	}
+	esplora, ok := config.EsploraArgURL(opts.EnforcerArgs)
+	if !ok || config.EsploraReachable(context.Background(), esplora) {
+		return
+	}
+
+	host, port := config.ElectrumHostPortForNetwork(o.BitcoinConf.Network)
+	if !config.ElectrumReachable(context.Background(), host, port) {
+		o.log.Warn().Str("esplora", esplora).Msg("esplora unreachable and no electrum server answers; enforcer wallet waits")
+		return
+	}
+
+	opts.EnforcerArgs = config.WithElectrumFallback(opts.EnforcerArgs, host, port)
+	o.log.Warn().Str("esplora", esplora).Str("electrum", host).Msg("esplora unreachable, enforcer wallet reads electrum")
 }
 
 // injectSidechainStarter writes the sidechain seed to a temp file and appends

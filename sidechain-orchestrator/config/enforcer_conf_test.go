@@ -591,3 +591,37 @@ func TestGetCliArgs_PersistedCookieSuppressesDerivedUser(t *testing.T) {
 	assert.False(t, hasArgPrefix(args, "--node-rpc-user="), "got %v", args)
 	assert.False(t, hasArgPrefix(args, "--node-rpc-pass="), "got %v", args)
 }
+
+func TestWithElectrumFallbackReplacesEsplora(t *testing.T) {
+	args := []string{"--enable-wallet", "--wallet-esplora-url=https://esplora.drynet4.drivechain.dev"}
+
+	got := WithElectrumFallback(args, "ssl://drynet4.drivechain.dev", 50002)
+
+	assert.Contains(t, got, "--enable-wallet")
+	assert.Contains(t, got, "--wallet-sync-source=electrum")
+	assert.Contains(t, got, "--wallet-electrum-host=ssl://drynet4.drivechain.dev")
+	assert.Contains(t, got, "--wallet-electrum-port=50002")
+	assert.False(t, hasArgPrefix(got, "--wallet-esplora-url="), "got %v", got)
+}
+
+// A pinned sync source is the user's choice, so the probe must not undo it.
+func TestWithElectrumFallbackKeepsPinnedSyncSource(t *testing.T) {
+	args := []string{"--wallet-esplora-url=https://esplora.example", "--wallet-sync-source=disabled"}
+
+	assert.Equal(t, args, WithElectrumFallback(args, "ssl://node.example", 50002))
+}
+
+func TestWithElectrumFallbackKeepsArgsWithoutElectrumServer(t *testing.T) {
+	args := []string{"--wallet-esplora-url=https://esplora.example"}
+
+	assert.Equal(t, args, WithElectrumFallback(args, "", 0))
+}
+
+func TestEsploraArgURL(t *testing.T) {
+	url, ok := EsploraArgURL([]string{"--enable-wallet", "--wallet-esplora-url=https://esplora.example"})
+	assert.True(t, ok)
+	assert.Equal(t, "https://esplora.example", url)
+
+	_, ok = EsploraArgURL([]string{"--enable-wallet"})
+	assert.False(t, ok)
+}
