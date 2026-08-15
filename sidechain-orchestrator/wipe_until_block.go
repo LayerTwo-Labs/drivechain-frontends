@@ -23,12 +23,47 @@ type WipeUntilBlockResult struct {
 	EnforcerRebuilt      bool
 }
 
-// WipeUntilBlock rolls the chain back to height in place of a full wipe. Core
-// invalidates the first block above the height, which disconnects the branch
-// but leaves every block on disk, so a later sync downloads nothing it already
-// has. The enforcer has no rollback RPC: it gets a window to follow the
-// reorg, and its validator chain is deleted only when it does not.
-func (o *Orchestrator) WipeUntilBlock(ctx context.Context, height uint32, enforcerWait time.Duration) (WipeUntilBlockResult, error) {
+// RollbackTarget names the last block to keep, by height or by hash. Exactly
+// one of the two carries the answer.
+type RollbackTarget struct {
+	Height uint32
+	Hash   string
+}
+
+// resolveRollbackHeight turns a target into the height of the last block to
+// keep. A hash off the active chain names no height, so it is refused rather
+// than rolled back to the wrong branch.
+func resolveRollbackHeight(ctx context.Context, client *CoreStatusClient, target RollbackTarget) (uint32, error) {
+	if target.Hash == "" {
+		return target.Height, nil
+	}
+	if target.Height != 0 {
+		return 0, fmt.Errorf("pass a height or a block hash, not both")
+	}
+
+	raw, err := client.call(ctx, "getblockheader", target.Hash)
+	if err != nil {
+		return 0, fmt.Errorf("get block header %s: %w", target.Hash, err)
+	}
+	var header struct {
+		Height        int64 `json:"height"`
+		Confirmations int64 `json:"confirmations"`
+	}
+	if err := json.Unmarshal(raw, &header); err != nil {
+		return 0, fmt.Errorf("decode block header %s: %w", target.Hash, err)
+	}
+	if header.Confirmations < 0 {
+		return 0, fmt.Errorf("block %s is not on the active chain", target.Hash)
+	}
+	return uint32(header.Height), nil
+}
+
+// WipeUntilBlock rolls the chain back to the target block in place of a full
+// wipe. Core invalidates the first block above it, which disconnects the
+// branch but leaves every block on disk, so a later sync downloads nothing it
+// already has. The enforcer has no rollback RPC: it gets a window to follow
+// the reorg, and its validator chain is deleted only when it does not.
+func (o *Orchestrator) WipeUntilBlock(ctx context.Context, target RollbackTarget, enforcerWait time.Duration) (WipeUntilBlockResult, error) {
 	if enforcerWait <= 0 {
 		enforcerWait = defaultEnforcerReorgWait
 	}
@@ -36,6 +71,11 @@ func (o *Orchestrator) WipeUntilBlock(ctx context.Context, height uint32, enforc
 	client, err := o.CoreStatusClient()
 	if err != nil {
 		return WipeUntilBlockResult{}, fmt.Errorf("bitcoin core rpc: %w", err)
+	}
+
+	height, err := resolveRollbackHeight(ctx, client, target)
+	if err != nil {
+		return WipeUntilBlockResult{}, err
 	}
 
 	hash, err := rollBackCore(ctx, client, height)

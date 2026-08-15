@@ -10,12 +10,14 @@ import (
 	"testing"
 )
 
-// fakeCore answers the three RPCs a rollback makes. tips is read one entry per
+// fakeCore answers the RPCs a rollback makes. tips is read one entry per
 // getblockcount, so a test can move the tip after the invalidation.
 type fakeCore struct {
 	tips    []int64
 	hashes  map[int64]string
 	methods []string
+	// headers answers getblockheader by hash: height and confirmations.
+	headers map[string][2]int64
 }
 
 func (f *fakeCore) start(t *testing.T) *CoreStatusClient {
@@ -50,6 +52,18 @@ func (f *fakeCore) start(t *testing.T) *CoreStatusClient {
 				return
 			}
 			result = `"` + hash + `"`
+		case "getblockheader":
+			var hash string
+			if err := json.Unmarshal(req.Params[0], &hash); err != nil {
+				t.Errorf("decode getblockheader hash: %v", err)
+				return
+			}
+			header, ok := f.headers[hash]
+			if !ok {
+				http.Error(w, `{"result":null,"error":{"code":-5,"message":"Block not found"}}`, http.StatusOK)
+				return
+			}
+			result = fmt.Sprintf(`{"height":%d,"confirmations":%d}`, header[0], header[1])
 		case "invalidateblock":
 			result = "null"
 		default:
@@ -103,5 +117,53 @@ func TestRollBackCoreFailsWhenTheTipDoesNotMove(t *testing.T) {
 
 	if _, err := rollBackCore(context.Background(), core.start(t), 979000); err == nil {
 		t.Fatal("rollBackCore reported success with an unchanged tip")
+	}
+}
+
+func TestResolveRollbackHeightReadsTheHeightOfAHash(t *testing.T) {
+	const hash = "0000000000000000000abc"
+	core := &fakeCore{headers: map[string][2]int64{hash: {979000, 473}}}
+
+	got, err := resolveRollbackHeight(context.Background(), core.start(t), RollbackTarget{Hash: hash})
+	if err != nil {
+		t.Fatalf("resolveRollbackHeight: %v", err)
+	}
+	if got != 979000 {
+		t.Errorf("height = %d, want 979000", got)
+	}
+}
+
+// A hash off the active chain names no height to keep, so rolling back to it
+// would land the node on a branch the user never asked for.
+func TestResolveRollbackHeightRejectsAHashOffTheChain(t *testing.T) {
+	const hash = "0000000000000000000dead"
+	core := &fakeCore{headers: map[string][2]int64{hash: {979000, -1}}}
+
+	if _, err := resolveRollbackHeight(context.Background(), core.start(t), RollbackTarget{Hash: hash}); err == nil {
+		t.Fatal("resolveRollbackHeight accepted a block off the active chain")
+	}
+}
+
+func TestResolveRollbackHeightRefusesBothInputs(t *testing.T) {
+	core := &fakeCore{}
+	target := RollbackTarget{Height: 979000, Hash: "0000000000000000000abc"}
+
+	if _, err := resolveRollbackHeight(context.Background(), core.start(t), target); err == nil {
+		t.Fatal("resolveRollbackHeight accepted a height and a hash together")
+	}
+}
+
+func TestResolveRollbackHeightPassesAPlainHeight(t *testing.T) {
+	core := &fakeCore{}
+
+	got, err := resolveRollbackHeight(context.Background(), core.start(t), RollbackTarget{Height: 979000})
+	if err != nil {
+		t.Fatalf("resolveRollbackHeight: %v", err)
+	}
+	if got != 979000 {
+		t.Errorf("height = %d, want 979000", got)
+	}
+	if len(core.methods) != 0 {
+		t.Errorf("rpc calls = %v, want none for a plain height", core.methods)
 	}
 }

@@ -886,7 +886,11 @@ func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.Delet
 }
 
 func (h *Handler) WipeUntilBlock(ctx context.Context, req *connect.Request[pb.WipeUntilBlockRequest]) (*connect.Response[pb.WipeUntilBlockResponse], error) {
-	res, err := h.orch.WipeUntilBlock(ctx, req.Msg.Height, time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second)
+	res, err := h.orch.WipeUntilBlock(
+		ctx,
+		orchestrator.RollbackTarget{Height: req.Msg.Height, Hash: strings.TrimSpace(req.Msg.BlockHash)},
+		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
+	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}

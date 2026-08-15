@@ -26,7 +26,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   String? _resolvedBinaryPath;
   bool _loadingVersion = true;
 
-  final TextEditingController _rollbackHeight = TextEditingController();
+  final TextEditingController _rollbackTarget = TextEditingController();
   int? _chainHeight;
   bool _rollingBack = false;
   String? _rollbackError;
@@ -42,7 +42,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
   @override
   void dispose() {
-    _rollbackHeight.dispose();
+    _rollbackTarget.dispose();
     super.dispose();
   }
 
@@ -125,10 +125,15 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     }
   }
 
+  /// A 64-character hex string names a block; anything else reads as a height.
+  static final RegExp _blockHashPattern = RegExp(r'^[0-9a-fA-F]{64}$');
+
   Future<void> _rollBack(BuildContext context) async {
-    final height = int.tryParse(_rollbackHeight.text.trim());
-    if (height == null) {
-      setState(() => _rollbackError = 'Type the block height to keep.');
+    final target = _rollbackTarget.text.trim();
+    final isHash = _blockHashPattern.hasMatch(target);
+    final height = isHash ? null : int.tryParse(target);
+    if (!isHash && height == null) {
+      setState(() => _rollbackError = 'Type the block height or the block hash to keep.');
       return;
     }
 
@@ -136,18 +141,18 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     // validator chain, and the modal cannot undo either.
     await infoDialog(
       context: context,
-      title: 'Roll back to block $height?',
+      title: 'Roll back to block $target?',
       subtitle:
-          'Every block above $height leaves the active chain. '
+          'Every block above $target leaves the active chain. '
           'The enforcer rebuilds from the local Core if it does not follow.',
       onConfirm: () async {
         Navigator.of(context).pop();
-        await _sendRollback(height);
+        await _sendRollback(height: height, blockHash: isHash ? target : null);
       },
     );
   }
 
-  Future<void> _sendRollback(int height) async {
+  Future<void> _sendRollback({int? height, String? blockHash}) async {
     setState(() {
       _rollingBack = true;
       _rollbackError = null;
@@ -155,7 +160,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     });
 
     try {
-      final resp = await GetIt.I.get<OrchestratorRPC>().wipeUntilBlock(height);
+      final resp = await GetIt.I.get<OrchestratorRPC>().wipeUntilBlock(height: height, blockHash: blockHash);
       if (!mounted) {
         return;
       }
@@ -391,7 +396,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
               children: [
                 SailText.primary13('Roll back the chain', bold: true),
                 SailText.secondary13(
-                  'Every block above the height leaves the active chain. Blocks below it stay on disk, so nothing downloads again.',
+                  'Name the last block to keep, by height or by hash. Every block above it leaves the active chain, and the blocks below stay on disk.',
                   color: theme.colors.textSecondary,
                 ),
                 SailRow(
@@ -399,9 +404,8 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                   children: [
                     Expanded(
                       child: SailTextField(
-                        controller: _rollbackHeight,
-                        hintText: 'Block height to keep',
-                        textFieldType: TextFieldType.number,
+                        controller: _rollbackTarget,
+                        hintText: 'Block height or hash to keep',
                         dense: true,
                       ),
                     ),

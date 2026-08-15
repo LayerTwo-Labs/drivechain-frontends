@@ -628,10 +628,14 @@ message DeleteFilesResponse {
 
 message WipeUntilBlockRequest {
   // The last height to keep. Every block above it leaves the active chain.
+  // Pass this or block_hash, not both.
   uint32 height = 1;
   // How long to wait for the enforcer to follow the rollback before its
   // validator chain is deleted. Zero picks the default.
   uint32 enforcer_wait_seconds = 2;
+  // The last block to keep, named by its hash. The block must sit on the
+  // active chain. Pass this or height, not both.
+  string block_hash = 3;
 }
 
 message WipeUntilBlockResponse {
