@@ -189,3 +189,13 @@ func TestRollBackCoreRefusesWhenTheNamedBlockMoved(t *testing.T) {
 		t.Fatal("rollBackCore invalidated a block whose parent is not the named one")
 	}
 }
+
+// Core takes an upper case hash but answers in lower case, so a hash the CLI
+// and the UI both accept must reach the comparison in Core's own form.
+func TestRollbackTargetNormalizesTheHash(t *testing.T) {
+	target := RollbackTarget{Hash: "  0000000000000000000ABC  "}
+
+	if got := target.normalized().Hash; got != "0000000000000000000abc" {
+		t.Errorf("normalized hash = %q, want the trimmed lower case form", got)
+	}
+}

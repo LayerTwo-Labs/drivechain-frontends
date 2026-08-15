@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -28,6 +29,14 @@ type WipeUntilBlockResult struct {
 type RollbackTarget struct {
 	Height uint32
 	Hash   string
+}
+
+// normalized puts the hash in the form Core answers with. Core takes a hash
+// in either case but always answers in lower case, and the comparison against
+// its answer has to match.
+func (t RollbackTarget) normalized() RollbackTarget {
+	t.Hash = strings.ToLower(strings.TrimSpace(t.Hash))
+	return t
 }
 
 // resolveRollbackHeight turns a target into the height of the last block to
@@ -72,6 +81,8 @@ func (o *Orchestrator) WipeUntilBlock(ctx context.Context, target RollbackTarget
 	if err != nil {
 		return WipeUntilBlockResult{}, fmt.Errorf("bitcoin core rpc: %w", err)
 	}
+
+	target = target.normalized()
 
 	height, err := resolveRollbackHeight(ctx, client, target)
 	if err != nil {
