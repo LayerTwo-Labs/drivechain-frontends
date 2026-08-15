@@ -250,8 +250,22 @@ func (m *BitcoinConfManager) loadStateFromConfig() {
 	m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
 
 	// Ensure datadir exists — Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't
-	if m.DetectedDataDir != "" {
-		_ = os.MkdirAll(m.DetectedDataDir, 0755)
+	if m.DetectedDataDir == "" {
+		return
+	}
+	_ = os.MkdirAll(m.DetectedDataDir, 0755)
+
+	// The live datadir= line belongs to whichever group is active, so record it
+	// there. A hand-edited conf carries no slot comment. Adopt only the
+	// top-level line, and only while a section does not override it: the
+	// orchestrator reads DetectedDataDir, so a disagreement points it at a
+	// directory Bitcoin Core does not use.
+	live := m.Config.GetSetting("datadir")
+	if live == "" || live != m.DetectedDataDir {
+		return
+	}
+	if g := DatadirGroupForNetwork(m.Network); m.Config.GetGroupDatadir(g) == "" {
+		m.Config.SetGroupDatadir(g, live)
 	}
 }
 
@@ -453,6 +467,15 @@ func (m *BitcoinConfManager) materializeDatadirForGroup(g DatadirGroup) {
 	m.Config.SetSetting("datadir", path)
 }
 
+// needsExplicitDatadir reports whether n must have a user-chosen path.
+func needsExplicitDatadir(n Network) bool {
+	switch n {
+	case NetworkMainnet, NetworkForknet, NetworkDrynet:
+		return true
+	}
+	return false
+}
+
 // HasDatadirForNetwork reports whether a datadir is configured for n's group.
 // Mainnet/forknet/drynet require an explicit user-chosen path because the platform
 // default sits inside ~/Library/Application Support and isn't suitable for
@@ -467,24 +490,10 @@ func (m *BitcoinConfManager) HasDatadirForNetwork(n Network) bool {
 	if m.HasPrivateConf {
 		return true
 	}
-	if n == NetworkForknet {
-		return m.Config.GetGroupDatadir(DatadirGroupForknet) != ""
+	if !needsExplicitDatadir(n) {
+		return true
 	}
-	if n == NetworkDrynet {
-		return m.Config.GetGroupDatadir(DatadirGroupDrynet) != ""
-	}
-	if n == NetworkMainnet {
-		// Mainnet still needs a user-chosen path — it would otherwise write
-		// 700+ GB into Library/Application Support.
-		if m.Config.GetGroupDatadir(DatadirGroupDefault) != "" {
-			return true
-		}
-		// Tolerate a top-level datadir= without a slot (e.g. user-edited
-		// conf or pre-slot install — first cross-group swap will adopt it
-		// into the slot).
-		return m.Config.GetSetting("datadir") != ""
-	}
-	return true
+	return m.Config.GetGroupDatadir(DatadirGroupForNetwork(n)) != ""
 }
 
 // RefreshMainSectionDefaults rewrites the active network's [main] block and

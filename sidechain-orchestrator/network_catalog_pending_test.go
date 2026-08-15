@@ -72,6 +72,7 @@ func drynetOnPendingGeneration(t *testing.T) *Orchestrator {
 	require.NotNil(t, o.EnforcerConf)
 
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDrynet, t.TempDir())
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkDrynet))
 	// Don't let the unmanaged-Core guard find a real node on this machine.
 	o.coreReachable = func() bool { return false }
