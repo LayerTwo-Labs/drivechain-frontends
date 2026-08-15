@@ -632,15 +632,6 @@ func TestHasDatadirForNetwork(t *testing.T) {
 		t.Error("forknet should be true when forknet slot is set")
 	}
 
-	// Mainnet accepts either the default slot or a top-level datadir= line
-	// (so a hand-edited or pre-slot conf isn't rejected at boot).
-	m2 := newTestManager(tmpDir)
-	m2.Config = NewBitcoinConfig()
-	m2.Config.SetSetting("datadir", "/raw/path")
-	if !m2.HasDatadirForNetwork(NetworkMainnet) {
-		t.Error("mainnet should accept top-level datadir without slot")
-	}
-
 	// Section-scoped datadir is ignored — Bitcoin Core only honours the
 	// top-level value.
 	m3 := newTestManager(tmpDir)
@@ -649,6 +640,62 @@ func TestHasDatadirForNetwork(t *testing.T) {
 	if m3.HasDatadirForNetwork(NetworkMainnet) {
 		t.Error("section-scoped datadir must not satisfy HasDatadirForNetwork")
 	}
+}
+
+// A hand-edited conf carries a top-level datadir= but no slot comment. The
+// load must adopt it, or the app sends the user to the datadir picker again.
+func TestLoadAdoptsTopLevelDatadirIntoActiveSlot(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		conf  string
+		group DatadirGroup
+	}{
+		{"drynet", "chain=main\ndatadir=/vol/drynet\n[main]\ndrivechain=1\nuacomment=drynet4\n", DatadirGroupDrynet},
+		{"mainnet", "chain=main\ndatadir=/vol/mainnet\n", DatadirGroupDefault},
+		{"signet", "chain=signet\ndatadir=/vol/shared\n", DatadirGroupDefault},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := newTestManager(t.TempDir())
+			m.parseAndApplyConfig(tc.conf)
+
+			require.Equal(t, tc.group, DatadirGroupForNetwork(m.Network))
+			require.Equal(t, m.DetectedDataDir, m.Config.GetGroupDatadir(tc.group))
+			require.True(t, m.HasDatadirForNetwork(m.Network))
+		})
+	}
+}
+
+// Bitcoin Core ignores a section-scoped datadir, so adopting one would let the
+// picker pass while Core writes the chain into the platform default folder.
+func TestLoadIgnoresSectionScopedDatadir(t *testing.T) {
+	m := newTestManager(t.TempDir())
+	m.parseAndApplyConfig("chain=main\n[main]\ndatadir=/section/only\n")
+
+	require.Equal(t, NetworkMainnet, m.Network)
+	require.Empty(t, m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.False(t, m.HasDatadirForNetwork(NetworkMainnet))
+}
+
+// A section that overrides the top-level line points DetectedDataDir somewhere
+// Bitcoin Core does not use, so the picker must still run.
+func TestLoadIgnoresConflictingSectionDatadir(t *testing.T) {
+	m := newTestManager(t.TempDir())
+	m.parseAndApplyConfig("chain=main\ndatadir=/global/path\n[main]\ndatadir=/section/path\n")
+
+	require.Equal(t, "/section/path", m.DetectedDataDir)
+	require.Empty(t, m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.False(t, m.HasDatadirForNetwork(NetworkMainnet))
+}
+
+// Signet shares the default group's root, so a swap to mainnet must reuse the
+// path the user already picked instead of asking for it again.
+func TestSignetDatadirSatisfiesMainnet(t *testing.T) {
+	m := newTestManager(t.TempDir())
+	m.parseAndApplyConfig("chain=signet\ndatadir=/vol/shared\n")
+
+	require.Equal(t, NetworkSignet, m.Network)
+	require.True(t, m.HasDatadirForNetwork(NetworkMainnet))
+	require.False(t, m.HasDatadirForNetwork(NetworkDrynet), "drynet keeps its own slot")
 }
 
 // Regression: UpdateDataDir writes datadir to the global section (Bitcoin
@@ -763,9 +810,8 @@ func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
 	require.Equal(t, "/drynet/path", m.Config.GetSetting("datadir"))
 }
 
-// Within-group swap (mainnet ↔ signet) leaves datadir= alone and writes no
-// slot — Bitcoin Core's chain subdirs partition the four default networks
-// under the same folder.
+// Within-group swap (mainnet ↔ signet) leaves datadir= alone — Bitcoin Core's
+// chain subdirs partition the four default networks under the same folder.
 func TestUpdateNetworkWithinDefaultGroupKeepsDatadir(t *testing.T) {
 	tmpDir := t.TempDir()
 	m := newTestManager(tmpDir)
@@ -780,8 +826,8 @@ func TestUpdateNetworkWithinDefaultGroupKeepsDatadir(t *testing.T) {
 	require.NoError(t, m.UpdateNetwork(NetworkSignet))
 
 	require.Equal(t, "/shared/default", m.Config.GetSetting("datadir"))
-	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupDefault), "no slot writes happen on within-group swap")
-	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/shared/default", m.Config.GetGroupDatadir(DatadirGroupDefault))
+	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupDrynet), "the drynet slot stays its own")
 }
 
 // applyMainSectionDefaults: signet → drynet adds drivechain=1 + alt ports
