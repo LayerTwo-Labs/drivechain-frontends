@@ -2967,9 +2967,12 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		state, err := o.chainForkCached().Fetch(ctx)
 		if err != nil {
 			o.log.Debug().Err(err).Msg("chain fork probe failed")
-			return
 		}
-		fork = state
+		// The cache returns its last good state next to a transient error, so
+		// a failed refresh must not clear an active off-chain warning.
+		if state != nil {
+			fork = state
+		}
 	}()
 
 	for _, j := range jobs {
