@@ -25,10 +25,11 @@ class SyncInfo {
   double get progress => progressGoal == 0 ? 0 : progressCurrent / progressGoal;
   bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
 
-  /// The node refuses a branch at or above its own tip. Blocks and headers
-  /// both read 100% here, because the node counts neither side of the branch
-  /// it threw away.
-  bool get offNetwork => rejectedBranch;
+  /// The node refuses a branch at or above its own tip while its peers run
+  /// ahead. Blocks and headers both read 100% here, because the node counts
+  /// neither side of the branch it threw away. Without the peer evidence a
+  /// node that rejects one competing block reads as off the chain forever.
+  bool get offNetwork => rejectedBranch && behindPeers > 0;
 
   /// How far the peers' headers run past this node, 0 when they do not.
   int get behindPeers => peerBestHeight > progressCurrent ? peerBestHeight - progressCurrent.toInt() : 0;
