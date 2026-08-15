@@ -121,6 +121,11 @@ service OrchestratorService {
   // Streams one message per path; an unset error means that path succeeded.
   rpc DeleteFiles(DeleteFilesRequest) returns (stream DeleteFilesResponse);
 
+  // Roll the chain back to a height instead of deleting all of it. Core
+  // invalidates the block above the height, so every block below it stays on
+  // disk and is never downloaded again.
+  rpc WipeUntilBlock(WipeUntilBlockRequest) returns (WipeUntilBlockResponse);
+
   // ─── Bitcoin Core typed extensions ────────────────────────────────────────
   // Sit alongside the btc-buf BitcoinService for methods btc-buf doesn't type
   // (getmempoolinfo) plus a generic raw-call escape hatch (finalizepsbt,
@@ -619,6 +624,26 @@ message DeleteFilesRequest {
 message DeleteFilesResponse {
   string path = 1;
   string error = 2; // unset → this path was deleted successfully
+}
+
+message WipeUntilBlockRequest {
+  // The last height to keep. Every block above it leaves the active chain.
+  uint32 height = 1;
+  // How long to wait for the enforcer to follow the rollback before its
+  // validator chain is deleted. Zero picks the default.
+  uint32 enforcer_wait_seconds = 2;
+}
+
+message WipeUntilBlockResponse {
+  // Core's tip after the rollback.
+  uint32 core_height = 1;
+  // The block Core invalidated, which is the first one above the height.
+  string invalidated_block_hash = 2;
+  // The enforcer's tip after the rollback. Zero when the enforcer is stopped.
+  uint32 enforcer_height = 3;
+  // True when the enforcer did not follow, so its validator chain was deleted
+  // and it now rebuilds from the local Core.
+  bool enforcer_rebuilt = 4;
 }
 
 // ─── Bitcoin Core typed extensions ────────────────────────────────────────

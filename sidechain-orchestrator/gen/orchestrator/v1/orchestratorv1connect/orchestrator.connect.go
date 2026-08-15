@@ -108,6 +108,9 @@ const (
 	// OrchestratorServiceDeleteFilesProcedure is the fully-qualified name of the OrchestratorService's
 	// DeleteFiles RPC.
 	OrchestratorServiceDeleteFilesProcedure = "/orchestrator.v1.OrchestratorService/DeleteFiles"
+	// OrchestratorServiceWipeUntilBlockProcedure is the fully-qualified name of the
+	// OrchestratorService's WipeUntilBlock RPC.
+	OrchestratorServiceWipeUntilBlockProcedure = "/orchestrator.v1.OrchestratorService/WipeUntilBlock"
 	// OrchestratorServiceGetCoreMempoolInfoProcedure is the fully-qualified name of the
 	// OrchestratorService's GetCoreMempoolInfo RPC.
 	OrchestratorServiceGetCoreMempoolInfoProcedure = "/orchestrator.v1.OrchestratorService/GetCoreMempoolInfo"
@@ -217,6 +220,10 @@ type OrchestratorServiceClient interface {
 	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
 	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error)
+	// Roll the chain back to a height instead of deleting all of it. Core
+	// invalidates the block above the height, so every block below it stays on
+	// disk and is never downloaded again.
+	WipeUntilBlock(context.Context, *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error)
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Parent-chain state the sidechain BMM tab bids against: the tip a request
@@ -396,6 +403,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
 			connect.WithClientOptions(opts...),
 		),
+		wipeUntilBlock: connect.NewClient[v1.WipeUntilBlockRequest, v1.WipeUntilBlockResponse](
+			httpClient,
+			baseURL+OrchestratorServiceWipeUntilBlockProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("WipeUntilBlock")),
+			connect.WithClientOptions(opts...),
+		),
 		getCoreMempoolInfo: connect.NewClient[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse](
 			httpClient,
 			baseURL+OrchestratorServiceGetCoreMempoolInfoProcedure,
@@ -450,6 +463,7 @@ type orchestratorServiceClient struct {
 	getSidechainBalance             *connect.Client[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse]
 	gatherFilesToDelete             *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
 	deleteFiles                     *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
+	wipeUntilBlock                  *connect.Client[v1.WipeUntilBlockRequest, v1.WipeUntilBlockResponse]
 	getCoreMempoolInfo              *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
 	getBmmContext                   *connect.Client[v1.GetBmmContextRequest, v1.GetBmmContextResponse]
 	coreRawCall                     *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
@@ -583,6 +597,11 @@ func (c *orchestratorServiceClient) DeleteFiles(ctx context.Context, req *connec
 	return c.deleteFiles.CallServerStream(ctx, req)
 }
 
+// WipeUntilBlock calls orchestrator.v1.OrchestratorService.WipeUntilBlock.
+func (c *orchestratorServiceClient) WipeUntilBlock(ctx context.Context, req *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error) {
+	return c.wipeUntilBlock.CallUnary(ctx, req)
+}
+
 // GetCoreMempoolInfo calls orchestrator.v1.OrchestratorService.GetCoreMempoolInfo.
 func (c *orchestratorServiceClient) GetCoreMempoolInfo(ctx context.Context, req *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
 	return c.getCoreMempoolInfo.CallUnary(ctx, req)
@@ -699,6 +718,10 @@ type OrchestratorServiceHandler interface {
 	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
 	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error
+	// Roll the chain back to a height instead of deleting all of it. Core
+	// invalidates the block above the height, so every block below it stays on
+	// disk and is never downloaded again.
+	WipeUntilBlock(context.Context, *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error)
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Parent-chain state the sidechain BMM tab bids against: the tip a request
@@ -874,6 +897,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceWipeUntilBlockHandler := connect.NewUnaryHandler(
+		OrchestratorServiceWipeUntilBlockProcedure,
+		svc.WipeUntilBlock,
+		connect.WithSchema(orchestratorServiceMethods.ByName("WipeUntilBlock")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceGetCoreMempoolInfoHandler := connect.NewUnaryHandler(
 		OrchestratorServiceGetCoreMempoolInfoProcedure,
 		svc.GetCoreMempoolInfo,
@@ -950,6 +979,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGatherFilesToDeleteHandler.ServeHTTP(w, r)
 		case OrchestratorServiceDeleteFilesProcedure:
 			orchestratorServiceDeleteFilesHandler.ServeHTTP(w, r)
+		case OrchestratorServiceWipeUntilBlockProcedure:
+			orchestratorServiceWipeUntilBlockHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetCoreMempoolInfoProcedure:
 			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBmmContextProcedure:
@@ -1065,6 +1096,10 @@ func (UnimplementedOrchestratorServiceHandler) GatherFilesToDelete(context.Conte
 
 func (UnimplementedOrchestratorServiceHandler) DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.DeleteFiles is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) WipeUntilBlock(context.Context, *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.WipeUntilBlock is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
