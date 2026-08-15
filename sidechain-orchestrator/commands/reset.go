@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"text/tabwriter"
 
 	"connectrpc.com/connect"
@@ -16,6 +17,46 @@ var resetCommand = &cli.Command{
 	Subcommands: []*cli.Command{
 		resetPreviewCommand,
 		resetRunCommand,
+		resetUntilBlockCommand,
+	},
+}
+
+var resetUntilBlockCommand = &cli.Command{
+	Name:      "until-block",
+	Usage:     "Roll the chain back to a height, keeping every block below it",
+	ArgsUsage: "<height>",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
+		&cli.UintFlag{Name: "enforcer-wait", Usage: "seconds to wait for the enforcer to follow before rebuilding it"},
+	},
+	Action: func(cctx *cli.Context) error {
+		if cctx.NArg() != 1 {
+			return fmt.Errorf("pass the height to keep, e.g. reset until-block 979000")
+		}
+		height, err := strconv.ParseUint(cctx.Args().First(), 10, 32)
+		if err != nil {
+			return fmt.Errorf("height: %w", err)
+		}
+		if err := confirmOrAbort(cctx, fmt.Sprintf("this drops every block above %d from the active chain. proceed?", height)); err != nil {
+			return err
+		}
+
+		resp, err := newClient(cctx).WipeUntilBlock(cctx.Context, connect.NewRequest(&pb.WipeUntilBlockRequest{
+			Height:              uint32(height),
+			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
+		}))
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("core tip:    %d\n", resp.Msg.CoreHeight)
+		fmt.Printf("invalidated: %s\n", resp.Msg.InvalidatedBlockHash)
+		if resp.Msg.EnforcerRebuilt {
+			fmt.Println("enforcer:    validator chain deleted, rebuilds from the local core")
+			return nil
+		}
+		fmt.Printf("enforcer:    followed the rollback, tip %d\n", resp.Msg.EnforcerHeight)
+		return nil
 	},
 }
 
