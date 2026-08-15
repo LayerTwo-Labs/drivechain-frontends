@@ -2272,9 +2272,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get cheque: %w", err))
 	}
 
-	// Electrum indexes every address, so a cheque needs no watch-only wallet,
-	// no descriptor import and no rescan.
-	utxos, err := s.chequeChain.AddressUnspent(ctx, cheque.Address, cheque.CreatedAt)
+	utxos, err := s.chequeChain.AddressUnspent(ctx, cheque.Address)
 	if err != nil {
 		log.Error().Err(err).Str("address", cheque.Address).Msg("failed to query UTXOs")
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to query UTXOs: %w", err))
@@ -2477,8 +2475,8 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	}), nil
 }
 
-// chequeSweepFeeRate resolves the sweep's fee rate: the caller's, or whichever
-// chain can estimate for a 6-block target when they pass zero.
+// chequeSweepFeeRate resolves the sweep's fee rate: the caller's, or the
+// 6-block estimate when they pass zero.
 func (s *Server) chequeSweepFeeRate(ctx context.Context, requested uint64) (uint64, error) {
 	if requested > 0 {
 		return requested, nil

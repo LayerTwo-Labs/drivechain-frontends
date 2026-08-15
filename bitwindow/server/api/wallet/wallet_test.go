@@ -53,7 +53,7 @@ func TestService_GetBalance(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
 				Msg: &bitcoindv1alpha.CreateWalletResponse{
-					Name: "cheque_watch",
+					Name: "test_wallet",
 				},
 			}, nil).
 			AnyTimes()
@@ -104,7 +104,7 @@ func TestService_GetNewAddress(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
 				Msg: &bitcoindv1alpha.CreateWalletResponse{
-					Name: "cheque_watch",
+					Name: "test_wallet",
 				},
 			}, nil).
 			AnyTimes()
@@ -138,7 +138,7 @@ func TestService_ListCheques(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
@@ -169,7 +169,7 @@ func TestService_GetCheque(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
@@ -203,7 +203,7 @@ func TestService_DeleteCheque(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
@@ -244,7 +244,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
@@ -337,7 +337,7 @@ func TestService_IsWalletUnlocked(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
@@ -367,7 +367,7 @@ func TestService_LockWallet(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
@@ -395,7 +395,7 @@ func TestService_UnlockWallet(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))

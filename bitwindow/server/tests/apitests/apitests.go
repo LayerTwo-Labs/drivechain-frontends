@@ -89,52 +89,7 @@ func WithOrchestrator(client orchrpc.WalletManagerServiceClient) ServerOpt {
 }
 
 func WithBitcoind(bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) ServerOpt {
-	// Tests routinely override the default bitcoind mock with a narrower
-	// one that only sets expectations for methods the test cares about.
-	// The cheque engine bootstrap goroutine, however, fires asynchronously
-	// and calls a fixed set of bitcoind methods (LoadWallet, GetDescriptorInfo,
-	// ImportDescriptors, ListUnspent). When the custom mock has no expectation
-	// for those, gomock calls t.Fatalf from the goroutine, which panics if it
-	// fires after the test ends. Auto-attach permissive defaults here so
-	// callers don't have to repeat this in every test.
-	if mock, ok := bitcoind.(*mocks.MockBitcoinServiceClient); ok {
-		addChequeEngineMockDefaults(mock)
-	}
 	return func(opt *configg) { opt.bitcoind = bitcoind }
-}
-
-// addChequeEngineMockDefaults attaches AnyTimes() expectations for the
-// bitcoind methods the cheque engine background goroutines call. Existing
-// expectations on the same methods continue to win — gomock matches by
-// argument and will only fall through to these when no explicit
-// expectation matches.
-func addChequeEngineMockDefaults(mock *mocks.MockBitcoinServiceClient) {
-	mock.EXPECT().
-		LoadWallet(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.LoadWalletResponse]{
-			Msg: &corepb.LoadWalletResponse{Name: "cheque_watch"},
-		}, nil).
-		AnyTimes()
-	mock.EXPECT().
-		GetDescriptorInfo(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.GetDescriptorInfoResponse]{
-			Msg: &corepb.GetDescriptorInfoResponse{Descriptor_: "wpkh(xpub)#checksum"},
-		}, nil).
-		AnyTimes()
-	mock.EXPECT().
-		ImportDescriptors(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ImportDescriptorsResponse]{
-			Msg: &corepb.ImportDescriptorsResponse{
-				Responses: []*corepb.ImportDescriptorsResponse_Response{{Success: true}},
-			},
-		}, nil).
-		AnyTimes()
-	mock.EXPECT().
-		ListUnspent(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ListUnspentResponse]{
-			Msg: &corepb.ListUnspentResponse{},
-		}, nil).
-		AnyTimes()
 }
 
 // API creates a new external API Connect server that we can send test requests to
@@ -281,10 +236,8 @@ func (c ctxTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 var _ http.RoundTripper = new(ctxTransport)
 
 // defaultBitcoindMock creates a mock bitcoind client with default expectations
-// for background operations: the watch-wallet bootstrap (ListWallets,
-// CreateWallet) and the cheque engine descriptor import (GetDescriptorInfo,
-// ImportDescriptors). All AnyTimes — the goroutines race the test, so the
-// number of calls is non-deterministic.
+// for the background operations the engines run. All AnyTimes — the goroutines
+// race the test, so the number of calls is non-deterministic.
 func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.BitcoinServiceClient {
 	mock := mocks.NewMockBitcoinServiceClient(ctrl)
 
@@ -302,45 +255,6 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 			Msg: &corepb.ListWalletsResponse{
 				Wallets: []string{},
 			},
-		}, nil).
-		AnyTimes()
-
-	mock.EXPECT().
-		CreateWallet(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.CreateWalletResponse]{
-			Msg: &corepb.CreateWalletResponse{
-				Name: "cheque_watch",
-			},
-		}, nil).
-		AnyTimes()
-
-	mock.EXPECT().
-		GetDescriptorInfo(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.GetDescriptorInfoResponse]{
-			Msg: &corepb.GetDescriptorInfoResponse{Descriptor_: "wpkh(xpub)#checksum"},
-		}, nil).
-		AnyTimes()
-
-	mock.EXPECT().
-		ImportDescriptors(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ImportDescriptorsResponse]{
-			Msg: &corepb.ImportDescriptorsResponse{
-				Responses: []*corepb.ImportDescriptorsResponse_Response{{Success: true}},
-			},
-		}, nil).
-		AnyTimes()
-
-	mock.EXPECT().
-		LoadWallet(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.LoadWalletResponse]{
-			Msg: &corepb.LoadWalletResponse{Name: "cheque_watch"},
-		}, nil).
-		AnyTimes()
-
-	mock.EXPECT().
-		ListUnspent(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[corepb.ListUnspentResponse]{
-			Msg: &corepb.ListUnspentResponse{},
 		}, nil).
 		AnyTimes()
 

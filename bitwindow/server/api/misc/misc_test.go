@@ -853,7 +853,7 @@ func TestService_ListTimestamps(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Required for ListTimestamps to get current block height
@@ -903,7 +903,7 @@ func TestService_ListTimestamps(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Required for ListTimestamps to get current block height
@@ -997,7 +997,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Required for VerifyTimestamp to get current block height

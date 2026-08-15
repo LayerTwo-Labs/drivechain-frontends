@@ -3,7 +3,6 @@ package api_wallet_test
 import (
 	"context"
 	"errors"
-	"slices"
 	"sync/atomic"
 	"testing"
 
@@ -13,12 +12,9 @@ import (
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
-	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 const testWalletID = "test-wallet-id-1234"
@@ -291,63 +287,21 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 
 // With no orchestrator wired — regtest, or any dev setup without an electrum
 // endpoint — cheques must fall back to Bitcoin Core's watch-only wallet.
-func TestCheckChequeFunding_FallsBackToCore(t *testing.T) {
+func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
 	t.Parallel()
-	ctrl := gomock.NewController(t)
 	db := database.Test(t)
 
-	chequeAddr := "tb1qcorefallbacktestaddr000000000000000000"
-	fundingTxid := "c0de0000c0de0000c0de0000c0de0000c0de0000c0de0000c0de0000c0de0000"
+	chequeAddr := "tb1qnoelectrumtestaddr0000000000000000000"
 
-	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-	mockBitcoind.EXPECT().
-		ListWallets(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
-			Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{"cheque_watch"}},
-		}, nil).AnyTimes()
-	mockBitcoind.EXPECT().
-		GetDescriptorInfo(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[bitcoindv1alpha.GetDescriptorInfoResponse]{
-			Msg: &bitcoindv1alpha.GetDescriptorInfoResponse{Descriptor_: "addr(" + chequeAddr + ")#checksum"},
-		}, nil).AnyTimes()
-	mockBitcoind.EXPECT().
-		ImportDescriptors(gomock.Any(), gomock.Any()).
-		Return(&connect.Response[bitcoindv1alpha.ImportDescriptorsResponse]{
-			Msg: &bitcoindv1alpha.ImportDescriptorsResponse{
-				Responses: []*bitcoindv1alpha.ImportDescriptorsResponse_Response{{Success: true}},
-			},
-		}, nil).AnyTimes()
-	mockBitcoind.EXPECT().
-		ListUnspent(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, req *connect.Request[bitcoindv1alpha.ListUnspentRequest]) (*connect.Response[bitcoindv1alpha.ListUnspentResponse], error) {
-			if !slices.Contains(req.Msg.Addresses, chequeAddr) {
-				return &connect.Response[bitcoindv1alpha.ListUnspentResponse]{
-					Msg: &bitcoindv1alpha.ListUnspentResponse{},
-				}, nil
-			}
-			return &connect.Response[bitcoindv1alpha.ListUnspentResponse]{
-				Msg: &bitcoindv1alpha.ListUnspentResponse{
-					Unspent: []*bitcoindv1alpha.UnspentOutput{
-						{Txid: fundingTxid, Vout: 0, Address: chequeAddr, Amount: 1.0, Confirmations: 2},
-					},
-				},
-			}, nil
-		}).AnyTimes()
-
-	// No WithOrchestrator: the electrum chain reports itself unavailable.
-	cli := walletv1connect.NewWalletServiceClient(
-		apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)),
-	)
+	// No WithOrchestrator: cheques have no other chain source.
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db))
 
 	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
 	require.NoError(t, err)
 
-	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+	_, err = cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
 		WalletId: testWalletID,
 		Id:       chequeID,
 	}))
-	require.NoError(t, err)
-	require.True(t, resp.Msg.Funded, "Core must answer when electrum has no chain source")
-	require.Equal(t, uint64(100_000_000), resp.Msg.ActualAmountSats)
-	require.Equal(t, []string{fundingTxid}, resp.Msg.FundedTxids)
+	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }

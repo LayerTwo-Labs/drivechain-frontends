@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
@@ -44,9 +43,7 @@ type fakeChain struct {
 	err     error
 }
 
-func (f *fakeChain) Name() string                   { return "fake" }
-func (f *fakeChain) Available(context.Context) bool { return true }
-func (f *fakeChain) AddressUnspent(_ context.Context, address string, _ time.Time) ([]ChequeUTXO, error) {
+func (f *fakeChain) AddressUnspent(_ context.Context, address string) ([]ChequeUTXO, error) {
 	if f.err != nil {
 		return nil, f.err
 	}

@@ -858,7 +858,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
-					Name: "cheque_watch",
+					Name: "test_wallet",
 				},
 			}, nil).
 			AnyTimes()
@@ -903,7 +903,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
-					Name: "cheque_watch",
+					Name: "test_wallet",
 				},
 			}, nil).
 			AnyTimes()
@@ -939,7 +939,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
 				Msg: &corepb.CreateWalletResponse{
-					Name: "cheque_watch",
+					Name: "test_wallet",
 				},
 			}, nil).
 			AnyTimes()
@@ -1291,7 +1291,7 @@ func TestService_ListBlocks(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Mock GetBlockchainInfo
@@ -1350,7 +1350,7 @@ func TestService_ListBlocks(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		mockBitcoind.EXPECT().
@@ -1510,7 +1510,7 @@ func TestService_ListBlocks(t *testing.T) {
 			}, nil).AnyTimes()
 		mockBitcoind.EXPECT().CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// First call: tip=10. Second call: tip=11 — must invalidate the
@@ -1563,7 +1563,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Mock GetRawMempool with one tx
@@ -1633,7 +1633,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Empty mempool
@@ -1696,7 +1696,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).AnyTimes()
 
 		// Mock GetBlockchainInfo
@@ -1868,6 +1868,6 @@ func expectWatchWalletNoop(m *mocks.MockBitcoinServiceClient) {
 		}, nil).AnyTimes()
 	m.EXPECT().CreateWallet(gomock.Any(), gomock.Any()).
 		Return(&connect.Response[corepb.CreateWalletResponse]{
-			Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+			Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 		}, nil).AnyTimes()
 }
