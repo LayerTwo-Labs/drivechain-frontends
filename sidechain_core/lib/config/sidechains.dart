@@ -46,6 +46,9 @@ abstract class Sidechain extends Binary {
 
       case 'liquid-signet':
         return LiquidSignet();
+
+      case 'inquisition':
+        return Inquisition();
     }
     return null;
   }
@@ -158,6 +161,18 @@ abstract class Sidechain extends Binary {
           port: binary.port,
           chainLayer: binary.chainLayer,
         );
+
+      case 'Inquisition':
+        return Inquisition(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          port: binary.port,
+          chainLayer: binary.chainLayer,
+        );
       default:
         throw Exception('Unknown sidechain binary type: ${binary.runtimeType}');
     }
@@ -250,12 +265,19 @@ class Inquisition extends Sidechain {
              MetadataConfig(
                downloadConfig: DownloadConfig(
                  binary: 'inquisition',
-                 files: allPlatforms(''),
+                 baseUrls: allNetworksUrl('https://api.github.com/repos/sohibit/bitcoin/releases/latest'),
+
+                 // The release tag moves, so match the asset by its platform.
+                 files: allNetworks({
+                   OS.linux: r'L2-S119-Inquisition-.+-x86_64-unknown-linux-gnu\.zip',
+                   OS.macos: r'L2-S119-Inquisition-.+-x86_64-apple-darwin\.zip',
+                   OS.windows: r'L2-S119-Inquisition-.+-x86_64-w64-msvc\.zip',
+                 }),
                ),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
-               updateable: false,
+               updateable: true,
              ),
        );
 
@@ -1011,6 +1033,7 @@ List<Binary> get sidechainBinaries => [
   resolveFromConfig(BinaryType.BINARY_TYPE_COINSHIFT, () => CoinShift()),
   resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDE, () => ZSide()),
   resolveFromConfig(BinaryType.BINARY_TYPE_LIQUID_SIGNET, () => LiquidSignet()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_INQUISITION, () => Inquisition()),
 ];
 
 Binary resolveFromConfig(BinaryType type, Binary Function() fallback) {

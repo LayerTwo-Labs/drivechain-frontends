@@ -831,11 +831,11 @@
         "binary": "inquisition",
         "files": {
           "default": {
-            "base_url": "https://github.com/sohibit/bitcoin/releases/download/v29.4-inq/",
-            "linux-x86_64": "",
-            "macos-x86_64": "",
-            "macos-arm64": "",
-            "windows-x86_64": ""
+            "base_url": "https://api.github.com/repos/sohibit/bitcoin/releases/latest",
+            "linux-x86_64": "L2-S119-Inquisition-.+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "L2-S119-Inquisition-.+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "L2-S119-Inquisition-.+-arm64-apple-darwin\\.zip",
+            "windows-x86_64": "L2-S119-Inquisition-.+-x86_64-w64-msvc\\.zip"
           }
         }
       },
