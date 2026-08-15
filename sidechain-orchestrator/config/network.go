@@ -204,6 +204,22 @@ func EsploraURLForNetwork(n Network) string {
 	return urls[0]
 }
 
+// ElectrumHostPortForNetwork returns a network's electrum server, or an empty
+// host when none exists. The ssl:// prefix selects TLS in the enforcer client.
+func ElectrumHostPortForNetwork(n Network) (string, uint16) {
+	switch n {
+	case NetworkMainnet:
+		return "ssl://explorer.mainnet.drivechain.info", 50002
+	case NetworkDrynet:
+		if gen := DrynetGeneration(); gen != "" {
+			return "ssl://" + gen + ".drivechain.dev", 50002
+		}
+		return "", 0
+	default:
+		return "", 0
+	}
+}
+
 // RemoteOrchestratorURLForNetwork returns the URL of a hosted, read-only
 // orchestrator for a given network. Electrum wallets run no local Core or
 // enforcer, so they read chain/BIP300 state from this remote instance while
