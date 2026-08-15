@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strconv"
@@ -23,28 +24,33 @@ var resetCommand = &cli.Command{
 
 var resetUntilBlockCommand = &cli.Command{
 	Name:      "until-block",
-	Usage:     "Roll the chain back to a height, keeping every block below it",
-	ArgsUsage: "<height>",
+	Usage:     "Roll the chain back to a block, keeping every block below it",
+	ArgsUsage: "<height|hash>",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
 		&cli.UintFlag{Name: "enforcer-wait", Usage: "seconds to wait for the enforcer to follow before rebuilding it"},
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() != 1 {
-			return fmt.Errorf("pass the height to keep, e.g. reset until-block 979000")
+			return fmt.Errorf("pass the block to keep, e.g. reset until-block 979000")
 		}
-		height, err := strconv.ParseUint(cctx.Args().First(), 10, 32)
-		if err != nil {
-			return fmt.Errorf("height: %w", err)
+		req := &pb.WipeUntilBlockRequest{EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait"))}
+		arg := cctx.Args().First()
+		if isBlockHash(arg) {
+			req.BlockHash = arg
+		} else {
+			height, err := strconv.ParseUint(arg, 10, 32)
+			if err != nil {
+				return fmt.Errorf("read %q as a height or a block hash: %w", arg, err)
+			}
+			req.Height = uint32(height)
 		}
-		if err := confirmOrAbort(cctx, fmt.Sprintf("this drops every block above %d from the active chain. proceed?", height)); err != nil {
+
+		if err := confirmOrAbort(cctx, fmt.Sprintf("this drops every block above %s from the active chain. proceed?", arg)); err != nil {
 			return err
 		}
 
-		resp, err := newClient(cctx).WipeUntilBlock(cctx.Context, connect.NewRequest(&pb.WipeUntilBlockRequest{
-			Height:              uint32(height),
-			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
-		}))
+		resp, err := newClient(cctx).WipeUntilBlock(cctx.Context, connect.NewRequest(req))
 		if err != nil {
 			return err
 		}
@@ -58,6 +64,15 @@ var resetUntilBlockCommand = &cli.Command{
 		fmt.Printf("enforcer:    followed the rollback, tip %d\n", resp.Msg.EnforcerHeight)
 		return nil
 	},
+}
+
+// isBlockHash reports whether s reads as a block hash: 64 hex characters.
+func isBlockHash(s string) bool {
+	if len(s) != 64 {
+		return false
+	}
+	_, err := hex.DecodeString(s)
+	return err == nil
 }
 
 func resetCategoryFlags() []cli.Flag {

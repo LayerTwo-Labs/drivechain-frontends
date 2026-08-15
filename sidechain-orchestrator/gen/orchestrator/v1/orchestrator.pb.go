@@ -3424,12 +3424,16 @@ func (x *DeleteFilesResponse) GetError() string {
 type WipeUntilBlockRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The last height to keep. Every block above it leaves the active chain.
+	// Pass this or block_hash, not both.
 	Height uint32 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
 	// How long to wait for the enforcer to follow the rollback before its
 	// validator chain is deleted. Zero picks the default.
 	EnforcerWaitSeconds uint32 `protobuf:"varint,2,opt,name=enforcer_wait_seconds,json=enforcerWaitSeconds,proto3" json:"enforcer_wait_seconds,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// The last block to keep, named by its hash. The block must sit on the
+	// active chain. Pass this or height, not both.
+	BlockHash     string `protobuf:"bytes,3,opt,name=block_hash,json=blockHash,proto3" json:"block_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WipeUntilBlockRequest) Reset() {
@@ -3474,6 +3478,13 @@ func (x *WipeUntilBlockRequest) GetEnforcerWaitSeconds() uint32 {
 		return x.EnforcerWaitSeconds
 	}
 	return 0
+}
+
+func (x *WipeUntilBlockRequest) GetBlockHash() string {
+	if x != nil {
+		return x.BlockHash
+	}
+	return ""
 }
 
 type WipeUntilBlockResponse struct {
@@ -4562,10 +4573,12 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x06except\x18\x02 \x03(\tR\x06except\"?\n" +
 	"\x13DeleteFilesResponse\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"c\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"\x82\x01\n" +
 	"\x15WipeUntilBlockRequest\x12\x16\n" +
 	"\x06height\x18\x01 \x01(\rR\x06height\x122\n" +
-	"\x15enforcer_wait_seconds\x18\x02 \x01(\rR\x13enforcerWaitSeconds\"\xc3\x01\n" +
+	"\x15enforcer_wait_seconds\x18\x02 \x01(\rR\x13enforcerWaitSeconds\x12\x1d\n" +
+	"\n" +
+	"block_hash\x18\x03 \x01(\tR\tblockHash\"\xc3\x01\n" +
 	"\x16WipeUntilBlockResponse\x12\x1f\n" +
 	"\vcore_height\x18\x01 \x01(\rR\n" +
 	"coreHeight\x124\n" +

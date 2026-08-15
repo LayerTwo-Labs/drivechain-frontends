@@ -921,13 +921,15 @@ const WipeUntilBlockRequest$json = {
   '2': [
     {'1': 'height', '3': 1, '4': 1, '5': 13, '10': 'height'},
     {'1': 'enforcer_wait_seconds', '3': 2, '4': 1, '5': 13, '10': 'enforcerWaitSeconds'},
+    {'1': 'block_hash', '3': 3, '4': 1, '5': 9, '10': 'blockHash'},
   ],
 };
 
 /// Descriptor for `WipeUntilBlockRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List wipeUntilBlockRequestDescriptor = $convert.base64Decode(
     'ChVXaXBlVW50aWxCbG9ja1JlcXVlc3QSFgoGaGVpZ2h0GAEgASgNUgZoZWlnaHQSMgoVZW5mb3'
-    'JjZXJfd2FpdF9zZWNvbmRzGAIgASgNUhNlbmZvcmNlcldhaXRTZWNvbmRz');
+    'JjZXJfd2FpdF9zZWNvbmRzGAIgASgNUhNlbmZvcmNlcldhaXRTZWNvbmRzEh0KCmJsb2NrX2hh'
+    'c2gYAyABKAlSCWJsb2NrSGFzaA==');
 
 @$core.Deprecated('Use wipeUntilBlockResponseDescriptor instead')
 const WipeUntilBlockResponse$json = {

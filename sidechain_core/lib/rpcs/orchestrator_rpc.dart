@@ -122,9 +122,18 @@ class OrchestratorRPC {
 
   /// Roll the chain back to a height in place of a full wipe. Core keeps every
   /// block below the height on disk, so a later sync downloads nothing again.
-  Future<WipeUntilBlockResponse> wipeUntilBlock(int height, {int enforcerWaitSeconds = 0}) {
+  /// Names the last block to keep by height or by hash, never both.
+  Future<WipeUntilBlockResponse> wipeUntilBlock({
+    int? height,
+    String? blockHash,
+    int enforcerWaitSeconds = 0,
+  }) {
     return _unaryClient.wipeUntilBlock(
-      WipeUntilBlockRequest(height: height, enforcerWaitSeconds: enforcerWaitSeconds),
+      WipeUntilBlockRequest(
+        height: height ?? 0,
+        blockHash: blockHash ?? '',
+        enforcerWaitSeconds: enforcerWaitSeconds,
+      ),
     );
   }
 

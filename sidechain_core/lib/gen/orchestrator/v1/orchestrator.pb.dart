@@ -3905,6 +3905,7 @@ class WipeUntilBlockRequest extends $pb.GeneratedMessage {
   factory WipeUntilBlockRequest({
     $core.int? height,
     $core.int? enforcerWaitSeconds,
+    $core.String? blockHash,
   }) {
     final $result = create();
     if (height != null) {
@@ -3912,6 +3913,9 @@ class WipeUntilBlockRequest extends $pb.GeneratedMessage {
     }
     if (enforcerWaitSeconds != null) {
       $result.enforcerWaitSeconds = enforcerWaitSeconds;
+    }
+    if (blockHash != null) {
+      $result.blockHash = blockHash;
     }
     return $result;
   }
@@ -3922,6 +3926,7 @@ class WipeUntilBlockRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WipeUntilBlockRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'height', $pb.PbFieldType.OU3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'enforcerWaitSeconds', $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'blockHash')
     ..hasRequiredFields = false
   ;
 
@@ -3947,6 +3952,7 @@ class WipeUntilBlockRequest extends $pb.GeneratedMessage {
   static WipeUntilBlockRequest? _defaultInstance;
 
   /// The last height to keep. Every block above it leaves the active chain.
+  /// Pass this or block_hash, not both.
   @$pb.TagNumber(1)
   $core.int get height => $_getIZ(0);
   @$pb.TagNumber(1)
@@ -3966,6 +3972,17 @@ class WipeUntilBlockRequest extends $pb.GeneratedMessage {
   $core.bool hasEnforcerWaitSeconds() => $_has(1);
   @$pb.TagNumber(2)
   void clearEnforcerWaitSeconds() => clearField(2);
+
+  /// The last block to keep, named by its hash. The block must sit on the
+  /// active chain. Pass this or height, not both.
+  @$pb.TagNumber(3)
+  $core.String get blockHash => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set blockHash($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasBlockHash() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBlockHash() => clearField(3);
 }
 
 class WipeUntilBlockResponse extends $pb.GeneratedMessage {
