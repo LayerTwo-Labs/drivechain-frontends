@@ -140,7 +140,10 @@ func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
 
 	config.WipeEnforcerChainDataSync(config.NetworkFromString(o.Network), o.log)
 
-	bootCh, err := o.StartWithL1(context.Background(), "enforcer", StartOpts{})
+	// RestartDaemon starts the one daemon whatever the active wallet is. The
+	// L1 boot path serves an electrum wallet no local backends, so it would
+	// report success and leave the enforcer stopped with no chain data.
+	bootCh, err := o.RestartDaemon(context.Background(), "enforcer")
 	if err != nil {
 		return fmt.Errorf("start the enforcer: %w", err)
 	}
