@@ -44,7 +44,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 
@@ -117,7 +117,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Health check
@@ -163,7 +163,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 
@@ -207,7 +207,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Health check
@@ -262,7 +262,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Health check
@@ -317,7 +317,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		// Health check
@@ -373,7 +373,7 @@ func TestService_Check(t *testing.T) {
 		mockBitcoind.EXPECT().
 			CreateWallet(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "cheque_watch"},
+				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
 			}, nil).
 			AnyTimes()
 		mockBitcoind.EXPECT().

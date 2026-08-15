@@ -186,12 +186,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		))
 	}
 
-	// Electrum answers for any address; Core needs a watch-only wallet, so it
-	// serves only where no electrum endpoint exists (regtest, dev setups).
-	rt.chequeChain = engines.NewChequeChainRouter(
-		engines.NewElectrumChequeChain(rt.walletEngine),
-		engines.NewCoreChequeChain(s.Bitcoind),
-	)
+	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
 	rt.chequeEngine = engines.NewChequeEngine(rt.walletEngine, rt.chainParams, rt.chequeChain)
 	walletAdapter := engines.NewWalletAdapter(rt.walletEngine)
 	timestampLogger := log.With().Str("component", "timestamp").Logger()

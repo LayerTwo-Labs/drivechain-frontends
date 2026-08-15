@@ -1443,8 +1443,8 @@ func (e *WalletEngine) ChequeAddressUnspent(ctx context.Context, address string)
 	return resp.Msg.Utxos, resp.Msg.TipHeight, nil
 }
 
-// BroadcastChequeTx broadcasts a cheque sweep over electrum. A wallet-scoped
-// broadcast would route through Core when a Core wallet is active.
+// BroadcastChequeTx broadcasts a cheque sweep over electrum, whatever wallet
+// the user has active.
 func (e *WalletEngine) BroadcastChequeTx(ctx context.Context, txHex string) (string, error) {
 	if e.orchClient == nil {
 		return "", fmt.Errorf("orchestrator wallet client not connected")

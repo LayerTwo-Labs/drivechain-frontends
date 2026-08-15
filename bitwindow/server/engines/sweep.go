@@ -3,7 +3,6 @@ package engines
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -112,8 +111,7 @@ func ResolveSweepSource(
 	}
 
 	for _, candidate := range candidates {
-		// An arbitrary key can hold coins older than the wallet itself.
-		utxos, err := chain.AddressUnspent(ctx, candidate.Address, time.Unix(0, 0))
+		utxos, err := chain.AddressUnspent(ctx, candidate.Address)
 		if err != nil {
 			return SweepSource{}, fmt.Errorf("query %s utxos: %w", candidate.Kind, err)
 		}

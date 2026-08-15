@@ -24,8 +24,8 @@ type ChequeRecovery struct {
 	Txid    string
 }
 
-// ChequeEngine manages cheque derivation (ONLY)
-// Gets seed from WalletEngine when needed
+// ChequeEngine derives cheque keys from the wallet seed, and reads their
+// addresses off the chain.
 type ChequeEngine struct {
 	walletEngine *WalletEngine
 	chainParams  *chaincfg.Params
@@ -94,18 +94,22 @@ func (e *ChequeEngine) DeriveChequeAddress(walletId string, index uint32) (strin
 		return "", err
 	}
 
+	return e.chequeAddress(seedHex, index)
+}
+
+// chequeAddress derives the native segwit (P2WPKH) address at
+// m/44'/0'/999'/{index}.
+func (e *ChequeEngine) chequeAddress(seedHex string, index uint32) (string, error) {
 	chequeKey, err := e.deriveChequeKey(seedHex, index)
 	if err != nil {
 		return "", err
 	}
 
-	// Get the public key
 	pubKey, err := chequeKey.ECPubKey()
 	if err != nil {
 		return "", fmt.Errorf("get public key: %w", err)
 	}
 
-	// Create native segwit (P2WPKH) address
 	pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
 	address, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, e.chainParams)
 	if err != nil {
@@ -154,54 +158,38 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, count 
 	var recoveries []ChequeRecovery
 
 	for i := uint32(0); i < uint32(count); i++ {
-		chequeKey, err := e.deriveChequeKey(seedHex, i)
+		address, err := e.chequeAddress(seedHex, i)
 		if err != nil {
-			log.Warn().Err(err).Uint32("index", i).Msg("failed to derive key during scan")
+			return nil, fmt.Errorf("derive cheque address %d: %w", i, err)
+		}
+
+		utxos, err := e.chain.AddressUnspent(ctx, address)
+		if err != nil {
+			return nil, fmt.Errorf("read cheque address %s: %w", address, err)
+		}
+		if len(utxos) == 0 {
 			continue
 		}
 
-		pubKey, err := chequeKey.ECPubKey()
-		if err != nil {
-			log.Warn().Err(err).Uint32("index", i).Msg("failed to get public key during scan")
-			continue
+		var amountSats uint64
+		var txid string
+		for _, utxo := range utxos {
+			amountSats += uint64(utxo.ValueSats)
+			txid = utxo.TxID
 		}
 
-		pubKeyHash := btcutil.Hash160(pubKey.SerializeCompressed())
-		addr, err := btcutil.NewAddressWitnessPubKeyHash(pubKeyHash, e.chainParams)
-		if err != nil {
-			log.Warn().Err(err).Uint32("index", i).Msg("failed to create address during scan")
-			continue
-		}
+		recoveries = append(recoveries, ChequeRecovery{
+			Index:   i,
+			Address: address,
+			Amount:  amountSats,
+			Txid:    txid,
+		})
 
-		address := addr.EncodeAddress()
-
-		utxos, err := e.chain.AddressUnspent(ctx, address, time.Unix(0, 0))
-		if err != nil {
-			log.Warn().Err(err).Str("address", address).Msg("failed to query UTXOs")
-			continue
-		}
-
-		if len(utxos) > 0 {
-			var amountSats uint64
-			var txid string
-			for _, utxo := range utxos {
-				amountSats += uint64(utxo.ValueSats)
-				txid = utxo.TxID
-			}
-
-			recoveries = append(recoveries, ChequeRecovery{
-				Index:   i,
-				Address: address,
-				Amount:  amountSats,
-				Txid:    txid,
-			})
-
-			log.Info().
-				Uint32("index", i).
-				Str("address", address).
-				Uint64("amount_sats", amountSats).
-				Msg("recovered funded cheque")
-		}
+		log.Info().
+			Uint32("index", i).
+			Str("address", address).
+			Uint64("amount_sats", amountSats).
+			Msg("recovered funded cheque")
 	}
 
 	return recoveries, nil
@@ -209,9 +197,9 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, count 
 
 // Start begins the cheque engine background monitoring. Returned channel
 // closes once both background goroutines have exited; runtime/test
-// shutdown should block on it so in-flight bitcoind RPC calls don't race
-// the gomock controller's teardown (calling t.Fatalf from a goroutine
-// after the test ended panics).
+// shutdown should block on it so in-flight RPC calls don't race the
+// gomock controller's teardown (calling t.Fatalf from a goroutine after
+// the test ended panics).
 func (e *ChequeEngine) Start(ctx context.Context) <-chan struct{} {
 	log := zerolog.Ctx(ctx)
 	log.Info().Msg("cheque engine started")
@@ -234,7 +222,7 @@ func (e *ChequeEngine) Start(ctx context.Context) <-chan struct{} {
 	return done
 }
 
-// recoverChequesOnUnlock waits for wallet unlock and bitcoind, then recovers cheques for all wallets
+// recoverChequesOnUnlock waits for wallet unlock, then recovers cheques for all wallets
 func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 	log := zerolog.Ctx(ctx)
 
