@@ -92,7 +92,9 @@ done
 if [[ "$os" == "darwin" && "${STAGE_PLAIN_BINARIES:-}" == "1" ]]; then
     host_token="$(uname -m)"
     for daemon in bitwindowd orchestratord orchestratorctl hwi-daemon; do
-        cp -f "$assets_dir/${daemon}-${host_token}" "$assets_dir/${daemon}"
+        # macOS kills an in-place overwrite of a signed Mach-O, so rename instead.
+        cp -f "$assets_dir/${daemon}-${host_token}" "$assets_dir/${daemon}.tmp"
+        mv -f "$assets_dir/${daemon}.tmp" "$assets_dir/${daemon}"
     done
 fi
 
