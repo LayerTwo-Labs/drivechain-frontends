@@ -639,19 +639,35 @@ message RejectBlockRequest {
   uint32 enforcer_wait_seconds = 2;
 }
 
+// What the reject did to the chain Core follows.
+enum RejectOutcome {
+  REJECT_OUTCOME_UNSPECIFIED = 0;
+  // Core dropped the block and followed another branch.
+  REJECT_OUTCOME_SWITCHED_BRANCH = 1;
+  // Core dropped the block and parked on its parent, with no branch to take.
+  REJECT_OUTCOME_PARKED_ON_PARENT = 2;
+  // The block already sat off the active chain, so the tip did not move.
+  REJECT_OUTCOME_ALREADY_INACTIVE = 3;
+}
+
 message RejectBlockResponse {
   // Core's tip after the reject.
   uint32 core_height = 1;
   // Hash of that tip.
   string core_tip_hash = 2;
-  // True when Core found another branch and followed it. False when Core
-  // parked on the rejected block's parent and waits for a branch.
-  bool switched_branch = 3;
+  // What the reject did to the chain Core follows.
+  RejectOutcome outcome = 3;
   // The enforcer's tip afterwards. Zero when the enforcer is stopped.
   uint32 enforcer_height = 4;
   // True when the enforcer did not follow, so its validator chain was deleted
   // and it now rebuilds from the local Core.
   bool enforcer_rebuilt = 5;
+  // Empty on success; otherwise why the enforcer could not be brought back
+  // onto Core's chain. Core already moved, so the caller keeps its undo path.
+  string enforcer_error = 6;
+  // False when the enforcer was never asked, so enforcer_height carries no
+  // reading and must not be shown as one.
+  bool enforcer_checked = 7;
 }
 
 message AcceptBlockRequest {
@@ -673,6 +689,12 @@ message AcceptBlockResponse {
   // True when the enforcer did not follow, so its validator chain was deleted
   // and it now rebuilds from the local Core.
   bool enforcer_rebuilt = 4;
+  // Empty on success; otherwise why the enforcer could not be brought back
+  // onto Core's chain. Core already moved, so the caller keeps its undo path.
+  string enforcer_error = 5;
+  // False when the enforcer was never asked, so enforcer_height carries no
+  // reading and must not be shown as one.
+  bool enforcer_checked = 6;
 }
 
 // ─── Bitcoin Core typed extensions ────────────────────────────────────────
