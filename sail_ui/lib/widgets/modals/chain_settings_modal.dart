@@ -32,7 +32,11 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   bool _working = false;
   String? _error;
   String? _result;
-  String? _rejectedHash;
+  // Which call left the enforcer off Core's chain, and the block it acted on.
+  // The retry has to repeat that same call on that same block: an accept after
+  // a reject would undo the rejection, and the field may have moved on since.
+  _PendingRetry _pendingRetry = _PendingRetry.none;
+  String? _retryHash;
 
   @override
   void initState() {
@@ -115,11 +119,27 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     if (!_isBitcoinCore) {
       return;
     }
+    // GetSyncStatus keeps serving the last-good numbers through a daemon
+    // outage, on purpose, so progress never snaps to zero. That makes its
+    // height a poor liveness reading: ask the connection itself first.
+    if (!widget.connection.connected) {
+      setState(() => _chainHeightFailed = true);
+      return;
+    }
+
     try {
       final status = await GetIt.I.get<OrchestratorRPC>().getSyncStatus();
-      if (mounted) {
-        setState(() => _chainHeight = status.mainchain.blocks.toInt());
+      if (!mounted) {
+        return;
       }
+      final mainchain = status.mainchain;
+      setState(() {
+        if (mainchain.error.isNotEmpty) {
+          _chainHeightFailed = true;
+        } else {
+          _chainHeight = mainchain.blocks.toInt();
+        }
+      });
     } catch (e) {
       GetIt.I.get<Logger>().d('chain settings: could not read the height: $e');
       if (mounted) {
@@ -162,15 +182,23 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       if (!mounted) {
         return;
       }
-      final landed = resp.switchedBranch
-          ? 'Core followed another branch to ${resp.coreHeight}.'
-          : 'Core parked at ${resp.coreHeight}, with no other branch yet.';
+      final landed = switch (resp.outcome) {
+        RejectOutcome.REJECT_OUTCOME_SWITCHED_BRANCH => 'Core followed another branch to ${resp.coreHeight}.',
+        RejectOutcome.REJECT_OUTCOME_PARKED_ON_PARENT => 'Core parked at ${resp.coreHeight}, with no other branch yet.',
+        RejectOutcome.REJECT_OUTCOME_ALREADY_INACTIVE =>
+          'Core stays at ${resp.coreHeight}. That block already sat off the active chain.',
+        _ => 'Core is at ${resp.coreHeight}.',
+      };
       setState(() {
         _chainHeight = resp.coreHeight;
-        _rejectedHash = hash;
-        _result = resp.enforcerRebuilt
-            ? '$landed The enforcer rebuilds from the local Core.'
-            : '$landed The enforcer followed at ${resp.enforcerHeight}.';
+        _pendingRetry = resp.enforcerError.isNotEmpty ? _PendingRetry.reject : _PendingRetry.none;
+        _retryHash = resp.enforcerError.isNotEmpty ? hash : null;
+        _result = switch (resp) {
+          _ when resp.enforcerError.isNotEmpty => '$landed The enforcer did not follow: ${resp.enforcerError}',
+          _ when !resp.enforcerChecked => '$landed The enforcer reads the chain on its next start.',
+          _ when resp.enforcerRebuilt => '$landed The enforcer rebuilds from the local Core.',
+          _ => "$landed The enforcer sits on Core's chain at ${resp.enforcerHeight}.",
+        };
       });
     } catch (e) {
       if (mounted) {
@@ -183,9 +211,28 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
     }
   }
 
-  Future<void> _acceptBlock(BuildContext context) async {
-    final hash = _rejectedHash;
+  /// Repeats whichever call left the enforcer unreconciled. Both calls are safe
+  /// to repeat: Core ignores a second reject or accept of the same block, and
+  /// the reconciliation runs again either way.
+  Future<void> _runRetry(BuildContext context) async {
+    final hash = _retryHash;
     if (hash == null) {
+      return;
+    }
+    switch (_pendingRetry) {
+      case _PendingRetry.reject:
+        await _sendReject(hash);
+      case _PendingRetry.accept:
+        await _acceptBlock(context, retryHash: hash);
+      case _PendingRetry.none:
+        return;
+    }
+  }
+
+  Future<void> _acceptBlock(BuildContext context, {String? retryHash}) async {
+    final hash = retryHash ?? _rejectTarget.text.trim();
+    if (!_blockHashPattern.hasMatch(hash)) {
+      setState(() => _error = 'Paste the 64-character hash of the block to accept.');
       return;
     }
     setState(() {
@@ -200,10 +247,17 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       }
       setState(() {
         _chainHeight = resp.coreHeight;
-        _rejectedHash = null;
-        _result = resp.enforcerRebuilt
-            ? 'Core accepts the block again at ${resp.coreHeight}. The enforcer rebuilds from the local Core.'
-            : 'Core accepts the block again at ${resp.coreHeight}. The enforcer followed at ${resp.enforcerHeight}.';
+        // A reconciliation that failed leaves the enforcer off Core's chain.
+        // Another accept runs it again, so keep the action reachable.
+        _pendingRetry = resp.enforcerError.isNotEmpty ? _PendingRetry.accept : _PendingRetry.none;
+        _retryHash = resp.enforcerError.isNotEmpty ? hash : null;
+        final landed = 'Core accepts the block again at ${resp.coreHeight}.';
+        _result = switch (resp) {
+          _ when resp.enforcerError.isNotEmpty => '$landed The enforcer did not follow: ${resp.enforcerError}',
+          _ when !resp.enforcerChecked => '$landed The enforcer reads the chain on its next start.',
+          _ when resp.enforcerRebuilt => '$landed The enforcer rebuilds from the local Core.',
+          _ => "$landed The enforcer sits on Core's chain at ${resp.enforcerHeight}.",
+        };
       });
     } catch (e) {
       if (mounted) {
@@ -432,9 +486,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
               spacing: SailStyleValues.padding12,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SailText.primary13('Reject a block', bold: true),
+                SailText.primary13('Reject or accept a block', bold: true),
                 SailText.secondary13(
-                  'Name the block this node must not follow, by hash. It and every block above it leave the active chain, and Core takes the best remaining branch.',
+                  'Name the block this node must not follow, by hash. It and every block above it leave the active chain, and Core takes the best remaining branch. Accept takes a rejected block back, whichever session rejected it.',
                   color: theme.colors.textSecondary,
                 ),
                 SailRow(
@@ -443,7 +497,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     Expanded(
                       child: SailTextField(
                         controller: _rejectTarget,
-                        hintText: 'Block hash to reject',
+                        hintText: 'Block hash',
                         dense: true,
                       ),
                     ),
@@ -452,6 +506,11 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                       onPressed: _working ? null : () async => _rejectBlock(context),
                       loading: _working,
                       loadingLabel: 'Rejecting',
+                    ),
+                    SailButton(
+                      label: 'Accept',
+                      variant: ButtonVariant.secondary,
+                      onPressed: _working ? null : () async => _acceptBlock(context),
                     ),
                   ],
                 ),
@@ -464,12 +523,13 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                     'A height names no block when two branches share it, so paste the hash. The enforcer follows the reject, and rebuilds its validator chain from the local Core if it does not.',
                     color: theme.colors.textSecondary,
                   ),
-                // Stays reachable after a failed accept, so the undo can be retried.
-                if (_rejectedHash != null)
+                // Stays reachable after a failed call, so the enforcer can be
+                // reconciled again without undoing a rejection.
+                if (_pendingRetry != _PendingRetry.none)
                   SailButton(
-                    label: 'Undo, accept it again',
+                    label: 'Retry the enforcer',
                     variant: ButtonVariant.ghost,
-                    onPressed: _working ? null : () async => _acceptBlock(context),
+                    onPressed: _working ? null : () async => _runRetry(context),
                   ),
               ],
             ),
@@ -719,3 +779,6 @@ class ChainSettingsViewModel extends BaseViewModel {
     super.dispose();
   }
 }
+
+/// Which call the retry button repeats.
+enum _PendingRetry { none, reject, accept }
