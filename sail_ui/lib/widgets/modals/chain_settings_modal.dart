@@ -455,18 +455,19 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                 ),
                 if (_error != null)
                   SailText.secondary12(_error!, color: theme.colors.error)
-                else if (_result != null) ...[
-                  SailText.secondary12(_result!, color: theme.colors.success),
-                  if (_rejectedHash != null)
-                    SailButton(
-                      label: 'Undo, accept it again',
-                      variant: ButtonVariant.ghost,
-                      onPressed: _working ? null : () async => _acceptBlock(context),
-                    ),
-                ] else
+                else if (_result != null)
+                  SailText.secondary12(_result!, color: theme.colors.success)
+                else
                   SailText.secondary12(
                     'A height names no block when two branches share it, so paste the hash. The enforcer follows the reject, and rebuilds its validator chain from the local Core if it does not.',
                     color: theme.colors.textSecondary,
+                  ),
+                // Stays reachable after a failed accept, so the undo can be retried.
+                if (_rejectedHash != null)
+                  SailButton(
+                    label: 'Undo, accept it again',
+                    variant: ButtonVariant.ghost,
+                    onPressed: _working ? null : () async => _acceptBlock(context),
                   ),
               ],
             ),

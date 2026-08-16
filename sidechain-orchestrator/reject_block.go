@@ -60,7 +60,7 @@ func (o *Orchestrator) RejectBlock(ctx context.Context, blockHash string, enforc
 		return result, nil
 	}
 
-	enforcerHeight, followed := o.awaitEnforcerRollback(ctx, result.CoreHeight, enforcerWait)
+	enforcerHeight, followed := o.awaitEnforcerRollback(ctx, result.CoreTipHash, result.CoreHeight, enforcerWait)
 	if followed {
 		result.EnforcerHeight = enforcerHeight
 		return result, nil
@@ -142,21 +142,34 @@ func acceptBlockOnCore(ctx context.Context, client *CoreStatusClient, blockHash 
 	return AcceptBlockResult{CoreHeight: tipHeight, CoreTipHash: tipHash}, nil
 }
 
-// awaitEnforcerRollback watches the enforcer's tip until it sits at or below
-// height. A tip it cannot read counts as no answer, not as a failure: the
+// enforcerFollowed reports whether the enforcer left the branch Core rejected.
+// A reject can move Core sideways to a sibling at the same height, so a height
+// on its own proves nothing: the enforcer sitting at that height may still hold
+// the dropped branch. A matching hash means it aligned with Core, and a lower
+// height means it rolled back and still climbs.
+func enforcerFollowed(enforcerHash string, enforcerHeight int32, coreHash string, coreHeight uint32) bool {
+	if enforcerHash != "" && strings.EqualFold(enforcerHash, coreHash) {
+		return true
+	}
+	return enforcerHeight < int32(coreHeight)
+}
+
+// awaitEnforcerRollback watches the enforcer's tip until it leaves the rejected
+// branch. A tip it cannot read counts as no answer, not as a failure: the
 // enforcer refuses GetChainTip while it reorganizes.
-func (o *Orchestrator) awaitEnforcerRollback(ctx context.Context, height uint32, wait time.Duration) (uint32, bool) {
+func (o *Orchestrator) awaitEnforcerRollback(ctx context.Context, coreHash string, coreHeight uint32, wait time.Duration) (uint32, bool) {
 	deadline := time.Now().Add(wait)
 	for {
-		_, tip, err := o.ChainTip(ctx)
-		if err == nil && tip <= int32(height) {
-			o.log.Info().Int32("enforcer_tip", tip).Msg("enforcer followed the reject")
+		hash, tip, err := o.ChainTip(ctx)
+		if err == nil && enforcerFollowed(hash, tip, coreHash, coreHeight) {
+			o.log.Info().Int32("enforcer_tip", tip).Str("enforcer_hash", hash).Msg("enforcer followed the reject")
 			return uint32(tip), true
 		}
 		if !time.Now().Before(deadline) {
 			o.log.Warn().
 				Int32("enforcer_tip", tip).
-				Uint32("want", height).
+				Str("enforcer_hash", hash).
+				Uint32("want", coreHeight).
 				Msg("enforcer did not follow the reject, rebuilding its validator chain")
 			return uint32(max(tip, 0)), false
 		}
