@@ -318,9 +318,13 @@ func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
 	if !o.swapEnforcerMu.TryLock() {
 		return fmt.Errorf("an enforcer wallet swap is in progress, so the validator chain was left alone")
 	}
-	defer o.swapEnforcerMu.Unlock()
+	// RestartDaemon returns before the daemon is up, so the boot goroutine
+	// releases this. A swap taking the lock in between would set its guard and
+	// make that boot refuse, leaving a wiped enforcer stopped.
+	release := o.swapEnforcerMu.Unlock
 
 	if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
+		release()
 		return fmt.Errorf("stop the enforcer: %w", err)
 	}
 
@@ -331,9 +335,11 @@ func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
 	// report success and leave the enforcer stopped with no chain data.
 	bootCh, err := o.RestartDaemon(context.Background(), "enforcer")
 	if err != nil {
+		release()
 		return fmt.Errorf("start the enforcer: %w", err)
 	}
 	go func() {
+		defer release()
 		for p := range bootCh {
 			if p.Error != nil {
 				o.log.Error().Err(p.Error).Msg("enforcer restart after the reject failed")
