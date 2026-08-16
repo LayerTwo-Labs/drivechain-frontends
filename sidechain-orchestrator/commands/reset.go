@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"strconv"
 	"text/tabwriter"
 
 	"connectrpc.com/connect"
@@ -18,50 +17,76 @@ var resetCommand = &cli.Command{
 	Subcommands: []*cli.Command{
 		resetPreviewCommand,
 		resetRunCommand,
-		resetUntilBlockCommand,
+		rejectBlockCommand,
+		acceptBlockCommand,
 	},
 }
 
-var resetUntilBlockCommand = &cli.Command{
-	Name:      "until-block",
-	Usage:     "Roll the chain back to a block, keeping every block below it",
-	ArgsUsage: "<height|hash>",
+var rejectBlockCommand = &cli.Command{
+	Name:      "reject-block",
+	Usage:     "Drop a block the node must not follow, and take the best remaining branch",
+	ArgsUsage: "<hash>",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
 		&cli.UintFlag{Name: "enforcer-wait", Usage: "seconds to wait for the enforcer to follow before rebuilding it"},
 	},
 	Action: func(cctx *cli.Context) error {
-		if cctx.NArg() != 1 {
-			return fmt.Errorf("pass the block to keep, e.g. reset until-block 979000")
-		}
-		req := &pb.WipeUntilBlockRequest{EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait"))}
-		arg := cctx.Args().First()
-		if isBlockHash(arg) {
-			req.BlockHash = arg
-		} else {
-			height, err := strconv.ParseUint(arg, 10, 32)
-			if err != nil {
-				return fmt.Errorf("read %q as a height or a block hash: %w", arg, err)
-			}
-			req.Height = uint32(height)
+		hash := cctx.Args().First()
+		if cctx.NArg() != 1 || !isBlockHash(hash) {
+			return fmt.Errorf("pass the 64-character hash of the block to reject")
 		}
 
-		if err := confirmOrAbort(cctx, fmt.Sprintf("this drops every block above %s from the active chain. proceed?", arg)); err != nil {
+		if err := confirmOrAbort(cctx, fmt.Sprintf("this drops block %s and every block above it. proceed?", hash)); err != nil {
 			return err
 		}
 
-		resp, err := newClient(cctx).WipeUntilBlock(cctx.Context, connect.NewRequest(req))
+		req := &pb.RejectBlockRequest{
+			BlockHash:           hash,
+			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
+		}
+		resp, err := newClient(cctx).RejectBlock(cctx.Context, connect.NewRequest(req))
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("core tip:    %d\n", resp.Msg.CoreHeight)
-		fmt.Printf("invalidated: %s\n", resp.Msg.InvalidatedBlockHash)
+		fmt.Printf("core tip: %d %s\n", resp.Msg.CoreHeight, resp.Msg.CoreTipHash)
+		if resp.Msg.SwitchedBranch {
+			fmt.Println("chain:    followed another branch")
+		} else {
+			fmt.Println("chain:    parked on the rejected block's parent, no other branch yet")
+		}
 		if resp.Msg.EnforcerRebuilt {
-			fmt.Println("enforcer:    validator chain deleted, rebuilds from the local core")
+			fmt.Println("enforcer: validator chain deleted, rebuilds from the local core")
 			return nil
 		}
-		fmt.Printf("enforcer:    followed the rollback, tip %d\n", resp.Msg.EnforcerHeight)
+		fmt.Printf("enforcer: followed the reject, tip %d\n", resp.Msg.EnforcerHeight)
+		return nil
+	},
+}
+
+var acceptBlockCommand = &cli.Command{
+	Name:      "accept-block",
+	Usage:     "Undo reject-block, so the node may follow that branch again",
+	ArgsUsage: "<hash>",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
+	},
+	Action: func(cctx *cli.Context) error {
+		hash := cctx.Args().First()
+		if cctx.NArg() != 1 || !isBlockHash(hash) {
+			return fmt.Errorf("pass the 64-character hash of the block to accept")
+		}
+
+		if err := confirmOrAbort(cctx, fmt.Sprintf("this lets the node follow block %s again. proceed?", hash)); err != nil {
+			return err
+		}
+
+		resp, err := newClient(cctx).AcceptBlock(cctx.Context, connect.NewRequest(&pb.AcceptBlockRequest{BlockHash: hash}))
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("core tip: %d %s\n", resp.Msg.CoreHeight, resp.Msg.CoreTipHash)
 		return nil
 	},
 }
