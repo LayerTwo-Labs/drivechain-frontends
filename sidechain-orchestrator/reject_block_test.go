@@ -192,30 +192,46 @@ func TestRejectBlockNormalizesTheHash(t *testing.T) {
 	}
 }
 
-// A reject can move Core sideways to a sibling at the same height, so the
-// enforcer holding the dropped branch reads as the same height as Core. Height
-// alone would call that a success and leave the two on different branches.
-func TestEnforcerFollowedNeedsMoreThanAHeight(t *testing.T) {
+// A height names no branch: the enforcer can sit at Core's height on the branch
+// Core just dropped, or climb past Core while on Core's own chain. Core's
+// confirmation count is what tells the two apart.
+func TestBlockOnActiveChainReadsCoreNotAHeight(t *testing.T) {
 	for _, tc := range []struct {
-		name           string
-		enforcerHash   string
-		enforcerHeight int32
-		want           bool
+		name string
+		hash string
+		want bool
 	}{
-		{"same hash as core", other, 979025, true},
-		{"same hash in upper case", strings.ToUpper(other), 979025, true},
-		{"rolled below core", parent, 979024, true},
-		{"sibling branch at core's height", bad, 979025, false},
-		{"still above core", bad, 979607, false},
-		{"no hash but below core", "", 979024, true},
-		{"no hash at core's height", "", 979025, false},
+		{"core's own tip", other, true},
+		{"an older block on core's chain", parent, true},
+		{"upper case reaches core lower case", strings.ToUpper(parent), true},
+		{"a block on the branch core dropped", bad, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := enforcerFollowed(tc.enforcerHash, tc.enforcerHeight, other, 979025)
+			core := &fakeCore{headers: map[string]blockHeader{
+				other:  {Height: 979025, Confirmations: 1},
+				parent: {Height: 979024, Confirmations: 2},
+				bad:    {Height: 979025, Confirmations: -1},
+			}}
+
+			got, err := blockOnActiveChain(context.Background(), core.start(t), tc.hash)
+			if err != nil {
+				t.Fatalf("blockOnActiveChain: %v", err)
+			}
 			if got != tc.want {
-				t.Errorf("enforcerFollowed = %v, want %v", got, tc.want)
+				t.Errorf("blockOnActiveChain = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestBlockOnActiveChainRefusesAnEmptyHash(t *testing.T) {
+	core := &fakeCore{}
+
+	if _, err := blockOnActiveChain(context.Background(), core.start(t), ""); err == nil {
+		t.Fatal("blockOnActiveChain accepted a blank hash")
+	}
+	if len(core.methods) != 0 {
+		t.Errorf("rpc calls = %v, want none for a blank hash", core.methods)
 	}
 }
 
