@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "orchestrator.pb.dart" as orchestratorv1orchestrator;
 import "orchestrator.connect.spec.dart" as specs;
 
-extension type OrchestratorServiceClient (connect.Transport _transport) {
+extension type OrchestratorServiceClient(connect.Transport _transport) {
   /// List all configured binaries and their status.
   Future<orchestratorv1orchestrator.ListBinariesResponse> listBinaries(
     orchestratorv1orchestrator.ListBinariesRequest input, {
@@ -501,18 +501,36 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Roll the chain back to a height instead of deleting all of it. Core
-  /// invalidates the block above the height, so every block below it stays on
-  /// disk and is never downloaded again.
-  Future<orchestratorv1orchestrator.WipeUntilBlockResponse> wipeUntilBlock(
-    orchestratorv1orchestrator.WipeUntilBlockRequest input, {
+  /// Drop a block Core must not follow. Core rejects it and every block above
+  /// it, then follows the best remaining valid branch.
+  Future<orchestratorv1orchestrator.RejectBlockResponse> rejectBlock(
+    orchestratorv1orchestrator.RejectBlockRequest input, {
     connect.Headers? headers,
     connect.AbortSignal? signal,
     Function(connect.Headers)? onHeader,
     Function(connect.Headers)? onTrailer,
   }) {
     return connect.Client(_transport).unary(
-      specs.OrchestratorService.wipeUntilBlock,
+      specs.OrchestratorService.rejectBlock,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Undo RejectBlock. Core re-checks the block and its branch, and follows it
+  /// again when it has the most work.
+  Future<orchestratorv1orchestrator.AcceptBlockResponse> acceptBlock(
+    orchestratorv1orchestrator.AcceptBlockRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.acceptBlock,
       input,
       signal: signal,
       headers: headers,

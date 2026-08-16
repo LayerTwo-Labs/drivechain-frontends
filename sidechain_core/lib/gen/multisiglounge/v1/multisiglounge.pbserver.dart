@@ -15,45 +15,45 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'multisiglounge.pb.dart' as $5;
+import 'multisiglounge.pb.dart' as $6;
 import 'multisiglounge.pbjson.dart';
 
 export 'multisiglounge.pb.dart';
 
 abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
-  $async.Future<$5.BuildDescriptorsResponse> buildDescriptors(
-      $pb.ServerContext ctx, $5.BuildDescriptorsRequest request);
-  $async.Future<$5.ValidatePsbtResponse> validatePsbt($pb.ServerContext ctx, $5.ValidatePsbtRequest request);
-  $async.Future<$5.PublishGroupResponse> publishGroup($pb.ServerContext ctx, $5.PublishGroupRequest request);
-  $async.Future<$5.ImportGroupFromTxidResponse> importGroupFromTxid(
-      $pb.ServerContext ctx, $5.ImportGroupFromTxidRequest request);
-  $async.Future<$5.SignTransactionResponse> signTransaction($pb.ServerContext ctx, $5.SignTransactionRequest request);
-  $async.Future<$5.CombineAndBroadcastResponse> combineAndBroadcast(
-      $pb.ServerContext ctx, $5.CombineAndBroadcastRequest request);
-  $async.Future<$5.SyncGroupResponse> syncGroup($pb.ServerContext ctx, $5.SyncGroupRequest request);
-  $async.Future<$5.RestoreHistoryResponse> restoreHistory($pb.ServerContext ctx, $5.RestoreHistoryRequest request);
-  $async.Future<$5.CreateSpendPsbtResponse> createSpendPsbt($pb.ServerContext ctx, $5.CreateSpendPsbtRequest request);
+  $async.Future<$6.BuildDescriptorsResponse> buildDescriptors(
+      $pb.ServerContext ctx, $6.BuildDescriptorsRequest request);
+  $async.Future<$6.ValidatePsbtResponse> validatePsbt($pb.ServerContext ctx, $6.ValidatePsbtRequest request);
+  $async.Future<$6.PublishGroupResponse> publishGroup($pb.ServerContext ctx, $6.PublishGroupRequest request);
+  $async.Future<$6.ImportGroupFromTxidResponse> importGroupFromTxid(
+      $pb.ServerContext ctx, $6.ImportGroupFromTxidRequest request);
+  $async.Future<$6.SignTransactionResponse> signTransaction($pb.ServerContext ctx, $6.SignTransactionRequest request);
+  $async.Future<$6.CombineAndBroadcastResponse> combineAndBroadcast(
+      $pb.ServerContext ctx, $6.CombineAndBroadcastRequest request);
+  $async.Future<$6.SyncGroupResponse> syncGroup($pb.ServerContext ctx, $6.SyncGroupRequest request);
+  $async.Future<$6.RestoreHistoryResponse> restoreHistory($pb.ServerContext ctx, $6.RestoreHistoryRequest request);
+  $async.Future<$6.CreateSpendPsbtResponse> createSpendPsbt($pb.ServerContext ctx, $6.CreateSpendPsbtRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'BuildDescriptors':
-        return $5.BuildDescriptorsRequest();
+        return $6.BuildDescriptorsRequest();
       case 'ValidatePsbt':
-        return $5.ValidatePsbtRequest();
+        return $6.ValidatePsbtRequest();
       case 'PublishGroup':
-        return $5.PublishGroupRequest();
+        return $6.PublishGroupRequest();
       case 'ImportGroupFromTxid':
-        return $5.ImportGroupFromTxidRequest();
+        return $6.ImportGroupFromTxidRequest();
       case 'SignTransaction':
-        return $5.SignTransactionRequest();
+        return $6.SignTransactionRequest();
       case 'CombineAndBroadcast':
-        return $5.CombineAndBroadcastRequest();
+        return $6.CombineAndBroadcastRequest();
       case 'SyncGroup':
-        return $5.SyncGroupRequest();
+        return $6.SyncGroupRequest();
       case 'RestoreHistory':
-        return $5.RestoreHistoryRequest();
+        return $6.RestoreHistoryRequest();
       case 'CreateSpendPsbt':
-        return $5.CreateSpendPsbtRequest();
+        return $6.CreateSpendPsbtRequest();
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -63,23 +63,23 @@ abstract class MultisigLoungeServiceBase extends $pb.GeneratedService {
       $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'BuildDescriptors':
-        return this.buildDescriptors(ctx, request as $5.BuildDescriptorsRequest);
+        return this.buildDescriptors(ctx, request as $6.BuildDescriptorsRequest);
       case 'ValidatePsbt':
-        return this.validatePsbt(ctx, request as $5.ValidatePsbtRequest);
+        return this.validatePsbt(ctx, request as $6.ValidatePsbtRequest);
       case 'PublishGroup':
-        return this.publishGroup(ctx, request as $5.PublishGroupRequest);
+        return this.publishGroup(ctx, request as $6.PublishGroupRequest);
       case 'ImportGroupFromTxid':
-        return this.importGroupFromTxid(ctx, request as $5.ImportGroupFromTxidRequest);
+        return this.importGroupFromTxid(ctx, request as $6.ImportGroupFromTxidRequest);
       case 'SignTransaction':
-        return this.signTransaction(ctx, request as $5.SignTransactionRequest);
+        return this.signTransaction(ctx, request as $6.SignTransactionRequest);
       case 'CombineAndBroadcast':
-        return this.combineAndBroadcast(ctx, request as $5.CombineAndBroadcastRequest);
+        return this.combineAndBroadcast(ctx, request as $6.CombineAndBroadcastRequest);
       case 'SyncGroup':
-        return this.syncGroup(ctx, request as $5.SyncGroupRequest);
+        return this.syncGroup(ctx, request as $6.SyncGroupRequest);
       case 'RestoreHistory':
-        return this.restoreHistory(ctx, request as $5.RestoreHistoryRequest);
+        return this.restoreHistory(ctx, request as $6.RestoreHistoryRequest);
       case 'CreateSpendPsbt':
-        return this.createSpendPsbt(ctx, request as $5.CreateSpendPsbtRequest);
+        return this.createSpendPsbt(ctx, request as $6.CreateSpendPsbtRequest);
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }

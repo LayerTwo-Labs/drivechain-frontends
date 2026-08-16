@@ -108,9 +108,12 @@ const (
 	// OrchestratorServiceDeleteFilesProcedure is the fully-qualified name of the OrchestratorService's
 	// DeleteFiles RPC.
 	OrchestratorServiceDeleteFilesProcedure = "/orchestrator.v1.OrchestratorService/DeleteFiles"
-	// OrchestratorServiceWipeUntilBlockProcedure is the fully-qualified name of the
-	// OrchestratorService's WipeUntilBlock RPC.
-	OrchestratorServiceWipeUntilBlockProcedure = "/orchestrator.v1.OrchestratorService/WipeUntilBlock"
+	// OrchestratorServiceRejectBlockProcedure is the fully-qualified name of the OrchestratorService's
+	// RejectBlock RPC.
+	OrchestratorServiceRejectBlockProcedure = "/orchestrator.v1.OrchestratorService/RejectBlock"
+	// OrchestratorServiceAcceptBlockProcedure is the fully-qualified name of the OrchestratorService's
+	// AcceptBlock RPC.
+	OrchestratorServiceAcceptBlockProcedure = "/orchestrator.v1.OrchestratorService/AcceptBlock"
 	// OrchestratorServiceGetCoreMempoolInfoProcedure is the fully-qualified name of the
 	// OrchestratorService's GetCoreMempoolInfo RPC.
 	OrchestratorServiceGetCoreMempoolInfoProcedure = "/orchestrator.v1.OrchestratorService/GetCoreMempoolInfo"
@@ -220,10 +223,12 @@ type OrchestratorServiceClient interface {
 	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
 	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest]) (*connect.ServerStreamForClient[v1.DeleteFilesResponse], error)
-	// Roll the chain back to a height instead of deleting all of it. Core
-	// invalidates the block above the height, so every block below it stays on
-	// disk and is never downloaded again.
-	WipeUntilBlock(context.Context, *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error)
+	// Drop a block Core must not follow. Core rejects it and every block above
+	// it, then follows the best remaining valid branch.
+	RejectBlock(context.Context, *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error)
+	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
+	// again when it has the most work.
+	AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error)
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Parent-chain state the sidechain BMM tab bids against: the tip a request
@@ -403,10 +408,16 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
 			connect.WithClientOptions(opts...),
 		),
-		wipeUntilBlock: connect.NewClient[v1.WipeUntilBlockRequest, v1.WipeUntilBlockResponse](
+		rejectBlock: connect.NewClient[v1.RejectBlockRequest, v1.RejectBlockResponse](
 			httpClient,
-			baseURL+OrchestratorServiceWipeUntilBlockProcedure,
-			connect.WithSchema(orchestratorServiceMethods.ByName("WipeUntilBlock")),
+			baseURL+OrchestratorServiceRejectBlockProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("RejectBlock")),
+			connect.WithClientOptions(opts...),
+		),
+		acceptBlock: connect.NewClient[v1.AcceptBlockRequest, v1.AcceptBlockResponse](
+			httpClient,
+			baseURL+OrchestratorServiceAcceptBlockProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("AcceptBlock")),
 			connect.WithClientOptions(opts...),
 		),
 		getCoreMempoolInfo: connect.NewClient[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse](
@@ -463,7 +474,8 @@ type orchestratorServiceClient struct {
 	getSidechainBalance             *connect.Client[v1.GetSidechainBalanceRequest, v1.GetSidechainBalanceResponse]
 	gatherFilesToDelete             *connect.Client[v1.GatherFilesToDeleteRequest, v1.GatherFilesToDeleteResponse]
 	deleteFiles                     *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
-	wipeUntilBlock                  *connect.Client[v1.WipeUntilBlockRequest, v1.WipeUntilBlockResponse]
+	rejectBlock                     *connect.Client[v1.RejectBlockRequest, v1.RejectBlockResponse]
+	acceptBlock                     *connect.Client[v1.AcceptBlockRequest, v1.AcceptBlockResponse]
 	getCoreMempoolInfo              *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
 	getBmmContext                   *connect.Client[v1.GetBmmContextRequest, v1.GetBmmContextResponse]
 	coreRawCall                     *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
@@ -597,9 +609,14 @@ func (c *orchestratorServiceClient) DeleteFiles(ctx context.Context, req *connec
 	return c.deleteFiles.CallServerStream(ctx, req)
 }
 
-// WipeUntilBlock calls orchestrator.v1.OrchestratorService.WipeUntilBlock.
-func (c *orchestratorServiceClient) WipeUntilBlock(ctx context.Context, req *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error) {
-	return c.wipeUntilBlock.CallUnary(ctx, req)
+// RejectBlock calls orchestrator.v1.OrchestratorService.RejectBlock.
+func (c *orchestratorServiceClient) RejectBlock(ctx context.Context, req *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error) {
+	return c.rejectBlock.CallUnary(ctx, req)
+}
+
+// AcceptBlock calls orchestrator.v1.OrchestratorService.AcceptBlock.
+func (c *orchestratorServiceClient) AcceptBlock(ctx context.Context, req *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error) {
+	return c.acceptBlock.CallUnary(ctx, req)
 }
 
 // GetCoreMempoolInfo calls orchestrator.v1.OrchestratorService.GetCoreMempoolInfo.
@@ -718,10 +735,12 @@ type OrchestratorServiceHandler interface {
 	// wallet_backups/ instead of removed. Returns a gRPC error if it can't run.
 	// Streams one message per path; an unset error means that path succeeded.
 	DeleteFiles(context.Context, *connect.Request[v1.DeleteFilesRequest], *connect.ServerStream[v1.DeleteFilesResponse]) error
-	// Roll the chain back to a height instead of deleting all of it. Core
-	// invalidates the block above the height, so every block below it stays on
-	// disk and is never downloaded again.
-	WipeUntilBlock(context.Context, *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error)
+	// Drop a block Core must not follow. Core rejects it and every block above
+	// it, then follows the best remaining valid branch.
+	RejectBlock(context.Context, *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error)
+	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
+	// again when it has the most work.
+	AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error)
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Parent-chain state the sidechain BMM tab bids against: the tip a request
@@ -897,10 +916,16 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("DeleteFiles")),
 		connect.WithHandlerOptions(opts...),
 	)
-	orchestratorServiceWipeUntilBlockHandler := connect.NewUnaryHandler(
-		OrchestratorServiceWipeUntilBlockProcedure,
-		svc.WipeUntilBlock,
-		connect.WithSchema(orchestratorServiceMethods.ByName("WipeUntilBlock")),
+	orchestratorServiceRejectBlockHandler := connect.NewUnaryHandler(
+		OrchestratorServiceRejectBlockProcedure,
+		svc.RejectBlock,
+		connect.WithSchema(orchestratorServiceMethods.ByName("RejectBlock")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceAcceptBlockHandler := connect.NewUnaryHandler(
+		OrchestratorServiceAcceptBlockProcedure,
+		svc.AcceptBlock,
+		connect.WithSchema(orchestratorServiceMethods.ByName("AcceptBlock")),
 		connect.WithHandlerOptions(opts...),
 	)
 	orchestratorServiceGetCoreMempoolInfoHandler := connect.NewUnaryHandler(
@@ -979,8 +1004,10 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceGatherFilesToDeleteHandler.ServeHTTP(w, r)
 		case OrchestratorServiceDeleteFilesProcedure:
 			orchestratorServiceDeleteFilesHandler.ServeHTTP(w, r)
-		case OrchestratorServiceWipeUntilBlockProcedure:
-			orchestratorServiceWipeUntilBlockHandler.ServeHTTP(w, r)
+		case OrchestratorServiceRejectBlockProcedure:
+			orchestratorServiceRejectBlockHandler.ServeHTTP(w, r)
+		case OrchestratorServiceAcceptBlockProcedure:
+			orchestratorServiceAcceptBlockHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetCoreMempoolInfoProcedure:
 			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBmmContextProcedure:
@@ -1098,8 +1125,12 @@ func (UnimplementedOrchestratorServiceHandler) DeleteFiles(context.Context, *con
 	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.DeleteFiles is not implemented"))
 }
 
-func (UnimplementedOrchestratorServiceHandler) WipeUntilBlock(context.Context, *connect.Request[v1.WipeUntilBlockRequest]) (*connect.Response[v1.WipeUntilBlockResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.WipeUntilBlock is not implemented"))
+func (UnimplementedOrchestratorServiceHandler) RejectBlock(context.Context, *connect.Request[v1.RejectBlockRequest]) (*connect.Response[v1.RejectBlockResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.RejectBlock is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.AcceptBlock is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {

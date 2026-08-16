@@ -253,14 +253,22 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.DeleteFilesResponse.new,
   );
 
-  /// Roll the chain back to a height instead of deleting all of it. Core
-  /// invalidates the block above the height, so every block below it stays on
-  /// disk and is never downloaded again.
-  static const wipeUntilBlock = connect.Spec(
-    '/$name/WipeUntilBlock',
+  /// Drop a block Core must not follow. Core rejects it and every block above
+  /// it, then follows the best remaining valid branch.
+  static const rejectBlock = connect.Spec(
+    '/$name/RejectBlock',
     connect.StreamType.unary,
-    orchestratorv1orchestrator.WipeUntilBlockRequest.new,
-    orchestratorv1orchestrator.WipeUntilBlockResponse.new,
+    orchestratorv1orchestrator.RejectBlockRequest.new,
+    orchestratorv1orchestrator.RejectBlockResponse.new,
+  );
+
+  /// Undo RejectBlock. Core re-checks the block and its branch, and follows it
+  /// again when it has the most work.
+  static const acceptBlock = connect.Spec(
+    '/$name/AcceptBlock',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.AcceptBlockRequest.new,
+    orchestratorv1orchestrator.AcceptBlockResponse.new,
   );
 
   /// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
