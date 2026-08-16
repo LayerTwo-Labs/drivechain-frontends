@@ -9,7 +9,7 @@ import "inquisition.connect.spec.dart" as specs;
 
 /// Inquisition is a Bitcoin Core fork run as a drivechain sidechain, so its RPC
 /// surface is Core's rather than the CUSF one the other sidechains expose.
-extension type InquisitionServiceClient (connect.Transport _transport) {
+extension type InquisitionServiceClient(connect.Transport _transport) {
   /// Get current block count.
   Future<inquisitionv1inquisition.GetBlockCountResponse> getBlockCount(
     inquisitionv1inquisition.GetBlockCountRequest input, {

@@ -15,93 +15,93 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'thunder.pb.dart' as $12;
+import 'thunder.pb.dart' as $13;
 import 'thunder.pbjson.dart';
 
 export 'thunder.pb.dart';
 
 abstract class ThunderServiceBase extends $pb.GeneratedService {
-  $async.Future<$12.GetBalanceResponse> getBalance($pb.ServerContext ctx, $12.GetBalanceRequest request);
-  $async.Future<$12.GetBlockCountResponse> getBlockCount($pb.ServerContext ctx, $12.GetBlockCountRequest request);
-  $async.Future<$12.StopResponse> stop($pb.ServerContext ctx, $12.StopRequest request);
-  $async.Future<$12.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $12.GetNewAddressRequest request);
-  $async.Future<$12.WithdrawResponse> withdraw($pb.ServerContext ctx, $12.WithdrawRequest request);
-  $async.Future<$12.TransferResponse> transfer($pb.ServerContext ctx, $12.TransferRequest request);
-  $async.Future<$12.GetSidechainWealthResponse> getSidechainWealth(
-      $pb.ServerContext ctx, $12.GetSidechainWealthRequest request);
-  $async.Future<$12.CreateDepositResponse> createDeposit($pb.ServerContext ctx, $12.CreateDepositRequest request);
-  $async.Future<$12.GetPendingWithdrawalBundleResponse> getPendingWithdrawalBundle(
-      $pb.ServerContext ctx, $12.GetPendingWithdrawalBundleRequest request);
-  $async.Future<$12.ConnectPeerResponse> connectPeer($pb.ServerContext ctx, $12.ConnectPeerRequest request);
-  $async.Future<$12.ListPeersResponse> listPeers($pb.ServerContext ctx, $12.ListPeersRequest request);
-  $async.Future<$12.MineResponse> mine($pb.ServerContext ctx, $12.MineRequest request);
-  $async.Future<$12.GetBlockResponse> getBlock($pb.ServerContext ctx, $12.GetBlockRequest request);
-  $async.Future<$12.GetBestMainchainBlockHashResponse> getBestMainchainBlockHash(
-      $pb.ServerContext ctx, $12.GetBestMainchainBlockHashRequest request);
-  $async.Future<$12.GetBestSidechainBlockHashResponse> getBestSidechainBlockHash(
-      $pb.ServerContext ctx, $12.GetBestSidechainBlockHashRequest request);
-  $async.Future<$12.GetBmmInclusionsResponse> getBmmInclusions(
-      $pb.ServerContext ctx, $12.GetBmmInclusionsRequest request);
-  $async.Future<$12.GetWalletUtxosResponse> getWalletUtxos($pb.ServerContext ctx, $12.GetWalletUtxosRequest request);
-  $async.Future<$12.ListUtxosResponse> listUtxos($pb.ServerContext ctx, $12.ListUtxosRequest request);
-  $async.Future<$12.RemoveFromMempoolResponse> removeFromMempool(
-      $pb.ServerContext ctx, $12.RemoveFromMempoolRequest request);
-  $async.Future<$12.GetLatestFailedWithdrawalBundleHeightResponse> getLatestFailedWithdrawalBundleHeight(
-      $pb.ServerContext ctx, $12.GetLatestFailedWithdrawalBundleHeightRequest request);
-  $async.Future<$12.GenerateMnemonicResponse> generateMnemonic(
-      $pb.ServerContext ctx, $12.GenerateMnemonicRequest request);
-  $async.Future<$12.SetSeedFromMnemonicResponse> setSeedFromMnemonic(
-      $pb.ServerContext ctx, $12.SetSeedFromMnemonicRequest request);
-  $async.Future<$12.CallRawResponse> callRaw($pb.ServerContext ctx, $12.CallRawRequest request);
+  $async.Future<$13.GetBalanceResponse> getBalance($pb.ServerContext ctx, $13.GetBalanceRequest request);
+  $async.Future<$13.GetBlockCountResponse> getBlockCount($pb.ServerContext ctx, $13.GetBlockCountRequest request);
+  $async.Future<$13.StopResponse> stop($pb.ServerContext ctx, $13.StopRequest request);
+  $async.Future<$13.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $13.GetNewAddressRequest request);
+  $async.Future<$13.WithdrawResponse> withdraw($pb.ServerContext ctx, $13.WithdrawRequest request);
+  $async.Future<$13.TransferResponse> transfer($pb.ServerContext ctx, $13.TransferRequest request);
+  $async.Future<$13.GetSidechainWealthResponse> getSidechainWealth(
+      $pb.ServerContext ctx, $13.GetSidechainWealthRequest request);
+  $async.Future<$13.CreateDepositResponse> createDeposit($pb.ServerContext ctx, $13.CreateDepositRequest request);
+  $async.Future<$13.GetPendingWithdrawalBundleResponse> getPendingWithdrawalBundle(
+      $pb.ServerContext ctx, $13.GetPendingWithdrawalBundleRequest request);
+  $async.Future<$13.ConnectPeerResponse> connectPeer($pb.ServerContext ctx, $13.ConnectPeerRequest request);
+  $async.Future<$13.ListPeersResponse> listPeers($pb.ServerContext ctx, $13.ListPeersRequest request);
+  $async.Future<$13.MineResponse> mine($pb.ServerContext ctx, $13.MineRequest request);
+  $async.Future<$13.GetBlockResponse> getBlock($pb.ServerContext ctx, $13.GetBlockRequest request);
+  $async.Future<$13.GetBestMainchainBlockHashResponse> getBestMainchainBlockHash(
+      $pb.ServerContext ctx, $13.GetBestMainchainBlockHashRequest request);
+  $async.Future<$13.GetBestSidechainBlockHashResponse> getBestSidechainBlockHash(
+      $pb.ServerContext ctx, $13.GetBestSidechainBlockHashRequest request);
+  $async.Future<$13.GetBmmInclusionsResponse> getBmmInclusions(
+      $pb.ServerContext ctx, $13.GetBmmInclusionsRequest request);
+  $async.Future<$13.GetWalletUtxosResponse> getWalletUtxos($pb.ServerContext ctx, $13.GetWalletUtxosRequest request);
+  $async.Future<$13.ListUtxosResponse> listUtxos($pb.ServerContext ctx, $13.ListUtxosRequest request);
+  $async.Future<$13.RemoveFromMempoolResponse> removeFromMempool(
+      $pb.ServerContext ctx, $13.RemoveFromMempoolRequest request);
+  $async.Future<$13.GetLatestFailedWithdrawalBundleHeightResponse> getLatestFailedWithdrawalBundleHeight(
+      $pb.ServerContext ctx, $13.GetLatestFailedWithdrawalBundleHeightRequest request);
+  $async.Future<$13.GenerateMnemonicResponse> generateMnemonic(
+      $pb.ServerContext ctx, $13.GenerateMnemonicRequest request);
+  $async.Future<$13.SetSeedFromMnemonicResponse> setSeedFromMnemonic(
+      $pb.ServerContext ctx, $13.SetSeedFromMnemonicRequest request);
+  $async.Future<$13.CallRawResponse> callRaw($pb.ServerContext ctx, $13.CallRawRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
       case 'GetBalance':
-        return $12.GetBalanceRequest();
+        return $13.GetBalanceRequest();
       case 'GetBlockCount':
-        return $12.GetBlockCountRequest();
+        return $13.GetBlockCountRequest();
       case 'Stop':
-        return $12.StopRequest();
+        return $13.StopRequest();
       case 'GetNewAddress':
-        return $12.GetNewAddressRequest();
+        return $13.GetNewAddressRequest();
       case 'Withdraw':
-        return $12.WithdrawRequest();
+        return $13.WithdrawRequest();
       case 'Transfer':
-        return $12.TransferRequest();
+        return $13.TransferRequest();
       case 'GetSidechainWealth':
-        return $12.GetSidechainWealthRequest();
+        return $13.GetSidechainWealthRequest();
       case 'CreateDeposit':
-        return $12.CreateDepositRequest();
+        return $13.CreateDepositRequest();
       case 'GetPendingWithdrawalBundle':
-        return $12.GetPendingWithdrawalBundleRequest();
+        return $13.GetPendingWithdrawalBundleRequest();
       case 'ConnectPeer':
-        return $12.ConnectPeerRequest();
+        return $13.ConnectPeerRequest();
       case 'ListPeers':
-        return $12.ListPeersRequest();
+        return $13.ListPeersRequest();
       case 'Mine':
-        return $12.MineRequest();
+        return $13.MineRequest();
       case 'GetBlock':
-        return $12.GetBlockRequest();
+        return $13.GetBlockRequest();
       case 'GetBestMainchainBlockHash':
-        return $12.GetBestMainchainBlockHashRequest();
+        return $13.GetBestMainchainBlockHashRequest();
       case 'GetBestSidechainBlockHash':
-        return $12.GetBestSidechainBlockHashRequest();
+        return $13.GetBestSidechainBlockHashRequest();
       case 'GetBmmInclusions':
-        return $12.GetBmmInclusionsRequest();
+        return $13.GetBmmInclusionsRequest();
       case 'GetWalletUtxos':
-        return $12.GetWalletUtxosRequest();
+        return $13.GetWalletUtxosRequest();
       case 'ListUtxos':
-        return $12.ListUtxosRequest();
+        return $13.ListUtxosRequest();
       case 'RemoveFromMempool':
-        return $12.RemoveFromMempoolRequest();
+        return $13.RemoveFromMempoolRequest();
       case 'GetLatestFailedWithdrawalBundleHeight':
-        return $12.GetLatestFailedWithdrawalBundleHeightRequest();
+        return $13.GetLatestFailedWithdrawalBundleHeightRequest();
       case 'GenerateMnemonic':
-        return $12.GenerateMnemonicRequest();
+        return $13.GenerateMnemonicRequest();
       case 'SetSeedFromMnemonic':
-        return $12.SetSeedFromMnemonicRequest();
+        return $13.SetSeedFromMnemonicRequest();
       case 'CallRaw':
-        return $12.CallRawRequest();
+        return $13.CallRawRequest();
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
@@ -111,52 +111,52 @@ abstract class ThunderServiceBase extends $pb.GeneratedService {
       $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
       case 'GetBalance':
-        return this.getBalance(ctx, request as $12.GetBalanceRequest);
+        return this.getBalance(ctx, request as $13.GetBalanceRequest);
       case 'GetBlockCount':
-        return this.getBlockCount(ctx, request as $12.GetBlockCountRequest);
+        return this.getBlockCount(ctx, request as $13.GetBlockCountRequest);
       case 'Stop':
-        return this.stop(ctx, request as $12.StopRequest);
+        return this.stop(ctx, request as $13.StopRequest);
       case 'GetNewAddress':
-        return this.getNewAddress(ctx, request as $12.GetNewAddressRequest);
+        return this.getNewAddress(ctx, request as $13.GetNewAddressRequest);
       case 'Withdraw':
-        return this.withdraw(ctx, request as $12.WithdrawRequest);
+        return this.withdraw(ctx, request as $13.WithdrawRequest);
       case 'Transfer':
-        return this.transfer(ctx, request as $12.TransferRequest);
+        return this.transfer(ctx, request as $13.TransferRequest);
       case 'GetSidechainWealth':
-        return this.getSidechainWealth(ctx, request as $12.GetSidechainWealthRequest);
+        return this.getSidechainWealth(ctx, request as $13.GetSidechainWealthRequest);
       case 'CreateDeposit':
-        return this.createDeposit(ctx, request as $12.CreateDepositRequest);
+        return this.createDeposit(ctx, request as $13.CreateDepositRequest);
       case 'GetPendingWithdrawalBundle':
-        return this.getPendingWithdrawalBundle(ctx, request as $12.GetPendingWithdrawalBundleRequest);
+        return this.getPendingWithdrawalBundle(ctx, request as $13.GetPendingWithdrawalBundleRequest);
       case 'ConnectPeer':
-        return this.connectPeer(ctx, request as $12.ConnectPeerRequest);
+        return this.connectPeer(ctx, request as $13.ConnectPeerRequest);
       case 'ListPeers':
-        return this.listPeers(ctx, request as $12.ListPeersRequest);
+        return this.listPeers(ctx, request as $13.ListPeersRequest);
       case 'Mine':
-        return this.mine(ctx, request as $12.MineRequest);
+        return this.mine(ctx, request as $13.MineRequest);
       case 'GetBlock':
-        return this.getBlock(ctx, request as $12.GetBlockRequest);
+        return this.getBlock(ctx, request as $13.GetBlockRequest);
       case 'GetBestMainchainBlockHash':
-        return this.getBestMainchainBlockHash(ctx, request as $12.GetBestMainchainBlockHashRequest);
+        return this.getBestMainchainBlockHash(ctx, request as $13.GetBestMainchainBlockHashRequest);
       case 'GetBestSidechainBlockHash':
-        return this.getBestSidechainBlockHash(ctx, request as $12.GetBestSidechainBlockHashRequest);
+        return this.getBestSidechainBlockHash(ctx, request as $13.GetBestSidechainBlockHashRequest);
       case 'GetBmmInclusions':
-        return this.getBmmInclusions(ctx, request as $12.GetBmmInclusionsRequest);
+        return this.getBmmInclusions(ctx, request as $13.GetBmmInclusionsRequest);
       case 'GetWalletUtxos':
-        return this.getWalletUtxos(ctx, request as $12.GetWalletUtxosRequest);
+        return this.getWalletUtxos(ctx, request as $13.GetWalletUtxosRequest);
       case 'ListUtxos':
-        return this.listUtxos(ctx, request as $12.ListUtxosRequest);
+        return this.listUtxos(ctx, request as $13.ListUtxosRequest);
       case 'RemoveFromMempool':
-        return this.removeFromMempool(ctx, request as $12.RemoveFromMempoolRequest);
+        return this.removeFromMempool(ctx, request as $13.RemoveFromMempoolRequest);
       case 'GetLatestFailedWithdrawalBundleHeight':
         return this
-            .getLatestFailedWithdrawalBundleHeight(ctx, request as $12.GetLatestFailedWithdrawalBundleHeightRequest);
+            .getLatestFailedWithdrawalBundleHeight(ctx, request as $13.GetLatestFailedWithdrawalBundleHeightRequest);
       case 'GenerateMnemonic':
-        return this.generateMnemonic(ctx, request as $12.GenerateMnemonicRequest);
+        return this.generateMnemonic(ctx, request as $13.GenerateMnemonicRequest);
       case 'SetSeedFromMnemonic':
-        return this.setSeedFromMnemonic(ctx, request as $12.SetSeedFromMnemonicRequest);
+        return this.setSeedFromMnemonic(ctx, request as $13.SetSeedFromMnemonicRequest);
       case 'CallRaw':
-        return this.callRaw(ctx, request as $12.CallRawRequest);
+        return this.callRaw(ctx, request as $13.CallRawRequest);
       default:
         throw $core.ArgumentError('Unknown method: $methodName');
     }
