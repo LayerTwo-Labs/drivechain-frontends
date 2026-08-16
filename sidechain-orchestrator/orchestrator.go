@@ -178,6 +178,11 @@ type Orchestrator struct {
 	// state into an inconsistent shape.
 	coreVariantMu sync.Mutex
 
+	// rejectMu serialises RejectBlock against AcceptBlock. A reject holds it
+	// across the enforcer wait, so an accept cannot restore the branch the
+	// reject still reconciles against.
+	rejectMu sync.Mutex
+
 	// swapEnforcerMu serialises the whole enforcer wallet swap for the same
 	// reason: its stop -> back up -> commit -> restart sequence is not safe to
 	// interleave with a second one.

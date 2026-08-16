@@ -40,6 +40,11 @@ func (o *Orchestrator) RejectBlock(ctx context.Context, blockHash string, enforc
 		enforcerWait = defaultEnforcerReorgWait
 	}
 
+	// An accept landing during the enforcer wait would restore the branch this
+	// call is still reconciling against.
+	o.rejectMu.Lock()
+	defer o.rejectMu.Unlock()
+
 	client, err := o.CoreStatusClient()
 	if err != nil {
 		return RejectBlockResult{}, fmt.Errorf("bitcoin core rpc: %w", err)
@@ -60,7 +65,7 @@ func (o *Orchestrator) RejectBlock(ctx context.Context, blockHash string, enforc
 		return result, nil
 	}
 
-	enforcerHeight, followed := o.awaitEnforcerRollback(ctx, result.CoreTipHash, result.CoreHeight, enforcerWait)
+	enforcerHeight, followed := o.awaitEnforcerRollback(ctx, client, enforcerWait)
 	if followed {
 		result.EnforcerHeight = enforcerHeight
 		return result, nil
@@ -76,6 +81,9 @@ func (o *Orchestrator) RejectBlock(ctx context.Context, blockHash string, enforc
 // AcceptBlock undoes RejectBlock. Core clears the mark on the block, on its
 // ancestors and on its descendants, then re-checks them.
 func (o *Orchestrator) AcceptBlock(ctx context.Context, blockHash string) (AcceptBlockResult, error) {
+	o.rejectMu.Lock()
+	defer o.rejectMu.Unlock()
+
 	client, err := o.CoreStatusClient()
 	if err != nil {
 		return AcceptBlockResult{}, fmt.Errorf("bitcoin core rpc: %w", err)
@@ -142,34 +150,40 @@ func acceptBlockOnCore(ctx context.Context, client *CoreStatusClient, blockHash 
 	return AcceptBlockResult{CoreHeight: tipHeight, CoreTipHash: tipHash}, nil
 }
 
-// enforcerFollowed reports whether the enforcer left the branch Core rejected.
-// A reject can move Core sideways to a sibling at the same height, so a height
-// on its own proves nothing: the enforcer sitting at that height may still hold
-// the dropped branch. A matching hash means it aligned with Core, and a lower
-// height means it rolled back and still climbs.
-func enforcerFollowed(enforcerHash string, enforcerHeight int32, coreHash string, coreHeight uint32) bool {
-	if enforcerHash != "" && strings.EqualFold(enforcerHash, coreHash) {
-		return true
+// blockOnActiveChain asks Core whether a block sits on the chain it follows.
+// Core answers a negative confirmation count for a block on a branch it
+// dropped, which is the only reliable way to tell the two apart: a height
+// names no branch, and Core keeps syncing while the enforcer catches up.
+func blockOnActiveChain(ctx context.Context, client *CoreStatusClient, hash string) (bool, error) {
+	if hash == "" {
+		return false, fmt.Errorf("no block hash to look up")
 	}
-	return enforcerHeight < int32(coreHeight)
+	header, err := readBlockHeader(ctx, client, normalizeBlockHash(hash))
+	if err != nil {
+		return false, err
+	}
+	return header.Confirmations >= 0, nil
 }
 
-// awaitEnforcerRollback watches the enforcer's tip until it leaves the rejected
-// branch. A tip it cannot read counts as no answer, not as a failure: the
-// enforcer refuses GetChainTip while it reorganizes.
-func (o *Orchestrator) awaitEnforcerRollback(ctx context.Context, coreHash string, coreHeight uint32, wait time.Duration) (uint32, bool) {
+// awaitEnforcerRollback watches the enforcer until its tip sits on the chain
+// Core follows. A tip it cannot read counts as no answer, not as a failure:
+// the enforcer refuses GetChainTip while it reorganizes.
+func (o *Orchestrator) awaitEnforcerRollback(ctx context.Context, client *CoreStatusClient, wait time.Duration) (uint32, bool) {
 	deadline := time.Now().Add(wait)
+	var tip int32
 	for {
-		hash, tip, err := o.ChainTip(ctx)
-		if err == nil && enforcerFollowed(hash, tip, coreHash, coreHeight) {
-			o.log.Info().Int32("enforcer_tip", tip).Str("enforcer_hash", hash).Msg("enforcer followed the reject")
-			return uint32(tip), true
+		hash, height, err := o.ChainTip(ctx)
+		if err == nil {
+			tip = height
+			onChain, chainErr := blockOnActiveChain(ctx, client, hash)
+			if chainErr == nil && onChain {
+				o.log.Info().Int32("enforcer_tip", tip).Str("enforcer_hash", hash).Msg("enforcer followed the reject")
+				return uint32(max(tip, 0)), true
+			}
 		}
 		if !time.Now().Before(deadline) {
 			o.log.Warn().
 				Int32("enforcer_tip", tip).
-				Str("enforcer_hash", hash).
-				Uint32("want", coreHeight).
 				Msg("enforcer did not follow the reject, rebuilding its validator chain")
 			return uint32(max(tip, 0)), false
 		}
