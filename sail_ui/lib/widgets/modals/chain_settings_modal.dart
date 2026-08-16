@@ -26,11 +26,13 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   String? _resolvedBinaryPath;
   bool _loadingVersion = true;
 
-  final TextEditingController _rollbackTarget = TextEditingController();
+  final TextEditingController _rejectTarget = TextEditingController();
   int? _chainHeight;
-  bool _rollingBack = false;
-  String? _rollbackError;
-  String? _rollbackResult;
+  bool _chainHeightFailed = false;
+  bool _working = false;
+  String? _error;
+  String? _result;
+  String? _rejectedHash;
 
   @override
   void initState() {
@@ -42,7 +44,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
   @override
   void dispose() {
-    _rollbackTarget.dispose();
+    _rejectTarget.dispose();
     super.dispose();
   }
 
@@ -114,69 +116,100 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       return;
     }
     try {
-      final info = await widget.connection.getBlockchainInfo();
+      final status = await GetIt.I.get<OrchestratorRPC>().getSyncStatus();
       if (mounted) {
-        setState(() => _chainHeight = info.blocks);
+        setState(() => _chainHeight = status.mainchain.blocks.toInt());
       }
     } catch (e) {
-      // The tab reads the height as a hint, so a daemon that is still coming
-      // up leaves it blank rather than blocking the modal.
       GetIt.I.get<Logger>().d('chain settings: could not read the height: $e');
+      if (mounted) {
+        setState(() => _chainHeightFailed = true);
+      }
     }
   }
 
-  /// A 64-character hex string names a block; anything else reads as a height.
   static final RegExp _blockHashPattern = RegExp(r'^[0-9a-fA-F]{64}$');
 
-  Future<void> _rollBack(BuildContext context) async {
-    final target = _rollbackTarget.text.trim();
-    final isHash = _blockHashPattern.hasMatch(target);
-    final height = isHash ? null : int.tryParse(target);
-    if (!isHash && height == null) {
-      setState(() => _rollbackError = 'Type the block height or the block hash to keep.');
+  Future<void> _rejectBlock(BuildContext context) async {
+    final hash = _rejectTarget.text.trim();
+    if (!_blockHashPattern.hasMatch(hash)) {
+      setState(() => _error = 'Paste the 64-character hash of the block to reject.');
       return;
     }
 
-    // The rollback drops the active branch and can delete the enforcer's
-    // validator chain, and the modal cannot undo either.
     await infoDialog(
       context: context,
-      title: 'Roll back to block $target?',
+      title: 'Reject block $hash?',
       subtitle:
-          'Every block above $target leaves the active chain. '
+          'It and every block above it leave the active chain, and Core takes the best remaining branch. '
           'The enforcer rebuilds from the local Core if it does not follow.',
       onConfirm: () async {
         Navigator.of(context).pop();
-        await _sendRollback(height: height, blockHash: isHash ? target : null);
+        await _sendReject(hash);
       },
     );
   }
 
-  Future<void> _sendRollback({int? height, String? blockHash}) async {
+  Future<void> _sendReject(String hash) async {
     setState(() {
-      _rollingBack = true;
-      _rollbackError = null;
-      _rollbackResult = null;
+      _working = true;
+      _error = null;
+      _result = null;
     });
 
     try {
-      final resp = await GetIt.I.get<OrchestratorRPC>().wipeUntilBlock(height: height, blockHash: blockHash);
+      final resp = await GetIt.I.get<OrchestratorRPC>().rejectBlock(blockHash: hash);
+      if (!mounted) {
+        return;
+      }
+      final landed = resp.switchedBranch
+          ? 'Core followed another branch to ${resp.coreHeight}.'
+          : 'Core parked at ${resp.coreHeight}, with no other branch yet.';
+      setState(() {
+        _chainHeight = resp.coreHeight;
+        _rejectedHash = hash;
+        _result = resp.enforcerRebuilt
+            ? '$landed The enforcer rebuilds from the local Core.'
+            : '$landed The enforcer followed at ${resp.enforcerHeight}.';
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = '$e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _working = false);
+      }
+    }
+  }
+
+  Future<void> _acceptBlock(BuildContext context) async {
+    final hash = _rejectedHash;
+    if (hash == null) {
+      return;
+    }
+    setState(() {
+      _working = true;
+      _error = null;
+    });
+
+    try {
+      final resp = await GetIt.I.get<OrchestratorRPC>().acceptBlock(blockHash: hash);
       if (!mounted) {
         return;
       }
       setState(() {
         _chainHeight = resp.coreHeight;
-        _rollbackResult = resp.enforcerRebuilt
-            ? 'Core is at ${resp.coreHeight}. The enforcer rebuilds from the local Core.'
-            : 'Core is at ${resp.coreHeight}. The enforcer followed at ${resp.enforcerHeight}.';
+        _rejectedHash = null;
+        _result = 'Core accepts block $hash again, and sits at ${resp.coreHeight}.';
       });
     } catch (e) {
       if (mounted) {
-        setState(() => _rollbackError = '$e');
+        setState(() => _error = '$e');
       }
     } finally {
       if (mounted) {
-        setState(() => _rollingBack = false);
+        setState(() => _working = false);
       }
     }
   }
@@ -381,7 +414,10 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _FieldRow(label: 'Network', value: GetIt.I.get<BitcoinConfProvider>().network.name),
-              _FieldRow(label: 'Height', value: _chainHeight?.toString() ?? 'Loading...'),
+              _FieldRow(
+                label: 'Height',
+                value: _chainHeight?.toString() ?? (_chainHeightFailed ? 'Unavailable' : 'Loading...'),
+              ),
             ],
           ),
           Container(
@@ -394,9 +430,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
               spacing: SailStyleValues.padding12,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SailText.primary13('Roll back the chain', bold: true),
+                SailText.primary13('Reject a block', bold: true),
                 SailText.secondary13(
-                  'Name the last block to keep, by height or by hash. Every block above it leaves the active chain, and the blocks below stay on disk.',
+                  'Name the block this node must not follow, by hash. It and every block above it leave the active chain, and Core takes the best remaining branch.',
                   color: theme.colors.textSecondary,
                 ),
                 SailRow(
@@ -404,27 +440,33 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
                   children: [
                     Expanded(
                       child: SailTextField(
-                        controller: _rollbackTarget,
-                        hintText: 'Block height or hash to keep',
+                        controller: _rejectTarget,
+                        hintText: 'Block hash to reject',
                         dense: true,
                       ),
                     ),
                     SailButton(
-                      label: 'Roll back',
-                      onPressed: _rollingBack ? null : () async => _rollBack(context),
-                      loading: _rollingBack,
-                      loadingLabel: 'Rolling back',
+                      label: 'Reject',
+                      onPressed: _working ? null : () async => _rejectBlock(context),
+                      loading: _working,
+                      loadingLabel: 'Rejecting',
                     ),
                   ],
                 ),
-                if (_rollbackError != null)
-                  SailText.secondary12(_rollbackError!, color: theme.colors.error)
-                else if (_rollbackResult != null)
-                  SailText.secondary12(_rollbackResult!, color: theme.colors.success)
-                else
+                if (_error != null)
+                  SailText.secondary12(_error!, color: theme.colors.error)
+                else if (_result != null) ...[
+                  SailText.secondary12(_result!, color: theme.colors.success),
+                  if (_rejectedHash != null)
+                    SailButton(
+                      label: 'Undo, accept it again',
+                      variant: ButtonVariant.ghost,
+                      onPressed: _working ? null : () async => _acceptBlock(context),
+                    ),
+                ] else
                   SailText.secondary12(
-                    'The enforcer follows the rollback. If it does not, it deletes its validator chain and rebuilds from the local Core.',
-                    color: theme.colors.textTertiary,
+                    'A height names no block when two branches share it, so paste the hash. The enforcer follows the reject, and rebuilds its validator chain from the local Core if it does not.',
+                    color: theme.colors.textSecondary,
                   ),
               ],
             ),
@@ -489,9 +531,14 @@ class _FieldRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 170,
-            child: SailText.secondary13(label, color: theme.colors.textTertiary),
+            child: SailText.secondary13(label, color: theme.colors.textSecondary),
           ),
-          Expanded(child: SelectableText(value, style: SailStyleValues.thirteen)),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
+            ),
+          ),
           if (copyable) CopyButton(text: value),
         ],
       ),
@@ -524,7 +571,7 @@ class _HashVerificationSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: SailStyleValues.padding20),
-        SailText.secondary12('HASH VERIFICATION', color: theme.colors.textTertiary),
+        SailText.secondary12('HASH VERIFICATION', color: theme.colors.textSecondary),
         const SizedBox(height: SailStyleValues.padding04),
         if (localHash != null) _HashRow(label: 'Local SHA256', hash: localHash),
         if (releaseHash != null)
@@ -569,7 +616,7 @@ class _HashVerificationSection extends StatelessWidget {
         else
           SailText.secondary12(
             'Not compared — one of the two hashes is missing.',
-            color: theme.colors.textTertiary,
+            color: theme.colors.textSecondary,
           ),
       ],
     );
@@ -605,7 +652,7 @@ class _HashRow extends StatelessWidget {
               width: 170,
               child: SailText.secondary13(
                 label,
-                color: isMismatch ? theme.colors.error : theme.colors.textTertiary,
+                color: isMismatch ? theme.colors.error : theme.colors.textSecondary,
               ),
             ),
             const SizedBox(width: SailStyleValues.padding16),
