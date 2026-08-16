@@ -120,21 +120,23 @@ class OrchestratorRPC {
     );
   }
 
-  /// Roll the chain back to a height in place of a full wipe. Core keeps every
-  /// block below the height on disk, so a later sync downloads nothing again.
-  /// Names the last block to keep by height or by hash, never both.
-  Future<WipeUntilBlockResponse> wipeUntilBlock({
-    int? height,
-    String? blockHash,
+  /// Drop a block the node must not follow. Core rejects it and every block
+  /// above it, keeps them all on disk, then takes the best remaining branch.
+  Future<RejectBlockResponse> rejectBlock({
+    required String blockHash,
     int enforcerWaitSeconds = 0,
   }) {
-    return _unaryClient.wipeUntilBlock(
-      WipeUntilBlockRequest(
-        height: height ?? 0,
-        blockHash: blockHash ?? '',
+    return _unaryClient.rejectBlock(
+      RejectBlockRequest(
+        blockHash: blockHash,
         enforcerWaitSeconds: enforcerWaitSeconds,
       ),
     );
+  }
+
+  /// Undo [rejectBlock], so the node may follow that branch again.
+  Future<AcceptBlockResponse> acceptBlock({required String blockHash}) {
+    return _unaryClient.acceptBlock(AcceptBlockRequest(blockHash: blockHash));
   }
 
   Future<StartBinaryResponse> startBinary(

@@ -885,20 +885,32 @@ func (h *Handler) DeleteFiles(ctx context.Context, req *connect.Request[pb.Delet
 	return nil
 }
 
-func (h *Handler) WipeUntilBlock(ctx context.Context, req *connect.Request[pb.WipeUntilBlockRequest]) (*connect.Response[pb.WipeUntilBlockResponse], error) {
-	res, err := h.orch.WipeUntilBlock(
+func (h *Handler) RejectBlock(ctx context.Context, req *connect.Request[pb.RejectBlockRequest]) (*connect.Response[pb.RejectBlockResponse], error) {
+	res, err := h.orch.RejectBlock(
 		ctx,
-		orchestrator.RollbackTarget{Height: req.Msg.Height, Hash: strings.TrimSpace(req.Msg.BlockHash)},
+		req.Msg.BlockHash,
 		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
-	return connect.NewResponse(&pb.WipeUntilBlockResponse{
-		CoreHeight:           res.CoreHeight,
-		InvalidatedBlockHash: res.InvalidatedBlockHash,
-		EnforcerHeight:       res.EnforcerHeight,
-		EnforcerRebuilt:      res.EnforcerRebuilt,
+	return connect.NewResponse(&pb.RejectBlockResponse{
+		CoreHeight:      res.CoreHeight,
+		CoreTipHash:     res.CoreTipHash,
+		SwitchedBranch:  res.SwitchedBranch,
+		EnforcerHeight:  res.EnforcerHeight,
+		EnforcerRebuilt: res.EnforcerRebuilt,
+	}), nil
+}
+
+func (h *Handler) AcceptBlock(ctx context.Context, req *connect.Request[pb.AcceptBlockRequest]) (*connect.Response[pb.AcceptBlockResponse], error) {
+	res, err := h.orch.AcceptBlock(ctx, req.Msg.BlockHash)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	return connect.NewResponse(&pb.AcceptBlockResponse{
+		CoreHeight:  res.CoreHeight,
+		CoreTipHash: res.CoreTipHash,
 	}), nil
 }
 
