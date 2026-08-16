@@ -106,8 +106,8 @@ func TestRejectBlockInvalidatesTheNamedHash(t *testing.T) {
 	if got.CoreHeight != 979024 || got.CoreTipHash != parent {
 		t.Errorf("tip = %d/%s, want 979024/%s", got.CoreHeight, got.CoreTipHash, parent)
 	}
-	if got.SwitchedBranch {
-		t.Error("SwitchedBranch = true, want false when Core parks on the parent")
+	if got.Outcome != RejectOutcomeParkedOnParent {
+		t.Errorf("Outcome = %v, want ParkedOnParent", got.Outcome)
 	}
 	if calls := strings.Join(core.methods, ","); calls != "getblockheader,invalidateblock,getblockcount,getblockhash" {
 		t.Errorf("rpc calls = %s", calls)
@@ -131,8 +131,8 @@ func TestRejectBlockReportsASiblingBranch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rejectBlockOnCore: %v", err)
 	}
-	if !got.SwitchedBranch {
-		t.Error("SwitchedBranch = false, want true when Core lands off the parent")
+	if got.Outcome != RejectOutcomeSwitchedBranch {
+		t.Errorf("Outcome = %v, want SwitchedBranch", got.Outcome)
 	}
 	if got.CoreTipHash != other {
 		t.Errorf("tip = %s, want the sibling %s", got.CoreTipHash, other)
@@ -152,8 +152,8 @@ func TestRejectBlockReportsNoSwitchForAnInactiveBlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rejectBlockOnCore: %v", err)
 	}
-	if got.SwitchedBranch {
-		t.Error("SwitchedBranch = true, want false when the block was already off the chain")
+	if got.Outcome != RejectOutcomeAlreadyInactive {
+		t.Errorf("Outcome = %v, want AlreadyInactive", got.Outcome)
 	}
 }
 
