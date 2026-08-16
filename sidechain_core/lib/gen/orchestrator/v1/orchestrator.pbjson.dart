@@ -90,6 +90,23 @@ final $typed_data.Uint8List deletionTypeDescriptor =
         'RV9TRVRUSU5HUxADEhYKEkRFTEVUSU9OX1RZUEVfTE9HUxAEEhoKFkRFTEVUSU9OX1RZUEVfU0'
         '9GVFdBUkUQBQ==');
 
+@$core.Deprecated('Use rejectOutcomeDescriptor instead')
+const RejectOutcome$json = {
+  '1': 'RejectOutcome',
+  '2': [
+    {'1': 'REJECT_OUTCOME_UNSPECIFIED', '2': 0},
+    {'1': 'REJECT_OUTCOME_SWITCHED_BRANCH', '2': 1},
+    {'1': 'REJECT_OUTCOME_PARKED_ON_PARENT', '2': 2},
+    {'1': 'REJECT_OUTCOME_ALREADY_INACTIVE', '2': 3},
+  ],
+};
+
+/// Descriptor for `RejectOutcome`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List rejectOutcomeDescriptor =
+    $convert.base64Decode('Cg1SZWplY3RPdXRjb21lEh4KGlJFSkVDVF9PVVRDT01FX1VOU1BFQ0lGSUVEEAASIgoeUkVKRU'
+        'NUX09VVENPTUVfU1dJVENIRURfQlJBTkNIEAESIwofUkVKRUNUX09VVENPTUVfUEFSS0VEX09O'
+        'X1BBUkVOVBACEiMKH1JFSkVDVF9PVVRDT01FX0FMUkVBRFlfSU5BQ1RJVkUQAw==');
+
 @$core.Deprecated('Use binaryStatusMsgDescriptor instead')
 const BinaryStatusMsg$json = {
   '1': 'BinaryStatusMsg',
@@ -935,18 +952,22 @@ const RejectBlockResponse$json = {
   '2': [
     {'1': 'core_height', '3': 1, '4': 1, '5': 13, '10': 'coreHeight'},
     {'1': 'core_tip_hash', '3': 2, '4': 1, '5': 9, '10': 'coreTipHash'},
-    {'1': 'switched_branch', '3': 3, '4': 1, '5': 8, '10': 'switchedBranch'},
+    {'1': 'outcome', '3': 3, '4': 1, '5': 14, '6': '.orchestrator.v1.RejectOutcome', '10': 'outcome'},
     {'1': 'enforcer_height', '3': 4, '4': 1, '5': 13, '10': 'enforcerHeight'},
     {'1': 'enforcer_rebuilt', '3': 5, '4': 1, '5': 8, '10': 'enforcerRebuilt'},
+    {'1': 'enforcer_error', '3': 6, '4': 1, '5': 9, '10': 'enforcerError'},
+    {'1': 'enforcer_checked', '3': 7, '4': 1, '5': 8, '10': 'enforcerChecked'},
   ],
 };
 
 /// Descriptor for `RejectBlockResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List rejectBlockResponseDescriptor =
     $convert.base64Decode('ChNSZWplY3RCbG9ja1Jlc3BvbnNlEh8KC2NvcmVfaGVpZ2h0GAEgASgNUgpjb3JlSGVpZ2h0Ei'
-        'IKDWNvcmVfdGlwX2hhc2gYAiABKAlSC2NvcmVUaXBIYXNoEicKD3N3aXRjaGVkX2JyYW5jaBgD'
-        'IAEoCFIOc3dpdGNoZWRCcmFuY2gSJwoPZW5mb3JjZXJfaGVpZ2h0GAQgASgNUg5lbmZvcmNlck'
-        'hlaWdodBIpChBlbmZvcmNlcl9yZWJ1aWx0GAUgASgIUg9lbmZvcmNlclJlYnVpbHQ=');
+        'IKDWNvcmVfdGlwX2hhc2gYAiABKAlSC2NvcmVUaXBIYXNoEjgKB291dGNvbWUYAyABKA4yHi5v'
+        'cmNoZXN0cmF0b3IudjEuUmVqZWN0T3V0Y29tZVIHb3V0Y29tZRInCg9lbmZvcmNlcl9oZWlnaH'
+        'QYBCABKA1SDmVuZm9yY2VySGVpZ2h0EikKEGVuZm9yY2VyX3JlYnVpbHQYBSABKAhSD2VuZm9y'
+        'Y2VyUmVidWlsdBIlCg5lbmZvcmNlcl9lcnJvchgGIAEoCVINZW5mb3JjZXJFcnJvchIpChBlbm'
+        'ZvcmNlcl9jaGVja2VkGAcgASgIUg9lbmZvcmNlckNoZWNrZWQ=');
 
 @$core.Deprecated('Use acceptBlockRequestDescriptor instead')
 const AcceptBlockRequest$json = {
@@ -970,6 +991,8 @@ const AcceptBlockResponse$json = {
     {'1': 'core_tip_hash', '3': 2, '4': 1, '5': 9, '10': 'coreTipHash'},
     {'1': 'enforcer_height', '3': 3, '4': 1, '5': 13, '10': 'enforcerHeight'},
     {'1': 'enforcer_rebuilt', '3': 4, '4': 1, '5': 8, '10': 'enforcerRebuilt'},
+    {'1': 'enforcer_error', '3': 5, '4': 1, '5': 9, '10': 'enforcerError'},
+    {'1': 'enforcer_checked', '3': 6, '4': 1, '5': 8, '10': 'enforcerChecked'},
   ],
 };
 
@@ -978,7 +1001,8 @@ final $typed_data.Uint8List acceptBlockResponseDescriptor =
     $convert.base64Decode('ChNBY2NlcHRCbG9ja1Jlc3BvbnNlEh8KC2NvcmVfaGVpZ2h0GAEgASgNUgpjb3JlSGVpZ2h0Ei'
         'IKDWNvcmVfdGlwX2hhc2gYAiABKAlSC2NvcmVUaXBIYXNoEicKD2VuZm9yY2VyX2hlaWdodBgD'
         'IAEoDVIOZW5mb3JjZXJIZWlnaHQSKQoQZW5mb3JjZXJfcmVidWlsdBgEIAEoCFIPZW5mb3JjZX'
-        'JSZWJ1aWx0');
+        'JSZWJ1aWx0EiUKDmVuZm9yY2VyX2Vycm9yGAUgASgJUg1lbmZvcmNlckVycm9yEikKEGVuZm9y'
+        'Y2VyX2NoZWNrZWQYBiABKAhSD2VuZm9yY2VyQ2hlY2tlZA==');
 
 @$core.Deprecated('Use getCoreMempoolInfoRequestDescriptor instead')
 const GetCoreMempoolInfoRequest$json = {

@@ -4572,9 +4572,11 @@ class RejectBlockResponse extends $pb.GeneratedMessage {
   factory RejectBlockResponse({
     $core.int? coreHeight,
     $core.String? coreTipHash,
-    $core.bool? switchedBranch,
+    RejectOutcome? outcome,
     $core.int? enforcerHeight,
     $core.bool? enforcerRebuilt,
+    $core.String? enforcerError,
+    $core.bool? enforcerChecked,
   }) {
     final $result = create();
     if (coreHeight != null) {
@@ -4583,14 +4585,20 @@ class RejectBlockResponse extends $pb.GeneratedMessage {
     if (coreTipHash != null) {
       $result.coreTipHash = coreTipHash;
     }
-    if (switchedBranch != null) {
-      $result.switchedBranch = switchedBranch;
+    if (outcome != null) {
+      $result.outcome = outcome;
     }
     if (enforcerHeight != null) {
       $result.enforcerHeight = enforcerHeight;
     }
     if (enforcerRebuilt != null) {
       $result.enforcerRebuilt = enforcerRebuilt;
+    }
+    if (enforcerError != null) {
+      $result.enforcerError = enforcerError;
+    }
+    if (enforcerChecked != null) {
+      $result.enforcerChecked = enforcerChecked;
     }
     return $result;
   }
@@ -4605,9 +4613,14 @@ class RejectBlockResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'coreHeight', $pb.PbFieldType.OU3)
     ..aOS(2, _omitFieldNames ? '' : 'coreTipHash')
-    ..aOB(3, _omitFieldNames ? '' : 'switchedBranch')
+    ..e<RejectOutcome>(3, _omitFieldNames ? '' : 'outcome', $pb.PbFieldType.OE,
+        defaultOrMaker: RejectOutcome.REJECT_OUTCOME_UNSPECIFIED,
+        valueOf: RejectOutcome.valueOf,
+        enumValues: RejectOutcome.values)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'enforcerHeight', $pb.PbFieldType.OU3)
     ..aOB(5, _omitFieldNames ? '' : 'enforcerRebuilt')
+    ..aOS(6, _omitFieldNames ? '' : 'enforcerError')
+    ..aOB(7, _omitFieldNames ? '' : 'enforcerChecked')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -4657,19 +4670,18 @@ class RejectBlockResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearCoreTipHash() => clearField(2);
 
-  /// True when Core found another branch and followed it. False when Core
-  /// parked on the rejected block's parent and waits for a branch.
+  /// What the reject did to the chain Core follows.
   @$pb.TagNumber(3)
-  $core.bool get switchedBranch => $_getBF(2);
+  RejectOutcome get outcome => $_getN(2);
   @$pb.TagNumber(3)
-  set switchedBranch($core.bool v) {
-    $_setBool(2, v);
+  set outcome(RejectOutcome v) {
+    setField(3, v);
   }
 
   @$pb.TagNumber(3)
-  $core.bool hasSwitchedBranch() => $_has(2);
+  $core.bool hasOutcome() => $_has(2);
   @$pb.TagNumber(3)
-  void clearSwitchedBranch() => clearField(3);
+  void clearOutcome() => clearField(3);
 
   /// The enforcer's tip afterwards. Zero when the enforcer is stopped.
   @$pb.TagNumber(4)
@@ -4697,6 +4709,34 @@ class RejectBlockResponse extends $pb.GeneratedMessage {
   $core.bool hasEnforcerRebuilt() => $_has(4);
   @$pb.TagNumber(5)
   void clearEnforcerRebuilt() => clearField(5);
+
+  /// Empty on success; otherwise why the enforcer could not be brought back
+  /// onto Core's chain. Core already moved, so the caller keeps its undo path.
+  @$pb.TagNumber(6)
+  $core.String get enforcerError => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set enforcerError($core.String v) {
+    $_setString(5, v);
+  }
+
+  @$pb.TagNumber(6)
+  $core.bool hasEnforcerError() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearEnforcerError() => clearField(6);
+
+  /// False when the enforcer was never asked, so enforcer_height carries no
+  /// reading and must not be shown as one.
+  @$pb.TagNumber(7)
+  $core.bool get enforcerChecked => $_getBF(6);
+  @$pb.TagNumber(7)
+  set enforcerChecked($core.bool v) {
+    $_setBool(6, v);
+  }
+
+  @$pb.TagNumber(7)
+  $core.bool hasEnforcerChecked() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearEnforcerChecked() => clearField(7);
 }
 
 class AcceptBlockRequest extends $pb.GeneratedMessage {
@@ -4782,6 +4822,8 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
     $core.String? coreTipHash,
     $core.int? enforcerHeight,
     $core.bool? enforcerRebuilt,
+    $core.String? enforcerError,
+    $core.bool? enforcerChecked,
   }) {
     final $result = create();
     if (coreHeight != null) {
@@ -4795,6 +4837,12 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
     }
     if (enforcerRebuilt != null) {
       $result.enforcerRebuilt = enforcerRebuilt;
+    }
+    if (enforcerError != null) {
+      $result.enforcerError = enforcerError;
+    }
+    if (enforcerChecked != null) {
+      $result.enforcerChecked = enforcerChecked;
     }
     return $result;
   }
@@ -4811,6 +4859,8 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'coreTipHash')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'enforcerHeight', $pb.PbFieldType.OU3)
     ..aOB(4, _omitFieldNames ? '' : 'enforcerRebuilt')
+    ..aOS(5, _omitFieldNames ? '' : 'enforcerError')
+    ..aOB(6, _omitFieldNames ? '' : 'enforcerChecked')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -4886,6 +4936,34 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
   $core.bool hasEnforcerRebuilt() => $_has(3);
   @$pb.TagNumber(4)
   void clearEnforcerRebuilt() => clearField(4);
+
+  /// Empty on success; otherwise why the enforcer could not be brought back
+  /// onto Core's chain. Core already moved, so the caller keeps its undo path.
+  @$pb.TagNumber(5)
+  $core.String get enforcerError => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set enforcerError($core.String v) {
+    $_setString(4, v);
+  }
+
+  @$pb.TagNumber(5)
+  $core.bool hasEnforcerError() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearEnforcerError() => clearField(5);
+
+  /// False when the enforcer was never asked, so enforcer_height carries no
+  /// reading and must not be shown as one.
+  @$pb.TagNumber(6)
+  $core.bool get enforcerChecked => $_getBF(5);
+  @$pb.TagNumber(6)
+  set enforcerChecked($core.bool v) {
+    $_setBool(5, v);
+  }
+
+  @$pb.TagNumber(6)
+  $core.bool hasEnforcerChecked() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearEnforcerChecked() => clearField(6);
 }
 
 class GetCoreMempoolInfoRequest extends $pb.GeneratedMessage {

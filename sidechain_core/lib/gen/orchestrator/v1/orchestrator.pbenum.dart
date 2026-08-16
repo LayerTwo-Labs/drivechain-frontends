@@ -125,4 +125,28 @@ class DeletionType extends $pb.ProtobufEnum {
   const DeletionType._($core.int v, $core.String n) : super(v, n);
 }
 
+/// What the reject did to the chain Core follows.
+class RejectOutcome extends $pb.ProtobufEnum {
+  static const RejectOutcome REJECT_OUTCOME_UNSPECIFIED =
+      RejectOutcome._(0, _omitEnumNames ? '' : 'REJECT_OUTCOME_UNSPECIFIED');
+  static const RejectOutcome REJECT_OUTCOME_SWITCHED_BRANCH =
+      RejectOutcome._(1, _omitEnumNames ? '' : 'REJECT_OUTCOME_SWITCHED_BRANCH');
+  static const RejectOutcome REJECT_OUTCOME_PARKED_ON_PARENT =
+      RejectOutcome._(2, _omitEnumNames ? '' : 'REJECT_OUTCOME_PARKED_ON_PARENT');
+  static const RejectOutcome REJECT_OUTCOME_ALREADY_INACTIVE =
+      RejectOutcome._(3, _omitEnumNames ? '' : 'REJECT_OUTCOME_ALREADY_INACTIVE');
+
+  static const $core.List<RejectOutcome> values = <RejectOutcome>[
+    REJECT_OUTCOME_UNSPECIFIED,
+    REJECT_OUTCOME_SWITCHED_BRANCH,
+    REJECT_OUTCOME_PARKED_ON_PARENT,
+    REJECT_OUTCOME_ALREADY_INACTIVE,
+  ];
+
+  static final $core.Map<$core.int, RejectOutcome> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static RejectOutcome? valueOf($core.int value) => _byValue[value];
+
+  const RejectOutcome._($core.int v, $core.String n) : super(v, n);
+}
+
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');
