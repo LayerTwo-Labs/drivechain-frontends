@@ -904,13 +904,19 @@ func (h *Handler) RejectBlock(ctx context.Context, req *connect.Request[pb.Rejec
 }
 
 func (h *Handler) AcceptBlock(ctx context.Context, req *connect.Request[pb.AcceptBlockRequest]) (*connect.Response[pb.AcceptBlockResponse], error) {
-	res, err := h.orch.AcceptBlock(ctx, req.Msg.BlockHash)
+	res, err := h.orch.AcceptBlock(
+		ctx,
+		req.Msg.BlockHash,
+		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
+	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	return connect.NewResponse(&pb.AcceptBlockResponse{
-		CoreHeight:  res.CoreHeight,
-		CoreTipHash: res.CoreTipHash,
+		CoreHeight:      res.CoreHeight,
+		CoreTipHash:     res.CoreTipHash,
+		EnforcerHeight:  res.EnforcerHeight,
+		EnforcerRebuilt: res.EnforcerRebuilt,
 	}), nil
 }
 

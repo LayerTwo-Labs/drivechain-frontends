@@ -3565,9 +3565,12 @@ type AcceptBlockRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Hash of a block rejected earlier. Core clears the mark on it, on its
 	// ancestors, and on its descendants.
-	BlockHash     string `protobuf:"bytes,1,opt,name=block_hash,json=blockHash,proto3" json:"block_hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BlockHash string `protobuf:"bytes,1,opt,name=block_hash,json=blockHash,proto3" json:"block_hash,omitempty"`
+	// How long to wait for the enforcer to follow before its validator chain
+	// is deleted. Zero picks the default.
+	EnforcerWaitSeconds uint32 `protobuf:"varint,2,opt,name=enforcer_wait_seconds,json=enforcerWaitSeconds,proto3" json:"enforcer_wait_seconds,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *AcceptBlockRequest) Reset() {
@@ -3607,14 +3610,26 @@ func (x *AcceptBlockRequest) GetBlockHash() string {
 	return ""
 }
 
+func (x *AcceptBlockRequest) GetEnforcerWaitSeconds() uint32 {
+	if x != nil {
+		return x.EnforcerWaitSeconds
+	}
+	return 0
+}
+
 type AcceptBlockResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Core's tip after the block is accepted again.
 	CoreHeight uint32 `protobuf:"varint,1,opt,name=core_height,json=coreHeight,proto3" json:"core_height,omitempty"`
 	// Hash of that tip.
-	CoreTipHash   string `protobuf:"bytes,2,opt,name=core_tip_hash,json=coreTipHash,proto3" json:"core_tip_hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	CoreTipHash string `protobuf:"bytes,2,opt,name=core_tip_hash,json=coreTipHash,proto3" json:"core_tip_hash,omitempty"`
+	// The enforcer's tip afterwards. Zero when the enforcer is stopped.
+	EnforcerHeight uint32 `protobuf:"varint,3,opt,name=enforcer_height,json=enforcerHeight,proto3" json:"enforcer_height,omitempty"`
+	// True when the enforcer did not follow, so its validator chain was deleted
+	// and it now rebuilds from the local Core.
+	EnforcerRebuilt bool `protobuf:"varint,4,opt,name=enforcer_rebuilt,json=enforcerRebuilt,proto3" json:"enforcer_rebuilt,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AcceptBlockResponse) Reset() {
@@ -3659,6 +3674,20 @@ func (x *AcceptBlockResponse) GetCoreTipHash() string {
 		return x.CoreTipHash
 	}
 	return ""
+}
+
+func (x *AcceptBlockResponse) GetEnforcerHeight() uint32 {
+	if x != nil {
+		return x.EnforcerHeight
+	}
+	return 0
+}
+
+func (x *AcceptBlockResponse) GetEnforcerRebuilt() bool {
+	if x != nil {
+		return x.EnforcerRebuilt
+	}
+	return false
 }
 
 type GetCoreMempoolInfoRequest struct {
@@ -4685,14 +4714,17 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\rcore_tip_hash\x18\x02 \x01(\tR\vcoreTipHash\x12'\n" +
 	"\x0fswitched_branch\x18\x03 \x01(\bR\x0eswitchedBranch\x12'\n" +
 	"\x0fenforcer_height\x18\x04 \x01(\rR\x0eenforcerHeight\x12)\n" +
-	"\x10enforcer_rebuilt\x18\x05 \x01(\bR\x0fenforcerRebuilt\"3\n" +
+	"\x10enforcer_rebuilt\x18\x05 \x01(\bR\x0fenforcerRebuilt\"g\n" +
 	"\x12AcceptBlockRequest\x12\x1d\n" +
 	"\n" +
-	"block_hash\x18\x01 \x01(\tR\tblockHash\"Z\n" +
+	"block_hash\x18\x01 \x01(\tR\tblockHash\x122\n" +
+	"\x15enforcer_wait_seconds\x18\x02 \x01(\rR\x13enforcerWaitSeconds\"\xae\x01\n" +
 	"\x13AcceptBlockResponse\x12\x1f\n" +
 	"\vcore_height\x18\x01 \x01(\rR\n" +
 	"coreHeight\x12\"\n" +
-	"\rcore_tip_hash\x18\x02 \x01(\tR\vcoreTipHash\"\x1b\n" +
+	"\rcore_tip_hash\x18\x02 \x01(\tR\vcoreTipHash\x12'\n" +
+	"\x0fenforcer_height\x18\x03 \x01(\rR\x0eenforcerHeight\x12)\n" +
+	"\x10enforcer_rebuilt\x18\x04 \x01(\bR\x0fenforcerRebuilt\"\x1b\n" +
 	"\x19GetCoreMempoolInfoRequest\"\xff\x02\n" +
 	"\x1aGetCoreMempoolInfoResponse\x12\x16\n" +
 	"\x06loaded\x18\x01 \x01(\bR\x06loaded\x12\x12\n" +

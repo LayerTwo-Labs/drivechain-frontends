@@ -953,12 +953,14 @@ const AcceptBlockRequest$json = {
   '1': 'AcceptBlockRequest',
   '2': [
     {'1': 'block_hash', '3': 1, '4': 1, '5': 9, '10': 'blockHash'},
+    {'1': 'enforcer_wait_seconds', '3': 2, '4': 1, '5': 13, '10': 'enforcerWaitSeconds'},
   ],
 };
 
 /// Descriptor for `AcceptBlockRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List acceptBlockRequestDescriptor =
-    $convert.base64Decode('ChJBY2NlcHRCbG9ja1JlcXVlc3QSHQoKYmxvY2tfaGFzaBgBIAEoCVIJYmxvY2tIYXNo');
+    $convert.base64Decode('ChJBY2NlcHRCbG9ja1JlcXVlc3QSHQoKYmxvY2tfaGFzaBgBIAEoCVIJYmxvY2tIYXNoEjIKFW'
+        'VuZm9yY2VyX3dhaXRfc2Vjb25kcxgCIAEoDVITZW5mb3JjZXJXYWl0U2Vjb25kcw==');
 
 @$core.Deprecated('Use acceptBlockResponseDescriptor instead')
 const AcceptBlockResponse$json = {
@@ -966,13 +968,17 @@ const AcceptBlockResponse$json = {
   '2': [
     {'1': 'core_height', '3': 1, '4': 1, '5': 13, '10': 'coreHeight'},
     {'1': 'core_tip_hash', '3': 2, '4': 1, '5': 9, '10': 'coreTipHash'},
+    {'1': 'enforcer_height', '3': 3, '4': 1, '5': 13, '10': 'enforcerHeight'},
+    {'1': 'enforcer_rebuilt', '3': 4, '4': 1, '5': 8, '10': 'enforcerRebuilt'},
   ],
 };
 
 /// Descriptor for `AcceptBlockResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List acceptBlockResponseDescriptor =
     $convert.base64Decode('ChNBY2NlcHRCbG9ja1Jlc3BvbnNlEh8KC2NvcmVfaGVpZ2h0GAEgASgNUgpjb3JlSGVpZ2h0Ei'
-        'IKDWNvcmVfdGlwX2hhc2gYAiABKAlSC2NvcmVUaXBIYXNo');
+        'IKDWNvcmVfdGlwX2hhc2gYAiABKAlSC2NvcmVUaXBIYXNoEicKD2VuZm9yY2VyX2hlaWdodBgD'
+        'IAEoDVIOZW5mb3JjZXJIZWlnaHQSKQoQZW5mb3JjZXJfcmVidWlsdBgEIAEoCFIPZW5mb3JjZX'
+        'JSZWJ1aWx0');
 
 @$core.Deprecated('Use getCoreMempoolInfoRequestDescriptor instead')
 const GetCoreMempoolInfoRequest$json = {
