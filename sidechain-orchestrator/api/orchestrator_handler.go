@@ -897,10 +897,24 @@ func (h *Handler) RejectBlock(ctx context.Context, req *connect.Request[pb.Rejec
 	return connect.NewResponse(&pb.RejectBlockResponse{
 		CoreHeight:      res.CoreHeight,
 		CoreTipHash:     res.CoreTipHash,
-		SwitchedBranch:  res.SwitchedBranch,
+		Outcome:         rejectOutcomeToProto(res.Outcome),
 		EnforcerHeight:  res.EnforcerHeight,
 		EnforcerRebuilt: res.EnforcerRebuilt,
+		EnforcerError:   res.EnforcerError,
+		EnforcerChecked: res.EnforcerChecked,
 	}), nil
+}
+
+func rejectOutcomeToProto(o orchestrator.RejectOutcome) pb.RejectOutcome {
+	switch o {
+	case orchestrator.RejectOutcomeSwitchedBranch:
+		return pb.RejectOutcome_REJECT_OUTCOME_SWITCHED_BRANCH
+	case orchestrator.RejectOutcomeParkedOnParent:
+		return pb.RejectOutcome_REJECT_OUTCOME_PARKED_ON_PARENT
+	case orchestrator.RejectOutcomeAlreadyInactive:
+		return pb.RejectOutcome_REJECT_OUTCOME_ALREADY_INACTIVE
+	}
+	return pb.RejectOutcome_REJECT_OUTCOME_UNSPECIFIED
 }
 
 func (h *Handler) AcceptBlock(ctx context.Context, req *connect.Request[pb.AcceptBlockRequest]) (*connect.Response[pb.AcceptBlockResponse], error) {
@@ -917,6 +931,8 @@ func (h *Handler) AcceptBlock(ctx context.Context, req *connect.Request[pb.Accep
 		CoreTipHash:     res.CoreTipHash,
 		EnforcerHeight:  res.EnforcerHeight,
 		EnforcerRebuilt: res.EnforcerRebuilt,
+		EnforcerError:   res.EnforcerError,
+		EnforcerChecked: res.EnforcerChecked,
 	}), nil
 }
 

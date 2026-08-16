@@ -50,16 +50,28 @@ var rejectBlockCommand = &cli.Command{
 		}
 
 		fmt.Printf("core tip: %d %s\n", resp.Msg.CoreHeight, resp.Msg.CoreTipHash)
-		if resp.Msg.SwitchedBranch {
+		switch resp.Msg.Outcome {
+		case pb.RejectOutcome_REJECT_OUTCOME_SWITCHED_BRANCH:
 			fmt.Println("chain:    followed another branch")
-		} else {
+		case pb.RejectOutcome_REJECT_OUTCOME_PARKED_ON_PARENT:
 			fmt.Println("chain:    parked on the rejected block's parent, no other branch yet")
+		case pb.RejectOutcome_REJECT_OUTCOME_ALREADY_INACTIVE:
+			fmt.Println("chain:    unchanged, the block already sat off the active chain")
+		default:
+			fmt.Println("chain:    unchanged")
+		}
+		if resp.Msg.EnforcerError != "" {
+			return fmt.Errorf("core moved but the enforcer did not follow: %s", resp.Msg.EnforcerError)
+		}
+		if !resp.Msg.EnforcerChecked {
+			fmt.Println("enforcer: not queried, it reads the chain on its next start")
+			return nil
 		}
 		if resp.Msg.EnforcerRebuilt {
 			fmt.Println("enforcer: validator chain deleted, rebuilds from the local core")
 			return nil
 		}
-		fmt.Printf("enforcer: followed the reject, tip %d\n", resp.Msg.EnforcerHeight)
+		fmt.Printf("enforcer: on core's chain, tip %d\n", resp.Msg.EnforcerHeight)
 		return nil
 	},
 }
@@ -92,11 +104,18 @@ var acceptBlockCommand = &cli.Command{
 		}
 
 		fmt.Printf("core tip: %d %s\n", resp.Msg.CoreHeight, resp.Msg.CoreTipHash)
+		if resp.Msg.EnforcerError != "" {
+			return fmt.Errorf("core moved but the enforcer did not follow: %s", resp.Msg.EnforcerError)
+		}
+		if !resp.Msg.EnforcerChecked {
+			fmt.Println("enforcer: not queried, it reads the chain on its next start")
+			return nil
+		}
 		if resp.Msg.EnforcerRebuilt {
 			fmt.Println("enforcer: validator chain deleted, rebuilds from the local core")
 			return nil
 		}
-		fmt.Printf("enforcer: followed the accept, tip %d\n", resp.Msg.EnforcerHeight)
+		fmt.Printf("enforcer: on core's chain, tip %d\n", resp.Msg.EnforcerHeight)
 		return nil
 	},
 }
