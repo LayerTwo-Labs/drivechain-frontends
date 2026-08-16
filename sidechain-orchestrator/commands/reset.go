@@ -70,6 +70,7 @@ var acceptBlockCommand = &cli.Command{
 	ArgsUsage: "<hash>",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
+		&cli.UintFlag{Name: "enforcer-wait", Usage: "seconds to wait for the enforcer to follow before rebuilding it"},
 	},
 	Action: func(cctx *cli.Context) error {
 		hash := cctx.Args().First()
@@ -81,12 +82,21 @@ var acceptBlockCommand = &cli.Command{
 			return err
 		}
 
-		resp, err := newClient(cctx).AcceptBlock(cctx.Context, connect.NewRequest(&pb.AcceptBlockRequest{BlockHash: hash}))
+		req := &pb.AcceptBlockRequest{
+			BlockHash:           hash,
+			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
+		}
+		resp, err := newClient(cctx).AcceptBlock(cctx.Context, connect.NewRequest(req))
 		if err != nil {
 			return err
 		}
 
 		fmt.Printf("core tip: %d %s\n", resp.Msg.CoreHeight, resp.Msg.CoreTipHash)
+		if resp.Msg.EnforcerRebuilt {
+			fmt.Println("enforcer: validator chain deleted, rebuilds from the local core")
+			return nil
+		}
+		fmt.Printf("enforcer: followed the accept, tip %d\n", resp.Msg.EnforcerHeight)
 		return nil
 	},
 }

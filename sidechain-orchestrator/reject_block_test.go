@@ -139,6 +139,24 @@ func TestRejectBlockReportsASiblingBranch(t *testing.T) {
 	}
 }
 
+// Rejecting a block Core already left moves nothing, so the tip differing from
+// that block's parent proves only that the two were never related.
+func TestRejectBlockReportsNoSwitchForAnInactiveBlock(t *testing.T) {
+	core := &fakeCore{
+		tips:    []int64{979607},
+		hashes:  map[int64]string{979607: other},
+		headers: map[string]blockHeader{bad: {Height: 979025, Confirmations: -1, PreviousBlockHash: parent}},
+	}
+
+	got, err := rejectBlockOnCore(context.Background(), core.start(t), bad)
+	if err != nil {
+		t.Fatalf("rejectBlockOnCore: %v", err)
+	}
+	if got.SwitchedBranch {
+		t.Error("SwitchedBranch = true, want false when the block was already off the chain")
+	}
+}
+
 // Core keeping the rejected block as its tip means the reject did not take, so
 // the caller must not go on to rebuild the enforcer against an unchanged chain.
 func TestRejectBlockFailsWhenCoreKeepsTheBlock(t *testing.T) {

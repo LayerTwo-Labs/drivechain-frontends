@@ -201,7 +201,9 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
       setState(() {
         _chainHeight = resp.coreHeight;
         _rejectedHash = null;
-        _result = 'Core accepts block $hash again, and sits at ${resp.coreHeight}.';
+        _result = resp.enforcerRebuilt
+            ? 'Core accepts the block again at ${resp.coreHeight}. The enforcer rebuilds from the local Core.'
+            : 'Core accepts the block again at ${resp.coreHeight}. The enforcer followed at ${resp.enforcerHeight}.';
       });
     } catch (e) {
       if (mounted) {

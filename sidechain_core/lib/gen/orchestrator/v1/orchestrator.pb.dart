@@ -4702,10 +4702,14 @@ class RejectBlockResponse extends $pb.GeneratedMessage {
 class AcceptBlockRequest extends $pb.GeneratedMessage {
   factory AcceptBlockRequest({
     $core.String? blockHash,
+    $core.int? enforcerWaitSeconds,
   }) {
     final $result = create();
     if (blockHash != null) {
       $result.blockHash = blockHash;
+    }
+    if (enforcerWaitSeconds != null) {
+      $result.enforcerWaitSeconds = enforcerWaitSeconds;
     }
     return $result;
   }
@@ -4719,6 +4723,7 @@ class AcceptBlockRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AcceptBlockRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'blockHash')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'enforcerWaitSeconds', $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -4755,12 +4760,28 @@ class AcceptBlockRequest extends $pb.GeneratedMessage {
   $core.bool hasBlockHash() => $_has(0);
   @$pb.TagNumber(1)
   void clearBlockHash() => clearField(1);
+
+  /// How long to wait for the enforcer to follow before its validator chain
+  /// is deleted. Zero picks the default.
+  @$pb.TagNumber(2)
+  $core.int get enforcerWaitSeconds => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set enforcerWaitSeconds($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
+  @$pb.TagNumber(2)
+  $core.bool hasEnforcerWaitSeconds() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEnforcerWaitSeconds() => clearField(2);
 }
 
 class AcceptBlockResponse extends $pb.GeneratedMessage {
   factory AcceptBlockResponse({
     $core.int? coreHeight,
     $core.String? coreTipHash,
+    $core.int? enforcerHeight,
+    $core.bool? enforcerRebuilt,
   }) {
     final $result = create();
     if (coreHeight != null) {
@@ -4768,6 +4789,12 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
     }
     if (coreTipHash != null) {
       $result.coreTipHash = coreTipHash;
+    }
+    if (enforcerHeight != null) {
+      $result.enforcerHeight = enforcerHeight;
+    }
+    if (enforcerRebuilt != null) {
+      $result.enforcerRebuilt = enforcerRebuilt;
     }
     return $result;
   }
@@ -4782,6 +4809,8 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'coreHeight', $pb.PbFieldType.OU3)
     ..aOS(2, _omitFieldNames ? '' : 'coreTipHash')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'enforcerHeight', $pb.PbFieldType.OU3)
+    ..aOB(4, _omitFieldNames ? '' : 'enforcerRebuilt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -4830,6 +4859,33 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
   $core.bool hasCoreTipHash() => $_has(1);
   @$pb.TagNumber(2)
   void clearCoreTipHash() => clearField(2);
+
+  /// The enforcer's tip afterwards. Zero when the enforcer is stopped.
+  @$pb.TagNumber(3)
+  $core.int get enforcerHeight => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set enforcerHeight($core.int v) {
+    $_setUnsignedInt32(2, v);
+  }
+
+  @$pb.TagNumber(3)
+  $core.bool hasEnforcerHeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEnforcerHeight() => clearField(3);
+
+  /// True when the enforcer did not follow, so its validator chain was deleted
+  /// and it now rebuilds from the local Core.
+  @$pb.TagNumber(4)
+  $core.bool get enforcerRebuilt => $_getBF(3);
+  @$pb.TagNumber(4)
+  set enforcerRebuilt($core.bool v) {
+    $_setBool(3, v);
+  }
+
+  @$pb.TagNumber(4)
+  $core.bool hasEnforcerRebuilt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearEnforcerRebuilt() => clearField(4);
 }
 
 class GetCoreMempoolInfoRequest extends $pb.GeneratedMessage {

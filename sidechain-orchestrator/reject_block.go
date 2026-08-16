@@ -27,8 +27,10 @@ type RejectBlockResult struct {
 
 // AcceptBlockResult reports where Core landed after a block is accepted again.
 type AcceptBlockResult struct {
-	CoreHeight  uint32
-	CoreTipHash string
+	CoreHeight      uint32
+	CoreTipHash     string
+	EnforcerHeight  uint32
+	EnforcerRebuilt bool
 }
 
 // RejectBlock drops a block Core must not follow. Core disconnects it and every
@@ -60,27 +62,21 @@ func (o *Orchestrator) RejectBlock(ctx context.Context, blockHash string, enforc
 		Bool("switched_branch", result.SwitchedBranch).
 		Msg("rejected a block")
 
-	if !o.process.IsRunning("enforcer") {
-		o.log.Info().Msg("enforcer is stopped, so it reads the new chain on its next start")
-		return result, nil
-	}
-
-	enforcerHeight, followed := o.awaitEnforcerRollback(ctx, client, enforcerWait)
-	if followed {
-		result.EnforcerHeight = enforcerHeight
-		return result, nil
-	}
-
-	if err := o.rebuildEnforcerChain(ctx); err != nil {
+	result.EnforcerHeight, result.EnforcerRebuilt, err = o.reconcileEnforcer(ctx, client, enforcerWait)
+	if err != nil {
 		return result, err
 	}
-	result.EnforcerRebuilt = true
 	return result, nil
 }
 
 // AcceptBlock undoes RejectBlock. Core clears the mark on the block, on its
-// ancestors and on its descendants, then re-checks them.
-func (o *Orchestrator) AcceptBlock(ctx context.Context, blockHash string) (AcceptBlockResult, error) {
+// ancestors and on its descendants, then re-checks them. Taking the branch back
+// is a reorg like the reject, so the enforcer gets the same reconciliation.
+func (o *Orchestrator) AcceptBlock(ctx context.Context, blockHash string, enforcerWait time.Duration) (AcceptBlockResult, error) {
+	if enforcerWait <= 0 {
+		enforcerWait = defaultEnforcerReorgWait
+	}
+
 	o.rejectMu.Lock()
 	defer o.rejectMu.Unlock()
 
@@ -97,7 +93,32 @@ func (o *Orchestrator) AcceptBlock(ctx context.Context, blockHash string) (Accep
 		Str("accepted", normalizeBlockHash(blockHash)).
 		Uint32("core_height", result.CoreHeight).
 		Msg("accepted a block again")
+
+	result.EnforcerHeight, result.EnforcerRebuilt, err = o.reconcileEnforcer(ctx, client, enforcerWait)
+	if err != nil {
+		return result, err
+	}
 	return result, nil
+}
+
+// reconcileEnforcer brings the enforcer back onto the chain Core follows after
+// a reorg. A stopped enforcer reads the new chain on its next start, so it
+// needs nothing here.
+func (o *Orchestrator) reconcileEnforcer(ctx context.Context, client *CoreStatusClient, wait time.Duration) (uint32, bool, error) {
+	if !o.process.IsRunning("enforcer") {
+		o.log.Info().Msg("enforcer is stopped, so it reads the new chain on its next start")
+		return 0, false, nil
+	}
+
+	height, followed := o.awaitEnforcerRollback(ctx, client, wait)
+	if followed {
+		return height, false, nil
+	}
+
+	if err := o.rebuildEnforcerChain(ctx); err != nil {
+		return height, false, err
+	}
+	return height, true, nil
 }
 
 // rejectBlockOnCore invalidates the named block and reports the tip Core chose
@@ -126,10 +147,14 @@ func rejectBlockOnCore(ctx context.Context, client *CoreStatusClient, blockHash 
 		return RejectBlockResult{}, fmt.Errorf("core still sits on block %s after the reject", hash)
 	}
 
+	// A block already off the active chain moves nothing, so the tip differing
+	// from its parent says only that the two were never related.
+	wasOnActiveChain := header.Confirmations >= 0
+
 	return RejectBlockResult{
 		CoreHeight:     tipHeight,
 		CoreTipHash:    tipHash,
-		SwitchedBranch: tipHash != header.PreviousBlockHash,
+		SwitchedBranch: wasOnActiveChain && tipHash != header.PreviousBlockHash,
 	}, nil
 }
 

@@ -658,6 +658,9 @@ message AcceptBlockRequest {
   // Hash of a block rejected earlier. Core clears the mark on it, on its
   // ancestors, and on its descendants.
   string block_hash = 1;
+  // How long to wait for the enforcer to follow before its validator chain
+  // is deleted. Zero picks the default.
+  uint32 enforcer_wait_seconds = 2;
 }
 
 message AcceptBlockResponse {
@@ -665,6 +668,11 @@ message AcceptBlockResponse {
   uint32 core_height = 1;
   // Hash of that tip.
   string core_tip_hash = 2;
+  // The enforcer's tip afterwards. Zero when the enforcer is stopped.
+  uint32 enforcer_height = 3;
+  // True when the enforcer did not follow, so its validator chain was deleted
+  // and it now rebuilds from the local Core.
+  bool enforcer_rebuilt = 4;
 }
 
 // ─── Bitcoin Core typed extensions ────────────────────────────────────────
