@@ -41,6 +41,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
             children: [
               SailButton(
                 label: 'Send',
+                loadingLabel: 'Broadcasting',
                 onPressed: () => viewModel.sendTransaction(context),
               ),
               const SizedBox(width: SailStyleValues.padding08),
