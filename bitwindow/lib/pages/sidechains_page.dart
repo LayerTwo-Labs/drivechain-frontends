@@ -1991,8 +1991,10 @@ class _DepositModalState extends State<DepositModal> {
               const SailSpacing(SailStyleValues.padding08),
               DepositFeeFields(estimate: depositFee, onTargetChanged: _setFeeTarget),
               const SailSpacing(SailStyleValues.padding08),
+              _LeavesWalletRow(amount: amountController.text, fee: feeController.text),
+              const SailSpacing(SailStyleValues.padding08),
               SailText.secondary13(
-                'The sidechain may also deduct a fee from your deposit.',
+                '${widget.sidechainName} may deduct its own fee, so the credited amount can be lower.',
                 color: context.sailTheme.colors.textTertiary,
               ),
               const SailSpacing(SailStyleValues.padding20),
@@ -2008,6 +2010,43 @@ class _DepositModalState extends State<DepositModal> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The deposit amount plus the L1 fee. Hidden until both parse.
+class _LeavesWalletRow extends StatelessWidget {
+  final String amount;
+  final String fee;
+
+  const _LeavesWalletRow({required this.amount, required this.fee});
+
+  @override
+  Widget build(BuildContext context) {
+    final amountBTC = double.tryParse(amount);
+    final feeBTC = double.tryParse(fee);
+    if (amountBTC == null || feeBTC == null) {
+      return const SizedBox.shrink();
+    }
+
+    final formatter = GetIt.I<FormatterProvider>();
+    final totalSats = btcToSatoshi(amountBTC) + btcToSatoshi(feeBTC);
+
+    return ListenableBuilder(
+      listenable: formatter,
+      builder: (context, _) => Container(
+        padding: const EdgeInsets.only(top: SailStyleValues.padding12),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: context.sailTheme.colors.divider)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SailText.primary13('Leaves your wallet'),
+            SailText.primary13(formatter.formatSats(totalSats), bold: true),
+          ],
         ),
       ),
     );
