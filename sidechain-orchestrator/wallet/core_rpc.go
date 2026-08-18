@@ -288,6 +288,31 @@ func (c *CoreRPCClient) ListTransactions(ctx context.Context, walletName string,
 // ListTransactionsRange returns wallet transactions in a sliding window,
 // skipping the first `skip` entries (cursor-based scan). Use to incrementally
 // process new wallet activity without re-walking the entire history each tick.
+// CountActiveDescriptors reports how many active descriptors a wallet holds. A
+// wallet created by a run whose import then failed holds none, and one whose
+// import landed in part holds fewer than the run asked for.
+func (c *CoreRPCClient) CountActiveDescriptors(ctx context.Context, walletName string) (int, error) {
+	result, err := c.call(ctx, walletName, "listdescriptors")
+	if err != nil {
+		return 0, err
+	}
+	var res struct {
+		Descriptors []struct {
+			Active bool `json:"active"`
+		} `json:"descriptors"`
+	}
+	if err := json.Unmarshal(result, &res); err != nil {
+		return 0, fmt.Errorf("decode listdescriptors: %w", err)
+	}
+	n := 0
+	for _, d := range res.Descriptors {
+		if d.Active {
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (c *CoreRPCClient) ListTransactionsRange(ctx context.Context, walletName string, count, skip int) ([]WalletTransaction, error) {
 	if count <= 0 {
 		count = 100
