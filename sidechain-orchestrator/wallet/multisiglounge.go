@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -8,7 +9,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 )
 
 // MultisigLoungeKey is one cosigner key in a BitWindow multisig group.
@@ -241,8 +247,16 @@ func ValidateMultisigPsbt(psbtBase64 string, requiredSigs int, group *MultisigLo
 		if err != nil {
 			return MultisigPsbtValidation{}, err
 		}
+		accts, err := groupAccountKeys(*group)
+		if err != nil {
+			return MultisigPsbtValidation{}, err
+		}
 		for i := range packet.Inputs {
-			if err := verifyInputBelongsToGroup(packet.Inputs[i], origins); err != nil {
+			prevOut, err := authenticatedPrevOut(packet, i)
+			if err != nil {
+				return MultisigPsbtValidation{}, fmt.Errorf("input %d %w", i, err)
+			}
+			if err := verifyInputBelongsToGroup(packet.Inputs[i], prevOut, group.M, accts, origins); err != nil {
 				return MultisigPsbtValidation{}, fmt.Errorf("input %d %w", i, err)
 			}
 		}
@@ -481,10 +495,10 @@ type keyOrigin struct {
 	path        []uint32
 }
 
-// groupKeyOrigins resolves each wallet key's [fingerprint/origin] into the
-// fingerprint + account path the PSBT BIP32 derivations carry. Keys without an
-// origin (non-wallet xpubs) contribute nothing — a group made entirely of such
-// keys cannot be verified and is rejected by the caller's per-input check.
+// groupKeyOrigins resolves each key's declared [fingerprint/origin] into the
+// fingerprint + account path the PSBT BIP32 derivations carry. Keys without one
+// contribute nothing: membership is proven by verifyInputScript, not by origin
+// metadata, so a group of bare xpubs is still verifiable.
 func groupKeyOrigins(g MultisigLoungeGroup) ([]keyOrigin, error) {
 	origins := make([]keyOrigin, 0, len(g.Keys))
 	for _, k := range g.Keys {
@@ -497,20 +511,141 @@ func groupKeyOrigins(g MultisigLoungeGroup) ([]keyOrigin, error) {
 		}
 		origins = append(origins, keyOrigin{fingerprint: fp, path: path})
 	}
-	if len(origins) == 0 {
-		return nil, errors.New("group has no wallet keys with derivable origins; cannot verify PSBT membership")
-	}
 	return origins, nil
 }
 
-// verifyInputBelongsToGroup rejects a foreign PSBT input: every BIP32 derivation
-// record on the input must trace to one of the group's cosigner origins
-// (fingerprint + account path prefix). Derivation-independent — it matches on the
-// origin metadata the PSBT carries, not on re-derived addresses.
-func verifyInputBelongsToGroup(in psbt.PInput, origins []keyOrigin) error {
-	if len(in.TaprootBip32Derivation) > 0 {
+// verifyInputBelongsToGroup rejects a foreign PSBT input. The binding check is
+// verifyInputScript: the k-of-n script the input actually commits to must be the
+// one the group's own cosigner keys re-derive, so an input the group cannot own
+// is refused whatever its metadata claims. The origin allow-list is kept as an
+// additional constraint on records claiming a fingerprint the group declares.
+func verifyInputBelongsToGroup(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdkeychain.ExtendedKey, origins []keyOrigin) error {
+	// The script check runs first, because it establishes which derivation
+	// family the input actually uses. To pick that family from whatever
+	// metadata happens to be present lets one stray taproot record stand in for
+	// a whole set of missing ECDSA records.
+	kind, err := verifyInputScript(in, prevOut, m, accts)
+	if err != nil {
+		return err
+	}
+	return verifyInputOrigins(in, origins, kind)
+}
+
+// groupAccountKeys resolves the group's cosigner xpubs (SLIP-0132 forms included)
+// into the account extended keys the group's own scripts re-derive from.
+func groupAccountKeys(g MultisigLoungeGroup) ([]*hdkeychain.ExtendedKey, error) {
+	if len(g.Keys) == 0 {
+		return nil, errors.New("group has no keys")
+	}
+	accts := make([]*hdkeychain.ExtendedKey, 0, len(g.Keys))
+	for i, k := range g.Keys {
+		canonical, _, _, err := normalizeExtendedKey(k.Xpub)
+		if err != nil {
+			return nil, fmt.Errorf("group key %d: %w", i, err)
+		}
+		acct, err := hdkeychain.NewKeyFromString(canonical)
+		if err != nil {
+			return nil, fmt.Errorf("parse group key %d: %w", i, err)
+		}
+		accts = append(accts, acct)
+	}
+	return accts, nil
+}
+
+// verifyInputScript binds a PSBT input to the group by derivation: the k-of-n
+// script the input commits to (witness script, redeem script for legacy P2SH, or
+// multi_a tapleaf) must equal the one the group's cosigner keys derive at the
+// input's chain/index, and the prevout scriptPubKey must be that script's
+// wrapper. The input's derivation path is only the index hint — a wrong one
+// derives a different script and is rejected.
+func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdkeychain.ExtendedKey) (ScriptKind, error) {
+	if prevOut == nil {
+		return 0, errors.New("has no witness or non-witness utxo; cannot verify it belongs to the group")
+	}
+	var kinds []ScriptKind
+	var script []byte
+	taproot := false
+	switch {
+	case len(in.TaprootLeafScript) > 0:
+		kinds, script, taproot = []ScriptKind{ScriptMultisigTaproot}, in.TaprootLeafScript[0].Script, true
+	case in.WitnessScript != nil:
+		kinds, script = []ScriptKind{ScriptMultisig, ScriptMultisigNested}, in.WitnessScript
+	case in.RedeemScript != nil:
+		kinds, script = []ScriptKind{ScriptMultisigP2SH}, in.RedeemScript
+	default:
+		return 0, errors.New("has no witness or redeem script; cannot verify it belongs to the group")
+	}
+
+	// The script fields above already say which family this input uses, so read
+	// the chain and index from that family alone. A stray record of the other
+	// family would otherwise pick the child, and a signer that honours the
+	// recorded path could not spend what this check accepts.
+	change, index, ok := groupChainIndex(in, taproot)
+	if !ok {
+		return 0, errors.New("has no usable derivation path; cannot verify it belongs to the group")
+	}
+
+	pubs := make([]*btcec.PublicKey, len(accts))
+	for i, a := range accts {
+		pub, err := deriveChildPub(a, chainIndex(change), index)
+		if err != nil {
+			return 0, errors.New("does not belong to the multisig group (foreign input rejected)")
+		}
+		pubs[i] = pub
+	}
+
+	for _, kind := range kinds {
+		// The network only selects the address encoding; the script bytes
+		// compared here are the same on every network.
+		ds, err := multisigOutput(kind, m, pubs, &chaincfg.MainNetParams)
+		if err != nil {
+			return 0, err
+		}
+		own := ds.witnessScript
+		switch kind {
+		case ScriptMultisigP2SH:
+			own = ds.redeemScript
+		case ScriptMultisigTaproot:
+			own = ds.tapLeafScript
+		}
+		if !bytes.Equal(script, own) || !bytes.Equal(prevOut.PkScript, ds.scriptPubKey) {
+			continue
+		}
+
+		// The finalizer copies these fields into the witness or the scriptSig
+		// without a check of its own, so a match on the script alone still
+		// leaves an input that cannot spend the prevout.
+		switch kind {
+		case ScriptMultisigTaproot:
+			leaf := in.TaprootLeafScript[0]
+			if leaf.LeafVersion != txscript.BaseLeafVersion {
+				return 0, errors.New("carries a taproot leaf version the group does not use")
+			}
+			if !bytes.Equal(leaf.ControlBlock, ds.tapControlBlock) {
+				return 0, errors.New("carries a taproot control block that does not prove the group's leaf")
+			}
+		case ScriptMultisigNested:
+			if in.RedeemScript != nil && !bytes.Equal(in.RedeemScript, ds.redeemScript) {
+				return 0, errors.New("carries a redeem script that does not wrap the group's witness script")
+			}
+		}
+		return kind, nil
+	}
+	return 0, errors.New("does not belong to the multisig group (foreign input rejected)")
+}
+
+// verifyInputOrigins requires every BIP32 derivation record that claims one of
+// the group's fingerprints to trace to that fingerprint's origin (account path
+// prefix). Records claiming any other fingerprint are external cosigners — the
+// descriptor emits those keys bare, so Core tags them with the xpub's own
+// self-root fingerprint — and are left to verifyInputScript.
+func verifyInputOrigins(in psbt.PInput, origins []keyOrigin, kind ScriptKind) error {
+	if kind == ScriptMultisigTaproot {
+		if len(in.TaprootBip32Derivation) == 0 {
+			return errors.New("has no taproot BIP32 derivation records; cannot verify it belongs to the group")
+		}
 		for _, d := range in.TaprootBip32Derivation {
-			if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
+			if !originAllowed(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 				return errors.New("does not belong to the multisig group (foreign input rejected)")
 			}
 		}
@@ -520,11 +655,26 @@ func verifyInputBelongsToGroup(in psbt.PInput, origins []keyOrigin) error {
 		return errors.New("has no BIP32 derivation records; cannot verify it belongs to the group")
 	}
 	for _, d := range in.Bip32Derivation {
-		if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
+		if !originAllowed(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 			return errors.New("does not belong to the multisig group (foreign input rejected)")
 		}
 	}
 	return nil
+}
+
+// originAllowed reports whether a derivation record is consistent with the
+// group's origins: it either matches one, or claims a fingerprint the group does
+// not declare at all.
+func originAllowed(fingerprint uint32, path []uint32, origins []keyOrigin) bool {
+	if originMatches(fingerprint, path, origins) {
+		return true
+	}
+	for _, o := range origins {
+		if o.fingerprint == fingerprint {
+			return false
+		}
+	}
+	return true
 }
 
 // originMatches reports whether (fingerprint, path) starts with one of the
@@ -555,4 +705,71 @@ func clonePacket(p *psbt.Packet) (*psbt.Packet, error) {
 		return nil, err
 	}
 	return psbt.NewFromRawBytes(strings.NewReader(buf.String()), false)
+}
+
+// authenticatedPrevOut returns an input's previous output, taken from data the
+// PSBT itself proves where it can. A non-witness UTXO is the whole previous
+// transaction, so its hash must equal the outpoint it claims; that binds the
+// script below to a real output. A witness UTXO carries no such proof, so it is
+// accepted only because the caller then re-derives the script from the group's
+// own keys, and because a signer commits to this amount and script in the
+// sighash. Full assurance for a witness input needs a trusted chain lookup.
+func authenticatedPrevOut(packet *psbt.Packet, i int) (*wire.TxOut, error) {
+	in := packet.Inputs[i]
+	outpoint := packet.UnsignedTx.TxIn[i].PreviousOutPoint
+
+	if in.NonWitnessUtxo != nil {
+		if in.NonWitnessUtxo.TxHash() != outpoint.Hash {
+			return nil, errors.New("carries a previous transaction that is not the one it spends")
+		}
+		if int(outpoint.Index) >= len(in.NonWitnessUtxo.TxOut) {
+			return nil, errors.New("carries a previous transaction with no output at that index")
+		}
+		out := in.NonWitnessUtxo.TxOut[outpoint.Index]
+		// A segwit signer takes the amount and script from the witness entry, so
+		// the two must agree. Otherwise this check passes on one output while
+		// the signature commits to another.
+		if in.WitnessUtxo != nil {
+			if in.WitnessUtxo.Value != out.Value || !bytes.Equal(in.WitnessUtxo.PkScript, out.PkScript) {
+				return nil, errors.New("carries a witness utxo that disagrees with its previous transaction")
+			}
+		}
+		return out, nil
+	}
+	if in.WitnessUtxo != nil {
+		return in.WitnessUtxo, nil
+	}
+	return nil, nil
+}
+
+// groupChainIndex reads the chain and address index from the derivation family
+// the input's script belongs to. The chain must be 0 or 1: any other value is
+// not a receive or change branch of this group, and to fold it into "receive"
+// would validate a path the group never derives.
+func groupChainIndex(in psbt.PInput, taproot bool) (change bool, index uint32, ok bool) {
+	if taproot {
+		for _, d := range in.TaprootBip32Derivation {
+			if c, i, valid := chainIndexFromPath(d.Bip32Path); valid {
+				return c, i, true
+			}
+		}
+		return false, 0, false
+	}
+	for _, d := range in.Bip32Derivation {
+		if c, i, valid := chainIndexFromPath(d.Bip32Path); valid {
+			return c, i, true
+		}
+	}
+	return false, 0, false
+}
+
+func chainIndexFromPath(path []uint32) (change bool, index uint32, ok bool) {
+	if len(path) < 2 {
+		return false, 0, false
+	}
+	chain := path[len(path)-2]
+	if chain != 0 && chain != 1 {
+		return false, 0, false
+	}
+	return chain == 1, path[len(path)-1], true
 }

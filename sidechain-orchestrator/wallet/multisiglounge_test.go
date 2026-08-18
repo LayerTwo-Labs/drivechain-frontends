@@ -299,6 +299,132 @@ func loungeForeignPSBT(t *testing.T) *psbt.Packet {
 	return packet
 }
 
+// loungeSiblingGroup builds a second 2-of-3 group that shares one account key
+// with the lounge test group and draws its other two cosigners from a different
+// seed — two groups a single member belongs to.
+func loungeSiblingGroup(t *testing.T, shared MultisigLoungeKey) MultisigLoungeGroup {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	const h = hdkeychain.HardenedKeyStart
+
+	master, err := hdkeychain.NewMaster(MnemonicToSeed(testMnemonic, "sibling"), net)
+	require.NoError(t, err)
+	mpub, err := master.ECPubKey()
+	require.NoError(t, err)
+	fp := hex.EncodeToString(btcutil.Hash160(mpub.SerializeCompressed())[:4])
+
+	keys := []MultisigLoungeKey{shared}
+	for acct := uint32(5); acct <= 6; acct++ {
+		k := master
+		for _, p := range []uint32{h + 48, h + 1, h + 0, h + acct} {
+			k, err = k.Derive(p)
+			require.NoError(t, err)
+		}
+		pub, nerr := k.Neuter()
+		require.NoError(t, nerr)
+		keys = append(keys, MultisigLoungeKey{
+			Xpub:        pub.String(),
+			Fingerprint: fp,
+			OriginPath:  fmt.Sprintf("48'/1'/0'/%d'", acct),
+		})
+	}
+	return MultisigLoungeGroup{M: 2, N: 3, Keys: keys}
+}
+
+// TestValidatePsbtStrippedOriginsCrossGroup proves an input is bound to its group
+// by the script it derives, not by the derivation records it happens to carry:
+// deleting group A's non-shared records leaves only the account key both groups
+// hold, which satisfies group B's origin allow-list — but the input still spends
+// group A's script and must be rejected.
+func TestValidatePsbtStrippedOriginsCrossGroup(t *testing.T) {
+	groupA, _ := loungeTestKeys(t)
+	accts := loungeTestAccts(t)
+
+	packet := loungeMultisigPSBT(t, accts, 0)
+	require.Len(t, packet.Inputs[0].Bip32Derivation, 3)
+	// Delete every record except the shared key's (m/48'/1'/0'/2', the first
+	// cosigner) — a deletion, forging nothing.
+	packet.Inputs[0].Bip32Derivation = packet.Inputs[0].Bip32Derivation[:1]
+	stripped := psbtToBase64(t, packet)
+
+	_, err := ValidateMultisigPsbt(stripped, 2, &groupA)
+	require.NoError(t, err, "stripping records must not break the owning group")
+
+	groupB := loungeSiblingGroup(t, groupA.Keys[0])
+	_, err = ValidateMultisigPsbt(stripped, 2, &groupB)
+	require.Error(t, err, "group A's input must not validate against group B")
+	assert.Contains(t, err.Error(), "foreign input rejected")
+}
+
+// loungeBareCosignerPSBT builds the spend a group with one wallet key and two
+// bare-xpub cosigners produces: only the wallet key carries a [fp/origin], so the
+// other two derivation records fall back to the xpub's own self-root fingerprint
+// and a chain/index-only path — what Core emits for a prefix-less descriptor key.
+func loungeBareCosignerPSBT(t *testing.T, accts []*hdkeychain.ExtendedKey) *psbt.Packet {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	keys := make([]DescriptorKey, len(accts))
+	for i, a := range accts {
+		keys[i] = DescriptorKey{Account: a}
+	}
+	keys[0].Origin = "73c5da0a/48h/1h/0h/2h"
+	d := &Descriptor{Kind: ScriptMultisig, Threshold: 2, Keys: keys}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	derivs, err := d.derivations(false, 0)
+	require.NoError(t, err)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr: scannedAddr{
+			scriptPubKey: ds.scriptPubKey, witnessScript: ds.witnessScript,
+			kind: ScriptMultisig, derivations: derivs,
+		},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, nil)
+	require.NoError(t, err)
+	return packet
+}
+
+// TestValidatePsbtBareXpubCosigners accepts a group's own spend when its external
+// cosigners were added as bare xpubs (no fingerprint/origin, the UI default): the
+// watch descriptor emits those keys without a prefix, so their derivation records
+// carry a fingerprint the group's origin allow-list cannot contain. A foreign
+// input is still rejected, by the script binding.
+func TestValidatePsbtBareXpubCosigners(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	for i := 1; i < len(group.Keys); i++ {
+		group.Keys[i] = MultisigLoungeKey{Xpub: group.Keys[i].Xpub}
+	}
+	accts := loungeTestAccts(t)
+
+	packet := loungeBareCosignerPSBT(t, accts)
+	bare := 0
+	for _, d := range packet.Inputs[0].Bip32Derivation {
+		if len(d.Bip32Path) == 2 {
+			bare++
+		}
+	}
+	require.Equal(t, 2, bare, "the two bare-xpub cosigners carry chain/index-only paths")
+
+	res, err := ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
+	require.NoError(t, err, "a group's own spend must not be rejected over external cosigner metadata")
+	assert.False(t, res.HasSignatures)
+
+	foreign := psbtToBase64(t, loungeForeignPSBT(t))
+	_, err = ValidateMultisigPsbt(foreign, 2, &group)
+	require.Error(t, err, "foreign PSBT must still be rejected")
+	assert.Contains(t, err.Error(), "foreign input rejected")
+}
+
 func TestValidatePsbtBadBase64(t *testing.T) {
 	_, err := ValidateMultisigPsbt("not-base64!!!", 2, nil)
 	require.Error(t, err)
