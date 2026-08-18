@@ -1004,16 +1004,35 @@ func createAndImport(
 		return fmt.Errorf("list wallets: %w", err)
 	}
 
-	if lo.Contains(existing, walletName) {
-		return nil
+	created := false
+	if !lo.Contains(existing, walletName) {
+		if err := rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); err != nil {
+			if !strings.Contains(err.Error(), "already exists") {
+				return fmt.Errorf("create wallet: %w", err)
+			}
+			if loadErr := rpc.LoadWallet(ctx, walletName); loadErr != nil {
+				return fmt.Errorf("load existing wallet: %w", loadErr)
+			}
+		}
+		created = true
 	}
 
-	if err := rpc.CreateWallet(ctx, walletName, disablePrivateKeys, true); err != nil {
-		if !strings.Contains(err.Error(), "already exists") {
-			return fmt.Errorf("create wallet: %w", err)
+	// A createwallet that succeeds before a failing import leaves the wallet
+	// listed with no active descriptor, so listwallets membership alone must not
+	// skip the import. Ask the wallet instead: a restored wallet imports at
+	// timestamp 0, and Core restarts a genesis rescan on every re-import of it.
+	if !created {
+		active, err := rpc.CountActiveDescriptors(ctx, walletName)
+		if err != nil {
+			return fmt.Errorf("list descriptors: %w", err)
 		}
-		if loadErr := rpc.LoadWallet(ctx, walletName); loadErr != nil {
-			return fmt.Errorf("load existing wallet: %w", loadErr)
+		// Every requested descriptor has to be there. A batch can land in part,
+		// and one active entry is no proof that the change branch arrived.
+		// Count rather than compare the strings: listdescriptors reports the
+		// public form, while a full wallet asks for descriptors that hold the
+		// account xprv, so the two never read as equal.
+		if len(descriptors) > 0 && active >= len(descriptors) {
+			return nil
 		}
 	}
 
@@ -1032,7 +1051,9 @@ func createAndImport(
 		}
 	}
 
-	log.Info().Str("wallet", walletName).Msg("created Bitcoin Core wallet")
+	if created {
+		log.Info().Str("wallet", walletName).Msg("created Bitcoin Core wallet")
+	}
 	return nil
 }
 

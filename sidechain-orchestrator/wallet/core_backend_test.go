@@ -929,3 +929,72 @@ func TestGenerateFullWalletMarksImportedSeeds(t *testing.T) {
 		t.Error("a generated wallet has no history and must not be marked imported")
 	}
 }
+
+// createwallet succeeding before a failing descriptor import leaves the wallet
+// listed but empty. The retry must re-import it, not treat listwallets
+// membership as proof the descriptors landed.
+func TestCoreBackendRetryReimportsDescriptorsAfterPartialCreate(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	var mu sync.Mutex
+	created := false
+	failSingleSig := true
+	fake.handle("listwallets", func(bitcoindCall) (any, string) {
+		mu.Lock()
+		defer mu.Unlock()
+		if created {
+			return []string{"wallet_" + coreID[:8]}, ""
+		}
+		return []string{}, ""
+	})
+	fake.handle("createwallet", func(bitcoindCall) (any, string) {
+		mu.Lock()
+		created = true
+		mu.Unlock()
+		return map[string]any{}, ""
+	})
+	// The first import failed, so the wallet holds no active descriptor. That
+	// is exactly what must not be read as "already imported".
+	fake.handle("listdescriptors", func(bitcoindCall) (any, string) {
+		return map[string]any{"descriptors": []map[string]any{}}, ""
+	})
+	fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		mu.Lock()
+		fail := failSingleSig && len(descs) == 4
+		mu.Unlock()
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": !fail}
+			if fail {
+				results[i]["error"] = map[string]any{"code": -5, "message": "Missing checksum"}
+			}
+		}
+		return results, ""
+	})
+	ctx := context.Background()
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.ErrorContains(t, err, "descriptor 0 import failed")
+	require.Len(t, fake.callsFor("createwallet"), 1)
+
+	mu.Lock()
+	failSingleSig = false
+	mu.Unlock()
+
+	// The wallet is now in listwallets, so createwallet is skipped — but the
+	// descriptors still have to be imported.
+	name, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Equal(t, "wallet_"+coreID[:8], name)
+	assert.Len(t, fake.callsFor("createwallet"), 1)
+
+	imports := fake.callsFor("importdescriptors")
+	require.GreaterOrEqual(t, len(imports), 2, "failed single-sig import, then its retry")
+	var singleSig []ImportDescriptor
+	require.NoError(t, json.Unmarshal(imports[1].Params[0], &singleSig))
+	require.Len(t, singleSig, 4)
+	assert.Contains(t, singleSig[0].Desc, "/84'/1'/0']")
+}
