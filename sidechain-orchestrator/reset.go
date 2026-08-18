@@ -485,16 +485,41 @@ func (o *Orchestrator) markResetBinaryStopped(name string) {
 	}
 }
 
-func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan) {
+// A failure only strands that binary's descendants; siblings still restart.
+func (o *Orchestrator) restartResetPlan(ctx context.Context, plan resetPlan) []string {
+	// An overall cap, plus a fresh per-item deadline below. One binary that
+	// never becomes healthy must not consume its siblings' restart budget.
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(len(plan.restart)+1)*resetRestartTimeout)
 	defer cancel()
 
+	var failed []string
+	// binary -> the failed ancestor that makes starting it pointless.
+	blocked := make(map[ResetBinary]string)
+
 	for _, item := range plan.restart {
-		if err := o.restartResetBinary(ctx, item.binary, item.forceBackend); err != nil {
-			o.log.Error().Err(err).Str("binary", item.binary.processName()).Msg("reset restart failed")
-			return
+		name := item.binary.processName()
+		if ancestor, ok := blocked[item.binary]; ok {
+			o.log.Warn().Str("binary", name).Str("depends_on", ancestor).Msg("reset restart skipped: dependency failed to start")
+			continue
+		}
+		itemCtx, itemCancel := context.WithTimeout(ctx, resetRestartTimeout)
+		err := o.restartResetBinary(itemCtx, item.binary, item.forceBackend)
+		itemCancel()
+		if err != nil {
+			o.log.Error().Err(err).Str("binary", name).Msg("reset restart failed")
+			failed = append(failed, name)
+			for _, child := range resetDescendants(item.binary) {
+				if _, ok := blocked[child]; !ok {
+					blocked[child] = name
+				}
+			}
 		}
 	}
+
+	if len(failed) > 0 {
+		o.log.Error().Strs("failed", failed).Msg("reset restart finished with failures")
+	}
+	return failed
 }
 
 func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinary, forceBackend bool) error {
