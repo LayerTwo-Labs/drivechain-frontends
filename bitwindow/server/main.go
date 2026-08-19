@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -273,7 +274,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	errs := make(chan error, 1)
 	go func() {
-		errs <- srv.Serve(ctx, conf.APIHost)
+		errs <- exitError(srv.Serve(ctx, conf.APIHost))
 	}()
 
 	go func() {
@@ -285,6 +286,15 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}()
 
 	return <-errs
+}
+
+// A graceful shutdown closes the server, so ErrServerClosed is the expected
+// end of Serve, not a failure exit.
+func exitError(err error) error {
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 func initLogger(logFile *os.File, logLevel zerolog.Level) {
