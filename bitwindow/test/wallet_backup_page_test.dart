@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:bitwindow/pages/welcome/wallet_backup_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -196,6 +198,35 @@ void main() {
     await tester.enterText(find.byType(TextField).at(4), phrase);
     await tester.pump();
 
+    expect(_createWalletButton(tester).disabled, isFalse);
+  });
+
+  // The keyboard shortcut takes a different route into the field than typing,
+  // so the spread has to hold for a real paste too.
+  testWidgets('re-enter spreads a keyboard paste', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    final phrase = List.generate(12, (i) => 'word${i + 1}').join(' ');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') {
+        return <String, dynamic>{'text': phrase};
+      }
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+
+    await _pumpPage(tester);
+    await _tapAndSettle(tester, 'Create Wallet');
+    await _tapAndSettle(tester, 'Yes, continue');
+
+    await tester.tap(find.byType(TextField).first);
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.meta);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.meta);
+    await tester.pumpAndSettle();
+    debugDefaultTargetPlatformOverride = null;
+
+    expect(find.text('word12'), findsOneWidget);
     expect(_createWalletButton(tester).disabled, isFalse);
   });
 
