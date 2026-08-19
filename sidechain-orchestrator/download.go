@@ -251,7 +251,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 			return
 		}
 
-		hasCLI, err := d.extractBinary(savePath, config, target.ExtractName, target.ExtractSubfolder, d.dataDir, network, target.IsTestBuild)
+		hasCLI, err := d.extractBinary(savePath, config, target, d.dataDir, network)
 		if err != nil {
 			d.log.Error().Err(err).Str("binary", config.Name).Msg("extract failed")
 			send(DownloadProgress{Error: fmt.Errorf("extract: %w", err)})
@@ -496,10 +496,16 @@ func (d *DownloadManager) downloadFile(ctx context.Context, url, savePath string
 // extractBinary extracts a downloaded archive to the bin directory.
 // Returns hasCLI=true iff a companion CLI binary (name contains "-cli") was
 // extracted alongside the main binary. Raw binaries never have a CLI.
-func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, extractName, stripPrefix, dataDir, network string, hasSCVariant bool) (bool, error) {
+func (d *DownloadManager) extractBinary(archivePath string, config BinaryConfig, target DownloadTarget, dataDir, network string) (bool, error) {
+	extractName, stripPrefix := target.ExtractName, target.ExtractSubfolder
+	hasSCVariant := target.IsTestBuild
 	destDir := BinDir(dataDir)
 
 	switch {
+	case target.BinSubfolder != "":
+		// Each Core variant owns a subfolder, so the extract has to follow
+		// BinPath or the boot check stats a directory nothing wrote to.
+		destDir = filepath.Join(destDir, target.BinSubfolder)
 	case hasSCVariant:
 		// Test sidechain builds need a private dir so per-binary lib/data
 		// trees don't collide.
@@ -1013,6 +1019,9 @@ type DownloadTarget struct {
 	ExtractSubfolder string
 	// IsTestBuild routes extraction to the test build directory.
 	IsTestBuild bool
+	// BinSubfolder is the Core variant's directory under bin/, empty for
+	// everything else. Extraction must land where BinPath says it does.
+	BinSubfolder string
 }
 
 // ResolveTarget picks the Core variant, the test sidechain build, or the plain
@@ -1041,6 +1050,7 @@ func (d *DownloadManager) ResolveTarget(config BinaryConfig, network string, opt
 	switch {
 	case hasVariant:
 		target.BinPath = CoreBinaryPath(d.dataDir, variant, config.BinaryName)
+		target.BinSubfolder = variant.Subfolder
 		target.FileName, _ = variant.FileForPlatform()
 		target.BaseURL = variant.BaseURL
 		target.InFlightKey = config.Name + ":" + variant.ID

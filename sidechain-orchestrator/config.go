@@ -218,15 +218,16 @@ func BinDir(dataDir string) string {
 	return filepath.Join(dataDir, "assets", "bin")
 }
 
-// CoreBinaryPath returns the on-disk path for the active Bitcoin Core
-// daemon. All variants share a single `bin/bitcoind` location — switching
-// variants re-downloads and overwrites whatever was there.
-func CoreBinaryPath(dataDir string, _ CoreVariantSpec, binaryName string) string {
+// CoreBinaryPath returns the on-disk path for a Bitcoin Core variant. Each
+// variant owns a subfolder, so a stat of this path proves the build is the
+// selected one — a shared path let a stale variant boot against the wrong
+// chain. An empty subfolder keeps the flat layout for callers with no spec.
+func CoreBinaryPath(dataDir string, v CoreVariantSpec, binaryName string) string {
 	name := binaryName
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	return filepath.Join(BinDir(dataDir), name)
+	return filepath.Join(BinDir(dataDir), v.Subfolder, name)
 }
 
 // testSidechainSubfolder is the on-disk namespace for layer-2 test/alternative

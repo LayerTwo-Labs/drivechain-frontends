@@ -315,28 +315,9 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 		log:          log.With().Str("component", "orchestrator").Logger(),
 	}
 
-	// Variant resolver shared by download + process managers. The persisted
-	// ID wins when it's available on the current network; otherwise we clamp
-	// to the first network-compatible variant so a user who switched
-	// networks doesn't end up launching the wrong build. knots is always
-	// ranked last in the fallback order — pure alphabetical was silently
-	// picking it over vanilla / drivechain-patched on signet.
+	// Variant resolver shared by download + process managers.
 	variantResolver := func(c BinaryConfig) (CoreVariantSpec, bool) {
-		if !c.IsMainchainCore() {
-			return CoreVariantSpec{}, false
-		}
-		id := orch.Settings.CoreVariant()
-		if v, ok := c.Variants[id]; ok && v.AvailableOn(orch.Network) {
-			return v, true
-		}
-		available := FilterVariantsForNetwork(c.Variants, orch.Network)
-		if len(available) == 0 {
-			return CoreVariantSpec{}, false
-		}
-		sort.Slice(available, func(i, j int) bool {
-			return preferenceLess(available[i].ID, available[j].ID)
-		})
-		return available[0], true
+		return ResolveCoreVariant(c, orch.Settings.CoreVariant(), orch.CurrentNetwork())
 	}
 	orch.download.CoreVariant = func() (CoreVariantSpec, bool) {
 		// Through the locked accessor: a config reload rewrites this map while
@@ -677,8 +658,8 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	// process can come from the other one — a sidechain app boots its prod
 	// backend under the same name — so the release check must not read its path.
 	requestedPath := BinaryPath(o.DataDir, config.BinaryName)
-	if config.IsMainchainCore() && o.Settings != nil {
-		if v, ok := config.Variants[o.Settings.CoreVariant()]; ok {
+	if config.IsMainchainCore() && o.process.CoreVariant != nil {
+		if v, ok := o.process.CoreVariant(config); ok {
 			requestedPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 		}
 	}
@@ -1984,15 +1965,6 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 		return fmt.Errorf("persist core variant: %w", err)
 	}
 
-	// All variants share `bin/bitcoind` — wipe whatever's there so the new
-	// variant downloads clean. Without this, force=true on Download would
-	// still skip the network fetch when the file's hash matched something
-	// it shouldn't (different variant, same path).
-	binPath := CoreBinaryPath(o.DataDir, variant, coreCfg.BinaryName)
-	if err := os.Remove(binPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("wipe existing bitcoind: %w", err)
-	}
-
 	progressCh, err := o.download.Download(ctx, coreCfg, o.Network, true)
 	if err != nil {
 		return fmt.Errorf("ensure variant binary: %w", err)
@@ -2073,10 +2045,6 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	if err := o.purgeNetworkSwapState(n); err != nil {
 		return err
 	}
-
-	// Variants share bin/bitcoind, and the next network wants a different
-	// build, so drop it rather than boot the outgoing network's binary.
-	o.removeCoreBinary()
 
 	if err := o.BitcoinConf.UpdateNetwork(n); err != nil {
 		return fmt.Errorf("persist network: %w", err)
@@ -2351,22 +2319,6 @@ func (o *Orchestrator) defaultBootBitcoindForVariantSwap(ctx context.Context) <-
 		return out
 	}
 	return ch
-}
-
-// removeCoreBinary deletes the shared bin/bitcoind. Every Core variant lives at
-// that one path, so a build left by another network — or another drynet
-// generation — has to go before the next boot downloads the right one.
-func (o *Orchestrator) removeCoreBinary() {
-	cfg, ok := o.configs["bitcoind"]
-	if !ok {
-		return
-	}
-	path := CoreBinaryPath(o.DataDir, CoreVariantSpec{}, cfg.BinaryName)
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		o.log.Warn().Err(err).Str("path", path).Msg("could not remove bitcoind, the next boot may run the wrong build")
-		return
-	}
-	o.log.Info().Str("path", path).Msg("removed bitcoind so the next boot fetches the build this chain needs")
 }
 
 // EnforcerValidator returns a client for the enforcer's validator service.
