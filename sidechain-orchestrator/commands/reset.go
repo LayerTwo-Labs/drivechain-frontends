@@ -19,6 +19,7 @@ var resetCommand = &cli.Command{
 		resetRunCommand,
 		rejectBlockCommand,
 		acceptBlockCommand,
+		resetToBlockCommand,
 	},
 }
 
@@ -74,6 +75,78 @@ var rejectBlockCommand = &cli.Command{
 		fmt.Printf("enforcer: on core's chain, tip %d\n", resp.Msg.EnforcerHeight)
 		return nil
 	},
+}
+
+var resetToBlockCommand = &cli.Command{
+	Name:      "reset-to-block",
+	Usage:     "Move the chain back to a block, then sync forward to the tip again",
+	ArgsUsage: "<height|hash>",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "yes", Usage: "skip the confirmation prompt"},
+		&cli.UintFlag{Name: "enforcer-wait", Usage: "seconds to wait for the enforcer to follow before rebuilding it"},
+	},
+	Action: func(cctx *cli.Context) error {
+		target := cctx.Args().First()
+		if cctx.NArg() != 1 || target == "" {
+			return fmt.Errorf("pass the height or the 64-character hash of the block to reset to")
+		}
+
+		if err := confirmOrAbort(cctx, fmt.Sprintf("this drops every block above %s, then replays them. proceed?", target)); err != nil {
+			return err
+		}
+
+		req := &pb.ResetToBlockRequest{
+			Target:              target,
+			EnforcerWaitSeconds: uint32(cctx.Uint("enforcer-wait")),
+		}
+		stream, err := newClient(cctx).ResetToBlock(cctx.Context, connect.NewRequest(req))
+		if err != nil {
+			return err
+		}
+		defer func() { _ = stream.Close() }()
+
+		var last *pb.ResetToBlockResponse
+		for stream.Receive() {
+			msg := stream.Msg()
+			last = msg
+			fmt.Printf("%-13s %s\n", resetPhaseLabel(msg.Phase), msg.Message)
+		}
+		if err := stream.Err(); err != nil {
+			return err
+		}
+		if last == nil {
+			return fmt.Errorf("the reset reported nothing")
+		}
+		if last.EnforcerError != "" {
+			return fmt.Errorf("core replayed but the enforcer did not follow: %s", last.EnforcerError)
+		}
+		if !last.EnforcerChecked {
+			fmt.Println("enforcer:     not queried, it reads the chain on its next start")
+			return nil
+		}
+		if last.EnforcerRebuilt {
+			fmt.Println("enforcer:     validator chain deleted, rebuilds from the local core")
+			return nil
+		}
+		fmt.Printf("enforcer:     on core's chain, tip %d\n", last.EnforcerHeight)
+		return nil
+	},
+}
+
+func resetPhaseLabel(p pb.ResetPhase) string {
+	switch p {
+	case pb.ResetPhase_RESET_PHASE_RESOLVE:
+		return "resolve:"
+	case pb.ResetPhase_RESET_PHASE_MOVE_BACK:
+		return "move back:"
+	case pb.ResetPhase_RESET_PHASE_SYNC_FORWARD:
+		return "sync forward:"
+	case pb.ResetPhase_RESET_PHASE_ENFORCER:
+		return "enforcer:"
+	case pb.ResetPhase_RESET_PHASE_DONE:
+		return "done:"
+	}
+	return "reset:"
 }
 
 var acceptBlockCommand = &cli.Command{
