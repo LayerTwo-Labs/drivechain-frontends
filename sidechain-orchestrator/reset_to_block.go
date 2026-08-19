@@ -137,20 +137,14 @@ func (o *Orchestrator) runResetToBlock(
 	client *CoreStatusClient,
 	target resetTarget,
 	enforcerWait time.Duration,
-	ch chan<- ResetProgress,
+	ch chan ResetProgress,
 ) {
 	// An accept or a reject landing mid-reset would move the chain this call
 	// still replays.
 	o.rejectMu.Lock()
 	defer o.rejectMu.Unlock()
 
-	// A reader that left must not stall the chain work behind it.
-	emit := func(p ResetProgress) {
-		select {
-		case ch <- p:
-		default:
-		}
-	}
+	emit := resetEmitter(ch)
 
 	// A reject landing between the resolve and this lock moves the active
 	// chain, and a stale target would take that rejection back.
@@ -203,6 +197,30 @@ func (o *Orchestrator) runResetToBlock(
 	step.Done = true
 	step.Message = fmt.Sprintf("The chain is back at %d.", final)
 	emit(step)
+}
+
+// resetEmitter writes progress without a stall behind a reader that left.
+// Progress is a snapshot, so a slow reader may miss ticks. A terminal message
+// carries the outcome, so it takes the place of the oldest tick rather than
+// drop.
+func resetEmitter(ch chan ResetProgress) func(ResetProgress) {
+	return func(p ResetProgress) {
+		terminal := p.Done || p.Error != nil
+		for {
+			select {
+			case ch <- p:
+				return
+			default:
+				if !terminal {
+					return
+				}
+				select {
+				case <-ch:
+				default:
+				}
+			}
+		}
+	}
 }
 
 // newResetProgress reads the tip the replay ends on and counts the blocks the

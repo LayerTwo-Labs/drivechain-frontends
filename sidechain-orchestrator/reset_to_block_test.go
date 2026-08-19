@@ -216,6 +216,42 @@ func TestResetCoreToBlockClearsTheMarkWhenTheTipReadFails(t *testing.T) {
 	}
 }
 
+// Progress is a snapshot, so a slow reader may miss ticks. The terminal
+// message carries the outcome, so a full buffer must not drop it.
+func TestResetEmitKeepsTheTerminalMessage(t *testing.T) {
+	ch := make(chan ResetProgress, 2)
+	emit := resetEmitter(ch)
+
+	emit(ResetProgress{Phase: ResetPhaseSyncForward, CoreHeight: 1})
+	emit(ResetProgress{Phase: ResetPhaseSyncForward, CoreHeight: 2})
+	emit(ResetProgress{Phase: ResetPhaseSyncForward, CoreHeight: 3})
+	emit(ResetProgress{Phase: ResetPhaseDone, Done: true})
+
+	var last ResetProgress
+	for len(ch) > 0 {
+		last = <-ch
+	}
+	if !last.Done {
+		t.Errorf("last message = %+v, want the terminal one", last)
+	}
+}
+
+func TestResetEmitKeepsTheError(t *testing.T) {
+	ch := make(chan ResetProgress, 1)
+	emit := resetEmitter(ch)
+
+	emit(ResetProgress{Phase: ResetPhaseSyncForward, CoreHeight: 1})
+	emit(ResetProgress{Phase: ResetPhaseSyncForward, Error: context.Canceled})
+
+	var last ResetProgress
+	for len(ch) > 0 {
+		last = <-ch
+	}
+	if last.Error == nil {
+		t.Errorf("last message = %+v, want the error", last)
+	}
+}
+
 func phases(steps []ResetProgress) []ResetPhase {
 	out := make([]ResetPhase, 0, len(steps))
 	for _, s := range steps {
