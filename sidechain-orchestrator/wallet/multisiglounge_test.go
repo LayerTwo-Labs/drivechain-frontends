@@ -331,6 +331,80 @@ func loungeSiblingGroup(t *testing.T, shared MultisigLoungeKey) MultisigLoungeGr
 	return MultisigLoungeGroup{M: 2, N: 3, Keys: keys}
 }
 
+// loungeTaprootPSBT builds the tr(sortedmulti_a) spend of the lounge test group,
+// the taproot twin of loungeMultisigPSBT.
+func loungeTaprootPSBT(t *testing.T, accts []*hdkeychain.ExtendedKey) *psbt.Packet {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	keys := make([]DescriptorKey, len(accts))
+	for i, a := range accts {
+		keys[i] = DescriptorKey{Origin: fmt.Sprintf("73c5da0a/48h/1h/0h/%dh", 2+i), Account: a}
+	}
+	d := &Descriptor{Kind: ScriptMultisigTaproot, Threshold: 2, Keys: keys}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	derivs, err := d.derivations(false, 0)
+	require.NoError(t, err)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr: scannedAddr{
+			scriptPubKey:    ds.scriptPubKey,
+			tapLeafScript:   ds.tapLeafScript,
+			tapControlBlock: ds.tapControlBlock,
+			tapInternal:     ds.tapInternal,
+			kind:            ScriptMultisigTaproot,
+			derivations:     derivs,
+		},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, nil)
+	require.NoError(t, err)
+	return packet
+}
+
+// A cosigner record that names another child passes the account-prefix check but
+// leaves that cosigner deriving a key it cannot sign the input with.
+func TestValidatePsbtCosignerChildMismatch(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	accts := loungeTestAccts(t)
+
+	packet := loungeMultisigPSBT(t, accts, 0)
+	require.Len(t, packet.Inputs[0].Bip32Derivation, 3)
+	_, err := ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
+	require.NoError(t, err)
+
+	d := packet.Inputs[0].Bip32Derivation[1]
+	d.Bip32Path[len(d.Bip32Path)-1] = 6
+	_, err = ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "another child of the group")
+}
+
+// A taproot cosigner record must name the leaf it signs, or a signer cannot tell
+// which tapscript its key belongs to.
+func TestValidatePsbtTaprootLeafHashes(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	accts := loungeTestAccts(t)
+
+	packet := loungeTaprootPSBT(t, accts)
+	_, err := ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
+	require.NoError(t, err, "the group's own taproot spend must validate")
+
+	packet.Inputs[0].TaprootBip32Derivation[1].LeafHashes = nil
+	_, err = ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not sign the group's leaf")
+}
+
 // TestValidatePsbtStrippedOriginsCrossGroup proves an input is bound to its group
 // by the script it derives, not by the derivation records it happens to carry:
 // deleting group A's non-shared records leaves only the account key both groups
