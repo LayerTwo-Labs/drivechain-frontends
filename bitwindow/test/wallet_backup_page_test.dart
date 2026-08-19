@@ -174,6 +174,31 @@ void main() {
     expect(_createWalletButton(tester).disabled, isTrue);
   });
 
+  testWidgets('re-enter takes a pasted phrase into the box it belongs in', (tester) async {
+    await _pumpPage(tester);
+    await _tapAndSettle(tester, 'Create Wallet');
+    await _tapAndSettle(tester, 'Yes, continue');
+
+    final phrase = List.generate(12, (i) => 'word${i + 1}').join(' ');
+    await tester.enterText(find.byType(TextField).first, phrase);
+    await tester.pump();
+
+    expect(find.text('word12'), findsOneWidget);
+    expect(_createWalletButton(tester).disabled, isFalse);
+  });
+
+  testWidgets('re-enter fills from the start when the paste lands in a later box', (tester) async {
+    await _pumpPage(tester);
+    await _tapAndSettle(tester, 'Create Wallet');
+    await _tapAndSettle(tester, 'Yes, continue');
+
+    final phrase = List.generate(12, (i) => 'word${i + 1}').join(' ');
+    await tester.enterText(find.byType(TextField).at(4), phrase);
+    await tester.pump();
+
+    expect(_createWalletButton(tester).disabled, isFalse);
+  });
+
   group('import mode', () {
     const phrase = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
     final long = '${'abandon ' * 23}art';
