@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sail_ui/sail_ui.dart';
 
@@ -66,10 +67,23 @@ class CLIConsole {
     'Orchestratord': 'orchestratorctl',
   };
 
+  /// The orchestrator binary each CLI ships with. Every Core variant owns a
+  /// folder, so only the folder the daemon runs from holds the matching CLI.
+  static const _cliToBinary = {
+    'bitcoin-cli': 'bitcoind',
+    'bitwindow-cli': 'bitwindowd',
+    'thunder-cli': 'thunder',
+    'truthcoin-cli': 'truthcoin',
+    'photon-cli': 'photon',
+    'bitnames-cli': 'bitnames',
+    'bitassets-cli': 'bitassets',
+    'coinshift-cli': 'coinshift',
+    'zside-cli': 'zside',
+    'orchestratorctl': 'orchestratord',
+  };
+
   /// Discover available CLI executables on disk. Returns map of cli name →
-  /// absolute path. Walks `assets/bin` recursively so binaries that landed in
-  /// per-variant subfolders (Core variants, test sidechain builds) are
-  /// still found.
+  /// absolute path, each taken from the folder its daemon runs from.
   static Future<Map<String, String>> discoverCLIs() async {
     final available = <String, String>{};
     final exeSuffix = Platform.isWindows ? '.exe' : '';
@@ -79,8 +93,11 @@ class CLIConsole {
       return available;
     }
 
+    final daemonDirs = await _daemonDirs();
+
     for (final cliName in _binaryToCLI.values) {
-      final found = _findExecutable(bindir, '$cliName$exeSuffix');
+      final filename = '$cliName$exeSuffix';
+      final found = _besideDaemon(daemonDirs[_cliToBinary[cliName]], filename) ?? _findExecutable(bindir, filename);
       if (found != null) {
         await _ensureExecutable(found);
         available[cliName] = found.path;
@@ -90,22 +107,51 @@ class CLIConsole {
     return available;
   }
 
+  /// The directory each daemon runs from, by orchestrator binary name. An
+  /// unreachable daemon returns an empty map, and the caller searches instead.
+  static Future<Map<String, String>> _daemonDirs() async {
+    if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
+      return {};
+    }
+    try {
+      // forceBackend reports the real daemon, not the Flutter test build.
+      final resp = await GetIt.I.get<OrchestratorRPC>().listBinaries(forceBackend: true);
+      return {
+        for (final b in resp.binaries)
+          if (b.binaryPath.isNotEmpty) b.name: path.dirname(b.binaryPath),
+      };
+    } catch (e) {
+      GetIt.I.get<Logger>().w('discoverCLIs: the orchestrator did not report binary paths: $e');
+      return {};
+    }
+  }
+
+  static File? _besideDaemon(String? daemonDir, String filename) {
+    if (daemonDir == null) {
+      return null;
+    }
+    final beside = File(path.join(daemonDir, filename));
+    return beside.existsSync() ? beside : null;
+  }
+
   static File? _findExecutable(Directory bindir, String filename) {
     final direct = File(path.join(bindir.path, filename));
     if (direct.existsSync()) {
       return direct;
     }
 
+    final matches = <File>[];
     for (final entity in bindir.listSync()) {
       if (entity is! Directory) {
         continue;
       }
       final inSubdir = File(path.join(entity.path, filename));
       if (inSubdir.existsSync()) {
-        return inSubdir;
+        matches.add(inSubdir);
       }
     }
-    return null;
+    // listSync gives no order, so a pick between two variants is arbitrary.
+    return matches.length == 1 ? matches.first : null;
   }
 
   static Future<void> _ensureExecutable(File f) async {
