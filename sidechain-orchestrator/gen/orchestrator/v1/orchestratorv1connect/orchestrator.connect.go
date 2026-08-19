@@ -114,6 +114,9 @@ const (
 	// OrchestratorServiceAcceptBlockProcedure is the fully-qualified name of the OrchestratorService's
 	// AcceptBlock RPC.
 	OrchestratorServiceAcceptBlockProcedure = "/orchestrator.v1.OrchestratorService/AcceptBlock"
+	// OrchestratorServiceResetToBlockProcedure is the fully-qualified name of the OrchestratorService's
+	// ResetToBlock RPC.
+	OrchestratorServiceResetToBlockProcedure = "/orchestrator.v1.OrchestratorService/ResetToBlock"
 	// OrchestratorServiceGetCoreMempoolInfoProcedure is the fully-qualified name of the
 	// OrchestratorService's GetCoreMempoolInfo RPC.
 	OrchestratorServiceGetCoreMempoolInfoProcedure = "/orchestrator.v1.OrchestratorService/GetCoreMempoolInfo"
@@ -229,6 +232,10 @@ type OrchestratorServiceClient interface {
 	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
 	// again when it has the most work.
 	AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error)
+	// Move the chain back to a block, then sync forward to the tip again. Core
+	// drops the block and every block above it, then re-validates them from
+	// disk. Streams one message per phase.
+	ResetToBlock(context.Context, *connect.Request[v1.ResetToBlockRequest]) (*connect.ServerStreamForClient[v1.ResetToBlockResponse], error)
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Parent-chain state the sidechain BMM tab bids against: the tip a request
@@ -420,6 +427,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("AcceptBlock")),
 			connect.WithClientOptions(opts...),
 		),
+		resetToBlock: connect.NewClient[v1.ResetToBlockRequest, v1.ResetToBlockResponse](
+			httpClient,
+			baseURL+OrchestratorServiceResetToBlockProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("ResetToBlock")),
+			connect.WithClientOptions(opts...),
+		),
 		getCoreMempoolInfo: connect.NewClient[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse](
 			httpClient,
 			baseURL+OrchestratorServiceGetCoreMempoolInfoProcedure,
@@ -476,6 +489,7 @@ type orchestratorServiceClient struct {
 	deleteFiles                     *connect.Client[v1.DeleteFilesRequest, v1.DeleteFilesResponse]
 	rejectBlock                     *connect.Client[v1.RejectBlockRequest, v1.RejectBlockResponse]
 	acceptBlock                     *connect.Client[v1.AcceptBlockRequest, v1.AcceptBlockResponse]
+	resetToBlock                    *connect.Client[v1.ResetToBlockRequest, v1.ResetToBlockResponse]
 	getCoreMempoolInfo              *connect.Client[v1.GetCoreMempoolInfoRequest, v1.GetCoreMempoolInfoResponse]
 	getBmmContext                   *connect.Client[v1.GetBmmContextRequest, v1.GetBmmContextResponse]
 	coreRawCall                     *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
@@ -619,6 +633,11 @@ func (c *orchestratorServiceClient) AcceptBlock(ctx context.Context, req *connec
 	return c.acceptBlock.CallUnary(ctx, req)
 }
 
+// ResetToBlock calls orchestrator.v1.OrchestratorService.ResetToBlock.
+func (c *orchestratorServiceClient) ResetToBlock(ctx context.Context, req *connect.Request[v1.ResetToBlockRequest]) (*connect.ServerStreamForClient[v1.ResetToBlockResponse], error) {
+	return c.resetToBlock.CallServerStream(ctx, req)
+}
+
 // GetCoreMempoolInfo calls orchestrator.v1.OrchestratorService.GetCoreMempoolInfo.
 func (c *orchestratorServiceClient) GetCoreMempoolInfo(ctx context.Context, req *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {
 	return c.getCoreMempoolInfo.CallUnary(ctx, req)
@@ -741,6 +760,10 @@ type OrchestratorServiceHandler interface {
 	// Undo RejectBlock. Core re-checks the block and its branch, and follows it
 	// again when it has the most work.
 	AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error)
+	// Move the chain back to a block, then sync forward to the tip again. Core
+	// drops the block and every block above it, then re-validates them from
+	// disk. Streams one message per phase.
+	ResetToBlock(context.Context, *connect.Request[v1.ResetToBlockRequest], *connect.ServerStream[v1.ResetToBlockResponse]) error
 	// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
 	GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error)
 	// Parent-chain state the sidechain BMM tab bids against: the tip a request
@@ -928,6 +951,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("AcceptBlock")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceResetToBlockHandler := connect.NewServerStreamHandler(
+		OrchestratorServiceResetToBlockProcedure,
+		svc.ResetToBlock,
+		connect.WithSchema(orchestratorServiceMethods.ByName("ResetToBlock")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceGetCoreMempoolInfoHandler := connect.NewUnaryHandler(
 		OrchestratorServiceGetCoreMempoolInfoProcedure,
 		svc.GetCoreMempoolInfo,
@@ -1008,6 +1037,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceRejectBlockHandler.ServeHTTP(w, r)
 		case OrchestratorServiceAcceptBlockProcedure:
 			orchestratorServiceAcceptBlockHandler.ServeHTTP(w, r)
+		case OrchestratorServiceResetToBlockProcedure:
+			orchestratorServiceResetToBlockHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetCoreMempoolInfoProcedure:
 			orchestratorServiceGetCoreMempoolInfoHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBmmContextProcedure:
@@ -1131,6 +1162,10 @@ func (UnimplementedOrchestratorServiceHandler) RejectBlock(context.Context, *con
 
 func (UnimplementedOrchestratorServiceHandler) AcceptBlock(context.Context, *connect.Request[v1.AcceptBlockRequest]) (*connect.Response[v1.AcceptBlockResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.AcceptBlock is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) ResetToBlock(context.Context, *connect.Request[v1.ResetToBlockRequest], *connect.ServerStream[v1.ResetToBlockResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.ResetToBlock is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetCoreMempoolInfo(context.Context, *connect.Request[v1.GetCoreMempoolInfoRequest]) (*connect.Response[v1.GetCoreMempoolInfoResponse], error) {

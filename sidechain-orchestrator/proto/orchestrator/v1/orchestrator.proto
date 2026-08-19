@@ -129,6 +129,11 @@ service OrchestratorService {
   // again when it has the most work.
   rpc AcceptBlock(AcceptBlockRequest) returns (AcceptBlockResponse);
 
+  // Move the chain back to a block, then sync forward to the tip again. Core
+  // drops the block and every block above it, then re-validates them from
+  // disk. Streams one message per phase.
+  rpc ResetToBlock(ResetToBlockRequest) returns (stream ResetToBlockResponse);
+
   // ─── Bitcoin Core typed extensions ────────────────────────────────────────
   // Sit alongside the btc-buf BitcoinService for methods btc-buf doesn't type
   // (getmempoolinfo) plus a generic raw-call escape hatch (finalizepsbt,
@@ -695,6 +700,61 @@ message AcceptBlockResponse {
   // False when the enforcer was never asked, so enforcer_height carries no
   // reading and must not be shown as one.
   bool enforcer_checked = 6;
+}
+
+message ResetToBlockRequest {
+  // The block to move back to. A 64-character hash names one block. Anything
+  // else reads as a decimal height, and a height resolves against the chain
+  // this node follows today.
+  string target = 1;
+  // How long to wait for the enforcer to follow before its validator chain is
+  // deleted. Zero picks the default.
+  uint32 enforcer_wait_seconds = 2;
+}
+
+// Which step of a reset a progress message reports.
+enum ResetPhase {
+  RESET_PHASE_UNSPECIFIED = 0;
+  // The target reads as a height or a hash, and Core holds the block.
+  RESET_PHASE_RESOLVE = 1;
+  // Core drops the target block and every block above it.
+  RESET_PHASE_MOVE_BACK = 2;
+  // Core re-validates the dropped blocks from disk and climbs to the old tip.
+  RESET_PHASE_SYNC_FORWARD = 3;
+  // The enforcer comes back onto the chain Core follows.
+  RESET_PHASE_ENFORCER = 4;
+  // The reset is over.
+  RESET_PHASE_DONE = 5;
+}
+
+message ResetToBlockResponse {
+  ResetPhase phase = 1;
+  // Human-readable status for the phase.
+  string message = 2;
+  // The block the reset moves back to.
+  uint32 target_height = 3;
+  string target_hash = 4;
+  // Core's tip as the phase reports it. It falls to target_height - 1 on the
+  // move back, then climbs again.
+  uint32 core_height = 5;
+  // Core's tip before the reset. The replay ends here.
+  uint32 tip_height = 6;
+  // Blocks re-validated so far, out of the blocks the reset drops.
+  uint32 blocks_done = 7;
+  uint32 blocks_total = 8;
+  // The enforcer's tip afterwards. Zero when the enforcer is stopped.
+  uint32 enforcer_height = 9;
+  // False when the enforcer was never asked, so enforcer_height carries no
+  // reading and must not be shown as one.
+  bool enforcer_checked = 10;
+  // True when the enforcer did not follow, so its validator chain was deleted
+  // and it rebuilds from the local Core.
+  bool enforcer_rebuilt = 11;
+  // Empty on success; otherwise why the enforcer could not be brought back
+  // onto Core's chain.
+  string enforcer_error = 12;
+  // Set on the last message.
+  bool done = 13;
 }
 
 // ─── Bitcoin Core typed extensions ────────────────────────────────────────

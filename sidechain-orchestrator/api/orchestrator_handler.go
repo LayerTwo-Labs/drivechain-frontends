@@ -936,6 +936,64 @@ func (h *Handler) AcceptBlock(ctx context.Context, req *connect.Request[pb.Accep
 	}), nil
 }
 
+// ResetToBlock moves the chain back to a block, then syncs forward to the tip
+// again, streaming one message per phase. A bad target fails before the stream
+// opens, so the caller sees it as an RPC error.
+func (h *Handler) ResetToBlock(
+	ctx context.Context,
+	req *connect.Request[pb.ResetToBlockRequest],
+	stream *connect.ServerStream[pb.ResetToBlockResponse],
+) error {
+	ch, err := h.orch.ResetToBlock(
+		ctx,
+		req.Msg.Target,
+		time.Duration(req.Msg.EnforcerWaitSeconds)*time.Second,
+	)
+	if err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	for p := range ch {
+		if p.Error != nil {
+			return connect.NewError(connect.CodeFailedPrecondition, p.Error)
+		}
+		if err := stream.Send(&pb.ResetToBlockResponse{
+			Phase:           resetPhaseToProto(p.Phase),
+			Message:         p.Message,
+			TargetHeight:    p.TargetHeight,
+			TargetHash:      p.TargetHash,
+			CoreHeight:      p.CoreHeight,
+			TipHeight:       p.TipHeight,
+			BlocksDone:      p.BlocksDone,
+			BlocksTotal:     p.BlocksTotal,
+			EnforcerHeight:  p.EnforcerHeight,
+			EnforcerChecked: p.EnforcerChecked,
+			EnforcerRebuilt: p.EnforcerRebuilt,
+			EnforcerError:   p.EnforcerError,
+			Done:            p.Done,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func resetPhaseToProto(p orchestrator.ResetPhase) pb.ResetPhase {
+	switch p {
+	case orchestrator.ResetPhaseResolve:
+		return pb.ResetPhase_RESET_PHASE_RESOLVE
+	case orchestrator.ResetPhaseMoveBack:
+		return pb.ResetPhase_RESET_PHASE_MOVE_BACK
+	case orchestrator.ResetPhaseSyncForward:
+		return pb.ResetPhase_RESET_PHASE_SYNC_FORWARD
+	case orchestrator.ResetPhaseEnforcer:
+		return pb.ResetPhase_RESET_PHASE_ENFORCER
+	case orchestrator.ResetPhaseDone:
+		return pb.ResetPhase_RESET_PHASE_DONE
+	}
+	return pb.ResetPhase_RESET_PHASE_UNSPECIFIED
+}
+
 func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 	startupLogs := lo.Map(s.StartupLogs, func(l orchestrator.StartupLogLine, _ int) *pb.StartupLogEntryMsg {
 		return &pb.StartupLogEntryMsg{
