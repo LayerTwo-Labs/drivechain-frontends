@@ -42,6 +42,11 @@ func (f *fakeCore) start(t *testing.T) *CoreStatusClient {
 		var result string
 		switch req.Method {
 		case "getblockcount":
+			// An empty list stands for a Core that refuses the read.
+			if len(f.tips) == 0 {
+				http.Error(w, `{"result":null,"error":{"code":-28,"message":"Loading block index"}}`, http.StatusOK)
+				return
+			}
 			result = fmt.Sprintf("%d", f.tips[0])
 			if len(f.tips) > 1 {
 				f.tips = f.tips[1:]

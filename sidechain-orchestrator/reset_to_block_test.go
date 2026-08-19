@@ -195,6 +195,27 @@ func TestNewResetProgressCountsTheDroppedBlocks(t *testing.T) {
 	}
 }
 
+// A block left invalid sits off the active chain, so a retry on the same
+// target is refused. A failure after the invalidate must clear the mark.
+func TestResetCoreToBlockClearsTheMarkWhenTheTipReadFails(t *testing.T) {
+	core := &fakeCore{
+		// One tip only: the read after the invalidate finds no entry and fails.
+		tips:    []int64{},
+		hashes:  map[int64]string{},
+		headers: map[string]blockHeader{target979000: {Height: 979000, Confirmations: 473, PreviousBlockHash: parent}},
+	}
+
+	base := ResetProgress{TargetHeight: 979000, TargetHash: target979000, TipHeight: 979472, BlocksTotal: 473}
+	if _, err := resetCoreToBlock(context.Background(), core.start(t), base, func(ResetProgress) {}); err == nil {
+		t.Fatal("resetCoreToBlock reported no error after a failed tip read")
+	}
+
+	calls := strings.Join(core.methods, ",")
+	if !strings.Contains(calls, "reconsiderblock") {
+		t.Errorf("rpc calls = %s, want reconsiderblock after the failed tip read", calls)
+	}
+}
+
 func phases(steps []ResetProgress) []ResetPhase {
 	out := make([]ResetPhase, 0, len(steps))
 	for _, s := range steps {

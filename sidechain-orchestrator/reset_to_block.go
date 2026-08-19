@@ -121,10 +121,13 @@ func (o *Orchestrator) ResetToBlock(ctx context.Context, target string, enforcer
 		return nil, err
 	}
 
-	ch := make(chan ResetProgress, 8)
+	// Core keeps replaying whatever the caller does, so the run must outlive the
+	// request. A cancelled reset would release rejectMu while Core still moves.
+	run := context.WithoutCancel(ctx)
+	ch := make(chan ResetProgress, 32)
 	go func() {
 		defer close(ch)
-		o.runResetToBlock(ctx, client, resolved, enforcerWait, ch)
+		o.runResetToBlock(run, client, resolved, enforcerWait, ch)
 	}()
 	return ch, nil
 }
@@ -141,7 +144,24 @@ func (o *Orchestrator) runResetToBlock(
 	o.rejectMu.Lock()
 	defer o.rejectMu.Unlock()
 
-	emit := func(p ResetProgress) { ch <- p }
+	// A reader that left must not stall the chain work behind it.
+	emit := func(p ResetProgress) {
+		select {
+		case ch <- p:
+		default:
+		}
+	}
+
+	// A reject landing between the resolve and this lock moves the active
+	// chain, and a stale target would take that rejection back.
+	onChain, err := blockOnActiveChain(ctx, client, target.Hash)
+	if err == nil && !onChain {
+		err = fmt.Errorf("block %s left the chain this node follows", target.Hash)
+	}
+	if err != nil {
+		emit(ResetProgress{Phase: ResetPhaseResolve, Error: err})
+		return
+	}
 
 	base, err := newResetProgress(ctx, client, target)
 	if err != nil {
@@ -232,6 +252,15 @@ func resetCoreToBlock(
 		return fail(ResetPhaseMoveBack, fmt.Errorf("move back to block %s: %w", base.TargetHash, err))
 	}
 
+	// A block left invalid sits off the active chain, so a retry on the same
+	// target is refused. Every path from here clears the mark.
+	reconsidered := false
+	defer func() {
+		if !reconsidered {
+			_, _ = client.call(ctx, "reconsiderblock", base.TargetHash)
+		}
+	}()
+
 	parked, _, err := coreTip(ctx, client)
 	if err != nil {
 		return fail(ResetPhaseMoveBack, err)
@@ -246,6 +275,7 @@ func resetCoreToBlock(
 	// reconsiderblock returns, so that one call is the whole replay. A poll on
 	// the side is the only way to report how far it got.
 	replay := make(chan error, 1)
+	reconsidered = true
 	go func() {
 		_, err := client.call(ctx, "reconsiderblock", base.TargetHash)
 		replay <- err
@@ -288,8 +318,8 @@ func awaitResetReplay(
 			}
 			return nil
 		case <-ctx.Done():
-			// Core owns the replay from here. Leaving it alone is safer than a
-			// second move on a chain that is mid-flight.
+			// The run context outlives the request, so only a shutdown lands
+			// here. Core owns the replay either way.
 			return ctx.Err()
 		case <-time.After(resetSyncPollInterval):
 		}
