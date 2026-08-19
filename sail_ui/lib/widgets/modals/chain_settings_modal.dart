@@ -31,6 +31,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
   int? _chainHeight;
   int? _enforcerHeight;
   bool _chainHeightFailed = false;
+  bool _enforcerFailed = false;
   String? _error;
   // The last progress message. A finished reset keeps its result on screen.
   ResetToBlockResponse? _reset;
@@ -134,12 +135,17 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
         return;
       }
       final mainchain = status.mainchain;
+      final enforcer = status.enforcer;
       setState(() {
         if (mainchain.error.isNotEmpty) {
           _chainHeightFailed = true;
         } else {
           _chainHeight = mainchain.blocks.toInt();
         }
+        // A stopped enforcer reports an error, and its row says so rather than
+        // showing a height it never read.
+        _enforcerHeight = enforcer.error.isNotEmpty ? null : enforcer.blocks.toInt();
+        _enforcerFailed = enforcer.error.isNotEmpty;
       });
     } catch (e) {
       GetIt.I.get<Logger>().d('chain settings: could not read the height: $e');
@@ -191,6 +197,7 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
             }
             if (msg.done && msg.enforcerChecked) {
               _enforcerHeight = msg.enforcerHeight;
+              _enforcerFailed = false;
             }
           });
         },
@@ -408,7 +415,8 @@ class _ChainSettingsModalState extends State<ChainSettingsModal> {
 
   Widget _chainTab(BuildContext context, SailThemeData theme) {
     final height = _chainHeight?.toString() ?? (_chainHeightFailed ? 'Unavailable' : 'Loading...');
-    final enforcer = _enforcerHeight?.toString() ?? (_chainHeightFailed ? 'Unavailable' : 'Loading...');
+    final enforcer =
+        _enforcerHeight?.toString() ?? (_chainHeightFailed || _enforcerFailed ? 'Unavailable' : 'Loading...');
 
     return SingleChildScrollView(
       child: SailColumn(
