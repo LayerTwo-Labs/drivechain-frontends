@@ -216,23 +216,40 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     }
   }
 
-  /// Spreads a multi-word paste across the boxes. A full 12 or 24 words is the
-  /// whole phrase however it arrived, so it fills the grid from the start and
-  /// resizes it to fit; anything shorter fills forward from [index].
+  List<String> _split(String value) =>
+      value.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+
+  void _fill(List<TextEditingController> fields, int start, List<String> words) {
+    for (var i = 0; i < words.length && start + i < fields.length; i++) {
+      fields[start + i].text = words[i];
+    }
+  }
+
+  /// Spreads a multi-word paste across the import boxes. A full 12 or 24 words
+  /// is the whole phrase however it arrived, so it fills the grid from the
+  /// start and resizes it to fit; anything shorter fills forward from [index].
   void _spread(int index, String value) {
-    final words = value.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final words = _split(value);
     if (words.length < 2) {
       setState(() {});
       return;
     }
     final wholePhrase = words.length == 12 || words.length == 24;
-    final start = wholePhrase ? 0 : index;
     setState(() {
       if (wholePhrase && words.length != _imported.length) {
         _resizeImported(words.length);
       }
-      for (var i = 0; i < words.length && start + i < _imported.length; i++) {
-        _imported[start + i].text = words[i];
+      _fill(_imported, wholePhrase ? 0 : index, words);
+    });
+  }
+
+  /// Spreads a multi-word paste across the re-enter boxes. The box count is
+  /// fixed here, so a paste of the whole phrase fills from the start.
+  void _spreadReentered(int index, String value) {
+    final words = _split(value);
+    setState(() {
+      if (words.length >= 2) {
+        _fill(_reentered, words.length == _reentered.length ? 0 : index, words);
       }
     });
   }
@@ -714,11 +731,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.primary16('Re-enter Mnemonic Words', bold: true),
-              SailText.secondary13('Enter each word in the numbered box it belongs in.'),
+              SailText.secondary13('Paste the whole phrase into the first box, or type them one by one.'),
               const SizedBox(height: 16),
               SailMnemonicGrid(
                 controllers: _reentered,
-                onChanged: (_, _) => setState(() {}),
+                onChanged: _spreadReentered,
               ),
               const SizedBox(height: 12),
               SailText.secondary12(
