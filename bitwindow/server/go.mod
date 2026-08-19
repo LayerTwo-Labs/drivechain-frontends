@@ -27,7 +27,6 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.5.0
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.2.0
 	github.com/btcsuite/btclog v1.0.0 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
@@ -38,8 +37,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.49
 	github.com/oklog/ulid/v2 v2.1.2
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.0
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.54.0
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
