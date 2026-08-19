@@ -131,6 +131,43 @@ func TestGather_StatsExistingFiles(t *testing.T) {
 	assert.True(t, found, "expected seeded bitcoind binary in gather result")
 }
 
+// Every Core variant owns a bin subfolder, so a reset that reads bin/ alone
+// finds no bitcoind and leaves every downloaded build on disk.
+func TestGather_CollectsEveryCoreVariantFolder(t *testing.T) {
+	o := newResetTestOrchestrator(t)
+
+	binDir := BinDir(o.BitwindowDir)
+	variants := o.Configs()["bitcoind"].Variants
+	require.NotEmpty(t, variants)
+
+	knots := variants["knots"]
+	require.NotEmpty(t, knots.Subfolder)
+	seedFile(t, CoreBinaryPath(o.BitwindowDir, knots, "bitcoind"))
+
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catSoftware}},
+	})
+	require.NoError(t, err)
+
+	var found bool
+	for _, f := range files {
+		if f.Path == filepath.Join(binDir, knots.Subfolder) {
+			found = true
+			assert.True(t, f.IsDirectory)
+			assert.Equal(t, catSoftware, f.Category)
+		}
+	}
+	assert.True(t, found, "the knots variant folder must be gathered")
+
+	// A variant nobody downloaded must not show up as a file to delete.
+	core := variants["core"]
+	require.NotEmpty(t, core.Subfolder)
+	for _, f := range files {
+		assert.NotEqual(t, filepath.Join(binDir, core.Subfolder), f.Path,
+			"a variant with nothing on disk must not be gathered")
+	}
+}
+
 func TestGather_DeduplicatesByPath(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 
