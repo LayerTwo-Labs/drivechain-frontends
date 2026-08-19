@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -111,6 +113,7 @@ class AddressBookViewModel extends BaseViewModel {
       final result = await FilePicker.saveFile(
         dialogTitle: 'Export Labels (BIP329)',
         fileName: defaultFileName,
+        bytes: Uint8List.fromList(utf8.encode(jsonl)),
         type: FileType.custom,
         allowedExtensions: ['jsonl'],
       );
@@ -118,9 +121,8 @@ class AddressBookViewModel extends BaseViewModel {
         return;
       }
 
-      await File(result).writeAsString(jsonl);
       if (context.mounted) {
-        showSailToast(context, 'Labels exported to $result');
+        showSailToast(context, 'Labels exported to ${result.toFilePath()}');
       }
     } catch (e) {
       if (context.mounted) {
@@ -135,16 +137,16 @@ class AddressBookViewModel extends BaseViewModel {
     try {
       setBusy(true);
 
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['jsonl'],
         dialogTitle: 'Import Labels (BIP329)',
       );
-      if (result == null || result.files.single.path == null) {
+      if (result?.path == null) {
         return;
       }
 
-      final jsonl = await File(result.files.single.path!).readAsString();
+      final jsonl = await File(result!.path!).readAsString();
       final summary = await _provider.importLabels(jsonl);
 
       final imported = summary.importedAddresses + summary.importedTransactions + summary.importedOutputs;

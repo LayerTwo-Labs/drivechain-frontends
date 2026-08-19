@@ -33,13 +33,12 @@ class CreateTimestampViewModel extends BaseViewModel {
 
   Future<void> pickFile() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         type: FileType.any,
-        allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
+      if (result?.path != null) {
+        final file = File(result!.path!);
         final size = await file.length();
 
         if (size > maxFileSizeBytes) {
@@ -49,7 +48,7 @@ class CreateTimestampViewModel extends BaseViewModel {
         }
 
         selectedFile = file;
-        selectedFilename = result.files.single.name;
+        selectedFilename = result.name;
         selectedFileSize = size;
         modelError = null;
         notifyListeners();

@@ -85,16 +85,14 @@ class _GenerateReportTabState extends State<GenerateReportTab> {
   }
 
   Future<void> _selectFile() async {
-    final result = await FilePicker.saveFile(
+    final directory = await FilePicker.getDirectoryPath(
       dialogTitle: 'Save Proof of Funds Report',
-      fileName: 'proof_of_funds_${DateTime.now().millisecondsSinceEpoch}.csv',
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
     );
 
-    if (result != null) {
+    if (directory != null) {
+      final fileName = 'proof_of_funds_${DateTime.now().millisecondsSinceEpoch}.csv';
       setState(() {
-        _filePathController.text = result;
+        _filePathController.text = '$directory${Platform.pathSeparator}$fileName';
       });
     }
   }
@@ -358,15 +356,16 @@ class _VerifyReportTabState extends State<VerifyReportTab> {
   }
 
   Future<void> _selectFile() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       dialogTitle: 'Select Proof of Funds Report',
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
 
-    if (result != null && result.files.single.path != null) {
+    final path = result?.path;
+    if (path != null) {
       setState(() {
-        _filePathController.text = result.files.single.path!;
+        _filePathController.text = path;
       });
     }
   }

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:path/path.dart' as path;
 import 'package:bitwindow/widgets/create_multisig_modal.dart';
@@ -1749,18 +1749,16 @@ class MultisigLoungeViewModel extends BaseViewModel {
       final result = await FilePicker.saveFile(
         dialogTitle: 'Save PSBT Export',
         fileName: fileName,
+        bytes: Uint8List.fromList(utf8.encode(jsonString)),
         type: FileType.custom,
         allowedExtensions: ['json'],
       );
 
       if (result != null) {
-        final file = File(result);
-        await file.writeAsString(jsonString);
-
         if (context.mounted) {
           showSailToast(
             context,
-            'PSBT exported successfully to ${path.basename(file.path)}',
+            'PSBT exported successfully to ${path.basename(result.toFilePath())}',
             variant: SailToastVariant.success,
             duration: const Duration(seconds: 3),
           );

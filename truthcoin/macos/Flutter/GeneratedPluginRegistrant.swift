@@ -7,7 +7,7 @@ import Foundation
 
 import auto_updater_macos
 import desktop_multi_window
-import file_picker
+import file_picker_darwin
 import screen_retriever_macos
 import url_launcher_macos
 import window_manager

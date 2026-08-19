@@ -689,17 +689,16 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   Future<void> importKeyFromFile(BuildContext context) async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['json', 'conf'],
         dialogTitle: 'Select Key File to Import',
       );
 
-      if (result == null || result.files.isEmpty) {
+      if (file == null) {
         return;
       }
 
-      final file = result.files.first;
       if (file.path == null) {
         modalError = 'Could not access file path';
         notifyListeners();

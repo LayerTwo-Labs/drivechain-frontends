@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as p;
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart' as bitdrivepb;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
@@ -467,51 +466,39 @@ class BitDriveViewModel extends BaseViewModel {
 
   Future<void> pickFile(BuildContext context) async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.any,
-        allowMultiple: false,
-        withData: true,
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-        if (file.size > 1024 * 1024) {
+      if (file != null) {
+        if (await file.length() > 1024 * 1024) {
           if (context.mounted) {
             showSailToast(context, 'File size must be less than 1MB');
           }
           return;
         }
 
-        Uint8List? fileContents;
-        if (file.bytes != null) {
-          fileContents = file.bytes!;
-        } else if (file.path != null) {
-          try {
-            fileContents = await File(file.path!).readAsBytes();
-          } catch (e) {
-            Logger().e('Error reading file: $e');
-            if (context.mounted) {
-              showSailToast(context, 'Error reading file: $e');
-            }
-            return;
+        final Uint8List fileContents;
+        try {
+          fileContents = await file.readAsBytes();
+        } catch (e) {
+          Logger().e('Error reading file: $e');
+          if (context.mounted) {
+            showSailToast(context, 'Error reading file: $e');
           }
+          return;
         }
 
-        if (fileContents != null) {
-          selectedFileContent = fileContents;
-          selectedFileName = file.name;
-          textController.clear();
-          await provider.setFileContent(
-            fileContents,
-            name: file.name,
-            type: file.extension != null ? 'application/${file.extension}' : 'application/octet-stream',
-          );
-          notifyListeners();
-        } else {
-          if (context.mounted) {
-            showSailToast(context, 'Could not read file contents');
-          }
-        }
+        final extension = p.extension(file.name).replaceFirst('.', '');
+        selectedFileContent = fileContents;
+        selectedFileName = file.name;
+        textController.clear();
+        await provider.setFileContent(
+          fileContents,
+          name: file.name,
+          type: extension.isNotEmpty ? 'application/$extension' : 'application/octet-stream',
+        );
+        notifyListeners();
       }
     } catch (e) {
       Logger().e('Error picking file: $e');

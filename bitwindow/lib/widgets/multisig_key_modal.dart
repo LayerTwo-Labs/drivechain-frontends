@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/multisig_provider.dart';
@@ -282,36 +283,26 @@ class MultisigKeyModalViewModel extends BaseViewModel {
     final keyName = keyNameController.text.trim();
     final filename = '$keyName.conf';
 
-    try {
-      final result = await FilePicker.saveFile(
-        dialogTitle: 'Save Multisig Key Configuration',
-        fileName: filename,
-        type: FileType.custom,
-        allowedExtensions: ['conf'],
-      );
+    final configData = {
+      'owner': keyName,
+      'xpub': keyInfo!['xpub'],
+      'path': keyInfo!['path'],
+      'fingerprint': keyInfo!['fingerprint'],
+      'origin_path': keyInfo!['originPath'],
+      'is_wallet': true,
+    };
+    const encoder = JsonEncoder.withIndent('  ');
+    final prettyJson = encoder.convert(configData);
 
-      if (result != null) {
-        final configData = {
-          'owner': keyName,
-          'xpub': keyInfo!['xpub'],
-          'path': keyInfo!['path'],
-          'fingerprint': keyInfo!['fingerprint'],
-          'origin_path': keyInfo!['originPath'],
-          'is_wallet': true,
-        };
+    final result = await FilePicker.saveFile(
+      dialogTitle: 'Save Multisig Key Configuration',
+      fileName: filename,
+      bytes: Uint8List.fromList(utf8.encode(prettyJson)),
+      type: FileType.custom,
+      allowedExtensions: ['conf'],
+    );
 
-        final file = File(result);
-        const encoder = JsonEncoder.withIndent('  ');
-        final prettyJson = encoder.convert(configData);
-        await file.writeAsString(prettyJson);
-
-        return result;
-      }
-
-      return null;
-    } catch (e) {
-      rethrow;
-    }
+    return result?.toFilePath();
   }
 
   @override

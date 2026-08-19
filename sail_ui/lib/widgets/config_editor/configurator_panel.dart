@@ -678,11 +678,11 @@ class _FileInputState extends State<_FileInput> {
           initialDirectory: _controller.text.isNotEmpty ? _controller.text : null,
         );
       } else {
-        final fileResult = await FilePicker.pickFiles(
+        final fileResult = await FilePicker.pickFile(
           initialDirectory: _controller.text.isNotEmpty ? path.dirname(_controller.text) : null,
           type: FileType.any,
         );
-        result = fileResult?.files.single.path;
+        result = fileResult?.path;
       }
 
       if (result != null) {

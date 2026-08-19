@@ -610,12 +610,12 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     final selected = _selectedBackupFile;
     return GestureDetector(
       onTap: () async {
-        final result = await FilePicker.pickFiles(
+        final result = await FilePicker.pickFile(
           dialogTitle: 'Upload wallet backup',
           type: FileType.custom,
           allowedExtensions: ['zip', 'json'],
         );
-        final pickedPath = result?.files.single.path;
+        final pickedPath = result?.path;
         if (pickedPath != null) {
           setState(() {
             _selectedBackupFile = File(pickedPath);
