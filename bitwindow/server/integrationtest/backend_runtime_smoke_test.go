@@ -205,7 +205,7 @@ func newOrchestratorOnlyNode(t *testing.T) *orchestratorOnlyNode {
 		0o600,
 	))
 	smokeConfigs := orchestrator.AllDefaults()
-	bitcoindDestPath := orchestrator.ActiveCoreBinaryPath(bitwindowDir, bitwindowDir, smokeConfigs, "bitcoind", "regtest")
+	bitcoindDestPath := orchestrator.ActiveCoreBinaryPath(bitwindowDir, bitwindowDir, smokeConfigs, "bitcoind", "regtest", "")
 	copyManagedBinary(t, bitcoindBin, bitcoindDestPath)
 	enforcerBin := findEnforcer(t)
 	copyManagedBinary(t, enforcerBin, orchestrator.BinaryPath(bitwindowDir, "bip300301-enforcer"))
@@ -374,7 +374,7 @@ func findBitcoind(t *testing.T) string {
 	bitwindowDir := orchestrator.DefaultBitwindowDir()
 	configPath := orchestrator.ConfigFilePath(bitwindowDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
-	orchPath := orchestrator.ActiveCoreBinaryPath(dataDir, bitwindowDir, configs, "bitcoind", "regtest")
+	orchPath := orchestrator.ActiveCoreBinaryPath(dataDir, bitwindowDir, configs, "bitcoind", "regtest", "")
 
 	if _, err := os.Stat(orchPath); err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
