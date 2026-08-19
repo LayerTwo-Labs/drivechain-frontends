@@ -59,6 +59,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$2.DeleteFilesResponse> deleteFiles($pb.ServerContext ctx, $2.DeleteFilesRequest request);
   $async.Future<$2.RejectBlockResponse> rejectBlock($pb.ServerContext ctx, $2.RejectBlockRequest request);
   $async.Future<$2.AcceptBlockResponse> acceptBlock($pb.ServerContext ctx, $2.AcceptBlockRequest request);
+  $async.Future<$2.ResetToBlockResponse> resetToBlock($pb.ServerContext ctx, $2.ResetToBlockRequest request);
   $async.Future<$2.GetCoreMempoolInfoResponse> getCoreMempoolInfo(
       $pb.ServerContext ctx, $2.GetCoreMempoolInfoRequest request);
   $async.Future<$2.GetBmmContextResponse> getBmmContext($pb.ServerContext ctx, $2.GetBmmContextRequest request);
@@ -121,6 +122,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return $2.RejectBlockRequest();
       case 'AcceptBlock':
         return $2.AcceptBlockRequest();
+      case 'ResetToBlock':
+        return $2.ResetToBlockRequest();
       case 'GetCoreMempoolInfo':
         return $2.GetCoreMempoolInfoRequest();
       case 'GetBmmContext':
@@ -191,6 +194,8 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
         return this.rejectBlock(ctx, request as $2.RejectBlockRequest);
       case 'AcceptBlock':
         return this.acceptBlock(ctx, request as $2.AcceptBlockRequest);
+      case 'ResetToBlock':
+        return this.resetToBlock(ctx, request as $2.ResetToBlockRequest);
       case 'GetCoreMempoolInfo':
         return this.getCoreMempoolInfo(ctx, request as $2.GetCoreMempoolInfoRequest);
       case 'GetBmmContext':

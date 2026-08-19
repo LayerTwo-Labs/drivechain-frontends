@@ -107,6 +107,26 @@ final $typed_data.Uint8List rejectOutcomeDescriptor =
         'NUX09VVENPTUVfU1dJVENIRURfQlJBTkNIEAESIwofUkVKRUNUX09VVENPTUVfUEFSS0VEX09O'
         'X1BBUkVOVBACEiMKH1JFSkVDVF9PVVRDT01FX0FMUkVBRFlfSU5BQ1RJVkUQAw==');
 
+@$core.Deprecated('Use resetPhaseDescriptor instead')
+const ResetPhase$json = {
+  '1': 'ResetPhase',
+  '2': [
+    {'1': 'RESET_PHASE_UNSPECIFIED', '2': 0},
+    {'1': 'RESET_PHASE_RESOLVE', '2': 1},
+    {'1': 'RESET_PHASE_MOVE_BACK', '2': 2},
+    {'1': 'RESET_PHASE_SYNC_FORWARD', '2': 3},
+    {'1': 'RESET_PHASE_ENFORCER', '2': 4},
+    {'1': 'RESET_PHASE_DONE', '2': 5},
+  ],
+};
+
+/// Descriptor for `ResetPhase`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List resetPhaseDescriptor =
+    $convert.base64Decode('CgpSZXNldFBoYXNlEhsKF1JFU0VUX1BIQVNFX1VOU1BFQ0lGSUVEEAASFwoTUkVTRVRfUEhBU0'
+        'VfUkVTT0xWRRABEhkKFVJFU0VUX1BIQVNFX01PVkVfQkFDSxACEhwKGFJFU0VUX1BIQVNFX1NZ'
+        'TkNfRk9SV0FSRBADEhgKFFJFU0VUX1BIQVNFX0VORk9SQ0VSEAQSFAoQUkVTRVRfUEhBU0VfRE'
+        '9ORRAF');
+
 @$core.Deprecated('Use binaryStatusMsgDescriptor instead')
 const BinaryStatusMsg$json = {
   '1': 'BinaryStatusMsg',
@@ -1004,6 +1024,52 @@ final $typed_data.Uint8List acceptBlockResponseDescriptor =
         'JSZWJ1aWx0EiUKDmVuZm9yY2VyX2Vycm9yGAUgASgJUg1lbmZvcmNlckVycm9yEikKEGVuZm9y'
         'Y2VyX2NoZWNrZWQYBiABKAhSD2VuZm9yY2VyQ2hlY2tlZA==');
 
+@$core.Deprecated('Use resetToBlockRequestDescriptor instead')
+const ResetToBlockRequest$json = {
+  '1': 'ResetToBlockRequest',
+  '2': [
+    {'1': 'target', '3': 1, '4': 1, '5': 9, '10': 'target'},
+    {'1': 'enforcer_wait_seconds', '3': 2, '4': 1, '5': 13, '10': 'enforcerWaitSeconds'},
+  ],
+};
+
+/// Descriptor for `ResetToBlockRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List resetToBlockRequestDescriptor =
+    $convert.base64Decode('ChNSZXNldFRvQmxvY2tSZXF1ZXN0EhYKBnRhcmdldBgBIAEoCVIGdGFyZ2V0EjIKFWVuZm9yY2'
+        'VyX3dhaXRfc2Vjb25kcxgCIAEoDVITZW5mb3JjZXJXYWl0U2Vjb25kcw==');
+
+@$core.Deprecated('Use resetToBlockResponseDescriptor instead')
+const ResetToBlockResponse$json = {
+  '1': 'ResetToBlockResponse',
+  '2': [
+    {'1': 'phase', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.ResetPhase', '10': 'phase'},
+    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+    {'1': 'target_height', '3': 3, '4': 1, '5': 13, '10': 'targetHeight'},
+    {'1': 'target_hash', '3': 4, '4': 1, '5': 9, '10': 'targetHash'},
+    {'1': 'core_height', '3': 5, '4': 1, '5': 13, '10': 'coreHeight'},
+    {'1': 'tip_height', '3': 6, '4': 1, '5': 13, '10': 'tipHeight'},
+    {'1': 'blocks_done', '3': 7, '4': 1, '5': 13, '10': 'blocksDone'},
+    {'1': 'blocks_total', '3': 8, '4': 1, '5': 13, '10': 'blocksTotal'},
+    {'1': 'enforcer_height', '3': 9, '4': 1, '5': 13, '10': 'enforcerHeight'},
+    {'1': 'enforcer_checked', '3': 10, '4': 1, '5': 8, '10': 'enforcerChecked'},
+    {'1': 'enforcer_rebuilt', '3': 11, '4': 1, '5': 8, '10': 'enforcerRebuilt'},
+    {'1': 'enforcer_error', '3': 12, '4': 1, '5': 9, '10': 'enforcerError'},
+    {'1': 'done', '3': 13, '4': 1, '5': 8, '10': 'done'},
+  ],
+};
+
+/// Descriptor for `ResetToBlockResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List resetToBlockResponseDescriptor =
+    $convert.base64Decode('ChRSZXNldFRvQmxvY2tSZXNwb25zZRIxCgVwaGFzZRgBIAEoDjIbLm9yY2hlc3RyYXRvci52MS'
+        '5SZXNldFBoYXNlUgVwaGFzZRIYCgdtZXNzYWdlGAIgASgJUgdtZXNzYWdlEiMKDXRhcmdldF9o'
+        'ZWlnaHQYAyABKA1SDHRhcmdldEhlaWdodBIfCgt0YXJnZXRfaGFzaBgEIAEoCVIKdGFyZ2V0SG'
+        'FzaBIfCgtjb3JlX2hlaWdodBgFIAEoDVIKY29yZUhlaWdodBIdCgp0aXBfaGVpZ2h0GAYgASgN'
+        'Ugl0aXBIZWlnaHQSHwoLYmxvY2tzX2RvbmUYByABKA1SCmJsb2Nrc0RvbmUSIQoMYmxvY2tzX3'
+        'RvdGFsGAggASgNUgtibG9ja3NUb3RhbBInCg9lbmZvcmNlcl9oZWlnaHQYCSABKA1SDmVuZm9y'
+        'Y2VySGVpZ2h0EikKEGVuZm9yY2VyX2NoZWNrZWQYCiABKAhSD2VuZm9yY2VyQ2hlY2tlZBIpCh'
+        'BlbmZvcmNlcl9yZWJ1aWx0GAsgASgIUg9lbmZvcmNlclJlYnVpbHQSJQoOZW5mb3JjZXJfZXJy'
+        'b3IYDCABKAlSDWVuZm9yY2VyRXJyb3ISEgoEZG9uZRgNIAEoCFIEZG9uZQ==');
+
 @$core.Deprecated('Use getCoreMempoolInfoRequestDescriptor instead')
 const GetCoreMempoolInfoRequest$json = {
   '1': 'GetCoreMempoolInfoRequest',
@@ -1287,6 +1353,12 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'RejectBlock', '2': '.orchestrator.v1.RejectBlockRequest', '3': '.orchestrator.v1.RejectBlockResponse'},
     {'1': 'AcceptBlock', '2': '.orchestrator.v1.AcceptBlockRequest', '3': '.orchestrator.v1.AcceptBlockResponse'},
     {
+      '1': 'ResetToBlock',
+      '2': '.orchestrator.v1.ResetToBlockRequest',
+      '3': '.orchestrator.v1.ResetToBlockResponse',
+      '6': true
+    },
+    {
       '1': 'GetCoreMempoolInfo',
       '2': '.orchestrator.v1.GetCoreMempoolInfoRequest',
       '3': '.orchestrator.v1.GetCoreMempoolInfoResponse'
@@ -1362,6 +1434,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.RejectBlockResponse': RejectBlockResponse$json,
   '.orchestrator.v1.AcceptBlockRequest': AcceptBlockRequest$json,
   '.orchestrator.v1.AcceptBlockResponse': AcceptBlockResponse$json,
+  '.orchestrator.v1.ResetToBlockRequest': ResetToBlockRequest$json,
+  '.orchestrator.v1.ResetToBlockResponse': ResetToBlockResponse$json,
   '.orchestrator.v1.GetCoreMempoolInfoRequest': GetCoreMempoolInfoRequest$json,
   '.orchestrator.v1.GetCoreMempoolInfoResponse': GetCoreMempoolInfoResponse$json,
   '.orchestrator.v1.GetBmmContextRequest': GetBmmContextRequest$json,
@@ -1426,11 +1500,13 @@ final $typed_data.Uint8List orchestratorServiceDescriptor =
         'IudjEuRGVsZXRlRmlsZXNSZXNwb25zZTABElgKC1JlamVjdEJsb2NrEiMub3JjaGVzdHJhdG9y'
         'LnYxLlJlamVjdEJsb2NrUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5SZWplY3RCbG9ja1Jlc3'
         'BvbnNlElgKC0FjY2VwdEJsb2NrEiMub3JjaGVzdHJhdG9yLnYxLkFjY2VwdEJsb2NrUmVxdWVz'
-        'dBokLm9yY2hlc3RyYXRvci52MS5BY2NlcHRCbG9ja1Jlc3BvbnNlEm0KEkdldENvcmVNZW1wb2'
-        '9sSW5mbxIqLm9yY2hlc3RyYXRvci52MS5HZXRDb3JlTWVtcG9vbEluZm9SZXF1ZXN0Gisub3Jj'
-        'aGVzdHJhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1Jlc3BvbnNlEl4KDUdldEJtbUNvbnRleH'
-        'QSJS5vcmNoZXN0cmF0b3IudjEuR2V0Qm1tQ29udGV4dFJlcXVlc3QaJi5vcmNoZXN0cmF0b3Iu'
-        'djEuR2V0Qm1tQ29udGV4dFJlc3BvbnNlElgKC0NvcmVSYXdDYWxsEiMub3JjaGVzdHJhdG9yLn'
-        'YxLkNvcmVSYXdDYWxsUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5Db3JlUmF3Q2FsbFJlc3Bv'
-        'bnNlEl4KDUdldEZvcmtTdGF0dXMSJS5vcmNoZXN0cmF0b3IudjEuR2V0Rm9ya1N0YXR1c1JlcX'
-        'Vlc3QaJi5vcmNoZXN0cmF0b3IudjEuR2V0Rm9ya1N0YXR1c1Jlc3BvbnNl');
+        'dBokLm9yY2hlc3RyYXRvci52MS5BY2NlcHRCbG9ja1Jlc3BvbnNlEl0KDFJlc2V0VG9CbG9jax'
+        'IkLm9yY2hlc3RyYXRvci52MS5SZXNldFRvQmxvY2tSZXF1ZXN0GiUub3JjaGVzdHJhdG9yLnYx'
+        'LlJlc2V0VG9CbG9ja1Jlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdH'
+        'JhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0'
+        'Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USXgoNR2V0Qm1tQ29udGV4dBIlLm9yY2hlc3RyYXRvci'
+        '52MS5HZXRCbW1Db250ZXh0UmVxdWVzdBomLm9yY2hlc3RyYXRvci52MS5HZXRCbW1Db250ZXh0'
+        'UmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ29yZVJhd0NhbGxSZX'
+        'F1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2USXgoNR2V0Rm9ya1N0'
+        'YXR1cxIlLm9yY2hlc3RyYXRvci52MS5HZXRGb3JrU3RhdHVzUmVxdWVzdBomLm9yY2hlc3RyYX'
+        'Rvci52MS5HZXRGb3JrU3RhdHVzUmVzcG9uc2U=');

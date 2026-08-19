@@ -271,6 +271,16 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.AcceptBlockResponse.new,
   );
 
+  /// Move the chain back to a block, then sync forward to the tip again. Core
+  /// drops the block and every block above it, then re-validates them from
+  /// disk. Streams one message per phase.
+  static const resetToBlock = connect.Spec(
+    '/$name/ResetToBlock',
+    connect.StreamType.server,
+    orchestratorv1orchestrator.ResetToBlockRequest.new,
+    orchestratorv1orchestrator.ResetToBlockResponse.new,
+  );
+
   /// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
   static const getCoreMempoolInfo = connect.Spec(
     '/$name/GetCoreMempoolInfo',

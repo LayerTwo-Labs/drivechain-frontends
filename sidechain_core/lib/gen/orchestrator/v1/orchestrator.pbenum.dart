@@ -149,4 +149,28 @@ class RejectOutcome extends $pb.ProtobufEnum {
   const RejectOutcome._($core.int v, $core.String n) : super(v, n);
 }
 
+/// Which step of a reset a progress message reports.
+class ResetPhase extends $pb.ProtobufEnum {
+  static const ResetPhase RESET_PHASE_UNSPECIFIED = ResetPhase._(0, _omitEnumNames ? '' : 'RESET_PHASE_UNSPECIFIED');
+  static const ResetPhase RESET_PHASE_RESOLVE = ResetPhase._(1, _omitEnumNames ? '' : 'RESET_PHASE_RESOLVE');
+  static const ResetPhase RESET_PHASE_MOVE_BACK = ResetPhase._(2, _omitEnumNames ? '' : 'RESET_PHASE_MOVE_BACK');
+  static const ResetPhase RESET_PHASE_SYNC_FORWARD = ResetPhase._(3, _omitEnumNames ? '' : 'RESET_PHASE_SYNC_FORWARD');
+  static const ResetPhase RESET_PHASE_ENFORCER = ResetPhase._(4, _omitEnumNames ? '' : 'RESET_PHASE_ENFORCER');
+  static const ResetPhase RESET_PHASE_DONE = ResetPhase._(5, _omitEnumNames ? '' : 'RESET_PHASE_DONE');
+
+  static const $core.List<ResetPhase> values = <ResetPhase>[
+    RESET_PHASE_UNSPECIFIED,
+    RESET_PHASE_RESOLVE,
+    RESET_PHASE_MOVE_BACK,
+    RESET_PHASE_SYNC_FORWARD,
+    RESET_PHASE_ENFORCER,
+    RESET_PHASE_DONE,
+  ];
+
+  static final $core.Map<$core.int, ResetPhase> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static ResetPhase? valueOf($core.int value) => _byValue[value];
+
+  const ResetPhase._($core.int v, $core.String n) : super(v, n);
+}
+
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

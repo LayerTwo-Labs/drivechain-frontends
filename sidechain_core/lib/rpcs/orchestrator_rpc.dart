@@ -139,6 +139,18 @@ class OrchestratorRPC {
     return _unaryClient.acceptBlock(AcceptBlockRequest(blockHash: blockHash));
   }
 
+  /// Move the chain back to a block, then sync forward to the tip again.
+  /// [target] takes a height or a 64-character hash. Emits one message per
+  /// phase, and the last message carries the enforcer result.
+  Stream<ResetToBlockResponse> resetToBlock({
+    required String target,
+    int enforcerWaitSeconds = 0,
+  }) {
+    return _streamClient.resetToBlock(
+      ResetToBlockRequest(target: target, enforcerWaitSeconds: enforcerWaitSeconds),
+    );
+  }
+
   Future<StartBinaryResponse> startBinary(
     String name, {
     List<String>? extraArgs,
