@@ -188,30 +188,49 @@ func TestPromotionIsANoOpForTheSameGeneration(t *testing.T) {
 
 // Core is per-chain and every variant shares one path, so a build left by the
 // outgoing network must not survive into the incoming one.
-func TestSwappingNetworksDropsTheCoreBinary(t *testing.T) {
+func TestSwappingNetworksResolvesTheIncomingBuild(t *testing.T) {
 	o := drynetOnPendingGeneration(t)
-	core := CoreBinaryPath(o.DataDir, CoreVariantSpec{}, "bitcoind")
-	require.NoError(t, os.MkdirAll(filepath.Dir(core), 0o755))
-	require.NoError(t, os.WriteFile(core, []byte("drynet2 build"), 0o755))
+	stale := writeResolvedCoreBinary(t, o, "drynet2 build")
 
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 
-	require.NoFileExists(t, core, "the outgoing network's bitcoind must be gone")
+	fresh := resolvedCoreBinaryPath(t, o)
+	require.NotEqual(t, stale, fresh, "mainnet must not resolve to the drynet build")
+	require.NoFileExists(t, fresh, "mainnet must read as not-downloaded so boot fetches its own build")
+	require.FileExists(t, stale, "the drynet build stays cached for the swap back")
 }
 
 // The drynet build is per generation even though the variant id doesn't change.
-func TestGenerationChangeDropsTheCoreBinary(t *testing.T) {
+// The generation rides in the subfolder, so a rollover resolves to a new path.
+func TestGenerationChangeResolvesANewCoreBinary(t *testing.T) {
 	o := drynetOnPendingGeneration(t)
 	o.ResolveNetworkCatalog(context.Background())
 	require.NoError(t, o.ConfirmPendingDrynetGeneration(context.Background()))
 
-	core := CoreBinaryPath(o.DataDir, CoreVariantSpec{}, "bitcoind")
-	require.NoError(t, os.MkdirAll(filepath.Dir(core), 0o755))
-	require.NoError(t, os.WriteFile(core, []byte("drynet2 build"), 0o755))
+	stale := writeResolvedCoreBinary(t, o, "drynet2 build")
 
 	o.ResolveNetworkCatalog(context.Background())
 
-	require.NoFileExists(t, core, "the retired generation's bitcoind must be gone")
+	fresh := resolvedCoreBinaryPath(t, o)
+	require.NotEqual(t, stale, fresh, "the retired generation's build must not resolve")
+	require.NoFileExists(t, fresh, "the new generation must read as not-downloaded")
+}
+
+// resolvedCoreBinaryPath is the bitcoind path the download and process managers
+// agree on for the orchestrator's current network.
+func resolvedCoreBinaryPath(t *testing.T, o *Orchestrator) string {
+	t.Helper()
+	v, ok := o.download.CoreVariant()
+	require.True(t, ok, "no core variant resolves for network %s", o.Network)
+	return CoreBinaryPath(o.DataDir, v, "bitcoind")
+}
+
+func writeResolvedCoreBinary(t *testing.T, o *Orchestrator, body string) string {
+	t.Helper()
+	path := resolvedCoreBinaryPath(t, o)
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, []byte(body), 0o755))
+	return path
 }
 
 // Generations publish their own seed port — drynet4 answers on 8533 — so a

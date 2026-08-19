@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -43,15 +44,15 @@ func makeBitcoindCoreConfig(baseURL string) BinaryConfig {
 func TestCoreBinaryPath(t *testing.T) {
 	dir := t.TempDir()
 
-	// All variants resolve to the single bin/bitcoind location — variant
-	// switching wipes-and-replaces, no per-variant subfolders.
-	v := CoreVariantSpec{ID: "core", Subfolder: "bitcoin"}
-	got := CoreBinaryPath(dir, v, "bitcoind")
-	want := BinaryPath(dir, "bitcoind")
-	assert.Equal(t, want, got)
+	// Each variant owns a subfolder, so two variants never share a file.
+	core := CoreVariantSpec{ID: "core", Subfolder: "bitcoin"}
+	knots := CoreVariantSpec{ID: "knots", Subfolder: "knots"}
+	assert.Equal(t, filepath.Join(BinDir(dir), "bitcoin", "bitcoind"), CoreBinaryPath(dir, core, "bitcoind"))
+	assert.Equal(t, filepath.Join(BinDir(dir), "knots", "bitcoind"), CoreBinaryPath(dir, knots, "bitcoind"))
+	assert.NotEqual(t, CoreBinaryPath(dir, core, "bitcoind"), CoreBinaryPath(dir, knots, "bitcoind"))
 
-	v2 := CoreVariantSpec{ID: "x"}
-	assert.Equal(t, BinaryPath(dir, "bitcoind"), CoreBinaryPath(dir, v2, "bitcoind"))
+	// No subfolder keeps the flat layout for callers with no spec.
+	assert.Equal(t, BinaryPath(dir, "bitcoind"), CoreBinaryPath(dir, CoreVariantSpec{ID: "x"}, "bitcoind"))
 }
 
 func TestCoreVariantSpec_AvailableOn(t *testing.T) {
@@ -168,15 +169,19 @@ func TestDownload_VariantSelectsURLAndDestination(t *testing.T) {
 	assert.True(t, last.Done)
 	assert.Equal(t, "/knots.zip", requested, "must hit the variant's filename")
 
-	// All variants share bin/bitcoind — no per-variant subfolder.
+	// The extract has to land in the variant's own subfolder, so a stat of
+	// that path proves the build is the selected one.
 	binName := "bitcoind"
 	if runtime.GOOS == "windows" {
 		binName += ".exe"
 	}
-	expected := filepath.Join(BinDir(dir), binName)
+	knots := cfg.Variants["knots"]
+	expected := filepath.Join(BinDir(dir), knots.Subfolder, binName)
 	got, err := os.ReadFile(expected)
 	require.NoError(t, err)
 	assert.Equal(t, "knots-bin", string(got))
+	assert.NoFileExists(t, filepath.Join(BinDir(dir), binName),
+		"the flat path must stay empty, it is what let a stale build boot")
 }
 
 func TestDownload_VariantSkipsWhenInstalled(t *testing.T) {
@@ -221,5 +226,59 @@ func TestOrchestrator_ListCoreVariants(t *testing.T) {
 			got := variantIDs(o.ListCoreVariants())
 			assert.ElementsMatch(t, tc.want, got)
 		})
+	}
+}
+
+// The incident this layout fixes: a stale stock Core sat in the shared
+// bin/bitcoind, the boot check stated that path, and Core ran chain=main
+// against the drynet datadir. Each variant must own its own file, and the
+// drynet generation must ride in the subfolder so a rollover moves too.
+func TestCoreBinaryPathSeparatesEveryVariant(t *testing.T) {
+	dir := t.TempDir()
+	cfg := expandDrynetPlaceholder(makeBitcoindCoreConfig("http://example/"), "drynet4")
+
+	seen := map[string]string{}
+	for id, v := range cfg.Variants {
+		path := CoreBinaryPath(dir, v, "bitcoind")
+		require.NotEqual(t, BinaryPath(dir, "bitcoind"), path, "variant %s must not use the flat path", id)
+		if other, clash := seen[path]; clash {
+			t.Fatalf("variants %s and %s share %s", id, other, path)
+		}
+		seen[path] = id
+	}
+
+}
+
+// The shipped chains_config.json is the real composition: it is the file that
+// gives drynet a {drynet} subfolder, so the generation has to reach the path.
+func TestCoreBinaryPathCarriesTheDrynetGeneration(t *testing.T) {
+	dir := t.TempDir()
+	configs := LoadConfigFile("chains_config.json", zerolog.Nop())
+	require.NotEmpty(t, configs, "the shipped chains_config.json must parse")
+
+	var core BinaryConfig
+	for _, c := range configs {
+		if c.IsMainchainCore() {
+			core = c
+			break
+		}
+	}
+	require.NotEmpty(t, core.Variants, "no mainchain core config in chains_config.json")
+
+	four := expandDrynetPlaceholder(core, "drynet4").Variants["drynet"]
+	five := expandDrynetPlaceholder(core, "drynet5").Variants["drynet"]
+	assert.Equal(t, filepath.Join(BinDir(dir), "drynet4", "bitcoind"), CoreBinaryPath(dir, four, "bitcoind"))
+	assert.NotEqual(t, CoreBinaryPath(dir, four, "bitcoind"), CoreBinaryPath(dir, five, "bitcoind"),
+		"a generation rollover must resolve to a new file")
+
+	// Every shipped variant keeps its own file, stock Core included.
+	seen := map[string]string{}
+	for id, v := range expandDrynetPlaceholder(core, "drynet4").Variants {
+		path := CoreBinaryPath(dir, v, "bitcoind")
+		require.NotEqual(t, BinaryPath(dir, "bitcoind"), path, "variant %s must not use the flat path", id)
+		if other, clash := seen[path]; clash {
+			t.Fatalf("variants %s and %s share %s", id, other, path)
+		}
+		seen[path] = id
 	}
 }

@@ -363,9 +363,6 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, 
 		Str("current", newID).
 		Msg("drynet generation changed, wiping stale chain data")
 
-	// The drynet build is per generation, and every variant shares one path.
-	o.removeCoreBinary()
-
 	// Synchronous: the caller persists the new generation next, and recording
 	// a wipe that has not happened is worse than not wiping at all. Runs on
 	// the refresh goroutine, so a slow volume cannot delay startup.

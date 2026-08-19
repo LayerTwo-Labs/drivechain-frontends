@@ -19,6 +19,7 @@ import (
 	"connectrpc.com/connect"
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
@@ -401,7 +402,7 @@ var wipeCommand = &cli.Command{
 		if dataDir == "" {
 			dataDir = orchestrator.DefaultDataDir()
 		}
-		binPath := binaryPathFor(dataDir, name)
+		binPath := binaryPathFor(cctx, dataDir, name)
 		if err := os.Remove(binPath); err == nil {
 			fmt.Printf("removed %s\n", binPath)
 		}
@@ -567,11 +568,6 @@ var versionCommand = &cli.Command{
 	Name:  "version",
 	Usage: "Show version info for all binaries",
 	Action: func(cctx *cli.Context) error {
-		dataDir := cctx.String("datadir")
-		if dataDir == "" {
-			dataDir = orchestrator.DefaultDataDir()
-		}
-
 		client := newClient(cctx)
 		resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
 		if err != nil {
@@ -583,9 +579,11 @@ var versionCommand = &cli.Command{
 				continue
 			}
 
+			// The daemon reports the path it resolved. A second resolution
+			// here can name another generation.
 			ver := "not downloaded"
 			if b.Downloaded {
-				ver = binaryVersion(binaryPathFor(dataDir, b.Name))
+				ver = binaryVersion(b.BinaryPath)
 			}
 
 			fmt.Printf("  %-20s %-25s %s\n", b.Name, ver, b.RepoUrl)
@@ -689,7 +687,7 @@ var whichCommand = &cli.Command{
 		}
 
 		name := cctx.Args().First()
-		binPath := binaryPathFor(dataDir, name)
+		binPath := binaryPathFor(cctx, dataDir, name)
 
 		if _, err := os.Stat(binPath); err != nil {
 			fmt.Printf("%s (not downloaded)\n", binPath)
@@ -701,19 +699,47 @@ var whichCommand = &cli.Command{
 }
 
 // binaryPathFor returns the on-disk path the orchestrator currently uses for
-// a binary. For bitcoind it consults orchestrator_settings.json so it picks
-// up whichever Core variant is active; for everything else it falls back to
-// the legacy flat layout.
-func binaryPathFor(dataDir, name string) string {
+// a binary. For bitcoind it reads the persisted variant and the persisted
+// network, because a variant the network does not offer clamps to one it does;
+// for everything else it falls back to the legacy flat layout.
+func binaryPathFor(cctx *cli.Context, dataDir, name string) string {
 	if name != "bitcoind" {
 		return orchestrator.BinaryPath(dataDir, name)
 	}
+	bitwindowDir := cctx.String("bitwindow-dir")
+	network := cctx.String("network")
+	if n, err := config.ResolveNetwork(bitwindowDir); err == nil {
+		network = string(n)
+	}
 	return orchestrator.ActiveCoreBinaryPath(
 		dataDir,
-		orchestrator.DefaultBitwindowDir(),
-		orchestrator.AllDefaults(),
+		bitwindowDir,
+		orchestrator.LoadConfigFile(orchestrator.ConfigFilePath(bitwindowDir), zerolog.Nop()),
 		name,
+		network,
+		servedDrynetGeneration(cctx, bitwindowDir),
 	)
+}
+
+// servedDrynetGeneration returns the drynet generation the daemon runs. Do not
+// read the catalog cache instead: the confirm writes a new generation there
+// before the restart that starts to use it, so a path from the cache names a
+// build no process runs, and `wipe` deletes that one while the live build stays.
+func servedDrynetGeneration(cctx *cli.Context, bitwindowDir string) string {
+	// A path lookup must not wait forever on an address that never answers.
+	ctx, cancel := context.WithTimeout(cctx.Context, 2*time.Second)
+	defer cancel()
+
+	resp, err := newClient(cctx).GetPendingNetworkGeneration(
+		ctx, connect.NewRequest(&pb.GetPendingNetworkGenerationRequest{}),
+	)
+	if err == nil {
+		return resp.Msg.CurrentGeneration
+	}
+	// No daemon answers, so no process serves an older generation. The cached
+	// one is what the next start uses.
+	c, _ := netcatalog.Load(bitwindowDir)
+	return c.DrynetID()
 }
 
 func extractVersion(s string) string {
