@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -524,11 +525,20 @@ func verifyInputBelongsToGroup(in psbt.PInput, prevOut *wire.TxOut, m int, accts
 	// family the input actually uses. To pick that family from whatever
 	// metadata happens to be present lets one stray taproot record stand in for
 	// a whole set of missing ECDSA records.
-	kind, change, index, err := verifyInputScript(in, prevOut, m, accts)
+	bound, err := verifyInputScript(in, prevOut, m, accts)
 	if err != nil {
 		return err
 	}
-	return verifyInputOrigins(in, origins, kind, change, index)
+	return verifyInputOrigins(in, origins, bound)
+}
+
+// boundInput is what the script check proves: the family the input spends, the
+// child the group derives it at, and the cosigner keys at that child.
+type boundInput struct {
+	kind   ScriptKind
+	change bool
+	index  uint32
+	pubs   []*btcec.PublicKey
 }
 
 // groupAccountKeys resolves the group's cosigner xpubs (SLIP-0132 forms included)
@@ -558,9 +568,9 @@ func groupAccountKeys(g MultisigLoungeGroup) ([]*hdkeychain.ExtendedKey, error) 
 // input's chain/index, and the prevout scriptPubKey must be that script's
 // wrapper. The input's derivation path is only the index hint — a wrong one
 // derives a different script and is rejected.
-func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdkeychain.ExtendedKey) (ScriptKind, bool, uint32, error) {
+func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdkeychain.ExtendedKey) (boundInput, error) {
 	if prevOut == nil {
-		return 0, false, 0, errors.New("has no witness or non-witness utxo; cannot verify it belongs to the group")
+		return boundInput{}, errors.New("has no witness or non-witness utxo; cannot verify it belongs to the group")
 	}
 	var kinds []ScriptKind
 	var script []byte
@@ -573,7 +583,7 @@ func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdke
 	case in.RedeemScript != nil:
 		kinds, script = []ScriptKind{ScriptMultisigP2SH}, in.RedeemScript
 	default:
-		return 0, false, 0, errors.New("has no witness or redeem script; cannot verify it belongs to the group")
+		return boundInput{}, errors.New("has no witness or redeem script; cannot verify it belongs to the group")
 	}
 
 	// The script fields above already say which family this input uses, so read
@@ -582,14 +592,14 @@ func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdke
 	// recorded path could not spend what this check accepts.
 	change, index, ok := groupChainIndex(in, taproot)
 	if !ok {
-		return 0, false, 0, errors.New("has no usable derivation path; cannot verify it belongs to the group")
+		return boundInput{}, errors.New("has no usable derivation path; cannot verify it belongs to the group")
 	}
 
 	pubs := make([]*btcec.PublicKey, len(accts))
 	for i, a := range accts {
 		pub, err := deriveChildPub(a, chainIndex(change), index)
 		if err != nil {
-			return 0, false, 0, errors.New("does not belong to the multisig group (foreign input rejected)")
+			return boundInput{}, errors.New("does not belong to the multisig group (foreign input rejected)")
 		}
 		pubs[i] = pub
 	}
@@ -599,7 +609,7 @@ func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdke
 		// compared here are the same on every network.
 		ds, err := multisigOutput(kind, m, pubs, &chaincfg.MainNetParams)
 		if err != nil {
-			return 0, false, 0, err
+			return boundInput{}, err
 		}
 		own := ds.witnessScript
 		switch kind {
@@ -619,19 +629,19 @@ func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdke
 		case ScriptMultisigTaproot:
 			leaf := in.TaprootLeafScript[0]
 			if leaf.LeafVersion != txscript.BaseLeafVersion {
-				return 0, false, 0, errors.New("carries a taproot leaf version the group does not use")
+				return boundInput{}, errors.New("carries a taproot leaf version the group does not use")
 			}
 			if !bytes.Equal(leaf.ControlBlock, ds.tapControlBlock) {
-				return 0, false, 0, errors.New("carries a taproot control block that does not prove the group's leaf")
+				return boundInput{}, errors.New("carries a taproot control block that does not prove the group's leaf")
 			}
 		case ScriptMultisigNested:
 			if in.RedeemScript != nil && !bytes.Equal(in.RedeemScript, ds.redeemScript) {
-				return 0, false, 0, errors.New("carries a redeem script that does not wrap the group's witness script")
+				return boundInput{}, errors.New("carries a redeem script that does not wrap the group's witness script")
 			}
 		}
-		return kind, change, index, nil
+		return boundInput{kind: kind, change: change, index: index, pubs: pubs}, nil
 	}
-	return 0, false, 0, errors.New("does not belong to the multisig group (foreign input rejected)")
+	return boundInput{}, errors.New("does not belong to the multisig group (foreign input rejected)")
 }
 
 // verifyInputOrigins requires every BIP32 derivation record that claims one of
@@ -639,8 +649,8 @@ func verifyInputScript(in psbt.PInput, prevOut *wire.TxOut, m int, accts []*hdke
 // prefix). Records claiming any other fingerprint are external cosigners — the
 // descriptor emits those keys bare, so Core tags them with the xpub's own
 // self-root fingerprint — and are left to verifyInputScript.
-func verifyInputOrigins(in psbt.PInput, origins []keyOrigin, kind ScriptKind, change bool, index uint32) error {
-	if kind == ScriptMultisigTaproot {
+func verifyInputOrigins(in psbt.PInput, origins []keyOrigin, bound boundInput) error {
+	if bound.kind == ScriptMultisigTaproot {
 		if len(in.TaprootBip32Derivation) == 0 {
 			return errors.New("has no taproot BIP32 derivation records; cannot verify it belongs to the group")
 		}
@@ -652,10 +662,10 @@ func verifyInputOrigins(in psbt.PInput, origins []keyOrigin, kind ScriptKind, ch
 			if !originAllowed(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 				return errors.New("does not belong to the multisig group (foreign input rejected)")
 			}
-			if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
+			if !isCosignerRecord(d.MasterKeyFingerprint, d.Bip32Path, d.XOnlyPubKey, origins, bound, true) {
 				continue
 			}
-			if err := verifyChildPath(d.Bip32Path, change, index); err != nil {
+			if err := verifyChildPath(d.Bip32Path, bound); err != nil {
 				return err
 			}
 			if !referencesLeaf(d.LeafHashes, leafHash[:]) {
@@ -671,22 +681,42 @@ func verifyInputOrigins(in psbt.PInput, origins []keyOrigin, kind ScriptKind, ch
 		if !originAllowed(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 			return errors.New("does not belong to the multisig group (foreign input rejected)")
 		}
-		if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
+		if !isCosignerRecord(d.MasterKeyFingerprint, d.Bip32Path, d.PubKey, origins, bound, false) {
 			continue
 		}
-		if err := verifyChildPath(d.Bip32Path, change, index); err != nil {
+		if err := verifyChildPath(d.Bip32Path, bound); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+// isCosignerRecord reports whether a derivation record speaks for one of the
+// group's cosigners at this input: it either traces to a declared origin, or it
+// names a key the group itself derives. A bare xpub cosigner declares no origin,
+// so the key match is the only thing that binds its record to the group.
+func isCosignerRecord(fingerprint uint32, path []uint32, pubKey []byte, origins []keyOrigin, bound boundInput, taproot bool) bool {
+	if originMatches(fingerprint, path, origins) {
+		return true
+	}
+	for _, p := range bound.pubs {
+		want := p.SerializeCompressed()
+		if taproot {
+			want = schnorr.SerializePubKey(p)
+		}
+		if bytes.Equal(pubKey, want) {
+			return true
+		}
+	}
+	return false
+}
+
 // verifyChildPath requires a cosigner record to name the child the script check
 // derived. A record for another child leaves that cosigner unable to sign the
 // input this gate accepts.
-func verifyChildPath(path []uint32, change bool, index uint32) error {
+func verifyChildPath(path []uint32, bound boundInput) error {
 	c, i, ok := chainIndexFromPath(path)
-	if !ok || c != change || i != index {
+	if !ok || c != bound.change || i != bound.index {
 		return errors.New("carries a cosigner derivation for another child of the group")
 	}
 	return nil
