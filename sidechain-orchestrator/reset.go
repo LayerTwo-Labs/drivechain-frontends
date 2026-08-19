@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -141,6 +143,28 @@ func (b ResetBinary) dirConfig() (config.BinaryDirConfig, bool) {
 	}
 }
 
+// coreVariantDirs returns the bin subfolder of every Core variant on disk.
+// Each variant owns a folder, so a reset that reads bin/ alone finds no
+// bitcoind and leaves every downloaded build in place.
+func (o *Orchestrator) coreVariantDirs(binDir string) []string {
+	cfg, ok := o.Configs()["bitcoind"]
+	if !ok {
+		return nil
+	}
+	dirs := make([]string, 0, len(cfg.Variants))
+	for _, v := range cfg.Variants {
+		if v.Subfolder == "" {
+			continue
+		}
+		dir := filepath.Join(binDir, v.Subfolder)
+		if _, err := os.Stat(dir); err == nil {
+			dirs = append(dirs, dir)
+		}
+	}
+	sort.Strings(dirs)
+	return dirs
+}
+
 // GatherFilesToDelete resolves, per binary, the on-disk paths for each
 // requested category. No side effects. The returned list is deduplicated by
 // path so a file shared between two categories (e.g. a frontend wallet.json
@@ -194,6 +218,9 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 					continue
 				}
 				add(cat, spec.Binary, dc.GetBinaryPaths(binDir, o.log))
+				if spec.Binary == ResetBinaryBitcoind {
+					add(cat, spec.Binary, o.coreVariantDirs(binDir))
+				}
 			case catLogs:
 				add(cat, spec.Binary, dc.GetLogPaths(networkDir, o.log))
 			case catSettings:
