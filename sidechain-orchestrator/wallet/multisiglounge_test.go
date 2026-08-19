@@ -389,6 +389,35 @@ func TestValidatePsbtCosignerChildMismatch(t *testing.T) {
 	assert.Contains(t, err.Error(), "another child of the group")
 }
 
+// A bare-xpub cosigner declares no origin, so only its key ties its record to
+// the group. A changed child on that record must still fail.
+func TestValidatePsbtBareCosignerChildMismatch(t *testing.T) {
+	group, _ := loungeTestKeys(t)
+	for i := 1; i < len(group.Keys); i++ {
+		group.Keys[i] = MultisigLoungeKey{Xpub: group.Keys[i].Xpub}
+	}
+	accts := loungeTestAccts(t)
+
+	packet := loungeBareCosignerPSBT(t, accts)
+	_, err := ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
+	require.NoError(t, err)
+
+	// The first record still carries the true child, so the script check reads
+	// the right hint and the tampered record reaches the origin check.
+	var bare *psbt.Bip32Derivation
+	for _, d := range packet.Inputs[0].Bip32Derivation[1:] {
+		if len(d.Bip32Path) == 2 {
+			bare = d
+		}
+	}
+	require.NotNil(t, bare, "the group carries a bare-xpub cosigner record")
+	bare.Bip32Path[len(bare.Bip32Path)-1] = 6
+
+	_, err = ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "another child of the group")
+}
+
 // A taproot cosigner record must name the leaf it signs, or a signer cannot tell
 // which tapscript its key belongs to.
 func TestValidatePsbtTaprootLeafHashes(t *testing.T) {
