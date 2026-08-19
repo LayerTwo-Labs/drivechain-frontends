@@ -4966,6 +4966,359 @@ class AcceptBlockResponse extends $pb.GeneratedMessage {
   void clearEnforcerChecked() => clearField(6);
 }
 
+class ResetToBlockRequest extends $pb.GeneratedMessage {
+  factory ResetToBlockRequest({
+    $core.String? target,
+    $core.int? enforcerWaitSeconds,
+  }) {
+    final $result = create();
+    if (target != null) {
+      $result.target = target;
+    }
+    if (enforcerWaitSeconds != null) {
+      $result.enforcerWaitSeconds = enforcerWaitSeconds;
+    }
+    return $result;
+  }
+  ResetToBlockRequest._() : super();
+  factory ResetToBlockRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ResetToBlockRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResetToBlockRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'target')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'enforcerWaitSeconds', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ResetToBlockRequest clone() => ResetToBlockRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ResetToBlockRequest copyWith(void Function(ResetToBlockRequest) updates) =>
+      super.copyWith((message) => updates(message as ResetToBlockRequest)) as ResetToBlockRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResetToBlockRequest create() => ResetToBlockRequest._();
+  ResetToBlockRequest createEmptyInstance() => create();
+  static $pb.PbList<ResetToBlockRequest> createRepeated() => $pb.PbList<ResetToBlockRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ResetToBlockRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResetToBlockRequest>(create);
+  static ResetToBlockRequest? _defaultInstance;
+
+  /// The block to move back to. A 64-character hash names one block. Anything
+  /// else reads as a decimal height, and a height resolves against the chain
+  /// this node follows today.
+  @$pb.TagNumber(1)
+  $core.String get target => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set target($core.String v) {
+    $_setString(0, v);
+  }
+
+  @$pb.TagNumber(1)
+  $core.bool hasTarget() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTarget() => clearField(1);
+
+  /// How long to wait for the enforcer to follow before its validator chain is
+  /// deleted. Zero picks the default.
+  @$pb.TagNumber(2)
+  $core.int get enforcerWaitSeconds => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set enforcerWaitSeconds($core.int v) {
+    $_setUnsignedInt32(1, v);
+  }
+
+  @$pb.TagNumber(2)
+  $core.bool hasEnforcerWaitSeconds() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEnforcerWaitSeconds() => clearField(2);
+}
+
+class ResetToBlockResponse extends $pb.GeneratedMessage {
+  factory ResetToBlockResponse({
+    ResetPhase? phase,
+    $core.String? message,
+    $core.int? targetHeight,
+    $core.String? targetHash,
+    $core.int? coreHeight,
+    $core.int? tipHeight,
+    $core.int? blocksDone,
+    $core.int? blocksTotal,
+    $core.int? enforcerHeight,
+    $core.bool? enforcerChecked,
+    $core.bool? enforcerRebuilt,
+    $core.String? enforcerError,
+    $core.bool? done,
+  }) {
+    final $result = create();
+    if (phase != null) {
+      $result.phase = phase;
+    }
+    if (message != null) {
+      $result.message = message;
+    }
+    if (targetHeight != null) {
+      $result.targetHeight = targetHeight;
+    }
+    if (targetHash != null) {
+      $result.targetHash = targetHash;
+    }
+    if (coreHeight != null) {
+      $result.coreHeight = coreHeight;
+    }
+    if (tipHeight != null) {
+      $result.tipHeight = tipHeight;
+    }
+    if (blocksDone != null) {
+      $result.blocksDone = blocksDone;
+    }
+    if (blocksTotal != null) {
+      $result.blocksTotal = blocksTotal;
+    }
+    if (enforcerHeight != null) {
+      $result.enforcerHeight = enforcerHeight;
+    }
+    if (enforcerChecked != null) {
+      $result.enforcerChecked = enforcerChecked;
+    }
+    if (enforcerRebuilt != null) {
+      $result.enforcerRebuilt = enforcerRebuilt;
+    }
+    if (enforcerError != null) {
+      $result.enforcerError = enforcerError;
+    }
+    if (done != null) {
+      $result.done = done;
+    }
+    return $result;
+  }
+  ResetToBlockResponse._() : super();
+  factory ResetToBlockResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ResetToBlockResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResetToBlockResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..e<ResetPhase>(1, _omitFieldNames ? '' : 'phase', $pb.PbFieldType.OE,
+        defaultOrMaker: ResetPhase.RESET_PHASE_UNSPECIFIED, valueOf: ResetPhase.valueOf, enumValues: ResetPhase.values)
+    ..aOS(2, _omitFieldNames ? '' : 'message')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'targetHeight', $pb.PbFieldType.OU3)
+    ..aOS(4, _omitFieldNames ? '' : 'targetHash')
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'coreHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'tipHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'blocksDone', $pb.PbFieldType.OU3)
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'blocksTotal', $pb.PbFieldType.OU3)
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'enforcerHeight', $pb.PbFieldType.OU3)
+    ..aOB(10, _omitFieldNames ? '' : 'enforcerChecked')
+    ..aOB(11, _omitFieldNames ? '' : 'enforcerRebuilt')
+    ..aOS(12, _omitFieldNames ? '' : 'enforcerError')
+    ..aOB(13, _omitFieldNames ? '' : 'done')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ResetToBlockResponse clone() => ResetToBlockResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ResetToBlockResponse copyWith(void Function(ResetToBlockResponse) updates) =>
+      super.copyWith((message) => updates(message as ResetToBlockResponse)) as ResetToBlockResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResetToBlockResponse create() => ResetToBlockResponse._();
+  ResetToBlockResponse createEmptyInstance() => create();
+  static $pb.PbList<ResetToBlockResponse> createRepeated() => $pb.PbList<ResetToBlockResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ResetToBlockResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResetToBlockResponse>(create);
+  static ResetToBlockResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ResetPhase get phase => $_getN(0);
+  @$pb.TagNumber(1)
+  set phase(ResetPhase v) {
+    setField(1, v);
+  }
+
+  @$pb.TagNumber(1)
+  $core.bool hasPhase() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPhase() => clearField(1);
+
+  /// Human-readable status for the phase.
+  @$pb.TagNumber(2)
+  $core.String get message => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set message($core.String v) {
+    $_setString(1, v);
+  }
+
+  @$pb.TagNumber(2)
+  $core.bool hasMessage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessage() => clearField(2);
+
+  /// The block the reset moves back to.
+  @$pb.TagNumber(3)
+  $core.int get targetHeight => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set targetHeight($core.int v) {
+    $_setUnsignedInt32(2, v);
+  }
+
+  @$pb.TagNumber(3)
+  $core.bool hasTargetHeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTargetHeight() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get targetHash => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set targetHash($core.String v) {
+    $_setString(3, v);
+  }
+
+  @$pb.TagNumber(4)
+  $core.bool hasTargetHash() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTargetHash() => clearField(4);
+
+  /// Core's tip as the phase reports it. It falls to target_height - 1 on the
+  /// move back, then climbs again.
+  @$pb.TagNumber(5)
+  $core.int get coreHeight => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set coreHeight($core.int v) {
+    $_setUnsignedInt32(4, v);
+  }
+
+  @$pb.TagNumber(5)
+  $core.bool hasCoreHeight() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCoreHeight() => clearField(5);
+
+  /// Core's tip before the reset. The replay ends here.
+  @$pb.TagNumber(6)
+  $core.int get tipHeight => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set tipHeight($core.int v) {
+    $_setUnsignedInt32(5, v);
+  }
+
+  @$pb.TagNumber(6)
+  $core.bool hasTipHeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTipHeight() => clearField(6);
+
+  /// Blocks re-validated so far, out of the blocks the reset drops.
+  @$pb.TagNumber(7)
+  $core.int get blocksDone => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set blocksDone($core.int v) {
+    $_setUnsignedInt32(6, v);
+  }
+
+  @$pb.TagNumber(7)
+  $core.bool hasBlocksDone() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearBlocksDone() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get blocksTotal => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set blocksTotal($core.int v) {
+    $_setUnsignedInt32(7, v);
+  }
+
+  @$pb.TagNumber(8)
+  $core.bool hasBlocksTotal() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearBlocksTotal() => clearField(8);
+
+  /// The enforcer's tip afterwards. Zero when the enforcer is stopped.
+  @$pb.TagNumber(9)
+  $core.int get enforcerHeight => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set enforcerHeight($core.int v) {
+    $_setUnsignedInt32(8, v);
+  }
+
+  @$pb.TagNumber(9)
+  $core.bool hasEnforcerHeight() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearEnforcerHeight() => clearField(9);
+
+  /// False when the enforcer was never asked, so enforcer_height carries no
+  /// reading and must not be shown as one.
+  @$pb.TagNumber(10)
+  $core.bool get enforcerChecked => $_getBF(9);
+  @$pb.TagNumber(10)
+  set enforcerChecked($core.bool v) {
+    $_setBool(9, v);
+  }
+
+  @$pb.TagNumber(10)
+  $core.bool hasEnforcerChecked() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearEnforcerChecked() => clearField(10);
+
+  /// True when the enforcer did not follow, so its validator chain was deleted
+  /// and it rebuilds from the local Core.
+  @$pb.TagNumber(11)
+  $core.bool get enforcerRebuilt => $_getBF(10);
+  @$pb.TagNumber(11)
+  set enforcerRebuilt($core.bool v) {
+    $_setBool(10, v);
+  }
+
+  @$pb.TagNumber(11)
+  $core.bool hasEnforcerRebuilt() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearEnforcerRebuilt() => clearField(11);
+
+  /// Empty on success; otherwise why the enforcer could not be brought back
+  /// onto Core's chain.
+  @$pb.TagNumber(12)
+  $core.String get enforcerError => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set enforcerError($core.String v) {
+    $_setString(11, v);
+  }
+
+  @$pb.TagNumber(12)
+  $core.bool hasEnforcerError() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearEnforcerError() => clearField(12);
+
+  /// Set on the last message.
+  @$pb.TagNumber(13)
+  $core.bool get done => $_getBF(12);
+  @$pb.TagNumber(13)
+  set done($core.bool v) {
+    $_setBool(12, v);
+  }
+
+  @$pb.TagNumber(13)
+  $core.bool hasDone() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearDone() => clearField(13);
+}
+
 class GetCoreMempoolInfoRequest extends $pb.GeneratedMessage {
   factory GetCoreMempoolInfoRequest() => create();
   GetCoreMempoolInfoRequest._() : super();
@@ -6187,6 +6540,8 @@ class OrchestratorServiceApi {
       _client.invoke<RejectBlockResponse>(ctx, 'OrchestratorService', 'RejectBlock', request, RejectBlockResponse());
   $async.Future<AcceptBlockResponse> acceptBlock($pb.ClientContext? ctx, AcceptBlockRequest request) =>
       _client.invoke<AcceptBlockResponse>(ctx, 'OrchestratorService', 'AcceptBlock', request, AcceptBlockResponse());
+  $async.Future<ResetToBlockResponse> resetToBlock($pb.ClientContext? ctx, ResetToBlockRequest request) =>
+      _client.invoke<ResetToBlockResponse>(ctx, 'OrchestratorService', 'ResetToBlock', request, ResetToBlockResponse());
   $async.Future<GetCoreMempoolInfoResponse> getCoreMempoolInfo(
           $pb.ClientContext? ctx, GetCoreMempoolInfoRequest request) =>
       _client.invoke<GetCoreMempoolInfoResponse>(

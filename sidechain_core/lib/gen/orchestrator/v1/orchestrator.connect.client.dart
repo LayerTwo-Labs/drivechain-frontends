@@ -539,6 +539,26 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
     );
   }
 
+  /// Move the chain back to a block, then sync forward to the tip again. Core
+  /// drops the block and every block above it, then re-validates them from
+  /// disk. Streams one message per phase.
+  Stream<orchestratorv1orchestrator.ResetToBlockResponse> resetToBlock(
+    orchestratorv1orchestrator.ResetToBlockRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).server(
+      specs.OrchestratorService.resetToBlock,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Full bitcoind getmempoolinfo response. Distinct from getrawmempool.
   Future<orchestratorv1orchestrator.GetCoreMempoolInfoResponse> getCoreMempoolInfo(
     orchestratorv1orchestrator.GetCoreMempoolInfoRequest input, {
