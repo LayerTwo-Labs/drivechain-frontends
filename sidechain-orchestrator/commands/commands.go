@@ -126,6 +126,10 @@ var downloadCommand = &cli.Command{
 			Name:  "wait",
 			Usage: "block until the download completes",
 		},
+		&cli.BoolFlag{
+			Name:  "force-backend",
+			Usage: "download the daemon, never the sidechain's Flutter bundle",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
@@ -151,7 +155,7 @@ var downloadCommand = &cli.Command{
 		}
 
 		client := newClient(cctx)
-		return runDownload(cctx.Context, client, cctx.Args().First(), cctx.Bool("force"), cctx.Bool("wait"))
+		return runDownload(cctx.Context, client, cctx.Args().First(), cctx.Bool("force"), cctx.Bool("wait"), cctx.Bool("force-backend"))
 	},
 }
 
@@ -219,7 +223,7 @@ var startCommand = &cli.Command{
 				}
 			}
 
-			if err := runDownload(cctx.Context, client, bin, false, false); err != nil {
+			if err := runDownload(cctx.Context, client, bin, false, false, false); err != nil {
 				return err
 			}
 			fmt.Println()
@@ -670,7 +674,7 @@ var updateCommand = &cli.Command{
 			}
 		}
 
-		return runDownload(cctx.Context, client, name, true, false)
+		return runDownload(cctx.Context, client, name, true, false, false)
 	},
 }
 
@@ -753,12 +757,13 @@ func formatBytes(b int64) string {
 }
 
 // runDownload streams a binary download with a progress bar.
-func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name string, force, wait bool) error {
+func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name string, force, wait, forceBackend bool) error {
 	// DownloadBinary is fire-and-forget on the server — it returns before the
 	// file lands on disk.
 	if _, err := client.DownloadBinary(ctx, connect.NewRequest(&pb.DownloadBinaryRequest{
-		Name:  name,
-		Force: force,
+		Name:         name,
+		Force:        force,
+		ForceBackend: forceBackend,
 	})); err != nil {
 		return err
 	}
@@ -773,7 +778,7 @@ func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name
 	defer cancel()
 	fmt.Printf("downloading %s (waiting for completion)...\n", name)
 	for {
-		resp, err := client.GetBinaryStatus(ctx, connect.NewRequest(&pb.GetBinaryStatusRequest{Name: name}))
+		resp, err := client.GetBinaryStatus(ctx, connect.NewRequest(&pb.GetBinaryStatusRequest{Name: name, ForceBackend: forceBackend}))
 		if err != nil {
 			return fmt.Errorf("poll %s status: %w", name, err)
 		}
@@ -1148,7 +1153,7 @@ func ensureSidechainDownloaded(cctx *cli.Context, client rpc.OrchestratorService
 		}
 
 		// Download the binary
-		if err := runDownload(cctx.Context, client, sidechainName, false, false); err != nil {
+		if err := runDownload(cctx.Context, client, sidechainName, false, false, false); err != nil {
 			return fmt.Errorf("failed to download %s: %w", sidechainName, err)
 		}
 		fmt.Println()

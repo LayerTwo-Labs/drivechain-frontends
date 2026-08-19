@@ -72,7 +72,7 @@ jobs:
           
           for sidechain in "${sidechains[@]}"; do
             echo "Downloading $sidechain binary..."
-            ./orchestratorctl download --wait "$sidechain"
+            ./orchestratorctl download --wait --force-backend "$sidechain"
             
             echo "Contents of assets/bin:"
             ls -la /tmp/orchestrator-data/assets/bin/ || echo "No bin directory yet"
