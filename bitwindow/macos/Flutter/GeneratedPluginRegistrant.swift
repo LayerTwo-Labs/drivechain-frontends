@@ -7,7 +7,7 @@ import Foundation
 
 import auto_updater_macos
 import desktop_multi_window
-import file_picker
+import file_picker_darwin
 import mobile_scanner
 import patrol
 import printing

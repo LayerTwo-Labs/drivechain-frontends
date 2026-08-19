@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
@@ -590,9 +591,12 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
       final defaultFileName = 'bitwindow-transactions-${DateFormat('yyyy-MM-dd').format(DateTime.now())}.csv';
 
+      final csvData = _generateCSV(transactions);
+
       final result = await FilePicker.saveFile(
         dialogTitle: 'Export Transactions to CSV',
         fileName: defaultFileName,
+        bytes: Uint8List.fromList(utf8.encode(csvData)),
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
@@ -601,12 +605,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
         return;
       }
 
-      final csvData = _generateCSV(transactions);
-      final file = File(result);
-      await file.writeAsString(csvData);
-
       if (context.mounted) {
-        showSailToast(context, 'Transactions exported successfully to $result');
+        showSailToast(context, 'Transactions exported successfully to ${result.toFilePath()}');
       }
     } catch (error) {
       if (context.mounted) {

@@ -317,16 +317,13 @@ class _BackupWalletPageState extends State<BackupWalletPage> {
       ).format(DateTime.now());
       final defaultFileName = '${widget.appName.toLowerCase()}-backup-$timestamp.zip';
 
-      final result = await FilePicker.saveFile(
+      final result = await FilePicker.getDirectoryPath(
         dialogTitle: 'Save Wallet Backup',
-        fileName: defaultFileName,
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
       );
 
       if (result != null) {
         setState(() {
-          _selectedPath = result;
+          _selectedPath = path.join(result, defaultFileName);
           _error = null;
         });
       }
@@ -686,15 +683,15 @@ class _WalletBackupRestoreOptionsState extends State<WalletBackupRestoreOptions>
 
   Future<void> _selectBackupFile() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         dialogTitle: 'Select Wallet Backup',
         type: FileType.custom,
         allowedExtensions: ['zip', 'json'],
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result?.path != null) {
         setState(() {
-          _selectedFile = File(result.files.single.path!);
+          _selectedFile = File(result!.path!);
           _selectedBackup = null;
           _error = null;
         });

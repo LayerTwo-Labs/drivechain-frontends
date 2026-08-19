@@ -53,13 +53,13 @@ class _AirgapSignStepState extends State<AirgapSignStep> {
     final path = await FilePicker.saveFile(
       dialogTitle: 'Save Unsigned PSBT',
       fileName: 'unsigned_${DateTime.now().millisecondsSinceEpoch}.psbt',
+      bytes: _unsignedBytes,
       type: FileType.custom,
       allowedExtensions: ['psbt'],
     );
     if (path == null) {
       return;
     }
-    await File(path).writeAsBytes(_unsignedBytes);
     if (mounted) {
       showSailToast(context, 'Saved unsigned PSBT', variant: SailToastVariant.success);
     }
@@ -68,14 +68,14 @@ class _AirgapSignStepState extends State<AirgapSignStep> {
   Future<void> _loadSignedFile() async {
     setState(() => _error = null);
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         dialogTitle: 'Select Signed PSBT',
         type: FileType.any,
       );
-      if (result == null || result.files.single.path == null) {
+      if (result?.path == null) {
         return;
       }
-      final file = File(result.files.single.path!);
+      final file = File(result!.path!);
       final bytes = await file.readAsBytes();
       // A .psbt is raw binary (magic 0x70736274ff); text exports are base64.
       final isBinary =

@@ -255,8 +255,8 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
   Future<void> _pickSnapshotFile() async {
     setState(() => _isPickingSnapshot = true);
     try {
-      final result = await FilePicker.pickFiles(dialogTitle: 'Choose a UTXO snapshot');
-      final path = result?.files.single.path;
+      final result = await FilePicker.pickFile(dialogTitle: 'Choose a UTXO snapshot');
+      final path = result?.path;
       if (path != null) {
         _snapshotController.text = path;
       }

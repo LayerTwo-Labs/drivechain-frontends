@@ -48,14 +48,14 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         _modalError = null;
       });
 
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['json'],
         dialogTitle: 'Select PSBT Export File',
       );
 
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
+      if (result?.path != null) {
+        final file = File(result!.path!);
         final jsonString = await file.readAsString();
 
         try {
@@ -67,7 +67,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
 
           setState(() {
             _importedData = data;
-            _selectedFileName = result.files.single.name;
+            _selectedFileName = result.name;
             _txIdController.text = data['transaction_id'] ?? '';
             _psbtController.text = data['psbt'] ?? '';
           });

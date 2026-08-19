@@ -13,7 +13,7 @@ dependencies:
   auto_updater: ^1.0.0
   collection: ^1.19.1
   connectrpc: 1.0.0
-  file_picker: ^11.0.2
+  file_picker: ^12.0.0
   fixnum: ^1.1.1
   flutter:
     sdk: flutter

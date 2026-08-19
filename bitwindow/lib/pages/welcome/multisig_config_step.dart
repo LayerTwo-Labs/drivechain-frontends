@@ -954,15 +954,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   Future<void> _importConfigFile(BuildContext context) async {
     setState(() => _error = null);
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['txt', 'json', 'conf'],
         dialogTitle: 'Import multisig config',
       );
-      if (result == null || result.files.isEmpty) {
+      if (result == null) {
         return;
       }
-      final path = result.files.first.path;
+      final path = result.path;
       if (path == null) {
         setState(() => _error = 'Could not read the selected file');
         return;
@@ -1567,12 +1567,12 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   /// wallet already exists once the file lands, so it skips the rest of setup.
   Future<void> _restoreFromBackup(BuildContext context) async {
     setState(() => _error = null);
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       dialogTitle: 'Upload wallet backup',
       type: FileType.custom,
       allowedExtensions: ['zip', 'json'],
     );
-    final path = result?.files.singleOrNull?.path;
+    final path = result?.path;
     if (path == null) {
       return;
     }
@@ -1600,15 +1600,15 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   Future<void> _addFromFile(BuildContext context, int index) async {
     setState(() => _error = null);
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['json', 'conf', 'txt'],
         dialogTitle: 'Select cosigner key file',
       );
-      if (result == null || result.files.isEmpty) {
+      if (result == null) {
         return;
       }
-      final path = result.files.first.path;
+      final path = result.path;
       if (path == null) {
         setState(() => _error = 'Could not read the selected file');
         return;
@@ -1799,13 +1799,13 @@ Future<void> showMultisigExportDialog(
                             final p = await FilePicker.saveFile(
                               dialogTitle: 'Save Coldcard multisig file',
                               fileName: 'multisig-coldcard.txt',
+                              bytes: Uint8List.fromList(utf8.encode(coldcardConfig)),
                               type: FileType.custom,
                               allowedExtensions: ['txt'],
                             );
                             if (p == null) {
                               return;
                             }
-                            await File(p).writeAsString(coldcardConfig);
                             if (context.mounted) {
                               showSailToast(context, 'Saved', variant: SailToastVariant.success);
                             }
