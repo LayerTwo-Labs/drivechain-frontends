@@ -10,7 +10,21 @@ service BitcoinConfService {
   // change can be applied. Side-effect free.
   rpc PrepareNetworkChange(PrepareNetworkChangeRequest) returns (NetworkChangePlan);
 
-  // Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
+  // The networks the user can pick, from the published catalog plus regtest.
+  rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
+
+  // The networks that appeared in the catalog since the last call, so the app
+  // can name them in a notice. Reporting a network also marks it told: a
+  // second call returns it no more. A first run reports nothing.
+  rpc TakeNewNetworks(TakeNewNetworksRequest) returns (TakeNewNetworksResponse);
+
+  // What a move to another eCash network costs. Both fork mainnet, so the
+  // blocks below the lower fork height are shared and the move is a reset
+  // rather than a resync. Side-effect free.
+  rpc PlanECashSwitch(PlanECashSwitchRequest) returns (PlanECashSwitchResponse);
+
+  // Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
+  // name (signet, mainnet, forknet, ecash, regtest).
   rpc SetBitcoinConfigNetwork(SetBitcoinConfigNetworkRequest) returns (SetBitcoinConfigNetworkResponse);
 
   // Set the Bitcoin Core datadir for a specific network.
@@ -25,7 +39,7 @@ service BitcoinConfService {
 message GetBitcoinConfigRequest {}
 
 message GetBitcoinConfigResponse {
-  string network = 1; // signet, mainnet, forknet, drynet, testnet, regtest
+  string network = 1; // signet, mainnet, forknet, ecash, testnet, regtest
   int32 rpc_port = 2;
   bool has_private_conf = 3; // true if user has their own bitcoin.conf
   string config_path = 4; // path to the active config file
@@ -43,13 +57,61 @@ message GetBitcoinConfigResponse {
   // restored on the next swap into that group. Empty = no path stored.
   string default_datadir = 11;
   string forknet_datadir = 12;
-  string drynet_datadir = 13;
-  // Live drynet generation ("drynet2"). Drynet hostnames are built from it, so
-  // the frontend needs it to link at the right explorer.
-  string drynet_generation = 14;
+  string ecash_datadir = 13;
+  // Live eCash network id ("alphanet").
+  string ecash_network_id = 14;
   // True when the current network and wallet backend need a datadir the user
   // has not chosen yet. Drives the boot-time prompt.
   bool must_select_datadir = 15;
+  // Esplora base URL the catalog publishes for the live eCash network, empty
+  // when it publishes none.
+  string ecash_esplora_url = 16;
+  // Explorer host the catalog publishes for the live eCash network, empty
+  // when it publishes none.
+  string ecash_explorer_host = 17;
+}
+
+// ListNetworks
+
+message ListNetworksRequest {}
+
+// NetworkOption is one row of the network picker.
+message NetworkOption {
+  // Catalog id ("alphanet", "bitcoin"), or "regtest" for the local-only row.
+  string id = 1;
+  // Name to show the user ("Alphanet").
+  string display_name = 2;
+  // Slot this row runs in: mainnet | signet | forknet | ecash | regtest.
+  string network = 3;
+  // True for the network this install runs right now.
+  bool is_current = 4;
+}
+
+message ListNetworksResponse {
+  repeated NetworkOption networks = 1;
+}
+
+// PlanECashSwitch
+
+message PlanECashSwitchRequest {
+  string network_id = 1; // catalog id to move to
+}
+
+message PlanECashSwitchResponse {
+  string from_id = 1;
+  string to_id = 2;
+  // Block the switch drops, one below the lower fork height. Core parks under
+  // it and follows the new network from there. Zero when nothing is dropped.
+  uint32 rewind_height = 3;
+  bool needs_rollback = 4;
+}
+
+// TakeNewNetworks
+
+message TakeNewNetworksRequest {}
+
+message TakeNewNetworksResponse {
+  repeated NetworkOption networks = 1;
 }
 
 // PrepareNetworkChange
@@ -75,7 +137,7 @@ message NetworkChangePlan {
   WalletBackend wallet_backend = 2;
   bool must_select_datadir = 3;
   string datadir = 4; // the path that would be used, empty when unset
-  string datadir_group = 5; // default | forknet | drynet
+  string datadir_group = 5; // default | forknet | ecash
   bool needs_local_backends = 6; // false for electrum — nothing is downloaded
   bool implies_chain_download = 7;
   repeated string missing_binaries = 8;
@@ -86,7 +148,7 @@ message NetworkChangePlan {
 // SetBitcoinConfigNetwork
 
 message SetBitcoinConfigNetworkRequest {
-  string network = 1; // signet, mainnet, forknet, drynet, testnet, regtest
+  string network = 1; // signet, mainnet, forknet, ecash, testnet, regtest
   string data_dir = 2; // the user's answer to must_select_datadir, if asked
 }
 

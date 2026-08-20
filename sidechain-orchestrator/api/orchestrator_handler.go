@@ -249,12 +249,12 @@ func (h *Handler) GetSnapshotStatus(ctx context.Context, req *connect.Request[pb
 }
 
 func (h *Handler) GetPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.GetPendingNetworkGenerationRequest]) (*connect.Response[pb.GetPendingNetworkGenerationResponse], error) {
-	pending := h.orch.PendingDrynetUpgrade()
+	pending := h.orch.PendingECashUpgrade()
 	resp := &pb.GetPendingNetworkGenerationResponse{
-		CurrentGeneration: config.DrynetGeneration(),
-		PendingGeneration: pending.ID,
-		PendingPeer:       pending.Peer,
-		UserManagedConf:   pending.UserManagedConf,
+		CurrentNetworkId: config.ECashNetworkID(),
+		PendingNetworkId: pending.ID,
+		PendingPeer:      pending.Peer,
+		UserManagedConf:  pending.UserManagedConf,
 	}
 	if pending.Snapshot != nil {
 		resp.SnapshotHeight = pending.Snapshot.Height
@@ -264,7 +264,7 @@ func (h *Handler) GetPendingNetworkGeneration(ctx context.Context, req *connect.
 }
 
 func (h *Handler) ConfirmPendingNetworkGeneration(ctx context.Context, req *connect.Request[pb.ConfirmPendingNetworkGenerationRequest]) (*connect.Response[pb.ConfirmPendingNetworkGenerationResponse], error) {
-	if err := h.orch.ConfirmPendingDrynetGeneration(ctx); err != nil {
+	if err := h.orch.ConfirmPendingECashNetwork(ctx); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 	return connect.NewResponse(&pb.ConfirmPendingNetworkGenerationResponse{}), nil

@@ -131,8 +131,8 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetSnapshotStatusResponse.new,
   );
 
-  /// The drynet generation published but not switched to yet. Feeds the upgrade
-  /// prompt; pending_generation is empty when already on the newest one.
+  /// The eCash network published but not switched to yet. Feeds the upgrade
+  /// prompt; pending_network_id is empty when already on the newest one.
   static const getPendingNetworkGeneration = connect.Spec(
     '/$name/GetPendingNetworkGeneration',
     connect.StreamType.unary,
@@ -140,7 +140,7 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetPendingNetworkGenerationResponse.new,
   );
 
-  /// Record the user's go-ahead to switch to the published drynet generation.
+  /// Record the user's go-ahead to switch to the published eCash network.
   /// Nothing is stopped or deleted here: the caller must restart the backends,
   /// and the switch runs on the next start. Wallets survive, chain history and
   /// its transactions do not — only call with the user's confirmation.

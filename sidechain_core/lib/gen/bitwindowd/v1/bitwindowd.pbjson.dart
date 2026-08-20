@@ -42,7 +42,7 @@ const BitcoinNetwork$json = {
     {'1': 'BITCOIN_NETWORK_SIGNET', '2': 4},
     {'1': 'BITCOIN_NETWORK_TESTNET', '2': 5},
     {'1': 'BITCOIN_NETWORK_FORKNET', '2': 6},
-    {'1': 'BITCOIN_NETWORK_DRYNET', '2': 7},
+    {'1': 'BITCOIN_NETWORK_ECASH', '2': 7},
   ],
 };
 
@@ -52,7 +52,7 @@ final $typed_data.Uint8List bitcoinNetworkDescriptor =
         'RDT0lOX05FVFdPUktfVU5LTk9XThABEhsKF0JJVENPSU5fTkVUV09SS19NQUlOTkVUEAISGwoX'
         'QklUQ09JTl9ORVRXT1JLX1JFR1RFU1QQAxIaChZCSVRDT0lOX05FVFdPUktfU0lHTkVUEAQSGw'
         'oXQklUQ09JTl9ORVRXT1JLX1RFU1RORVQQBRIbChdCSVRDT0lOX05FVFdPUktfRk9SS05FVBAG'
-        'EhoKFkJJVENPSU5fTkVUV09SS19EUllORVQQBw==');
+        'EhkKFUJJVENPSU5fTkVUV09SS19FQ0FTSBAH');
 
 @$core.Deprecated('Use addressTypeDescriptor instead')
 const AddressType$json = {
@@ -630,13 +630,14 @@ const UpdateNetworkRequest$json = {
   '2': [
     {'1': 'network', '3': 1, '4': 1, '5': 9, '10': 'network'},
     {'1': 'data_dir', '3': 2, '4': 1, '5': 9, '10': 'dataDir'},
+    {'1': 'network_id', '3': 3, '4': 1, '5': 9, '10': 'networkId'},
   ],
 };
 
 /// Descriptor for `UpdateNetworkRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List updateNetworkRequestDescriptor =
     $convert.base64Decode('ChRVcGRhdGVOZXR3b3JrUmVxdWVzdBIYCgduZXR3b3JrGAEgASgJUgduZXR3b3JrEhkKCGRhdG'
-        'FfZGlyGAIgASgJUgdkYXRhRGly');
+        'FfZGlyGAIgASgJUgdkYXRhRGlyEh0KCm5ldHdvcmtfaWQYAyABKAlSCW5ldHdvcmtJZA==');
 
 @$core.Deprecated('Use updateNetworkResponseDescriptor instead')
 const UpdateNetworkResponse$json = {

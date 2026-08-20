@@ -249,8 +249,8 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
     );
   }
 
-  /// The drynet generation published but not switched to yet. Feeds the upgrade
-  /// prompt; pending_generation is empty when already on the newest one.
+  /// The eCash network published but not switched to yet. Feeds the upgrade
+  /// prompt; pending_network_id is empty when already on the newest one.
   Future<orchestratorv1orchestrator.GetPendingNetworkGenerationResponse> getPendingNetworkGeneration(
     orchestratorv1orchestrator.GetPendingNetworkGenerationRequest input, {
     connect.Headers? headers,
@@ -268,7 +268,7 @@ extension type OrchestratorServiceClient(connect.Transport _transport) {
     );
   }
 
-  /// Record the user's go-ahead to switch to the published drynet generation.
+  /// Record the user's go-ahead to switch to the published eCash network.
   /// Nothing is stopped or deleted here: the caller must restart the backends,
   /// and the switch runs on the next start. Wallets survive, chain history and
   /// its transactions do not — only call with the user's confirmation.

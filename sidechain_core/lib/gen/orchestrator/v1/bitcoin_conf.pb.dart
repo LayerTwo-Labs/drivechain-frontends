@@ -67,9 +67,11 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     $core.String? rpcPassword,
     $core.String? defaultDatadir,
     $core.String? forknetDatadir,
-    $core.String? drynetDatadir,
-    $core.String? drynetGeneration,
+    $core.String? ecashDatadir,
+    $core.String? ecashNetworkId,
     $core.bool? mustSelectDatadir,
+    $core.String? ecashEsploraUrl,
+    $core.String? ecashExplorerHost,
   }) {
     final $result = create();
     if (network != null) {
@@ -108,14 +110,20 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     if (forknetDatadir != null) {
       $result.forknetDatadir = forknetDatadir;
     }
-    if (drynetDatadir != null) {
-      $result.drynetDatadir = drynetDatadir;
+    if (ecashDatadir != null) {
+      $result.ecashDatadir = ecashDatadir;
     }
-    if (drynetGeneration != null) {
-      $result.drynetGeneration = drynetGeneration;
+    if (ecashNetworkId != null) {
+      $result.ecashNetworkId = ecashNetworkId;
     }
     if (mustSelectDatadir != null) {
       $result.mustSelectDatadir = mustSelectDatadir;
+    }
+    if (ecashEsploraUrl != null) {
+      $result.ecashEsploraUrl = ecashEsploraUrl;
+    }
+    if (ecashExplorerHost != null) {
+      $result.ecashExplorerHost = ecashExplorerHost;
     }
     return $result;
   }
@@ -140,9 +148,11 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     ..aOS(10, _omitFieldNames ? '' : 'rpcPassword')
     ..aOS(11, _omitFieldNames ? '' : 'defaultDatadir')
     ..aOS(12, _omitFieldNames ? '' : 'forknetDatadir')
-    ..aOS(13, _omitFieldNames ? '' : 'drynetDatadir')
-    ..aOS(14, _omitFieldNames ? '' : 'drynetGeneration')
+    ..aOS(13, _omitFieldNames ? '' : 'ecashDatadir')
+    ..aOS(14, _omitFieldNames ? '' : 'ecashNetworkId')
     ..aOB(15, _omitFieldNames ? '' : 'mustSelectDatadir')
+    ..aOS(16, _omitFieldNames ? '' : 'ecashEsploraUrl')
+    ..aOS(17, _omitFieldNames ? '' : 'ecashExplorerHost')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -317,30 +327,29 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   void clearForknetDatadir() => clearField(12);
 
   @$pb.TagNumber(13)
-  $core.String get drynetDatadir => $_getSZ(12);
+  $core.String get ecashDatadir => $_getSZ(12);
   @$pb.TagNumber(13)
-  set drynetDatadir($core.String v) {
+  set ecashDatadir($core.String v) {
     $_setString(12, v);
   }
 
   @$pb.TagNumber(13)
-  $core.bool hasDrynetDatadir() => $_has(12);
+  $core.bool hasEcashDatadir() => $_has(12);
   @$pb.TagNumber(13)
-  void clearDrynetDatadir() => clearField(13);
+  void clearEcashDatadir() => clearField(13);
 
-  /// Live drynet generation ("drynet2"). Drynet hostnames are built from it, so
-  /// the frontend needs it to link at the right explorer.
+  /// Live eCash network id ("alphanet").
   @$pb.TagNumber(14)
-  $core.String get drynetGeneration => $_getSZ(13);
+  $core.String get ecashNetworkId => $_getSZ(13);
   @$pb.TagNumber(14)
-  set drynetGeneration($core.String v) {
+  set ecashNetworkId($core.String v) {
     $_setString(13, v);
   }
 
   @$pb.TagNumber(14)
-  $core.bool hasDrynetGeneration() => $_has(13);
+  $core.bool hasEcashNetworkId() => $_has(13);
   @$pb.TagNumber(14)
-  void clearDrynetGeneration() => clearField(14);
+  void clearEcashNetworkId() => clearField(14);
 
   /// True when the current network and wallet backend need a datadir the user
   /// has not chosen yet. Drives the boot-time prompt.
@@ -355,6 +364,473 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   $core.bool hasMustSelectDatadir() => $_has(14);
   @$pb.TagNumber(15)
   void clearMustSelectDatadir() => clearField(15);
+
+  /// Esplora base URL the catalog publishes for the live eCash network, empty
+  /// when it publishes none.
+  @$pb.TagNumber(16)
+  $core.String get ecashEsploraUrl => $_getSZ(15);
+  @$pb.TagNumber(16)
+  set ecashEsploraUrl($core.String v) {
+    $_setString(15, v);
+  }
+
+  @$pb.TagNumber(16)
+  $core.bool hasEcashEsploraUrl() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearEcashEsploraUrl() => clearField(16);
+
+  /// Explorer host the catalog publishes for the live eCash network, empty
+  /// when it publishes none.
+  @$pb.TagNumber(17)
+  $core.String get ecashExplorerHost => $_getSZ(16);
+  @$pb.TagNumber(17)
+  set ecashExplorerHost($core.String v) {
+    $_setString(16, v);
+  }
+
+  @$pb.TagNumber(17)
+  $core.bool hasEcashExplorerHost() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearEcashExplorerHost() => clearField(17);
+}
+
+class ListNetworksRequest extends $pb.GeneratedMessage {
+  factory ListNetworksRequest() => create();
+  ListNetworksRequest._() : super();
+  factory ListNetworksRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListNetworksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListNetworksRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListNetworksRequest clone() => ListNetworksRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListNetworksRequest copyWith(void Function(ListNetworksRequest) updates) =>
+      super.copyWith((message) => updates(message as ListNetworksRequest)) as ListNetworksRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListNetworksRequest create() => ListNetworksRequest._();
+  ListNetworksRequest createEmptyInstance() => create();
+  static $pb.PbList<ListNetworksRequest> createRepeated() => $pb.PbList<ListNetworksRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListNetworksRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListNetworksRequest>(create);
+  static ListNetworksRequest? _defaultInstance;
+}
+
+/// NetworkOption is one row of the network picker.
+class NetworkOption extends $pb.GeneratedMessage {
+  factory NetworkOption({
+    $core.String? id,
+    $core.String? displayName,
+    $core.String? network,
+    $core.bool? isCurrent,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (displayName != null) {
+      $result.displayName = displayName;
+    }
+    if (network != null) {
+      $result.network = network;
+    }
+    if (isCurrent != null) {
+      $result.isCurrent = isCurrent;
+    }
+    return $result;
+  }
+  NetworkOption._() : super();
+  factory NetworkOption.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory NetworkOption.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'NetworkOption',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'displayName')
+    ..aOS(3, _omitFieldNames ? '' : 'network')
+    ..aOB(4, _omitFieldNames ? '' : 'isCurrent')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  NetworkOption clone() => NetworkOption()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  NetworkOption copyWith(void Function(NetworkOption) updates) =>
+      super.copyWith((message) => updates(message as NetworkOption)) as NetworkOption;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NetworkOption create() => NetworkOption._();
+  NetworkOption createEmptyInstance() => create();
+  static $pb.PbList<NetworkOption> createRepeated() => $pb.PbList<NetworkOption>();
+  @$core.pragma('dart2js:noInline')
+  static NetworkOption getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<NetworkOption>(create);
+  static NetworkOption? _defaultInstance;
+
+  /// Catalog id ("alphanet", "bitcoin"), or "regtest" for the local-only row.
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) {
+    $_setString(0, v);
+  }
+
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  /// Name to show the user ("Alphanet").
+  @$pb.TagNumber(2)
+  $core.String get displayName => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set displayName($core.String v) {
+    $_setString(1, v);
+  }
+
+  @$pb.TagNumber(2)
+  $core.bool hasDisplayName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDisplayName() => clearField(2);
+
+  /// Slot this row runs in: mainnet | signet | forknet | ecash | regtest.
+  @$pb.TagNumber(3)
+  $core.String get network => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set network($core.String v) {
+    $_setString(2, v);
+  }
+
+  @$pb.TagNumber(3)
+  $core.bool hasNetwork() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNetwork() => clearField(3);
+
+  /// True for the network this install runs right now.
+  @$pb.TagNumber(4)
+  $core.bool get isCurrent => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isCurrent($core.bool v) {
+    $_setBool(3, v);
+  }
+
+  @$pb.TagNumber(4)
+  $core.bool hasIsCurrent() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsCurrent() => clearField(4);
+}
+
+class ListNetworksResponse extends $pb.GeneratedMessage {
+  factory ListNetworksResponse({
+    $core.Iterable<NetworkOption>? networks,
+  }) {
+    final $result = create();
+    if (networks != null) {
+      $result.networks.addAll(networks);
+    }
+    return $result;
+  }
+  ListNetworksResponse._() : super();
+  factory ListNetworksResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListNetworksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListNetworksResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..pc<NetworkOption>(1, _omitFieldNames ? '' : 'networks', $pb.PbFieldType.PM, subBuilder: NetworkOption.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListNetworksResponse clone() => ListNetworksResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListNetworksResponse copyWith(void Function(ListNetworksResponse) updates) =>
+      super.copyWith((message) => updates(message as ListNetworksResponse)) as ListNetworksResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListNetworksResponse create() => ListNetworksResponse._();
+  ListNetworksResponse createEmptyInstance() => create();
+  static $pb.PbList<ListNetworksResponse> createRepeated() => $pb.PbList<ListNetworksResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListNetworksResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListNetworksResponse>(create);
+  static ListNetworksResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<NetworkOption> get networks => $_getList(0);
+}
+
+class PlanECashSwitchRequest extends $pb.GeneratedMessage {
+  factory PlanECashSwitchRequest({
+    $core.String? networkId,
+  }) {
+    final $result = create();
+    if (networkId != null) {
+      $result.networkId = networkId;
+    }
+    return $result;
+  }
+  PlanECashSwitchRequest._() : super();
+  factory PlanECashSwitchRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PlanECashSwitchRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PlanECashSwitchRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'networkId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  PlanECashSwitchRequest clone() => PlanECashSwitchRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PlanECashSwitchRequest copyWith(void Function(PlanECashSwitchRequest) updates) =>
+      super.copyWith((message) => updates(message as PlanECashSwitchRequest)) as PlanECashSwitchRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlanECashSwitchRequest create() => PlanECashSwitchRequest._();
+  PlanECashSwitchRequest createEmptyInstance() => create();
+  static $pb.PbList<PlanECashSwitchRequest> createRepeated() => $pb.PbList<PlanECashSwitchRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PlanECashSwitchRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PlanECashSwitchRequest>(create);
+  static PlanECashSwitchRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get networkId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set networkId($core.String v) {
+    $_setString(0, v);
+  }
+
+  @$pb.TagNumber(1)
+  $core.bool hasNetworkId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNetworkId() => clearField(1);
+}
+
+class PlanECashSwitchResponse extends $pb.GeneratedMessage {
+  factory PlanECashSwitchResponse({
+    $core.String? fromId,
+    $core.String? toId,
+    $core.int? rewindHeight,
+    $core.bool? needsRollback,
+  }) {
+    final $result = create();
+    if (fromId != null) {
+      $result.fromId = fromId;
+    }
+    if (toId != null) {
+      $result.toId = toId;
+    }
+    if (rewindHeight != null) {
+      $result.rewindHeight = rewindHeight;
+    }
+    if (needsRollback != null) {
+      $result.needsRollback = needsRollback;
+    }
+    return $result;
+  }
+  PlanECashSwitchResponse._() : super();
+  factory PlanECashSwitchResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PlanECashSwitchResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PlanECashSwitchResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fromId')
+    ..aOS(2, _omitFieldNames ? '' : 'toId')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'rewindHeight', $pb.PbFieldType.OU3)
+    ..aOB(4, _omitFieldNames ? '' : 'needsRollback')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  PlanECashSwitchResponse clone() => PlanECashSwitchResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PlanECashSwitchResponse copyWith(void Function(PlanECashSwitchResponse) updates) =>
+      super.copyWith((message) => updates(message as PlanECashSwitchResponse)) as PlanECashSwitchResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlanECashSwitchResponse create() => PlanECashSwitchResponse._();
+  PlanECashSwitchResponse createEmptyInstance() => create();
+  static $pb.PbList<PlanECashSwitchResponse> createRepeated() => $pb.PbList<PlanECashSwitchResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PlanECashSwitchResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PlanECashSwitchResponse>(create);
+  static PlanECashSwitchResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get fromId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set fromId($core.String v) {
+    $_setString(0, v);
+  }
+
+  @$pb.TagNumber(1)
+  $core.bool hasFromId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFromId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get toId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set toId($core.String v) {
+    $_setString(1, v);
+  }
+
+  @$pb.TagNumber(2)
+  $core.bool hasToId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearToId() => clearField(2);
+
+  /// Block the switch drops, one below the lower fork height. Core parks under
+  /// it and follows the new network from there. Zero when nothing is dropped.
+  @$pb.TagNumber(3)
+  $core.int get rewindHeight => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set rewindHeight($core.int v) {
+    $_setUnsignedInt32(2, v);
+  }
+
+  @$pb.TagNumber(3)
+  $core.bool hasRewindHeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRewindHeight() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get needsRollback => $_getBF(3);
+  @$pb.TagNumber(4)
+  set needsRollback($core.bool v) {
+    $_setBool(3, v);
+  }
+
+  @$pb.TagNumber(4)
+  $core.bool hasNeedsRollback() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNeedsRollback() => clearField(4);
+}
+
+class TakeNewNetworksRequest extends $pb.GeneratedMessage {
+  factory TakeNewNetworksRequest() => create();
+  TakeNewNetworksRequest._() : super();
+  factory TakeNewNetworksRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory TakeNewNetworksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TakeNewNetworksRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  TakeNewNetworksRequest clone() => TakeNewNetworksRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  TakeNewNetworksRequest copyWith(void Function(TakeNewNetworksRequest) updates) =>
+      super.copyWith((message) => updates(message as TakeNewNetworksRequest)) as TakeNewNetworksRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TakeNewNetworksRequest create() => TakeNewNetworksRequest._();
+  TakeNewNetworksRequest createEmptyInstance() => create();
+  static $pb.PbList<TakeNewNetworksRequest> createRepeated() => $pb.PbList<TakeNewNetworksRequest>();
+  @$core.pragma('dart2js:noInline')
+  static TakeNewNetworksRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TakeNewNetworksRequest>(create);
+  static TakeNewNetworksRequest? _defaultInstance;
+}
+
+class TakeNewNetworksResponse extends $pb.GeneratedMessage {
+  factory TakeNewNetworksResponse({
+    $core.Iterable<NetworkOption>? networks,
+  }) {
+    final $result = create();
+    if (networks != null) {
+      $result.networks.addAll(networks);
+    }
+    return $result;
+  }
+  TakeNewNetworksResponse._() : super();
+  factory TakeNewNetworksResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory TakeNewNetworksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TakeNewNetworksResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..pc<NetworkOption>(1, _omitFieldNames ? '' : 'networks', $pb.PbFieldType.PM, subBuilder: NetworkOption.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  TakeNewNetworksResponse clone() => TakeNewNetworksResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  TakeNewNetworksResponse copyWith(void Function(TakeNewNetworksResponse) updates) =>
+      super.copyWith((message) => updates(message as TakeNewNetworksResponse)) as TakeNewNetworksResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TakeNewNetworksResponse create() => TakeNewNetworksResponse._();
+  TakeNewNetworksResponse createEmptyInstance() => create();
+  static $pb.PbList<TakeNewNetworksResponse> createRepeated() => $pb.PbList<TakeNewNetworksResponse>();
+  @$core.pragma('dart2js:noInline')
+  static TakeNewNetworksResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TakeNewNetworksResponse>(create);
+  static TakeNewNetworksResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<NetworkOption> get networks => $_getList(0);
 }
 
 class PrepareNetworkChangeRequest extends $pb.GeneratedMessage {
@@ -1003,6 +1479,14 @@ class BitcoinConfServiceApi {
   $async.Future<NetworkChangePlan> prepareNetworkChange($pb.ClientContext? ctx, PrepareNetworkChangeRequest request) =>
       _client.invoke<NetworkChangePlan>(
           ctx, 'BitcoinConfService', 'PrepareNetworkChange', request, NetworkChangePlan());
+  $async.Future<ListNetworksResponse> listNetworks($pb.ClientContext? ctx, ListNetworksRequest request) =>
+      _client.invoke<ListNetworksResponse>(ctx, 'BitcoinConfService', 'ListNetworks', request, ListNetworksResponse());
+  $async.Future<TakeNewNetworksResponse> takeNewNetworks($pb.ClientContext? ctx, TakeNewNetworksRequest request) =>
+      _client.invoke<TakeNewNetworksResponse>(
+          ctx, 'BitcoinConfService', 'TakeNewNetworks', request, TakeNewNetworksResponse());
+  $async.Future<PlanECashSwitchResponse> planECashSwitch($pb.ClientContext? ctx, PlanECashSwitchRequest request) =>
+      _client.invoke<PlanECashSwitchResponse>(
+          ctx, 'BitcoinConfService', 'PlanECashSwitch', request, PlanECashSwitchResponse());
   $async.Future<SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
           $pb.ClientContext? ctx, SetBitcoinConfigNetworkRequest request) =>
       _client.invoke<SetBitcoinConfigNetworkResponse>(

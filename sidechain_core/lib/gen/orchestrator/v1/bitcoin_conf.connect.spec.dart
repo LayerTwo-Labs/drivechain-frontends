@@ -27,7 +27,36 @@ abstract final class BitcoinConfService {
     orchestratorv1bitcoin_conf.NetworkChangePlan.new,
   );
 
-  /// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
+  /// The networks the user can pick, from the published catalog plus regtest.
+  static const listNetworks = connect.Spec(
+    '/$name/ListNetworks',
+    connect.StreamType.unary,
+    orchestratorv1bitcoin_conf.ListNetworksRequest.new,
+    orchestratorv1bitcoin_conf.ListNetworksResponse.new,
+  );
+
+  /// The networks that appeared in the catalog since the last call, so the app
+  /// can name them in a notice. Reporting a network also marks it told: a
+  /// second call returns it no more. A first run reports nothing.
+  static const takeNewNetworks = connect.Spec(
+    '/$name/TakeNewNetworks',
+    connect.StreamType.unary,
+    orchestratorv1bitcoin_conf.TakeNewNetworksRequest.new,
+    orchestratorv1bitcoin_conf.TakeNewNetworksResponse.new,
+  );
+
+  /// What a move to another eCash network costs. Both fork mainnet, so the
+  /// blocks below the lower fork height are shared and the move is a reset
+  /// rather than a resync. Side-effect free.
+  static const planECashSwitch = connect.Spec(
+    '/$name/PlanECashSwitch',
+    connect.StreamType.unary,
+    orchestratorv1bitcoin_conf.PlanECashSwitchRequest.new,
+    orchestratorv1bitcoin_conf.PlanECashSwitchResponse.new,
+  );
+
+  /// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
+  /// name (signet, mainnet, forknet, ecash, regtest).
   static const setBitcoinConfigNetwork = connect.Spec(
     '/$name/SetBitcoinConfigNetwork',
     connect.StreamType.unary,

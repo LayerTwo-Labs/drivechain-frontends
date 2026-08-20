@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 )
 
@@ -105,4 +106,35 @@ func TestGetBitcoinConfigReportsCookieCredentials(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "__cookie__", resp.Msg.RpcUser)
 	assert.Equal(t, "s3cret", resp.Msg.RpcPassword)
+}
+
+// The pick clears the retired eCash chain and moves what the next boot runs.
+// A request the RPC goes on to refuse must leave both alone, so nothing may
+// change until every requirement passes.
+func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
+	bitwindowDir := t.TempDir()
+	confPath := filepath.Join(bitwindowDir, "bitwindow-bitcoin.conf")
+	require.NoError(t, os.WriteFile(confPath, []byte("chain=signet\n[signet]\nrpcuser=u\nrpcpassword=p\n"), 0o644))
+
+	orch := orchestrator.New(t.TempDir(), "signet", bitwindowDir, []orchestrator.BinaryConfig{}, zerolog.New(io.Discard))
+	require.NotNil(t, orch.BitcoinConf)
+	orch.ResolveNetworkCatalog(context.Background())
+
+	// Two eCash rows, so the request names a network the pick is not already on.
+	orch.Catalog = netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+	}}
+	require.NoError(t, orch.SelectECashNetwork("drynet4"))
+	require.Equal(t, "drynet4", orch.SelectedECashID(orch.Catalog))
+
+	h := NewBitcoinConfHandler(orch)
+	_, err := h.SetBitcoinConfigNetwork(context.Background(), connect.NewRequest(&pb.SetBitcoinConfigNetworkRequest{
+		Network: "alphanet",
+		DataDir: filepath.Join(confPath, "not-a-directory"),
+	}))
+	require.Error(t, err, "an unwritable datadir must be refused")
+
+	assert.Equal(t, "drynet4", orch.SelectedECashID(orch.Catalog),
+		"a refused request must not move the pick")
 }

@@ -45,7 +45,66 @@ extension type BitcoinConfServiceClient(connect.Transport _transport) {
     );
   }
 
-  /// Set the Bitcoin Core network (signet, mainnet, forknet, drynet, testnet, regtest).
+  /// The networks the user can pick, from the published catalog plus regtest.
+  Future<orchestratorv1bitcoin_conf.ListNetworksResponse> listNetworks(
+    orchestratorv1bitcoin_conf.ListNetworksRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinConfService.listNetworks,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// The networks that appeared in the catalog since the last call, so the app
+  /// can name them in a notice. Reporting a network also marks it told: a
+  /// second call returns it no more. A first run reports nothing.
+  Future<orchestratorv1bitcoin_conf.TakeNewNetworksResponse> takeNewNetworks(
+    orchestratorv1bitcoin_conf.TakeNewNetworksRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinConfService.takeNewNetworks,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// What a move to another eCash network costs. Both fork mainnet, so the
+  /// blocks below the lower fork height are shared and the move is a reset
+  /// rather than a resync. Side-effect free.
+  Future<orchestratorv1bitcoin_conf.PlanECashSwitchResponse> planECashSwitch(
+    orchestratorv1bitcoin_conf.PlanECashSwitchRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitcoinConfService.planECashSwitch,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
+  /// name (signet, mainnet, forknet, ecash, regtest).
   Future<orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
     orchestratorv1bitcoin_conf.SetBitcoinConfigNetworkRequest input, {
     connect.Headers? headers,

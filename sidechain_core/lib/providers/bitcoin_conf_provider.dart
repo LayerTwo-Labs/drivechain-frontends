@@ -34,11 +34,20 @@ class BitcoinConfProvider extends ChangeNotifier {
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
   String? defaultDatadir;
   String? forknetDatadir;
-  String? drynetDatadir;
+  String? ecashDatadir;
 
-  /// Live drynet generation ("drynet2"), from the orchestrator. Drynet
-  /// hostnames are built from it, so it moves with the network.
-  String drynetGeneration = '';
+  /// Live eCash network id ("alphanet"), from the orchestrator.
+  String ecashNetworkId = '';
+
+  /// The networks the user can pick, from the published catalog plus regtest.
+  /// Empty until the first load; callers fall back to [network] alone.
+  List<NetworkOption> networks = [];
+
+  /// Esplora base URL the catalog publishes for the live eCash network.
+  String ecashEsploraUrl = '';
+
+  /// Explorer host the catalog publishes for the live eCash network.
+  String ecashExplorerHost = '';
   BitcoinConfig? currentConfig;
   late final RootStackRouter router;
 
@@ -47,22 +56,22 @@ class BitcoinConfProvider extends ChangeNotifier {
   String? get detectedDataDir => dataDirFor(network);
 
   /// Returns the datadir recorded for [n]'s datadir group, or null if
-  /// none is configured. Forknet and drynet each have their own group;
+  /// none is configured. Forknet and eCash each have their own group;
   /// everything else shares the default group (Bitcoin Core auto-partitions
   /// via chain subdirs).
   String? dataDirFor(BitcoinNetwork n) {
     if (n == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
       return forknetDatadir;
     }
-    if (n == BitcoinNetwork.BITCOIN_NETWORK_DRYNET) {
-      return drynetDatadir;
+    if (n == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
+      return ecashDatadir;
     }
     return defaultDatadir;
   }
 
   bool get networkSupportsSidechains {
     return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_ECASH ||
         network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
@@ -81,7 +90,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   /// bitwindow applies swaps through bitwindowd, which recycles its per-network
   /// database; sidechain apps leave this null and reach orchestratord directly.
   /// Planning always goes straight to orchestratord — it holds the facts.
-  Future<void> Function(String network, String dataDir)? networkSwapper;
+  Future<void> Function(String network, String dataDir, String networkId)? networkSwapper;
 
   BitcoinConfProvider._create(this.router);
 
@@ -122,13 +131,17 @@ class BitcoinConfProvider extends ChangeNotifier {
     try {
       final resp = await _client.getBitcoinConfig(GetBitcoinConfigRequest());
       final oldNetwork = network;
+      final oldECashNetworkId = ecashNetworkId;
 
       hasPrivateBitcoinConf = resp.hasPrivateConf;
       configPath = resp.configPath.isEmpty ? null : resp.configPath;
       defaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
       forknetDatadir = resp.forknetDatadir.isEmpty ? null : resp.forknetDatadir;
-      drynetDatadir = resp.drynetDatadir.isEmpty ? null : resp.drynetDatadir;
-      drynetGeneration = resp.drynetGeneration;
+      ecashDatadir = resp.ecashDatadir.isEmpty ? null : resp.ecashDatadir;
+      ecashNetworkId = resp.ecashNetworkId;
+      ecashEsploraUrl = resp.ecashEsploraUrl;
+      ecashExplorerHost = resp.ecashExplorerHost;
+      networks = (await _client.listNetworks(ListNetworksRequest())).networks;
       rpcPort = resp.rpcPort;
       mustSelectDatadir = resp.mustSelectDatadir;
 
@@ -140,7 +153,17 @@ class BitcoinConfProvider extends ChangeNotifier {
 
       // Only a real user switch refreshes per-network state; the 5s poll must
       // not, or the boot network reconciliation flashes balances.
-      if (!isFirst && userInitiated && oldNetwork != network) {
+      //
+      // The eCash rows share one BitcoinNetwork, so the id has to count as a
+      // change too. Without it the outgoing fork's blocks and balances stay on
+      // screen, and BlockchainProvider only fills an empty list — so they never
+      // go away.
+      final movedChain =
+          oldNetwork != network ||
+          (network == BitcoinNetwork.BITCOIN_NETWORK_ECASH &&
+              oldECashNetworkId.isNotEmpty &&
+              oldECashNetworkId != ecashNetworkId);
+      if (!isFirst && userInitiated && movedChain) {
         _onNetworkChanged();
       }
 
@@ -161,24 +184,35 @@ class BitcoinConfProvider extends ChangeNotifier {
 
   /// Asks the backend what a change would require. It knows the wallet backend,
   /// the datadirs and the binaries; the frontend knows none of that.
+  /// [networkId] is the catalog id the user picked. The backend takes it in
+  /// place of the slot name: the eCash rows share a slot, so only the id says
+  /// the chain moves.
   Future<NetworkChangePlan> prepareNetworkChange({
     BitcoinNetwork? targetNetwork,
     String walletId = '',
+    String networkId = '',
   }) async {
-    final request = PrepareNetworkChangeRequest(
-      network: targetNetwork == null ? '' : _networkToString(targetNetwork),
-      walletId: walletId,
-    );
+    final target = networkId.isNotEmpty
+        ? networkId
+        : targetNetwork == null
+        ? ''
+        : _networkToString(targetNetwork);
+    final request = PrepareNetworkChangeRequest(network: target, walletId: walletId);
     return _client.prepareNetworkChange(request);
   }
 
-  Future<void> updateNetwork(BitcoinNetwork newNetwork, {String dataDir = ''}) async {
+  /// [networkId] is the catalog id the user picked. The eCash entries share one
+  /// [BitcoinNetwork] slot, so the id is the only thing that names the fork.
+  Future<void> updateNetwork(BitcoinNetwork newNetwork, {String dataDir = '', String networkId = ''}) async {
     try {
       if (networkSwapper != null) {
-        await networkSwapper!(_networkToString(newNetwork), dataDir);
+        // bitwindowd keys its own runtime on the network, and forwards the id
+        // to the orchestrator. Sending it the id alone makes it reject the row.
+        await networkSwapper!(_networkToString(newNetwork), dataDir, networkId);
       } else {
+        final target = networkId.isEmpty ? _networkToString(newNetwork) : networkId;
         await _client.setBitcoinConfigNetwork(
-          SetBitcoinConfigNetworkRequest(network: _networkToString(newNetwork), dataDir: dataDir),
+          SetBitcoinConfigNetworkRequest(network: target, dataDir: dataDir),
         );
       }
       await loadConfig(userInitiated: true);
@@ -188,15 +222,17 @@ class BitcoinConfProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork) async {
+  Future<void> swapNetwork(BuildContext context, BitcoinNetwork newNetwork, {String networkId = ''}) async {
     if (hasPrivateBitcoinConf) {
       return;
     }
-    if (network == newNetwork) {
+    // An eCash id change keeps the slot, so compare the id too or a switch
+    // from one eCash fork to another reads as a no-op.
+    if (network == newNetwork && (networkId.isEmpty || networkId == ecashNetworkId)) {
       return;
     }
 
-    final plan = await prepareNetworkChange(targetNetwork: newNetwork);
+    final plan = await prepareNetworkChange(targetNetwork: newNetwork, networkId: networkId);
     if (plan.noOp) {
       return;
     }
@@ -209,7 +245,7 @@ class BitcoinConfProvider extends ChangeNotifier {
       throw NetworkChangeDeclined(newNetwork);
     }
 
-    await updateNetwork(newNetwork, dataDir: dataDir);
+    await updateNetwork(newNetwork, dataDir: dataDir, networkId: networkId);
   }
 
   /// Walks the requirements the backend reported, returning the datadir to
@@ -228,6 +264,89 @@ class BitcoinConfProvider extends ChangeNotifier {
       return null;
     }
     return selected;
+  }
+
+  /// The picker rows: every catalog entry the app can run, plus regtest. Before
+  /// the first load lands it is the running network alone, so a dropdown always
+  /// holds its own current value and never asserts.
+  List<NetworkOption> get networkOptions {
+    final active = _activeNetworkOption;
+    if (networks.isEmpty) {
+      return [active];
+    }
+    // The catalog lists no forknet and no testnet, and an install can run
+    // either. A dropdown whose value is missing from its items asserts.
+    if (networks.any((o) => o.isCurrent)) {
+      return networks;
+    }
+    return [...networks, active];
+  }
+
+  NetworkOption get _activeNetworkOption => NetworkOption(
+    id: _networkToString(network),
+    displayName: network.toDisplayName(),
+    network: _networkToString(network),
+    isCurrent: true,
+  );
+
+  /// The id of the row this install runs, for a dropdown's current value.
+  String get currentNetworkOptionId {
+    final options = networkOptions;
+    return options.firstWhere((o) => o.isCurrent, orElse: () => options.first).id;
+  }
+
+  /// Picker rows that carry sidechains. Mainnet is real Bitcoin and testnet
+  /// runs no drivechain, so neither belongs here: offering one gives the user a
+  /// row that switches to nothing and leaves the guard still blocking.
+  List<NetworkOption> get drivechainNetworkOptions =>
+      networkOptions.where((o) => o.network != 'mainnet' && o.network != 'testnet').toList();
+
+  /// The row a sidechain selector shows. The running network may carry no
+  /// sidechains and so appear in no row, and a dropdown whose value is missing
+  /// from its items asserts.
+  String get currentDrivechainOptionId {
+    final options = drivechainNetworkOptions;
+    if (options.isEmpty) {
+      return currentNetworkOptionId;
+    }
+    final current = currentNetworkOptionId;
+    return options.any((o) => o.id == current) ? current : options.first.id;
+  }
+
+  /// The networks the catalog added since the last call. The backend reports
+  /// each one once, so a caller that polls never repeats a notice.
+  Future<List<NetworkOption>> takeNewNetworks() async {
+    final resp = await _client.takeNewNetworks(TakeNewNetworksRequest());
+    return resp.networks;
+  }
+
+  /// What a move to another eCash network costs. Both fork mainnet, so the
+  /// blocks below the lower fork height are shared: the move resets the chain
+  /// to that block instead of downloading it again.
+  Future<PlanECashSwitchResponse> planECashSwitch(String networkId) =>
+      _client.planECashSwitch(PlanECashSwitchRequest(networkId: networkId));
+
+  /// The picker row with this catalog id, or null when the list has none.
+  NetworkOption? optionById(String id) {
+    for (final option in networkOptions) {
+      if (option.id == id) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  /// The slot a picker row runs in.
+  BitcoinNetwork networkFromOption(NetworkOption option) => _parseNetwork(option.network);
+
+  /// Switch to a picker row by its catalog id. The eCash rows share one
+  /// [BitcoinNetwork], so the id decides which fork boots.
+  Future<void> swapNetworkById(BuildContext context, String id) async {
+    final option = networkOptions.firstWhere((o) => o.id == id, orElse: () => NetworkOption());
+    if (option.id.isEmpty) {
+      return;
+    }
+    await swapNetwork(context, _parseNetwork(option.network), networkId: option.id);
   }
 
   bool hasDataDirFor(BitcoinNetwork network) {
@@ -288,7 +407,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     return switch (network.toLowerCase()) {
       'mainnet' || 'main' => BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
       'forknet' => BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-      'drynet' => BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
+      'ecash' => BitcoinNetwork.BITCOIN_NETWORK_ECASH,
       'testnet' || 'test' => BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
       'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
       'regtest' => BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
@@ -300,7 +419,7 @@ class BitcoinConfProvider extends ChangeNotifier {
     return switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'mainnet',
       BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'forknet',
-      BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'drynet',
+      BitcoinNetwork.BITCOIN_NETWORK_ECASH => 'ecash',
       BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'testnet',
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
       BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
@@ -309,16 +428,25 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 }
 
-/// Every drynet hostname carries the generation, so read the one the
-/// orchestrator resolved rather than pinning a generation in the frontend.
-/// Falls back to the generation this build shipped with, which is what the
-/// backend also falls back to before its catalog loads.
-String drynetGeneration() {
+/// The live eCash network id, as the orchestrator resolved it from the
+/// published catalog. Falls back to the network this build shipped with, which
+/// is what the backend also falls back to before its catalog loads.
+String ecashNetworkId() => _resolved((p) => p.ecashNetworkId, _fallbackECashNetworkId);
+
+/// The live eCash network's esplora base URL, from the published catalog.
+String ecashEsploraUrl() => _resolved((p) => p.ecashEsploraUrl, _fallbackECashEsploraUrl);
+
+/// The live eCash network's explorer host, from the published catalog.
+String ecashExplorerHost() => _resolved((p) => p.ecashExplorerHost, _fallbackECashExplorerHost);
+
+String _resolved(String Function(BitcoinConfProvider) read, String fallback) {
   if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
-    return _fallbackDrynetGeneration;
+    return fallback;
   }
-  final gen = GetIt.I.get<BitcoinConfProvider>().drynetGeneration;
-  return gen.isEmpty ? _fallbackDrynetGeneration : gen;
+  final value = read(GetIt.I.get<BitcoinConfProvider>());
+  return value.isEmpty ? fallback : value;
 }
 
-const String _fallbackDrynetGeneration = 'drynet2';
+const String _fallbackECashNetworkId = 'alphanet';
+const String _fallbackECashEsploraUrl = 'https://esplora.alpha.ecash.ninja';
+const String _fallbackECashExplorerHost = 'explorer.alpha.ecash.ninja';

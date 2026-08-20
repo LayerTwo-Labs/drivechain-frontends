@@ -3059,6 +3059,7 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
   factory UpdateNetworkRequest({
     $core.String? network,
     $core.String? dataDir,
+    $core.String? networkId,
   }) {
     final $result = create();
     if (network != null) {
@@ -3066,6 +3067,9 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
     }
     if (dataDir != null) {
       $result.dataDir = dataDir;
+    }
+    if (networkId != null) {
+      $result.networkId = networkId;
     }
     return $result;
   }
@@ -3080,6 +3084,7 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'bitwindowd.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'network')
     ..aOS(2, _omitFieldNames ? '' : 'dataDir')
+    ..aOS(3, _omitFieldNames ? '' : 'networkId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -3103,7 +3108,7 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateNetworkRequest>(create);
   static UpdateNetworkRequest? _defaultInstance;
 
-  /// Target network: signet, mainnet, forknet, drynet, testnet, regtest.
+  /// Target network: signet, mainnet, forknet, ecash, testnet, regtest.
   @$pb.TagNumber(1)
   $core.String get network => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -3128,6 +3133,20 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
   $core.bool hasDataDir() => $_has(1);
   @$pb.TagNumber(2)
   void clearDataDir() => clearField(2);
+
+  /// Catalog id of the picked row ("alphanet"). The eCash rows share one
+  /// network, so only the id names the fork. Empty falls back to network.
+  @$pb.TagNumber(3)
+  $core.String get networkId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set networkId($core.String v) {
+    $_setString(2, v);
+  }
+
+  @$pb.TagNumber(3)
+  $core.bool hasNetworkId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNetworkId() => clearField(3);
 }
 
 class UpdateNetworkResponse extends $pb.GeneratedMessage {
