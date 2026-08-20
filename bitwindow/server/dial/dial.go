@@ -254,8 +254,9 @@ func getSharedClient(ctx context.Context) *http.Client {
 		sharedClient = &http.Client{
 			Transport: &http2.Transport{
 				AllowHTTP: true,
-				DialTLS: func(network, addr string, _ *tls.Config) (net.Conn, error) {
-					return net.Dial(network, addr)
+				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+					var dialer net.Dialer
+					return dialer.DialContext(ctx, network, addr)
 				},
 				// Without explicit timeouts here, clients linger indefinitely
 				IdleConnTimeout:  15 * time.Second,
