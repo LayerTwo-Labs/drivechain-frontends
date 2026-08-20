@@ -60,6 +60,7 @@ class _WalletPickerState extends State<WalletPicker> {
       return;
     }
     final rpc = GetIt.I<OrchestratorRPC>().wallet;
+    final fresh = <String, int>{};
     for (final wallet in _wallets) {
       final int sats;
       try {
@@ -68,11 +69,21 @@ class _WalletPickerState extends State<WalletPicker> {
         // One unreadable wallet must not blank the balance of the others.
         continue;
       }
-      if (!mounted || _balanceSats[wallet.id] == sats) {
-        continue;
+      // The picker went away mid-read, so the rest of the wallets are nobody's
+      // to fetch. Carrying on keeps calling for a widget that is gone.
+      if (!mounted) {
+        return;
       }
-      setState(() => _balanceSats[wallet.id] = sats);
+      if (_balanceSats[wallet.id] != sats) {
+        fresh[wallet.id] = sats;
+      }
     }
+    if (fresh.isEmpty) {
+      return;
+    }
+    // One rebuild for the whole refresh. A setState per wallet rebuilt the
+    // picker once for every funding wallet, every fifteen seconds.
+    setState(() => _balanceSats.addAll(fresh));
   }
 
   @override
