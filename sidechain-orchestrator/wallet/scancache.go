@@ -325,6 +325,24 @@ func (s *Service) deleteElectrumScan(walletID string) {
 	}
 }
 
+// ClearNetworkScans drops every wallet's stored scan on one network. The eCash
+// networks share a network key, so a move between two of them keeps the same
+// key while the chain underneath changes — and a cold read would serve the
+// retired fork's balances, transactions and UTXOs without a chain call.
+func (s *Service) ClearNetworkScans(network string) {
+	db := s.db()
+	if db == nil || network == "" {
+		return
+	}
+	ctx := context.Background()
+	for _, table := range electrumScanTables {
+		if _, err := db.ExecContext(ctx, "DELETE FROM "+table+" WHERE network = ?", network); err != nil {
+			s.log.Warn().Err(err).Str("table", table).Str("network", network).
+				Msg("clear network electrum scans failed")
+		}
+	}
+}
+
 // wipeElectrumScans clears every wallet's stored scan, used on a full reset.
 func (s *Service) wipeElectrumScans() {
 	db := s.db()

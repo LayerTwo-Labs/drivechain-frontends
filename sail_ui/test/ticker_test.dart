@@ -3,9 +3,9 @@ import 'package:sail_ui/sail_ui.dart';
 
 void main() {
   group('tickerForNetwork', () {
-    test('forknet and drynet are eCash', () {
+    test('forknet and eCash are eCash', () {
       expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_FORKNET), Ticker.ecash);
-      expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_DRYNET), Ticker.ecash);
+      expect(tickerForNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH), Ticker.ecash);
     });
 
     test('every other network is Bitcoin', () {

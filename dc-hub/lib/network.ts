@@ -2,7 +2,7 @@
 //
 // The source of truth is https://drivechain.dev/config: a catalog of every
 // network we operate, with the services deployed on each. The NETWORK env
-// var (e.g. `docker run -e NETWORK=drynet3`) selects which entry applies to
+// var (e.g. `docker run -e NETWORK=alphanet`) selects which entry applies to
 // this deployment — see lib/config.ts for the server-side fetch. Client
 // components receive the resolved entry through <NetworkProvider>/useNetwork().
 //
@@ -109,7 +109,7 @@ export interface DrivechainConfig {
   networks: NetworkConfig[];
 }
 
-/** Whether this deployment has a faucet. Networks without one (drynets:
+/** Whether this deployment has a faucet. Networks without one (the eCash networks:
  * coins come from mining) land on the sidechains overview instead. */
 export function faucetEnabled(net: NetworkConfig): boolean {
   return net.services.faucet.url !== null;

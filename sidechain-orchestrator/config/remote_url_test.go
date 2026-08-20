@@ -12,7 +12,7 @@ func TestRemoteOrchestratorURLForHostedNetworks(t *testing.T) {
 }
 
 func TestRemoteURLsEmptyForUnhostedNetworks(t *testing.T) {
-	for _, n := range []Network{NetworkRegtest, NetworkTestnet, NetworkDrynet} {
+	for _, n := range []Network{NetworkRegtest, NetworkTestnet, NetworkECash} {
 		if got := RemoteOrchestratorURLForNetwork(n); got != "" {
 			t.Errorf("RemoteOrchestratorURLForNetwork(%s) = %q, want empty", n, got)
 		}
@@ -23,12 +23,12 @@ func TestRemoteURLsEmptyForUnhostedNetworks(t *testing.T) {
 }
 
 func TestElectrumWalletSupportedNeedsOnlyEsplora(t *testing.T) {
-	// Mainnet and drynet run electrum wallet-only: they have Esplora but no
+	// Mainnet and eCash run electrum wallet-only: they have Esplora but no
 	// hosted orchestrator, so the wallet works while drivechain reads are gated off.
 	wallet := map[Network]bool{
 		NetworkSignet:  true,
 		NetworkForknet: true,
-		NetworkDrynet:  true,
+		NetworkECash:   true,
 		NetworkMainnet: true,
 		NetworkTestnet: false,
 		NetworkRegtest: false,

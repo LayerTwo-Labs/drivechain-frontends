@@ -8,10 +8,10 @@ import (
 )
 
 // Networks with no hosted explorer must not dial a hostname that has never
-// existed. Drynet is the case that matters: its infrastructure lives on
+// existed. ECash is the case that matters: its infrastructure lives on
 // drivechain.dev under a per-generation host and publishes no tip endpoint.
 func TestExplorerHeightsSkipsNetworksWithoutHostedInfra(t *testing.T) {
-	for _, network := range []string{"drynet", "mainnet", "regtest", "testnet"} {
+	for _, network := range []string{"ecash", "mainnet", "regtest", "testnet"} {
 		t.Run(network, func(t *testing.T) {
 			c := &explorerHeightsConnection{o: &Orchestrator{Network: network}}
 			_, err := c.Fetch(t.Context())

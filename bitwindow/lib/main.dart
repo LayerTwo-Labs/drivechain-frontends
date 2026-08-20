@@ -35,7 +35,7 @@ import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
-import 'package:bitwindow/widgets/drynet_upgrade_banner.dart';
+import 'package:bitwindow/widgets/ecash_upgrade_banner.dart';
 import 'package:bitwindow/widgets/converter_window.dart';
 import 'package:bitwindow/widgets/hash_calculator_modal.dart';
 // App shell needs MaterialApp + ThemeData; Colors/Scaffold serve the
@@ -176,7 +176,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<PriceProvider>(() => PriceProvider());
   GetIt.I.registerLazySingleton<NotificationProvider>(() => NotificationProvider());
   GetIt.I.registerLazySingleton<NotificationActions>(
-    () => const NotificationActions({drynetUpgradeAction: openDrynetUpgrade}),
+    () => const NotificationActions({ecashUpgradeAction: openECashUpgrade}),
   );
 
   // Load chains config from JSON (copies seed from assets if missing)
@@ -213,7 +213,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   );
   GetIt.I.registerSingleton<OrchestratorRPC>(orchestrator);
   // Eager, and after the orchestrator it polls: nothing ever resolves it.
-  GetIt.I.registerSingleton<DrynetUpgradeWatcher>(DrynetUpgradeWatcher());
+  GetIt.I.registerSingleton<ECashUpgradeWatcher>(ECashUpgradeWatcher());
   final backendStateProvider = BackendStateProvider(orchestrator);
   GetIt.I.registerSingleton<BackendStateProvider>(backendStateProvider);
 
@@ -225,8 +225,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   // bitwindow applies the swap through bitwindowd so it recycles its
   // per-network database in the same step.
-  bitcoinConfProvider.networkSwapper = (network, dataDir) =>
-      bitwindow.bitwindowd.updateNetwork(network, dataDir: dataDir);
+  bitcoinConfProvider.networkSwapper = (network, dataDir, networkId) =>
+      bitwindow.bitwindowd.updateNetwork(network, dataDir: dataDir, networkId: networkId);
 
   // now register all sidedchains
   GetIt.I.registerSingleton<BitAssetsRPC>(BitAssetsLive());

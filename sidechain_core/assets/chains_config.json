@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 10,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -82,16 +82,16 @@
             },
             "available_networks": ["forknet"]
           },
-          "drynet": {
-            "subfolder": "{drynet}",
+          "ecash": {
+            "subfolder": "{ecash}",
             "base_url": "https://releases.drivechain.info/",
             "files": {
-              "linux-x86_64": "L1-ecash-bitcoin-{drynet}-x86_64-unknown-linux-gnu.zip",
-              "macos-x86_64": "L1-ecash-bitcoin-{drynet}-x86_64-apple-darwin.zip",
-              "macos-arm64": "L1-ecash-bitcoin-{drynet}-aarch64-apple-darwin.zip",
-              "windows-x86_64": "L1-ecash-bitcoin-{drynet}-x86_64-w64-msvc.zip"
+              "linux-x86_64": "L1-ecash-bitcoin-{ecash}-x86_64-unknown-linux-gnu.zip",
+              "macos-x86_64": "L1-ecash-bitcoin-{ecash}-x86_64-apple-darwin.zip",
+              "macos-arm64": "L1-ecash-bitcoin-{ecash}-aarch64-apple-darwin.zip",
+              "windows-x86_64": "L1-ecash-bitcoin-{ecash}-x86_64-w64-msvc.zip"
             },
-            "available_networks": ["drynet"]
+            "available_networks": ["ecash"]
           },
           "knots": {
             "subfolder": "knots",

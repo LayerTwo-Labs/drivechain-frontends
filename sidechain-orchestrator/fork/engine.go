@@ -33,15 +33,15 @@ func ForkHeightFor(network string) int {
 // package so the engine imports nothing app-specific (no import cycle, easy to
 // fake in tests).
 type Tip struct {
-	// Network is the drivechain network, not Core's chain: drynet and forknet
+	// Network is the drivechain network, not Core's chain: eCash and forknet
 	// are both chain=main, so Core cannot tell them apart.
 	Network string
 	Blocks  int
 	Headers int
 	// ForkHeight is the height published for this network, 0 when none is.
-	// The catalog carries it so a new drynet needs no release.
+	// The catalog carries it so a new eCash needs no release.
 	ForkHeight int
-	// DisplayName names the fork that is coming ("Drynet 4"), so a rehearsal is
+	// DisplayName names the fork that is coming ("ECash 4"), so a rehearsal is
 	// never mistaken for the real eCash fork.
 	DisplayName string
 }
@@ -109,7 +109,7 @@ type ForkState struct {
 	HasFundsToClaim bool
 	ShowCountdown   bool
 	Claims          []WalletClaim
-	// NetworkName names the fork being counted down to ("Drynet 4"), so a
+	// NetworkName names the fork being counted down to ("ECash 4"), so a
 	// rehearsal never reads as the real eCash fork.
 	NetworkName string
 }

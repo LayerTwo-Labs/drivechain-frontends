@@ -81,7 +81,7 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:    "network",
-				Usage:   "bitcoin network (mainnet, testnet, signet, regtest, forknet, drynet)",
+				Usage:   "bitcoin network (mainnet, testnet, signet, regtest, forknet, ecash)",
 				Value:   defaultNetwork,
 				EnvVars: []string{"ORCHESTRATOR_NETWORK"},
 			},
@@ -263,7 +263,7 @@ func run(cctx *cli.Context) error {
 		log.Warn().Err(err).Msg("adopt orphans")
 	}
 
-	// Strictly after AdoptOrphans: a drynet generation rollover wipes chain
+	// Strictly after AdoptOrphans: a eCash network rollover wipes chain
 	// data, and it decides whether that is safe by asking whether bitcoind is
 	// running. Before adoption the process manager is empty, so a Core still
 	// alive from the previous session would look stopped and have its blocks

@@ -14,7 +14,7 @@ const bitcoinConfVersionCommentPrefix = "# bitwindow-bitcoin-conf-version="
 //
 //	# bitwindow-datadir-default=/path/for/default/group
 //	# bitwindow-datadir-forknet=/path/for/forknet
-//	# bitwindow-datadir-drynet=/path/for/drynet
+//	# bitwindow-datadir-ecash=/path/for/ecash
 //
 // bitcoind ignores comment lines, so these are invisible to it but
 // authoritative for the orchestrator on the next group swap.
@@ -82,8 +82,14 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 			rest := trimmed[len(datadirSlotCommentPrefix):]
 			if eq := strings.Index(rest, "="); eq > 0 {
 				group := DatadirGroup(strings.TrimSpace(rest[:eq]))
+				// The eCash slot went out as "drynet". It is read, never
+				// written: dropping it makes an upgraded install ask for a
+				// directory it already holds a chain in.
+				if group == legacyECashDatadirGroup {
+					group = DatadirGroupECash
+				}
 				path := strings.TrimSpace(rest[eq+1:])
-				if group == DatadirGroupDefault || group == DatadirGroupForknet || group == DatadirGroupDrynet {
+				if group == DatadirGroupDefault || group == DatadirGroupForknet || group == DatadirGroupECash {
 					config.DatadirSlots[group] = path
 				}
 			}
@@ -138,7 +144,7 @@ func (c *BitcoinConfig) Serialize() string {
 	// byte-stable. Always emit both groups when either has a value, to keep
 	// hand-editing predictable.
 	if len(c.DatadirSlots) > 0 {
-		groupOrder := []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupDrynet}
+		groupOrder := []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupECash}
 		anyEmitted := false
 		for _, g := range groupOrder {
 			if v, ok := c.DatadirSlots[g]; ok && v != "" {

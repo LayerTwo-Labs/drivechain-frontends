@@ -721,15 +721,15 @@ func binaryPathFor(cctx *cli.Context, dataDir, name string) string {
 		orchestrator.LoadConfigFile(orchestrator.ConfigFilePath(bitwindowDir), zerolog.Nop()),
 		name,
 		network,
-		servedDrynetGeneration(cctx, bitwindowDir),
+		servedECashNetwork(cctx, bitwindowDir),
 	)
 }
 
-// servedDrynetGeneration returns the drynet generation the daemon runs. Do not
+// servedECashNetwork returns the eCash network the daemon runs. Do not
 // read the catalog cache instead: the confirm writes a new generation there
 // before the restart that starts to use it, so a path from the cache names a
 // build no process runs, and `wipe` deletes that one while the live build stays.
-func servedDrynetGeneration(cctx *cli.Context, bitwindowDir string) string {
+func servedECashNetwork(cctx *cli.Context, bitwindowDir string) string {
 	// A path lookup must not wait forever on an address that never answers.
 	ctx, cancel := context.WithTimeout(cctx.Context, 2*time.Second)
 	defer cancel()
@@ -738,12 +738,12 @@ func servedDrynetGeneration(cctx *cli.Context, bitwindowDir string) string {
 		ctx, connect.NewRequest(&pb.GetPendingNetworkGenerationRequest{}),
 	)
 	if err == nil {
-		return resp.Msg.CurrentGeneration
+		return resp.Msg.CurrentNetworkId
 	}
 	// No daemon answers, so no process serves an older generation. The cached
 	// one is what the next start uses.
 	c, _ := netcatalog.Load(bitwindowDir)
-	return c.DrynetID()
+	return c.ECashID()
 }
 
 func extractVersion(s string) string {

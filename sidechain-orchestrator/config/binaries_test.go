@@ -64,8 +64,8 @@ func TestBitcoinCoreForknetPath(t *testing.T) {
 	}
 }
 
-func TestBitcoinCoreDrynetPath(t *testing.T) {
-	p := BitcoinCoreDirs.RootDirNetwork(NetworkDrynet)
+func TestBitcoinCoreECashPath(t *testing.T) {
+	p := BitcoinCoreDirs.RootDirNetwork(NetworkECash)
 	var want string
 	switch runtime.GOOS {
 	case "darwin":
@@ -76,7 +76,7 @@ func TestBitcoinCoreDrynetPath(t *testing.T) {
 		want = filepath.Join(home(), ".ecash")
 	}
 	if p != want {
-		t.Errorf("BitcoinCore drynet path = %q, want %q", p, want)
+		t.Errorf("BitcoinCore eCash path = %q, want %q", p, want)
 	}
 }
 

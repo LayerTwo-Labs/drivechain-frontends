@@ -32,7 +32,7 @@ type SnapshotSource struct {
 	// Label names the source in logs and progress messages.
 	Label string
 	// Requested marks a snapshot the user explicitly asked for. Those failures
-	// are reported as errors; the automatic drynet one stays non-fatal and
+	// are reported as errors; the automatic eCash one stays non-fatal and
 	// falls back to a normal sync.
 	Requested bool
 }
@@ -141,12 +141,24 @@ func (o *Orchestrator) autoSnapshotSource(_ context.Context) (*SnapshotSource, e
 func (o *Orchestrator) publishedSnapshot() *netcatalog.AssumeUTXO {
 	o.mu.RLock()
 	cat := o.Catalog
+	ecashID := o.ecashID
 	o.mu.RUnlock()
-	entry, ok := catalogEntryForNetwork(cat, config.NetworkFromString(o.Network))
+	entry, ok := o.catalogEntryForRunningNetwork(cat, ecashID)
 	if !ok {
 		return nil
 	}
 	return entry.AssumeUTXO
+}
+
+// catalogEntryForRunningNetwork returns the entry this install runs. The eCash
+// rows share one network, so document order names the wrong one whenever the
+// user picked a row the catalog does not list first.
+func (o *Orchestrator) catalogEntryForRunningNetwork(cat netcatalog.Catalog, ecashID string) (netcatalog.Network, bool) {
+	network := config.NetworkFromString(o.Network)
+	if network == config.NetworkECash && ecashID != "" {
+		return cat.ByID(ecashID)
+	}
+	return catalogEntryForNetwork(cat, network)
 }
 
 // SnapshotStatus reports the snapshot published for the active network and the

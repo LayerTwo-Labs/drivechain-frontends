@@ -19,6 +19,11 @@ type fakeCore struct {
 	methods []string
 	// params records the argument each call carried, in call order.
 	params []string
+	// reconsiderNo makes reconsiderblock fail for a transient reason.
+	reconsiderNo bool
+	// reconsiderUnknown makes reconsiderblock report that Core holds no such
+	// block, which is what a wiped datadir looks like.
+	reconsiderUnknown bool
 }
 
 func (f *fakeCore) start(t *testing.T) *CoreStatusClient {
@@ -76,7 +81,17 @@ func (f *fakeCore) start(t *testing.T) *CoreStatusClient {
 			}
 			result = fmt.Sprintf(`{"height":%d,"confirmations":%d,"previousblockhash":%q}`,
 				header.Height, header.Confirmations, header.PreviousBlockHash)
-		case "invalidateblock", "reconsiderblock":
+		case "reconsiderblock":
+			if f.reconsiderUnknown {
+				http.Error(w, `{"result":null,"error":{"code":-5,"message":"Block not found"}}`, http.StatusOK)
+				return
+			}
+			if f.reconsiderNo {
+				http.Error(w, `{"result":null,"error":{"code":-8,"message":"busy"}}`, http.StatusOK)
+				return
+			}
+			result = "null"
+		case "invalidateblock":
 			result = "null"
 		default:
 			t.Errorf("unexpected rpc method %q", req.Method)
@@ -122,7 +137,7 @@ func TestRejectBlockInvalidatesTheNamedHash(t *testing.T) {
 	}
 }
 
-// Regression: two blocks shared height 979001 on drynet. Rejecting one let
+// Regression: two blocks shared height 979001 on eCash. Rejecting one let
 // Core re-org to its sibling at the same height, and the caller has to be told
 // that the chain moved sideways rather than down.
 func TestRejectBlockReportsASiblingBranch(t *testing.T) {

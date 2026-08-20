@@ -361,7 +361,7 @@ class BitwindowRPCLive extends BitwindowRPC {
 abstract class BitwindowAPI {
   Future<void> stop({bool skipDownstream = false});
 
-  // CPU mining (drynet only)
+  // CPU mining (eCash only)
   Future<void> startMining();
   Future<void> stopMining();
   Future<GetMiningStatusResponse> getMiningStatus();
@@ -408,7 +408,7 @@ abstract class BitwindowAPI {
 
   /// Swap bitcoind network. bitwindowd forwards to orchestratord and exits
   /// for a launcher restart so the DB rescopes to the new network folder.
-  Future<void> updateNetwork(String network, {String dataDir});
+  Future<void> updateNetwork(String network, {String dataDir, String networkId});
 }
 
 class _BitwindowAPILive implements BitwindowAPI {
@@ -600,9 +600,11 @@ class _BitwindowAPILive implements BitwindowAPI {
   }
 
   @override
-  Future<void> updateNetwork(String network, {String dataDir = ''}) async {
+  Future<void> updateNetwork(String network, {String dataDir = '', String networkId = ''}) async {
     try {
-      await _client.updateNetwork(UpdateNetworkRequest(network: network, dataDir: dataDir));
+      await _client.updateNetwork(
+        UpdateNetworkRequest(network: network, dataDir: dataDir, networkId: networkId),
+      );
     } catch (e) {
       throw BitwindowException('could not update network: ${extractConnectException(e)}');
     }

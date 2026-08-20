@@ -470,29 +470,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                         endWidget: SailRow(
                           spacing: SailStyleValues.padding08,
                           children: [
-                            SailDropdownButton<BitcoinNetwork>(
-                              value: _confProvider.network,
+                            SailDropdownButton<String>(
+                              value: _confProvider.currentDrivechainOptionId,
                               items: [
-                                SailDropdownItem<BitcoinNetwork>(
-                                  value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                                  label: 'Forknet',
-                                ),
-                                SailDropdownItem<BitcoinNetwork>(
-                                  value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
-                                  label: 'Drynet',
-                                ),
-                                SailDropdownItem<BitcoinNetwork>(
-                                  value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                                  label: 'Signet',
-                                ),
-                                SailDropdownItem<BitcoinNetwork>(
-                                  value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
-                                  label: 'Regtest',
-                                ),
+                                for (final option in _confProvider.drivechainNetworkOptions)
+                                  SailDropdownItem<String>(value: option.id, label: option.displayName),
                               ],
-                              onChanged: (BitcoinNetwork? network) async {
-                                if (network == null || _confProvider.hasPrivateBitcoinConf) return;
-                                await _confProvider.swapNetwork(context, network);
+                              onChanged: (String? id) async {
+                                if (id == null || _confProvider.hasPrivateBitcoinConf) return;
+                                await _confProvider.swapNetworkById(context, id);
                               },
                             ),
                             SailButton(

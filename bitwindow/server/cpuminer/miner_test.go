@@ -20,7 +20,7 @@ const (
 	testSegwitTxWtxid = "477de8c407b707dd36b70d8759558f62c7842e862b8dbc97fc7750e3012a8219"
 )
 
-// Regression test for the July 2026 drynet outage: GBT `rules` entries carry
+// Regression test for the July 2026 eCash outage: GBT `rules` entries carry
 // a "!" prefix when the rule is mandatory, so segwit arrives as "!segwit"
 // (Bitcoin Core and the enforcer both emit that). The miner used to match
 // only the literal "segwit", treated such templates as pre-segwit, and hashed

@@ -70,7 +70,7 @@ We support safe harbor for researchers who:
 - Make a good-faith effort to avoid privacy violations, data destruction, and
   interruption or degradation of any service.
 - Test only against their own wallets, their own funds, and their own nodes.
-  Signet, regtest, and drynet exist for exactly this — use them rather than
+  Signet, regtest, and eCash exist for exactly this — use them rather than
   mainnet.
 - Stop at the first sign of someone else's personal information, tell us, and
   purge any copy they made.
@@ -107,7 +107,7 @@ a genuine, high-impact vulnerability, decided case by case.
 Include:
 
 - The version or commit, the operating system, and the network (mainnet,
-  signet, drynet, regtest).
+  signet, ecash, regtest).
 - Reproduction steps precise enough for us to follow without guessing, and a
   proof of concept where one is possible.
 - What an attacker gains, and what they need in order to get it.

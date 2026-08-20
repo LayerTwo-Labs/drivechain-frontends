@@ -59,19 +59,19 @@ func (n *networkVar) resolve() ChainTarget {
 }
 
 // TestNetworkChainSource_FollowsNetworkSwap is the regression for a wallet
-// swapped drynet -> mainnet still reading drynet's Esplora, so balances read 0.
+// swapped eCash -> mainnet still reading eCash's Esplora, so balances read 0.
 func TestNetworkChainSource_FollowsNetworkSwap(t *testing.T) {
-	drynet := newEsploraStub(t, 111)
+	ecash := newEsploraStub(t, 111)
 	mainnet := newEsploraStub(t, 222)
 
 	nv := &networkVar{
-		network: "drynet",
+		network: "ecash",
 		urls: map[string][]string{
-			"drynet":  {drynet.URL},
+			"ecash":   {ecash.URL},
 			"mainnet": {mainnet.URL},
 		},
 		params: map[string]*chaincfg.Params{
-			"drynet":  &chaincfg.MainNetParams,
+			"ecash":   &chaincfg.MainNetParams,
 			"mainnet": &chaincfg.MainNetParams,
 		},
 	}
@@ -82,8 +82,8 @@ func TestNetworkChainSource_FollowsNetworkSwap(t *testing.T) {
 
 	stats, err := src.AddressStats(ctx, "bc1qtest")
 	require.NoError(t, err)
-	assert.EqualValues(t, 111, stats.ChainStats.FundedTxoSum, "read must come from drynet before the swap")
-	assert.EqualValues(t, 1, drynet.hits.Load())
+	assert.EqualValues(t, 111, stats.ChainStats.FundedTxoSum, "read must come from eCash before the swap")
+	assert.EqualValues(t, 1, ecash.hits.Load())
 	assert.EqualValues(t, 0, mainnet.hits.Load())
 
 	nv.set("mainnet")
@@ -91,21 +91,21 @@ func TestNetworkChainSource_FollowsNetworkSwap(t *testing.T) {
 	stats, err = src.AddressStats(ctx, "bc1qtest")
 	require.NoError(t, err)
 	assert.EqualValues(t, 222, stats.ChainStats.FundedTxoSum, "read must follow the swap to mainnet")
-	assert.EqualValues(t, 1, drynet.hits.Load(), "drynet must not be queried after the swap")
+	assert.EqualValues(t, 1, ecash.hits.Load(), "eCash must not be queried after the swap")
 	assert.EqualValues(t, 1, mainnet.hits.Load())
 }
 
-// TestNetworkChainSource_SwitchesProtocolClass covers drynet (https Esplora) to
+// TestNetworkChainSource_SwitchesProtocolClass covers eCash (https Esplora) to
 // mainnet (ssl Electrum), where the scheme selects a different client.
 func TestNetworkChainSource_SwitchesProtocolClass(t *testing.T) {
 	nv := &networkVar{
-		network: "drynet",
+		network: "ecash",
 		urls: map[string][]string{
-			"drynet":  {"https://esplora.drynet3.drivechain.dev"},
+			"ecash":   {"https://esplora.drynet3.drivechain.dev"},
 			"mainnet": {"ssl://explorer.mainnet.drivechain.info:50002"},
 		},
 		params: map[string]*chaincfg.Params{
-			"drynet":  &chaincfg.MainNetParams,
+			"ecash":   &chaincfg.MainNetParams,
 			"mainnet": &chaincfg.MainNetParams,
 		},
 	}
@@ -116,25 +116,25 @@ func TestNetworkChainSource_SwitchesProtocolClass(t *testing.T) {
 	nv.set("mainnet")
 	assert.Equal(t, []string{"ssl://explorer.mainnet.drivechain.info:50002"}, src.BaseURLs())
 
-	nv.set("drynet")
+	nv.set("ecash")
 	assert.Equal(t, []string{"https://esplora.drynet3.drivechain.dev"}, src.BaseURLs())
 }
 
 // TestNetworkChainSource_DropsPinOnSwap covers a user-chosen endpoint: it must
 // not survive into a network it was never chosen for.
 func TestNetworkChainSource_DropsPinOnSwap(t *testing.T) {
-	drynet := newEsploraStub(t, 111)
+	ecash := newEsploraStub(t, 111)
 	mainnet := newEsploraStub(t, 222)
 	pinned := newEsploraStub(t, 333)
 
 	nv := &networkVar{
-		network: "drynet",
+		network: "ecash",
 		urls: map[string][]string{
-			"drynet":  {drynet.URL},
+			"ecash":   {ecash.URL},
 			"mainnet": {mainnet.URL},
 		},
 		params: map[string]*chaincfg.Params{
-			"drynet":  &chaincfg.MainNetParams,
+			"ecash":   &chaincfg.MainNetParams,
 			"mainnet": &chaincfg.MainNetParams,
 		},
 	}
@@ -154,11 +154,11 @@ func TestNetworkChainSource_DropsPinOnSwap(t *testing.T) {
 // TestNetworkChainSource_UnsupportedNetwork covers a network with no wallet
 // chain source: reads must error rather than serve the old network's data.
 func TestNetworkChainSource_UnsupportedNetwork(t *testing.T) {
-	drynet := newEsploraStub(t, 111)
+	ecash := newEsploraStub(t, 111)
 	nv := &networkVar{
-		network: "drynet",
-		urls:    map[string][]string{"drynet": {drynet.URL}, "regtest": nil},
-		params:  map[string]*chaincfg.Params{"drynet": &chaincfg.MainNetParams},
+		network: "ecash",
+		urls:    map[string][]string{"ecash": {ecash.URL}, "regtest": nil},
+		params:  map[string]*chaincfg.Params{"ecash": &chaincfg.MainNetParams},
 	}
 	src := NewNetworkChainSource(nv.resolve, zerolog.Nop())
 
@@ -170,18 +170,18 @@ func TestNetworkChainSource_UnsupportedNetwork(t *testing.T) {
 	_, err = src.AddressStats(context.Background(), "bc1qtest")
 	require.Error(t, err)
 	assert.False(t, src.Available())
-	assert.EqualValues(t, 1, drynet.hits.Load(), "must not fall back to the previous network")
+	assert.EqualValues(t, 1, ecash.hits.Load(), "must not fall back to the previous network")
 }
 
 // TestElectrumBackend_DropsCachesOnNetworkSwap covers per-wallet cached scans,
 // which would otherwise serve the old network's balance under the new one.
 func TestElectrumBackend_DropsCachesOnNetworkSwap(t *testing.T) {
-	drynet := newEsploraStub(t, 111)
+	ecash := newEsploraStub(t, 111)
 	mainnet := newEsploraStub(t, 222)
 	nv := &networkVar{
-		network: "drynet",
-		urls:    map[string][]string{"drynet": {drynet.URL}, "mainnet": {mainnet.URL}},
-		params:  map[string]*chaincfg.Params{"drynet": &chaincfg.MainNetParams, "mainnet": &chaincfg.MainNetParams},
+		network: "ecash",
+		urls:    map[string][]string{"ecash": {ecash.URL}, "mainnet": {mainnet.URL}},
+		params:  map[string]*chaincfg.Params{"ecash": &chaincfg.MainNetParams, "mainnet": &chaincfg.MainNetParams},
 	}
 	src := NewNetworkChainSource(nv.resolve, zerolog.Nop())
 	backend := NewElectrumBackend(nil, src, StaticParams(&chaincfg.MainNetParams), zerolog.Nop())
@@ -200,7 +200,7 @@ func TestElectrumBackend_DropsCachesOnNetworkSwap(t *testing.T) {
 
 	backend.mu.Lock()
 	defer backend.mu.Unlock()
-	assert.Empty(t, backend.warmScan, "cached scan from drynet must not survive the swap")
+	assert.Empty(t, backend.warmScan, "cached scan from eCash must not survive the swap")
 	assert.Empty(t, backend.warm)
 	assert.Empty(t, backend.tipAt)
 }

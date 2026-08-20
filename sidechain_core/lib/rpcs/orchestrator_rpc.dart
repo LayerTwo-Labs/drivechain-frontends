@@ -309,13 +309,13 @@ class OrchestratorRPC {
     return _unaryClient.getSnapshotStatus(GetSnapshotStatusRequest());
   }
 
-  /// The drynet generation published but not switched to yet, with the UTXO
-  /// snapshot it offers. An empty pendingGeneration means already current.
+  /// The eCash network published but not switched to yet, with the UTXO
+  /// snapshot it offers. An empty pendingNetworkId means already current.
   Future<GetPendingNetworkGenerationResponse> getPendingNetworkGeneration() {
     return _unaryClient.getPendingNetworkGeneration(GetPendingNetworkGenerationRequest());
   }
 
-  /// Record the go-ahead to switch to the published drynet generation. Applied
+  /// Record the go-ahead to switch to the published eCash network. Applied
   /// on the next backend start, which the caller is responsible for.
   Future<ConfirmPendingNetworkGenerationResponse> confirmPendingNetworkGeneration() {
     return _unaryClient.confirmPendingNetworkGeneration(ConfirmPendingNetworkGenerationRequest());

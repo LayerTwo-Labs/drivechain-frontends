@@ -106,7 +106,7 @@ type BitwindowdServiceClient interface {
 	// immediately. Pass skip_downstream=true to leave the orchestratord stack
 	// running (only bitwindowd dies).
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	// CPU mining, drynet only. Start/Stop control a backend-owned miner that
+	// CPU mining, eCash only. Start/Stop control a backend-owned miner that
 	// keeps running independent of any client; GetMiningStatus polls its stats.
 	StartMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
 	StopMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
@@ -424,7 +424,7 @@ type BitwindowdServiceHandler interface {
 	// immediately. Pass skip_downstream=true to leave the orchestratord stack
 	// running (only bitwindowd dies).
 	Stop(context.Context, *connect.Request[v1.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error)
-	// CPU mining, drynet only. Start/Stop control a backend-owned miner that
+	// CPU mining, eCash only. Start/Stop control a backend-owned miner that
 	// keeps running independent of any client; GetMiningStatus polls its stats.
 	StartMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)
 	StopMining(context.Context, *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error)

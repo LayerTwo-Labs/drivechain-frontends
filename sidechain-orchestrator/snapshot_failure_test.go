@@ -17,7 +17,7 @@ func TestRequestedSnapshotFailureCarriesTheError(t *testing.T) {
 		t.Error("a requested snapshot failure must carry the error")
 	}
 
-	// The automatic drynet snapshot falls back to a normal sync, which is a
+	// The automatic eCash snapshot falls back to a normal sync, which is a
 	// fine outcome and not something to report as a failure.
 	got = o.snapshotFailure(SnapshotSource{}, "unavailable", cause)
 	if got.Error != nil {

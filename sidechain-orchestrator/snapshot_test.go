@@ -8,7 +8,7 @@ import (
 )
 
 // The active network maps to its catalog entry, whose assumeutxo drives the
-// automatic load. Drynet matches by family; the rest by id.
+// automatic load. ECash matches by family; the rest by id.
 func TestCatalogEntryForNetwork(t *testing.T) {
 	// The newest ecash generation wins, whatever it is called and whatever order
 	// the catalog lists it in. The higher-numbered entry carries Height 99.
@@ -26,9 +26,9 @@ func TestCatalogEntryForNetwork(t *testing.T) {
 	if got, ok := catalogEntryForNetwork(cat, config.NetworkSignet); !ok || got.ID != "signet" {
 		t.Errorf("signet -> %q (ok=%v), want signet", got.ID, ok)
 	}
-	got, ok := catalogEntryForNetwork(cat, config.NetworkDrynet)
+	got, ok := catalogEntryForNetwork(cat, config.NetworkECash)
 	if !ok || got.AssumeUTXO.Height != newestHeight {
-		t.Errorf("drynet -> %+v (ok=%v), want the newest generation", got, ok)
+		t.Errorf("eCash -> %+v (ok=%v), want the newest generation", got, ok)
 	}
 	if _, ok := catalogEntryForNetwork(cat, config.NetworkForknet); ok {
 		t.Error("forknet has no catalog entry, want not found")

@@ -1195,7 +1195,7 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_INQUISITION:
         if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
             network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET) {
+            network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
           return baseDir;
         }
         return path.join(baseDir, network.toReadableNet());
@@ -1636,7 +1636,7 @@ BitcoinNetwork _networkFromJsonKey(String key) {
     'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
     'testnet' => BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
     'forknet' => BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-    'drynet' => BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
+    'ecash' => BitcoinNetwork.BITCOIN_NETWORK_ECASH,
     _ => BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED, // 'default' key handled separately
   };
 }
