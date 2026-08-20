@@ -30,7 +30,7 @@ func scanWithAddress(walletID, address string, sats int64) *persistedScan {
 	}
 }
 
-// Mainnet, forknet and drynet derive identical addresses, so a scan reachable
+// Mainnet, forknet and eCash derive identical addresses, so a scan reachable
 // from another network would report the previous chain's balance and UTXOs.
 func TestNetworkScopedScanIsolation(t *testing.T) {
 	dir := t.TempDir()
@@ -42,13 +42,13 @@ func TestNetworkScopedScanIsolation(t *testing.T) {
 	_, ok := svc.loadElectrumScan("signet", walletID)
 	require.True(t, ok, "scan must be persisted for the network it was taken on")
 
-	require.NoError(t, svc.RebindNetwork("drynet"))
-	require.Equal(t, "drynet", svc.Network())
+	require.NoError(t, svc.RebindNetwork("ecash"))
+	require.Equal(t, "ecash", svc.Network())
 
-	_, ok = svc.loadElectrumScan("drynet", walletID)
+	_, ok = svc.loadElectrumScan("ecash", walletID)
 	require.False(t, ok, "the previous network's scan must not be reachable")
 
-	_, _, ok = svc.firstUnusedAddress("drynet", walletID, ScriptNativeSegwit, false)
+	_, _, ok = svc.firstUnusedAddress("ecash", walletID, ScriptNativeSegwit, false)
 	require.False(t, ok, "the previous network's addresses must not be served")
 
 	require.FileExists(t, filepath.Join(dir, "electrum.db"))
@@ -61,7 +61,7 @@ func TestScanHistoryIsKeptPerNetwork(t *testing.T) {
 
 	const walletID = "wallet-1"
 	require.NoError(t, svc.saveElectrumScan("signet", walletID, scanWithAddress(walletID, "bc1qsignet", 100000), 900))
-	require.NoError(t, svc.saveElectrumScan("drynet", walletID, scanWithAddress(walletID, "bc1qdrynet", 250000), 40))
+	require.NoError(t, svc.saveElectrumScan("ecash", walletID, scanWithAddress(walletID, "bc1qdrynet", 250000), 40))
 
 	signet, ok := svc.loadElectrumScan("signet", walletID)
 	require.True(t, ok)
@@ -69,10 +69,10 @@ func TestScanHistoryIsKeptPerNetwork(t *testing.T) {
 	require.Equal(t, int64(100000), signet.Addrs[0].UTXOs[0].Value)
 	require.Equal(t, "status-bc1qsignet", signet.Addrs[0].Status)
 
-	drynet, ok := svc.loadElectrumScan("drynet", walletID)
+	eCash, ok := svc.loadElectrumScan("ecash", walletID)
 	require.True(t, ok)
-	require.Equal(t, "bc1qdrynet", drynet.Addrs[0].Address)
-	require.Equal(t, int64(250000), drynet.Addrs[0].UTXOs[0].Value)
+	require.Equal(t, "bc1qdrynet", eCash.Addrs[0].Address)
+	require.Equal(t, int64(250000), eCash.Addrs[0].UTXOs[0].Value)
 }
 
 func TestSyncCheckpointRoundTrip(t *testing.T) {
@@ -83,13 +83,13 @@ func TestSyncCheckpointRoundTrip(t *testing.T) {
 	require.False(t, ok, "no checkpoint before the first scan")
 
 	require.NoError(t, svc.saveElectrumScan("signet", walletID, scanWithAddress(walletID, "bc1qsignet", 1), 900))
-	require.NoError(t, svc.saveElectrumScan("drynet", walletID, scanWithAddress(walletID, "bc1qdrynet", 1), 40))
+	require.NoError(t, svc.saveElectrumScan("ecash", walletID, scanWithAddress(walletID, "bc1qdrynet", 1), 40))
 
 	tip, ok := svc.loadSyncCheckpoint("signet", walletID)
 	require.True(t, ok)
 	require.Equal(t, 900, tip)
 
-	tip, ok = svc.loadSyncCheckpoint("drynet", walletID)
+	tip, ok = svc.loadSyncCheckpoint("ecash", walletID)
 	require.True(t, ok)
 	require.Equal(t, 40, tip, "each chain resumes from its own height")
 }
@@ -100,13 +100,13 @@ func TestDeleteScanClearsEveryNetwork(t *testing.T) {
 
 	const walletID = "wallet-1"
 	require.NoError(t, svc.saveElectrumScan("signet", walletID, scanWithAddress(walletID, "bc1qsignet", 1), 900))
-	require.NoError(t, svc.saveElectrumScan("drynet", walletID, scanWithAddress(walletID, "bc1qdrynet", 1), 40))
+	require.NoError(t, svc.saveElectrumScan("ecash", walletID, scanWithAddress(walletID, "bc1qdrynet", 1), 40))
 
 	svc.deleteElectrumScan(walletID)
 
 	_, ok := svc.loadElectrumScan("signet", walletID)
 	require.False(t, ok)
-	_, ok = svc.loadElectrumScan("drynet", walletID)
+	_, ok = svc.loadElectrumScan("ecash", walletID)
 	require.False(t, ok)
 	_, ok = svc.loadSyncCheckpoint("signet", walletID)
 	require.False(t, ok)
@@ -124,4 +124,24 @@ func TestSaveScanReplacesPreviousRows(t *testing.T) {
 	require.True(t, ok)
 	require.Len(t, ps.Addrs, 1)
 	require.Equal(t, "bc1qnew", ps.Addrs[0].Address)
+}
+
+// The eCash networks share a network key, so a move between two of them keeps
+// the key while the chain underneath changes. A cold read would then serve the
+// retired fork's balances with no chain call to correct them.
+func TestClearNetworkScansDropsOneNetworkOnly(t *testing.T) {
+	svc := newScanCacheService(t, t.TempDir())
+	const walletID = "wallet-1"
+
+	require.NoError(t, svc.saveElectrumScan("ecash", walletID, scanWithAddress(walletID, "bc1qecash", 250000), 40))
+	require.NoError(t, svc.saveElectrumScan("signet", walletID, scanWithAddress(walletID, "tb1qsignet", 900), 40))
+
+	svc.ClearNetworkScans("ecash")
+
+	_, ok := svc.loadElectrumScan("ecash", walletID)
+	require.False(t, ok, "the retired fork's scan must go")
+
+	kept, ok := svc.loadElectrumScan("signet", walletID)
+	require.True(t, ok, "another network's scan is not this switch's to clear")
+	require.Equal(t, "tb1qsignet", kept.Addrs[0].Address)
 }

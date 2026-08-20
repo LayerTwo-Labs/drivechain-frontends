@@ -10,10 +10,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
-// The drynet rollover can fire while the user is on another network, so it
+// The eCash rollover can fire while the user is on another network, so it
 // must only touch data that is actually partitioned by network. Sidechains
 // keep a flat datadir shared across every network; wiping it here would
-// destroy signet's sidechain state during a drynet generation change.
+// destroy signet's sidechain state during a eCash network change.
 func TestRolloverWipeLeavesSidechainDataAlone(t *testing.T) {
 	datadir := t.TempDir()
 	blocks := filepath.Join(datadir, "blocks")
@@ -27,13 +27,13 @@ func TestRolloverWipeLeavesSidechainDataAlone(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config.WipeNetworkScopedChainDataSync(config.NetworkDrynet, datadir, zerolog.Nop())
+	config.WipeNetworkScopedChainDataSync(config.NetworkECash, datadir, zerolog.Nop())
 
 	if _, err := os.Stat(blocks); err == nil {
-		t.Error("drynet blocks should have been renamed aside")
+		t.Error("eCash blocks should have been renamed aside")
 	}
 	if _, err := os.Stat(sidechain); err != nil {
-		t.Errorf("sidechain data must survive a drynet generation change: %v", err)
+		t.Errorf("sidechain data must survive a eCash network change: %v", err)
 	}
 }
 
@@ -46,7 +46,7 @@ func TestRolloverWipesEnforcerChainButKeepsWallet(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 
 	root := config.EnforcerDirs.RootDir()
-	// drynet maps onto the "bitcoin" network name in the enforcer's layout.
+	// eCash maps onto the "bitcoin" network name in the enforcer's layout.
 	chain := filepath.Join(root, "validator", "bitcoin")
 	wallet := filepath.Join(root, "wallet", "bitcoin")
 	for _, d := range []string{chain, wallet} {
@@ -55,12 +55,12 @@ func TestRolloverWipesEnforcerChainButKeepsWallet(t *testing.T) {
 		}
 	}
 
-	config.WipeEnforcerChainDataSync(config.NetworkDrynet, zerolog.Nop())
+	config.WipeEnforcerChainDataSync(config.NetworkECash, zerolog.Nop())
 
 	if _, err := os.Stat(chain); err == nil {
 		t.Error("enforcer validator chain should have been renamed aside")
 	}
 	if _, err := os.Stat(wallet); err != nil {
-		t.Errorf("enforcer wallet must survive a drynet generation change: %v", err)
+		t.Errorf("enforcer wallet must survive a eCash network change: %v", err)
 	}
 }

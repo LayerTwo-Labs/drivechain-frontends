@@ -92,7 +92,7 @@ class _CpuMiningDialogState extends State<CpuMiningDialog> {
 
     return SailDialog(
       title: 'CPU Miner',
-      subtitle: 'Mine blocks on drynet with your own CPU',
+      subtitle: 'Mine blocks on eCash with your own CPU',
       error: _miningProvider.error,
       maxWidth: 600,
       withCloseButton: true,

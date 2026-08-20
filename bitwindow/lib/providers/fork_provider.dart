@@ -58,7 +58,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   bool simulated = false;
   int forkHeight = 0;
 
-  /// Name of the fork being counted down to ("Drynet 4"), from the published
+  /// Name of the fork being counted down to ("Alphanet"), from the published
   /// catalog. Empty until it resolves.
   String networkName = '';
   int currentHeight = 0;

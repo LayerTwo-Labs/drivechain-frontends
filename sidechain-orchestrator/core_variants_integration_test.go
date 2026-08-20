@@ -181,8 +181,8 @@ func TestIntegration_SetCoreVariant_RejectsIncompatibleNetwork(t *testing.T) {
 	defer srv.Close()
 
 	dataDir := t.TempDir()
-	o := newIntegrationOrchestrator(t, "drynet", srv.URL+"/", dataDir, t.TempDir())
-	// "core" is not available on drynet — must be rejected.
+	o := newIntegrationOrchestrator(t, "ecash", srv.URL+"/", dataDir, t.TempDir())
+	// "core" is not available on eCash — must be rejected.
 	err := o.SetCoreVariant(context.Background(), "core")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not available")
@@ -208,7 +208,7 @@ func TestIntegration_ListCoreVariants_FilterByNetwork(t *testing.T) {
 		want    []string
 	}{
 		{"mainnet", []string{"core", "patched", "knots"}},
-		{"drynet", []string{"patched"}},
+		{"ecash", []string{"patched"}},
 		{"signet", []string{"core", "patched", "knots"}},
 		{"testnet", []string{"core", "patched", "knots"}},
 		{"regtest", []string{"core", "patched", "knots"}},
@@ -222,8 +222,8 @@ func TestIntegration_ListCoreVariants_FilterByNetwork(t *testing.T) {
 	}
 }
 
-// User picks knots on signet, then relaunches the app on drynet. The
-// resolver must clamp to a drynet-compatible variant (patched) instead of
+// User picks knots on signet, then relaunches the app on eCash. The
+// resolver must clamp to a eCash-compatible variant (patched) instead of
 // honouring the persisted knots ID.
 func TestIntegration_VariantResolver_ClampsOnNetworkSwap(t *testing.T) {
 	srv := newVariantServer(t, &requestCount{})
@@ -238,14 +238,14 @@ func TestIntegration_VariantResolver_ClampsOnNetworkSwap(t *testing.T) {
 	// Persist the network swap to disk the way the UI does — bitwindow-
 	// bitcoin.conf is the source of truth on subsequent boots, the CLI
 	// flag only seeds first-boot defaults.
-	require.NoError(t, first.BitcoinConf.UpdateNetwork(config.NetworkDrynet))
+	require.NoError(t, first.BitcoinConf.UpdateNetwork(config.NetworkECash))
 
-	// Same data dirs; the new orchestrator picks up the persisted drynet.
+	// Same data dirs; the new orchestrator picks up the persisted eCash.
 	second := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 
 	v, ok := second.download.CoreVariant()
-	require.True(t, ok, "resolver must produce a variant on drynet")
-	assert.Equal(t, "patched", v.ID, "persisted knots is not drynet-compatible; must clamp to patched")
+	require.True(t, ok, "resolver must produce a variant on eCash")
+	assert.Equal(t, "patched", v.ID, "persisted knots is not eCash-compatible; must clamp to patched")
 
 	// Swap back to signet via the conf, then knots becomes valid again.
 	require.NoError(t, second.BitcoinConf.UpdateNetwork(config.NetworkSignet))
@@ -259,9 +259,9 @@ func TestIntegration_VariantResolver_FallbackWhenSettingsEmpty(t *testing.T) {
 	srv := newVariantServer(t, &requestCount{})
 	defer srv.Close()
 
-	o := newIntegrationOrchestrator(t, "drynet", srv.URL+"/", "", "")
+	o := newIntegrationOrchestrator(t, "ecash", srv.URL+"/", "", "")
 	v, ok := o.download.CoreVariant()
-	require.True(t, ok, "fresh drynet install must resolve to a variant")
+	require.True(t, ok, "fresh eCash install must resolve to a variant")
 	assert.Equal(t, "patched", v.ID)
 }
 
@@ -448,8 +448,8 @@ func TestIntegration_ListCoreVariants_ClampsActiveOnNetworkMismatch(t *testing.T
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()
 
-	// Persist a drynet-only variant, then load orchestrator on signet.
-	// "core" is not available on drynet, but it IS valid on signet, so use
+	// Persist a eCash-only variant, then load orchestrator on signet.
+	// "core" is not available on eCash, but it IS valid on signet, so use
 	// it inverse here: persist an unknown id to simulate a mismatch.
 	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "stale-id"}))
 	o := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
@@ -502,11 +502,11 @@ func TestIntegration_ActiveCoreBinaryPath(t *testing.T) {
 	assert.Equal(t, CoreBinaryPath(dataDir, variants[DefaultCoreVariantID], "bitcoind"),
 		ActiveCoreBinaryPath(dataDir, bwDir, configs, "bitcoind", "signet", "drynet4"))
 
-	// The network clamps the persisted variant: knots is not on drynet, so the
-	// path must be the one drynet actually boots.
+	// The network clamps the persisted variant: knots is not on eCash, so the
+	// path must be the one eCash actually boots.
 	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "knots"}))
 	assert.Equal(t, CoreBinaryPath(dataDir, variants["patched"], "bitcoind"),
-		ActiveCoreBinaryPath(dataDir, bwDir, configs, "bitcoind", "drynet", "drynet4"))
+		ActiveCoreBinaryPath(dataDir, bwDir, configs, "bitcoind", "ecash", "drynet4"))
 
 	// Non-bitcoind binaries always use the flat layout.
 	other := ActiveCoreBinaryPath(dataDir, bwDir, configs, "enforcer", "signet", "drynet4")
@@ -514,7 +514,7 @@ func TestIntegration_ActiveCoreBinaryPath(t *testing.T) {
 }
 
 // Status must report the build the launcher boots. The persisted variant is
-// not available on drynet, so status has to follow the same clamp the process
+// not available on eCash, so status has to follow the same clamp the process
 // manager applies, not the raw settings value.
 func TestIntegration_Status_FollowsNetworkClamp(t *testing.T) {
 	srv := newVariantServer(t, &requestCount{})
@@ -525,12 +525,12 @@ func TestIntegration_Status_FollowsNetworkClamp(t *testing.T) {
 
 	first := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
 	require.NoError(t, first.SetCoreVariant(context.Background(), "knots"))
-	require.NoError(t, first.BitcoinConf.UpdateNetwork(config.NetworkDrynet))
+	require.NoError(t, first.BitcoinConf.UpdateNetwork(config.NetworkECash))
 
 	second := newIntegrationOrchestrator(t, "signet", srv.URL+"/", dataDir, bwDir)
-	require.Equal(t, string(config.NetworkDrynet), second.CurrentNetwork())
+	require.Equal(t, string(config.NetworkECash), second.CurrentNetwork())
 
-	// The knots build is on disk, but drynet does not boot it.
+	// The knots build is on disk, but eCash does not boot it.
 	assert.False(t, second.Status("bitcoind").Downloaded,
 		"a variant the network never boots must not read as downloaded")
 
@@ -548,33 +548,33 @@ func TestIntegration_Status_FollowsNetworkClamp(t *testing.T) {
 	assert.Equal(t, CoreBinaryPath(dataDir, patched, "bitcoind"), st.BinaryPath)
 }
 
-// The CLI resolves a drynet path from the generation it is given, so the
+// The CLI resolves a eCash path from the generation it is given, so the
 // subfolder carries that generation instead of the raw placeholder.
-func TestIntegration_ActiveCoreBinaryPath_ExpandsDrynetPlaceholder(t *testing.T) {
+func TestIntegration_ActiveCoreBinaryPath_ExpandsECashPlaceholder(t *testing.T) {
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()
 
 	cfg := makeBitcoindCoreConfig("http://unused/")
-	cfg.Variants["drynet"] = CoreVariantSpec{
-		ID:                "drynet",
-		Subfolder:         "{drynet}",
+	cfg.Variants["ecash"] = CoreVariantSpec{
+		ID:                "ecash",
+		Subfolder:         "{ecash}",
 		BaseURL:           "http://unused/",
-		Files:             map[string]string{currentPlatform(): "L1-ecash-bitcoin-{drynet}.zip"},
-		AvailableNetworks: []string{"drynet"},
+		Files:             map[string]string{currentPlatform(): "L1-ecash-bitcoin-{ecash}.zip"},
+		AvailableNetworks: []string{"ecash"},
 	}
-	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "drynet"}))
+	require.NoError(t, SaveSettings(bwDir, OrchestratorSettings{CoreVariant: "ecash"}))
 
 	assert.Equal(t, filepath.Join(BinDir(dataDir), "drynet4", "bitcoind"),
-		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "drynet", "drynet4"))
+		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "ecash", "drynet4"))
 
 	// The daemon keeps its generation until it restarts, and the confirm
 	// writes the next one to the cache at once. The path must follow the
 	// daemon, or `wipe bitcoind` deletes a build no process runs.
-	require.NoError(t, netcatalog.Save(bwDir, catalogWithDrynet(t, "drynet5")))
+	require.NoError(t, netcatalog.Save(bwDir, catalogWithECash(t, "drynet5")))
 	assert.Equal(t, filepath.Join(BinDir(dataDir), "drynet4", "bitcoind"),
-		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "drynet", "drynet4"))
+		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "ecash", "drynet4"))
 
 	// No generation must never leave the placeholder in the path.
-	assert.Equal(t, filepath.Join(BinDir(dataDir), netcatalog.EmbeddedDrynetID(), "bitcoind"),
-		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "drynet", ""))
+	assert.Equal(t, filepath.Join(BinDir(dataDir), netcatalog.EmbeddedECashID(), "bitcoind"),
+		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "ecash", ""))
 }

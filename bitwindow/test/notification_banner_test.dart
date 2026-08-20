@@ -37,20 +37,20 @@ void main() {
   group('NotificationItem persistence', () {
     test('round-trips the banner fields', () {
       final item = NotificationItem(
-        id: 'drynet-upgrade-drynet3',
+        id: 'ecash-upgrade-drynet3',
         title: 'drynet3 is out',
         content: 'Switch over →',
         dialogType: DialogType.info,
         timestamp: DateTime.now(),
         style: NotificationStyle.banner,
-        action: 'drynet_upgrade',
+        action: 'ecash_upgrade',
         read: true,
       );
 
       final restored = NotificationItem.fromMap(item.toMap());
 
       expect(restored.style, NotificationStyle.banner);
-      expect(restored.action, 'drynet_upgrade');
+      expect(restored.action, 'ecash_upgrade');
       expect(restored.read, isTrue);
       expect(restored.id, item.id);
     });
@@ -94,13 +94,13 @@ void main() {
 
     test('a banner dismissed before restart stays dismissed', () async {
       final p = await freshProvider();
-      addBanner(p, 'drynet-upgrade-drynet3', 'drynet3 is out');
-      await p.markRead('drynet-upgrade-drynet3');
+      addBanner(p, 'ecash-upgrade-drynet3', 'drynet3 is out');
+      await p.markRead('ecash-upgrade-drynet3');
 
       // A fresh provider re-adds it from its 15s poll before the async history
       // load lands — the load must not resurrect it as unread.
       final restarted = NotificationProvider();
-      addBanner(restarted, 'drynet-upgrade-drynet3', 'drynet3 is out');
+      addBanner(restarted, 'ecash-upgrade-drynet3', 'drynet3 is out');
       await Future<void>.delayed(Duration.zero);
 
       expect(restarted.activeBanner, isNull);
@@ -117,10 +117,10 @@ void main() {
 
     test('re-adding the same id is a no-op, so polling cannot stack copies', () async {
       final p = await freshProvider();
-      addBanner(p, 'drynet-upgrade-drynet3', 'drynet3 is out');
-      addBanner(p, 'drynet-upgrade-drynet3', 'drynet3 is out');
+      addBanner(p, 'ecash-upgrade-drynet3', 'drynet3 is out');
+      addBanner(p, 'ecash-upgrade-drynet3', 'drynet3 is out');
 
-      expect(p.history.where((n) => n.id == 'drynet-upgrade-drynet3'), hasLength(1));
+      expect(p.history.where((n) => n.id == 'ecash-upgrade-drynet3'), hasLength(1));
     });
 
     test('a banner raises no toast', () async {

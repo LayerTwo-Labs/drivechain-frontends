@@ -126,7 +126,7 @@ type Orchestrator struct {
 	BitwindowDir string
 
 	// Catalog is the resolved network catalog (service endpoints, explorer
-	// templates, and the live drynet generation id).
+	// templates, and the live eCash network id).
 	Catalog netcatalog.Catalog
 
 	// rawConfigs holds the binary configs exactly as loaded, placeholders
@@ -138,9 +138,9 @@ type Orchestrator struct {
 	// up. Guarded by mu.
 	pendingSnapshot *SnapshotSource
 
-	// drynetID is the live drynet generation ("drynet2"). Guarded by mu; read
+	// ecashID is the live eCash network ("alphanet"). Guarded by mu; read
 	// by UpdateConfigs to expand the placeholder in freshly loaded configs.
-	drynetID string
+	ecashID string
 
 	// releases reports whether a newer build of each binary is published.
 	releases *ReleaseChecker
@@ -157,6 +157,11 @@ type Orchestrator struct {
 	// the enforcer wallet's UTXOs (set later, once the enforcer client exists).
 	forkEngine         *fork.Engine
 	forkEnforcerWallet enforcerrpc.WalletServiceClient
+
+	// clearedMark is the block an eCash rewind lifted the bar from, kept so a
+	// rollback can put that bar back. Guarded by swapNetworkMu, which every
+	// eCash switch holds.
+	clearedMark string
 
 	// walletEngine is reset on a network swap; nil in tests that don't wire it.
 	walletEngine *wallet.WalletEngine
@@ -523,7 +528,7 @@ func (o *Orchestrator) UpdateConfigs(configs []BinaryConfig) {
 	}
 	for _, c := range configs {
 		o.rawConfigs[c.Name] = c
-		o.configs[c.Name] = expandDrynetPlaceholder(c, o.drynetID)
+		o.configs[c.Name] = expandECashPlaceholder(c, o.ecashID)
 	}
 }
 
@@ -2999,7 +3004,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	// above). The local sidechain RPC only reports blocks it has indexed,
 	// which can't act as the goal — that has to be the network tip. The
 	// explorer is a best-effort UX extra: only signet has one today, so on
-	// mainnet/testnet/regtest/drynet the fetch always fails. When it does,
+	// mainnet/testnet/regtest/ecash the fetch always fails. When it does,
 	// leave Headers at zero. The previous behaviour set Headers=Blocks,
 	// which made progress = blocks/blocks = 1.0 and rendered every running
 	// sidechain as fully synced even mid-IBD — a far worse failure mode
@@ -3053,7 +3058,7 @@ const explorerCacheTTL = 30 * time.Second
 type explorerHeightsConnection struct{ o *Orchestrator }
 
 func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64, error) {
-	// Only networks with hosted infrastructure have a public explorer. Drynet
+	// Only networks with hosted infrastructure have a public explorer. ECash
 	// lives on drivechain.dev under a per-generation host and publishes no tip
 	// endpoint at all, so building a drivechain.info URL for it just dials a
 	// name that has never existed, once per poll.

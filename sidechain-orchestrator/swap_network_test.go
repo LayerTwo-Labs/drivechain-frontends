@@ -12,7 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 )
 
-// Cross-group swap (default → drynet → default) preserves both groups'
+// Cross-group swap (default → eCash → default) preserves both groups'
 // datadirs in slots and rewrites the live datadir= line each time so
 // bitcoind boots against the correct path. Re-entering the original group
 // must not re-prompt — the datadir is restored from the preserved slot.
@@ -21,9 +21,9 @@ func TestSwapNetwork_CrossGroupPreservesDatadirs(t *testing.T) {
 	require.NotNil(t, o.BitcoinConf)
 
 	// Active network starts as signet (default group). Pre-stage both
-	// group slots so the datadir guard passes for drynet/mainnet.
+	// group slots so the datadir guard passes for eCash/mainnet.
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, "/tmp/group-default")
-	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDrynet, "/tmp/group-drynet")
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, "/tmp/group-ecash")
 	o.BitcoinConf.Config.SetSetting("datadir", "/tmp/group-default")
 	require.NoError(t, o.BitcoinConf.SaveConfig())
 	require.NoError(t, o.BitcoinConf.LoadConfig(false))
@@ -32,21 +32,21 @@ func TestSwapNetwork_CrossGroupPreservesDatadirs(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetSetting("datadir"))
 
-	// Mainnet → drynet (cross-group): live datadir flips to drynet's,
+	// Mainnet → eCash (cross-group): live datadir flips to eCash's,
 	// default slot retains the mainnet datadir.
-	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkDrynet))
-	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetSetting("datadir"))
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	require.Equal(t, "/tmp/group-ecash", o.BitcoinConf.Config.GetSetting("datadir"))
 	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDefault))
-	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+	require.Equal(t, "/tmp/group-ecash", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupECash))
 
-	// Drynet → mainnet (cross-group back): default slot restored, drynet
+	// ECash → mainnet (cross-group back): default slot restored, eCash
 	// slot retained for the next swap.
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Equal(t, "/tmp/group-default", o.BitcoinConf.Config.GetSetting("datadir"))
-	require.Equal(t, "/tmp/group-drynet", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+	require.Equal(t, "/tmp/group-ecash", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupECash))
 }
 
-// Regression: mainnet, forknet and drynet all run on chain=main, so Core
+// Regression: mainnet, forknet and eCash all run on chain=main, so Core
 // writes blocks/ and chainstate/ to the root of the datadir for each of them.
 // A user who picks the same folder for every group used to have bitcoind boot
 // one chain on top of another's chainstate and reindex over it. The per-group
@@ -56,7 +56,7 @@ func TestSwapNetwork_SamePickedPathKeepsChainsApart(t *testing.T) {
 	require.NotNil(t, o.BitcoinConf)
 
 	const picked = "/tmp/one-and-only-datadir"
-	for _, g := range []config.DatadirGroup{config.DatadirGroupDefault, config.DatadirGroupForknet, config.DatadirGroupDrynet} {
+	for _, g := range []config.DatadirGroup{config.DatadirGroupDefault, config.DatadirGroupForknet, config.DatadirGroupECash} {
 		o.BitcoinConf.Config.SetGroupDatadir(g, config.GroupDatadirForPick(g, picked))
 	}
 	o.BitcoinConf.Config.SetSetting("datadir", picked)
@@ -70,12 +70,12 @@ func TestSwapNetwork_SamePickedPathKeepsChainsApart(t *testing.T) {
 
 	mainnetDir := resolve(config.NetworkMainnet)
 	forknetDir := resolve(config.NetworkForknet)
-	drynetDir := resolve(config.NetworkDrynet)
+	ecashDir := resolve(config.NetworkECash)
 
 	require.Equal(t, picked, mainnetDir)
 	require.Equal(t, filepath.Join(picked, "forknet"), forknetDir)
-	require.Equal(t, filepath.Join(picked, "drynet"), drynetDir)
-	require.Len(t, map[string]bool{mainnetDir: true, forknetDir: true, drynetDir: true}, 3,
+	require.Equal(t, filepath.Join(picked, "ecash"), ecashDir)
+	require.Len(t, map[string]bool{mainnetDir: true, forknetDir: true, ecashDir: true}, 3,
 		"no two chain=main networks may share bitcoind's datadir")
 
 	// Swapping back must restore mainnet's root, not leave it under a subdir.
@@ -99,8 +99,8 @@ func TestSwapNetwork_WithinDefaultGroupKeepsDatadir(t *testing.T) {
 
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkRegtest))
 	require.Equal(t, "/tmp/shared-default", o.BitcoinConf.Config.GetSetting("datadir"))
-	// Drynet slot was never written.
-	require.Equal(t, "", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet))
+	// ECash slot was never written.
+	require.Equal(t, "", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupECash))
 }
 
 // TestSwapNetwork_FiresOnNetworkChanged is the orchestrator-level regression
@@ -158,10 +158,10 @@ func TestSwapNetwork_MissingDatadirStopsBeforeNetworkChange(t *testing.T) {
 		atomic.AddInt32(&called, 1)
 	}
 
-	err := o.SwapNetwork(context.Background(), config.NetworkDrynet)
+	err := o.SwapNetwork(context.Background(), config.NetworkECash)
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "datadir not configured for drynet")
+	assert.Contains(t, err.Error(), "datadir not configured for ecash")
 	assert.Equal(t, int32(0), atomic.LoadInt32(&called), "OnNetworkChanged must not fire without target datadir")
 	assert.Equal(t, string(config.NetworkSignet), o.Network)
 	assert.Equal(t, config.NetworkSignet, o.BitcoinConf.Network)
@@ -205,7 +205,7 @@ func TestEnforcerNetworkSwapStatePathsSpareSeparateNetworks(t *testing.T) {
 // Networks that share the enforcer's directories are the one case where the
 // outgoing chain sits where the incoming one will look for its own.
 func TestEnforcerNetworkSwapStatePathsClearCollidingNetworks(t *testing.T) {
-	paths := enforcerNetworkSwapStatePaths(config.NetworkMainnet, config.NetworkDrynet)
+	paths := enforcerNetworkSwapStatePaths(config.NetworkMainnet, config.NetworkECash)
 
 	require.NotEmpty(t, paths)
 	assert.Contains(t, paths, config.EnforcerValidatorDir(config.NetworkMainnet))

@@ -5,7 +5,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 /// Page shown when a sidechain app is launched on an unsupported network.
 /// Drivechain is not enabled on mainnet/testnet yet, so sidechains can only
-/// run on forknet, drynet, signet, or regtest.
+/// run on forknet, eCash, signet, or regtest.
 @RoutePage()
 class NetworkSwitchPage extends StatefulWidget {
   const NetworkSwitchPage({super.key});
@@ -17,7 +17,7 @@ class NetworkSwitchPage extends StatefulWidget {
 class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
   BitcoinConfProvider get _confProvider => GetIt.I.get<BitcoinConfProvider>();
 
-  BitcoinNetwork _selectedNetwork = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+  String _selectedNetworkId = 'signet';
   bool _isSwitching = false;
   String? _errorMessage;
 
@@ -25,7 +25,21 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
   void initState() {
     super.initState();
     // Default to signet as the recommended network
-    _selectedNetwork = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+    _selectedNetworkId = 'signet';
+  }
+
+  /// The row the selector shows. The catalog decides the rows, so the default
+  /// may not be among them; the switch has to submit what the user sees, or it
+  /// sends an id no row carries and the page pops as though it worked.
+  String get _effectiveNetworkId {
+    final options = _confProvider.drivechainNetworkOptions;
+    if (options.isEmpty) {
+      return _selectedNetworkId;
+    }
+    if (options.any((o) => o.id == _selectedNetworkId)) {
+      return _selectedNetworkId;
+    }
+    return options.first.id;
   }
 
   Future<void> _handleSwitch() async {
@@ -35,7 +49,7 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
     });
 
     try {
-      await _confProvider.swapNetwork(context, _selectedNetwork);
+      await _confProvider.swapNetworkById(context, _effectiveNetworkId);
 
       if (mounted) {
         context.router.pop(true);
@@ -87,7 +101,7 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
                       const SizedBox(height: 24),
                       SailText.primary15(
                         'Drivechains are not enabled on $currentNetwork yet.\n'
-                        'You must switch to Forknet, Drynet, Signet, or Regtest to use sidechains.',
+                        'You must switch to Forknet, eCash, Signet, or Regtest to use sidechains.',
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 30),
@@ -104,30 +118,21 @@ class _NetworkSwitchPageState extends State<NetworkSwitchPage> {
                           'Select a network with drivechain support:',
                         ),
                         const SizedBox(height: 16),
-                        SailDropdownButton<BitcoinNetwork>(
-                          value: _selectedNetwork,
+                        SailDropdownButton<String>(
+                          value: _effectiveNetworkId,
                           items: [
-                            SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                              label: 'Signet (Recommended)',
-                            ),
-                            SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                              label: 'Forknet',
-                            ),
-                            SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
-                              label: 'Drynet',
-                            ),
-                            SailDropdownItem<BitcoinNetwork>(
-                              value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
-                              label: 'Regtest',
-                            ),
+                            for (final option in _confProvider.drivechainNetworkOptions)
+                              SailDropdownItem<String>(
+                                value: option.id,
+                                label: option.id == 'signet'
+                                    ? '${option.displayName} (Recommended)'
+                                    : option.displayName,
+                              ),
                           ],
-                          onChanged: (BitcoinNetwork? network) async {
-                            if (network != null) {
+                          onChanged: (String? id) async {
+                            if (id != null) {
                               setState(() {
-                                _selectedNetwork = network;
+                                _selectedNetworkId = id;
                               });
                             }
                           },

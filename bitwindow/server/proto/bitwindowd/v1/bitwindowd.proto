@@ -13,7 +13,7 @@ service BitwindowdService {
   // running (only bitwindowd dies).
   rpc Stop(BitwindowdServiceStopRequest) returns (google.protobuf.Empty);
 
-  // CPU mining, drynet only. Start/Stop control a backend-owned miner that
+  // CPU mining, eCash only. Start/Stop control a backend-owned miner that
   // keeps running independent of any client; GetMiningStatus polls its stats.
   rpc StartMining(google.protobuf.Empty) returns (google.protobuf.Empty);
   rpc StopMining(google.protobuf.Empty) returns (google.protobuf.Empty);
@@ -142,7 +142,7 @@ enum BitcoinNetwork {
   BITCOIN_NETWORK_SIGNET = 4;
   BITCOIN_NETWORK_TESTNET = 5;
   BITCOIN_NETWORK_FORKNET = 6;
-  BITCOIN_NETWORK_DRYNET = 7;
+  BITCOIN_NETWORK_ECASH = 7;
 }
 
 enum AddressType {
@@ -348,10 +348,13 @@ message ProcessBandwidth {
 }
 
 message UpdateNetworkRequest {
-  // Target network: signet, mainnet, forknet, drynet, testnet, regtest.
+  // Target network: signet, mainnet, forknet, ecash, testnet, regtest.
   string network = 1;
   // The user's answer to must_select_datadir, when they were asked.
   string data_dir = 2;
+  // Catalog id of the picked row ("alphanet"). The eCash rows share one
+  // network, so only the id names the fork. Empty falls back to network.
+  string network_id = 3;
 }
 
 message UpdateNetworkResponse {}

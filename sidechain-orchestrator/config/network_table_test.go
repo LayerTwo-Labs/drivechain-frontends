@@ -13,7 +13,7 @@ func TestNetworkTable(t *testing.T) {
 	}{
 		{NetworkMainnet, "main", 8332, DatadirGroupDefault},
 		{NetworkForknet, "main", 18301, DatadirGroupForknet},
-		{NetworkDrynet, "main", 18302, DatadirGroupDrynet},
+		{NetworkECash, "main", 18302, DatadirGroupECash},
 		{NetworkSignet, "signet", 38332, DatadirGroupDefault},
 		{NetworkTestnet, "test", 18332, DatadirGroupDefault},
 		{NetworkRegtest, "regtest", 18443, DatadirGroupDefault},
@@ -46,11 +46,22 @@ func TestNetworkTable(t *testing.T) {
 // all to the root of the datadir and would otherwise mix three chains.
 func TestChainMainNetworksHaveDistinctDatadirGroups(t *testing.T) {
 	groups := map[DatadirGroup]Network{}
-	for _, n := range []Network{NetworkMainnet, NetworkForknet, NetworkDrynet} {
+	for _, n := range []Network{NetworkMainnet, NetworkForknet, NetworkECash} {
 		g := DatadirGroupForNetwork(n)
 		if prev, dup := groups[g]; dup {
 			t.Errorf("%s and %s share datadir group %q; their chain data would collide", prev, n, g)
 		}
 		groups[g] = n
+	}
+}
+
+// Launch scripts and ORCHESTRATOR_NETWORK still carry the name the slot went
+// out with. Falling through to signet would boot a network nobody asked for.
+func TestLookupNetworkAcceptsTheLegacyECashName(t *testing.T) {
+	for _, name := range []string{"ecash", "drynet", "DRYNET"} {
+		got, ok := LookupNetwork(name)
+		if !ok || got != NetworkECash {
+			t.Errorf("LookupNetwork(%q) = %q/%v, want ecash/true", name, got, ok)
+		}
 	}
 }

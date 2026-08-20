@@ -112,7 +112,7 @@ func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string)
 	}
 	switch b.layoutKey() {
 	case "bitcoind":
-		if network == NetworkMainnet || network == NetworkForknet || network == NetworkDrynet {
+		if network == NetworkMainnet || network == NetworkForknet || network == NetworkECash {
 			return baseDir
 		}
 		return filepath.Join(baseDir, network.CoreChainDir())
@@ -410,12 +410,12 @@ func WipeChainData(network Network, bitcoinDatadirOverride string, log zerolog.L
 }
 
 // WipeNetworkScopedChainDataSync wipes only the binaries whose data is
-// actually partitioned by network: bitcoind (drynet has its own datadir group)
+// actually partitioned by network: bitcoind (eCash has its own datadir group)
 // and bitwindowd (per-network subdir). Sidechains keep a flat datadir shared
-// across networks, and the enforcer maps both drynet and mainnet onto
+// across networks, and the enforcer maps both eCash and mainnet onto
 // validator/bitcoin, so wiping those for one network destroys another's state.
 //
-// Used by the drynet generation rollover, which can fire while the user is on
+// Used by the eCash network rollover, which can fire while the user is on
 // a different network entirely. A network swap purges enforcer and sidechain
 // state separately.
 func WipeNetworkScopedChainDataSync(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
@@ -436,9 +436,32 @@ func WipeNetworkScopedChainDataSync(network Network, bitcoinDatadirOverride stri
 	go DeleteFilesWithRetry(doomed, log)
 }
 
+// WipeBitwindowChainDataSync clears bitwindowd's chain-derived rows for
+// network, leaving Bitcoin Core's blocks alone. An eCash switch that rewinds
+// Core keeps its blocks, but bitwindowd indexes the fork it left — OP_RETURNs
+// and timestamps from a chain this node no longer follows — and its runtime
+// recycle is keyed on the network, which does not change across the switch.
+func WipeBitwindowChainDataSync(network Network, log zerolog.Logger) {
+	var doomed []string
+	for _, dc := range AllDirConfigs() {
+		if dc.BinaryName != "bitwindowd" {
+			continue
+		}
+		networkDir := dc.DatadirNetwork(network, "")
+		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
+			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
+			doomed = append(doomed, orphans...)
+			if aside := renameAside(p, log); aside != "" {
+				doomed = append(doomed, aside)
+			}
+		}
+	}
+	go DeleteFilesWithRetry(doomed, log)
+}
+
 // WipeEnforcerChainDataSync wipes the enforcer's validator and block state for
 // network, leaving its wallet. The enforcer keeps one chain per network, not
-// per generation, so a drynet generation rollover — which stays on drynet and
+// per generation, so a eCash network rollover — which stays on eCash and
 // so fires no network swap — must clear it here or the new generation inherits
 // the old one's validator chain. Renames aside synchronously like
 // WipeChainDataSync so a caller recording the wipe can trust it happened.
@@ -463,7 +486,7 @@ func WipeEnforcerChainDataSync(network Network, log zerolog.Logger) {
 // WipeChainDataSync renames the doomed paths aside before returning, then
 // deletes them in the background. The rename is what actually makes the old
 // chain state unreachable, so callers that record "this data is gone" — the
-// drynet generation rollover persisting a new catalog, say — must use this:
+// eCash network rollover persisting a new catalog, say — must use this:
 // with the fully-backgrounded variant the process can exit before the rename
 // lands, and the next boot then trusts a record of a wipe that never happened.
 //
@@ -807,8 +830,8 @@ func (n Network) ReadableName() string {
 		return "mainnet"
 	case NetworkForknet:
 		return "forknet"
-	case NetworkDrynet:
-		return "drynet"
+	case NetworkECash:
+		return "ecash"
 	case NetworkSignet:
 		return "signet"
 	case NetworkRegtest:
@@ -826,7 +849,7 @@ func (n Network) ReadableName() string {
 // share one name.
 func EnforcerNetworkName(n Network) string {
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkDrynet:
+	case NetworkMainnet, NetworkForknet, NetworkECash:
 		return "bitcoin"
 	default:
 		return n.ReadableName()

@@ -6,7 +6,7 @@ import 'package:sail_ui/sail_ui.dart';
 /// Guard that blocks mainnet/testnet for sidechain apps.
 /// Sidechains only support networks with drivechain enabled:
 /// - Forknet (drivechain testnet)
-/// - Drynet (drivechain testnet)
+/// - eCash (drivechain testnet)
 /// - Signet
 /// - Regtest
 ///

@@ -15,7 +15,7 @@ type Network string
 const (
 	NetworkMainnet Network = "mainnet"
 	NetworkForknet Network = "forknet"
-	NetworkDrynet  Network = "drynet"
+	NetworkECash   Network = "ecash"
 	NetworkRegtest Network = "regtest"
 	NetworkSignet  Network = "signet"
 	NetworkTestnet Network = "testnet"
@@ -111,6 +111,9 @@ func (c *Config) Finalize(network Network) error {
 
 	c.BitcoinCoreNetwork = network
 	c.Datadir = filepath.Join(c.baseDatadir, string(network))
+	if err := adoptLegacyECashDatadir(c.baseDatadir, network); err != nil {
+		return err
+	}
 
 	if c.baseLogPath == "" {
 		c.LogPath = filepath.Join(c.Datadir, "server.log")
@@ -126,15 +129,43 @@ func (c *Config) Finalize(network Network) error {
 }
 
 // IsFullChainNetwork reports whether the network has full mainnet-scale
-// block volume (mainnet / forknet / drynet). Callers gate IBD-only RPC throttling
+// block volume (mainnet / forknet / eCash). Callers gate IBD-only RPC throttling
 // on this — signet / testnet / regtest blocks are small or empty so
 // running scans through their IBD doesn't move the needle on Core load.
 func IsFullChainNetwork(n Network) bool {
-	return n == NetworkMainnet || n == NetworkForknet || n == NetworkDrynet
+	return n == NetworkMainnet || n == NetworkForknet || n == NetworkECash
 }
 
 // IsMineableNetwork reports whether users may CPU-mine blocks locally. Only
-// drynet is enabled, where difficulty restarts at 1 from the fork block.
+// eCash is enabled, where difficulty restarts at 1 from the fork block.
 func IsMineableNetwork(n Network) bool {
-	return n == NetworkDrynet
+	return n == NetworkECash
+}
+
+// legacyECashDatadir is the folder name the eCash runtime went out with.
+const legacyECashDatadir = "drynet"
+
+// adoptLegacyECashDatadir moves the runtime folder the eCash slot went out with
+// onto its current name. What lives there is the user's own: the address book,
+// transaction notes, UTXO labels and multisig records. A rename that left it
+// behind would show an empty app with the data still on disk and nothing to
+// say where.
+func adoptLegacyECashDatadir(base string, network Network) error {
+	if network != NetworkECash || base == "" {
+		return nil
+	}
+	legacy := filepath.Join(base, legacyECashDatadir)
+	current := filepath.Join(base, string(NetworkECash))
+	if _, err := os.Stat(legacy); err != nil {
+		return nil
+	}
+	if _, err := os.Stat(current); err == nil {
+		// Both exist: the current one is what this build already wrote to, so
+		// it wins and the old folder stays for the user to look at.
+		return nil
+	}
+	if err := os.Rename(legacy, current); err != nil {
+		return fmt.Errorf("adopt the legacy eCash data directory: %w", err)
+	}
+	return nil
 }

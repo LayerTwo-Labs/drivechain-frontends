@@ -21,7 +21,7 @@ func CoreVariantInstalled(dataDir string, v CoreVariantSpec, binaryName string) 
 // Fix for the silent-knots-default regression: the previous comparator
 // was a plain alphabetical sort, which on signet ranked "knots" before
 // "untouched" / "patched" and ended up downloading bitcoinknots.org
-// any time the persisted variant was forknet- or drynet-only. Knots is a niche
+// any time the persisted variant was forknet- or eCash-only. Knots is a niche
 // fork that should never be picked by accident.
 func preferenceLess(a, b string) bool {
 	return variantPreference(a) < variantPreference(b)
@@ -83,16 +83,16 @@ func ResolveCoreVariant(c BinaryConfig, requestedID, network string) (CoreVarian
 // active build without constructing a full Orchestrator. Non-bitcoind names
 // always resolve via the legacy flat layout.
 //
-// drynetID is the drynet generation to resolve. Read it from the running
+// ecashID is the eCash network to resolve. Read it from the running
 // daemon, not from the catalog cache: the confirm writes a new generation to
 // the cache before the restart that starts to use it.
-func ActiveCoreBinaryPath(dataDir, bitwindowDir string, configs []BinaryConfig, binaryName, network, drynetID string) string {
+func ActiveCoreBinaryPath(dataDir, bitwindowDir string, configs []BinaryConfig, binaryName, network, ecashID string) string {
 	if binaryName != "bitcoind" {
 		return BinaryPath(dataDir, binaryName)
 	}
-	if drynetID == "" {
-		// An empty id keeps the placeholder, and the path becomes bin/{drynet}.
-		drynetID = netcatalog.EmbeddedDrynetID()
+	if ecashID == "" {
+		// An empty id keeps the placeholder, and the path becomes bin/{ecash}.
+		ecashID = netcatalog.EmbeddedECashID()
 	}
 	variantID := DefaultCoreVariantID
 	if bitwindowDir != "" {
@@ -104,7 +104,7 @@ func ActiveCoreBinaryPath(dataDir, bitwindowDir string, configs []BinaryConfig, 
 		if !c.IsMainchainCore() {
 			continue
 		}
-		expanded := expandDrynetPlaceholder(c, drynetID)
+		expanded := expandECashPlaceholder(c, ecashID)
 		if v, ok := ResolveCoreVariant(expanded, variantID, network); ok {
 			return CoreBinaryPath(dataDir, v, binaryName)
 		}

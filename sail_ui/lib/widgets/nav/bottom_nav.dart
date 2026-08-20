@@ -4,13 +4,13 @@ import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-/// Mining is drynet-only — StartMining rejects every other network — so the
+/// Mining is eCash-only — StartMining rejects every other network — so the
 /// miner surfaces stay hidden elsewhere rather than offering a dead control.
-MiningProvider? drynetMiningProvider() {
+MiningProvider? ecashMiningProvider() {
   if (!GetIt.I.isRegistered<MiningProvider>() || !GetIt.I.isRegistered<BitcoinConfProvider>()) {
     return null;
   }
-  if (GetIt.I.get<BitcoinConfProvider>().network != BitcoinNetwork.BITCOIN_NETWORK_DRYNET) {
+  if (GetIt.I.get<BitcoinConfProvider>().network != BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
     return null;
   }
   return GetIt.I.get<MiningProvider>();
@@ -316,7 +316,7 @@ class BottomNav extends StatelessWidget {
                       );
                     },
                   ),
-                  if (drynetMiningProvider() case final mining?)
+                  if (ecashMiningProvider() case final mining?)
                     MiningStatusCard(
                       mining: mining,
                       onOpenSettings: onOpenMiningSettings,
@@ -985,7 +985,7 @@ class MiningStatus extends StatefulWidget {
 }
 
 class _MiningStatusState extends State<MiningStatus> {
-  MiningProvider? get _mining => drynetMiningProvider();
+  MiningProvider? get _mining => ecashMiningProvider();
   BitcoinConfProvider? get _conf =>
       GetIt.I.isRegistered<BitcoinConfProvider>() ? GetIt.I.get<BitcoinConfProvider>() : null;
 
@@ -1002,7 +1002,7 @@ class _MiningStatusState extends State<MiningStatus> {
     super.dispose();
   }
 
-  // The network can flip to drynet long after this widget first built, so
+  // The network can flip to eCash long after this widget first built, so
   // polling follows it rather than being decided once.
   void _syncPolling() {
     final mining = _mining;

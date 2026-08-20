@@ -258,7 +258,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
               SailText.primary20('Unlock Sidechains with BIP300'),
               const SailSpacing(SailStyleValues.padding20),
               SailText.secondary13(
-                'Sidechains are only available on Drivechain-enabled networks (Forknet, Drynet and Signet). '
+                'Sidechains are only available on Drivechain-enabled networks (Forknet, eCash and Signet). '
                 'These networks implement BIP300, which enables trustless two-way pegged sidechains.',
               ),
               const SailSpacing(SailStyleValues.padding20),
@@ -274,7 +274,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
               const SailSpacing(SailStyleValues.padding08),
               SailText.secondary13(
                 '1. Go to Settings\n'
-                '2. Switch to "Forknet", "Drynet" or "Signet" network\n'
+                '2. Switch to "Forknet", "eCash" or "Signet" network\n'
                 '3. Restart BitWindow\n'
                 '4. Return to this tab to activate sidechains',
               ),
@@ -822,7 +822,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get networkSupportsSidechains {
     final network = _confProvider.network;
     return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_ECASH ||
         network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
