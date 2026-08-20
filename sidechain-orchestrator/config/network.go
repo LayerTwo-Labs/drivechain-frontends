@@ -1,6 +1,8 @@
 package config
 
 import (
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -13,14 +15,14 @@ type Network string
 const (
 	NetworkMainnet Network = "mainnet"
 	NetworkForknet Network = "forknet"
-	NetworkDrynet  Network = "drynet"
+	NetworkECash   Network = "ecash"
 	NetworkSignet  Network = "signet"
 	NetworkRegtest Network = "regtest"
 	NetworkTestnet Network = "testnet"
 )
 
 // DatadirGroup partitions networks by which folder bitcoind writes to.
-// Forknet and drynet both run on chain=main and write to the root of datadir,
+// Forknet and eCash both run on chain=main and write to the root of datadir,
 // colliding with mainnet and each other — so each needs its own group. The four
 // "default" networks share one datadir because Bitcoin Core auto-partitions them
 // via chain subdirectories (signet/, testnet3/, regtest/, blocks/ for mainnet).
@@ -29,44 +31,45 @@ type DatadirGroup string
 const (
 	DatadirGroupDefault DatadirGroup = "default"
 	DatadirGroupForknet DatadirGroup = "forknet"
-	DatadirGroupDrynet  DatadirGroup = "drynet"
+	DatadirGroupECash   DatadirGroup = "ecash"
 )
 
-// drynetGeneration is the live drynet generation ("drynet2"), resolved from the
+// ecashNetworkID is the live eCash network id ("alphanet"), resolved from the
 // network catalog at startup. Package-level because the URL helpers below are
 // package functions called from everywhere; guarded because the catalog is
 // refreshed on a background goroutine.
 var (
-	drynetGenerationMu sync.RWMutex
-	drynetGeneration   string
-	drynetPeers        = map[string]string{}
-	forkHeights        = map[Network]int{}
-	displayNames       = map[Network]string{}
+	ecashMu        sync.RWMutex
+	ecashNetworkID string
+	ecashPeers     = map[string]string{}
+	forkHeights    = map[Network]int{}
+	displayNames   = map[Network]string{}
+	ecashEndpoints netcatalog.Network
 )
 
-// SetDrynetPeer records the seed address published for a drynet generation.
-func SetDrynetPeer(generation, address string) {
-	if generation == "" || address == "" {
+// SetECashPeer records the seed address published for a eCash network.
+func SetECashPeer(id, address string) {
+	if id == "" || address == "" {
 		return
 	}
-	drynetGenerationMu.Lock()
-	defer drynetGenerationMu.Unlock()
-	drynetPeers[generation] = address
+	ecashMu.Lock()
+	defer ecashMu.Unlock()
+	ecashPeers[id] = address
 }
 
-// PublishedDrynetPeer returns the catalog's seed address for a generation,
+// PublishedECashPeer returns the catalog's seed address for an eCash network,
 // empty when the catalog carried none.
-func PublishedDrynetPeer(generation string) string {
-	drynetGenerationMu.RLock()
-	defer drynetGenerationMu.RUnlock()
-	return drynetPeers[generation]
+func PublishedECashPeer(id string) string {
+	ecashMu.RLock()
+	defer ecashMu.RUnlock()
+	return ecashPeers[id]
 }
 
-// SetNetworkDisplayName records a network's published name ("Drynet 4"), so the
+// SetNetworkDisplayName records a network's published name ("ECash 4"), so the
 // UI names the fork that is actually coming.
 func SetNetworkDisplayName(network Network, name string) {
-	drynetGenerationMu.Lock()
-	defer drynetGenerationMu.Unlock()
+	ecashMu.Lock()
+	defer ecashMu.Unlock()
 	if name != "" {
 		displayNames[network] = name
 	}
@@ -74,16 +77,16 @@ func SetNetworkDisplayName(network Network, name string) {
 
 // PublishedDisplayName returns a network's catalog name, empty when unset.
 func PublishedDisplayName(network Network) string {
-	drynetGenerationMu.RLock()
-	defer drynetGenerationMu.RUnlock()
+	ecashMu.RLock()
+	defer ecashMu.RUnlock()
 	return displayNames[network]
 }
 
 // SetForkHeight records a network's published fork height. Called once the
 // catalog is loaded, before anything counts down to it.
 func SetForkHeight(network Network, height int) {
-	drynetGenerationMu.Lock()
-	defer drynetGenerationMu.Unlock()
+	ecashMu.Lock()
+	defer ecashMu.Unlock()
 	if height > 0 {
 		forkHeights[network] = height
 	}
@@ -92,30 +95,58 @@ func SetForkHeight(network Network, height int) {
 // PublishedForkHeight returns a network's catalog fork height, 0 when the
 // catalog carried none.
 func PublishedForkHeight(network Network) int {
-	drynetGenerationMu.RLock()
-	defer drynetGenerationMu.RUnlock()
+	ecashMu.RLock()
+	defer ecashMu.RUnlock()
 	return forkHeights[network]
 }
 
-// SetDrynetGeneration records the resolved drynet generation. Called once the
+// SetECashNetworkID records the resolved eCash network. Called once the
 // network catalog is loaded, before anything dials.
-func SetDrynetGeneration(id string) {
-	drynetGenerationMu.Lock()
-	defer drynetGenerationMu.Unlock()
-	drynetGeneration = id
+func SetECashNetworkID(id string) {
+	ecashMu.Lock()
+	defer ecashMu.Unlock()
+	ecashNetworkID = id
 }
 
-// DrynetGeneration returns the live drynet generation, falling back to the
-// generation compiled into the binary so the URLs resolve before the catalog
+// ECashNetworkID returns the live eCash network, falling back to the
+// id compiled into the binary so the URLs resolve before the catalog
 // has been read.
-func DrynetGeneration() string {
-	drynetGenerationMu.RLock()
-	id := drynetGeneration
-	drynetGenerationMu.RUnlock()
+func ECashNetworkID() string {
+	ecashMu.RLock()
+	id := ecashNetworkID
+	ecashMu.RUnlock()
 	if id != "" {
 		return id
 	}
-	return netcatalog.EmbeddedDrynetID()
+	return netcatalog.EmbeddedECashID()
+}
+
+// SetECashEndpoints records the endpoints the catalog publishes for the live
+// eCash network. Called once the network catalog is loaded, before anything
+// dials.
+func SetECashEndpoints(n netcatalog.Network) {
+	ecashMu.Lock()
+	defer ecashMu.Unlock()
+	ecashEndpoints = n
+}
+
+// ECashEndpoints returns the live eCash network's published endpoints,
+// falling back to the copy compiled into the binary so the URLs resolve before
+// the catalog has been read.
+func ECashEndpoints() netcatalog.Network {
+	ecashMu.RLock()
+	n := ecashEndpoints
+	ecashMu.RUnlock()
+	if n.ID != "" {
+		return n
+	}
+	return netcatalog.EmbeddedECash()
+}
+
+// ECashExplorerHost is the host BitWindow links block, transaction and address
+// pages at for the live eCash network, empty when it publishes no explorer.
+func ECashExplorerHost() string {
+	return ECashEndpoints().ExplorerHost()
 }
 
 // DatadirGroupForNetwork returns the datadir group a network belongs to.
@@ -123,8 +154,8 @@ func DatadirGroupForNetwork(n Network) DatadirGroup {
 	switch n {
 	case NetworkForknet:
 		return DatadirGroupForknet
-	case NetworkDrynet:
-		return DatadirGroupDrynet
+	case NetworkECash:
+		return DatadirGroupECash
 	default:
 		return DatadirGroupDefault
 	}
@@ -137,7 +168,7 @@ func RPCPortForNetwork(n Network) int {
 		return 8332
 	case NetworkForknet:
 		return 18301
-	case NetworkDrynet:
+	case NetworkECash:
 		return 18302
 	case NetworkTestnet:
 		return 18332
@@ -165,11 +196,9 @@ func EsploraURLsForNetwork(n Network) []string {
 		return []string{"https://esplora.mainnet.drivechain.info"}
 	case NetworkForknet:
 		return []string{"https://explorer.forknet.drivechain.info/api"}
-	case NetworkDrynet:
-		// drynet's Esplora serves its routes at the root, so no /api suffix.
-		// Host carries the generation, so it moves with the network.
-		if gen := DrynetGeneration(); gen != "" {
-			return []string{"https://esplora." + gen + ".drivechain.dev"}
+	case NetworkECash:
+		if backend := ECashEndpoints().BackendURL("esplora"); backend != "" {
+			return []string{backend}
 		}
 		return nil
 	default:
@@ -210,14 +239,29 @@ func ElectrumHostPortForNetwork(n Network) (string, uint16) {
 	switch n {
 	case NetworkMainnet:
 		return "ssl://explorer.mainnet.drivechain.info", 50002
-	case NetworkDrynet:
-		if gen := DrynetGeneration(); gen != "" {
-			return "ssl://" + gen + ".drivechain.dev", 50002
-		}
-		return "", 0
+	case NetworkECash:
+		return splitElectrumURL(ECashEndpoints().BackendURL("electrum"))
 	default:
 		return "", 0
 	}
+}
+
+// splitElectrumURL splits a published electrum backend ("ssl://host:50002")
+// into the scheme-qualified host and its port. Anything unparsable, or without
+// a port, yields an empty host — the caller treats that as "no electrum".
+func splitElectrumURL(raw string) (string, uint16) {
+	if raw == "" {
+		return "", 0
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" || u.Hostname() == "" {
+		return "", 0
+	}
+	port, err := strconv.ParseUint(u.Port(), 10, 16)
+	if err != nil {
+		return "", 0
+	}
+	return u.Scheme + "://" + u.Hostname(), uint16(port)
 }
 
 // RemoteOrchestratorURLForNetwork returns the URL of a hosted, read-only
@@ -266,10 +310,10 @@ func (n Network) CoreSection() string {
 }
 
 // CoreSectionForNetwork returns the Bitcoin Core config section name for a network.
-// Mainnet, forknet and drynet all use "main" since the forks run on mainnet params.
+// Mainnet, forknet and eCash all use "main" since the forks run on mainnet params.
 func CoreSectionForNetwork(n Network) string {
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkDrynet:
+	case NetworkMainnet, NetworkForknet, NetworkECash:
 		return "main"
 	case NetworkTestnet:
 		return "test"
@@ -282,8 +326,51 @@ func CoreSectionForNetwork(n Network) string {
 	}
 }
 
+// ecashUACommentPrefix marks a generated bitcoin.conf as eCash. The suffix is
+// the catalog id, which is free-form, so only the prefix is a sentinel.
+const ecashUACommentPrefix = "ecash-"
+
+// legacyECashUAComment is the sentinel the drynet series wrote.
+const legacyECashUAComment = "drynet"
+
+// legacyECashDatadirGroup is the slot name the drynet series wrote.
+const legacyECashDatadirGroup DatadirGroup = "drynet"
+
+// ECashUAComment returns the uacomment a generated eCash bitcoin.conf carries.
+func ECashUAComment(id string) string {
+	return ecashUACommentPrefix + id
+}
+
+// IsECashUAComment reports whether a uacomment marks an eCash install. A bare
+// "drynet<N>" is what builds before the free-form ids wrote. It is read, never
+// written: a conf that carries it still names an eCash chain, and reading it as
+// forknet would boot the wrong network behind the user's back.
+func IsECashUAComment(uacomment string) bool {
+	return strings.HasPrefix(uacomment, ecashUACommentPrefix) ||
+		strings.HasPrefix(uacomment, legacyECashUAComment)
+}
+
+// ECashIDFromUAComment returns the eCash network id a uacomment names, empty
+// when it names none.
+func ECashIDFromUAComment(uacomment string) string {
+	if !IsECashUAComment(uacomment) {
+		return ""
+	}
+	return strings.TrimPrefix(uacomment, ecashUACommentPrefix)
+}
+
+// NetworkForCatalogEntry maps a published catalog entry onto the slot it runs
+// in. Every eCash entry shares one slot, whatever its id; the rest are named
+// after the slot itself. false means the app cannot run that entry.
+func NetworkForCatalogEntry(id, family string) (Network, bool) {
+	if family == netcatalog.FamilyECash {
+		return NetworkECash, true
+	}
+	return LookupNetwork(id)
+}
+
 // NetworkFromConfig detects the network from a parsed BitcoinConfig.
-// Handles forknet/drynet detection (chain=main + drivechain=1 in [main]).
+// Handles forknet/ecash detection (chain=main + drivechain=1 in [main]).
 // fallback is returned when the config carries no chain=/testnet=/signet=/
 // regtest= selector at all — signet for our own managed conf, but the network
 // the file was found under for a user's private bitcoin.conf.
@@ -293,12 +380,10 @@ func NetworkFromConfig(conf *BitcoinConfig, fallback Network) Network {
 		switch strings.ToLower(chainSetting) {
 		case "main", "mainnet":
 			if conf.GetEffectiveSetting("drivechain", "main") == "1" {
-				// forknet and drynet both run chain=main + drivechain=1, told
-				// apart by the uacomment sentinel drynet writes into [main].
-				// That value carries the generation ("drynet2"), so match the
-				// prefix — an exact compare would break on every rollover.
-				if strings.HasPrefix(conf.GetEffectiveSetting("uacomment", "main"), string(NetworkDrynet)) {
-					return NetworkDrynet
+				// forknet and eCash both run chain=main + drivechain=1, told
+				// apart by the uacomment sentinel eCash writes into [main].
+				if IsECashUAComment(conf.GetEffectiveSetting("uacomment", "main")) {
+					return NetworkECash
 				}
 				return NetworkForknet
 			}
@@ -328,22 +413,35 @@ func NetworkFromConfig(conf *BitcoinConfig, fallback Network) Network {
 	return fallback
 }
 
-// NetworkFromString converts a string (e.g. CLI flag) to a Network value.
+// NetworkFromString converts a string (e.g. CLI flag) to a Network value,
+// falling back to signet for anything it does not recognise.
 func NetworkFromString(s string) Network {
+	n, _ := LookupNetwork(s)
+	return n
+}
+
+// LookupNetwork converts a string to a Network value and reports whether it
+// named one. Callers that write per-network state need the flag: a catalog id
+// such as "alphanet" is not a network name, and the signet fallback would
+// otherwise stamp that entry's values onto signet.
+func LookupNetwork(s string) (Network, bool) {
 	switch strings.ToLower(s) {
-	case "mainnet", "main":
-		return NetworkMainnet
+	case "mainnet", "main", "bitcoin":
+		return NetworkMainnet, true
 	case "forknet":
-		return NetworkForknet
-	case "drynet":
-		return NetworkDrynet
+		return NetworkForknet, true
+	// "drynet" is what launch scripts and ORCHESTRATOR_NETWORK carried before
+	// the rename. It is read, never written: falling through to signet would
+	// boot a different network than the caller asked for.
+	case "ecash", "drynet":
+		return NetworkECash, true
 	case "testnet", "test":
-		return NetworkTestnet
+		return NetworkTestnet, true
 	case "signet":
-		return NetworkSignet
+		return NetworkSignet, true
 	case "regtest":
-		return NetworkRegtest
+		return NetworkRegtest, true
 	default:
-		return NetworkSignet
+		return NetworkSignet, false
 	}
 }

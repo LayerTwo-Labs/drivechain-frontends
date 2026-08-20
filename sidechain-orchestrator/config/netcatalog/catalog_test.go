@@ -6,49 +6,63 @@ import (
 	"testing"
 )
 
-// embeddedGeneration is the drynet networks.json ships with. Bump it whenever
-// the embedded catalog is refreshed from the published document.
-const embeddedGeneration = "drynet4"
+// embeddedGeneration is the eCash network networks.json ships with. Change it
+// whenever the embedded catalog is refreshed from the published document.
+const embeddedGeneration = "alphanet"
 
 func TestEmbeddedCatalogParses(t *testing.T) {
 	c, fromDisk := Load(t.TempDir())
 	if fromDisk {
 		t.Fatal("empty dir must not report a cached catalog")
 	}
-	if got := c.DrynetID(); got != embeddedGeneration {
-		t.Errorf("embedded DrynetID() = %q, want %s", got, embeddedGeneration)
+	if got := c.ECashID(); got != embeddedGeneration {
+		t.Errorf("embedded ECashID() = %q, want %s", got, embeddedGeneration)
 	}
 	if _, ok := c.ByFamily(FamilyECash); !ok {
 		t.Error("embedded catalog must carry an ecash network")
 	}
 }
 
-// Every generation seeds on its own port, so the embedded document must carry
-// the peer — inventing one from the id is what wrote drynet4 with :8335.
+// Every eCash network seeds on its own port, so the embedded document must
+// carry the peer — inventing one from the id is what wrote drynet4 with :8335.
 func TestEmbeddedCatalogPublishesPeers(t *testing.T) {
 	if got := EmbeddedPeer(embeddedGeneration); got == "" {
 		t.Errorf("EmbeddedPeer(%s) is empty, want the published seed address", embeddedGeneration)
 	}
 }
 
-// The newest generation wins regardless of catalog order, so a catalog that
-// still lists older ones resolves to the latest.
-func TestDrynetIDPicksNewestGeneration(t *testing.T) {
+// The live eCash network comes first and the retired ones after it, and the id
+// carries no ordering, so document order decides.
+func TestECashIDTakesTheFirstECashEntry(t *testing.T) {
 	c := Catalog{Networks: []Network{
 		{ID: "bitcoin", Family: "bitcoin"},
-		{ID: "drynet2", Family: FamilyECash},
-		{ID: "drynet10", Family: FamilyECash},
-		{ID: "drynet3", Family: FamilyECash},
+		{ID: "alphanet", Family: FamilyECash},
+		{ID: "drynet4", Family: FamilyECash},
 	}}
-	if got := c.DrynetID(); got != "drynet10" {
-		t.Errorf("DrynetID() = %q, want drynet10", got)
+	if got := c.ECashID(); got != "alphanet" {
+		t.Errorf("ECashID() = %q, want alphanet", got)
 	}
 }
 
-func TestDrynetIDEmptyWithoutECash(t *testing.T) {
+// The endpoints ride along in the document, so a free-form id never has to be
+// turned back into a hostname.
+func TestEmbeddedECashPublishesEndpoints(t *testing.T) {
+	n := EmbeddedECash()
+	if n.ID != embeddedGeneration {
+		t.Fatalf("EmbeddedECash().ID = %q, want %s", n.ID, embeddedGeneration)
+	}
+	if got := n.BackendURL("esplora"); got == "" {
+		t.Error("embedded eCash entry must publish an esplora backend")
+	}
+	if got := n.ExplorerHost(); got == "" {
+		t.Error("embedded eCash entry must publish an explorer host")
+	}
+}
+
+func TestECashIDEmptyWithoutECash(t *testing.T) {
 	c := Catalog{Networks: []Network{{ID: "bitcoin", Family: "bitcoin"}}}
-	if got := c.DrynetID(); got != "" {
-		t.Errorf("DrynetID() = %q, want empty", got)
+	if got := c.ECashID(); got != "" {
+		t.Errorf("ECashID() = %q, want empty", got)
 	}
 }
 
@@ -57,7 +71,7 @@ func TestDrynetIDEmptyWithoutECash(t *testing.T) {
 func TestSaveThenLoadReportsFromDisk(t *testing.T) {
 	dir := t.TempDir()
 	saved, _ := Load(dir)
-	saved.Networks[len(saved.Networks)-1].ID = "drynet3"
+	saved.Networks[len(saved.Networks)-1].ID = "betanet"
 	if err := Save(dir, saved); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -66,8 +80,8 @@ func TestSaveThenLoadReportsFromDisk(t *testing.T) {
 	if !fromDisk {
 		t.Fatal("Load must report a catalog written by Save as coming from disk")
 	}
-	if got.DrynetID() != "drynet3" {
-		t.Errorf("DrynetID() = %q, want drynet3", got.DrynetID())
+	if got.ECashID() != "betanet" {
+		t.Errorf("ECashID() = %q, want betanet", got.ECashID())
 	}
 }
 
@@ -83,8 +97,34 @@ func TestCorruptCacheFallsBackToEmbedded(t *testing.T) {
 	if fromDisk {
 		t.Error("corrupt cache must not report as from disk")
 	}
-	if c.DrynetID() != embeddedGeneration {
-		t.Errorf("DrynetID() = %q, want the embedded %s", c.DrynetID(), embeddedGeneration)
+	if c.ECashID() != embeddedGeneration {
+		t.Errorf("ECashID() = %q, want the embedded %s", c.ECashID(), embeddedGeneration)
+	}
+}
+
+// The picker lists every entry and the endpoints come from their backends, so a
+// refresh that adds a network or moves a host must not read as unchanged.
+func TestSameAsSeesEveryEntry(t *testing.T) {
+	base := Catalog{SchemaVersion: 1, Networks: []Network{
+		{ID: "alphanet", Family: FamilyECash},
+	}}
+	if !base.SameAs(base) {
+		t.Error("a catalog must match itself")
+	}
+
+	added := Catalog{SchemaVersion: 1, Networks: []Network{
+		{ID: "alphanet", Family: FamilyECash},
+		{ID: "drynet4", Family: FamilyECash},
+	}}
+	if base.SameAs(added) {
+		t.Error("an added network must not read as unchanged")
+	}
+
+	moved := Catalog{SchemaVersion: 1, Networks: []Network{
+		{ID: "alphanet", Family: FamilyECash, Backends: []Backend{{Kind: "esplora", URL: "https://new.example"}}},
+	}}
+	if base.SameAs(moved) {
+		t.Error("a moved endpoint must not read as unchanged")
 	}
 }
 

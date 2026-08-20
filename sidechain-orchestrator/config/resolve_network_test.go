@@ -76,23 +76,23 @@ func TestResolveNetworkDoesNotWrite(t *testing.T) {
 	assert.Len(t, entriesAfter, len(entriesBefore), "a file was created")
 }
 
-// drynet and forknet are both chain=main to Core; only the uacomment sentinel
+// eCash and forknet are both chain=main to Core; only the uacomment sentinel
 // tells them apart. Same NetworkFromConfig the orchestrator uses.
-func TestResolveNetworkReadsTheDrynetSentinel(t *testing.T) {
+func TestResolveNetworkReadsTheECashSentinel(t *testing.T) {
 	for _, tt := range []struct {
 		name string
 		conf string
 		want Network
 	}{
 		{
-			name: "drynet",
-			conf: "chain=main\n[main]\ndrivechain=1\nuacomment=drynet3\n",
-			want: NetworkDrynet,
+			name: "ecash",
+			conf: "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-alphanet\n",
+			want: NetworkECash,
 		},
 		{
-			name: "later generation still drynet",
-			conf: "chain=main\n[main]\ndrivechain=1\nuacomment=drynet4\n",
-			want: NetworkDrynet,
+			name: "later eCash network still eCash",
+			conf: "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-betanet\n",
+			want: NetworkECash,
 		},
 		{
 			name: "drivechain without the sentinel is forknet",

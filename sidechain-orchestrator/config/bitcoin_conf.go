@@ -26,11 +26,11 @@ type BitcoinConfManager struct {
 	DetectedDataDir string
 	HasPrivateConf  bool
 
-	// DrynetID is the live drynet generation ("drynet2"). Set from the
-	// resolved network catalog; falls back to the embedded generation until
+	// ECashID is the live eCash network ("alphanet"). Set from the
+	// resolved network catalog; falls back to the embedded id until
 	// then, so a first boot still writes a usable peer.
-	DrynetID string
-	log      zerolog.Logger
+	ECashID string
+	log     zerolog.Logger
 
 	// OnNetworkChanged is called after a network switch completes.
 	// Set by the server to restart services (orchestrator binaries).
@@ -88,33 +88,34 @@ func (m *BitcoinConfManager) LoadConfig(isFirst bool) error {
 	return nil
 }
 
-// Generation returns the drynet generation to write into bitcoin.conf. It
+// ResolvedECashID returns the eCash network to write into bitcoin.conf. It
 // falls back to the embedded catalog so a first boot — which happens before the
-// catalog resolves — still writes a real generation rather than an empty value.
-func (m *BitcoinConfManager) Generation() string {
-	if m.DrynetID != "" {
-		return m.DrynetID
+// catalog resolves — still writes a real id rather than an empty value.
+func (m *BitcoinConfManager) ResolvedECashID() string {
+	if m.ECashID != "" {
+		return m.ECashID
 	}
-	return DrynetGeneration()
+	return ECashNetworkID()
 }
 
-// DrynetPeer is the seed node for the active drynet generation. Drynet has no
+// ECashPeer is the seed node for the active eCash network. ECash has no
 // DNS seeds, so bitcoind needs an explicit peer to find the network at all.
-func (m *BitcoinConfManager) DrynetPeer() string {
-	return DrynetPeerFor(m.Generation())
+func (m *BitcoinConfManager) ECashPeer() string {
+	return ECashPeerFor(m.ResolvedECashID())
 }
 
-// DrynetPeerFor is the seed node for a given drynet generation, empty when
+// ECashPeerFor is the seed node for a given eCash network, empty when
 // neither the live catalog nor the embedded one publishes an address for it.
-// Every generation seeds on its own port, so a built-up name would be a guess.
-func DrynetPeerFor(generation string) string {
-	if generation == "" {
+// Every eCash network seeds on its own port, so a built-up name would be a
+// guess.
+func ECashPeerFor(id string) string {
+	if id == "" {
 		return ""
 	}
-	if address := PublishedDrynetPeer(generation); address != "" {
+	if address := PublishedECashPeer(id); address != "" {
 		return address
 	}
-	return netcatalog.EmbeddedPeer(generation)
+	return netcatalog.EmbeddedPeer(id)
 }
 
 // GetConfFilePath returns the resolved -conf= path to pass to bitcoind.
@@ -266,7 +267,7 @@ func (m *BitcoinConfManager) GetDefaultConfig() string {
 
 	// Per-network [main] section overrides. Mainnet has no [main] overrides;
 	// signet/testnet/regtest options live in their own sections below.
-	// Forknet and drynet use [main] because their chain= is "main" (they are
+	// Forknet and eCash use [main] because their chain= is "main" (they are
 	// drivechain testnets on mainnet params).
 	var mainSection string
 	switch m.Network {
@@ -283,14 +284,14 @@ listenonion=0
 drivechain=1
 fallbackfee=0.00021
 `
-	case NetworkDrynet:
-		// Drynet runs chain=main, so fallbackfee belongs here (not in the
+	case NetworkECash:
+		// ECash runs chain=main, so fallbackfee belongs here (not in the
 		// common block). It has no DNS seeds, so it needs an explicit peer.
 		addnode := ""
-		if peer := m.DrynetPeer(); peer != "" {
+		if peer := m.ECashPeer(); peer != "" {
 			addnode = fmt.Sprintf("addnode=%s\n", peer)
 		}
-		mainSection = fmt.Sprintf(`# drynet-specific settings (drivechain testnet on mainnet params)
+		mainSection = fmt.Sprintf(`# eCash-specific settings (drivechain testnet on mainnet params)
 [main]
 port=8301
 rpcport=18302
@@ -300,7 +301,7 @@ minimumchainwork=0x00
 listenonion=0
 drivechain=1
 fallbackfee=0.00021
-`, addnode, m.Generation())
+`, addnode, ECashUAComment(m.ResolvedECashID()))
 	default:
 		mainSection = `# Mainnet-specific settings
 [main]
@@ -395,7 +396,7 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 
 	chainValue := "signet"
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkDrynet:
+	case NetworkMainnet, NetworkForknet, NetworkECash:
 		chainValue = "main"
 	case NetworkTestnet:
 		chainValue = "test"

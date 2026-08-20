@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -324,11 +323,11 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 		}
 	}
 
-	// Drynet forks mainnet, so the enforcer needs the generation's preset to
-	// validate against the right chain. Only drynet builds accept the flag.
-	if m.bitcoinConf.Network == NetworkDrynet && !seen["network-preset"] {
-		if generation := m.bitcoinConf.Generation(); generation != "" {
-			args = append(args, fmt.Sprintf("--network-preset=%s", generation))
+	// ECash forks mainnet, so the enforcer needs the network's preset to
+	// validate against the right chain. Only eCash builds accept the flag.
+	if m.bitcoinConf.Network == NetworkECash && !seen["network-preset"] {
+		if id := m.bitcoinConf.ResolvedECashID(); id != "" {
+			args = append(args, fmt.Sprintf("--network-preset=%s", id))
 		}
 	}
 
@@ -552,23 +551,46 @@ func (m *EnforcerConfManager) getConfigPath() string {
 	return filepath.Join(m.ConfigDir, bitwindowEnforcerConfFilename)
 }
 
-var drynetGenerationPattern = regexp.MustCompile(`drynet\d+`)
+// RetargetECashNetwork moves persisted settings onto the eCash network id, and
+// reports whether the file changed. previousID is the network they came from,
+// empty when it is unknown.
+//
+// GetCliArgs treats a persisted value as an explicit override, and every start
+// calls this. So the endpoint moves only when it still names previousID, while
+// the preset always moves — no preset but the running fork's is correct.
+func (m *EnforcerConfManager) RetargetECashNetwork(previousID, id string) (bool, error) {
+	if m.bitcoinConf == nil {
+		return false, nil
+	}
+	return m.RetargetECashNetworkFor(m.bitcoinConf.Network, previousID, id)
+}
 
-// RetargetDrynetGeneration rewrites persisted settings that name an older
-// drynet generation, and reports whether the file changed.
-func (m *EnforcerConfManager) RetargetDrynetGeneration(generation string) (bool, error) {
-	if m.Config == nil || generation == "" {
+// RetargetECashNetworkFor is RetargetECashNetwork for a switch that has not
+// landed yet. The caller names the network that will be active, because the
+// enforcer conf has to be right before anything reads it — the L1 boot reads it
+// on a goroutine the swap starts.
+func (m *EnforcerConfManager) RetargetECashNetworkFor(target Network, previousID, id string) (bool, error) {
+	if m.Config == nil || id == "" || target != NetworkECash {
 		return false, nil
 	}
 
 	changed := false
-	for key, value := range m.Config.Settings {
-		retargeted := drynetGenerationPattern.ReplaceAllString(value, generation)
-		if retargeted == value {
-			continue
-		}
-		m.Config.Settings[key] = retargeted
+	// The preset names the fork the enforcer validates against, so it has to
+	// match the network that boots. No other value is correct.
+	if preset, persisted := m.Config.Settings["network-preset"]; persisted && preset != id {
+		m.Config.Settings["network-preset"] = id
 		changed = true
+	}
+	// The endpoint may be the user's own. Only one that still names the retired
+	// network is this function's to change.
+	if previousID != "" && previousID != id {
+		if url, persisted := m.Config.Settings["wallet-esplora-url"]; persisted &&
+			strings.Contains(url, previousID) {
+			if want := EsploraURLForNetwork(NetworkECash); want != "" && want != url {
+				m.Config.Settings["wallet-esplora-url"] = want
+				changed = true
+			}
+		}
 	}
 	if !changed {
 		return false, nil

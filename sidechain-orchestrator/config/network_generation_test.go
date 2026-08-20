@@ -1,50 +1,77 @@
 package config
 
-import "testing"
+import (
+	"testing"
 
-// Every drynet hostname is built from the generation, so a new drynet is an
-// endpoint change rather than a code change.
-func TestDrynetURLsFollowTheGeneration(t *testing.T) {
-	original := DrynetGeneration()
-	t.Cleanup(func() { SetDrynetGeneration(original) })
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+)
 
-	SetDrynetGeneration("drynet3")
-	urls := EsploraURLsForNetwork(NetworkDrynet)
-	if len(urls) != 1 || urls[0] != "https://esplora.drynet3.drivechain.dev" {
-		t.Errorf("EsploraURLsForNetwork(drynet) = %v, want the drynet3 host", urls)
+// The eCash id is free-form, so the endpoints come from the published backends
+// rather than a hostname built out of the id.
+func TestECashURLsFollowTheCatalog(t *testing.T) {
+	original := ECashEndpoints()
+	t.Cleanup(func() { SetECashEndpoints(original) })
+
+	SetECashEndpoints(netcatalog.Network{
+		ID: "betanet",
+		Backends: []netcatalog.Backend{
+			{Kind: "esplora", URL: "https://esplora.beta.example"},
+			{Kind: "electrum", URL: "ssl://electrum.beta.example:50012"},
+		},
+		ExplorerTxTemplate: "https://explorer.beta.example/tx/{txid}",
+	})
+
+	urls := EsploraURLsForNetwork(NetworkECash)
+	if len(urls) != 1 || urls[0] != "https://esplora.beta.example" {
+		t.Errorf("EsploraURLsForNetwork(eCash) = %v, want the published esplora backend", urls)
 	}
-
-	m := &BitcoinConfManager{Network: NetworkDrynet}
-	if got := m.DrynetPeer(); got != "drynet3.drivechain.dev:8337" {
-		t.Errorf("DrynetPeer() = %q, want the drynet3 peer", got)
+	host, port := ElectrumHostPortForNetwork(NetworkECash)
+	if host != "ssl://electrum.beta.example" || port != 50012 {
+		t.Errorf("ElectrumHostPortForNetwork(eCash) = %q, %d, want the published electrum backend", host, port)
+	}
+	if got := ECashExplorerHost(); got != "explorer.beta.example" {
+		t.Errorf("ECashExplorerHost() = %q, want the published explorer host", got)
 	}
 }
 
-// Generations do not share one port: drynet4 seeds on 8533. A built name would
-// send bitcoind to a port nothing listens on, and it would find no peers.
-func TestDrynetPeerUsesThePublishedAddress(t *testing.T) {
-	original := DrynetGeneration()
-	t.Cleanup(func() { SetDrynetGeneration(original) })
+// An eCash network that publishes no electrum backend must yield no host, so
+// the enforcer fallback skips it instead of dialling a made-up name.
+func TestECashWithoutElectrumBackendYieldsNoHost(t *testing.T) {
+	original := ECashEndpoints()
+	t.Cleanup(func() { SetECashEndpoints(original) })
 
-	SetDrynetGeneration("drynet4")
-	SetDrynetPeer("drynet4", "drynet4.drivechain.dev:8533")
+	SetECashEndpoints(netcatalog.Network{ID: "betanet"})
+	if host, port := ElectrumHostPortForNetwork(NetworkECash); host != "" || port != 0 {
+		t.Errorf("ElectrumHostPortForNetwork(eCash) = %q, %d, want no host", host, port)
+	}
+}
 
-	m := &BitcoinConfManager{Network: NetworkDrynet}
-	if got := m.DrynetPeer(); got != "drynet4.drivechain.dev:8533" {
-		t.Errorf("DrynetPeer() = %q, want the published address", got)
+// The eCash networks do not share one port: alphanet seeds on 8533. A built
+// name would send bitcoind to a port nothing listens on, and it would find no
+// peers.
+func TestECashPeerUsesThePublishedAddress(t *testing.T) {
+	original := ECashNetworkID()
+	t.Cleanup(func() { SetECashNetworkID(original) })
+
+	SetECashNetworkID("betanet")
+	SetECashPeer("betanet", "seed.beta.example:8533")
+
+	m := &BitcoinConfManager{Network: NetworkECash}
+	if got := m.ECashPeer(); got != "seed.beta.example:8533" {
+		t.Errorf("ECashPeer() = %q, want the published address", got)
 	}
 }
 
 // Before the catalog resolves, the embedded generation keeps the URLs valid.
-func TestDrynetGenerationFallsBackToEmbedded(t *testing.T) {
-	original := DrynetGeneration()
-	t.Cleanup(func() { SetDrynetGeneration(original) })
+func TestECashGenerationFallsBackToEmbedded(t *testing.T) {
+	original := ECashNetworkID()
+	t.Cleanup(func() { SetECashNetworkID(original) })
 
-	SetDrynetGeneration("")
-	if got := DrynetGeneration(); got == "" {
-		t.Fatal("DrynetGeneration() must fall back to the embedded catalog")
+	SetECashNetworkID("")
+	if got := ECashNetworkID(); got == "" {
+		t.Fatal("ECashNetworkID() must fall back to the embedded catalog")
 	}
-	if urls := EsploraURLsForNetwork(NetworkDrynet); len(urls) == 0 {
-		t.Error("drynet must still resolve an esplora URL before the catalog loads")
+	if urls := EsploraURLsForNetwork(NetworkECash); len(urls) == 0 {
+		t.Error("eCash must still resolve an esplora URL before the catalog loads")
 	}
 }

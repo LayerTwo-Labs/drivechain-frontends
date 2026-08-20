@@ -475,14 +475,14 @@ func (m *BitcoinConfManager) materializeDatadirForGroup(g DatadirGroup) {
 // needsExplicitDatadir reports whether n must have a user-chosen path.
 func needsExplicitDatadir(n Network) bool {
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkDrynet:
+	case NetworkMainnet, NetworkForknet, NetworkECash:
 		return true
 	}
 	return false
 }
 
 // HasDatadirForNetwork reports whether a datadir is configured for n's group.
-// Mainnet/forknet/drynet require an explicit user-chosen path because the platform
+// Mainnet/forknet/ecash require an explicit user-chosen path because the platform
 // default sits inside ~/Library/Application Support and isn't suitable for
 // full chain data; signet/testnet/regtest accept the default (Bitcoin Core
 // auto-partitions them under chain subdirs).
@@ -503,7 +503,7 @@ func (m *BitcoinConfManager) HasDatadirForNetwork(n Network) bool {
 
 // RefreshMainSectionDefaults rewrites the active network's [main] block and
 // saves it. Used when something the block is built from changes underneath a
-// running install — the drynet generation, for instance — without a network
+// running install — the eCash network, for instance — without a network
 // swap to trigger the usual rewrite.
 func (m *BitcoinConfManager) RefreshMainSectionDefaults() error {
 	if m.Config == nil || m.HasPrivateConf {
@@ -514,17 +514,17 @@ func (m *BitcoinConfManager) RefreshMainSectionDefaults() error {
 }
 
 // applyMainSectionDefaults ensures master's [main] section matches what the
-// active network expects. Forknet and drynet want drivechain=1 + the alternate ports;
+// active network expects. Forknet and eCash want drivechain=1 + the alternate ports;
 // real mainnet/the default group want those keys absent. signet/test/regtest
 // don't read [main], so this is a no-op for them.
 func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 	if m.Config == nil {
 		return
 	}
-	// Keys that identify a specific chain=main network (forknet vs drynet vs
+	// Keys that identify a specific chain=main network (forknet vs eCash vs
 	// real mainnet). Strip them first so a swap never leaves a sibling's port
-	// or peer behind — forknet and drynet use different ports, and only
-	// drynet sets addnode/uacomment.
+	// or peer behind — forknet and eCash use different ports, and only
+	// eCash sets addnode/uacomment.
 	mainVariantKeys := []string{
 		"port", "rpcport", "rpcbind", "rpcallowip", "addnode", "uacomment",
 		"assumevalid", "minimumchainwork", "listenonion", "drivechain", "fallbackfee",
@@ -545,12 +545,12 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 			{"drivechain", "1"},
 			{"fallbackfee", "0.00021"},
 		}
-	case NetworkDrynet:
+	case NetworkECash:
 		defaults = []struct{ k, v string }{
 			{"port", "8301"},
 			{"rpcport", "18302"},
-			{"addnode", m.DrynetPeer()},
-			{"uacomment", m.Generation()},
+			{"addnode", m.ECashPeer()},
+			{"uacomment", ECashUAComment(m.ResolvedECashID())},
 			{"assumevalid", "0000000000000000000000000000000000000000000000000000000000000000"},
 			{"minimumchainwork", "0x00"},
 			{"listenonion", "0"},

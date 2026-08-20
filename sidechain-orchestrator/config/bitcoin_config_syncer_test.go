@@ -382,7 +382,7 @@ func TestGetDefaultConfigMainnetIncludesRest(t *testing.T) {
 
 // Mainnet runs the enforcer too, so it must ship the same enforcer-required
 // settings (zmqpubsequence) and perf knobs (rpcthreads, rpcworkqueue) as
-// signet/drynet. Regression guard for the unify-template change.
+// signet/ecash. Regression guard for the unify-template change.
 func TestGetDefaultConfigMainnetMatchesEnforcerExpectations(t *testing.T) {
 	m := &BitcoinConfManager{Network: NetworkMainnet}
 	conf := m.GetDefaultConfig()
@@ -430,15 +430,15 @@ func TestGetDefaultConfigFallbackfeeNotOnMainnet(t *testing.T) {
 	}
 }
 
-func TestGetDefaultConfigDrynetHasPeerAndFallbackfee(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkDrynet, DrynetID: "drynet4"}
+func TestGetDefaultConfigECashHasPeerAndFallbackfee(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkECash, ECashID: "alphanet"}
 	conf := m.GetDefaultConfig()
 	for _, want := range []string{
 		"drivechain=1", "fallbackfee=0.00021",
-		"addnode=drynet4.drivechain.dev:8533", "uacomment=drynet4", "rpcport=18302",
+		"addnode=seed.alpha.ecash.ninja:8533", "uacomment=ecash-alphanet", "rpcport=18302",
 	} {
 		if !strings.Contains(conf, want) {
-			t.Errorf("drynet default config must include %q, got:\n%s", want, conf)
+			t.Errorf("eCash default config must include %q, got:\n%s", want, conf)
 		}
 	}
 }
@@ -453,11 +453,11 @@ func TestGetDefaultConfigForknetKeepsFallbackfee(t *testing.T) {
 	}
 }
 
-// Forknet and drynet run on mainnet params, so a swap must write chain=main.
+// Forknet and eCash run on mainnet params, so a swap must write chain=main.
 // Writing anything else boots the wrong network while [main] still carries the
 // fork's ports and drivechain=1.
 func TestUpdateNetworkWritesChainMainForForks(t *testing.T) {
-	for _, n := range []Network{NetworkMainnet, NetworkForknet, NetworkDrynet} {
+	for _, n := range []Network{NetworkMainnet, NetworkForknet, NetworkECash} {
 		t.Run(string(n), func(t *testing.T) {
 			m := newTestManager(t.TempDir())
 			m.Config = NewBitcoinConfig()
@@ -468,93 +468,120 @@ func TestUpdateNetworkWritesChainMainForForks(t *testing.T) {
 	}
 }
 
-// The generation drives the peer and the sentinel, so a new drynet needs an
-// endpoint change rather than a code change.
-func TestDrynetGenerationDrivesPeerAndSentinel(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkDrynet, DrynetID: "drynet3"}
+// The catalog id drives the peer and the sentinel, so a new eCash network needs
+// an endpoint change rather than a code change.
+func TestECashGenerationDrivesPeerAndSentinel(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkECash, ECashID: "alphanet"}
 	conf := m.GetDefaultConfig()
-	for _, want := range []string{"addnode=drynet3.drivechain.dev:8337", "uacomment=drynet3"} {
+	for _, want := range []string{"addnode=seed.alpha.ecash.ninja:8533", "uacomment=ecash-alphanet"} {
 		if !strings.Contains(conf, want) {
-			t.Errorf("drynet3 config must include %q, got:\n%s", want, conf)
+			t.Errorf("alphanet config must include %q, got:\n%s", want, conf)
 		}
 	}
-	if strings.Contains(conf, "drynet2") {
-		t.Errorf("drynet3 config must not mention drynet2, got:\n%s", conf)
+	if strings.Contains(conf, "drivechain.dev") {
+		t.Errorf("alphanet config must not name a retired eCash host, got:\n%s", conf)
 	}
 
 	// applyMainSectionDefaults writes the same values on a network swap.
-	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), DrynetID: "drynet3", log: zerolog.Nop()}
-	m2.applyMainSectionDefaults(NetworkDrynet)
-	if got := m2.Config.GetSetting("addnode", "main"); got != "drynet3.drivechain.dev:8337" {
-		t.Errorf("addnode = %q, want the drynet3 peer", got)
+	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "alphanet", log: zerolog.Nop()}
+	m2.applyMainSectionDefaults(NetworkECash)
+	if got := m2.Config.GetSetting("addnode", "main"); got != "seed.alpha.ecash.ninja:8533" {
+		t.Errorf("addnode = %q, want the alphanet peer", got)
 	}
-	if got := m2.Config.GetSetting("uacomment", "main"); got != "drynet3" {
-		t.Errorf("uacomment = %q, want drynet3", got)
+	if got := m2.Config.GetSetting("uacomment", "main"); got != "ecash-alphanet" {
+		t.Errorf("uacomment = %q, want ecash-alphanet", got)
 	}
 }
 
 // With no resolved catalog the embedded generation is used, so a first boot
 // still writes a reachable peer instead of an empty addnode.
-func TestDrynetFallsBackToEmbeddedGeneration(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkDrynet}
-	generation := m.Generation()
+func TestECashFallsBackToEmbeddedGeneration(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkECash}
+	generation := m.ResolvedECashID()
 	if generation == "" {
 		t.Fatal("Generation() must fall back to the embedded catalog")
 	}
-	if got := m.DrynetPeer(); got != netcatalog.EmbeddedPeer(generation) || got == "" {
-		t.Errorf("DrynetPeer() = %q, want the embedded seed address for %s", got, generation)
+	if got := m.ECashPeer(); got != netcatalog.EmbeddedPeer(generation) || got == "" {
+		t.Errorf("ECashPeer() = %q, want the embedded seed address for %s", got, generation)
 	}
 }
 
-// A generation nothing has published an address for gets no addnode at all.
+// A network nothing has published an address for gets no addnode at all.
 // Guessing the port sent bitcoind somewhere nothing listens.
-func TestDrynetWithoutPublishedPeerWritesNoAddnode(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkDrynet, DrynetID: "drynet99"}
-	if got := m.DrynetPeer(); got != "" {
-		t.Errorf("DrynetPeer() = %q, want empty for an unpublished generation", got)
+func TestECashWithoutPublishedPeerWritesNoAddnode(t *testing.T) {
+	m := &BitcoinConfManager{Network: NetworkECash, ECashID: "nonet"}
+	if got := m.ECashPeer(); got != "" {
+		t.Errorf("ECashPeer() = %q, want empty for an unpublished network", got)
 	}
-	if conf := m.GetDefaultConfig(); strings.Contains(conf, "addnode=drynet") {
-		t.Errorf("unpublished generation must not write an addnode line, got:\n%s", conf)
+	if conf := m.GetDefaultConfig(); strings.Contains(conf, "addnode=nonet") {
+		t.Errorf("unpublished network must not write an addnode line, got:\n%s", conf)
 	}
 
-	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), DrynetID: "drynet99", log: zerolog.Nop()}
-	m2.applyMainSectionDefaults(NetworkDrynet)
+	m2 := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "nonet", log: zerolog.Nop()}
+	m2.applyMainSectionDefaults(NetworkECash)
 	if got := m2.Config.GetSetting("addnode", "main"); got != "" {
 		t.Errorf("addnode = %q, want it left unset", got)
 	}
 }
 
-// The forknet and drynet configs both say chain=main + drivechain=1; only the
+// The forknet and eCash configs both say chain=main + drivechain=1; only the
 // uacomment sentinel tells them apart. Round-trip each generated config back
 // through the detector to prove they don't collide.
-func TestNetworkFromConfigDistinguishesDrynetFromForknet(t *testing.T) {
+func TestNetworkFromConfigDistinguishesECashFromForknet(t *testing.T) {
 	forknet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkForknet}).GetDefaultConfig())
 	if got := NetworkFromConfig(forknet, NetworkSignet); got != NetworkForknet {
 		t.Errorf("forknet config detected as %q, want forknet", got)
 	}
-	drynet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
-	if got := NetworkFromConfig(drynet, NetworkSignet); got != NetworkDrynet {
-		t.Errorf("drynet config detected as %q, want drynet", got)
+	ecash := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkECash}).GetDefaultConfig())
+	if got := NetworkFromConfig(ecash, NetworkSignet); got != NetworkECash {
+		t.Errorf("eCash config detected as %q, want eCash", got)
 	}
 }
 
-// The sentinel carries the generation, so detection must match on the prefix:
-// a future drynet3 conf has to stay drynet rather than falling through to
-// forknet, which would silently drop the drynet datadir slot.
-func TestNetworkFromConfigDetectsFutureDrynetGeneration(t *testing.T) {
-	conf := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
-	conf.SetSetting("uacomment", "drynet3", "main")
-	if got := NetworkFromConfig(conf, NetworkSignet); got != NetworkDrynet {
-		t.Errorf("drynet3 config detected as %q, want drynet", got)
+// The sentinel carries the free-form catalog id, so detection must match on
+// the prefix: a later eCash conf has to stay eCash rather than falling
+// through to forknet, which would silently drop the eCash datadir slot.
+func TestNetworkFromConfigDetectsFutureECashGeneration(t *testing.T) {
+	conf := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkECash}).GetDefaultConfig())
+	conf.SetSetting("uacomment", "ecash-betanet", "main")
+	if got := NetworkFromConfig(conf, NetworkSignet); got != NetworkECash {
+		t.Errorf("ecash-betanet config detected as %q, want eCash", got)
 	}
 }
 
-// Drynet's config says chain=main + drivechain=1. Round-trip the generated
+// ECash's config says chain=main + drivechain=1. Round-trip the generated
 // config back through the detector to prove it is not read as mainnet.
-func TestNetworkFromConfigDetectsDrynet(t *testing.T) {
-	drynet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkDrynet}).GetDefaultConfig())
-	if got := NetworkFromConfig(drynet, NetworkSignet); got != NetworkDrynet {
-		t.Errorf("drynet config detected as %q, want drynet", got)
+// A conf the drynet series wrote still names an eCash chain. Reading it as
+// forknet would boot an upgraded install onto the wrong network in silence.
+// The eCash datadir slot went out as "drynet". Dropping it makes an upgraded
+// install ask for a directory it already holds a chain in.
+func TestParseReadsTheLegacyECashDatadirSlot(t *testing.T) {
+	conf := ParseBitcoinConfig("# bitwindow-datadir-drynet=/vol/ecash\nchain=main\n")
+	if got := conf.GetGroupDatadir(DatadirGroupECash); got != "/vol/ecash" {
+		t.Errorf("eCash slot = %q, want /vol/ecash", got)
+	}
+	// Only the new key goes back out.
+	if out := conf.Serialize(); !strings.Contains(out, "# bitwindow-datadir-ecash=/vol/ecash") ||
+		strings.Contains(out, "datadir-drynet") {
+		t.Errorf("serialize must write only the ecash slot, got:\n%s", out)
+	}
+}
+
+func TestNetworkFromConfigDetectsALegacyDrynetSentinel(t *testing.T) {
+	conf := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkECash}).GetDefaultConfig())
+	conf.SetSetting("uacomment", "drynet4", "main")
+	if got := NetworkFromConfig(conf, NetworkSignet); got != NetworkECash {
+		t.Errorf("drynet4 config detected as %q, want ecash", got)
+	}
+	if got := ECashIDFromUAComment("drynet4"); got != "drynet4" {
+		t.Errorf("ECashIDFromUAComment(drynet4) = %q, want drynet4", got)
+	}
+}
+
+func TestNetworkFromConfigDetectsECash(t *testing.T) {
+	ecash := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkECash}).GetDefaultConfig())
+	if got := NetworkFromConfig(ecash, NetworkSignet); got != NetworkECash {
+		t.Errorf("eCash config detected as %q, want eCash", got)
 	}
 }
 
@@ -644,33 +671,33 @@ func TestHasDatadirForNetwork(t *testing.T) {
 	m := newTestManager(tmpDir)
 	m.Config = NewBitcoinConfig()
 
-	// No datadir anywhere — mainnet/drynet should be false
-	if m.HasDatadirForNetwork(NetworkDrynet) {
-		t.Error("drynet should be false when slot is empty")
+	// No datadir anywhere — mainnet/ecash should be false
+	if m.HasDatadirForNetwork(NetworkECash) {
+		t.Error("eCash should be false when slot is empty")
 	}
 	if m.HasDatadirForNetwork(NetworkMainnet) {
 		t.Error("mainnet should be false when slot/datadir is empty")
 	}
 
-	// Non-mainnet/drynet — always true (signet/test/regtest use bitcoind defaults).
+	// Non-mainnet/ecash — always true (signet/test/regtest use bitcoind defaults).
 	if !m.HasDatadirForNetwork(NetworkSignet) {
 		t.Error("signet should always return true")
 	}
 
-	// Drynet only honours its own slot, not the live datadir or default slot.
+	// ECash only honours its own slot, not the live datadir or default slot.
 	m.Config.SetSetting("datadir", "/some/path")
 	m.Config.SetGroupDatadir(DatadirGroupDefault, "/some/path")
-	if m.HasDatadirForNetwork(NetworkDrynet) {
-		t.Error("drynet should ignore default-group datadir")
+	if m.HasDatadirForNetwork(NetworkECash) {
+		t.Error("eCash should ignore default-group datadir")
 	}
-	m.Config.SetGroupDatadir(DatadirGroupDrynet, "/drynet/path")
-	if !m.HasDatadirForNetwork(NetworkDrynet) {
-		t.Error("drynet should be true when drynet slot is set")
+	m.Config.SetGroupDatadir(DatadirGroupECash, "/ecash/path")
+	if !m.HasDatadirForNetwork(NetworkECash) {
+		t.Error("eCash should be true when eCash slot is set")
 	}
 
-	// Forknet has its own slot, independent of drynet's.
+	// Forknet has its own slot, independent of eCash's.
 	if m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("forknet should ignore drynet-group datadir")
+		t.Error("forknet should ignore eCash-group datadir")
 	}
 	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/path")
 	if !m.HasDatadirForNetwork(NetworkForknet) {
@@ -695,7 +722,7 @@ func TestLoadAdoptsTopLevelDatadirIntoActiveSlot(t *testing.T) {
 		conf  string
 		group DatadirGroup
 	}{
-		{"drynet", "chain=main\ndatadir=/vol/drynet\n[main]\ndrivechain=1\nuacomment=drynet4\n", DatadirGroupDrynet},
+		{"ecash", "chain=main\ndatadir=/vol/ecash\n[main]\ndrivechain=1\nuacomment=ecash-alphanet\n", DatadirGroupECash},
 		{"mainnet", "chain=main\ndatadir=/vol/mainnet\n", DatadirGroupDefault},
 		{"signet", "chain=signet\ndatadir=/vol/shared\n", DatadirGroupDefault},
 	} {
@@ -740,7 +767,7 @@ func TestSignetDatadirSatisfiesMainnet(t *testing.T) {
 
 	require.Equal(t, NetworkSignet, m.Network)
 	require.True(t, m.HasDatadirForNetwork(NetworkMainnet))
-	require.False(t, m.HasDatadirForNetwork(NetworkDrynet), "drynet keeps its own slot")
+	require.False(t, m.HasDatadirForNetwork(NetworkECash), "eCash keeps its own slot")
 }
 
 // Regression: UpdateDataDir writes datadir to the global section (Bitcoin
@@ -795,11 +822,11 @@ func TestDetectedDataDirPrefersPerNetworkSection(t *testing.T) {
 func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
 	tmpDir := t.TempDir()
 	m := newTestManager(tmpDir)
-	m.Network = NetworkDrynet
+	m.Network = NetworkECash
 	m.Config.SetSetting("chain", "main")
 	m.Config.SetSetting("drivechain", "1", "main")
-	m.Config.SetSetting("datadir", "/drynet/live")
-	m.Config.SetGroupDatadir(DatadirGroupDrynet, "/drynet/live")
+	m.Config.SetSetting("datadir", "/ecash/live")
+	m.Config.SetGroupDatadir(DatadirGroupECash, "/ecash/live")
 
 	masterPath := m.getBitWindowConfigPath()
 	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
@@ -809,7 +836,7 @@ func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
 	require.NoError(t, m.UpdateDataDir(picked, NetworkMainnet))
 
 	require.Equal(t, picked, m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/drynet/live", m.Config.GetSetting("datadir"), "active datadir must not change when setting inactive group")
+	require.Equal(t, "/ecash/live", m.Config.GetSetting("datadir"), "active datadir must not change when setting inactive group")
 }
 
 // UpdateDataDir for the active group must update both the slot AND the live
@@ -831,7 +858,7 @@ func TestUpdateDataDirActiveGroupUpdatesLive(t *testing.T) {
 	require.Equal(t, picked, m.Config.GetSetting("datadir"))
 }
 
-// Manual edit: rewrite datadir= directly on disk, reload, swap to drynet —
+// Manual edit: rewrite datadir= directly on disk, reload, swap to eCash —
 // default slot must reflect the manual value (snapshot adopts the live edit).
 func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -844,15 +871,15 @@ func TestSwapAdoptsManuallyEditedDatadirIntoSlot(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
 	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
 
-	// Pre-stage drynet path so the swap is allowed.
-	m.Config.SetGroupDatadir(DatadirGroupDrynet, "/drynet/path")
+	// Pre-stage eCash path so the swap is allowed.
+	m.Config.SetGroupDatadir(DatadirGroupECash, "/ecash/path")
 	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
 	require.NoError(t, m.LoadConfig(false))
 
-	require.NoError(t, m.UpdateNetwork(NetworkDrynet))
+	require.NoError(t, m.UpdateNetwork(NetworkECash))
 
 	require.Equal(t, "/manually/edited", m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/drynet/path", m.Config.GetSetting("datadir"))
+	require.Equal(t, "/ecash/path", m.Config.GetSetting("datadir"))
 }
 
 // Within-group swap (mainnet ↔ signet) leaves datadir= alone — Bitcoin Core's
@@ -872,22 +899,22 @@ func TestUpdateNetworkWithinDefaultGroupKeepsDatadir(t *testing.T) {
 
 	require.Equal(t, "/shared/default", m.Config.GetSetting("datadir"))
 	require.Equal(t, "/shared/default", m.Config.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupDrynet), "the drynet slot stays its own")
+	require.Equal(t, "", m.Config.GetGroupDatadir(DatadirGroupECash), "the eCash slot stays its own")
 }
 
-// applyMainSectionDefaults: signet → drynet adds drivechain=1 + alt ports
-// under [main]; drynet → mainnet strips them.
-func TestApplyMainSectionDefaultsDrynetThenMainnet(t *testing.T) {
-	m := &BitcoinConfManager{Config: NewBitcoinConfig(), DrynetID: "drynet4", log: zerolog.Nop()}
+// applyMainSectionDefaults: signet → eCash adds drivechain=1 + alt ports
+// under [main]; eCash → mainnet strips them.
+func TestApplyMainSectionDefaultsECashThenMainnet(t *testing.T) {
+	m := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "alphanet", log: zerolog.Nop()}
 	m.Config.SetSetting("chain", "signet")
 
-	m.applyMainSectionDefaults(NetworkDrynet)
+	m.applyMainSectionDefaults(NetworkECash)
 	require.Equal(t, "1", m.Config.GetSetting("drivechain", "main"))
 	require.Equal(t, "8301", m.Config.GetSetting("port", "main"))
 	require.Equal(t, "18302", m.Config.GetSetting("rpcport", "main"))
 	require.Equal(t, "0.00021", m.Config.GetSetting("fallbackfee", "main"))
-	require.Equal(t, "drynet4.drivechain.dev:8533", m.Config.GetSetting("addnode", "main"))
-	require.Equal(t, "drynet4", m.Config.GetSetting("uacomment", "main"))
+	require.Equal(t, "seed.alpha.ecash.ninja:8533", m.Config.GetSetting("addnode", "main"))
+	require.Equal(t, "ecash-alphanet", m.Config.GetSetting("uacomment", "main"))
 
 	m.applyMainSectionDefaults(NetworkMainnet)
 	require.Equal(t, "", m.Config.GetSetting("drivechain", "main"))
@@ -1038,41 +1065,41 @@ func TestDatadirSlotsRoundTrip(t *testing.T) {
 	src := `# bitwindow-bitcoin-conf-version=8
 
 # bitwindow-datadir-default=/Volumes/SSD/bitcoin
-# bitwindow-datadir-drynet=/Volumes/HDD/drynet
+# bitwindow-datadir-ecash=/Volumes/HDD/ecash
 
 datadir=/Volumes/SSD/bitcoin
 chain=signet
 `
 	c := ParseBitcoinConfig(src)
 	require.Equal(t, "/Volumes/SSD/bitcoin", c.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/Volumes/HDD/drynet", c.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/Volumes/HDD/ecash", c.GetGroupDatadir(DatadirGroupECash))
 
-	c.SetGroupDatadir(DatadirGroupDrynet, "/new/drynet/path")
+	c.SetGroupDatadir(DatadirGroupECash, "/new/ecash/path")
 
 	out := c.Serialize()
 	require.Contains(t, out, "# bitwindow-datadir-default=/Volumes/SSD/bitcoin\n")
-	require.Contains(t, out, "# bitwindow-datadir-drynet=/new/drynet/path\n")
+	require.Contains(t, out, "# bitwindow-datadir-ecash=/new/ecash/path\n")
 
-	// Stable order: default before drynet
+	// Stable order: default before eCash
 	defIdx := strings.Index(out, "# bitwindow-datadir-default=")
-	fkIdx := strings.Index(out, "# bitwindow-datadir-drynet=")
-	require.Greater(t, fkIdx, defIdx, "default slot should serialize before drynet slot")
+	fkIdx := strings.Index(out, "# bitwindow-datadir-ecash=")
+	require.Greater(t, fkIdx, defIdx, "default slot should serialize before eCash slot")
 
 	// Re-parse, values stable
 	c2 := ParseBitcoinConfig(out)
 	require.Equal(t, "/Volumes/SSD/bitcoin", c2.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/new/drynet/path", c2.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/new/ecash/path", c2.GetGroupDatadir(DatadirGroupECash))
 }
 
 func TestDatadirSlotsClearedOnEmpty(t *testing.T) {
 	c := NewBitcoinConfig()
-	c.SetGroupDatadir(DatadirGroupDrynet, "/some/path")
-	require.Equal(t, "/some/path", c.GetGroupDatadir(DatadirGroupDrynet))
-	c.SetGroupDatadir(DatadirGroupDrynet, "")
-	require.Equal(t, "", c.GetGroupDatadir(DatadirGroupDrynet))
+	c.SetGroupDatadir(DatadirGroupECash, "/some/path")
+	require.Equal(t, "/some/path", c.GetGroupDatadir(DatadirGroupECash))
+	c.SetGroupDatadir(DatadirGroupECash, "")
+	require.Equal(t, "", c.GetGroupDatadir(DatadirGroupECash))
 
 	out := c.Serialize()
-	require.NotContains(t, out, "# bitwindow-datadir-drynet=")
+	require.NotContains(t, out, "# bitwindow-datadir-ecash=")
 }
 
 func TestDatadirGroupForNetwork(t *testing.T) {
@@ -1080,12 +1107,12 @@ func TestDatadirGroupForNetwork(t *testing.T) {
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkSignet))
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkTestnet))
 	require.Equal(t, DatadirGroupDefault, DatadirGroupForNetwork(NetworkRegtest))
-	require.Equal(t, DatadirGroupDrynet, DatadirGroupForNetwork(NetworkDrynet))
+	require.Equal(t, DatadirGroupECash, DatadirGroupForNetwork(NetworkECash))
 }
 
 func TestGroupDatadirForPick(t *testing.T) {
 	require.Equal(t, "/x/forknet", GroupDatadirForPick(DatadirGroupForknet, "/x"))
-	require.Equal(t, "/x/drynet", GroupDatadirForPick(DatadirGroupDrynet, "/x"))
+	require.Equal(t, "/x/ecash", GroupDatadirForPick(DatadirGroupECash, "/x"))
 	require.Equal(t, "/x/forknet", GroupDatadirForPick(DatadirGroupForknet, "/x/"), "trailing slash")
 	require.Equal(t, "/x", GroupDatadirForPick(DatadirGroupDefault, "/x"), "default group untouched")
 	require.Equal(t, "", GroupDatadirForPick(DatadirGroupForknet, ""))
@@ -1105,13 +1132,13 @@ func TestGroupDatadirForPick(t *testing.T) {
 func TestParsePreservesExistingSlotPaths(t *testing.T) {
 	c := ParseBitcoinConfig(`# bitwindow-datadir-default=/mnt/main
 # bitwindow-datadir-forknet=/mnt/fork-chain
-# bitwindow-datadir-drynet=/mnt/dry-chain
+# bitwindow-datadir-ecash=/mnt/dry-chain
 
 chain=main
 `)
 	require.Equal(t, "/mnt/main", c.GetGroupDatadir(DatadirGroupDefault))
 	require.Equal(t, "/mnt/fork-chain", c.GetGroupDatadir(DatadirGroupForknet))
-	require.Equal(t, "/mnt/dry-chain", c.GetGroupDatadir(DatadirGroupDrynet))
+	require.Equal(t, "/mnt/dry-chain", c.GetGroupDatadir(DatadirGroupECash))
 
 	require.Equal(t, c.Serialize(), ParseBitcoinConfig(c.Serialize()).Serialize(), "round-trip must be stable")
 }
@@ -1121,22 +1148,22 @@ chain=main
 func TestSameSlotPathStillSeparatesForknetFromMainnet(t *testing.T) {
 	const picked = "/Volumes/BTC"
 	c := NewBitcoinConfig()
-	for _, g := range []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupDrynet} {
+	for _, g := range []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupECash} {
 		c.SetGroupDatadir(g, GroupDatadirForPick(g, picked))
 	}
 
 	mainnet := c.GetGroupDatadir(DatadirGroupDefault)
 	forknet := c.GetGroupDatadir(DatadirGroupForknet)
-	drynet := c.GetGroupDatadir(DatadirGroupDrynet)
+	ecash := c.GetGroupDatadir(DatadirGroupECash)
 
 	require.Equal(t, picked, mainnet)
 	require.Equal(t, "/Volumes/BTC/forknet", forknet)
-	require.Equal(t, "/Volumes/BTC/drynet", drynet)
+	require.Equal(t, "/Volumes/BTC/ecash", ecash)
 
 	resolved := map[string]bool{
 		BitcoinCoreDirs.DatadirNetwork(NetworkMainnet, mainnet): true,
 		BitcoinCoreDirs.DatadirNetwork(NetworkForknet, forknet): true,
-		BitcoinCoreDirs.DatadirNetwork(NetworkDrynet, drynet):   true,
+		BitcoinCoreDirs.DatadirNetwork(NetworkECash, ecash):     true,
 	}
 	require.Len(t, resolved, 3, "no two chain=main networks may share bitcoind's datadir")
 }

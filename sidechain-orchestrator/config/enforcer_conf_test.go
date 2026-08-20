@@ -172,13 +172,13 @@ func TestWriteConfig(t *testing.T) {
 // GetCliArgs tests
 // ---------------------------------------------------------------------------
 
-// Drynet forks mainnet, so the enforcer needs the generation's preset. Nothing
+// ECash forks mainnet, so the enforcer needs the generation's preset. Nothing
 // persists it — the conf carries no network-preset on a fresh install.
-func TestGetCliArgsDerivesDrynetNetworkPreset(t *testing.T) {
+func TestGetCliArgsDerivesECashNetworkPreset(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
-	m.bitcoinConf.Network = NetworkDrynet
-	m.bitcoinConf.DrynetID = "drynet4"
+	m.bitcoinConf.Network = NetworkECash
+	m.bitcoinConf.ECashID = "drynet4"
 
 	require.Contains(t, m.GetCliArgs(), "--network-preset=drynet4")
 
@@ -188,8 +188,8 @@ func TestGetCliArgsDerivesDrynetNetworkPreset(t *testing.T) {
 	require.NotContains(t, m.GetCliArgs(), "--network-preset=drynet4")
 }
 
-// Only drynet builds of the enforcer accept the flag.
-func TestGetCliArgsOmitsNetworkPresetOffDrynet(t *testing.T) {
+// Only eCash builds of the enforcer accept the flag.
+func TestGetCliArgsOmitsNetworkPresetOffECash(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 
@@ -489,37 +489,83 @@ func rejectArgPrefix(t *testing.T, args []string, prefix string) {
 	}
 }
 
-// A generation rollover must reach the enforcer conf: a persisted preset or
-// esplora host still names the retired fork, and the enforcer would keep it.
-func TestRetargetDrynetGenerationRewritesPersistedValues(t *testing.T) {
+// An eCash rollover must reach the enforcer conf: a persisted preset or esplora
+// host still names the retired fork, and the enforcer would keep it.
+func TestRetargetECashGenerationRewritesPersistedValues(t *testing.T) {
 	m, dir := newTestEnforcerManager(t)
+	m.bitcoinConf.Network = NetworkECash
 	require.NoError(t, m.WriteConfig(strings.Join([]string{
-		"network-preset=drynet3",
-		"wallet-esplora-url=https://esplora.drynet3.drivechain.dev",
+		"network-preset=drynet4",
+		"wallet-esplora-url=https://esplora.drynet4.drivechain.dev",
 		"enable-wallet=true",
 	}, "\n")))
 
-	changed, err := m.RetargetDrynetGeneration("drynet4")
+	changed, err := m.RetargetECashNetwork("drynet4", "alphanet")
 	require.NoError(t, err)
 	require.True(t, changed)
 
-	require.Equal(t, "drynet4", m.Config.GetSetting("network-preset"))
-	require.Equal(t, "https://esplora.drynet4.drivechain.dev", m.Config.GetSetting("wallet-esplora-url"))
+	require.Equal(t, "alphanet", m.Config.GetSetting("network-preset"))
+	require.Equal(t, EsploraURLForNetwork(NetworkECash), m.Config.GetSetting("wallet-esplora-url"))
 	require.Equal(t, "true", m.Config.GetSetting("enable-wallet"))
 
 	onDisk, err := os.ReadFile(filepath.Join(dir, bitwindowEnforcerConfFilename))
 	require.NoError(t, err)
-	require.Contains(t, string(onDisk), "network-preset=drynet4")
-	require.NotContains(t, string(onDisk), "drynet3")
+	require.Contains(t, string(onDisk), "network-preset=alphanet")
+	require.NotContains(t, string(onDisk), "drynet4")
 }
 
-// A conf that names no generation must be left alone, so every start doesn't
-// rewrite the file.
-func TestRetargetDrynetGenerationLeavesOtherConfigsAlone(t *testing.T) {
+// The derived keys belong to the active network, so a value written for another
+// one must survive the eCash retarget.
+func TestRetargetECashGenerationLeavesOtherNetworksAlone(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.WriteConfig("wallet-esplora-url=https://explorer.signet.drivechain.info/api"))
+
+	changed, err := m.RetargetECashNetwork("drynet4", "alphanet")
+	require.NoError(t, err)
+	require.False(t, changed)
+	require.Equal(t, "https://explorer.signet.drivechain.info/api", m.Config.GetSetting("wallet-esplora-url"))
+}
+
+// GetCliArgs treats a persisted value as an explicit override, and every start
+// runs the retarget. An endpoint the user chose must not read as the retired
+// fork's just because eCash is active.
+func TestRetargetECashGenerationKeepsACustomEndpoint(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	m.bitcoinConf.Network = NetworkECash
+	require.NoError(t, m.WriteConfig(strings.Join([]string{
+		"network-preset=drynet4",
+		"wallet-esplora-url=https://esplora.mine.example",
+	}, "\n")))
+
+	changed, err := m.RetargetECashNetwork("drynet4", "alphanet")
+	require.NoError(t, err)
+	require.True(t, changed, "the preset still names the retired fork")
+
+	require.Equal(t, "alphanet", m.Config.GetSetting("network-preset"))
+	require.Equal(t, "https://esplora.mine.example", m.Config.GetSetting("wallet-esplora-url"),
+		"an endpoint the user chose is theirs to keep")
+}
+
+// Nothing changed, so nothing may be rewritten: a start that rewrites the file
+// every time would undo an override the moment it is written.
+func TestRetargetECashGenerationDoesNothingWithoutAMove(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	m.bitcoinConf.Network = NetworkECash
+	require.NoError(t, m.WriteConfig("network-preset=alphanet"))
+
+	changed, err := m.RetargetECashNetwork("alphanet", "alphanet")
+	require.NoError(t, err)
+	require.False(t, changed)
+}
+
+// A conf that persists neither derived key must be left alone, so every start
+// does not rewrite the file.
+func TestRetargetECashGenerationLeavesOtherConfigsAlone(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	m.bitcoinConf.Network = NetworkECash
 	require.NoError(t, m.WriteConfig("enable-wallet=true\nenable-mempool=true"))
 
-	changed, err := m.RetargetDrynetGeneration("drynet4")
+	changed, err := m.RetargetECashNetwork("drynet4", "alphanet")
 	require.NoError(t, err)
 	require.False(t, changed)
 }
@@ -624,4 +670,30 @@ func TestEsploraArgURL(t *testing.T) {
 
 	_, ok = EsploraArgURL([]string{"--enable-wallet"})
 	assert.False(t, ok)
+}
+
+// The L1 boot reads this file on a goroutine the swap starts, so it has to be
+// right before eCash is the active network. A guard on the live network would
+// refuse the one rewrite that matters and lose the race.
+func TestRetargetECashNetworkForRunsBeforeTheSwapLands(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.Equal(t, NetworkSignet, m.bitcoinConf.Network, "the swap has not landed yet")
+	require.NoError(t, m.WriteConfig("network-preset=drynet4\n"))
+
+	changed, err := m.RetargetECashNetworkFor(NetworkECash, "drynet4", "alphanet")
+	require.NoError(t, err)
+	require.True(t, changed, "the target network decides, not the live one")
+	require.Equal(t, "alphanet", m.Config.GetSetting("network-preset"))
+}
+
+// A swap into any other network leaves this file alone: its values belong to
+// whoever wrote them.
+func TestRetargetECashNetworkForIgnoresOtherNetworks(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.WriteConfig("network-preset=drynet4\n"))
+
+	changed, err := m.RetargetECashNetworkFor(NetworkSignet, "drynet4", "alphanet")
+	require.NoError(t, err)
+	require.False(t, changed)
+	require.Equal(t, "drynet4", m.Config.GetSetting("network-preset"))
 }
