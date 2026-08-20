@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,6 +34,11 @@ import (
 )
 
 type Services struct {
+	// ECashNetworkID is the catalog id the orchestrator serves at startup. The
+	// eCash rows share one network, so without it the first request naming that
+	// id reads as a chain change and throws the database away.
+	ECashNetworkID string
+
 	BitcoindConnector service.Connector[corerpc.BitcoinServiceClient]
 	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
@@ -91,6 +98,10 @@ type Server struct {
 
 	svcs       Services
 	onShutdown func(ctx context.Context)
+
+	// networkID is the catalog id the runtime serves, guarded by recycleMu. The
+	// eCash rows share one network, so only the id tells two of them apart.
+	networkID string
 
 	// Per-network runtime — atomically swapped on Recycle.
 	current atomic.Pointer[Runtime]
@@ -177,6 +188,8 @@ func New(
 		rootCtx:    ctx,
 	}
 
+	srv.networkID = svcs.ECashNetworkID
+
 	rt, err := srv.buildRuntime(ctx, conf)
 	if err != nil {
 		return nil, fmt.Errorf("build initial runtime: %w", err)
@@ -193,24 +206,48 @@ func New(
 // new mux, atomically points the listener at the new mux, and tears down
 // the old runtime asynchronously. The HTTP server keeps running across
 // the swap on the same port; the bitwindowd process never exits.
-func (s *Server) Recycle(ctx context.Context, network config.Network) error {
+func (s *Server) Recycle(ctx context.Context, network config.Network, networkID string) error {
 	s.recycleMu.Lock()
 	defer s.recycleMu.Unlock()
 
 	log := zerolog.Ctx(ctx)
-	log.Info().Str("network", string(network)).Msg("recycling runtime for new network")
+	log.Info().Str("network", string(network)).Str("network_id", networkID).
+		Msg("recycling runtime for new network")
 
+	// The eCash networks share one slot and one datadir, so the slot alone does
+	// not say the chain moved. The id does, and a runtime that keeps its
+	// database open would go on serving rows from the fork it left.
+	// Only the eCash rows share a network, so only they are told apart by id.
+	// Elsewhere the network is the identity: a client that sends the slot name
+	// where another sent a catalog id names the same runtime, and reading those
+	// as different would close the database and force a full reindex.
+	sameID := network != config.NetworkECash || s.networkID == networkID
 	old := s.current.Load()
-	if old != nil && old.conf.BitcoinCoreNetwork == network {
+	if old != nil && old.conf.BitcoinCoreNetwork == network && sameID {
 		log.Info().Msg("network already active, skipping recycle")
 		return nil
 	}
-
 	// Fresh conf snapshot for the new network. Finalize re-derives Datadir
 	// and LogPath (network-scoped folder) from the parent conf shape.
 	newConf := s.conf
 	if err := newConf.Finalize(network); err != nil {
 		return fmt.Errorf("finalize conf for %s: %w", network, err)
+	}
+
+	// An eCash id change keeps the network, so the old and the new runtime name
+	// the same database file. The old one has to close before the reset, or the
+	// rows survive: a rename leaves the open handle on the same inode, and on
+	// Windows it fails outright.
+	// Only an eCash id change reaches here with the network unchanged, and only
+	// then do the old and the new runtime name the same database file.
+	sameDatabase := old != nil && old.conf.BitcoinCoreNetwork == network && network == config.NetworkECash
+	if sameDatabase {
+		old.Close()
+		old = nil
+		log.Info().Msg("old runtime closed before the database reset")
+		if err := resetChainDatabase(newConf); err != nil {
+			return fmt.Errorf("reset chain database for %s: %w", network, err)
+		}
 	}
 
 	rt, err := s.buildRuntime(ctx, newConf)
@@ -219,6 +256,9 @@ func (s *Server) Recycle(ctx context.Context, network config.Network) error {
 	}
 
 	s.conf = newConf
+	// Recorded only here: a failure above must leave the retry with work to do,
+	// and an id committed early would make it read as already active.
+	s.networkID = networkID
 	s.topSwap.swap(rt.Handler())
 	s.current.Store(rt)
 	rt.Start(s.rootCtx)
@@ -430,4 +470,17 @@ func getCode(err error) (connect.Code, bool) {
 		err = errors.Unwrap(err)
 	}
 	return connect.CodeUnknown, false
+}
+
+// resetChainDatabase removes the chain-derived database for a network, so a
+// runtime that reopens it indexes the chain from scratch. Called only with the
+// database closed.
+func resetChainDatabase(conf config.Config) error {
+	path := filepath.Join(conf.Datadir, "bitwindow.db")
+	for _, p := range []string{path, path + "-wal", path + "-shm"} {
+		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove %s: %w", p, err)
+		}
+	}
+	return nil
 }

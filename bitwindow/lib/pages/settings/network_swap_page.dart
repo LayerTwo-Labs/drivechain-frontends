@@ -13,7 +13,17 @@ class NetworkSwapPage extends StatefulWidget {
   final BitcoinNetwork toNetwork;
   final String dataDir;
 
-  const NetworkSwapPage({super.key, required this.fromNetwork, required this.toNetwork, this.dataDir = ''});
+  /// Catalog id of the target row. The eCash entries share one [BitcoinNetwork],
+  /// so the id decides which fork boots.
+  final String networkId;
+
+  const NetworkSwapPage({
+    super.key,
+    required this.fromNetwork,
+    required this.toNetwork,
+    this.dataDir = '',
+    this.networkId = '',
+  });
 
   @override
   State<NetworkSwapPage> createState() => _NetworkSwapPageState();
@@ -23,6 +33,11 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
   Logger get _log => GetIt.I.get<Logger>();
 
   final _SwapStep _step = _SwapStep('Switching network');
+
+  /// Names the block the move rewinds to, when it is between two eCash
+  /// networks. They share their history below the fork, so a rewind beats a
+  /// download of the whole chain. The backend does the rewind inside the swap.
+  int? _rewindHeight;
 
   bool _isSwapping = false;
   bool _swapComplete = false;
@@ -37,7 +52,12 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
     });
 
     try {
-      await GetIt.I.get<BitcoinConfProvider>().updateNetwork(widget.toNetwork, dataDir: widget.dataDir);
+      await _readRewindHeight();
+      await GetIt.I.get<BitcoinConfProvider>().updateNetwork(
+        widget.toNetwork,
+        dataDir: widget.dataDir,
+        networkId: widget.networkId,
+      );
       if (mounted) {
         setState(() {
           _step.endTime = DateTime.now();
@@ -52,6 +72,22 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
           _error = e.toString();
         });
       }
+    }
+  }
+
+  /// Reads the block the backend rewinds to, so the step can name it. The
+  /// rewind itself runs inside the network change.
+  Future<void> _readRewindHeight() async {
+    if (widget.networkId.isEmpty || widget.toNetwork != BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
+      return;
+    }
+    try {
+      final plan = await GetIt.I.get<BitcoinConfProvider>().planECashSwitch(widget.networkId);
+      if (plan.needsRollback && mounted) {
+        setState(() => _rewindHeight = plan.rewindHeight);
+      }
+    } catch (e) {
+      _log.w('NetworkSwapPage: could not plan the eCash switch: $e');
     }
   }
 
@@ -140,7 +176,9 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
                               child: Padding(
                                 padding: const EdgeInsets.all(SailStyleValues.padding12),
                                 child: ProgressStepTile(
-                                  name: _step.name,
+                                  name: _rewindHeight == null
+                                      ? _step.name
+                                      : 'Rewinding to block $_rewindHeight, then switching network',
                                   isCompleted: _step.isCompleted,
                                   duration: _step.duration,
                                   isActive: _isSwapping && !_step.isCompleted,

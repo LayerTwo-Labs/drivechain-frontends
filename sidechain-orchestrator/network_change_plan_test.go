@@ -40,8 +40,8 @@ func TestPlanNetworkChangeDatadirFollowsWalletBackend(t *testing.T) {
 		{name: "mainnet electrum", network: "mainnet", backend: wallet.WalletTypeElectrum},
 		{name: "mainnet core", network: "mainnet", backend: wallet.WalletTypeBitcoinCore, mustSelectDatadir: true, needsLocal: true},
 		{name: "mainnet core with datadir", network: "mainnet", backend: wallet.WalletTypeBitcoinCore, datadir: "set", needsLocal: true},
-		{name: "drynet electrum", network: "drynet", backend: wallet.WalletTypeElectrum},
-		{name: "drynet core", network: "drynet", backend: wallet.WalletTypeBitcoinCore, mustSelectDatadir: true, needsLocal: true},
+		{name: "eCash electrum", network: "ecash", backend: wallet.WalletTypeElectrum},
+		{name: "eCash core", network: "ecash", backend: wallet.WalletTypeBitcoinCore, mustSelectDatadir: true, needsLocal: true},
 		{name: "forknet core", network: "forknet", backend: wallet.WalletTypeBitcoinCore, mustSelectDatadir: true, needsLocal: true},
 		{name: "regtest core", network: "regtest", backend: wallet.WalletTypeBitcoinCore, needsLocal: true},
 		{name: "mainnet enforcer", network: "mainnet", backend: wallet.WalletTypeEnforcer, mustSelectDatadir: true, needsLocal: true},
@@ -65,7 +65,7 @@ func TestPlanNetworkChangeDatadirFollowsWalletBackend(t *testing.T) {
 // nothing is about to start Core, so it must not demand a Bitcoin datadir —
 // that is what made wallet creation open the 700GB directory picker.
 func TestPlanNetworkChangeWithoutWalletAsksForNothing(t *testing.T) {
-	o := planFixture(t, "drynet")
+	o := planFixture(t, "ecash")
 
 	plan := o.PlanNetworkChange(NetworkChangeRequest{})
 
@@ -79,7 +79,7 @@ func TestPlanNetworkChangeWithoutWalletAsksForNothing(t *testing.T) {
 func TestPlanNetworkChangeWithoutWalletStillGuardsAnExplicitSwap(t *testing.T) {
 	o := planFixture(t, "signet")
 
-	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: "drynet"})
+	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: "ecash"})
 
 	require.True(t, plan.MustSelectDatadir)
 	require.True(t, plan.NeedsLocalBackends)

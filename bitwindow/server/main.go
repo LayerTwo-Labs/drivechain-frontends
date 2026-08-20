@@ -119,7 +119,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 
 	// Prefer the orchestrator, but fall back to the conf it writes: the network
 	// only picks our datadir, and dying here leaves nothing to report the fault.
-	network, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bitwindowDir, bootLogger)
+	network, ecashNetworkID, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bitwindowDir, bootLogger)
 	if err != nil {
 		fallback, confErr := orchconfig.ResolveNetwork(bitwindowDir)
 		if confErr != nil {
@@ -226,6 +226,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 
 	services := api.Services{
+		ECashNetworkID:    ecashNetworkID,
 		BitcoindConnector: bitcoindConnector,
 		WalletConnector:   walletConnector,
 		EnforcerConnector: enforcerConnector,
@@ -600,9 +601,12 @@ func relayShutdownToOrchestratord(addr, bitwindowDir string, log zerolog.Logger)
 }
 
 // that view of the world. Retries for ~15s while orchestratord boots.
-func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, log zerolog.Logger) (string, error) {
+// waitForOrchestratorNetwork returns the network orchestratord serves and, for
+// eCash, the catalog id inside it. The id seeds the runtime identity: the eCash
+// rows share one network, so only the id tells two of them apart.
+func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, log zerolog.Logger) (string, string, error) {
 	if addr == "" {
-		return "", fmt.Errorf("orchestrator.addr not configured")
+		return "", "", fmt.Errorf("orchestrator.addr not configured")
 	}
 
 	confClient := orchrpc.NewBitcoinConfServiceClient(http.DefaultClient, addr, connect.WithGRPC(), connect.WithInterceptors(localauth.Interceptor(bitwindowDir)))
@@ -612,21 +616,21 @@ func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, 
 		if err == nil {
 			network := resp.Msg.GetNetwork()
 			if network == "" {
-				return "", fmt.Errorf("orchestratord returned empty network")
+				return "", "", fmt.Errorf("orchestratord returned empty network")
 			}
 			log.Info().Str("network", network).Int("attempts", i+1).Msg("aligned to orchestratord network")
-			return network, nil
+			return network, resp.Msg.GetEcashNetworkId(), nil
 		}
 		if i == 29 {
-			return "", fmt.Errorf("orchestratord did not become ready: %w", err)
+			return "", "", fmt.Errorf("orchestratord did not become ready: %w", err)
 		}
 		select {
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return "", "", ctx.Err()
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
-	return "", fmt.Errorf("orchestratord did not become ready in time")
+	return "", "", fmt.Errorf("orchestratord did not become ready in time")
 }
 
 // splitAddr parses a host:port flag value.
