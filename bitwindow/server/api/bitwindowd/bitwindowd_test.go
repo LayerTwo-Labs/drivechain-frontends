@@ -1387,6 +1387,61 @@ func TestService_ListBlocks(t *testing.T) {
 		assert.Len(t, resp.Msg.RecentBlocks, 5)
 	})
 
+	t.Run("a reorg below the tip drops the missing heights", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctrl := gomock.NewController(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		expectWatchWalletNoop(mockBitcoind)
+
+		mockBitcoind.EXPECT().
+			GetBlockchainInfo(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
+				Msg: &corepb.GetBlockchainInfoResponse{Blocks: 10},
+			}, nil)
+
+		// Core drops to height 8 while the page is in flight, so 10 and 9 are
+		// off the chain by the time each height asks for its hash.
+		const tipAfterReorg = 8
+		mockBitcoind.EXPECT().
+			GetBlockHash(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+				if req.Msg.Height > tipAfterReorg {
+					return nil, fmt.Errorf("unknown: -8: Block height out of range")
+				}
+				return &connect.Response[corepb.GetBlockHashResponse]{
+					Msg: &corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)},
+				}, nil
+			}).Times(5)
+
+		mockBitcoind.EXPECT().
+			GetBlock(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+				var height uint32
+				if _, err := fmt.Sscanf(req.Msg.Hash, "hash%d", &height); err != nil {
+					return nil, err
+				}
+				return &connect.Response[corepb.GetBlockResponse]{
+					Msg: &corepb.GetBlockResponse{
+						Height: height,
+						Hash:   req.Msg.Hash,
+						Time:   timestamppb.Now(),
+					},
+				}, nil
+			}).Times(3)
+
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		resp, err := cli.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{
+			PageSize: 5,
+		}))
+		require.NoError(t, err)
+		require.Len(t, resp.Msg.RecentBlocks, 3)
+		assert.Equal(t, uint32(8), resp.Msg.RecentBlocks[0].Height)
+		assert.Equal(t, uint32(6), resp.Msg.RecentBlocks[2].Height)
+	})
+
 	t.Run("repeat call at the same tip is served from cache", func(t *testing.T) {
 		t.Parallel()
 

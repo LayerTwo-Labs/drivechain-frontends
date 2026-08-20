@@ -886,7 +886,13 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 			hash, err := s.data.BlockHash(ctx, &corepb.GetBlockHashRequest{
 				Height: uint32(height),
 			})
-			if err != nil {
+			switch {
+			// A reorg between the tip read and this call drops the height off
+			// the chain. Skip it, the next poll reads the shorter tip.
+			case err != nil && strings.Contains(err.Error(), "Block height out of range"):
+				return nil, nil
+
+			case err != nil:
 				return nil, fmt.Errorf("bitcoind: could not get block hash %d: %w", height, err)
 			}
 
