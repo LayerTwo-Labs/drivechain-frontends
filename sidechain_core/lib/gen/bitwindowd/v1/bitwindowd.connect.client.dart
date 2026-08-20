@@ -31,7 +31,7 @@ extension type BitwindowdServiceClient(connect.Transport _transport) {
     );
   }
 
-  /// CPU mining, drynet only. Start/Stop control a backend-owned miner that
+  /// CPU mining, eCash only. Start/Stop control a backend-owned miner that
   /// keeps running independent of any client; GetMiningStatus polls its stats.
   Future<googleprotobufempty.Empty> startMining(
     googleprotobufempty.Empty input, {

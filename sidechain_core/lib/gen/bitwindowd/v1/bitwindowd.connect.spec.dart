@@ -23,7 +23,7 @@ abstract final class BitwindowdService {
     googleprotobufempty.Empty.new,
   );
 
-  /// CPU mining, drynet only. Start/Stop control a backend-owned miner that
+  /// CPU mining, eCash only. Start/Stop control a backend-owned miner that
   /// keeps running independent of any client; GetMiningStatus polls its stats.
   static const startMining = connect.Spec(
     '/$name/StartMining',

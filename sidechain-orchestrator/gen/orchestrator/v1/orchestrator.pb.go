@@ -1980,18 +1980,18 @@ func (*GetPendingNetworkGenerationRequest) Descriptor() ([]byte, []int) {
 
 type GetPendingNetworkGenerationResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The generation this install runs now, and the newer one published, empty
-	// when already current.
-	CurrentGeneration string `protobuf:"bytes,1,opt,name=current_generation,json=currentGeneration,proto3" json:"current_generation,omitempty"`
-	PendingGeneration string `protobuf:"bytes,2,opt,name=pending_generation,json=pendingGeneration,proto3" json:"pending_generation,omitempty"`
-	// The new generation's UTXO snapshot, which the switch syncs from. Zero
-	// height means none is published.
+	// The eCash network this install runs now, and the newer one published,
+	// empty when already current.
+	CurrentNetworkId string `protobuf:"bytes,1,opt,name=current_network_id,json=currentNetworkId,proto3" json:"current_network_id,omitempty"`
+	PendingNetworkId string `protobuf:"bytes,2,opt,name=pending_network_id,json=pendingNetworkId,proto3" json:"pending_network_id,omitempty"`
+	// The new network's UTXO snapshot, which the switch syncs from. Zero height
+	// means none is published.
 	SnapshotHeight    int64 `protobuf:"varint,3,opt,name=snapshot_height,json=snapshotHeight,proto3" json:"snapshot_height,omitempty"`
 	SnapshotSizeBytes int64 `protobuf:"varint,4,opt,name=snapshot_size_bytes,json=snapshotSizeBytes,proto3" json:"snapshot_size_bytes,omitempty"`
-	// The new generation's seed node, for the manual switch instructions.
+	// The new network's seed node, for the manual switch instructions.
 	PendingPeer string `protobuf:"bytes,5,opt,name=pending_peer,json=pendingPeer,proto3" json:"pending_peer,omitempty"`
-	// True when the user's own bitcoin.conf names the generation. The switch
-	// cannot be made here — the prompt spells out what to change instead.
+	// True when the user's own bitcoin.conf names the network. The switch cannot
+	// be made here — the prompt spells out what to change instead.
 	UserManagedConf bool `protobuf:"varint,6,opt,name=user_managed_conf,json=userManagedConf,proto3" json:"user_managed_conf,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -2027,16 +2027,16 @@ func (*GetPendingNetworkGenerationResponse) Descriptor() ([]byte, []int) {
 	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{27}
 }
 
-func (x *GetPendingNetworkGenerationResponse) GetCurrentGeneration() string {
+func (x *GetPendingNetworkGenerationResponse) GetCurrentNetworkId() string {
 	if x != nil {
-		return x.CurrentGeneration
+		return x.CurrentNetworkId
 	}
 	return ""
 }
 
-func (x *GetPendingNetworkGenerationResponse) GetPendingGeneration() string {
+func (x *GetPendingNetworkGenerationResponse) GetPendingNetworkId() string {
 	if x != nil {
-		return x.PendingGeneration
+		return x.PendingNetworkId
 	}
 	return ""
 }
@@ -4520,7 +4520,7 @@ type GetForkStatusResponse struct {
 	ShowCountdown bool `protobuf:"varint,8,opt,name=show_countdown,json=showCountdown,proto3" json:"show_countdown,omitempty"`
 	// Per-wallet claimable coins, with the exact UTXOs the sweep spends.
 	Claims []*ForkWalletClaim `protobuf:"bytes,9,rep,name=claims,proto3" json:"claims,omitempty"`
-	// Name of the fork being counted down to ("Drynet 4"), from the published
+	// Name of the fork being counted down to ("Alphanet"), from the published
 	// catalog. A rehearsal must never read as the real eCash fork.
 	NetworkName   string `protobuf:"bytes,10,opt,name=network_name,json=networkName,proto3" json:"network_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -4970,10 +4970,10 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\ractive_height\x18\x06 \x01(\x03R\factiveHeight\x12)\n" +
 	"\x10active_validated\x18\a \x01(\bR\x0factiveValidated\x12@\n" +
 	"\x1cactive_verification_progress\x18\b \x01(\x01R\x1aactiveVerificationProgress\"$\n" +
-	"\"GetPendingNetworkGenerationRequest\"\xab\x02\n" +
-	"#GetPendingNetworkGenerationResponse\x12-\n" +
-	"\x12current_generation\x18\x01 \x01(\tR\x11currentGeneration\x12-\n" +
-	"\x12pending_generation\x18\x02 \x01(\tR\x11pendingGeneration\x12'\n" +
+	"\"GetPendingNetworkGenerationRequest\"\xa9\x02\n" +
+	"#GetPendingNetworkGenerationResponse\x12,\n" +
+	"\x12current_network_id\x18\x01 \x01(\tR\x10currentNetworkId\x12,\n" +
+	"\x12pending_network_id\x18\x02 \x01(\tR\x10pendingNetworkId\x12'\n" +
 	"\x0fsnapshot_height\x18\x03 \x01(\x03R\x0esnapshotHeight\x12.\n" +
 	"\x13snapshot_size_bytes\x18\x04 \x01(\x03R\x11snapshotSizeBytes\x12!\n" +
 	"\fpending_peer\x18\x05 \x01(\tR\vpendingPeer\x12*\n" +

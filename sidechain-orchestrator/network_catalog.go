@@ -12,20 +12,23 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 )
 
-// drynetPlaceholder is expanded to the live drynet generation id wherever it
+// ecashPlaceholder is expanded to the live eCash network id wherever it
 // appears in chains_config.json, so a new generation needs no config edit.
-const drynetPlaceholder = "{drynet}"
+const ecashPlaceholder = "{ecash}"
 
 // ResolveNetworkCatalog loads the catalog persisted by the previous run, then
 // refreshes it from the published document. A failed refresh is never fatal:
 // the persisted copy stays in force, which is also what makes it a safe
-// baseline for spotting a drynet generation change — an offline boot compares
+// baseline for spotting a eCash network change — an offline boot compares
 // the old values against themselves and so can never wipe anything.
 func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 	// Disk first, and synchronously: this runs before the RPC listener binds,
 	// so anything slow here delays every caller, including the wallet list the
 	// UI needs to draw. A local read is microseconds.
 	current, fromDisk := netcatalog.Load(o.BitwindowDir)
+	// Before the promotion below rewrites the cache: what this document lists is
+	// what the previous run knew, and the notice compares against exactly that.
+	o.seedToldNetworks(current)
 
 	// A previous run's refresh may have left a newer catalog waiting. Startup
 	// is the only place it can be applied: the generation decides which chain
@@ -36,19 +39,19 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 		current = o.promotePendingCatalog(ctx, current, pending, fromDisk)
 		promoted = true
 	}
-	// Reconcile installs whose cached catalog already lists the newest
-	// generation, where no pending promotion fires.
-	drynetID := current.DrynetID()
-	if !promoted && !o.wipeIfDrynetGenerationStale(ctx, current) {
-		// Keep serving the generation those blocks belong to, so the next start
+	// Reconcile installs whose cached catalog already lists the selected
+	// network, where no pending promotion fires.
+	ecashID := o.SelectedECashID(current)
+	if !promoted && !o.wipeIfECashNetworkStale(ctx, ecashID) {
+		// Keep serving the network those blocks belong to, so the next start
 		// retries rather than opening them as the new fork.
-		drynetID = o.installedDrynetGeneration()
 		o.log.Error().
-			Str("retained", drynetID).
-			Str("published", current.DrynetID()).
-			Msg("drynet chain data could not be cleared, staying on the installed generation")
+			Str("retained", o.installedECashNetwork()).
+			Str("published", ecashID).
+			Msg("eCash chain data could not be cleared, staying on the installed network")
+		ecashID = o.installedECashNetwork()
 	}
-	o.adoptCatalog(current, drynetID)
+	o.adoptCatalog(current, ecashID)
 
 	// The refresh is network I/O and must never gate startup. It runs detached
 	// and only writes the pending slot.
@@ -56,29 +59,33 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 }
 
 // promotePendingCatalog applies a catalog left by a previous refresh, wiping
-// the stale drynet chain data first. Returns the catalog to actually use: the
+// the stale eCash chain data first. Returns the catalog to actually use: the
 // pending one when it could be applied, otherwise the current one, so the
 // process never serves a generation whose data it has not cleared.
 func (o *Orchestrator) promotePendingCatalog(ctx context.Context, current, pending netcatalog.Catalog, fromDisk bool) netcatalog.Catalog {
-	// With no cache — a first run after upgrading from a pre-catalog build —
-	// the embedded generation is still what any existing drynet data belongs
-	// to, so it remains a valid baseline.
-	baseline := current.DrynetID()
+	// The selected network, not the catalog's first entry: a user pinned to a
+	// retained row keeps blocks from that row, and a refresh that drops it
+	// leaves both documents naming the same first entry. An id-only compare
+	// reads that as no change and promotes over a chain it never cleared.
+	baseline := o.SelectedECashID(current)
 	if !fromDisk {
-		baseline = netcatalog.EmbeddedDrynetID()
+		baseline = netcatalog.EmbeddedECashID()
 	}
+	// What the pending document resolves to for this install, which is the pick
+	// while the pick survives the refresh.
+	target := o.SelectedECashID(pending)
 
-	// Switching generations throws away the old chain, so it is the user's call
+	// Switching networks throws away the old chain, so it is the user's call
 	// to make. The pending file is what the upgrade prompt reads.
-	if baseline != "" && pending.DrynetID() != "" && baseline != pending.DrynetID() {
+	if baseline != "" && target != "" && baseline != target {
 		o.log.Info().
 			Str("current", baseline).
-			Str("published", pending.DrynetID()).
-			Msg("a new drynet generation is available, waiting for the user to confirm the resync")
+			Str("published", target).
+			Msg("a new eCash network is available, waiting for the user to confirm the resync")
 		return current
 	}
 
-	if !o.wipeOnDrynetGenerationChange(ctx, baseline, pending.DrynetID()) {
+	if !o.wipeOnECashNetworkChange(ctx, baseline, target) {
 		// Leave the pending file in place; the next start tries again.
 		o.log.Warn().Msg("could not apply the pending network catalog, keeping the current one")
 		return current
@@ -94,9 +101,9 @@ func (o *Orchestrator) promotePendingCatalog(ctx context.Context, current, pendi
 	return pending
 }
 
-// PendingDrynetUpgrade is a published generation this install has not switched
+// PendingECashUpgrade is a published generation this install has not switched
 // to yet. ID is empty when it is already on the newest one.
-type PendingDrynetUpgrade struct {
+type PendingECashUpgrade struct {
 	ID       string
 	Peer     string
 	Snapshot *netcatalog.AssumeUTXO
@@ -106,60 +113,80 @@ type PendingDrynetUpgrade struct {
 	UserManagedConf bool
 }
 
-// PendingDrynetUpgrade reports the generation waiting for the user's go-ahead.
-func (o *Orchestrator) PendingDrynetUpgrade() PendingDrynetUpgrade {
+// PendingECashUpgrade reports the generation waiting for the user's go-ahead.
+func (o *Orchestrator) PendingECashUpgrade() PendingECashUpgrade {
 	pending, ok := netcatalog.LoadPending(o.BitwindowDir)
 	if !ok {
-		return PendingDrynetUpgrade{}
+		return PendingECashUpgrade{}
 	}
-	id := pending.DrynetID()
-	if id == "" || id == config.DrynetGeneration() {
-		return PendingDrynetUpgrade{}
+	// The pick, not the document's first row: a user pinned to a retained entry
+	// is on no upgrade path just because another row sits above theirs.
+	id := o.SelectedECashID(pending)
+	if id == "" || id == config.ECashNetworkID() {
+		return PendingECashUpgrade{}
 	}
-	entry, _ := pending.CurrentECash()
+	entry, _ := pending.ByID(id)
 	peer := entry.P2P.Address
 	if peer == "" {
-		peer = config.DrynetPeerFor(id)
+		peer = config.ECashPeerFor(id)
 	}
-	return PendingDrynetUpgrade{
+	return PendingECashUpgrade{
 		ID:              id,
 		Peer:            peer,
 		Snapshot:        entry.AssumeUTXO,
-		UserManagedConf: o.drynetSwitchIsManual(),
+		UserManagedConf: o.ecashSwitchIsManual(),
 	}
 }
 
-// drynetSwitchIsManual reports whether the user's own bitcoin.conf decides which
-// drynet generation this install runs.
-func (o *Orchestrator) drynetSwitchIsManual() bool {
-	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
+// ecashSwitchIsManual reports whether the user's own bitcoin.conf decides which
+// eCash network this install runs.
+func (o *Orchestrator) ecashSwitchIsManual() bool {
+	if config.NetworkFromString(o.Network) != config.NetworkECash {
 		return false
 	}
 	return o.BitcoinConf != nil && o.BitcoinConf.HasPrivateConf
 }
 
-// ConfirmPendingDrynetGeneration records the user's go-ahead by promoting the
+// ConfirmPendingECashNetwork records the user's go-ahead by promoting the
 // published catalog to the cache. The switch itself runs on the next start.
-func (o *Orchestrator) ConfirmPendingDrynetGeneration(ctx context.Context) error {
+func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 	pending, ok := netcatalog.LoadPending(o.BitwindowDir)
 	if !ok {
-		return fmt.Errorf("no new drynet generation to switch to")
+		return fmt.Errorf("no new eCash network to switch to")
 	}
-	if o.drynetSwitchIsManual() {
-		return fmt.Errorf("your own bitcoin.conf decides which drynet generation this node runs, so the switch has to be made there")
+	if o.ecashSwitchIsManual() {
+		return fmt.Errorf("your own bitcoin.conf decides which eCash network this node runs, so the switch has to be made there")
 	}
 	// The next start must be free to wipe, and it cannot stop a Core we did not
 	// launch. Promoting the cache first would leave nothing to fall back to.
-	if config.NetworkFromString(o.Network) == config.NetworkDrynet &&
+	if config.NetworkFromString(o.Network) == config.NetworkECash &&
 		!o.process.IsRunning("bitcoind") && o.coreRPCReachable() {
 		return fmt.Errorf("a bitcoin core this app did not start is running — stop it first")
 	}
-	// Off drynet the retired chain is cold files that no start will revisit:
-	// the startup wipe only runs while drynet is active. Clear them here.
-	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
+	// Off eCash the retired chain is cold files that no start will revisit:
+	// the startup wipe only runs while eCash is active. Clear them here.
+	if config.NetworkFromString(o.Network) != config.NetworkECash {
+		// The pick on both sides, not each document's first row. A user pinned
+		// to a retained entry holds that chain on disk, and comparing first
+		// rows reads two identical ids while the blocks belong to a third.
 		current, _ := netcatalog.Load(o.BitwindowDir)
-		if !o.wipeOnDrynetGenerationChange(ctx, current.DrynetID(), pending.DrynetID()) {
-			return fmt.Errorf("could not clear the retired drynet chain data")
+		if !o.wipeOnECashNetworkChange(ctx, o.SelectedECashID(current), o.SelectedECashID(pending)) {
+			return fmt.Errorf("could not clear the retired eCash chain data")
+		}
+	}
+	// The pick goes before the catalog it belongs to. A catalog promoted without
+	// it reads as current on the next start: the pending file gets cleared, the
+	// old pick still resolves, and the prompt never returns to say so.
+	//
+	// Written straight, not through SelectECashNetwork: that one checks the id
+	// against the catalog this process still serves, which is the one the
+	// pending document supersedes.
+	if id := pending.ECashID(); id != "" {
+		if o.Settings == nil {
+			return fmt.Errorf("orchestrator settings are unavailable")
+		}
+		if _, err := o.Settings.SetECashNetworkID(id); err != nil {
+			return fmt.Errorf("record the confirmed network: %w", err)
 		}
 	}
 	if err := netcatalog.Save(o.BitwindowDir, pending); err != nil {
@@ -167,9 +194,9 @@ func (o *Orchestrator) ConfirmPendingDrynetGeneration(ctx context.Context) error
 	}
 	netcatalog.ClearPending(o.BitwindowDir)
 	o.log.Info().
-		Str("current", config.DrynetGeneration()).
-		Str("confirmed", pending.DrynetID()).
-		Msg("drynet generation switch confirmed, applying on the next start")
+		Str("current", config.ECashNetworkID()).
+		Str("confirmed", pending.ECashID()).
+		Msg("eCash network switch confirmed, applying on the next start")
 	return nil
 }
 
@@ -188,7 +215,10 @@ func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context, current netcat
 		o.log.Warn().Err(err).Msg("network catalog refresh failed, using last known values")
 		return
 	}
-	if fetched.DrynetID() == current.DrynetID() {
+	// Every entry matters, not just the eCash one: the picker lists them all and
+	// the endpoints come from their backends. An id-only compare threw away a
+	// refresh that added a network, so it never reached the picker.
+	if fetched.SameAs(current) {
 		netcatalog.ClearPending(o.BitwindowDir)
 		return
 	}
@@ -197,28 +227,28 @@ func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context, current netcat
 		return
 	}
 	o.log.Info().
-		Str("current", current.DrynetID()).
-		Str("published", fetched.DrynetID()).
-		Msg("drynet generation changed, restart to switch over")
+		Str("current", current.ECashID()).
+		Str("published", fetched.ECashID()).
+		Msg("the network catalog changed, restart to apply it")
 }
 
-// adoptCatalog stores the catalog and expands the drynet placeholder across
+// adoptCatalog stores the catalog and expands the eCash placeholder across
 // the binary configs so every download path sees a concrete filename.
 // Only safe before the RPC server is accepting requests: it writes state that
 // the handlers then read without a shared lock.
 func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 	if id == "" {
-		o.log.Warn().Msg("network catalog carries no drynet generation, drynet downloads will not resolve")
+		o.log.Warn().Msg("network catalog carries no eCash network, eCash downloads will not resolve")
 	}
 
 	o.mu.Lock()
 	o.Catalog = c
-	o.drynetID = id
+	o.ecashID = id
 	// Always expand from the pristine configs: a previous adopt already
 	// replaced the placeholder, so re-expanding those would leave the old
-	// generation pinned forever.
+	// network pinned forever.
 	for name, raw := range o.rawConfigs {
-		o.configs[name] = expandDrynetPlaceholder(raw, id)
+		o.configs[name] = expandECashPlaceholder(raw, id)
 	}
 	conf := o.BitcoinConf
 	enforcerConf := o.EnforcerConf
@@ -227,63 +257,70 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 	if id == "" {
 		return
 	}
-	// The URL helpers and the conf writer both build drynet hostnames from the
-	// generation, so both need the resolved id.
-	config.SetDrynetGeneration(id)
+	// The URL helpers and the conf writer both key off the eCash id, so both
+	// need the resolved one.
+	config.SetECashNetworkID(id)
 
-	// Fork heights ride along in the catalog, so a new drynet — and the real
-	// fork — activate without a release.
+	// Fork heights ride along in the catalog, so a new eCash network — and the
+	// real fork — activate without a release.
 	for _, n := range c.Networks {
-		net := config.NetworkFromString(n.ID)
-		config.SetForkHeight(net, n.ForkHeight)
-		config.SetNetworkDisplayName(net, n.DisplayName)
-		// Every drynet generation is a new id, so key the live one by family.
+		// An eCash id names no network, so writing it as one would stamp its
+		// values onto signet, which is what NetworkFromString falls back to.
+		if net, ok := config.LookupNetwork(n.ID); ok {
+			config.SetForkHeight(net, n.ForkHeight)
+			config.SetNetworkDisplayName(net, n.DisplayName)
+		}
 		if n.Family == netcatalog.FamilyECash {
-			config.SetForkHeight(config.NetworkDrynet, n.ForkHeight)
-			config.SetNetworkDisplayName(config.NetworkDrynet, n.DisplayName)
-			config.SetDrynetPeer(n.ID, n.P2P.Address)
+			config.SetECashPeer(n.ID, n.P2P.Address)
 		}
 	}
+	// The eCash slot takes the resolved entry's values, not the last listed
+	// one: the catalog keeps the retired networks after the live one.
+	if ecash, ok := c.ByID(id); ok {
+		config.SetForkHeight(config.NetworkECash, ecash.ForkHeight)
+		config.SetNetworkDisplayName(config.NetworkECash, ecash.DisplayName)
+		config.SetECashEndpoints(ecash)
+	}
 
-	// The esplora host and network preset carry the generation, so a rollover
+	// The esplora host and network preset name the eCash network, so a rollover
 	// that updates only bitcoin.conf leaves the enforcer on the retired fork.
 	if enforcerConf != nil {
-		switch changed, err := enforcerConf.RetargetDrynetGeneration(id); {
+		switch changed, err := enforcerConf.RetargetECashNetwork(o.installedECashNetwork(), id); {
 		case err != nil:
-			o.log.Warn().Err(err).Msg("could not rewrite bitwindow-enforcer.conf for the new generation")
+			o.log.Warn().Err(err).Msg("could not rewrite bitwindow-enforcer.conf for the new eCash network")
 		case changed:
-			o.log.Info().Str("generation", id).Msg("rewrote bitwindow-enforcer.conf for the new drynet generation")
+			o.log.Info().Str("network", id).Msg("rewrote bitwindow-enforcer.conf for the new eCash network")
 		}
 	}
 	if conf == nil {
 		return
 	}
-	conf.DrynetID = id
-	// An existing drynet bitcoin.conf still carries whatever generation it was
+	conf.ECashID = id
+	// An existing eCash bitcoin.conf still carries whatever id it was
 	// written with; the peer and sentinel are otherwise only regenerated on a
 	// network swap. Safe here because this runs before the server is up.
-	if config.NetworkFromString(o.Network) == config.NetworkDrynet {
+	if config.NetworkFromString(o.Network) == config.NetworkECash {
 		if err := conf.RefreshMainSectionDefaults(); err != nil {
-			o.log.Warn().Err(err).Msg("could not rewrite drynet bitcoin.conf for the new generation")
+			o.log.Warn().Err(err).Msg("could not rewrite eCash bitcoin.conf for the new generation")
 		}
 	}
 }
 
-// expandDrynetPlaceholder replaces the drynet placeholder throughout a binary's
+// expandECashPlaceholder replaces the eCash placeholder throughout a binary's
 // Core variants. It is applied on every path that installs configs — including
 // the chains_config.json watcher — because a reload otherwise reinstates the
 // unexpanded placeholder. A empty id leaves the config untouched.
-func expandDrynetPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
+func expandECashPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 	if id == "" || len(cfg.Variants) == 0 {
 		return cfg
 	}
 	variants := make(map[string]CoreVariantSpec, len(cfg.Variants))
 	for vID, v := range cfg.Variants {
-		v.Subfolder = strings.ReplaceAll(v.Subfolder, drynetPlaceholder, id)
-		v.BaseURL = strings.ReplaceAll(v.BaseURL, drynetPlaceholder, id)
+		v.Subfolder = strings.ReplaceAll(v.Subfolder, ecashPlaceholder, id)
+		v.BaseURL = strings.ReplaceAll(v.BaseURL, ecashPlaceholder, id)
 		files := make(map[string]string, len(v.Files))
 		for platform, file := range v.Files {
-			files[platform] = strings.ReplaceAll(file, drynetPlaceholder, id)
+			files[platform] = strings.ReplaceAll(file, ecashPlaceholder, id)
 		}
 		v.Files = files
 		variants[vID] = v
@@ -292,50 +329,99 @@ func expandDrynetPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 	return cfg
 }
 
-// wipeIfDrynetGenerationStale clears drynet chain data when the on-disk conf was
-// written for an older generation than the catalog now serves.
-func (o *Orchestrator) wipeIfDrynetGenerationStale(ctx context.Context, current netcatalog.Catalog) bool {
-	if config.NetworkFromString(o.Network) != config.NetworkDrynet {
+// wipeIfECashNetworkStale clears eCash chain data when the on-disk conf was
+// written for a different eCash network than the one this start serves.
+func (o *Orchestrator) wipeIfECashNetworkStale(ctx context.Context, selected string) bool {
+	if config.NetworkFromString(o.Network) != config.NetworkECash {
 		return true
 	}
-	return o.wipeOnDrynetGenerationChange(ctx, o.installedDrynetGeneration(), current.DrynetID())
+	return o.wipeOnECashNetworkChange(ctx, o.installedECashNetwork(), selected)
 }
 
-// installedDrynetGeneration returns the drynet generation the on-disk
-// bitcoin.conf was written for, from its uacomment sentinel, or "" when none.
-func (o *Orchestrator) installedDrynetGeneration() string {
+// SelectedECashID returns the eCash network this install runs: the one the user
+// picked from the catalog while the catalog still lists it, otherwise the entry
+// the catalog lists first.
+func (o *Orchestrator) SelectedECashID(c netcatalog.Catalog) string {
+	if o.Settings != nil {
+		if picked := o.Settings.ECashNetworkID(); picked != "" {
+			if _, ok := c.ByID(picked); ok {
+				return picked
+			}
+		}
+	}
+	return c.ECashID()
+}
+
+// SelectECashNetwork pins the eCash network the user picked. The switch itself
+// runs on the next start, which is the only place the stale chain can be wiped.
+// An id the catalog does not list is ignored: a caller that sends the bare slot
+// name keeps whatever the catalog resolves.
+func (o *Orchestrator) SelectECashNetwork(id string) error {
+	o.mu.RLock()
+	cat := o.Catalog
+	o.mu.RUnlock()
+	if _, ok := cat.ByID(id); !ok {
+		return nil
+	}
+	if o.Settings == nil {
+		return nil
+	}
+	// What this install actually runs, not what the catalog lists first: an
+	// unpinned install still boots a network, and that is the chain on disk.
+	previous := o.Settings.ECashNetworkID()
+	if previous == id {
+		return nil
+	}
+	if previous == "" {
+		o.mu.RLock()
+		previous = o.ecashID
+		o.mu.RUnlock()
+	}
+	if _, err := o.Settings.SetECashNetworkID(id); err != nil {
+		return err
+	}
+	// Off eCash the retired chain is cold files that no start revisits: the
+	// startup wipe only runs while eCash is active, and by the time it is the
+	// conf already names the new network. Clear them here.
+	if config.NetworkFromString(o.Network) != config.NetworkECash {
+		if !o.wipeOnECashNetworkChange(context.Background(), previous, id) {
+			return fmt.Errorf("could not clear the retired eCash chain data")
+		}
+	}
+	return nil
+}
+
+// installedECashNetwork returns the eCash network the on-disk bitcoin.conf
+// was written for, from its uacomment sentinel, or "" when none.
+func (o *Orchestrator) installedECashNetwork() string {
 	if o.BitcoinConf == nil || o.BitcoinConf.Config == nil {
 		return ""
 	}
-	uacomment := o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main")
-	if !strings.HasPrefix(uacomment, string(config.NetworkDrynet)) {
-		return ""
-	}
-	return uacomment
+	return config.ECashIDFromUAComment(o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
 }
 
-// wipeOnDrynetGenerationChange deletes drynet chain state when the published
-// generation moves on (drynet2 -> drynet3). The generations are separate forks
+// wipeOnECashNetworkChange deletes eCash chain state when the published
+// network moves on (drynet4 -> alphanet). The networks are separate forks
 // that share one datadir, so the previous blocks and chainstate are invalid for
 // the new chain. Wallets survive — see WipeChainData.
 // It reports whether the catalog may move on: true when nothing needed wiping
 // or the wipe was started, false when the stale data is still there.
-func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, newID string) bool {
+func (o *Orchestrator) wipeOnECashNetworkChange(ctx context.Context, oldID, newID string) bool {
 	if oldID == "" || newID == "" || oldID == newID {
 		return true
 	}
 	if o.BitcoinConf == nil || o.BitcoinConf.Config == nil {
-		o.log.Warn().Msg("drynet generation changed but bitcoin config is unavailable, skipping wipe")
+		o.log.Warn().Msg("eCash network changed but bitcoin config is unavailable, skipping wipe")
 		return false
 	}
 	if o.BitcoinConf.HasPrivateConf {
 		// That user's chain data follows their own bitcoin.conf, not ours.
-		o.log.Warn().Msg("drynet generation changed but user bitcoin.conf takes precedence, skipping wipe")
+		o.log.Warn().Msg("eCash network changed but user bitcoin.conf takes precedence, skipping wipe")
 		return true
 	}
-	// Only a drynet-active install has daemons holding this data open; from any
+	// Only a eCash-active install has daemons holding this data open; from any
 	// other network the retired chain is untouched files on disk.
-	if config.NetworkFromString(o.Network) == config.NetworkDrynet {
+	if config.NetworkFromString(o.Network) == config.NetworkECash {
 		// Daemons adopted from a previous session. Wiping under a live node
 		// corrupts it, and a surviving enforcer keeps dialling the retired host.
 		for _, name := range []string{"enforcer", "bitcoind"} {
@@ -344,7 +430,7 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, 
 			}
 			if err := o.stopForNetworkSwap(ctx, name); err != nil {
 				o.log.Warn().Err(err).Str("binary", name).
-					Msg("could not stop daemon for the drynet generation change, deferring wipe to next start")
+					Msg("could not stop daemon for the eCash network change, deferring wipe to next start")
 				return false
 			}
 		}
@@ -353,7 +439,7 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, 
 			o.log.Warn().
 				Str("previous", oldID).
 				Str("current", newID).
-				Msg("drynet generation changed but an unmanaged bitcoin core is running, deferring wipe to next start")
+				Msg("eCash network changed but an unmanaged bitcoin core is running, deferring wipe to next start")
 			return false
 		}
 	}
@@ -361,16 +447,16 @@ func (o *Orchestrator) wipeOnDrynetGenerationChange(ctx context.Context, oldID, 
 	o.log.Info().
 		Str("previous", oldID).
 		Str("current", newID).
-		Msg("drynet generation changed, wiping stale chain data")
+		Msg("eCash network changed, wiping stale chain data")
 
 	// Synchronous: the caller persists the new generation next, and recording
 	// a wipe that has not happened is worse than not wiping at all. Runs on
 	// the refresh goroutine, so a slow volume cannot delay startup.
-	config.WipeNetworkScopedChainDataSync(config.NetworkDrynet, o.drynetDatadir(), o.log)
+	config.WipeNetworkScopedChainDataSync(config.NetworkECash, o.ecashDatadir(), o.log)
 	// The enforcer's validator chain is per-network, not per-generation, so on
-	// drynet it must be cleared here too; other networks' swap into drynet does it.
-	if config.NetworkFromString(o.Network) == config.NetworkDrynet {
-		config.WipeEnforcerChainDataSync(config.NetworkDrynet, o.log)
+	// eCash it must be cleared here too; other networks' swap into eCash does it.
+	if config.NetworkFromString(o.Network) == config.NetworkECash {
+		config.WipeEnforcerChainDataSync(config.NetworkECash, o.log)
 	}
 	return true
 }
@@ -400,16 +486,122 @@ func (o *Orchestrator) dialCoreRPC() bool {
 	return true
 }
 
-// drynetDatadir returns the datadir drynet's chain data lives in. The group
+// ecashDatadir returns the datadir eCash's chain data lives in. The group
 // slot is authoritative and survives swaps to other networks; the live
-// datadir= is only consulted while drynet is the active network, where a fresh
+// datadir= is only consulted while eCash is the active network, where a fresh
 // install may not have written the slot yet. Empty means the platform default.
-func (o *Orchestrator) drynetDatadir() string {
-	if slot := o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupDrynet); slot != "" {
+func (o *Orchestrator) ecashDatadir() string {
+	if slot := o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupECash); slot != "" {
 		return slot
 	}
-	if config.NetworkFromString(o.Network) == config.NetworkDrynet {
+	if config.NetworkFromString(o.Network) == config.NetworkECash {
 		return o.BitcoinConf.Config.GetSetting("datadir")
 	}
 	return ""
+}
+
+// NetworkOption is one row of the network picker.
+type NetworkOption struct {
+	ID          string
+	DisplayName string
+	Network     config.Network
+	IsCurrent   bool
+}
+
+// regtestOption is the local-only row. The published catalog never lists
+// regtest — nothing is deployed for it — but the app still runs it.
+var regtestOption = NetworkOption{ID: "regtest", DisplayName: "Regtest", Network: config.NetworkRegtest}
+
+// ListNetworks returns the networks the user can pick: every catalog entry the
+// app knows how to run, in document order, plus regtest.
+func (o *Orchestrator) ListNetworks() []NetworkOption {
+	o.mu.RLock()
+	cat := o.Catalog
+	ecashID := o.ecashID
+	o.mu.RUnlock()
+
+	active := config.NetworkFromString(o.Network)
+	options := make([]NetworkOption, 0, len(cat.Networks)+1)
+	for _, n := range cat.Networks {
+		slot, ok := config.NetworkForCatalogEntry(n.ID, n.Family)
+		if !ok {
+			continue
+		}
+		options = append(options, NetworkOption{
+			ID:          n.ID,
+			DisplayName: n.DisplayName,
+			Network:     slot,
+			// An eCash row is current only when its id is the one that boots;
+			// the catalog can list several and they share the slot.
+			IsCurrent: slot == active && (slot != config.NetworkECash || n.ID == ecashID),
+		})
+	}
+	regtest := regtestOption
+	regtest.IsCurrent = active == config.NetworkRegtest
+	return append(options, regtest)
+}
+
+// NetworkForOption resolves a picker id to the slot it runs in. It accepts a
+// catalog id ("alphanet") and a bare slot name ("signet"), so a caller that
+// only knows the slot still works.
+func (o *Orchestrator) NetworkForOption(id string) (config.Network, bool) {
+	o.mu.RLock()
+	cat := o.Catalog
+	o.mu.RUnlock()
+	if entry, ok := cat.ByID(id); ok {
+		return config.NetworkForCatalogEntry(entry.ID, entry.Family)
+	}
+	return config.LookupNetwork(id)
+}
+
+// seedToldNetworks records what this install already knew, once, from the
+// catalog it booted with. It runs before a pending catalog is promoted, so the
+// baseline is the previous run's document — an upgrade from an older build
+// therefore reads every network published since as new, and says so.
+func (o *Orchestrator) seedToldNetworks(booted netcatalog.Catalog) {
+	if o.Settings == nil || o.Settings.SeenNetworkIDs() != nil {
+		return
+	}
+	// Regtest is never published, so it must go in or every call reports it.
+	told := []string{regtestOption.ID}
+	for _, n := range booted.Networks {
+		told = append(told, n.ID)
+	}
+	if err := o.Settings.SetSeenNetworkIDs(told); err != nil {
+		o.log.Warn().Err(err).Msg("could not record the told networks")
+	}
+}
+
+// TakeNewNetworks returns the catalog rows this install did not tell the user
+// about yet, and records them as told. The baseline comes from the catalog on
+// disk at boot, so an install that upgrades from an older build hears about
+// every network published since — and a fresh install hears about none.
+func (o *Orchestrator) TakeNewNetworks() []NetworkOption {
+	if o.Settings == nil {
+		return nil
+	}
+	seen := o.Settings.SeenNetworkIDs()
+	told := make(map[string]bool, len(seen))
+	for _, id := range seen {
+		told[id] = true
+	}
+
+	var fresh []NetworkOption
+	for _, opt := range o.ListNetworks() {
+		if told[opt.ID] {
+			continue
+		}
+		told[opt.ID] = true
+		seen = append(seen, opt.ID)
+		fresh = append(fresh, opt)
+	}
+	if len(fresh) == 0 {
+		return nil
+	}
+	if err := o.Settings.SetSeenNetworkIDs(seen); err != nil {
+		// Reporting a network we could not record repeats the notice next tick.
+		o.log.Warn().Err(err).Msg("could not record the told networks")
+		return nil
+	}
+	return fresh
 }

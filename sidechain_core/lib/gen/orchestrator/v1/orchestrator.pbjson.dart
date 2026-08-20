@@ -559,8 +559,8 @@ final $typed_data.Uint8List getPendingNetworkGenerationRequestDescriptor =
 const GetPendingNetworkGenerationResponse$json = {
   '1': 'GetPendingNetworkGenerationResponse',
   '2': [
-    {'1': 'current_generation', '3': 1, '4': 1, '5': 9, '10': 'currentGeneration'},
-    {'1': 'pending_generation', '3': 2, '4': 1, '5': 9, '10': 'pendingGeneration'},
+    {'1': 'current_network_id', '3': 1, '4': 1, '5': 9, '10': 'currentNetworkId'},
+    {'1': 'pending_network_id', '3': 2, '4': 1, '5': 9, '10': 'pendingNetworkId'},
     {'1': 'snapshot_height', '3': 3, '4': 1, '5': 3, '10': 'snapshotHeight'},
     {'1': 'snapshot_size_bytes', '3': 4, '4': 1, '5': 3, '10': 'snapshotSizeBytes'},
     {'1': 'pending_peer', '3': 5, '4': 1, '5': 9, '10': 'pendingPeer'},
@@ -570,12 +570,12 @@ const GetPendingNetworkGenerationResponse$json = {
 
 /// Descriptor for `GetPendingNetworkGenerationResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getPendingNetworkGenerationResponseDescriptor =
-    $convert.base64Decode('CiNHZXRQZW5kaW5nTmV0d29ya0dlbmVyYXRpb25SZXNwb25zZRItChJjdXJyZW50X2dlbmVyYX'
-        'Rpb24YASABKAlSEWN1cnJlbnRHZW5lcmF0aW9uEi0KEnBlbmRpbmdfZ2VuZXJhdGlvbhgCIAEo'
-        'CVIRcGVuZGluZ0dlbmVyYXRpb24SJwoPc25hcHNob3RfaGVpZ2h0GAMgASgDUg5zbmFwc2hvdE'
-        'hlaWdodBIuChNzbmFwc2hvdF9zaXplX2J5dGVzGAQgASgDUhFzbmFwc2hvdFNpemVCeXRlcxIh'
-        'CgxwZW5kaW5nX3BlZXIYBSABKAlSC3BlbmRpbmdQZWVyEioKEXVzZXJfbWFuYWdlZF9jb25mGA'
-        'YgASgIUg91c2VyTWFuYWdlZENvbmY=');
+    $convert.base64Decode('CiNHZXRQZW5kaW5nTmV0d29ya0dlbmVyYXRpb25SZXNwb25zZRIsChJjdXJyZW50X25ldHdvcm'
+        'tfaWQYASABKAlSEGN1cnJlbnROZXR3b3JrSWQSLAoScGVuZGluZ19uZXR3b3JrX2lkGAIgASgJ'
+        'UhBwZW5kaW5nTmV0d29ya0lkEicKD3NuYXBzaG90X2hlaWdodBgDIAEoA1IOc25hcHNob3RIZW'
+        'lnaHQSLgoTc25hcHNob3Rfc2l6ZV9ieXRlcxgEIAEoA1IRc25hcHNob3RTaXplQnl0ZXMSIQoM'
+        'cGVuZGluZ19wZWVyGAUgASgJUgtwZW5kaW5nUGVlchIqChF1c2VyX21hbmFnZWRfY29uZhgGIA'
+        'EoCFIPdXNlck1hbmFnZWRDb25m');
 
 @$core.Deprecated('Use confirmPendingNetworkGenerationRequestDescriptor instead')
 const ConfirmPendingNetworkGenerationRequest$json = {

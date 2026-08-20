@@ -25,6 +25,9 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
       $pb.ServerContext ctx, $7.GetBitcoinConfigRequest request);
   $async.Future<$7.NetworkChangePlan> prepareNetworkChange(
       $pb.ServerContext ctx, $7.PrepareNetworkChangeRequest request);
+  $async.Future<$7.ListNetworksResponse> listNetworks($pb.ServerContext ctx, $7.ListNetworksRequest request);
+  $async.Future<$7.TakeNewNetworksResponse> takeNewNetworks($pb.ServerContext ctx, $7.TakeNewNetworksRequest request);
+  $async.Future<$7.PlanECashSwitchResponse> planECashSwitch($pb.ServerContext ctx, $7.PlanECashSwitchRequest request);
   $async.Future<$7.SetBitcoinConfigNetworkResponse> setBitcoinConfigNetwork(
       $pb.ServerContext ctx, $7.SetBitcoinConfigNetworkRequest request);
   $async.Future<$7.SetBitcoinConfigDataDirResponse> setBitcoinConfigDataDir(
@@ -38,6 +41,12 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
         return $7.GetBitcoinConfigRequest();
       case 'PrepareNetworkChange':
         return $7.PrepareNetworkChangeRequest();
+      case 'ListNetworks':
+        return $7.ListNetworksRequest();
+      case 'TakeNewNetworks':
+        return $7.TakeNewNetworksRequest();
+      case 'PlanECashSwitch':
+        return $7.PlanECashSwitchRequest();
       case 'SetBitcoinConfigNetwork':
         return $7.SetBitcoinConfigNetworkRequest();
       case 'SetBitcoinConfigDataDir':
@@ -56,6 +65,12 @@ abstract class BitcoinConfServiceBase extends $pb.GeneratedService {
         return this.getBitcoinConfig(ctx, request as $7.GetBitcoinConfigRequest);
       case 'PrepareNetworkChange':
         return this.prepareNetworkChange(ctx, request as $7.PrepareNetworkChangeRequest);
+      case 'ListNetworks':
+        return this.listNetworks(ctx, request as $7.ListNetworksRequest);
+      case 'TakeNewNetworks':
+        return this.takeNewNetworks(ctx, request as $7.TakeNewNetworksRequest);
+      case 'PlanECashSwitch':
+        return this.planECashSwitch(ctx, request as $7.PlanECashSwitchRequest);
       case 'SetBitcoinConfigNetwork':
         return this.setBitcoinConfigNetwork(ctx, request as $7.SetBitcoinConfigNetworkRequest);
       case 'SetBitcoinConfigDataDir':

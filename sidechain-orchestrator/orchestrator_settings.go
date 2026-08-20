@@ -18,6 +18,17 @@ const orchestratorSettingsFile = "orchestrator_settings.json"
 // OrchestratorSettings is the on-disk shape of orchestrator_settings.json.
 type OrchestratorSettings struct {
 	CoreVariant string `json:"core_variant"`
+	// ECashNetworkID pins the eCash network the user picked from the catalog
+	// ("alphanet"). Empty means "whichever one the catalog lists first", which
+	// is what a fresh install and every non-eCash network use.
+	ECashNetworkID string `json:"ecash_network_id"`
+	// SeenNetworkIDs are the catalog ids this install already told the user
+	// about. TakeNewNetworks reports the rest once, then adds them here.
+	SeenNetworkIDs []string `json:"seen_network_ids"`
+	// RewoundBlockHash is the block an eCash switch dropped. Core bars that
+	// branch for good, so a move back to the network it dropped must clear the
+	// mark first.
+	RewoundBlockHash string `json:"rewound_block_hash"`
 	// ElectrumServerURL overrides the network's default Esplora endpoint for
 	// electrum wallets. Empty means "use the network default".
 	ElectrumServerURL string `json:"electrum_server_url"`
@@ -215,4 +226,65 @@ func (s *SettingsStore) SetTorConfig(enabled bool, proxy string) (bool, string, 
 	}
 	s.current = next
 	return prevEnabled, prevProxy, nil
+}
+
+// ECashNetworkID returns the eCash network the user picked, empty when they
+// picked none.
+func (s *SettingsStore) ECashNetworkID() string {
+	return s.Get().ECashNetworkID
+}
+
+// SetECashNetworkID persists the picked eCash network and returns the previous
+// value.
+func (s *SettingsStore) SetECashNetworkID(id string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	prev := s.current.ECashNetworkID
+	if prev == id {
+		return prev, nil
+	}
+	next := s.current
+	next.ECashNetworkID = id
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return prev, err
+	}
+	s.current = next
+	return prev, nil
+}
+
+// SeenNetworkIDs returns the catalog ids this install already told the user
+// about, nil when it told them none yet.
+func (s *SettingsStore) SeenNetworkIDs() []string {
+	return s.Get().SeenNetworkIDs
+}
+
+// SetSeenNetworkIDs persists the catalog ids this install told the user about.
+func (s *SettingsStore) SetSeenNetworkIDs(ids []string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := s.current
+	next.SeenNetworkIDs = ids
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
+}
+
+// RewoundBlockHash returns the block an eCash switch dropped, empty when none.
+func (s *SettingsStore) RewoundBlockHash() string {
+	return s.Get().RewoundBlockHash
+}
+
+// SetRewoundBlockHash persists the block an eCash switch dropped.
+func (s *SettingsStore) SetRewoundBlockHash(hash string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := s.current
+	next.RewoundBlockHash = hash
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
 }

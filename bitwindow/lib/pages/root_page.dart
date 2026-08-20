@@ -1073,39 +1073,23 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                       routes: [for (final t in _navTabs) t.nav],
                       endWidget: SailRow(
                         children: [
-                          SailDropdownButton<BitcoinNetwork>(
-                            value: _confProvider.network,
+                          SailDropdownButton<String>(
+                            value: _confProvider.currentNetworkOptionId,
                             items: [
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
-                                label: BitcoinNetwork.BITCOIN_NETWORK_MAINNET.toDisplayName(),
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                                label: BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toDisplayName(),
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
-                                label: BitcoinNetwork.BITCOIN_NETWORK_DRYNET.toDisplayName(),
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                                label: BitcoinNetwork.BITCOIN_NETWORK_SIGNET.toDisplayName(),
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
-                                label: BitcoinNetwork.BITCOIN_NETWORK_TESTNET.toDisplayName(),
-                              ),
-                              SailDropdownItem<BitcoinNetwork>(
-                                value: BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
-                                label: BitcoinNetwork.BITCOIN_NETWORK_REGTEST.toDisplayName(),
-                              ),
+                              for (final option in _confProvider.networkOptions)
+                                SailDropdownItem<String>(value: option.id, label: option.displayName),
                             ],
-                            onChanged: (BitcoinNetwork? network) async {
-                              if (network == null || _confProvider.hasPrivateBitcoinConf) {
+                            onChanged: (String? id) async {
+                              final option = id == null ? null : _confProvider.optionById(id);
+                              if (option == null || _confProvider.hasPrivateBitcoinConf) {
                                 return;
                               }
-                              await swapNetworkWithDatadirPrompt(context, _confProvider, network);
+                              await swapNetworkWithDatadirPrompt(
+                                context,
+                                _confProvider,
+                                _confProvider.networkFromOption(option),
+                                networkId: option.id,
+                              );
                             },
                           ),
                           SailButton(

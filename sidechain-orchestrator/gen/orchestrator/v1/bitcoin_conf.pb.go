@@ -112,7 +112,7 @@ func (*GetBitcoinConfigRequest) Descriptor() ([]byte, []int) {
 
 type GetBitcoinConfigResponse struct {
 	state                     protoimpl.MessageState `protogen:"open.v1"`
-	Network                   string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"` // signet, mainnet, forknet, drynet, testnet, regtest
+	Network                   string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"` // signet, mainnet, forknet, ecash, testnet, regtest
 	RpcPort                   int32                  `protobuf:"varint,2,opt,name=rpc_port,json=rpcPort,proto3" json:"rpc_port,omitempty"`
 	HasPrivateConf            bool                   `protobuf:"varint,3,opt,name=has_private_conf,json=hasPrivateConf,proto3" json:"has_private_conf,omitempty"`   // true if user has their own bitcoin.conf
 	ConfigPath                string                 `protobuf:"bytes,4,opt,name=config_path,json=configPath,proto3" json:"config_path,omitempty"`                  // path to the active config file
@@ -130,13 +130,18 @@ type GetBitcoinConfigResponse struct {
 	// restored on the next swap into that group. Empty = no path stored.
 	DefaultDatadir string `protobuf:"bytes,11,opt,name=default_datadir,json=defaultDatadir,proto3" json:"default_datadir,omitempty"`
 	ForknetDatadir string `protobuf:"bytes,12,opt,name=forknet_datadir,json=forknetDatadir,proto3" json:"forknet_datadir,omitempty"`
-	DrynetDatadir  string `protobuf:"bytes,13,opt,name=drynet_datadir,json=drynetDatadir,proto3" json:"drynet_datadir,omitempty"`
-	// Live drynet generation ("drynet2"). Drynet hostnames are built from it, so
-	// the frontend needs it to link at the right explorer.
-	DrynetGeneration string `protobuf:"bytes,14,opt,name=drynet_generation,json=drynetGeneration,proto3" json:"drynet_generation,omitempty"`
+	EcashDatadir   string `protobuf:"bytes,13,opt,name=ecash_datadir,json=ecashDatadir,proto3" json:"ecash_datadir,omitempty"`
+	// Live eCash network id ("alphanet").
+	EcashNetworkId string `protobuf:"bytes,14,opt,name=ecash_network_id,json=ecashNetworkId,proto3" json:"ecash_network_id,omitempty"`
 	// True when the current network and wallet backend need a datadir the user
 	// has not chosen yet. Drives the boot-time prompt.
 	MustSelectDatadir bool `protobuf:"varint,15,opt,name=must_select_datadir,json=mustSelectDatadir,proto3" json:"must_select_datadir,omitempty"`
+	// Esplora base URL the catalog publishes for the live eCash network, empty
+	// when it publishes none.
+	EcashEsploraUrl string `protobuf:"bytes,16,opt,name=ecash_esplora_url,json=ecashEsploraUrl,proto3" json:"ecash_esplora_url,omitempty"`
+	// Explorer host the catalog publishes for the live eCash network, empty
+	// when it publishes none.
+	EcashExplorerHost string `protobuf:"bytes,17,opt,name=ecash_explorer_host,json=ecashExplorerHost,proto3" json:"ecash_explorer_host,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -255,16 +260,16 @@ func (x *GetBitcoinConfigResponse) GetForknetDatadir() string {
 	return ""
 }
 
-func (x *GetBitcoinConfigResponse) GetDrynetDatadir() string {
+func (x *GetBitcoinConfigResponse) GetEcashDatadir() string {
 	if x != nil {
-		return x.DrynetDatadir
+		return x.EcashDatadir
 	}
 	return ""
 }
 
-func (x *GetBitcoinConfigResponse) GetDrynetGeneration() string {
+func (x *GetBitcoinConfigResponse) GetEcashNetworkId() string {
 	if x != nil {
-		return x.DrynetGeneration
+		return x.EcashNetworkId
 	}
 	return ""
 }
@@ -274,6 +279,367 @@ func (x *GetBitcoinConfigResponse) GetMustSelectDatadir() bool {
 		return x.MustSelectDatadir
 	}
 	return false
+}
+
+func (x *GetBitcoinConfigResponse) GetEcashEsploraUrl() string {
+	if x != nil {
+		return x.EcashEsploraUrl
+	}
+	return ""
+}
+
+func (x *GetBitcoinConfigResponse) GetEcashExplorerHost() string {
+	if x != nil {
+		return x.EcashExplorerHost
+	}
+	return ""
+}
+
+type ListNetworksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListNetworksRequest) Reset() {
+	*x = ListNetworksRequest{}
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListNetworksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListNetworksRequest) ProtoMessage() {}
+
+func (x *ListNetworksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListNetworksRequest.ProtoReflect.Descriptor instead.
+func (*ListNetworksRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{2}
+}
+
+// NetworkOption is one row of the network picker.
+type NetworkOption struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Catalog id ("alphanet", "bitcoin"), or "regtest" for the local-only row.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Name to show the user ("Alphanet").
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// Slot this row runs in: mainnet | signet | forknet | ecash | regtest.
+	Network string `protobuf:"bytes,3,opt,name=network,proto3" json:"network,omitempty"`
+	// True for the network this install runs right now.
+	IsCurrent     bool `protobuf:"varint,4,opt,name=is_current,json=isCurrent,proto3" json:"is_current,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NetworkOption) Reset() {
+	*x = NetworkOption{}
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkOption) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkOption) ProtoMessage() {}
+
+func (x *NetworkOption) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkOption.ProtoReflect.Descriptor instead.
+func (*NetworkOption) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *NetworkOption) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *NetworkOption) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *NetworkOption) GetNetwork() string {
+	if x != nil {
+		return x.Network
+	}
+	return ""
+}
+
+func (x *NetworkOption) GetIsCurrent() bool {
+	if x != nil {
+		return x.IsCurrent
+	}
+	return false
+}
+
+type ListNetworksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Networks      []*NetworkOption       `protobuf:"bytes,1,rep,name=networks,proto3" json:"networks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListNetworksResponse) Reset() {
+	*x = ListNetworksResponse{}
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListNetworksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListNetworksResponse) ProtoMessage() {}
+
+func (x *ListNetworksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListNetworksResponse.ProtoReflect.Descriptor instead.
+func (*ListNetworksResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListNetworksResponse) GetNetworks() []*NetworkOption {
+	if x != nil {
+		return x.Networks
+	}
+	return nil
+}
+
+type PlanECashSwitchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NetworkId     string                 `protobuf:"bytes,1,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"` // catalog id to move to
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanECashSwitchRequest) Reset() {
+	*x = PlanECashSwitchRequest{}
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanECashSwitchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanECashSwitchRequest) ProtoMessage() {}
+
+func (x *PlanECashSwitchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanECashSwitchRequest.ProtoReflect.Descriptor instead.
+func (*PlanECashSwitchRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PlanECashSwitchRequest) GetNetworkId() string {
+	if x != nil {
+		return x.NetworkId
+	}
+	return ""
+}
+
+type PlanECashSwitchResponse struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	FromId string                 `protobuf:"bytes,1,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	ToId   string                 `protobuf:"bytes,2,opt,name=to_id,json=toId,proto3" json:"to_id,omitempty"`
+	// Block the switch drops, one below the lower fork height. Core parks under
+	// it and follows the new network from there. Zero when nothing is dropped.
+	RewindHeight  uint32 `protobuf:"varint,3,opt,name=rewind_height,json=rewindHeight,proto3" json:"rewind_height,omitempty"`
+	NeedsRollback bool   `protobuf:"varint,4,opt,name=needs_rollback,json=needsRollback,proto3" json:"needs_rollback,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanECashSwitchResponse) Reset() {
+	*x = PlanECashSwitchResponse{}
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanECashSwitchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanECashSwitchResponse) ProtoMessage() {}
+
+func (x *PlanECashSwitchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanECashSwitchResponse.ProtoReflect.Descriptor instead.
+func (*PlanECashSwitchResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PlanECashSwitchResponse) GetFromId() string {
+	if x != nil {
+		return x.FromId
+	}
+	return ""
+}
+
+func (x *PlanECashSwitchResponse) GetToId() string {
+	if x != nil {
+		return x.ToId
+	}
+	return ""
+}
+
+func (x *PlanECashSwitchResponse) GetRewindHeight() uint32 {
+	if x != nil {
+		return x.RewindHeight
+	}
+	return 0
+}
+
+func (x *PlanECashSwitchResponse) GetNeedsRollback() bool {
+	if x != nil {
+		return x.NeedsRollback
+	}
+	return false
+}
+
+type TakeNewNetworksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TakeNewNetworksRequest) Reset() {
+	*x = TakeNewNetworksRequest{}
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TakeNewNetworksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TakeNewNetworksRequest) ProtoMessage() {}
+
+func (x *TakeNewNetworksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TakeNewNetworksRequest.ProtoReflect.Descriptor instead.
+func (*TakeNewNetworksRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{7}
+}
+
+type TakeNewNetworksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Networks      []*NetworkOption       `protobuf:"bytes,1,rep,name=networks,proto3" json:"networks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TakeNewNetworksResponse) Reset() {
+	*x = TakeNewNetworksResponse{}
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TakeNewNetworksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TakeNewNetworksResponse) ProtoMessage() {}
+
+func (x *TakeNewNetworksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TakeNewNetworksResponse.ProtoReflect.Descriptor instead.
+func (*TakeNewNetworksResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TakeNewNetworksResponse) GetNetworks() []*NetworkOption {
+	if x != nil {
+		return x.Networks
+	}
+	return nil
 }
 
 type PrepareNetworkChangeRequest struct {
@@ -287,7 +653,7 @@ type PrepareNetworkChangeRequest struct {
 
 func (x *PrepareNetworkChangeRequest) Reset() {
 	*x = PrepareNetworkChangeRequest{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[2]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -299,7 +665,7 @@ func (x *PrepareNetworkChangeRequest) String() string {
 func (*PrepareNetworkChangeRequest) ProtoMessage() {}
 
 func (x *PrepareNetworkChangeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[2]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -312,7 +678,7 @@ func (x *PrepareNetworkChangeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareNetworkChangeRequest.ProtoReflect.Descriptor instead.
 func (*PrepareNetworkChangeRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{2}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *PrepareNetworkChangeRequest) GetNetwork() string {
@@ -344,7 +710,7 @@ type NetworkChangePlan struct {
 	WalletBackend        WalletBackend          `protobuf:"varint,2,opt,name=wallet_backend,json=walletBackend,proto3,enum=orchestrator.v1.WalletBackend" json:"wallet_backend,omitempty"`
 	MustSelectDatadir    bool                   `protobuf:"varint,3,opt,name=must_select_datadir,json=mustSelectDatadir,proto3" json:"must_select_datadir,omitempty"`
 	Datadir              string                 `protobuf:"bytes,4,opt,name=datadir,proto3" json:"datadir,omitempty"`                                                    // the path that would be used, empty when unset
-	DatadirGroup         string                 `protobuf:"bytes,5,opt,name=datadir_group,json=datadirGroup,proto3" json:"datadir_group,omitempty"`                      // default | forknet | drynet
+	DatadirGroup         string                 `protobuf:"bytes,5,opt,name=datadir_group,json=datadirGroup,proto3" json:"datadir_group,omitempty"`                      // default | forknet | ecash
 	NeedsLocalBackends   bool                   `protobuf:"varint,6,opt,name=needs_local_backends,json=needsLocalBackends,proto3" json:"needs_local_backends,omitempty"` // false for electrum — nothing is downloaded
 	ImpliesChainDownload bool                   `protobuf:"varint,7,opt,name=implies_chain_download,json=impliesChainDownload,proto3" json:"implies_chain_download,omitempty"`
 	MissingBinaries      []string               `protobuf:"bytes,8,rep,name=missing_binaries,json=missingBinaries,proto3" json:"missing_binaries,omitempty"`
@@ -356,7 +722,7 @@ type NetworkChangePlan struct {
 
 func (x *NetworkChangePlan) Reset() {
 	*x = NetworkChangePlan{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[3]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -368,7 +734,7 @@ func (x *NetworkChangePlan) String() string {
 func (*NetworkChangePlan) ProtoMessage() {}
 
 func (x *NetworkChangePlan) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[3]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -381,7 +747,7 @@ func (x *NetworkChangePlan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkChangePlan.ProtoReflect.Descriptor instead.
 func (*NetworkChangePlan) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{3}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *NetworkChangePlan) GetNetwork() string {
@@ -456,7 +822,7 @@ func (x *NetworkChangePlan) GetNoOp() bool {
 
 type SetBitcoinConfigNetworkRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`                // signet, mainnet, forknet, drynet, testnet, regtest
+	Network       string                 `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`                // signet, mainnet, forknet, ecash, testnet, regtest
 	DataDir       string                 `protobuf:"bytes,2,opt,name=data_dir,json=dataDir,proto3" json:"data_dir,omitempty"` // the user's answer to must_select_datadir, if asked
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -464,7 +830,7 @@ type SetBitcoinConfigNetworkRequest struct {
 
 func (x *SetBitcoinConfigNetworkRequest) Reset() {
 	*x = SetBitcoinConfigNetworkRequest{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[4]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -476,7 +842,7 @@ func (x *SetBitcoinConfigNetworkRequest) String() string {
 func (*SetBitcoinConfigNetworkRequest) ProtoMessage() {}
 
 func (x *SetBitcoinConfigNetworkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[4]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -489,7 +855,7 @@ func (x *SetBitcoinConfigNetworkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBitcoinConfigNetworkRequest.ProtoReflect.Descriptor instead.
 func (*SetBitcoinConfigNetworkRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{4}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SetBitcoinConfigNetworkRequest) GetNetwork() string {
@@ -515,7 +881,7 @@ type SetBitcoinConfigNetworkResponse struct {
 
 func (x *SetBitcoinConfigNetworkResponse) Reset() {
 	*x = SetBitcoinConfigNetworkResponse{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[5]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -527,7 +893,7 @@ func (x *SetBitcoinConfigNetworkResponse) String() string {
 func (*SetBitcoinConfigNetworkResponse) ProtoMessage() {}
 
 func (x *SetBitcoinConfigNetworkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[5]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -540,7 +906,7 @@ func (x *SetBitcoinConfigNetworkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBitcoinConfigNetworkResponse.ProtoReflect.Descriptor instead.
 func (*SetBitcoinConfigNetworkResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{5}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetBitcoinConfigNetworkResponse) GetApplied() *NetworkChangePlan {
@@ -560,7 +926,7 @@ type SetBitcoinConfigDataDirRequest struct {
 
 func (x *SetBitcoinConfigDataDirRequest) Reset() {
 	*x = SetBitcoinConfigDataDirRequest{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[6]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -572,7 +938,7 @@ func (x *SetBitcoinConfigDataDirRequest) String() string {
 func (*SetBitcoinConfigDataDirRequest) ProtoMessage() {}
 
 func (x *SetBitcoinConfigDataDirRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[6]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -585,7 +951,7 @@ func (x *SetBitcoinConfigDataDirRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBitcoinConfigDataDirRequest.ProtoReflect.Descriptor instead.
 func (*SetBitcoinConfigDataDirRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{6}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SetBitcoinConfigDataDirRequest) GetDataDir() string {
@@ -610,7 +976,7 @@ type SetBitcoinConfigDataDirResponse struct {
 
 func (x *SetBitcoinConfigDataDirResponse) Reset() {
 	*x = SetBitcoinConfigDataDirResponse{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[7]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -622,7 +988,7 @@ func (x *SetBitcoinConfigDataDirResponse) String() string {
 func (*SetBitcoinConfigDataDirResponse) ProtoMessage() {}
 
 func (x *SetBitcoinConfigDataDirResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[7]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -635,7 +1001,7 @@ func (x *SetBitcoinConfigDataDirResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBitcoinConfigDataDirResponse.ProtoReflect.Descriptor instead.
 func (*SetBitcoinConfigDataDirResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{7}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{14}
 }
 
 type WriteBitcoinConfigRequest struct {
@@ -647,7 +1013,7 @@ type WriteBitcoinConfigRequest struct {
 
 func (x *WriteBitcoinConfigRequest) Reset() {
 	*x = WriteBitcoinConfigRequest{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[8]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +1025,7 @@ func (x *WriteBitcoinConfigRequest) String() string {
 func (*WriteBitcoinConfigRequest) ProtoMessage() {}
 
 func (x *WriteBitcoinConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[8]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -672,7 +1038,7 @@ func (x *WriteBitcoinConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteBitcoinConfigRequest.ProtoReflect.Descriptor instead.
 func (*WriteBitcoinConfigRequest) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{8}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *WriteBitcoinConfigRequest) GetConfigContent() string {
@@ -690,7 +1056,7 @@ type WriteBitcoinConfigResponse struct {
 
 func (x *WriteBitcoinConfigResponse) Reset() {
 	*x = WriteBitcoinConfigResponse{}
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[9]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -702,7 +1068,7 @@ func (x *WriteBitcoinConfigResponse) String() string {
 func (*WriteBitcoinConfigResponse) ProtoMessage() {}
 
 func (x *WriteBitcoinConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[9]
+	mi := &file_orchestrator_v1_bitcoin_conf_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -715,7 +1081,7 @@ func (x *WriteBitcoinConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteBitcoinConfigResponse.ProtoReflect.Descriptor instead.
 func (*WriteBitcoinConfigResponse) Descriptor() ([]byte, []int) {
-	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{9}
+	return file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP(), []int{16}
 }
 
 var File_orchestrator_v1_bitcoin_conf_proto protoreflect.FileDescriptor
@@ -723,7 +1089,7 @@ var File_orchestrator_v1_bitcoin_conf_proto protoreflect.FileDescriptor
 const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\n" +
 	"\"orchestrator/v1/bitcoin_conf.proto\x12\x0forchestrator.v1\"\x19\n" +
-	"\x17GetBitcoinConfigRequest\"\xe3\x04\n" +
+	"\x17GetBitcoinConfigRequest\"\xba\x05\n" +
 	"\x18GetBitcoinConfigResponse\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x19\n" +
 	"\brpc_port\x18\x02 \x01(\x05R\arpcPort\x12(\n" +
@@ -739,10 +1105,32 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\frpc_password\x18\n" +
 	" \x01(\tR\vrpcPassword\x12'\n" +
 	"\x0fdefault_datadir\x18\v \x01(\tR\x0edefaultDatadir\x12'\n" +
-	"\x0fforknet_datadir\x18\f \x01(\tR\x0eforknetDatadir\x12%\n" +
-	"\x0edrynet_datadir\x18\r \x01(\tR\rdrynetDatadir\x12+\n" +
-	"\x11drynet_generation\x18\x0e \x01(\tR\x10drynetGeneration\x12.\n" +
-	"\x13must_select_datadir\x18\x0f \x01(\bR\x11mustSelectDatadir\"\x9b\x01\n" +
+	"\x0fforknet_datadir\x18\f \x01(\tR\x0eforknetDatadir\x12#\n" +
+	"\recash_datadir\x18\r \x01(\tR\fecashDatadir\x12(\n" +
+	"\x10ecash_network_id\x18\x0e \x01(\tR\x0eecashNetworkId\x12.\n" +
+	"\x13must_select_datadir\x18\x0f \x01(\bR\x11mustSelectDatadir\x12*\n" +
+	"\x11ecash_esplora_url\x18\x10 \x01(\tR\x0fecashEsploraUrl\x12.\n" +
+	"\x13ecash_explorer_host\x18\x11 \x01(\tR\x11ecashExplorerHost\"\x15\n" +
+	"\x13ListNetworksRequest\"{\n" +
+	"\rNetworkOption\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
+	"\anetwork\x18\x03 \x01(\tR\anetwork\x12\x1d\n" +
+	"\n" +
+	"is_current\x18\x04 \x01(\bR\tisCurrent\"R\n" +
+	"\x14ListNetworksResponse\x12:\n" +
+	"\bnetworks\x18\x01 \x03(\v2\x1e.orchestrator.v1.NetworkOptionR\bnetworks\"7\n" +
+	"\x16PlanECashSwitchRequest\x12\x1d\n" +
+	"\n" +
+	"network_id\x18\x01 \x01(\tR\tnetworkId\"\x93\x01\n" +
+	"\x17PlanECashSwitchResponse\x12\x17\n" +
+	"\afrom_id\x18\x01 \x01(\tR\x06fromId\x12\x13\n" +
+	"\x05to_id\x18\x02 \x01(\tR\x04toId\x12#\n" +
+	"\rrewind_height\x18\x03 \x01(\rR\frewindHeight\x12%\n" +
+	"\x0eneeds_rollback\x18\x04 \x01(\bR\rneedsRollback\"\x18\n" +
+	"\x16TakeNewNetworksRequest\"U\n" +
+	"\x17TakeNewNetworksResponse\x12:\n" +
+	"\bnetworks\x18\x01 \x03(\v2\x1e.orchestrator.v1.NetworkOptionR\bnetworks\"\x9b\x01\n" +
 	"\x1bPrepareNetworkChangeRequest\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12E\n" +
 	"\x0ewallet_backend\x18\x02 \x01(\x0e2\x1e.orchestrator.v1.WalletBackendR\rwalletBackend\x12\x1b\n" +
@@ -775,10 +1163,13 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\x1aWALLET_BACKEND_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17WALLET_BACKEND_ELECTRUM\x10\x01\x12\x17\n" +
 	"\x13WALLET_BACKEND_CORE\x10\x02\x12\x1b\n" +
-	"\x17WALLET_BACKEND_ENFORCER\x10\x032\xd2\x04\n" +
+	"\x17WALLET_BACKEND_ENFORCER\x10\x032\xfb\x06\n" +
 	"\x12BitcoinConfService\x12g\n" +
 	"\x10GetBitcoinConfig\x12(.orchestrator.v1.GetBitcoinConfigRequest\x1a).orchestrator.v1.GetBitcoinConfigResponse\x12h\n" +
-	"\x14PrepareNetworkChange\x12,.orchestrator.v1.PrepareNetworkChangeRequest\x1a\".orchestrator.v1.NetworkChangePlan\x12|\n" +
+	"\x14PrepareNetworkChange\x12,.orchestrator.v1.PrepareNetworkChangeRequest\x1a\".orchestrator.v1.NetworkChangePlan\x12[\n" +
+	"\fListNetworks\x12$.orchestrator.v1.ListNetworksRequest\x1a%.orchestrator.v1.ListNetworksResponse\x12d\n" +
+	"\x0fTakeNewNetworks\x12'.orchestrator.v1.TakeNewNetworksRequest\x1a(.orchestrator.v1.TakeNewNetworksResponse\x12d\n" +
+	"\x0fPlanECashSwitch\x12'.orchestrator.v1.PlanECashSwitchRequest\x1a(.orchestrator.v1.PlanECashSwitchResponse\x12|\n" +
 	"\x17SetBitcoinConfigNetwork\x12/.orchestrator.v1.SetBitcoinConfigNetworkRequest\x1a0.orchestrator.v1.SetBitcoinConfigNetworkResponse\x12|\n" +
 	"\x17SetBitcoinConfigDataDir\x12/.orchestrator.v1.SetBitcoinConfigDataDirRequest\x1a0.orchestrator.v1.SetBitcoinConfigDataDirResponse\x12m\n" +
 	"\x12WriteBitcoinConfig\x12*.orchestrator.v1.WriteBitcoinConfigRequest\x1a+.orchestrator.v1.WriteBitcoinConfigResponseB\xe1\x01\n" +
@@ -797,39 +1188,54 @@ func file_orchestrator_v1_bitcoin_conf_proto_rawDescGZIP() []byte {
 }
 
 var file_orchestrator_v1_bitcoin_conf_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_orchestrator_v1_bitcoin_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_orchestrator_v1_bitcoin_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_orchestrator_v1_bitcoin_conf_proto_goTypes = []any{
 	(WalletBackend)(0),                      // 0: orchestrator.v1.WalletBackend
 	(*GetBitcoinConfigRequest)(nil),         // 1: orchestrator.v1.GetBitcoinConfigRequest
 	(*GetBitcoinConfigResponse)(nil),        // 2: orchestrator.v1.GetBitcoinConfigResponse
-	(*PrepareNetworkChangeRequest)(nil),     // 3: orchestrator.v1.PrepareNetworkChangeRequest
-	(*NetworkChangePlan)(nil),               // 4: orchestrator.v1.NetworkChangePlan
-	(*SetBitcoinConfigNetworkRequest)(nil),  // 5: orchestrator.v1.SetBitcoinConfigNetworkRequest
-	(*SetBitcoinConfigNetworkResponse)(nil), // 6: orchestrator.v1.SetBitcoinConfigNetworkResponse
-	(*SetBitcoinConfigDataDirRequest)(nil),  // 7: orchestrator.v1.SetBitcoinConfigDataDirRequest
-	(*SetBitcoinConfigDataDirResponse)(nil), // 8: orchestrator.v1.SetBitcoinConfigDataDirResponse
-	(*WriteBitcoinConfigRequest)(nil),       // 9: orchestrator.v1.WriteBitcoinConfigRequest
-	(*WriteBitcoinConfigResponse)(nil),      // 10: orchestrator.v1.WriteBitcoinConfigResponse
+	(*ListNetworksRequest)(nil),             // 3: orchestrator.v1.ListNetworksRequest
+	(*NetworkOption)(nil),                   // 4: orchestrator.v1.NetworkOption
+	(*ListNetworksResponse)(nil),            // 5: orchestrator.v1.ListNetworksResponse
+	(*PlanECashSwitchRequest)(nil),          // 6: orchestrator.v1.PlanECashSwitchRequest
+	(*PlanECashSwitchResponse)(nil),         // 7: orchestrator.v1.PlanECashSwitchResponse
+	(*TakeNewNetworksRequest)(nil),          // 8: orchestrator.v1.TakeNewNetworksRequest
+	(*TakeNewNetworksResponse)(nil),         // 9: orchestrator.v1.TakeNewNetworksResponse
+	(*PrepareNetworkChangeRequest)(nil),     // 10: orchestrator.v1.PrepareNetworkChangeRequest
+	(*NetworkChangePlan)(nil),               // 11: orchestrator.v1.NetworkChangePlan
+	(*SetBitcoinConfigNetworkRequest)(nil),  // 12: orchestrator.v1.SetBitcoinConfigNetworkRequest
+	(*SetBitcoinConfigNetworkResponse)(nil), // 13: orchestrator.v1.SetBitcoinConfigNetworkResponse
+	(*SetBitcoinConfigDataDirRequest)(nil),  // 14: orchestrator.v1.SetBitcoinConfigDataDirRequest
+	(*SetBitcoinConfigDataDirResponse)(nil), // 15: orchestrator.v1.SetBitcoinConfigDataDirResponse
+	(*WriteBitcoinConfigRequest)(nil),       // 16: orchestrator.v1.WriteBitcoinConfigRequest
+	(*WriteBitcoinConfigResponse)(nil),      // 17: orchestrator.v1.WriteBitcoinConfigResponse
 }
 var file_orchestrator_v1_bitcoin_conf_proto_depIdxs = []int32{
-	0,  // 0: orchestrator.v1.PrepareNetworkChangeRequest.wallet_backend:type_name -> orchestrator.v1.WalletBackend
-	0,  // 1: orchestrator.v1.NetworkChangePlan.wallet_backend:type_name -> orchestrator.v1.WalletBackend
-	4,  // 2: orchestrator.v1.SetBitcoinConfigNetworkResponse.applied:type_name -> orchestrator.v1.NetworkChangePlan
-	1,  // 3: orchestrator.v1.BitcoinConfService.GetBitcoinConfig:input_type -> orchestrator.v1.GetBitcoinConfigRequest
-	3,  // 4: orchestrator.v1.BitcoinConfService.PrepareNetworkChange:input_type -> orchestrator.v1.PrepareNetworkChangeRequest
-	5,  // 5: orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork:input_type -> orchestrator.v1.SetBitcoinConfigNetworkRequest
-	7,  // 6: orchestrator.v1.BitcoinConfService.SetBitcoinConfigDataDir:input_type -> orchestrator.v1.SetBitcoinConfigDataDirRequest
-	9,  // 7: orchestrator.v1.BitcoinConfService.WriteBitcoinConfig:input_type -> orchestrator.v1.WriteBitcoinConfigRequest
-	2,  // 8: orchestrator.v1.BitcoinConfService.GetBitcoinConfig:output_type -> orchestrator.v1.GetBitcoinConfigResponse
-	4,  // 9: orchestrator.v1.BitcoinConfService.PrepareNetworkChange:output_type -> orchestrator.v1.NetworkChangePlan
-	6,  // 10: orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork:output_type -> orchestrator.v1.SetBitcoinConfigNetworkResponse
-	8,  // 11: orchestrator.v1.BitcoinConfService.SetBitcoinConfigDataDir:output_type -> orchestrator.v1.SetBitcoinConfigDataDirResponse
-	10, // 12: orchestrator.v1.BitcoinConfService.WriteBitcoinConfig:output_type -> orchestrator.v1.WriteBitcoinConfigResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	4,  // 0: orchestrator.v1.ListNetworksResponse.networks:type_name -> orchestrator.v1.NetworkOption
+	4,  // 1: orchestrator.v1.TakeNewNetworksResponse.networks:type_name -> orchestrator.v1.NetworkOption
+	0,  // 2: orchestrator.v1.PrepareNetworkChangeRequest.wallet_backend:type_name -> orchestrator.v1.WalletBackend
+	0,  // 3: orchestrator.v1.NetworkChangePlan.wallet_backend:type_name -> orchestrator.v1.WalletBackend
+	11, // 4: orchestrator.v1.SetBitcoinConfigNetworkResponse.applied:type_name -> orchestrator.v1.NetworkChangePlan
+	1,  // 5: orchestrator.v1.BitcoinConfService.GetBitcoinConfig:input_type -> orchestrator.v1.GetBitcoinConfigRequest
+	10, // 6: orchestrator.v1.BitcoinConfService.PrepareNetworkChange:input_type -> orchestrator.v1.PrepareNetworkChangeRequest
+	3,  // 7: orchestrator.v1.BitcoinConfService.ListNetworks:input_type -> orchestrator.v1.ListNetworksRequest
+	8,  // 8: orchestrator.v1.BitcoinConfService.TakeNewNetworks:input_type -> orchestrator.v1.TakeNewNetworksRequest
+	6,  // 9: orchestrator.v1.BitcoinConfService.PlanECashSwitch:input_type -> orchestrator.v1.PlanECashSwitchRequest
+	12, // 10: orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork:input_type -> orchestrator.v1.SetBitcoinConfigNetworkRequest
+	14, // 11: orchestrator.v1.BitcoinConfService.SetBitcoinConfigDataDir:input_type -> orchestrator.v1.SetBitcoinConfigDataDirRequest
+	16, // 12: orchestrator.v1.BitcoinConfService.WriteBitcoinConfig:input_type -> orchestrator.v1.WriteBitcoinConfigRequest
+	2,  // 13: orchestrator.v1.BitcoinConfService.GetBitcoinConfig:output_type -> orchestrator.v1.GetBitcoinConfigResponse
+	11, // 14: orchestrator.v1.BitcoinConfService.PrepareNetworkChange:output_type -> orchestrator.v1.NetworkChangePlan
+	5,  // 15: orchestrator.v1.BitcoinConfService.ListNetworks:output_type -> orchestrator.v1.ListNetworksResponse
+	9,  // 16: orchestrator.v1.BitcoinConfService.TakeNewNetworks:output_type -> orchestrator.v1.TakeNewNetworksResponse
+	7,  // 17: orchestrator.v1.BitcoinConfService.PlanECashSwitch:output_type -> orchestrator.v1.PlanECashSwitchResponse
+	13, // 18: orchestrator.v1.BitcoinConfService.SetBitcoinConfigNetwork:output_type -> orchestrator.v1.SetBitcoinConfigNetworkResponse
+	15, // 19: orchestrator.v1.BitcoinConfService.SetBitcoinConfigDataDir:output_type -> orchestrator.v1.SetBitcoinConfigDataDirResponse
+	17, // 20: orchestrator.v1.BitcoinConfService.WriteBitcoinConfig:output_type -> orchestrator.v1.WriteBitcoinConfigResponse
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_orchestrator_v1_bitcoin_conf_proto_init() }
@@ -843,7 +1249,7 @@ func file_orchestrator_v1_bitcoin_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_orchestrator_v1_bitcoin_conf_proto_rawDesc), len(file_orchestrator_v1_bitcoin_conf_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

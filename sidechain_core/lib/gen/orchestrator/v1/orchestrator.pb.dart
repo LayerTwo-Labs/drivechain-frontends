@@ -2313,19 +2313,19 @@ class GetPendingNetworkGenerationRequest extends $pb.GeneratedMessage {
 
 class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
   factory GetPendingNetworkGenerationResponse({
-    $core.String? currentGeneration,
-    $core.String? pendingGeneration,
+    $core.String? currentNetworkId,
+    $core.String? pendingNetworkId,
     $fixnum.Int64? snapshotHeight,
     $fixnum.Int64? snapshotSizeBytes,
     $core.String? pendingPeer,
     $core.bool? userManagedConf,
   }) {
     final $result = create();
-    if (currentGeneration != null) {
-      $result.currentGeneration = currentGeneration;
+    if (currentNetworkId != null) {
+      $result.currentNetworkId = currentNetworkId;
     }
-    if (pendingGeneration != null) {
-      $result.pendingGeneration = pendingGeneration;
+    if (pendingNetworkId != null) {
+      $result.pendingNetworkId = pendingNetworkId;
     }
     if (snapshotHeight != null) {
       $result.snapshotHeight = snapshotHeight;
@@ -2351,8 +2351,8 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingNetworkGenerationResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'currentGeneration')
-    ..aOS(2, _omitFieldNames ? '' : 'pendingGeneration')
+    ..aOS(1, _omitFieldNames ? '' : 'currentNetworkId')
+    ..aOS(2, _omitFieldNames ? '' : 'pendingNetworkId')
     ..aInt64(3, _omitFieldNames ? '' : 'snapshotHeight')
     ..aInt64(4, _omitFieldNames ? '' : 'snapshotSizeBytes')
     ..aOS(5, _omitFieldNames ? '' : 'pendingPeer')
@@ -2382,34 +2382,34 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPendingNetworkGenerationResponse>(create);
   static GetPendingNetworkGenerationResponse? _defaultInstance;
 
-  /// The generation this install runs now, and the newer one published, empty
-  /// when already current.
+  /// The eCash network this install runs now, and the newer one published,
+  /// empty when already current.
   @$pb.TagNumber(1)
-  $core.String get currentGeneration => $_getSZ(0);
+  $core.String get currentNetworkId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set currentGeneration($core.String v) {
+  set currentNetworkId($core.String v) {
     $_setString(0, v);
   }
 
   @$pb.TagNumber(1)
-  $core.bool hasCurrentGeneration() => $_has(0);
+  $core.bool hasCurrentNetworkId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearCurrentGeneration() => clearField(1);
+  void clearCurrentNetworkId() => clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get pendingGeneration => $_getSZ(1);
+  $core.String get pendingNetworkId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set pendingGeneration($core.String v) {
+  set pendingNetworkId($core.String v) {
     $_setString(1, v);
   }
 
   @$pb.TagNumber(2)
-  $core.bool hasPendingGeneration() => $_has(1);
+  $core.bool hasPendingNetworkId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearPendingGeneration() => clearField(2);
+  void clearPendingNetworkId() => clearField(2);
 
-  /// The new generation's UTXO snapshot, which the switch syncs from. Zero
-  /// height means none is published.
+  /// The new network's UTXO snapshot, which the switch syncs from. Zero height
+  /// means none is published.
   @$pb.TagNumber(3)
   $fixnum.Int64 get snapshotHeight => $_getI64(2);
   @$pb.TagNumber(3)
@@ -2434,7 +2434,7 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearSnapshotSizeBytes() => clearField(4);
 
-  /// The new generation's seed node, for the manual switch instructions.
+  /// The new network's seed node, for the manual switch instructions.
   @$pb.TagNumber(5)
   $core.String get pendingPeer => $_getSZ(4);
   @$pb.TagNumber(5)
@@ -2447,8 +2447,8 @@ class GetPendingNetworkGenerationResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   void clearPendingPeer() => clearField(5);
 
-  /// True when the user's own bitcoin.conf names the generation. The switch
-  /// cannot be made here — the prompt spells out what to change instead.
+  /// True when the user's own bitcoin.conf names the network. The switch cannot
+  /// be made here — the prompt spells out what to change instead.
   @$pb.TagNumber(6)
   $core.bool get userManagedConf => $_getBF(5);
   @$pb.TagNumber(6)
@@ -6129,7 +6129,7 @@ class GetForkStatusResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.List<ForkWalletClaim> get claims => $_getList(7);
 
-  /// Name of the fork being counted down to ("Drynet 4"), from the published
+  /// Name of the fork being counted down to ("Alphanet"), from the published
   /// catalog. A rehearsal must never read as the real eCash fork.
   @$pb.TagNumber(10)
   $core.String get networkName => $_getSZ(8);

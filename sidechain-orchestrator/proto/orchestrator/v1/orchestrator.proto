@@ -64,11 +64,11 @@ service OrchestratorService {
   // settings UI: pre-fills the snapshot field and shows what is loaded.
   rpc GetSnapshotStatus(GetSnapshotStatusRequest) returns (GetSnapshotStatusResponse);
 
-  // The drynet generation published but not switched to yet. Feeds the upgrade
-  // prompt; pending_generation is empty when already on the newest one.
+  // The eCash network published but not switched to yet. Feeds the upgrade
+  // prompt; pending_network_id is empty when already on the newest one.
   rpc GetPendingNetworkGeneration(GetPendingNetworkGenerationRequest) returns (GetPendingNetworkGenerationResponse);
 
-  // Record the user's go-ahead to switch to the published drynet generation.
+  // Record the user's go-ahead to switch to the published eCash network.
   // Nothing is stopped or deleted here: the caller must restart the backends,
   // and the switch runs on the next start. Wallets survive, chain history and
   // its transactions do not — only call with the user's confirmation.
@@ -375,21 +375,21 @@ message GetSnapshotStatusResponse {
 message GetPendingNetworkGenerationRequest {}
 
 message GetPendingNetworkGenerationResponse {
-  // The generation this install runs now, and the newer one published, empty
-  // when already current.
-  string current_generation = 1;
-  string pending_generation = 2;
+  // The eCash network this install runs now, and the newer one published,
+  // empty when already current.
+  string current_network_id = 1;
+  string pending_network_id = 2;
 
-  // The new generation's UTXO snapshot, which the switch syncs from. Zero
-  // height means none is published.
+  // The new network's UTXO snapshot, which the switch syncs from. Zero height
+  // means none is published.
   int64 snapshot_height = 3;
   int64 snapshot_size_bytes = 4;
 
-  // The new generation's seed node, for the manual switch instructions.
+  // The new network's seed node, for the manual switch instructions.
   string pending_peer = 5;
 
-  // True when the user's own bitcoin.conf names the generation. The switch
-  // cannot be made here — the prompt spells out what to change instead.
+  // True when the user's own bitcoin.conf names the network. The switch cannot
+  // be made here — the prompt spells out what to change instead.
   bool user_managed_conf = 6;
 }
 
@@ -847,7 +847,7 @@ message GetForkStatusResponse {
   bool show_countdown = 8;
   // Per-wallet claimable coins, with the exact UTXOs the sweep spends.
   repeated ForkWalletClaim claims = 9;
-  // Name of the fork being counted down to ("Drynet 4"), from the published
+  // Name of the fork being counted down to ("Alphanet"), from the published
   // catalog. A rehearsal must never read as the real eCash fork.
   string network_name = 10;
 }

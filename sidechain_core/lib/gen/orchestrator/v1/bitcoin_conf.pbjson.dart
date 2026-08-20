@@ -55,9 +55,11 @@ const GetBitcoinConfigResponse$json = {
     {'1': 'rpc_password', '3': 10, '4': 1, '5': 9, '10': 'rpcPassword'},
     {'1': 'default_datadir', '3': 11, '4': 1, '5': 9, '10': 'defaultDatadir'},
     {'1': 'forknet_datadir', '3': 12, '4': 1, '5': 9, '10': 'forknetDatadir'},
-    {'1': 'drynet_datadir', '3': 13, '4': 1, '5': 9, '10': 'drynetDatadir'},
-    {'1': 'drynet_generation', '3': 14, '4': 1, '5': 9, '10': 'drynetGeneration'},
+    {'1': 'ecash_datadir', '3': 13, '4': 1, '5': 9, '10': 'ecashDatadir'},
+    {'1': 'ecash_network_id', '3': 14, '4': 1, '5': 9, '10': 'ecashNetworkId'},
     {'1': 'must_select_datadir', '3': 15, '4': 1, '5': 8, '10': 'mustSelectDatadir'},
+    {'1': 'ecash_esplora_url', '3': 16, '4': 1, '5': 9, '10': 'ecashEsploraUrl'},
+    {'1': 'ecash_explorer_host', '3': 17, '4': 1, '5': 9, '10': 'ecashExplorerHost'},
   ],
 };
 
@@ -71,10 +73,101 @@ final $typed_data.Uint8List getBitcoinConfigResponseDescriptor =
         'V0d29ya1N1cHBvcnRzU2lkZWNoYWlucxIgCgxpc19kZW1vX21vZGUYCCABKAhSCmlzRGVtb01v'
         'ZGUSGQoIcnBjX3VzZXIYCSABKAlSB3JwY1VzZXISIQoMcnBjX3Bhc3N3b3JkGAogASgJUgtycG'
         'NQYXNzd29yZBInCg9kZWZhdWx0X2RhdGFkaXIYCyABKAlSDmRlZmF1bHREYXRhZGlyEicKD2Zv'
-        'cmtuZXRfZGF0YWRpchgMIAEoCVIOZm9ya25ldERhdGFkaXISJQoOZHJ5bmV0X2RhdGFkaXIYDS'
-        'ABKAlSDWRyeW5ldERhdGFkaXISKwoRZHJ5bmV0X2dlbmVyYXRpb24YDiABKAlSEGRyeW5ldEdl'
-        'bmVyYXRpb24SLgoTbXVzdF9zZWxlY3RfZGF0YWRpchgPIAEoCFIRbXVzdFNlbGVjdERhdGFkaX'
-        'I=');
+        'cmtuZXRfZGF0YWRpchgMIAEoCVIOZm9ya25ldERhdGFkaXISIwoNZWNhc2hfZGF0YWRpchgNIA'
+        'EoCVIMZWNhc2hEYXRhZGlyEigKEGVjYXNoX25ldHdvcmtfaWQYDiABKAlSDmVjYXNoTmV0d29y'
+        'a0lkEi4KE211c3Rfc2VsZWN0X2RhdGFkaXIYDyABKAhSEW11c3RTZWxlY3REYXRhZGlyEioKEW'
+        'VjYXNoX2VzcGxvcmFfdXJsGBAgASgJUg9lY2FzaEVzcGxvcmFVcmwSLgoTZWNhc2hfZXhwbG9y'
+        'ZXJfaG9zdBgRIAEoCVIRZWNhc2hFeHBsb3Jlckhvc3Q=');
+
+@$core.Deprecated('Use listNetworksRequestDescriptor instead')
+const ListNetworksRequest$json = {
+  '1': 'ListNetworksRequest',
+};
+
+/// Descriptor for `ListNetworksRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listNetworksRequestDescriptor = $convert.base64Decode('ChNMaXN0TmV0d29ya3NSZXF1ZXN0');
+
+@$core.Deprecated('Use networkOptionDescriptor instead')
+const NetworkOption$json = {
+  '1': 'NetworkOption',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'display_name', '3': 2, '4': 1, '5': 9, '10': 'displayName'},
+    {'1': 'network', '3': 3, '4': 1, '5': 9, '10': 'network'},
+    {'1': 'is_current', '3': 4, '4': 1, '5': 8, '10': 'isCurrent'},
+  ],
+};
+
+/// Descriptor for `NetworkOption`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List networkOptionDescriptor =
+    $convert.base64Decode('Cg1OZXR3b3JrT3B0aW9uEg4KAmlkGAEgASgJUgJpZBIhCgxkaXNwbGF5X25hbWUYAiABKAlSC2'
+        'Rpc3BsYXlOYW1lEhgKB25ldHdvcmsYAyABKAlSB25ldHdvcmsSHQoKaXNfY3VycmVudBgEIAEo'
+        'CFIJaXNDdXJyZW50');
+
+@$core.Deprecated('Use listNetworksResponseDescriptor instead')
+const ListNetworksResponse$json = {
+  '1': 'ListNetworksResponse',
+  '2': [
+    {'1': 'networks', '3': 1, '4': 3, '5': 11, '6': '.orchestrator.v1.NetworkOption', '10': 'networks'},
+  ],
+};
+
+/// Descriptor for `ListNetworksResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listNetworksResponseDescriptor =
+    $convert.base64Decode('ChRMaXN0TmV0d29ya3NSZXNwb25zZRI6CghuZXR3b3JrcxgBIAMoCzIeLm9yY2hlc3RyYXRvci'
+        '52MS5OZXR3b3JrT3B0aW9uUghuZXR3b3Jrcw==');
+
+@$core.Deprecated('Use planECashSwitchRequestDescriptor instead')
+const PlanECashSwitchRequest$json = {
+  '1': 'PlanECashSwitchRequest',
+  '2': [
+    {'1': 'network_id', '3': 1, '4': 1, '5': 9, '10': 'networkId'},
+  ],
+};
+
+/// Descriptor for `PlanECashSwitchRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List planECashSwitchRequestDescriptor =
+    $convert.base64Decode('ChZQbGFuRUNhc2hTd2l0Y2hSZXF1ZXN0Eh0KCm5ldHdvcmtfaWQYASABKAlSCW5ldHdvcmtJZA'
+        '==');
+
+@$core.Deprecated('Use planECashSwitchResponseDescriptor instead')
+const PlanECashSwitchResponse$json = {
+  '1': 'PlanECashSwitchResponse',
+  '2': [
+    {'1': 'from_id', '3': 1, '4': 1, '5': 9, '10': 'fromId'},
+    {'1': 'to_id', '3': 2, '4': 1, '5': 9, '10': 'toId'},
+    {'1': 'rewind_height', '3': 3, '4': 1, '5': 13, '10': 'rewindHeight'},
+    {'1': 'needs_rollback', '3': 4, '4': 1, '5': 8, '10': 'needsRollback'},
+  ],
+};
+
+/// Descriptor for `PlanECashSwitchResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List planECashSwitchResponseDescriptor =
+    $convert.base64Decode('ChdQbGFuRUNhc2hTd2l0Y2hSZXNwb25zZRIXCgdmcm9tX2lkGAEgASgJUgZmcm9tSWQSEwoFdG'
+        '9faWQYAiABKAlSBHRvSWQSIwoNcmV3aW5kX2hlaWdodBgDIAEoDVIMcmV3aW5kSGVpZ2h0EiUK'
+        'Dm5lZWRzX3JvbGxiYWNrGAQgASgIUg1uZWVkc1JvbGxiYWNr');
+
+@$core.Deprecated('Use takeNewNetworksRequestDescriptor instead')
+const TakeNewNetworksRequest$json = {
+  '1': 'TakeNewNetworksRequest',
+};
+
+/// Descriptor for `TakeNewNetworksRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List takeNewNetworksRequestDescriptor =
+    $convert.base64Decode('ChZUYWtlTmV3TmV0d29ya3NSZXF1ZXN0');
+
+@$core.Deprecated('Use takeNewNetworksResponseDescriptor instead')
+const TakeNewNetworksResponse$json = {
+  '1': 'TakeNewNetworksResponse',
+  '2': [
+    {'1': 'networks', '3': 1, '4': 3, '5': 11, '6': '.orchestrator.v1.NetworkOption', '10': 'networks'},
+  ],
+};
+
+/// Descriptor for `TakeNewNetworksResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List takeNewNetworksResponseDescriptor =
+    $convert.base64Decode('ChdUYWtlTmV3TmV0d29ya3NSZXNwb25zZRI6CghuZXR3b3JrcxgBIAMoCzIeLm9yY2hlc3RyYX'
+        'Rvci52MS5OZXR3b3JrT3B0aW9uUghuZXR3b3Jrcw==');
 
 @$core.Deprecated('Use prepareNetworkChangeRequestDescriptor instead')
 const PrepareNetworkChangeRequest$json = {
@@ -206,6 +299,17 @@ const $core.Map<$core.String, $core.dynamic> BitcoinConfServiceBase$json = {
       '2': '.orchestrator.v1.PrepareNetworkChangeRequest',
       '3': '.orchestrator.v1.NetworkChangePlan'
     },
+    {'1': 'ListNetworks', '2': '.orchestrator.v1.ListNetworksRequest', '3': '.orchestrator.v1.ListNetworksResponse'},
+    {
+      '1': 'TakeNewNetworks',
+      '2': '.orchestrator.v1.TakeNewNetworksRequest',
+      '3': '.orchestrator.v1.TakeNewNetworksResponse'
+    },
+    {
+      '1': 'PlanECashSwitch',
+      '2': '.orchestrator.v1.PlanECashSwitchRequest',
+      '3': '.orchestrator.v1.PlanECashSwitchResponse'
+    },
     {
       '1': 'SetBitcoinConfigNetwork',
       '2': '.orchestrator.v1.SetBitcoinConfigNetworkRequest',
@@ -230,6 +334,13 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitcoinCon
   '.orchestrator.v1.GetBitcoinConfigResponse': GetBitcoinConfigResponse$json,
   '.orchestrator.v1.PrepareNetworkChangeRequest': PrepareNetworkChangeRequest$json,
   '.orchestrator.v1.NetworkChangePlan': NetworkChangePlan$json,
+  '.orchestrator.v1.ListNetworksRequest': ListNetworksRequest$json,
+  '.orchestrator.v1.ListNetworksResponse': ListNetworksResponse$json,
+  '.orchestrator.v1.NetworkOption': NetworkOption$json,
+  '.orchestrator.v1.TakeNewNetworksRequest': TakeNewNetworksRequest$json,
+  '.orchestrator.v1.TakeNewNetworksResponse': TakeNewNetworksResponse$json,
+  '.orchestrator.v1.PlanECashSwitchRequest': PlanECashSwitchRequest$json,
+  '.orchestrator.v1.PlanECashSwitchResponse': PlanECashSwitchResponse$json,
   '.orchestrator.v1.SetBitcoinConfigNetworkRequest': SetBitcoinConfigNetworkRequest$json,
   '.orchestrator.v1.SetBitcoinConfigNetworkResponse': SetBitcoinConfigNetworkResponse$json,
   '.orchestrator.v1.SetBitcoinConfigDataDirRequest': SetBitcoinConfigDataDirRequest$json,
@@ -244,10 +355,16 @@ final $typed_data.Uint8List bitcoinConfServiceDescriptor =
         '52MS5HZXRCaXRjb2luQ29uZmlnUmVxdWVzdBopLm9yY2hlc3RyYXRvci52MS5HZXRCaXRjb2lu'
         'Q29uZmlnUmVzcG9uc2USaAoUUHJlcGFyZU5ldHdvcmtDaGFuZ2USLC5vcmNoZXN0cmF0b3Iudj'
         'EuUHJlcGFyZU5ldHdvcmtDaGFuZ2VSZXF1ZXN0GiIub3JjaGVzdHJhdG9yLnYxLk5ldHdvcmtD'
-        'aGFuZ2VQbGFuEnwKF1NldEJpdGNvaW5Db25maWdOZXR3b3JrEi8ub3JjaGVzdHJhdG9yLnYxLl'
-        'NldEJpdGNvaW5Db25maWdOZXR3b3JrUmVxdWVzdBowLm9yY2hlc3RyYXRvci52MS5TZXRCaXRj'
-        'b2luQ29uZmlnTmV0d29ya1Jlc3BvbnNlEnwKF1NldEJpdGNvaW5Db25maWdEYXRhRGlyEi8ub3'
-        'JjaGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdEYXRhRGlyUmVxdWVzdBowLm9yY2hlc3Ry'
-        'YXRvci52MS5TZXRCaXRjb2luQ29uZmlnRGF0YURpclJlc3BvbnNlEm0KEldyaXRlQml0Y29pbk'
-        'NvbmZpZxIqLm9yY2hlc3RyYXRvci52MS5Xcml0ZUJpdGNvaW5Db25maWdSZXF1ZXN0Gisub3Jj'
-        'aGVzdHJhdG9yLnYxLldyaXRlQml0Y29pbkNvbmZpZ1Jlc3BvbnNl');
+        'aGFuZ2VQbGFuElsKDExpc3ROZXR3b3JrcxIkLm9yY2hlc3RyYXRvci52MS5MaXN0TmV0d29ya3'
+        'NSZXF1ZXN0GiUub3JjaGVzdHJhdG9yLnYxLkxpc3ROZXR3b3Jrc1Jlc3BvbnNlEmQKD1Rha2VO'
+        'ZXdOZXR3b3JrcxInLm9yY2hlc3RyYXRvci52MS5UYWtlTmV3TmV0d29ya3NSZXF1ZXN0Gigub3'
+        'JjaGVzdHJhdG9yLnYxLlRha2VOZXdOZXR3b3Jrc1Jlc3BvbnNlEmQKD1BsYW5FQ2FzaFN3aXRj'
+        'aBInLm9yY2hlc3RyYXRvci52MS5QbGFuRUNhc2hTd2l0Y2hSZXF1ZXN0Gigub3JjaGVzdHJhdG'
+        '9yLnYxLlBsYW5FQ2FzaFN3aXRjaFJlc3BvbnNlEnwKF1NldEJpdGNvaW5Db25maWdOZXR3b3Jr'
+        'Ei8ub3JjaGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdOZXR3b3JrUmVxdWVzdBowLm9yY2'
+        'hlc3RyYXRvci52MS5TZXRCaXRjb2luQ29uZmlnTmV0d29ya1Jlc3BvbnNlEnwKF1NldEJpdGNv'
+        'aW5Db25maWdEYXRhRGlyEi8ub3JjaGVzdHJhdG9yLnYxLlNldEJpdGNvaW5Db25maWdEYXRhRG'
+        'lyUmVxdWVzdBowLm9yY2hlc3RyYXRvci52MS5TZXRCaXRjb2luQ29uZmlnRGF0YURpclJlc3Bv'
+        'bnNlEm0KEldyaXRlQml0Y29pbkNvbmZpZxIqLm9yY2hlc3RyYXRvci52MS5Xcml0ZUJpdGNvaW'
+        '5Db25maWdSZXF1ZXN0Gisub3JjaGVzdHJhdG9yLnYxLldyaXRlQml0Y29pbkNvbmZpZ1Jlc3Bv'
+        'bnNl');
