@@ -61,7 +61,7 @@ func New(
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
 	config config.Config,
-	recycle func(ctx context.Context, network config.Network) error,
+	recycle func(ctx context.Context, network config.Network, networkID string) error,
 ) *Server {
 	s := &Server{
 		data:             data,
@@ -88,7 +88,7 @@ type Server struct {
 	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine     *engines.WalletEngine
 	bandwidthTracker *bandwidth.Tracker
-	recycle          func(ctx context.Context, network config.Network) error
+	recycle          func(ctx context.Context, network config.Network, networkID string) error
 
 	config config.Config
 
@@ -172,7 +172,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network: %q", req.Msg.Network))
 	}
 
-	// Stop the drynet miner before switching away: the recycle builds a fresh
+	// Stop the eCash miner before switching away: the recycle builds a fresh
 	// server that would otherwise have no handle to stop it.
 	s.stopMiner()
 
@@ -182,14 +182,20 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 		connect.WithGRPC(),
 		connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
 	)
+	// The orchestrator takes the catalog id; this server takes the network it
+	// belongs to, because its own runtime is per-network.
+	target := req.Msg.NetworkId
+	if target == "" {
+		target = req.Msg.Network
+	}
 	if _, err := confClient.SetBitcoinConfigNetwork(ctx, connect.NewRequest(&orchpb.SetBitcoinConfigNetworkRequest{
-		Network: req.Msg.Network,
+		Network: target,
 		DataDir: req.Msg.DataDir,
 	})); err != nil {
 		return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.SetBitcoinConfigNetwork: %w", err))
 	}
 
-	if err := s.recycle(ctx, network); err != nil {
+	if err := s.recycle(ctx, network, target); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("recycle runtime to %s: %w", network, err))
 	}
 
@@ -199,7 +205,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 
 func isKnownNetwork(n config.Network) bool {
 	switch n {
-	case config.NetworkMainnet, config.NetworkForknet, config.NetworkDrynet, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
+	case config.NetworkMainnet, config.NetworkForknet, config.NetworkECash, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
 		return true
 	}
 	return false
@@ -985,7 +991,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
 
-	// While Core is in IBD on a populated chain (mainnet / forknet / drynet), the
+	// While Core is in IBD on a populated chain (mainnet / forknet / eCash), the
 	// historical block walk below is the single biggest source of cs_main
 	// pressure on this whole codebase: it issues a per-tx
 	// GetRawTransaction for every tx in up to 100 recent blocks. During
@@ -1145,16 +1151,16 @@ func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
 	}
 }
 
-// StartMining spins up the backend CPU miner on drynet, idempotently. The miner
+// StartMining spins up the backend CPU miner on eCash, idempotently. The miner
 // runs on a detached context and keeps going after this call returns.
 func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
-	// Gate on the configured network rather than Core's reported chain: drynet
+	// Gate on the configured network rather than Core's reported chain: eCash
 	// reports "main" and so is indistinguishable from real mainnet there.
 	network := s.config.BitcoinCoreNetwork
 	if !config.IsMineableNetwork(network) {
 		return nil, connect.NewError(
 			connect.CodeFailedPrecondition,
-			fmt.Errorf("mining is only available on drynet, not %s", cmp.Or(string(network), "unknown network")),
+			fmt.Errorf("mining is only available on eCash, not %s", cmp.Or(string(network), "unknown network")),
 		)
 	}
 

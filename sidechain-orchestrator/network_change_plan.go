@@ -40,8 +40,19 @@ type NetworkChangePlan struct {
 func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChangePlan {
 	current := config.NetworkFromString(o.CurrentNetwork())
 	target := current
+	// The eCash entries share one slot, so a move between two of them changes
+	// no network. Only the id says the chain moves, and a plan that read that
+	// as no work would stop the switch before it started.
+	ecashSwitch := false
 	if req.Network != "" {
-		target = config.NetworkFromString(req.Network)
+		if resolved, ok := o.NetworkForOption(req.Network); ok {
+			target = resolved
+		} else {
+			target = config.NetworkFromString(req.Network)
+		}
+		if plan, err := o.PlanECashSwitch(req.Network); err == nil {
+			ecashSwitch = plan.FromID != "" && plan.FromID != plan.ToID
+		}
 	}
 
 	currentBackend := o.activeWalletBackend()
@@ -66,7 +77,7 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 		WalletBackend:      targetBackend,
 		DatadirGroup:       config.DatadirGroupForNetwork(target),
 		NeedsLocalBackends: needsLocalBackends,
-		NoOp:               target == current && targetBackend == currentBackend,
+		NoOp:               target == current && targetBackend == currentBackend && !ecashSwitch,
 	}
 
 	if o.BitcoinConf != nil && o.BitcoinConf.Config != nil {

@@ -1,6 +1,6 @@
 import 'package:bitwindow/pages/settings/network_swap_page.dart';
 import 'package:bitwindow/routing/router.dart';
-import 'package:bitwindow/widgets/drynet_upgrade_banner.dart';
+import 'package:bitwindow/widgets/ecash_upgrade_banner.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -188,8 +188,8 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     setState(() {});
   }
 
-  Future<void> _handleNetworkChange(BitcoinNetwork? network) async {
-    if (network == null) {
+  Future<void> _handleNetworkChange(NetworkOption? option) async {
+    if (option == null) {
       return;
     }
 
@@ -204,7 +204,12 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
       return;
     }
 
-    await swapNetworkWithDatadirPrompt(context, _confProvider, network);
+    await swapNetworkWithDatadirPrompt(
+      context,
+      _confProvider,
+      _confProvider.networkFromOption(option),
+      networkId: option.id,
+    );
   }
 
   Future<void> _selectDataDirectory() async {
@@ -344,7 +349,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     final showDataDir =
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET ||
+        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH ||
         _confProvider.detectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;
 
@@ -358,20 +363,15 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
               description: _confProvider.hasPrivateBitcoinConf
                   ? 'Your own bitcoin.conf file controls the network'
                   : 'The network this node connects to',
-              trailing: SailDropdownButton<BitcoinNetwork>(
-                value: _confProvider.network,
+              trailing: SailDropdownButton<String>(
+                value: _confProvider.currentNetworkOptionId,
                 enabled: !_confProvider.hasPrivateBitcoinConf,
-                items: [
-                  BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
-                  BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
-                  BitcoinNetwork.BITCOIN_NETWORK_DRYNET,
-                  BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
-                  BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
-                  BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
-                ].map((n) => SailDropdownItem<BitcoinNetwork>(value: n, label: n.toDisplayName())).toList(),
-                onChanged: (BitcoinNetwork? network) async {
-                  if (network != null && !_confProvider.hasPrivateBitcoinConf) {
-                    await _handleNetworkChange(network);
+                items: _confProvider.networkOptions
+                    .map((o) => SailDropdownItem<String>(value: o.id, label: o.displayName))
+                    .toList(),
+                onChanged: (String? id) async {
+                  if (id != null && !_confProvider.hasPrivateBitcoinConf) {
+                    await _handleNetworkChange(_confProvider.optionById(id));
                   }
                 },
               ),
@@ -560,13 +560,16 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
 Future<void> swapNetworkWithDatadirPrompt(
   BuildContext context,
   BitcoinConfProvider provider,
-  BitcoinNetwork network,
-) async {
-  if (provider.network == network) {
+  BitcoinNetwork network, {
+  String networkId = '',
+}) async {
+  // An eCash id change keeps the slot, so compare the id too or a switch from
+  // one eCash fork to another reads as a no-op.
+  if (provider.network == network && (networkId.isEmpty || networkId == provider.ecashNetworkId)) {
     return;
   }
 
-  final plan = await provider.prepareNetworkChange(targetNetwork: network);
+  final plan = await provider.prepareNetworkChange(targetNetwork: network, networkId: networkId);
   if (plan.noOp) {
     return;
   }
@@ -582,7 +585,7 @@ Future<void> swapNetworkWithDatadirPrompt(
   if (!context.mounted) {
     return;
   }
-  if (network == BitcoinNetwork.BITCOIN_NETWORK_DRYNET && !await confirmPendingDrynetUpgrade(context)) {
+  if (network == BitcoinNetwork.BITCOIN_NETWORK_ECASH && !await confirmPendingECashUpgrade(context)) {
     return;
   }
 
@@ -591,7 +594,12 @@ Future<void> swapNetworkWithDatadirPrompt(
   }
   await Navigator.of(context).push<bool>(
     sailRoute(
-      builder: (_) => NetworkSwapPage(fromNetwork: provider.network, toNetwork: network, dataDir: dataDir),
+      builder: (_) => NetworkSwapPage(
+        fromNetwork: provider.network,
+        toNetwork: network,
+        dataDir: dataDir,
+        networkId: networkId,
+      ),
     ),
   );
 }
