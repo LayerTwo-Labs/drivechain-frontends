@@ -7,7 +7,7 @@ import 'package:sidechain_core/sidechain_core.dart';
 String _explorerHost(BitcoinNetwork network) => switch (network) {
   BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'mempool.space',
   BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'explorer.forknet.drivechain.info',
-  BitcoinNetwork.BITCOIN_NETWORK_DRYNET => 'explorer.${drynetGeneration()}.drivechain.dev',
+  BitcoinNetwork.BITCOIN_NETWORK_ECASH => ecashExplorerHost(),
   BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'explorer.testnet.drivechain.info',
   _ => 'explorer.signet.drivechain.info',
 };

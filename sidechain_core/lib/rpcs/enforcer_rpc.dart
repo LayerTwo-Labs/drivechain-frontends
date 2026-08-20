@@ -116,8 +116,8 @@ class EnforcerLive extends EnforcerRPC {
       case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
         args.add('--wallet-esplora-url=https://explorer.forknet.drivechain.info/api');
 
-      case BitcoinNetwork.BITCOIN_NETWORK_DRYNET:
-        args.add('--wallet-esplora-url=https://esplora.${drynetGeneration()}.drivechain.dev');
+      case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
+        args.add('--wallet-esplora-url=${ecashEsploraUrl()}');
 
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
       default:

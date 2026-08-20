@@ -1,30 +1,30 @@
 // Package netcatalog resolves the network catalog published at
 // https://drivechain.dev/config: the per-network service endpoints, explorer
-// URL templates and — for the eCash family — the live drynet generation id
-// ("drynet2", "drynet3", ...). Standing up a new drynet is therefore a release
+// URL templates and — for the eCash family — the live network id ("alphanet",
+// "drynet4", ...). Standing up a new eCash network is therefore a release
 // artifact plus an entry in that document, with no code change here.
 package netcatalog
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 )
 
 // DefaultURL is the published catalog document.
 const DefaultURL = "https://drivechain.dev/config"
 
-// FamilyECash is the family key for the drynet series. Lookups use the family
-// rather than the id, because the id carries the generation number and so
-// changes with every new drynet.
+// FamilyECash is the family key for the eCash series. Lookups use the family
+// rather than the id, because the id is free-form and changes with every new
+// eCash network.
 const FamilyECash = "ecash"
 
 const (
@@ -57,10 +57,10 @@ type Network struct {
 	} `json:"currency"`
 
 	// ForkHeight is the height the eCash fork activates at. Published so a new
-	// drynet, and the real fork, roll over without a code change.
+	// eCash network, and the real fork, roll over without a code change.
 	ForkHeight int `json:"fork_height"`
 
-	// P2P is the seed node bitcoind connects through. Every drynet generation
+	// P2P is the seed node bitcoind connects through. Every eCash network
 	// publishes its own address and port.
 	P2P struct {
 		Address string `json:"address"`
@@ -126,11 +126,11 @@ func (c Catalog) ByID(id string) (Network, bool) {
 	return Network{}, false
 }
 
-// ForNetwork returns the catalog entry for a running network name. Drynet
-// resolves by family because its id carries the generation number.
+// ForNetwork returns the catalog entry for a running network name. eCash
+// resolves by family because its id is free-form.
 func (c Catalog) ForNetwork(network string) (Network, bool) {
 	switch network {
-	case "drynet":
+	case "ecash":
 		return c.CurrentECash()
 	case "mainnet":
 		return c.ByID("bitcoin")
@@ -141,39 +141,64 @@ func (c Catalog) ForNetwork(network string) (Network, bool) {
 	}
 }
 
-// CurrentECash returns the newest eCash generation (highest trailing number in
-// the id), so a catalog that still lists older ones resolves to the latest.
+// CurrentECash returns the live eCash network. The document lists it first and
+// any retired ones after it, so document order — not the id — decides.
 func (c Catalog) CurrentECash() (Network, bool) {
-	best, bestGen := Network{}, -1
-	for _, n := range c.Networks {
-		if n.Family != FamilyECash {
-			continue
-		}
-		if g := generationNumber(n.ID); g > bestGen {
-			best, bestGen = n, g
-		}
-	}
-	return best, bestGen >= 0
+	return c.ByFamily(FamilyECash)
 }
 
-// generationNumber parses the trailing integer of an id ("drynet3" -> 3), or -1.
-func generationNumber(id string) int {
-	i := strings.LastIndexFunc(id, func(r rune) bool { return r < '0' || r > '9' })
-	n, err := strconv.Atoi(id[i+1:])
+// SameAs reports whether two catalogs carry the same document. The picker and
+// the endpoints read every entry, so an id-only compare would drop a refresh
+// that adds a network or moves a host.
+func (c Catalog) SameAs(other Catalog) bool {
+	if c.SchemaVersion != other.SchemaVersion || len(c.Networks) != len(other.Networks) {
+		return false
+	}
+	mine, err := json.Marshal(c)
 	if err != nil {
-		return -1
+		return false
 	}
-	return n
+	theirs, err := json.Marshal(other)
+	if err != nil {
+		return false
+	}
+	return bytes.Equal(mine, theirs)
 }
 
-// DrynetID returns the live drynet generation id (e.g. "drynet3"), or "" when
-// the catalog carries no eCash entry.
-func (c Catalog) DrynetID() string {
+// NewIDs returns the ids this catalog lists that prev does not, in document
+// order. A refresh uses it to tell the user which networks appeared.
+func (c Catalog) NewIDs(prev Catalog) []string {
+	known := make(map[string]bool, len(prev.Networks))
+	for _, n := range prev.Networks {
+		known[n.ID] = true
+	}
+	var fresh []string
+	for _, n := range c.Networks {
+		if !known[n.ID] {
+			fresh = append(fresh, n.ID)
+		}
+	}
+	return fresh
+}
+
+// ECashID returns the live eCash network id (e.g. "alphanet"), or "" when the
+// catalog carries no eCash entry.
+func (c Catalog) ECashID() string {
 	n, ok := c.CurrentECash()
 	if !ok {
 		return ""
 	}
 	return n.ID
+}
+
+// ExplorerHost returns the host of the explorer this network publishes, or ""
+// when it publishes none.
+func (n Network) ExplorerHost() string {
+	u, err := url.Parse(n.ExplorerTxTemplate)
+	if err != nil {
+		return ""
+	}
+	return u.Host
 }
 
 // BackendURL returns the highest-priority URL of the given kind, or "".
@@ -215,15 +240,22 @@ func Load(bitwindowDir string) (c Catalog, fromDisk bool) {
 	return parsed, false
 }
 
-// EmbeddedDrynetID is the drynet generation compiled into the binary. It is
-// the fallback for code that needs a generation before the catalog has been
-// resolved from disk or the network — notably the first-boot bitcoin.conf.
-func EmbeddedDrynetID() string {
+// EmbeddedECashID is the eCash network id compiled into the binary. It is the
+// fallback for code that needs an id before the catalog has been resolved from
+// disk or the network — notably the first-boot bitcoin.conf.
+func EmbeddedECashID() string {
+	return EmbeddedECash().ID
+}
+
+// EmbeddedECash is the eCash entry compiled into the binary, zero when it
+// carries none. Endpoint helpers fall back to it before the catalog resolves.
+func EmbeddedECash() Network {
 	c, err := parse(embedded)
 	if err != nil {
-		return ""
+		return Network{}
 	}
-	return c.DrynetID()
+	n, _ := c.CurrentECash()
+	return n
 }
 
 // EmbeddedPeer is the seed address the compiled-in catalog publishes for a
