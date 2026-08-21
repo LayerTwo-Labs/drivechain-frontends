@@ -1812,6 +1812,12 @@ class MockSyncProvider implements SyncProvider {
   SyncInfo? mainchainSyncInfo;
 
   @override
+  String? chainSourceError;
+
+  @override
+  SyncInfo? chainSourceSyncInfo;
+
+  @override
   Map<SidechainType, SyncInfo> sidechains = const {};
 
   @override
