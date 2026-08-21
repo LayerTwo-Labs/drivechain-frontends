@@ -765,6 +765,7 @@ const ChainSync$json = {
     {'1': 'error', '3': 4, '4': 1, '5': 9, '10': 'error'},
     {'1': 'peer_best_height', '3': 5, '4': 1, '5': 5, '10': 'peerBestHeight'},
     {'1': 'rejected_branch', '3': 6, '4': 1, '5': 8, '10': 'rejectedBranch'},
+    {'1': 'refused_branch_start', '3': 7, '4': 1, '5': 5, '10': 'refusedBranchStart'},
   ],
 };
 
@@ -773,7 +774,8 @@ final $typed_data.Uint8List chainSyncDescriptor =
     $convert.base64Decode('CglDaGFpblN5bmMSFgoGYmxvY2tzGAEgASgFUgZibG9ja3MSGAoHaGVhZGVycxgCIAEoBVIHaG'
         'VhZGVycxISCgR0aW1lGAMgASgDUgR0aW1lEhQKBWVycm9yGAQgASgJUgVlcnJvchIoChBwZWVy'
         'X2Jlc3RfaGVpZ2h0GAUgASgFUg5wZWVyQmVzdEhlaWdodBInCg9yZWplY3RlZF9icmFuY2gYBi'
-        'ABKAhSDnJlamVjdGVkQnJhbmNo');
+        'ABKAhSDnJlamVjdGVkQnJhbmNoEjAKFHJlZnVzZWRfYnJhbmNoX3N0YXJ0GAcgASgFUhJyZWZ1'
+        'c2VkQnJhbmNoU3RhcnQ=');
 
 @$core.Deprecated('Use getDownloadStatusRequestDescriptor instead')
 const GetDownloadStatusRequest$json = {

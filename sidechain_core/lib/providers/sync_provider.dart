@@ -22,6 +22,10 @@ class SyncInfo {
   /// True when the node marked a branch at or above its own tip invalid.
   final bool rejectedBranch;
 
+  /// Where the refused branch leaves this node's chain, 0 when it refuses
+  /// none. The invalid block sits at or above it.
+  final int refusedBranchStart;
+
   double get progress => progressGoal == 0 ? 0 : progressCurrent / progressGoal;
   bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
 
@@ -40,6 +44,7 @@ class SyncInfo {
     required this.lastBlockAt,
     this.peerBestHeight = 0,
     this.rejectedBranch = false,
+    this.refusedBranchStart = 0,
   });
 
   @override
@@ -52,11 +57,13 @@ class SyncInfo {
         other.progressGoal == progressGoal &&
         other.lastBlockAt == lastBlockAt &&
         other.peerBestHeight == peerBestHeight &&
-        other.rejectedBranch == rejectedBranch;
+        other.rejectedBranch == rejectedBranch &&
+        other.refusedBranchStart == refusedBranchStart;
   }
 
   @override
-  int get hashCode => Object.hash(progressCurrent, progressGoal, lastBlockAt, peerBestHeight, rejectedBranch);
+  int get hashCode =>
+      Object.hash(progressCurrent, progressGoal, lastBlockAt, peerBestHeight, rejectedBranch, refusedBranchStart);
 }
 
 /// Represents a binary that has some sort of sync-status
@@ -399,6 +406,7 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       lastBlockAt: (cs?.time ?? Int64(0)) != Int64(0) ? Timestamp(seconds: cs!.time) : null,
       peerBestHeight: cs?.peerBestHeight ?? 0,
       rejectedBranch: cs?.rejectedBranch ?? false,
+      refusedBranchStart: cs?.refusedBranchStart ?? 0,
     );
   }
 

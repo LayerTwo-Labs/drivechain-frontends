@@ -540,6 +540,9 @@ message ChainSync {
   // With a higher peer_best_height it means the node left the network's
   // chain, which blocks and headers alone never show. Mainchain only.
   bool rejected_branch = 6;
+  // Where the refused branch leaves this node's chain, 0 when the node
+  // refuses none. The invalid block sits at or above it. Mainchain only.
+  int32 refused_branch_start = 7;
 }
 
 // GetDownloadStatus
