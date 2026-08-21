@@ -47,6 +47,9 @@ type DecodedOutput struct {
 	Address         string
 	ScriptType      string
 	ScriptPubKeyHex string
+	// PSBT-only: the output map carries derivation records, which the
+	// builders only write for the wallet's own change output.
+	IsChange bool
 }
 
 // DecodedTransaction is the structured result of decoding a raw transaction or
@@ -219,7 +222,12 @@ func decodePSBT(packet *psbt.Packet, net *chaincfg.Params) (*DecodedTransaction,
 
 	for i, txOut := range tx.TxOut {
 		out.TotalOutput += txOut.Value
-		out.Outputs = append(out.Outputs, decodeTxOut(i, txOut, net))
+		do := decodeTxOut(i, txOut, net)
+		if i < len(packet.Outputs) {
+			pout := packet.Outputs[i]
+			do.IsChange = len(pout.Bip32Derivation) > 0 || len(pout.TaprootBip32Derivation) > 0
+		}
+		out.Outputs = append(out.Outputs, do)
 	}
 
 	if out.HasTotalInput {
