@@ -2805,8 +2805,11 @@ type ChainSync struct {
 	// With a higher peer_best_height it means the node left the network's
 	// chain, which blocks and headers alone never show. Mainchain only.
 	RejectedBranch bool `protobuf:"varint,6,opt,name=rejected_branch,json=rejectedBranch,proto3" json:"rejected_branch,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Where the refused branch leaves this node's chain, 0 when the node
+	// refuses none. The invalid block sits at or above it. Mainchain only.
+	RefusedBranchStart int32 `protobuf:"varint,7,opt,name=refused_branch_start,json=refusedBranchStart,proto3" json:"refused_branch_start,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ChainSync) Reset() {
@@ -2879,6 +2882,13 @@ func (x *ChainSync) GetRejectedBranch() bool {
 		return x.RejectedBranch
 	}
 	return false
+}
+
+func (x *ChainSync) GetRefusedBranchStart() int32 {
+	if x != nil {
+		return x.RefusedBranchStart
+	}
+	return 0
 }
 
 type GetDownloadStatusRequest struct {
@@ -5029,14 +5039,15 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0fenforcer_wallet\x18\x05 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x0eenforcerWallet\"u\n" +
 	"\x0fSidechainStatus\x122\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1e.orchestrator.v1.SidechainTypeR\x04type\x12.\n" +
-	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"\xba\x01\n" +
+	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"\xec\x01\n" +
 	"\tChainSync\x12\x16\n" +
 	"\x06blocks\x18\x01 \x01(\x05R\x06blocks\x12\x18\n" +
 	"\aheaders\x18\x02 \x01(\x05R\aheaders\x12\x12\n" +
 	"\x04time\x18\x03 \x01(\x03R\x04time\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\x12(\n" +
 	"\x10peer_best_height\x18\x05 \x01(\x05R\x0epeerBestHeight\x12'\n" +
-	"\x0frejected_branch\x18\x06 \x01(\bR\x0erejectedBranch\"\x1a\n" +
+	"\x0frejected_branch\x18\x06 \x01(\bR\x0erejectedBranch\x120\n" +
+	"\x14refused_branch_start\x18\a \x01(\x05R\x12refusedBranchStart\"\x1a\n" +
 	"\x18GetDownloadStatusRequest\"Z\n" +
 	"\x19GetDownloadStatusResponse\x12=\n" +
 	"\tdownloads\x18\x01 \x03(\v2\x1f.orchestrator.v1.DownloadStatusR\tdownloads\"\x9f\x01\n" +

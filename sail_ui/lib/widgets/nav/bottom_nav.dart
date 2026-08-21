@@ -29,17 +29,19 @@ bool showDaemonCard({
   return walletNeedsBackends || connected || initializing;
 }
 
-/// Why Bitcoin Core sits still on a chain that moves, or null when it follows
-/// its peers. Both progress bars read 100% off the network, so only this
-/// message tells the user.
+/// Why the node sits still on a chain that moves, or null when it follows its
+/// peers. Both progress bars read 100% off the network, so only this message
+/// tells the user.
 String? offNetworkMessage(SyncInfo? syncInfo) {
   if (syncInfo == null || !syncInfo.offNetwork) {
     return null;
   }
-  if (syncInfo.behindPeers > 0) {
-    return 'Off the network chain: Core rejects a block its peers accept, ${syncInfo.behindPeers} blocks behind';
+  if (syncInfo.refusedBranchStart > 0) {
+    return 'Off the network chain: the node refuses the branch from block ${syncInfo.refusedBranchStart}, '
+        '${syncInfo.behindPeers} blocks behind its peers';
   }
-  return 'Core rejects a block at its own tip, so it can fall off the network chain';
+  return 'Off the network chain: the node refuses a block its peers accept, '
+      '${syncInfo.behindPeers} blocks behind';
 }
 
 class BottomNav extends StatelessWidget {

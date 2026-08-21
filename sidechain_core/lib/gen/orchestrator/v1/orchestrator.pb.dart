@@ -3494,6 +3494,7 @@ class ChainSync extends $pb.GeneratedMessage {
     $core.String? error,
     $core.int? peerBestHeight,
     $core.bool? rejectedBranch,
+    $core.int? refusedBranchStart,
   }) {
     final $result = create();
     if (blocks != null) {
@@ -3514,6 +3515,9 @@ class ChainSync extends $pb.GeneratedMessage {
     if (rejectedBranch != null) {
       $result.rejectedBranch = rejectedBranch;
     }
+    if (refusedBranchStart != null) {
+      $result.refusedBranchStart = refusedBranchStart;
+    }
     return $result;
   }
   ChainSync._() : super();
@@ -3530,6 +3534,7 @@ class ChainSync extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'error')
     ..a<$core.int>(5, _omitFieldNames ? '' : 'peerBestHeight', $pb.PbFieldType.O3)
     ..aOB(6, _omitFieldNames ? '' : 'rejectedBranch')
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'refusedBranchStart', $pb.PbFieldType.O3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -3633,6 +3638,20 @@ class ChainSync extends $pb.GeneratedMessage {
   $core.bool hasRejectedBranch() => $_has(5);
   @$pb.TagNumber(6)
   void clearRejectedBranch() => clearField(6);
+
+  /// Where the refused branch leaves this node's chain, 0 when the node
+  /// refuses none. The invalid block sits at or above it. Mainchain only.
+  @$pb.TagNumber(7)
+  $core.int get refusedBranchStart => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set refusedBranchStart($core.int v) {
+    $_setSignedInt32(6, v);
+  }
+
+  @$pb.TagNumber(7)
+  $core.bool hasRefusedBranchStart() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearRefusedBranchStart() => clearField(7);
 }
 
 class GetDownloadStatusRequest extends $pb.GeneratedMessage {

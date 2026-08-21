@@ -47,3 +47,33 @@ func TestForkStateFromWithoutPeers(t *testing.T) {
 	assert.False(t, state.RejectedBranch)
 	assert.Zero(t, state.PeerBestHeight)
 }
+
+// The drynet4 node of 2026-08-20: it holds 979995 and refuses the branch that
+// starts at 979996, which its peers build on.
+func TestForkStateFromNamesTheRefusedBranchStart(t *testing.T) {
+	state := forkStateFrom(
+		[]coreChainTip{
+			{Height: 980185, Status: "invalid", BranchLen: 190},
+			{Height: 980014, Status: "invalid", BranchLen: 19},
+			{Height: 979995, Status: "active", BranchLen: 0},
+			{Height: 979059, Status: "invalid", BranchLen: 35},
+		},
+		[]corePeerTip{{SyncedHeaders: 980185}},
+	)
+
+	assert.True(t, state.RejectedBranch)
+	assert.Equal(t, int64(979996), state.RefusedBranchStart)
+}
+
+// An old fork below the tip is ordinary history, so it names no branch.
+func TestForkStateFromNamesNoBranchForAnOldFork(t *testing.T) {
+	state := forkStateFrom(
+		[]coreChainTip{
+			{Height: 500000, Status: "invalid", BranchLen: 1},
+			{Height: 979028, Status: "active", BranchLen: 0},
+		},
+		[]corePeerTip{{SyncedHeaders: 979028}},
+	)
+
+	assert.Zero(t, state.RefusedBranchStart)
+}

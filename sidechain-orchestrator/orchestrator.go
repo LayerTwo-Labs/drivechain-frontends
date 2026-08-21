@@ -2550,8 +2550,9 @@ func (c *bitcoindInfoConnection) Fetch(ctx context.Context) (*MainchainBlockchai
 // ChainForkState is what Core knows about branches it refuses and about the
 // tips its peers announce.
 type ChainForkState struct {
-	PeerBestHeight int64
-	RejectedBranch bool
+	PeerBestHeight     int64
+	RejectedBranch     bool
+	RefusedBranchStart int64
 }
 
 // chainForkConnection reads getchaintips and getpeerinfo. A sync bar that only
@@ -2595,6 +2596,14 @@ type coreChainTip struct {
 	BranchLen int64  `json:"branchlen"`
 }
 
+// forkHeight is where this branch leaves the node's own chain.
+func (t coreChainTip) forkHeight() int64 {
+	if t.BranchLen < 1 {
+		return t.Height
+	}
+	return t.Height - t.BranchLen + 1
+}
+
 // corePeerTip is what one peer announces. A fresh peer reports only
 // StartHeight until headers arrive.
 type corePeerTip struct {
@@ -2615,14 +2624,25 @@ func forkStateFrom(tips []coreChainTip, peers []corePeerTip) ChainForkState {
 		}
 	}
 
+	var refused int64
+	for _, tip := range tips {
+		if tip.Status != "invalid" || tip.Height < active {
+			continue
+		}
+		if fork := tip.forkHeight(); refused == 0 || fork < refused {
+			refused = fork
+		}
+	}
+
 	var best int64
 	for _, peer := range peers {
 		best = max(best, peer.SyncedHeaders, peer.StartHeight)
 	}
 
 	return ChainForkState{
-		PeerBestHeight: best,
-		RejectedBranch: rejected > 0 && rejected >= active,
+		PeerBestHeight:     best,
+		RejectedBranch:     rejected > 0 && rejected >= active,
+		RefusedBranchStart: refused,
 	}
 }
 
@@ -2814,6 +2834,9 @@ type ChainSyncResult struct {
 	// tip invalid. Together with a higher PeerBestHeight it means the node
 	// refuses the chain its peers follow.
 	RejectedBranch bool
+	// RefusedBranchStart is where the refused branch leaves this node's
+	// chain, zero when none. The invalid block sits at or above it.
+	RefusedBranchStart int64
 }
 
 // SyncStatus is the atomic snapshot returned by GetSyncStatus. Mainchain +
@@ -2981,6 +3004,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	if fork != nil && out.Mainchain.Error == "" {
 		out.Mainchain.PeerBestHeight = fork.PeerBestHeight
 		out.Mainchain.RejectedBranch = fork.RejectedBranch
+		out.Mainchain.RefusedBranchStart = fork.RefusedBranchStart
 	}
 
 	// Headers fan-out: dependent chains measure progress against bitcoind's
