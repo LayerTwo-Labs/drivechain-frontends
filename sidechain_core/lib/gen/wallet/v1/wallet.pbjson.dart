@@ -260,9 +260,12 @@ const UnspentOutput$json = {
       '17': true
     },
     {'1': 'derivation_path', '3': 8, '4': 1, '5': 9, '10': 'derivationPath'},
+    {'1': 'splittable', '3': 9, '4': 1, '5': 8, '9': 1, '10': 'splittable', '17': true},
+    {'1': 'height', '3': 10, '4': 1, '5': 5, '10': 'height'},
   ],
   '8': [
     {'1': '_denial_info'},
+    {'1': '_splittable'},
   ],
 };
 
@@ -273,7 +276,9 @@ final $typed_data.Uint8List unspentOutputDescriptor =
         'bHVlU2F0cxIbCglpc19jaGFuZ2UYBSABKAhSCGlzQ2hhbmdlEjsKC3JlY2VpdmVkX2F0GAYgAS'
         'gLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIKcmVjZWl2ZWRBdBI/CgtkZW5pYWxfaW5m'
         'bxgHIAEoCzIZLmJpdHdpbmRvd2QudjEuRGVuaWFsSW5mb0gAUgpkZW5pYWxJbmZviAEBEicKD2'
-        'Rlcml2YXRpb25fcGF0aBgIIAEoCVIOZGVyaXZhdGlvblBhdGhCDgoMX2RlbmlhbF9pbmZv');
+        'Rlcml2YXRpb25fcGF0aBgIIAEoCVIOZGVyaXZhdGlvblBhdGgSIwoKc3BsaXR0YWJsZRgJIAEo'
+        'CEgBUgpzcGxpdHRhYmxliAEBEhYKBmhlaWdodBgKIAEoBVIGaGVpZ2h0Qg4KDF9kZW5pYWxfaW'
+        '5mb0INCgtfc3BsaXR0YWJsZQ==');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {

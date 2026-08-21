@@ -81,8 +81,6 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// enforcer wallet, which is detected but not safely claimable.
   List<WalletClaim> get sweepableClaims => claims.where((c) => c.replayProtectable).toList();
 
-  int get totalClaimableSats => sweepableClaims.fold(0, (sum, c) => sum + c.claimableSats);
-
   /// Blocks left until the next fork, by header height.
   int get blocksUntilFork => (forkHeight - currentHeaders).clamp(0, forkHeight == 0 ? 0 : forkHeight);
 
@@ -148,6 +146,8 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
                       address: u.address,
                       label: u.label,
                       valueSats: u.sats,
+                      height: u.height,
+                      splittable: u.hasSplittable() ? u.splittable : null,
                     ),
                   )
                   .toList(),
@@ -186,21 +186,49 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     forkTargetDate = DateTime.now().add(Duration(minutes: blocksRemaining * _minutesPerBlock));
   }
 
+  /// True while the BTC-side status is unknown, or once it is known
+  /// splittable. Only a confirmed non-splittable coin is excluded — the
+  /// split engine reports per coin, so a partial scan must not shrink the
+  /// selectable set below the unchecked coins.
+  static bool isSelectable(bwpb.UnspentOutput u) => !u.hasSplittable() || u.splittable;
+
+  /// The coins a claim spends when the user picks none.
+  static List<bwpb.UnspentOutput> defaultClaimInputs(WalletClaim claim) => claim.utxos.where(isSelectable).toList();
+
+  /// True while at least one sweepable wallet holds a selectable coin. The
+  /// claim card hides without one — a card with every coin disabled offers
+  /// no action.
+  bool get hasSelectableCoins => sweepableClaims.any((c) => defaultClaimInputs(c).isNotEmpty);
+
+  /// Smallest selected sum a sweep can pay: the post-fee output must stay
+  /// above dust. Generous estimate at the 1 sat/vB sweep rate.
+  static int minClaimSats(int inputCount) => 546 + 150 + 70 * inputCount;
+
   /// Sweep one wallet's pre-fork coins (from the engine's UTXO list) to a fresh
   /// address it controls — one sendTransaction, exactly like a send. Returns txid.
-  Future<String> claim(String walletId) async {
+  Future<String> claim(String walletId, {Set<String>? outpoints}) async {
     final claim = claims.firstWhere((c) => c.walletId == walletId);
+    final inputs = outpoints == null
+        ? defaultClaimInputs(claim)
+        : claim.utxos.where((u) => outpoints.contains(u.output)).toList();
+    if (inputs.isEmpty) {
+      throw Exception('no claimable coins selected');
+    }
+    final amountSats = inputs.fold<int>(0, (sum, u) => sum + u.valueSats.toInt());
+    if (amountSats < minClaimSats(inputs.length)) {
+      throw Exception('selected amount is too small to pay the sweep fee');
+    }
     final address = (await _wallet.getNewAddress(walletId)).address;
 
     _log.i(
       'Claiming eCash: wallet="${claim.walletName}" id=$walletId '
-      'amount=${claim.claimableSats} sats inputs=${claim.utxos.length} -> $address',
+      'amount=$amountSats sats inputs=${inputs.length} -> $address',
     );
 
     final txid = (await _wallet.sendTransaction(
       walletId: walletId,
-      destinations: {address: claim.claimableSats},
-      requiredInputs: claim.utxos,
+      destinations: {address: amountSats},
+      requiredInputs: inputs,
       subtractFeeFromAmount: true,
       feeRateSatPerVbyte: _sweepFeeRateSatPerVbyte,
       // Replay protection is off for now — a plain sweep so the claim flow is
@@ -217,15 +245,5 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     await _transactions.fetch();
     await _balance.fetch();
     return txid;
-  }
-
-  /// Claim every replay-protectable wallet — one call per wallet. Non-protectable
-  /// claims (enforcer) are skipped; sweeping them would have no replay protection.
-  Future<List<String>> claimAll() async {
-    final txids = <String>[];
-    for (final c in sweepableClaims) {
-      txids.add(await claim(c.walletId));
-    }
-    return txids;
   }
 }
