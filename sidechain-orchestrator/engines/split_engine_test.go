@@ -1,0 +1,178 @@
+package engines
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+)
+
+type fakeForkState struct{ st *fork.ForkState }
+
+func (f *fakeForkState) ForkState(context.Context) (*fork.ForkState, error) { return f.st, nil }
+
+type fakeOutspend struct {
+	calls        map[string]int
+	spent        map[string]bool
+	mempoolSpent map[string]bool
+	missing      map[string]bool
+	fail         map[string]bool
+}
+
+func newFakeOutspend() *fakeOutspend {
+	return &fakeOutspend{
+		calls:        map[string]int{},
+		spent:        map[string]bool{},
+		mempoolSpent: map[string]bool{},
+		missing:      map[string]bool{},
+		fail:         map[string]bool{},
+	}
+}
+
+func (f *fakeOutspend) Outspend(_ context.Context, txid string, vout int) (wallet.EsploraOutspend, bool, error) {
+	op := fork.Outpoint(txid, vout)
+	f.calls[op]++
+	if f.fail[op] {
+		return wallet.EsploraOutspend{}, false, errors.New("boom")
+	}
+	if f.missing[op] {
+		return wallet.EsploraOutspend{}, false, nil
+	}
+	if f.mempoolSpent[op] {
+		return wallet.EsploraOutspend{Spent: true}, true, nil
+	}
+	if f.spent[op] {
+		return wallet.EsploraOutspend{Spent: true, Status: wallet.EsploraStatus{Confirmed: true}}, true, nil
+	}
+	return wallet.EsploraOutspend{}, true, nil
+}
+
+type fakeSplitStore struct{ statuses map[string]bool }
+
+func (f *fakeSplitStore) SplitStatuses(context.Context) (map[string]bool, error) {
+	out := map[string]bool{}
+	for k, v := range f.statuses {
+		out[k] = v
+	}
+	return out, nil
+}
+
+func (f *fakeSplitStore) SaveSplitStatus(_ context.Context, outpoint string, splittable bool) error {
+	f.statuses[outpoint] = splittable
+	return nil
+}
+
+func forkStateWith(outpoints ...string) *fork.ForkState {
+	utxos := make([]fork.ClaimUTXO, 0, len(outpoints))
+	for _, op := range outpoints {
+		utxos = append(utxos, fork.ClaimUTXO{Outpoint: op, Sats: 100})
+	}
+	return &fork.ForkState{
+		HasFundsToClaim: true,
+		Claims:          []fork.WalletClaim{{WalletID: "w1", UTXOs: utxos}},
+	}
+}
+
+func newTestSplitEngine(st *fork.ForkState, btc *fakeOutspend, store *fakeSplitStore, network string) *SplitEngine {
+	return NewSplitEngine(zerolog.Nop(), &fakeForkState{st: st}, btc, store, func() string { return network })
+}
+
+func TestSplitEngineChecksEachOutpointOnce(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith("aa:0", "bb:1"), btc, store, "ecash")
+
+	e.tick(context.Background())
+	e.tick(context.Background())
+
+	require.Equal(t, 1, btc.calls["aa:0"])
+	require.Equal(t, 1, btc.calls["bb:1"])
+	require.Equal(t, map[string]bool{"aa:0": true, "bb:1": true}, store.statuses)
+}
+
+func TestSplitEngineSkipsCachedOutpoints(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{"aa:0": false}}
+	e := newTestSplitEngine(forkStateWith("aa:0", "bb:1"), btc, store, "ecash")
+
+	e.tick(context.Background())
+
+	require.Equal(t, 0, btc.calls["aa:0"])
+	require.Equal(t, 1, btc.calls["bb:1"])
+}
+
+func TestSplitEngineSkipsNonEcashNetwork(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith("aa:0"), btc, store, "signet")
+
+	e.tick(context.Background())
+
+	require.Empty(t, btc.calls)
+	require.Empty(t, store.statuses)
+}
+
+func TestSplitEngineSkipsSimulatedFork(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	st := forkStateWith("aa:0")
+	st.Simulated = true
+	e := newTestSplitEngine(st, btc, store, "ecash")
+
+	e.tick(context.Background())
+
+	require.Empty(t, btc.calls)
+}
+
+func TestSplitEngineRetriesAfterLookupError(t *testing.T) {
+	btc := newFakeOutspend()
+	btc.fail["aa:0"] = true
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith("aa:0"), btc, store, "ecash")
+
+	e.tick(context.Background())
+	require.Empty(t, store.statuses)
+
+	btc.fail["aa:0"] = false
+	e.tick(context.Background())
+
+	require.Equal(t, 2, btc.calls["aa:0"])
+	require.Equal(t, map[string]bool{"aa:0": true}, store.statuses)
+}
+
+func TestSplitEngineDoesNotCacheMempoolSpend(t *testing.T) {
+	btc := newFakeOutspend()
+	btc.mempoolSpent["aa:0"] = true
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith("aa:0"), btc, store, "ecash")
+
+	e.tick(context.Background())
+	require.Empty(t, store.statuses)
+
+	btc.mempoolSpent["aa:0"] = false
+	e.tick(context.Background())
+
+	require.Equal(t, 2, btc.calls["aa:0"])
+	require.Equal(t, map[string]bool{"aa:0": true}, store.statuses)
+}
+
+func TestSplitEngineStatusMapping(t *testing.T) {
+	btc := newFakeOutspend()
+	btc.spent["spent:0"] = true
+	btc.missing["absent:0"] = true
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith("spent:0", "absent:0", "unspent:0"), btc, store, "ecash")
+
+	e.tick(context.Background())
+
+	require.Equal(t, map[string]bool{
+		"spent:0":   false,
+		"absent:0":  false,
+		"unspent:0": true,
+	}, store.statuses)
+}
