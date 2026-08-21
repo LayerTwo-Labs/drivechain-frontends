@@ -41,7 +41,7 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 	}
 	// Reconcile installs whose cached catalog already lists the selected
 	// network, where no pending promotion fires.
-	ecashID := o.SelectedECashID(current)
+	ecashID := o.RunningECashID(current)
 	if !promoted && !o.wipeIfECashNetworkStale(ctx, ecashID) {
 		// Keep serving the network those blocks belong to, so the next start
 		// retries rather than opening them as the new fork.
@@ -63,11 +63,11 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 // pending one when it could be applied, otherwise the current one, so the
 // process never serves a generation whose data it has not cleared.
 func (o *Orchestrator) promotePendingCatalog(ctx context.Context, current, pending netcatalog.Catalog, fromDisk bool) netcatalog.Catalog {
-	// The selected network, not the catalog's first entry: a user pinned to a
-	// retained row keeps blocks from that row, and a refresh that drops it
+	// The network this install serves, not the catalog's first entry: a user on
+	// a retained row keeps blocks from that row, and a refresh that drops it
 	// leaves both documents naming the same first entry. An id-only compare
 	// reads that as no change and promotes over a chain it never cleared.
-	baseline := o.SelectedECashID(current)
+	baseline := o.RunningECashID(current)
 	if !fromDisk {
 		baseline = netcatalog.EmbeddedECashID()
 	}
@@ -166,11 +166,11 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 	// Off eCash the retired chain is cold files that no start will revisit:
 	// the startup wipe only runs while eCash is active. Clear them here.
 	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		// The pick on both sides, not each document's first row. A user pinned
-		// to a retained entry holds that chain on disk, and comparing first
-		// rows reads two identical ids while the blocks belong to a third.
+		// The pick on both sides, not each document's first row. A user on a
+		// retained entry holds that chain on disk, and comparing first rows
+		// reads two identical ids while the blocks belong to a third.
 		current, _ := netcatalog.Load(o.BitwindowDir)
-		if !o.wipeOnECashNetworkChange(ctx, o.SelectedECashID(current), o.SelectedECashID(pending)) {
+		if !o.wipeOnECashNetworkChange(ctx, o.RunningECashID(current), o.SelectedECashID(pending)) {
 			return fmt.Errorf("could not clear the retired eCash chain data")
 		}
 	}
@@ -338,18 +338,44 @@ func (o *Orchestrator) wipeIfECashNetworkStale(ctx context.Context, selected str
 	return o.wipeOnECashNetworkChange(ctx, o.installedECashNetwork(), selected)
 }
 
-// SelectedECashID returns the eCash network this install runs: the one the user
-// picked from the catalog while the catalog still lists it, otherwise the entry
-// the catalog lists first.
+// SelectedECashID returns the network a catalog resolves to: the one the user
+// picked while that catalog still lists it, otherwise the entry it lists first.
 func (o *Orchestrator) SelectedECashID(c netcatalog.Catalog) string {
-	if o.Settings != nil {
-		if picked := o.Settings.ECashNetworkID(); picked != "" {
-			if _, ok := c.ByID(picked); ok {
-				return picked
-			}
+	if picked := o.pinnedECashID(c); picked != "" {
+		return picked
+	}
+	return c.ECashID()
+}
+
+// RunningECashID returns the eCash network this install serves: the user's pick,
+// then the id its bitcoin.conf names, and only then the entry the catalog lists
+// first. The conf comes before document order because it names the fork whose
+// blocks are on disk.
+func (o *Orchestrator) RunningECashID(c netcatalog.Catalog) string {
+	if picked := o.pinnedECashID(c); picked != "" {
+		return picked
+	}
+	if installed := o.installedECashNetwork(); installed != "" {
+		if _, ok := c.ByID(installed); ok {
+			return installed
 		}
 	}
 	return c.ECashID()
+}
+
+// pinnedECashID returns the user's pick while the catalog still lists it.
+func (o *Orchestrator) pinnedECashID(c netcatalog.Catalog) string {
+	if o.Settings == nil {
+		return ""
+	}
+	picked := o.Settings.ECashNetworkID()
+	if picked == "" {
+		return ""
+	}
+	if _, ok := c.ByID(picked); !ok {
+		return ""
+	}
+	return picked
 }
 
 // SelectECashNetwork pins the eCash network the user picked. The switch itself
