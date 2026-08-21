@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -210,4 +211,29 @@ func TestNormalizeProxyAddr(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "127.0.0.1:9150", got)
 	assert.True(t, strings.HasPrefix(got, "127.0.0.1"))
+}
+
+func TestSetTorConfigNotifiesSideClients(t *testing.T) {
+	p, _ := newSwitchableElectrumBackend(t, "https://original.example/api")
+	var gotEnabled bool
+	var gotProxy string
+	p.OnProxyChange(func(enabled bool, proxyAddr string) error {
+		gotEnabled, gotProxy = enabled, proxyAddr
+		return nil
+	})
+
+	_, err := p.SetTorConfig(context.Background(), true, "127.0.0.1:9050")
+	require.NoError(t, err)
+	assert.True(t, gotEnabled)
+	assert.Equal(t, "127.0.0.1:9050", gotProxy)
+}
+
+func TestSetTorConfigRevertsOnSideClientError(t *testing.T) {
+	p, fake := newSwitchableElectrumBackend(t, "https://original.example/api")
+	p.OnProxyChange(func(bool, string) error { return errors.New("boom") })
+
+	_, err := p.SetTorConfig(context.Background(), true, "127.0.0.1:9050")
+	require.Error(t, err)
+	enabled, _ := fake.ProxyConfig()
+	assert.False(t, enabled)
 }

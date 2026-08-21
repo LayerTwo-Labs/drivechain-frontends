@@ -66,6 +66,11 @@ type ElectrumBackend struct {
 	netParams ParamsFunc
 	log       zerolog.Logger
 
+	// proxyChange fans a successful Tor config change out to side clients
+	// (the split engine's mainnet client), so every esplora read obeys the
+	// same routing. Registered at boot, before the server accepts calls.
+	proxyChange []func(enabled bool, proxyAddr string) error
+
 	mu          sync.Mutex
 	watchKeys   map[string][]WatchKey    // walletID -> extra keys to track
 	warm        map[string]bool          // walletID -> a scan is available to serve
@@ -1363,9 +1368,22 @@ func (p *ElectrumBackend) SetTorConfig(ctx context.Context, enabled bool, proxyA
 		return 0, connect.NewError(connect.CodeUnavailable, fmt.Errorf("proxy %s unreachable, kept previous tor config: %w", proxyAddr, err))
 	}
 
+	for _, fn := range p.proxyChange {
+		if err := fn(enabled, proxyAddr); err != nil {
+			_ = sw.SetProxy(prevEnabled, prevProxy)
+			return 0, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("apply tor config to side client: %w", err))
+		}
+	}
+
 	p.dropScanCaches()
 
 	return tip, nil
+}
+
+// OnProxyChange registers a callback that runs on every successful Tor config
+// change. Call before the server accepts requests.
+func (p *ElectrumBackend) OnProxyChange(fn func(enabled bool, proxyAddr string) error) {
+	p.proxyChange = append(p.proxyChange, fn)
 }
 
 // normalizeProxyAddr validates a SOCKS5 proxy address of the form host:port.
