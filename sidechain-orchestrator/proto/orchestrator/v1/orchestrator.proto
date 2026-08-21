@@ -870,6 +870,11 @@ message ForkClaimUtxo {
   string address = 2;
   uint64 sats = 3;
   string label = 4;
+  // True when the outpoint exists unspent on BTC mainnet. Unset until the
+  // split engine checked it.
+  optional bool splittable = 5;
+  // Confirmation block height.
+  int32 height = 6;
 }
 
 // ─── Detached-daemon lifecycle ──────────────────────────────────────────────

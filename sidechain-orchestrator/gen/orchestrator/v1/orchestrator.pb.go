@@ -4709,11 +4709,16 @@ func (x *ForkWalletClaim) GetReplayProtectable() bool {
 }
 
 type ForkClaimUtxo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Outpoint      string                 `protobuf:"bytes,1,opt,name=outpoint,proto3" json:"outpoint,omitempty"` // "txid:vout"
-	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	Sats          uint64                 `protobuf:"varint,3,opt,name=sats,proto3" json:"sats,omitempty"`
-	Label         string                 `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Outpoint string                 `protobuf:"bytes,1,opt,name=outpoint,proto3" json:"outpoint,omitempty"` // "txid:vout"
+	Address  string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Sats     uint64                 `protobuf:"varint,3,opt,name=sats,proto3" json:"sats,omitempty"`
+	Label    string                 `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	// True when the outpoint exists unspent on BTC mainnet. Unset until the
+	// split engine checked it.
+	Splittable *bool `protobuf:"varint,5,opt,name=splittable,proto3,oneof" json:"splittable,omitempty"`
+	// Confirmation block height.
+	Height        int32 `protobuf:"varint,6,opt,name=height,proto3" json:"height,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4774,6 +4779,20 @@ func (x *ForkClaimUtxo) GetLabel() string {
 		return x.Label
 	}
 	return ""
+}
+
+func (x *ForkClaimUtxo) GetSplittable() bool {
+	if x != nil && x.Splittable != nil {
+		return *x.Splittable
+	}
+	return false
+}
+
+func (x *ForkClaimUtxo) GetHeight() int32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
 }
 
 type ShutdownRequest struct {
@@ -5181,12 +5200,17 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"walletName\x12%\n" +
 	"\x0eclaimable_sats\x18\x03 \x01(\x04R\rclaimableSats\x124\n" +
 	"\x05utxos\x18\x04 \x03(\v2\x1e.orchestrator.v1.ForkClaimUtxoR\x05utxos\x12-\n" +
-	"\x12replay_protectable\x18\x05 \x01(\bR\x11replayProtectable\"o\n" +
+	"\x12replay_protectable\x18\x05 \x01(\bR\x11replayProtectable\"\xbb\x01\n" +
 	"\rForkClaimUtxo\x12\x1a\n" +
 	"\boutpoint\x18\x01 \x01(\tR\boutpoint\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04sats\x18\x03 \x01(\x04R\x04sats\x12\x14\n" +
-	"\x05label\x18\x04 \x01(\tR\x05label\"3\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\x12#\n" +
+	"\n" +
+	"splittable\x18\x05 \x01(\bH\x00R\n" +
+	"splittable\x88\x01\x01\x12\x16\n" +
+	"\x06height\x18\x06 \x01(\x05R\x06heightB\r\n" +
+	"\v_splittable\"3\n" +
 	"\x0fShutdownRequest\x12 \n" +
 	"\fonly_if_last\x18\x01 \x01(\bR\n" +
 	"onlyIfLast\"\x12\n" +
@@ -5474,6 +5498,7 @@ func file_orchestrator_v1_orchestrator_proto_init() {
 	if File_orchestrator_v1_orchestrator_proto != nil {
 		return
 	}
+	file_orchestrator_v1_orchestrator_proto_msgTypes[70].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

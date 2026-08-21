@@ -380,6 +380,13 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 	if err != nil {
 		return nil, err
 	}
+	splitStatuses := map[string]bool{}
+	if h.orch.WalletSvc != nil && config.IsEcashFork(config.NetworkFromString(h.orch.Network)) {
+		splitStatuses, err = h.orch.WalletSvc.SplitStatuses(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
 	claims := make([]*pb.ForkWalletClaim, len(s.Claims))
 	for i, c := range s.Claims {
 		utxos := make([]*pb.ForkClaimUtxo, len(c.UTXOs))
@@ -389,6 +396,10 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 				Address:  u.Address,
 				Sats:     u.Sats,
 				Label:    u.Label,
+				Height:   int32(u.Height),
+			}
+			if splittable, ok := splitStatuses[u.Outpoint]; ok {
+				utxos[j].Splittable = lo.ToPtr(splittable)
 			}
 		}
 		claims[i] = &pb.ForkWalletClaim{

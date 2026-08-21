@@ -8967,6 +8967,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.String? walletId,
     $15.Timestamp? receivedAt,
     $core.String? derivationPath,
+    $core.bool? splittable,
   }) {
     final $result = create();
     if (txid != null) {
@@ -9005,6 +9006,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (derivationPath != null) {
       $result.derivationPath = derivationPath;
     }
+    if (splittable != null) {
+      $result.splittable = splittable;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -9027,6 +9031,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOS(10, _omitFieldNames ? '' : 'walletId')
     ..aOM<$15.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $15.Timestamp.create)
     ..aOS(12, _omitFieldNames ? '' : 'derivationPath')
+    ..aOB(13, _omitFieldNames ? '' : 'splittable')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -9198,6 +9203,20 @@ class UnspentOutput extends $pb.GeneratedMessage {
   $core.bool hasDerivationPath() => $_has(11);
   @$pb.TagNumber(12)
   void clearDerivationPath() => clearField(12);
+
+  /// True when the outpoint exists unspent on BTC mainnet. Unset until the
+  /// split engine checked it.
+  @$pb.TagNumber(13)
+  $core.bool get splittable => $_getBF(12);
+  @$pb.TagNumber(13)
+  set splittable($core.bool v) {
+    $_setBool(12, v);
+  }
+
+  @$pb.TagNumber(13)
+  $core.bool hasSplittable() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearSplittable() => clearField(13);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {

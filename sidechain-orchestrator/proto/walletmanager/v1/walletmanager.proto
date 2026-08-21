@@ -900,6 +900,9 @@ message UnspentOutput {
   // BIP32 path of the address that owns this output. Empty when the backend
   // cannot report one (Bitcoin Core bulk lists, the enforcer).
   string derivation_path = 12;
+  // True when the outpoint exists unspent on BTC mainnet. Unset until the
+  // split engine checked it.
+  optional bool splittable = 13;
 }
 
 message ListUnspentResponse {

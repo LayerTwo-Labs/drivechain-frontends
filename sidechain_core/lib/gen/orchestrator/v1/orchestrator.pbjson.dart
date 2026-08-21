@@ -1228,13 +1228,20 @@ const ForkClaimUtxo$json = {
     {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
     {'1': 'sats', '3': 3, '4': 1, '5': 4, '10': 'sats'},
     {'1': 'label', '3': 4, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'splittable', '3': 5, '4': 1, '5': 8, '9': 0, '10': 'splittable', '17': true},
+    {'1': 'height', '3': 6, '4': 1, '5': 5, '10': 'height'},
+  ],
+  '8': [
+    {'1': '_splittable'},
   ],
 };
 
 /// Descriptor for `ForkClaimUtxo`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List forkClaimUtxoDescriptor =
     $convert.base64Decode('Cg1Gb3JrQ2xhaW1VdHhvEhoKCG91dHBvaW50GAEgASgJUghvdXRwb2ludBIYCgdhZGRyZXNzGA'
-        'IgASgJUgdhZGRyZXNzEhIKBHNhdHMYAyABKARSBHNhdHMSFAoFbGFiZWwYBCABKAlSBWxhYmVs');
+        'IgASgJUgdhZGRyZXNzEhIKBHNhdHMYAyABKARSBHNhdHMSFAoFbGFiZWwYBCABKAlSBWxhYmVs'
+        'EiMKCnNwbGl0dGFibGUYBSABKAhIAFIKc3BsaXR0YWJsZYgBARIWCgZoZWlnaHQYBiABKAVSBm'
+        'hlaWdodEINCgtfc3BsaXR0YWJsZQ==');
 
 @$core.Deprecated('Use shutdownRequestDescriptor instead')
 const ShutdownRequest$json = {
