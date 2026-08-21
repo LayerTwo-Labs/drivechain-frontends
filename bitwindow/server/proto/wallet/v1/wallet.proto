@@ -156,6 +156,11 @@ message UnspentOutput {
   optional bitwindowd.v1.DenialInfo denial_info = 7;
   // BIP32 path of the address that owns this output; empty when unknown.
   string derivation_path = 8;
+  // True when the outpoint exists unspent on BTC mainnet. Unset until the
+  // split engine checked it.
+  optional bool splittable = 9;
+  // Confirmation block height; 0 when unconfirmed or unknown.
+  int32 height = 10;
 }
 
 message ListUnspentResponse {

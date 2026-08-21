@@ -795,6 +795,8 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $0.Timestamp? receivedAt,
     $3.DenialInfo? denialInfo,
     $core.String? derivationPath,
+    $core.bool? splittable,
+    $core.int? height,
   }) {
     final $result = create();
     if (output != null) {
@@ -821,6 +823,12 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (derivationPath != null) {
       $result.derivationPath = derivationPath;
     }
+    if (splittable != null) {
+      $result.splittable = splittable;
+    }
+    if (height != null) {
+      $result.height = height;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -839,6 +847,8 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOM<$0.Timestamp>(6, _omitFieldNames ? '' : 'receivedAt', subBuilder: $0.Timestamp.create)
     ..aOM<$3.DenialInfo>(7, _omitFieldNames ? '' : 'denialInfo', subBuilder: $3.DenialInfo.create)
     ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
+    ..aOB(9, _omitFieldNames ? '' : 'splittable')
+    ..a<$core.int>(10, _omitFieldNames ? '' : 'height', $pb.PbFieldType.O3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -968,6 +978,33 @@ class UnspentOutput extends $pb.GeneratedMessage {
   $core.bool hasDerivationPath() => $_has(7);
   @$pb.TagNumber(8)
   void clearDerivationPath() => clearField(8);
+
+  /// True when the outpoint exists unspent on BTC mainnet. Unset until the
+  /// split engine checked it.
+  @$pb.TagNumber(9)
+  $core.bool get splittable => $_getBF(8);
+  @$pb.TagNumber(9)
+  set splittable($core.bool v) {
+    $_setBool(8, v);
+  }
+
+  @$pb.TagNumber(9)
+  $core.bool hasSplittable() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearSplittable() => clearField(9);
+
+  /// Confirmation block height; 0 when unconfirmed or unknown.
+  @$pb.TagNumber(10)
+  $core.int get height => $_getIZ(9);
+  @$pb.TagNumber(10)
+  set height($core.int v) {
+    $_setSignedInt32(9, v);
+  }
+
+  @$pb.TagNumber(10)
+  $core.bool hasHeight() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearHeight() => clearField(10);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {

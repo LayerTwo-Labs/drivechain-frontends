@@ -192,6 +192,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     isChange: false,
                     receivedAt: utxo.hasReceivedAt() ? utxo.receivedAt : null,
                     derivationPath: utxo.derivationPath,
+                    splittable: utxo.hasSplittable() ? utxo.splittable : null,
                   ),
                 )
                 .toList();
