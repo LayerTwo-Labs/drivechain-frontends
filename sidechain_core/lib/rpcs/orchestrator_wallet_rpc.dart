@@ -530,6 +530,7 @@ class OrchestratorWalletRPC {
       signedInputs: response.signedInputs,
       hasFee: response.hasFee,
       hasTotalInput: response.hasTotalInput,
+      changeOutputIndexes: response.outputs.where((o) => o.isChange).map((o) => o.index).toSet(),
       details: bwpb.GetTransactionDetailsResponse(
         txid: response.txid,
         version: response.version,
@@ -685,6 +686,10 @@ class DecodedTransaction {
   final int signedInputs;
   final bool hasFee;
   final bool hasTotalInput;
+
+  /// PSBT-only: output indexes that carry the wallet's derivation records —
+  /// the change outputs.
+  final Set<int> changeOutputIndexes;
   final bwpb.GetTransactionDetailsResponse details;
 
   const DecodedTransaction({
@@ -693,6 +698,7 @@ class DecodedTransaction {
     required this.signedInputs,
     required this.hasFee,
     required this.hasTotalInput,
+    this.changeOutputIndexes = const {},
     required this.details,
   });
 }

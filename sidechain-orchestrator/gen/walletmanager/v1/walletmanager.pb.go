@@ -7356,8 +7356,11 @@ type TransactionOutput struct {
 	ScriptType      string                 `protobuf:"bytes,4,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
 	ScriptPubkeyAsm string                 `protobuf:"bytes,5,opt,name=script_pubkey_asm,json=scriptPubkeyAsm,proto3" json:"script_pubkey_asm,omitempty"`
 	ScriptPubkeyHex string                 `protobuf:"bytes,6,opt,name=script_pubkey_hex,json=scriptPubkeyHex,proto3" json:"script_pubkey_hex,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// PSBT-only: the output carries the wallet's derivation records, so it is
+	// the change output.
+	IsChange      bool `protobuf:"varint,7,opt,name=is_change,json=isChange,proto3" json:"is_change,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TransactionOutput) Reset() {
@@ -7430,6 +7433,13 @@ func (x *TransactionOutput) GetScriptPubkeyHex() string {
 		return x.ScriptPubkeyHex
 	}
 	return ""
+}
+
+func (x *TransactionOutput) GetIsChange() bool {
+	if x != nil {
+		return x.IsChange
+	}
+	return false
 }
 
 // DecodeTransaction inspects a pasted txid, raw transaction hex, or base64 PSBT
@@ -9778,7 +9788,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\bsequence\x18\t \x01(\x03R\bsequence\x12\x1f\n" +
 	"\vis_coinbase\x18\n" +
 	" \x01(\bR\n" +
-	"isCoinbase\"\xdb\x01\n" +
+	"isCoinbase\"\xf8\x01\n" +
 	"\x11TransactionOutput\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x1d\n" +
 	"\n" +
@@ -9787,7 +9797,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\vscript_type\x18\x04 \x01(\tR\n" +
 	"scriptType\x12*\n" +
 	"\x11script_pubkey_asm\x18\x05 \x01(\tR\x0fscriptPubkeyAsm\x12*\n" +
-	"\x11script_pubkey_hex\x18\x06 \x01(\tR\x0fscriptPubkeyHex\"M\n" +
+	"\x11script_pubkey_hex\x18\x06 \x01(\tR\x0fscriptPubkeyHex\x12\x1b\n" +
+	"\tis_change\x18\a \x01(\bR\bisChange\"M\n" +
 	"\x18DecodeTransactionRequest\x12\x14\n" +
 	"\x05input\x18\x01 \x01(\tR\x05input\x12\x1b\n" +
 	"\twallet_id\x18\x02 \x01(\tR\bwalletId\"\x9b\x05\n" +

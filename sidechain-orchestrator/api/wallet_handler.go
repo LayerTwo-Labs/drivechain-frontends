@@ -1278,6 +1278,7 @@ func decodedToResponse(d *wallet.DecodedTransaction) *pb.DecodeTransactionRespon
 			Address:         out.Address,
 			ScriptType:      out.ScriptType,
 			ScriptPubkeyHex: out.ScriptPubKeyHex,
+			IsChange:        out.IsChange,
 		})
 	}
 	return resp
