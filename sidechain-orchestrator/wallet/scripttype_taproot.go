@@ -338,13 +338,9 @@ func addTaprootMultisigInputFields(in *psbt.PInput, sa scannedAddr) {
 // have signed. Mirrors MultisigPsbtSigningStatus for the taproot path.
 func taprootMultisigStatus(packet *psbt.Packet, cosigners []MultisigCosigner) (MultisigSigningStatus, error) {
 	maxSigs := 0
-	signedPub := map[string]bool{}
 	for i := range packet.Inputs {
 		if n := len(packet.Inputs[i].TaprootScriptSpendSig); n > maxSigs {
 			maxSigs = n
-		}
-		for _, s := range packet.Inputs[i].TaprootScriptSpendSig {
-			signedPub[hex.EncodeToString(s.XOnlyPubKey)] = true
 		}
 	}
 
@@ -374,18 +370,31 @@ func taprootMultisigStatus(packet *psbt.Packet, cosigners []MultisigCosigner) (M
 			continue
 		}
 		origins := []keyOrigin{{fingerprint: fp, path: path}}
-	inputs:
+		applicable, signed := 0, 0
 		for i := range packet.Inputs {
 			for _, d := range packet.Inputs[i].TaprootBip32Derivation {
-				if !signedPub[hex.EncodeToString(d.XOnlyPubKey)] {
+				if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 					continue
 				}
-				if originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
-					cosignerSigned[ci] = true
-					break inputs
+				applicable++
+				// Inputs can share a pubkey, so only this input's own
+				// signatures count for this input.
+				if taprootInputHasSig(packet.Inputs[i].TaprootScriptSpendSig, d.XOnlyPubKey) {
+					signed++
 				}
+				break
 			}
 		}
+		cosignerSigned[ci] = applicable > 0 && signed == applicable
 	}
 	return MultisigSigningStatus{Signatures: maxSigs, Finalizable: finalizable, CosignerSigned: cosignerSigned}, nil
+}
+
+func taprootInputHasSig(sigs []*psbt.TaprootScriptSpendSig, xOnlyPubKey []byte) bool {
+	for _, s := range sigs {
+		if bytes.Equal(s.XOnlyPubKey, xOnlyPubKey) {
+			return true
+		}
+	}
+	return false
 }
