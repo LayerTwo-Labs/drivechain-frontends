@@ -6287,6 +6287,8 @@ class ForkClaimUtxo extends $pb.GeneratedMessage {
     $core.String? address,
     $fixnum.Int64? sats,
     $core.String? label,
+    $core.bool? splittable,
+    $core.int? height,
   }) {
     final $result = create();
     if (outpoint != null) {
@@ -6300,6 +6302,12 @@ class ForkClaimUtxo extends $pb.GeneratedMessage {
     }
     if (label != null) {
       $result.label = label;
+    }
+    if (splittable != null) {
+      $result.splittable = splittable;
+    }
+    if (height != null) {
+      $result.height = height;
     }
     return $result;
   }
@@ -6315,6 +6323,8 @@ class ForkClaimUtxo extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'address')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'sats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOS(4, _omitFieldNames ? '' : 'label')
+    ..aOB(5, _omitFieldNames ? '' : 'splittable')
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'height', $pb.PbFieldType.O3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -6384,6 +6394,33 @@ class ForkClaimUtxo extends $pb.GeneratedMessage {
   $core.bool hasLabel() => $_has(3);
   @$pb.TagNumber(4)
   void clearLabel() => clearField(4);
+
+  /// True when the outpoint exists unspent on BTC mainnet. Unset until the
+  /// split engine checked it.
+  @$pb.TagNumber(5)
+  $core.bool get splittable => $_getBF(4);
+  @$pb.TagNumber(5)
+  set splittable($core.bool v) {
+    $_setBool(4, v);
+  }
+
+  @$pb.TagNumber(5)
+  $core.bool hasSplittable() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSplittable() => clearField(5);
+
+  /// Confirmation block height.
+  @$pb.TagNumber(6)
+  $core.int get height => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set height($core.int v) {
+    $_setSignedInt32(5, v);
+  }
+
+  @$pb.TagNumber(6)
+  $core.bool hasHeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearHeight() => clearField(6);
 }
 
 class ShutdownRequest extends $pb.GeneratedMessage {

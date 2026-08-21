@@ -88,6 +88,7 @@ type ClaimUTXO struct {
 	Address  string
 	Label    string
 	Sats     uint64
+	Height   int
 }
 
 // WalletClaim is one wallet's claimable pre-fork coins.
@@ -237,6 +238,7 @@ func (e *Engine) scan(ctx context.Context, claimBoundary, tipHeight int) []Walle
 				Address:  u.Address,
 				Label:    u.Label,
 				Sats:     u.Sats,
+				Height:   u.Height,
 			})
 		}
 		if len(picks) > 0 {

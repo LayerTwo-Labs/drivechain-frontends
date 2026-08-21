@@ -6662,8 +6662,11 @@ type UnspentOutput struct {
 	// BIP32 path of the address that owns this output. Empty when the backend
 	// cannot report one (Bitcoin Core bulk lists, the enforcer).
 	DerivationPath string `protobuf:"bytes,12,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// True when the outpoint exists unspent on BTC mainnet. Unset until the
+	// split engine checked it.
+	Splittable    *bool `protobuf:"varint,13,opt,name=splittable,proto3,oneof" json:"splittable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UnspentOutput) Reset() {
@@ -6778,6 +6781,13 @@ func (x *UnspentOutput) GetDerivationPath() string {
 		return x.DerivationPath
 	}
 	return ""
+}
+
+func (x *UnspentOutput) GetSplittable() bool {
+	if x != nil && x.Splittable != nil {
+		return *x.Splittable
+	}
+	return false
 }
 
 type ListUnspentResponse struct {
@@ -9696,7 +9706,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x18ListTransactionsResponse\x12F\n" +
 	"\ftransactions\x18\x01 \x03(\v2\".walletmanager.v1.TransactionEntryR\ftransactions\"1\n" +
 	"\x12ListUnspentRequest\x12\x1b\n" +
-	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\x83\x03\n" +
+	"\twallet_id\x18\x01 \x01(\tR\bwalletId\"\xb7\x03\n" +
 	"\rUnspentOutput\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04vout\x18\x02 \x01(\x05R\x04vout\x12\x18\n" +
@@ -9712,7 +9722,11 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	" \x01(\tR\bwalletId\x12;\n" +
 	"\vreceived_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"receivedAt\x12'\n" +
-	"\x0fderivation_path\x18\f \x01(\tR\x0ederivationPath\"L\n" +
+	"\x0fderivation_path\x18\f \x01(\tR\x0ederivationPath\x12#\n" +
+	"\n" +
+	"splittable\x18\r \x01(\bH\x00R\n" +
+	"splittable\x88\x01\x01B\r\n" +
+	"\v_splittable\"L\n" +
 	"\x13ListUnspentResponse\x125\n" +
 	"\x05utxos\x18\x01 \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x05utxos\":\n" +
 	"\x1bListReceiveAddressesRequest\x12\x1b\n" +
@@ -10378,6 +10392,7 @@ func file_walletmanager_v1_walletmanager_proto_init() {
 	if File_walletmanager_v1_walletmanager_proto != nil {
 		return
 	}
+	file_walletmanager_v1_walletmanager_proto_msgTypes[114].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

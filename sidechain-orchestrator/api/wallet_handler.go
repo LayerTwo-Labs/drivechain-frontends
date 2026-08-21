@@ -19,6 +19,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	orchestratorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
@@ -912,9 +914,16 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 	}
 
 	txTimes := h.fetchCoreTxTimes(ctx, walletID, utxos)
+	splitStatuses := map[string]bool{}
+	if config.IsEcashFork(config.NetworkFromString(h.svc.Network())) {
+		splitStatuses, err = h.svc.SplitStatuses(ctx)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
 
 	pbUTXOs := lo.Map(utxos, func(u wallet.UTXO, _ int) *pb.UnspentOutput {
-		return &pb.UnspentOutput{
+		out := &pb.UnspentOutput{
 			Txid:           u.TxID,
 			Vout:           int32(u.Vout),
 			Address:        u.Address,
@@ -928,6 +937,10 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 			ReceivedAt:     receivedAt(u, txTimes),
 			DerivationPath: u.HDPath,
 		}
+		if splittable, ok := splitStatuses[fork.Outpoint(u.TxID, u.Vout)]; ok {
+			out.Splittable = lo.ToPtr(splittable)
+		}
+		return out
 	})
 
 	return connect.NewResponse(&pb.ListUnspentResponse{
