@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -184,6 +185,13 @@ func (c *EsploraClient) SetBaseURLs(baseURLs []string) {
 	c.tipMu.Unlock()
 }
 
+// SetMinInterval widens the pace gap between requests.
+func (c *EsploraClient) SetMinInterval(d time.Duration) {
+	c.mu.Lock()
+	c.minInterval = d
+	c.mu.Unlock()
+}
+
 // EsploraStatus is the confirmation context shared by txs and UTXOs.
 type EsploraStatus struct {
 	Confirmed   bool   `json:"confirmed"`
@@ -268,6 +276,12 @@ func (c *EsploraClient) get(ctx context.Context, path string, out interface{}) e
 }
 
 func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.Reader) ([]byte, error) {
+	return c.doWith(ctx, c.BaseURLs(), esploraMaxAttempts, method, path, reqBody)
+}
+
+// doWith is do against an explicit root list and attempt budget, for callers
+// that must know which server answered (Outspend's 404 consensus).
+func (c *EsploraClient) doWith(ctx context.Context, roots []string, maxAttempts int, method, path string, reqBody io.Reader) ([]byte, error) {
 	// Buffer the body so each retry can resend it (broadcast POSTs a body).
 	var bodyBytes []byte
 	if reqBody != nil {
@@ -278,14 +292,13 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		bodyBytes = b
 	}
 
-	roots := c.BaseURLs()
 	if len(roots) == 0 {
 		return nil, fmt.Errorf("esplora %s %s: no server configured", method, path)
 	}
 	client := c.httpClient()
 
 	var lastErr error
-	for attempt := 0; attempt < esploraMaxAttempts; attempt++ {
+	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if err := c.pace(ctx); err != nil {
 			return nil, err
 		}
@@ -310,7 +323,7 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 		resp, err := client.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("esplora %s %s: %w", method, path, err)
-			if !backoff(ctx, attempt, 0) {
+			if attempt+1 >= maxAttempts || !backoff(ctx, attempt, 0) {
 				return nil, lastErr
 			}
 			continue
@@ -325,11 +338,14 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 			return body, nil
 		}
 
-		lastErr = fmt.Errorf("esplora %s %s: %s: %s", method, path, resp.Status, strings.TrimSpace(string(body)))
+		lastErr = &esploraStatusError{
+			code: resp.StatusCode,
+			msg:  fmt.Sprintf("esplora %s %s: %s: %s", method, path, resp.Status, strings.TrimSpace(string(body))),
+		}
 		if !retryableStatus(resp.StatusCode) {
 			return nil, lastErr
 		}
-		if !backoff(ctx, attempt, parseRetryAfter(resp.Header.Get("Retry-After"))) {
+		if attempt+1 >= maxAttempts || !backoff(ctx, attempt, parseRetryAfter(resp.Header.Get("Retry-After"))) {
 			return nil, lastErr
 		}
 	}
@@ -339,10 +355,11 @@ func (c *EsploraClient) do(ctx context.Context, method, path string, reqBody io.
 // pace reserves the next request slot so sequential calls stay minInterval
 // apart, keeping a gap-limit scan under public Esplora rate limits.
 func (c *EsploraClient) pace(ctx context.Context) error {
+	c.mu.Lock()
 	if c.minInterval <= 0 {
+		c.mu.Unlock()
 		return nil
 	}
-	c.mu.Lock()
 	now := time.Now()
 	wait := time.Duration(0)
 	if c.nextReq.After(now) {
@@ -361,6 +378,14 @@ func (c *EsploraClient) pace(ctx context.Context) error {
 		return ctx.Err()
 	}
 }
+
+// esploraStatusError is a non-OK HTTP response, so callers can branch on the code.
+type esploraStatusError struct {
+	code int
+	msg  string
+}
+
+func (e *esploraStatusError) Error() string { return e.msg }
 
 func retryableStatus(code int) bool {
 	switch code {
@@ -451,6 +476,49 @@ func (c *EsploraClient) Tx(ctx context.Context, txid string) (EsploraTx, error) 
 	var tx EsploraTx
 	err := c.get(ctx, "/tx/"+txid, &tx)
 	return tx, err
+}
+
+// EsploraOutspend is GET /tx/:txid/outspend/:vout. Status describes the
+// spending transaction and is only set when Spent is true.
+type EsploraOutspend struct {
+	Spent  bool          `json:"spent"`
+	Status EsploraStatus `json:"status"`
+}
+
+// Outspend reports the spend status of one output. found is false only when
+// every configured server answers 404 — one server's 404 is not authoritative
+// (a provider with a broken index serves 404 for everything).
+func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (EsploraOutspend, bool, error) {
+	path := "/tx/" + txid + "/outspend/" + strconv.Itoa(vout)
+	roots := c.BaseURLs()
+	notFound := 0
+	var lastErr error
+	for _, root := range roots {
+		// One attempt per root — a dead host must fail over at once, and the
+		// engine tick is the retry mechanism.
+		body, err := c.doWith(ctx, []string{root}, 1, http.MethodGet, path, nil)
+		if err != nil {
+			var statusErr *esploraStatusError
+			if errors.As(err, &statusErr) && statusErr.code == http.StatusNotFound {
+				notFound++
+				continue
+			}
+			lastErr = err
+			continue
+		}
+		var o EsploraOutspend
+		if err := json.Unmarshal(body, &o); err != nil {
+			return EsploraOutspend{}, false, fmt.Errorf("decode %s: %w", path, err)
+		}
+		return o, true, nil
+	}
+	if notFound == len(roots) && notFound > 0 {
+		return EsploraOutspend{}, false, nil
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("no server configured")
+	}
+	return EsploraOutspend{}, false, fmt.Errorf("outspend %s: %w", path, lastErr)
 }
 
 // TxHex returns the raw transaction hex.
