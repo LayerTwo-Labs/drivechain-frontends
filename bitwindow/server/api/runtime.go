@@ -30,6 +30,7 @@ import (
 	api_sidechain "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/sidechain"
 	api_utils "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/utils"
 	api_wallet "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/wallet"
+	api_walletpsbt "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/walletpsbt"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
@@ -48,6 +49,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/sidechain/v1/sidechainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/utils/v1/utilsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1/walletpsbtv1connect"
 
 	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
@@ -310,6 +312,11 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	{
 		multisigSvc := api_multisig.New(rt.db)
 		path, h := multisigv1connect.NewMultisigServiceHandler(multisigSvc, stdOpts...)
+		register(path, h)
+	}
+	{
+		walletPsbtSvc := api_walletpsbt.New(rt.db)
+		path, h := walletpsbtv1connect.NewWalletPsbtServiceHandler(walletPsbtSvc, stdOpts...)
 		register(path, h)
 	}
 	{

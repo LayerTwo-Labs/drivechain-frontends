@@ -17,6 +17,8 @@ import 'package:sidechain_core/gen/notification/v1/notification.connect.client.d
 import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.connect.client.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.connect.client.dart';
+import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart' as walletpsbtpb;
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// API to the drivechain server.
@@ -31,6 +33,7 @@ abstract class BitwindowRPC extends RPCConnection {
   NotificationAPI get notifications;
   BitDriveAPI get bitdrive;
   MultisigAPI get multisig;
+  WalletPsbtAPI get walletpsbt;
   UtilsAPI get utils;
 
   /// Stream of notification events
@@ -57,6 +60,8 @@ class BitwindowRPCLive extends BitwindowRPC {
   late BitDriveAPI bitdrive;
   @override
   late MultisigAPI multisig;
+  @override
+  late WalletPsbtAPI walletpsbt;
   @override
   late UtilsAPI utils;
 
@@ -88,6 +93,7 @@ class BitwindowRPCLive extends BitwindowRPC {
     notifications = _NotificationAPILive(NotificationServiceClient(transport));
     bitdrive = _BitDriveAPILive(BitDriveServiceClient(transport));
     multisig = _MultisigAPILive(MultisigServiceClient(transport));
+    walletpsbt = _WalletPsbtAPILive(WalletPsbtServiceClient(transport));
     utils = _UtilsAPILive(UtilsServiceClient(transport));
 
     // Go ConnectionMonitor is the source of truth for connection state.
@@ -238,6 +244,9 @@ class BitwindowRPCLive extends BitwindowRPC {
       'multisig.v1.MultisigService/ListSoloKeys',
       'multisig.v1.MultisigService/AddSoloKey',
       'multisig.v1.MultisigService/GetNextAccountIndex',
+      'walletpsbt.v1.WalletPsbtService/ListDrafts',
+      'walletpsbt.v1.WalletPsbtService/SaveDraft',
+      'walletpsbt.v1.WalletPsbtService/DeleteDraft',
       'utils.v1.UtilsService/ParseBitcoinURI',
       'utils.v1.UtilsService/ValidateBitcoinURI',
       'utils.v1.UtilsService/DecodeBase58Check',
@@ -2133,6 +2142,56 @@ class MultisigException implements Exception {
   MultisigException(this.message);
   @override
   String toString() => 'MultisigException: $message';
+}
+
+// ─── WalletPsbtAPI ────────────────────────────────────────────────
+
+abstract class WalletPsbtAPI {
+  Future<List<walletpsbtpb.PsbtDraft>> listDrafts(String walletId);
+  Future<walletpsbtpb.PsbtDraft> saveDraft(walletpsbtpb.PsbtDraft draft);
+  Future<void> deleteDraft(String id);
+}
+
+class _WalletPsbtAPILive implements WalletPsbtAPI {
+  final WalletPsbtServiceClient _client;
+
+  _WalletPsbtAPILive(this._client);
+
+  @override
+  Future<List<walletpsbtpb.PsbtDraft>> listDrafts(String walletId) async {
+    try {
+      final response = await _client.listDrafts(walletpsbtpb.ListDraftsRequest(walletId: walletId));
+      return response.drafts;
+    } catch (e) {
+      throw WalletPsbtException('could not list drafts: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<walletpsbtpb.PsbtDraft> saveDraft(walletpsbtpb.PsbtDraft draft) async {
+    try {
+      final response = await _client.saveDraft(walletpsbtpb.SaveDraftRequest(draft: draft));
+      return response.draft;
+    } catch (e) {
+      throw WalletPsbtException('could not save draft: ${extractConnectException(e)}');
+    }
+  }
+
+  @override
+  Future<void> deleteDraft(String id) async {
+    try {
+      await _client.deleteDraft(walletpsbtpb.DeleteDraftRequest(id: id));
+    } catch (e) {
+      throw WalletPsbtException('could not delete draft: ${extractConnectException(e)}');
+    }
+  }
+}
+
+class WalletPsbtException implements Exception {
+  final String message;
+  WalletPsbtException(this.message);
+  @override
+  String toString() => 'WalletPsbtException: $message';
 }
 
 abstract class UtilsAPI {

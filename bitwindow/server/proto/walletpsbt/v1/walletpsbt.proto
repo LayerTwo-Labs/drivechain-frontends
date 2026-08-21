@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package walletpsbt.v1;
+
+import "google/protobuf/empty.proto";
+
+// Persists in-progress multisig spends for the Send tab, so partial
+// signatures survive restarts. The PSBT blob itself carries the
+// signatures; signing state is derived from it, never stored.
+service WalletPsbtService {
+  rpc ListDrafts(ListDraftsRequest) returns (ListDraftsResponse);
+  rpc SaveDraft(SaveDraftRequest) returns (SaveDraftResponse);
+  rpc DeleteDraft(DeleteDraftRequest) returns (google.protobuf.Empty);
+}
+
+message PsbtDraft {
+  // Server-generated. The first four characters are the reference shown
+  // in the transaction tab.
+  string id = 1;
+  string wallet_id = 2;
+  // User name from the tab rename; empty until set.
+  string label = 3;
+  // The live PSBT, replaced on every signature.
+  string psbt_base64 = 4;
+  // Unix milliseconds.
+  int64 created_at = 5;
+  int64 updated_at = 6;
+  // Set once broadcast.
+  string txid = 7;
+}
+
+message ListDraftsRequest {
+  string wallet_id = 1;
+}
+
+message ListDraftsResponse {
+  repeated PsbtDraft drafts = 1;
+}
+
+message SaveDraftRequest {
+  PsbtDraft draft = 1;
+}
+
+message SaveDraftResponse {
+  PsbtDraft draft = 1;
+}
+
+message DeleteDraftRequest {
+  string id = 1;
+}

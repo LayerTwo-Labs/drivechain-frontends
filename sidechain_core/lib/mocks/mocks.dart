@@ -169,6 +169,8 @@ class MockBitwindowRPC extends BitwindowRPC {
   @override
   MultisigAPI get multisig => throw UnimplementedError();
   @override
+  WalletPsbtAPI get walletpsbt => throw UnimplementedError();
+  @override
   UtilsAPI get utils => throw UnimplementedError();
   @override
   Stream<WatchResponse> get notificationStream =>
