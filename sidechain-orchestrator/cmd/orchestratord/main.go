@@ -432,6 +432,28 @@ func run(cctx *cli.Context) error {
 		// Fork engine: single source of truth for eCash fork state, needs
 		// Core-backed wallet access for its claimable scan.
 		orch.InitForkEngine(walletEngine)
+
+		// Split engine: one BTC-mainnet lookup per claimable outpoint, so the
+		// claim UI can mark which coins are splittable.
+		splitClient := wallet.NewEsploraClient(config.SplitCheckEsploraURLs(), log)
+		splitClient.SetMinInterval(500 * time.Millisecond)
+		// The split client obeys the same Tor routing as the wallet chain
+		// source — persisted config at boot, runtime changes via the backend.
+		if torEnabled, torProxy := orch.TorConfigOverride(); torEnabled && torProxy != "" {
+			if err := splitClient.SetProxy(true, torProxy); err != nil {
+				return fmt.Errorf("apply persisted tor proxy %q to split client: %w", torProxy, err)
+			}
+		}
+		if electrumBackend != nil {
+			electrumBackend.OnProxyChange(splitClient.SetProxy)
+		}
+		splitEngine := engines.NewSplitEngine(log, orch, splitClient, walletSvc, currentNetwork)
+		walletEngine.OnNetworkReset(splitEngine.ResetForNetwork)
+		go func() {
+			if err := splitEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				log.Error().Err(err).Msg("split engine exited")
+			}
+		}()
 	}
 
 	// BIP47 receive engine: watches each BIP47-capable wallet's (Core + electrum)

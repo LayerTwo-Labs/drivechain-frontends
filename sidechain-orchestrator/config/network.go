@@ -206,6 +206,18 @@ func EsploraURLsForNetwork(n Network) []string {
 	}
 }
 
+// SplitCheckEsploraURLs returns the public BTC-mainnet esplora servers the
+// split engine reads, primary first.
+func SplitCheckEsploraURLs() []string {
+	return []string{"https://mempool.space/api", "https://blockstream.info/api"}
+}
+
+// IsEcashFork reports whether the network is a fork of BTC mainnet, so its
+// pre-fork outpoints also exist on BTC.
+func IsEcashFork(n Network) bool {
+	return n == NetworkForknet || n == NetworkECash
+}
+
 // WalletChainSourceURLsForNetwork returns the endpoints the electrum wallet
 // reads chain data from, primary first. Mainnet uses the drivechain Electrum
 // server (ssl://) — its public HTTP is a mempool.space API that lacks the
