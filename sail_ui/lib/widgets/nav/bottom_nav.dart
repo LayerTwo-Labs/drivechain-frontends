@@ -44,6 +44,16 @@ String? offNetworkMessage(SyncInfo? syncInfo) {
       '${syncInfo.behindPeers} blocks behind';
 }
 
+/// The block count an electrum wallet shows, or null when the chain source
+/// reports no height yet. A wallet with no local node has only this one.
+String? chainSourceBlocks(SyncInfo? syncInfo) {
+  final height = syncInfo?.progressCurrent.toInt() ?? 0;
+  if (height <= 0) {
+    return null;
+  }
+  return '${formatWithThousandSpacers(height)} blocks';
+}
+
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final List<Widget> balanceEndWidgets;
@@ -617,9 +627,13 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
     // Electrum wallets run no L1 daemons, so there are no block-sync bars to
-    // show — the electrum scan status is rendered separately.
+    // show — the chain source reports the only height they have.
     if (!viewModel.needsBackends) {
-      return const SizedBox.shrink();
+      final blocks = chainSourceBlocks(viewModel.syncProvider.chainSourceSyncInfo);
+      if (blocks == null) {
+        return const SizedBox.shrink();
+      }
+      return SailText.secondary12(blocks);
     }
     final mainchainConnected = viewModel.syncProvider.mainchainSyncInfo != null;
     final enforcerConnected = viewModel.syncProvider.enforcerSyncInfo != null;
