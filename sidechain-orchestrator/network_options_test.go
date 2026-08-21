@@ -177,3 +177,55 @@ func TestECashPickSurvivesAnotherSettingChange(t *testing.T) {
 	require.Equal(t, "drynet4", reloaded.ECashNetworkID, "the pick must survive an unrelated save")
 	require.Equal(t, "https://esplora.example", reloaded.ElectrumServerURL)
 }
+
+// The conf names the fork whose blocks are on disk, so it outranks document
+// order. A cache that lists a retired row first must not move the install.
+func TestRunningECashIDKeepsTheNetworkTheConfNames(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+
+	retiredFirst := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "drynet2", Family: netcatalog.FamilyECash},
+		{ID: "drynet3", Family: netcatalog.FamilyECash},
+		{ID: "drynet4", Family: netcatalog.FamilyECash},
+	}}
+	o.adoptCatalog(retiredFirst, "drynet4")
+	require.Equal(t, "drynet4", o.installedECashNetwork())
+
+	require.Equal(t, "drynet4", o.RunningECashID(retiredFirst))
+	require.Equal(t, "drynet2", o.SelectedECashID(retiredFirst), "the document still resolves to its first row")
+}
+
+// The user's pick is the last word, so it outranks the conf the previous
+// network wrote.
+func TestRunningECashIDPrefersTheUserPick(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+
+	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "alphanet", Family: netcatalog.FamilyECash},
+		{ID: "drynet4", Family: netcatalog.FamilyECash},
+	}}
+	o.adoptCatalog(cat, "drynet4")
+	require.NoError(t, o.SelectECashNetwork("alphanet"))
+
+	require.Equal(t, "alphanet", o.RunningECashID(cat))
+}
+
+// A conf that names a network the catalog dropped points nowhere, so the
+// document decides again.
+func TestRunningECashIDFallsBackWhenTheCatalogDropsTheConfNetwork(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "drynet4", Family: netcatalog.FamilyECash},
+	}}, "drynet4")
+
+	trimmed := netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "alphanet", Family: netcatalog.FamilyECash},
+	}}
+	require.Equal(t, "alphanet", o.RunningECashID(trimmed))
+}

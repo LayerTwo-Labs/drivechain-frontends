@@ -260,3 +260,57 @@ func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 	require.Equal(t, "drynet9", o.EnforcerConf.Config.GetSetting("network-preset"))
 	require.Equal(t, "true", o.EnforcerConf.Config.GetSetting("enable-wallet"))
 }
+
+// catalogWithECashRows lists several eCash networks in the order given, each
+// with endpoints that match its id.
+func catalogWithECashRows(t *testing.T, ids ...string) netcatalog.Catalog {
+	t.Helper()
+	c := catalogWithECash(t, ids[0])
+	rows := make([]netcatalog.Network, 0, len(c.Networks)+len(ids))
+	for _, n := range c.Networks {
+		rows = append(rows, n)
+		if n.Family != netcatalog.FamilyECash {
+			continue
+		}
+		for _, id := range ids[1:] {
+			extra := n
+			extra.ID = id
+			extra.P2P.Address = id + ".example:8335"
+			extra.Backends = []netcatalog.Backend{{Kind: "esplora", URL: "https://esplora." + id + ".example"}}
+			rows = append(rows, extra)
+		}
+	}
+	c.Networks = rows
+	return c
+}
+
+// A cache written in another order lists the retired rows first, and a retired
+// row publishes no endpoints. Document order alone moves the install to that
+// row, and the wallet then has no chain source at all.
+func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(catalogWithECash(t, "drynet4"), "drynet4")
+	require.Equal(t, "drynet4", o.installedECashNetwork())
+
+	retiredFirst := catalogWithECashRows(t, "drynet2", "drynet4")
+	for i := range retiredFirst.Networks {
+		if retiredFirst.Networks[i].ID == "drynet2" {
+			retiredFirst.Networks[i].Backends = nil
+		}
+	}
+	require.NoError(t, netcatalog.Save(o.BitwindowDir, retiredFirst))
+
+	o.ResolveNetworkCatalog(context.Background())
+
+	require.Equal(t, "drynet4", config.ECashNetworkID())
+	require.Equal(t, "ecash-drynet4", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
+	require.Equal(t,
+		[]string{"https://esplora.drynet4.example"},
+		config.WalletChainSourceURLsForNetwork(config.NetworkECash),
+		"the wallet must keep reading the network whose blocks are on disk",
+	)
+}
