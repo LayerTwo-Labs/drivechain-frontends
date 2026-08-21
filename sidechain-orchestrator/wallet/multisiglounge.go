@@ -3,7 +3,6 @@ package wallet
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -425,9 +424,10 @@ type MultisigSigningStatus struct {
 
 // MultisigPsbtSigningStatus decodes a PSBT and reports the signature count,
 // whether it can be finalized, and which cosigners have signed. A cosigner is
-// credited when one of its origin's pubkeys (fingerprint + origin-path prefix)
-// carries a partial signature, so cosigners sharing a master fingerprint are
-// still told apart by their derivation path.
+// credited only when every input that lists one of its origin's pubkeys
+// (fingerprint + origin-path prefix) carries that pubkey's partial signature —
+// a partial signer must stay eligible to sign its remaining inputs. Cosigners
+// sharing a master fingerprint are still told apart by their derivation path.
 func MultisigPsbtSigningStatus(psbtBase64 string, cosigners []MultisigCosigner) (MultisigSigningStatus, error) {
 	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(psbtBase64))
 	if err != nil {
@@ -446,13 +446,9 @@ func MultisigPsbtSigningStatus(psbtBase64 string, cosigners []MultisigCosigner) 
 	}
 
 	maxSigs := 0
-	signedPub := map[string]bool{}
 	for i := range packet.Inputs {
 		if n := len(packet.Inputs[i].PartialSigs); n > maxSigs {
 			maxSigs = n
-		}
-		for _, ps := range packet.Inputs[i].PartialSigs {
-			signedPub[hex.EncodeToString(ps.PubKey)] = true
 		}
 	}
 
@@ -470,23 +466,34 @@ func MultisigPsbtSigningStatus(psbtBase64 string, cosigners []MultisigCosigner) 
 			continue
 		}
 		origins := []keyOrigin{{fingerprint: fp, path: path}}
+		applicable, signed := 0, 0
 		for i := range packet.Inputs {
 			for _, d := range packet.Inputs[i].Bip32Derivation {
-				if !signedPub[hex.EncodeToString(d.PubKey)] {
+				if !originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
 					continue
 				}
-				if originMatches(d.MasterKeyFingerprint, d.Bip32Path, origins) {
-					cosignerSigned[ci] = true
-					break
+				applicable++
+				// Inputs can share a pubkey, so only this input's own
+				// signatures count for this input.
+				if inputHasPartialSig(packet.Inputs[i].PartialSigs, d.PubKey) {
+					signed++
 				}
-			}
-			if cosignerSigned[ci] {
 				break
 			}
 		}
+		cosignerSigned[ci] = applicable > 0 && signed == applicable
 	}
 
 	return MultisigSigningStatus{Signatures: maxSigs, Finalizable: finalizable, CosignerSigned: cosignerSigned}, nil
+}
+
+func inputHasPartialSig(sigs []*psbt.PartialSig, pubKey []byte) bool {
+	for _, ps := range sigs {
+		if bytes.Equal(ps.PubKey, pubKey) {
+			return true
+		}
+	}
+	return false
 }
 
 // keyOrigin is one cosigner's master fingerprint plus account-level origin path,
