@@ -22,6 +22,7 @@ import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/network_provider.dart';
 import 'package:bitwindow/providers/check_provider.dart';
+import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/timestamp_provider.dart';
 import 'package:bitwindow/providers/content_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
@@ -300,6 +301,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   // Eager initialization so it can listen for wallet unlock events
   final checkProvider = CheckProvider();
   NetworkScopedRegistry.register<CheckProvider>(checkProvider);
+  NetworkScopedRegistry.register<PsbtDraftProvider>(PsbtDraftProvider());
   final timestampProvider = TimestampProvider();
   GetIt.I.registerSingleton<TimestampProvider>(timestampProvider);
   final bitwindowHomepageProvider = BitwindowHomepageProvider();
