@@ -162,6 +162,7 @@ class InlineTabBarState extends State<InlineTabBar> {
                       onIconTap: tab.onIconTap,
                       secondary: widget.secondary,
                       onLabelChanged: tab.onLabelChanged,
+                      leading: tab.leading,
                       onTap: () {
                         setIndex(index, null);
                         if (tab.onTap != null) {
@@ -305,6 +306,7 @@ class SingleTabItem extends TabItem {
     super.icon,
     super.onIconTap,
     super.onLabelChanged,
+    super.leading,
   });
 }
 
@@ -329,6 +331,9 @@ class TabItem {
   /// Set to make the tab's label renameable while it is selected.
   final ValueChanged<String>? onLabelChanged;
 
+  /// Small widget drawn before the label, e.g. a state dot.
+  final Widget? leading;
+
   const TabItem({
     required this.label,
     required this.child,
@@ -336,5 +341,6 @@ class TabItem {
     this.icon,
     this.onIconTap,
     this.onLabelChanged,
+    this.leading,
   });
 }
