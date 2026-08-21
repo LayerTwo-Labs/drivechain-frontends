@@ -188,7 +188,17 @@ class UTXOTable extends StatefulWidget {
 class _UTXOTableState extends State<UTXOTable> {
   // One list, so a new column can't be added to the header and forgotten in
   // the sort lookups.
-  static const _columns = ['frozen', 'date', 'output', 'address', 'path', 'label', 'deniability', 'value'];
+  static const _columns = [
+    'frozen',
+    'date',
+    'output',
+    'address',
+    'path',
+    'label',
+    'deniability',
+    'splittable',
+    'value',
+  ];
 
   String sortColumn = 'date';
   bool sortAscending = true;
@@ -285,6 +295,10 @@ class _UTXOTableState extends State<UTXOTable> {
           aValue = getDenialHops(a);
           bValue = getDenialHops(b);
           break;
+        case 'splittable':
+          aValue = splittableRank(a);
+          bValue = splittableRank(b);
+          break;
       }
       return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
     });
@@ -295,6 +309,14 @@ class _UTXOTableState extends State<UTXOTable> {
   String _getLabel(UnspentOutput utxo) {
     final metaLabel = _coinSelection.getLabel(utxo.output);
     return metaLabel.isNotEmpty ? metaLabel : utxo.label;
+  }
+
+  // Unknown sorts below no, no below yes.
+  int splittableRank(UnspentOutput utxo) {
+    if (!utxo.hasSplittable()) {
+      return 0;
+    }
+    return utxo.splittable ? 2 : 1;
   }
 
   int getDenialHops(UnspentOutput utxo) {
@@ -423,6 +445,7 @@ class _UTXOTableState extends State<UTXOTable> {
               SailTableHeaderCell(name: 'Path', onSort: () => onSort('path')),
               SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
               SailTableHeaderCell(name: 'Deniability', onSort: () => onSort('deniability')),
+              SailTableHeaderCell(name: 'Splittable', onSort: () => onSort('splittable')),
               SailTableHeaderCell(name: 'Amount', onSort: () => onSort('value')),
             ],
             rowBuilder: (context, row, selected) {
@@ -462,6 +485,16 @@ class _UTXOTableState extends State<UTXOTable> {
                   value: getDenialStatus(utxo),
                   textColor: getDenialColor(context, utxo),
                   monospace: true,
+                ),
+                SailTableCell(
+                  value: !utxo.hasSplittable() ? '—' : (utxo.splittable ? 'Yes' : 'No'),
+                  child: !utxo.hasSplittable()
+                      ? SailText.secondary12('—')
+                      : SailSVG.fromAsset(
+                          SailSVGAsset.split,
+                          width: 14,
+                          color: utxo.splittable ? theme.colors.success : theme.colors.textSecondary,
+                        ),
                 ),
                 SailTableCell(
                   value: formattedAmount,
