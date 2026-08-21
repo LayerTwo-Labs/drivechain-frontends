@@ -472,6 +472,7 @@ func (h *Handler) GetSyncStatus(ctx context.Context, req *connect.Request[pb.Get
 		Mainchain:        chainSyncToProto(s.Mainchain),
 		Enforcer:         chainSyncToProto(s.Enforcer),
 		EnforcerWallet:   chainSyncToProto(s.EnforcerWallet),
+		ChainSource:      chainSyncToProto(s.ChainSource),
 		Sidechains:       sidechains,
 		WalletSyncStatus: walletSyncStatus,
 	}), nil

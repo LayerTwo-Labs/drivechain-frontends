@@ -418,6 +418,7 @@ func run(cctx *cli.Context) error {
 		}
 		log.Info().Str("tor_proxy", torProxy).Msg("electrum wallet routing through tor proxy")
 	}
+	orch.SetChainTipSource(chainSource)
 	electrumBackend := wallet.NewElectrumBackend(walletSvc, chainSource, netParams, log)
 	log.Info().Strs("chain_source_urls", resolveChainTarget().URLs).Msg("electrum wallet provider initialized")
 

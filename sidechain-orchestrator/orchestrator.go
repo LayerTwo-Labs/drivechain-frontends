@@ -158,6 +158,10 @@ type Orchestrator struct {
 	forkEngine         *fork.Engine
 	forkEnforcerWallet enforcerrpc.WalletServiceClient
 
+	// chainTip reads the height from the wallet chain source (esplora or
+	// electrum), so an electrum wallet gets a tip with no local Core.
+	chainTip ChainTipSource
+
 	// clearedMark is the block an eCash rewind lifted the bar from, kept so a
 	// rollback can put that bar back. Guarded by swapNetworkMu, which every
 	// eCash switch holds.
@@ -238,6 +242,7 @@ type Orchestrator struct {
 	enforcerWalletSync *CachedConnection[*ChainSyncResult]
 	sidechainSyncs     map[string]*CachedConnection[*ChainSyncResult]
 	chainFork          *CachedConnection[*ChainForkState]
+	chainSourceHeight  *CachedConnection[int]
 
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
 	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
@@ -2180,6 +2185,7 @@ func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.enforcerWalletSync = nil
 	o.sidechainSyncs = nil
 	o.chainFork = nil
+	o.chainSourceHeight = nil
 	o.syncConnMu.Unlock()
 
 	o.httpClientsMu.Lock()
@@ -2849,6 +2855,9 @@ type SyncStatus struct {
 	Enforcer       *ChainSyncResult
 	EnforcerWallet *ChainSyncResult
 	Sidechains     map[string]*ChainSyncResult
+	// ChainSource is the tip the wallet chain source reports. An electrum
+	// wallet runs no local node, so this is the only height it has.
+	ChainSource *ChainSyncResult
 }
 
 // GetSyncStatus fans out concurrent probes — mainchain bitcoind, enforcer
@@ -2866,6 +2875,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		Enforcer:       &ChainSyncResult{},
 		EnforcerWallet: &ChainSyncResult{},
 		Sidechains:     make(map[string]*ChainSyncResult),
+		ChainSource:    &ChainSyncResult{},
 	}
 
 	// Pre-populate sidechain map with one slot per L2 sidechain. The
@@ -2956,6 +2966,17 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	go func() {
 		defer wg.Done()
 		heights = o.fetchExplorerHeights(ctx)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		height, err := o.ChainSourceHeight(ctx)
+		if err != nil {
+			out.ChainSource.Error = err.Error()
+			return
+		}
+		out.ChainSource.Blocks, out.ChainSource.Headers = int64(height), int64(height)
 	}()
 
 	var fork *ChainForkState

@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
@@ -43,19 +44,86 @@ func (o *Orchestrator) ForkState(ctx context.Context) (*fork.ForkState, error) {
 	return o.forkEngine.State(ctx)
 }
 
-// ForkTip implements fork.TipSource off the cached getblockchaininfo.
+// ChainTipSource reads the mainchain height from the wallet chain source.
+// Both the esplora and the electrum client satisfy it.
+type ChainTipSource interface {
+	TipHeight(ctx context.Context) (int, error)
+}
+
+// SetChainTipSource hands the orchestrator the chain source it reads the
+// height from when no local Core answers.
+func (o *Orchestrator) SetChainTipSource(src ChainTipSource) {
+	o.mu.Lock()
+	o.chainTip = src
+	o.mu.Unlock()
+}
+
+func (o *Orchestrator) chainTipSource() ChainTipSource {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.chainTip
+}
+
+// chainSourceHeightConnection reads the tip from the wallet chain source.
+type chainSourceHeightConnection struct{ o *Orchestrator }
+
+func (c *chainSourceHeightConnection) Fetch(ctx context.Context) (int, error) {
+	src := c.o.chainTipSource()
+	if src == nil {
+		return 0, fmt.Errorf("no wallet chain source")
+	}
+	rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	return src.TipHeight(rpcCtx)
+}
+
+// chainSourceHeightCached returns the single cached connection every
+// chain-source height read goes through, so one poll per TTL reaches the
+// server no matter how many callers ask.
+func (o *Orchestrator) chainSourceHeightCached() *CachedConnection[int] {
+	o.syncConnMu.Lock()
+	defer o.syncConnMu.Unlock()
+	if o.chainSourceHeight == nil {
+		o.chainSourceHeight = &CachedConnection[int]{
+			inner: &chainSourceHeightConnection{o: o},
+			ttl:   chainSyncCacheTTL,
+		}
+	}
+	return o.chainSourceHeight
+}
+
+// ChainSourceHeight returns the tip the wallet chain source reports. An
+// electrum wallet runs no local node, so this is the only height it has.
+func (o *Orchestrator) ChainSourceHeight(ctx context.Context) (int, error) {
+	return o.chainSourceHeightCached().Fetch(ctx)
+}
+
+// ForkTip implements fork.TipSource off the cached getblockchaininfo, and off
+// the wallet chain source when no local Core runs.
 func (o *Orchestrator) ForkTip(ctx context.Context) (fork.Tip, error) {
+	network := config.NetworkFromString(o.Network)
+	tip := fork.Tip{
+		Network:     o.Network,
+		ForkHeight:  config.PublishedForkHeight(network),
+		DisplayName: config.PublishedDisplayName(network),
+	}
+
 	info, err := o.GetMainchainBlockchainInfo(ctx)
-	if err != nil {
+	if err == nil {
+		tip.Blocks, tip.Headers = info.Blocks, info.Headers
+		return tip, nil
+	}
+	if o.chainTipSource() == nil {
 		return fork.Tip{}, err
 	}
-	return fork.Tip{
-		Network:     o.Network,
-		Blocks:      info.Blocks,
-		Headers:     info.Headers,
-		ForkHeight:  config.PublishedForkHeight(config.NetworkFromString(o.Network)),
-		DisplayName: config.PublishedDisplayName(config.NetworkFromString(o.Network)),
-	}, nil
+	// One height, so blocks and headers are the same: the server serves a
+	// synced chain, and a claim scan reads that same server.
+	height, chainErr := o.ChainSourceHeight(ctx)
+	if chainErr != nil {
+		return fork.Tip{}, err
+	}
+	tip.Blocks, tip.Headers = height, height
+	return tip, nil
 }
 
 // forkWalletScanner adapts wallet.Service + wallet.WalletEngine + the enforcer

@@ -477,6 +477,9 @@ message GetSyncStatusResponse {
   // Tip the enforcer's own wallet is synced to. The wallet scans esplora
   // separately from the validator, so it can lag behind `enforcer`.
   ChainSync enforcer_wallet = 5;
+  // Tip the wallet chain source reports (esplora or electrum). An electrum
+  // wallet runs no local node, so this is the only height it has.
+  ChainSync chain_source = 6;
 }
 
 // SidechainType keeps the response strongly-typed so callers don't have to
