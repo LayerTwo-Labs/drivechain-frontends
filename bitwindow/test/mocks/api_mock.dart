@@ -1,4 +1,5 @@
 import 'package:fixnum/src/int64.dart';
+import 'package:protobuf/protobuf.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
 import 'package:sidechain_core/gen/bitdrive/v1/bitdrive.pb.dart';
 import 'package:sidechain_core/gen/multisig/v1/multisig.pb.dart' as multisigpb;
@@ -9,6 +10,7 @@ import 'package:sidechain_core/gen/misc/v1/misc.pb.dart';
 import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
 import 'package:sidechain_core/gen/utils/v1/utils.pb.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
+import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart' as walletpsbtpb;
 import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
 class MockAPI extends BitwindowRPC {
@@ -16,6 +18,8 @@ class MockAPI extends BitwindowRPC {
   final BitDriveAPI bitdrive = MockBitDriveAPI();
   @override
   final MultisigAPI multisig = MockMultisigAPI();
+  @override
+  final WalletPsbtAPI walletpsbt = MockWalletPsbtAPI();
   @override
   final UtilsAPI utils = MockUtilsAPI();
   @override
@@ -707,5 +711,36 @@ class MockMultisigAPI implements MultisigAPI {
   @override
   Future<int> getNextAccountIndex({List<int>? additionalUsedIndices}) {
     return Future.value(8000);
+  }
+}
+
+/// In-memory draft store, so provider tests can save, reload, and delete.
+class MockWalletPsbtAPI implements WalletPsbtAPI {
+  final Map<String, walletpsbtpb.PsbtDraft> drafts = {};
+  int _nextId = 0;
+
+  @override
+  Future<List<walletpsbtpb.PsbtDraft>> listDrafts(String walletId) {
+    return Future.value(
+      drafts.values.where((d) => d.walletId == walletId).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+    );
+  }
+
+  @override
+  Future<walletpsbtpb.PsbtDraft> saveDraft(walletpsbtpb.PsbtDraft draft) {
+    final saved = draft.deepCopy();
+    if (saved.id.isEmpty) {
+      saved.id = (_nextId++).toRadixString(16).padLeft(16, 'a');
+      saved.createdAt = Int64(drafts.length + 1);
+    }
+    saved.updatedAt = saved.createdAt + Int64(1);
+    drafts[saved.id] = saved;
+    return Future.value(saved);
+  }
+
+  @override
+  Future<void> deleteDraft(String id) {
+    drafts.remove(id);
+    return Future.value();
   }
 }
