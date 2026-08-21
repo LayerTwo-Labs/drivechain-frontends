@@ -3283,6 +3283,7 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     $core.Iterable<SidechainStatus>? sidechains,
     $core.String? walletSyncStatus,
     ChainSync? enforcerWallet,
+    ChainSync? chainSource,
   }) {
     final $result = create();
     if (mainchain != null) {
@@ -3299,6 +3300,9 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     }
     if (enforcerWallet != null) {
       $result.enforcerWallet = enforcerWallet;
+    }
+    if (chainSource != null) {
+      $result.chainSource = chainSource;
     }
     return $result;
   }
@@ -3317,6 +3321,7 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
         subBuilder: SidechainStatus.create)
     ..aOS(4, _omitFieldNames ? '' : 'walletSyncStatus')
     ..aOM<ChainSync>(5, _omitFieldNames ? '' : 'enforcerWallet', subBuilder: ChainSync.create)
+    ..aOM<ChainSync>(6, _omitFieldNames ? '' : 'chainSource', subBuilder: ChainSync.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -3406,6 +3411,22 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
   void clearEnforcerWallet() => clearField(5);
   @$pb.TagNumber(5)
   ChainSync ensureEnforcerWallet() => $_ensure(4);
+
+  /// Tip the wallet chain source reports (esplora or electrum). An electrum
+  /// wallet runs no local node, so this is the only height it has.
+  @$pb.TagNumber(6)
+  ChainSync get chainSource => $_getN(5);
+  @$pb.TagNumber(6)
+  set chainSource(ChainSync v) {
+    setField(6, v);
+  }
+
+  @$pb.TagNumber(6)
+  $core.bool hasChainSource() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearChainSource() => clearField(6);
+  @$pb.TagNumber(6)
+  ChainSync ensureChainSource() => $_ensure(5);
 }
 
 class SidechainStatus extends $pb.GeneratedMessage {

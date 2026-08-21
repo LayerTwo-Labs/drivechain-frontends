@@ -728,6 +728,7 @@ const GetSyncStatusResponse$json = {
     {'1': 'sidechains', '3': 3, '4': 3, '5': 11, '6': '.orchestrator.v1.SidechainStatus', '10': 'sidechains'},
     {'1': 'wallet_sync_status', '3': 4, '4': 1, '5': 9, '10': 'walletSyncStatus'},
     {'1': 'enforcer_wallet', '3': 5, '4': 1, '5': 11, '6': '.orchestrator.v1.ChainSync', '10': 'enforcerWallet'},
+    {'1': 'chain_source', '3': 6, '4': 1, '5': 11, '6': '.orchestrator.v1.ChainSync', '10': 'chainSource'},
   ],
 };
 
@@ -738,7 +739,8 @@ final $typed_data.Uint8List getSyncStatusResponseDescriptor =
         'dG9yLnYxLkNoYWluU3luY1IIZW5mb3JjZXISQAoKc2lkZWNoYWlucxgDIAMoCzIgLm9yY2hlc3'
         'RyYXRvci52MS5TaWRlY2hhaW5TdGF0dXNSCnNpZGVjaGFpbnMSLAoSd2FsbGV0X3N5bmNfc3Rh'
         'dHVzGAQgASgJUhB3YWxsZXRTeW5jU3RhdHVzEkMKD2VuZm9yY2VyX3dhbGxldBgFIAEoCzIaLm'
-        '9yY2hlc3RyYXRvci52MS5DaGFpblN5bmNSDmVuZm9yY2VyV2FsbGV0');
+        '9yY2hlc3RyYXRvci52MS5DaGFpblN5bmNSDmVuZm9yY2VyV2FsbGV0Ej0KDGNoYWluX3NvdXJj'
+        'ZRgGIAEoCzIaLm9yY2hlc3RyYXRvci52MS5DaGFpblN5bmNSC2NoYWluU291cmNl');
 
 @$core.Deprecated('Use sidechainStatusDescriptor instead')
 const SidechainStatus$json = {
