@@ -72,7 +72,7 @@ func TestWalletHandlerPSBTRoundTrip(t *testing.T) {
 		txid:   "4444444444444444444444444444444444444444444444444444444444444444",
 	}
 	eb := wallet.NewElectrumBackend(svc, esplora, wallet.StaticParams(net), log)
-	engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, nil, eb), wallet.StaticParams(net), log)
+	engine := wallet.NewWalletEngine(svc, wallet.NewBackendRouter(svc, nil, eb), wallet.StaticParams(net), log)
 	h := NewWalletHandler(svc)
 	h.SetEngine(engine)
 

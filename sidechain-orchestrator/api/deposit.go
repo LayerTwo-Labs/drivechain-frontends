@@ -1,9 +1,13 @@
 package api
 
 import (
+	"time"
+
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+	"github.com/samber/lo"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -63,17 +67,6 @@ func (h *WalletHandler) CreateDeposit(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	if backend, ok := h.engine.DepositBackendFor(walletID); ok {
-		txid, err := backend.CreateDeposit(ctx, slot, req.Msg.Destination, req.Msg.AmountSats, req.Msg.FeeSats)
-		if err != nil {
-			return nil, rpcError(err)
-		}
-		return connect.NewResponse(&wpb.CreateDepositResponse{
-			Txid:         txid,
-			TreasurySats: treasurySats,
-		}), nil
-	}
-
 	send, err := h.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
 		WalletId:       req.Msg.WalletId,
 		RawOutputs:     []*wpb.RawOutput{{ValueSats: treasurySats, ScriptHex: treasuryHex}},
@@ -83,6 +76,18 @@ func (h *WalletHandler) CreateDeposit(
 	}))
 	if err != nil {
 		return nil, err
+	}
+
+	// An M5 is an ordinary transaction on the wire, so nothing later can tell
+	// it apart from a normal send. Record it while we still know.
+	if err := h.svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+		Txid:        send.Msg.Txid,
+		WalletID:    walletID,
+		Slot:        uint32(slot),
+		Destination: req.Msg.Destination,
+		AmountSats:  req.Msg.AmountSats,
+	}); err != nil {
+		h.svc.Log().Warn().Err(err).Str("txid", send.Msg.Txid).Msg("could not record the deposit")
 	}
 
 	return connect.NewResponse(&wpb.CreateDepositResponse{
@@ -110,4 +115,28 @@ func (h *WalletHandler) sidechainCtip(
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get ctip: %w", err))
 	}
 	return resp.Msg.GetCtip(), nil
+}
+
+// ListSidechainDeposits reports the deposits this install made to a slot. The
+// enforcer used to keep a global list in its own wallet; it runs none, so only
+// our own deposits are knowable.
+func (h *WalletHandler) ListSidechainDeposits(
+	ctx context.Context, req *connect.Request[wpb.ListSidechainDepositsRequest],
+) (*connect.Response[wpb.ListSidechainDepositsResponse], error) {
+	deposits, err := h.svc.SidechainDeposits(ctx, req.Msg.Slot)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&wpb.ListSidechainDepositsResponse{
+		Deposits: lo.Map(deposits, func(d wallet.SidechainDeposit, _ int) *wpb.SidechainDeposit {
+			return &wpb.SidechainDeposit{
+				Txid:        d.Txid,
+				WalletId:    d.WalletID,
+				Slot:        d.Slot,
+				Destination: d.Destination,
+				AmountSats:  d.AmountSats,
+				CreatedAt:   d.CreatedAt.Format(time.RFC3339),
+			}
+		}),
+	}), nil
 }

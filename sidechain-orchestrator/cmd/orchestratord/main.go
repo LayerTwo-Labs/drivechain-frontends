@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -20,7 +19,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/net/http2"
 
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	coreproxy "github.com/barebitcoin/btc-buf/server"
@@ -248,7 +246,6 @@ func run(cctx *cli.Context) error {
 		return nil
 	}
 	walletSvc.GetBinaryWalletPaths = orch.BinaryWalletPaths
-	walletSvc.GetEnforcerWalletPaths = orch.EnforcerWalletPaths
 	if orch.BitcoinConf != nil {
 		walletSvc.CoreDataDir = config.BitcoinCoreDirs.RootDirNetwork(orch.BitcoinConf.Network)
 	}
@@ -370,24 +367,7 @@ func run(cctx *cli.Context) error {
 		log.Info().Int("rpc_port", coreEndpoint().Port).Msg("core wallet provider initialized")
 	}
 
-	// Enforcer wallet provider — relays the enforcer-type wallet to the
-	// enforcer daemon's wallet service.
-	var enforcerBackend wallet.Backend
 	if enforcerCfg, ok := orch.Configs()["enforcer"]; ok {
-		httpClient := &http.Client{
-			Transport: &http2.Transport{
-				AllowHTTP: true,
-				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-					var d net.Dialer
-					return d.DialContext(ctx, network, addr)
-				},
-			},
-		}
-		enforcerClient := enforcerrpc.NewWalletServiceClient(httpClient, enforcerCfg.RPCURL(), connect.WithGRPC())
-		enforcerBackend = wallet.NewEnforcerBackend(enforcerClient)
-		orch.SetForkEnforcerWallet(enforcerClient)
-		log.Info().Int("enforcer_port", enforcerCfg.Port).Msg("enforcer wallet provider registered")
-
 		// Enforcer passthrough: sidechain apps funnel all enforcer traffic
 		// through orchestratord instead of dialing the enforcer directly.
 		enforcerBridge, err := enforcerproxy.Connect(enforcerCfg.RPCURL())
@@ -398,9 +378,11 @@ func run(cctx *cli.Context) error {
 			enforcerrpc.ValidatorServiceName,
 			enforcerrpc.WalletServiceName,
 			cryptorpc.CryptoServiceName,
+			// The proposal and ACK RPCs the enforcer moved off its wallet.
+			enforcerrpc.BlockProducerServiceName,
 			// Mining, so a regtest operator can produce the mainchain block
 			// that takes a BMM bid without reaching past the orchestrator.
-			"cusf.mainchain.v1.MiningService",
+			enforcerrpc.MiningServiceName,
 		} {
 			mux.Handle("/"+svc+"/", localauth.Middleware(authDir, enforcerBridge))
 		}
@@ -435,7 +417,7 @@ func run(cctx *cli.Context) error {
 	electrumBackend := wallet.NewElectrumBackend(walletSvc, chainSource, netParams, log)
 	log.Info().Strs("chain_source_urls", resolveChainTarget().URLs).Msg("electrum wallet provider initialized")
 
-	router := wallet.NewBackendRouter(walletSvc, enforcerBackend, chainBackend, electrumBackend)
+	router := wallet.NewBackendRouter(walletSvc, chainBackend, electrumBackend)
 	walletEngine := wallet.NewWalletEngine(walletSvc, router, netParams, log)
 	walletEngine.OnNetworkReset(func(dir string) { bip47SendStore.Rebind(dir) })
 	orch.SetWalletEngine(walletEngine)

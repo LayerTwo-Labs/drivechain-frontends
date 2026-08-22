@@ -53,7 +53,7 @@ func newSyncFixture(t *testing.T) (*WalletSyncEngine, *wallet.Service, *wallet.W
 	chain := &countingChain{}
 	params := wallet.StaticParams(&chaincfg.SigNetParams)
 	backend := wallet.NewElectrumBackend(svc, chain, params, log)
-	router := wallet.NewBackendRouter(svc, nil, nil, backend)
+	router := wallet.NewBackendRouter(svc, nil, backend)
 	engine := wallet.NewWalletEngine(svc, router, params, log)
 
 	return NewWalletSyncEngine(log, svc, engine), svc, engine, chain

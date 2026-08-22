@@ -104,8 +104,8 @@ func TestRPCError(t *testing.T) {
 
 func TestNullableResults(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{
-		"get_best_mainchain_block_hash":  nil,
-		"get_best_sidechain_block_hash":  "deadbeef",
+		"get_best_mainchain_block_hash":          nil,
+		"get_best_sidechain_block_hash":          "deadbeef",
 		"latest_failed_withdrawal_bundle_height": nil,
 	})
 	defer srv.Close()

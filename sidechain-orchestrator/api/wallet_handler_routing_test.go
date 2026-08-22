@@ -37,7 +37,8 @@ func (f *recordingProvider) Balance(ctx context.Context, walletID string) (float
 }
 
 // newRoutedHandler builds the real Service + BackendRouter + WalletEngine
-// stack over recording fakes — the exact production wiring minus daemons.
+// stack over recording fakes — the exact production wiring minus daemons. One
+// electrum wallet and one Core wallet, so routing has two sides to pick from.
 func newRoutedHandler(t *testing.T) (*WalletHandler, *recordingProvider, *recordingProvider, string, string) {
 	t.Helper()
 	log := zerolog.New(zerolog.NewTestWriter(t))
@@ -45,28 +46,29 @@ func newRoutedHandler(t *testing.T) (*WalletHandler, *recordingProvider, *record
 	require.NoError(t, svc.Init())
 	t.Cleanup(func() { svc.Close() })
 
-	enf, err := svc.GenerateWallet("Enforcer", "", "", nil)
-	require.NoError(t, err)
 	core, err := svc.GenerateWallet("Core", "", "", nil)
 	require.NoError(t, err)
 	require.Equal(t, wallet.WalletTypeBitcoinCore, core.WalletType)
+	elec, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+	require.Equal(t, wallet.WalletTypeElectrum, elec.WalletType)
 
-	enfFake := &recordingProvider{}
+	elecFake := &recordingProvider{}
 	chainFake := &recordingProvider{}
-	router := wallet.NewBackendRouter(svc, enfFake, chainFake, nil)
+	router := wallet.NewBackendRouter(svc, chainFake, elecFake)
 	engine := wallet.NewWalletEngine(svc, router, nil, log)
 
 	h := NewWalletHandler(svc)
 	h.SetEngine(engine)
-	return h, enfFake, chainFake, enf.ID, core.ID
+	return h, elecFake, chainFake, elec.ID, core.ID
 }
 
 func TestSendTransactionRoutesPerWalletType(t *testing.T) {
-	h, enfFake, chainFake, enfID, coreID := newRoutedHandler(t)
+	h, elecFake, chainFake, elecID, coreID := newRoutedHandler(t)
 	ctx := context.Background()
 
 	resp, err := h.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
-		WalletId:           enfID,
+		WalletId:           elecID,
 		Destinations:       map[string]int64{"addr": 10_000},
 		FeeRateSatPerVbyte: 2,
 		OpReturnHex:        "beef",
@@ -77,12 +79,12 @@ func TestSendTransactionRoutesPerWalletType(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "fake-txid", resp.Msg.Txid)
 
-	assert.Equal(t, enfID, enfFake.lastSendWallet)
-	assert.Equal(t, int64(10_000), enfFake.lastSend.DestinationsSats["addr"])
-	assert.Equal(t, int64(2), enfFake.lastSend.FeeRateSatPerVB)
-	assert.Equal(t, "beef", enfFake.lastSend.OpReturnHex)
-	require.Len(t, enfFake.lastSend.RequiredInputs, 1)
-	assert.Equal(t, wallet.RequiredInput{TxID: "pin", Vout: 3, AmountSats: 40_000}, enfFake.lastSend.RequiredInputs[0])
+	assert.Equal(t, elecID, elecFake.lastSendWallet)
+	assert.Equal(t, int64(10_000), elecFake.lastSend.DestinationsSats["addr"])
+	assert.Equal(t, int64(2), elecFake.lastSend.FeeRateSatPerVB)
+	assert.Equal(t, "beef", elecFake.lastSend.OpReturnHex)
+	require.Len(t, elecFake.lastSend.RequiredInputs, 1)
+	assert.Equal(t, wallet.RequiredInput{TxID: "pin", Vout: 3, AmountSats: 40_000}, elecFake.lastSend.RequiredInputs[0])
 	assert.Empty(t, chainFake.lastSendWallet)
 
 	_, err = h.SendTransaction(ctx, connect.NewRequest(&pb.SendTransactionRequest{
@@ -94,17 +96,17 @@ func TestSendTransactionRoutesPerWalletType(t *testing.T) {
 }
 
 func TestSendTransactionPassesThroughConnectCodes(t *testing.T) {
-	h, enfFake, _, enfID, _ := newRoutedHandler(t)
+	h, elecFake, _, elecID, _ := newRoutedHandler(t)
 
 	// Providers reject unsupported features with their own connect code —
 	// the handler must not rewrap it as internal.
-	enfFake.sendErr = connect.NewError(
+	elecFake.sendErr = connect.NewError(
 		connect.CodeInvalidArgument,
 		errors.New("replay protection is only supported for Bitcoin Core wallets"),
 	)
 
 	_, err := h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
-		WalletId:      enfID,
+		WalletId:      elecID,
 		Destinations:  map[string]int64{"addr": 10_000},
 		ReplayProtect: true,
 	}))
@@ -113,15 +115,15 @@ func TestSendTransactionPassesThroughConnectCodes(t *testing.T) {
 }
 
 func TestSendTransactionDustCheck(t *testing.T) {
-	h, enfFake, _, enfID, _ := newRoutedHandler(t)
+	h, elecFake, _, elecID, _ := newRoutedHandler(t)
 
 	_, err := h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
-		WalletId:     enfID,
+		WalletId:     elecID,
 		Destinations: map[string]int64{"addr": 100},
 	}))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-	assert.Empty(t, enfFake.lastSendWallet)
+	assert.Empty(t, elecFake.lastSendWallet)
 }
 
 func TestGetBalanceUsesProviderAndConvertsToSats(t *testing.T) {

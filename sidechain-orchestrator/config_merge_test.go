@@ -87,4 +87,3 @@ func TestMergeWithEmbedded_OverlayWinsForLeafScalars(t *testing.T) {
 		t.Error("is_bitcoin_core fell through as false")
 	}
 }
-
