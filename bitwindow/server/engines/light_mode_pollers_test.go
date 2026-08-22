@@ -2,6 +2,7 @@ package engines_test
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -104,4 +106,70 @@ func TestNotificationEngineWatchesOnlyInFullMode(t *testing.T) {
 			}
 		})
 	}
+}
+
+// bitcoindWithMempool answers the reap and refuses the block tick, so only the
+// mempool sweep counts.
+func bitcoindWithMempool(t *testing.T, sweeps *atomic.Int64) *service.Service[corerpc.BitcoinServiceClient] {
+	t.Helper()
+	client := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	client.EXPECT().
+		GetRawMempool(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		DoAndReturn(func(context.Context, *connect.Request[corepb.GetRawMempoolRequest]) (*connect.Response[corepb.GetRawMempoolResponse], error) {
+			sweeps.Add(1)
+			return connect.NewResponse(&corepb.GetRawMempoolResponse{}), nil
+		})
+	client.EXPECT().
+		GetBlockHash(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(nil, errors.New("no chain in this test"))
+
+	return service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+		return client, nil
+	})
+}
+
+// bitwindowd starts the orchestrator, so the first mode read of a full-mode
+// install often fails. A sweep tied to that read waits a whole hour, and the
+// expired rows it drops sit in the table meanwhile.
+func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	orch := mocks.NewMockWalletManagerServiceClient(ctrl)
+	gomock.InOrder(
+		orch.EXPECT().
+			GetNodeMode(gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("orchestrator is starting")),
+		orch.EXPECT().
+			GetNodeMode(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[orchpb.GetNodeModeResponse]{
+				Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
+			}, nil),
+	)
+	nodeMode := engines.NewNodeMode()
+	nodeMode.SetClient(orch)
+
+	// The sweep reads the mempool only when an expired row waits for it.
+	db := database.Test(t)
+	_, err := db.ExecContext(context.Background(), `
+		INSERT INTO op_returns (txid, vout, op_return_data, fee_sats, height, created_at)
+		VALUES ('dead', 0, 'beef', 1, NULL, datetime('now', '-30 days'))
+	`)
+	require.NoError(t, err)
+
+	var sweeps atomic.Int64
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps), db, config.Config{})
+	parser.SetNodeMode(nodeMode)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+	require.NoError(t, parser.Run(ctx))
+
+	// Once, and once only — the hourly ticker never fires in this window.
+	require.Equal(t, int64(1), sweeps.Load())
+
+	var left int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM op_returns`).Scan(&left))
+	require.Zero(t, left)
 }
