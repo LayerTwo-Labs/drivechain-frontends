@@ -13,6 +13,7 @@ import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/signing/psbt_signer.dart';
 import 'package:bitwindow/signing/sign_and_broadcast.dart';
 import 'package:bitwindow/widgets/multisig_sign_panel.dart';
+import 'package:bitwindow/widgets/replay_protection_dialog.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
@@ -130,7 +131,11 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
     if (walletId == null) {
       return;
     }
-    final psbt = await viewModel.buildUnsignedPsbtForAirgap(context);
+    final replayProtect = await viewModel.askReplayProtect(context);
+    if (replayProtect == null || !context.mounted) {
+      return;
+    }
+    final psbt = await viewModel.buildUnsignedPsbtForAirgap(context, replayProtect: replayProtect);
     if (psbt == null || !context.mounted) {
       return;
     }
@@ -739,12 +744,46 @@ class SendPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// Coins this send may spend that also exist unspent on the other chain, so
+  /// spending them here replays the same transaction there.
+  List<UnspentOutput> get splittableInputs => splittableAmong(selectedUtxos, availableUtxos);
+
+  /// The coins of a send that exist on both chains. An empty selection means
+  /// the backend picks, so every available coin counts.
+  static List<UnspentOutput> splittableAmong(List<UnspentOutput> selected, List<UnspentOutput> available) {
+    final source = selected.isNotEmpty ? selected : available;
+    return source.where((u) => u.hasSplittable() && u.splittable).toList();
+  }
+
+  /// Asks about replay protection when the send spends a coin that exists on
+  /// both chains. Returns null when the user cancels.
+  Future<bool?> askReplayProtect(BuildContext context) async {
+    final splittable = splittableInputs;
+    if (splittable.isEmpty) {
+      return false;
+    }
+    final choice = await askReplayProtection(context, coins: splittable);
+    switch (choice) {
+      case ReplayChoice.cancel:
+        return null;
+      case ReplayChoice.sendPlain:
+        return false;
+      case ReplayChoice.sendProtected:
+        return true;
+    }
+  }
+
   Future<void> sendTransaction(BuildContext context) async {
+    final replayProtect = await askReplayProtect(context);
+    if (replayProtect == null || !context.mounted) {
+      return;
+    }
+
     // Multisig never auto-signs: save the PSBT as a draft and open its tab,
     // where each keystore signs explicitly and broadcast happens once the
     // threshold is met.
     if (isMultisig) {
-      await _createMultisigDraft(context);
+      await _createMultisigDraft(context, replayProtect: replayProtect);
       return;
     }
 
@@ -796,6 +835,7 @@ class SendPageViewModel extends BaseViewModel {
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
+        replayProtect: replayProtect,
       )).txid;
       await clearAll();
       log.d('Sent transaction: txid=$txid');
@@ -823,13 +863,13 @@ class SendPageViewModel extends BaseViewModel {
   /// Build the PSBT for a multisig send, save it as a draft, and switch to
   /// its tab at once. Reuses the airgap PSBT builder (validates
   /// recipients/fee and calls createPsbt).
-  Future<void> _createMultisigDraft(BuildContext context) async {
+  Future<void> _createMultisigDraft(BuildContext context, {bool replayProtect = false}) async {
     final walletId = activeWalletId;
     if (walletId == null) {
       return;
     }
     final generation = draftProvider.generation;
-    final psbt = await buildUnsignedPsbtForAirgap(context);
+    final psbt = await buildUnsignedPsbtForAirgap(context, replayProtect: replayProtect);
     if (psbt == null) {
       return;
     }
@@ -863,7 +903,7 @@ class SendPageViewModel extends BaseViewModel {
   /// Build an unsigned PSBT from the current recipients/fee/coin-selection for
   /// an external (airgap) signer. Returns base64, or null after surfacing an
   /// error toast.
-  Future<String?> buildUnsignedPsbtForAirgap(BuildContext context) async {
+  Future<String?> buildUnsignedPsbtForAirgap(BuildContext context, {bool replayProtect = false}) async {
     final missingAddress = recipients.indexWhere((r) => r.addressController.text.trim().isEmpty);
     if (missingAddress != -1) {
       showSailToast(context, 'Please enter an address for all recipients.');
@@ -899,6 +939,7 @@ class SendPageViewModel extends BaseViewModel {
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
+        replayProtect: replayProtect,
       );
     } catch (error) {
       log.e('Error building unsigned PSBT: $error');
