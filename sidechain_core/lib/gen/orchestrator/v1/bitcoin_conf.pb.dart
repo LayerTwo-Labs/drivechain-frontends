@@ -648,7 +648,7 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     $core.String? toId,
     $core.int? rewindHeight,
     $core.bool? needsRollback,
-    $core.bool? mustWipe,
+    $core.bool? blocked,
   }) {
     final $result = create();
     if (fromId != null) {
@@ -663,8 +663,8 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     if (needsRollback != null) {
       $result.needsRollback = needsRollback;
     }
-    if (mustWipe != null) {
-      $result.mustWipe = mustWipe;
+    if (blocked != null) {
+      $result.blocked = blocked;
     }
     return $result;
   }
@@ -681,7 +681,7 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'toId')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'rewindHeight', $pb.PbFieldType.OU3)
     ..aOB(4, _omitFieldNames ? '' : 'needsRollback')
-    ..aOB(5, _omitFieldNames ? '' : 'mustWipe')
+    ..aOB(5, _omitFieldNames ? '' : 'blocked')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -755,18 +755,19 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearNeedsRollback() => clearField(4);
 
-  /// True when the old blocks cannot stay and the switch resyncs the chain.
+  /// True when the switch cannot run: neither network publishes the fork height
+  /// that says where the chains part, so no rewind reaches shared history.
   @$pb.TagNumber(5)
-  $core.bool get mustWipe => $_getBF(4);
+  $core.bool get blocked => $_getBF(4);
   @$pb.TagNumber(5)
-  set mustWipe($core.bool v) {
+  set blocked($core.bool v) {
     $_setBool(4, v);
   }
 
   @$pb.TagNumber(5)
-  $core.bool hasMustWipe() => $_has(4);
+  $core.bool hasBlocked() => $_has(4);
   @$pb.TagNumber(5)
-  void clearMustWipe() => clearField(5);
+  void clearBlocked() => clearField(5);
 }
 
 class TakeNewNetworksRequest extends $pb.GeneratedMessage {

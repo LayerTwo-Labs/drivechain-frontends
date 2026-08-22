@@ -417,62 +417,6 @@ var coreChainDataNames = []string{
 	"mempool.dat", "peers.dat", "settings.json",
 }
 
-// unreadableChainPaths returns the chain paths os.Stat refuses for a reason
-// other than "not there".
-func unreadableChainPaths(dir string) []string {
-	var unreadable []string
-	for _, name := range coreChainDataNames {
-		p := filepath.Join(dir, name)
-		if _, err := os.Stat(p); err != nil && !os.IsNotExist(err) {
-			unreadable = append(unreadable, p)
-		}
-	}
-	return unreadable
-}
-
-// WipeNetworkScopedChainDataSync wipes Bitcoin Core's blocks for network.
-//
-// Core only: sidechains share one flat datadir across networks, the enforcer
-// maps eCash and mainnet onto the same validator dir, and bitwindow.db holds
-// the address book, notes, labels and multisig records that no chain rebuilds.
-// bitwindowd drops its own block-derived rows when the tip falls below them.
-// It reports whether every path left the live layout. A rename that could not
-// run falls back to an in-place delete on a goroutine, and a caller that records
-// the wipe as done would leave a live Core over blocks that are still there.
-func WipeNetworkScopedChainDataSync(network Network, bitcoinDatadirOverride string, log zerolog.Logger) error {
-	var doomed []string
-	var stuck []string
-	for _, dc := range AllDirConfigs() {
-		if dc.BinaryName != "bitcoind" {
-			continue
-		}
-		networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
-		// A path that exists but cannot be read is omitted from the list below,
-		// so without this a wipe over an unreadable volume reads as done and
-		// the blocks stay live with no record left to retry them.
-		if unreadable := unreadableChainPaths(networkDir); len(unreadable) > 0 {
-			return fmt.Errorf("could not read: %s", strings.Join(unreadable, ", "))
-		}
-		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
-			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
-			doomed = append(doomed, orphans...)
-			aside := renameAside(p, log)
-			if aside == p {
-				// renameAside returns the live path when it could not move it.
-				stuck = append(stuck, p)
-			}
-			if aside != "" {
-				doomed = append(doomed, aside)
-			}
-		}
-	}
-	go DeleteFilesWithRetry(doomed, log)
-	if len(stuck) > 0 {
-		return fmt.Errorf("could not move aside: %s", strings.Join(stuck, ", "))
-	}
-	return nil
-}
-
 // WipeEnforcerChainDataSync wipes the enforcer's validator and block state for
 // network, leaving its wallet. The enforcer keeps one chain per network, not
 // per generation, so a eCash network rollover — which stays on eCash and

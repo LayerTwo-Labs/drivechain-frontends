@@ -7,16 +7,20 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// What a move between two eCash networks does to the chain on disk. The
-/// backend rewinds to the fork when both networks publish one, so the blocks
-/// below it stay and only the new fork downloads.
+/// backend rewinds to the block both networks share, so the blocks below it
+/// stay and only the new fork downloads. It never deletes chain data.
 String ecashChainCostLine(PlanECashSwitchResponse? plan, String fromId, String toId, {bool manualConf = false}) {
+  if (plan != null && plan.blocked) {
+    return '\u2022 This switch cannot run: neither network publishes the fork height '
+        'that says where the chains part.';
+  }
   // A manual switch has no backend to rewind for it: the steps below tell the
-  // user to delete blocks/ and chainstate/ by hand.
-  if (!manualConf && plan != null && plan.needsRollback && !plan.mustWipe) {
+  // user to move the chain themselves.
+  if (!manualConf && plan != null && plan.needsRollback) {
     return '\u2022 The chain rewinds to block ${plan.rewindHeight}. Blocks below it are kept, '
         'so only $toId\u2019s own blocks download.';
   }
-  return '\u2022 The $fromId chain is deleted; $toId syncs from scratch.';
+  return '\u2022 $toId syncs from the block it shares with $fromId.';
 }
 
 /// Asks before a move between two eCash networks and states what it costs.
@@ -41,6 +45,9 @@ Future<bool> confirmECashSwitch(BuildContext context, String toId) async {
     return false;
   }
   final fromId = plan?.fromId ?? 'the current network';
+  // The backend refuses a blocked switch, so the dialog states it and offers
+  // no button that would fail.
+  final blocked = plan?.blocked ?? false;
   final go = await showThemedDialog<bool>(
     context: context,
     builder: (context) => SailDialog(
@@ -48,11 +55,11 @@ Future<bool> confirmECashSwitch(BuildContext context, String toId) async {
       subtitle: '$toId is a separate chain, not a continuation of $fromId.',
       actions: [
         SailButton(
-          label: 'Cancel',
-          variant: ButtonVariant.secondary,
+          label: blocked ? 'Close' : 'Cancel',
+          variant: blocked ? ButtonVariant.primary : ButtonVariant.secondary,
           onPressed: () async => Navigator.of(context).pop(false),
         ),
-        SailButton(label: 'Switch to $toId', onPressed: () async => Navigator.of(context).pop(true)),
+        if (!blocked) SailButton(label: 'Switch to $toId', onPressed: () async => Navigator.of(context).pop(true)),
       ],
       child: SailColumn(
         spacing: SailStyleValues.padding12,
@@ -226,6 +233,10 @@ class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
   /// the fork or resyncs. Null until it answers.
   PlanECashSwitchResponse? _plan;
 
+  /// True when the backend reports the switch cannot run, so the dialog offers
+  /// no button that would fail.
+  bool get _blocked => _plan?.blocked ?? false;
+
   @override
   void initState() {
     super.initState();
@@ -330,6 +341,9 @@ class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
     final theme = SailTheme.of(context);
     final p = _pending;
     final busy = _progress.isNotEmpty && _error == null;
+    // The backend refuses a blocked switch, so offering the button would send
+    // the user into a failure it already knows about.
+    final blocked = _blocked;
 
     return SailDialog(
       title: 'Switch to ${p.pendingNetworkId}',
@@ -337,11 +351,11 @@ class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
       error: _error,
       actions: [
         SailButton(
-          label: p.userManagedConf ? 'Close' : 'Cancel',
-          variant: p.userManagedConf ? ButtonVariant.primary : ButtonVariant.secondary,
+          label: p.userManagedConf || blocked ? 'Close' : 'Cancel',
+          variant: p.userManagedConf || blocked ? ButtonVariant.primary : ButtonVariant.secondary,
           onPressed: () async => Navigator.of(context).pop(false),
         ),
-        if (!p.userManagedConf)
+        if (!p.userManagedConf && !blocked)
           SailButton(
             label: 'Switch to ${p.pendingNetworkId}',
             loading: busy,
@@ -377,7 +391,11 @@ class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
       'Your own bitcoin.conf decides which eCash network this node runs, so the switch is yours to make:',
     ),
     SailText.secondary13('• Set uacomment=ecash-${p.pendingNetworkId} and addnode=${p.pendingPeer} under [main].'),
-    SailText.secondary13('• Delete blocks/ and chainstate/ from your eCash datadir.'),
+    if (_plan != null && _plan!.rewindHeight > 0)
+      SailText.secondary13(
+        '• Roll the chain back to block ${_plan!.rewindHeight} from the Chain tab. Keep blocks/ and '
+        'chainstate/ — every block below that one is shared with ${p.pendingNetworkId}.',
+      ),
     SailText.secondary13('• Restart BitWindow.'),
   ];
 }

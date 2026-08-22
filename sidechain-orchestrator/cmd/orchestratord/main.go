@@ -280,20 +280,8 @@ func run(cctx *cli.Context) error {
 		return fmt.Errorf("restore parked network-swap state: %w", err)
 	}
 
-	// A switch that journalled a wipe and died before making it. Here, because
-	// the delete renames Core's blocks aside and nothing has started yet.
-	if err := orch.ApplyPendingECashWipe(ctx); err != nil {
-		return fmt.Errorf("apply the eCash wipe a switch left behind: %w", err)
-	}
 	if err := orch.ApplyPendingEnforcerWipe(); err != nil {
 		return fmt.Errorf("apply the enforcer cleanup a switch left behind: %w", err)
-	}
-
-	// A Core adopted from the previous run answers already, so the drop can be
-	// made here. Before the listener binds: serving the target generation over
-	// the retired fork is what the drop exists to stop.
-	if err := orch.ApplyPendingRewindToAdoptedCore(ctx); err != nil {
-		return fmt.Errorf("apply the eCash rewind a switch left behind: %w", err)
 	}
 
 	// Set up gRPC/ConnectRPC server
