@@ -291,8 +291,8 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
       );
     }
 
-    final error = viewModel.isUsingBitcoinCoreWallet
-        ? 'Switch to your enforcer wallet to add or remove sidechains'
+    final error = viewModel.sidechainsUnavailable
+        ? 'Sidechains need full mode. Switch it on in Settings.'
         : viewModel.error('sidechain');
 
     return SailCard(
@@ -323,7 +323,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             Center(
               child: SailButton(
                 label: 'Add / Remove',
-                onPressed: viewModel.isUsingBitcoinCoreWallet
+                onPressed: viewModel.sidechainsUnavailable
                     ? null
                     : () => showSidechainActivationManagementModal(context),
               ),
@@ -417,7 +417,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                             label: '',
                             icon: SailSVGAsset.settings,
                             insideTable: true,
-                            onPressed: viewModel.isUsingBitcoinCoreWallet
+                            onPressed: viewModel.sidechainsUnavailable
                                 ? null
                                 : () async {
                                     await showThemedDialog(
@@ -581,7 +581,7 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                       label: '',
                       icon: SailSVGAsset.settings,
                       insideTable: true,
-                      onPressed: viewModel.isUsingBitcoinCoreWallet
+                      onPressed: viewModel.sidechainsUnavailable
                           ? null
                           : () async {
                               await showThemedDialog(
@@ -827,13 +827,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
 
-  bool get isUsingBitcoinCoreWallet {
-    final activeWallet = _walletReader.activeWallet;
-    if (activeWallet == null) {
-      return false;
-    }
-    return activeWallet.walletType == BinaryType.BINARY_TYPE_BITCOIND && !activeWallet.isWatchOnly;
-  }
+  /// Sidechains need the local enforcer, which only full mode runs. The wallet
+  /// backend does not decide this — light mode with any wallet cannot serve them.
+  bool get sidechainsUnavailable => !NodeModeProvider.runsLocalBackends;
 
   String? _depositWalletId;
 
@@ -955,8 +951,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return null;
     }
 
-    // Disable all interactions when using Bitcoin Core wallet
-    if (isUsingBitcoinCoreWallet) {
+    if (sidechainsUnavailable) {
       return SailButton(
         key: ValueKey('disabled_slot_${sidechain.slot}_${sidechain.name}'),
         label: 'Disabled',
@@ -1634,10 +1629,10 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    final isDisabled = viewModel.isUsingBitcoinCoreWallet;
+    final isDisabled = viewModel.sidechainsUnavailable;
 
     return SailCard(
-      error: isDisabled ? 'Switch to your enforcer wallet to interact with sidechains' : null,
+      error: isDisabled ? 'Sidechains need full mode. Switch it on in Settings.' : null,
       bottomPadding: false,
       child: const RecentWithdrawalsTable(),
     );

@@ -212,7 +212,7 @@ class WalletWriterProvider extends ChangeNotifier {
       return walletData;
     }
 
-    final walletName = name?.trim().isNotEmpty == true ? name!.trim() : 'Enforcer Wallet';
+    final walletName = name?.trim().isNotEmpty == true ? name!.trim() : 'My Wallet';
     final result = await generateWallet(
       name: walletName,
       customMnemonic: walletData['mnemonic'] as String,

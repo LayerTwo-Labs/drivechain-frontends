@@ -194,7 +194,7 @@ class CLIConsole {
   /// gRPC. Usage:
   ///
   /// `enforcer-cli cusf.mainchain.v1.ValidatorService/GetChainTip`
-  /// `enforcer-cli cusf.mainchain.v1.WalletService/GetBalance {}`
+  /// `enforcer-cli cusf.mainchain.v1.ValidatorService/GetSidechains {}`
   static ConsoleService? _buildEnforcerService() {
     if (!GetIt.I.isRegistered<EnforcerRPC>()) {
       return null;
