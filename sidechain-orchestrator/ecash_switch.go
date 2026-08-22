@@ -21,16 +21,17 @@ type ECashSwitchPlan struct {
 	RewindHeight uint32
 	// NeedsRollback is false when nothing on disk belongs to the old network.
 	NeedsRollback bool
-	// MustWipe means the old chain has to go: it belongs to another eCash fork,
-	// and no published fork height says where the two part.
-	MustWipe bool
+	// Blocked means the switch cannot run: the blocks on disk belong to another
+	// eCash fork and no published fork height says where the two part, so
+	// nothing can roll back to shared history. Chain data is never deleted.
+	Blocked bool
 }
 
 // PlanECashSwitch works out how to reach another eCash network from the one
 // this install runs. Both networks fork mainnet, so every block below the lower
 // fork height is shared history: a rewind to that height keeps it and drops
-// only what the retired fork added. MustWipe says no published fork height
-// tells the two apart, so the old blocks cannot stay.
+// only what the retired fork added. Blocked says no published fork height
+// tells the two apart, so there is no shared block to roll back to.
 //
 // It prices the move from another network too. The chain is cold there and no
 // Core answers, but the drop is recorded rather than made, so the blocks below
@@ -53,9 +54,9 @@ func (o *Orchestrator) PlanECashSwitch(toID string) (ECashSwitchPlan, error) {
 	}
 	from, ok := o.ecashEntry(fromID)
 	if !ok || from.ForkHeight <= 0 || to.ForkHeight <= 0 {
-		// The blocks on disk belong to another fork and nothing says where the
-		// chains part, so they cannot stay.
-		plan.MustWipe = true
+		// Nothing says where the chains part, so no rewind can reach shared
+		// history. The switch stops rather than cost the user their blocks.
+		plan.Blocked = true
 		return plan, nil
 	}
 	shared := from.ForkHeight
@@ -65,7 +66,7 @@ func (o *Orchestrator) PlanECashSwitch(toID string) (ECashSwitchPlan, error) {
 	// The fork height is the first block of the fork, so the chain ends one
 	// below it.
 	if shared <= 1 {
-		plan.MustWipe = true
+		plan.Blocked = true
 		return plan, nil
 	}
 	plan.RewindHeight = uint32(shared - 1)
@@ -155,6 +156,13 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	if plan.FromID == toID {
 		return nil
 	}
+	if plan.Blocked {
+		return fmt.Errorf(
+			"cannot switch from %s to %s: neither publishes the fork height that says where the chains part, "+
+				"so nothing can roll back to a block they share",
+			plan.FromID, toID,
+		)
+	}
 
 	bitcoindWasRunning := o.process.IsRunning("bitcoind")
 	enforcerWasRunning := o.process.IsRunning("enforcer")
@@ -181,10 +189,6 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		}
 	}
 
-	// The rewind needs the live Core that the stop below takes away. A Core
-	// already down leaves nothing to talk to, so the old blocks go instead —
-	// correct, and slower.
-	wipe := plan.MustWipe
 	dropped := ""
 	if plan.NeedsRollback {
 		hash, err := o.rewindBelowTheFork(ctx, plan.RewindHeight)
@@ -192,38 +196,29 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		case err == nil:
 			dropped = hash
 		case errors.Is(err, errNoLiveCore):
-			// Deleting here would cost every block below the fork, which both
-			// networks still agree on. Leave the drop for the first boot that
-			// has a Core to make it with.
-			if o.Settings == nil {
+			// A mark an earlier switch set bars a block on the chain this one
+			// lands on, and only a live Core can lift it. Going on would leave
+			// Core unable to pass the fork with nothing to say why.
+			if o.Settings != nil && o.Settings.RewoundBlockHash() != "" {
 				o.restartAfterAbort(ctx, restartL1, stoppedL2)
-				return fmt.Errorf("no bitcoin core to rewind to block %d and nowhere to record it", plan.RewindHeight)
+				return fmt.Errorf(
+					"start bitcoin core first: block %s stays barred from an earlier switch, and only a live core lifts it",
+					o.Settings.RewoundBlockHash(),
+				)
 			}
-			if err := o.recordPendingRewind(plan.FromID, toID); err != nil {
-				o.restartAfterAbort(ctx, restartL1, stoppedL2)
-				return fmt.Errorf("record the deferred rewind to block %d: %w", plan.RewindHeight, err)
-			}
+			// Nothing is barred, so the chain stays as it is. Core follows the
+			// new network once it runs, and the blocks below the fork are shared.
 			o.log.Warn().Uint32("rewind_height", plan.RewindHeight).
-				Msg("no live bitcoin core to rewind, the next boot drops the retired branch")
+				Msg("no live bitcoin core, so the chain is not rewound")
 		default:
 			o.restartAfterAbort(ctx, restartL1, stoppedL2)
 			return fmt.Errorf("rewind to block %d: %w", plan.RewindHeight, err)
 		}
 	}
 
-	// A mandatory wipe is journalled before the target is committed. Past that
-	// point a retry reads FromID == ToID, skips this call, and would start Core
-	// over the retired chain with the work forgotten.
 	if o.Settings != nil {
-		if wipe {
-			if err := o.recordPendingRewind(plan.FromID, toID); err != nil {
-				o.restartAfterAbort(ctx, restartL1, stoppedL2)
-				return fmt.Errorf("journal the wipe for %s: %w", toID, err)
-			}
-		}
-		// The enforcer chain goes on every switch, rewind or wipe. Journalled
-		// for the same reason: past the commit below a retry reads
-		// FromID == ToID and skips this call.
+		// The enforcer chain goes on every switch. Journalled because past the
+		// commit below a retry reads FromID == ToID and skips this call.
 		if err := o.Settings.SetPendingEnforcerWipe(toID); err != nil {
 			o.restartAfterAbort(ctx, restartL1, stoppedL2)
 			return fmt.Errorf("journal the enforcer cleanup for %s: %w", toID, err)
@@ -289,21 +284,6 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	if o.WalletSvc != nil {
 		o.WalletSvc.ClearNetworkScans(string(config.NetworkECash))
 	}
-	if wipe {
-		// Both failures below stop the switch before the stack comes back up.
-		// A Core started over the retired chain is what the wipe exists to
-		// stop, and a journal left behind makes the next start wipe the chain
-		// this one downloads. The record survives either way, so a retry or the
-		// next start finishes the job.
-		if err := config.WipeNetworkScopedChainDataSync(config.NetworkECash, o.ecashDatadir(), o.log); err != nil {
-			return fmt.Errorf("clear the retired %s chain: %w", plan.FromID, err)
-		}
-		if o.Settings != nil {
-			if err := o.Settings.SetPendingRewind(nil); err != nil {
-				return fmt.Errorf("clear the journalled eCash wipe: %w", err)
-			}
-		}
-	}
 	if err := o.ApplyPendingEnforcerWipe(); err != nil {
 		return err
 	}
@@ -316,31 +296,6 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		Msg("switched eCash network")
 
 	return o.finishNetworkSwap(config.NetworkECash, restartL1)
-}
-
-// recordPendingRewind stores a drop for the next live Core, or clears one that
-// the move makes moot.
-//
-// FromID always names the network the blocks on disk belong to, which the first
-// record fixes. A later switch changes only the target: the chain has not moved
-// while no Core ran, so a record that took its source from the last pick would
-// aim the drop at the very fork it lands on.
-func (o *Orchestrator) recordPendingRewind(fromID, toID string) error {
-	if existing := o.Settings.PendingRewind(); existing != nil && existing.FromID != "" {
-		fromID = existing.FromID
-	}
-	// Back to the chain on disk: nothing to drop.
-	if fromID == toID {
-		return o.Settings.SetPendingRewind(nil)
-	}
-	height, ok := o.sharedECashHeight(fromID, toID)
-	if !ok {
-		// Nothing says where the two forks part, so the old chain cannot stay.
-		// It is still journalled: a crash before the delete would otherwise
-		// leave the target's conf over the source fork.
-		return o.Settings.SetPendingRewind(&PendingRewind{FromID: fromID, ToID: toID, Wipe: true})
-	}
-	return o.Settings.SetPendingRewind(&PendingRewind{FromID: fromID, ToID: toID, Height: height})
 }
 
 // applyPendingEnforcerWipe clears the enforcer chain a switch journalled, and
@@ -380,118 +335,6 @@ func (o *Orchestrator) ApplyPendingEnforcerWipe() error {
 	if err := o.Settings.SetPendingEnforcerWipe(""); err != nil {
 		return fmt.Errorf("clear the journalled enforcer cleanup: %w", err)
 	}
-	return nil
-}
-
-// ApplyPendingRewindToAdoptedCore makes a journalled drop against a Core that
-// outlived the previous run, and stops that Core when it cannot.
-//
-// A switch that died between its journal and its Core stop leaves exactly that:
-// a live Core on the retired fork under a conf naming the target. Nothing else
-// reaches it, because the deferred hook only rides a start this process makes.
-func (o *Orchestrator) ApplyPendingRewindToAdoptedCore(ctx context.Context) error {
-	if o.Settings == nil {
-		return nil
-	}
-	record := o.Settings.PendingRewind()
-	if record == nil || record.Wipe || record.Height == 0 {
-		return nil
-	}
-	if !o.process.IsRunning("bitcoind") && !o.coreRPCReachable() {
-		return nil
-	}
-	if err := o.ApplyPendingECashRewind(ctx); err != nil {
-		if stopErr := o.process.Stop(ctx, "bitcoind", true); stopErr != nil {
-			o.log.Error().Err(stopErr).Msg("could not stop the adopted bitcoind after the rewind failed")
-		}
-		return err
-	}
-	return nil
-}
-
-// ApplyPendingECashWipe deletes a chain a switch journalled but never got to.
-// It runs before any binary starts: the delete renames Core's blocks aside, and
-// a live Core over that is a corrupt datadir.
-func (o *Orchestrator) ApplyPendingECashWipe(ctx context.Context) error {
-	if o.Settings == nil {
-		return nil
-	}
-	record := o.Settings.PendingRewind()
-	if record == nil || !record.Wipe {
-		return nil
-	}
-	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		return nil
-	}
-	o.mu.RLock()
-	running := o.ecashID
-	o.mu.RUnlock()
-	if running != record.ToID {
-		o.log.Info().
-			Str("recorded_for", record.ToID).
-			Str("running", running).
-			Msg("the eCash selection moved on, dropping the wipe a switch left behind")
-		return o.Settings.SetPendingRewind(nil)
-	}
-	if o.coreRPCReachable() {
-		return fmt.Errorf("a bitcoin core is running over the retired %s chain — stop it first", record.FromID)
-	}
-	if err := config.WipeNetworkScopedChainDataSync(config.NetworkECash, o.ecashDatadir(), o.log); err != nil {
-		// Keep the record and stop the boot. Clearing it would let Core open
-		// the retired chain under the target's conf with nothing left to retry.
-		return fmt.Errorf("clear the retired %s chain: %w", record.FromID, err)
-	}
-	if err := o.ApplyPendingEnforcerWipe(); err != nil {
-		return err
-	}
-	if err := o.Settings.SetPendingRewind(nil); err != nil {
-		return fmt.Errorf("clear the journalled eCash wipe: %w", err)
-	}
-	o.log.Info().Str("previous", record.FromID).Str("current", record.ToID).
-		Msg("cleared the eCash chain a switch left behind")
-	return nil
-}
-
-// ApplyPendingECashRewind makes the drop a switch could not make itself.// ApplyPendingECashRewind makes the drop a switch could not make itself. It runs
-// once Core answers and before the enforcer starts, so nothing indexes the
-// branch this leaves.
-func (o *Orchestrator) ApplyPendingECashRewind(ctx context.Context) error {
-	if o.Settings == nil {
-		return nil
-	}
-	record := o.Settings.PendingRewind()
-	// A journalled wipe belongs to ApplyPendingECashWipe, which runs before
-	// Core does. By here Core holds the datadir open.
-	if record == nil || record.Wipe || record.Height == 0 {
-		return nil
-	}
-	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		return nil
-	}
-	o.mu.RLock()
-	running := o.ecashID
-	o.mu.RUnlock()
-
-	// A selection that went back to where it started leaves this drop pointed
-	// at the fork now on disk. Making it would bar that fork's own first block
-	// and park Core below it for good.
-	if running != record.ToID {
-		o.log.Info().
-			Str("recorded_for", record.ToID).
-			Str("running", running).
-			Msg("the eCash selection moved on, dropping the rewind a switch left behind")
-		return o.Settings.SetPendingRewind(nil)
-	}
-
-	if _, err := o.rewindBelowTheFork(ctx, record.Height); err != nil {
-		// Keep the record: the next boot tries again rather than opening the
-		// retired branch as the network the conf names.
-		return fmt.Errorf("apply the deferred rewind to block %d: %w", record.Height, err)
-	}
-	// The rewind cleared the record in the same write that recorded its outcome,
-	// so a crash here leaves nothing to retry.
-	o.log.Info().Uint32("height", record.Height).Str("network", record.ToID).
-		Msg("applied the eCash rewind a switch left behind")
 	return nil
 }
 
@@ -535,11 +378,8 @@ func (o *Orchestrator) rewindBelowTheFork(ctx context.Context, height uint32) (s
 	o.clearedMark = previous
 
 	// A drop nobody recorded cannot be taken back, and the next switch would bar
-	// this branch too — leaving Core under the fork with neither to follow.
-	//
-	// It runs for an empty hash too. A chain already below the fork bars
-	// nothing, and this write is what clears the drop waiting on it; without it
-	// Core syncs past the fork and the next boot bars the target's own block.
+	// this branch too — leaving Core under the fork with neither to follow. It
+	// runs for an empty hash too, which records that nothing is barred.
 	if o.Settings != nil {
 		if err := o.Settings.CommitRewind(hash); err != nil {
 			o.restoreRewind(ctx, hash)

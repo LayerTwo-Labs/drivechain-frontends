@@ -95,11 +95,10 @@ func TestConfirmMovesTheChainToMatchTheConf(t *testing.T) {
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
 	require.Equal(t, "drynet3", config.ECashNetworkID())
-	// No live Core answers in a test, so the drop waits for the next boot. The
-	// blocks stay either way: both networks keep everything below the fork.
+	// No live Core answers in a test, so no rewind runs. The blocks stay either
+	// way: both networks keep everything below the fork.
 	_, err := os.Stat(filepath.Join(datadir, "blocks", "data"))
 	require.NoError(t, err, "the blocks below the fork must survive the switch")
-	require.NotNil(t, o.Settings.PendingRewind(), "the drop must be recorded")
 }
 
 // The published network lives only in the pending document until a confirm
@@ -118,170 +117,9 @@ func TestPlanReadsANetworkFromThePendingCatalog(t *testing.T) {
 	require.Equal(t, "drynet3", plan.ToID)
 }
 
-// A selection that goes back where it started leaves the recorded drop pointed
-// at the fork now on disk. Making it would bar that fork's own first block.
-func TestDeferredRewindIsDroppedWhenTheSelectionReverses(t *testing.T) {
-	o := ecashInstall(t)
-	o.adoptCatalog(ecashCatalog(), "drynet4")
-	require.NoError(t, o.Settings.SetPendingRewind(
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}))
-
-	require.NoError(t, o.ApplyPendingECashRewind(context.Background()))
-
-	require.Nil(t, o.Settings.PendingRewind(), "a drop for a network we no longer run must go")
-}
-
-// The drop still runs when the selection stands.
-func TestDeferredRewindRunsForTheSelectedNetwork(t *testing.T) {
-	o := ecashInstall(t)
-	o.adoptCatalog(ecashCatalog(), "alphanet")
-	require.NoError(t, o.Settings.SetPendingRewind(
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}))
-
-	// No Core answers, so the drop cannot be made and the record must survive
-	// for the next boot.
-	require.Error(t, o.ApplyPendingECashRewind(context.Background()))
-	require.NotNil(t, o.Settings.PendingRewind(), "an unmade drop must outlive the boot")
-}
-
-// Two switches with no Core between them: A -> B, then B -> A. The blocks are
-// still A's, so the record must go. Taking the source from the last pick would
-// aim the drop at A's own first fork block.
-func TestTwoDeferredSwitchesBackToTheChainOnDiskClearTheRecord(t *testing.T) {
-	o := ecashInstall(t)
-	o.adoptCatalog(ecashCatalog(), "drynet4")
-
-	require.NoError(t, o.recordPendingRewind("drynet4", "alphanet"))
-	require.Equal(t,
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631},
-		o.Settings.PendingRewind())
-
-	require.NoError(t, o.recordPendingRewind("alphanet", "drynet4"))
-
-	require.Nil(t, o.Settings.PendingRewind(), "back on the chain on disk, so nothing to drop")
-}
-
-// A third network keeps the original source: the blocks never moved.
-func TestDeferredSwitchesKeepTheNetworkTheBlocksBelongTo(t *testing.T) {
-	o := ecashInstall(t)
-	o.adoptCatalog(ecashCatalog(), "drynet4")
-
-	require.NoError(t, o.recordPendingRewind("drynet4", "alphanet"))
-	require.NoError(t, o.recordPendingRewind("alphanet", "alphanet2"))
-
-	record := o.Settings.PendingRewind()
-	require.NotNil(t, record)
-	require.Equal(t, "drynet4", record.FromID, "the source is what is on disk, not the last pick")
-	require.Equal(t, "alphanet2", record.ToID)
-}
-
-// The pick is durable before the drop is. Leaving it while the drop went
-// unrecorded lets a later boot serve the target over the source fork with
-// nothing to invalidate it.
-func TestSelectECashNetworkPutsThePickBackWhenTheDropCannotBeRecorded(t *testing.T) {
-	o := ecashInstall(t)
-	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkSignet))
-	// No fork height tells the two apart, so the drop cannot be recorded; and
-	// with no bitcoin config the delete that would replace it cannot run.
-	o.adoptCatalog(catalogWithECash(t, "alphanet"), "drynet4")
-	o.Catalog.Networks = append(o.Catalog.Networks, netcatalog.Network{
-		ID: "drynet4", Family: netcatalog.FamilyECash,
-	})
-	for i := range o.Catalog.Networks {
-		if o.Catalog.Networks[i].Family == netcatalog.FamilyECash {
-			o.Catalog.Networks[i].ForkHeight = 0
-		}
-	}
-	o.BitcoinConf = nil
-	_, err := o.Settings.SetECashNetworkID("drynet4")
-	require.NoError(t, err)
-
-	require.Error(t, o.SelectECashNetwork("alphanet"))
-
-	require.Equal(t, "drynet4", o.Settings.ECashNetworkID(),
-		"an unrecorded drop must leave the pick where it was")
-}
-
-// A rewind that committed records its outcome and clears the drop in one write. Two writes
-// leave a crash window where the next boot retries, and a retry reconsiders the
-// block it just barred.
-func TestRecordingARewindClearsThePendingDropInOneWrite(t *testing.T) {
-	o := ecashInstall(t)
-	require.NoError(t, o.Settings.SetPendingRewind(
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}))
-
-	require.NoError(t, o.Settings.CommitRewind("00deadbeef"))
-
-	require.Nil(t, o.Settings.PendingRewind(), "the drop must go with the outcome")
-	require.Equal(t, "00deadbeef", o.Settings.RewoundBlockHash())
-}
-
-// A chain already below the fork bars nothing, so the rewind reports an empty
-// hash. That write still has to clear the drop, or Core syncs past the fork and
-// the next boot bars the target's own first block.
-func TestRecordingAnEmptyRewindStillClearsThePendingDrop(t *testing.T) {
-	o := ecashInstall(t)
-	require.NoError(t, o.Settings.SetPendingRewind(
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}))
-
-	require.NoError(t, o.Settings.CommitRewind(""))
-
-	require.Nil(t, o.Settings.PendingRewind())
-}
-
-// No published fork height leaves nothing to rewind to, but the switch is still
-// journalled: a crash before the delete would leave the target's conf over the
-// source fork with nothing to clear it.
-func TestASwitchWithNoForkHeightJournalsAWipe(t *testing.T) {
-	o := ecashInstall(t)
-	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
-		{ID: "drynet4", Family: netcatalog.FamilyECash},
-	}}, "drynet4")
-
-	require.NoError(t, o.recordPendingRewind("drynet4", "alphanet"))
-
-	record := o.Settings.PendingRewind()
-	require.NotNil(t, record)
-	require.True(t, record.Wipe, "with no fork height the old chain cannot stay")
-	require.Zero(t, record.Height)
-}
-
-// The journalled wipe runs before Core opens the datadir, and clears itself.
-func TestStartupMakesAJournalledWipe(t *testing.T) {
-	o := ecashInstall(t)
-	o.adoptCatalog(ecashCatalog(), "alphanet")
-	datadir := o.ecashDatadir()
-	require.NotEmpty(t, datadir)
-	seedCoreChainData(t, datadir)
-	require.NoError(t, o.Settings.SetPendingRewind(
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Wipe: true}))
-
-	require.NoError(t, o.ApplyPendingECashWipe(context.Background()))
-
-	require.NoDirExists(t, filepath.Join(datadir, "blocks"), "the retired chain must go")
-	require.Nil(t, o.Settings.PendingRewind(), "a wipe that ran must not run again")
-}
-
-// A selection that moved on makes the journalled wipe moot. Making it anyway
-// would delete the chain the install now runs.
-func TestAJournalledWipeIsDroppedWhenTheSelectionMovesOn(t *testing.T) {
-	o := ecashInstall(t)
-	o.adoptCatalog(ecashCatalog(), "drynet4")
-	datadir := o.ecashDatadir()
-	seedCoreChainData(t, datadir)
-	require.NoError(t, o.Settings.SetPendingRewind(
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Wipe: true}))
-
-	require.NoError(t, o.ApplyPendingECashWipe(context.Background()))
-
-	require.DirExists(t, filepath.Join(datadir, "blocks"), "the chain we run must survive")
-	require.Nil(t, o.Settings.PendingRewind())
-}
-
-// A wipe that fails leaves the target committed, so a retry reads FromID ==
-// ToID and skips the switch. The journal is what carries the work across.
-func TestAMandatorySwitchJournalsItsWipeBeforeCommitting(t *testing.T) {
+// The rule the whole switch obeys: chain data is never deleted. A switch with
+// no shared block stops, and the blocks stay where they are.
+func TestASwitchWithNoForkHeightKeepsTheBlocks(t *testing.T) {
 	o := ecashInstall(t)
 	datadir := o.ecashDatadir()
 	require.NotEmpty(t, datadir)
@@ -290,41 +128,12 @@ func TestAMandatorySwitchJournalsItsWipeBeforeCommitting(t *testing.T) {
 		{ID: "alphanet", Family: netcatalog.FamilyECash},
 		{ID: "drynet4", Family: netcatalog.FamilyECash},
 	}}, "drynet4")
-
-	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
-
-	// The switch made the wipe itself, so the journal is spent.
-	require.NoDirExists(t, filepath.Join(datadir, "blocks"))
-	require.Nil(t, o.Settings.PendingRewind(), "a wipe that ran clears its journal")
-	require.Equal(t, "alphanet", o.installedECashNetwork())
-}
-
-// The failure the journal exists for: the wipe cannot run, the target is
-// already committed, and a retry reads FromID == ToID and skips the switch.
-// Only the record carries the work to the next start.
-func TestAFailedMandatoryWipeLeavesItsJournal(t *testing.T) {
-	o := ecashInstall(t)
-	datadir := o.ecashDatadir()
-	require.NotEmpty(t, datadir)
-	seedCoreChainData(t, datadir)
-	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
-		{ID: "drynet4", Family: netcatalog.FamilyECash},
-	}}, "drynet4")
-
-	// An unreadable datadir makes the wipe refuse rather than report success.
-	require.NoError(t, os.Chmod(datadir, 0o000))
-	t.Cleanup(func() { _ = os.Chmod(datadir, 0o755) })
 
 	err := o.ApplyECashSwitch(context.Background(), "alphanet")
-	if err == nil {
-		t.Skip("this filesystem reads the datadir anyway, so the failure cannot be staged")
-	}
 
-	record := o.Settings.PendingRewind()
-	require.NotNil(t, record, "a wipe that never ran must leave its journal")
-	require.True(t, record.Wipe)
-	require.Equal(t, "alphanet", record.ToID)
+	require.Error(t, err)
+	require.DirExists(t, filepath.Join(datadir, "blocks"), "the chain must survive a refused switch")
+	require.Equal(t, "drynet4", o.installedECashNetwork(), "a refused switch moves nothing")
 }
 
 // The enforcer keeps one validator chain per network, not per fork, so every
@@ -418,9 +227,9 @@ func TestTheEnforcerCleanupWaitsUntilECashIsActive(t *testing.T) {
 		"the cleanup waits for the swap that brings eCash back")
 }
 
-// The cold path with no fork height wipes Core, so the enforcer chain has to go
-// too — and off eCash that work is journalled rather than made.
-func TestAColdMandatoryWipeJournalsTheEnforcerCleanup(t *testing.T) {
+// With no fork height there is no shared block to reach, so the catalog stays
+// where it is and nothing on disk moves.
+func TestAChangeWithNoForkHeightHoldsTheCatalogBack(t *testing.T) {
 	o := ecashInstall(t)
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkSignet))
 	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
@@ -428,10 +237,9 @@ func TestAColdMandatoryWipeJournalsTheEnforcerCleanup(t *testing.T) {
 		{ID: "drynet4", Family: netcatalog.FamilyECash},
 	}}, "drynet4")
 
-	require.True(t, o.wipeOnECashNetworkChange(context.Background(), "drynet4", "alphanet"))
+	require.False(t, o.ecashChangeHasASharedBlock("drynet4", "alphanet"))
 
-	require.Equal(t, "alphanet", o.Settings.PendingEnforcerWipe(),
-		"a wiped Core leaves an enforcer chain that has to go with it")
+	require.Empty(t, o.Settings.PendingEnforcerWipe(), "a change that cannot run journals nothing")
 }
 
 // An empty datadir override means Core's platform default, which is a
@@ -472,22 +280,23 @@ func TestAnUnreadableBlocksDirCountsAsChainOnDisk(t *testing.T) {
 	require.True(t, o.ecashChainDataOnDisk(), "a chain we cannot read is still a chain")
 }
 
-// A switch that died between its journal and its Core stop leaves a live Core
-// on the retired fork under a conf naming the target. Only startup reaches it,
-// and it has to before the listener binds.
-func TestStartupMakesTheDropAgainstAnAdoptedCore(t *testing.T) {
+// The enforcer keeps one validator chain per network, so a pick that cannot
+// record the cleanup must not stand: the new generation would run on the
+// retired one's validator state.
+func TestAPickPutsItselfBackWhenTheEnforcerCleanupCannotBeRecorded(t *testing.T) {
 	o := ecashInstall(t)
-	o.adoptCatalog(ecashCatalog(), "alphanet")
-	require.NoError(t, o.Settings.SetPendingRewind(
-		&PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}))
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkSignet))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.SelectECashNetwork("drynet4"))
 
-	// No Core answers, so there is nothing adopted and nothing to drop yet.
-	o.coreReachable = func() bool { return false }
-	require.NoError(t, o.ApplyPendingRewindToAdoptedCore(context.Background()))
-	require.NotNil(t, o.Settings.PendingRewind(), "the drop waits for a Core that answers")
+	// A settings file nothing can write makes the record fail.
+	require.NoError(t, os.Chmod(o.BitwindowDir, 0o500))
+	t.Cleanup(func() { _ = os.Chmod(o.BitwindowDir, 0o755) })
 
-	// One that answers but refuses the RPC must not leave the boot running.
-	o.coreReachable = func() bool { return true }
-	require.Error(t, o.ApplyPendingRewindToAdoptedCore(context.Background()))
-	require.NotNil(t, o.Settings.PendingRewind(), "an unmade drop must outlive the start")
+	err := o.SelectECashNetwork("alphanet")
+	if err == nil {
+		t.Skip("this filesystem writes the settings anyway, so the failure cannot be staged")
+	}
+
+	require.Equal(t, "drynet4", o.Settings.ECashNetworkID(), "a pick that cannot be finished must not stand")
 }

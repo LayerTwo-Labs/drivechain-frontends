@@ -142,7 +142,6 @@ func TestConfirmWorksFromAnotherNetwork(t *testing.T) {
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
 	require.DirExists(t, blocks, "the blocks below the fork must survive the confirm")
-	require.NotNil(t, o.Settings.PendingRewind(), "the drop waits for the next live Core")
 	require.Empty(t, o.PendingECashUpgrade().ID)
 	require.Equal(t, string(config.NetworkMainnet), o.Network, "the active network must be left alone")
 }

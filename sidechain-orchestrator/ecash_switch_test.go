@@ -51,7 +51,7 @@ func TestPlanECashSwitchPricesTheColdChainRewind(t *testing.T) {
 	plan, err := o.PlanECashSwitch("alphanet")
 	require.NoError(t, err)
 	require.True(t, plan.NeedsRollback)
-	require.False(t, plan.MustWipe)
+	require.False(t, plan.Blocked)
 	require.EqualValues(t, 961631, plan.RewindHeight)
 }
 
@@ -91,9 +91,9 @@ func TestApplyECashSwitchRewritesTheConfSentinel(t *testing.T) {
 	require.Equal(t, "alphanet", config.ECashNetworkID())
 }
 
-// A Core that is down cannot rewind, but deleting would cost every block below
-// the fork that both networks keep. The drop waits for the next live Core.
-func TestApplyECashSwitchDefersTheRewindWhenNoCoreAnswers(t *testing.T) {
+// A Core that is down cannot rewind, and nothing is recorded for later. The
+// chain stays as it is: every block below the fork is shared either way.
+func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
 	o := newTestOrchestrator(t)
 	datadir := t.TempDir()
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
@@ -107,13 +107,12 @@ func TestApplyECashSwitchDefersTheRewindWhenNoCoreAnswers(t *testing.T) {
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 
 	require.DirExists(t, blocks, "the blocks below the fork must survive the switch")
-	require.Equal(t, &PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}, o.Settings.PendingRewind())
 	require.Equal(t, "alphanet", o.installedECashNetwork())
 }
 
-// No published fork height leaves nothing to rewind to, so the old blocks
-// cannot stay. This is the one delete, and a user confirms it.
-func TestApplyECashSwitchWipesWithNoPublishedForkHeight(t *testing.T) {
+// No published fork height leaves nothing to rewind to, so the switch refuses
+// and the chain stays where it is.
+func TestApplyECashSwitchKeepsTheChainWithNoPublishedForkHeight(t *testing.T) {
 	o := newTestOrchestrator(t)
 	datadir := t.TempDir()
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
@@ -127,29 +126,9 @@ func TestApplyECashSwitchWipesWithNoPublishedForkHeight(t *testing.T) {
 	blocks := filepath.Join(datadir, "blocks")
 	require.NoError(t, os.MkdirAll(blocks, 0o755))
 
-	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 
-	require.NoDirExists(t, blocks, "with no fork height the old chain cannot stay")
-	require.Nil(t, o.Settings.PendingRewind())
-}
-
-// Off eCash there is no Core on that chain to rewind, so the pick records the
-// drop. Deleting would cost blocks both networks keep.
-func TestSelectECashNetworkDefersTheColdChainRewind(t *testing.T) {
-	o := newTestOrchestrator(t)
-	datadir := t.TempDir()
-	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
-	o.adoptCatalog(ecashCatalog(), "drynet4")
-	require.Equal(t, string(config.NetworkSignet), o.Network)
-
-	blocks := filepath.Join(datadir, "blocks")
-	require.NoError(t, os.MkdirAll(blocks, 0o755))
-
-	require.NoError(t, o.SelectECashNetwork("alphanet"))
-
-	require.DirExists(t, blocks, "the blocks below the fork must survive the pick")
-	require.Equal(t, &PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}, o.Settings.PendingRewind())
-	require.Equal(t, "alphanet", o.SelectedECashID(ecashCatalog()))
+	require.DirExists(t, blocks, "chain data is never deleted")
 }
 
 // A pick from an earlier session outlives the prompt. Confirming a newly
@@ -224,7 +203,7 @@ func TestDropForkAboveReadsTheBlockBeforeClearingTheOldMark(t *testing.T) {
 
 // The chains part at no published height, so the blocks on disk belong to a
 // fork this install cannot rewind out of.
-func TestPlanECashSwitchWipesWithoutAForkHeight(t *testing.T) {
+func TestPlanECashSwitchIsBlockedWithoutAForkHeight(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
@@ -236,7 +215,7 @@ func TestPlanECashSwitchWipesWithoutAForkHeight(t *testing.T) {
 	plan, err := o.PlanECashSwitch("alphanet")
 	require.NoError(t, err)
 	require.False(t, plan.NeedsRollback)
-	require.True(t, plan.MustWipe, "no fork height means the old blocks cannot stay")
+	require.True(t, plan.Blocked, "no fork height means no shared block to roll back to")
 }
 
 // The slot swap writes bitcoin.conf and starts binaries, and both read the id
@@ -541,4 +520,60 @@ func TestRestoreRewindPutsThePreviousMarkBack(t *testing.T) {
 		marks(core), "every bar the rewind moved goes back")
 	require.Equal(t, []string{staleMark, forkBlock, forkBlock, staleMark}, markParams(core))
 	require.Equal(t, staleMark, o.Settings.RewoundBlockHash(), "the recorded block goes back too")
+}
+
+// A move to an older network reaches the same shared block as a move to a newer
+// one. This is the case that cost a user their chain: the pick fell back a
+// generation, the code read it as a network with nothing in common, and it
+// deleted blocks both networks still agree on.
+func TestPlanECashSwitchRewindsBothWays(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.adoptCatalog(ecashCatalog(), "alphanet")
+
+	plan, err := o.PlanECashSwitch("drynet4")
+
+	require.NoError(t, err)
+	require.True(t, plan.NeedsRollback)
+	require.False(t, plan.Blocked)
+	// The lower of the two fork heights, whichever way the move goes.
+	require.EqualValues(t, 961631, plan.RewindHeight)
+}
+
+// The rule the whole eCash switch obeys: it rewinds, and it never deletes.
+func TestEveryECashSwitchInTheCatalogRewinds(t *testing.T) {
+	ids := []string{"alphanet", "drynet4", "alphanet2"}
+	for _, from := range ids {
+		for _, to := range ids {
+			if from == to {
+				continue
+			}
+			o := newTestOrchestrator(t)
+			o.adoptCatalog(ecashCatalog(), from)
+
+			plan, err := o.PlanECashSwitch(to)
+
+			require.NoError(t, err)
+			require.False(t, plan.Blocked, "%s -> %s must not be blocked", from, to)
+			require.True(t, plan.NeedsRollback, "%s -> %s must rewind", from, to)
+			require.NotZero(t, plan.RewindHeight, "%s -> %s must name a block", from, to)
+		}
+	}
+}
+
+// An earlier switch bars a block on the chain this one lands on, and only a
+// live Core lifts that mark. Going on would leave Core unable to pass the fork.
+func TestApplyECashSwitchRefusesOfflineWhenAMarkStaysBarred(t *testing.T) {
+	o := newTestOrchestrator(t)
+	datadir := t.TempDir()
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.Settings.SetRewoundBlockHash("00000000000000000001abcd"))
+
+	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "start bitcoin core first")
+	require.Equal(t, "drynet4", o.installedECashNetwork(), "a refused switch moves nothing")
 }
