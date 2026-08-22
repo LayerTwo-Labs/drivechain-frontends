@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"golang.org/x/sync/singleflight"
 )
 
 // nodeModeTTL keeps a per-tick gate off the orchestrator. Engines tick each
@@ -19,6 +20,10 @@ const nodeModeTTL = 5 * time.Second
 // local Bitcoin node? Every backend-dependent engine and RPC reads it here.
 type NodeMode struct {
 	client orchrpc.WalletManagerServiceClient
+
+	// One read at a time. Four pollers expire the cache together, and an
+	// older answer that lands last would else overwrite a newer one.
+	reads singleflight.Group
 
 	mu     sync.Mutex
 	cached orchpb.NodeMode
@@ -52,15 +57,21 @@ func (n *NodeMode) Mode(ctx context.Context) (orchpb.NodeMode, error) {
 		return cached, nil
 	}
 
-	resp, err := client.GetNodeMode(ctx, connect.NewRequest(&orchpb.GetNodeModeRequest{}))
+	read, err, _ := n.reads.Do("mode", func() (any, error) {
+		resp, err := client.GetNodeMode(ctx, connect.NewRequest(&orchpb.GetNodeModeRequest{}))
+		if err != nil {
+			return orchpb.NodeMode_NODE_MODE_UNSPECIFIED, err
+		}
+
+		n.mu.Lock()
+		n.cached, n.readAt = resp.Msg.Mode, time.Now()
+		n.mu.Unlock()
+		return resp.Msg.Mode, nil
+	})
 	if err != nil {
 		return orchpb.NodeMode_NODE_MODE_UNSPECIFIED, err
 	}
-
-	n.mu.Lock()
-	n.cached, n.readAt = resp.Msg.Mode, time.Now()
-	n.mu.Unlock()
-	return resp.Msg.Mode, nil
+	return read.(orchpb.NodeMode), nil
 }
 
 // hasClient reports whether this source can reach the orchestrator at all.

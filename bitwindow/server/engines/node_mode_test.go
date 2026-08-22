@@ -3,7 +3,9 @@ package engines_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
@@ -140,4 +142,37 @@ func TestRequireFullNodeNeedsAClient(t *testing.T) {
 	err := nodeMode.RequireFullNode(context.Background(), "proposing a sidechain")
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+}
+
+// Four pollers expire the cache together. One read serves them all, and an
+// older answer cannot land last and overwrite a newer one.
+func TestModeCollapsesConcurrentReads(t *testing.T) {
+	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	nodeMode := engines.NewNodeMode()
+	nodeMode.SetClient(client)
+
+	client.EXPECT().
+		GetNodeMode(gomock.Any(), gomock.Any()).
+		Times(1).
+		DoAndReturn(func(context.Context, *connect.Request[orchpb.GetNodeModeRequest]) (*connect.Response[orchpb.GetNodeModeResponse], error) {
+			time.Sleep(100 * time.Millisecond)
+			return &connect.Response[orchpb.GetNodeModeResponse]{
+				Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
+			}, nil
+		})
+
+	var wg sync.WaitGroup
+	answers := make([]bool, 4)
+	for i := range answers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			answers[i] = nodeMode.RunsLocalNode(context.Background())
+		}()
+	}
+	wg.Wait()
+
+	for i, answer := range answers {
+		require.Truef(t, answer, "reader %d read the wrong mode", i)
+	}
 }
