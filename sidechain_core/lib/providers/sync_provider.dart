@@ -381,7 +381,16 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       }
     }
 
-    if (bitwindowFuture != null) {
+    if (bitwindowFuture == null) {
+      // A skipped poll leaves the last snapshot behind. An unsynced one holds
+      // the aggressive cadence at 100 ms for the rest of the session, and the
+      // daemon card keeps full-mode progress that no longer moves.
+      if (bitwindowdSyncInfo != null || bitwindowdError != null) {
+        bitwindowdSyncInfo = null;
+        bitwindowdError = null;
+        changed = true;
+      }
+    } else {
       final result = await bitwindowFuture;
       final info = result.info;
       if (info != null) {

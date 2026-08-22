@@ -35,8 +35,8 @@ type NotificationEngine struct {
 	subscribers []chan *notificationv1.WatchResponse
 }
 
-// SetNodeMode gates the wallet-transaction watch on the node mode. Light mode
-// runs no local Bitcoin Core, so there are no core wallets to read.
+// SetNodeMode gates both watches on the node mode. Light mode runs no local
+// Bitcoin Core, so there are no core wallets and no confirmations to read.
 func (e *NotificationEngine) SetNodeMode(nodeMode *NodeMode) {
 	e.nodeMode = nodeMode
 }
@@ -77,6 +77,9 @@ func (e *NotificationEngine) watchTimestamps(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if !e.nodeMode.RunsLocalNode(ctx) {
+				continue
+			}
 			if err := e.checkTimestampConfirmations(ctx); err != nil {
 				log.Warn().Err(err).Msg("check timestamp confirmations")
 			}

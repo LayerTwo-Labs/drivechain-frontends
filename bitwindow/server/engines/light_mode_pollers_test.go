@@ -74,3 +74,34 @@ func TestParserDoesNotDialBitcoinCoreInLightMode(t *testing.T) {
 func TestParserDialsBitcoinCoreInFullMode(t *testing.T) {
 	require.Positive(t, runParserFor(t, orchpb.NodeMode_NODE_MODE_FULL, 3*time.Second))
 }
+
+// Both notification watchers tick at ten seconds and both reach Bitcoin Core.
+// The two modes run at the same time, so the test costs one window.
+func TestNotificationEngineWatchesOnlyInFullMode(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		mode      orchpb.NodeMode
+		wantDials bool
+	}{
+		{name: "light mode dials nothing", mode: orchpb.NodeMode_NODE_MODE_LIGHT},
+		{name: "full mode still dials", mode: orchpb.NodeMode_NODE_MODE_FULL, wantDials: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var dials atomic.Int64
+			engine := engines.NewNotificationEngine(database.Test(t), countingBitcoind(&dials))
+			engine.SetNodeMode(nodeModeSource(t, tc.mode))
+
+			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			defer cancel()
+			_ = engine.Run(ctx)
+
+			if tc.wantDials {
+				require.Positive(t, dials.Load())
+			} else {
+				require.Zero(t, dials.Load())
+			}
+		})
+	}
+}
