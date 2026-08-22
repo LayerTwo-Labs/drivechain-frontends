@@ -36,7 +36,18 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
 
   String address = '';
   String addressDerivationPath = '';
-  wmpb.AddressType addressType = wmpb.AddressType.ADDRESS_TYPE_SEGWIT;
+
+  /// The kind the user picked, or UNSPECIFIED to take the wallet's own. A
+  /// wallet on an explicit path derives one kind only, and asking for another
+  /// makes the backend refuse every poll.
+  wmpb.AddressType _pickedAddressType = wmpb.AddressType.ADDRESS_TYPE_UNSPECIFIED;
+
+  wmpb.AddressType get addressType => _pickedAddressType != wmpb.AddressType.ADDRESS_TYPE_UNSPECIFIED
+      ? _pickedAddressType
+      : _walletReader.activeWallet?.defaultAddressType ?? wmpb.AddressType.ADDRESS_TYPE_UNSPECIFIED;
+
+  /// The kinds the Receive tab offers. One entry means no choice to make.
+  List<wmpb.AddressType> get addressTypes => _walletReader.activeWallet?.receiveAddressTypes ?? const [];
   List<WalletTransaction> walletTransactions = [];
   List<UnspentOutput> utxos = [];
   List<ReceiveAddress> receiveAddresses = [];
@@ -88,7 +99,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     if (addressType == type) {
       return;
     }
-    addressType = type;
+    _pickedAddressType = type;
     address = '';
     addressDerivationPath = '';
     notifyListeners();
@@ -101,7 +112,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
     receiveAddresses = [];
     address = '';
     addressDerivationPath = '';
-    addressType = wmpb.AddressType.ADDRESS_TYPE_SEGWIT;
+    _pickedAddressType = wmpb.AddressType.ADDRESS_TYPE_UNSPECIFIED;
     initialized = false;
     error = null;
     notifyListeners();

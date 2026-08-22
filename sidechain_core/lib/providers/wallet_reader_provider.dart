@@ -194,6 +194,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
         isWatchOnly: protoWallet.watchOnly,
         bip47PaymentCode: protoWallet.bip47PaymentCode,
         multisig: protoWallet.hasMultisig() ? protoWallet.multisig : null,
+        receiveAddressTypes: List.unmodifiable(protoWallet.receiveAddressTypes),
         hardwareDeviceType: protoWallet.hardwareDeviceType,
         hardwareFingerprint: protoWallet.hardwareFingerprint,
       );
