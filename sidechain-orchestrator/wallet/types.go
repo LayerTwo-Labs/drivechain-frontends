@@ -7,9 +7,14 @@ import (
 
 // WalletFile is the top-level structure stored in wallet.json.
 type WalletFile struct {
-	Version        int          `json:"version"`
-	ActiveWalletID string       `json:"activeWalletId"`
-	Wallets        []WalletData `json:"wallets"`
+	Version        int    `json:"version"`
+	ActiveWalletID string `json:"activeWalletId"`
+	// StarterWalletID names the wallet whose seed derives the L1 and sidechain
+	// starters. Each wallet carries its own seed, so this must survive the
+	// delete of any other wallet: a sidechain restarted from a different seed
+	// shows the user an empty balance.
+	StarterWalletID string       `json:"starterWalletId,omitempty"`
+	Wallets         []WalletData `json:"wallets"`
 }
 
 // WalletType identifies which backend a wallet is bound to.
@@ -48,6 +53,11 @@ type WalletData struct {
 	// Imported means the seed came from a mnemonic the user supplied, so it may
 	// already have history. Core imports its descriptors with a rescan from
 	// genesis; a freshly generated seed scans from the tip.
+	// ImportedFromEnforcer marks the wallet the enforcer daemon itself ran,
+	// rebuilt so its coins stay visible. It sits on the account the enforcer
+	// hardcoded, which is not the account this network would use.
+	ImportedFromEnforcer bool `json:"imported_from_enforcer,omitempty"`
+
 	Imported bool `json:"imported,omitempty"`
 	// Multisig, when set, makes this an m-of-n multisig wallet. Cosigners that
 	// carry a mnemonic or xprv are held on disk and can sign; the rest are
