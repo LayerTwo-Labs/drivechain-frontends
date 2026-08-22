@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 func planFixture(t *testing.T, network string) *Orchestrator {
@@ -111,4 +112,23 @@ func TestPlanNetworkChangeLightModeNeedsChainSource(t *testing.T) {
 			require.Equal(t, tc.noChainSource, plan.NoChainSource)
 		})
 	}
+}
+
+// Full mode with an electrum wallet on a network with no chain source is
+// deliberately allowed. The mode decides only whether Core and the enforcer
+// run; it never decides where a wallet reads. So the planner passes the swap
+// and the wallet errors later, when it asks for a chain source it has not got.
+// Do not "fix" this by making the planner refuse the swap.
+func TestPlanNetworkChangeAllowsElectrumWalletWithoutChainSource(t *testing.T) {
+	o := planFixture(t, "signet")
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeFull))
+	require.Empty(t, config.WalletChainSourceURLsForNetwork("regtest"))
+
+	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: "regtest"})
+
+	require.False(t, plan.NoChainSource, "the planner reports the light-mode block only")
+
+	router := wallet.NewBackendRouter(nil, nil, nil)
+	_, err := router.Chain().GetRawTransaction(t.Context(), "any")
+	require.ErrorContains(t, err, "no chain source configured", "the wallet is where it fails")
 }
