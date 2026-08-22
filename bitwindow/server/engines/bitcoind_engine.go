@@ -93,7 +93,7 @@ func (p *Parser) Run(ctx context.Context) error {
 
 		case <-reapTicker.C:
 			if p.nodeMode.RunsLocalNode(ctx) {
-				p.reapExpiredMempool(ctx)
+				p.sweepMempool(ctx)
 			}
 
 		case <-alertTicker.C:
@@ -101,8 +101,9 @@ func (p *Parser) Run(ctx context.Context) error {
 				continue
 			}
 			if !sweptOnStart {
-				sweptOnStart = true
-				p.reapExpiredMempool(ctx)
+				// Bitcoin Core can still boot when the mode reads full. Mark
+				// the sweep done only once it reaches the mempool.
+				sweptOnStart = p.sweepMempool(ctx)
 			}
 
 			zerolog.Ctx(ctx).Trace().
@@ -123,9 +124,19 @@ func (p *Parser) Run(ctx context.Context) error {
 	}
 }
 
-// reapExpiredMempool drops unconfirmed OP_RETURNs that can no longer
-// confirm. Best-effort: a failed sweep is retried on the next tick.
-func (p *Parser) reapExpiredMempool(ctx context.Context) {
+// sweepMempool drops expired unconfirmed OP_RETURNs and reports whether it
+// finished, so the caller can try again. A failure means Bitcoin Core is
+// unreachable, which the block tick reports on the same cadence.
+func (p *Parser) sweepMempool(ctx context.Context) bool {
+	if err := p.reapExpiredMempool(ctx); err != nil {
+		zerolog.Ctx(ctx).Debug().Err(err).Msg("could not reap expired mempool OP_RETURNs")
+		return false
+	}
+	return true
+}
+
+// reapExpiredMempool drops unconfirmed OP_RETURNs that can no longer confirm.
+func (p *Parser) reapExpiredMempool(ctx context.Context) error {
 	mempoolTxIDs := func() ([]string, error) {
 		bitcoind, err := p.bitcoind.Get(ctx)
 		if err != nil {
@@ -137,9 +148,7 @@ func (p *Parser) reapExpiredMempool(ctx context.Context) {
 		}
 		return res.Msg.Txids, nil
 	}
-	if err := opreturns.ReapExpiredMempool(ctx, p.db, mempoolTxIDs); err != nil {
-		zerolog.Ctx(ctx).Err(err).Msgf("unable to reap expired mempool OP_RETURNs")
-	}
+	return opreturns.ReapExpiredMempool(ctx, p.db, mempoolTxIDs)
 }
 
 // BlockResult represents the result of processing a single block

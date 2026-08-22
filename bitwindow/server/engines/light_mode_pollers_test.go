@@ -109,15 +109,18 @@ func TestNotificationEngineWatchesOnlyInFullMode(t *testing.T) {
 }
 
 // bitcoindWithMempool answers the reap and refuses the block tick, so only the
-// mempool sweep counts.
-func bitcoindWithMempool(t *testing.T, sweeps *atomic.Int64) *service.Service[corerpc.BitcoinServiceClient] {
+// mempool sweep counts. failFirst refuses the first sweep, the way Bitcoin Core
+// refuses every RPC while it loads its block index.
+func bitcoindWithMempool(t *testing.T, sweeps *atomic.Int64, failFirst bool) *service.Service[corerpc.BitcoinServiceClient] {
 	t.Helper()
 	client := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
 	client.EXPECT().
 		GetRawMempool(gomock.Any(), gomock.Any()).
 		AnyTimes().
 		DoAndReturn(func(context.Context, *connect.Request[corepb.GetRawMempoolRequest]) (*connect.Response[corepb.GetRawMempoolResponse], error) {
-			sweeps.Add(1)
+			if sweeps.Add(1) == 1 && failFirst {
+				return nil, errors.New("-28: Loading block index")
+			}
 			return connect.NewResponse(&corepb.GetRawMempoolResponse{}), nil
 		})
 	client.EXPECT().
@@ -159,7 +162,7 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 	require.NoError(t, err)
 
 	var sweeps atomic.Int64
-	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps), db, config.Config{})
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, false), db, config.Config{})
 	parser.SetNodeMode(nodeMode)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
@@ -168,6 +171,32 @@ func TestParserSweepsTheMempoolAfterTheModeRecovers(t *testing.T) {
 
 	// Once, and once only — the hourly ticker never fires in this window.
 	require.Equal(t, int64(1), sweeps.Load())
+
+	var left int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM op_returns`).Scan(&left))
+	require.Zero(t, left)
+}
+
+// Bitcoin Core can still load its block index when the mode reads full. A flag
+// set before the sweep marks it done, and the rows then wait an hour.
+func TestParserRetriesTheStartupSweepAfterCoreIsReady(t *testing.T) {
+	db := database.Test(t)
+	_, err := db.ExecContext(context.Background(), `
+		INSERT INTO op_returns (txid, vout, op_return_data, fee_sats, height, created_at)
+		VALUES ('dead', 0, 'beef', 1, NULL, datetime('now', '-30 days'))
+	`)
+	require.NoError(t, err)
+
+	var sweeps atomic.Int64
+	parser := engines.NewBitcoind(bitcoindWithMempool(t, &sweeps, true), db, config.Config{})
+	parser.SetNodeMode(nodeModeSource(t, orchpb.NodeMode_NODE_MODE_FULL))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+	require.NoError(t, parser.Run(ctx))
+
+	// The first sweep fails, the next tick sweeps again, and the row goes.
+	require.Equal(t, int64(2), sweeps.Load())
 
 	var left int
 	require.NoError(t, db.QueryRow(`SELECT count(*) FROM op_returns`).Scan(&left))
