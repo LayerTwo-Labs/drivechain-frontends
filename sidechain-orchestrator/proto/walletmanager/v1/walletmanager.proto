@@ -693,6 +693,10 @@ message CreatePsbtRequest {
   repeated UnspentOutput required_inputs = 7;
   repeated RawOutput raw_outputs = 8;
   repeated ExternalInput external_inputs = 9;
+  // Stamp the magic nLockTime (499999999) and non-final input sequences before
+  // the PSBT goes out for signatures, so the signed transaction is valid on
+  // eCash only. Electrum wallets only.
+  bool replay_protect = 10;
 }
 
 message CreatePsbtResponse {
