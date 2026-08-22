@@ -54,6 +54,22 @@ void main() {
     expect(provider.error, isNull);
   });
 
+  // A switch to light mode leaves the last reading on the cards and in the
+  // traffic graph, where the numbers no longer move.
+  test('a skipped poll drops the old network stats', () async {
+    await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    final provider = NetworkProvider();
+    await provider.fetch();
+    expect(provider.stats, isNotNull);
+
+    GetIt.I.get<NodeModeProvider>().mode = wmpb.NodeMode.NODE_MODE_LIGHT;
+    await provider.fetch();
+
+    expect(provider.stats, isNull);
+    expect(provider.error, isNull);
+    expect(provider.bandwidthHistory, isEmpty);
+  });
+
   test('network stats poll in full mode', () async {
     await boot(wmpb.NodeMode.NODE_MODE_FULL);
 

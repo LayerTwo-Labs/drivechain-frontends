@@ -74,13 +74,12 @@ func (p *Parser) Run(ctx context.Context) error {
 	alertTicker := time.NewTicker(2 * time.Second)
 	defer alertTicker.Stop()
 
-	// Unconfirmed OP_RETURNs never expire on their own. Sweep on start —
-	// sessions are often shorter than the tick — and hourly after that.
+	// Unconfirmed OP_RETURNs never expire on their own. Sweep on the first
+	// tick that reads full mode — sessions are often shorter than the hourly
+	// tick, and the orchestrator answers the mode a moment after boot.
 	reapTicker := time.NewTicker(time.Hour)
 	defer reapTicker.Stop()
-	if p.nodeMode.RunsLocalNode(ctx) {
-		p.reapExpiredMempool(ctx)
-	}
+	sweptOnStart := false
 
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: started parser ticker")
@@ -100,6 +99,10 @@ func (p *Parser) Run(ctx context.Context) error {
 		case <-alertTicker.C:
 			if !p.nodeMode.RunsLocalNode(ctx) {
 				continue
+			}
+			if !sweptOnStart {
+				sweptOnStart = true
+				p.reapExpiredMempool(ctx)
 			}
 
 			zerolog.Ctx(ctx).Trace().

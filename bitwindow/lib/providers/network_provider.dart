@@ -29,8 +29,16 @@ class NetworkProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
-    // Light mode runs no local Bitcoin Core, and these stats read it.
+    // Light mode runs no local Bitcoin Core, and these stats read it. Drop the
+    // last reading too: the cards and the traffic graph would else hold
+    // full-mode numbers that no longer move.
     if (!NodeModeProvider.runsLocalBackends) {
+      if (stats != null || error != null || bandwidthHistory.isNotEmpty) {
+        stats = null;
+        error = null;
+        bandwidthHistory = [];
+        notifyListeners();
+      }
       return;
     }
     if (!bitwindowd.connected || _isFetching) {
