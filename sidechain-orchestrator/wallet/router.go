@@ -5,14 +5,13 @@ import (
 	"errors"
 )
 
-// BackendRouter dispatches each call by the wallet's backend type: the
-// enforcer wallet is served by the enforcer daemon, electrum wallets by the
-// Esplora-backed backend, bitcoinCore wallets by the chain wallet backend.
-// Watch-only is an orthogonal capability handled within each backend. Any
-// side may be absent — calls for its wallets then fail with a clear error.
+// BackendRouter dispatches each call by the wallet's backend type: electrum
+// wallets go to the Esplora-backed backend, everything else to the chain wallet
+// backend. Watch-only is an orthogonal capability handled within each backend.
+// Either side may be absent — calls for its wallets then fail with a clear
+// error.
 type BackendRouter struct {
 	svc      *Service
-	enforcer Backend
 	chain    Backend
 	electrum Backend
 }
@@ -21,8 +20,8 @@ var _ Backend = (*BackendRouter)(nil)
 
 // NewBackendRouter wires the per-type backends. Pass nil for a side
 // that isn't configured.
-func NewBackendRouter(svc *Service, enforcer, chain, electrum Backend) *BackendRouter {
-	return &BackendRouter{svc: svc, enforcer: enforcer, chain: chain, electrum: electrum}
+func NewBackendRouter(svc *Service, chain, electrum Backend) *BackendRouter {
+	return &BackendRouter{svc: svc, chain: chain, electrum: electrum}
 }
 
 // ElectrumConfigured reports whether an electrum (Esplora-backed) backend is
@@ -46,8 +45,8 @@ func (r *BackendRouter) ElectrumBackend() (*ElectrumBackend, bool) {
 }
 
 // Bip47BackendFor returns the wallet's backend as a Bip47Backend when it is
-// BIP47-capable (Core and electrum are; the enforcer is not). ok is false for a
-// non-capable or unconfigured backend, so the caller skips BIP47 for it.
+// BIP47-capable. ok is false for a non-capable or unconfigured backend, so the
+// caller skips BIP47 for it.
 func (r *BackendRouter) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
 	p, err := r.pick(walletID)
 	if err != nil {
@@ -57,28 +56,10 @@ func (r *BackendRouter) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
 	return b, ok
 }
 
-// DepositBackendFor returns the wallet's backend as a DepositBackend when it
-// builds the M5 itself (the enforcer). ok is false for the other backends, so
-// the caller builds the deposit outputs itself.
-func (r *BackendRouter) DepositBackendFor(walletID string) (DepositBackend, bool) {
-	p, err := r.pick(walletID)
-	if err != nil {
-		return nil, false
-	}
-	b, ok := p.(DepositBackend)
-	return b, ok
-}
-
 func (r *BackendRouter) pick(walletID string) (Backend, error) {
 	w := r.svc.GetWalletByID(walletID)
 	if w == nil {
 		return nil, errors.New("wallet " + walletID + " not found")
-	}
-	if w.WalletType == WalletTypeEnforcer {
-		if r.enforcer == nil {
-			return nil, errors.New("enforcer wallet client not connected")
-		}
-		return r.enforcer, nil
 	}
 	if w.WalletType == WalletTypeElectrum {
 		if r.electrum == nil {
@@ -240,4 +221,17 @@ func (r *BackendRouter) ChainForWallet(walletID string) ChainSource {
 		return unavailableChain{reason: err.Error()}
 	}
 	return b.Chain()
+}
+
+// unavailableChain is a ChainSource that always errors.
+type unavailableChain struct {
+	reason string
+}
+
+func (c unavailableChain) GetRawTransaction(ctx context.Context, txid string) (*RawTransaction, error) {
+	return nil, errors.New(c.reason)
+}
+
+func (c unavailableChain) Broadcast(ctx context.Context, rawHex string) (string, error) {
+	return "", errors.New(c.reason)
 }

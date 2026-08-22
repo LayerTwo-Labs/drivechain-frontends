@@ -177,8 +177,6 @@ func TestWalletIntegration(t *testing.T) {
 		client := nodeA.WalletClient
 
 		// The first wallet from Phase 1 should still be active (type=enforcer).
-		// Generate a new bitcoinCore wallet since the enforcer type doesn't
-		// create a Core wallet via EnsureCoreWallets.
 		genResp, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
 			Name: "Core-Wallet-A",
 		}))
@@ -322,17 +320,18 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		addr2 := addrResp.Msg.Address
 
-		// Switch back to first Core wallet for sending.
+		// Switch back to the wallet Phase 3 funded. Picking "the first Core
+		// wallet" would land on Wallet-A1, which holds nothing.
 		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
 		require.NoError(t, err)
 		var coreWalletID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE && w.Id != wallet2ID {
+			if w.Name == "Core-Wallet-A" {
 				coreWalletID = w.Id
 				break
 			}
 		}
-		require.NotEmpty(t, coreWalletID, "should find the first bitcoinCore wallet")
+		require.NotEmpty(t, coreWalletID, "Phase 3 must leave a funded Core-Wallet-A")
 		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: coreWalletID}))
 		require.NoError(t, err)
 
@@ -395,7 +394,7 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		var fundedID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
+			if w.Name == "Core-Wallet-A" {
 				fundedID = w.Id
 				break
 			}
@@ -443,7 +442,7 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		var fundedID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
+			if w.Name == "Core-Wallet-A" {
 				fundedID = w.Id
 				break
 			}
