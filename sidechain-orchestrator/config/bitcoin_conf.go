@@ -550,9 +550,10 @@ func (m *BitcoinConfManager) getBitWindowConfigPath() string {
 	return filepath.Join(m.BitwindowDir, bitwindowBitcoinConfFilename)
 }
 
-// ResolveNetwork reads the network out of bitwindow-bitcoin.conf, so a caller
-// can align with the orchestrator while it is down. Never writes that file.
-func ResolveNetwork(bitwindowDir string) (Network, error) {
+// ResolveNetwork reads the network and, for eCash, its catalog id out of
+// bitwindow-bitcoin.conf. The file is the source of truth, so a caller aligns
+// with it in one read instead of a wait on the orchestrator. Never writes it.
+func ResolveNetwork(bitwindowDir string) (Network, string, error) {
 	m := &BitcoinConfManager{
 		BitwindowDir: bitwindowDir,
 		Network:      NetworkSignet,
@@ -561,7 +562,7 @@ func ResolveNetwork(bitwindowDir string) (Network, error) {
 
 	content, err := os.ReadFile(m.getBitWindowConfigPath())
 	if err != nil {
-		return "", fmt.Errorf("read %s: %w", bitwindowBitcoinConfFilename, err)
+		return "", "", fmt.Errorf("read %s: %w", bitwindowBitcoinConfFilename, err)
 	}
 	m.parseAndApplyConfig(string(content), NetworkSignet)
 
@@ -569,7 +570,11 @@ func ResolveNetwork(bitwindowDir string) (Network, error) {
 	m.tryLoadPrivateConfig()
 
 	if m.Network == "" {
-		return "", fmt.Errorf("no network configured in %s", bitwindowBitcoinConfFilename)
+		return "", "", fmt.Errorf("no network configured in %s", bitwindowBitcoinConfFilename)
 	}
-	return m.Network, nil
+	var ecashID string
+	if m.Network == NetworkECash && m.Config != nil {
+		ecashID = ECashIDFromUAComment(m.Config.GetEffectiveSetting("uacomment", "main"))
+	}
+	return m.Network, ecashID, nil
 }

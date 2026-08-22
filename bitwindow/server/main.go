@@ -117,17 +117,20 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	// exit either way.
 	defer relayShutdownToOrchestratord(conf.OrchestratorAddr, bitwindowDir, bootLogger)
 
-	// Prefer the orchestrator, but fall back to the conf it writes: the network
-	// only picks our datadir, and dying here leaves nothing to report the fault.
-	network, ecashNetworkID, err := waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bitwindowDir, bootLogger)
-	if err != nil {
-		fallback, confErr := orchconfig.ResolveNetwork(bitwindowDir)
-		if confErr != nil {
+	// bitcoin.conf is the source of truth, and reading it is one file read.
+	// Ask orchestratord only on a first run, where it still has to write the
+	// file — a wait on its boot otherwise picks our datadir minutes late.
+	var ecashNetworkID string
+	network := ""
+	if n, id, confErr := orchconfig.ResolveNetwork(bitwindowDir); confErr == nil {
+		network, ecashNetworkID = string(n), id
+		bootLogger.Info().Str("network", network).Msg("read the network from bitwindow-bitcoin.conf")
+	} else {
+		var err error
+		network, ecashNetworkID, err = waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bitwindowDir, bootLogger)
+		if err != nil {
 			return fmt.Errorf("read network from orchestratord: %w (and from conf: %v)", err, confErr)
 		}
-		network = string(fallback)
-		bootLogger.Warn().Err(err).Str("network", network).
-			Msg("orchestratord unreachable, took the network from bitwindow-bitcoin.conf")
 	}
 
 	// Adopting a still-draining orchestratord (cancel its pending exit, await
