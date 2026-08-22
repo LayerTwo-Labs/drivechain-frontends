@@ -125,16 +125,14 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
               description:
                   'Runs Bitcoin Core and the enforcer here. Gives you sidechains and mining. '
                   'Needs hundreds of gigabytes of disk.',
-              trailing: SailToggle(
+              trailing: _ModeToggle(
                 value: isFull,
-                onChanged: (on) {
-                  // The row below says light mode is unavailable here, so the
-                  // toggle must not offer a switch the backend refuses.
-                  if (_switching || (!on && !_nodeMode.lightModeAvailable)) {
-                    return;
-                  }
-                  _switchTo(on ? wmpb.NodeMode.NODE_MODE_FULL : wmpb.NodeMode.NODE_MODE_LIGHT);
-                },
+                // The row below says light mode is unavailable here, so the
+                // toggle must not offer a switch the backend refuses.
+                enabled: _nodeMode.lightModeAvailable && !_switching,
+                onChanged: (on) => _switchTo(
+                  on ? wmpb.NodeMode.NODE_MODE_FULL : wmpb.NodeMode.NODE_MODE_LIGHT,
+                ),
               ),
             ),
             if (!_nodeMode.lightModeAvailable)
@@ -151,6 +149,29 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _ModeToggle extends StatelessWidget {
+  final bool value;
+  final bool enabled;
+  final ValueSetter<bool> onChanged;
+
+  const _ModeToggle({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.4,
+      child: IgnorePointer(
+        ignoring: !enabled,
+        child: SailToggle(value: value, onChanged: onChanged),
+      ),
     );
   }
 }
