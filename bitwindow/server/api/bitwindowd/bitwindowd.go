@@ -35,6 +35,7 @@ import (
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -285,7 +286,7 @@ func (s *Server) CreateDenial(
 	case engines.WalletTypeBitcoinCore:
 		utxoExists, err = s.checkBitcoinCoreUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
 	case engines.WalletTypeElectrum:
-		err = fmt.Errorf("deniability is not supported for electrum wallets")
+		utxoExists, err = s.checkElectrumUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
 	default:
 		err = fmt.Errorf("unknown wallet type: %s", activeWallet.WalletType)
 	}
@@ -1523,6 +1524,17 @@ func (s *Server) getBlockAtHeight(ctx context.Context, height int64) (int64, err
 }
 
 // checkBitcoinCoreUTXO checks if a UTXO exists in a Bitcoin Core wallet
+func (s *Server) checkElectrumUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {
+	utxos, err := s.walletEngine.GetElectrumUnspent(ctx, walletID)
+	if err != nil {
+		return false, fmt.Errorf("list electrum utxos: %w", err)
+	}
+
+	return lo.ContainsBy(utxos, func(utxo *wmpb.UnspentOutput) bool {
+		return utxo.Txid == txid && uint32(utxo.Vout) == vout
+	}), nil
+}
+
 func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid string, vout uint32) (bool, error) {
 	walletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletID)
 	if err != nil {
