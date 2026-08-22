@@ -160,11 +160,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   SyncInfo? enforcerSyncInfo;
   String? enforcerError;
 
-  /// Tip the enforcer's own wallet is synced to. It scans esplora separately
-  /// from the validator, so it can lag behind [enforcerSyncInfo].
-  SyncInfo? enforcerWalletSyncInfo;
-  String? enforcerWalletError;
-
   /// Tip the wallet chain source reports (esplora or electrum). An electrum
   /// wallet runs no local node, so this is the only height it has.
   SyncInfo? chainSourceSyncInfo;
@@ -333,13 +328,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
         changed = true;
       }
 
-      final newEnforcerWallet = _toSyncInfo(resp.enforcerWallet);
-      if (_diff(enforcerWalletSyncInfo, newEnforcerWallet) || enforcerWalletError != _errOrNull(resp.enforcerWallet)) {
-        enforcerWalletSyncInfo = newEnforcerWallet;
-        enforcerWalletError = _errOrNull(resp.enforcerWallet);
-        changed = true;
-      }
-
       final newChainSource = _toSyncInfo(resp.chainSource);
       if (_diff(chainSourceSyncInfo, newChainSource) || chainSourceError != _errOrNull(resp.chainSource)) {
         chainSourceSyncInfo = newChainSource;
@@ -371,10 +359,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       }
       if (enforcerError != orchErr) {
         enforcerError = orchErr;
-        changed = true;
-      }
-      if (enforcerWalletError != orchErr) {
-        enforcerWalletError = orchErr;
         changed = true;
       }
       if (sidechainErrors.values.any((e) => e != orchErr)) {

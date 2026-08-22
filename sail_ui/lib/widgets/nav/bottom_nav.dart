@@ -445,7 +445,6 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('connectionStatus', connectionStatus);
     track('mainchainSyncInfo', syncProvider.mainchainSyncInfo);
     track('enforcerSyncInfo', syncProvider.enforcerSyncInfo);
-    track('enforcerWalletSyncInfo', syncProvider.enforcerWalletSyncInfo);
     track('additionalSyncInfo', additionalSyncInfo);
     notifyIfChanged(); // Use change tracking for normal updates
   }
@@ -635,12 +634,10 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
     }
     final mainchainConnected = viewModel.syncProvider.mainchainSyncInfo != null;
     final enforcerConnected = viewModel.syncProvider.enforcerSyncInfo != null;
-    final enforcerWalletConnected = viewModel.syncProvider.enforcerWalletSyncInfo != null;
     final additionalConnected = viewModel.additionalSyncInfo != null;
 
     final mainchainSynced = mainchainConnected && viewModel.syncProvider.mainchainSyncInfo!.isSynced;
     final enforcerSynced = enforcerConnected && viewModel.syncProvider.enforcerSyncInfo!.isSynced;
-    final enforcerWalletSynced = enforcerWalletConnected && viewModel.syncProvider.enforcerWalletSyncInfo!.isSynced;
     final additionalSynced = additionalConnected && viewModel.additionalSyncInfo!.isSynced;
 
     final offNetwork = mainchainConnected && viewModel.syncProvider.mainchainSyncInfo!.offNetwork;
@@ -672,14 +669,6 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
             ChainLoader(
               name: viewModel.syncProvider.enforcer.name,
               syncInfo: viewModel.syncProvider.enforcerSyncInfo!,
-              justPercent: true,
-            ),
-            DividerDot(),
-          ],
-          if (enforcerWalletConnected && !enforcerWalletSynced) ...[
-            ChainLoader(
-              name: 'Enforcer wallet',
-              syncInfo: viewModel.syncProvider.enforcerWalletSyncInfo!,
               justPercent: true,
             ),
             DividerDot(),
