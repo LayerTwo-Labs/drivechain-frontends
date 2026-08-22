@@ -6,6 +6,68 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// What a move between two eCash networks does to the chain on disk. The
+/// backend rewinds to the fork when both networks publish one, so the blocks
+/// below it stay and only the new fork downloads.
+String ecashChainCostLine(PlanECashSwitchResponse? plan, String fromId, String toId, {bool manualConf = false}) {
+  // A manual switch has no backend to rewind for it: the steps below tell the
+  // user to delete blocks/ and chainstate/ by hand.
+  if (!manualConf && plan != null && plan.needsRollback && !plan.mustWipe) {
+    return '\u2022 The chain rewinds to block ${plan.rewindHeight}. Blocks below it are kept, '
+        'so only $toId\u2019s own blocks download.';
+  }
+  return '\u2022 The $fromId chain is deleted; $toId syncs from scratch.';
+}
+
+/// Asks before a move between two eCash networks and states what it costs.
+/// Returns false when the user backs out.
+Future<bool> confirmECashSwitch(BuildContext context, String toId) async {
+  if (toId.isEmpty) {
+    return true;
+  }
+  // A plan we could not read is not a plan we may skip: the switch itself still
+  // runs, and it can be the one that deletes the chain. Ask with the worst case
+  // named instead.
+  PlanECashSwitchResponse? plan;
+  try {
+    plan = await GetIt.I.get<BitcoinConfProvider>().planECashSwitch(toId);
+  } catch (e) {
+    plan = null;
+  }
+  if (plan != null && (plan.fromId.isEmpty || plan.fromId == plan.toId)) {
+    return true;
+  }
+  if (!context.mounted) {
+    return false;
+  }
+  final fromId = plan?.fromId ?? 'the current network';
+  final go = await showThemedDialog<bool>(
+    context: context,
+    builder: (context) => SailDialog(
+      title: 'Switch to $toId',
+      subtitle: '$toId is a separate chain, not a continuation of $fromId.',
+      actions: [
+        SailButton(
+          label: 'Cancel',
+          variant: ButtonVariant.secondary,
+          onPressed: () async => Navigator.of(context).pop(false),
+        ),
+        SailButton(label: 'Switch to $toId', onPressed: () async => Navigator.of(context).pop(true)),
+      ],
+      child: SailColumn(
+        spacing: SailStyleValues.padding12,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.secondary13(ecashChainCostLine(plan, fromId, toId)),
+          SailText.secondary13('\u2022 Coins and transactions you had on $fromId are gone for good.'),
+          SailText.secondary13('\u2022 Your wallets, addresses and keys are kept.'),
+        ],
+      ),
+    ),
+  );
+  return go == true;
+}
+
 /// Action key the banner notification carries; see NotificationActions.
 const ecashUpgradeAction = 'ecash_upgrade';
 
@@ -105,26 +167,41 @@ Future<bool> openECashUpgrade(BuildContext context) async {
 
 /// Runs the upgrade flow when a newer network is published, so entering
 /// eCash never lands on a retired one. True means carry on with the swap.
-Future<bool> confirmPendingECashUpgrade(BuildContext context) async {
+/// What the pending-upgrade prompt did, which decides whether a pick the user
+/// started with is still the one to act on.
+enum ECashUpgradeOutcome {
+  /// Nothing was pending. The caller carries on with its own pick.
+  none,
+
+  /// The prompt switched networks. That move supersedes the caller's pick: the
+  /// row it started from is the one the user just left.
+  applied,
+
+  /// The user backed out.
+  cancelled,
+}
+
+Future<ECashUpgradeOutcome> confirmPendingECashUpgrade(BuildContext context) async {
   final GetPendingNetworkGenerationResponse pending;
   try {
     pending = await GetIt.I.get<OrchestratorRPC>().getPendingNetworkGeneration();
   } catch (e) {
-    return true; // Orchestrator not reachable; the swap itself will report it.
+    // Orchestrator not reachable; the swap itself will report it.
+    return ECashUpgradeOutcome.none;
   }
   if (pending.pendingNetworkId.isEmpty) {
-    return true;
+    return ECashUpgradeOutcome.none;
   }
 
   if (!context.mounted) {
-    return false;
+    return ECashUpgradeOutcome.cancelled;
   }
   final applied = await showThemedDialog<bool>(
     context: context,
     barrierDismissible: false,
     builder: (context) => ECashUpgradeDialog(pending: pending),
   );
-  return applied == true;
+  return applied == true ? ECashUpgradeOutcome.applied : ECashUpgradeOutcome.cancelled;
 }
 
 /// Spells out what switching networks costs before running it.
@@ -145,10 +222,33 @@ class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
   String? _error;
   String _progress = '';
 
+  /// The backend's plan for this move, which says whether the chain rewinds to
+  /// the fork or resyncs. Null until it answers.
+  PlanECashSwitchResponse? _plan;
+
   @override
   void initState() {
     super.initState();
+    unawaited(_readPlan());
     _refresh = Timer.periodic(const Duration(seconds: 5), (_) => unawaited(_reload()));
+  }
+
+  Future<void> _readPlan() async {
+    final id = _pending.pendingNetworkId;
+    if (id.isEmpty) {
+      return;
+    }
+    try {
+      final plan = await GetIt.I.get<BitcoinConfProvider>().planECashSwitch(id);
+      // A refresh can publish another network while this is in flight. The
+      // late answer prices the network the dialog no longer names, and the
+      // user would confirm a resync after a rewind was promised.
+      if (mounted && id == _pending.pendingNetworkId) {
+        setState(() => _plan = plan);
+      }
+    } catch (e) {
+      _log.w('ECashUpgradeDialog: could not plan the switch: $e');
+    }
   }
 
   @override
@@ -176,7 +276,12 @@ class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
       Navigator.of(context).pop(true);
       return;
     }
-    setState(() => _pending = fresh);
+    // The plan belongs to the network on screen, so it goes stale with it.
+    setState(() {
+      _pending = fresh;
+      _plan = null;
+    });
+    unawaited(_readPlan());
   }
 
   bool get _hasSnapshot => _pending.snapshotHeight > 0;
@@ -252,7 +357,7 @@ class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
             '${p.currentNetworkId}. Switching means:',
           ),
           SailText.secondary13(
-            '• The ${p.currentNetworkId} chain is deleted; ${p.pendingNetworkId} syncs from scratch.',
+            ecashChainCostLine(_plan, p.currentNetworkId, p.pendingNetworkId, manualConf: p.userManagedConf),
           ),
           SailText.secondary13('• Coins and transactions you had on ${p.currentNetworkId} are gone for good.'),
           SailText.secondary13('• Your wallets, addresses and keys are kept.'),
