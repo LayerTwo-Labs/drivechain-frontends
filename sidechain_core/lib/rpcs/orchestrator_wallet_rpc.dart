@@ -35,11 +35,15 @@ class OrchestratorWalletRPC {
   }
 
   Future<void> rescanWallet({String? walletId}) async {
-    await _unaryClient.rescanWallet(wmpb.RescanWalletRequest(walletId: walletId ?? ''));
+    await _unaryClient.rescanWallet(
+      wmpb.RescanWalletRequest(walletId: walletId ?? ''),
+    );
   }
 
   Future<double?> estimateFee(int confTarget) async {
-    final r = await _unaryClient.estimateFee(wmpb.EstimateFeeRequest(confTarget: confTarget));
+    final r = await _unaryClient.estimateFee(
+      wmpb.EstimateFeeRequest(confTarget: confTarget),
+    );
     return r.satPerVbyte > 0 ? r.satPerVbyte : null;
   }
 
@@ -74,7 +78,9 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.UnlockWalletResponse> unlockWallet(String password) {
-    return _unaryClient.unlockWallet(wmpb.UnlockWalletRequest(password: password));
+    return _unaryClient.unlockWallet(
+      wmpb.UnlockWalletRequest(password: password),
+    );
   }
 
   Future<wmpb.LockWalletResponse> lockWallet() {
@@ -82,7 +88,9 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.EncryptWalletResponse> encryptWallet(String password) {
-    return _unaryClient.encryptWallet(wmpb.EncryptWalletRequest(password: password));
+    return _unaryClient.encryptWallet(
+      wmpb.EncryptWalletRequest(password: password),
+    );
   }
 
   Future<wmpb.ChangePasswordResponse> changePassword(
@@ -176,17 +184,28 @@ class OrchestratorWalletRPC {
   /// Parses a descriptor or wallet-config file into a multisig policy +
   /// cosigners, for the editable-descriptor and import-config flows.
   Future<wmpb.ParseMultisigConfigResponse> parseMultisigConfig(String content) {
-    return _unaryClient.parseMultisigConfig(wmpb.ParseMultisigConfigRequest(content: content));
+    return _unaryClient.parseMultisigConfig(
+      wmpb.ParseMultisigConfigRequest(content: content),
+    );
   }
 
   /// Reads an output descriptor into the script policy it encodes. Throws if
   /// the descriptor is incomplete or unsupported.
-  Future<wmpb.ValidateDescriptorResponse> validateDescriptor(String descriptor) {
-    return _unaryClient.validateDescriptor(wmpb.ValidateDescriptorRequest(descriptor: descriptor));
+  Future<wmpb.ValidateDescriptorResponse> validateDescriptor(
+    String descriptor,
+  ) {
+    return _unaryClient.validateDescriptor(
+      wmpb.ValidateDescriptorRequest(descriptor: descriptor),
+    );
   }
 
-  Future<wmpb.SwitchWalletResponse> switchWallet(String walletId, {String dataDir = ''}) {
-    return _unaryClient.switchWallet(wmpb.SwitchWalletRequest(walletId: walletId, dataDir: dataDir));
+  Future<wmpb.SwitchWalletResponse> switchWallet(
+    String walletId, {
+    String dataDir = '',
+  }) {
+    return _unaryClient.switchWallet(
+      wmpb.SwitchWalletRequest(walletId: walletId, dataDir: dataDir),
+    );
   }
 
   Future<wmpb.UpdateWalletMetadataResponse> updateWalletMetadata({
@@ -204,7 +223,9 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.DeleteWalletResponse> deleteWallet(String walletId) {
-    return _unaryClient.deleteWallet(wmpb.DeleteWalletRequest(walletId: walletId));
+    return _unaryClient.deleteWallet(
+      wmpb.DeleteWalletRequest(walletId: walletId),
+    );
   }
 
   Future<wmpb.DeleteAllWalletsResponse> deleteAllWallets() {
@@ -220,10 +241,7 @@ class OrchestratorWalletRPC {
     String password = '',
   }) {
     return _unaryClient.restoreWalletBackup(
-      wmpb.RestoreWalletBackupRequest(
-        backupId: backupId,
-        password: password,
-      ),
+      wmpb.RestoreWalletBackupRequest(backupId: backupId, password: password),
     );
   }
 
@@ -232,10 +250,7 @@ class OrchestratorWalletRPC {
     String password = '',
   }) {
     return _streamClient.restoreWalletBackupStream(
-      wmpb.RestoreWalletBackupRequest(
-        backupId: backupId,
-        password: password,
-      ),
+      wmpb.RestoreWalletBackupRequest(backupId: backupId, password: password),
     );
   }
 
@@ -269,7 +284,9 @@ class OrchestratorWalletRPC {
     return _unaryClient.sendTransaction(
       wmpb.SendTransactionRequest(
         walletId: walletId,
-        destinations: destinations.map((key, value) => MapEntry(key, Int64(value))),
+        destinations: destinations.map(
+          (key, value) => MapEntry(key, Int64(value)),
+        ),
         feeRateSatPerVbyte: Int64(feeRateSatPerVbyte ?? 0),
         subtractFeeFromAmount: subtractFeeFromAmount,
         opReturnHex: resolvedOpReturnHex ?? '',
@@ -291,6 +308,7 @@ class OrchestratorWalletRPC {
     String? opReturnMessage,
     String? opReturnHex,
     List<bwpb.UnspentOutput>? requiredInputs,
+    bool replayProtect = false,
   }) async {
     final resolvedOpReturnHex =
         opReturnHex ?? (opReturnMessage == null ? null : _bytesToHex(utf8.encode(opReturnMessage)));
@@ -298,19 +316,25 @@ class OrchestratorWalletRPC {
     final response = await _unaryClient.createPsbt(
       wmpb.CreatePsbtRequest(
         walletId: walletId,
-        destinations: destinations.map((key, value) => MapEntry(key, Int64(value))),
+        destinations: destinations.map(
+          (key, value) => MapEntry(key, Int64(value)),
+        ),
         feeRateSatPerVbyte: Int64(feeRateSatPerVbyte ?? 0),
         subtractFeeFromAmount: subtractFeeFromAmount,
         opReturnHex: resolvedOpReturnHex ?? '',
         fixedFeeSats: Int64(fixedFeeSats ?? 0),
         requiredInputs: requiredInputs?.map(_mapRequiredInput).toList() ?? [],
+        replayProtect: replayProtect,
       ),
     );
     return response.psbtBase64;
   }
 
   /// Sign a PSBT with the active (hot) wallet, returning the updated PSBT.
-  Future<String> signPsbt({required String walletId, required String psbtBase64}) async {
+  Future<String> signPsbt({
+    required String walletId,
+    required String psbtBase64,
+  }) async {
     final response = await _unaryClient.signPsbt(
       wmpb.SignPsbtRequest(walletId: walletId, psbtBase64: psbtBase64),
     );
@@ -357,12 +381,18 @@ class OrchestratorWalletRPC {
     required String psbtBase64,
   }) {
     return _unaryClient.multisigPsbtStatus(
-      wmpb.MultisigPsbtStatusRequest(walletId: walletId, psbtBase64: psbtBase64),
+      wmpb.MultisigPsbtStatusRequest(
+        walletId: walletId,
+        psbtBase64: psbtBase64,
+      ),
     );
   }
 
   /// Broadcasts a finalized raw transaction over the wallet's chain.
-  Future<String> broadcastTransaction({required String walletId, required String txHex}) async {
+  Future<String> broadcastTransaction({
+    required String walletId,
+    required String txHex,
+  }) async {
     final response = await _unaryClient.broadcastTransaction(
       wmpb.BroadcastTransactionRequest(walletId: walletId, txHex: txHex),
     );
@@ -371,7 +401,9 @@ class OrchestratorWalletRPC {
 
   /// Lists connected USB hardware wallets. A passphrase makes a
   /// passphrase-protected device report its passphrase-wallet fingerprint.
-  Future<List<wmpb.HardwareDevice>> enumerateHardwareDevices({String? passphrase}) async {
+  Future<List<wmpb.HardwareDevice>> enumerateHardwareDevices({
+    String? passphrase,
+  }) async {
     final response = await _unaryClient.enumerateHardwareDevices(
       wmpb.EnumerateHardwareDevicesRequest(passphrase: passphrase ?? ''),
     );
@@ -384,7 +416,10 @@ class OrchestratorWalletRPC {
     required String derivationPath,
   }) async {
     final response = await _unaryClient.getHardwareXpub(
-      wmpb.GetHardwareXpubRequest(device: device, derivationPath: derivationPath),
+      wmpb.GetHardwareXpubRequest(
+        device: device,
+        derivationPath: derivationPath,
+      ),
     );
     return response.xpub;
   }
@@ -401,17 +436,28 @@ class OrchestratorWalletRPC {
   }
 
   /// Makes a locked device show its scrambled PIN matrix.
-  Future<void> promptDevicePin({required wmpb.HardwareDeviceSelector device}) async {
-    await _unaryClient.promptDevicePin(wmpb.PromptDevicePinRequest(device: device));
+  Future<void> promptDevicePin({
+    required wmpb.HardwareDeviceSelector device,
+  }) async {
+    await _unaryClient.promptDevicePin(
+      wmpb.PromptDevicePinRequest(device: device),
+    );
   }
 
   /// Unlocks a device with the matrix positions the user picked.
-  Future<void> sendDevicePin({required wmpb.HardwareDeviceSelector device, required String pin}) async {
-    await _unaryClient.sendDevicePin(wmpb.SendDevicePinRequest(device: device, pin: pin));
+  Future<void> sendDevicePin({
+    required wmpb.HardwareDeviceSelector device,
+    required String pin,
+  }) async {
+    await _unaryClient.sendDevicePin(
+      wmpb.SendDevicePinRequest(device: device, pin: pin),
+    );
   }
 
   /// Releases a device session (e.g. after cancelling a PIN prompt).
-  Future<void> closeDevice({required wmpb.HardwareDeviceSelector device}) async {
+  Future<void> closeDevice({
+    required wmpb.HardwareDeviceSelector device,
+  }) async {
     await _unaryClient.closeDevice(wmpb.CloseDeviceRequest(device: device));
   }
 
@@ -460,7 +506,10 @@ class OrchestratorWalletRPC {
 
   /// Canonicalises a derivation path and reports the script type it is the
   /// standard path for. Throws with the reason it is unusable.
-  Future<wmpb.ValidateDerivationPathResponse> validateDerivationPath(String path, {bool multisig = false}) {
+  Future<wmpb.ValidateDerivationPathResponse> validateDerivationPath(
+    String path, {
+    bool multisig = false,
+  }) {
     return _unaryClient.validateDerivationPath(
       wmpb.ValidateDerivationPathRequest(path: path, multisig: multisig),
     );
@@ -473,7 +522,11 @@ class OrchestratorWalletRPC {
     int account = 0,
   }) {
     return _unaryClient.listDerivationPaths(
-      wmpb.ListDerivationPathsRequest(scriptType: scriptType, multisig: multisig, account: account),
+      wmpb.ListDerivationPathsRequest(
+        scriptType: scriptType,
+        multisig: multisig,
+        account: account,
+      ),
     );
   }
 
@@ -487,10 +540,14 @@ class OrchestratorWalletRPC {
   }
 
   Future<wmpb.ListUnspentResponse> listUnspent(String walletId) {
-    return _unaryClient.listUnspent(wmpb.ListUnspentRequest(walletId: walletId));
+    return _unaryClient.listUnspent(
+      wmpb.ListUnspentRequest(walletId: walletId),
+    );
   }
 
-  Future<wmpb.ListReceiveAddressesResponse> listReceiveAddresses(String walletId) {
+  Future<wmpb.ListReceiveAddressesResponse> listReceiveAddresses(
+    String walletId,
+  ) {
     return _unaryClient.listReceiveAddresses(
       wmpb.ListReceiveAddressesRequest(walletId: walletId),
     );
@@ -611,7 +668,9 @@ class OrchestratorWalletRPC {
   /// to the network default. Validates connectivity server-side and keeps the
   /// previous endpoint on failure.
   Future<wmpb.SetElectrumServerResponse> setElectrumServer(String url) {
-    return _unaryClient.setElectrumServer(wmpb.SetElectrumServerRequest(url: url));
+    return _unaryClient.setElectrumServer(
+      wmpb.SetElectrumServerRequest(url: url),
+    );
   }
 
   Future<wmpb.GetTorConfigResponse> getTorConfig() {
@@ -622,7 +681,9 @@ class OrchestratorWalletRPC {
   /// SOCKS5 proxy. When enabling, an empty proxy uses the network default.
   /// Validates connectivity server-side and keeps the previous config on failure.
   Future<wmpb.SetTorConfigResponse> setTorConfig(bool enabled, String proxy) {
-    return _unaryClient.setTorConfig(wmpb.SetTorConfigRequest(enabled: enabled, proxy: proxy));
+    return _unaryClient.setTorConfig(
+      wmpb.SetTorConfigRequest(enabled: enabled, proxy: proxy),
+    );
   }
 
   String _bytesToHex(List<int> bytes) {

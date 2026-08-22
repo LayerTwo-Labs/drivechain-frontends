@@ -2086,3 +2086,75 @@ func TestElectrumTaprootReceivePathUsesBIP86(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "m/84'/1'/0'/0/0", segwit.HDPath)
 }
+
+// A replay-protected PSBT must carry the magic locktime and non-final
+// sequences BEFORE it goes out for signatures, so every signature commits to
+// them and the finalized transaction still holds them.
+func TestElectrumCreatePSBTReplayProtect(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "4444444444444444444444444444444444444444444444444444444444444444",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	req := SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+		ReplayProtect:    true,
+	}
+
+	unsigned, err := p.CreatePSBT(ctx, w.ID, req)
+	require.NoError(t, err)
+
+	packet, err := decodePSBTBase64(unsigned)
+	require.NoError(t, err)
+	require.Equal(t, replay.ReplayLockTime, packet.UnsignedTx.LockTime)
+	for _, in := range packet.UnsignedTx.TxIn {
+		require.Less(t, in.Sequence, wire.MaxTxInSequenceNum, "locktime only applies to a non-final input")
+	}
+
+	signed, err := p.SignPSBT(ctx, w.ID, unsigned)
+	require.NoError(t, err)
+	rawHex, err := p.FinalizePSBT(signed)
+	require.NoError(t, err)
+
+	var tx wire.MsgTx
+	raw, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	require.Equal(t, replay.ReplayLockTime, tx.LockTime)
+	require.NotEmpty(t, tx.TxIn[0].Witness)
+}
+
+// Without the flag the PSBT stays a plain transaction.
+func TestElectrumCreatePSBTNoReplayProtect(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "4444444444444444444444444444444444444444444444444444444444444444",
+		Vout: 0, Value: 200_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	unsigned, err := p.CreatePSBT(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+
+	packet, err := decodePSBTBase64(unsigned)
+	require.NoError(t, err)
+	require.NotEqual(t, replay.ReplayLockTime, packet.UnsignedTx.LockTime)
+}

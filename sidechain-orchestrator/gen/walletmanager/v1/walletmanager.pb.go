@@ -4606,8 +4606,12 @@ type CreatePsbtRequest struct {
 	RequiredInputs        []*UnspentOutput       `protobuf:"bytes,7,rep,name=required_inputs,json=requiredInputs,proto3" json:"required_inputs,omitempty"`
 	RawOutputs            []*RawOutput           `protobuf:"bytes,8,rep,name=raw_outputs,json=rawOutputs,proto3" json:"raw_outputs,omitempty"`
 	ExternalInputs        []*ExternalInput       `protobuf:"bytes,9,rep,name=external_inputs,json=externalInputs,proto3" json:"external_inputs,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Stamp the magic nLockTime (499999999) and non-final input sequences before
+	// the PSBT goes out for signatures, so the signed transaction is valid on
+	// eCash only. Electrum wallets only.
+	ReplayProtect bool `protobuf:"varint,10,opt,name=replay_protect,json=replayProtect,proto3" json:"replay_protect,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreatePsbtRequest) Reset() {
@@ -4701,6 +4705,13 @@ func (x *CreatePsbtRequest) GetExternalInputs() []*ExternalInput {
 		return x.ExternalInputs
 	}
 	return nil
+}
+
+func (x *CreatePsbtRequest) GetReplayProtect() bool {
+	if x != nil {
+		return x.ReplayProtect
+	}
+	return false
 }
 
 type CreatePsbtResponse struct {
@@ -9673,7 +9684,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x04vout\x18\x02 \x01(\x05R\x04vout\x12\x1d\n" +
 	"\n" +
 	"value_sats\x18\x03 \x01(\x03R\tvalueSats\x12*\n" +
-	"\x11script_pubkey_hex\x18\x04 \x01(\tR\x0fscriptPubkeyHex\"\xd5\x04\n" +
+	"\x11script_pubkey_hex\x18\x04 \x01(\tR\x0fscriptPubkeyHex\"\xfc\x04\n" +
 	"\x11CreatePsbtRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12Y\n" +
 	"\fdestinations\x18\x02 \x03(\v25.walletmanager.v1.CreatePsbtRequest.DestinationsEntryR\fdestinations\x122\n" +
@@ -9684,7 +9695,9 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x0frequired_inputs\x18\a \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x0erequiredInputs\x12<\n" +
 	"\vraw_outputs\x18\b \x03(\v2\x1b.walletmanager.v1.RawOutputR\n" +
 	"rawOutputs\x12H\n" +
-	"\x0fexternal_inputs\x18\t \x03(\v2\x1f.walletmanager.v1.ExternalInputR\x0eexternalInputs\x1a?\n" +
+	"\x0fexternal_inputs\x18\t \x03(\v2\x1f.walletmanager.v1.ExternalInputR\x0eexternalInputs\x12%\n" +
+	"\x0ereplay_protect\x18\n" +
+	" \x01(\bR\rreplayProtect\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"5\n" +
