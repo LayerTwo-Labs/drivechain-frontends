@@ -159,7 +159,7 @@ func TestGenerateFullWallet(t *testing.T) {
 		{Slot: 5, Name: "BitNames"},
 	}
 
-	wallet, err := GenerateFullWallet("Test Wallet", "", "", slots, "enforcer")
+	wallet, err := GenerateFullWallet("Test Wallet", "", "", slots, "bitcoinCore")
 	require.NoError(t, err)
 
 	assert.Equal(t, "Test Wallet", wallet.Name)
@@ -174,7 +174,7 @@ func TestGenerateFullWallet(t *testing.T) {
 	assert.Equal(t, 9, wallet.Sidechains[0].Slot)
 	assert.Equal(t, "Thunder", wallet.Sidechains[0].Name)
 	assert.NotEmpty(t, wallet.Sidechains[0].Mnemonic)
-	assert.Equal(t, WalletTypeEnforcer, wallet.WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallet.WalletType)
 
 	// Master mnemonic is 12 words
 	assert.Equal(t, 12, len(strings.Fields(wallet.Master.Mnemonic)))

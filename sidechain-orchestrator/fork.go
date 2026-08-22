@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/samber/lo"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
-	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
@@ -25,14 +22,6 @@ func (o *Orchestrator) InitForkEngine(we *wallet.WalletEngine) {
 // SetWalletEngine hands the orchestrator the engine it resets on a network swap.
 func (o *Orchestrator) SetWalletEngine(we *wallet.WalletEngine) {
 	o.walletEngine = we
-}
-
-// SetForkEnforcerWallet attaches the enforcer wallet client to the fork scan so
-// the enforcer wallet's pre-fork coins are claimable too. Called from main once
-// the enforcer client exists (which is after InitForkEngine), so it's read
-// dynamically by the scanner rather than captured at construction.
-func (o *Orchestrator) SetForkEnforcerWallet(client enforcerrpc.WalletServiceClient) {
-	o.forkEnforcerWallet = client
 }
 
 // ForkState returns the canonical fork snapshot, or a zero state if the fork
@@ -148,25 +137,13 @@ func (s *forkWalletScanner) Wallets() []fork.WalletMeta {
 		return fork.WalletMeta{
 			ID:                w.ID,
 			Name:              w.Name,
-			ReplayProtectable: w.WalletType != wallet.WalletTypeEnforcer,
+			ReplayProtectable: true,
 		}, true
 	})
 }
 
 func (s *forkWalletScanner) Unspent(ctx context.Context, walletID string, tipHeight int) ([]fork.Utxo, error) {
-	if s.walletType(walletID) == wallet.WalletTypeEnforcer {
-		return s.enforcerUnspent(ctx)
-	}
 	return s.coreUnspent(ctx, walletID, tipHeight)
-}
-
-func (s *forkWalletScanner) walletType(walletID string) wallet.WalletType {
-	for _, w := range s.o.WalletSvc.GetAllWallets() {
-		if w.ID == walletID {
-			return w.WalletType
-		}
-	}
-	return ""
 }
 
 // coreUnspent reads a Core wallet's UTXOs; Core only reports confirmations, so
@@ -191,31 +168,6 @@ func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, ti
 			Sats:      fork.BTCToSats(u.Amount),
 			Height:    height,
 			Spendable: u.Spendable,
-		}
-	}), nil
-}
-
-// enforcerUnspent reads the enforcer wallet's UTXOs; the enforcer exposes the
-// confirming block height directly (ConfirmedAtBlock).
-func (s *forkWalletScanner) enforcerUnspent(ctx context.Context) ([]fork.Utxo, error) {
-	if s.o.forkEnforcerWallet == nil {
-		return nil, nil
-	}
-	resp, err := s.o.forkEnforcerWallet.ListUnspentOutputs(ctx, connect.NewRequest(&enforcerpb.ListUnspentOutputsRequest{}))
-	if err != nil {
-		return nil, err
-	}
-	return lo.Map(resp.Msg.Outputs, func(u *enforcerpb.ListUnspentOutputsResponse_Output, _ int) fork.Utxo {
-		height := 0
-		if u.IsConfirmed {
-			height = int(u.ConfirmedAtBlock)
-		}
-		return fork.Utxo{
-			Outpoint:  fork.Outpoint(u.Txid.GetHex().GetValue(), int(u.Vout)),
-			Address:   u.Address.GetValue(),
-			Sats:      u.ValueSats,
-			Height:    height,
-			Spendable: true,
 		}
 	}), nil
 }

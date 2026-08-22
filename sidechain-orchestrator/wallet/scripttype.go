@@ -297,9 +297,6 @@ func ReceiveKinds(w *WalletData) []ScriptKind {
 		return nil
 	}
 	primary := w.scriptKind()
-	if w.WalletType == WalletTypeEnforcer {
-		return []ScriptKind{ScriptNativeSegwit}
-	}
 	if w.Multisig != nil || w.IsWatchOnly() || w.usesExplicitPath() {
 		return []ScriptKind{primary}
 	}

@@ -56,16 +56,6 @@ func (e *WalletEngine) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
 	return b, ok
 }
 
-// DepositBackendFor returns the wallet's backend as a DepositBackend when it
-// builds the M5 itself. ok is false for backends that take raw deposit outputs.
-func (e *WalletEngine) DepositBackendFor(walletID string) (DepositBackend, bool) {
-	if r, ok := e.backend.(*BackendRouter); ok {
-		return r.DepositBackendFor(walletID)
-	}
-	b, ok := e.backend.(DepositBackend)
-	return b, ok
-}
-
 // ChainForWallet returns the chain source for a wallet's backend, dispatching
 // by wallet type so electrum wallets read/broadcast over Esplora.
 func (e *WalletEngine) ChainForWallet(walletID string) ChainSource {

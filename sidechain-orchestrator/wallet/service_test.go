@@ -44,7 +44,7 @@ func TestServiceGenerateWallet(t *testing.T) {
 
 	assert.NotEmpty(t, w.ID)
 	assert.Equal(t, "Test Wallet", w.Name)
-	assert.Equal(t, WalletTypeEnforcer, w.WalletType) // first wallet should be enforcer
+	assert.Equal(t, WalletTypeBitcoinCore, w.WalletType)
 	assert.NotEmpty(t, w.Master.Mnemonic)
 	assert.NotEmpty(t, w.Master.SeedHex)
 	assert.NotEmpty(t, w.Master.MasterKey)
@@ -70,7 +70,7 @@ func TestServiceGenerateSecondWalletIsBitcoinCore(t *testing.T) {
 
 	w1, err := svc.GenerateWallet("First", "", "", testSlots)
 	require.NoError(t, err)
-	assert.Equal(t, WalletTypeEnforcer, w1.WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, w1.WalletType)
 
 	w2, err := svc.GenerateWallet("Second", "", "", testSlots)
 	require.NoError(t, err)
@@ -402,7 +402,7 @@ func TestServiceWalletJSONFormat(t *testing.T) {
 	assert.NotEmpty(t, wallet.L1.Mnemonic)
 	assert.Equal(t, "Bitcoin Core (Patched)", wallet.L1.Name)
 	assert.Len(t, wallet.Sidechains, 2)
-	assert.Equal(t, WalletTypeEnforcer, wallet.WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallet.WalletType)
 	assert.NotEmpty(t, wallet.ID)
 	assert.NotEmpty(t, wallet.Name)
 	assert.False(t, wallet.CreatedAt.IsZero())
@@ -500,13 +500,12 @@ func TestServiceDeleteActiveWalletSwitchesToNext(t *testing.T) {
 	w2, err := svc.GenerateWallet("Second", "", "", testSlots)
 	require.NoError(t, err)
 
-	// w2 is active, switch to w1
-	require.NoError(t, svc.SwitchWallet(w1.ID))
-	assert.Equal(t, w1.ID, svc.ActiveWalletID())
-
-	// Delete w1 (active) - should switch to w2
-	require.NoError(t, svc.DeleteWallet(w1.ID))
+	// w2 is active. w1 holds the starter pin, so delete w2 instead — the
+	// starter cannot go while another wallet remains.
 	assert.Equal(t, w2.ID, svc.ActiveWalletID())
+
+	require.NoError(t, svc.DeleteWallet(w2.ID))
+	assert.Equal(t, w1.ID, svc.ActiveWalletID())
 }
 
 func TestServiceDeleteLastWalletClearsActive(t *testing.T) {
@@ -531,25 +530,29 @@ func TestServiceStarterFilesRequireActiveWallet(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestServiceStarterFilesRequireEnforcerForL1(t *testing.T) {
+func TestServiceStarterFilesNeedAWalletForL1(t *testing.T) {
 	svc := newTestService(t)
 
 	// Generate first wallet (enforcer) then delete it, add non-enforcer
 	w1, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
 	require.NoError(t, err)
 
-	// L1 should work with enforcer wallet
 	_, err = svc.WriteL1Starter()
 	require.NoError(t, err)
 
-	// Add second wallet and delete enforcer
+	// The starter wallet cannot go while another remains, so the L1 starter
+	// keeps coming from the same seed.
 	_, err = svc.GenerateWallet("Other", "", "", testSlots)
 	require.NoError(t, err)
-	require.NoError(t, svc.DeleteWallet(w1.ID))
+	require.Error(t, svc.DeleteWallet(w1.ID), "the starter wallet is protected")
 
-	// L1 should fail - no enforcer wallet
 	_, err = svc.WriteL1Starter()
-	assert.Error(t, err, "L1 starter should require enforcer wallet")
+	require.NoError(t, err)
+
+	// With no wallet at all there is no seed to derive from.
+	require.NoError(t, svc.DeleteAllWallets(nil, nil))
+	_, err = svc.WriteL1Starter()
+	assert.Error(t, err, "the L1 starter needs a wallet")
 }
 
 func TestServiceMultipleWalletsListOrder(t *testing.T) {
@@ -771,7 +774,7 @@ func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
 	// Create a regular wallet first
 	w1, err := svc.GenerateWallet("Regular Wallet", "", "", testSlots)
 	require.NoError(t, err)
-	assert.Equal(t, WalletTypeEnforcer, w1.WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, w1.WalletType)
 
 	// Create a watch-only wallet
 	xpub := "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
@@ -780,7 +783,7 @@ func TestServiceCreateWatchOnlyWalletAlongsideRegular(t *testing.T) {
 
 	wallets := svc.ListWallets()
 	require.Len(t, wallets, 2)
-	assert.Equal(t, WalletTypeEnforcer, wallets[0].WalletType)
+	assert.Equal(t, WalletTypeBitcoinCore, wallets[0].WalletType)
 	assert.Equal(t, WalletTypeBitcoinCore, wallets[1].WalletType)
 
 	// Watch-only should now be active
@@ -903,14 +906,16 @@ func TestServiceLegacyWalletTypeBackfill(t *testing.T) {
 	require.NoError(t, svc.Init())
 	defer svc.Close()
 
+	// The seeded legacy wallet was one the enforcer served, so it gains a
+	// companion holding what the enforcer held.
 	wallets := svc.ListWallets()
-	require.Len(t, wallets, 2)
+	require.Len(t, wallets, 3)
 
 	byID := map[string]WalletType{}
 	for _, w := range wallets {
 		byID[w.ID] = w.WalletType
 	}
-	assert.Equal(t, WalletTypeEnforcer, byID["LEGACY1"], "wallet with mnemonic should backfill to enforcer")
+	assert.Equal(t, WalletTypeBitcoinCore, byID["LEGACY1"], "with no network set, the migration keeps a local backend")
 	assert.Equal(t, WalletTypeBitcoinCore, byID["LEGACY2"], "wallet without mnemonic should backfill to bitcoinCore")
 
 	// Reload to confirm the backfill persisted to disk — otherwise the
@@ -1101,7 +1106,6 @@ func TestServiceRestoreWalletBackupWithProgressReportsPlanAndStepStatuses(t *tes
 		{ID: restoreStepBackupCurrent, Name: "Backing up current wallet"},
 		{ID: restoreStepRestoreFiles, Name: "Restoring wallet files"},
 		{ID: restoreStepLoadWallet, Name: "Loading restored wallet"},
-		{ID: restoreStepClearEnforcer, Name: "Clearing enforcer state"},
 		{ID: restoreStepComplete, Name: "Restore complete"},
 	}, plan)
 
@@ -1120,8 +1124,6 @@ func TestServiceRestoreWalletBackupWithProgressReportsPlanAndStepStatuses(t *tes
 		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepRestoreFiles,
 		string(RestoreWalletBackupStepStarted) + ":" + restoreStepLoadWallet,
 		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepLoadWallet,
-		string(RestoreWalletBackupStepStarted) + ":" + restoreStepClearEnforcer,
-		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepClearEnforcer,
 		string(RestoreWalletBackupStepStarted) + ":" + restoreStepComplete,
 		string(RestoreWalletBackupStepCompleted) + ":" + restoreStepComplete,
 	}, events)

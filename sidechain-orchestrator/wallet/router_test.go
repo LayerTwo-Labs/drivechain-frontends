@@ -35,36 +35,38 @@ func (f *fakeBackend) Chain() ChainSource {
 	return unavailableChain{reason: "fake " + f.name}
 }
 
-// newRouterFixture builds a Service holding an enforcer wallet (first) and a
-// bitcoinCore wallet (second) — the real type-assignment logic — plus fakes.
+// newRouterFixture builds a Service holding two bitcoinCore wallets — the type
+// every generated wallet gets — plus the chain and electrum fakes.
 func newRouterFixture(t *testing.T) (*BackendRouter, *fakeBackend, *fakeBackend, string, string) {
 	t.Helper()
 	svc := newTestService(t)
 
-	enf, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	first, err := svc.GenerateWallet("First", "", "", testSlots)
 	require.NoError(t, err)
-	require.Equal(t, WalletTypeEnforcer, enf.WalletType)
+	require.Equal(t, WalletTypeBitcoinCore, first.WalletType)
 
-	core, err := svc.GenerateWallet("Core", "", "", testSlots)
+	second, err := svc.GenerateWallet("Second", "", "", testSlots)
 	require.NoError(t, err)
-	require.Equal(t, WalletTypeBitcoinCore, core.WalletType)
+	require.Equal(t, WalletTypeBitcoinCore, second.WalletType)
 
-	enfFake := &fakeBackend{name: "enforcer"}
+	elecFake := &fakeBackend{name: "electrum"}
 	chainFake := &fakeBackend{name: "chain"}
-	return NewBackendRouter(svc, enfFake, chainFake, nil), enfFake, chainFake, enf.ID, core.ID
+	return NewBackendRouter(svc, chainFake, elecFake), elecFake, chainFake, first.ID, second.ID
 }
 
 func TestBackendRouterDispatchesByWalletType(t *testing.T) {
-	router, enfFake, chainFake, enfID, coreID := newRouterFixture(t)
+	router, elecFake, chainFake, firstID, secondID := newRouterFixture(t)
 	ctx := context.Background()
 
-	_, _, err := router.Balance(ctx, enfID)
+	_, _, err := router.Balance(ctx, firstID)
 	require.NoError(t, err)
-	_, err = router.Send(ctx, coreID, SendRequest{})
+	_, err = router.Send(ctx, secondID, SendRequest{})
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{"Balance:" + enfID}, enfFake.calls)
-	assert.Equal(t, []string{"Send:" + coreID}, chainFake.calls)
+	// Both are bitcoinCore, so the chain backend takes both calls and the
+	// electrum fake stays untouched.
+	assert.Equal(t, []string{"Balance:" + firstID, "Send:" + secondID}, chainFake.calls)
+	assert.Empty(t, elecFake.calls)
 }
 
 func TestBackendRouterUnknownWallet(t *testing.T) {
@@ -76,8 +78,6 @@ func TestBackendRouterUnknownWallet(t *testing.T) {
 
 func TestBackendRouterMissingSides(t *testing.T) {
 	svc := newTestService(t)
-	enf, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
-	require.NoError(t, err)
 	core, err := svc.GenerateWallet("Core", "", "", testSlots)
 	require.NoError(t, err)
 
@@ -85,11 +85,9 @@ func TestBackendRouterMissingSides(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, WalletTypeElectrum, elec.WalletType)
 
-	router := NewBackendRouter(svc, nil, nil, nil)
+	router := NewBackendRouter(svc, nil, nil)
 	ctx := context.Background()
 
-	_, _, err = router.Balance(ctx, enf.ID)
-	require.ErrorContains(t, err, "enforcer wallet client not connected")
 	_, _, err = router.Balance(ctx, core.ID)
 	require.ErrorContains(t, err, "bitcoin Core RPC not configured")
 	_, _, err = router.Balance(ctx, elec.ID)

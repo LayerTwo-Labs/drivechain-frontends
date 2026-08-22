@@ -14,7 +14,7 @@ var (
 
 // ResetNetworkState fans out to every configured backend.
 func (r *BackendRouter) ResetNetworkState() {
-	for _, b := range []Backend{r.enforcer, r.chain, r.electrum} {
+	for _, b := range []Backend{r.chain, r.electrum} {
 		if nr, ok := b.(NetworkResettable); ok {
 			nr.ResetNetworkState()
 		}

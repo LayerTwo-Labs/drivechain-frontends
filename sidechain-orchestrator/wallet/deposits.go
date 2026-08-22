@@ -1,0 +1,68 @@
+package wallet
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+// SidechainDeposit is one deposit this install made to a sidechain treasury.
+type SidechainDeposit struct {
+	Txid        string
+	WalletID    string
+	Slot        uint32
+	Destination string
+	AmountSats  int64
+	CreatedAt   time.Time
+}
+
+// RecordSidechainDeposit remembers a deposit the wallet just broadcast. An M5
+// is a normal transaction on the wire, so nothing later can tell it apart from
+// an ordinary send without this record.
+func (s *Service) RecordSidechainDeposit(ctx context.Context, d SidechainDeposit) error {
+	db := s.db()
+	if db == nil {
+		return fmt.Errorf("record sidechain deposit: database not open")
+	}
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO sidechain_deposits (network, txid, wallet_id, slot, destination, amount_sats, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (network, txid) DO NOTHING`,
+		s.Network(), d.Txid, d.WalletID, d.Slot, d.Destination, d.AmountSats, time.Now().Unix())
+	if err != nil {
+		return fmt.Errorf("insert sidechain deposit: %w", err)
+	}
+	return nil
+}
+
+// SidechainDeposits lists the deposits made to a slot, newest first.
+func (s *Service) SidechainDeposits(ctx context.Context, slot uint32) ([]SidechainDeposit, error) {
+	db := s.db()
+	if db == nil {
+		return nil, fmt.Errorf("list sidechain deposits: database not open")
+	}
+	rows, err := db.QueryContext(ctx, `
+		SELECT txid, wallet_id, slot, destination, amount_sats, created_at
+		FROM sidechain_deposits
+		WHERE network = ? AND slot = ?
+		ORDER BY created_at DESC`, s.Network(), slot)
+	if err != nil {
+		return nil, fmt.Errorf("query sidechain deposits: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []SidechainDeposit
+	for rows.Next() {
+		var d SidechainDeposit
+		var createdAt int64
+		if err := rows.Scan(&d.Txid, &d.WalletID, &d.Slot, &d.Destination, &d.AmountSats, &createdAt); err != nil {
+			return nil, fmt.Errorf("scan sidechain deposit: %w", err)
+		}
+		d.CreatedAt = time.Unix(createdAt, 0)
+		out = append(out, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read sidechain deposits: %w", err)
+	}
+	return out, nil
+}
