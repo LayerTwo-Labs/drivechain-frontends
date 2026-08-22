@@ -1797,7 +1797,11 @@ func (s *Service) loadWalletFile() error {
 		}
 		migrated = true
 	}
-	if s.migrateEnforcerWallets() {
+	enforcerMigrated, err := s.migrateEnforcerWallets()
+	if err != nil {
+		return err
+	}
+	if enforcerMigrated {
 		migrated = true
 	}
 	if s.adoptStarterWallet() {
@@ -1834,7 +1838,7 @@ const EnforcerAccountPath = "m/84'/1'/0'"
 // keeps its own seed and its own per-network path, and a second wallet appears
 // beside it holding exactly what the enforcer held. The user sees those coins,
 // can spend them, and can move them whenever they like.
-func (s *Service) migrateEnforcerWallets() bool {
+func (s *Service) migrateEnforcerWallets() (bool, error) {
 	target := WalletTypeElectrum
 	if !config.SupportsLightMode(config.Network(s.network)) {
 		target = WalletTypeBitcoinCore
@@ -1846,13 +1850,15 @@ func (s *Service) migrateEnforcerWallets() bool {
 			continue
 		}
 		s.wallets[i].WalletType = target
+		// The enforcer held coins here before BitWindow ever imported it into
+		// Core, so Core must rescan rather than start at the tip.
+		s.wallets[i].Imported = true
 		changed = true
 
 		legacy, err := s.enforcerLegacyWallet(&s.wallets[i], target)
 		switch {
 		case err != nil:
-			s.log.Error().Err(err).Str("id", s.wallets[i].ID).
-				Msg("could not rebuild the enforcer's own wallet; its coins stay unlisted")
+			return false, fmt.Errorf("rebuild the enforcer wallet %s: %w", s.wallets[i].ID, err)
 		case legacy != nil:
 			s.wallets = append(s.wallets, *legacy)
 			s.log.Info().Str("id", legacy.ID).Str("derivation_path", legacy.DerivationPath).
@@ -1864,7 +1870,7 @@ func (s *Service) migrateEnforcerWallets() bool {
 			Str("wallet_type", string(target)).
 			Msg("moved an enforcer wallet onto a supported backend")
 	}
-	return changed
+	return changed, nil
 }
 
 // enforcerLegacyWallet builds the wallet the enforcer daemon actually ran: the
@@ -1899,6 +1905,7 @@ func (s *Service) enforcerLegacyWallet(w *WalletData, target WalletType) (*Walle
 	legacy.WalletType = target
 	legacy.DerivationPath = EnforcerAccountPath
 	legacy.ImportedFromEnforcer = true
+	legacy.Imported = true
 	legacy.Gradient = nil
 	legacy.CreatedAt = time.Now()
 	legacy.Sidechains = nil

@@ -5047,7 +5047,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x06blocks\x18\x01 \x01(\x05R\x06blocks\x12\x18\n" +
 	"\aheaders\x18\x02 \x01(\x05R\aheaders\x12\x12\n" +
 	"\x04time\x18\x03 \x01(\x03R\x04time\"\x16\n" +
-	"\x14GetSyncStatusRequest\"\xbe\x02\n" +
+	"\x14GetSyncStatusRequest\"\xcf\x02\n" +
 	"\x15GetSyncStatusResponse\x128\n" +
 	"\tmainchain\x18\x01 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\tmainchain\x126\n" +
 	"\benforcer\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\benforcer\x12@\n" +
@@ -5055,7 +5055,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"sidechains\x18\x03 \x03(\v2 .orchestrator.v1.SidechainStatusR\n" +
 	"sidechains\x12,\n" +
 	"\x12wallet_sync_status\x18\x04 \x01(\tR\x10walletSyncStatus\x12=\n" +
-	"\fchain_source\x18\x06 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\vchainSourceJ\x04\b\x05\x10\x06\"u\n" +
+	"\fchain_source\x18\x06 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\vchainSourceJ\x04\b\x05\x10\x06R\x0fenforcer_wallet\"u\n" +
 	"\x0fSidechainStatus\x122\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1e.orchestrator.v1.SidechainTypeR\x04type\x12.\n" +
 	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"\xec\x01\n" +
