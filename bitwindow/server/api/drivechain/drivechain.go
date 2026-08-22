@@ -49,14 +49,14 @@ type proposalsCache struct {
 // New creates a new Server
 func New(
 	data datasource.DrivechainReader,
-	wallet *service.Service[validatorrpc.WalletServiceClient],
+	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient],
 	db *sql.DB,
 	conf config.Config,
 	walletEngine *engines.WalletEngine,
 ) *Server {
 	s := &Server{
 		data:             data,
-		wallet:           wallet,
+		blockProducer:    blockProducer,
 		db:               db,
 		conf:             conf,
 		walletEngine:     walletEngine,
@@ -66,11 +66,11 @@ func New(
 }
 
 type Server struct {
-	data         datasource.DrivechainReader
-	wallet       *service.Service[validatorrpc.WalletServiceClient]
-	db           *sql.DB
-	conf         config.Config
-	walletEngine *engines.WalletEngine
+	data          datasource.DrivechainReader
+	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient]
+	db            *sql.DB
+	conf          config.Config
+	walletEngine  *engines.WalletEngine
 
 	// Cache for withdrawal bundles per sidechain ID
 	withdrawalCacheMu sync.RWMutex
@@ -270,10 +270,10 @@ func (s *Server) ProposeSidechain(
 		return nil, err
 	}
 
-	wallet, err := s.wallet.Get(ctx)
+	producer, err := s.blockProducer.Get(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable,
-			fmt.Errorf("wallet unavailable: %w", err))
+			fmt.Errorf("block producer unavailable: %w", err))
 	}
 
 	// Build SidechainDeclaration V0
@@ -306,7 +306,7 @@ func (s *Server) ProposeSidechain(
 		Declaration: declaration,
 	}
 
-	stream, err := wallet.CreateSidechainProposal(ctx, connect.NewRequest(proposalReq))
+	stream, err := producer.CreateSidechainProposal(ctx, connect.NewRequest(proposalReq))
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("propose sidechain failed")
 		return nil, connect.NewError(connect.CodeInternal,

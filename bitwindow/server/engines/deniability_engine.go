@@ -3,6 +3,7 @@ package engines
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -23,20 +23,17 @@ import (
 )
 
 type DeniabilityEngine struct {
-	wallet       *service.Service[validatorrpc.WalletServiceClient]
 	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
 	db           *sql.DB
 	walletEngine *WalletEngine
 }
 
 func NewDeniability(
-	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	db *sql.DB,
 	walletEngine *WalletEngine,
 ) *DeniabilityEngine {
 	return &DeniabilityEngine{
-		wallet:       wallet,
 		bitcoind:     bitcoind,
 		db:           db,
 		walletEngine: walletEngine,
@@ -56,11 +53,10 @@ func (e *DeniabilityEngine) Run(ctx context.Context) error {
 			return nil
 
 		case <-ticker.C:
-			// Skip if wallet service isn't connected yet
-			if !e.wallet.IsConnected() {
-				continue
-			}
-
+			// No readiness gate here. An electrum denial reads and spends over
+			// Esplora, so waiting on Bitcoin Core would strand every denial on
+			// a migrated wallet in light mode. Each backend reports its own
+			// unavailability below.
 			if err := e.checkDenials(ctx); err != nil {
 				logger.Warn().Err(err).Msg("deniability: error checking denials")
 			}
@@ -126,9 +122,13 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 	failedWallets := make(map[string]bool)
 
 	for _, denial := range denials {
-		walletId := ""
-		if denial.WalletID != nil {
-			walletId = *denial.WalletID
+		// A denial from before wallet_id existed names none, so it runs on the
+		// active wallet. Erroring instead would mark it failed on every cycle
+		// and strand it forever.
+		walletId, err := e.resolveDenialWallet(denial)
+		if err != nil {
+			logger.Warn().Err(err).Int64("denial", denial.ID).Msg("deniability: no wallet for this denial, will retry")
+			continue
 		}
 
 		// Skip if we already failed to get UTXOs for this wallet
@@ -255,27 +255,20 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 	var walletId string
 	var err error
 
-	if denial.WalletID != nil && *denial.WalletID != "" {
-		// Use the wallet_id stored with the denial
-		walletId = *denial.WalletID
-		if e.walletEngine != nil {
-			walletType, err = e.walletEngine.GetWalletBackendType(ctx, walletId)
-			if err != nil {
-				return fmt.Errorf("get wallet type for denial %d: %w", denial.ID, err)
-			}
-		} else {
-			walletType = WalletTypeEnforcer
-		}
-	} else {
-		// Legacy denial without wallet_id - use active wallet or fall back to enforcer
-		if e.walletEngine != nil {
-			walletType, walletId, err = e.getActiveWalletType(ctx)
-			if err != nil {
-				walletType = WalletTypeEnforcer
-			}
-		} else {
-			walletType = WalletTypeEnforcer
-		}
+	// A denial names the wallet it spends from. Without one we cannot run the
+	// watch-only check, and an unnamed wallet reaches Core's loaded wallet —
+	// which is one the user never picked for this denial.
+	if e.walletEngine == nil {
+		return fmt.Errorf("denial %d: no wallet engine to resolve a wallet with", denial.ID)
+	}
+
+	walletId, err = e.resolveDenialWallet(denial)
+	if err != nil {
+		return fmt.Errorf("denial %d: %w", denial.ID, err)
+	}
+	walletType, err = e.walletEngine.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return fmt.Errorf("get wallet type for denial %d: %w", denial.ID, err)
 	}
 
 	destinations, err := e.chooseDenialStrategy(ctx, denial, utxo, fee, walletType, walletId)
@@ -286,8 +279,6 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 	// Send transaction based on wallet type
 	var txid string
 	switch walletType {
-	case WalletTypeEnforcer:
-		txid, err = e.sendEnforcerTransaction(ctx, utxo, destinations, fee)
 	case WalletTypeBitcoinCore:
 		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
 			return werr
@@ -335,43 +326,6 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 		Msg("executed denial split")
 
 	return nil
-}
-
-// sendEnforcerTransaction sends a transaction via the enforcer wallet
-func (e *DeniabilityEngine) sendEnforcerTransaction(
-	ctx context.Context,
-	utxo *pb.ListUnspentOutputsResponse_Output,
-	destinations map[string]uint64,
-	fee uint64,
-) (string, error) {
-	wallet, err := e.wallet.Get(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get enforcer wallet: %w", err)
-	}
-
-	sendResp, err := wallet.SendTransaction(ctx, &connect.Request[pb.SendTransactionRequest]{
-		Msg: &pb.SendTransactionRequest{
-			Destinations: destinations,
-			RequiredUtxos: []*pb.SendTransactionRequest_RequiredUtxo{
-				{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: utxo.Txid.Hex.Value},
-					},
-					Vout: utxo.Vout,
-				},
-			},
-			FeeRate: &pb.SendTransactionRequest_FeeRate{
-				Fee: &pb.SendTransactionRequest_FeeRate_Sats{
-					Sats: fee,
-				},
-			},
-		},
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return sendResp.Msg.Txid.Hex.Value, nil
 }
 
 // sendBitcoinCoreTransaction sends a transaction via Bitcoin Core, spending the
@@ -500,6 +454,12 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 // rejectWatchOnly returns an error if the wallet has no signing key.
 // Deniability requires spending, which a watch-only wallet cannot do.
 func (e *DeniabilityEngine) rejectWatchOnly(ctx context.Context, walletId string) error {
+	if e.walletEngine == nil {
+		return errors.New("no wallet engine to check watch-only against")
+	}
+	if walletId == "" {
+		return errors.New("no wallet named, so watch-only cannot be ruled out")
+	}
 	watchOnly, err := e.walletEngine.IsWatchOnly(ctx, walletId)
 	if err != nil {
 		return fmt.Errorf("check watch-only: %w", err)
@@ -615,8 +575,6 @@ func (e *DeniabilityEngine) targetAmountSplit(
 // backend. Watch-only Bitcoin Core wallets are rejected (they can't sign).
 func (e *DeniabilityEngine) getNewAddress(ctx context.Context, walletType WalletType, walletId string) (string, error) {
 	switch walletType {
-	case WalletTypeEnforcer:
-		return e.getEnforcerNewAddress(ctx)
 	case WalletTypeBitcoinCore:
 		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
 			return "", werr
@@ -627,23 +585,6 @@ func (e *DeniabilityEngine) getNewAddress(ctx context.Context, walletType Wallet
 	default:
 		return "", fmt.Errorf("unsupported wallet type for deniability: %s", walletType)
 	}
-}
-
-// getEnforcerNewAddress creates a new address from the enforcer wallet
-func (e *DeniabilityEngine) getEnforcerNewAddress(ctx context.Context) (string, error) {
-	wallet, err := e.wallet.Get(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get enforcer wallet: %w", err)
-	}
-
-	addr, err := wallet.CreateNewAddress(ctx, &connect.Request[pb.CreateNewAddressRequest]{
-		Msg: &pb.CreateNewAddressRequest{},
-	})
-	if err != nil {
-		return "", fmt.Errorf("create new address: %w", err)
-	}
-
-	return addr.Msg.Address, nil
 }
 
 // getBitcoinCoreNewAddress creates a new address from a Bitcoin Core wallet
@@ -675,22 +616,34 @@ type UTXO struct {
 	Amount uint64
 }
 
-// getActiveWalletType returns the wallet type and wallet ID for the active wallet
-// Returns error if wallet is encrypted and locked, or if no enforcer wallet exists
-func (e *DeniabilityEngine) getActiveWalletType(ctx context.Context) (WalletType, string, error) {
-	activeWallet, err := e.walletEngine.GetActiveWallet(ctx)
-	if err != nil {
-		return "", "", fmt.Errorf("get active wallet: %w", err)
+// resolveDenialWallet names the wallet a denial spends from: the one stored
+// with it, or the active wallet for a row from before wallet_id existed.
+func (e *DeniabilityEngine) resolveDenialWallet(denial deniability.Denial) (string, error) {
+	if denial.WalletID != nil && *denial.WalletID != "" {
+		return *denial.WalletID, nil
 	}
-
-	return activeWallet.WalletType, activeWallet.ID, nil
+	if e.walletEngine == nil {
+		return "", errors.New("no wallet engine to resolve the active wallet with")
+	}
+	active, err := e.walletEngine.GetActiveWallet(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("get active wallet: %w", err)
+	}
+	if active.ID == "" {
+		return "", errors.New("no wallet is active")
+	}
+	return active.ID, nil
 }
 
 // listUTXOsForWallet gets UTXOs for a specific wallet ID
 func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId string) ([]*pb.ListUnspentOutputsResponse_Output, error) {
-	if walletId == "" || e.walletEngine == nil {
-		// Legacy denial without wallet_id or no wallet engine - use enforcer
-		return e.listEnforcerUTXOs(ctx)
+	// A denial from before wallet_id existed names no wallet, and so does a
+	// single-wallet install. Both read Bitcoin Core's loaded wallet.
+	if e.walletEngine == nil {
+		return nil, errors.New("no wallet engine to resolve the wallet with")
+	}
+	if walletId == "" {
+		return nil, errors.New("no wallet named to list unspent outputs for")
 	}
 
 	walletType, err := e.walletEngine.GetWalletBackendType(ctx, walletId)
@@ -699,9 +652,6 @@ func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId str
 	}
 
 	switch walletType {
-	case WalletTypeEnforcer:
-		return e.listEnforcerUTXOs(ctx)
-
 	case WalletTypeBitcoinCore:
 		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
 			return nil, werr
@@ -732,23 +682,6 @@ func (e *DeniabilityEngine) listElectrumUTXOs(ctx context.Context, walletId stri
 			Address:   &wrapperspb.StringValue{Value: u.Address},
 		}
 	}), nil
-}
-
-// listEnforcerUTXOs lists UTXOs from the enforcer wallet
-func (e *DeniabilityEngine) listEnforcerUTXOs(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, error) {
-	wallet, err := e.wallet.Get(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: %w", err)
-	}
-
-	resp, err := wallet.ListUnspentOutputs(ctx, &connect.Request[pb.ListUnspentOutputsRequest]{
-		Msg: &pb.ListUnspentOutputsRequest{},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: list transactions: %w", err)
-	}
-
-	return resp.Msg.Outputs, nil
 }
 
 // listBitcoinCoreUTXOs lists UTXOs from a Bitcoin Core wallet

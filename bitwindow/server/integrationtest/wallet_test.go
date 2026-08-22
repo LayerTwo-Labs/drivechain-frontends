@@ -94,9 +94,9 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		defer cancel()
 		client := nodeA.WalletClient
 
-		// GenerateWallet (enforcer).
+		// The first wallet carries the starter material. It stays unfunded.
 		_, err := client.GenerateWallet(ctx, connect.NewRequest(&pb.GenerateWalletRequest{
-			Name: "bw-enforcer",
+			Name: "bw-primary",
 		}))
 		require.NoError(t, err)
 
@@ -188,17 +188,18 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, strings.HasPrefix(addrResp.Msg.Address, "bcrt1"))
 
-		// Fund from a Core wallet.
+		// Send from the wallet Phase 1 mined to. The first Core wallet in the
+		// list is bw-primary, which holds nothing.
 		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
 		require.NoError(t, err)
 		var fundedID string
 		for _, w := range list.Msg.Wallets {
-			if w.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
+			if w.Name == "bw-core" {
 				fundedID = w.Id
 				break
 			}
 		}
-		require.NotEmpty(t, fundedID)
+		require.NotEmpty(t, fundedID, "Phase 1 must leave a funded bw-core")
 		_, err = client.SwitchWallet(ctx, connect.NewRequest(&pb.SwitchWalletRequest{WalletId: fundedID}))
 		require.NoError(t, err)
 
@@ -234,22 +235,22 @@ func TestBitwindowWalletIntegration(t *testing.T) {
 		defer cancel()
 		client := nodeA.WalletClient
 
-		enforcerList, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
+		walletList, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
 		require.NoError(t, err)
-		var enforcerID string
-		for _, w := range enforcerList.Msg.Wallets {
-			if w.WalletType == pb.WalletType_WALLET_TYPE_ENFORCER {
-				enforcerID = w.Id
+		var primaryID string
+		for _, w := range walletList.Msg.Wallets {
+			if w.Name == "bw-primary" {
+				primaryID = w.Id
 				break
 			}
 		}
-		require.NotEmpty(t, enforcerID, "expected an enforcer wallet")
+		require.NotEmpty(t, primaryID, "expected the primary wallet")
 
-		seedResp, err := client.GetWalletSeed(ctx, connect.NewRequest(&pb.GetWalletSeedRequest{WalletId: enforcerID}))
+		seedResp, err := client.GetWalletSeed(ctx, connect.NewRequest(&pb.GetWalletSeedRequest{WalletId: primaryID}))
 		require.NoError(t, err)
 		require.NotEmpty(t, seedResp.Msg.SeedHex)
 		require.Len(t, seedResp.Msg.SeedHex, 128) // 64 bytes = 128 hex chars
-		t.Logf("enforcer seed (first 16 chars): %s...", seedResp.Msg.SeedHex[:16])
+		t.Logf("primary seed (first 16 chars): %s...", seedResp.Msg.SeedHex[:16])
 
 		list, err := client.ListWallets(ctx, connect.NewRequest(&pb.ListWalletsRequest{}))
 		require.NoError(t, err)

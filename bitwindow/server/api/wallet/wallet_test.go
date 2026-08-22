@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"testing"
 
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
@@ -12,13 +14,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestService_GetBalance(t *testing.T) {
@@ -30,14 +29,15 @@ func TestService_GetBalance(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		database := database.Test(t)
 
-		// Create mock wallet client
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
+		// The balance comes from the orchestrator wallet manager now.
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
+		mockOrch.EXPECT().
 			GetBalance(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetBalanceResponse]{
-				Msg: &mainchainv1.GetBalanceResponse{
-					ConfirmedSats: 100000,
-					PendingSats:   50000,
+			Return(&connect.Response[orchpb.GetBalanceResponse]{
+				Msg: &orchpb.GetBalanceResponse{
+					ConfirmedSats:   100000,
+					UnconfirmedSats: 50000,
 				},
 			}, nil)
 
@@ -60,7 +60,7 @@ func TestService_GetBalance(t *testing.T) {
 			}, nil).
 			AnyTimes()
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet), apitests.WithBitcoind(mockBitcoind)))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
 
 		// Use the test wallet ID from apitests.createTestWalletJSON
 		resp, err := cli.GetBalance(context.Background(), connect.NewRequest(&walletv1.GetBalanceRequest{
@@ -82,14 +82,13 @@ func TestService_GetNewAddress(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		database := database.Test(t)
 
-		// Create mock wallet client
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			CreateNewAddress(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.CreateNewAddressResponse]{
-				Msg: &mainchainv1.CreateNewAddressResponse{
-					Address: "bc1qtest123456789",
-				},
+		// Addresses come from the orchestrator wallet manager now.
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
+		mockOrch.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[orchpb.GetNewAddressResponse]{
+				Msg: &orchpb.GetNewAddressResponse{Address: "bc1qtest123456789"},
 			}, nil)
 
 		// Create mock bitcoind client (to handle ensureWatchWallet calls)
@@ -111,7 +110,7 @@ func TestService_GetNewAddress(t *testing.T) {
 			}, nil).
 			AnyTimes()
 
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet), apitests.WithBitcoind(mockBitcoind)))
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
 
 		// Use the test wallet ID from apitests.createTestWalletJSON
 		resp, err := cli.GetNewAddress(context.Background(), connect.NewRequest(&walletv1.GetNewAddressRequest{
@@ -411,81 +410,34 @@ func TestService_UnlockWallet(t *testing.T) {
 	})
 }
 
-func TestService_ListSidechainDeposits(t *testing.T) {
+// The orchestrator records each deposit as it broadcasts it, because an M5 is
+// an ordinary transaction on the wire.
+func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
 	t.Parallel()
 
-	t.Run("slot 0 only returns slot 0 deposits", func(t *testing.T) {
-		t.Parallel()
+	ctrl := gomock.NewController(t)
+	database := database.Test(t)
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
 
-		ctrl := gomock.NewController(t)
-		database := database.Test(t)
-
-		deposit := func(slot uint32, txid string) *mainchainv1.ListSidechainDepositTransactionsResponse_SidechainDepositTransaction {
-			return &mainchainv1.ListSidechainDepositTransactionsResponse_SidechainDepositTransaction{
-				SidechainNumber: wrapperspb.UInt32(slot),
-				Tx: &mainchainv1.WalletTransaction{
-					Txid:             &commonv1.ReverseHex{Hex: wrapperspb.String(txid)},
-					SentSats:         1000,
-					FeeSats:          10,
-					ConfirmationInfo: &mainchainv1.WalletTransaction_Confirmation{Height: 100},
+	mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+	apitests.ExpectOrchestratorReads(mockOrch)
+	mockOrch.EXPECT().
+		ListSidechainDeposits(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[orchpb.ListSidechainDepositsResponse]{
+			Msg: &orchpb.ListSidechainDepositsResponse{
+				Deposits: []*orchpb.SidechainDeposit{
+					{Txid: "deadbeef", Slot: 9, AmountSats: 50_000},
 				},
-			}
-		}
+			},
+		}, nil)
 
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListSidechainDepositTransactions(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.ListSidechainDepositTransactionsResponse]{
-				Msg: &mainchainv1.ListSidechainDepositTransactionsResponse{
-					Transactions: []*mainchainv1.ListSidechainDepositTransactionsResponse_SidechainDepositTransaction{
-						deposit(0, "slot0deposit"),
-						deposit(9, "slot9deposit"),
-					},
-				},
-			}, nil).AnyTimes()
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database,
+		apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
 
-		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
-				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
-			}, nil).AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
-				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "cheque_watch"},
-			}, nil).AnyTimes()
-		mockBitcoind.EXPECT().
-			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[bitcoindv1alpha.GetBlockchainInfoResponse]{
-				Msg: &bitcoindv1alpha.GetBlockchainInfoResponse{Blocks: 105},
-			}, nil).AnyTimes()
-
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet), apitests.WithBitcoind(mockBitcoind)))
-
-		resp, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{
-			WalletId: "test-wallet-id-1234",
-			Slot:     0,
-		}))
-		require.NoError(t, err)
-		require.Len(t, resp.Msg.Deposits, 1)
-		require.Equal(t, "slot0deposit", resp.Msg.Deposits[0].Txid)
-	})
-
-	t.Run("out of range slot is rejected", func(t *testing.T) {
-		t.Parallel()
-
-		database := database.Test(t)
-		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database))
-
-		for _, slot := range []int32{-1, 256} {
-			_, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{
-				WalletId: "test-wallet-id-1234",
-				Slot:     slot,
-			}))
-			require.Error(t, err)
-			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-			require.Contains(t, err.Error(), "slot must be 0-255")
-		}
-	})
+	resp, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{Slot: 9}))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Deposits, 1)
+	require.Equal(t, "deadbeef", resp.Msg.Deposits[0].Txid)
+	require.Equal(t, int64(50_000), resp.Msg.Deposits[0].Amount)
 }

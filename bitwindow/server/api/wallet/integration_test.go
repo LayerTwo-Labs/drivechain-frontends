@@ -65,7 +65,6 @@ func TestDeriveAndCheckAddressesIntegration(t *testing.T) {
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		},
-		nil, // enforcer connector not needed
 		tempDir,
 		&chaincfg.SigNetParams,
 	)
@@ -107,7 +106,7 @@ func TestDeriveAndCheckAddressesIntegration(t *testing.T) {
 
 	server := &Server{
 		database:     nil, // Not needed for address derivation
-		data:         datasource.NewLocal(bitcoindService.Get, nil, nil),
+		data:         datasource.NewLocal(bitcoindService.Get, nil),
 		bitcoind:     bitcoindService,
 		walletEngine: walletEngine,
 		walletDir:    tempDir,

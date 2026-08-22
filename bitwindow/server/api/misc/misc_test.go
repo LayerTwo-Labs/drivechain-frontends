@@ -11,25 +11,23 @@ import (
 	"testing"
 	"time"
 
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	miscv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestService_ListOPReturn(t *testing.T) {
@@ -82,16 +80,13 @@ func TestService_BroadcastNews(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 
-		mockWallet.EXPECT().
+		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "test-txid"},
-					},
-				},
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
 			}, nil)
 
 		database := database.Test(t)
@@ -99,7 +94,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
@@ -224,31 +219,22 @@ func TestService_BroadcastNews(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 
 		topicID := validTopicID()
 
-		mockWallet.EXPECT().
-			SendTransaction(gomock.Any(), tests.Connect(&pb.SendTransactionRequest{
-				OpReturnMessage: &commonv1.Hex{
-					Hex: &wrapperspb.StringValue{
-						Value: encodeStoryHex(t, topicID, "Test News Headline", "This is the news content"),
-					},
-				},
-			})).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "test-txid"},
-					},
-				},
+		mockOrch.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
 			}, nil)
 
 		database := database.Test(t)
 		ctx := context.Background()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
 			Topic:    topicID.String(),
@@ -263,16 +249,13 @@ func TestService_BroadcastNews(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 
-		mockWallet.EXPECT().
+		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "test-txid"},
-					},
-				},
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
 			}, nil)
 
 		database := database.Test(t)
@@ -280,7 +263,7 @@ func TestService_BroadcastNews(t *testing.T) {
 		topicID := validTopicID()
 		seedCurrentTopic(t, ctx, database, topicID, "Test Topic", 50)
 
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		hexContent := hex.EncodeToString([]byte("hex content"))
 		resp, err := cli.BroadcastNews(context.Background(), connect.NewRequest(&miscv1.BroadcastNewsRequest{
@@ -298,22 +281,21 @@ func TestService_VotesAndComments(t *testing.T) {
 
 	const validItemID = "0123456789abcdef01234567" // 12-byte hex
 
-	walletReturningTxid := func(t *testing.T) *mocks.MockWalletServiceClient {
+	walletReturningTxid := func(t *testing.T) *mocks.MockWalletManagerServiceClient {
 		t.Helper()
-		mockWallet := mocks.NewMockWalletServiceClient(gomock.NewController(t))
-		mockWallet.EXPECT().
+		mockOrch := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+		apitests.ExpectOrchestratorReads(mockOrch)
+		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: "test-txid"}},
-				},
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
 			}, nil).AnyTimes()
-		return mockWallet
+		return mockOrch
 	}
 
 	t.Run("upvote success", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithWallet(walletReturningTxid(t))))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
 		resp, err := cli.UpvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Msg.Txid)
@@ -321,7 +303,7 @@ func TestService_VotesAndComments(t *testing.T) {
 
 	t.Run("downvote success", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithWallet(walletReturningTxid(t))))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
 		resp, err := cli.DownvoteNews(context.Background(), connect.NewRequest(&miscv1.UpvoteNewsRequest{ItemId: validItemID}))
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Msg.Txid)
@@ -337,7 +319,7 @@ func TestService_VotesAndComments(t *testing.T) {
 
 	t.Run("comment success", func(t *testing.T) {
 		t.Parallel()
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithWallet(walletReturningTxid(t))))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database.Test(t), apitests.WithOrchestrator(walletReturningTxid(t))))
 		resp, err := cli.CommentNews(context.Background(), connect.NewRequest(&miscv1.CommentNewsRequest{
 			ParentId: validItemID,
 			Body:     "great article",
@@ -373,26 +355,17 @@ func TestService_CreateTopic(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 
-		mockWallet.EXPECT().
-			SendTransaction(gomock.Any(), tests.Connect(&pb.SendTransactionRequest{
-				OpReturnMessage: &commonv1.Hex{
-					Hex: &wrapperspb.StringValue{
-						Value: encodeTopicCreationHex(t, "deadbeef", "Test Topic", 7),
-					},
-				},
-			})).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "test-txid"},
-					},
-				},
+		mockOrch.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "test-txid"},
 			}, nil)
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		resp, err := cli.CreateTopic(context.Background(), connect.NewRequest(&miscv1.CreateTopicRequest{
 			Topic: "deadbeef",
@@ -701,28 +674,6 @@ func seedCurrentNews(
 	}))
 }
 
-// encodeTopicCreationHex builds the expected SendTransaction OpReturn for a
-// topic creation using the same current-format encoder the production handler
-// uses. topicHex is the hex topic ID; retention is days (0 = infinite).
-func encodeTopicCreationHex(t *testing.T, topicHex, name string, retention byte) string {
-	t.Helper()
-	topic, err := opreturns.ValidNewsTopicID(topicHex)
-	require.NoError(t, err)
-	b, err := opreturns.EncodeTopicCreationMessageNewFormat(topic, name, int32(retention))
-	require.NoError(t, err)
-	return hex.EncodeToString(b)
-}
-
-// encodeStoryHex builds the expected SendTransaction OpReturn for a story
-// (headline + optional body TLV) via the current encoder, mirroring the
-// production encoder.
-func encodeStoryHex(t *testing.T, topicID opreturns.TopicID, headline, content string) string {
-	t.Helper()
-	b, err := opreturns.EncodeNewsMessageNewFormat(topicID, headline, content)
-	require.NoError(t, err)
-	return hex.EncodeToString(b)
-}
-
 func validTopicID() opreturns.TopicID {
 	buf := make([]byte, opreturns.TopicIdLength)
 	if _, err := rand.Read(buf); err != nil {
@@ -738,20 +689,17 @@ func TestService_TimestampFile(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 
-		mockWallet.EXPECT().
+		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "timestamp-txid"},
-					},
-				},
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid"},
 			}, nil)
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		resp, err := cli.TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
 			Filename: "test-document.pdf",
@@ -795,22 +743,19 @@ func TestService_TimestampFile(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 
 		// Only one transaction should be sent
-		mockWallet.EXPECT().
+		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "timestamp-txid"},
-					},
-				},
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid"},
 			}, nil).
 			Times(1)
 
 		database := database.Test(t)
-		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithWallet(mockWallet)))
+		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
 
 		fileData := []byte("duplicate content")
 
@@ -879,17 +824,14 @@ func TestService_ListTimestamps(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 
-		mockWallet.EXPECT().
+		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "timestamp-txid-1"},
-					},
-				},
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid-1"},
 			}, nil).
 			Times(2)
 
@@ -919,7 +861,7 @@ func TestService_ListTimestamps(t *testing.T) {
 
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database,
-			apitests.WithWallet(mockWallet),
+			apitests.WithOrchestrator(mockOrch),
 			apitests.WithBitcoind(mockBitcoind),
 		))
 
@@ -974,17 +916,14 @@ func TestService_VerifyTimestamp(t *testing.T) {
 		t.Parallel()
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 
-		mockWallet.EXPECT().
+		mockOrch.EXPECT().
 			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "timestamp-txid"},
-					},
-				},
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "timestamp-txid"},
 			}, nil)
 
 		// Background operations
@@ -1013,7 +952,7 @@ func TestService_VerifyTimestamp(t *testing.T) {
 
 		database := database.Test(t)
 		cli := miscv1connect.NewMiscServiceClient(apitests.API(t, database,
-			apitests.WithWallet(mockWallet),
+			apitests.WithOrchestrator(mockOrch),
 			apitests.WithBitcoind(mockBitcoind),
 		))
 

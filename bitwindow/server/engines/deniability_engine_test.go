@@ -2,24 +2,61 @@ package engines_test
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/btcsuite/btcd/chaincfg"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+const denialWalletID = "80CEBA2163224572BDEADD2D2181C51B"
+
+// A denial names the wallet it spends from, so the engine has to resolve one.
+// Passing nil here is what once pushed the empty-wallet-id tolerance into the
+// product, where it skipped the watch-only check and reached Core's loaded
+// wallet.
+func testDenialWalletEngine(t *testing.T, bitcoind corerpc.BitcoinServiceClient) *engines.WalletEngine {
+	t.Helper()
+
+	dir := t.TempDir()
+	walletData, err := json.Marshal(map[string]any{
+		"version":        1,
+		"activeWalletId": denialWalletID,
+		"wallets": []map[string]any{{
+			"version":     1,
+			"master":      map[string]any{"seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"},
+			"id":          denialWalletID,
+			"name":        "test",
+			"wallet_type": "bitcoinCore",
+		}},
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), walletData, 0o600))
+
+	return engines.NewWalletEngine(
+		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return bitcoind, nil },
+		dir,
+		&chaincfg.SigNetParams,
+	)
+}
 
 func TestDeniabilityEngine(t *testing.T) {
 	t.Parallel()
@@ -31,33 +68,25 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("handleAbortedDenials", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
-			return mockWallet, nil
-		})
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
 
 		// Create a denial with empty wallet_id (legacy behavior)
-		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3, nil)
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
-		// Mock wallet response with no matching UTXO
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		// Core holds a different UTXO, so the denial's tip is gone.
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			Times(1).
-			Return(&connect.Response[pb.ListUnspentOutputsResponse]{
-				Msg: &pb.ListUnspentOutputsResponse{
-					Outputs: []*pb.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{Value: "different-txid"},
-							},
-							Vout: 0,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "different-txid", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -78,72 +107,56 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("executeDenial", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
-			return mockWallet, nil
-		})
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
 
 		// Create a denial with empty wallet_id (legacy behavior)
-		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3, nil)
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
-		// Mock wallet responses
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.ListUnspentOutputsResponse]{
-				Msg: &pb.ListUnspentOutputsResponse{
-					Outputs: []*pb.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{Value: "test-txid"},
-							},
-							Vout:       0,
-							ValueSats:  1000000,
-							IsInternal: false,
-						},
-					},
-				},
-			}, nil)
-
-		mockWallet.EXPECT().
-			CreateNewAddress(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.CreateNewAddressResponse]{
-				Msg: &pb.CreateNewAddressResponse{
-					Address: "bc1qtest",
-				},
-			}, nil)
-
-		mockWallet.EXPECT().
-			SendTransaction(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[pb.SendTransactionResponse]{
-				Msg: &pb.SendTransactionResponse{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: "new-txid"},
-					},
-				},
-			}, nil)
-
-		// Mock the waitForTXToAppear loop - it will keep calling ListUnspentOutputs until it finds the new txid
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		// The send path asks for a change address too.
+		mockBitcoind.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[pb.ListUnspentOutputsResponse]{
-				Msg: &pb.ListUnspentOutputsResponse{
-					Outputs: []*pb.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{Value: "new-txid"},
-							},
-							Address:    &wrapperspb.StringValue{Value: "bc1qtest"},
-							Vout:       0,
-							ValueSats:  500000,
-							IsInternal: false,
-						},
+			Return(&connect.Response[corepb.GetNewAddressResponse]{
+				Msg: &corepb.GetNewAddressResponse{Address: "bc1qtest"},
+			}, nil)
+
+		// Core signs and broadcasts a raw transaction.
+		mockBitcoind.EXPECT().
+			CreateRawTransaction(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.CreateRawTransactionResponse]{
+				Msg: &corepb.CreateRawTransactionResponse{Tx: &corepb.RawTransaction{Hex: "raw-tx-hex"}},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			SignRawTransactionWithWallet(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.SignRawTransactionWithWalletResponse]{
+				Msg: &corepb.SignRawTransactionWithWalletResponse{Hex: "signed-tx-hex", Complete: true},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			SendRawTransaction(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.SendRawTransactionResponse]{
+				Msg: &corepb.SendRawTransactionResponse{Txid: "new-txid"},
+			}, nil)
+
+		// waitForTXToAppear keeps reading until the new txid shows up.
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "test-txid", Address: "bc1qsource", Vout: 0, Amount: 0.01, Confirmations: 6},
+						{Txid: "new-txid", Address: "bc1qtest", Vout: 0, Amount: 0.005, Confirmations: 1},
 					},
 				},
 			}, nil)
@@ -170,18 +183,15 @@ func TestDeniabilityEngine(t *testing.T) {
 	t.Run("processUTXO with insufficient amount", func(t *testing.T) {
 		t.Parallel()
 		db := database.Test(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		walletService := service.New("wallet", func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
-			return mockWallet, nil
-		})
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(walletService, bitcoindService, db, nil)
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
 
 		// Create a denial with empty wallet_id (legacy behavior)
-		denial, err := deniability.Create(ctx, db, "", "test-txid", 0, 1*time.Hour, 3, nil)
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
 		require.NoError(t, err)
 
 		// Process UTXO with insufficient amount

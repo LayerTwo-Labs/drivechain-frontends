@@ -35,7 +35,7 @@ func TestEnsureWatchOnlyWalletTransientOrchestratorError(t *testing.T) {
 	// A starting bitcoind fails the local path the same way, so it propagates.
 	t.Run("startup propagates", func(t *testing.T) {
 		orchErr := connect.NewError(connect.CodeInternal, errors.New("-28: Verifying blocks…"))
-		e := NewWalletEngine(nil, nil, t.TempDir(), &chaincfg.MainNetParams)
+		e := NewWalletEngine(nil, t.TempDir(), &chaincfg.MainNetParams)
 		e.SetOrchestratorClient(stubOrchWalletClient{err: orchErr})
 
 		_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
@@ -45,7 +45,7 @@ func TestEnsureWatchOnlyWalletTransientOrchestratorError(t *testing.T) {
 	// A down orchestrator is exactly what the local path is the fallback for.
 	t.Run("unavailable falls back to local", func(t *testing.T) {
 		orchErr := connect.NewError(connect.CodeUnavailable, errors.New("connection refused"))
-		e := NewWalletEngine(nil, nil, t.TempDir(), &chaincfg.MainNetParams)
+		e := NewWalletEngine(nil, t.TempDir(), &chaincfg.MainNetParams)
 		e.SetOrchestratorClient(stubOrchWalletClient{err: orchErr})
 
 		_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
@@ -85,7 +85,7 @@ func TestEnsureWatchOnlyWalletLocalName(t *testing.T) {
 
 	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, nil, walletDir, &chaincfg.MainNetParams)
+	}, walletDir, &chaincfg.MainNetParams)
 
 	walletName, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestEnsureWatchOnlyWalletPrefersLegacyName(t *testing.T) {
 
 	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, nil, t.TempDir(), &chaincfg.MainNetParams)
+	}, t.TempDir(), &chaincfg.MainNetParams)
 
 	walletName, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 	require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestEnsureWatchOnlyWalletPropagatesLegacyLoadError(t *testing.T) {
 
 	e := NewWalletEngine(func(context.Context) (corerpc.BitcoinServiceClient, error) {
 		return mockBitcoind, nil
-	}, nil, t.TempDir(), &chaincfg.MainNetParams)
+	}, t.TempDir(), &chaincfg.MainNetParams)
 
 	_, err := e.EnsureWatchOnlyWallet(context.Background(), "deadbeefcafebabe")
 	require.ErrorContains(t, err, "load legacy watch-only wallet")

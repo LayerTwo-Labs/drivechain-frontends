@@ -192,6 +192,21 @@ func (mr *MockValidatorServiceClientMockRecorder) GetTwoWayPegData(arg0, arg1 an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwoWayPegData", reflect.TypeOf((*MockValidatorServiceClient)(nil).GetTwoWayPegData), arg0, arg1)
 }
 
+// GetWithdrawalBundleProposals mocks base method.
+func (m *MockValidatorServiceClient) GetWithdrawalBundleProposals(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWithdrawalBundleProposals", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWithdrawalBundleProposals indicates an expected call of GetWithdrawalBundleProposals.
+func (mr *MockValidatorServiceClientMockRecorder) GetWithdrawalBundleProposals(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWithdrawalBundleProposals", reflect.TypeOf((*MockValidatorServiceClient)(nil).GetWithdrawalBundleProposals), arg0, arg1)
+}
+
 // Stop mocks base method.
 func (m *MockValidatorServiceClient) Stop(arg0 context.Context, arg1 *connect.Request[mainchainv1.StopRequest]) (*connect.Response[mainchainv1.StopResponse], error) {
 	m.ctrl.T.Helper()
@@ -409,6 +424,21 @@ func (m *MockValidatorServiceHandler) GetTwoWayPegData(arg0 context.Context, arg
 func (mr *MockValidatorServiceHandlerMockRecorder) GetTwoWayPegData(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwoWayPegData", reflect.TypeOf((*MockValidatorServiceHandler)(nil).GetTwoWayPegData), arg0, arg1)
+}
+
+// GetWithdrawalBundleProposals mocks base method.
+func (m *MockValidatorServiceHandler) GetWithdrawalBundleProposals(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWithdrawalBundleProposals", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWithdrawalBundleProposals indicates an expected call of GetWithdrawalBundleProposals.
+func (mr *MockValidatorServiceHandlerMockRecorder) GetWithdrawalBundleProposals(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWithdrawalBundleProposals", reflect.TypeOf((*MockValidatorServiceHandler)(nil).GetWithdrawalBundleProposals), arg0, arg1)
 }
 
 // Stop mocks base method.

@@ -18,8 +18,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +25,6 @@ import (
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestService_Stop(t *testing.T) {
@@ -66,24 +63,15 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -92,7 +80,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -111,24 +100,15 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -137,7 +117,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -156,24 +137,15 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -182,7 +154,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -201,24 +174,15 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -227,7 +191,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -246,21 +211,21 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{},
-				},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{},
 			}, nil)
 
 		cli := v1connect.NewBitwindowdServiceClient(
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -279,24 +244,15 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -305,7 +261,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -324,24 +281,15 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -350,7 +298,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -391,35 +340,16 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "def456",
-								},
-							},
-							Vout:        1,
-							ValueSats:   2000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
+						{Txid: "def456", Vout: 1, Amount: 0.02, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -428,7 +358,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		// Create first denial
@@ -460,24 +391,15 @@ func TestService_CreateDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -486,7 +408,8 @@ func TestService_CreateDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		_, err := cli.CreateDenial(context.Background(), connect.NewRequest(&v1.CreateDenialRequest{
@@ -512,7 +435,7 @@ func TestService_CancelDenial(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
 
 		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 999,
@@ -524,7 +447,7 @@ func TestService_CancelDenial(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
 
 		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: 0,
@@ -536,7 +459,7 @@ func TestService_CancelDenial(t *testing.T) {
 		t.Parallel()
 
 		database := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, database, apitests.WithCoreWallet()))
 
 		_, err := cli.CancelDenial(context.Background(), connect.NewRequest(&v1.CancelDenialRequest{
 			Id: -1,
@@ -550,24 +473,15 @@ func TestService_CancelDenial(t *testing.T) {
 		database := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{
-								Hex: &wrapperspb.StringValue{
-									Value: "abc123",
-								},
-							},
-							Vout:        0,
-							ValueSats:   1000000,
-							IsInternal:  false,
-							IsConfirmed: true,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
@@ -576,7 +490,8 @@ func TestService_CancelDenial(t *testing.T) {
 			apitests.API(
 				t,
 				database,
-				apitests.WithWallet(mockWallet),
+				apitests.WithCoreWallet(),
+				apitests.WithBitcoind(mockBitcoind),
 			))
 
 		// First create a denial
@@ -844,6 +759,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		// Background operations expectations
 		mockBitcoind.EXPECT().
@@ -889,6 +805,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		// Background operations expectations
 		mockBitcoind.EXPECT().
@@ -925,6 +842,7 @@ func TestService_GetSyncInfo(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		// Background operations expectations
 		mockBitcoind.EXPECT().
@@ -1155,22 +1073,20 @@ func TestService_PauseDenial(t *testing.T) {
 		db := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: "abc123"}},
-							Vout: 0, ValueSats: 1000000,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithWallet(mockWallet)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
 		// First create a denial
 		_, err := cli.CreateDenial(ctx, connect.NewRequest(&v1.CreateDenialRequest{
@@ -1199,7 +1115,7 @@ func TestService_PauseDenial(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
 
 		_, err := cli.PauseDenial(context.Background(), connect.NewRequest(&v1.PauseDenialRequest{Id: 99999}))
 		require.Error(t, err)
@@ -1216,22 +1132,20 @@ func TestService_ResumeDenial(t *testing.T) {
 		db := database.Test(t)
 
 		ctrl := gomock.NewController(t)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			ListUnspentOutputs(gomock.Any(), gomock.Any()).
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
 			AnyTimes().
-			Return(&connect.Response[mainchainv1.ListUnspentOutputsResponse]{
-				Msg: &mainchainv1.ListUnspentOutputsResponse{
-					Outputs: []*mainchainv1.ListUnspentOutputsResponse_Output{
-						{
-							Txid: &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: "abc123"}},
-							Vout: 0, ValueSats: 1000000,
-						},
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "abc123", Vout: 0, Amount: 0.01, Confirmations: 6},
 					},
 				},
 			}, nil)
 
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithWallet(mockWallet)))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet(), apitests.WithBitcoind(mockBitcoind)))
 
 		// Create a denial
 		_, err := cli.CreateDenial(ctx, connect.NewRequest(&v1.CreateDenialRequest{
@@ -1264,7 +1178,7 @@ func TestService_ResumeDenial(t *testing.T) {
 		t.Parallel()
 
 		db := database.Test(t)
-		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db))
+		cli := v1connect.NewBitwindowdServiceClient(apitests.API(t, db, apitests.WithCoreWallet()))
 
 		_, err := cli.ResumeDenial(context.Background(), connect.NewRequest(&v1.ResumeDenialRequest{Id: 99999}))
 		require.Error(t, err)
@@ -1281,6 +1195,7 @@ func TestService_ListBlocks(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		// Mock ListWallets and CreateWallet for background ensureWatchWallet
 		mockBitcoind.EXPECT().
@@ -1341,6 +1256,7 @@ func TestService_ListBlocks(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
@@ -1393,6 +1309,7 @@ func TestService_ListBlocks(t *testing.T) {
 		db := database.Test(t)
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		expectWatchWalletNoop(mockBitcoind)
 
 		mockBitcoind.EXPECT().
@@ -1448,6 +1365,7 @@ func TestService_ListBlocks(t *testing.T) {
 		db := database.Test(t)
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		expectWatchWalletNoop(mockBitcoind)
 
 		// GetBlockHash + GetBlock fire 5× (= pageSize) total across both
@@ -1483,6 +1401,7 @@ func TestService_ListBlocks(t *testing.T) {
 		db := database.Test(t)
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		expectWatchWalletNoop(mockBitcoind)
 
 		// Same height, different hash = same-height reorg. Each call
@@ -1520,6 +1439,7 @@ func TestService_ListBlocks(t *testing.T) {
 		db := database.Test(t)
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 		expectWatchWalletNoop(mockBitcoind)
 
 		mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
@@ -1558,6 +1478,7 @@ func TestService_ListBlocks(t *testing.T) {
 		db := database.Test(t)
 		ctrl := gomock.NewController(t)
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		mockBitcoind.EXPECT().ListWallets(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[corepb.ListWalletsResponse]{
@@ -1609,6 +1530,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
@@ -1679,6 +1601,7 @@ func TestService_ListRecentTransactions(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).
@@ -1742,6 +1665,7 @@ func TestService_GetNetworkStats(t *testing.T) {
 		ctrl := gomock.NewController(t)
 
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
 
 		mockBitcoind.EXPECT().
 			ListWallets(gomock.Any(), gomock.Any()).

@@ -102,21 +102,6 @@ func (mr *MockWalletServiceClientMockRecorder) CreateNewAddress(arg0, arg1 any) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNewAddress", reflect.TypeOf((*MockWalletServiceClient)(nil).CreateNewAddress), arg0, arg1)
 }
 
-// CreateSidechainProposal mocks base method.
-func (m *MockWalletServiceClient) CreateSidechainProposal(arg0 context.Context, arg1 *connect.Request[mainchainv1.CreateSidechainProposalRequest]) (*connect.ServerStreamForClient[mainchainv1.CreateSidechainProposalResponse], error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSidechainProposal", arg0, arg1)
-	ret0, _ := ret[0].(*connect.ServerStreamForClient[mainchainv1.CreateSidechainProposalResponse])
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateSidechainProposal indicates an expected call of CreateSidechainProposal.
-func (mr *MockWalletServiceClientMockRecorder) CreateSidechainProposal(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSidechainProposal", reflect.TypeOf((*MockWalletServiceClient)(nil).CreateSidechainProposal), arg0, arg1)
-}
-
 // CreateWallet mocks base method.
 func (m *MockWalletServiceClient) CreateWallet(arg0 context.Context, arg1 *connect.Request[mainchainv1.CreateWalletRequest]) (*connect.Response[mainchainv1.CreateWalletResponse], error) {
 	m.ctrl.T.Helper()
@@ -130,21 +115,6 @@ func (m *MockWalletServiceClient) CreateWallet(arg0 context.Context, arg1 *conne
 func (mr *MockWalletServiceClientMockRecorder) CreateWallet(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWallet", reflect.TypeOf((*MockWalletServiceClient)(nil).CreateWallet), arg0, arg1)
-}
-
-// GenerateBlocks mocks base method.
-func (m *MockWalletServiceClient) GenerateBlocks(arg0 context.Context, arg1 *connect.Request[mainchainv1.GenerateBlocksRequest]) (*connect.ServerStreamForClient[mainchainv1.GenerateBlocksResponse], error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateBlocks", arg0, arg1)
-	ret0, _ := ret[0].(*connect.ServerStreamForClient[mainchainv1.GenerateBlocksResponse])
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GenerateBlocks indicates an expected call of GenerateBlocks.
-func (mr *MockWalletServiceClientMockRecorder) GenerateBlocks(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateBlocks", reflect.TypeOf((*MockWalletServiceClient)(nil).GenerateBlocks), arg0, arg1)
 }
 
 // GetBalance mocks base method.
@@ -235,21 +205,6 @@ func (m *MockWalletServiceClient) SendTransaction(arg0 context.Context, arg1 *co
 func (mr *MockWalletServiceClientMockRecorder) SendTransaction(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendTransaction", reflect.TypeOf((*MockWalletServiceClient)(nil).SendTransaction), arg0, arg1)
-}
-
-// SubmitSidechainProposal mocks base method.
-func (m *MockWalletServiceClient) SubmitSidechainProposal(arg0 context.Context, arg1 *connect.Request[mainchainv1.SubmitSidechainProposalRequest]) (*connect.Response[mainchainv1.SubmitSidechainProposalResponse], error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubmitSidechainProposal", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.SubmitSidechainProposalResponse])
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SubmitSidechainProposal indicates an expected call of SubmitSidechainProposal.
-func (mr *MockWalletServiceClientMockRecorder) SubmitSidechainProposal(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubmitSidechainProposal", reflect.TypeOf((*MockWalletServiceClient)(nil).SubmitSidechainProposal), arg0, arg1)
 }
 
 // UnlockWallet mocks base method.
@@ -351,20 +306,6 @@ func (mr *MockWalletServiceHandlerMockRecorder) CreateNewAddress(arg0, arg1 any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNewAddress", reflect.TypeOf((*MockWalletServiceHandler)(nil).CreateNewAddress), arg0, arg1)
 }
 
-// CreateSidechainProposal mocks base method.
-func (m *MockWalletServiceHandler) CreateSidechainProposal(arg0 context.Context, arg1 *connect.Request[mainchainv1.CreateSidechainProposalRequest], arg2 *connect.ServerStream[mainchainv1.CreateSidechainProposalResponse]) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSidechainProposal", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateSidechainProposal indicates an expected call of CreateSidechainProposal.
-func (mr *MockWalletServiceHandlerMockRecorder) CreateSidechainProposal(arg0, arg1, arg2 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSidechainProposal", reflect.TypeOf((*MockWalletServiceHandler)(nil).CreateSidechainProposal), arg0, arg1, arg2)
-}
-
 // CreateWallet mocks base method.
 func (m *MockWalletServiceHandler) CreateWallet(arg0 context.Context, arg1 *connect.Request[mainchainv1.CreateWalletRequest]) (*connect.Response[mainchainv1.CreateWalletResponse], error) {
 	m.ctrl.T.Helper()
@@ -378,20 +319,6 @@ func (m *MockWalletServiceHandler) CreateWallet(arg0 context.Context, arg1 *conn
 func (mr *MockWalletServiceHandlerMockRecorder) CreateWallet(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateWallet", reflect.TypeOf((*MockWalletServiceHandler)(nil).CreateWallet), arg0, arg1)
-}
-
-// GenerateBlocks mocks base method.
-func (m *MockWalletServiceHandler) GenerateBlocks(arg0 context.Context, arg1 *connect.Request[mainchainv1.GenerateBlocksRequest], arg2 *connect.ServerStream[mainchainv1.GenerateBlocksResponse]) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateBlocks", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// GenerateBlocks indicates an expected call of GenerateBlocks.
-func (mr *MockWalletServiceHandlerMockRecorder) GenerateBlocks(arg0, arg1, arg2 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateBlocks", reflect.TypeOf((*MockWalletServiceHandler)(nil).GenerateBlocks), arg0, arg1, arg2)
 }
 
 // GetBalance mocks base method.
@@ -482,21 +409,6 @@ func (m *MockWalletServiceHandler) SendTransaction(arg0 context.Context, arg1 *c
 func (mr *MockWalletServiceHandlerMockRecorder) SendTransaction(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendTransaction", reflect.TypeOf((*MockWalletServiceHandler)(nil).SendTransaction), arg0, arg1)
-}
-
-// SubmitSidechainProposal mocks base method.
-func (m *MockWalletServiceHandler) SubmitSidechainProposal(arg0 context.Context, arg1 *connect.Request[mainchainv1.SubmitSidechainProposalRequest]) (*connect.Response[mainchainv1.SubmitSidechainProposalResponse], error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubmitSidechainProposal", arg0, arg1)
-	ret0, _ := ret[0].(*connect.Response[mainchainv1.SubmitSidechainProposalResponse])
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SubmitSidechainProposal indicates an expected call of SubmitSidechainProposal.
-func (mr *MockWalletServiceHandlerMockRecorder) SubmitSidechainProposal(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubmitSidechainProposal", reflect.TypeOf((*MockWalletServiceHandler)(nil).SubmitSidechainProposal), arg0, arg1)
 }
 
 // UnlockWallet mocks base method.

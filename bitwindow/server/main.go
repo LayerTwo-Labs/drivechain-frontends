@@ -174,9 +174,12 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return validator, err
 	}
 
-	walletConnector := func(ctx context.Context) (rpc.WalletServiceClient, error) {
-		wallet, err := dial.EnforcerWallet(ctx, conf.EnforcerHost)
-		return wallet, err
+	blockProducerConnector := func(ctx context.Context) (rpc.BlockProducerServiceClient, error) {
+		return dial.EnforcerBlockProducer(ctx, conf.EnforcerHost)
+	}
+
+	miningConnector := func(ctx context.Context) (rpc.MiningServiceClient, error) {
+		return dial.EnforcerMining(ctx, conf.EnforcerHost)
 	}
 
 	cryptoConnector := func(ctx context.Context) (cryptorpc.CryptoServiceClient, error) {
@@ -231,9 +234,11 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	services := api.Services{
 		ECashNetworkID:    ecashNetworkID,
 		BitcoindConnector: bitcoindConnector,
-		WalletConnector:   walletConnector,
 		EnforcerConnector: enforcerConnector,
 		CryptoConnector:   cryptoConnector,
+
+		BlockProducerConnector: blockProducerConnector,
+		MiningConnector:        miningConnector,
 
 		// Sidechain connectors
 		ThunderConnector:   thunderConnector,

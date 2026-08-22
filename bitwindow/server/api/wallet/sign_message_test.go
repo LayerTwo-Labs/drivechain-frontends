@@ -192,7 +192,6 @@ func TestSignMessageHexEncodesMessage(t *testing.T) {
 
 	walletEngine := engines.NewWalletEngine(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
-		nil,
 		tempDir,
 		&chaincfg.SigNetParams,
 	)

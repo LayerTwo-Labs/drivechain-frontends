@@ -96,7 +96,7 @@ func TestService_Check(t *testing.T) {
 		assert.True(t, serviceNames["database"])
 		assert.True(t, serviceNames["bitcoind"])
 		assert.True(t, serviceNames["enforcer"])
-		assert.True(t, serviceNames["wallet"])
+		assert.NotContains(t, serviceNames, "wallet", "the enforcer runs no wallet")
 		assert.True(t, serviceNames["crypto"])
 	})
 
@@ -245,61 +245,6 @@ func TestService_Check(t *testing.T) {
 		assert.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, enforcerStatus.Status)
 	})
 
-	t.Run("wallet unhealthy", func(t *testing.T) {
-		t.Parallel()
-
-		db := database.Test(t)
-		ctrl := gomock.NewController(t)
-
-		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
-		// Background operations
-		mockBitcoind.EXPECT().
-			ListWallets(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.ListWalletsResponse]{
-				Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
-			}, nil).
-			AnyTimes()
-		mockBitcoind.EXPECT().
-			CreateWallet(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.CreateWalletResponse]{
-				Msg: &corepb.CreateWalletResponse{Name: "test_wallet"},
-			}, nil).
-			AnyTimes()
-		// Health check
-		mockBitcoind.EXPECT().
-			GetBlockchainInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[corepb.GetBlockchainInfoResponse]{
-				Msg: &corepb.GetBlockchainInfoResponse{Chain: "signet"},
-			}, nil).
-			AnyTimes()
-
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		// Health check fails
-		mockWallet.EXPECT().
-			GetInfo(gomock.Any(), gomock.Any()).
-			Return(nil, connect.NewError(connect.CodeUnavailable, nil)).
-			AnyTimes()
-
-		cli := rpc.NewHealthServiceClient(apitests.API(t, db,
-			apitests.WithBitcoind(mockBitcoind),
-			apitests.WithWallet(mockWallet),
-		))
-
-		resp, err := cli.Check(context.Background(), connect.NewRequest(&emptypb.Empty{}))
-		require.NoError(t, err)
-
-		// Find wallet status
-		var walletStatus *healthv1.CheckResponse_ServiceStatus
-		for _, status := range resp.Msg.ServiceStatuses {
-			if status.ServiceName == "wallet" {
-				walletStatus = status
-				break
-			}
-		}
-		require.NotNil(t, walletStatus)
-		assert.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, walletStatus.Status)
-	})
-
 	t.Run("crypto unhealthy", func(t *testing.T) {
 		t.Parallel()
 
@@ -432,7 +377,6 @@ func TestService_Check(t *testing.T) {
 		// been connected yet (no eager caller like ensureWatchWallet for bitcoind).
 		// The mocks would succeed if called, but IsConnected() returns false
 		// until the reconnect loop ticks or Get() is called.
-		assert.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, statusMap["wallet"])
 		// crypto unhealthy (mock returns error)
 		assert.Equal(t, healthv1.CheckResponse_STATUS_NOT_SERVING, statusMap["crypto"])
 	})
