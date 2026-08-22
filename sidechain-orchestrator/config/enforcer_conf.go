@@ -39,7 +39,7 @@ var derivedEnforcerSettings = []string{
 // Migration system (Dart: _kEnforcerConfVersion, _enforcerConfMigrations)
 // ---------------------------------------------------------------------------
 
-const enforcerConfMigrationsVersion = 2
+const enforcerConfMigrationsVersion = 3
 
 // EnforcerConfMigration represents a versioned enforcer config migration.
 type EnforcerConfMigration struct {
@@ -47,10 +47,24 @@ type EnforcerConfMigration struct {
 	Apply   func(config *EnforcerConfig)
 }
 
-// No active migrations after derived fields stopped being part of the
-// default template. Version is left at 2 so pre-existing v2 files don't
-// trigger spurious rewrites.
-var enforcerConfMigrations = []EnforcerConfMigration{}
+var enforcerConfMigrations = []EnforcerConfMigration{
+	{
+		// The enforcer runs no wallet. An existing conf keeps enable-wallet
+		// forever and never gains the block template server, so it would seed
+		// a wallet that never starts and serve no getblocktemplate.
+		Version: 3,
+		Apply: func(config *EnforcerConfig) {
+			config.RemoveSetting("enable-wallet")
+			if config.GetSetting("enable-block-template-server") == "" {
+				config.SetSetting("enable-block-template-server", "true")
+			}
+			// The template server needs the mempool, and clap refuses the
+			// argv without it. A hand-set false would make the enforcer
+			// reject its own arguments.
+			config.SetSetting("enable-mempool", "true")
+		},
+	},
+}
 
 // RunEnforcerConfMigrations applies pending migrations to an EnforcerConfig.
 // Returns true if any migration was applied.
@@ -226,11 +240,11 @@ func (m *EnforcerConfManager) GetDefaultConfig() string {
 # appends them to the CLI args at boot, so adding them here will be
 # stripped on the next load.
 
-# Enable wallet functionality (default: true)
-enable-wallet=true
-
-# Enable mempool support - required for getblocktemplate (default: true)
+# Enable mempool support - the block template server needs it (default: true)
 enable-mempool=true
+
+# Serve getblocktemplate and block generation (default: true)
+enable-block-template-server=true
 `, enforcerConfVersionCommentPrefix, enforcerConfMigrationsVersion)
 }
 

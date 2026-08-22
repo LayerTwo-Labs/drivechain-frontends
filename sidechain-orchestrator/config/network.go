@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/samber/lo"
 	"net/url"
 	"strconv"
 	"strings"
@@ -464,4 +465,16 @@ func LookupNetwork(s string) (Network, bool) {
 	default:
 		return NetworkSignet, false
 	}
+}
+
+// SupportsLightMode reports whether a network can run without a local node.
+// Light mode reads the chain from Esplora, so a network with no Esplora server
+// — regtest and testnet — runs in full mode only.
+func SupportsLightMode(n Network) bool {
+	return EsploraURLForNetwork(n) != ""
+}
+
+// LightModeNetworks lists the networks light mode can serve.
+func LightModeNetworks() []Network {
+	return lo.Filter(AllNetworks(), func(n Network, _ int) bool { return SupportsLightMode(n) })
 }
