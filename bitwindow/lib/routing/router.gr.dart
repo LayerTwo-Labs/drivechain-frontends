@@ -335,6 +335,53 @@ class NetworkStatisticsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [NodeModePage]
+class NodeModeRoute extends PageRouteInfo<NodeModeRouteArgs> {
+  NodeModeRoute({
+    Key? key,
+    required VoidCallback onModePicked,
+    List<PageRouteInfo>? children,
+  }) : super(
+         NodeModeRoute.name,
+         args: NodeModeRouteArgs(key: key, onModePicked: onModePicked),
+         initialChildren: children,
+       );
+
+  static const String name = 'NodeModeRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<NodeModeRouteArgs>();
+      return NodeModePage(key: args.key, onModePicked: args.onModePicked);
+    },
+  );
+}
+
+class NodeModeRouteArgs {
+  const NodeModeRouteArgs({this.key, required this.onModePicked});
+
+  final Key? key;
+
+  final VoidCallback onModePicked;
+
+  @override
+  String toString() {
+    return 'NodeModeRouteArgs{key: $key, onModePicked: $onModePicked}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! NodeModeRouteArgs) return false;
+    return key == other.key && onModePicked == other.onModePicked;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ onModePicked.hashCode;
+}
+
+/// generated route for
 /// [OverviewPage]
 class OverviewRoute extends PageRouteInfo<void> {
   const OverviewRoute({List<PageRouteInfo>? children})

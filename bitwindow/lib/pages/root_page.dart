@@ -1257,7 +1257,7 @@ class _StatusBarState extends State<StatusBar> {
       endWidgets: [
         // Electrum wallets run no local bitcoind, so block height and peer
         // counts don't apply — only show them when a Bitcoin Core backend runs.
-        if (GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends) ...[
+        if (NodeModeProvider.runsLocalBackends) ...[
           SailSkeletonizer(
             description: 'Waiting for bitcoind to connect..',
             enabled: !blockchainProvider.mainchain.connected,

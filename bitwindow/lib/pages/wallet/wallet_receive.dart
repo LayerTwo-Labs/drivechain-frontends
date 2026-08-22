@@ -429,7 +429,7 @@ class ReceivePageViewModel extends BaseViewModel {
   bool get hideBip47 {
     final reader = GetIt.I.get<WalletReaderProvider>();
     final active = reader.activeWallet;
-    return active != null && (active.isWatchOnly || active.isMultisig || active.isEnforcer);
+    return active != null && (active.isWatchOnly || active.isMultisig);
   }
 
   List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();

@@ -34,11 +34,9 @@ class FastWithdrawalForm extends StatelessWidget {
       );
     }
 
-    final walletReader = GetIt.I.get<WalletReaderProvider>();
-    final activeWallet = walletReader.activeWallet;
-    if (activeWallet != null && activeWallet.walletType != BinaryType.BINARY_TYPE_ENFORCER) {
+    if (!NodeModeProvider.runsLocalBackends) {
       return SailCard(
-        error: 'Switch to your enforcer wallet to interact with sidechains',
+        error: 'Fast withdrawals need full mode, which runs a local node',
         child: SizedBox(),
       );
     }
