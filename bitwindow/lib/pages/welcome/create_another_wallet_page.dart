@@ -3,7 +3,6 @@ import 'package:bitwindow/pages/welcome/multisig_config_step.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 @RoutePage()
@@ -152,31 +151,6 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           hardwareDeviceType: _hardwareDeviceType,
           hardwareFingerprint: _hardwareFingerprint,
         );
-      } else if (_provider == 'enforcer') {
-        // The full-node wallet. A pasted seed loads into it like any other.
-        final created = await walletProvider.generateWallet(
-          name: _walletName,
-          customMnemonic: _mnemonic,
-          passphrase: _passphrase,
-          derivationPath: _singleDerivationPath.isEmpty ? null : _singleDerivationPath,
-        );
-        // generateWallet carries no gradient, so the background chosen a step
-        // earlier has to be written back or the wallet falls back to a
-        // deterministic one the user never picked. The wallet already exists at
-        // this point: a failure here is cosmetic, and reporting it as a failed
-        // creation would invite a retry that mints a second wallet.
-        final walletId = created['wallet_id'] as String?;
-        if (walletId != null && walletId.isNotEmpty) {
-          try {
-            await GetIt.I.get<WalletReaderProvider>().updateWalletMetadata(
-              walletId,
-              _walletName,
-              _selectedGradient!,
-            );
-          } catch (e) {
-            GetIt.I.get<Logger>().w('could not set the wallet background: $e');
-          }
-        }
       } else if (_provider == 'core') {
         await walletProvider.createBitcoinCoreWallet(
           name: _walletName,

@@ -747,7 +747,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   /// the enforcer's view of the chain, so a running *and* synced Core plus
   /// enforcer is the floor — an electrum wallet has neither.
   L1Gate get l1Gate => resolveL1Gate(
-    walletNeedsBackends: _walletReader.activeWalletNeedsBitcoinBackends,
+    walletNeedsBackends: NodeModeProvider.runsLocalBackends,
     coreConnected: _binaryProvider.isConnected(BitcoinCore()),
     enforcerConnected: _binaryProvider.isConnected(Enforcer()),
     coming:

@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/gen/version.dart';
 import 'package:bitwindow/pages/settings/settings_advanced.dart';
 import 'package:bitwindow/pages/settings/settings_network.dart';
+import 'package:bitwindow/pages/settings/settings_node_mode.dart';
 import 'package:bitwindow/pages/settings/settings_reset.dart';
 import 'package:bitwindow/pages/settings/settings_wallet.dart';
 import 'package:flutter/widgets.dart';
@@ -65,6 +66,7 @@ class SettingsPageState extends State<SettingsPage> {
       selectedIndex: _selectedIndex,
       onSectionSelected: setSelectedIndex,
       sections: [
+        SailSettingsSection(label: 'Node mode', builder: (_) => const SettingsNodeMode()),
         SailSettingsSection(label: 'Network', builder: (_) => const SettingsNetwork()),
         SailSettingsSection(label: 'Wallet', builder: (_) => const SettingsWallet()),
         SailSettingsSection(label: 'Appearance', builder: (_) => const SettingsAppearance()),

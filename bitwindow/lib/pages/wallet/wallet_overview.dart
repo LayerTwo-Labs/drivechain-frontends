@@ -492,7 +492,8 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     return filteredTransactions;
   }
 
-  bool get isCoreWallet => _walletReader.activeWallet?.walletType != BinaryType.BINARY_TYPE_ENFORCER;
+  /// Electrum wallets cannot bump a fee, so the RBF menu item hides for them.
+  bool get isCoreWallet => !(_walletReader.activeWallet?.isElectrum ?? false);
 
   String sortColumn = 'date';
   bool sortAscending = true;

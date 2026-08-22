@@ -238,6 +238,8 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<PhotonRPC>(PhotonLive());
   GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
 
+  GetIt.I.registerLazySingleton<NodeModeProvider>(() => NodeModeProvider());
+
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
   NetworkScopedRegistry.enrol(walletReader);
@@ -815,11 +817,14 @@ Future<void> bootBitwindowBackend(Logger log) async {
     await GetIt.I.get<WalletReaderProvider>().init();
   }
 
-  // Electrum wallets serve chain data remotely and run no local Bitcoin Core or
-  // enforcer, so skip booting and waiting on the L1 stack entirely.
-  final needsBitcoinBackends =
-      !GetIt.I.isRegistered<WalletReaderProvider>() ||
-      GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
+  // The node mode decides the boot. Light mode reads the chain from a remote
+  // server, so it starts no local daemon. An unset mode starts nothing either:
+  // the mode gate asks the user first, and the boot follows their answer.
+  final nodeMode = GetIt.I.get<NodeModeProvider>();
+  if (orchestratorReady) {
+    await nodeMode.load();
+  }
+  final needsBitcoinBackends = NodeModeProvider.runsLocalBackends;
 
   // 4. Stream binary logs and start watching state.
   _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
@@ -845,8 +850,10 @@ Future<void> bootBitwindowBackend(Logger log) async {
         log.w('STARTUP: L1 stack dispatch failed (non-fatal): $e');
       }
     }());
-  } else if (orchestratorReady && !needsBitcoinBackends) {
-    log.i('STARTUP: active wallet is electrum; skipping L1 stack boot');
+  } else if (orchestratorReady && nodeMode.needsChoice) {
+    log.i('STARTUP: no node mode picked yet; the mode gate asks before any boot');
+  } else if (orchestratorReady) {
+    log.i('STARTUP: light mode; skipping L1 stack boot');
   }
 
   log.i('STARTUP: BitWindow backend boot task initialized');

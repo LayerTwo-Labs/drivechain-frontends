@@ -239,12 +239,6 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   @override
   void initState() {
     super.initState();
-    // With no enforcer yet, the full node is the wallet to make: nothing else
-    // can serve chain data, and the backend promotes the first wallet to the
-    // enforcer whatever is picked here.
-    if (GetIt.I.get<WalletReaderProvider>().enforcerWallet == null) {
-      _provider = 'enforcer';
-    }
     _keystores = List.generate(_total, (i) => CosignerKeystore(owner: 'Key ${i + 1}'));
     _descriptor.text = _descriptorPreview;
     // Snapping back over a rejected descriptor would take away the text the
@@ -787,25 +781,14 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   // backend only watches multisig through Electrum.
   bool get _coreAvailable => _isSingle && _keystores.first.held;
 
-  // The enforcer is the wallet that runs the local node and the backend keeps
-  // exactly one, so it is on offer only until one exists — and, like Core, only
-  // for a single key held as a seed.
-  bool get _hasEnforcerWallet => GetIt.I.get<WalletReaderProvider>().enforcerWallet != null;
-
-  bool get _enforcerAvailable => _coreAvailable && !_hasEnforcerWallet;
-
-  // Without an enforcer wallet the backend promotes whatever is created into
-  // one, so offering Core here would hand back a different type than picked.
-  bool get _bitcoinCoreAvailable => _coreAvailable && _hasEnforcerWallet;
+  // Light mode runs no local node, so Bitcoin Core has nothing to talk to.
+  bool get _bitcoinCoreAvailable => _coreAvailable && NodeModeProvider.runsLocalBackends;
 
   /// The provider a wallet would actually be created with: what was picked,
   /// unless it has stopped being on offer (a second key, a watch-only key, or
-  /// an enforcer that now exists).
+  /// light mode, which runs no local node).
   String get _effectiveProvider {
     if (!_coreAvailable) {
-      return 'electrum';
-    }
-    if (_provider == 'enforcer' && !_enforcerAvailable) {
       return 'electrum';
     }
     if (_provider == 'core' && !_bitcoinCoreAvailable) {
@@ -825,7 +808,6 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         setState(() => _provider = v);
       },
       items: [
-        if (_enforcerAvailable) const SailDropdownItem<String>(value: 'enforcer', label: 'Enforcer'),
         const SailDropdownItem<String>(value: 'electrum', label: 'Electrum'),
         if (_bitcoinCoreAvailable) const SailDropdownItem<String>(value: 'core', label: 'Bitcoin Core'),
       ],
@@ -891,17 +873,6 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   String _addressTypeLabel(String scriptType) => _addressTypes[scriptType] ?? scriptType;
 
   Widget _scriptDropdown(BuildContext context) {
-    // The enforcer mints addresses itself: it ignores the derivation path and
-    // refuses taproot outright, so offering a choice here would be a promise
-    // its backend cannot keep.
-    if (_effectiveProvider == 'enforcer') {
-      return SailDropdownButton<String>(
-        value: 'wpkh',
-        enabled: false,
-        onChanged: (_) async {},
-        items: const [SailDropdownItem<String>(value: 'wpkh', label: 'Native Segwit (bc1q...)')],
-      );
-    }
     final values = _isSingle ? const ['wpkh', 'tr', 'sh-wpkh', 'pkh'] : const ['wsh', 'tr', 'sh-wsh', 'sh'];
     return SailDropdownButton<String>(
       value: _scriptType,

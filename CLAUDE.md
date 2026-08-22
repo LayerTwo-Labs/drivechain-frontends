@@ -18,28 +18,26 @@ Most code needs no comment at all.
 # Install Rosetta to cross-build the Intel daemon.
 ```
 
-## Never write migration / backward-compat code
+## Write a migration when user data is at stake
 
-This project is pre-1.0. Treat every change as the new source of truth.
-Do **not** write code that handles the previous version's on-disk layout,
-config format, schema, binary path, or anything else. No "if old field
-exists, copy to new field." No "if file in legacy location, move it." No
-shimming, no backfilling, no auto-detection of historical state.
+This project holds real money. A change that leaves an existing user unable to
+see or spend their coins is a bug, not an acceptable cost.
 
-If a change breaks an existing user's install, that's fine — they wipe
-and reinstall. Octo will tell you if a one-time migration is actually
-needed; until then, **don't write one**. Just write the latest correct
-behavior.
+Write a one-time migration when a change would otherwise:
 
-This rule applies to:
-- Bitcoin Core binary layout / variant subfolders
-- `bitwindow-bitcoin.conf` and per-network sidecar files
-- `chains_config.json` keys / variant IDs
-- Bitwindowd database schemas (the migration table is for *new* schema
-  changes, not for compat with deleted features)
-- gRPC proto field renames / removals
-- BinaryProvider / SyncProvider / any frontend state shape
+- hide, move, or invalidate a key, a seed, or a derivation path
+- make an existing wallet read as empty
+- throw away a chain the user already synced
 
-When tempted to write `if exists(legacyPath) { move(legacyPath, newPath) }`,
-stop and just write the new code. The user is fine wiping.
+Rules for a migration:
+
+- Run it once at startup, and make it safe to run twice.
+- Never delete the old data until the new form reads back correctly.
+- Leave a value the user set by hand alone.
+- Cover it with a test that starts from the old on-disk shape.
+
+For everything that is **not** user data — binary layout, config keys, database
+schema for a deleted feature, proto field renames, frontend state shape — do not
+write compat code. Write the new correct behaviour. The user wipes and
+reinstalls.
 
