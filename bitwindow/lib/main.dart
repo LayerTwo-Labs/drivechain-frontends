@@ -239,6 +239,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
 
   GetIt.I.registerLazySingleton<NodeModeProvider>(() => NodeModeProvider());
+  NetworkScopedRegistry.enrolLazy<NodeModeProvider>();
 
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
