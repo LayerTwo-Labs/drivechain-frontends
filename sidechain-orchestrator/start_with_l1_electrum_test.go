@@ -6,25 +6,16 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/stretchr/testify/require"
 )
-
-func newTestWalletService(t *testing.T) *wallet.Service {
-	t.Helper()
-	return wallet.NewService(t.TempDir(), testLogger(t))
-}
 
 // An electrum wallet serves chain data remotely, so StartWithL1 must boot
 // neither Bitcoin Core nor the enforcer — it short-circuits to a skipped-l1
 // completion and starts no processes.
-func TestStartWithL1SkipsBackendsForElectrum(t *testing.T) {
+func TestStartWithL1SkipsBackendsInLightMode(t *testing.T) {
 	o := newTestOrchestrator(t)
-	svc := newTestWalletService(t)
-	_, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
-	require.NoError(t, err)
-	require.False(t, svc.ActiveWalletNeedsBitcoinBackends())
-	o.WalletSvc = svc
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
+	require.Equal(t, NodeModeLight, o.NodeMode())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -43,12 +34,12 @@ func TestStartWithL1SkipsBackendsForElectrum(t *testing.T) {
 	require.False(t, o.process.IsRunning("enforcer"))
 }
 
-// A non-electrum wallet needs the local stack, so the gate must not skip it.
-func TestStartWithL1NeedsBackendsForCoreWallet(t *testing.T) {
-	svc := newTestWalletService(t)
-	_, err := svc.GenerateWallet("Core", "", "", nil)
-	require.NoError(t, err)
-	require.True(t, svc.ActiveWalletNeedsBitcoinBackends())
+// Full mode needs the local stack, so the gate must not skip it — whatever
+// backend the active wallet happens to use.
+func TestStartWithL1NeedsBackendsInFullMode(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeFull))
+	require.Equal(t, NodeModeFull, o.NodeMode())
 }
 
 // In electrum mode a grpc-style sidechain has no local enforcer, so it must be

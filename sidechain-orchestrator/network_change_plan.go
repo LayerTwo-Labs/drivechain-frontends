@@ -64,12 +64,19 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 		targetBackend = req.WalletBackend
 	}
 
-	// With no wallet nothing is about to start Core, so only an explicit network
-	// change is heading for a local node. Treating "no wallet" as Core is what
+	// The node mode decides whether a local node runs, so the plan follows it
+	// rather than the wallet backend. Full mode with an electrum wallet still
+	// runs Core, and light mode runs nothing whatever the wallet is.
+	//
+	// With no mode picked, nothing is about to start Core, so only an explicit
+	// network change is heading for a local node. Treating that as Core is what
 	// made a fresh boot demand a Bitcoin datadir before wallet creation.
-	needsLocalBackends := targetBackend != wallet.WalletTypeElectrum
-	if targetBackend == "" && req.Network == "" {
-		needsLocalBackends = false
+	mode := NodeModeForNetwork(ReadNodeMode(o.BitwindowDir), target)
+	needsLocalBackends := mode == NodeModeFull
+	if mode == NodeModeUnset && req.Network != "" {
+		// An explicit swap is a move onto that network's local node, so it
+		// still has to have somewhere to put the chain.
+		needsLocalBackends = true
 	}
 
 	plan := NetworkChangePlan{
@@ -84,9 +91,9 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 		plan.Datadir = o.BitcoinConf.Config.GetGroupDatadir(plan.DatadirGroup)
 	}
 
-	// Electrum runs no local Bitcoin backends, so nothing is downloaded and no
-	// chain directory is needed — the same predicate StartWithL1 uses.
-	if targetBackend == wallet.WalletTypeElectrum {
+	// Light mode runs no local Bitcoin backends, so nothing is downloaded and
+	// no chain directory is needed — the same predicate StartWithL1 uses.
+	if mode == NodeModeLight {
 		plan.NoChainSource = len(config.WalletChainSourceURLsForNetwork(target)) == 0
 		return plan
 	}

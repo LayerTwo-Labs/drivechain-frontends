@@ -153,10 +153,9 @@ type Orchestrator struct {
 	Settings       *SettingsStore
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
-	// InitForkEngine once Core RPC is up. forkEnforcerWallet lets its scan reach
+	// InitForkEngine once Core RPC is up.
 	// the enforcer wallet's UTXOs (set later, once the enforcer client exists).
-	forkEngine         *fork.Engine
-	forkEnforcerWallet enforcerrpc.WalletServiceClient
+	forkEngine *fork.Engine
 
 	// chainTip reads the height from the wallet chain source (esplora or
 	// electrum), so an electrum wallet gets a tip with no local Core.
@@ -197,11 +196,6 @@ type Orchestrator struct {
 	// reason: its stop -> back up -> commit -> restart sequence is not safe to
 	// interleave with a second one.
 	swapEnforcerMu sync.Mutex
-	// swapPendingBoot is set when a swap gave up waiting on an enforcer boot
-	// that is still running. The lock is released once it fires, so a retry
-	// cannot interleave with the boot the previous swap left behind. Guarded by
-	// swapEnforcerMu, which is held for the whole swap.
-	swapPendingBoot <-chan error
 	// swapEnforcerActive is true while a swap owns the enforcer, so other boot
 	// paths can refuse instead of racing it.
 	swapEnforcerActive atomic.Bool
@@ -838,16 +832,15 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	go func() {
 		defer close(ch)
 
-		// Electrum (and any future remote-backed) wallets serve chain data with
-		// no local Bitcoin Core or enforcer, so we don't boot the local L1 stack
-		// for them. An L1 target (bitcoind/enforcer) is then a no-op; a sidechain
-		// target (ChainLayer 2) still starts — just without booting L1 under it,
-		// since the caller explicitly asked for that binary. The decision lives
-		// here so no frontend can force the local stack up for a remote wallet.
-		skipLocalL1 := o.WalletSvc != nil && !o.WalletSvc.ActiveWalletNeedsBitcoinBackends()
+		// Light mode reads the chain from a remote server, so the local L1 stack
+		// never boots. An L1 target (bitcoind/enforcer) is then a no-op; a
+		// sidechain target (ChainLayer 2) still starts, just without L1 under
+		// it, since the caller asked for that binary. The node mode is the only
+		// gate here, so no frontend can force the local stack up.
+		skipLocalL1 := o.NodeMode() == NodeModeLight
 		if skipLocalL1 && config.ChainLayer != 2 {
-			o.log.Info().Str("target", target).Msg("active wallet is electrum; skipping local Bitcoin backends")
-			ch <- StartupProgress{Stage: "skipped-l1", Message: "electrum wallet active — no local Bitcoin backends needed", Done: true}
+			o.log.Info().Str("target", target).Msg("light mode; skipping the local Bitcoin backends")
+			ch <- StartupProgress{Stage: "skipped-l1", Message: "light mode — no local Bitcoin backends needed", Done: true}
 			return
 		}
 
@@ -1392,30 +1385,30 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		return
 	}
 
-	// 3. Inject L1 seed. If we can't produce one (no enforcer wallet,
-	// wallet.json missing, mnemonic empty) we MUST NOT start the enforcer
-	// binary — it would boot with no seed, reuse whatever BDK state is on
-	// disk from a prior run, and get stuck in "Aborting wallet sync to
-	// new checkpoint" loops the user can't escape from. Fail loudly so
-	// the frontend's WalletGuard can route the user to create a wallet.
-	if o.WalletSvc != nil {
-		filtered := make([]string, 0, len(opts.EnforcerArgs))
-		for _, arg := range opts.EnforcerArgs {
-			if !strings.HasPrefix(arg, "--wallet-seed-file") {
-				filtered = append(filtered, arg)
-			}
+	// The enforcer runs with no wallet, so it takes no seed. Every arg a
+	// caller carried over from an older config would seed a wallet that never
+	// starts, and writing the L1 mnemonic to disk for it leaks the seed.
+	filtered := make([]string, 0, len(opts.EnforcerArgs))
+	for _, arg := range opts.EnforcerArgs {
+		if !strings.HasPrefix(arg, "--wallet-seed-file") &&
+			!strings.HasPrefix(arg, "--coinbase-recipient") {
+			filtered = append(filtered, arg)
 		}
-		opts.EnforcerArgs = filtered
+	}
+	opts.EnforcerArgs = filtered
 
-		l1Path, err := o.WalletSvc.WriteL1Starter()
+	// With no wallet the enforcer cannot derive a payout address, and it
+	// refuses to serve block templates without one. Pay to the starter wallet.
+	if o.WalletSvc != nil {
+		recipient, err := o.WalletSvc.CoinbaseRecipient(o.NetParams.Resolve())
 		if err != nil {
-			o.log.Error().Err(err).Msg("refusing to start enforcer without L1 seed")
-			enforcerMon.SetConnectionError(fmt.Sprintf("cannot start enforcer without L1 wallet seed: %v", err))
+			o.log.Error().Err(err).Msg("refusing to start the enforcer with no coinbase recipient")
+			enforcerMon.SetConnectionError(fmt.Sprintf("cannot start the enforcer without a payout address: %v", err))
 			enforcerMon.SetInitializing(false)
 			return
 		}
-		opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--wallet-seed-file=%s", l1Path))
-		o.log.Info().Str("path", l1Path).Msg("injected L1 starter for enforcer")
+		opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--coinbase-recipient=%s", recipient))
+		o.log.Info().Str("address", recipient).Msg("the block reward pays to the starter wallet")
 	}
 
 	// Mark initializing for the download + start window. testConnection clears
@@ -1487,12 +1480,10 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		return
 	}
 
-	// Log the literal argv at the actual spawn site (the auto-built-args log
-	// in prepareEnforcerArgs fires before --wallet-seed-file is injected and
-	// before any L1-seed rewrite, so it doesn't reflect the final command
-	// line). Helps diagnose "precisely one of rpc user and cookie must be
-	// set" -class errors (#1712) where the question is whether --node-rpc-user
-	// actually reaches the binary.
+	// Log the literal argv at the actual spawn site: the auto-built-args log in
+	// prepareEnforcerArgs fires before the seed args are stripped. Helps
+	// diagnose "precisely one of rpc user and cookie must be set" -class errors
+	// (#1712), where the question is whether --node-rpc-user reaches the binary.
 	o.log.Info().Strs("argv", opts.EnforcerArgs).Msg("starting enforcer with final argv")
 
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); err != nil {
@@ -2901,7 +2892,6 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 		func(context.Context) (enforcerrpc.ValidatorServiceClient, error) {
 			return enforcerrpc.NewValidatorServiceClient(c.o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC()), nil
 		},
-		nil,
 	)
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -2915,30 +2905,6 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 }
 
 // enforcerWalletSyncConnection is the raw WalletService.GetInfo RPC. The
-// wallet scans esplora on its own schedule, so its tip lags the validator's.
-type enforcerWalletSyncConnection struct{ o *Orchestrator }
-
-func (c *enforcerWalletSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, error) {
-	cfg, ok := c.o.Configs()["enforcer"]
-	if !ok || cfg.Port == 0 {
-		return nil, fmt.Errorf("enforcer not configured")
-	}
-	src := datasource.NewEnforcerSource(
-		nil,
-		func(context.Context) (enforcerrpc.WalletServiceClient, error) {
-			return enforcerrpc.NewWalletServiceClient(c.o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC()), nil
-		},
-	)
-	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	resp, err := src.WalletInfo(rpcCtx, &enforcerpb.GetInfoRequest{})
-	if err != nil {
-		return nil, err
-	}
-	return &ChainSyncResult{
-		Blocks: int64(resp.GetTip().GetHeight()),
-	}, nil
-}
 
 // sidechainSyncConnection is the JSON-RPC `getblockcount` probe for one L2
 // sidechain. Headers stay zero — the GetSyncStatus merge step fills them
@@ -3017,14 +2983,6 @@ func (o *Orchestrator) syncConnectionFor(name string) Connection[*ChainSyncResul
 			}
 		}
 		return o.enforcerSync
-	case "enforcer-wallet":
-		if o.enforcerWalletSync == nil {
-			o.enforcerWalletSync = &CachedConnection[*ChainSyncResult]{
-				inner: &enforcerWalletSyncConnection{o: o},
-				ttl:   chainSyncCacheTTL,
-			}
-		}
-		return o.enforcerWalletSync
 	default:
 		if o.sidechainSyncs == nil {
 			o.sidechainSyncs = make(map[string]*CachedConnection[*ChainSyncResult])

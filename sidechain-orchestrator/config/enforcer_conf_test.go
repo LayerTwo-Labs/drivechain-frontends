@@ -37,14 +37,27 @@ func newTestEnforcerManager(t *testing.T) (*EnforcerConfManager, string) {
 // Migration system tests
 // ---------------------------------------------------------------------------
 
+// A config with no version header reads as version 0, which is what an old
+// file looks like. The migration must reach it and leave it at the current
+// version, so the enforcer stops seeding a wallet it no longer runs.
 func TestRunEnforcerConfMigrationsFresh(t *testing.T) {
-	// No active migrations after derived fields stopped being persisted —
-	// fresh configs need no work.
 	config := NewEnforcerConfig()
-	migrated := RunEnforcerConfMigrations(config)
 
-	if migrated {
-		t.Error("no migrations should run on a fresh config")
+	if !RunEnforcerConfMigrations(config) {
+		t.Error("an unversioned config must migrate")
+	}
+	if config.ConfigVersion != enforcerConfMigrationsVersion {
+		t.Errorf("version = %d, want %d", config.ConfigVersion, enforcerConfMigrationsVersion)
+	}
+	if got := config.GetSetting("enable-wallet"); got != "" {
+		t.Errorf("enable-wallet = %q, want it gone", got)
+	}
+	if got := config.GetSetting("enable-block-template-server"); got != "true" {
+		t.Errorf("enable-block-template-server = %q, want true", got)
+	}
+
+	if RunEnforcerConfMigrations(config) {
+		t.Error("a migrated config must be left alone")
 	}
 }
 
@@ -88,8 +101,8 @@ func TestEnforcerLoadConfigPreservesPersistedDerivedFields(t *testing.T) {
 
 	confPath := m.getConfigPath()
 	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0755))
-	custom := "# bitwindow-enforcer-conf-version=2\n" +
-		"enable-wallet=true\n" +
+	custom := "# bitwindow-enforcer-conf-version=3\n" +
+		"enable-block-template-server=true\n" +
 		"node-rpc-addr=10.0.0.5:8332\n" +
 		"node-rpc-user=alice\n"
 	require.NoError(t, os.WriteFile(confPath, []byte(custom), 0644))
@@ -148,7 +161,7 @@ func TestWriteConfig(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	require.NoError(t, m.LoadConfig())
 
-	newContent := "# bitwindow-enforcer-conf-version=2\nenable-wallet=true\ncustom-setting=hello\n"
+	newContent := "# bitwindow-enforcer-conf-version=3\nenable-block-template-server=true\ncustom-setting=hello\n"
 	if err := m.WriteConfig(newContent); err != nil {
 		t.Fatal(err)
 	}
@@ -210,12 +223,12 @@ func TestGetCliArgs(t *testing.T) {
 	// Check that boolean true values become flags
 	hasEnableWallet := false
 	for _, arg := range args {
-		if arg == "--enable-wallet" {
+		if arg == "--enable-block-template-server" {
 			hasEnableWallet = true
 		}
 	}
 	if !hasEnableWallet {
-		t.Error("should have --enable-wallet flag")
+		t.Error("should have --enable-block-template-server flag")
 	}
 }
 
@@ -317,7 +330,7 @@ func TestEnforcerFileWatchingTriggersReload(t *testing.T) {
 	confPath := m.getConfigPath()
 	newConfig := NewEnforcerConfig()
 	newConfig.ConfigVersion = enforcerConfMigrationsVersion
-	newConfig.SetSetting("enable-wallet", "true")
+	newConfig.SetSetting("enable-block-template-server", "true")
 	newConfig.SetSetting("custom-watched-setting", "detected")
 	require.NoError(t, os.WriteFile(confPath, []byte(newConfig.Serialize()), 0644))
 
@@ -337,7 +350,7 @@ func TestEnforcerGetDefaultConfigHasVersionPrefix(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 
 	conf := m.GetDefaultConfig()
-	prefix := "# bitwindow-enforcer-conf-version=2"
+	prefix := "# bitwindow-enforcer-conf-version=3"
 	if !strings.HasPrefix(conf, prefix) {
 		first := conf
 		if len(first) > 80 {
@@ -360,8 +373,8 @@ func TestEnforcerGetDefaultConfigOmitsDerivedFields(t *testing.T) {
 		}
 	}
 	// The genuine user toggles still belong in the template.
-	if !strings.Contains(conf, "enable-wallet=true") {
-		t.Error("default config should still include enable-wallet=true")
+	if !strings.Contains(conf, "enable-block-template-server=true") {
+		t.Error("default config should still include enable-block-template-server=true")
 	}
 	if !strings.Contains(conf, "enable-mempool=true") {
 		t.Error("default config should still include enable-mempool=true")
@@ -497,7 +510,7 @@ func TestRetargetECashGenerationRewritesPersistedValues(t *testing.T) {
 	require.NoError(t, m.WriteConfig(strings.Join([]string{
 		"network-preset=drynet4",
 		"wallet-esplora-url=https://esplora.drynet4.drivechain.dev",
-		"enable-wallet=true",
+		"enable-block-template-server=true",
 	}, "\n")))
 
 	changed, err := m.RetargetECashNetwork("drynet4", "alphanet")
@@ -506,7 +519,7 @@ func TestRetargetECashGenerationRewritesPersistedValues(t *testing.T) {
 
 	require.Equal(t, "alphanet", m.Config.GetSetting("network-preset"))
 	require.Equal(t, EsploraURLForNetwork(NetworkECash), m.Config.GetSetting("wallet-esplora-url"))
-	require.Equal(t, "true", m.Config.GetSetting("enable-wallet"))
+	require.Equal(t, "true", m.Config.GetSetting("enable-block-template-server"))
 
 	onDisk, err := os.ReadFile(filepath.Join(dir, bitwindowEnforcerConfFilename))
 	require.NoError(t, err)
@@ -563,7 +576,7 @@ func TestRetargetECashGenerationDoesNothingWithoutAMove(t *testing.T) {
 func TestRetargetECashGenerationLeavesOtherConfigsAlone(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 	m.bitcoinConf.Network = NetworkECash
-	require.NoError(t, m.WriteConfig("enable-wallet=true\nenable-mempool=true"))
+	require.NoError(t, m.WriteConfig("enable-block-template-server=true\nenable-mempool=true"))
 
 	changed, err := m.RetargetECashNetwork("drynet4", "alphanet")
 	require.NoError(t, err)
@@ -639,11 +652,11 @@ func TestGetCliArgs_PersistedCookieSuppressesDerivedUser(t *testing.T) {
 }
 
 func TestWithElectrumFallbackReplacesEsplora(t *testing.T) {
-	args := []string{"--enable-wallet", "--wallet-esplora-url=https://esplora.drynet4.drivechain.dev"}
+	args := []string{"--enable-block-template-server", "--wallet-esplora-url=https://esplora.drynet4.drivechain.dev"}
 
 	got := WithElectrumFallback(args, "ssl://drynet4.drivechain.dev", 50002)
 
-	assert.Contains(t, got, "--enable-wallet")
+	assert.Contains(t, got, "--enable-block-template-server")
 	assert.Contains(t, got, "--wallet-sync-source=electrum")
 	assert.Contains(t, got, "--wallet-electrum-host=ssl://drynet4.drivechain.dev")
 	assert.Contains(t, got, "--wallet-electrum-port=50002")
@@ -664,11 +677,11 @@ func TestWithElectrumFallbackKeepsArgsWithoutElectrumServer(t *testing.T) {
 }
 
 func TestEsploraArgURL(t *testing.T) {
-	url, ok := EsploraArgURL([]string{"--enable-wallet", "--wallet-esplora-url=https://esplora.example"})
+	url, ok := EsploraArgURL([]string{"--enable-block-template-server", "--wallet-esplora-url=https://esplora.example"})
 	assert.True(t, ok)
 	assert.Equal(t, "https://esplora.example", url)
 
-	_, ok = EsploraArgURL([]string{"--enable-wallet"})
+	_, ok = EsploraArgURL([]string{"--enable-block-template-server"})
 	assert.False(t, ok)
 }
 
