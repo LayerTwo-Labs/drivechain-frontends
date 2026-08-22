@@ -229,14 +229,13 @@ type Orchestrator struct {
 	// getblockchaininfo — both the rich external Connect RPC
 	// (GetMainchainBlockchainInfo) and the lean GetSyncStatus dispatch read
 	// through it via a projection, so one HTTP call per TTL covers both.
-	syncConnMu         sync.Mutex
-	bitcoindInfo       *CachedConnection[*MainchainBlockchainInfo]
-	bitcoindSync       Connection[*ChainSyncResult]
-	enforcerSync       *CachedConnection[*ChainSyncResult]
-	enforcerWalletSync *CachedConnection[*ChainSyncResult]
-	sidechainSyncs     map[string]*CachedConnection[*ChainSyncResult]
-	chainFork          *CachedConnection[*ChainForkState]
-	chainSourceHeight  *CachedConnection[int]
+	syncConnMu        sync.Mutex
+	bitcoindInfo      *CachedConnection[*MainchainBlockchainInfo]
+	bitcoindSync      Connection[*ChainSyncResult]
+	enforcerSync      *CachedConnection[*ChainSyncResult]
+	sidechainSyncs    map[string]*CachedConnection[*ChainSyncResult]
+	chainFork         *CachedConnection[*ChainForkState]
+	chainSourceHeight *CachedConnection[int]
 
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
 	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
@@ -2394,7 +2393,6 @@ func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.bitcoindInfo = nil
 	o.bitcoindSync = nil
 	o.enforcerSync = nil
-	o.enforcerWalletSync = nil
 	o.sidechainSyncs = nil
 	o.chainFork = nil
 	o.chainSourceHeight = nil
@@ -2904,8 +2902,6 @@ func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, e
 	}, nil
 }
 
-// enforcerWalletSyncConnection is the raw WalletService.GetInfo RPC. The
-
 // sidechainSyncConnection is the JSON-RPC `getblockcount` probe for one L2
 // sidechain. Headers stay zero — the GetSyncStatus merge step fills them
 // from the public explorer.
@@ -3030,10 +3026,9 @@ type ChainSyncResult struct {
 // name. Frontends that aren't sidechains (e.g. bitwindow's own bitwindowd
 // daemon) are NOT in this map — the orchestrator knows nothing about them.
 type SyncStatus struct {
-	Mainchain      *ChainSyncResult
-	Enforcer       *ChainSyncResult
-	EnforcerWallet *ChainSyncResult
-	Sidechains     map[string]*ChainSyncResult
+	Mainchain  *ChainSyncResult
+	Enforcer   *ChainSyncResult
+	Sidechains map[string]*ChainSyncResult
 	// ChainSource is the tip the wallet chain source reports. An electrum
 	// wallet runs no local node, so this is the only height it has.
 	ChainSource *ChainSyncResult
@@ -3050,11 +3045,10 @@ type SyncStatus struct {
 // overall call only errors out when no probe could even be dispatched.
 func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	out := &SyncStatus{
-		Mainchain:      &ChainSyncResult{},
-		Enforcer:       &ChainSyncResult{},
-		EnforcerWallet: &ChainSyncResult{},
-		Sidechains:     make(map[string]*ChainSyncResult),
-		ChainSource:    &ChainSyncResult{},
+		Mainchain:   &ChainSyncResult{},
+		Enforcer:    &ChainSyncResult{},
+		Sidechains:  make(map[string]*ChainSyncResult),
+		ChainSource: &ChainSyncResult{},
 	}
 
 	// Pre-populate sidechain map with one slot per L2 sidechain. The
@@ -3090,20 +3084,6 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		{
 			slot: out.Enforcer,
 			conn: o.syncConnectionFor("enforcer"),
-			validate: func() string {
-				cfg, ok := o.Configs()["enforcer"]
-				if !ok || cfg.Port == 0 {
-					return "enforcer not configured"
-				}
-				if !o.enforcerReachable() {
-					return "not running"
-				}
-				return ""
-			},
-		},
-		{
-			slot: out.EnforcerWallet,
-			conn: o.syncConnectionFor("enforcer-wallet"),
 			validate: func() string {
 				cfg, ok := o.Configs()["enforcer"]
 				if !ok || cfg.Port == 0 {
@@ -3215,13 +3195,6 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			out.Enforcer.Headers = out.Mainchain.Headers
 		} else {
 			out.Enforcer.Headers = out.Enforcer.Blocks
-		}
-	}
-	if out.EnforcerWallet.Error == "" {
-		if out.Mainchain.Error == "" {
-			out.EnforcerWallet.Headers = out.Mainchain.Headers
-		} else {
-			out.EnforcerWallet.Headers = out.EnforcerWallet.Blocks
 		}
 	}
 	// Sidechain headers come from the public explorer (fetched in parallel
