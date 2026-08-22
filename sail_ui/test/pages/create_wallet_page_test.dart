@@ -29,9 +29,8 @@ void main() {
     ready.dispose();
   });
 
-  test('InitialWalletProvider offers all three backends with enforcer first', () {
+  test('InitialWalletProvider offers Bitcoin Core and electrum only', () {
     expect(InitialWalletProvider.values, [
-      InitialWalletProvider.enforcer,
       InitialWalletProvider.bitcoinCore,
       InitialWalletProvider.electrum,
     ]);

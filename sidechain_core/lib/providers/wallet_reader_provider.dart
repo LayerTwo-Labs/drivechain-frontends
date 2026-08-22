@@ -38,13 +38,11 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   bool hasWalletOnDisk = false;
 
   WalletData? get activeWallet => wallets.where((w) => w.id == activeWalletId).firstOrNull;
-  WalletData? get enforcerWallet => wallets.where((w) => w.walletType == BinaryType.BINARY_TYPE_ENFORCER).firstOrNull;
 
-  /// False when the active wallet is electrum — it serves chain data remotely
-  /// and runs no local Bitcoin Core or enforcer. Used to skip the L1 backend
-  /// boot/wait. Defaults to true when no wallet is loaded yet so a fresh
-  /// install still boots the backends.
-  bool get activeWalletNeedsBitcoinBackends => !(activeWallet?.isElectrum ?? false);
+  /// The wallet whose seed derives the L1 and sidechain starters. Each wallet
+  /// carries its own seed, so the backend pins one and reports it here — index
+  /// 0 would disagree with the backend the moment the order changes.
+  WalletData? get primaryWallet => wallets.where((w) => w.isStarter).firstOrNull ?? wallets.firstOrNull;
 
   List<WalletMetadata> get availableWallets => wallets
       .map(
@@ -185,13 +183,13 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
         gradient: gradient,
         createdAt: createdAt,
         walletType: switch (protoWallet.walletType) {
-          wmpb.WalletType.WALLET_TYPE_ENFORCER => BinaryType.BINARY_TYPE_ENFORCER,
           // Electrum runs no local backend binary.
           wmpb.WalletType.WALLET_TYPE_ELECTRUM => BinaryType.BINARY_TYPE_UNSPECIFIED,
           _ => BinaryType.BINARY_TYPE_BITCOIND,
         },
         isElectrum: protoWallet.walletType == wmpb.WalletType.WALLET_TYPE_ELECTRUM,
         isWatchOnly: protoWallet.watchOnly,
+        isStarter: protoWallet.isStarter,
         bip47PaymentCode: protoWallet.bip47PaymentCode,
         multisig: protoWallet.hasMultisig() ? protoWallet.multisig : null,
         receiveAddressTypes: List.unmodifiable(protoWallet.receiveAddressTypes),
@@ -485,12 +483,10 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     }
   }
 
-  // L1 + sidechain starters are always derived from the enforcer wallet, even
-  // if the active wallet is a separate Bitcoin Core wallet.
-  String? getL1Mnemonic() => enforcerWallet?.l1.mnemonic;
+  String? getL1Mnemonic() => primaryWallet?.l1.mnemonic;
 
   String? getSidechainMnemonic(int slot) {
-    final wallet = enforcerWallet;
+    final wallet = primaryWallet;
     if (wallet == null) {
       return null;
     }

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
 /// Only the "does a wallet already exist" probe is faked — everything else is
 /// the real page, so the widget tree under test is the one that ships.
@@ -35,6 +36,9 @@ void main() {
     GetIt.I.registerSingleton<Logger>(Logger());
     GetIt.I.registerSingleton<WalletReaderProvider>(WalletReaderProvider(Directory.systemTemp));
     GetIt.I.registerSingleton<WalletWriterProvider>(_FakeWriter());
+    // Full mode, so both wallet backends are on offer. Light mode runs no
+    // local node, so it shows electrum alone and no cards at all.
+    GetIt.I.registerSingleton<NodeModeProvider>(NodeModeProvider()..mode = wmpb.NodeMode.NODE_MODE_FULL);
   });
 
   tearDown(() async => GetIt.I.reset());
@@ -92,5 +96,17 @@ void main() {
       find.ancestor(of: find.text('Paste a seed phrase'), matching: find.byType(TextButton)),
     );
     expect(generate.height, paste.height);
+  });
+
+  // Thunder, BitNames and BitAssets open this same page and register no node
+  // mode of their own. Reading one would throw before a user without a wallet
+  // could finish setup.
+  testWidgets('the page lays out for an app that registers no node mode', (tester) async {
+    GetIt.I.unregister<NodeModeProvider>();
+
+    await _pumpPage(tester);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Create a new wallet'), findsOneWidget);
   });
 }

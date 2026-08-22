@@ -234,14 +234,9 @@ class WalletWriterProvider extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>?> loadMasterStarter() async {
-    // Master/L1/sidechain starters are derived from the enforcer wallet's
-    // seed (the backend stamps them onto that wallet's metadata only). When
-    // the active wallet is a separate Bitcoin Core or watch-only wallet,
-    // reading from `activeWallet` would return blank data and the Starters
-    // tab would render empty — fall back to the active wallet only when no
-    // enforcer is loaded yet, so a fresh post-wipe install still gets
-    // something on screen.
-    final wallet = _walletReader.enforcerWallet ?? _walletReader.activeWallet;
+    // The backend stamps the starters onto the first wallet only, so a
+    // watch-only active wallet would render the Starters tab empty.
+    final wallet = _walletReader.primaryWallet ?? _walletReader.activeWallet;
     if (wallet != null) {
       return {
         'mnemonic': wallet.master.mnemonic,

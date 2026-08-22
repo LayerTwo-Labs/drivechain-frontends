@@ -43,6 +43,14 @@ class OrchestratorWalletRPC {
     return r.satPerVbyte > 0 ? r.satPerVbyte : null;
   }
 
+  Future<wmpb.GetNodeModeResponse> getNodeMode() {
+    return _unaryClient.getNodeMode(wmpb.GetNodeModeRequest());
+  }
+
+  Future<void> setNodeMode(wmpb.NodeMode mode) async {
+    await _unaryClient.setNodeMode(wmpb.SetNodeModeRequest(mode: mode));
+  }
+
   Future<wmpb.ListWalletsResponse> listWallets() {
     return _unaryClient.listWallets(wmpb.ListWalletsRequest());
   }
