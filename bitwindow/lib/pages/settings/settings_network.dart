@@ -585,8 +585,32 @@ Future<void> swapNetworkWithDatadirPrompt(
   if (!context.mounted) {
     return;
   }
-  if (network == BitcoinNetwork.BITCOIN_NETWORK_ECASH && !await confirmPendingECashUpgrade(context)) {
-    return;
+  var targetId = networkId;
+  if (network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
+    final outcome = await confirmPendingECashUpgrade(context);
+    if (outcome == ECashUpgradeOutcome.cancelled) {
+      return;
+    }
+    // An applied upgrade is the switch itself only when eCash already ran.
+    // From another network it records the generation and leaves the active
+    // network alone, so the move below still has to happen — on the generation
+    // the user just confirmed, not the row they started from.
+    if (outcome == ECashUpgradeOutcome.applied) {
+      if (provider.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
+        return;
+      }
+      if (provider.ecashNetworkId.isNotEmpty) {
+        targetId = provider.ecashNetworkId;
+      }
+    }
+    if (!context.mounted) {
+      return;
+    }
+    // The pending prompt only fires for a published upgrade. A pick made from
+    // the dropdown moves the chain just as much, so it asks too.
+    if (!await confirmECashSwitch(context, targetId)) {
+      return;
+    }
   }
 
   if (!context.mounted) {
@@ -598,7 +622,7 @@ Future<void> swapNetworkWithDatadirPrompt(
         fromNetwork: provider.network,
         toNetwork: network,
         dataDir: dataDir,
-        networkId: networkId,
+        networkId: targetId,
       ),
     ),
   );
