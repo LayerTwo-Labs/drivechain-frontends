@@ -247,6 +247,11 @@ message WalletMetadata {
   // Device type and master fingerprint for a single-sig hardware wallet.
   string hardware_device_type = 12;
   string hardware_fingerprint = 13;
+
+  // The address types this wallet derives, its own kind first. A wallet on an
+  // explicit derivation path, a watch-only wallet, and a multisig wallet each
+  // derive exactly one.
+  repeated AddressType receive_address_types = 14;
 }
 
 message MultisigInfo {

@@ -50,9 +50,8 @@ class ReceiveTab extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Multisig wallets have a single address kind fixed by
-                              // their descriptor, so there's no address type to choose.
-                              if (!model.isMultisigWallet)
+                              // A wallet that derives one kind has nothing to choose.
+                              if (model.addressTypes.length > 1)
                                 SailDropdownButton<wmpb.AddressType>(
                                   value: model.addressType,
                                   onChanged: (type) {
@@ -60,16 +59,14 @@ class ReceiveTab extends StatelessWidget {
                                       model.setAddressType(type);
                                     }
                                   },
-                                  items: const [
-                                    SailDropdownItem(
-                                      value: wmpb.AddressType.ADDRESS_TYPE_SEGWIT,
-                                      label: 'Segwit (bech32)',
-                                    ),
-                                    SailDropdownItem(
-                                      value: wmpb.AddressType.ADDRESS_TYPE_TAPROOT,
-                                      label: 'Taproot (bech32m)',
-                                    ),
-                                  ],
+                                  items: model.addressTypes
+                                      .map(
+                                        (type) => SailDropdownItem<wmpb.AddressType>(
+                                          value: type,
+                                          label: addressTypeLabel(type),
+                                        ),
+                                      )
+                                      .toList(),
                                 ),
                               SailRow(
                                 spacing: SailStyleValues.padding08,
@@ -404,6 +401,12 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
 /// - getNewAddress: via TransactionProvider (orchestrator)
 /// - listReceiveAddresses: via TransactionProvider (orchestrator)
 /// - Address book labels: STAYS on bitwindowd — BW-only SQLite
+/// The label the Receive tab shows for an address type.
+String addressTypeLabel(wmpb.AddressType type) => switch (type) {
+  wmpb.AddressType.ADDRESS_TYPE_TAPROOT => 'Taproot (bech32m)',
+  _ => 'Segwit (bech32)',
+};
+
 class ReceivePageViewModel extends BaseViewModel {
   final AddressBookProvider _addressBookProvider = GetIt.I<AddressBookProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
@@ -418,6 +421,7 @@ class ReceivePageViewModel extends BaseViewModel {
   String get bip47PaymentCode => _hdWalletProvider.bip47PaymentCode;
 
   wmpb.AddressType get addressType => transactionsProvider.addressType;
+  List<wmpb.AddressType> get addressTypes => transactionsProvider.addressTypes;
   Future<void> setAddressType(wmpb.AddressType type) => transactionsProvider.setAddressType(type);
 
   /// Hide the BIP47 card for the wallets the backend derives no code for, so
@@ -426,13 +430,6 @@ class ReceivePageViewModel extends BaseViewModel {
     final reader = GetIt.I.get<WalletReaderProvider>();
     final active = reader.activeWallet;
     return active != null && (active.isWatchOnly || active.isMultisig || active.isEnforcer);
-  }
-
-  /// A multisig wallet's address kind is fixed by its descriptor, so the receive
-  /// tab shows no address-type selector.
-  bool get isMultisigWallet {
-    final active = GetIt.I.get<WalletReaderProvider>().activeWallet;
-    return active != null && active.isMultisig;
   }
 
   List<ReceiveAddress> get receiveAddresses => transactionsProvider.receiveAddresses.toList();

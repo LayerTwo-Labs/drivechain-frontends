@@ -198,12 +198,28 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			CreatedAt:           w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode:    bip47Code,
 			Multisig:            multisigInfoProto(&w),
+			ReceiveAddressTypes: receiveAddressTypesProto(&w),
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
 		Wallets:        pbWallets,
 		ActiveWalletId: h.svc.ActiveWalletID(),
 	}), nil
+}
+
+// receiveAddressTypesProto lists the address types a wallet derives, its own
+// kind first, so the frontend asks for one the wallet can actually serve.
+func receiveAddressTypesProto(w *wallet.WalletData) []pb.AddressType {
+	return lo.FilterMap(wallet.ReceiveKinds(w), func(k wallet.ScriptKind, _ int) (pb.AddressType, bool) {
+		switch k {
+		case wallet.ScriptNativeSegwit:
+			return pb.AddressType_ADDRESS_TYPE_SEGWIT, true
+		case wallet.ScriptTaproot:
+			return pb.AddressType_ADDRESS_TYPE_TAPROOT, true
+		default:
+			return pb.AddressType_ADDRESS_TYPE_UNSPECIFIED, false
+		}
+	})
 }
 
 func (h *WalletHandler) SwitchWallet(ctx context.Context, req *connect.Request[pb.SwitchWalletRequest]) (*connect.Response[pb.SwitchWalletResponse], error) {
@@ -1596,6 +1612,7 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 			CreatedAt:           w.CreatedAt.Format(time.RFC3339),
 			Bip47PaymentCode:    bip47Code,
 			Multisig:            multisigInfoProto(&w),
+			ReceiveAddressTypes: receiveAddressTypesProto(&w),
 		}
 		// Starter material lives only on the enforcer wallet (L1 mnemonic and
 		// sidechain starters are derived from its seed). Attach it to that

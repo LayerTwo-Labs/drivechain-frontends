@@ -953,6 +953,10 @@ type WalletMetadata struct {
 	// Device type and master fingerprint for a single-sig hardware wallet.
 	HardwareDeviceType  string `protobuf:"bytes,12,opt,name=hardware_device_type,json=hardwareDeviceType,proto3" json:"hardware_device_type,omitempty"`
 	HardwareFingerprint string `protobuf:"bytes,13,opt,name=hardware_fingerprint,json=hardwareFingerprint,proto3" json:"hardware_fingerprint,omitempty"`
+	// The address types this wallet derives, its own kind first. A wallet on an
+	// explicit derivation path, a watch-only wallet, and a multisig wallet each
+	// derive exactly one.
+	ReceiveAddressTypes []AddressType `protobuf:"varint,14,rep,packed,name=receive_address_types,json=receiveAddressTypes,proto3,enum=walletmanager.v1.AddressType" json:"receive_address_types,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1076,6 +1080,13 @@ func (x *WalletMetadata) GetHardwareFingerprint() string {
 		return x.HardwareFingerprint
 	}
 	return ""
+}
+
+func (x *WalletMetadata) GetReceiveAddressTypes() []AddressType {
+	if x != nil {
+		return x.ReceiveAddressTypes
+	}
+	return nil
 }
 
 type MultisigInfo struct {
@@ -9286,7 +9297,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x16ChangePasswordResponse\"5\n" +
 	"\x17RemoveEncryptionRequest\x12\x1a\n" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\"\x1a\n" +
-	"\x18RemoveEncryptionResponse\"\xb3\x04\n" +
+	"\x18RemoveEncryptionResponse\"\x86\x05\n" +
 	"\x0eWalletMetadata\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12=\n" +
@@ -9307,7 +9318,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	" \x01(\bR\twatchOnly\x12:\n" +
 	"\bmultisig\x18\v \x01(\v2\x1e.walletmanager.v1.MultisigInfoR\bmultisig\x120\n" +
 	"\x14hardware_device_type\x18\f \x01(\tR\x12hardwareDeviceType\x121\n" +
-	"\x14hardware_fingerprint\x18\r \x01(\tR\x13hardwareFingerprint\"\x91\x01\n" +
+	"\x14hardware_fingerprint\x18\r \x01(\tR\x13hardwareFingerprint\x12Q\n" +
+	"\x15receive_address_types\x18\x0e \x03(\x0e2\x1d.walletmanager.v1.AddressTypeR\x13receiveAddressTypes\"\x91\x01\n" +
 	"\fMultisigInfo\x12\f\n" +
 	"\x01m\x18\x01 \x01(\rR\x01m\x12\f\n" +
 	"\x01n\x18\x02 \x01(\rR\x01n\x12\x1f\n" +
@@ -10214,188 +10226,189 @@ var file_walletmanager_v1_walletmanager_proto_depIdxs = []int32{
 	0,   // 0: walletmanager.v1.WalletMetadata.wallet_type:type_name -> walletmanager.v1.WalletType
 	22,  // 1: walletmanager.v1.WalletMetadata.sidechains:type_name -> walletmanager.v1.SidechainStarter
 	20,  // 2: walletmanager.v1.WalletMetadata.multisig:type_name -> walletmanager.v1.MultisigInfo
-	21,  // 3: walletmanager.v1.MultisigInfo.cosigners:type_name -> walletmanager.v1.MultisigCosignerInfo
-	19,  // 4: walletmanager.v1.ListWalletsResponse.wallets:type_name -> walletmanager.v1.WalletMetadata
-	160, // 5: walletmanager.v1.BalanceSnapshot.binary:type_name -> orchestrator.v1.BinaryType
-	161, // 6: walletmanager.v1.BalanceSnapshot.updated_at:type_name -> google.protobuf.Timestamp
-	161, // 7: walletmanager.v1.WalletBackup.created_at:type_name -> google.protobuf.Timestamp
-	34,  // 8: walletmanager.v1.WalletBackup.wallets:type_name -> walletmanager.v1.BackupWalletSummary
-	33,  // 9: walletmanager.v1.WalletBackup.latest_known_balance:type_name -> walletmanager.v1.BalanceSnapshot
-	35,  // 10: walletmanager.v1.ListWalletBackupsResponse.backups:type_name -> walletmanager.v1.WalletBackup
-	1,   // 11: walletmanager.v1.RestoreWalletBackupProgressStatus.state:type_name -> walletmanager.v1.RestoreWalletBackupStepState
-	40,  // 12: walletmanager.v1.RestoreWalletBackupProgressResponse.steps:type_name -> walletmanager.v1.RestoreWalletBackupStep
-	41,  // 13: walletmanager.v1.RestoreWalletBackupProgressResponse.status:type_name -> walletmanager.v1.RestoreWalletBackupProgressStatus
-	2,   // 14: walletmanager.v1.SwapEnforcerWalletProgressStatus.state:type_name -> walletmanager.v1.SwapEnforcerWalletStepState
-	44,  // 15: walletmanager.v1.SwapEnforcerWalletProgressResponse.steps:type_name -> walletmanager.v1.SwapEnforcerWalletStep
-	45,  // 16: walletmanager.v1.SwapEnforcerWalletProgressResponse.status:type_name -> walletmanager.v1.SwapEnforcerWalletProgressStatus
-	51,  // 17: walletmanager.v1.CreateMultisigWalletRequest.cosigners:type_name -> walletmanager.v1.MultisigCosignerInput
-	55,  // 18: walletmanager.v1.ParseMultisigConfigResponse.cosigners:type_name -> walletmanager.v1.ParsedCosigner
-	61,  // 19: walletmanager.v1.ListDerivationPathsResponse.options:type_name -> walletmanager.v1.DerivationPathOption
-	55,  // 20: walletmanager.v1.ValidateDescriptorResponse.keys:type_name -> walletmanager.v1.ParsedCosigner
-	3,   // 21: walletmanager.v1.GetNewAddressRequest.address_type:type_name -> walletmanager.v1.AddressType
-	158, // 22: walletmanager.v1.SendTransactionRequest.destinations:type_name -> walletmanager.v1.SendTransactionRequest.DestinationsEntry
-	119, // 23: walletmanager.v1.SendTransactionRequest.required_inputs:type_name -> walletmanager.v1.UnspentOutput
-	78,  // 24: walletmanager.v1.SendTransactionRequest.raw_outputs:type_name -> walletmanager.v1.RawOutput
-	79,  // 25: walletmanager.v1.SendTransactionRequest.external_inputs:type_name -> walletmanager.v1.ExternalInput
-	159, // 26: walletmanager.v1.CreatePsbtRequest.destinations:type_name -> walletmanager.v1.CreatePsbtRequest.DestinationsEntry
-	119, // 27: walletmanager.v1.CreatePsbtRequest.required_inputs:type_name -> walletmanager.v1.UnspentOutput
-	78,  // 28: walletmanager.v1.CreatePsbtRequest.raw_outputs:type_name -> walletmanager.v1.RawOutput
-	79,  // 29: walletmanager.v1.CreatePsbtRequest.external_inputs:type_name -> walletmanager.v1.ExternalInput
-	95,  // 30: walletmanager.v1.GetAddressUnspentResponse.utxos:type_name -> walletmanager.v1.AddressUnspentOutput
-	99,  // 31: walletmanager.v1.EnumerateHardwareDevicesResponse.devices:type_name -> walletmanager.v1.HardwareDevice
-	100, // 32: walletmanager.v1.GetHardwareXpubRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
-	100, // 33: walletmanager.v1.SignPsbtWithDeviceRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
-	100, // 34: walletmanager.v1.PromptDevicePinRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
-	100, // 35: walletmanager.v1.SendDevicePinRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
-	100, // 36: walletmanager.v1.CloseDeviceRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
-	100, // 37: walletmanager.v1.DeriveKeystoreRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
-	116, // 38: walletmanager.v1.ListTransactionsResponse.transactions:type_name -> walletmanager.v1.TransactionEntry
-	161, // 39: walletmanager.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
-	119, // 40: walletmanager.v1.ListUnspentResponse.utxos:type_name -> walletmanager.v1.UnspentOutput
-	122, // 41: walletmanager.v1.ListReceiveAddressesResponse.addresses:type_name -> walletmanager.v1.ReceiveAddress
-	116, // 42: walletmanager.v1.GetTransactionDetailsResponse.transaction:type_name -> walletmanager.v1.TransactionEntry
-	126, // 43: walletmanager.v1.GetTransactionDetailsResponse.inputs:type_name -> walletmanager.v1.TransactionInput
-	127, // 44: walletmanager.v1.GetTransactionDetailsResponse.outputs:type_name -> walletmanager.v1.TransactionOutput
-	4,   // 45: walletmanager.v1.DecodeTransactionResponse.form:type_name -> walletmanager.v1.DecodedForm
-	126, // 46: walletmanager.v1.DecodeTransactionResponse.inputs:type_name -> walletmanager.v1.TransactionInput
-	127, // 47: walletmanager.v1.DecodeTransactionResponse.outputs:type_name -> walletmanager.v1.TransactionOutput
-	141, // 48: walletmanager.v1.ListCoreVariantsResponse.variants:type_name -> walletmanager.v1.CoreVariant
-	19,  // 49: walletmanager.v1.WatchWalletDataResponse.wallets:type_name -> walletmanager.v1.WalletMetadata
-	5,   // 50: walletmanager.v1.WalletManagerService.GetWalletStatus:input_type -> walletmanager.v1.GetWalletStatusRequest
-	7,   // 51: walletmanager.v1.WalletManagerService.GenerateWallet:input_type -> walletmanager.v1.GenerateWalletRequest
-	9,   // 52: walletmanager.v1.WalletManagerService.UnlockWallet:input_type -> walletmanager.v1.UnlockWalletRequest
-	11,  // 53: walletmanager.v1.WalletManagerService.LockWallet:input_type -> walletmanager.v1.LockWalletRequest
-	13,  // 54: walletmanager.v1.WalletManagerService.EncryptWallet:input_type -> walletmanager.v1.EncryptWalletRequest
-	15,  // 55: walletmanager.v1.WalletManagerService.ChangePassword:input_type -> walletmanager.v1.ChangePasswordRequest
-	17,  // 56: walletmanager.v1.WalletManagerService.RemoveEncryption:input_type -> walletmanager.v1.RemoveEncryptionRequest
-	23,  // 57: walletmanager.v1.WalletManagerService.ListWallets:input_type -> walletmanager.v1.ListWalletsRequest
-	25,  // 58: walletmanager.v1.WalletManagerService.SwitchWallet:input_type -> walletmanager.v1.SwitchWalletRequest
-	27,  // 59: walletmanager.v1.WalletManagerService.UpdateWalletMetadata:input_type -> walletmanager.v1.UpdateWalletMetadataRequest
-	29,  // 60: walletmanager.v1.WalletManagerService.DeleteWallet:input_type -> walletmanager.v1.DeleteWalletRequest
-	31,  // 61: walletmanager.v1.WalletManagerService.DeleteAllWallets:input_type -> walletmanager.v1.DeleteAllWalletsRequest
-	36,  // 62: walletmanager.v1.WalletManagerService.ListWalletBackups:input_type -> walletmanager.v1.ListWalletBackupsRequest
-	38,  // 63: walletmanager.v1.WalletManagerService.RestoreWalletBackup:input_type -> walletmanager.v1.RestoreWalletBackupRequest
-	38,  // 64: walletmanager.v1.WalletManagerService.RestoreWalletBackupStream:input_type -> walletmanager.v1.RestoreWalletBackupRequest
-	43,  // 65: walletmanager.v1.WalletManagerService.SwapEnforcerWallet:input_type -> walletmanager.v1.SwapEnforcerWalletRequest
-	47,  // 66: walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet:input_type -> walletmanager.v1.CreateWatchOnlyWalletRequest
-	49,  // 67: walletmanager.v1.WalletManagerService.CreateElectrumWallet:input_type -> walletmanager.v1.CreateElectrumWalletRequest
-	52,  // 68: walletmanager.v1.WalletManagerService.CreateMultisigWallet:input_type -> walletmanager.v1.CreateMultisigWalletRequest
-	54,  // 69: walletmanager.v1.WalletManagerService.ParseMultisigConfig:input_type -> walletmanager.v1.ParseMultisigConfigRequest
-	57,  // 70: walletmanager.v1.WalletManagerService.ValidateDescriptor:input_type -> walletmanager.v1.ValidateDescriptorRequest
-	58,  // 71: walletmanager.v1.WalletManagerService.ValidateDerivationPath:input_type -> walletmanager.v1.ValidateDerivationPathRequest
-	60,  // 72: walletmanager.v1.WalletManagerService.ListDerivationPaths:input_type -> walletmanager.v1.ListDerivationPathsRequest
-	64,  // 73: walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet:input_type -> walletmanager.v1.CreateBitcoinCoreWalletRequest
-	66,  // 74: walletmanager.v1.WalletManagerService.EnsureCoreWallets:input_type -> walletmanager.v1.EnsureCoreWalletsRequest
-	68,  // 75: walletmanager.v1.WalletManagerService.GetBalance:input_type -> walletmanager.v1.GetBalanceRequest
-	69,  // 76: walletmanager.v1.WalletManagerService.RescanWallet:input_type -> walletmanager.v1.RescanWalletRequest
-	71,  // 77: walletmanager.v1.WalletManagerService.EstimateFee:input_type -> walletmanager.v1.EstimateFeeRequest
-	74,  // 78: walletmanager.v1.WalletManagerService.GetNewAddress:input_type -> walletmanager.v1.GetNewAddressRequest
-	76,  // 79: walletmanager.v1.WalletManagerService.SendTransaction:input_type -> walletmanager.v1.SendTransactionRequest
-	156, // 80: walletmanager.v1.WalletManagerService.CreateDeposit:input_type -> walletmanager.v1.CreateDepositRequest
-	115, // 81: walletmanager.v1.WalletManagerService.ListTransactions:input_type -> walletmanager.v1.ListTransactionsRequest
-	118, // 82: walletmanager.v1.WalletManagerService.ListUnspent:input_type -> walletmanager.v1.ListUnspentRequest
-	121, // 83: walletmanager.v1.WalletManagerService.ListReceiveAddresses:input_type -> walletmanager.v1.ListReceiveAddressesRequest
-	124, // 84: walletmanager.v1.WalletManagerService.GetTransactionDetails:input_type -> walletmanager.v1.GetTransactionDetailsRequest
-	128, // 85: walletmanager.v1.WalletManagerService.DecodeTransaction:input_type -> walletmanager.v1.DecodeTransactionRequest
-	130, // 86: walletmanager.v1.WalletManagerService.BumpFee:input_type -> walletmanager.v1.BumpFeeRequest
-	132, // 87: walletmanager.v1.WalletManagerService.CreateCpfp:input_type -> walletmanager.v1.CreateCpfpRequest
-	134, // 88: walletmanager.v1.WalletManagerService.DeriveAddresses:input_type -> walletmanager.v1.DeriveAddressesRequest
-	80,  // 89: walletmanager.v1.WalletManagerService.CreatePsbt:input_type -> walletmanager.v1.CreatePsbtRequest
-	82,  // 90: walletmanager.v1.WalletManagerService.SignPsbt:input_type -> walletmanager.v1.SignPsbtRequest
-	84,  // 91: walletmanager.v1.WalletManagerService.SignPsbtWithCosigner:input_type -> walletmanager.v1.SignPsbtWithCosignerRequest
-	86,  // 92: walletmanager.v1.WalletManagerService.CombinePsbt:input_type -> walletmanager.v1.CombinePsbtRequest
-	88,  // 93: walletmanager.v1.WalletManagerService.FinalizePsbt:input_type -> walletmanager.v1.FinalizePsbtRequest
-	90,  // 94: walletmanager.v1.WalletManagerService.MultisigPsbtStatus:input_type -> walletmanager.v1.MultisigPsbtStatusRequest
-	92,  // 95: walletmanager.v1.WalletManagerService.BroadcastTransaction:input_type -> walletmanager.v1.BroadcastTransactionRequest
-	94,  // 96: walletmanager.v1.WalletManagerService.GetAddressUnspent:input_type -> walletmanager.v1.GetAddressUnspentRequest
-	97,  // 97: walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction:input_type -> walletmanager.v1.BroadcastElectrumTransactionRequest
-	101, // 98: walletmanager.v1.WalletManagerService.EnumerateHardwareDevices:input_type -> walletmanager.v1.EnumerateHardwareDevicesRequest
-	103, // 99: walletmanager.v1.WalletManagerService.GetHardwareXpub:input_type -> walletmanager.v1.GetHardwareXpubRequest
-	105, // 100: walletmanager.v1.WalletManagerService.SignPsbtWithDevice:input_type -> walletmanager.v1.SignPsbtWithDeviceRequest
-	107, // 101: walletmanager.v1.WalletManagerService.PromptDevicePin:input_type -> walletmanager.v1.PromptDevicePinRequest
-	109, // 102: walletmanager.v1.WalletManagerService.SendDevicePin:input_type -> walletmanager.v1.SendDevicePinRequest
-	111, // 103: walletmanager.v1.WalletManagerService.CloseDevice:input_type -> walletmanager.v1.CloseDeviceRequest
-	113, // 104: walletmanager.v1.WalletManagerService.DeriveKeystore:input_type -> walletmanager.v1.DeriveKeystoreRequest
-	136, // 105: walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy:input_type -> walletmanager.v1.PreviewWalletFromEntropyRequest
-	138, // 106: walletmanager.v1.WalletManagerService.GetWalletSeed:input_type -> walletmanager.v1.GetWalletSeedRequest
-	140, // 107: walletmanager.v1.WalletManagerService.ListCoreVariants:input_type -> walletmanager.v1.ListCoreVariantsRequest
-	143, // 108: walletmanager.v1.WalletManagerService.GetCoreVariant:input_type -> walletmanager.v1.GetCoreVariantRequest
-	145, // 109: walletmanager.v1.WalletManagerService.SetCoreVariant:input_type -> walletmanager.v1.SetCoreVariantRequest
-	147, // 110: walletmanager.v1.WalletManagerService.GetElectrumServer:input_type -> walletmanager.v1.GetElectrumServerRequest
-	149, // 111: walletmanager.v1.WalletManagerService.SetElectrumServer:input_type -> walletmanager.v1.SetElectrumServerRequest
-	151, // 112: walletmanager.v1.WalletManagerService.GetTorConfig:input_type -> walletmanager.v1.GetTorConfigRequest
-	153, // 113: walletmanager.v1.WalletManagerService.SetTorConfig:input_type -> walletmanager.v1.SetTorConfigRequest
-	162, // 114: walletmanager.v1.WalletManagerService.WatchWalletData:input_type -> google.protobuf.Empty
-	6,   // 115: walletmanager.v1.WalletManagerService.GetWalletStatus:output_type -> walletmanager.v1.GetWalletStatusResponse
-	8,   // 116: walletmanager.v1.WalletManagerService.GenerateWallet:output_type -> walletmanager.v1.GenerateWalletResponse
-	10,  // 117: walletmanager.v1.WalletManagerService.UnlockWallet:output_type -> walletmanager.v1.UnlockWalletResponse
-	12,  // 118: walletmanager.v1.WalletManagerService.LockWallet:output_type -> walletmanager.v1.LockWalletResponse
-	14,  // 119: walletmanager.v1.WalletManagerService.EncryptWallet:output_type -> walletmanager.v1.EncryptWalletResponse
-	16,  // 120: walletmanager.v1.WalletManagerService.ChangePassword:output_type -> walletmanager.v1.ChangePasswordResponse
-	18,  // 121: walletmanager.v1.WalletManagerService.RemoveEncryption:output_type -> walletmanager.v1.RemoveEncryptionResponse
-	24,  // 122: walletmanager.v1.WalletManagerService.ListWallets:output_type -> walletmanager.v1.ListWalletsResponse
-	26,  // 123: walletmanager.v1.WalletManagerService.SwitchWallet:output_type -> walletmanager.v1.SwitchWalletResponse
-	28,  // 124: walletmanager.v1.WalletManagerService.UpdateWalletMetadata:output_type -> walletmanager.v1.UpdateWalletMetadataResponse
-	30,  // 125: walletmanager.v1.WalletManagerService.DeleteWallet:output_type -> walletmanager.v1.DeleteWalletResponse
-	32,  // 126: walletmanager.v1.WalletManagerService.DeleteAllWallets:output_type -> walletmanager.v1.DeleteAllWalletsResponse
-	37,  // 127: walletmanager.v1.WalletManagerService.ListWalletBackups:output_type -> walletmanager.v1.ListWalletBackupsResponse
-	39,  // 128: walletmanager.v1.WalletManagerService.RestoreWalletBackup:output_type -> walletmanager.v1.RestoreWalletBackupResponse
-	42,  // 129: walletmanager.v1.WalletManagerService.RestoreWalletBackupStream:output_type -> walletmanager.v1.RestoreWalletBackupProgressResponse
-	46,  // 130: walletmanager.v1.WalletManagerService.SwapEnforcerWallet:output_type -> walletmanager.v1.SwapEnforcerWalletProgressResponse
-	48,  // 131: walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet:output_type -> walletmanager.v1.CreateWatchOnlyWalletResponse
-	50,  // 132: walletmanager.v1.WalletManagerService.CreateElectrumWallet:output_type -> walletmanager.v1.CreateElectrumWalletResponse
-	53,  // 133: walletmanager.v1.WalletManagerService.CreateMultisigWallet:output_type -> walletmanager.v1.CreateMultisigWalletResponse
-	56,  // 134: walletmanager.v1.WalletManagerService.ParseMultisigConfig:output_type -> walletmanager.v1.ParseMultisigConfigResponse
-	63,  // 135: walletmanager.v1.WalletManagerService.ValidateDescriptor:output_type -> walletmanager.v1.ValidateDescriptorResponse
-	59,  // 136: walletmanager.v1.WalletManagerService.ValidateDerivationPath:output_type -> walletmanager.v1.ValidateDerivationPathResponse
-	62,  // 137: walletmanager.v1.WalletManagerService.ListDerivationPaths:output_type -> walletmanager.v1.ListDerivationPathsResponse
-	65,  // 138: walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet:output_type -> walletmanager.v1.CreateBitcoinCoreWalletResponse
-	67,  // 139: walletmanager.v1.WalletManagerService.EnsureCoreWallets:output_type -> walletmanager.v1.EnsureCoreWalletsResponse
-	73,  // 140: walletmanager.v1.WalletManagerService.GetBalance:output_type -> walletmanager.v1.GetBalanceResponse
-	70,  // 141: walletmanager.v1.WalletManagerService.RescanWallet:output_type -> walletmanager.v1.RescanWalletResponse
-	72,  // 142: walletmanager.v1.WalletManagerService.EstimateFee:output_type -> walletmanager.v1.EstimateFeeResponse
-	75,  // 143: walletmanager.v1.WalletManagerService.GetNewAddress:output_type -> walletmanager.v1.GetNewAddressResponse
-	77,  // 144: walletmanager.v1.WalletManagerService.SendTransaction:output_type -> walletmanager.v1.SendTransactionResponse
-	157, // 145: walletmanager.v1.WalletManagerService.CreateDeposit:output_type -> walletmanager.v1.CreateDepositResponse
-	117, // 146: walletmanager.v1.WalletManagerService.ListTransactions:output_type -> walletmanager.v1.ListTransactionsResponse
-	120, // 147: walletmanager.v1.WalletManagerService.ListUnspent:output_type -> walletmanager.v1.ListUnspentResponse
-	123, // 148: walletmanager.v1.WalletManagerService.ListReceiveAddresses:output_type -> walletmanager.v1.ListReceiveAddressesResponse
-	125, // 149: walletmanager.v1.WalletManagerService.GetTransactionDetails:output_type -> walletmanager.v1.GetTransactionDetailsResponse
-	129, // 150: walletmanager.v1.WalletManagerService.DecodeTransaction:output_type -> walletmanager.v1.DecodeTransactionResponse
-	131, // 151: walletmanager.v1.WalletManagerService.BumpFee:output_type -> walletmanager.v1.BumpFeeResponse
-	133, // 152: walletmanager.v1.WalletManagerService.CreateCpfp:output_type -> walletmanager.v1.CreateCpfpResponse
-	135, // 153: walletmanager.v1.WalletManagerService.DeriveAddresses:output_type -> walletmanager.v1.DeriveAddressesResponse
-	81,  // 154: walletmanager.v1.WalletManagerService.CreatePsbt:output_type -> walletmanager.v1.CreatePsbtResponse
-	83,  // 155: walletmanager.v1.WalletManagerService.SignPsbt:output_type -> walletmanager.v1.SignPsbtResponse
-	85,  // 156: walletmanager.v1.WalletManagerService.SignPsbtWithCosigner:output_type -> walletmanager.v1.SignPsbtWithCosignerResponse
-	87,  // 157: walletmanager.v1.WalletManagerService.CombinePsbt:output_type -> walletmanager.v1.CombinePsbtResponse
-	89,  // 158: walletmanager.v1.WalletManagerService.FinalizePsbt:output_type -> walletmanager.v1.FinalizePsbtResponse
-	91,  // 159: walletmanager.v1.WalletManagerService.MultisigPsbtStatus:output_type -> walletmanager.v1.MultisigPsbtStatusResponse
-	93,  // 160: walletmanager.v1.WalletManagerService.BroadcastTransaction:output_type -> walletmanager.v1.BroadcastTransactionResponse
-	96,  // 161: walletmanager.v1.WalletManagerService.GetAddressUnspent:output_type -> walletmanager.v1.GetAddressUnspentResponse
-	98,  // 162: walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction:output_type -> walletmanager.v1.BroadcastElectrumTransactionResponse
-	102, // 163: walletmanager.v1.WalletManagerService.EnumerateHardwareDevices:output_type -> walletmanager.v1.EnumerateHardwareDevicesResponse
-	104, // 164: walletmanager.v1.WalletManagerService.GetHardwareXpub:output_type -> walletmanager.v1.GetHardwareXpubResponse
-	106, // 165: walletmanager.v1.WalletManagerService.SignPsbtWithDevice:output_type -> walletmanager.v1.SignPsbtWithDeviceResponse
-	108, // 166: walletmanager.v1.WalletManagerService.PromptDevicePin:output_type -> walletmanager.v1.PromptDevicePinResponse
-	110, // 167: walletmanager.v1.WalletManagerService.SendDevicePin:output_type -> walletmanager.v1.SendDevicePinResponse
-	112, // 168: walletmanager.v1.WalletManagerService.CloseDevice:output_type -> walletmanager.v1.CloseDeviceResponse
-	114, // 169: walletmanager.v1.WalletManagerService.DeriveKeystore:output_type -> walletmanager.v1.DeriveKeystoreResponse
-	137, // 170: walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy:output_type -> walletmanager.v1.PreviewWalletFromEntropyResponse
-	139, // 171: walletmanager.v1.WalletManagerService.GetWalletSeed:output_type -> walletmanager.v1.GetWalletSeedResponse
-	142, // 172: walletmanager.v1.WalletManagerService.ListCoreVariants:output_type -> walletmanager.v1.ListCoreVariantsResponse
-	144, // 173: walletmanager.v1.WalletManagerService.GetCoreVariant:output_type -> walletmanager.v1.GetCoreVariantResponse
-	146, // 174: walletmanager.v1.WalletManagerService.SetCoreVariant:output_type -> walletmanager.v1.SetCoreVariantResponse
-	148, // 175: walletmanager.v1.WalletManagerService.GetElectrumServer:output_type -> walletmanager.v1.GetElectrumServerResponse
-	150, // 176: walletmanager.v1.WalletManagerService.SetElectrumServer:output_type -> walletmanager.v1.SetElectrumServerResponse
-	152, // 177: walletmanager.v1.WalletManagerService.GetTorConfig:output_type -> walletmanager.v1.GetTorConfigResponse
-	154, // 178: walletmanager.v1.WalletManagerService.SetTorConfig:output_type -> walletmanager.v1.SetTorConfigResponse
-	155, // 179: walletmanager.v1.WalletManagerService.WatchWalletData:output_type -> walletmanager.v1.WatchWalletDataResponse
-	115, // [115:180] is the sub-list for method output_type
-	50,  // [50:115] is the sub-list for method input_type
-	50,  // [50:50] is the sub-list for extension type_name
-	50,  // [50:50] is the sub-list for extension extendee
-	0,   // [0:50] is the sub-list for field type_name
+	3,   // 3: walletmanager.v1.WalletMetadata.receive_address_types:type_name -> walletmanager.v1.AddressType
+	21,  // 4: walletmanager.v1.MultisigInfo.cosigners:type_name -> walletmanager.v1.MultisigCosignerInfo
+	19,  // 5: walletmanager.v1.ListWalletsResponse.wallets:type_name -> walletmanager.v1.WalletMetadata
+	160, // 6: walletmanager.v1.BalanceSnapshot.binary:type_name -> orchestrator.v1.BinaryType
+	161, // 7: walletmanager.v1.BalanceSnapshot.updated_at:type_name -> google.protobuf.Timestamp
+	161, // 8: walletmanager.v1.WalletBackup.created_at:type_name -> google.protobuf.Timestamp
+	34,  // 9: walletmanager.v1.WalletBackup.wallets:type_name -> walletmanager.v1.BackupWalletSummary
+	33,  // 10: walletmanager.v1.WalletBackup.latest_known_balance:type_name -> walletmanager.v1.BalanceSnapshot
+	35,  // 11: walletmanager.v1.ListWalletBackupsResponse.backups:type_name -> walletmanager.v1.WalletBackup
+	1,   // 12: walletmanager.v1.RestoreWalletBackupProgressStatus.state:type_name -> walletmanager.v1.RestoreWalletBackupStepState
+	40,  // 13: walletmanager.v1.RestoreWalletBackupProgressResponse.steps:type_name -> walletmanager.v1.RestoreWalletBackupStep
+	41,  // 14: walletmanager.v1.RestoreWalletBackupProgressResponse.status:type_name -> walletmanager.v1.RestoreWalletBackupProgressStatus
+	2,   // 15: walletmanager.v1.SwapEnforcerWalletProgressStatus.state:type_name -> walletmanager.v1.SwapEnforcerWalletStepState
+	44,  // 16: walletmanager.v1.SwapEnforcerWalletProgressResponse.steps:type_name -> walletmanager.v1.SwapEnforcerWalletStep
+	45,  // 17: walletmanager.v1.SwapEnforcerWalletProgressResponse.status:type_name -> walletmanager.v1.SwapEnforcerWalletProgressStatus
+	51,  // 18: walletmanager.v1.CreateMultisigWalletRequest.cosigners:type_name -> walletmanager.v1.MultisigCosignerInput
+	55,  // 19: walletmanager.v1.ParseMultisigConfigResponse.cosigners:type_name -> walletmanager.v1.ParsedCosigner
+	61,  // 20: walletmanager.v1.ListDerivationPathsResponse.options:type_name -> walletmanager.v1.DerivationPathOption
+	55,  // 21: walletmanager.v1.ValidateDescriptorResponse.keys:type_name -> walletmanager.v1.ParsedCosigner
+	3,   // 22: walletmanager.v1.GetNewAddressRequest.address_type:type_name -> walletmanager.v1.AddressType
+	158, // 23: walletmanager.v1.SendTransactionRequest.destinations:type_name -> walletmanager.v1.SendTransactionRequest.DestinationsEntry
+	119, // 24: walletmanager.v1.SendTransactionRequest.required_inputs:type_name -> walletmanager.v1.UnspentOutput
+	78,  // 25: walletmanager.v1.SendTransactionRequest.raw_outputs:type_name -> walletmanager.v1.RawOutput
+	79,  // 26: walletmanager.v1.SendTransactionRequest.external_inputs:type_name -> walletmanager.v1.ExternalInput
+	159, // 27: walletmanager.v1.CreatePsbtRequest.destinations:type_name -> walletmanager.v1.CreatePsbtRequest.DestinationsEntry
+	119, // 28: walletmanager.v1.CreatePsbtRequest.required_inputs:type_name -> walletmanager.v1.UnspentOutput
+	78,  // 29: walletmanager.v1.CreatePsbtRequest.raw_outputs:type_name -> walletmanager.v1.RawOutput
+	79,  // 30: walletmanager.v1.CreatePsbtRequest.external_inputs:type_name -> walletmanager.v1.ExternalInput
+	95,  // 31: walletmanager.v1.GetAddressUnspentResponse.utxos:type_name -> walletmanager.v1.AddressUnspentOutput
+	99,  // 32: walletmanager.v1.EnumerateHardwareDevicesResponse.devices:type_name -> walletmanager.v1.HardwareDevice
+	100, // 33: walletmanager.v1.GetHardwareXpubRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
+	100, // 34: walletmanager.v1.SignPsbtWithDeviceRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
+	100, // 35: walletmanager.v1.PromptDevicePinRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
+	100, // 36: walletmanager.v1.SendDevicePinRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
+	100, // 37: walletmanager.v1.CloseDeviceRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
+	100, // 38: walletmanager.v1.DeriveKeystoreRequest.device:type_name -> walletmanager.v1.HardwareDeviceSelector
+	116, // 39: walletmanager.v1.ListTransactionsResponse.transactions:type_name -> walletmanager.v1.TransactionEntry
+	161, // 40: walletmanager.v1.UnspentOutput.received_at:type_name -> google.protobuf.Timestamp
+	119, // 41: walletmanager.v1.ListUnspentResponse.utxos:type_name -> walletmanager.v1.UnspentOutput
+	122, // 42: walletmanager.v1.ListReceiveAddressesResponse.addresses:type_name -> walletmanager.v1.ReceiveAddress
+	116, // 43: walletmanager.v1.GetTransactionDetailsResponse.transaction:type_name -> walletmanager.v1.TransactionEntry
+	126, // 44: walletmanager.v1.GetTransactionDetailsResponse.inputs:type_name -> walletmanager.v1.TransactionInput
+	127, // 45: walletmanager.v1.GetTransactionDetailsResponse.outputs:type_name -> walletmanager.v1.TransactionOutput
+	4,   // 46: walletmanager.v1.DecodeTransactionResponse.form:type_name -> walletmanager.v1.DecodedForm
+	126, // 47: walletmanager.v1.DecodeTransactionResponse.inputs:type_name -> walletmanager.v1.TransactionInput
+	127, // 48: walletmanager.v1.DecodeTransactionResponse.outputs:type_name -> walletmanager.v1.TransactionOutput
+	141, // 49: walletmanager.v1.ListCoreVariantsResponse.variants:type_name -> walletmanager.v1.CoreVariant
+	19,  // 50: walletmanager.v1.WatchWalletDataResponse.wallets:type_name -> walletmanager.v1.WalletMetadata
+	5,   // 51: walletmanager.v1.WalletManagerService.GetWalletStatus:input_type -> walletmanager.v1.GetWalletStatusRequest
+	7,   // 52: walletmanager.v1.WalletManagerService.GenerateWallet:input_type -> walletmanager.v1.GenerateWalletRequest
+	9,   // 53: walletmanager.v1.WalletManagerService.UnlockWallet:input_type -> walletmanager.v1.UnlockWalletRequest
+	11,  // 54: walletmanager.v1.WalletManagerService.LockWallet:input_type -> walletmanager.v1.LockWalletRequest
+	13,  // 55: walletmanager.v1.WalletManagerService.EncryptWallet:input_type -> walletmanager.v1.EncryptWalletRequest
+	15,  // 56: walletmanager.v1.WalletManagerService.ChangePassword:input_type -> walletmanager.v1.ChangePasswordRequest
+	17,  // 57: walletmanager.v1.WalletManagerService.RemoveEncryption:input_type -> walletmanager.v1.RemoveEncryptionRequest
+	23,  // 58: walletmanager.v1.WalletManagerService.ListWallets:input_type -> walletmanager.v1.ListWalletsRequest
+	25,  // 59: walletmanager.v1.WalletManagerService.SwitchWallet:input_type -> walletmanager.v1.SwitchWalletRequest
+	27,  // 60: walletmanager.v1.WalletManagerService.UpdateWalletMetadata:input_type -> walletmanager.v1.UpdateWalletMetadataRequest
+	29,  // 61: walletmanager.v1.WalletManagerService.DeleteWallet:input_type -> walletmanager.v1.DeleteWalletRequest
+	31,  // 62: walletmanager.v1.WalletManagerService.DeleteAllWallets:input_type -> walletmanager.v1.DeleteAllWalletsRequest
+	36,  // 63: walletmanager.v1.WalletManagerService.ListWalletBackups:input_type -> walletmanager.v1.ListWalletBackupsRequest
+	38,  // 64: walletmanager.v1.WalletManagerService.RestoreWalletBackup:input_type -> walletmanager.v1.RestoreWalletBackupRequest
+	38,  // 65: walletmanager.v1.WalletManagerService.RestoreWalletBackupStream:input_type -> walletmanager.v1.RestoreWalletBackupRequest
+	43,  // 66: walletmanager.v1.WalletManagerService.SwapEnforcerWallet:input_type -> walletmanager.v1.SwapEnforcerWalletRequest
+	47,  // 67: walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet:input_type -> walletmanager.v1.CreateWatchOnlyWalletRequest
+	49,  // 68: walletmanager.v1.WalletManagerService.CreateElectrumWallet:input_type -> walletmanager.v1.CreateElectrumWalletRequest
+	52,  // 69: walletmanager.v1.WalletManagerService.CreateMultisigWallet:input_type -> walletmanager.v1.CreateMultisigWalletRequest
+	54,  // 70: walletmanager.v1.WalletManagerService.ParseMultisigConfig:input_type -> walletmanager.v1.ParseMultisigConfigRequest
+	57,  // 71: walletmanager.v1.WalletManagerService.ValidateDescriptor:input_type -> walletmanager.v1.ValidateDescriptorRequest
+	58,  // 72: walletmanager.v1.WalletManagerService.ValidateDerivationPath:input_type -> walletmanager.v1.ValidateDerivationPathRequest
+	60,  // 73: walletmanager.v1.WalletManagerService.ListDerivationPaths:input_type -> walletmanager.v1.ListDerivationPathsRequest
+	64,  // 74: walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet:input_type -> walletmanager.v1.CreateBitcoinCoreWalletRequest
+	66,  // 75: walletmanager.v1.WalletManagerService.EnsureCoreWallets:input_type -> walletmanager.v1.EnsureCoreWalletsRequest
+	68,  // 76: walletmanager.v1.WalletManagerService.GetBalance:input_type -> walletmanager.v1.GetBalanceRequest
+	69,  // 77: walletmanager.v1.WalletManagerService.RescanWallet:input_type -> walletmanager.v1.RescanWalletRequest
+	71,  // 78: walletmanager.v1.WalletManagerService.EstimateFee:input_type -> walletmanager.v1.EstimateFeeRequest
+	74,  // 79: walletmanager.v1.WalletManagerService.GetNewAddress:input_type -> walletmanager.v1.GetNewAddressRequest
+	76,  // 80: walletmanager.v1.WalletManagerService.SendTransaction:input_type -> walletmanager.v1.SendTransactionRequest
+	156, // 81: walletmanager.v1.WalletManagerService.CreateDeposit:input_type -> walletmanager.v1.CreateDepositRequest
+	115, // 82: walletmanager.v1.WalletManagerService.ListTransactions:input_type -> walletmanager.v1.ListTransactionsRequest
+	118, // 83: walletmanager.v1.WalletManagerService.ListUnspent:input_type -> walletmanager.v1.ListUnspentRequest
+	121, // 84: walletmanager.v1.WalletManagerService.ListReceiveAddresses:input_type -> walletmanager.v1.ListReceiveAddressesRequest
+	124, // 85: walletmanager.v1.WalletManagerService.GetTransactionDetails:input_type -> walletmanager.v1.GetTransactionDetailsRequest
+	128, // 86: walletmanager.v1.WalletManagerService.DecodeTransaction:input_type -> walletmanager.v1.DecodeTransactionRequest
+	130, // 87: walletmanager.v1.WalletManagerService.BumpFee:input_type -> walletmanager.v1.BumpFeeRequest
+	132, // 88: walletmanager.v1.WalletManagerService.CreateCpfp:input_type -> walletmanager.v1.CreateCpfpRequest
+	134, // 89: walletmanager.v1.WalletManagerService.DeriveAddresses:input_type -> walletmanager.v1.DeriveAddressesRequest
+	80,  // 90: walletmanager.v1.WalletManagerService.CreatePsbt:input_type -> walletmanager.v1.CreatePsbtRequest
+	82,  // 91: walletmanager.v1.WalletManagerService.SignPsbt:input_type -> walletmanager.v1.SignPsbtRequest
+	84,  // 92: walletmanager.v1.WalletManagerService.SignPsbtWithCosigner:input_type -> walletmanager.v1.SignPsbtWithCosignerRequest
+	86,  // 93: walletmanager.v1.WalletManagerService.CombinePsbt:input_type -> walletmanager.v1.CombinePsbtRequest
+	88,  // 94: walletmanager.v1.WalletManagerService.FinalizePsbt:input_type -> walletmanager.v1.FinalizePsbtRequest
+	90,  // 95: walletmanager.v1.WalletManagerService.MultisigPsbtStatus:input_type -> walletmanager.v1.MultisigPsbtStatusRequest
+	92,  // 96: walletmanager.v1.WalletManagerService.BroadcastTransaction:input_type -> walletmanager.v1.BroadcastTransactionRequest
+	94,  // 97: walletmanager.v1.WalletManagerService.GetAddressUnspent:input_type -> walletmanager.v1.GetAddressUnspentRequest
+	97,  // 98: walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction:input_type -> walletmanager.v1.BroadcastElectrumTransactionRequest
+	101, // 99: walletmanager.v1.WalletManagerService.EnumerateHardwareDevices:input_type -> walletmanager.v1.EnumerateHardwareDevicesRequest
+	103, // 100: walletmanager.v1.WalletManagerService.GetHardwareXpub:input_type -> walletmanager.v1.GetHardwareXpubRequest
+	105, // 101: walletmanager.v1.WalletManagerService.SignPsbtWithDevice:input_type -> walletmanager.v1.SignPsbtWithDeviceRequest
+	107, // 102: walletmanager.v1.WalletManagerService.PromptDevicePin:input_type -> walletmanager.v1.PromptDevicePinRequest
+	109, // 103: walletmanager.v1.WalletManagerService.SendDevicePin:input_type -> walletmanager.v1.SendDevicePinRequest
+	111, // 104: walletmanager.v1.WalletManagerService.CloseDevice:input_type -> walletmanager.v1.CloseDeviceRequest
+	113, // 105: walletmanager.v1.WalletManagerService.DeriveKeystore:input_type -> walletmanager.v1.DeriveKeystoreRequest
+	136, // 106: walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy:input_type -> walletmanager.v1.PreviewWalletFromEntropyRequest
+	138, // 107: walletmanager.v1.WalletManagerService.GetWalletSeed:input_type -> walletmanager.v1.GetWalletSeedRequest
+	140, // 108: walletmanager.v1.WalletManagerService.ListCoreVariants:input_type -> walletmanager.v1.ListCoreVariantsRequest
+	143, // 109: walletmanager.v1.WalletManagerService.GetCoreVariant:input_type -> walletmanager.v1.GetCoreVariantRequest
+	145, // 110: walletmanager.v1.WalletManagerService.SetCoreVariant:input_type -> walletmanager.v1.SetCoreVariantRequest
+	147, // 111: walletmanager.v1.WalletManagerService.GetElectrumServer:input_type -> walletmanager.v1.GetElectrumServerRequest
+	149, // 112: walletmanager.v1.WalletManagerService.SetElectrumServer:input_type -> walletmanager.v1.SetElectrumServerRequest
+	151, // 113: walletmanager.v1.WalletManagerService.GetTorConfig:input_type -> walletmanager.v1.GetTorConfigRequest
+	153, // 114: walletmanager.v1.WalletManagerService.SetTorConfig:input_type -> walletmanager.v1.SetTorConfigRequest
+	162, // 115: walletmanager.v1.WalletManagerService.WatchWalletData:input_type -> google.protobuf.Empty
+	6,   // 116: walletmanager.v1.WalletManagerService.GetWalletStatus:output_type -> walletmanager.v1.GetWalletStatusResponse
+	8,   // 117: walletmanager.v1.WalletManagerService.GenerateWallet:output_type -> walletmanager.v1.GenerateWalletResponse
+	10,  // 118: walletmanager.v1.WalletManagerService.UnlockWallet:output_type -> walletmanager.v1.UnlockWalletResponse
+	12,  // 119: walletmanager.v1.WalletManagerService.LockWallet:output_type -> walletmanager.v1.LockWalletResponse
+	14,  // 120: walletmanager.v1.WalletManagerService.EncryptWallet:output_type -> walletmanager.v1.EncryptWalletResponse
+	16,  // 121: walletmanager.v1.WalletManagerService.ChangePassword:output_type -> walletmanager.v1.ChangePasswordResponse
+	18,  // 122: walletmanager.v1.WalletManagerService.RemoveEncryption:output_type -> walletmanager.v1.RemoveEncryptionResponse
+	24,  // 123: walletmanager.v1.WalletManagerService.ListWallets:output_type -> walletmanager.v1.ListWalletsResponse
+	26,  // 124: walletmanager.v1.WalletManagerService.SwitchWallet:output_type -> walletmanager.v1.SwitchWalletResponse
+	28,  // 125: walletmanager.v1.WalletManagerService.UpdateWalletMetadata:output_type -> walletmanager.v1.UpdateWalletMetadataResponse
+	30,  // 126: walletmanager.v1.WalletManagerService.DeleteWallet:output_type -> walletmanager.v1.DeleteWalletResponse
+	32,  // 127: walletmanager.v1.WalletManagerService.DeleteAllWallets:output_type -> walletmanager.v1.DeleteAllWalletsResponse
+	37,  // 128: walletmanager.v1.WalletManagerService.ListWalletBackups:output_type -> walletmanager.v1.ListWalletBackupsResponse
+	39,  // 129: walletmanager.v1.WalletManagerService.RestoreWalletBackup:output_type -> walletmanager.v1.RestoreWalletBackupResponse
+	42,  // 130: walletmanager.v1.WalletManagerService.RestoreWalletBackupStream:output_type -> walletmanager.v1.RestoreWalletBackupProgressResponse
+	46,  // 131: walletmanager.v1.WalletManagerService.SwapEnforcerWallet:output_type -> walletmanager.v1.SwapEnforcerWalletProgressResponse
+	48,  // 132: walletmanager.v1.WalletManagerService.CreateWatchOnlyWallet:output_type -> walletmanager.v1.CreateWatchOnlyWalletResponse
+	50,  // 133: walletmanager.v1.WalletManagerService.CreateElectrumWallet:output_type -> walletmanager.v1.CreateElectrumWalletResponse
+	53,  // 134: walletmanager.v1.WalletManagerService.CreateMultisigWallet:output_type -> walletmanager.v1.CreateMultisigWalletResponse
+	56,  // 135: walletmanager.v1.WalletManagerService.ParseMultisigConfig:output_type -> walletmanager.v1.ParseMultisigConfigResponse
+	63,  // 136: walletmanager.v1.WalletManagerService.ValidateDescriptor:output_type -> walletmanager.v1.ValidateDescriptorResponse
+	59,  // 137: walletmanager.v1.WalletManagerService.ValidateDerivationPath:output_type -> walletmanager.v1.ValidateDerivationPathResponse
+	62,  // 138: walletmanager.v1.WalletManagerService.ListDerivationPaths:output_type -> walletmanager.v1.ListDerivationPathsResponse
+	65,  // 139: walletmanager.v1.WalletManagerService.CreateBitcoinCoreWallet:output_type -> walletmanager.v1.CreateBitcoinCoreWalletResponse
+	67,  // 140: walletmanager.v1.WalletManagerService.EnsureCoreWallets:output_type -> walletmanager.v1.EnsureCoreWalletsResponse
+	73,  // 141: walletmanager.v1.WalletManagerService.GetBalance:output_type -> walletmanager.v1.GetBalanceResponse
+	70,  // 142: walletmanager.v1.WalletManagerService.RescanWallet:output_type -> walletmanager.v1.RescanWalletResponse
+	72,  // 143: walletmanager.v1.WalletManagerService.EstimateFee:output_type -> walletmanager.v1.EstimateFeeResponse
+	75,  // 144: walletmanager.v1.WalletManagerService.GetNewAddress:output_type -> walletmanager.v1.GetNewAddressResponse
+	77,  // 145: walletmanager.v1.WalletManagerService.SendTransaction:output_type -> walletmanager.v1.SendTransactionResponse
+	157, // 146: walletmanager.v1.WalletManagerService.CreateDeposit:output_type -> walletmanager.v1.CreateDepositResponse
+	117, // 147: walletmanager.v1.WalletManagerService.ListTransactions:output_type -> walletmanager.v1.ListTransactionsResponse
+	120, // 148: walletmanager.v1.WalletManagerService.ListUnspent:output_type -> walletmanager.v1.ListUnspentResponse
+	123, // 149: walletmanager.v1.WalletManagerService.ListReceiveAddresses:output_type -> walletmanager.v1.ListReceiveAddressesResponse
+	125, // 150: walletmanager.v1.WalletManagerService.GetTransactionDetails:output_type -> walletmanager.v1.GetTransactionDetailsResponse
+	129, // 151: walletmanager.v1.WalletManagerService.DecodeTransaction:output_type -> walletmanager.v1.DecodeTransactionResponse
+	131, // 152: walletmanager.v1.WalletManagerService.BumpFee:output_type -> walletmanager.v1.BumpFeeResponse
+	133, // 153: walletmanager.v1.WalletManagerService.CreateCpfp:output_type -> walletmanager.v1.CreateCpfpResponse
+	135, // 154: walletmanager.v1.WalletManagerService.DeriveAddresses:output_type -> walletmanager.v1.DeriveAddressesResponse
+	81,  // 155: walletmanager.v1.WalletManagerService.CreatePsbt:output_type -> walletmanager.v1.CreatePsbtResponse
+	83,  // 156: walletmanager.v1.WalletManagerService.SignPsbt:output_type -> walletmanager.v1.SignPsbtResponse
+	85,  // 157: walletmanager.v1.WalletManagerService.SignPsbtWithCosigner:output_type -> walletmanager.v1.SignPsbtWithCosignerResponse
+	87,  // 158: walletmanager.v1.WalletManagerService.CombinePsbt:output_type -> walletmanager.v1.CombinePsbtResponse
+	89,  // 159: walletmanager.v1.WalletManagerService.FinalizePsbt:output_type -> walletmanager.v1.FinalizePsbtResponse
+	91,  // 160: walletmanager.v1.WalletManagerService.MultisigPsbtStatus:output_type -> walletmanager.v1.MultisigPsbtStatusResponse
+	93,  // 161: walletmanager.v1.WalletManagerService.BroadcastTransaction:output_type -> walletmanager.v1.BroadcastTransactionResponse
+	96,  // 162: walletmanager.v1.WalletManagerService.GetAddressUnspent:output_type -> walletmanager.v1.GetAddressUnspentResponse
+	98,  // 163: walletmanager.v1.WalletManagerService.BroadcastElectrumTransaction:output_type -> walletmanager.v1.BroadcastElectrumTransactionResponse
+	102, // 164: walletmanager.v1.WalletManagerService.EnumerateHardwareDevices:output_type -> walletmanager.v1.EnumerateHardwareDevicesResponse
+	104, // 165: walletmanager.v1.WalletManagerService.GetHardwareXpub:output_type -> walletmanager.v1.GetHardwareXpubResponse
+	106, // 166: walletmanager.v1.WalletManagerService.SignPsbtWithDevice:output_type -> walletmanager.v1.SignPsbtWithDeviceResponse
+	108, // 167: walletmanager.v1.WalletManagerService.PromptDevicePin:output_type -> walletmanager.v1.PromptDevicePinResponse
+	110, // 168: walletmanager.v1.WalletManagerService.SendDevicePin:output_type -> walletmanager.v1.SendDevicePinResponse
+	112, // 169: walletmanager.v1.WalletManagerService.CloseDevice:output_type -> walletmanager.v1.CloseDeviceResponse
+	114, // 170: walletmanager.v1.WalletManagerService.DeriveKeystore:output_type -> walletmanager.v1.DeriveKeystoreResponse
+	137, // 171: walletmanager.v1.WalletManagerService.PreviewWalletFromEntropy:output_type -> walletmanager.v1.PreviewWalletFromEntropyResponse
+	139, // 172: walletmanager.v1.WalletManagerService.GetWalletSeed:output_type -> walletmanager.v1.GetWalletSeedResponse
+	142, // 173: walletmanager.v1.WalletManagerService.ListCoreVariants:output_type -> walletmanager.v1.ListCoreVariantsResponse
+	144, // 174: walletmanager.v1.WalletManagerService.GetCoreVariant:output_type -> walletmanager.v1.GetCoreVariantResponse
+	146, // 175: walletmanager.v1.WalletManagerService.SetCoreVariant:output_type -> walletmanager.v1.SetCoreVariantResponse
+	148, // 176: walletmanager.v1.WalletManagerService.GetElectrumServer:output_type -> walletmanager.v1.GetElectrumServerResponse
+	150, // 177: walletmanager.v1.WalletManagerService.SetElectrumServer:output_type -> walletmanager.v1.SetElectrumServerResponse
+	152, // 178: walletmanager.v1.WalletManagerService.GetTorConfig:output_type -> walletmanager.v1.GetTorConfigResponse
+	154, // 179: walletmanager.v1.WalletManagerService.SetTorConfig:output_type -> walletmanager.v1.SetTorConfigResponse
+	155, // 180: walletmanager.v1.WalletManagerService.WatchWalletData:output_type -> walletmanager.v1.WatchWalletDataResponse
+	116, // [116:181] is the sub-list for method output_type
+	51,  // [51:116] is the sub-list for method input_type
+	51,  // [51:51] is the sub-list for extension type_name
+	51,  // [51:51] is the sub-list for extension extendee
+	0,   // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_walletmanager_v1_walletmanager_proto_init() }
