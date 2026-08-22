@@ -31,6 +31,16 @@ type fakeOrchestrator struct {
 	calls   atomic.Int32
 }
 
+// The pollers ask before each tick. A full-mode answer keeps them running,
+// which is what these tests exercise.
+func (f *fakeOrchestrator) GetNodeMode(
+	_ context.Context, _ *connect.Request[orchpb.GetNodeModeRequest],
+) (*connect.Response[orchpb.GetNodeModeResponse], error) {
+	return connect.NewResponse(&orchpb.GetNodeModeResponse{
+		Mode: orchpb.NodeMode_NODE_MODE_FULL,
+	}), nil
+}
+
 // Seeds come from the local wallet file in tests, so refuse here and let the
 // engine fall through.
 func (f *fakeOrchestrator) GetWalletSeed(

@@ -78,6 +78,9 @@ type WalletEngine struct {
 	// Orchestrator client — when set, core wallet operations delegate here
 	orchClient orchrpc.WalletManagerServiceClient
 
+	// The one node-mode source every poller and gated RPC reads.
+	nodeMode *NodeMode
+
 	// Unlocked wallet state (in memory)
 	mu             sync.RWMutex
 	seedHex        string
@@ -120,6 +123,7 @@ func NewWalletEngine(
 		isUnlocked:        false,
 		coreWallets:       make(map[string]string),
 		walletCache:       make(map[string]*WalletInfo),
+		nodeMode:          NewNodeMode(),
 	}
 	e.unlockCond = sync.NewCond(&e.mu)
 
@@ -142,6 +146,12 @@ func NewWalletEngine(
 // When set, core wallet operations delegate to the orchestrator.
 func (e *WalletEngine) SetOrchestratorClient(client orchrpc.WalletManagerServiceClient) {
 	e.orchClient = client
+	e.nodeMode.SetClient(client)
+}
+
+// NodeMode hands out the shared node-mode source.
+func (e *WalletEngine) NodeMode() *NodeMode {
+	return e.nodeMode
 }
 
 // ============================================================================
@@ -843,20 +853,7 @@ func (e *WalletEngine) FinalizePsbt(ctx context.Context, psbtBase64 string) (str
 // RequireFullNode refuses an operation that needs a local BIP300/301 enforcer.
 // Light mode runs no daemon, so the operation cannot work there.
 func (e *WalletEngine) RequireFullNode(ctx context.Context, op string) error {
-	if e.orchClient == nil {
-		return connect.NewError(connect.CodeUnavailable,
-			fmt.Errorf("%s: orchestrator wallet client not connected", op))
-	}
-	resp, err := e.orchClient.GetNodeMode(ctx, connect.NewRequest(&orchpb.GetNodeModeRequest{}))
-	if err != nil {
-		return connect.NewError(connect.CodeUnavailable,
-			fmt.Errorf("%s: could not read the node mode: %w", op, err))
-	}
-	if resp.Msg.Mode == orchpb.NodeMode_NODE_MODE_LIGHT {
-		return connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("%s needs full mode, which runs a local Bitcoin node and the enforcer", op))
-	}
-	return nil
+	return e.nodeMode.RequireFullNode(ctx, op)
 }
 
 // BroadcastOpReturn publishes raw OP_RETURN data through the active wallet's

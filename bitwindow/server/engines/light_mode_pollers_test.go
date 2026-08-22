@@ -1,0 +1,76 @@
+package engines_test
+
+import (
+	"context"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+)
+
+// countingBitcoind reports how many times an engine reached for Bitcoin Core.
+func countingBitcoind(dials *atomic.Int64) *service.Service[corerpc.BitcoinServiceClient] {
+	return service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+		dials.Add(1)
+		return nil, context.Canceled
+	})
+}
+
+func nodeModeSource(t *testing.T, mode orchpb.NodeMode) *engines.NodeMode {
+	t.Helper()
+	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	client.EXPECT().
+		GetNodeMode(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(&connect.Response[orchpb.GetNodeModeResponse]{
+			Msg: &orchpb.GetNodeModeResponse{Mode: mode},
+		}, nil)
+
+	nodeMode := engines.NewNodeMode()
+	nodeMode.SetClient(client)
+	return nodeMode
+}
+
+func runParserFor(t *testing.T, mode orchpb.NodeMode, window time.Duration) int64 {
+	t.Helper()
+
+	var dials atomic.Int64
+	parser := engines.NewBitcoind(countingBitcoind(&dials), database.Test(t), config.Config{})
+	parser.SetNodeMode(nodeModeSource(t, mode))
+
+	ctx, cancel := context.WithTimeout(context.Background(), window)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() { done <- parser.Run(ctx) }()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(window + 5*time.Second):
+		t.Fatal("Run did not return after its context ended")
+	}
+	return dials.Load()
+}
+
+// A light-mode install runs no Bitcoin Core. Every tick that dialled one wrote
+// a "unable to handle block tick" error, twice a second, for the whole session.
+func TestParserDoesNotDialBitcoinCoreInLightMode(t *testing.T) {
+	require.Zero(t, runParserFor(t, orchpb.NodeMode_NODE_MODE_LIGHT, 3*time.Second))
+}
+
+// The same loop must still run in full mode. A gate that stops both modes
+// stops the block parser.
+func TestParserDialsBitcoinCoreInFullMode(t *testing.T) {
+	require.Positive(t, runParserFor(t, orchpb.NodeMode_NODE_MODE_FULL, 3*time.Second))
+}

@@ -9,6 +9,9 @@ import 'package:sidechain_core/gen/google/protobuf/timestamp.pb.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart' as orch_pb;
 import 'package:sidechain_core/sidechain_core.dart';
 
+/// One bitwindowd sync poll: the reply, or the reason it failed.
+typedef _BitwindowSync = ({GetSyncInfoResponse? info, String? error});
+
 /// Detailed sync info for one chain. progressCurrent / progressGoal are
 /// chain heights — download progress lives in [DownloadProvider], not here.
 class SyncInfo {
@@ -294,9 +297,20 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
     // GetSyncStatus skips it and we hit bitwindowd ourselves. The check is
     // by GetIt registration — every non-bitwindow app skips the second
     // poll automatically because BitwindowRPC isn't wired in.
+    //
+    // Light mode runs no local Bitcoin Core, so the bitwindowd card reads a
+    // daemon that is not there. Skip the second poll there.
     final orchFuture = _orchestrator.getSyncStatus();
-    final BitwindowRPC? bitwindowRpc = GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null;
-    final bitwindowFuture = bitwindowRpc?.bitwindowd.getSyncInfo();
+    final bitwindowRpc = GetIt.I.isRegistered<BitwindowRPC>() && NodeModeProvider.runsLocalBackends
+        ? GetIt.I.get<BitwindowRPC>()
+        : null;
+    // The handler goes on at creation. Attaching it after the orchestrator
+    // await lets a failure land while nothing listens, and the zone then
+    // reports it as an unhandled error.
+    final bitwindowFuture = bitwindowRpc?.bitwindowd.getSyncInfo().then<_BitwindowSync>(
+      (info) => (info: info, error: null),
+      onError: (Object e) => (info: null, error: extractConnectException(e)),
+    );
 
     orch_pb.GetSyncStatusResponse? resp;
     String? orchErr;
@@ -368,8 +382,9 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
     }
 
     if (bitwindowFuture != null) {
-      try {
-        final info = await bitwindowFuture;
+      final result = await bitwindowFuture;
+      final info = result.info;
+      if (info != null) {
         final next = SyncInfo(
           progressCurrent: info.tipBlockHeight.toDouble(),
           progressGoal: info.headerHeight.toDouble(),
@@ -380,12 +395,9 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
           bitwindowdError = null;
           changed = true;
         }
-      } catch (e) {
-        final err = extractConnectException(e);
-        if (bitwindowdError != err) {
-          bitwindowdError = err;
-          changed = true;
-        }
+      } else if (bitwindowdError != result.error) {
+        bitwindowdError = result.error;
+        changed = true;
       }
     }
 

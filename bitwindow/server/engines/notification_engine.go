@@ -29,9 +29,16 @@ const notificationBacklog = 24 * time.Hour
 type NotificationEngine struct {
 	db       *sql.DB
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
+	nodeMode *NodeMode
 
 	mu          sync.RWMutex
 	subscribers []chan *notificationv1.WatchResponse
+}
+
+// SetNodeMode gates the wallet-transaction watch on the node mode. Light mode
+// runs no local Bitcoin Core, so there are no core wallets to read.
+func (e *NotificationEngine) SetNodeMode(nodeMode *NodeMode) {
+	e.nodeMode = nodeMode
 }
 
 func NewNotificationEngine(
@@ -174,6 +181,9 @@ func (e *NotificationEngine) watchWalletTransactions(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if !e.nodeMode.RunsLocalNode(ctx) {
+				continue
+			}
 			if err := e.checkWalletTransactions(ctx); err != nil {
 				// Connection errors during startup are expected, log at debug level
 				if connect.CodeOf(err) == connect.CodeUnavailable || strings.Contains(err.Error(), "connection refused") {

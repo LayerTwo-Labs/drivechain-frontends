@@ -1310,6 +1310,13 @@ func (s *Server) GetMiningStatus(ctx context.Context, req *connect.Request[empty
 }
 
 func (s *Server) GetNetworkStats(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[pb.GetNetworkStatsResponse], error) {
+	// Light mode runs no local Bitcoin Core. Answer before the dial, so the
+	// caller gets one clear reason instead of a connection error each tick.
+	if !s.walletEngine.NodeMode().RunsLocalNode(ctx) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("network stats need full mode, which runs a local Bitcoin node"))
+	}
+
 	// Fetch blockchain info
 	blockchainInfo, err := s.data.BlockchainInfo(ctx, &corepb.GetBlockchainInfoRequest{})
 	if err != nil {

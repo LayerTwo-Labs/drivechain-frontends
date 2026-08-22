@@ -48,9 +48,16 @@ type Parser struct {
 	conf     config.Config
 
 	m4Engine *M4Engine
+	nodeMode *NodeMode
 
 	// Dedicated sink for coinnews sync events. Nil => logging disabled.
 	coinnewsLog *zerolog.Logger
+}
+
+// SetNodeMode gates the block tick on the node mode. Light mode runs no local
+// Bitcoin Core, so there is nothing to parse.
+func (p *Parser) SetNodeMode(nodeMode *NodeMode) {
+	p.nodeMode = nodeMode
 }
 
 // SetCoinnewsLogger attaches a dedicated logger for coinnews sync events.
@@ -71,7 +78,9 @@ func (p *Parser) Run(ctx context.Context) error {
 	// sessions are often shorter than the tick — and hourly after that.
 	reapTicker := time.NewTicker(time.Hour)
 	defer reapTicker.Stop()
-	p.reapExpiredMempool(ctx)
+	if p.nodeMode.RunsLocalNode(ctx) {
+		p.reapExpiredMempool(ctx)
+	}
 
 	zerolog.Ctx(ctx).Info().
 		Msgf("bitcoind_engine/parser: started parser ticker")
@@ -84,9 +93,14 @@ func (p *Parser) Run(ctx context.Context) error {
 			return nil
 
 		case <-reapTicker.C:
-			p.reapExpiredMempool(ctx)
+			if p.nodeMode.RunsLocalNode(ctx) {
+				p.reapExpiredMempool(ctx)
+			}
 
 		case <-alertTicker.C:
+			if !p.nodeMode.RunsLocalNode(ctx) {
+				continue
+			}
 
 			zerolog.Ctx(ctx).Trace().
 				Msgf("bitcoind_engine/parser: processing block tick")

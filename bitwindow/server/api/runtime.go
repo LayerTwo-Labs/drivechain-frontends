@@ -192,12 +192,14 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, timestampLogger, walletAdapter, s.Bitcoind)
 	rt.m4Engine = engines.NewM4Engine(rt.db)
 	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind)
+	rt.notificationEngine.SetNodeMode(rt.walletEngine.NodeMode())
 	rt.bitdriveEngine = engines.NewBitDriveEngine(rt.db, rt.walletEngine, conf.Datadir, rt.chainParams)
 	rt.sidechainMonitor = engines.NewSidechainMonitorEngine(
 		s.Thunder, s.BitNames, s.BitAssets, s.Truthcoin, s.Photon, s.CoinShift,
 		rt.notificationEngine,
 	)
 	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, rt.db, conf)
+	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())
 
 	// Coinnews dedicated log lives next to the main server log. Path is
 	// derived from conf.LogPath which is also network-scoped (Finalize
@@ -408,9 +410,22 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 	const maxAttempts = 20
 	var zmqEngine *engines.ZMQ
 
-	for attempt := 0; attempt < maxAttempts; attempt++ {
+	for attempt := 0; attempt < maxAttempts; {
+		// Light mode runs no local Bitcoin Core, so there is no ZMQ endpoint
+		// to dial. Wait for a switch to full mode instead of spending the
+		// attempts on a daemon that is not there.
+		if !rt.walletEngine.NodeMode().RunsLocalNode(ctx) {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+			}
+			continue
+		}
+
 		eng, err := dialZmqEngine(ctx, rt.conf)
 		if err != nil {
+			attempt++
 			if connect.CodeOf(err) == connect.CodeUnavailable || strings.Contains(err.Error(), "connection refused") {
 				log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
 			} else {
