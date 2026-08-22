@@ -165,6 +165,11 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   SyncInfo? enforcerWalletSyncInfo;
   String? enforcerWalletError;
 
+  /// Tip the wallet chain source reports (esplora or electrum). An electrum
+  /// wallet runs no local node, so this is the only height it has.
+  SyncInfo? chainSourceSyncInfo;
+  String? chainSourceError;
+
   /// Per-sidechain sync state, keyed by [SidechainType]. Populated from
   /// `GetSyncStatusResponse.sidechains` on every poll. Includes every L2
   /// chain the orchestrator manages — entries that aren't running yet
@@ -234,6 +239,8 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   void reset() {
     mainchainSyncInfo = null;
     mainchainError = null;
+    chainSourceSyncInfo = null;
+    chainSourceError = null;
     enforcerSyncInfo = null;
     enforcerError = null;
     sidechains = const {};
@@ -330,6 +337,13 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       if (_diff(enforcerWalletSyncInfo, newEnforcerWallet) || enforcerWalletError != _errOrNull(resp.enforcerWallet)) {
         enforcerWalletSyncInfo = newEnforcerWallet;
         enforcerWalletError = _errOrNull(resp.enforcerWallet);
+        changed = true;
+      }
+
+      final newChainSource = _toSyncInfo(resp.chainSource);
+      if (_diff(chainSourceSyncInfo, newChainSource) || chainSourceError != _errOrNull(resp.chainSource)) {
+        chainSourceSyncInfo = newChainSource;
+        chainSourceError = _errOrNull(resp.chainSource);
         changed = true;
       }
 
@@ -451,6 +465,8 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
   void clearState() {
     mainchainSyncInfo = null;
     mainchainError = null;
+    chainSourceSyncInfo = null;
+    chainSourceError = null;
     enforcerSyncInfo = null;
     enforcerError = null;
     bitwindowdSyncInfo = null;
