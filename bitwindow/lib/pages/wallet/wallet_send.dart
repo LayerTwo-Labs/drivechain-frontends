@@ -383,8 +383,17 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
 
   @override
   Widget build(BuildContext context, SendPageViewModel viewModel) {
+    final hasGraph = viewModel.feeRatePoints.isNotEmpty || viewModel.loadingFeeRates;
+
     return SailCard(
       title: 'Fee',
+      widgetHeaderEnd: hasGraph
+          ? SailButton(
+              label: viewModel.showFeeGraph ? 'Hide graph' : 'Show graph',
+              variant: ButtonVariant.ghost,
+              onPressed: () async => viewModel.toggleFeeGraph(),
+            )
+          : null,
       child: SailColumn(
         spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -414,19 +423,20 @@ class FeeCard extends ViewModelWidget<SendPageViewModel> {
               ],
             ),
           ),
-          if (viewModel.feeRatePoints.isNotEmpty)
-            FeeRateChart(
-              points: viewModel.feeRatePoints,
-              selectedConfTarget: viewModel.selectedConfTarget,
-              onSelected: viewModel.selectFeeRatePoint,
-            )
-          else if (viewModel.loadingFeeRates)
-            SizedBox(
-              height: 180,
-              child: Center(
-                child: SailCircularProgressIndicator(color: context.sailTheme.colors.text),
+          if (viewModel.showFeeGraph)
+            if (viewModel.feeRatePoints.isNotEmpty)
+              FeeRateChart(
+                points: viewModel.feeRatePoints,
+                selectedConfTarget: viewModel.selectedConfTarget,
+                onSelected: viewModel.selectFeeRatePoint,
+              )
+            else if (viewModel.loadingFeeRates)
+              SizedBox(
+                height: feeRateChartHeight,
+                child: Center(
+                  child: SailCircularProgressIndicator(color: context.sailTheme.colors.text),
+                ),
               ),
-            ),
           SailColumn(
             spacing: SailStyleValues.padding04,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -560,6 +570,12 @@ class SendPageViewModel extends BaseViewModel {
   List<FeeRatePoint> feeRatePoints = [];
   int? selectedConfTarget;
   bool loadingFeeRates = false;
+  bool showFeeGraph = false;
+
+  void toggleFeeGraph() {
+    showFeeGraph = !showFeeGraph;
+    notifyListeners();
+  }
 
   void _onRecipientChanged() {
     notifyListeners();
