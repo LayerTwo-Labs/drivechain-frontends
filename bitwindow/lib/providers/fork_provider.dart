@@ -88,6 +88,10 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   Timer? _timer;
   bool _fetching = false;
 
+  /// Outpoints already inside a split draft that waits for signatures. A second
+  /// split of the same coins would make a conflicting draft.
+  final Set<String> pendingSplitOutpoints = {};
+
   /// Claims that can actually be swept (replay-protected). Excludes the
   /// enforcer wallet, which is detected but not safely claimable.
   List<WalletClaim> get sweepableClaims => claims.where((c) => c.replayProtectable).toList();
@@ -115,6 +119,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     forkTargetDate = null;
     _anchorBucket = -1;
     _anchorForkHeight = -1;
+    pendingSplitOutpoints.clear();
     notifyListeners();
     fetch();
   }
@@ -212,10 +217,17 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// The coins a claim spends when the user picks none.
   static List<bwpb.UnspentOutput> defaultClaimInputs(WalletClaim claim) => claim.utxos.where(isSelectable).toList();
 
+  /// True while the user can still pick this coin: the BTC side allows it and
+  /// no split draft of it waits for signatures.
+  bool canSelect(bwpb.UnspentOutput u) => isSelectable(u) && !pendingSplitOutpoints.contains(u.output);
+
+  /// The coins of one claim the user can still pick.
+  List<bwpb.UnspentOutput> selectableInputs(WalletClaim claim) => claim.utxos.where(canSelect).toList();
+
   /// True while at least one sweepable wallet holds a selectable coin. The
   /// claim card hides without one — a card with every coin disabled offers
   /// no action.
-  bool get hasSelectableCoins => sweepableClaims.any((c) => defaultClaimInputs(c).isNotEmpty);
+  bool get hasSelectableCoins => sweepableClaims.any((c) => selectableInputs(c).isNotEmpty);
 
   /// Smallest selected sum a sweep can pay: the post-fee output must stay
   /// above dust. Generous estimate at the 1 sat/vB sweep rate.
@@ -259,6 +271,8 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
       replayProtect: true,
     );
     final draft = await _drafts.create(psbt, walletId: walletId);
+    pendingSplitOutpoints.addAll(inputs.map((u) => u.output));
+    notifyListeners();
     _log.i('Split draft created: wallet="${claim.walletName}" id=$walletId draft=${draft.id}');
     return draft.id;
   }

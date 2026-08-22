@@ -58,7 +58,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       final selected = _selected.putIfAbsent(claim.walletId, () => {});
       final selectable = <String>{};
       for (final u in claim.utxos) {
-        if (ForkProvider.isSelectable(u)) {
+        if (widget.fork.canSelect(u)) {
           selectable.add(u.output);
           if (seen.add(u.output)) {
             selected.add(u.output);
@@ -109,7 +109,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     _syncSelection();
     final selectedSats = _selectedSats;
     // A wallet with no selectable coin gets no picker — it offers no action.
-    final claims = widget.fork.sweepableClaims.where((c) => ForkProvider.defaultClaimInputs(c).isNotEmpty).toList();
+    final claims = widget.fork.sweepableClaims.where((c) => widget.fork.selectableInputs(c).isNotEmpty).toList();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -198,7 +198,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
             ),
             const SizedBox(height: 8),
             ...claim.utxos.map((u) {
-              final selectable = ForkProvider.isSelectable(u);
+              final selectable = widget.fork.canSelect(u);
               final isSelected = selected.contains(u.output);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -361,6 +361,15 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       showSailToast(
         context,
         'Split transaction created. Sign it on the send tab.',
+        duration: const Duration(seconds: 5),
+      );
+      return;
+    }
+    if (drafted > 0) {
+      showSailToast(
+        context,
+        'Claimed eCash in $broadcast transaction(s). '
+        '$drafted split transaction(s) wait for signatures on the send tab.',
         duration: const Duration(seconds: 5),
       );
       return;

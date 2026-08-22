@@ -93,4 +93,26 @@ void main() {
   test('an empty selection never needs signatures', () {
     expect(ForkProvider.splitNeedsSignatures([]), isFalse);
   });
+
+  test('a coin inside a pending split draft leaves the selection', () {
+    final provider = ForkProvider();
+    final claim = claimWith([utxo('aa:0'), utxo('bb:1')], multisig: policy(2, 3));
+    provider.claims = [claim];
+    expect(provider.selectableInputs(claim).length, 2);
+
+    provider.pendingSplitOutpoints.add('aa:0');
+    expect(provider.canSelect(utxo('aa:0')), isFalse);
+    expect(provider.selectableInputs(claim).map((u) => u.output), ['bb:1']);
+  });
+
+  test('a wallet whose coins all wait for signatures offers no claim', () {
+    final provider = ForkProvider();
+    provider.claims = [
+      claimWith([utxo('aa:0')], multisig: policy(2, 3)),
+    ];
+    expect(provider.hasSelectableCoins, isTrue);
+
+    provider.pendingSplitOutpoints.add('aa:0');
+    expect(provider.hasSelectableCoins, isFalse);
+  });
 }
