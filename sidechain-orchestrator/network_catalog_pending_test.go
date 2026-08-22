@@ -242,7 +242,7 @@ func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.coreReachable = func() bool { return false }
-	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet2\nenable-wallet=true"))
+	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet2\nenable-block-template-server=true"))
 
 	published := catalogWithECash(t, "drynet9")
 	for i := range published.Networks {
@@ -257,7 +257,7 @@ func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 	require.Equal(t, "drynet9", config.ECashNetworkID())
 	require.Equal(t, "drynet9.drivechain.dev:8533", o.BitcoinConf.Config.GetEffectiveSetting("addnode", "main"))
 	require.Equal(t, "drynet9", o.EnforcerConf.Config.GetSetting("network-preset"))
-	require.Equal(t, "true", o.EnforcerConf.Config.GetSetting("enable-wallet"))
+	require.Equal(t, "true", o.EnforcerConf.Config.GetSetting("enable-block-template-server"))
 }
 
 // catalogWithECashRows lists several eCash networks in the order given, each

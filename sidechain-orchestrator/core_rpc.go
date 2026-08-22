@@ -51,12 +51,12 @@ func (c *CoreStatusClient) GetNewAddress(ctx context.Context, walletName string)
 }
 
 type AddressInfo struct {
-	Address    string `json:"address"`
-	IsMine     bool   `json:"ismine"`
-	IsWatchOnly bool  `json:"iswatchonly"`
-	IsScript   bool   `json:"isscript"`
-	IsWitness  bool   `json:"iswitness"`
-	HdKeyPath  string `json:"hdkeypath,omitempty"`
+	Address     string `json:"address"`
+	IsMine      bool   `json:"ismine"`
+	IsWatchOnly bool   `json:"iswatchonly"`
+	IsScript    bool   `json:"isscript"`
+	IsWitness   bool   `json:"iswitness"`
+	HdKeyPath   string `json:"hdkeypath,omitempty"`
 }
 
 func (c *CoreStatusClient) GetAddressInfo(ctx context.Context, walletName, address string) (*AddressInfo, error) {
@@ -260,9 +260,9 @@ func (c *CoreStatusClient) SendRawTransaction(ctx context.Context, hexString str
 // --- RBF ---
 
 type BumpFeeResult struct {
-	Txid        string  `json:"txid"`
-	OriginalFee float64 `json:"origfee"`
-	NewFee      float64 `json:"fee"`
+	Txid        string   `json:"txid"`
+	OriginalFee float64  `json:"origfee"`
+	NewFee      float64  `json:"fee"`
 	Errors      []string `json:"errors,omitempty"`
 }
 
@@ -289,9 +289,9 @@ type RawTransaction struct {
 	Version  int32  `json:"version"`
 	Locktime uint32 `json:"locktime"`
 	Vin      []struct {
-		Txid      string   `json:"txid"`
-		Vout      uint32   `json:"vout"`
-		Coinbase  string   `json:"coinbase,omitempty"`
+		Txid      string `json:"txid"`
+		Vout      uint32 `json:"vout"`
+		Coinbase  string `json:"coinbase,omitempty"`
 		ScriptSig *struct {
 			Asm string `json:"asm"`
 			Hex string `json:"hex"`

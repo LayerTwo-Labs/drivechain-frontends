@@ -197,10 +197,10 @@ type Local struct {
 }
 
 // NewLocal builds the full local DataSource from the three client getters.
-func NewLocal(bitcoind BitcoindGetter, validator ValidatorGetter, wallet WalletGetter) *Local {
+func NewLocal(bitcoind BitcoindGetter, validator ValidatorGetter) *Local {
 	return &Local{
 		CoreSource:     NewCoreSource(bitcoind),
-		EnforcerSource: NewEnforcerSource(validator, wallet),
+		EnforcerSource: NewEnforcerSource(validator),
 	}
 }
 

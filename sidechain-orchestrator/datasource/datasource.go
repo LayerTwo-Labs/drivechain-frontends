@@ -23,7 +23,6 @@ import (
 // differs between services) can be supplied independently.
 type DataSource interface {
 	DrivechainReader
-	EnforcerWalletReader
 	ChainReader
 }
 
@@ -43,32 +42,21 @@ type DrivechainReader interface {
 	BmmHStarCommitment(context.Context, *v1.GetBmmHStarCommitmentRequest) (*v1.GetBmmHStarCommitmentResponse, error)
 }
 
-// EnforcerWalletReader is the read-only enforcer WalletService surface.
-type EnforcerWalletReader interface {
-	Balance(context.Context, *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error)
-	WalletInfo(context.Context, *v1.GetInfoRequest) (*v1.GetInfoResponse, error)
-	ListTransactions(context.Context, *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error)
-	ListSidechainDeposits(context.Context, *v1.ListSidechainDepositTransactionsRequest) (*v1.ListSidechainDepositTransactionsResponse, error)
-	ListUnspentOutputs(context.Context, *v1.ListUnspentOutputsRequest) (*v1.ListUnspentOutputsResponse, error)
-}
-
 // Getter lazily resolves a Connect client, mirroring bitwindow's
 // service.Service[T].Get — we take a func rather than the concrete type so the
 // datasource package (in the orchestrator module) doesn't import bitwindow.
 type ValidatorGetter func(context.Context) (mainchainv1connect.ValidatorServiceClient, error)
-type WalletGetter func(context.Context) (mainchainv1connect.WalletServiceClient, error)
 
 // EnforcerSource implements DrivechainReader + EnforcerWalletReader against the
 // live enforcer Connect clients. Shared by both services — they hold the same
 // client types.
 type EnforcerSource struct {
 	validator ValidatorGetter
-	wallet    WalletGetter
 }
 
 // NewEnforcerSource builds the local enforcer-backed reader from client getters.
-func NewEnforcerSource(validator ValidatorGetter, wallet WalletGetter) *EnforcerSource {
-	return &EnforcerSource{validator: validator, wallet: wallet}
+func NewEnforcerSource(validator ValidatorGetter) *EnforcerSource {
+	return &EnforcerSource{validator: validator}
 }
 
 func (e *EnforcerSource) ChainTip(ctx context.Context, req *v1.GetChainTipRequest) (*v1.GetChainTipResponse, error) {
@@ -179,67 +167,4 @@ func (e *EnforcerSource) BmmHStarCommitment(ctx context.Context, req *v1.GetBmmH
 	return resp.Msg, nil
 }
 
-func (e *EnforcerSource) Balance(ctx context.Context, req *v1.GetBalanceRequest) (*v1.GetBalanceResponse, error) {
-	c, err := e.wallet(ctx)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.GetBalance(ctx, connect.NewRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (e *EnforcerSource) WalletInfo(ctx context.Context, req *v1.GetInfoRequest) (*v1.GetInfoResponse, error) {
-	c, err := e.wallet(ctx)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.GetInfo(ctx, connect.NewRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (e *EnforcerSource) ListTransactions(ctx context.Context, req *v1.ListTransactionsRequest) (*v1.ListTransactionsResponse, error) {
-	c, err := e.wallet(ctx)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.ListTransactions(ctx, connect.NewRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (e *EnforcerSource) ListSidechainDeposits(ctx context.Context, req *v1.ListSidechainDepositTransactionsRequest) (*v1.ListSidechainDepositTransactionsResponse, error) {
-	c, err := e.wallet(ctx)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.ListSidechainDepositTransactions(ctx, connect.NewRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (e *EnforcerSource) ListUnspentOutputs(ctx context.Context, req *v1.ListUnspentOutputsRequest) (*v1.ListUnspentOutputsResponse, error) {
-	c, err := e.wallet(ctx)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.ListUnspentOutputs(ctx, connect.NewRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-var (
-	_ DrivechainReader     = (*EnforcerSource)(nil)
-	_ EnforcerWalletReader = (*EnforcerSource)(nil)
-)
+var _ DrivechainReader = (*EnforcerSource)(nil)

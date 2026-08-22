@@ -168,6 +168,7 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 	// Use GetAllWallets so we can access the seed for BIP47 derivation —
 	// parity with sendWalletData. ListWallets (metadata-only) can't see it.
 	wallets := h.svc.GetAllWallets()
+	starterID := h.svc.StarterWalletID()
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
@@ -199,6 +200,7 @@ func (h *WalletHandler) ListWallets(ctx context.Context, req *connect.Request[pb
 			Bip47PaymentCode:    bip47Code,
 			Multisig:            multisigInfoProto(&w),
 			ReceiveAddressTypes: receiveAddressTypesProto(&w),
+			IsStarter:           w.ID == starterID,
 		}
 	}
 	return connect.NewResponse(&pb.ListWalletsResponse{
@@ -1547,6 +1549,7 @@ func (h *WalletHandler) sendWalletData(stream *connect.ServerStream[pb.WatchWall
 	resp := buildWatchWalletDataResponse(
 		h.svc.GetAllWallets(),
 		h.svc.ActiveWalletID(),
+		h.svc.StarterWalletID(),
 		h.svc.HasWallet(),
 		h.svc.IsEncrypted(),
 		h.svc.IsUnlocked(),
@@ -1581,7 +1584,7 @@ func (h *WalletHandler) bip47Capable(walletID string) bool {
 	return ok
 }
 
-func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, hasWallet, encrypted, unlocked bool, netParams *chaincfg.Params, bip47Capable func(walletID string) bool, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
+func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID, starterID string, hasWallet, encrypted, unlocked bool, netParams *chaincfg.Params, bip47Capable func(walletID string) bool, onBip47Err func(walletID string, err error)) *pb.WatchWalletDataResponse {
 	pbWallets := make([]*pb.WalletMetadata, len(wallets))
 	for i, w := range wallets {
 		var gradientJSON string
@@ -1613,12 +1616,11 @@ func buildWatchWalletDataResponse(wallets []wallet.WalletData, activeID string, 
 			Bip47PaymentCode:    bip47Code,
 			Multisig:            multisigInfoProto(&w),
 			ReceiveAddressTypes: receiveAddressTypesProto(&w),
+			IsStarter:           w.ID == starterID,
 		}
-		// Starter material lives only on the enforcer wallet (L1 mnemonic and
-		// sidechain starters are derived from its seed). Attach it to that
-		// wallet's metadata so the Dart side can find it whether or not the
-		// active wallet happens to be the enforcer.
-		if w.WalletType == wallet.WalletTypeEnforcer {
+		// The starter wallet's seed derives the L1 and sidechain starters, so
+		// only it carries them — whichever wallet happens to be active.
+		if w.ID == starterID {
 			md.MasterMnemonic = w.Master.Mnemonic
 			md.L1Mnemonic = w.L1.Mnemonic
 			md.Sidechains = lo.Map(w.Sidechains, func(sc wallet.SidechainWallet, _ int) *pb.SidechainStarter {

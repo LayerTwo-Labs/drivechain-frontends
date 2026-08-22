@@ -106,7 +106,7 @@ func TestInquisitionBMM(t *testing.T) {
 		"--node-rpc-user="+string(user), "--node-rpc-pass="+string(password),
 		fmt.Sprintf("--node-zmq-addr-sequence=tcp://127.0.0.1:%d", mainchainZMQPort),
 		fmt.Sprintf("--serve-grpc-addr=127.0.0.1:%d", enforcerPort),
-		"--enable-wallet",
+		"--enable-block-template-server",
 		// BDK syncs from an Esplora server we do not run; on regtest the ZMQ
 		// block stream is enough.
 		"--wallet-sync-source=disabled", "--wallet-auto-create",
