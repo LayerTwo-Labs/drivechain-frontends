@@ -500,6 +500,8 @@ type PlanECashSwitchResponse struct {
 	// it and follows the new network from there. Zero when nothing is dropped.
 	RewindHeight  uint32 `protobuf:"varint,3,opt,name=rewind_height,json=rewindHeight,proto3" json:"rewind_height,omitempty"`
 	NeedsRollback bool   `protobuf:"varint,4,opt,name=needs_rollback,json=needsRollback,proto3" json:"needs_rollback,omitempty"`
+	// True when the old blocks cannot stay and the switch resyncs the chain.
+	MustWipe      bool `protobuf:"varint,5,opt,name=must_wipe,json=mustWipe,proto3" json:"must_wipe,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -558,6 +560,13 @@ func (x *PlanECashSwitchResponse) GetRewindHeight() uint32 {
 func (x *PlanECashSwitchResponse) GetNeedsRollback() bool {
 	if x != nil {
 		return x.NeedsRollback
+	}
+	return false
+}
+
+func (x *PlanECashSwitchResponse) GetMustWipe() bool {
+	if x != nil {
+		return x.MustWipe
 	}
 	return false
 }
@@ -1122,12 +1131,13 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\bnetworks\x18\x01 \x03(\v2\x1e.orchestrator.v1.NetworkOptionR\bnetworks\"7\n" +
 	"\x16PlanECashSwitchRequest\x12\x1d\n" +
 	"\n" +
-	"network_id\x18\x01 \x01(\tR\tnetworkId\"\x93\x01\n" +
+	"network_id\x18\x01 \x01(\tR\tnetworkId\"\xb0\x01\n" +
 	"\x17PlanECashSwitchResponse\x12\x17\n" +
 	"\afrom_id\x18\x01 \x01(\tR\x06fromId\x12\x13\n" +
 	"\x05to_id\x18\x02 \x01(\tR\x04toId\x12#\n" +
 	"\rrewind_height\x18\x03 \x01(\rR\frewindHeight\x12%\n" +
-	"\x0eneeds_rollback\x18\x04 \x01(\bR\rneedsRollback\"\x18\n" +
+	"\x0eneeds_rollback\x18\x04 \x01(\bR\rneedsRollback\x12\x1b\n" +
+	"\tmust_wipe\x18\x05 \x01(\bR\bmustWipe\"\x18\n" +
 	"\x16TakeNewNetworksRequest\"U\n" +
 	"\x17TakeNewNetworksResponse\x12:\n" +
 	"\bnetworks\x18\x01 \x03(\v2\x1e.orchestrator.v1.NetworkOptionR\bnetworks\"\x9b\x01\n" +

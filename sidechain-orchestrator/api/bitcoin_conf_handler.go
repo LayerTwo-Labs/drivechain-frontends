@@ -135,6 +135,7 @@ func (h *BitcoinConfHandler) PlanECashSwitch(ctx context.Context, req *connect.R
 		ToId:          plan.ToID,
 		RewindHeight:  plan.RewindHeight,
 		NeedsRollback: plan.NeedsRollback,
+		MustWipe:      plan.MustWipe,
 	}), nil
 }
 
