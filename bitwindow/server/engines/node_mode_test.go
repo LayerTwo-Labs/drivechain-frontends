@@ -40,6 +40,13 @@ func TestRunsLocalNodeAllowsFullMode(t *testing.T) {
 	require.True(t, nodeMode.RunsLocalNode(context.Background()))
 }
 
+// A fresh install reads an unpicked mode until the user chooses, and it starts
+// no daemon meanwhile. Polling there dials a Bitcoin Core that is not there.
+func TestRunsLocalNodeStopsOnAnUnpickedMode(t *testing.T) {
+	nodeMode := nodeModeWith(t, orchpb.NodeMode_NODE_MODE_UNSPECIFIED, nil)
+	require.False(t, nodeMode.RunsLocalNode(context.Background()))
+}
+
 // An engine with no source has no mode to obey. It keeps its old behaviour.
 func TestRunsLocalNodeAllowsANilSource(t *testing.T) {
 	var nodeMode *engines.NodeMode
@@ -65,6 +72,26 @@ func TestRunsLocalNodeKeepsTheLastAnswer(t *testing.T) {
 		GetNodeMode(gomock.Any(), gomock.Any()).
 		Return(nil, errors.New("orchestrator is restarting"))
 	require.False(t, nodeMode.RunsLocalNode(context.Background()))
+}
+
+// A full-mode install keeps its pollers through an orchestrator restart.
+func TestRunsLocalNodeKeepsAFullAnswer(t *testing.T) {
+	client := mocks.NewMockWalletManagerServiceClient(gomock.NewController(t))
+	nodeMode := engines.NewNodeMode()
+	nodeMode.SetClient(client)
+
+	client.EXPECT().
+		GetNodeMode(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[orchpb.GetNodeModeResponse]{
+			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
+		}, nil)
+	require.True(t, nodeMode.RunsLocalNode(context.Background()))
+
+	engines.ExpireNodeModeCache(nodeMode)
+	client.EXPECT().
+		GetNodeMode(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("orchestrator is restarting"))
+	require.True(t, nodeMode.RunsLocalNode(context.Background()))
 }
 
 // One read per TTL. Every engine ticks each second, and each tick asks.

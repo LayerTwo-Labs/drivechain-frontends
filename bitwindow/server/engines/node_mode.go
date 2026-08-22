@@ -63,21 +63,34 @@ func (n *NodeMode) Mode(ctx context.Context) (orchpb.NodeMode, error) {
 	return resp.Msg.Mode, nil
 }
 
-// RunsLocalNode reports whether a poller may talk to Bitcoin Core. Only a mode
-// that reads light stops it: an unreadable mode keeps the last known answer,
-// and an engine with no source has no mode to obey.
+// hasClient reports whether this source can reach the orchestrator at all.
+func (n *NodeMode) hasClient() bool {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.client != nil
+}
+
+// lastKnown gives the mode of the last successful read.
+func (n *NodeMode) lastKnown() orchpb.NodeMode {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.cached
+}
+
+// RunsLocalNode reports whether a poller may talk to Bitcoin Core. Full mode
+// is the only mode that runs one: light mode starts no daemon, and an unpicked
+// mode starts nothing either while the welcome prompt waits for the user. An
+// unreadable mode keeps the last known answer, and an engine with no source
+// has no mode to obey.
 func (n *NodeMode) RunsLocalNode(ctx context.Context) bool {
-	if n == nil {
+	if n == nil || !n.hasClient() {
 		return true
 	}
 	mode, err := n.Mode(ctx)
-	if err == nil {
-		return mode != orchpb.NodeMode_NODE_MODE_LIGHT
+	if err != nil {
+		mode = n.lastKnown()
 	}
-
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	return n.cached != orchpb.NodeMode_NODE_MODE_LIGHT
+	return mode == orchpb.NodeMode_NODE_MODE_FULL
 }
 
 // expire drops the cached mode, so the next read reaches the orchestrator.
