@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getNetworkConfig } from "@/lib/config";
+import { networkName } from "@/lib/network";
 
 // The network is only known at runtime (NETWORK env var), but Next prerenders
 // metadata image routes at build time by default — which would bake whichever
@@ -83,7 +84,7 @@ export default async function Image() {
               boxShadow: "0 0 20px #00ff00",
             }}
           />
-          {network.display_name}
+          {networkName(network)}
         </div>
       </div>
       <div
