@@ -4,6 +4,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+const double feeRateChartHeight = 140;
+
 class FeeRateChart extends StatelessWidget {
   final List<FeeRatePoint> points;
   final int? selectedConfTarget;
@@ -38,7 +40,7 @@ class FeeRateChart extends StatelessWidget {
         : points.indexWhere((p) => p.confTarget == selectedConfTarget);
 
     return SizedBox(
-      height: 180,
+      height: feeRateChartHeight,
       child: LineChart(
         LineChartData(
           gridData: FlGridData(
