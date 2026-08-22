@@ -364,11 +364,7 @@ func DeleteFilesWithRetry(paths []string, log zerolog.Logger) {
 func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Network, log zerolog.Logger) []string {
 	switch b.layoutKey() {
 	case "bitcoind":
-		paths := GetExistingFilesInDir(networkDir, []string{
-			".lock", "anchors.dat", "banlist.json", "bitcoin.pid", "bitcoind.pid",
-			"blocks", "chainstate", "debug.log", "fee_estimates.dat", "indexes",
-			"mempool.dat", "peers.dat", "settings.json",
-		}, log)
+		paths := GetExistingFilesInDir(networkDir, coreChainDataNames, log)
 		// assumeutxo snapshots are named for the height they commit to, so a
 		// fixed filename can't catch them. They are large and re-downloadable.
 		return append(paths, GetMatchingFilesInDir(networkDir, utxoSnapshotPattern, log)...)
@@ -381,7 +377,7 @@ func (b BinaryDirConfig) GetBlockchainDataPaths(networkDir string, network Netwo
 		return GetExistingFilesInDir(networkDir, []string{"bitdrive", "bitwindow.db"}, log)
 
 	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
-		return GetExistingFilesInDir(networkDir, []string{"data.mdb", "lock.mdb", "logs"}, log)
+		return GetExistingFilesInDir(networkDir, SidechainChainDataNames, log)
 
 	default:
 		return nil
@@ -409,54 +405,72 @@ func WipeChainData(network Network, bitcoinDatadirOverride string, log zerolog.L
 	go WipeChainDataSync(network, bitcoinDatadirOverride, log)
 }
 
-// WipeNetworkScopedChainDataSync wipes only the binaries whose data is
-// actually partitioned by network: bitcoind (eCash has its own datadir group)
-// and bitwindowd (per-network subdir). Sidechains keep a flat datadir shared
-// across networks, and the enforcer maps both eCash and mainnet onto
-// validator/bitcoin, so wiping those for one network destroys another's state.
+// SidechainChainDataNames are the entries a sidechain keeps its chain in. The
+// datadir is flat across every network, so a swap has to move them.
+var SidechainChainDataNames = []string{"data.mdb", "lock.mdb", "logs"}
+
+// coreChainDataNames are the entries a Core datadir keeps its chain in. Kept
+// beside GetBlockchainDataPaths, which lists the same set.
+var coreChainDataNames = []string{
+	".lock", "anchors.dat", "banlist.json", "bitcoin.pid", "bitcoind.pid",
+	"blocks", "chainstate", "debug.log", "fee_estimates.dat", "indexes",
+	"mempool.dat", "peers.dat", "settings.json",
+}
+
+// unreadableChainPaths returns the chain paths os.Stat refuses for a reason
+// other than "not there".
+func unreadableChainPaths(dir string) []string {
+	var unreadable []string
+	for _, name := range coreChainDataNames {
+		p := filepath.Join(dir, name)
+		if _, err := os.Stat(p); err != nil && !os.IsNotExist(err) {
+			unreadable = append(unreadable, p)
+		}
+	}
+	return unreadable
+}
+
+// WipeNetworkScopedChainDataSync wipes Bitcoin Core's blocks for network.
 //
-// Used by the eCash network rollover, which can fire while the user is on
-// a different network entirely. A network swap purges enforcer and sidechain
-// state separately.
-func WipeNetworkScopedChainDataSync(network Network, bitcoinDatadirOverride string, log zerolog.Logger) {
+// Core only: sidechains share one flat datadir across networks, the enforcer
+// maps eCash and mainnet onto the same validator dir, and bitwindow.db holds
+// the address book, notes, labels and multisig records that no chain rebuilds.
+// bitwindowd drops its own block-derived rows when the tip falls below them.
+// It reports whether every path left the live layout. A rename that could not
+// run falls back to an in-place delete on a goroutine, and a caller that records
+// the wipe as done would leave a live Core over blocks that are still there.
+func WipeNetworkScopedChainDataSync(network Network, bitcoinDatadirOverride string, log zerolog.Logger) error {
 	var doomed []string
+	var stuck []string
 	for _, dc := range AllDirConfigs() {
-		if dc.BinaryName != "bitcoind" && dc.BinaryName != "bitwindowd" {
+		if dc.BinaryName != "bitcoind" {
 			continue
 		}
 		networkDir := dc.DatadirNetwork(network, bitcoinDatadirOverride)
+		// A path that exists but cannot be read is omitted from the list below,
+		// so without this a wipe over an unreadable volume reads as done and
+		// the blocks stay live with no record left to retry them.
+		if unreadable := unreadableChainPaths(networkDir); len(unreadable) > 0 {
+			return fmt.Errorf("could not read: %s", strings.Join(unreadable, ", "))
+		}
 		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
 			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
 			doomed = append(doomed, orphans...)
-			if aside := renameAside(p, log); aside != "" {
+			aside := renameAside(p, log)
+			if aside == p {
+				// renameAside returns the live path when it could not move it.
+				stuck = append(stuck, p)
+			}
+			if aside != "" {
 				doomed = append(doomed, aside)
 			}
 		}
 	}
 	go DeleteFilesWithRetry(doomed, log)
-}
-
-// WipeBitwindowChainDataSync clears bitwindowd's chain-derived rows for
-// network, leaving Bitcoin Core's blocks alone. An eCash switch that rewinds
-// Core keeps its blocks, but bitwindowd indexes the fork it left — OP_RETURNs
-// and timestamps from a chain this node no longer follows — and its runtime
-// recycle is keyed on the network, which does not change across the switch.
-func WipeBitwindowChainDataSync(network Network, log zerolog.Logger) {
-	var doomed []string
-	for _, dc := range AllDirConfigs() {
-		if dc.BinaryName != "bitwindowd" {
-			continue
-		}
-		networkDir := dc.DatadirNetwork(network, "")
-		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
-			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
-			doomed = append(doomed, orphans...)
-			if aside := renameAside(p, log); aside != "" {
-				doomed = append(doomed, aside)
-			}
-		}
+	if len(stuck) > 0 {
+		return fmt.Errorf("could not move aside: %s", strings.Join(stuck, ", "))
 	}
-	go DeleteFilesWithRetry(doomed, log)
+	return nil
 }
 
 // WipeEnforcerChainDataSync wipes the enforcer's validator and block state for
@@ -465,22 +479,41 @@ func WipeBitwindowChainDataSync(network Network, log zerolog.Logger) {
 // so fires no network swap — must clear it here or the new generation inherits
 // the old one's validator chain. Renames aside synchronously like
 // WipeChainDataSync so a caller recording the wipe can trust it happened.
-func WipeEnforcerChainDataSync(network Network, log zerolog.Logger) {
+// It reports whether every path left the live layout, for the same reason
+// WipeNetworkScopedChainDataSync does: a caller that records the wipe as done
+// would start the enforcer on the retired generation's validator chain.
+func WipeEnforcerChainDataSync(network Network, log zerolog.Logger) error {
 	var doomed []string
+	var stuck []string
 	for _, dc := range AllDirConfigs() {
 		if dc.BinaryName != "bip300301-enforcer" {
 			continue
 		}
-		networkDir := dc.DatadirNetwork(network, "")
-		for _, p := range dc.GetBlockchainDataPaths(networkDir, network, log) {
+		networkName := EnforcerNetworkName(network)
+		for _, name := range []string{filepath.Join("validator", networkName), networkName} {
+			p := filepath.Join(dc.RootDir(), name)
+			if _, err := os.Stat(p); err != nil {
+				if !os.IsNotExist(err) {
+					stuck = append(stuck, p)
+				}
+				continue
+			}
 			orphans, _ := filepath.Glob(p + wipingSuffix + "*")
 			doomed = append(doomed, orphans...)
-			if aside := renameAside(p, log); aside != "" {
+			aside := renameAside(p, log)
+			if aside == p {
+				stuck = append(stuck, p)
+			}
+			if aside != "" {
 				doomed = append(doomed, aside)
 			}
 		}
 	}
 	go DeleteFilesWithRetry(doomed, log)
+	if len(stuck) > 0 {
+		return fmt.Errorf("could not move aside: %s", strings.Join(stuck, ", "))
+	}
+	return nil
 }
 
 // WipeChainDataSync renames the doomed paths aside before returning, then

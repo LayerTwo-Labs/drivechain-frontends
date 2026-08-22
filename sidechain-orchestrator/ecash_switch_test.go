@@ -16,6 +16,7 @@ func ecashCatalog() netcatalog.Catalog {
 	return netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "alphanet", Family: netcatalog.FamilyECash, DisplayName: "Alphanet", ForkHeight: 963648},
 		{ID: "drynet4", Family: netcatalog.FamilyECash, DisplayName: "Drynet 4", ForkHeight: 961632},
+		{ID: "alphanet2", Family: netcatalog.FamilyECash, DisplayName: "Alphanet 2", ForkHeight: 970000},
 	}}
 }
 
@@ -39,16 +40,19 @@ func TestPlanECashSwitchTargetsTheSharedBlock(t *testing.T) {
 	require.EqualValues(t, 961631, plan.RewindHeight)
 }
 
-// The reset needs a live Core on the old chain. Off eCash there is none, and
-// the retired blocks are cold files, so the move carries no rollback.
-func TestPlanECashSwitchNeedsNoRollbackOffECash(t *testing.T) {
+// Off eCash no Core answers, so the drop is recorded rather than made. The
+// blocks below the fork stay either way, and a plan that reported none would
+// make the dialog name a resync that never happens.
+func TestPlanECashSwitchPricesTheColdChainRewind(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NotEqual(t, string(config.NetworkECash), o.Network)
 
 	plan, err := o.PlanECashSwitch("alphanet")
 	require.NoError(t, err)
-	require.False(t, plan.NeedsRollback)
-	require.Zero(t, plan.RewindHeight)
+	require.True(t, plan.NeedsRollback)
+	require.False(t, plan.MustWipe)
+	require.EqualValues(t, 961631, plan.RewindHeight)
 }
 
 // Staying put costs nothing, so the plan must not ask for a reset.
@@ -87,9 +91,9 @@ func TestApplyECashSwitchRewritesTheConfSentinel(t *testing.T) {
 	require.Equal(t, "alphanet", config.ECashNetworkID())
 }
 
-// A Core that is down leaves nothing to rewind, so the old chain has to go.
-// Switching without either would run alphanet on drynet4 blocks.
-func TestApplyECashSwitchWipesWhenNoCoreAnswers(t *testing.T) {
+// A Core that is down cannot rewind, but deleting would cost every block below
+// the fork that both networks keep. The drop waits for the next live Core.
+func TestApplyECashSwitchDefersTheRewindWhenNoCoreAnswers(t *testing.T) {
 	o := newTestOrchestrator(t)
 	datadir := t.TempDir()
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
@@ -102,13 +106,36 @@ func TestApplyECashSwitchWipesWhenNoCoreAnswers(t *testing.T) {
 
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 
-	require.NoDirExists(t, blocks, "the retired chain must go when it cannot be rewound")
+	require.DirExists(t, blocks, "the blocks below the fork must survive the switch")
+	require.Equal(t, &PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}, o.Settings.PendingRewind())
 	require.Equal(t, "alphanet", o.installedECashNetwork())
 }
 
-// Off eCash the retired chain is cold files that no start revisits, so the pick
-// has to clear them. Keeping them would boot the new fork on the old chainstate.
-func TestSelectECashNetworkClearsTheColdChain(t *testing.T) {
+// No published fork height leaves nothing to rewind to, so the old blocks
+// cannot stay. This is the one delete, and a user confirms it.
+func TestApplyECashSwitchWipesWithNoPublishedForkHeight(t *testing.T) {
+	o := newTestOrchestrator(t)
+	datadir := t.TempDir()
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
+		{ID: "alphanet", Family: netcatalog.FamilyECash},
+		{ID: "drynet4", Family: netcatalog.FamilyECash},
+	}}, "drynet4")
+
+	blocks := filepath.Join(datadir, "blocks")
+	require.NoError(t, os.MkdirAll(blocks, 0o755))
+
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+
+	require.NoDirExists(t, blocks, "with no fork height the old chain cannot stay")
+	require.Nil(t, o.Settings.PendingRewind())
+}
+
+// Off eCash there is no Core on that chain to rewind, so the pick records the
+// drop. Deleting would cost blocks both networks keep.
+func TestSelectECashNetworkDefersTheColdChainRewind(t *testing.T) {
 	o := newTestOrchestrator(t)
 	datadir := t.TempDir()
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
@@ -120,7 +147,8 @@ func TestSelectECashNetworkClearsTheColdChain(t *testing.T) {
 
 	require.NoError(t, o.SelectECashNetwork("alphanet"))
 
-	require.NoDirExists(t, blocks, "the retired chain must go with the pick")
+	require.DirExists(t, blocks, "the blocks below the fork must survive the pick")
+	require.Equal(t, &PendingRewind{FromID: "drynet4", ToID: "alphanet", Height: 961631}, o.Settings.PendingRewind())
 	require.Equal(t, "alphanet", o.SelectedECashID(ecashCatalog()))
 }
 

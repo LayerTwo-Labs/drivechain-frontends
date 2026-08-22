@@ -21,6 +21,14 @@ const (
 	NetworkTestnet Network = "testnet"
 )
 
+// AllNetworks lists every network the app can run.
+func AllNetworks() []Network {
+	return []Network{
+		NetworkMainnet, NetworkForknet, NetworkECash,
+		NetworkSignet, NetworkRegtest, NetworkTestnet,
+	}
+}
+
 // DatadirGroup partitions networks by which folder bitcoind writes to.
 // Forknet and eCash both run on chain=main and write to the root of datadir,
 // colliding with mainnet and each other — so each needs its own group. The four

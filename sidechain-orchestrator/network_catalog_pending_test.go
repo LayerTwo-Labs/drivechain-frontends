@@ -94,9 +94,9 @@ func TestNewGenerationIsNotAppliedWithoutConsent(t *testing.T) {
 	require.True(t, stillPending, "pending file must survive so the prompt persists")
 }
 
-// Confirming records the choice on disk and nothing else: wiping the chain
-// under the running daemons is what the next start is for.
-func TestConfirmPromotesTheCacheWithoutSwitchingLive(t *testing.T) {
+// Confirming is the one moment a live Core can rewind to the fork, so the
+// switch happens here. A start has no Core and could only delete the chain.
+func TestConfirmMovesTheChainOnTheSpot(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	o.ResolveNetworkCatalog(context.Background())
 
@@ -107,8 +107,8 @@ func TestConfirmPromotesTheCacheWithoutSwitchingLive(t *testing.T) {
 	require.Equal(t, "drynet3", cached.ECashID())
 	_, stillPending := netcatalog.LoadPending(o.BitwindowDir)
 	require.False(t, stillPending, "the prompt must clear once confirmed")
-	require.Equal(t, "drynet2", config.ECashNetworkID(), "this process keeps serving the retired generation")
-	require.Equal(t, "ecash-drynet2", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
+	require.Equal(t, "drynet3", config.ECashNetworkID(), "this process moves onto the confirmed network")
+	require.Equal(t, "ecash-drynet3", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
 }
 
 // The enforcer's esplora host comes from the catalog, so a switch that updates
@@ -127,8 +127,8 @@ func TestConfirmedGenerationLandsOnTheNextStart(t *testing.T) {
 	require.Empty(t, o.PendingECashUpgrade().ID)
 }
 
-// Confirming off eCash must clear the retired chain itself: the startup wipe
-// only runs while eCash is active, and by then the conf names the new one.
+// Confirming off eCash reaches no Core on that chain, so it records the drop
+// rather than deleting blocks both networks keep.
 func TestConfirmWorksFromAnotherNetwork(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	ecashDir := o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupECash)
@@ -141,7 +141,8 @@ func TestConfirmWorksFromAnotherNetwork(t *testing.T) {
 
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
-	require.NoDirExists(t, blocks, "the retired generation's blocks must be cleared")
+	require.DirExists(t, blocks, "the blocks below the fork must survive the confirm")
+	require.NotNil(t, o.Settings.PendingRewind(), "the drop waits for the next live Core")
 	require.Empty(t, o.PendingECashUpgrade().ID)
 	require.Equal(t, string(config.NetworkMainnet), o.Network, "the active network must be left alone")
 }
@@ -205,11 +206,10 @@ func TestSwappingNetworksResolvesTheIncomingBuild(t *testing.T) {
 func TestGenerationChangeResolvesANewCoreBinary(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	o.ResolveNetworkCatalog(context.Background())
-	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
 	stale := writeResolvedCoreBinary(t, o, "drynet2 build")
 
-	o.ResolveNetworkCatalog(context.Background())
+	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
 	fresh := resolvedCoreBinaryPath(t, o)
 	require.NotEqual(t, stale, fresh, "the retired generation's build must not resolve")
