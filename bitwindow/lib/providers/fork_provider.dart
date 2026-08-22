@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
 
 /// One wallet's claimable pre-fork coins, with the exact UTXOs the sweep spends.
@@ -16,7 +18,13 @@ class WalletClaim {
   /// False for wallets whose claim can't be replay-protected (the enforcer
   /// wallet) — shown for awareness, but not swept.
   final bool replayProtectable;
+
+  /// Multisig policy of the wallet that holds the coins, null for single-sig.
+  /// A multisig claim builds a PSBT its cosigners sign, not a broadcast.
+  final wmpb.MultisigInfo? multisig;
   final List<bwpb.UnspentOutput> utxos;
+
+  bool get isMultisig => multisig != null;
 
   WalletClaim({
     required this.walletId,
@@ -24,6 +32,7 @@ class WalletClaim {
     required this.claimableSats,
     required this.replayProtectable,
     required this.utxos,
+    this.multisig,
   });
 }
 
@@ -41,6 +50,8 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   OrchestratorRPC get _orchestrator => GetIt.I<OrchestratorRPC>();
   OrchestratorWalletRPC get _wallet => _orchestrator.wallet;
   TransactionProvider get _transactions => GetIt.I<TransactionProvider>();
+  WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+  PsbtDraftProvider get _drafts => GetIt.I<PsbtDraftProvider>();
   BalanceProvider get _balance => GetIt.I<BalanceProvider>();
   Logger get _log => GetIt.I<Logger>();
 
@@ -139,6 +150,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
               walletName: c.walletName,
               claimableSats: c.claimableSats.toInt(),
               replayProtectable: c.replayProtectable,
+              multisig: _walletReader.wallets.where((w) => w.id == c.walletId).firstOrNull?.multisig,
               utxos: c.utxos
                   .map(
                     (u) => bwpb.UnspentOutput(
@@ -192,6 +204,11 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// selectable set below the unchecked coins.
   static bool isSelectable(bwpb.UnspentOutput u) => !u.hasSplittable() || u.splittable;
 
+  /// True when every claim in the selection needs cosigner signatures, so the
+  /// split ends in a PSBT instead of a broadcast.
+  static bool splitNeedsSignatures(Iterable<WalletClaim> selected) =>
+      selected.isNotEmpty && selected.every((c) => c.isMultisig);
+
   /// The coins a claim spends when the user picks none.
   static List<bwpb.UnspentOutput> defaultClaimInputs(WalletClaim claim) => claim.utxos.where(isSelectable).toList();
 
@@ -204,10 +221,8 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// above dust. Generous estimate at the 1 sat/vB sweep rate.
   static int minClaimSats(int inputCount) => 546 + 150 + 70 * inputCount;
 
-  /// Sweep one wallet's pre-fork coins (from the engine's UTXO list) to a fresh
-  /// address it controls — one sendTransaction, exactly like a send. Returns txid.
-  Future<String> claim(String walletId, {Set<String>? outpoints}) async {
-    final claim = claims.firstWhere((c) => c.walletId == walletId);
+  /// The coins one claim spends, from the user's selection or the default set.
+  List<bwpb.UnspentOutput> _claimInputs(WalletClaim claim, Set<String>? outpoints) {
     final inputs = outpoints == null
         ? defaultClaimInputs(claim)
         : claim.utxos.where((u) => outpoints.contains(u.output)).toList();
@@ -218,6 +233,42 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     if (amountSats < minClaimSats(inputs.length)) {
       throw Exception('selected amount is too small to pay the sweep fee');
     }
+    return inputs;
+  }
+
+  /// Build the split of one multisig wallet's pre-fork coins and file it as a
+  /// draft. The cosigners sign it on the send tab; nothing is broadcast here.
+  /// Returns the draft id.
+  Future<String> createSplitDraft(String walletId, {Set<String>? outpoints}) async {
+    final claim = claims.firstWhere((c) => c.walletId == walletId);
+    final inputs = _claimInputs(claim, outpoints);
+    final amountSats = inputs.fold<int>(0, (sum, u) => sum + u.valueSats.toInt());
+    final address = (await _wallet.getNewAddress(walletId)).address;
+
+    _log.i(
+      'Splitting eCash in multisig: wallet="${claim.walletName}" id=$walletId '
+      'amount=$amountSats sats inputs=${inputs.length} -> $address',
+    );
+
+    final psbt = await _wallet.createPsbt(
+      walletId: walletId,
+      destinations: {address: amountSats},
+      requiredInputs: inputs,
+      subtractFeeFromAmount: true,
+      feeRateSatPerVbyte: _sweepFeeRateSatPerVbyte,
+      replayProtect: true,
+    );
+    final draft = await _drafts.create(psbt, walletId: walletId);
+    _log.i('Split draft created: wallet="${claim.walletName}" id=$walletId draft=${draft.id}');
+    return draft.id;
+  }
+
+  /// Sweep one wallet's pre-fork coins (from the engine's UTXO list) to a fresh
+  /// address it controls — one sendTransaction, exactly like a send. Returns txid.
+  Future<String> claim(String walletId, {Set<String>? outpoints}) async {
+    final claim = claims.firstWhere((c) => c.walletId == walletId);
+    final inputs = _claimInputs(claim, outpoints);
+    final amountSats = inputs.fold<int>(0, (sum, u) => sum + u.valueSats.toInt());
     final address = (await _wallet.getNewAddress(walletId)).address;
 
     _log.i(
