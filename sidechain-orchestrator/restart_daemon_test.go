@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -83,6 +84,18 @@ func TestPrepareCoreArgs_NoOpWhenAlreadySet(t *testing.T) {
 	opts := StartOpts{CoreArgs: []string{"-existing=arg"}}
 	o.prepareCoreArgs(&opts)
 	require.Equal(t, []string{"-existing=arg"}, opts.CoreArgs)
+}
+
+// TestPrepareCoreArgs_PinsTheDatadir guards the mismatch that left the
+// enforcer reading a cookie no bitcoind ever wrote: without -datadir, Core
+// runs in its own default folder while every path here names ours.
+func TestPrepareCoreArgs_PinsTheDatadir(t *testing.T) {
+	o := newTestOrchestrator(t)
+	opts := StartOpts{}
+	o.prepareCoreArgs(&opts)
+
+	require.Contains(t, opts.CoreArgs, fmt.Sprintf("-datadir=%s", o.BitcoinConf.RootDataDir()))
+	require.True(t, strings.HasPrefix(o.BitcoinConf.GetRPCCookiePath(), o.BitcoinConf.RootDataDir()))
 }
 
 // TestPrepareCoreArgs_NoOpWhenBitcoinConfNil verifies the extracted helper

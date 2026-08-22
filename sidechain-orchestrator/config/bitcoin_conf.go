@@ -172,6 +172,17 @@ func (m *BitcoinConfManager) DataDir() string {
 	return BitcoinCoreDirs.DatadirNetwork(m.Network, m.DetectedDataDir)
 }
 
+// RootDataDir returns the datadir root bitcoind must run in: the configured
+// datadir=, or this install's platform default. The orchestrator passes it to
+// bitcoind as -datadir, because Core's own default is a different folder and
+// every path this package builds — cookie, chain data, conf — assumes ours.
+func (m *BitcoinConfManager) RootDataDir() string {
+	if m.DetectedDataDir != "" {
+		return m.DetectedDataDir
+	}
+	return BitcoinCoreDirs.RootDirNetwork(m.Network)
+}
+
 // GetRPCCookiePath returns the path Core writes its auth cookie to. An
 // rpccookiefile setting wins, absolute or relative to the network datadir.
 func (m *BitcoinConfManager) GetRPCCookiePath() string {
