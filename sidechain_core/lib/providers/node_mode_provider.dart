@@ -43,9 +43,10 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
       lightModeAvailable = resp.lightModeAvailable;
       notifyListeners();
     } catch (e) {
-      _logger.w('NodeModeProvider: read failed, asking the user again: $e');
-      mode = wmpb.NodeMode.NODE_MODE_UNSPECIFIED;
-      notifyListeners();
+      // A failed read is not an unpicked mode. Clearing it here would drop a
+      // full-mode install to the light-mode UI and skip the L1 boot, on
+      // nothing worse than an orchestrator restart.
+      _logger.w('NodeModeProvider: read failed, keeping $mode: $e');
     }
   }
 
