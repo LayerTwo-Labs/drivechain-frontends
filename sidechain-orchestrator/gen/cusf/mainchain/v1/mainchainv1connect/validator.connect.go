@@ -65,6 +65,9 @@ const (
 	// ValidatorServiceGetTwoWayPegDataProcedure is the fully-qualified name of the ValidatorService's
 	// GetTwoWayPegData RPC.
 	ValidatorServiceGetTwoWayPegDataProcedure = "/cusf.mainchain.v1.ValidatorService/GetTwoWayPegData"
+	// ValidatorServiceGetWithdrawalBundleProposalsProcedure is the fully-qualified name of the
+	// ValidatorService's GetWithdrawalBundleProposals RPC.
+	ValidatorServiceGetWithdrawalBundleProposalsProcedure = "/cusf.mainchain.v1.ValidatorService/GetWithdrawalBundleProposals"
 	// ValidatorServiceSubscribeEventsProcedure is the fully-qualified name of the ValidatorService's
 	// SubscribeEvents RPC.
 	ValidatorServiceSubscribeEventsProcedure = "/cusf.mainchain.v1.ValidatorService/SubscribeEvents"
@@ -94,6 +97,7 @@ type ValidatorServiceClient interface {
 	GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error)
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
 	GetTwoWayPegData(context.Context, *connect.Request[v1.GetTwoWayPegDataRequest]) (*connect.Response[v1.GetTwoWayPegDataResponse], error)
+	GetWithdrawalBundleProposals(context.Context, *connect.Request[v1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[v1.GetWithdrawalBundleProposalsResponse], error)
 	SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest]) (*connect.ServerStreamForClient[v1.SubscribeEventsResponse], error)
 	// Stream header sync progress updates
 	SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest]) (*connect.ServerStreamForClient[v1.SubscribeHeaderSyncProgressResponse], error)
@@ -184,6 +188,13 @@ func NewValidatorServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		getWithdrawalBundleProposals: connect.NewClient[v1.GetWithdrawalBundleProposalsRequest, v1.GetWithdrawalBundleProposalsResponse](
+			httpClient,
+			baseURL+ValidatorServiceGetWithdrawalBundleProposalsProcedure,
+			connect.WithSchema(validatorServiceMethods.ByName("GetWithdrawalBundleProposals")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		subscribeEvents: connect.NewClient[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse](
 			httpClient,
 			baseURL+ValidatorServiceSubscribeEventsProcedure,
@@ -210,19 +221,20 @@ func NewValidatorServiceClient(httpClient connect.HTTPClient, baseURL string, op
 
 // validatorServiceClient implements ValidatorServiceClient.
 type validatorServiceClient struct {
-	getBlockHeaderInfo          *connect.Client[v1.GetBlockHeaderInfoRequest, v1.GetBlockHeaderInfoResponse]
-	getBlockInfo                *connect.Client[v1.GetBlockInfoRequest, v1.GetBlockInfoResponse]
-	getBmmHStarCommitment       *connect.Client[v1.GetBmmHStarCommitmentRequest, v1.GetBmmHStarCommitmentResponse]
-	getChainInfo                *connect.Client[v1.GetChainInfoRequest, v1.GetChainInfoResponse]
-	getChainTip                 *connect.Client[v1.GetChainTipRequest, v1.GetChainTipResponse]
-	getCoinbasePSBT             *connect.Client[v1.GetCoinbasePSBTRequest, v1.GetCoinbasePSBTResponse]
-	getCtip                     *connect.Client[v1.GetCtipRequest, v1.GetCtipResponse]
-	getSidechainProposals       *connect.Client[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse]
-	getSidechains               *connect.Client[v1.GetSidechainsRequest, v1.GetSidechainsResponse]
-	getTwoWayPegData            *connect.Client[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse]
-	subscribeEvents             *connect.Client[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse]
-	subscribeHeaderSyncProgress *connect.Client[v1.SubscribeHeaderSyncProgressRequest, v1.SubscribeHeaderSyncProgressResponse]
-	stop                        *connect.Client[v1.StopRequest, v1.StopResponse]
+	getBlockHeaderInfo           *connect.Client[v1.GetBlockHeaderInfoRequest, v1.GetBlockHeaderInfoResponse]
+	getBlockInfo                 *connect.Client[v1.GetBlockInfoRequest, v1.GetBlockInfoResponse]
+	getBmmHStarCommitment        *connect.Client[v1.GetBmmHStarCommitmentRequest, v1.GetBmmHStarCommitmentResponse]
+	getChainInfo                 *connect.Client[v1.GetChainInfoRequest, v1.GetChainInfoResponse]
+	getChainTip                  *connect.Client[v1.GetChainTipRequest, v1.GetChainTipResponse]
+	getCoinbasePSBT              *connect.Client[v1.GetCoinbasePSBTRequest, v1.GetCoinbasePSBTResponse]
+	getCtip                      *connect.Client[v1.GetCtipRequest, v1.GetCtipResponse]
+	getSidechainProposals        *connect.Client[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse]
+	getSidechains                *connect.Client[v1.GetSidechainsRequest, v1.GetSidechainsResponse]
+	getTwoWayPegData             *connect.Client[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse]
+	getWithdrawalBundleProposals *connect.Client[v1.GetWithdrawalBundleProposalsRequest, v1.GetWithdrawalBundleProposalsResponse]
+	subscribeEvents              *connect.Client[v1.SubscribeEventsRequest, v1.SubscribeEventsResponse]
+	subscribeHeaderSyncProgress  *connect.Client[v1.SubscribeHeaderSyncProgressRequest, v1.SubscribeHeaderSyncProgressResponse]
+	stop                         *connect.Client[v1.StopRequest, v1.StopResponse]
 }
 
 // GetBlockHeaderInfo calls cusf.mainchain.v1.ValidatorService.GetBlockHeaderInfo.
@@ -275,6 +287,12 @@ func (c *validatorServiceClient) GetTwoWayPegData(ctx context.Context, req *conn
 	return c.getTwoWayPegData.CallUnary(ctx, req)
 }
 
+// GetWithdrawalBundleProposals calls
+// cusf.mainchain.v1.ValidatorService.GetWithdrawalBundleProposals.
+func (c *validatorServiceClient) GetWithdrawalBundleProposals(ctx context.Context, req *connect.Request[v1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[v1.GetWithdrawalBundleProposalsResponse], error) {
+	return c.getWithdrawalBundleProposals.CallUnary(ctx, req)
+}
+
 // SubscribeEvents calls cusf.mainchain.v1.ValidatorService.SubscribeEvents.
 func (c *validatorServiceClient) SubscribeEvents(ctx context.Context, req *connect.Request[v1.SubscribeEventsRequest]) (*connect.ServerStreamForClient[v1.SubscribeEventsResponse], error) {
 	return c.subscribeEvents.CallServerStream(ctx, req)
@@ -309,6 +327,7 @@ type ValidatorServiceHandler interface {
 	GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error)
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
 	GetTwoWayPegData(context.Context, *connect.Request[v1.GetTwoWayPegDataRequest]) (*connect.Response[v1.GetTwoWayPegDataResponse], error)
+	GetWithdrawalBundleProposals(context.Context, *connect.Request[v1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[v1.GetWithdrawalBundleProposalsResponse], error)
 	SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest], *connect.ServerStream[v1.SubscribeEventsResponse]) error
 	// Stream header sync progress updates
 	SubscribeHeaderSyncProgress(context.Context, *connect.Request[v1.SubscribeHeaderSyncProgressRequest], *connect.ServerStream[v1.SubscribeHeaderSyncProgressResponse]) error
@@ -395,6 +414,13 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	validatorServiceGetWithdrawalBundleProposalsHandler := connect.NewUnaryHandler(
+		ValidatorServiceGetWithdrawalBundleProposalsProcedure,
+		svc.GetWithdrawalBundleProposals,
+		connect.WithSchema(validatorServiceMethods.ByName("GetWithdrawalBundleProposals")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	validatorServiceSubscribeEventsHandler := connect.NewServerStreamHandler(
 		ValidatorServiceSubscribeEventsProcedure,
 		svc.SubscribeEvents,
@@ -438,6 +464,8 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 			validatorServiceGetSidechainsHandler.ServeHTTP(w, r)
 		case ValidatorServiceGetTwoWayPegDataProcedure:
 			validatorServiceGetTwoWayPegDataHandler.ServeHTTP(w, r)
+		case ValidatorServiceGetWithdrawalBundleProposalsProcedure:
+			validatorServiceGetWithdrawalBundleProposalsHandler.ServeHTTP(w, r)
 		case ValidatorServiceSubscribeEventsProcedure:
 			validatorServiceSubscribeEventsHandler.ServeHTTP(w, r)
 		case ValidatorServiceSubscribeHeaderSyncProgressProcedure:
@@ -491,6 +519,10 @@ func (UnimplementedValidatorServiceHandler) GetSidechains(context.Context, *conn
 
 func (UnimplementedValidatorServiceHandler) GetTwoWayPegData(context.Context, *connect.Request[v1.GetTwoWayPegDataRequest]) (*connect.Response[v1.GetTwoWayPegDataResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.GetTwoWayPegData is not implemented"))
+}
+
+func (UnimplementedValidatorServiceHandler) GetWithdrawalBundleProposals(context.Context, *connect.Request[v1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[v1.GetWithdrawalBundleProposalsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.GetWithdrawalBundleProposals is not implemented"))
 }
 
 func (UnimplementedValidatorServiceHandler) SubscribeEvents(context.Context, *connect.Request[v1.SubscribeEventsRequest], *connect.ServerStream[v1.SubscribeEventsResponse]) error {
