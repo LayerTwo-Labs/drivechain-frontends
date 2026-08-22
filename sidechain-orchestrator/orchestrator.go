@@ -97,9 +97,6 @@ type StartOpts struct {
 	// sidechain Flutter frontends when self-booting their backend so the
 	// toggle doesn't swap in another Flutter bundle inside them.
 	ForceBackend bool
-	// swapHeld marks a boot issued by an enforcer wallet swap, which is the one
-	// boot allowed to run while a swap is in progress.
-	swapHeld bool
 }
 
 // failBoot routes a StartWithL1 failure to all the places the frontend can
@@ -191,14 +188,6 @@ type Orchestrator struct {
 	// across the enforcer wait, so an accept cannot restore the branch the
 	// reject still reconciles against.
 	rejectMu sync.Mutex
-
-	// swapEnforcerMu serialises the whole enforcer wallet swap for the same
-	// reason: its stop -> back up -> commit -> restart sequence is not safe to
-	// interleave with a second one.
-	swapEnforcerMu sync.Mutex
-	// swapEnforcerActive is true while a swap owns the enforcer, so other boot
-	// paths can refuse instead of racing it.
-	swapEnforcerActive atomic.Bool
 
 	// testSidechainsMu serialises the stop -> persist -> wipe sequence for
 
@@ -572,8 +561,6 @@ type StopOptions struct {
 	// ForceBackend leaves the sidechain's GUI companion running. Set by
 	// sidechain Flutter apps, which are that companion.
 	ForceBackend bool
-	// swapHeld is carried through RestartDaemon into StartOpts.swapHeld.
-	swapHeld bool
 }
 
 func (o *Orchestrator) Stop(ctx context.Context, name string, force bool, options ...StopOptions) error {
@@ -934,29 +921,6 @@ func (o *Orchestrator) prepareEnforcerArgs(opts *StartOpts) {
 	}
 	opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
 	o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
-	o.applyElectrumFallback(opts)
-}
-
-// applyElectrumFallback moves the enforcer wallet to electrum when the
-// network's esplora server does not answer. A dead sync backend otherwise
-// blocks the enforcer before it opens its gRPC port.
-func (o *Orchestrator) applyElectrumFallback(opts *StartOpts) {
-	if o.BitcoinConf == nil {
-		return
-	}
-	esplora, ok := config.EsploraArgURL(opts.EnforcerArgs)
-	if !ok || config.EsploraReachable(context.Background(), esplora) {
-		return
-	}
-
-	host, port := config.ElectrumHostPortForNetwork(o.BitcoinConf.Network)
-	if !config.ElectrumReachable(context.Background(), host, port) {
-		o.log.Warn().Str("esplora", esplora).Msg("esplora unreachable and no electrum server answers; enforcer wallet waits")
-		return
-	}
-
-	opts.EnforcerArgs = config.WithElectrumFallback(opts.EnforcerArgs, host, port)
-	o.log.Warn().Str("esplora", esplora).Str("electrum", host).Msg("esplora unreachable, enforcer wallet reads electrum")
 }
 
 // injectSidechainStarter writes the sidechain seed to a temp file and appends
@@ -1010,7 +974,7 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	)
 }
 
-var errEnforcerWalletRequired = errors.New("you must set your enforcer wallet as active to use sidechains")
+var errNoMainchainForSidechain = errors.New("this sidechain needs a local enforcer, so it runs in full mode only")
 
 // pointSidechainAtRemoteMainchain rewires a ChainLayer-2 target to a hosted
 // orchestrator's CUSF mainchain service when the active wallet is electrum,
@@ -1022,7 +986,7 @@ var errEnforcerWalletRequired = errors.New("you must set your enforcer wallet as
 func (o *Orchestrator) pointSidechainAtRemoteMainchain(cfg BinaryConfig, opts *StartOpts, ch chan<- StartupProgress) bool {
 	fail := func() bool {
 		mon := o.getOrCreateMonitor(cfg.Name, NewHealthChecker(cfg), nil)
-		failBoot(mon, ch, "start "+cfg.Name, errEnforcerWalletRequired)
+		failBoot(mon, ch, "start "+cfg.Name, errNoMainchainForSidechain)
 		return false
 	}
 
@@ -1257,7 +1221,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 			}
 		}
 
-		opts := StartOpts{ForceBackend: forceBackend, swapHeld: opts.swapHeld}
+		opts := StartOpts{ForceBackend: forceBackend}
 
 		switch name {
 		case "bitcoind":
@@ -1298,17 +1262,6 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		o.log.Error().Err(err).Msg("could not clear the enforcer chain a switch left behind")
 		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
 		mon.SetConnectionError(err.Error())
-		mon.SetInitializing(false)
-		return
-	}
-
-	// A boot that is not the swap's own would write a starter file from the
-	// wallet as it stands mid-swap and leave the daemon's state derived from a
-	// seed that is about to be replaced. Refuse rather than race.
-	if !opts.swapHeld && o.swapEnforcerActive.Load() {
-		o.log.Warn().Msg("refusing to start the enforcer while an enforcer wallet swap is in progress")
-		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
-		mon.SetConnectionError("an enforcer wallet swap is in progress; the enforcer starts again when it finishes")
 		mon.SetInitializing(false)
 		return
 	}

@@ -309,29 +309,16 @@ func (o *Orchestrator) awaitEnforcerRollback(ctx context.Context, client *CoreSt
 }
 
 // rebuildEnforcerChain deletes the enforcer's validator chain and starts it
-// again. Its wallet stays, and it re-reads every block from the local Core, so
-// this costs no network download.
+// again. It re-reads every block from the local Core, so this costs no network
+// download.
 func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
-	// A wallet swap owns the enforcer's whole stop and start sequence, and its
-	// guard refuses any start that is not the swap's own. Wiping underneath it
-	// would leave the daemon stopped with no chain data.
-	if !o.swapEnforcerMu.TryLock() {
-		return fmt.Errorf("an enforcer wallet swap is in progress, so the validator chain was left alone")
-	}
-	// RestartDaemon returns before the daemon is up, so the boot goroutine
-	// releases this. A swap taking the lock in between would set its guard and
-	// make that boot refuse, leaving a wiped enforcer stopped.
-	release := o.swapEnforcerMu.Unlock
-
 	if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
-		release()
 		return fmt.Errorf("stop the enforcer: %w", err)
 	}
 
 	// Leave it stopped rather than report a rebuild it never made: a restart
 	// here reopens the very chain that failed to follow Core's branch.
 	if err := config.WipeEnforcerChainDataSync(config.NetworkFromString(o.Network), o.log); err != nil {
-		release()
 		return fmt.Errorf("clear the enforcer chain: %w", err)
 	}
 
@@ -340,11 +327,9 @@ func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
 	// report success and leave the enforcer stopped with no chain data.
 	bootCh, err := o.RestartDaemon(context.Background(), "enforcer")
 	if err != nil {
-		release()
 		return fmt.Errorf("start the enforcer: %w", err)
 	}
 	go func() {
-		defer release()
 		for p := range bootCh {
 			if p.Error != nil {
 				o.log.Error().Err(p.Error).Msg("enforcer restart after the reject failed")
