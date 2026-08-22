@@ -20,9 +20,10 @@ func TestResolveNetworkReadsTheConf(t *testing.T) {
 	dir := t.TempDir()
 	writeConf(t, dir, "bitwindow-bitcoin.conf", "signet=1\n[signet]\nrpcuser=user\n")
 
-	network, err := ResolveNetwork(dir)
+	network, ecashID, err := ResolveNetwork(dir)
 	require.NoError(t, err)
 	assert.Equal(t, NetworkSignet, network)
+	assert.Empty(t, ecashID)
 }
 
 func TestResolveNetworkReadsEachNetwork(t *testing.T) {
@@ -40,7 +41,7 @@ func TestResolveNetworkReadsEachNetwork(t *testing.T) {
 		dir := t.TempDir()
 		writeConf(t, dir, "bitwindow-bitcoin.conf", tt.conf)
 
-		network, err := ResolveNetwork(dir)
+		network, _, err := ResolveNetwork(dir)
 		require.NoErrorf(t, err, "conf %q", tt.conf)
 		assert.Equalf(t, tt.want, network, "conf %q", tt.conf)
 	}
@@ -49,7 +50,7 @@ func TestResolveNetworkReadsEachNetwork(t *testing.T) {
 // Without a conf there is nothing to align to, and guessing a network would
 // open the wrong datadir.
 func TestResolveNetworkFailsWithoutAConf(t *testing.T) {
-	_, err := ResolveNetwork(t.TempDir())
+	_, _, err := ResolveNetwork(t.TempDir())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bitwindow-bitcoin.conf")
 }
@@ -64,7 +65,7 @@ func TestResolveNetworkDoesNotWrite(t *testing.T) {
 	entriesBefore, err := os.ReadDir(dir)
 	require.NoError(t, err)
 
-	_, err = ResolveNetwork(dir)
+	_, _, err = ResolveNetwork(dir)
 	require.NoError(t, err)
 
 	after, err := os.ReadFile(filepath.Join(dir, "bitwindow-bitcoin.conf"))
@@ -109,9 +110,33 @@ func TestResolveNetworkReadsTheECashSentinel(t *testing.T) {
 			dir := t.TempDir()
 			writeConf(t, dir, "bitwindow-bitcoin.conf", tt.conf)
 
-			network, err := ResolveNetwork(dir)
+			network, _, err := ResolveNetwork(dir)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, network)
+		})
+	}
+}
+
+// bitwindowd takes the eCash id from the conf too, so it never waits on the
+// orchestrator to learn which eCash network it serves.
+func TestResolveNetworkReadsTheECashID(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		conf string
+		want string
+	}{
+		{"alphanet", "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-alphanet\n", "alphanet"},
+		{"betanet", "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-betanet\n", "betanet"},
+		{"forknet carries none", "chain=main\n[main]\ndrivechain=1\nuacomment=BitWindow-0.2\n", ""},
+		{"signet carries none", "signet=1\n", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeConf(t, dir, "bitwindow-bitcoin.conf", tt.conf)
+
+			_, ecashID, err := ResolveNetwork(dir)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, ecashID)
 		})
 	}
 }

@@ -712,7 +712,7 @@ func binaryPathFor(cctx *cli.Context, dataDir, name string) string {
 	}
 	bitwindowDir := cctx.String("bitwindow-dir")
 	network := cctx.String("network")
-	if n, err := config.ResolveNetwork(bitwindowDir); err == nil {
+	if n, _, err := config.ResolveNetwork(bitwindowDir); err == nil {
 		network = string(n)
 	}
 	return orchestrator.ActiveCoreBinaryPath(
