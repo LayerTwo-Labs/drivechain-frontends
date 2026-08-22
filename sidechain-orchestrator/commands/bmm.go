@@ -1,10 +1,7 @@
 package commands
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -14,8 +11,12 @@ import (
 
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1/bmmv1connect"
+	mainchainpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	walletpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func newBMMClient(cctx *cli.Context) bmmv1connect.BMMServiceClient {
@@ -113,52 +114,27 @@ var bmmMineCommand = &cli.Command{
 // puts the M1/M2 messages in its coinbase. Routed through the orchestrator
 // rather than the enforcer directly so the CLI needs one address, not two.
 func generateMainchainBlock(cctx *cli.Context) error {
-	address, err := enforcerCall(cctx, "WalletService/CreateNewAddress", map[string]any{})
+	wallet := newWalletClient(cctx)
+	walletID, err := resolveWalletID(cctx, wallet)
 	if err != nil {
 		return err
 	}
-	to, _ := address["address"].(string)
-	if to == "" {
-		return fmt.Errorf("the enforcer gave no address to mine to")
+	address, err := wallet.GetNewAddress(cctx.Context, connect.NewRequest(&walletpb.GetNewAddressRequest{WalletId: walletID}))
+	if err != nil {
+		return fmt.Errorf("get an address to mine to: %w", err)
 	}
-	_, err = enforcerCall(cctx, "MiningService/GenerateToAddress", map[string]any{"blocks": 1, "address": to})
+
+	mining := mainchainv1connect.NewMiningServiceClient(
+		http.DefaultClient,
+		fmt.Sprintf("http://%s", cctx.String("rpcserver")),
+		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(cookieDir(cctx))),
+	)
+	_, err = mining.GenerateToAddress(cctx.Context, connect.NewRequest(&mainchainpb.GenerateToAddressRequest{
+		Blocks:  wrapperspb.UInt32(1),
+		Address: address.Msg.Address,
+	}))
 	return err
-}
-
-// enforcerCall speaks Connect's JSON protocol, which is a plain HTTP POST, to
-// the enforcer services the orchestrator bridges.
-func enforcerCall(cctx *cli.Context, method string, body map[string]any) (map[string]any, error) {
-	payload, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	url := fmt.Sprintf("http://%s/cusf.mainchain.v1.%s", cctx.String("rpcserver"), method)
-	req, err := http.NewRequestWithContext(cctx.Context, http.MethodPost, url, bytes.NewReader(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close() //nolint:errcheck // cleanup
-
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s: %s", method, resp.Status, bytes.TrimSpace(raw))
-	}
-	var out map[string]any
-	if len(raw) > 0 {
-		if err := json.Unmarshal(raw, &out); err != nil {
-			return nil, fmt.Errorf("decode %s: %w", method, err)
-		}
-	}
-	return out, nil
 }
 
 var bmmStartCommand = &cli.Command{
