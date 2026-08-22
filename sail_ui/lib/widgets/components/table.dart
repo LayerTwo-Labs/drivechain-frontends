@@ -157,11 +157,7 @@ class _SailTableState extends State<SailTable> {
             constraints.maxWidth > 0 &&
             constraints.maxWidth != double.infinity) {
           _currentConstraints = constraints;
-          if (mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _resizeColumns(constraints.maxWidth, force: true);
-            });
-          }
+          _autoSizeColumns(constraints.maxWidth);
         }
 
         // Calculate total width including resize handles
@@ -334,6 +330,7 @@ class _SailTableState extends State<SailTable> {
     _widths.clear();
 
     final columnWidths = List<double>.filled(_numColumns!, 0);
+    final fixedColumns = List<bool>.filled(_numColumns!, false);
 
     final headers = widget.headerBuilder(context);
     for (int col = 0; col < headers.length; col++) {
@@ -352,7 +349,11 @@ class _SailTableState extends State<SailTable> {
     for (int row in rowsToSample) {
       final cells = widget.rowBuilder(context, row, false);
       for (int col = 0; col < cells.length && col < _numColumns!; col++) {
-        final cellWidth = _calculateColumnWidth(cells[col]);
+        final cell = cells[col];
+        if (cell is SailTableCell && cell.width != null) {
+          fixedColumns[col] = true;
+        }
+        final cellWidth = _calculateColumnWidth(cell);
         columnWidths[col] = max(columnWidths[col], cellWidth);
       }
     }
@@ -361,7 +362,37 @@ class _SailTableState extends State<SailTable> {
       columnWidths[i] = max(columnWidths[i], defaultMinColumnWidth);
     }
 
+    _stretchToFill(columnWidths, fixedColumns, availableWidth);
+
     _widths.addAll(columnWidths);
+  }
+
+  void _stretchToFill(
+    List<double> columnWidths,
+    List<bool> fixedColumns,
+    double availableWidth,
+  ) {
+    final handleWidth = widget.resizableColumns ? (_numColumns! - 1) * 8.0 : 0.0;
+    final contentWidth = columnWidths.fold<double>(0, (prev, e) => prev + e);
+    final slack = availableWidth - handleWidth - contentWidth;
+    if (slack <= 0) {
+      return;
+    }
+
+    final growable = <int>[];
+    for (int i = 0; i < _numColumns!; i++) {
+      if (!fixedColumns[i]) {
+        growable.add(i);
+      }
+    }
+    if (growable.isEmpty) {
+      return;
+    }
+
+    final share = slack / growable.length;
+    for (final i in growable) {
+      columnWidths[i] += share;
+    }
   }
 
   double _calculateColumnWidth(Widget widget) {
@@ -739,7 +770,7 @@ class SailTableHeaderCell extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: padding,
-        alignment: Alignment.centerLeft,
+        alignment: alignment,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
