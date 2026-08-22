@@ -8,7 +8,7 @@ import "walletmanager.pb.dart" as walletmanagerv1walletmanager;
 import "walletmanager.connect.spec.dart" as specs;
 import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 
-extension type WalletManagerServiceClient(connect.Transport _transport) {
+extension type WalletManagerServiceClient (connect.Transport _transport) {
   /// Wallet lifecycle
   Future<walletmanagerv1walletmanager.GetWalletStatusResponse> getWalletStatus(
     walletmanagerv1walletmanager.GetWalletStatusRequest input, {
@@ -19,6 +19,61 @@ extension type WalletManagerServiceClient(connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.WalletManagerService.getWalletStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// How much of Bitcoin this install runs. The frontend asks the user before
+  /// it boots anything, and blocks until GetNodeMode reports a mode.
+  /// Deposits this install made to a sidechain treasury. An M5 is an ordinary
+  /// transaction on the wire, so the record comes from when we broadcast it.
+  Future<walletmanagerv1walletmanager.ListSidechainDepositsResponse> listSidechainDeposits(
+    walletmanagerv1walletmanager.ListSidechainDepositsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.listSidechainDeposits,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.GetNodeModeResponse> getNodeMode(
+    walletmanagerv1walletmanager.GetNodeModeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getNodeMode,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  Future<walletmanagerv1walletmanager.SetNodeModeResponse> setNodeMode(
+    walletmanagerv1walletmanager.SetNodeModeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.setNodeMode,
       input,
       signal: signal,
       headers: headers,
@@ -257,27 +312,6 @@ extension type WalletManagerServiceClient(connect.Transport _transport) {
   }) {
     return connect.Client(_transport).server(
       specs.WalletManagerService.restoreWalletBackupStream,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
-  /// SwapEnforcerWallet loads a different seed into the enforcer: stops the
-  /// daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
-  /// entry in wallet.json from the given mnemonic, and restarts the daemon.
-  /// Sidechain starters keep the seed their daemons were built from.
-  Stream<walletmanagerv1walletmanager.SwapEnforcerWalletProgressResponse> swapEnforcerWallet(
-    walletmanagerv1walletmanager.SwapEnforcerWalletRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).server(
-      specs.WalletManagerService.swapEnforcerWallet,
       input,
       signal: signal,
       headers: headers,

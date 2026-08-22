@@ -19,6 +19,31 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.GetWalletStatusResponse.new,
   );
 
+  /// How much of Bitcoin this install runs. The frontend asks the user before
+  /// it boots anything, and blocks until GetNodeMode reports a mode.
+  /// Deposits this install made to a sidechain treasury. An M5 is an ordinary
+  /// transaction on the wire, so the record comes from when we broadcast it.
+  static const listSidechainDeposits = connect.Spec(
+    '/$name/ListSidechainDeposits',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.ListSidechainDepositsRequest.new,
+    walletmanagerv1walletmanager.ListSidechainDepositsResponse.new,
+  );
+
+  static const getNodeMode = connect.Spec(
+    '/$name/GetNodeMode',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetNodeModeRequest.new,
+    walletmanagerv1walletmanager.GetNodeModeResponse.new,
+  );
+
+  static const setNodeMode = connect.Spec(
+    '/$name/SetNodeMode',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SetNodeModeRequest.new,
+    walletmanagerv1walletmanager.SetNodeModeResponse.new,
+  );
+
   static const generateWallet = connect.Spec(
     '/$name/GenerateWallet',
     connect.StreamType.unary,
@@ -115,17 +140,6 @@ abstract final class WalletManagerService {
     connect.StreamType.server,
     walletmanagerv1walletmanager.RestoreWalletBackupRequest.new,
     walletmanagerv1walletmanager.RestoreWalletBackupProgressResponse.new,
-  );
-
-  /// SwapEnforcerWallet loads a different seed into the enforcer: stops the
-  /// daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
-  /// entry in wallet.json from the given mnemonic, and restarts the daemon.
-  /// Sidechain starters keep the seed their daemons were built from.
-  static const swapEnforcerWallet = connect.Spec(
-    '/$name/SwapEnforcerWallet',
-    connect.StreamType.server,
-    walletmanagerv1walletmanager.SwapEnforcerWalletRequest.new,
-    walletmanagerv1walletmanager.SwapEnforcerWalletProgressResponse.new,
   );
 
   static const createWatchOnlyWallet = connect.Spec(
