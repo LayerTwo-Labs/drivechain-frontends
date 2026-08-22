@@ -8,13 +8,14 @@ import {
   customNetworkMagic,
   findBackend,
   l1Binaries,
+  networkName,
   RELEASES_BASE,
   sidechainPeers,
 } from "@/lib/network";
 
 export async function generateMetadata(): Promise<Metadata> {
   const net = await getNetworkConfig();
-  return { title: `Connect to ${net.display_name}` };
+  return { title: `Connect to ${networkName(net)}` };
 }
 
 // Everything on this page comes from drivechain.dev/config: sections render
@@ -37,7 +38,7 @@ export default async function InfoPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Connect to {net.display_name}</h1>
+        <h1 className="text-2xl font-bold">Connect to {networkName(net)}</h1>
         <p className="text-muted-foreground mt-2">
           {net.description}. The native currency is {net.currency.name} ({net.currency.ticker}).
           {isForknet &&
@@ -240,40 +241,32 @@ bitcoin-cli -datadir=./${net.id} -rpcclienttimeout=0 \\
         </Card>
       )}
 
-      {isForknet && (
+      {isForknet && mining_pool.stratum && (
         <Card>
           <CardHeader>
             <CardTitle>Mining</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {net.display_name} restarted difficulty at 1 from the fork block, so blocks are
-              CPU-mineable: point any <InlineCode>getblocktemplate</InlineCode> miner at your own
-              node with a payout address of yours.
-            </p>
-            {mining_pool.stratum && (
-              <div className="space-y-1 text-sm">
-                <InlineCode>{mining_pool.stratum}</InlineCode>
-                <p className="text-muted-foreground">
-                  Or point a stratum miner at the public pool
-                  {mining_pool.url && (
-                    <>
-                      {" ("}
-                      <a
-                        className="underline"
-                        href={mining_pool.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {mining_pool.url.replace("https://", "")}
-                      </a>
-                      {")"}
-                    </>
-                  )}
-                  .
-                </p>
-              </div>
-            )}
+            <div className="space-y-1 text-sm">
+              <InlineCode>{mining_pool.stratum}</InlineCode>
+              <p className="text-muted-foreground">
+                Point a stratum miner at the public pool.
+                {mining_pool.url && (
+                  <>
+                    {" See "}
+                    <a
+                      className="underline"
+                      href={mining_pool.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {mining_pool.url.replace("https://", "")}
+                    </a>
+                    {" for stats and setup instructions."}
+                  </>
+                )}
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}

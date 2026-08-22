@@ -115,6 +115,24 @@ export function faucetEnabled(net: NetworkConfig): boolean {
   return net.services.faucet.url !== null;
 }
 
+/** Public name, coin included: "eCash Alphanet", "L2L Signet", "Bitcoin".
+ * Skips the coin when the display name already carries it. */
+export function networkName(net: NetworkConfig): string {
+  const display = net.display_name.toLowerCase();
+  const carriesCoin = net.currency.name
+    .toLowerCase()
+    .split(" ")
+    .some((word) => display.includes(word));
+  return carriesCoin ? net.display_name : `${net.currency.name} ${net.display_name}`;
+}
+
+/** Dev docs link: the eCash networks have their own repo. */
+export function devUrl(net: NetworkConfig): string {
+  return net.family === "ecash"
+    ? "https://github.com/eCash-com/fast-facts"
+    : "https://www.drivechain.info/dev.txt";
+}
+
 export function blockExplorerUrl(net: NetworkConfig, txid: string): string | null {
   return net.explorer_tx_template?.replace("{txid}", txid) ?? null;
 }
