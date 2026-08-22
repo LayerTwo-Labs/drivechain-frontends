@@ -73,3 +73,21 @@ func TestCompanionOnNetworksThatRunMainnetParams(t *testing.T) {
 		})
 	}
 }
+
+// The enforcer funded these wallets before BitWindow ever imported them into
+// Core. Core imports a descriptor with importTimestamp, which reads "now" for a
+// freshly generated seed and scans nothing before the tip. A migrated wallet
+// that keeps that default reads a zero balance, which is what the migration
+// exists to prevent.
+func TestMigratedWalletsRescanFromGenesis(t *testing.T) {
+	// Regtest has no chain source, so the migration lands these on Core, which
+	// is the backend the birthday matters to.
+	svc := loadEnforcerWallet(t, config.NetworkRegtest, "a passphrase the enforcer never saw")
+
+	wallets := svc.GetAllWallets()
+	require.Len(t, wallets, 2)
+	for _, w := range wallets {
+		assert.True(t, w.Imported, "%s must rescan, not start at the tip", w.Name)
+		assert.Equal(t, int64(0), importTimestamp(&w), "%s must import from genesis", w.Name)
+	}
+}

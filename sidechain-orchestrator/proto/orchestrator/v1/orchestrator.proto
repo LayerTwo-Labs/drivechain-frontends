@@ -475,6 +475,7 @@ message GetSyncStatusResponse {
   // display shows it alongside daemon sync status.
   string wallet_sync_status = 4;
   reserved 5;
+  reserved "enforcer_wallet";
   // Tip the wallet chain source reports (esplora or electrum). An electrum
   // wallet runs no local node, so this is the only height it has.
   ChainSync chain_source = 6;
