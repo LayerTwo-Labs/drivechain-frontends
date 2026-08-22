@@ -7,7 +7,7 @@ import 'package:sidechain_core/sidechain_core.dart';
 /// How much of Bitcoin this install runs. Full mode starts Bitcoin Core and the
 /// enforcer locally. Light mode reads the chain from a remote server and starts
 /// no daemon.
-class NodeModeProvider extends ChangeNotifier {
+class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
   final Logger _logger = GetIt.I.get<Logger>();
   OrchestratorWalletRPC get _client => GetIt.I.get<OrchestratorRPC>().wallet;
 
@@ -73,4 +73,9 @@ class NodeModeProvider extends ChangeNotifier {
       _logger.w('NodeModeProvider: could not bring the daemons in step: $e');
     }
   }
+
+  /// A network change moves both facts: regtest and testnet serve no remote
+  /// chain, so the backend narrows light mode to full there.
+  @override
+  Future<void> onNetworkChanged() => load();
 }
