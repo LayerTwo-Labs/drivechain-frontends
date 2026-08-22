@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useNetwork } from "@/components/network-provider";
-import { faucetEnabled } from "@/lib/network";
+import { devUrl, faucetEnabled, networkName } from "@/lib/network";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -24,7 +24,7 @@ export function Navbar() {
               className="h-full w-full object-cover"
             />
           </div>
-          <span className="truncate">Drivechain Hub ({network.display_name})</span>
+          <span className="truncate">{networkName(network)} — Drivechain Hub</span>
         </div>
         <div className="flex space-x-6 overflow-x-auto no-scrollbar w-full md:w-auto justify-center md:justify-end pb-1 md:pb-0">
           {faucetEnabled(network) && (
@@ -38,7 +38,7 @@ export function Navbar() {
           <NavLink href="/info" active={pathname?.startsWith("/info")}>
             Info
           </NavLink>
-          <NavLink href="https://www.drivechain.info/dev.txt">Dev</NavLink>
+          <NavLink href={devUrl(network)}>Dev</NavLink>
         </div>
       </div>
     </nav>

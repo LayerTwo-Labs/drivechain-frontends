@@ -4,7 +4,7 @@ import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { NetworkProvider } from "@/components/network-provider";
 import { getNetworkConfig } from "@/lib/config";
-import { faucetEnabled } from "@/lib/network";
+import { faucetEnabled, networkName } from "@/lib/network";
 
 import "./globals.css";
 
@@ -18,10 +18,11 @@ const inter = Inter({ subsets: ["latin"] });
 // so a single image serves every network.
 export async function generateMetadata(): Promise<Metadata> {
   const network = await getNetworkConfig();
-  const title = `Drivechain Hub (${network.display_name})`;
+  const name = networkName(network);
+  const title = `${name} — Drivechain Hub`;
   const description = faucetEnabled(network)
-    ? `Faucet, sidechain overview and connection info for ${network.display_name}`
-    : `Sidechain overview and connection info for ${network.display_name}`;
+    ? `Faucet, sidechain overview and connection info for ${name}`
+    : `Sidechain overview and connection info for ${name}`;
 
   return {
     title,
