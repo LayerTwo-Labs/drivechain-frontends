@@ -16,6 +16,7 @@ import (
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -201,4 +202,43 @@ func TestParserRetriesTheStartupSweepAfterCoreIsReady(t *testing.T) {
 	var left int
 	require.NoError(t, db.QueryRow(`SELECT count(*) FROM op_returns`).Scan(&left))
 	require.Zero(t, left)
+}
+
+// A light-mode user can still stamp a file through the Electrum wallet, and
+// the row then waits at "confirming". This watcher read Bitcoin Core for it
+// every ten seconds, and warned each time.
+func TestTimestampEngineWatchesOnlyInFullMode(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		mode      orchpb.NodeMode
+		wantDials bool
+	}{
+		{name: "light mode dials nothing", mode: orchpb.NodeMode_NODE_MODE_LIGHT},
+		{name: "full mode still dials", mode: orchpb.NodeMode_NODE_MODE_FULL, wantDials: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			db := database.Test(t)
+			_, err := db.ExecContext(context.Background(), `
+				INSERT INTO file_timestamps (filename, file_hash, txid, status)
+				VALUES ('note.txt', 'abc', 'dead', 'confirming')
+			`)
+			require.NoError(t, err)
+
+			var dials atomic.Int64
+			engine := engines.NewTimestampEngine(db, zerolog.Nop(), nil, countingBitcoind(&dials))
+			engine.SetNodeMode(nodeModeSource(t, tc.mode))
+
+			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			defer cancel()
+			_ = engine.Run(ctx)
+
+			if tc.wantDials {
+				require.Positive(t, dials.Load())
+			} else {
+				require.Zero(t, dials.Load())
+			}
+		})
+	}
 }

@@ -61,6 +61,13 @@ type TimestampEngine struct {
 	log      zerolog.Logger
 	wallet   WalletService
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
+	nodeMode *NodeMode
+}
+
+// SetNodeMode gates the confirmation watch on the node mode. Light mode runs no
+// local Bitcoin Core, so it holds no confirmations to read.
+func (e *TimestampEngine) SetNodeMode(nodeMode *NodeMode) {
+	e.nodeMode = nodeMode
 }
 
 // WalletService interface for sending transactions
@@ -94,6 +101,9 @@ func (e *TimestampEngine) Run(ctx context.Context) error {
 			e.log.Info().Msg("timestamp engine stopped")
 			return ctx.Err()
 		case <-ticker.C:
+			if !e.nodeMode.RunsLocalNode(ctx) {
+				continue
+			}
 			if err := e.checkConfirmations(ctx); err != nil {
 				e.log.Warn().Err(err).Msg("check confirmations")
 			}

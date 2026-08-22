@@ -190,6 +190,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	walletAdapter := engines.NewWalletAdapter(rt.walletEngine)
 	timestampLogger := log.With().Str("component", "timestamp").Logger()
 	rt.timestampEngine = engines.NewTimestampEngine(rt.db, timestampLogger, walletAdapter, s.Bitcoind)
+	rt.timestampEngine.SetNodeMode(rt.walletEngine.NodeMode())
 	rt.m4Engine = engines.NewM4Engine(rt.db)
 	rt.notificationEngine = engines.NewNotificationEngine(rt.db, s.Bitcoind)
 	rt.notificationEngine.SetNodeMode(rt.walletEngine.NodeMode())
