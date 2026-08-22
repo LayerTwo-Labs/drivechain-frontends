@@ -221,7 +221,7 @@ class BottomNav extends StatelessWidget {
           // cards would sit at a misleading "Not connected" — omit them. Unless
           // the daemons are up anyway: switching to an electrum wallet leaves
           // them running, and hiding them loses the sync they still report.
-          final walletNeedsBackends = GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
+          final walletNeedsBackends = NodeModeProvider.runsLocalBackends;
           final showMainchain = showDaemonCard(
             walletNeedsBackends: walletNeedsBackends,
             connected: model.mainchain.connected,
@@ -454,9 +454,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   // gate the bottom-nav connection status — otherwise it sticks on "Waiting
   // for Bitcoin Core" forever. True for enforcer/core wallets and when no
   // wallet is loaded yet.
-  bool get needsBackends =>
-      !GetIt.I.isRegistered<WalletReaderProvider>() ||
-      GetIt.I.get<WalletReaderProvider>().activeWalletNeedsBitcoinBackends;
+  bool get needsBackends => !GetIt.I.isRegistered<WalletReaderProvider>() || NodeModeProvider.runsLocalBackends;
 
   // Connection status
   bool get allConnected =>

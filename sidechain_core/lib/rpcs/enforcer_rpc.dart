@@ -138,9 +138,10 @@ class EnforcerLive extends EnforcerRPC {
     } catch (_) {}
     args.add('--node-zmq-addr-sequence=$zmqSequence');
 
-    // Default flags
-    args.add('--enable-wallet');
+    // Default flags. The block template server replaces the wallet: it serves
+    // getblocktemplate and block generation, and pays to an address we pass in.
     args.add('--enable-mempool');
+    args.add('--enable-block-template-server');
 
     return args;
   }

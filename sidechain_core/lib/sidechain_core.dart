@@ -152,6 +152,7 @@ export 'providers/mining_provider.dart';
 export 'providers/generic_sidechain_conf_provider.dart';
 export 'providers/backend_sidechain_conf_provider.dart';
 export 'providers/settings_provider.dart';
+export 'providers/node_mode_provider.dart';
 export 'providers/wallet_reader_provider.dart';
 export 'providers/backend_state_provider.dart';
 export 'providers/wallet_writer_provider.dart';

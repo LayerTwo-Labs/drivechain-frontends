@@ -46,7 +46,6 @@ enum WelcomeScreen { initial, restore, success }
 /// flow regardless; the provider only picks the wallet type and which backend
 /// serves chain data. Electrum needs no local Bitcoin Core or enforcer.
 enum InitialWalletProvider {
-  enforcer('Enforcer', 'Full drivechain node — runs Bitcoin Core and the enforcer locally'),
   bitcoinCore('Bitcoin Core', 'Served by your local Bitcoin Core node'),
   electrum('Electrum', 'Lightweight — chain data from a remote server, no local node');
 
@@ -57,7 +56,8 @@ enum InitialWalletProvider {
 
 class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   late WelcomeScreen _currentScreen;
-  InitialWalletProvider _selectedProvider = InitialWalletProvider.enforcer;
+  InitialWalletProvider _selectedProvider = InitialWalletProvider.electrum;
+
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
   final TextEditingController _walletNameController = TextEditingController();
@@ -282,6 +282,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
   // "not yet" instead of missing.
   Widget _buildProviderCards(SailThemeData theme) {
     final available = _availableProviders;
+    if (available.length == 1) {
+      return const SizedBox();
+    }
     return SailColumn(
       spacing: SailStyleValues.padding08,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,7 +298,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   Widget _buildProviderCard(SailThemeData theme, InitialWalletProvider provider, {required bool enabled}) {
     final selected = _selectedProvider == provider;
-    final description = enabled ? provider.description : '${provider.description} · needs an enforcer wallet first';
+    final description = provider.description;
 
     return Opacity(
       opacity: enabled ? 1 : 0.5,
@@ -651,13 +654,14 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   String get _defaultWalletName => '${_selectedProvider.label} Wallet';
 
-  /// Bitcoin Core needs an existing enforcer wallet. The backend turns any
-  /// wallet set that has no enforcer into an enforcer wallet, so offering Core
-  /// before one exists would silently create an enforcer wallet — and "has any
-  /// wallet" isn't enough, since an Electrum-only set still has no enforcer.
-  List<InitialWalletProvider> get _availableProviders => GetIt.I.get<WalletReaderProvider>().enforcerWallet != null
-      ? InitialWalletProvider.values
-      : InitialWalletProvider.values.where((p) => p != InitialWalletProvider.bitcoinCore).toList();
+  /// Light mode runs no local node, so Bitcoin Core has nothing to talk to.
+  /// That leaves one backend, and a choice of one is no choice — the cards
+  /// disappear with it.
+  ///
+  /// A sidechain app opens this page with no node mode of its own, so it keeps
+  /// every backend.
+  List<InitialWalletProvider> get _availableProviders =>
+      NodeModeProvider.runsLocalBackends ? InitialWalletProvider.values : [InitialWalletProvider.electrum];
 
   /// Creates the first wallet of the chosen [InitialWalletProvider]. The seed
   /// always comes from the master flow — the backend generates it, or imports
@@ -671,14 +675,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     final account = _resolvedAccountIndex();
     final derivationPath = _derivationPathController.text.trim();
     switch (_selectedProvider) {
-      case InitialWalletProvider.enforcer:
-        await _walletProvider.generateWallet(
-          name: name,
-          customMnemonic: customMnemonic,
-          passphrase: passphrase,
-          account: account,
-          derivationPath: derivationPath,
-        );
       case InitialWalletProvider.bitcoinCore:
         await _walletProvider.createBitcoinCoreWallet(
           name: name,

@@ -24,6 +24,10 @@ class WalletData {
 
   /// True iff this is a watch-only wallet — no spending key, no BIP47.
   final bool isWatchOnly;
+
+  /// True for the one wallet whose seed derives the L1 and sidechain starters.
+  /// Each wallet carries its own seed, so this never moves once recorded.
+  final bool isStarter;
   // BIP47 v3 payment code from orchestrator's WatchWalletData stream.
   // Not persisted — populated only from the proto, not from wallet.json.
   final String bip47PaymentCode;
@@ -36,7 +40,6 @@ class WalletData {
 
   /// True iff this wallet runs against the enforcer, whose wallet service can
   /// watch no key but its own and so never derives a BIP47 payment code.
-  bool get isEnforcer => walletType == BinaryType.BINARY_TYPE_ENFORCER;
 
   /// The address types this wallet derives, its own kind first. Empty until
   /// the wallet stream reports them. A wallet on an explicit derivation path,
@@ -65,6 +68,7 @@ class WalletData {
     required this.walletType,
     this.isElectrum = false,
     this.isWatchOnly = false,
+    this.isStarter = false,
     this.bip47PaymentCode = '',
     this.multisig,
     this.receiveAddressTypes = const [],

@@ -128,10 +128,10 @@ class EnforcerConfigPresets {
   static Map<String, String> getPresetSettings(EnforcerConfigPreset preset) {
     switch (preset) {
       case EnforcerConfigPreset.defaultPreset:
-        return {'enable-wallet': 'true', 'enable-mempool': 'true'};
+        return {'enable-mempool': 'true', 'enable-block-template-server': 'true'};
 
       case EnforcerConfigPreset.minimal:
-        return {'enable-wallet': 'true', 'enable-mempool': 'false'};
+        return {'enable-mempool': 'false'};
 
       case EnforcerConfigPreset.custom:
         return {};

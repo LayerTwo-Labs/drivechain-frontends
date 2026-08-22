@@ -69,6 +69,7 @@ WalletData _wallet({
   String l1 = '',
   List<SidechainWallet> sidechains = const [],
   bool isWatchOnly = false,
+  bool isStarter = false,
   String masterMnemonic = '',
 }) {
   return WalletData(
@@ -76,6 +77,7 @@ WalletData _wallet({
     master: MasterWallet(mnemonic: masterMnemonic, seedHex: '', masterKey: '', chainCode: ''),
     l1: L1Wallet(mnemonic: l1),
     sidechains: sidechains,
+    isStarter: isStarter,
     id: id,
     name: id,
     gradient: WalletGradient.fromWalletId(id),
@@ -92,25 +94,24 @@ void main() {
     }
   });
 
-  test('getL1Mnemonic reads from enforcer wallet, not the active one', () {
+  test('getL1Mnemonic reads the wallet the backend pinned, not index 0', () {
     final provider = WalletReaderProvider(Directory.systemTemp);
     provider.wallets = [
-      _wallet(id: 'enf', type: BinaryType.BINARY_TYPE_ENFORCER, l1: 'enforcer-l1-mnemonic'),
-      _wallet(id: 'core', type: BinaryType.BINARY_TYPE_BITCOIND, l1: 'core-l1-mnemonic'),
+      _wallet(id: 'watch', type: BinaryType.BINARY_TYPE_BITCOIND, l1: 'watch-l1'),
+      _wallet(id: 'starter', type: BinaryType.BINARY_TYPE_BITCOIND, l1: 'starter-l1', isStarter: true),
     ];
-    provider.activeWalletId = 'core';
+    provider.activeWalletId = 'watch';
 
-    expect(provider.activeWallet?.id, 'core');
-    expect(provider.enforcerWallet?.id, 'enf');
-    expect(provider.getL1Mnemonic(), 'enforcer-l1-mnemonic');
+    expect(provider.primaryWallet?.id, 'starter', reason: 'index 0 would disagree with the backend');
+    expect(provider.getL1Mnemonic(), 'starter-l1');
   });
 
-  test('getSidechainMnemonic reads from enforcer wallet, not the active one', () {
+  test('getSidechainMnemonic reads from the primary wallet, not the active one', () {
     final provider = WalletReaderProvider(Directory.systemTemp);
     provider.wallets = [
       _wallet(
-        id: 'enf',
-        type: BinaryType.BINARY_TYPE_ENFORCER,
+        id: 'first',
+        type: BinaryType.BINARY_TYPE_BITCOIND,
         sidechains: [
           SidechainWallet(slot: 9, name: 'Thunder', mnemonic: 'thunder-starter'),
           SidechainWallet(slot: 5, name: 'BitNames', mnemonic: 'bitnames-starter'),
@@ -131,14 +132,12 @@ void main() {
     expect(provider.getSidechainMnemonic(99), isNull);
   });
 
-  test('getL1Mnemonic returns null when enforcer wallet absent', () {
+  test('getL1Mnemonic returns null when no wallet is loaded', () {
     final provider = WalletReaderProvider(Directory.systemTemp);
-    provider.wallets = [
-      _wallet(id: 'core', type: BinaryType.BINARY_TYPE_BITCOIND, l1: 'core-l1'),
-    ];
-    provider.activeWalletId = 'core';
+    provider.wallets = [];
+    provider.activeWalletId = null;
 
-    expect(provider.enforcerWallet, isNull);
+    expect(provider.primaryWallet, isNull);
     expect(provider.getL1Mnemonic(), isNull);
   });
 
