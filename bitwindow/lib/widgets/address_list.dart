@@ -11,6 +11,8 @@ import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
+const double actionsColumnWidth = 96;
+
 class AddressBookViewModel extends BaseViewModel {
   final AddressBookProvider _provider = GetIt.I.get<AddressBookProvider>();
   final TextEditingController labelController = TextEditingController();
@@ -293,28 +295,25 @@ class _AddressBookContentState extends State<AddressBookContent> {
       key: Key('address-book-$direction'),
       title: direction == Direction.DIRECTION_SEND ? 'Sending Addresses' : 'Receiving Addresses',
       subtitle: widget.viewModel.error('create') ?? widget.viewModel.error('edit') ?? widget.viewModel.error('delete'),
-      widgetHeaderEnd: Padding(
-        padding: const EdgeInsets.only(bottom: SailStyleValues.padding16),
-        child: SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            if (direction == Direction.DIRECTION_SEND)
-              SailButton(
-                label: 'Add New Sending Address',
-                onPressed: () async => _showCreateDialog(context),
-              ),
+      widgetHeaderEnd: SailRow(
+        spacing: SailStyleValues.padding08,
+        children: [
+          if (direction == Direction.DIRECTION_SEND)
             SailButton(
-              label: 'Import Labels',
-              variant: ButtonVariant.secondary,
-              onPressed: () async => widget.viewModel.importLabels(context),
+              label: 'Add Address',
+              onPressed: () async => _showCreateDialog(context),
             ),
-            SailButton(
-              label: 'Export Labels',
-              variant: ButtonVariant.secondary,
-              onPressed: () async => widget.viewModel.exportLabels(context),
-            ),
-          ],
-        ),
+          SailButton(
+            label: 'Import',
+            variant: ButtonVariant.outline,
+            onPressed: () async => widget.viewModel.importLabels(context),
+          ),
+          SailButton(
+            label: 'Export',
+            variant: ButtonVariant.outline,
+            onPressed: () async => widget.viewModel.exportLabels(context),
+          ),
+        ],
       ),
       bottomPadding: false,
       child: SailTable(
@@ -328,7 +327,10 @@ class _AddressBookContentState extends State<AddressBookContent> {
             name: 'Address',
             onSort: () => onSort('address'),
           ),
-          const SailTableHeaderCell(name: 'Actions'),
+          const SailTableHeaderCell(
+            name: 'Actions',
+            alignment: Alignment.centerRight,
+          ),
         ],
         rowBuilder: (context, row, selected) {
           final entry = widget.viewModel.entries[row];
@@ -346,20 +348,28 @@ class _AddressBookContentState extends State<AddressBookContent> {
             ),
             SailTableCell(
               value: 'Actions',
+              width: actionsColumnWidth,
+              alignment: Alignment.centerRight,
               child: SailRow(
-                spacing: SailStyleValues.padding08,
+                spacing: SailStyleValues.padding04,
                 children: [
-                  SailButton(
-                    label: 'Edit Label',
-                    variant: ButtonVariant.ghost,
-                    onPressed: () async => _showEditDialog(context, entry),
-                    insideTable: true,
+                  SailTooltip(
+                    message: 'Edit label',
+                    child: SailButton(
+                      variant: ButtonVariant.icon,
+                      icon: SailSVGAsset.iconPen,
+                      onPressed: () async => _showEditDialog(context, entry),
+                      insideTable: true,
+                    ),
                   ),
-                  SailButton(
-                    label: 'Delete',
-                    variant: ButtonVariant.destructive,
-                    onPressed: () async => _showDeleteConfirmation(context, entry),
-                    insideTable: true,
+                  SailTooltip(
+                    message: 'Delete address',
+                    child: SailButton(
+                      variant: ButtonVariant.icon,
+                      icon: SailSVGAsset.iconDelete,
+                      onPressed: () async => _showDeleteConfirmation(context, entry),
+                      insideTable: true,
+                    ),
                   ),
                 ],
               ),
@@ -367,7 +377,7 @@ class _AddressBookContentState extends State<AddressBookContent> {
           ];
         },
         rowCount: widget.viewModel.entries.length,
-        emptyPlaceholder: 'No addresses in address book',
+        emptyPlaceholder: 'No addresses yet',
         drawGrid: true,
         sortColumnIndex: ['label', 'address', 'actions'].indexOf(sortColumn),
         sortAscending: sortAscending,
