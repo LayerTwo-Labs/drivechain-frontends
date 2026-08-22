@@ -1104,36 +1104,6 @@ func (o *Orchestrator) refuseWhileParked() error {
 	)
 }
 
-// applyPendingECashRewindAfterCore makes a drop a switch left for the next live// applyPendingECashRewindAfterCore makes a drop a switch left for the next live
-// Core, and stops Core when it cannot. Every path that brings Core up calls it:
-// a flag saying the boot failed does not take a running daemon off the fork the
-// drop exists to leave.
-func (o *Orchestrator) applyPendingECashRewindAfterCore(ctx context.Context, ch chan<- StartupProgress) error {
-	err := o.ApplyPendingECashRewind(ctx)
-	if err == nil {
-		return nil
-	}
-	o.log.Error().Err(err).Msg("could not apply the eCash rewind a switch left behind")
-	if stopErr := o.process.Stop(ctx, "bitcoind", true); stopErr != nil {
-		o.log.Error().Err(stopErr).Msg("could not stop bitcoind after the deferred rewind failed")
-	}
-	ch <- StartupProgress{Error: fmt.Errorf("apply the deferred eCash rewind: %w", err)}
-	return err
-}
-
-// applyPendingECashWipeBeforeCore makes a journalled wipe and reports it on ch.// applyPendingECashWipeBeforeCore makes a journalled wipe and reports it on ch.
-// Every path that brings Core up calls it: the wipe renames Core's blocks
-// aside, so it only works while nothing holds the datadir open.
-func (o *Orchestrator) applyPendingECashWipeBeforeCore(ctx context.Context, ch chan<- StartupProgress) error {
-	err := o.ApplyPendingECashWipe(ctx)
-	if err == nil {
-		return nil
-	}
-	o.log.Error().Err(err).Msg("could not clear the eCash chain a switch left behind")
-	ch <- StartupProgress{Error: fmt.Errorf("apply the deferred eCash wipe: %w", err)}
-	return err
-}
-
 // Dart parity: rpc_connection.dart L197-232 initBinary pattern.// Dart parity: rpc_connection.dart L197-232 initBinary pattern.
 //  1. startConnectionTimer() — pings once, then starts 1s timer
 //  2. if (connected) → "already running, not booting" → return
@@ -1142,26 +1112,12 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 	// A UTXO snapshot can only be loaded against a live, RPC-reachable node, so
 	// every path that brings bitcoind up gets the apply for free rather than
 	// each caller having to remember it.
-	//
-	// The deferred rewind rides here for the same reason: the daemon card's
-	// restart button reaches Core through this function alone, and a Core up on
-	// the target conf over the retired fork is what the drop exists to stop.
 	defer func() {
 		if !started {
 			return
 		}
-		if err := o.applyPendingECashRewindAfterCore(ctx, ch); err != nil {
-			started = false
-			return
-		}
 		o.maybeApplySnapshot(ctx, ch)
 	}()
-
-	// Before Core opens the datadir: a journalled wipe renames its blocks
-	// aside, and a retry that skipped it would start over the retired chain.
-	if err := o.applyPendingECashWipeBeforeCore(ctx, ch); err != nil {
-		return false
-	}
 
 	coreCfg := o.configs["bitcoind"]
 	var coreHealthOpts HealthCheckOpts
@@ -1561,14 +1517,6 @@ func enforcerEnv() map[string]string {
 // If prefetched is non-nil, the target binary is already being downloaded in
 // parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress, prefetched <-chan error) {
-	// An immediate start reaches Core through here rather than
-	// startBitcoindOnly, so the journalled wipe has to run on both paths.
-	if config.IsMainchainCore() {
-		if err := o.applyPendingECashWipeBeforeCore(ctx, ch); err != nil {
-			return
-		}
-	}
-
 	var startupPatterns []string
 	var healthOpts HealthCheckOpts
 	if config.IsMainchainCore() && o.BitcoinConf != nil {
@@ -1588,16 +1536,6 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	// Keep the target monitor alive even if the frontend asked us to start
 	// the chain before the target RPC is reachable.
 	targetMon.StartConnectionTimer(ctx)
-
-	// An immediate start reaches Core through here, and the drop needs a Core
-	// that answers — so it rides every way out of this function.
-	if config.IsMainchainCore() {
-		defer func() {
-			if targetMon.Connected() {
-				_ = o.applyPendingECashRewindAfterCore(ctx, ch)
-			}
-		}()
-	}
 
 	// A call that opens the frontend must reach the launch below even when the
 	// backend already answers: a backend that outlived its window would

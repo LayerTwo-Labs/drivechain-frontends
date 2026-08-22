@@ -138,7 +138,7 @@ const PlanECashSwitchResponse$json = {
     {'1': 'to_id', '3': 2, '4': 1, '5': 9, '10': 'toId'},
     {'1': 'rewind_height', '3': 3, '4': 1, '5': 13, '10': 'rewindHeight'},
     {'1': 'needs_rollback', '3': 4, '4': 1, '5': 8, '10': 'needsRollback'},
-    {'1': 'must_wipe', '3': 5, '4': 1, '5': 8, '10': 'mustWipe'},
+    {'1': 'blocked', '3': 5, '4': 1, '5': 8, '10': 'blocked'},
   ],
 };
 
@@ -146,8 +146,8 @@ const PlanECashSwitchResponse$json = {
 final $typed_data.Uint8List planECashSwitchResponseDescriptor =
     $convert.base64Decode('ChdQbGFuRUNhc2hTd2l0Y2hSZXNwb25zZRIXCgdmcm9tX2lkGAEgASgJUgZmcm9tSWQSEwoFdG'
         '9faWQYAiABKAlSBHRvSWQSIwoNcmV3aW5kX2hlaWdodBgDIAEoDVIMcmV3aW5kSGVpZ2h0EiUK'
-        'Dm5lZWRzX3JvbGxiYWNrGAQgASgIUg1uZWVkc1JvbGxiYWNrEhsKCW11c3Rfd2lwZRgFIAEoCF'
-        'IIbXVzdFdpcGU=');
+        'Dm5lZWRzX3JvbGxiYWNrGAQgASgIUg1uZWVkc1JvbGxiYWNrEhgKB2Jsb2NrZWQYBSABKAhSB2'
+        'Jsb2NrZWQ=');
 
 @$core.Deprecated('Use takeNewNetworksRequestDescriptor instead')
 const TakeNewNetworksRequest$json = {

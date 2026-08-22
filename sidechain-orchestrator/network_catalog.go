@@ -163,19 +163,6 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 		previousPick = o.Settings.ECashNetworkID()
 	}
 
-	// The journal goes first. Between the writes below and the switch there is a
-	// window where the record names the target while the chain is still the
-	// source; a crash there would let the next start adopt the target with no
-	// drop to make. This record is what that start finds instead.
-	//
-	// A move with no published fork height journals a wipe instead, so every
-	// switch leaves something the next start can finish.
-	if id := o.SelectedECashID(pending); id != "" && config.NetworkFromString(o.Network) == config.NetworkECash {
-		if err := o.recordPendingRewind(o.RunningECashID(current), id); err != nil {
-			return fmt.Errorf("journal the switch to %s: %w", id, err)
-		}
-	}
-
 	// Every durable write goes before the switch. A volume that refuses them
 	// after the chain moved would leave the record naming a network the blocks
 	// no longer belong to, and the next start would act on that record.
@@ -225,7 +212,7 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 		// The pick on both sides, not each document's first row. A user on a
 		// retained entry holds that chain on disk, and comparing first rows
 		// reads two identical ids while the blocks belong to a third.
-		if !o.wipeOnECashNetworkChange(ctx, o.RunningECashID(current), o.SelectedECashID(pending)) {
+		if !o.ecashChangeHasASharedBlock(o.RunningECashID(current), o.SelectedECashID(pending)) {
 			o.restoreConfirmRecord(previousPick, current, pending)
 			return fmt.Errorf("could not clear the retired eCash chain data")
 		}
@@ -489,19 +476,23 @@ func (o *Orchestrator) SelectECashNetwork(id string) error {
 	if _, err := o.Settings.SetECashNetworkID(id); err != nil {
 		return err
 	}
-	// Off eCash there is no Core on that chain to rewind, so the drop is
-	// recorded for the boot that brings one up.
-	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		if !o.wipeOnECashNetworkChange(context.Background(), previous, id) {
-			// The pick is already durable. Leaving it while the drop is not
-			// recorded lets a later boot serve the target over the source fork
-			// with nothing to invalidate it.
-			if _, err := o.Settings.SetECashNetworkID(previous); err != nil {
-				o.log.Error().Err(err).Str("previous", previous).
-					Msg("could not put the eCash network pick back")
-			}
-			return fmt.Errorf("could not record the move off the retired eCash chain")
+	if previous == id || previous == "" {
+		return nil
+	}
+	if !o.ecashChangeHasASharedBlock(previous, id) {
+		// The pick is already durable. Leaving it on a network the chain cannot
+		// reach would serve the target over the source fork.
+		if _, err := o.Settings.SetECashNetworkID(previous); err != nil {
+			o.log.Error().Err(err).Str("previous", previous).
+				Msg("could not put the eCash network pick back")
 		}
+		return fmt.Errorf("no fork height says where %s and %s part", previous, id)
+	}
+	// The enforcer keeps one validator chain per network, not per fork, so the
+	// new generation cannot inherit the old one's. Off eCash that directory
+	// belongs to the running network, so the work waits for the swap back.
+	if err := o.Settings.SetPendingEnforcerWipe(id); err != nil {
+		o.log.Warn().Err(err).Msg("could not record the enforcer cleanup")
 	}
 	return nil
 }
@@ -532,100 +523,21 @@ func (o *Orchestrator) sharedECashHeight(fromID, toID string) (uint32, bool) {
 	return uint32(shared - 1), true
 }
 
-// wipeOnECashNetworkChange makes the chain on disk match a new eCash network.
-// It records a rewind to the block both networks share whenever the catalog
-// publishes one, and only deletes when nothing says where the two forks part.
-// Wallets survive either way — see WipeChainData.
-// It reports whether the catalog may move on: true when nothing had to happen
-// or the work was started, false when the stale data is still there.
-func (o *Orchestrator) wipeOnECashNetworkChange(ctx context.Context, oldID, newID string) bool {
+// ecashChangeHasASharedBlock reports whether a move between two eCash networks
+// can reach a block they share. It writes nothing and deletes nothing: the
+// rewind itself runs in the switch, against a live Core or not at all.
+func (o *Orchestrator) ecashChangeHasASharedBlock(oldID, newID string) bool {
 	if oldID == "" || newID == "" || oldID == newID {
 		return true
 	}
-	if o.BitcoinConf == nil || o.BitcoinConf.Config == nil {
-		o.log.Warn().Msg("eCash network changed but bitcoin config is unavailable, skipping wipe")
-		return false
-	}
-	// A delete would cost every block below the fork, which both networks keep.
-	// Record the drop for the first boot with a Core to make it.
-	if _, ok := o.sharedECashHeight(oldID, newID); ok && o.Settings != nil {
-		if err := o.recordPendingRewind(oldID, newID); err != nil {
-			o.log.Warn().Err(err).Msg("could not record the deferred eCash rewind")
-			return false
-		}
-		// The move back to eCash goes through SwapNetwork, not ApplyECashSwitch,
-		// so nothing else records this. Without it the enforcer comes up on the
-		// retired generation's validator chain.
-		if err := o.Settings.SetPendingEnforcerWipe(newID); err != nil {
-			o.log.Warn().Err(err).Msg("could not record the deferred enforcer cleanup")
-			return false
-		}
-		o.log.Info().
-			Str("previous", oldID).
-			Str("current", newID).
-			Msg("eCash network changed, the next boot drops the retired branch")
+	if _, ok := o.sharedECashHeight(oldID, newID); ok {
 		return true
 	}
-	if o.BitcoinConf.HasPrivateConf {
-		// That user's chain data follows their own bitcoin.conf, not ours.
-		o.log.Warn().Msg("eCash network changed but user bitcoin.conf takes precedence, skipping wipe")
-		return true
-	}
-	// Only a eCash-active install has daemons holding this data open; from any
-	// other network the retired chain is untouched files on disk.
-	if config.NetworkFromString(o.Network) == config.NetworkECash {
-		// Daemons adopted from a previous session. Wiping under a live node
-		// corrupts it, and a surviving enforcer keeps dialling the retired host.
-		for _, name := range []string{"enforcer", "bitcoind"} {
-			if !o.process.IsRunning(name) {
-				continue
-			}
-			if err := o.stopForNetworkSwap(ctx, name); err != nil {
-				o.log.Warn().Err(err).Str("binary", name).
-					Msg("could not stop daemon for the eCash network change, deferring wipe to next start")
-				return false
-			}
-		}
-		// A Core the user launched themselves is not ours to stop.
-		if o.coreRPCReachable() {
-			o.log.Warn().
-				Str("previous", oldID).
-				Str("current", newID).
-				Msg("eCash network changed but an unmanaged bitcoin core is running, deferring wipe to next start")
-			return false
-		}
-	}
-
-	o.log.Info().
+	o.log.Warn().
 		Str("previous", oldID).
 		Str("current", newID).
-		Msg("eCash network changed, wiping stale chain data")
-
-	// Synchronous: the caller persists the new generation next, and recording
-	// a wipe that has not happened is worse than not wiping at all. Runs on
-	// the refresh goroutine, so a slow volume cannot delay startup.
-	if err := config.WipeNetworkScopedChainDataSync(config.NetworkECash, o.ecashDatadir(), o.log); err != nil {
-		o.log.Warn().Err(err).Msg("could not clear the retired eCash chain")
-		return false
-	}
-	// The enforcer's validator chain is per-network, not per-generation, so it
-	// goes too. Off eCash it shares validator/bitcoin with the active network,
-	// so the work is journalled for the swap that brings eCash back.
-	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		if o.Settings == nil {
-			return false
-		}
-		if err := o.Settings.SetPendingEnforcerWipe(newID); err != nil {
-			o.log.Warn().Err(err).Msg("could not record the deferred enforcer cleanup")
-			return false
-		}
-		return true
-	}
-	if err := config.WipeEnforcerChainDataSync(config.NetworkECash, o.log); err != nil {
-		o.log.Warn().Err(err).Msg("could not clear the retired enforcer chain")
-		return false
-	}
-	return true
+		Msg("no fork height says where the two eCash chains part, keeping the chain on disk")
+	return false
 }
 
 // coreRPCReachable reports whether something is already listening on Bitcoin

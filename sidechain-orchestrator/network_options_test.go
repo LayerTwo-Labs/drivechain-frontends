@@ -54,8 +54,8 @@ func TestListNetworksMarksOnlyTheRunningECashEntry(t *testing.T) {
 func TestSelectECashNetworkPinsTheID(t *testing.T) {
 	o := newTestOrchestrator(t)
 	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
-		{ID: "drynet4", Family: netcatalog.FamilyECash},
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
 	}}
 	o.adoptCatalog(cat, "alphanet")
 	require.Equal(t, "alphanet", o.SelectedECashID(cat))
@@ -73,14 +73,14 @@ func TestSelectECashNetworkPinsTheID(t *testing.T) {
 func TestSelectedECashIDFallsBackWhenTheCatalogDropsIt(t *testing.T) {
 	o := newTestOrchestrator(t)
 	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
-		{ID: "drynet4", Family: netcatalog.FamilyECash},
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
 	}}
 	o.adoptCatalog(cat, "alphanet")
 	require.NoError(t, o.SelectECashNetwork("drynet4"))
 
 	trimmed := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
 	}}
 	require.Equal(t, "alphanet", o.SelectedECashID(trimmed))
 }
@@ -164,8 +164,8 @@ func TestSeedToldNetworksRunsOnce(t *testing.T) {
 func TestECashPickSurvivesAnotherSettingChange(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.adoptCatalog(netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
-		{ID: "drynet4", Family: netcatalog.FamilyECash},
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
 	}}, "alphanet")
 	require.NoError(t, o.SelectECashNetwork("drynet4"))
 
@@ -205,8 +205,8 @@ func TestRunningECashIDPrefersTheUserPick(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 
 	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
-		{ID: "drynet4", Family: netcatalog.FamilyECash},
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
+		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
 	}}
 	o.adoptCatalog(cat, "drynet4")
 	require.NoError(t, o.SelectECashNetwork("alphanet"))
@@ -225,7 +225,7 @@ func TestRunningECashIDFallsBackWhenTheCatalogDropsTheConfNetwork(t *testing.T) 
 	}}, "drynet4")
 
 	trimmed := netcatalog.Catalog{Networks: []netcatalog.Network{
-		{ID: "alphanet", Family: netcatalog.FamilyECash},
+		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
 	}}
 	require.Equal(t, "alphanet", o.RunningECashID(trimmed))
 }
