@@ -55,7 +55,7 @@ func TestGetDir(t *testing.T) {
 
 // newEncryptTestEngine builds a BitDriveEngine backed by an on-disk unencrypted
 // wallet.json holding a single enforcer wallet, so Encrypt/Decrypt can derive
-// their keys via WalletEngine.GetEnforcerSeed.
+// their keys via WalletEngine.GetStarterSeed.
 func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 	t.Helper()
 
@@ -66,8 +66,8 @@ func newEncryptTestEngine(t *testing.T) *BitDriveEngine {
 		"wallets": [
 			{
 				"id": "test-enforcer",
-				"name": "enforcer",
-				"wallet_type": "enforcer",
+				"name": "primary",
+				"wallet_type": "bitcoinCore",
 				"master": {
 					"seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 				}

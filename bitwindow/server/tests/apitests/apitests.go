@@ -18,6 +18,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -39,6 +40,9 @@ type configg struct {
 	crypto       cryptov1connect.CryptoServiceClient
 	bitcoind     bitcoindv1alphaconnect.BitcoinServiceClient
 	orchestrator orchrpc.WalletManagerServiceClient
+	// walletType is the backend of the fixture wallet. Electrum by default: it
+	// starts no local node, so a test opts in to Core only when it needs one.
+	walletType string
 }
 
 type ServerOpt func(opt *configg)
@@ -83,6 +87,12 @@ func WithCrypto(crypto cryptov1connect.CryptoServiceClient) ServerOpt {
 	return func(opt *configg) { opt.crypto = crypto }
 }
 
+// WithCoreWallet makes the fixture wallet a Bitcoin Core one, for a test whose
+// feature electrum cannot serve — deniability, for instance.
+func WithCoreWallet() ServerOpt {
+	return func(opt *configg) { opt.walletType = "bitcoinCore" }
+}
+
 // WithOrchestrator injects the wallet-manager client cheque reads go through.
 func WithOrchestrator(client orchrpc.WalletManagerServiceClient) ServerOpt {
 	return func(opt *configg) { opt.orchestrator = client }
@@ -114,14 +124,11 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 
 	// Create a temporary directory with a valid wallet.json for tests
 	walletDir := t.TempDir()
-	createTestWalletJSON(t, walletDir)
+	createTestWalletJSON(t, walletDir, conf.walletType)
 
 	// Create connectors that return our mock clients
 	services := api.Services{
 		Database: database,
-		WalletConnector: func(ctx context.Context) (mainchainv1connect.WalletServiceClient, error) {
-			return conf.wallet, nil
-		},
 		EnforcerConnector: func(ctx context.Context) (mainchainv1connect.ValidatorServiceClient, error) {
 			return conf.enforcer, nil
 		},
@@ -176,11 +183,13 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	return serve(t, srv)
 }
 
-// createTestWalletJSON creates a valid wallet.json file in the given directory
-// for use in tests. This wallet uses a fixed test seed and is configured as an
-// enforcer wallet type.
-func createTestWalletJSON(t *testing.T, walletDir string) {
+// createTestWalletJSON writes a wallet.json with a fixed test seed.
+func createTestWalletJSON(t *testing.T, walletDir, walletType string) {
 	t.Helper()
+
+	if walletType == "" {
+		walletType = "electrum"
+	}
 
 	// Fixed test seed (64 bytes = 128 hex chars)
 	// This is a deterministic test seed - DO NOT use in production
@@ -193,7 +202,7 @@ func createTestWalletJSON(t *testing.T, walletDir string) {
 			{
 				"id":          "test-wallet-id-1234",
 				"name":        "Test Wallet",
-				"wallet_type": "enforcer",
+				"wallet_type": walletType,
 				"master": map[string]any{
 					"seed_hex": testSeedHex,
 				},
@@ -240,6 +249,7 @@ var _ http.RoundTripper = new(ctxTransport)
 // race the test, so the number of calls is non-deterministic.
 func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.BitcoinServiceClient {
 	mock := mocks.NewMockBitcoinServiceClient(ctrl)
+	ExpectCoreWalletSetup(mock)
 
 	// The parser ticker races the test, and starts by fetching block 1. The
 	// test chain has no blocks, which is what bitcoind says here, and the
@@ -267,4 +277,86 @@ func defaultBitcoindMock(ctrl *gomock.Controller) bitcoindv1alphaconnect.Bitcoin
 		AnyTimes()
 
 	return mock
+}
+
+// ExpectCoreWalletSetup allows the calls the wallet engine makes in the
+// background when it brings a Bitcoin Core wallet up. It asserts nothing: every
+// argument matches, and zero calls pass. Its only job is to stop an unrelated
+// background call from failing a test that cares about something else. A test
+// that cares about one of these calls must set its own expectation, which gomock
+// matches ahead of these.
+func ExpectCoreWalletSetup(mock *mocks.MockBitcoinServiceClient) {
+	mock.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.ListWalletsResponse]{
+			Msg: &corepb.ListWalletsResponse{Wallets: []string{}},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		CreateWallet(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.CreateWalletResponse]{
+			Msg: &corepb.CreateWalletResponse{},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		ImportDescriptors(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.ImportDescriptorsResponse]{
+			Msg: &corepb.ImportDescriptorsResponse{},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		ListTransactions(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[corepb.ListTransactionsResponse]{
+			Msg: &corepb.ListTransactionsResponse{},
+		}, nil).
+		AnyTimes()
+
+}
+
+// ExpectOrchestratorReads allows the read-only wallet-manager calls the engines
+// make in the background. Like ExpectCoreWalletSetup it asserts nothing.
+//
+// Note the node mode it reports is FULL, so a test that exercises light mode
+// must set its own GetNodeMode expectation.
+func ExpectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
+	seedHex := "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" +
+		"202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+
+	mock.EXPECT().
+		GetWalletSeed(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[orchpb.GetWalletSeedResponse]{
+			Msg: &orchpb.GetWalletSeedResponse{SeedHex: seedHex},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[orchpb.ListWalletsResponse]{
+			Msg: &orchpb.ListWalletsResponse{},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		GetAddressUnspent(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[orchpb.GetAddressUnspentResponse]{
+			Msg: &orchpb.GetAddressUnspentResponse{},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		GetWalletStatus(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[orchpb.GetWalletStatusResponse]{
+			Msg: &orchpb.GetWalletStatusResponse{HasWallet: true, Unlocked: true},
+		}, nil).
+		AnyTimes()
+
+	mock.EXPECT().
+		GetNodeMode(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[orchpb.GetNodeModeResponse]{
+			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
+		}, nil).
+		AnyTimes()
 }

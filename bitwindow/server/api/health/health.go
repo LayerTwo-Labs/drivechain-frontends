@@ -31,14 +31,12 @@ func New(
 	database *sql.DB,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
-	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 ) *Server {
 	s := &Server{
 		database: database,
 		bitcoind: bitcoind,
 		enforcer: enforcer,
-		wallet:   wallet,
 		crypto:   crypto,
 	}
 	return s
@@ -48,7 +46,6 @@ type Server struct {
 	database *sql.DB
 	bitcoind *service.Service[corerpc.BitcoinServiceClient]
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet   *service.Service[validatorrpc.WalletServiceClient]
 	crypto   *service.Service[cryptorpc.CryptoServiceClient]
 }
 
@@ -97,7 +94,6 @@ func (s *Server) Watch(ctx context.Context, _ *connect.Request[emptypb.Empty], s
 	// on the stream
 	go forwardStatus("bitcoind", s.bitcoind.ConnectedChan(ctx))
 	go forwardStatus("enforcer", s.enforcer.ConnectedChan(ctx))
-	go forwardStatus("wallet", s.wallet.ConnectedChan(ctx))
 	go forwardStatus("crypto", s.crypto.ConnectedChan(ctx))
 
 	// get initial status and send it when a client subscribes
@@ -214,13 +210,6 @@ func (s *Server) getServiceStatuses(ctx context.Context) ([]*healthv1.CheckRespo
 	pool.Go("enforcer", func(ctx context.Context) (*healthv1.CheckResponse_ServiceStatus, error) {
 		return checkHealth(ctx, "enforcer", s.enforcer, func(ctx context.Context, client validatorrpc.ValidatorServiceClient) error {
 			_, err := client.GetChainInfo(ctx, connect.NewRequest(&mainchainv1.GetChainInfoRequest{}))
-			return err
-		}), nil
-	})
-
-	pool.Go("wallet", func(ctx context.Context) (*healthv1.CheckResponse_ServiceStatus, error) {
-		return checkHealth(ctx, "wallet", s.wallet, func(ctx context.Context, client validatorrpc.WalletServiceClient) error {
-			_, err := client.GetInfo(ctx, connect.NewRequest(&mainchainv1.GetInfoRequest{}))
 			return err
 		}), nil
 	})

@@ -19,7 +19,6 @@ import (
 	bitwindowdv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
-	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
@@ -32,8 +31,6 @@ import (
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -60,7 +57,6 @@ func New(
 	database *sql.DB,
 	data datasource.DataSource,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
-	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
 	chequeChain engines.ChequeChain,
@@ -73,7 +69,6 @@ func New(
 		chequeChain:  chequeChain,
 		data:         data,
 		bitcoind:     bitcoind,
-		wallet:       wallet,
 		crypto:       crypto,
 		chequeEngine: chequeEngine,
 		walletEngine: walletEngine,
@@ -92,7 +87,6 @@ type Server struct {
 	database     *sql.DB
 	data         datasource.DataSource
 	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
-	wallet       *service.Service[validatorrpc.WalletServiceClient]
 	crypto       *service.Service[cryptorpc.CryptoServiceClient]
 	chequeEngine *engines.ChequeEngine
 	chequeChain  engines.ChequeChain
@@ -179,78 +173,6 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	log := zerolog.Ctx(ctx)
 
 	// Get wallet type to determine routing
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	if walletType == engines.WalletTypeEnforcer {
-		// Route to enforcer
-		if s.wallet == nil {
-			return nil, errors.New("enforcer wallet not connected")
-		}
-
-		var feeRate *validatorpb.SendTransactionRequest_FeeRate
-		if c.Msg.FeeSatPerVbyte != 0 {
-			feeRate = &validatorpb.SendTransactionRequest_FeeRate{
-				Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: c.Msg.FeeSatPerVbyte},
-			}
-		}
-		if c.Msg.FixedFeeSats != 0 {
-			feeRate = &validatorpb.SendTransactionRequest_FeeRate{
-				Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: c.Msg.FixedFeeSats},
-			}
-		}
-
-		var opReturnMessage *commonv1.Hex
-		if c.Msg.OpReturnMessage != "" {
-			opReturnMessage = &commonv1.Hex{
-				Hex: &wrapperspb.StringValue{
-					Value: hex.EncodeToString([]byte(c.Msg.OpReturnMessage)),
-				},
-			}
-		}
-
-		wallet, err := s.wallet.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		created, err := wallet.SendTransaction(ctx, connect.NewRequest(&validatorpb.SendTransactionRequest{
-			Destinations:    c.Msg.Destinations,
-			FeeRate:         feeRate,
-			OpReturnMessage: opReturnMessage,
-			RequiredUtxos: lo.Map(c.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) *validatorpb.SendTransactionRequest_RequiredUtxo {
-				parts := strings.Split(u.Output, ":")
-				if len(parts) != 2 {
-					return nil
-				}
-				txid := parts[0]
-				vout, err := strconv.ParseUint(parts[1], 10, 32)
-				if err != nil {
-					return nil
-				}
-
-				return &validatorpb.SendTransactionRequest_RequiredUtxo{
-					Txid: &commonv1.ReverseHex{
-						Hex: &wrapperspb.StringValue{Value: txid},
-					},
-					Vout: uint32(vout),
-				}
-			}),
-		}))
-		if err != nil {
-			err = fmt.Errorf("enforcer/wallet: could not send transaction: %w", err)
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction")
-			return nil, err
-		}
-
-		log.Info().Msgf("send tx: broadcast transaction (enforcer): %s", created.Msg.Txid)
-
-		return connect.NewResponse(&pb.SendTransactionResponse{
-			Txid: created.Msg.Txid.Hex.Value,
-		}), nil
-	}
 
 	// Route to Bitcoin Core
 	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
@@ -335,6 +257,10 @@ func (s *Server) sendWithRequiredInputs(
 // GetNewAddress implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
 	walletId := c.Msg.WalletId
+	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
 
 	addressType := c.Msg.AddressType
 	if addressType == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
@@ -344,11 +270,6 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 	coreAddressType := "bech32"
 	if addressType == pb.AddressType_ADDRESS_TYPE_TAPROOT {
 		coreAddressType = "bech32m"
-	}
-
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	// For segwit Bitcoin Core wallets, derive addresses and find the first
@@ -385,20 +306,6 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 
 	var address string
 	switch walletType {
-	case engines.WalletTypeEnforcer:
-		// Enforcer path
-		wallet, err := s.wallet.Get(ctx)
-		if err != nil {
-			return nil, err
-		}
-		resp, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
-		if err != nil {
-			err = fmt.Errorf("enforcer/wallet: could not create new address: %w", err)
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not create new address")
-			return nil, err
-		}
-		address = resp.Msg.Address
-
 	case engines.WalletTypeBitcoinCore:
 		// Watch-only Core wallets import a descriptor; full wallets use the
 		// seed-derived wallet. Both serve addresses from Bitcoin Core.
@@ -629,25 +536,12 @@ func (s *Server) getBitcoinCoreAddress(
 // GetBalance implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
 	walletId := c.Msg.WalletId
-
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
 	switch walletType {
-	case engines.WalletTypeEnforcer:
-		// Enforcer path
-		balance, err := s.data.Balance(ctx, &validatorpb.GetBalanceRequest{})
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not get balance: %w", err)
-		}
-
-		return connect.NewResponse(&pb.GetBalanceResponse{
-			ConfirmedSatoshi: balance.ConfirmedSats,
-			PendingSatoshi:   balance.PendingSats,
-		}), nil
-
 	case engines.WalletTypeBitcoinCore:
 		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
 		if err != nil {
@@ -708,82 +602,9 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 // ListTransactions implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.ListTransactionsRequest]) (*connect.Response[pb.ListTransactionsResponse], error) {
 	walletId := c.Msg.WalletId
-
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	if walletType == engines.WalletTypeEnforcer {
-		// Enforcer path
-		txs, err := s.data.ListTransactions(ctx, &validatorpb.ListTransactionsRequest{})
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
-		}
-
-		// Fetch address book entries for label lookup
-		addressBookEntries, err := addressbook.List(ctx, s.database)
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
-		}
-
-		notes, err := transactions.ListByWallet(ctx, s.database, walletId)
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: could not list transactions: %w", err)
-		}
-		noteMap := make(map[string]string)
-		for _, note := range notes {
-			noteMap[note.TxID] = note.Note
-		}
-
-		// Use logpool to fetch info for all transaction info in parallel
-		pool := logpool.NewWithResults[*pb.WalletTransaction](ctx, "wallet/ListTransactions")
-		for _, tx := range txs.Transactions {
-			txid := tx.Txid.Hex.Value
-			// For sent transactions, try to extract the destination address from the outputs
-			pool.Go(txid, func(ctx context.Context) (*pb.WalletTransaction, error) {
-				note := noteMap[txid]
-
-				var confirmation *pb.Confirmation
-				if tx.ConfirmationInfo != nil {
-					var timestamp *timestamppb.Timestamp
-					if tx.ConfirmationInfo.Timestamp != nil {
-						timestamp = &timestamppb.Timestamp{Seconds: tx.ConfirmationInfo.Timestamp.Seconds}
-					}
-					confirmation = &pb.Confirmation{
-						Height:    tx.ConfirmationInfo.Height,
-						Timestamp: timestamp,
-					}
-				}
-
-				address, label, err := extractAddress(tx, addressBookEntries, s.chequeEngine.GetChainParams())
-				if err != nil {
-					return nil, fmt.Errorf("enforcer/wallet: could not extract address: %w", err)
-				}
-
-				return &pb.WalletTransaction{
-					Txid:             tx.Txid.Hex.Value,
-					FeeSats:          tx.FeeSats,
-					ReceivedSatoshi:  tx.ReceivedSats,
-					SentSatoshi:      tx.SentSats,
-					Address:          address,
-					AddressLabel:     label,
-					Note:             note,
-					ConfirmationTime: confirmation,
-				}, nil
-			})
-		}
-
-		transactionsWithInfo, err := pool.Wait(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("enforcer/wallet: failed to fetch transaction info: %w", err)
-		}
-
-		res := &pb.ListTransactionsResponse{
-			Transactions: transactionsWithInfo,
-		}
-
-		return connect.NewResponse(res), nil
 	}
 
 	if walletType == engines.WalletTypeElectrum {
@@ -957,113 +778,32 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 	}), nil
 }
 
-func extractAddress(tx *validatorpb.WalletTransaction, addressBookEntries []addressbook.Entry, chainParams *chaincfg.Params) (string, string, error) {
-	matchAddressLabel := func(addr string) string {
-		for _, entry := range addressBookEntries {
-			if entry.Address == addr {
-				return entry.Label
-			}
-		}
-		return ""
-	}
-
-	if tx.RawTransaction == nil {
-		// oh well then, never mind it!
-		return "", "", nil
-	}
-
-	rawBytes, err := hex.DecodeString(tx.RawTransaction.Hex.Value)
-	if err != nil {
-		return "", "", fmt.Errorf("could not decode raw tx hex: %w", err)
-	}
-	decodedTx, err := btcutil.NewTxFromBytes(rawBytes)
-	if err != nil {
-		return "", "", fmt.Errorf("could not decode raw transaction: %w", err)
-	}
-
-	// Heuristic: for sent tx, use the first output that is not a change address (not in addressbook as receive)
-	// for received tx, use the first output that is in the addressbook as receive
-	var address string
-	for _, txOut := range decodedTx.MsgTx().TxOut {
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(txOut.PkScript, chainParams)
-		if err == nil && len(addrs) > 0 {
-			addr := addrs[0].EncodeAddress()
-			// Try to find a matching addressbook entry
-			label := matchAddressLabel(addr)
-			// If this is a receive, prefer addressbook entries with receive direction or empty label
-			if tx.ReceivedSats > 0 && label != "" {
-				address = addr
-				break
-			}
-			// If this is a send, prefer addresses not in the addressbook (likely external)
-			if tx.SentSats > 0 && label == "" {
-				address = addr
-				break
-			}
-		}
-	}
-	// Fallback: just use the first output address if nothing else
-	if address == "" && len(decodedTx.MsgTx().TxOut) > 0 {
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(decodedTx.MsgTx().TxOut[0].PkScript, chainParams)
-		if err == nil && len(addrs) > 0 {
-			address = addrs[0].EncodeAddress()
-		}
-	}
-
-	return address, matchAddressLabel(address), nil
-}
-
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
+//
+// The deposit history lived on the enforcer's WalletService, and the enforcer
+// runs no wallet. Nothing else keeps a global deposit list, so this reports
+// none rather than an error the frontend cannot act on.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
 	if c.Msg.Slot < 0 || c.Msg.Slot > 255 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("slot must be 0-255"))
 	}
-
-	walletId := c.Msg.WalletId
-
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	deposits, err := s.walletEngine.ListSidechainDeposits(ctx, uint32(c.Msg.Slot))
 	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
+		return nil, fmt.Errorf("list sidechain deposits: %w", err)
 	}
-
-	// Sidechain deposits only work with enforcer wallet
-	if walletType != engines.WalletTypeEnforcer {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain operations only supported with enforcer wallet"))
-	}
-
-	deposits, err := s.data.ListSidechainDeposits(ctx, &validatorpb.ListSidechainDepositTransactionsRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list sidechain deposits: %w", err)
-	}
-
-	// Fetch current height from bitcoind
-	chainInfo, err := s.data.BlockchainInfo(ctx, &corepb.GetBlockchainInfoRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not get block chain info: %w", err)
-	}
-
-	var response pb.ListSidechainDepositsResponse
-	for _, tx := range deposits.Transactions {
-		// Slot 0 is a real sidechain slot, not an "all slots" sentinel.
-		if tx.SidechainNumber.Value != uint32(c.Msg.Slot) {
-			continue
-		}
-
-		response.Deposits = append(response.Deposits, &pb.ListSidechainDepositsResponse_SidechainDeposit{
-			Txid:          tx.Tx.Txid.Hex.Value,
-			Amount:        int64(tx.Tx.SentSats),
-			Fee:           int64(tx.Tx.FeeSats),
-			Confirmations: int32(chainInfo.Blocks - tx.Tx.ConfirmationInfo.Height),
-		})
-	}
-
-	return connect.NewResponse(&response), nil
+	return connect.NewResponse(&pb.ListSidechainDepositsResponse{
+		Deposits: lo.Map(deposits, func(d *orchpb.SidechainDeposit, _ int) *pb.ListSidechainDepositsResponse_SidechainDeposit {
+			return &pb.ListSidechainDepositsResponse_SidechainDeposit{
+				Txid:   d.Txid,
+				Amount: d.AmountSats,
+			}
+		}),
+	}), nil
 }
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
 	walletId := c.Msg.WalletId
-
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -1098,33 +838,8 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 		return s.createWalletSidechainDeposit(ctx, walletId, uint32(*slot), depositAddress, amount, fee)
 	}
 
-	// Enforcer wallets delegate construction to the enforcer.
-	if walletType != engines.WalletTypeEnforcer {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("sidechain deposits require an enforcer, electrum or core wallet"))
-	}
-	if s.wallet == nil {
-		return nil, errors.New("wallet not connected")
-	}
-
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	created, err := wallet.CreateDepositTransaction(ctx, connect.NewRequest(&validatorpb.CreateDepositTransactionRequest{
-		SidechainId: &wrapperspb.UInt32Value{Value: uint32(*slot)},
-		Address:     &wrapperspb.StringValue{Value: depositAddress},
-		ValueSats:   &wrapperspb.UInt64Value{Value: uint64(amount)},
-		FeeSats:     &wrapperspb.UInt64Value{Value: uint64(fee)},
-	}))
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not create deposit transaction: %w", err)
-	}
-
-	zerolog.Ctx(ctx).Info().Msgf("create deposit tx: broadcast transaction: %s", created.Msg.Txid)
-
-	return connect.NewResponse(&pb.CreateSidechainDepositResponse{
-		Txid: created.Msg.Txid.Hex.Value,
-	}), nil
+	return nil, connect.NewError(connect.CodeFailedPrecondition,
+		errors.New("this wallet backend cannot build a sidechain deposit"))
 }
 
 // createWalletSidechainDeposit delegates the M5 to the orchestrator, which
@@ -1384,7 +1099,6 @@ func (s *Server) VerifyMessage(ctx context.Context, c *connect.Request[pb.Verify
 // ListUnspent implements walletv1connect.WalletServiceHandler.
 func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {
 	walletId := c.Msg.WalletId
-
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
@@ -1406,8 +1120,6 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 
 	var utxos []*pb.UnspentOutput
 	switch walletType {
-	case engines.WalletTypeEnforcer:
-		utxos, err = s.listUnspentEnforcer(ctx, getLabel)
 	case engines.WalletTypeElectrum:
 		utxos, err = s.listUnspentElectrum(ctx, walletId, getLabel)
 	case engines.WalletTypeBitcoinCore:
@@ -1420,32 +1132,6 @@ func (s *Server) ListUnspent(ctx context.Context, c *connect.Request[pb.ListUnsp
 	}
 
 	return connect.NewResponse(&pb.ListUnspentResponse{Utxos: utxos}), nil
-}
-
-func (s *Server) listUnspentEnforcer(ctx context.Context, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
-	utxos, err := s.data.ListUnspentOutputs(ctx, &validatorpb.ListUnspentOutputsRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
-	}
-
-	denials, err := deniability.List(ctx, s.database)
-	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list denials: %w", err)
-	}
-
-	var utxosWithInfo []*pb.UnspentOutput
-	for _, utxo := range utxos.Outputs {
-		utxosWithInfo = append(utxosWithInfo, &pb.UnspentOutput{
-			Output:     fmt.Sprintf("%s:%d", utxo.Txid.Hex.Value, utxo.Vout),
-			Address:    utxo.Address.Value,
-			Label:      getLabel(utxo.Address.Value),
-			ValueSats:  utxo.ValueSats,
-			IsChange:   utxo.IsInternal,
-			DenialInfo: s.addDenialInfo(utxo, denials),
-		})
-	}
-
-	return utxosWithInfo, nil
 }
 
 func (s *Server) listUnspentElectrum(ctx context.Context, walletId string, getLabel func(string) string) ([]*pb.UnspentOutput, error) {
@@ -1503,92 +1189,6 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, ge
 	}
 
 	return utxosWithInfo, nil
-}
-
-func (s *Server) addDenialInfo(utxo *validatorpb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
-	sort.Slice(denials, func(i, j int) bool {
-		return denials[i].UpdatedAt.Before(denials[j].UpdatedAt)
-	})
-
-	denialInfo, found := lo.Find(denials, func(d deniability.Denial) bool {
-		if d.TipTXID == utxo.Txid.Hex.Value && d.TipVout == int32(utxo.Vout) {
-			// check directly for tip first
-			return true
-		}
-
-		// then look through executions
-		return lo.ContainsBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) bool {
-			return e.ToTxID == utxo.Txid.Hex.Value
-		})
-	})
-
-	if !found {
-		return nil
-	}
-
-	return s.denialToProto(utxo, denialInfo)
-}
-
-func (s *Server) denialToProto(utxo *validatorpb.ListUnspentOutputsResponse_Output, d deniability.Denial) *bitwindowdv1.DenialInfo {
-	var cancelTime *timestamppb.Timestamp
-	if d.CancelledAt != nil {
-		cancelTime = timestamppb.New(*d.CancelledAt)
-	}
-
-	var pausedAt *timestamppb.Timestamp
-	if d.PausedAt != nil {
-		pausedAt = timestamppb.New(*d.PausedAt)
-	}
-
-	var nextExecutionTime *timestamppb.Timestamp
-	isTip := d.TipTXID == utxo.Txid.Hex.Value && d.TipVout == int32(utxo.Vout)
-	if d.NextExecution != nil && isTip {
-		nextExecutionTime = timestamppb.New(*d.NextExecution)
-	}
-
-	sort.Slice(d.ExecutedDenials, func(i, j int) bool {
-		return d.ExecutedDenials[i].CreatedAt.Before(d.ExecutedDenials[j].CreatedAt)
-	})
-	uniqueBeforeThisUTXO := lo.UniqBy(d.ExecutedDenials, func(e deniability.ExecutedDenial) string {
-		return e.ToTxID
-	})
-
-	// Find the index of the current UTXO in the sorted list
-	executionIndex := -1
-	for i, e := range uniqueBeforeThisUTXO {
-		if e.ToTxID == utxo.Txid.Hex.Value {
-			executionIndex = i
-			break
-		}
-	}
-
-	// a utxo/denial match is change if the txid matches (has an execution), but the tip vout is not
-	isChange := executionIndex != -1 && !isTip
-	hopsCompleted := uint32(executionIndex) + 1
-
-	return &bitwindowdv1.DenialInfo{
-		Id:                d.ID,
-		NumHops:           lo.If(isTip, d.NumHops).Else(int32(hopsCompleted)),
-		DelaySeconds:      int32(d.DelayDuration.Seconds()),
-		CreateTime:        timestamppb.New(d.CreatedAt),
-		CancelTime:        cancelTime,
-		CancelReason:      d.CancelReason,
-		PausedAt:          pausedAt,
-		NextExecutionTime: nextExecutionTime,
-		Executions: lo.Map(d.ExecutedDenials, func(e deniability.ExecutedDenial, _ int) *bitwindowdv1.ExecutedDenial {
-			return &bitwindowdv1.ExecutedDenial{
-				Id:         e.ID,
-				DenialId:   e.DenialID,
-				FromTxid:   e.FromTxID,
-				FromVout:   uint32(e.FromVout),
-				ToTxid:     e.ToTxID,
-				CreateTime: timestamppb.New(e.CreatedAt),
-			}
-		}),
-		// hops completed == index of execution +1 (no execution == 0 hops completed)
-		HopsCompleted: uint32(executionIndex) + 1,
-		IsChange:      isChange,
-	}
 }
 
 func (s *Server) addDenialInfoForCore(txid string, vout int32, denials []deniability.Denial) *bitwindowdv1.DenialInfo {
@@ -1676,91 +1276,31 @@ func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial
 func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
+	// Bitcoin Core version
+	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
+		return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
 	}
 
-	if walletType != engines.WalletTypeEnforcer {
-		// Bitcoin Core version
-		coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
-		if err != nil {
-			return nil, fmt.Errorf("get bitcoin core wallet: %w", err)
-		}
-
-		bitcoind, err := s.bitcoind.Get(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("get bitcoind client: %w", err)
-		}
-
-		// Get all UTXOs to build the address list
-		utxosResp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-			Wallet: coreWalletName,
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
-		}
-
-		// Fetch address book for labels
-		addressBookEntries, err := addressbook.List(ctx, s.database)
-		if err != nil {
-			return nil, fmt.Errorf("list addressbook: %w", err)
-		}
-
-		getLabel := func(addr string) string {
-			for _, entry := range addressBookEntries {
-				if entry.Address == addr {
-					return entry.Label
-				}
-			}
-			return ""
-		}
-
-		// Build map of addresses with their balances
-		addressMap := make(map[string]*pb.ReceiveAddress)
-		for _, utxo := range utxosResp.Msg.Unspent {
-			if utxo.Address == "" {
-				continue
-			}
-
-			if existing, found := addressMap[utxo.Address]; found {
-				existing.CurrentBalanceSat += uint64(utxo.Amount * 100_000_000)
-			} else {
-				addressMap[utxo.Address] = &pb.ReceiveAddress{
-					Address:           utxo.Address,
-					Label:             getLabel(utxo.Address),
-					CurrentBalanceSat: uint64(utxo.Amount * 100_000_000),
-					IsChange:          false, // Bitcoin Core doesn't expose this easily
-				}
-			}
-		}
-
-		var addresses []*pb.ReceiveAddress
-		for _, addr := range addressMap {
-			addresses = append(addresses, addr)
-		}
-
-		return connect.NewResponse(&pb.ListReceiveAddressesResponse{
-			Addresses: addresses,
-		}), nil
-	}
-
-	utxos, err := s.data.ListUnspentOutputs(ctx, &validatorpb.ListUnspentOutputsRequest{})
+	bitcoind, err := s.bitcoind.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list unspent outputs: %w", err)
+		return nil, fmt.Errorf("get bitcoind client: %w", err)
 	}
 
-	currentAddress, err := s.GetNewAddress(ctx, connect.NewRequest(&pb.GetNewAddressRequest{WalletId: walletId}))
+	// Get all UTXOs to build the address list
+	utxosResp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+		Wallet: coreWalletName,
+	}))
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not get current address: %w", err)
+		return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
 	}
 
-	// Fetch the addressbook entries once for label lookup
+	// Fetch address book for labels
 	addressBookEntries, err := addressbook.List(ctx, s.database)
 	if err != nil {
-		return nil, fmt.Errorf("enforcer/wallet: could not list addressbook: %w", err)
+		return nil, fmt.Errorf("list addressbook: %w", err)
 	}
-	// Helper to find label for an address
+
 	getLabel := func(addr string) string {
 		for _, entry := range addressBookEntries {
 			if entry.Address == addr {
@@ -1770,53 +1310,32 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 		return ""
 	}
 
-	// Use a map[string]*pb.ListReceiveAddressesResponse_ReceiveAddress to accumulate results
+	// Build map of addresses with their balances
 	addressMap := make(map[string]*pb.ReceiveAddress)
-
-	for _, utxo := range utxos.Outputs {
-
-		utxoTimestamp := utxo.UnconfirmedLastSeen
-		if utxoTimestamp == nil {
-			utxoTimestamp = utxo.ConfirmedAtTime
+	for _, utxo := range utxosResp.Msg.Unspent {
+		if utxo.Address == "" {
+			continue
 		}
 
-		var address string
-		if utxo.Address != nil {
-			address = utxo.Address.Value
-		}
-		if _, ok := addressMap[address]; !ok {
-
-			addressMap[address] = &pb.ReceiveAddress{
-				Address:    address,
-				Label:      getLabel(address),
-				IsChange:   utxo.IsInternal,
-				LastUsedAt: utxoTimestamp,
+		if existing, found := addressMap[utxo.Address]; found {
+			existing.CurrentBalanceSat += uint64(utxo.Amount * 100_000_000)
+		} else {
+			addressMap[utxo.Address] = &pb.ReceiveAddress{
+				Address:           utxo.Address,
+				Label:             getLabel(utxo.Address),
+				CurrentBalanceSat: uint64(utxo.Amount * 100_000_000),
+				IsChange:          false, // Bitcoin Core doesn't expose this easily
 			}
 		}
-		addressMap[address].CurrentBalanceSat += utxo.ValueSats
-		if addressMap[address].LastUsedAt == nil {
-			addressMap[address].LastUsedAt = utxoTimestamp
-		} else if utxoTimestamp.AsTime().After(addressMap[address].LastUsedAt.AsTime()) {
-			// the current utxo is more recent than the last used at time
-			addressMap[address].LastUsedAt = utxoTimestamp
-		}
 	}
 
-	var historicAddresses []*pb.ReceiveAddress
+	var addresses []*pb.ReceiveAddress
 	for _, addr := range addressMap {
-		historicAddresses = append(historicAddresses, addr)
+		addresses = append(addresses, addr)
 	}
-	// Append currentAddress to the end of the list
-	historicAddresses = append(historicAddresses, &pb.ReceiveAddress{
-		Address:           currentAddress.Msg.Address,
-		Label:             getLabel(currentAddress.Msg.Address),
-		IsChange:          false,
-		CurrentBalanceSat: 0,
-		LastUsedAt:        nil,
-	})
 
 	return connect.NewResponse(&pb.ListReceiveAddressesResponse{
-		Addresses: historicAddresses,
+		Addresses: addresses,
 	}), nil
 }
 
@@ -1824,72 +1343,8 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
 	walletId := c.Msg.WalletId
 
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get wallet type: %w", err)
-	}
-
-	if walletType != engines.WalletTypeEnforcer {
-		// Bitcoin Core version
-		// Get UTXOs
-		utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
-		if err != nil {
-			return nil, err
-		}
-		utxoCount := uint64(len(utxos.Msg.Utxos))
-
-		// Count unique addresses among UTXOs
-		addressSet := make(map[string]struct{})
-		for _, utxo := range utxos.Msg.Utxos {
-			addressSet[utxo.Address] = struct{}{}
-		}
-		uniqueAddressCount := uint64(len(addressSet))
-
-		// Get transactions
-		txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletId}))
-		if err != nil {
-			return nil, err
-		}
-		transactionCount := int64(len(txs.Msg.Transactions))
-
-		// Count transactions since the start of the current month, sum
-		// lifetime fees paid, and find the most recent confirmed tx.
-		now := time.Now()
-		currentYear, currentMonth, _ := now.Date()
-		currentMonthStart := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, now.Location())
-		transactionCountSinceMonth := int64(0)
-		var totalFees int64
-		var lastTxAt *timestamppb.Timestamp
-		var lastTxBlockHeight uint32
-		for _, tx := range txs.Msg.Transactions {
-			totalFees += int64(tx.FeeSats)
-			if tx.ConfirmationTime != nil && tx.ConfirmationTime.Timestamp != nil {
-				t := tx.ConfirmationTime.Timestamp.AsTime()
-				if t.After(currentMonthStart) || t.Equal(currentMonthStart) {
-					transactionCountSinceMonth++
-				}
-				if lastTxAt == nil || t.After(lastTxAt.AsTime()) {
-					lastTxAt = tx.ConfirmationTime.Timestamp
-					lastTxBlockHeight = tx.ConfirmationTime.Height
-				}
-			}
-		}
-
-		// Bitcoin Core wallets don't track sidechain deposits separately
-		return connect.NewResponse(&pb.GetStatsResponse{
-			UtxosCurrent:                      utxoCount,
-			UtxosUniqueAddresses:              uniqueAddressCount,
-			SidechainDepositVolume:            0,
-			SidechainDepositVolumeLast_30Days: 0,
-			TransactionCountTotal:             transactionCount,
-			TransactionCountSinceMonth:        transactionCountSinceMonth,
-			TotalFeesSats:                     totalFees,
-			LastTxAt:                          lastTxAt,
-			LastTxBlockHeight:                 lastTxBlockHeight,
-		}), nil
-	}
-
-	// 1. Get all UTXOs and count them
+	// Bitcoin Core version
+	// Get UTXOs
 	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
 	if err != nil {
 		return nil, err
@@ -1903,12 +1358,12 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	}
 	uniqueAddressCount := uint64(len(addressSet))
 
-	// 2. Get all wallet transactions and count them
-	txs, err := s.data.ListTransactions(ctx, &validatorpb.ListTransactionsRequest{})
+	// Get transactions
+	txs, err := s.ListTransactions(ctx, connect.NewRequest(&pb.ListTransactionsRequest{WalletId: walletId}))
 	if err != nil {
 		return nil, err
 	}
-	transactionCount := int64(len(txs.Transactions))
+	transactionCount := int64(len(txs.Msg.Transactions))
 
 	// Count transactions since the start of the current month, sum
 	// lifetime fees paid, and find the most recent confirmed tx.
@@ -1919,47 +1374,26 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 	var totalFees int64
 	var lastTxAt *timestamppb.Timestamp
 	var lastTxBlockHeight uint32
-	for _, tx := range txs.Transactions {
+	for _, tx := range txs.Msg.Transactions {
 		totalFees += int64(tx.FeeSats)
-		if tx.ConfirmationInfo != nil && tx.ConfirmationInfo.Timestamp != nil {
-			t := tx.ConfirmationInfo.Timestamp.AsTime()
+		if tx.ConfirmationTime != nil && tx.ConfirmationTime.Timestamp != nil {
+			t := tx.ConfirmationTime.Timestamp.AsTime()
 			if t.After(currentMonthStart) || t.Equal(currentMonthStart) {
 				transactionCountSinceMonth++
 			}
 			if lastTxAt == nil || t.After(lastTxAt.AsTime()) {
-				lastTxAt = tx.ConfirmationInfo.Timestamp
-				lastTxBlockHeight = tx.ConfirmationInfo.Height
+				lastTxAt = tx.ConfirmationTime.Timestamp
+				lastTxBlockHeight = tx.ConfirmationTime.Height
 			}
 		}
 	}
 
-	// 3. Get all sidechain deposit transactions and sum their amounts
-	sidechainDeposits, err := s.data.ListSidechainDeposits(ctx, &validatorpb.ListSidechainDepositTransactionsRequest{})
-	if err != nil {
-		return nil, err
-	}
-	var depositSum int64
-	var depositSumLast30Days int64
-	// Calculate 30 days ago from now
-	thirtyDaysAgo := now.AddDate(0, 0, -30)
-	for _, dep := range sidechainDeposits.Transactions {
-		if dep.Tx != nil {
-			amt := int64(dep.Tx.SentSats)
-			depositSum += amt
-			if dep.Tx.ConfirmationInfo.Timestamp != nil {
-				t := dep.Tx.ConfirmationInfo.Timestamp.AsTime()
-				if t.After(thirtyDaysAgo) {
-					depositSumLast30Days += amt
-				}
-			}
-		}
-	}
-
+	// Bitcoin Core wallets don't track sidechain deposits separately
 	return connect.NewResponse(&pb.GetStatsResponse{
 		UtxosCurrent:                      utxoCount,
 		UtxosUniqueAddresses:              uniqueAddressCount,
-		SidechainDepositVolume:            depositSum,
-		SidechainDepositVolumeLast_30Days: depositSumLast30Days,
+		SidechainDepositVolume:            0,
+		SidechainDepositVolumeLast_30Days: 0,
 		TransactionCountTotal:             transactionCount,
 		TransactionCountSinceMonth:        transactionCountSinceMonth,
 		TotalFeesSats:                     totalFees,
@@ -2702,8 +2136,6 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 
 	var utxos []*pb.UnspentOutput
 	switch walletType {
-	case engines.WalletTypeEnforcer:
-		utxos, err = s.listUnspentEnforcer(ctx, getLabel)
 	case engines.WalletTypeElectrum:
 		utxos, err = s.listUnspentElectrum(ctx, walletId, getLabel)
 	case engines.WalletTypeBitcoinCore:

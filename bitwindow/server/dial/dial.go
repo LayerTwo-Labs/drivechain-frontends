@@ -104,6 +104,46 @@ func EnforcerWallet(ctx context.Context, url string) (
 	return client, nil
 }
 
+// EnforcerBlockProducer creates a CUSF enforcer block producer client. The
+// block producer runs with no wallet, so its health check reads policy state
+// rather than an address.
+func EnforcerBlockProducer(ctx context.Context, url string) (
+	rpc.BlockProducerServiceClient, error,
+) {
+	if url == "" {
+		return nil, errors.New("empty validator url")
+	}
+
+	client := rpc.NewBlockProducerServiceClient(
+		getSharedClient(ctx),
+		fmt.Sprintf("http://%s", url),
+		connect.WithGRPC(),
+	)
+
+	_, err := client.GetBlockProducerState(ctx, connect.NewRequest(&pb.GetBlockProducerStateRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("get block producer state: %w", err)
+	}
+
+	return client, nil
+}
+
+// EnforcerMining creates a CUSF enforcer mining client. The enforcer serves it
+// on regtest and signet only, so a dial failure here is normal on mainnet.
+func EnforcerMining(ctx context.Context, url string) (
+	rpc.MiningServiceClient, error,
+) {
+	if url == "" {
+		return nil, errors.New("empty validator url")
+	}
+
+	return rpc.NewMiningServiceClient(
+		getSharedClient(ctx),
+		fmt.Sprintf("http://%s", url),
+		connect.WithGRPC(),
+	), nil
+}
+
 // EnforcerCrypto creates a CUSF enforcer (crypto) client.
 func EnforcerCrypto(ctx context.Context, url string) (
 	cryptorpc.CryptoServiceClient, error,

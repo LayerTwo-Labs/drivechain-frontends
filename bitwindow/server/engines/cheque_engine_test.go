@@ -27,7 +27,7 @@ func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
 			"master":      map[string]any{"seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"},
 			"id":          chequeWalletID,
 			"name":        "test",
-			"wallet_type": "enforcer",
+			"wallet_type": "bitcoinCore",
 		}},
 	})
 	require.NoError(t, err)
@@ -35,7 +35,6 @@ func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
 
 	walletEngine := NewWalletEngine(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return nil, nil },
-		nil,
 		dir,
 		&chaincfg.SigNetParams,
 	)

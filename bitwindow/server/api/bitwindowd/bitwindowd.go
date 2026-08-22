@@ -32,7 +32,6 @@ import (
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
@@ -57,7 +56,6 @@ func New(
 	onShutdown func(ctx context.Context),
 	db *sql.DB,
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
-	wallet *service.Service[validatorrpc.WalletServiceClient],
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
 	config config.Config,
@@ -68,7 +66,6 @@ func New(
 		onShutdown:       onShutdown,
 		db:               db,
 		validator:        validator,
-		wallet:           wallet,
 		bitcoind:         bitcoind,
 		walletEngine:     walletEngine,
 		bandwidthTracker: bandwidth.NewTracker(),
@@ -84,7 +81,6 @@ type Server struct {
 	onShutdown       func(ctx context.Context)
 	db               *sql.DB
 	validator        *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet           *service.Service[validatorrpc.WalletServiceClient]
 	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine     *engines.WalletEngine
 	bandwidthTracker *bandwidth.Tracker
@@ -286,8 +282,6 @@ func (s *Server) CreateDenial(
 	// List UTXOs based on wallet type
 	var utxoExists bool
 	switch activeWallet.WalletType {
-	case engines.WalletTypeEnforcer:
-		utxoExists, err = s.checkEnforcerUTXO(ctx, req.Msg.Txid, req.Msg.Vout)
 	case engines.WalletTypeBitcoinCore:
 		utxoExists, err = s.checkBitcoinCoreUTXO(ctx, activeWallet.ID, req.Msg.Txid, req.Msg.Vout)
 	case engines.WalletTypeElectrum:
@@ -1109,18 +1103,6 @@ func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
 	}
 
 	switch walletType {
-	case engines.WalletTypeEnforcer:
-		// Get address from enforcer wallet
-		wallet, err := s.wallet.Get(ctx)
-		if err != nil {
-			return "", err
-		}
-		resp, err := wallet.CreateNewAddress(ctx, connect.NewRequest(&validatorpb.CreateNewAddressRequest{}))
-		if err != nil {
-			return "", fmt.Errorf("enforcer: create new address: %w", err)
-		}
-		return resp.Msg.Address, nil
-
 	case engines.WalletTypeBitcoinCore:
 		// Watch-only Core wallets import a descriptor; full wallets use the
 		// seed-derived wallet. Both serve addresses from Bitcoin Core.
@@ -1538,23 +1520,6 @@ func (s *Server) getBlockAtHeight(ctx context.Context, height int64) (int64, err
 	}
 
 	return block.Time.Seconds, nil
-}
-
-// checkEnforcerUTXO checks if a UTXO exists in the enforcer wallet
-func (s *Server) checkEnforcerUTXO(ctx context.Context, txid string, vout uint32) (bool, error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return false, fmt.Errorf("get enforcer wallet: %w", err)
-	}
-
-	utxos, err := wallet.ListUnspentOutputs(ctx, connect.NewRequest(&validatorpb.ListUnspentOutputsRequest{}))
-	if err != nil {
-		return false, fmt.Errorf("list enforcer utxos: %w", err)
-	}
-
-	return lo.ContainsBy(utxos.Msg.Outputs, func(utxo *validatorpb.ListUnspentOutputsResponse_Output) bool {
-		return utxo.Txid.Hex.Value == txid && utxo.Vout == vout
-	}), nil
 }
 
 // checkBitcoinCoreUTXO checks if a UTXO exists in a Bitcoin Core wallet

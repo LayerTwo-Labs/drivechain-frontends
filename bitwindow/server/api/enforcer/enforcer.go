@@ -16,33 +16,37 @@ import (
 
 var _ cryptorpc.CryptoServiceHandler = new(Server)
 var _ validatorrpc.ValidatorServiceHandler = new(Server)
-var _ validatorrpc.WalletServiceHandler = new(Server)
+var _ validatorrpc.BlockProducerServiceHandler = new(Server)
+var _ validatorrpc.MiningServiceHandler = new(Server)
 
 // New creates a new Server
 func New(
 	data datasource.DataSource,
 	validator *service.Service[validatorrpc.ValidatorServiceClient],
-	wallet *service.Service[validatorrpc.WalletServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
+	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient],
+	mining *service.Service[validatorrpc.MiningServiceClient],
 	walletEngine *engines.WalletEngine,
 ) *Server {
 	s := &Server{
-		data:         data,
-		validator:    validator,
-		wallet:       wallet,
-		crypto:       crypto,
-		walletEngine: walletEngine,
+		data:          data,
+		validator:     validator,
+		crypto:        crypto,
+		blockProducer: blockProducer,
+		mining:        mining,
+		walletEngine:  walletEngine,
 	}
 
 	return s
 }
 
 type Server struct {
-	data         datasource.DataSource
-	validator    *service.Service[validatorrpc.ValidatorServiceClient]
-	wallet       *service.Service[validatorrpc.WalletServiceClient]
-	crypto       *service.Service[cryptorpc.CryptoServiceClient]
-	walletEngine *engines.WalletEngine
+	data          datasource.DataSource
+	validator     *service.Service[validatorrpc.ValidatorServiceClient]
+	crypto        *service.Service[cryptorpc.CryptoServiceClient]
+	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient]
+	mining        *service.Service[validatorrpc.MiningServiceClient]
+	walletEngine  *engines.WalletEngine
 }
 
 // Stop implements mainchainv1connect.ValidatorServiceHandler.
@@ -75,57 +79,17 @@ func (s *Server) SubscribeHeaderSyncProgress(ctx context.Context, c *connect.Req
 	return clientStream.Err()
 }
 
-// BroadcastWithdrawalBundle implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) BroadcastWithdrawalBundle(ctx context.Context, c *connect.Request[mainchainv1.BroadcastWithdrawalBundleRequest]) (*connect.Response[mainchainv1.BroadcastWithdrawalBundleResponse], error) {
-	if err := s.walletEngine.RequireFullNode(ctx, "broadcasting a withdrawal bundle"); err != nil {
-		return nil, err
-	}
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet.BroadcastWithdrawalBundle(ctx, c)
-}
-
-// CreateBmmCriticalDataTransaction implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) CreateBmmCriticalDataTransaction(ctx context.Context, c *connect.Request[mainchainv1.CreateBmmCriticalDataTransactionRequest]) (*connect.Response[mainchainv1.CreateBmmCriticalDataTransactionResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return wallet.CreateBmmCriticalDataTransaction(ctx, c)
-}
-
-// CreateDepositTransaction implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) CreateDepositTransaction(ctx context.Context, c *connect.Request[mainchainv1.CreateDepositTransactionRequest]) (*connect.Response[mainchainv1.CreateDepositTransactionResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return wallet.CreateDepositTransaction(ctx, c)
-}
-
-// CreateNewAddress implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) CreateNewAddress(ctx context.Context, c *connect.Request[mainchainv1.CreateNewAddressRequest]) (*connect.Response[mainchainv1.CreateNewAddressResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return wallet.CreateNewAddress(ctx, c)
-}
-
-// CreateSidechainProposal implements mainchainv1connect.WalletServiceHandler.
+// CreateSidechainProposal implements mainchainv1connect.BlockProducerServiceHandler.
 // nolint:dupl
 func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request[mainchainv1.CreateSidechainProposalRequest], stream *connect.ServerStream[mainchainv1.CreateSidechainProposalResponse]) error {
 	if err := s.walletEngine.RequireFullNode(ctx, "creating a sidechain proposal"); err != nil {
 		return err
 	}
-	wallet, err := s.wallet.Get(ctx)
+	producer, err := s.blockProducer.Get(ctx)
 	if err != nil {
 		return err
 	}
-	clientStream, err := wallet.CreateSidechainProposal(ctx, c)
+	clientStream, err := producer.CreateSidechainProposal(ctx, c)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not create sidechain proposal")
 		return err
@@ -139,109 +103,61 @@ func (s *Server) CreateSidechainProposal(ctx context.Context, c *connect.Request
 	return clientStream.Err()
 }
 
-// SubmitSidechainProposal implements mainchainv1connect.WalletServiceHandler.
+// SubmitSidechainProposal implements mainchainv1connect.BlockProducerServiceHandler.
 func (s *Server) SubmitSidechainProposal(ctx context.Context, c *connect.Request[mainchainv1.SubmitSidechainProposalRequest]) (*connect.Response[mainchainv1.SubmitSidechainProposalResponse], error) {
 	if err := s.walletEngine.RequireFullNode(ctx, "submitting a sidechain proposal"); err != nil {
 		return nil, err
 	}
-	wallet, err := s.wallet.Get(ctx)
+	producer, err := s.blockProducer.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return wallet.SubmitSidechainProposal(ctx, c)
+	return producer.SubmitSidechainProposal(ctx, c)
 }
 
-// CreateWallet implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) CreateWallet(ctx context.Context, c *connect.Request[mainchainv1.CreateWalletRequest]) (*connect.Response[mainchainv1.CreateWalletResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
+// GenerateToAddress implements mainchainv1connect.MiningServiceHandler.
+func (s *Server) GenerateToAddress(ctx context.Context, c *connect.Request[mainchainv1.GenerateToAddressRequest]) (*connect.Response[mainchainv1.GenerateToAddressResponse], error) {
+	mining, err := s.mining.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return wallet.CreateWallet(ctx, c)
+	return mining.GenerateToAddress(ctx, c)
 }
 
-// GenerateBlocks implements mainchainv1connect.WalletServiceHandler.
-// nolint:dupl
-func (s *Server) GenerateBlocks(ctx context.Context, c *connect.Request[mainchainv1.GenerateBlocksRequest], stream *connect.ServerStream[mainchainv1.GenerateBlocksResponse]) error {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return err
-	}
-	clientStream, err := wallet.GenerateBlocks(ctx, c)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("could not generate blocks")
-		return err
-	}
-	for clientStream.Receive() {
-		if err := stream.Send(clientStream.Msg()); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("could not send generated block message")
-			return err
-		}
-	}
-	return clientStream.Err()
-}
-
-// GetBalance implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) GetBalance(ctx context.Context, c *connect.Request[mainchainv1.GetBalanceRequest]) (*connect.Response[mainchainv1.GetBalanceResponse], error) {
-	resp, err := s.data.Balance(ctx, c.Msg)
+// SetSidechainAck implements mainchainv1connect.BlockProducerServiceHandler.
+func (s *Server) SetSidechainAck(ctx context.Context, c *connect.Request[mainchainv1.SetSidechainAckRequest]) (*connect.Response[mainchainv1.SetSidechainAckResponse], error) {
+	producer, err := s.blockProducer.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(resp), nil
+	return producer.SetSidechainAck(ctx, c)
 }
 
-// GetInfo implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) GetInfo(ctx context.Context, c *connect.Request[mainchainv1.GetInfoRequest]) (*connect.Response[mainchainv1.GetInfoResponse], error) {
-	resp, err := s.data.WalletInfo(ctx, c.Msg)
+// SetAckAllProposals implements mainchainv1connect.BlockProducerServiceHandler.
+func (s *Server) SetAckAllProposals(ctx context.Context, c *connect.Request[mainchainv1.SetAckAllProposalsRequest]) (*connect.Response[mainchainv1.SetAckAllProposalsResponse], error) {
+	producer, err := s.blockProducer.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(resp), nil
+	return producer.SetAckAllProposals(ctx, c)
 }
 
-// ListSidechainDepositTransactions implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) ListSidechainDepositTransactions(ctx context.Context, c *connect.Request[mainchainv1.ListSidechainDepositTransactionsRequest]) (*connect.Response[mainchainv1.ListSidechainDepositTransactionsResponse], error) {
-	resp, err := s.data.ListSidechainDeposits(ctx, c.Msg)
+// GetBlockProducerState implements mainchainv1connect.BlockProducerServiceHandler.
+func (s *Server) GetBlockProducerState(ctx context.Context, c *connect.Request[mainchainv1.GetBlockProducerStateRequest]) (*connect.Response[mainchainv1.GetBlockProducerStateResponse], error) {
+	producer, err := s.blockProducer.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(resp), nil
+	return producer.GetBlockProducerState(ctx, c)
 }
 
-// ListTransactions implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[mainchainv1.ListTransactionsRequest]) (*connect.Response[mainchainv1.ListTransactionsResponse], error) {
-	resp, err := s.data.ListTransactions(ctx, c.Msg)
+// GetWithdrawalBundleProposals implements mainchainv1connect.ValidatorServiceHandler.
+func (s *Server) GetWithdrawalBundleProposals(ctx context.Context, c *connect.Request[mainchainv1.GetWithdrawalBundleProposalsRequest]) (*connect.Response[mainchainv1.GetWithdrawalBundleProposalsResponse], error) {
+	validator, err := s.validator.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(resp), nil
-}
-
-// ListUnspentOutputs implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) ListUnspentOutputs(ctx context.Context, c *connect.Request[mainchainv1.ListUnspentOutputsRequest]) (*connect.Response[mainchainv1.ListUnspentOutputsResponse], error) {
-	resp, err := s.data.ListUnspentOutputs(ctx, c.Msg)
-	if err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(resp), nil
-}
-
-// SendTransaction implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[mainchainv1.SendTransactionRequest]) (*connect.Response[mainchainv1.SendTransactionResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return wallet.SendTransaction(ctx, c)
-}
-
-// UnlockWallet implements mainchainv1connect.WalletServiceHandler.
-func (s *Server) UnlockWallet(ctx context.Context, c *connect.Request[mainchainv1.UnlockWalletRequest]) (*connect.Response[mainchainv1.UnlockWalletResponse], error) {
-	wallet, err := s.wallet.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return wallet.UnlockWallet(ctx, c)
+	return validator.GetWithdrawalBundleProposals(ctx, c)
 }
 
 // GetBlockHeaderInfo implements mainchainv1connect.ValidatorServiceHandler.

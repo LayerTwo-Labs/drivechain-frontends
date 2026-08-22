@@ -40,9 +40,13 @@ type Services struct {
 	ECashNetworkID string
 
 	BitcoindConnector service.Connector[corerpc.BitcoinServiceClient]
-	WalletConnector   service.Connector[validatorrpc.WalletServiceClient]
 	EnforcerConnector service.Connector[validatorrpc.ValidatorServiceClient]
-	CryptoConnector   service.Connector[cryptorpc.CryptoServiceClient]
+	// BlockProducerConnector and MiningConnector reach the enforcer services
+	// that replaced the wallet's proposal and block generation RPCs. Both run
+	// with no enforcer wallet.
+	BlockProducerConnector service.Connector[validatorrpc.BlockProducerServiceClient]
+	MiningConnector        service.Connector[validatorrpc.MiningServiceClient]
+	CryptoConnector        service.Connector[cryptorpc.CryptoServiceClient]
 
 	// Sidechain connectors
 	ThunderConnector   service.Connector[*thunder.Client]
@@ -86,8 +90,10 @@ type Server struct {
 
 	Enforcer *service.Service[validatorrpc.ValidatorServiceClient]
 	Bitcoind *service.Service[corerpc.BitcoinServiceClient]
-	Wallet   *service.Service[validatorrpc.WalletServiceClient]
 	Crypto   *service.Service[cryptorpc.CryptoServiceClient]
+
+	BlockProducer *service.Service[validatorrpc.BlockProducerServiceClient]
+	Mining        *service.Service[validatorrpc.MiningServiceClient]
 
 	Thunder   *service.Service[*thunder.Client]
 	BitNames  *service.Service[*bitnames.Client]
@@ -137,8 +143,9 @@ func New(
 ) (*Server, error) {
 	bitcoindSvc := service.New("bitcoind", svcs.BitcoindConnector)
 	validatorSvc := service.New("enforcer", svcs.EnforcerConnector)
-	walletSvc := service.New("wallet", svcs.WalletConnector)
 	cryptoSvc := service.New("crypto", svcs.CryptoConnector)
+	blockProducerSvc := service.New("block-producer", svcs.BlockProducerConnector)
+	miningSvc := service.New("mining", svcs.MiningConnector)
 
 	thunderSvc := service.New("thunder", svcs.ThunderConnector)
 	bitnamesSvc := service.New("bitnames", svcs.BitNamesConnector)
@@ -161,8 +168,9 @@ func New(
 	// root ctx so they survive runtime recycles.
 	bitcoindSvc.StartReconnectLoop(ctx)
 	validatorSvc.StartReconnectLoop(ctx)
-	walletSvc.StartReconnectLoop(ctx)
 	cryptoSvc.StartReconnectLoop(ctx)
+	blockProducerSvc.StartReconnectLoop(ctx)
+	miningSvc.StartReconnectLoop(ctx)
 	thunderSvc.StartReconnectLoop(ctx)
 	bitnamesSvc.StartReconnectLoop(ctx)
 	bitassetsSvc.StartReconnectLoop(ctx)
@@ -171,21 +179,22 @@ func New(
 	coinshiftSvc.StartReconnectLoop(ctx)
 
 	srv := &Server{
-		topSwap:    newSwappableHandler(),
-		Enforcer:   validatorSvc,
-		Bitcoind:   bitcoindSvc,
-		Wallet:     walletSvc,
-		Crypto:     cryptoSvc,
-		Thunder:    thunderSvc,
-		BitNames:   bitnamesSvc,
-		BitAssets:  bitassetsSvc,
-		Truthcoin:  truthcoinSvc,
-		Photon:     photonSvc,
-		CoinShift:  coinshiftSvc,
-		svcs:       svcs,
-		onShutdown: onShutdown,
-		conf:       conf,
-		rootCtx:    ctx,
+		topSwap:       newSwappableHandler(),
+		Enforcer:      validatorSvc,
+		Bitcoind:      bitcoindSvc,
+		BlockProducer: blockProducerSvc,
+		Mining:        miningSvc,
+		Crypto:        cryptoSvc,
+		Thunder:       thunderSvc,
+		BitNames:      bitnamesSvc,
+		BitAssets:     bitassetsSvc,
+		Truthcoin:     truthcoinSvc,
+		Photon:        photonSvc,
+		CoinShift:     coinshiftSvc,
+		svcs:          svcs,
+		onShutdown:    onShutdown,
+		conf:          conf,
+		rootCtx:       ctx,
 	}
 
 	srv.networkID = svcs.ECashNetworkID

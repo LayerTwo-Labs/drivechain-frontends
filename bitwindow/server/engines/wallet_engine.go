@@ -15,9 +15,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	orchwallet "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -30,7 +27,6 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // WalletType is a wallet's provider backend. Watch-only is an orthogonal
@@ -38,7 +34,6 @@ import (
 type WalletType string
 
 const (
-	WalletTypeEnforcer    WalletType = "enforcer"
 	WalletTypeBitcoinCore WalletType = "bitcoinCore"
 	WalletTypeElectrum    WalletType = "electrum"
 )
@@ -77,7 +72,6 @@ func (w *WalletInfo) IsWatchOnly() bool {
 // the orchestrator's WalletManagerService.
 type WalletEngine struct {
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error)
-	enforcerConnector func(context.Context) (validatorrpc.WalletServiceClient, error)
 	walletDir         string
 	chainParams       *chaincfg.Params
 
@@ -116,13 +110,11 @@ type WalletEngine struct {
 // NewWalletEngine creates a new unified wallet engine
 func NewWalletEngine(
 	bitcoindConnector func(context.Context) (corerpc.BitcoinServiceClient, error),
-	enforcerConnector func(context.Context) (validatorrpc.WalletServiceClient, error),
 	walletDir string,
 	chainParams *chaincfg.Params,
 ) *WalletEngine {
 	e := &WalletEngine{
 		bitcoindConnector: bitcoindConnector,
-		enforcerConnector: enforcerConnector,
 		walletDir:         walletDir,
 		chainParams:       chainParams,
 		isUnlocked:        false,
@@ -178,9 +170,6 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 	var activeWallet map[string]any
 	var firstWallet map[string]any
 	var firstWalletId string
-	var enforcerWallet map[string]any
-	var enforcerWalletId string
-
 	for _, w := range wallets {
 		wallet, ok := w.(map[string]any)
 		if !ok {
@@ -188,18 +177,11 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 		}
 
 		walletId, _ := wallet["id"].(string)
-		walletType, _ := wallet["wallet_type"].(string)
 
 		// Track first wallet as fallback
 		if firstWallet == nil {
 			firstWallet = wallet
 			firstWalletId = walletId
-		}
-
-		// Track enforcer wallet as preferred fallback
-		if WalletType(walletType) == WalletTypeEnforcer {
-			enforcerWallet = wallet
-			enforcerWalletId = walletId
 		}
 
 		// If activeWalletId is set, use that specific wallet
@@ -209,17 +191,10 @@ func (e *WalletEngine) Unlock(walletData map[string]any) error {
 		}
 	}
 
-	// Select wallet in order of preference:
-	// 1. Explicitly set activeWalletId
-	// 2. Enforcer wallet (if exists)
-	// 3. First wallet in list
+	// The explicitly set activeWalletId wins; otherwise take the first wallet.
 	switch {
 	case activeWallet != nil:
 		// Already found by activeWalletId
-
-	case enforcerWallet != nil:
-		activeWallet = enforcerWallet
-		activeWalletId = enforcerWalletId
 
 	case firstWallet != nil:
 		activeWallet = firstWallet
@@ -298,22 +273,23 @@ func (e *WalletEngine) IsUnlocked() bool {
 	return e.isUnlocked
 }
 
-// GetEnforcerSeed returns the enforcer wallet's seed hex
-// Used by ChequeEngine for deriving cheque addresses
-func (e *WalletEngine) GetEnforcerSeed() (string, error) {
+// GetStarterSeed returns the seed hex of the wallet that derives the L1 and
+// sidechain starters. BitDrive and ChequeEngine key off it, so it must name the
+// same wallet for the life of the install.
+func (e *WalletEngine) GetStarterSeed() (string, error) {
 	// Try orchestrator first. GetWalletSeed names its wallet, so resolve the
-	// enforcer's id before asking for its seed.
+	// starter's id before asking for its seed.
 	if e.orchClient != nil {
 		ctx := context.Background()
 		list, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
 		if err == nil {
-			enforcer, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
-				return w.WalletType == orchpb.WalletType_WALLET_TYPE_ENFORCER
+			starter, found := lo.Find(list.Msg.Wallets, func(w *orchpb.WalletMetadata) bool {
+				return w.IsStarter
 			})
 			if found {
 				resp, err := e.orchClient.GetWalletSeed(
 					ctx,
-					connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: enforcer.Id}),
+					connect.NewRequest(&orchpb.GetWalletSeedRequest{WalletId: starter.Id}),
 				)
 				if err == nil {
 					return resp.Msg.SeedHex, nil
@@ -328,20 +304,13 @@ func (e *WalletEngine) GetEnforcerSeed() (string, error) {
 		return "", fmt.Errorf("load wallets: %w", err)
 	}
 
-	// Find enforcer wallet
-	enforcerWallets := lo.Filter(wallets, func(w WalletInfo, _ int) bool {
-		return w.WalletType == WalletTypeEnforcer
+	seeded := lo.Filter(wallets, func(w WalletInfo, _ int) bool {
+		return w.Master.SeedHex != ""
 	})
-
-	if len(enforcerWallets) == 0 {
-		return "", errors.New("no enforcer wallet found")
+	if len(seeded) == 0 {
+		return "", errors.New("no wallet holds a seed")
 	}
-
-	if enforcerWallets[0].Master.SeedHex == "" {
-		return "", errors.New("enforcer wallet has no seed")
-	}
-
-	return enforcerWallets[0].Master.SeedHex, nil
+	return seeded[0].Master.SeedHex, nil
 }
 
 // GetWalletSeed returns the seed hex for a specific wallet by ID
@@ -871,28 +840,28 @@ func (e *WalletEngine) FinalizePsbt(ctx context.Context, psbtBase64 string) (str
 	return resp.Msg.RawTxHex, nil
 }
 
-// RequireFullNode returns a clear error when the active wallet is electrum, for
-// L1 operations (sidechain proposals, withdrawal bundles) that can only be
-// produced by a full node with the BIP300/301 enforcer — they live in the block
-// coinbase / are built by the enforcer, so no standalone wallet can broadcast
-// them. Returns nil when the wallet type can't be determined, so the caller's
-// own error path still runs.
+// RequireFullNode refuses an operation that needs a local BIP300/301 enforcer.
+// Light mode runs no daemon, so the operation cannot work there.
 func (e *WalletEngine) RequireFullNode(ctx context.Context, op string) error {
-	w, err := e.GetActiveWallet(ctx)
-	if err != nil {
-		return nil
+	if e.orchClient == nil {
+		return connect.NewError(connect.CodeUnavailable,
+			fmt.Errorf("%s: orchestrator wallet client not connected", op))
 	}
-	if w.WalletType == WalletTypeElectrum {
+	resp, err := e.orchClient.GetNodeMode(ctx, connect.NewRequest(&orchpb.GetNodeModeRequest{}))
+	if err != nil {
+		return connect.NewError(connect.CodeUnavailable,
+			fmt.Errorf("%s: could not read the node mode: %w", op, err))
+	}
+	if resp.Msg.Mode == orchpb.NodeMode_NODE_MODE_LIGHT {
 		return connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("%s requires a full node with the BIP300/301 enforcer; not available for electrum wallets", op))
+			fmt.Errorf("%s needs full mode, which runs a local Bitcoin node and the enforcer", op))
 	}
 	return nil
 }
 
 // BroadcastOpReturn publishes raw OP_RETURN data through the active wallet's
-// backend and returns the txid. Electrum wallets run no local enforcer, so they
-// broadcast through the orchestrator wallet manager — the same path the normal
-// "Send" flow uses; enforcer and Bitcoin Core wallets use the enforcer wallet.
+// backend and returns the txid. Every wallet broadcasts through the
+// orchestrator wallet manager now — the same path the normal "Send" flow uses.
 // This is the single broadcast seam every server-side OP_RETURN sender shares.
 func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSatPerVByte, feeSats uint64) (string, error) {
 	activeWallet, err := e.GetActiveWallet(ctx)
@@ -900,44 +869,17 @@ func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSa
 		return "", fmt.Errorf("get active wallet: %w", err)
 	}
 
-	if activeWallet.WalletType == WalletTypeElectrum {
-		req := &orchpb.SendTransactionRequest{
-			WalletId:    activeWallet.ID,
-			OpReturnHex: hex.EncodeToString(data),
-		}
-		switch {
-		case feeSatPerVByte > 0:
-			req.FeeRateSatPerVbyte = int64(feeSatPerVByte)
-		case feeSats > 0:
-			req.FixedFeeSats = int64(feeSats)
-		}
-		return e.SendTransaction(ctx, req)
-	}
-
-	wallet, err := e.enforcerConnector(ctx)
-	if err != nil {
-		return "", err
-	}
-	req := &validatorpb.SendTransactionRequest{
-		OpReturnMessage: &commonv1.Hex{
-			Hex: &wrapperspb.StringValue{Value: hex.EncodeToString(data)},
-		},
+	req := &orchpb.SendTransactionRequest{
+		WalletId:    activeWallet.ID,
+		OpReturnHex: hex.EncodeToString(data),
 	}
 	switch {
 	case feeSatPerVByte > 0:
-		req.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_SatPerVbyte{SatPerVbyte: feeSatPerVByte},
-		}
+		req.FeeRateSatPerVbyte = int64(feeSatPerVByte)
 	case feeSats > 0:
-		req.FeeRate = &validatorpb.SendTransactionRequest_FeeRate{
-			Fee: &validatorpb.SendTransactionRequest_FeeRate_Sats{Sats: feeSats},
-		}
+		req.FixedFeeSats = int64(feeSats)
 	}
-	resp, err := wallet.SendTransaction(ctx, connect.NewRequest(req))
-	if err != nil {
-		return "", err
-	}
-	return resp.Msg.Txid.Hex.Value, nil
+	return e.SendTransaction(ctx, req)
 }
 
 // SendTransaction builds, signs, and broadcasts a transaction through the
@@ -1585,4 +1527,20 @@ func isWalletNotFoundError(msg string) bool {
 	return strings.Contains(m, "not found") ||
 		strings.Contains(m, "does not exist") ||
 		strings.Contains(m, "no such file")
+}
+
+// ListSidechainDeposits reports the deposits this install made to a slot. The
+// orchestrator records each one as it broadcasts it, because an M5 is an
+// ordinary transaction on the wire.
+func (e *WalletEngine) ListSidechainDeposits(ctx context.Context, slot uint32) ([]*orchpb.SidechainDeposit, error) {
+	if e.orchClient == nil {
+		return nil, errors.New("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.ListSidechainDeposits(ctx, connect.NewRequest(&orchpb.ListSidechainDepositsRequest{
+		Slot: slot,
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("list sidechain deposits: %w", err)
+	}
+	return resp.Msg.Deposits, nil
 }

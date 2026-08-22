@@ -170,9 +170,6 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return s.Bitcoind.Get(ctx)
 		},
-		func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
-			return s.Wallet.Get(ctx)
-		},
 		rt.walletDir,
 		rt.chainParams,
 	)
@@ -219,7 +216,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		log.Warn().Err(err).Str("path", coinnewsLogPath).Msg("could not open coinnews-sync.log, skipping dedicated log")
 	}
 
-	rt.deniabilityEngine = engines.NewDeniability(s.Wallet, s.Bitcoind, rt.db, rt.walletEngine)
+	rt.deniabilityEngine = engines.NewDeniability(s.Bitcoind, rt.db, rt.walletEngine)
 
 	// Register Connect sub-handlers on rt.mux. All registrations capture
 	// rt's db + engines, so when this runtime is replaced, none of these
@@ -244,12 +241,12 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
 	// to current runtime via s.current at call time.
 	{
-		bwSvc := api_bitwindowd.New(dataSource, s.onShutdown, rt.db, s.Enforcer, s.Wallet, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
+		bwSvc := api_bitwindowd.New(dataSource, s.onShutdown, rt.db, s.Enforcer, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
 		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(dataSource, s.Wallet, rt.db, conf, rt.walletEngine)
+		drivechainSvc := api_drivechain.New(dataSource, s.BlockProducer, rt.db, conf, rt.walletEngine)
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}
@@ -269,7 +266,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 				return err
 			}
 		}
-		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Wallet, s.Crypto, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
+		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Crypto, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
 		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
 		register(path, h)
 	}
@@ -280,7 +277,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		healthSvc := api_health.New(rt.db, s.Bitcoind, s.Enforcer, s.Wallet, s.Crypto)
+		healthSvc := api_health.New(rt.db, s.Bitcoind, s.Enforcer, s.Crypto)
 		path, h := healthv1connect.NewHealthServiceHandler(healthSvc, stdOpts...)
 		register(path, h)
 	}
@@ -325,17 +322,21 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	// Enforcer bridge — single impl serves three separate services
-	enforcerSvc := api_enforcer.New(dataSource, s.Enforcer, s.Wallet, s.Crypto, rt.walletEngine)
+	enforcerSvc := api_enforcer.New(dataSource, s.Enforcer, s.Crypto, s.BlockProducer, s.Mining, rt.walletEngine)
 	{
 		path, h := validatorrpc.NewValidatorServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)
 	}
 	{
-		path, h := validatorrpc.NewWalletServiceHandler(enforcerSvc, stdOpts...)
+		path, h := cryptorpc.NewCryptoServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)
 	}
 	{
-		path, h := cryptorpc.NewCryptoServiceHandler(enforcerSvc, stdOpts...)
+		path, h := validatorrpc.NewBlockProducerServiceHandler(enforcerSvc, stdOpts...)
+		register(path, h)
+	}
+	{
+		path, h := validatorrpc.NewMiningServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)
 	}
 	rt.mux.Handle("/enforcer/jsonrpc", localauth.Middleware(s.svcs.BitwindowDir, enforcerproxy.JSONRPC(s.svcs.EnforcerJSONRPCAddr)))
@@ -456,7 +457,7 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 func (s *Server) buildDataSource(conf config.Config) datasource.DataSource {
 	remoteURL := orchconfig.RemoteOrchestratorURLForNetwork(orchconfig.NetworkFromString(string(conf.BitcoinCoreNetwork)))
 	if remoteURL == "" || s.svcs.OrchestratorAddr == "" {
-		return datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get, s.Wallet.Get)
+		return datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get)
 	}
 
 	probe := newElectrumProbe(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
@@ -475,12 +476,6 @@ func (s *Server) buildDataSource(conf config.Config) datasource.DataSource {
 				return validatorrpc.NewValidatorServiceClient(hc, remoteURL), nil
 			}
 			return s.Enforcer.Get(ctx)
-		},
-		func(ctx context.Context) (validatorrpc.WalletServiceClient, error) {
-			if probe.isElectrum(ctx) {
-				return validatorrpc.NewWalletServiceClient(hc, remoteURL), nil
-			}
-			return s.Wallet.Get(ctx)
 		},
 	)
 }
