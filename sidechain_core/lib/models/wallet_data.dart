@@ -38,6 +38,15 @@ class WalletData {
   /// watch no key but its own and so never derives a BIP47 payment code.
   bool get isEnforcer => walletType == BinaryType.BINARY_TYPE_ENFORCER;
 
+  /// The address types this wallet derives, its own kind first. Empty until
+  /// the wallet stream reports them. A wallet on an explicit derivation path,
+  /// a watch-only wallet, and a multisig wallet each derive exactly one.
+  final List<wmpb.AddressType> receiveAddressTypes;
+
+  /// The address type to ask the backend for when the user picked none.
+  wmpb.AddressType get defaultAddressType =>
+      receiveAddressTypes.firstOrNull ?? wmpb.AddressType.ADDRESS_TYPE_UNSPECIFIED;
+
   /// Device type and master fingerprint for a single-sig hardware wallet.
   final String hardwareDeviceType;
   final String hardwareFingerprint;
@@ -58,6 +67,7 @@ class WalletData {
     this.isWatchOnly = false,
     this.bip47PaymentCode = '',
     this.multisig,
+    this.receiveAddressTypes = const [],
     this.hardwareDeviceType = '',
     this.hardwareFingerprint = '',
   });
