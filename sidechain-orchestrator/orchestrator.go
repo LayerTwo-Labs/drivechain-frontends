@@ -158,6 +158,10 @@ type Orchestrator struct {
 	forkEngine         *fork.Engine
 	forkEnforcerWallet enforcerrpc.WalletServiceClient
 
+	// chainTip reads the height from the wallet chain source (esplora or
+	// electrum), so an electrum wallet gets a tip with no local Core.
+	chainTip ChainTipSource
+
 	// clearedMark is the block an eCash rewind lifted the bar from, kept so a
 	// rollback can put that bar back. Guarded by swapNetworkMu, which every
 	// eCash switch holds.
@@ -238,6 +242,7 @@ type Orchestrator struct {
 	enforcerWalletSync *CachedConnection[*ChainSyncResult]
 	sidechainSyncs     map[string]*CachedConnection[*ChainSyncResult]
 	chainFork          *CachedConnection[*ChainForkState]
+	chainSourceHeight  *CachedConnection[int]
 
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
 	// chatty pollers (CoreStatusClient, GetSyncStatus). Each client is built
@@ -2180,6 +2185,7 @@ func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.enforcerWalletSync = nil
 	o.sidechainSyncs = nil
 	o.chainFork = nil
+	o.chainSourceHeight = nil
 	o.syncConnMu.Unlock()
 
 	o.httpClientsMu.Lock()
@@ -2444,12 +2450,46 @@ type CachedConnection[T any] struct {
 	inner Connection[T]
 	ttl   time.Duration
 
-	mu       sync.Mutex
-	last     T
-	hasLast  bool
-	lastErr  error
-	fetched  time.Time
-	inFlight chan struct{}
+	mu         sync.Mutex
+	last       T
+	hasLast    bool
+	lastErr    error
+	fetched    time.Time
+	inFlight   chan struct{}
+	refreshing bool
+}
+
+// Cached returns the last good value without dialling, and whether one exists.
+// A caller on a latency-sensitive path reads this and leaves the refresh to
+// [CachedConnection.Refresh].
+func (c *CachedConnection[T]) Cached() (T, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.last, c.hasLast
+}
+
+// Refresh fetches in the background, unless the value is still fresh or a
+// refresh already runs. It never blocks the caller, so a slow remote server
+// cannot hold back the response that asked for the value.
+func (c *CachedConnection[T]) Refresh(timeout time.Duration) {
+	c.mu.Lock()
+	fresh := c.hasLast && c.lastErr == nil && time.Since(c.fetched) < c.ttl
+	if fresh || c.refreshing {
+		c.mu.Unlock()
+		return
+	}
+	c.refreshing = true
+	c.mu.Unlock()
+
+	go func() {
+		// Its own context: the request that started this returns first.
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		_, _ = c.Fetch(ctx)
+		c.mu.Lock()
+		c.refreshing = false
+		c.mu.Unlock()
+	}()
 }
 
 func (c *CachedConnection[T]) Fetch(ctx context.Context) (T, error) {
@@ -2849,6 +2889,9 @@ type SyncStatus struct {
 	Enforcer       *ChainSyncResult
 	EnforcerWallet *ChainSyncResult
 	Sidechains     map[string]*ChainSyncResult
+	// ChainSource is the tip the wallet chain source reports. An electrum
+	// wallet runs no local node, so this is the only height it has.
+	ChainSource *ChainSyncResult
 }
 
 // GetSyncStatus fans out concurrent probes — mainchain bitcoind, enforcer
@@ -2866,6 +2909,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		Enforcer:       &ChainSyncResult{},
 		EnforcerWallet: &ChainSyncResult{},
 		Sidechains:     make(map[string]*ChainSyncResult),
+		ChainSource:    &ChainSyncResult{},
 	}
 
 	// Pre-populate sidechain map with one slot per L2 sidechain. The
@@ -2957,6 +3001,16 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		defer wg.Done()
 		heights = o.fetchExplorerHeights(ctx)
 	}()
+
+	// The chain source is a remote server, so a slow one must never hold back
+	// the local daemon status. Serve the last height, refresh behind the
+	// response, and ask only for the wallets that read from it.
+	if height, ok := o.chainSourceHeightCached().Cached(); ok {
+		out.ChainSource.Blocks, out.ChainSource.Headers = int64(height), int64(height)
+	}
+	if o.activeWalletReadsChainSource() {
+		o.chainSourceHeightCached().Refresh(chainSourceFetchTimeout)
+	}
 
 	var fork *ChainForkState
 	wg.Add(1)
