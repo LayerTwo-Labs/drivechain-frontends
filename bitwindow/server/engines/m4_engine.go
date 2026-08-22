@@ -443,13 +443,20 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 		return fmt.Errorf("recompute blocks_left: %w", err)
 	}
 
+	// Each transition stamps the height it happened at. A terminal bundle takes
+	// no more votes, so this changes nothing for scoring — but a fork purge
+	// keys on last_updated_height, and without it a bundle that went terminal
+	// on the branch that went away keeps that state for good.
+	//
 	// Mark bundles as approved if work_score >= 13150
 	_, err = e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
-		SET status = 'approved'
+		SET status = 'approved',
+		    last_updated_height = ?,
+		    status_stamped = 1
 		WHERE status = 'pending'
 		  AND work_score >= ?
-	`, m4.MinWorkScore)
+	`, height, m4.MinWorkScore)
 	if err != nil {
 		return fmt.Errorf("mark approved bundles: %w", err)
 	}
@@ -457,11 +464,13 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 	// Mark bundles as failed if blocks_left = 0 and work_score < 13150
 	_, err = e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
-		SET status = 'failed'
+		SET status = 'failed',
+		    last_updated_height = ?,
+		    status_stamped = 1
 		WHERE status = 'pending'
 		  AND blocks_left = 0
 		  AND work_score < ?
-	`, m4.MinWorkScore)
+	`, height, m4.MinWorkScore)
 	if err != nil {
 		return fmt.Errorf("mark failed bundles: %w", err)
 	}
@@ -469,10 +478,12 @@ func (e *M4Engine) updateBundleStates(ctx context.Context, height uint32) error 
 	// Mark bundles as expired if blocks_left = 0 (regardless of score)
 	_, err = e.db.ExecContext(ctx, `
 		UPDATE withdrawal_bundles
-		SET status = 'expired'
+		SET status = 'expired',
+		    last_updated_height = ?,
+		    status_stamped = 1
 		WHERE status = 'pending'
 		  AND blocks_left = 0
-	`)
+	`, height)
 	if err != nil {
 		return fmt.Errorf("mark expired bundles: %w", err)
 	}

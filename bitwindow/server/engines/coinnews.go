@@ -166,16 +166,84 @@ func dropMsg(ctx context.Context, pos cnstore.BlockPos, reason string, err error
 		Msg("coinnews: " + reason + ", dropping")
 }
 
-// purgeM4AtOrAbove deletes every M4/SCDB row originating from a block at or
-// above `fromHeight`. Called on the same reorg replay as purgeCoinNewsAtOrAbove
-// — without it, a bundle first seen in an orphaned block survives the replay
-// (its insert is ON CONFLICT DO NOTHING) and keeps voting.
+// purgeM4AtOrAbove runs the M4 purge in its own transaction.
 func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error {
+	return p.inTx(ctx, func(tx *sql.Tx) error {
+		_, err := purgeM4AtOrAboveTx(ctx, tx, fromHeight)
+		return err
+	})
+}
+
+// purgeChainDerivedAtOrAbove runs the op_returns purge in its own transaction.
+func (p *Parser) purgeChainDerivedAtOrAbove(ctx context.Context, fromHeight uint32) error {
+	return p.inTx(ctx, func(tx *sql.Tx) error {
+		return purgeChainDerivedAtOrAboveTx(ctx, tx, fromHeight)
+	})
+}
+
+// purgeCoinNewsAtOrAbove runs the coinnews purge in its own transaction.
+func (p *Parser) purgeCoinNewsAtOrAbove(ctx context.Context, fromHeight uint32) error {
+	return p.inTx(ctx, func(tx *sql.Tx) error {
+		return purgeCoinNewsAtOrAboveTx(ctx, tx, fromHeight)
+	})
+}
+
+// inTx runs fn in one transaction and commits when it returns nil.
+func (p *Parser) inTx(ctx context.Context, fn func(*sql.Tx) error) error {
 	tx, err := p.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback() //nolint:errcheck // committed on success
+	if err := fn(tx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// purgeM4AtOrAbove deletes every M4/SCDB row originating from a block at or
+// above `fromHeight`. Called on the same reorg replay as purgeCoinNewsAtOrAbove
+// — without it, a bundle first seen in an orphaned block survives the replay
+// (its insert is ON CONFLICT DO NOTHING) and keeps voting.
+// It returns the height a replay has to start from to rebuild what survives.
+// A bundle the orphan branch scored carries a work_score, status and
+// last_updated_height that no query rebuilds: the score is a running count with
+// a floor. Only a replay of the blocks does. So the bundle goes, and the
+// returned height takes the replay back to its first block.
+func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uint32, error) {
+	// Widening the window drags in more bundles, and each of those has to be
+	// replayed from its own first block too. Repeat until it stops moving, or a
+	// bundle ends up cleared with part of its history never replayed.
+	replayFrom := fromHeight
+	for {
+		var lowest sql.NullInt64
+		// A terminal bundle written before the transitions stamped their height
+		// carries only its last vote, so last_updated_height cannot say whether
+		// the branch that went away is what ended it.
+		//
+		// Only a legacy row is ambiguous, and a legacy row is one whose stamp
+		// still sits at the vote that ended it — status_stamped marks the rest.
+		// Without that guard every approved bundle would pull the window back
+		// to the oldest one, so a one-block reorg rescans years of blocks.
+		//
+		// failed and expired both need blocks_left = 0, which cannot happen
+		// before first_seen_height + max_age, so one that aged out below the
+		// window stays. approved needs only a score, which any block can reach.
+		if err := tx.QueryRowContext(ctx, `
+			SELECT MIN(first_seen_height) FROM withdrawal_bundles
+			WHERE last_updated_height >= ?
+			   OR (status_stamped = 0 AND status = 'approved' AND first_seen_height < ?)
+			   OR (status_stamped = 0 AND status IN ('failed', 'expired')
+			       AND first_seen_height + max_age >= ?)`,
+			replayFrom, replayFrom, replayFrom,
+		).Scan(&lowest); err != nil {
+			return 0, err
+		}
+		if !lowest.Valid || lowest.Int64 < 0 || uint32(lowest.Int64) >= replayFrom {
+			break
+		}
+		replayFrom = uint32(lowest.Int64)
+	}
 
 	stmts := []string{
 		`DELETE FROM m4_votes           WHERE m4_message_id IN (SELECT id FROM m4_messages WHERE block_height >= ?)`,
@@ -184,11 +252,14 @@ func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error 
 		`DELETE FROM withdrawal_bundles WHERE first_seen_height >= ?`,
 	}
 	for _, q := range stmts {
-		if _, err := tx.ExecContext(ctx, q, fromHeight); err != nil {
-			return err
+		if _, err := tx.ExecContext(ctx, q, replayFrom); err != nil {
+			return 0, err
 		}
 	}
-	return tx.Commit()
+
+	// No reset is left to make: at the fixed point every bundle the replay
+	// re-scores was first seen at or above replayFrom, so the delete took it.
+	return replayFrom, nil
 }
 
 // purgeChainDerivedAtOrAbove drops the block-derived op_returns and
@@ -198,12 +269,7 @@ func (p *Parser) purgeM4AtOrAbove(ctx context.Context, fromHeight uint32) error 
 // timestamp is never re-examined. Mempool OP_RETURNs have a NULL height
 // and are left alone; reset timestamps go back through the confirming
 // loop, which re-confirms them against the new chain or fails them.
-func (p *Parser) purgeChainDerivedAtOrAbove(ctx context.Context, fromHeight uint32) error {
-	tx, err := p.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck // committed on success
+func purgeChainDerivedAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) error {
 
 	if _, err := tx.ExecContext(ctx,
 		`DELETE FROM op_returns WHERE height >= ?`, fromHeight,
@@ -218,7 +284,7 @@ func (p *Parser) purgeChainDerivedAtOrAbove(ctx context.Context, fromHeight uint
 	); err != nil {
 		return err
 	}
-	return tx.Commit()
+	return nil
 }
 
 // purgeCoinNewsAtOrAbove deletes every cn_* row originating from a
@@ -226,19 +292,16 @@ func (p *Parser) purgeChainDerivedAtOrAbove(ctx context.Context, fromHeight uint
 // reorg and replays a height range — without it, `INSERT OR IGNORE`
 // during the replay would silently keep orphaned rows from the
 // pre-reorg chain, breaking the determinism budget.
-func (p *Parser) purgeCoinNewsAtOrAbove(ctx context.Context, fromHeight uint32) error {
-	tx, err := p.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck // committed on success
+func purgeCoinNewsAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) error {
 
 	stmts := []string{
 		`DELETE FROM cn_stories       WHERE item_id IN (SELECT item_id FROM cn_items WHERE block_height >= ?)`,
 		`DELETE FROM cn_comments      WHERE item_id IN (SELECT item_id FROM cn_items WHERE block_height >= ?)`,
 		`DELETE FROM cn_votes         WHERE block_height >= ?`,
 		`DELETE FROM cn_continuations WHERE block_height >= ?`,
-		`DELETE FROM cn_topics        WHERE created_height >= ?`,
+		// An empty txid marks a local bootstrap row, not a creation on chain.
+		// No block replays it, so a delete here loses it for good.
+		`DELETE FROM cn_topics        WHERE created_height >= ? AND txid != ''`,
 		`DELETE FROM cn_items         WHERE block_height >= ?`,
 	}
 	for _, q := range stmts {
@@ -246,5 +309,5 @@ func (p *Parser) purgeCoinNewsAtOrAbove(ctx context.Context, fromHeight uint32) 
 			return err
 		}
 	}
-	return tx.Commit()
+	return nil
 }
