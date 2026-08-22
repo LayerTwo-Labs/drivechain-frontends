@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
 	"github.com/btcsuite/btcd/chaincfg"
 	"io"
 	"os"
@@ -2047,11 +2048,11 @@ func (s *Service) StarterWalletID() string {
 // derivesEnforcerAccount reports whether the wallet already looks at the
 // account the enforcer hardcoded. True on a network whose coin type is 1.
 func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
-	// Only mainnet uses coin type 0. Every other network uses 1, which is what
-	// the enforcer hardcoded, so its account is the standard one there.
-	net := &chaincfg.TestNet3Params
-	if config.Network(s.network) == config.NetworkMainnet {
-		net = &chaincfg.MainNetParams
+	// Forknet and ecash run on mainnet params, so a string compare against
+	// mainnet reads their coin type as 1 and skips the companion they need.
+	net, err := bip47send.NetworkParams(s.network)
+	if err != nil {
+		net = &chaincfg.TestNet3Params
 	}
 	ap, err := accountPathFor(w, walletReceiveKind(w), net)
 	if err != nil {
