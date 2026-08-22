@@ -376,7 +376,6 @@ func run(cctx *cli.Context) error {
 		}
 		for _, svc := range []string{
 			enforcerrpc.ValidatorServiceName,
-			enforcerrpc.WalletServiceName,
 			cryptorpc.CryptoServiceName,
 			// The proposal and ACK RPCs the enforcer moved off its wallet.
 			enforcerrpc.BlockProducerServiceName,

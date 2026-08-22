@@ -475,7 +475,7 @@ class NextBundleTab extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(left: 8),
                         child: Tooltip(
-                          message: 'No addresses found in enforcer wallet',
+                          message: 'Your wallet has no addresses yet',
                           child: Icon(
                             Icons.warning_amber,
                             size: 16,
@@ -653,7 +653,8 @@ class PendingBundleViewModel extends BaseViewModel {
 
 class NextBundleViewModel extends BaseViewModel {
   final SidechainRPC sidechainRPC = GetIt.I.get<SidechainRPC>();
-  EnforcerRPC? get enforcerRPC => GetIt.I.isRegistered<EnforcerRPC>() ? GetIt.I.get<EnforcerRPC>() : null;
+  OrchestratorRPC? get orchestratorRPC =>
+      GetIt.I.isRegistered<OrchestratorRPC>() ? GetIt.I.get<OrchestratorRPC>() : null;
 
   PendingWithdrawalBundle? bundle;
   Timer? _refreshTimer;
@@ -686,13 +687,15 @@ class NextBundleViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// An empty wallet id resolves to the active wallet server-side.
   Future<void> fetchMyAddresses() async {
     try {
-      if (enforcerRPC == null) {
+      final orchestrator = orchestratorRPC;
+      if (orchestrator == null) {
         return;
       }
-      final addresses = await enforcerRPC!.getAddresses();
-      myAddresses = addresses.toSet();
+      final resp = await orchestrator.wallet.listReceiveAddresses('');
+      myAddresses = resp.addresses.map((a) => a.address).toSet();
       notifyListeners();
     } catch (e) {
       // Ignore errors - addresses will be empty
