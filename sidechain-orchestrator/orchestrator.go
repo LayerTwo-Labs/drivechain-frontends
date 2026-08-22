@@ -829,6 +829,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	if err != nil {
 		return nil, err
 	}
+	if err := o.refuseWhileParked(); err != nil {
+		return nil, err
+	}
 
 	ch := make(chan StartupProgress, 100)
 
@@ -1064,7 +1067,71 @@ func (o *Orchestrator) injectHeadlessForForcedBackend(config BinaryConfig, opts 
 // Returns true on success (or already-running), false on fatal failure
 // (failBoot has already surfaced the error to the UI in that case).
 //
-// Dart parity: rpc_connection.dart L197-232 initBinary pattern.
+// parkedStateOutstanding names a live path a swap moved aside and never brought
+// back. A daemon started over one builds fresh state, and the restore then
+// refuses to overwrite it — so the real copy strands.
+//
+// It reports the paths rather than restoring them: a conf write that failed
+// half way makes o.Network stale, and restoring on a stale network puts the
+// outgoing state where the incoming one looks. Only a start reads the conf
+// again, so recovery belongs there.
+func (o *Orchestrator) parkedStateOutstanding() []string {
+	var outstanding []string
+	active := config.Network(o.Network)
+	for path := range o.swapStatePaths(active) {
+		if _, err := os.Stat(path); err == nil {
+			continue
+		}
+		if _, ok := latestParkedPath(path, active); ok {
+			outstanding = append(outstanding, path)
+		}
+	}
+	return outstanding
+}
+
+// refuseWhileParked stops a daemon start while a swap's state is still aside.
+func (o *Orchestrator) refuseWhileParked() error {
+	outstanding := o.parkedStateOutstanding()
+	if len(outstanding) == 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"a network change left state aside and could not bring it back — restart BitWindow to finish it (%s)",
+		strings.Join(outstanding, ", "),
+	)
+}
+
+// applyPendingECashRewindAfterCore makes a drop a switch left for the next live// applyPendingECashRewindAfterCore makes a drop a switch left for the next live
+// Core, and stops Core when it cannot. Every path that brings Core up calls it:
+// a flag saying the boot failed does not take a running daemon off the fork the
+// drop exists to leave.
+func (o *Orchestrator) applyPendingECashRewindAfterCore(ctx context.Context, ch chan<- StartupProgress) error {
+	err := o.ApplyPendingECashRewind(ctx)
+	if err == nil {
+		return nil
+	}
+	o.log.Error().Err(err).Msg("could not apply the eCash rewind a switch left behind")
+	if stopErr := o.process.Stop(ctx, "bitcoind", true); stopErr != nil {
+		o.log.Error().Err(stopErr).Msg("could not stop bitcoind after the deferred rewind failed")
+	}
+	ch <- StartupProgress{Error: fmt.Errorf("apply the deferred eCash rewind: %w", err)}
+	return err
+}
+
+// applyPendingECashWipeBeforeCore makes a journalled wipe and reports it on ch.// applyPendingECashWipeBeforeCore makes a journalled wipe and reports it on ch.
+// Every path that brings Core up calls it: the wipe renames Core's blocks
+// aside, so it only works while nothing holds the datadir open.
+func (o *Orchestrator) applyPendingECashWipeBeforeCore(ctx context.Context, ch chan<- StartupProgress) error {
+	err := o.ApplyPendingECashWipe(ctx)
+	if err == nil {
+		return nil
+	}
+	o.log.Error().Err(err).Msg("could not clear the eCash chain a switch left behind")
+	ch <- StartupProgress{Error: fmt.Errorf("apply the deferred eCash wipe: %w", err)}
+	return err
+}
+
+// Dart parity: rpc_connection.dart L197-232 initBinary pattern.// Dart parity: rpc_connection.dart L197-232 initBinary pattern.
 //  1. startConnectionTimer() — pings once, then starts 1s timer
 //  2. if (connected) → "already running, not booting" → return
 //  3. else → bootProcess() → wait for connection
@@ -1072,11 +1139,26 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 	// A UTXO snapshot can only be loaded against a live, RPC-reachable node, so
 	// every path that brings bitcoind up gets the apply for free rather than
 	// each caller having to remember it.
+	//
+	// The deferred rewind rides here for the same reason: the daemon card's
+	// restart button reaches Core through this function alone, and a Core up on
+	// the target conf over the retired fork is what the drop exists to stop.
 	defer func() {
-		if started {
-			o.maybeApplySnapshot(ctx, ch)
+		if !started {
+			return
 		}
+		if err := o.applyPendingECashRewindAfterCore(ctx, ch); err != nil {
+			started = false
+			return
+		}
+		o.maybeApplySnapshot(ctx, ch)
 	}()
+
+	// Before Core opens the datadir: a journalled wipe renames its blocks
+	// aside, and a retry that skipped it would start over the retired chain.
+	if err := o.applyPendingECashWipeBeforeCore(ctx, ch); err != nil {
+		return false
+	}
 
 	coreCfg := o.configs["bitcoind"]
 	var coreHealthOpts HealthCheckOpts
@@ -1194,6 +1276,9 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 	if err != nil {
 		return nil, err
 	}
+	if err := o.refuseWhileParked(); err != nil {
+		return nil, err
+	}
 
 	ch := make(chan StartupProgress, 100)
 
@@ -1256,6 +1341,16 @@ func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
 // If prefetched is non-nil, the enforcer binary is already being downloaded
 // in parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) {
+	// A switch that could not finish its enforcer cleanup journalled it. Here,
+	// because a leftover validator chain serves the retired generation.
+	if err := o.ApplyPendingEnforcerWipe(); err != nil {
+		o.log.Error().Err(err).Msg("could not clear the enforcer chain a switch left behind")
+		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
+		mon.SetConnectionError(err.Error())
+		mon.SetInitializing(false)
+		return
+	}
+
 	// A boot that is not the swap's own would write a starter file from the
 	// wallet as it stands mid-swap and leave the daemon's state derived from a
 	// seed that is about to be replaced. Refuse rather than race.
@@ -1463,6 +1558,14 @@ func enforcerEnv() map[string]string {
 // If prefetched is non-nil, the target binary is already being downloaded in
 // parallel and we wait on its completion instead of starting a new download.
 func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig, opts StartOpts, ch chan<- StartupProgress, prefetched <-chan error) {
+	// An immediate start reaches Core through here rather than
+	// startBitcoindOnly, so the journalled wipe has to run on both paths.
+	if config.IsMainchainCore() {
+		if err := o.applyPendingECashWipeBeforeCore(ctx, ch); err != nil {
+			return
+		}
+	}
+
 	var startupPatterns []string
 	var healthOpts HealthCheckOpts
 	if config.IsMainchainCore() && o.BitcoinConf != nil {
@@ -1482,6 +1585,16 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	// Keep the target monitor alive even if the frontend asked us to start
 	// the chain before the target RPC is reachable.
 	targetMon.StartConnectionTimer(ctx)
+
+	// An immediate start reaches Core through here, and the drop needs a Core
+	// that answers — so it rides every way out of this function.
+	if config.IsMainchainCore() {
+		defer func() {
+			if targetMon.Connected() {
+				_ = o.applyPendingECashRewindAfterCore(ctx, ch)
+			}
+		}()
+	}
 
 	// A call that opens the frontend must reach the launch below even when the
 	// backend already answers: a backend that outlived its window would
@@ -2052,19 +2165,31 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		}
 	}
 
-	if err := o.purgeNetworkSwapState(n); err != nil {
+	if err := o.parkOutgoingSwapState(); err != nil {
 		return err
 	}
 
+	// Both failures leave the state parked on purpose. A write that got as far
+	// as naming n makes o.Network stale, and restoring on that would put the
+	// outgoing state at the live paths for a conf that names the target — which
+	// then opens the previous network's database. The next start reads the conf
+	// and restores whatever it names, whichever way the write landed.
 	if err := o.BitcoinConf.UpdateNetwork(n); err != nil {
+		o.log.Warn().Err(err).Str("network", string(n)).
+			Msg("network-swap state stays parked, the next start restores what the conf names")
 		return fmt.Errorf("persist network: %w", err)
 	}
 	if err := o.BitcoinConf.LoadConfig(false); err != nil {
+		o.log.Warn().Err(err).Str("network", string(n)).
+			Msg("network-swap state stays parked, the next start restores what the conf names")
 		return fmt.Errorf("reload config: %w", err)
 	}
 	o.setNetwork(string(n))
 	o.clearNetworkSwapCaches()
 
+	// Installed before the tail below, which can fail. Without it a retry reads
+	// the network as already swapped, takes the no-op path and reports success
+	// while the state is still parked and the daemons are still down.
 	o.pendingSwap = &pendingNetworkSwap{network: n, restartL1: bitcoindWasRunning || enforcerWasRunning}
 	return o.finishNetworkSwap(n, o.pendingSwap.restartL1)
 }
@@ -2078,6 +2203,13 @@ type pendingNetworkSwap struct {
 // finishNetworkSwap rebinds wallet state and restarts L1. Everything here is
 // retryable: the caller keeps pendingSwap until it returns nil.
 func (o *Orchestrator) finishNetworkSwap(n config.Network, restartL1 bool) error {
+	// First, and on every retry: the network is durable by now, so this brings
+	// back whatever it parked on its way out. A daemon started over an absent
+	// path builds fresh state that a later park files above the real one.
+	if err := o.RestoreParkedSwapState(); err != nil {
+		return fmt.Errorf("restore the state %s parked: %w", n, err)
+	}
+
 	// Eager, before anything can read: wallet state derived from the outgoing
 	// network must not outlive the swap.
 	if o.walletEngine != nil {
@@ -2111,11 +2243,96 @@ func (o *Orchestrator) finishNetworkSwap(n config.Network, restartL1 bool) error
 	return nil
 }
 
-func (o *Orchestrator) purgeNetworkSwapState(target config.Network) error {
-	paths := make(map[string]bool)
+// parkOutgoingSwapState moves the state a swap would otherwise destroy out of
+// the way, filed under the network leaving. Its other half is
+// RestoreParkedSwapState, which runs once the new network is durable.
+//
+// Sidechains keep one flat datadir and the enforcer shares directories between
+// colliding networks, so both networks want the same paths. A delete would cost
+// the user a full sidechain resync — and the enforcer's keys — every swap.
+func (o *Orchestrator) parkOutgoingSwapState() error {
+	from := config.Network(o.Network)
+	moved := make(map[string]string)
+	for path := range o.swapStatePaths(from) {
+		switch _, err := os.Stat(path); {
+		case os.IsNotExist(err):
+			continue
+		case err != nil:
+			// Skipping on an unreadable path leaves the outgoing state in the
+			// shared live path. Once access recovers the target opens it, and
+			// its own parked copy stays ignored.
+			o.unparkPartialMove(moved)
+			return fmt.Errorf("read %s before parking it: %w", path, err)
+		}
+		outgoing, err := freeParkedPath(path, from)
+		if err != nil {
+			o.unparkPartialMove(moved)
+			return err
+		}
+		if err := os.Rename(path, outgoing); err != nil {
+			// Half a park is worse than none: the conf still names this
+			// network while some of its state is gone from the live paths.
+			o.unparkPartialMove(moved)
+			return fmt.Errorf("park %s under %s: %w", path, from, err)
+		}
+		moved[path] = outgoing
+		o.log.Info().Str("path", path).Str("parked_under", string(from)).
+			Msg("parked network-swap state")
+	}
+	return nil
+}
 
-	for _, path := range enforcerNetworkSwapStatePaths(config.Network(o.Network), target) {
-		paths[path] = true
+// unparkPartialMove puts back what a failed park already moved.
+func (o *Orchestrator) unparkPartialMove(moved map[string]string) {
+	for path, parked := range moved {
+		if err := os.Rename(parked, path); err != nil {
+			o.log.Error().Err(err).Str("path", path).Str("parked", parked).
+				Msg("could not put back state a failed park moved")
+		}
+	}
+}
+
+// RestoreParkedSwapState brings back what the active network parked on its way
+// out. It runs after a swap and at every start, so a crash between the park and
+// the conf write costs nothing: the next start restores whatever the conf names.
+//
+// It never overwrites. A live path is the newer state by definition, and the
+// parked copy under it stays on disk.
+func (o *Orchestrator) RestoreParkedSwapState() error {
+	active := config.Network(o.Network)
+	for path := range o.swapStatePaths(active) {
+		switch _, err := os.Stat(path); {
+		case err == nil:
+			continue
+		case !os.IsNotExist(err):
+			// A path we cannot read may hold live state. Restoring over it
+			// would bury that; leaving it costs a retry.
+			return fmt.Errorf("read %s before restoring it: %w", path, err)
+		}
+		incoming, ok := latestParkedPath(path, active)
+		if !ok {
+			continue
+		}
+		if err := os.Rename(incoming, path); err != nil {
+			// Starting a daemon over an absent path builds fresh state, which a
+			// later park files as the newest slot and hides the real one.
+			return fmt.Errorf("restore %s from %s: %w", path, incoming, err)
+		}
+		o.log.Info().Str("path", path).Str("network", string(active)).
+			Msg("restored parked network-swap state")
+	}
+	return nil
+}
+
+// swapStatePaths lists the live paths a swap has to move for network n: the
+// sidechain stores it shares with every other network, the enforcer state that
+// collides, and any path a park left behind.
+func (o *Orchestrator) swapStatePaths(n config.Network) map[string]bool {
+	paths := make(map[string]bool)
+	for _, other := range config.AllNetworks() {
+		for _, path := range enforcerNetworkSwapStatePaths(n, other) {
+			paths[path] = true
+		}
 	}
 
 	bitcoinOverride := ""
@@ -2130,28 +2347,91 @@ func (o *Orchestrator) purgeNetworkSwapState(target config.Network) error {
 		if !ok {
 			continue
 		}
-		for _, network := range []config.Network{config.Network(o.Network), target} {
-			networkDir := dc.DatadirNetwork(network, bitcoinOverride)
-			for _, path := range dc.GetBlockchainDataPaths(networkDir, network, o.log) {
-				paths[path] = true
-			}
+		networkDir := dc.DatadirNetwork(n, bitcoinOverride)
+		// The names, not what stat can see: GetBlockchainDataPaths omits a path
+		// it cannot read, and an omitted path never reaches the fail-closed
+		// check in parkOutgoingSwapState.
+		for _, name := range config.SidechainChainDataNames {
+			paths[filepath.Join(networkDir, name)] = true
+		}
+		// The list above only reports files that exist, and a parked one does
+		// not — so without this the swap home never finds its own state.
+		for _, path := range parkedPathsFor(networkDir, n) {
+			paths[path] = true
 		}
 	}
+	return paths
+}
 
-	for path := range paths {
-		if err := os.RemoveAll(path); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("wipe network-swap state %s: %w", path, err)
+// parkedPathsFor returns the live paths whose state n parked in dir, numbered
+// slots included: an interrupted swap parks under a numbered one, and skipping
+// those would leave that state stranded for good.
+func parkedPathsFor(dir string, n config.Network) []string {
+	suffix := ".network-" + string(n)
+	seen := make(map[string]bool)
+	var paths []string
+	for _, pattern := range []string{"*" + suffix, "*" + suffix + ".*"} {
+		matches, err := filepath.Glob(filepath.Join(dir, pattern))
+		if err != nil {
+			continue
 		}
-		o.log.Info().Str("path", path).Msg("wiped network-swap state")
+		for _, m := range matches {
+			live := m[:strings.LastIndex(m, suffix)]
+			if live == "" || seen[live] {
+				continue
+			}
+			seen[live] = true
+			paths = append(paths, live)
+		}
 	}
-	return nil
+	return paths
+}
+
+// latestParkedPath returns the newest slot n parked, which is the highest
+// numbered one. An interrupted swap parks the live state above an older copy
+// nothing restored, so the number orders them.
+func latestParkedPath(path string, n config.Network) (string, bool) {
+	base := parkedPath(path, n)
+	newest := ""
+	for i := 0; i < 20; i++ {
+		candidate := base
+		if i > 0 {
+			candidate = fmt.Sprintf("%s.%d", base, i)
+		}
+		if _, err := os.Stat(candidate); err == nil {
+			newest = candidate
+		}
+	}
+	return newest, newest != ""
+}
+
+// parkedPath is where path lives while another network runs.
+func parkedPath(path string, n config.Network) string {
+	return path + ".network-" + string(n)
+}
+
+// freeParkedPath returns a parked name nothing occupies. A swap interrupted
+// before its restore leaves one behind, and overwriting it would delete the
+// very state parking exists to keep.
+func freeParkedPath(path string, n config.Network) (string, error) {
+	base := parkedPath(path, n)
+	for i := 0; i < 20; i++ {
+		candidate := base
+		if i > 0 {
+			candidate = fmt.Sprintf("%s.%d", base, i)
+		}
+		if _, err := os.Stat(candidate); os.IsNotExist(err) {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("no free parking slot for %s under %s", path, n)
 }
 
 // enforcerNetworkSwapStatePaths returns the enforcer state a swap from -> to
-// must drop. The enforcer files its validator chain and wallet per network, so
-// both survive a swap and are still valid on the way back; state only has to go
-// when the two networks share those directories, leaving the outgoing chain
-// where the incoming one will look for its own.
+// must move. The enforcer files its validator chain and wallet per network, so
+// both survive a swap untouched; state only has to move when the two networks
+// share those directories, leaving the outgoing chain where the incoming one
+// will look for its own.
 func enforcerNetworkSwapStatePaths(from, to config.Network) []string {
 	if !config.EnforcerNetworksCollide(from, to) {
 		return nil

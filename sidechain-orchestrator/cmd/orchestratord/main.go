@@ -271,6 +271,31 @@ func run(cctx *cli.Context) error {
 	// generation is settled before anything can be served.
 	orch.ResolveNetworkCatalog(ctx)
 
+	// A swap that died between the park and the conf write left this network's
+	// state parked. Bring it back before anything opens the datadir.
+	//
+	// Fatal: the listener and the --binary auto-boot both start daemons, and a
+	// daemon over an absent path builds fresh state that hides the real one.
+	if err := orch.RestoreParkedSwapState(); err != nil {
+		return fmt.Errorf("restore parked network-swap state: %w", err)
+	}
+
+	// A switch that journalled a wipe and died before making it. Here, because
+	// the delete renames Core's blocks aside and nothing has started yet.
+	if err := orch.ApplyPendingECashWipe(ctx); err != nil {
+		return fmt.Errorf("apply the eCash wipe a switch left behind: %w", err)
+	}
+	if err := orch.ApplyPendingEnforcerWipe(); err != nil {
+		return fmt.Errorf("apply the enforcer cleanup a switch left behind: %w", err)
+	}
+
+	// A Core adopted from the previous run answers already, so the drop can be
+	// made here. Before the listener binds: serving the target generation over
+	// the retired fork is what the drop exists to stop.
+	if err := orch.ApplyPendingRewindToAdoptedCore(ctx); err != nil {
+		return fmt.Errorf("apply the eCash rewind a switch left behind: %w", err)
+	}
+
 	// Set up gRPC/ConnectRPC server
 	handler := api.NewHandler(orch)
 	mux := http.NewServeMux()
