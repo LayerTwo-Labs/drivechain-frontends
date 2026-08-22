@@ -96,18 +96,12 @@ func MarkBlocksProcessed(ctx context.Context, db *sql.DB, blocks []ProcessedBloc
 	return nil
 }
 
-func WipeProcessedBlocks(ctx context.Context, db *sql.DB) error {
-	start := time.Now()
-	tag, err := db.ExecContext(ctx, `DELETE FROM processed_blocks`)
-	if err != nil {
-		return fmt.Errorf("wipe processed blocks: %w", err)
+// DeleteProcessedBlocksAtOrAboveTx drops every processed block from height up,
+// so a chain that forked below it is re-scanned from the last common block.
+func DeleteProcessedBlocksAtOrAboveTx(ctx context.Context, tx *sql.Tx, height uint32) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM processed_blocks WHERE height >= ?`, height); err != nil {
+		return fmt.Errorf("delete processed blocks at or above %d: %w", height, err)
 	}
-
-	if rows, _ := tag.RowsAffected(); rows > 0 {
-		zerolog.Ctx(ctx).Debug().
-			Msgf("blocks: wiped %d processed blocks in %s", rows, time.Since(start))
-	}
-
 	return nil
 }
 
