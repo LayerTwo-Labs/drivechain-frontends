@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.connect.client.dart';
 import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.pb.dart';
 import 'package:sidechain_core/sidechain_core.dart';
@@ -58,16 +57,9 @@ class EnforcerLive extends EnforcerRPC {
 
   @override
   Future<List<String>> binaryArgs() async {
-    final downloadsDir = await getDownloadsDirectory();
-    if (downloadsDir == null) {
-      throw Exception('Could not determine downloads directory');
-    }
-
-    // Handle wallet seed file
+    // The enforcer runs no wallet, and the orchestrator strips
+    // --wallet-seed-file from its args anyway.
     binary.extraBootArgs = binary.extraBootArgs.where((arg) => !arg.startsWith('--wallet-seed-file')).toList();
-    final walletReader = GetIt.I.get<WalletReaderProvider>();
-    final mnemonicFile = await walletReader.writeEnforcerL1Starter();
-    binary.addBootArg('--wallet-seed-file=${mnemonicFile.path}');
 
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = bitcoinConfProvider.network;
