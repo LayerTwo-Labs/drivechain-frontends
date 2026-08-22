@@ -29,6 +29,14 @@ type OrchestratorSettings struct {
 	// branch for good, so a move back to the network it dropped must clear the
 	// mark first.
 	RewoundBlockHash string `json:"rewound_block_hash"`
+	// PendingRewind is a drop an eCash switch could not make because no Core
+	// answered. The first boot that has one makes it, so the blocks below the
+	// fork stay instead of being deleted.
+	PendingRewind *PendingRewind `json:"pending_rewind,omitempty"`
+	// PendingEnforcerWipe is the eCash network whose enforcer validator chain a
+	// switch left behind. The enforcer keeps one chain per network, not per
+	// fork, so it has to go before the enforcer runs on the new one.
+	PendingEnforcerWipe string `json:"pending_enforcer_wipe,omitempty"`
 	// ElectrumServerURL overrides the network's default Esplora endpoint for
 	// electrum wallets. Empty means "use the network default".
 	ElectrumServerURL string `json:"electrum_server_url"`
@@ -271,17 +279,87 @@ func (s *SettingsStore) SetSeenNetworkIDs(ids []string) error {
 	return nil
 }
 
+// PendingRewind is a drop waiting for a live Core, and the move it belongs to.
+// The ids matter: a selection that reverses before the drop runs would
+// otherwise invalidate the first block of the very fork it lands on.
+type PendingRewind struct {
+	FromID string `json:"from_id"`
+	ToID   string `json:"to_id"`
+	Height uint32 `json:"height"`
+	// Wipe means no published fork height tells the two networks apart, so the
+	// old chain has to go rather than rewind. It runs before Core starts.
+	Wipe bool `json:"wipe,omitempty"`
+}
+
+// PendingEnforcerWipe returns the network whose enforcer chain still has to go,
+// empty when none does.
+func (s *SettingsStore) PendingEnforcerWipe() string {
+	return s.Get().PendingEnforcerWipe
+}
+
+// SetPendingEnforcerWipe persists enforcer cleanup a switch could not finish.
+// An empty id clears it.
+func (s *SettingsStore) SetPendingEnforcerWipe(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := s.current
+	next.PendingEnforcerWipe = id
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
+}
+
+// PendingRewind returns the drop a switch left for the next live Core, nil when
+// none waits.
+func (s *SettingsStore) PendingRewind() *PendingRewind {
+	return s.Get().PendingRewind
+}
+
+// SetPendingRewind persists a drop for the next live Core. A nil record clears
+// it.
+func (s *SettingsStore) SetPendingRewind(rewind *PendingRewind) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := s.current
+	next.PendingRewind = rewind
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
+}
+
 // RewoundBlockHash returns the block an eCash switch dropped, empty when none.
 func (s *SettingsStore) RewoundBlockHash() string {
 	return s.Get().RewoundBlockHash
 }
 
-// SetRewoundBlockHash persists the block an eCash switch dropped.
+// SetRewoundBlockHash persists the block an eCash switch dropped. A rollback
+// uses it to put the previous mark back, so it leaves any drop still waiting
+// alone — that work outlives the switch that failed.
 func (s *SettingsStore) SetRewoundBlockHash(hash string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	next := s.current
 	next.RewoundBlockHash = hash
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
+}
+
+// CommitRewind records a drop that succeeded and clears the one that was
+// waiting, in one write. Two writes leave a window where a crash repeats the
+// work, and a repeat reconsiders the block it just barred.
+func (s *SettingsStore) CommitRewind(hash string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := s.current
+	next.RewoundBlockHash = hash
+	next.PendingRewind = nil
 	if err := SaveSettings(s.bitwindowDir, next); err != nil {
 		return err
 	}

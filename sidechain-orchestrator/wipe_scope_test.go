@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -27,7 +28,9 @@ func TestRolloverWipeLeavesSidechainDataAlone(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config.WipeNetworkScopedChainDataSync(config.NetworkECash, datadir, zerolog.Nop())
+	if err := config.WipeNetworkScopedChainDataSync(config.NetworkECash, datadir, zerolog.Nop()); err != nil {
+		t.Fatal(err)
+	}
 
 	if _, err := os.Stat(blocks); err == nil {
 		t.Error("eCash blocks should have been renamed aside")
@@ -55,12 +58,75 @@ func TestRolloverWipesEnforcerChainButKeepsWallet(t *testing.T) {
 		}
 	}
 
-	config.WipeEnforcerChainDataSync(config.NetworkECash, zerolog.Nop())
+	if err := config.WipeEnforcerChainDataSync(config.NetworkECash, zerolog.Nop()); err != nil {
+		t.Fatal(err)
+	}
 
 	if _, err := os.Stat(chain); err == nil {
 		t.Error("enforcer validator chain should have been renamed aside")
 	}
 	if _, err := os.Stat(wallet); err != nil {
 		t.Errorf("enforcer wallet must survive a eCash network change: %v", err)
+	}
+}
+
+// bitwindow.db holds the address book, transaction notes, UTXO labels and
+// multisig records, and bitdrive holds the user's files. No chain rebuilds
+// any of it, so an eCash network change must leave both alone.
+func TestRolloverKeepsTheUsersBitwindowData(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	dc, ok := config.DirConfigByName("bitwindow")
+	if !ok {
+		t.Fatal("no dir config for bitwindow")
+	}
+	datadir := dc.DatadirNetwork(config.NetworkECash, "")
+	bitdrive := filepath.Join(datadir, "bitdrive")
+	if err := os.MkdirAll(bitdrive, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	db := filepath.Join(datadir, "bitwindow.db")
+	if err := os.WriteFile(db, []byte("address book, notes, labels"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := config.WipeNetworkScopedChainDataSync(config.NetworkECash, t.TempDir(), zerolog.Nop()); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(db); err != nil {
+		t.Errorf("bitwindow.db must survive an eCash network change: %v", err)
+	}
+	if _, err := os.Stat(bitdrive); err != nil {
+		t.Errorf("bitdrive files must survive an eCash network change: %v", err)
+	}
+}
+
+// The enforcer wipe has to say whether the validator chain actually left the
+// live layout. A caller that records it as done would start the enforcer on the
+// retired generation's chain with nothing left to retry.
+func TestEnforcerWipeReportsAPathItCouldNotRead(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	root := config.EnforcerDirs.RootDir()
+	validator := filepath.Join(root, "validator")
+	if err := os.MkdirAll(filepath.Join(validator, "bitcoin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(validator, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(validator, 0o755) })
+
+	err := config.WipeEnforcerChainDataSync(config.NetworkECash, zerolog.Nop())
+	if err == nil {
+		t.Skip("this filesystem reads the path anyway, so the failure cannot be staged")
+	}
+	if !strings.Contains(err.Error(), "validator") {
+		t.Errorf("the error must name the path it could not clear: %v", err)
 	}
 }

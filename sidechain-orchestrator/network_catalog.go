@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -39,17 +41,17 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 		current = o.promotePendingCatalog(ctx, current, pending, fromDisk)
 		promoted = true
 	}
-	// Reconcile installs whose cached catalog already lists the selected
-	// network, where no pending promotion fires.
+	// RunningECashID already keeps a network the catalog still lists, so this
+	// only fires once the catalog drops the one the blocks belong to. Serving
+	// it with no endpoints beats opening its blocks as another fork: the user
+	// switches from Settings, which states the resync before it runs.
 	ecashID := o.RunningECashID(current)
-	if !promoted && !o.wipeIfECashNetworkStale(ctx, ecashID) {
-		// Keep serving the network those blocks belong to, so the next start
-		// retries rather than opening them as the new fork.
-		o.log.Error().
-			Str("retained", o.installedECashNetwork()).
+	if installed := o.installedECashNetwork(); !promoted && o.ecashNetworkMoved(installed, ecashID) {
+		o.log.Warn().
+			Str("installed", installed).
 			Str("published", ecashID).
-			Msg("eCash chain data could not be cleared, staying on the installed network")
-		ecashID = o.installedECashNetwork()
+			Msg("the catalog dropped the installed eCash network, switch from Settings to move")
+		ecashID = installed
 	}
 	o.adoptCatalog(current, ecashID)
 
@@ -58,11 +60,11 @@ func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
 	go o.refreshNetworkCatalog(ctx, current)
 }
 
-// promotePendingCatalog applies a catalog left by a previous refresh, wiping
-// the stale eCash chain data first. Returns the catalog to actually use: the
-// pending one when it could be applied, otherwise the current one, so the
-// process never serves a generation whose data it has not cleared.
-func (o *Orchestrator) promotePendingCatalog(ctx context.Context, current, pending netcatalog.Catalog, fromDisk bool) netcatalog.Catalog {
+// promotePendingCatalog applies a catalog left by a previous refresh. Returns
+// the catalog to actually use: the pending one when it names the same eCash
+// network, otherwise the current one, so a move between networks stays the
+// user's to make.
+func (o *Orchestrator) promotePendingCatalog(_ context.Context, current, pending netcatalog.Catalog, fromDisk bool) netcatalog.Catalog {
 	// The network this install serves, not the catalog's first entry: a user on
 	// a retained row keeps blocks from that row, and a refresh that drops it
 	// leaves both documents naming the same first entry. An id-only compare
@@ -85,14 +87,6 @@ func (o *Orchestrator) promotePendingCatalog(ctx context.Context, current, pendi
 		return current
 	}
 
-	if !o.wipeOnECashNetworkChange(ctx, baseline, target) {
-		// Leave the pending file in place; the next start tries again.
-		o.log.Warn().Msg("could not apply the pending network catalog, keeping the current one")
-		return current
-	}
-	// Cache and pending are only reconciled once the stale data is gone, so an
-	// interrupted promotion repeats rather than recording a wipe that did not
-	// happen.
 	if err := netcatalog.Save(o.BitwindowDir, pending); err != nil {
 		o.log.Warn().Err(err).Msg("could not persist the promoted network catalog")
 		return current
@@ -147,8 +141,8 @@ func (o *Orchestrator) ecashSwitchIsManual() bool {
 	return o.BitcoinConf != nil && o.BitcoinConf.HasPrivateConf
 }
 
-// ConfirmPendingECashNetwork records the user's go-ahead by promoting the
-// published catalog to the cache. The switch itself runs on the next start.
+// ConfirmPendingECashNetwork applies the user's go-ahead: it moves the chain
+// onto the published network, then promotes that catalog to the cache.
 func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 	pending, ok := netcatalog.LoadPending(o.BitwindowDir)
 	if !ok {
@@ -157,23 +151,35 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 	if o.ecashSwitchIsManual() {
 		return fmt.Errorf("your own bitcoin.conf decides which eCash network this node runs, so the switch has to be made there")
 	}
-	// The next start must be free to wipe, and it cannot stop a Core we did not
-	// launch. Promoting the cache first would leave nothing to fall back to.
+	// The switch below stops the daemons, and it cannot stop a Core we did not
+	// launch.
 	if config.NetworkFromString(o.Network) == config.NetworkECash &&
 		!o.process.IsRunning("bitcoind") && o.coreRPCReachable() {
 		return fmt.Errorf("a bitcoin core this app did not start is running — stop it first")
 	}
-	// Off eCash the retired chain is cold files that no start will revisit:
-	// the startup wipe only runs while eCash is active. Clear them here.
-	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		// The pick on both sides, not each document's first row. A user on a
-		// retained entry holds that chain on disk, and comparing first rows
-		// reads two identical ids while the blocks belong to a third.
-		current, _ := netcatalog.Load(o.BitwindowDir)
-		if !o.wipeOnECashNetworkChange(ctx, o.RunningECashID(current), o.SelectedECashID(pending)) {
-			return fmt.Errorf("could not clear the retired eCash chain data")
+	current, _ := netcatalog.Load(o.BitwindowDir)
+	previousPick := ""
+	if o.Settings != nil {
+		previousPick = o.Settings.ECashNetworkID()
+	}
+
+	// The journal goes first. Between the writes below and the switch there is a
+	// window where the record names the target while the chain is still the
+	// source; a crash there would let the next start adopt the target with no
+	// drop to make. This record is what that start finds instead.
+	//
+	// A move with no published fork height journals a wipe instead, so every
+	// switch leaves something the next start can finish.
+	if id := o.SelectedECashID(pending); id != "" && config.NetworkFromString(o.Network) == config.NetworkECash {
+		if err := o.recordPendingRewind(o.RunningECashID(current), id); err != nil {
+			return fmt.Errorf("journal the switch to %s: %w", id, err)
 		}
 	}
+
+	// Every durable write goes before the switch. A volume that refuses them
+	// after the chain moved would leave the record naming a network the blocks
+	// no longer belong to, and the next start would act on that record.
+	//
 	// The pick goes before the catalog it belongs to. A catalog promoted without
 	// it reads as current on the next start: the pending file gets cleared, the
 	// old pick still resolves, and the prompt never returns to say so.
@@ -190,14 +196,66 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 		}
 	}
 	if err := netcatalog.Save(o.BitwindowDir, pending); err != nil {
+		o.restoreConfirmRecord(previousPick, current, pending)
 		return fmt.Errorf("persist network catalog: %w", err)
 	}
+
+	if config.NetworkFromString(o.Network) == config.NetworkECash {
+		// Here, not on the next start: this is the one moment a live Core can
+		// rewind to the fork. A start has none and could only delete the chain.
+		if id := o.SelectedECashID(pending); id != "" {
+			if err := o.ApplyECashSwitch(ctx, id); err != nil {
+				// Only when the switch never committed. Past that point the
+				// chain and the conf already name the target, and putting the
+				// record back would send the next start after the branch this
+				// switch invalidated.
+				o.mu.RLock()
+				running := o.ecashID
+				o.mu.RUnlock()
+				if running != id {
+					o.restoreConfirmRecord(previousPick, current, pending)
+				}
+				return fmt.Errorf("switch to %s: %w", id, err)
+			}
+		}
+	} else {
+		// Off eCash the retired chain is cold files that no start will revisit,
+		// and there is no Core on that chain to rewind. Clear them here.
+		//
+		// The pick on both sides, not each document's first row. A user on a
+		// retained entry holds that chain on disk, and comparing first rows
+		// reads two identical ids while the blocks belong to a third.
+		if !o.wipeOnECashNetworkChange(ctx, o.RunningECashID(current), o.SelectedECashID(pending)) {
+			o.restoreConfirmRecord(previousPick, current, pending)
+			return fmt.Errorf("could not clear the retired eCash chain data")
+		}
+	}
+	// Last: the switch reads the pending document to resolve a network the
+	// served catalog does not list yet. A file left behind by a crash names the
+	// same network as the cache, which the next start promotes with no work.
 	netcatalog.ClearPending(o.BitwindowDir)
 	o.log.Info().
 		Str("current", config.ECashNetworkID()).
 		Str("confirmed", pending.ECashID()).
-		Msg("eCash network switch confirmed, applying on the next start")
+		Msg("eCash network switch confirmed")
 	return nil
+}
+
+// restoreConfirmRecord puts back the pick, the cache and the pending file a
+// failed confirm already wrote, so the prompt returns and the record keeps
+// describing the chain on disk.
+func (o *Orchestrator) restoreConfirmRecord(pick string, current, pending netcatalog.Catalog) {
+	if o.Settings != nil {
+		if _, err := o.Settings.SetECashNetworkID(pick); err != nil {
+			o.log.Error().Err(err).Msg("could not put the eCash network pick back after a failed confirm")
+		}
+	}
+	if err := netcatalog.Save(o.BitwindowDir, current); err != nil {
+		o.log.Error().Err(err).Msg("could not put the network catalog back after a failed confirm")
+	}
+	if err := netcatalog.SavePending(o.BitwindowDir, pending); err != nil {
+		o.log.Error().Err(err).Msg("could not put the pending network catalog back after a failed confirm")
+	}
 }
 
 // refreshNetworkCatalog fetches the published catalog and, when it differs from
@@ -329,13 +387,38 @@ func expandECashPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 	return cfg
 }
 
-// wipeIfECashNetworkStale clears eCash chain data when the on-disk conf was
-// written for a different eCash network than the one this start serves.
-func (o *Orchestrator) wipeIfECashNetworkStale(ctx context.Context, selected string) bool {
-	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		return true
+// ecashNetworkMoved reports whether startup must hold back the published eCash
+// network: it differs from the one the blocks on disk belong to, the user never
+// asked to move, and there are blocks to lose.
+func (o *Orchestrator) ecashNetworkMoved(installed, published string) bool {
+	if installed == "" || published == "" || installed == published {
+		return false
 	}
-	return o.wipeOnECashNetworkChange(ctx, o.installedECashNetwork(), selected)
+	if config.NetworkFromString(o.Network) != config.NetworkECash {
+		return false
+	}
+	// A move the user already picked is not an offer.
+	if o.Settings != nil && o.Settings.ECashNetworkID() == published {
+		return false
+	}
+	return o.ecashChainDataOnDisk()
+}
+
+// ecashChainDataOnDisk reports whether Core holds eCash blocks worth keeping.
+func (o *Orchestrator) ecashChainDataOnDisk() bool {
+	// An empty override means Core's platform default, which is a supported
+	// setup — not an install with nothing on disk.
+	datadir := config.BitcoinCoreDirs.DatadirNetwork(config.NetworkECash, o.ecashDatadir())
+	if datadir == "" {
+		return false
+	}
+	entries, err := os.ReadDir(filepath.Join(datadir, "blocks"))
+	if err != nil {
+		// Only "not there" says there is nothing to keep. Any other refusal
+		// leaves a chain that may exist, and adopting over it needs the user.
+		return !os.IsNotExist(err)
+	}
+	return len(entries) > 0
 }
 
 // SelectedECashID returns the network a catalog resolves to: the one the user
@@ -406,12 +489,18 @@ func (o *Orchestrator) SelectECashNetwork(id string) error {
 	if _, err := o.Settings.SetECashNetworkID(id); err != nil {
 		return err
 	}
-	// Off eCash the retired chain is cold files that no start revisits: the
-	// startup wipe only runs while eCash is active, and by the time it is the
-	// conf already names the new network. Clear them here.
+	// Off eCash there is no Core on that chain to rewind, so the drop is
+	// recorded for the boot that brings one up.
 	if config.NetworkFromString(o.Network) != config.NetworkECash {
 		if !o.wipeOnECashNetworkChange(context.Background(), previous, id) {
-			return fmt.Errorf("could not clear the retired eCash chain data")
+			// The pick is already durable. Leaving it while the drop is not
+			// recorded lets a later boot serve the target over the source fork
+			// with nothing to invalidate it.
+			if _, err := o.Settings.SetECashNetworkID(previous); err != nil {
+				o.log.Error().Err(err).Str("previous", previous).
+					Msg("could not put the eCash network pick back")
+			}
+			return fmt.Errorf("could not record the move off the retired eCash chain")
 		}
 	}
 	return nil
@@ -426,12 +515,29 @@ func (o *Orchestrator) installedECashNetwork() string {
 	return config.ECashIDFromUAComment(o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
 }
 
-// wipeOnECashNetworkChange deletes eCash chain state when the published
-// network moves on (drynet4 -> alphanet). The networks are separate forks
-// that share one datadir, so the previous blocks and chainstate are invalid for
-// the new chain. Wallets survive — see WipeChainData.
-// It reports whether the catalog may move on: true when nothing needed wiping
-// or the wipe was started, false when the stale data is still there.
+// sharedECashHeight returns the last block two eCash networks agree on: one
+// below the lower published fork height. Both fork mainnet, so everything under
+// it is valid on either. false means one of them publishes no fork height, and
+// nothing says where the two part.
+func (o *Orchestrator) sharedECashHeight(fromID, toID string) (uint32, bool) {
+	from, okFrom := o.ecashEntry(fromID)
+	to, okTo := o.ecashEntry(toID)
+	if !okFrom || !okTo || from.ForkHeight <= 1 || to.ForkHeight <= 1 {
+		return 0, false
+	}
+	shared := from.ForkHeight
+	if to.ForkHeight < shared {
+		shared = to.ForkHeight
+	}
+	return uint32(shared - 1), true
+}
+
+// wipeOnECashNetworkChange makes the chain on disk match a new eCash network.
+// It records a rewind to the block both networks share whenever the catalog
+// publishes one, and only deletes when nothing says where the two forks part.
+// Wallets survive either way — see WipeChainData.
+// It reports whether the catalog may move on: true when nothing had to happen
+// or the work was started, false when the stale data is still there.
 func (o *Orchestrator) wipeOnECashNetworkChange(ctx context.Context, oldID, newID string) bool {
 	if oldID == "" || newID == "" || oldID == newID {
 		return true
@@ -439,6 +545,26 @@ func (o *Orchestrator) wipeOnECashNetworkChange(ctx context.Context, oldID, newI
 	if o.BitcoinConf == nil || o.BitcoinConf.Config == nil {
 		o.log.Warn().Msg("eCash network changed but bitcoin config is unavailable, skipping wipe")
 		return false
+	}
+	// A delete would cost every block below the fork, which both networks keep.
+	// Record the drop for the first boot with a Core to make it.
+	if _, ok := o.sharedECashHeight(oldID, newID); ok && o.Settings != nil {
+		if err := o.recordPendingRewind(oldID, newID); err != nil {
+			o.log.Warn().Err(err).Msg("could not record the deferred eCash rewind")
+			return false
+		}
+		// The move back to eCash goes through SwapNetwork, not ApplyECashSwitch,
+		// so nothing else records this. Without it the enforcer comes up on the
+		// retired generation's validator chain.
+		if err := o.Settings.SetPendingEnforcerWipe(newID); err != nil {
+			o.log.Warn().Err(err).Msg("could not record the deferred enforcer cleanup")
+			return false
+		}
+		o.log.Info().
+			Str("previous", oldID).
+			Str("current", newID).
+			Msg("eCash network changed, the next boot drops the retired branch")
+		return true
 	}
 	if o.BitcoinConf.HasPrivateConf {
 		// That user's chain data follows their own bitcoin.conf, not ours.
@@ -478,11 +604,26 @@ func (o *Orchestrator) wipeOnECashNetworkChange(ctx context.Context, oldID, newI
 	// Synchronous: the caller persists the new generation next, and recording
 	// a wipe that has not happened is worse than not wiping at all. Runs on
 	// the refresh goroutine, so a slow volume cannot delay startup.
-	config.WipeNetworkScopedChainDataSync(config.NetworkECash, o.ecashDatadir(), o.log)
-	// The enforcer's validator chain is per-network, not per-generation, so on
-	// eCash it must be cleared here too; other networks' swap into eCash does it.
-	if config.NetworkFromString(o.Network) == config.NetworkECash {
-		config.WipeEnforcerChainDataSync(config.NetworkECash, o.log)
+	if err := config.WipeNetworkScopedChainDataSync(config.NetworkECash, o.ecashDatadir(), o.log); err != nil {
+		o.log.Warn().Err(err).Msg("could not clear the retired eCash chain")
+		return false
+	}
+	// The enforcer's validator chain is per-network, not per-generation, so it
+	// goes too. Off eCash it shares validator/bitcoin with the active network,
+	// so the work is journalled for the swap that brings eCash back.
+	if config.NetworkFromString(o.Network) != config.NetworkECash {
+		if o.Settings == nil {
+			return false
+		}
+		if err := o.Settings.SetPendingEnforcerWipe(newID); err != nil {
+			o.log.Warn().Err(err).Msg("could not record the deferred enforcer cleanup")
+			return false
+		}
+		return true
+	}
+	if err := config.WipeEnforcerChainDataSync(config.NetworkECash, o.log); err != nil {
+		o.log.Warn().Err(err).Msg("could not clear the retired enforcer chain")
+		return false
 	}
 	return true
 }
