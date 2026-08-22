@@ -104,6 +104,8 @@ message PlanECashSwitchResponse {
   // it and follows the new network from there. Zero when nothing is dropped.
   uint32 rewind_height = 3;
   bool needs_rollback = 4;
+  // True when the old blocks cannot stay and the switch resyncs the chain.
+  bool must_wipe = 5;
 }
 
 // TakeNewNetworks

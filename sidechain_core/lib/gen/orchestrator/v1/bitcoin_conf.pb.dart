@@ -648,6 +648,7 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     $core.String? toId,
     $core.int? rewindHeight,
     $core.bool? needsRollback,
+    $core.bool? mustWipe,
   }) {
     final $result = create();
     if (fromId != null) {
@@ -661,6 +662,9 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     }
     if (needsRollback != null) {
       $result.needsRollback = needsRollback;
+    }
+    if (mustWipe != null) {
+      $result.mustWipe = mustWipe;
     }
     return $result;
   }
@@ -677,6 +681,7 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'toId')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'rewindHeight', $pb.PbFieldType.OU3)
     ..aOB(4, _omitFieldNames ? '' : 'needsRollback')
+    ..aOB(5, _omitFieldNames ? '' : 'mustWipe')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('Using this can add significant overhead to your binary. '
@@ -749,6 +754,19 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
   $core.bool hasNeedsRollback() => $_has(3);
   @$pb.TagNumber(4)
   void clearNeedsRollback() => clearField(4);
+
+  /// True when the old blocks cannot stay and the switch resyncs the chain.
+  @$pb.TagNumber(5)
+  $core.bool get mustWipe => $_getBF(4);
+  @$pb.TagNumber(5)
+  set mustWipe($core.bool v) {
+    $_setBool(4, v);
+  }
+
+  @$pb.TagNumber(5)
+  $core.bool hasMustWipe() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMustWipe() => clearField(5);
 }
 
 class TakeNewNetworksRequest extends $pb.GeneratedMessage {
