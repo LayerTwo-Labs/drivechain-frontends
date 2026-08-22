@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/btcsuite/btcd/chaincfg"
 	"io"
 	"os"
 	"path/filepath"
@@ -38,10 +40,11 @@ type Service struct {
 	electrumDB *sql.DB
 
 	// In-memory state
-	wallets        []WalletData
-	activeWalletID string
-	encryptionKey  []byte
-	unlockedPass   string
+	wallets         []WalletData
+	activeWalletID  string
+	starterWalletID string
+	encryptionKey   []byte
+	unlockedPass    string
 
 	// Callbacks
 	// Dart: restartEnforcer (WalletWriterProvider L115) — called after wallet generation
@@ -53,8 +56,6 @@ type Service struct {
 	GetBinaryWalletPaths func() []string
 	// Returns the enforcer's per-network wallet directories, so a restore that
 	// changes the enforcer seed can move the daemon state derived from the old
-	// one out of the way.
-	GetEnforcerWalletPaths func() []string
 	// Dart: _deleteCoreMultisigWallets (L534) — path to Bitcoin Core datadir
 	CoreDataDir string
 
@@ -449,26 +450,11 @@ func (s *Service) ActiveWallet() *WalletData {
 	return s.activeWallet()
 }
 
-// ActiveWalletNeedsBitcoinBackends reports whether the active wallet relies on
-// local Bitcoin backends (Bitcoin Core / enforcer). Electrum wallets run
-// neither locally, so this returns false for them; it returns true otherwise
-// (including when there is no active wallet).
-func (s *Service) ActiveWalletNeedsBitcoinBackends() bool {
+// PrimaryWallet returns the wallet that carries the starter material, or nil.
+func (s *Service) PrimaryWallet() *WalletData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	w := s.activeWallet()
-	if w == nil {
-		return true
-	}
-	return w.WalletType != WalletTypeElectrum
-}
-
-// EnforcerWallet returns the wallet with type "enforcer", or nil.
-// Dart: WalletReaderProvider.enforcerWallet (L31-33)
-func (s *Service) EnforcerWallet() *WalletData {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.enforcerWallet()
+	return s.primaryWallet()
 }
 
 // Log returns a pointer to the service's logger so consumers in the api
@@ -480,14 +466,45 @@ func (s *Service) Log() *zerolog.Logger {
 	return &s.log
 }
 
-// enforcerWallet returns the enforcer wallet without locking. Must be called with mu held.
-func (s *Service) enforcerWallet() *WalletData {
+// primaryWallet returns the wallet whose seed derives the L1 and sidechain
+// starters. It holds the recorded id: each wallet carries its own seed, so
+// promoting the next one would restart every sidechain against coins the user
+// does not hold. Falls back to the first seeded wallet only before an id is
+// recorded. Must be called with mu held.
+func (s *Service) primaryWallet() *WalletData {
+	if s.starterWalletID != "" {
+		for i := range s.wallets {
+			if s.wallets[i].ID == s.starterWalletID {
+				return &s.wallets[i]
+			}
+		}
+	}
 	for i := range s.wallets {
-		if s.wallets[i].WalletType == WalletTypeEnforcer {
+		if s.wallets[i].Master.Mnemonic != "" {
 			return &s.wallets[i]
 		}
 	}
 	return nil
+}
+
+// adoptStarterWallet pins the starter wallet when none is recorded yet, so the
+// first seeded wallet holds that role for the life of the install. Reports
+// whether it changed anything. Must be called with mu held.
+func (s *Service) adoptStarterWallet() bool {
+	for i := range s.wallets {
+		if s.wallets[i].ID == s.starterWalletID {
+			return false
+		}
+	}
+	for i := range s.wallets {
+		if s.wallets[i].Master.Mnemonic == "" {
+			continue
+		}
+		s.starterWalletID = s.wallets[i].ID
+		s.log.Info().Str("id", s.starterWalletID).Msg("pinned the wallet that derives the starters")
+		return true
+	}
+	return false
 }
 
 // ClearState clears all in-memory wallet state (used after reset/wipe).
@@ -521,7 +538,7 @@ func (s *Service) GetWalletByID(id string) *WalletData {
 func (s *Service) GetL1Mnemonic() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	w := s.enforcerWallet()
+	w := s.primaryWallet()
 	if w == nil {
 		return ""
 	}
@@ -532,7 +549,7 @@ func (s *Service) GetL1Mnemonic() string {
 func (s *Service) GetSidechainMnemonic(slot int) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	w := s.enforcerWallet()
+	w := s.primaryWallet()
 	if w == nil {
 		return ""
 	}
@@ -544,49 +561,48 @@ func (s *Service) GetSidechainMnemonic(slot int) string {
 	return ""
 }
 
-// GetOrDeriveSidechainStarter returns the sidechain mnemonic, deriving on-demand if missing.
-// Dart: WalletWriterProvider.getSidechainStarter (L476-531)
+// GetOrDeriveSidechainStarter returns a slot's sidechain mnemonic, deriving one
+// only when the slot has none yet.
+//
+// A stored starter is authoritative. The migration rewrites a passphrase
+// wallet's seed, so re-deriving would hand the sidechain a different seed and
+// strand the user's L2 coins on keys nothing records.
 func (s *Service) GetOrDeriveSidechainStarter(slot int, slotName string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Sidechain starters are derived from the enforcer wallet's seed
-	w := s.enforcerWallet()
+	w := s.primaryWallet()
 	if w == nil {
-		return "", fmt.Errorf("no enforcer wallet")
+		return "", fmt.Errorf("no wallet holds a seed to derive the sidechain starter from")
 	}
 
-	// Check if sidechain wallet already exists
 	for _, sc := range w.Sidechains {
-		if sc.Slot == slot {
+		if sc.Slot == slot && sc.Mnemonic != "" {
 			return sc.Mnemonic, nil
 		}
 	}
 
-	// Sidechain doesn't exist yet — generate it
-	s.log.Info().Int("slot", slot).Msg("getSidechainStarter: sidechain not found, generating")
-
-	scMnemonic, err := DeriveStarter(w.Master.SeedHex, fmt.Sprintf("m/44'/0'/%d'", slot))
+	mnemonic, err := DeriveStarter(w.Master.SeedHex, fmt.Sprintf("m/44'/0'/%d'", slot))
 	if err != nil {
 		return "", fmt.Errorf("derive sidechain starter: %w", err)
 	}
 
-	newSidechain := SidechainWallet{
-		Slot:     slot,
-		Name:     slotName,
-		Mnemonic: scMnemonic,
+	for i := range w.Sidechains {
+		if w.Sidechains[i].Slot == slot {
+			w.Sidechains[i].Mnemonic = mnemonic
+			if err := s.saveWalletFile(); err != nil {
+				return "", fmt.Errorf("save wallet after sidechain derivation: %w", err)
+			}
+			return mnemonic, nil
+		}
 	}
 
-	// Update wallet with the new sidechain
-	w.Sidechains = append(w.Sidechains, newSidechain)
-
-	// Save updated wallet
+	w.Sidechains = append(w.Sidechains, SidechainWallet{Slot: slot, Name: slotName, Mnemonic: mnemonic})
 	if err := s.saveWalletFile(); err != nil {
 		return "", fmt.Errorf("save wallet after sidechain derivation: %w", err)
 	}
-
-	s.log.Info().Int("slot", slot).Msg("getSidechainStarter: generated and saved sidechain wallet")
-	return scMnemonic, nil
+	s.log.Info().Int("slot", slot).Msg("derived a sidechain starter for a new slot")
+	return mnemonic, nil
 }
 
 // GenerateWalletFromEntropy creates a wallet from specific entropy bytes.
@@ -826,6 +842,7 @@ func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage,
 
 	s.wallets = append(s.wallets, wallet)
 	s.activeWalletID = walletID
+	s.adoptStarterWallet()
 	if err := s.saveWalletFile(); err != nil {
 		return nil, fmt.Errorf("save watch-only electrum wallet: %w", err)
 	}
@@ -881,6 +898,7 @@ func (s *Service) CreateElectrumMultisig(
 
 	s.wallets = append(s.wallets, wallet)
 	s.activeWalletID = walletID
+	s.adoptStarterWallet()
 	if err := s.saveWalletFile(); err != nil {
 		return nil, fmt.Errorf("save multisig electrum wallet: %w", err)
 	}
@@ -928,6 +946,7 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 
 	s.wallets = append(s.wallets, wallet)
 	s.activeWalletID = walletID
+	s.adoptStarterWallet()
 
 	if err := s.saveWalletFile(); err != nil {
 		return fmt.Errorf("save watch-only wallet: %w", err)
@@ -982,6 +1001,7 @@ func (s *Service) UpdateWallet(wallet WalletData) error {
 	}
 	if !found {
 		s.wallets = append(s.wallets, wallet)
+		s.adoptStarterWallet()
 		s.log.Info().Str("id", wallet.ID).Str("name", wallet.Name).Msg("added new wallet")
 	}
 
@@ -1005,17 +1025,7 @@ func (s *Service) GenerateWalletWithPath(name, customMnemonic, passphrase string
 		return nil, fmt.Errorf("wallet is locked, unlock before generating a wallet")
 	}
 
-	// Determine wallet type: first wallet is enforcer, subsequent are bitcoinCore.
-	// Constraint: AT MOST 1 enforcer wallet. All extra wallets go through Bitcoin Core.
-	walletType := WalletTypeBitcoinCore
-	if len(s.wallets) == 0 {
-		walletType = WalletTypeEnforcer
-	} else if !lo.ContainsBy(s.wallets, func(w WalletData) bool { return w.WalletType == WalletTypeEnforcer }) {
-		// No enforcer yet — this one becomes it.
-		walletType = WalletTypeEnforcer
-	}
-
-	return s.generateWalletOfType(name, customMnemonic, passphrase, accountIndex, derivationPath, slots, walletType)
+	return s.generateWalletOfType(name, customMnemonic, passphrase, accountIndex, derivationPath, slots, WalletTypeBitcoinCore)
 }
 
 // generateWalletOfType derives a full local wallet of the given type, appends
@@ -1055,6 +1065,7 @@ func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, 
 	// Add to list and set as active
 	s.wallets = append(s.wallets, *wallet)
 	s.activeWalletID = wallet.ID
+	s.adoptStarterWallet()
 
 	if err := s.saveWalletFile(); err != nil {
 		s.log.Error().Err(err).Msg("failed to save wallet file after generation")
@@ -1068,14 +1079,9 @@ func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, 
 		Str("file", s.walletFilePath()).
 		Msg("wallet generated and saved successfully")
 
-	// electrum wallets run no local Bitcoin Core or enforcer — there's no
-	// daemon to set up or restart, so neither OnCreateCoreWallet nor
-	// OnWalletGenerated fire. bitcoinCore wallets are created lazily by the
-	// backend on first access (Backend.Ensure).
-	if walletType == WalletTypeEnforcer && s.OnWalletGenerated != nil {
-		// Dart L88-89: restart enforcer to pick up the new wallet
-		go s.OnWalletGenerated()
-	}
+	// A new wallet starts no daemon. electrum wallets run nothing local, and
+	// bitcoinCore wallets are created lazily by the backend on first access
+	// (Backend.Ensure).
 
 	return wallet, nil
 }
@@ -1438,6 +1444,14 @@ func (s *Service) DeleteWallet(walletID string) error {
 
 	s.log.Info().Str("wallet_id", walletID).Msg("deleting wallet")
 
+	// The starter wallet's seed derives every sidechain's starter. Delete it
+	// while another wallet remains and the pin moves to a different seed, so
+	// every sidechain restarts against coins the user does not hold. Deleting
+	// the last wallet is fine: nothing is left to derive from either way.
+	if s.starterWalletID == walletID && len(s.wallets) > 1 {
+		return fmt.Errorf("wallet %s derives the sidechain starters and cannot be deleted", walletID)
+	}
+
 	newWallets := make([]WalletData, 0, len(s.wallets))
 	for _, w := range s.wallets {
 		if w.ID != walletID {
@@ -1450,6 +1464,9 @@ func (s *Service) DeleteWallet(walletID string) error {
 	}
 
 	s.wallets = newWallets
+	if s.starterWalletID == walletID {
+		s.starterWalletID = ""
+	}
 	if s.activeWalletID == walletID {
 		if len(s.wallets) > 0 {
 			s.activeWalletID = s.wallets[0].ID
@@ -1560,18 +1577,14 @@ func (s *Service) WriteL1Starter() (string, error) {
 
 	s.log.Info().Msg("writing L1 starter file")
 
-	// Find enforcer wallet
 	var mnemonic string
-	for _, w := range s.wallets {
-		if w.WalletType == WalletTypeEnforcer {
-			mnemonic = w.L1.Mnemonic
-			s.log.Debug().Str("wallet_id", w.ID).Msg("found enforcer wallet for L1 starter")
-			break
-		}
+	if w := s.primaryWallet(); w != nil {
+		mnemonic = w.L1.Mnemonic
+		s.log.Debug().Str("wallet_id", w.ID).Msg("found the primary wallet for the L1 starter")
 	}
 	if mnemonic == "" {
-		s.log.Warn().Int("wallet_count", len(s.wallets)).Msg("L1 starter: enforcer wallet not found or L1 mnemonic empty")
-		return "", fmt.Errorf("enforcer wallet not found or L1 mnemonic empty")
+		s.log.Warn().Int("wallet_count", len(s.wallets)).Msg("L1 starter: no wallet holds an L1 mnemonic")
+		return "", fmt.Errorf("no wallet holds an L1 mnemonic")
 	}
 
 	dir := s.starterDir()
@@ -1596,7 +1609,7 @@ func (s *Service) WriteSidechainStarter(slot int) (string, error) {
 	s.log.Info().Int("slot", slot).Msg("writing sidechain starter file")
 
 	// Use the enforcer wallet for sidechain starters (they're derived from the enforcer seed)
-	enforcer := s.enforcerWallet()
+	enforcer := s.primaryWallet()
 	if enforcer == nil {
 		s.log.Warn().Int("wallet_count", len(s.wallets)).Msg("sidechain starter: no enforcer wallet")
 		return "", fmt.Errorf("no enforcer wallet")
@@ -1764,6 +1777,7 @@ func (s *Service) loadWalletFile() error {
 
 	s.wallets = wf.Wallets
 	s.activeWalletID = wf.ActiveWalletID
+	s.starterWalletID = wf.StarterWalletID
 
 	// Backfill missing wallet_type for wallets created before the field was
 	// introduced. Anything with a Master.Mnemonic but no type is the original
@@ -1782,6 +1796,12 @@ func (s *Service) loadWalletFile() error {
 		}
 		migrated = true
 	}
+	if s.migrateEnforcerWallets() {
+		migrated = true
+	}
+	if s.adoptStarterWallet() {
+		migrated = true
+	}
 	if migrated {
 		s.log.Info().Msg("backfilled missing wallet_type on legacy wallets")
 		if err := s.saveWalletFile(); err != nil {
@@ -1790,6 +1810,101 @@ func (s *Service) loadWalletFile() error {
 	}
 	s.log.Debug().Int("wallet_count", len(s.wallets)).Str("active_id", s.activeWalletID).Msg("wallet file loaded")
 	return nil
+}
+
+// EnforcerAccountPath is the account the enforcer daemon's BDK wallet derived,
+// on every network. It hardcoded the testnet coin type even on mainnet, so a
+// mainnet wallet the enforcer served holds its coins here and not under
+// m/84'/0'/0'. See bip300301_enforcer lib/wallet/mod.rs.
+const EnforcerAccountPath = "m/84'/1'/0'"
+
+// migrateEnforcerWallets moves a wallet the enforcer daemon served onto a
+// backend this build still has, and rescues the coins the enforcer left behind.
+//
+// The enforcer derived somewhere BitWindow never would:
+//
+//   - The account. It hardcoded m/84'/1'/0' on every network, mainnet
+//     included, so the testnet coin type holds mainnet coins.
+//   - The seed. BitWindow stores seed(mnemonic, passphrase), but it handed the
+//     enforcer the bare mnemonic, and the enforcer uses no BIP39 passphrase.
+//
+// Rather than pin the wallet to that tree — which would carry the enforcer's
+// coin-type bug into BitWindow for every address it ever derives — the wallet
+// keeps its own seed and its own per-network path, and a second wallet appears
+// beside it holding exactly what the enforcer held. The user sees those coins,
+// can spend them, and can move them whenever they like.
+func (s *Service) migrateEnforcerWallets() bool {
+	target := WalletTypeElectrum
+	if !config.SupportsLightMode(config.Network(s.network)) {
+		target = WalletTypeBitcoinCore
+	}
+
+	changed := false
+	for i := range s.wallets {
+		if s.wallets[i].WalletType != WalletTypeEnforcer {
+			continue
+		}
+		s.wallets[i].WalletType = target
+		changed = true
+
+		legacy, err := s.enforcerLegacyWallet(&s.wallets[i], target)
+		switch {
+		case err != nil:
+			s.log.Error().Err(err).Str("id", s.wallets[i].ID).
+				Msg("could not rebuild the enforcer's own wallet; its coins stay unlisted")
+		case legacy != nil:
+			s.wallets = append(s.wallets, *legacy)
+			s.log.Info().Str("id", legacy.ID).Str("derivation_path", legacy.DerivationPath).
+				Msg("added a wallet holding what the enforcer held")
+		}
+
+		s.log.Info().
+			Str("id", s.wallets[i].ID).
+			Str("wallet_type", string(target)).
+			Msg("moved an enforcer wallet onto a supported backend")
+	}
+	return changed
+}
+
+// enforcerLegacyWallet builds the wallet the enforcer daemon actually ran: the
+// bare mnemonic with no BIP39 passphrase, on the account it hardcoded.
+//
+// The seed is what makes a wallet, and the path only says where to look first.
+// So this returns nil when both already match what the wallet derives — on a
+// network whose coin type is 1, the enforcer's account is the standard one, and
+// a companion would be an exact duplicate.
+func (s *Service) enforcerLegacyWallet(w *WalletData, target WalletType) (*WalletData, error) {
+	if w.Master.Mnemonic == "" {
+		return nil, nil
+	}
+	for i := range s.wallets {
+		if s.wallets[i].ImportedFromEnforcer {
+			return nil, nil
+		}
+	}
+
+	seed := MnemonicToSeed(w.Master.Mnemonic, "")
+	if hex.EncodeToString(seed) == w.Master.SeedHex && s.derivesEnforcerAccount(w) {
+		return nil, nil
+	}
+	masterKey, err := bip32.NewMasterKey(seed)
+	if err != nil {
+		return nil, fmt.Errorf("rebuild the enforcer master key: %w", err)
+	}
+
+	legacy := *w
+	legacy.ID = generateWalletID()
+	legacy.Name = w.Name + " (enforcer)"
+	legacy.WalletType = target
+	legacy.DerivationPath = EnforcerAccountPath
+	legacy.ImportedFromEnforcer = true
+	legacy.Gradient = nil
+	legacy.CreatedAt = time.Now()
+	legacy.Sidechains = nil
+	legacy.Master.SeedHex = hex.EncodeToString(seed)
+	legacy.Master.MasterKey = masterKey.B58Serialize()
+	legacy.Master.ChainCode = hex.EncodeToString(masterKey.ChainCode)
+	return &legacy, nil
 }
 
 // saveWalletFile writes wallet.json atomically. Must be called with mu held.
@@ -1801,9 +1916,10 @@ func (s *Service) saveWalletFile() error {
 	}
 
 	wf := WalletFile{
-		Version:        1,
-		ActiveWalletID: s.activeWalletID,
-		Wallets:        s.wallets,
+		Version:         1,
+		ActiveWalletID:  s.activeWalletID,
+		StarterWalletID: s.starterWalletID,
+		Wallets:         s.wallets,
 	}
 
 	jsonBytes, err := json.Marshal(wf)
@@ -1915,4 +2031,52 @@ func generateWalletID() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return strings.ToUpper(hex.EncodeToString(b))
+}
+
+// StarterWalletID names the wallet whose seed derives the L1 and sidechain
+// starters. Empty before any seeded wallet exists.
+func (s *Service) StarterWalletID() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if w := s.primaryWallet(); w != nil {
+		return w.ID
+	}
+	return ""
+}
+
+// derivesEnforcerAccount reports whether the wallet already looks at the
+// account the enforcer hardcoded. True on a network whose coin type is 1.
+func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
+	// Only mainnet uses coin type 0. Every other network uses 1, which is what
+	// the enforcer hardcoded, so its account is the standard one there.
+	net := &chaincfg.TestNet3Params
+	if config.Network(s.network) == config.NetworkMainnet {
+		net = &chaincfg.MainNetParams
+	}
+	ap, err := accountPathFor(w, walletReceiveKind(w), net)
+	if err != nil {
+		return false
+	}
+	return ap.String() == EnforcerAccountPath
+}
+
+// CoinbaseRecipient is an address the block reward can pay to, derived from the
+// starter wallet. The enforcer runs no wallet, so it cannot make one itself and
+// refuses to serve block templates without this.
+func (s *Service) CoinbaseRecipient(net *chaincfg.Params) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	w := s.primaryWallet()
+	if w == nil {
+		return "", fmt.Errorf("no wallet to derive a coinbase recipient from")
+	}
+	addresses, err := DeriveWalletReceiveAddresses(w, net, 0, 1)
+	if err != nil {
+		return "", fmt.Errorf("derive coinbase recipient: %w", err)
+	}
+	if len(addresses) == 0 {
+		return "", fmt.Errorf("derive coinbase recipient: none derived")
+	}
+	return addresses[0], nil
 }
