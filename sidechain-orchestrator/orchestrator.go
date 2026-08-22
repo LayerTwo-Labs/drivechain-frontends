@@ -928,7 +928,10 @@ func (o *Orchestrator) prepareCoreArgs(opts *StartOpts) {
 		return
 	}
 	confPath := o.BitcoinConf.GetConfFilePath()
-	opts.CoreArgs = []string{fmt.Sprintf("-conf=%s", confPath)}
+	opts.CoreArgs = []string{
+		fmt.Sprintf("-conf=%s", confPath),
+		fmt.Sprintf("-datadir=%s", o.BitcoinConf.RootDataDir()),
+	}
 	o.log.Info().Strs("core_args", opts.CoreArgs).Msg("auto-built core args from config")
 }
 

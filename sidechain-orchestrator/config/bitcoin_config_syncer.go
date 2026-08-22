@@ -255,10 +255,10 @@ func (m *BitcoinConfManager) loadStateFromConfig(fallbackNetwork Network) {
 	m.DetectedDataDir = m.Config.GetEffectiveSetting("datadir", CoreSectionForNetwork(m.Network))
 
 	// Ensure datadir exists — Bitcoin Core fails with a cryptic assertion error (exit code -6) if it doesn't
+	_ = os.MkdirAll(m.RootDataDir(), 0755)
 	if m.DetectedDataDir == "" {
 		return
 	}
-	_ = os.MkdirAll(m.DetectedDataDir, 0755)
 
 	// The live datadir= line belongs to whichever group is active, so record it
 	// there. A hand-edited conf carries no slot comment. Adopt only the

@@ -127,12 +127,32 @@ func TestGetRPCCookiePathPerNetwork(t *testing.T) {
 }
 
 // signet, testnet and regtest normally carry no datadir= at all — Core runs in
-// its platform default, and the cookie still has to be found.
+// this install's platform default, and the cookie still has to be found.
 func TestGetRPCCookiePathFallsBackToPlatformDefault(t *testing.T) {
-	path := confWithDatadir(t, NetworkSignet, "").GetRPCCookiePath()
-	assert.NotEmpty(t, path)
+	m := confWithDatadir(t, NetworkSignet, "")
+	path := m.GetRPCCookiePath()
 	assert.Equal(t, ".cookie", filepath.Base(path))
 	assert.Equal(t, "signet", filepath.Base(filepath.Dir(path)))
+	assert.Equal(t, m.RootDataDir(), filepath.Dir(filepath.Dir(path)))
+}
+
+// bitcoind gets -datadir=RootDataDir, so the cookie must sit under it. A
+// fallback that named Core's own default folder left the enforcer reading a
+// cookie no bitcoind ever wrote.
+func TestRootDataDirHoldsTheCookie(t *testing.T) {
+	for _, network := range []Network{NetworkSignet, NetworkECash, NetworkMainnet, NetworkRegtest} {
+		for _, datadir := range []string{"", t.TempDir()} {
+			m := confWithDatadir(t, network, datadir)
+			assert.Equal(t, BitcoinCoreDirs.DatadirNetwork(network, m.RootDataDir()), filepath.Dir(m.GetRPCCookiePath()),
+				"network %s datadir %q", network, datadir)
+		}
+	}
+}
+
+func TestRootDataDirPrefersTheConfiguredDatadir(t *testing.T) {
+	datadir := t.TempDir()
+	assert.Equal(t, datadir, confWithDatadir(t, NetworkSignet, datadir).RootDataDir())
+	assert.Equal(t, BitcoinCoreDirs.RootDirNetwork(NetworkSignet), confWithDatadir(t, NetworkSignet, "").RootDataDir())
 }
 
 // The default conf must ship no credentials, so Core generates a cookie.
