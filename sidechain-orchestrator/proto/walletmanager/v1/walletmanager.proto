@@ -9,6 +9,13 @@ import "google/protobuf/timestamp.proto";
 service WalletManagerService {
   // Wallet lifecycle
   rpc GetWalletStatus(GetWalletStatusRequest) returns (GetWalletStatusResponse);
+  // How much of Bitcoin this install runs. The frontend asks the user before
+  // it boots anything, and blocks until GetNodeMode reports a mode.
+  // Deposits this install made to a sidechain treasury. An M5 is an ordinary
+  // transaction on the wire, so the record comes from when we broadcast it.
+  rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
+  rpc GetNodeMode(GetNodeModeRequest) returns (GetNodeModeResponse);
+  rpc SetNodeMode(SetNodeModeRequest) returns (SetNodeModeResponse);
   rpc GenerateWallet(GenerateWalletRequest) returns (GenerateWalletResponse);
   rpc UnlockWallet(UnlockWalletRequest) returns (UnlockWalletResponse);
   rpc LockWallet(LockWalletRequest) returns (LockWalletResponse);
@@ -23,11 +30,6 @@ service WalletManagerService {
   rpc ListWalletBackups(ListWalletBackupsRequest) returns (ListWalletBackupsResponse);
   rpc RestoreWalletBackup(RestoreWalletBackupRequest) returns (RestoreWalletBackupResponse);
   rpc RestoreWalletBackupStream(RestoreWalletBackupRequest) returns (stream RestoreWalletBackupProgressResponse);
-  // SwapEnforcerWallet loads a different seed into the enforcer: stops the
-  // daemon, moves its on-disk wallet to wallet_backups/, rewrites the enforcer
-  // entry in wallet.json from the given mnemonic, and restarts the daemon.
-  // Sidechain starters keep the seed their daemons were built from.
-  rpc SwapEnforcerWallet(SwapEnforcerWalletRequest) returns (stream SwapEnforcerWalletProgressResponse);
   rpc CreateWatchOnlyWallet(CreateWatchOnlyWalletRequest) returns (CreateWatchOnlyWalletResponse);
   // Create an electrum wallet: keys are generated locally, but no local Bitcoin
   // Core or enforcer runs — chain data is served remotely via the datasource.
@@ -148,6 +150,48 @@ message GetWalletStatusResponse {
   string active_wallet_name = 5;
 }
 
+// NodeMode is how much of Bitcoin this install runs.
+enum NodeMode {
+  // The user never picked. The frontend must ask before it boots anything.
+  NODE_MODE_UNSPECIFIED = 0;
+  // Runs Bitcoin Core and the enforcer on this machine.
+  NODE_MODE_FULL = 1;
+  // Reads the chain from a remote Esplora server, and starts no local daemon.
+  NODE_MODE_LIGHT = 2;
+}
+
+message ListSidechainDepositsRequest {
+  uint32 slot = 1;
+}
+
+message SidechainDeposit {
+  string txid = 1;
+  string wallet_id = 2;
+  uint32 slot = 3;
+  string destination = 4;
+  int64 amount_sats = 5;
+  string created_at = 6; // ISO 8601
+}
+
+message ListSidechainDepositsResponse {
+  repeated SidechainDeposit deposits = 1;
+}
+
+message GetNodeModeRequest {}
+
+message GetNodeModeResponse {
+  NodeMode mode = 1;
+  // False when the current network serves no Esplora, so light mode cannot
+  // read a chain. Regtest and testnet.
+  bool light_mode_available = 2;
+}
+
+message SetNodeModeRequest {
+  NodeMode mode = 1;
+}
+
+message SetNodeModeResponse {}
+
 // ============================================================================
 // Generate
 // ============================================================================
@@ -230,7 +274,7 @@ message WalletMetadata {
   // Deterministic per wallet, never changes. Empty for watch-only wallets.
   string bip47_payment_code = 6;
 
-  // Starter material — populated for the active wallet only, empty otherwise.
+  // Starter material — populated for the starter wallet only, empty otherwise.
   // The Starters tab and HD wallet provider read these instead of hitting a
   // separate RPC.
   string master_mnemonic = 7;
@@ -252,6 +296,10 @@ message WalletMetadata {
   // explicit derivation path, a watch-only wallet, and a multisig wallet each
   // derive exactly one.
   repeated AddressType receive_address_types = 14;
+
+  // True for the one wallet whose seed derives the L1 and sidechain starters.
+  // Each wallet carries its own seed, so this never moves once recorded.
+  bool is_starter = 15;
 }
 
 message MultisigInfo {
@@ -377,42 +425,10 @@ message RestoreWalletBackupProgressResponse {
 // Swap Enforcer Wallet
 // ============================================================================
 
-message SwapEnforcerWalletRequest {
-  // BIP39 mnemonic to load into the enforcer. There is no passphrase option:
-  // the enforcer is handed mnemonic words and derives its own seed from them,
-  // so a passphrased seed could never be the one it runs on.
-  string mnemonic = 1;
-  // Optional name for the swapped-in wallet. Empty keeps the current name.
-  string name = 2;
-}
 
-message SwapEnforcerWalletStep {
-  string step_id = 1;
-  string name = 2;
-}
 
-enum SwapEnforcerWalletStepState {
-  SWAP_ENFORCER_WALLET_STEP_STATE_UNSPECIFIED = 0;
-  SWAP_ENFORCER_WALLET_STEP_STATE_STARTED = 1;
-  SWAP_ENFORCER_WALLET_STEP_STATE_COMPLETED = 2;
-  SWAP_ENFORCER_WALLET_STEP_STATE_FAILED = 3;
-}
 
-message SwapEnforcerWalletProgressStatus {
-  string step_id = 1;
-  SwapEnforcerWalletStepState state = 2;
-  string error = 3;
-  bool complete = 4;
-  // Free-form context for the step, e.g. the backup directory it wrote.
-  string detail = 5;
-}
 
-message SwapEnforcerWalletProgressResponse {
-  repeated SwapEnforcerWalletStep steps = 1;
-  SwapEnforcerWalletProgressStatus status = 2;
-  // ID of the swapped-in enforcer wallet, set on the final message.
-  string wallet_id = 3;
-}
 
 // ============================================================================
 // Watch-Only Wallet
