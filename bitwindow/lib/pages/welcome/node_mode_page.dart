@@ -59,24 +59,35 @@ class _NodeModePageState extends State<NodeModePage> {
         spacing: SailStyleValues.padding20,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary24('How do you want to run Bitcoin?'),
           SailText.secondary13('You can change this later in Settings.'),
-          if (_nodeMode.lightModeAvailable)
-            _ModeCard(
-              label: 'Light',
-              description:
-                  'Reads the chain from a remote server. Ready in seconds, and uses almost no disk. '
-                  'No sidechains and no mining.',
-              selected: _selected == wmpb.NodeMode.NODE_MODE_LIGHT,
-              onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_LIGHT),
+          IntrinsicHeight(
+            child: SailRow(
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_nodeMode.lightModeAvailable)
+                  Expanded(
+                    child: _ModeCard(
+                      label: 'Light',
+                      description:
+                          'Reads the chain from a remote server. Ready in seconds, and uses almost no disk. '
+                          'No sidechains and no mining.',
+                      selected: _selected == wmpb.NodeMode.NODE_MODE_LIGHT,
+                      onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_LIGHT),
+                    ),
+                  ),
+                Expanded(
+                  child: _ModeCard(
+                    label: 'Full node',
+                    description:
+                        'Runs Bitcoin Core and the enforcer on this machine. Gives you sidechains, mining, '
+                        'and full privacy. Takes hours to sync and hundreds of gigabytes of disk.',
+                    selected: _selected == wmpb.NodeMode.NODE_MODE_FULL,
+                    onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_FULL),
+                  ),
+                ),
+              ],
             ),
-          _ModeCard(
-            label: 'Full node',
-            description:
-                'Runs Bitcoin Core and the enforcer on this machine. Gives you sidechains, mining, '
-                'and full privacy. Takes hours to sync and hundreds of gigabytes of disk.',
-            selected: _selected == wmpb.NodeMode.NODE_MODE_FULL,
-            onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_FULL),
           ),
           if (!_nodeMode.lightModeAvailable)
             SailText.secondary13('This network serves no remote chain server, so it runs full mode only.'),
