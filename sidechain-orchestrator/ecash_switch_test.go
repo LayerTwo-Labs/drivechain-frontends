@@ -239,6 +239,33 @@ func TestARefusedSwapKeepsTheECashTail(t *testing.T) {
 	require.Equal(t, "drynet4", o.pendingSwap.fromECashID)
 }
 
+// A second switch replaces the tail of the first, so it takes over what that
+// tail owed. The daemons the first switch stopped read as stopped here.
+func TestASecondSwitchTakesOverTheRestart(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	o.pendingSwap = &pendingNetworkSwap{
+		network:     config.NetworkECash,
+		restartL1:   true,
+		fromECashID: "drynet4",
+	}
+	// With no bitcoind config the restart refuses at once, which is the only
+	// place this switch can report the obligation it carries. The raw copy goes
+	// too, because the switch re-expands the configs from it.
+	o.mu.Lock()
+	delete(o.configs, "bitcoind")
+	delete(o.rawConfigs, "bitcoind")
+	o.mu.Unlock()
+
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+
+	require.NotNil(t, o.pendingSwap, "a restart that cannot run stays retryable")
+	require.True(t, o.pendingSwap.restartL1, "the first tail's restart must ride on")
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
