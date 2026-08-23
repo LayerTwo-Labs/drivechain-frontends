@@ -13,6 +13,7 @@ type SidechainDeposit struct {
 	Slot        uint32
 	Destination string
 	AmountSats  int64
+	FeeSats     int64
 	CreatedAt   time.Time
 }
 
@@ -25,27 +26,28 @@ func (s *Service) RecordSidechainDeposit(ctx context.Context, d SidechainDeposit
 		return fmt.Errorf("record sidechain deposit: database not open")
 	}
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO sidechain_deposits (network, txid, wallet_id, slot, destination, amount_sats, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO sidechain_deposits (network, txid, wallet_id, slot, destination, amount_sats, fee_sats, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (network, txid) DO NOTHING`,
-		s.Network(), d.Txid, d.WalletID, d.Slot, d.Destination, d.AmountSats, time.Now().Unix())
+		s.Network(), d.Txid, d.WalletID, d.Slot, d.Destination, d.AmountSats, d.FeeSats, time.Now().Unix())
 	if err != nil {
 		return fmt.Errorf("insert sidechain deposit: %w", err)
 	}
 	return nil
 }
 
-// SidechainDeposits lists the deposits made to a slot, newest first.
-func (s *Service) SidechainDeposits(ctx context.Context, slot uint32) ([]SidechainDeposit, error) {
+// SidechainDeposits lists the deposits made to a slot, newest first. An empty
+// walletID lists every wallet's.
+func (s *Service) SidechainDeposits(ctx context.Context, slot uint32, walletID string) ([]SidechainDeposit, error) {
 	db := s.db()
 	if db == nil {
 		return nil, fmt.Errorf("list sidechain deposits: database not open")
 	}
 	rows, err := db.QueryContext(ctx, `
-		SELECT txid, wallet_id, slot, destination, amount_sats, created_at
+		SELECT txid, wallet_id, slot, destination, amount_sats, fee_sats, created_at
 		FROM sidechain_deposits
-		WHERE network = ? AND slot = ?
-		ORDER BY created_at DESC`, s.Network(), slot)
+		WHERE network = ? AND slot = ? AND (? = '' OR wallet_id = ?)
+		ORDER BY created_at DESC`, s.Network(), slot, walletID, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("query sidechain deposits: %w", err)
 	}
@@ -55,7 +57,7 @@ func (s *Service) SidechainDeposits(ctx context.Context, slot uint32) ([]Sidecha
 	for rows.Next() {
 		var d SidechainDeposit
 		var createdAt int64
-		if err := rows.Scan(&d.Txid, &d.WalletID, &d.Slot, &d.Destination, &d.AmountSats, &createdAt); err != nil {
+		if err := rows.Scan(&d.Txid, &d.WalletID, &d.Slot, &d.Destination, &d.AmountSats, &d.FeeSats, &createdAt); err != nil {
 			return nil, fmt.Errorf("scan sidechain deposit: %w", err)
 		}
 		d.CreatedAt = time.Unix(createdAt, 0)
@@ -65,4 +67,24 @@ func (s *Service) SidechainDeposits(ctx context.Context, slot uint32) ([]Sidecha
 		return nil, fmt.Errorf("read sidechain deposits: %w", err)
 	}
 	return out, nil
+}
+
+// SidechainDepositTotals sums what this install deposited: all time, and since
+// `since`. Both in sats. An empty walletID sums every wallet's.
+func (s *Service) SidechainDepositTotals(ctx context.Context, since time.Time, walletID string) (int64, int64, error) {
+	db := s.db()
+	if db == nil {
+		return 0, 0, fmt.Errorf("sum sidechain deposits: database not open")
+	}
+	var total, recent int64
+	err := db.QueryRowContext(ctx, `
+		SELECT
+			COALESCE(SUM(amount_sats), 0),
+			COALESCE(SUM(CASE WHEN created_at >= ? THEN amount_sats ELSE 0 END), 0)
+		FROM sidechain_deposits
+		WHERE network = ? AND (? = '' OR wallet_id = ?)`, since.Unix(), s.Network(), walletID, walletID).Scan(&total, &recent)
+	if err != nil {
+		return 0, 0, fmt.Errorf("sum sidechain deposits: %w", err)
+	}
+	return total, recent, nil
 }

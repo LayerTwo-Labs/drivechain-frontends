@@ -14,6 +14,7 @@ service WalletManagerService {
   // Deposits this install made to a sidechain treasury. An M5 is an ordinary
   // transaction on the wire, so the record comes from when we broadcast it.
   rpc ListSidechainDeposits(ListSidechainDepositsRequest) returns (ListSidechainDepositsResponse);
+  rpc GetSidechainDepositTotals(GetSidechainDepositTotalsRequest) returns (GetSidechainDepositTotalsResponse);
   rpc GetNodeMode(GetNodeModeRequest) returns (GetNodeModeResponse);
   rpc SetNodeMode(SetNodeModeRequest) returns (SetNodeModeResponse);
   rpc GenerateWallet(GenerateWalletRequest) returns (GenerateWalletResponse);
@@ -162,6 +163,8 @@ enum NodeMode {
 
 message ListSidechainDepositsRequest {
   uint32 slot = 1;
+  // Empty lists every wallet's deposits.
+  string wallet_id = 2;
 }
 
 message SidechainDeposit {
@@ -171,10 +174,25 @@ message SidechainDeposit {
   string destination = 4;
   int64 amount_sats = 5;
   string created_at = 6; // ISO 8601
+  int64 fee_sats = 7;
+  // Blocks on top of the one holding this deposit. Zero while unconfirmed.
+  int32 confirmations = 8;
 }
 
 message ListSidechainDepositsResponse {
   repeated SidechainDeposit deposits = 1;
+}
+
+message GetSidechainDepositTotalsRequest {
+  // Seconds since the epoch. The recent total counts deposits at or after it.
+  int64 since_unix = 1;
+  // Empty sums every wallet's deposits.
+  string wallet_id = 2;
+}
+
+message GetSidechainDepositTotalsResponse {
+  int64 total_sats = 1;
+  int64 recent_sats = 2;
 }
 
 message GetNodeModeRequest {}

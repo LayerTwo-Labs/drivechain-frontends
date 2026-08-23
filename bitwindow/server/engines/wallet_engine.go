@@ -1529,12 +1529,29 @@ func isWalletNotFoundError(msg string) bool {
 // ListSidechainDeposits reports the deposits this install made to a slot. The
 // orchestrator records each one as it broadcasts it, because an M5 is an
 // ordinary transaction on the wire.
-func (e *WalletEngine) ListSidechainDeposits(ctx context.Context, slot uint32) ([]*orchpb.SidechainDeposit, error) {
+// SidechainDepositTotals sums this install's deposits: all time, and since
+// `since`. Both in sats. An empty walletID sums every wallet's.
+func (e *WalletEngine) SidechainDepositTotals(ctx context.Context, since time.Time, walletID string) (int64, int64, error) {
+	if e.orchClient == nil {
+		return 0, 0, errors.New("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.GetSidechainDepositTotals(ctx, connect.NewRequest(&orchpb.GetSidechainDepositTotalsRequest{
+		SinceUnix: since.Unix(),
+		WalletId:  walletID,
+	}))
+	if err != nil {
+		return 0, 0, fmt.Errorf("get sidechain deposit totals: %w", err)
+	}
+	return resp.Msg.TotalSats, resp.Msg.RecentSats, nil
+}
+
+func (e *WalletEngine) ListSidechainDeposits(ctx context.Context, slot uint32, walletID string) ([]*orchpb.SidechainDeposit, error) {
 	if e.orchClient == nil {
 		return nil, errors.New("orchestrator wallet client not connected")
 	}
 	resp, err := e.orchClient.ListSidechainDeposits(ctx, connect.NewRequest(&orchpb.ListSidechainDepositsRequest{
-		Slot: slot,
+		Slot:     slot,
+		WalletId: walletID,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("list sidechain deposits: %w", err)
