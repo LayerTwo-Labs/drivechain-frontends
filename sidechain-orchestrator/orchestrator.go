@@ -2039,8 +2039,10 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		if err := o.recordECashSwitch(o.pendingSwap.fromECashID, toID); err != nil {
 			return err
 		}
+		// The tail stays until the replacement below takes its place. An error on
+		// the way there would otherwise leave the stack down with nothing left
+		// to say it owes a restart.
 		drainedRestartL1 = o.pendingSwap.restartL1
-		o.pendingSwap = nil
 	}
 
 	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)})
