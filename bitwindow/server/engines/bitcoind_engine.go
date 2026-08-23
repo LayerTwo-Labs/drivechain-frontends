@@ -386,7 +386,17 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		Uint32("batch-size", batchSize).
 		Msgf("bitcoind_engine/parser: processing blocks")
 
-	for batchStart := lastProcessedHeight + 1; batchStart <= currentHeight; batchStart += batchSize {
+	batchStart := lastProcessedHeight + 1
+	if floor := p.scanFloor(currentHeight); floor > batchStart {
+		zerolog.Ctx(ctx).Info().
+			Uint32("scan_floor", floor).
+			Uint32("processed", lastProcessedHeight).
+			Uint32("tip", currentHeight).
+			Msg("bitcoind_engine/parser: skipping ahead to the scan floor")
+		batchStart = floor
+	}
+
+	for ; batchStart <= currentHeight; batchStart += batchSize {
 		batchEnd := min(batchStart+batchSize-1, currentHeight)
 		if p.conf.SyncToHeight > 0 {
 			batchEnd = min(batchEnd, p.conf.SyncToHeight)
@@ -827,6 +837,32 @@ func (p *Parser) handleOpReturns(
 	}
 
 	return opReturns, nil
+}
+
+// recentScanWindow is how far back a lagging scan reaches: about a week at ten
+// minutes a block.
+const recentScanWindow uint32 = 144 * 7
+
+// scanFloor is the first block worth scanning. The feed shows recent posts, so
+// a lagging scan on a populated chain starts a week back instead of at genesis.
+// Signet, testnet and regtest blocks are small or empty, so those scan whole.
+// Zero scans from the start.
+//
+// The loop also feeds M4Engine, so a fresh install holds no withdrawal-vote
+// history below the floor. Votes still read as they appeared on chain.
+func (p *Parser) scanFloor(currentHeight uint32) uint32 {
+	// An explicit target asks for history, and a floor above it would leave
+	// every batch empty while the run still reports the goal as reached.
+	if p.conf.SyncToHeight > 0 {
+		return 0
+	}
+	if !config.IsFullChainNetwork(p.conf.BitcoinCoreNetwork) {
+		return 0
+	}
+	if currentHeight <= recentScanWindow {
+		return 0
+	}
+	return currentHeight - recentScanWindow
 }
 
 // logCoinnews emits a detailed line to the dedicated coinnews-sync log when
