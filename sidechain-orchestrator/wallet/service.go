@@ -48,8 +48,6 @@ type Service struct {
 	unlockedPass    string
 
 	// Callbacks
-	// Dart: restartEnforcer (WalletWriterProvider L115) — called after wallet generation
-	OnWalletGenerated func()
 	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
 	OnStopAllBinaries func() error
 	// Dart: deleteAllWallets deletes per-binary wallet paths (L600-608)
@@ -649,7 +647,7 @@ func (s *Service) GenerateWalletFromEntropy(entropy []byte, passphrase string, d
 
 	if !doNotSave {
 		// Derive L1 + sidechains and save
-		fullWallet, err := s.GenerateWallet("Enforcer Wallet", mnemonic, passphrase, slots)
+		fullWallet, err := s.GenerateWallet("My Wallet", mnemonic, passphrase, slots)
 		if err != nil {
 			return nil, err
 		}
