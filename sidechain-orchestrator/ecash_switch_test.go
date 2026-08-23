@@ -91,6 +91,26 @@ func TestApplyECashSwitchRewritesTheConfSentinel(t *testing.T) {
 	require.Equal(t, "alphanet", config.ECashNetworkID())
 }
 
+// A swap to another network strips the conf sentinel, so the record is what
+// names the fork the blocks belong to. Left on the outgoing network, a later
+// boot serves that one against blocks this switch already moved.
+func TestApplyECashSwitchRecordsTheChainItMovedTo(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.Equal(t, "drynet4", o.Settings.ECashChainID())
+
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+
+	require.Equal(t, "alphanet", o.Settings.ECashChainID())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+	require.Empty(t, o.installedECashNetwork(), "the swap strips the eCash sentinel")
+	require.Equal(t, "alphanet", o.RunningECashID(netcatalog.Catalog{}),
+		"a document that lists neither network must not send the boot back")
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
