@@ -15,7 +15,7 @@ gen: gen-cusf
     buf generate --template buf.go.gen.yaml .
 
 gen-cusf:
-    buf generate --template buf.go.gen.yaml --exclude-path cusf/mainchain/v1/wallet.proto https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+    buf generate --template buf.go.gen.yaml --exclude-path proto/cusf/mainchain/v1/wallet.proto https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
 
 clean:
     rm -rf ./bin
