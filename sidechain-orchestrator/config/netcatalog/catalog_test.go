@@ -71,7 +71,12 @@ func TestECashIDEmptyWithoutECash(t *testing.T) {
 func TestSaveThenLoadReportsFromDisk(t *testing.T) {
 	dir := t.TempDir()
 	saved, _ := Load(dir)
-	saved.Networks[len(saved.Networks)-1].ID = "betanet"
+	for i, n := range saved.Networks {
+		if n.Family == FamilyECash {
+			saved.Networks[i].ID = "betanet"
+			break
+		}
+	}
 	if err := Save(dir, saved); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
