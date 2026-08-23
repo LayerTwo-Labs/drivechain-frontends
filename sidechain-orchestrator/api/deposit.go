@@ -86,8 +86,11 @@ func (h *WalletHandler) CreateDeposit(
 		Slot:        uint32(slot),
 		Destination: req.Msg.Destination,
 		AmountSats:  req.Msg.AmountSats,
+		FeeSats:     req.Msg.FeeSats,
 	}); err != nil {
-		h.svc.Log().Warn().Err(err).Str("txid", send.Msg.Txid).Msg("could not record the deposit")
+		// The broadcast already happened, so failing the call would report a
+		// deposit that did not land. This row is the only record of it.
+		h.svc.Log().Error().Err(err).Str("txid", send.Msg.Txid).Msg("could not record the deposit")
 	}
 
 	return connect.NewResponse(&wpb.CreateDepositResponse{
@@ -123,20 +126,51 @@ func (h *WalletHandler) sidechainCtip(
 func (h *WalletHandler) ListSidechainDeposits(
 	ctx context.Context, req *connect.Request[wpb.ListSidechainDepositsRequest],
 ) (*connect.Response[wpb.ListSidechainDepositsResponse], error) {
-	deposits, err := h.svc.SidechainDeposits(ctx, req.Msg.Slot)
+	deposits, err := h.svc.SidechainDeposits(ctx, req.Msg.Slot, req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&wpb.ListSidechainDepositsResponse{
 		Deposits: lo.Map(deposits, func(d wallet.SidechainDeposit, _ int) *wpb.SidechainDeposit {
 			return &wpb.SidechainDeposit{
-				Txid:        d.Txid,
-				WalletId:    d.WalletID,
-				Slot:        d.Slot,
-				Destination: d.Destination,
-				AmountSats:  d.AmountSats,
-				CreatedAt:   d.CreatedAt.Format(time.RFC3339),
+				Txid:          d.Txid,
+				WalletId:      d.WalletID,
+				Slot:          d.Slot,
+				Destination:   d.Destination,
+				AmountSats:    d.AmountSats,
+				FeeSats:       d.FeeSats,
+				Confirmations: h.depositConfirmations(ctx, d),
+				CreatedAt:     d.CreatedAt.Format(time.RFC3339),
 			}
 		}),
+	}), nil
+}
+
+// depositConfirmations reads the chain rather than the store, because a
+// confirmation count goes stale the moment a block arrives. Zero when the
+// chain source cannot answer.
+func (h *WalletHandler) depositConfirmations(ctx context.Context, d wallet.SidechainDeposit) int32 {
+	if h.engine == nil {
+		return 0
+	}
+	tx, err := h.engine.ChainForWallet(d.WalletID).GetRawTransaction(ctx, d.Txid)
+	if err != nil || tx == nil {
+		return 0
+	}
+	return tx.Confirmations
+}
+
+// GetSidechainDepositTotals sums what this install deposited. The wallet
+// overview shows it, and only our own record knows it.
+func (h *WalletHandler) GetSidechainDepositTotals(
+	ctx context.Context, req *connect.Request[wpb.GetSidechainDepositTotalsRequest],
+) (*connect.Response[wpb.GetSidechainDepositTotalsResponse], error) {
+	total, recent, err := h.svc.SidechainDepositTotals(ctx, time.Unix(req.Msg.SinceUnix, 0), req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&wpb.GetSidechainDepositTotalsResponse{
+		TotalSats:  total,
+		RecentSats: recent,
 	}), nil
 }

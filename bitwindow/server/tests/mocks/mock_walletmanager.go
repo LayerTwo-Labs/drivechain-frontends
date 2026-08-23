@@ -508,6 +508,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) GetNodeMode(arg0, arg1 any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeMode", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).GetNodeMode), arg0, arg1)
 }
 
+// GetSidechainDepositTotals mocks base method.
+func (m *MockWalletManagerServiceClient) GetSidechainDepositTotals(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetSidechainDepositTotalsRequest]) (*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidechainDepositTotals", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSidechainDepositTotals indicates an expected call of GetSidechainDepositTotals.
+func (mr *MockWalletManagerServiceClientMockRecorder) GetSidechainDepositTotals(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidechainDepositTotals", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).GetSidechainDepositTotals), arg0, arg1)
+}
+
 // GetTorConfig mocks base method.
 func (m *MockWalletManagerServiceClient) GetTorConfig(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetTorConfigRequest]) (*connect.Response[walletmanagerv1.GetTorConfigResponse], error) {
 	m.ctrl.T.Helper()
@@ -1535,6 +1550,21 @@ func (m *MockWalletManagerServiceHandler) GetNodeMode(arg0 context.Context, arg1
 func (mr *MockWalletManagerServiceHandlerMockRecorder) GetNodeMode(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeMode", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).GetNodeMode), arg0, arg1)
+}
+
+// GetSidechainDepositTotals mocks base method.
+func (m *MockWalletManagerServiceHandler) GetSidechainDepositTotals(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.GetSidechainDepositTotalsRequest]) (*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidechainDepositTotals", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.GetSidechainDepositTotalsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSidechainDepositTotals indicates an expected call of GetSidechainDepositTotals.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) GetSidechainDepositTotals(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidechainDepositTotals", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).GetSidechainDepositTotals), arg0, arg1)
 }
 
 // GetTorConfig mocks base method.

@@ -87,9 +87,9 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
         throw Exception('No active wallet');
       }
 
-      // Deposit history is the enforcer's global list rather than per-wallet,
-      // and the backend rejects the lookup for every other wallet type.
-      final historyWalletId = _walletReader.primaryWallet?.id;
+      // Each deposit records the wallet that made it, so the history follows
+      // the wallet the user is looking at.
+      final historyWalletId = _walletReader.activeWalletId;
 
       final newSidechains = await bitwindowd.drivechain.listSidechains();
       final newSidechainProposals = await bitwindowd.drivechain.listSidechainProposals();

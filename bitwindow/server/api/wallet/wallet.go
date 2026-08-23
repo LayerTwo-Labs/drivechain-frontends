@@ -780,22 +780,23 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 
 // ListSidechainDeposits implements walletv1connect.WalletServiceHandler.
 //
-// The deposit history lived on the enforcer's WalletService, and the enforcer
-// runs no wallet. Nothing else keeps a global deposit list, so this reports
-// none rather than an error the frontend cannot act on.
+// Only this install's own deposits are knowable. An M5 is an ordinary
+// transaction on the wire, so nothing on chain marks one after the fact.
 func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[pb.ListSidechainDepositsRequest]) (*connect.Response[pb.ListSidechainDepositsResponse], error) {
 	if c.Msg.Slot < 0 || c.Msg.Slot > 255 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("slot must be 0-255"))
 	}
-	deposits, err := s.walletEngine.ListSidechainDeposits(ctx, uint32(c.Msg.Slot))
+	deposits, err := s.walletEngine.ListSidechainDeposits(ctx, uint32(c.Msg.Slot), c.Msg.WalletId)
 	if err != nil {
 		return nil, fmt.Errorf("list sidechain deposits: %w", err)
 	}
 	return connect.NewResponse(&pb.ListSidechainDepositsResponse{
 		Deposits: lo.Map(deposits, func(d *orchpb.SidechainDeposit, _ int) *pb.ListSidechainDepositsResponse_SidechainDeposit {
 			return &pb.ListSidechainDepositsResponse_SidechainDeposit{
-				Txid:   d.Txid,
-				Amount: d.AmountSats,
+				Txid:          d.Txid,
+				Amount:        d.AmountSats,
+				Fee:           d.FeeSats,
+				Confirmations: d.Confirmations,
 			}
 		}),
 	}), nil
@@ -1388,12 +1389,17 @@ func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsReq
 		}
 	}
 
-	// Bitcoin Core wallets don't track sidechain deposits separately
+	// Only our own record knows this: an M5 looks like any other send on chain.
+	depositVolume, depositVolume30d, err := s.walletEngine.SidechainDepositTotals(ctx, now.AddDate(0, 0, -30), walletId)
+	if err != nil {
+		return nil, fmt.Errorf("sum sidechain deposits: %w", err)
+	}
+
 	return connect.NewResponse(&pb.GetStatsResponse{
 		UtxosCurrent:                      utxoCount,
 		UtxosUniqueAddresses:              uniqueAddressCount,
-		SidechainDepositVolume:            0,
-		SidechainDepositVolumeLast_30Days: 0,
+		SidechainDepositVolume:            depositVolume,
+		SidechainDepositVolumeLast_30Days: depositVolume30d,
 		TransactionCountTotal:             transactionCount,
 		TransactionCountSinceMonth:        transactionCountSinceMonth,
 		TotalFeesSats:                     totalFees,

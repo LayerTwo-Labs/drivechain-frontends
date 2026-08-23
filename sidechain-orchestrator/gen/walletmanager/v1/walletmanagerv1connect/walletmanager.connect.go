@@ -40,6 +40,9 @@ const (
 	// WalletManagerServiceListSidechainDepositsProcedure is the fully-qualified name of the
 	// WalletManagerService's ListSidechainDeposits RPC.
 	WalletManagerServiceListSidechainDepositsProcedure = "/walletmanager.v1.WalletManagerService/ListSidechainDeposits"
+	// WalletManagerServiceGetSidechainDepositTotalsProcedure is the fully-qualified name of the
+	// WalletManagerService's GetSidechainDepositTotals RPC.
+	WalletManagerServiceGetSidechainDepositTotalsProcedure = "/walletmanager.v1.WalletManagerService/GetSidechainDepositTotals"
 	// WalletManagerServiceGetNodeModeProcedure is the fully-qualified name of the
 	// WalletManagerService's GetNodeMode RPC.
 	WalletManagerServiceGetNodeModeProcedure = "/walletmanager.v1.WalletManagerService/GetNodeMode"
@@ -246,6 +249,7 @@ type WalletManagerServiceClient interface {
 	// Deposits this install made to a sidechain treasury. An M5 is an ordinary
 	// transaction on the wire, so the record comes from when we broadcast it.
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
+	GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error)
 	GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error)
 	SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error)
 	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
@@ -373,6 +377,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+WalletManagerServiceListSidechainDepositsProcedure,
 			connect.WithSchema(walletManagerServiceMethods.ByName("ListSidechainDeposits")),
+			connect.WithClientOptions(opts...),
+		),
+		getSidechainDepositTotals: connect.NewClient[v1.GetSidechainDepositTotalsRequest, v1.GetSidechainDepositTotalsResponse](
+			httpClient,
+			baseURL+WalletManagerServiceGetSidechainDepositTotalsProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("GetSidechainDepositTotals")),
 			connect.WithClientOptions(opts...),
 		),
 		getNodeMode: connect.NewClient[v1.GetNodeModeRequest, v1.GetNodeModeResponse](
@@ -772,6 +782,7 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 type walletManagerServiceClient struct {
 	getWalletStatus              *connect.Client[v1.GetWalletStatusRequest, v1.GetWalletStatusResponse]
 	listSidechainDeposits        *connect.Client[v1.ListSidechainDepositsRequest, v1.ListSidechainDepositsResponse]
+	getSidechainDepositTotals    *connect.Client[v1.GetSidechainDepositTotalsRequest, v1.GetSidechainDepositTotalsResponse]
 	getNodeMode                  *connect.Client[v1.GetNodeModeRequest, v1.GetNodeModeResponse]
 	setNodeMode                  *connect.Client[v1.SetNodeModeRequest, v1.SetNodeModeResponse]
 	generateWallet               *connect.Client[v1.GenerateWalletRequest, v1.GenerateWalletResponse]
@@ -847,6 +858,11 @@ func (c *walletManagerServiceClient) GetWalletStatus(ctx context.Context, req *c
 // ListSidechainDeposits calls walletmanager.v1.WalletManagerService.ListSidechainDeposits.
 func (c *walletManagerServiceClient) ListSidechainDeposits(ctx context.Context, req *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
 	return c.listSidechainDeposits.CallUnary(ctx, req)
+}
+
+// GetSidechainDepositTotals calls walletmanager.v1.WalletManagerService.GetSidechainDepositTotals.
+func (c *walletManagerServiceClient) GetSidechainDepositTotals(ctx context.Context, req *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error) {
+	return c.getSidechainDepositTotals.CallUnary(ctx, req)
 }
 
 // GetNodeMode calls walletmanager.v1.WalletManagerService.GetNodeMode.
@@ -1185,6 +1201,7 @@ type WalletManagerServiceHandler interface {
 	// Deposits this install made to a sidechain treasury. An M5 is an ordinary
 	// transaction on the wire, so the record comes from when we broadcast it.
 	ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error)
+	GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error)
 	GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error)
 	SetNodeMode(context.Context, *connect.Request[v1.SetNodeModeRequest]) (*connect.Response[v1.SetNodeModeResponse], error)
 	GenerateWallet(context.Context, *connect.Request[v1.GenerateWalletRequest]) (*connect.Response[v1.GenerateWalletResponse], error)
@@ -1308,6 +1325,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceListSidechainDepositsProcedure,
 		svc.ListSidechainDeposits,
 		connect.WithSchema(walletManagerServiceMethods.ByName("ListSidechainDeposits")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceGetSidechainDepositTotalsHandler := connect.NewUnaryHandler(
+		WalletManagerServiceGetSidechainDepositTotalsProcedure,
+		svc.GetSidechainDepositTotals,
+		connect.WithSchema(walletManagerServiceMethods.ByName("GetSidechainDepositTotals")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceGetNodeModeHandler := connect.NewUnaryHandler(
@@ -1706,6 +1729,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetWalletStatusHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListSidechainDepositsProcedure:
 			walletManagerServiceListSidechainDepositsHandler.ServeHTTP(w, r)
+		case WalletManagerServiceGetSidechainDepositTotalsProcedure:
+			walletManagerServiceGetSidechainDepositTotalsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceGetNodeModeProcedure:
 			walletManagerServiceGetNodeModeHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSetNodeModeProcedure:
@@ -1851,6 +1876,10 @@ func (UnimplementedWalletManagerServiceHandler) GetWalletStatus(context.Context,
 
 func (UnimplementedWalletManagerServiceHandler) ListSidechainDeposits(context.Context, *connect.Request[v1.ListSidechainDepositsRequest]) (*connect.Response[v1.ListSidechainDepositsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.ListSidechainDeposits is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) GetSidechainDepositTotals(context.Context, *connect.Request[v1.GetSidechainDepositTotalsRequest]) (*connect.Response[v1.GetSidechainDepositTotalsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.GetSidechainDepositTotals is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) GetNodeMode(context.Context, *connect.Request[v1.GetNodeModeRequest]) (*connect.Response[v1.GetNodeModeResponse], error) {
