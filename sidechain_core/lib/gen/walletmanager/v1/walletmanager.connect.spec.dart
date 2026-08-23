@@ -30,6 +30,13 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.ListSidechainDepositsResponse.new,
   );
 
+  static const getSidechainDepositTotals = connect.Spec(
+    '/$name/GetSidechainDepositTotals',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.GetSidechainDepositTotalsRequest.new,
+    walletmanagerv1walletmanager.GetSidechainDepositTotalsResponse.new,
+  );
+
   static const getNodeMode = connect.Spec(
     '/$name/GetNodeMode',
     connect.StreamType.unary,

@@ -25,26 +25,24 @@ class GetSidechainConfigRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GetSidechainConfigRequest._() : super();
-  factory GetSidechainConfigRequest.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory GetSidechainConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+  factory GetSidechainConfigRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSidechainConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainConfigRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainConfigRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sidechainName')
-    ..hasRequiredFields = false;
+    ..hasRequiredFields = false
+  ;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
   GetSidechainConfigRequest clone() => GetSidechainConfigRequest()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
-  GetSidechainConfigRequest copyWith(void Function(GetSidechainConfigRequest) updates) =>
-      super.copyWith((message) => updates(message as GetSidechainConfigRequest)) as GetSidechainConfigRequest;
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSidechainConfigRequest copyWith(void Function(GetSidechainConfigRequest) updates) => super.copyWith((message) => updates(message as GetSidechainConfigRequest)) as GetSidechainConfigRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -53,17 +51,13 @@ class GetSidechainConfigRequest extends $pb.GeneratedMessage {
   GetSidechainConfigRequest createEmptyInstance() => create();
   static $pb.PbList<GetSidechainConfigRequest> createRepeated() => $pb.PbList<GetSidechainConfigRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetSidechainConfigRequest getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainConfigRequest>(create);
+  static GetSidechainConfigRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainConfigRequest>(create);
   static GetSidechainConfigRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sidechainName => $_getSZ(0);
   @$pb.TagNumber(1)
-  set sidechainName($core.String v) {
-    $_setString(0, v);
-  }
-
+  set sidechainName($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainName() => $_has(0);
   @$pb.TagNumber(1)
@@ -97,31 +91,28 @@ class GetSidechainConfigResponse extends $pb.GeneratedMessage {
     return $result;
   }
   GetSidechainConfigResponse._() : super();
-  factory GetSidechainConfigResponse.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory GetSidechainConfigResponse.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+  factory GetSidechainConfigResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSidechainConfigResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainConfigResponse',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainConfigResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'configContent')
     ..aOS(2, _omitFieldNames ? '' : 'configPath')
     ..aOS(3, _omitFieldNames ? '' : 'defaultConfig')
     ..pPS(4, _omitFieldNames ? '' : 'cliArgs')
     ..aOS(5, _omitFieldNames ? '' : 'network')
-    ..hasRequiredFields = false;
+    ..hasRequiredFields = false
+  ;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
   GetSidechainConfigResponse clone() => GetSidechainConfigResponse()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
-  GetSidechainConfigResponse copyWith(void Function(GetSidechainConfigResponse) updates) =>
-      super.copyWith((message) => updates(message as GetSidechainConfigResponse)) as GetSidechainConfigResponse;
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSidechainConfigResponse copyWith(void Function(GetSidechainConfigResponse) updates) => super.copyWith((message) => updates(message as GetSidechainConfigResponse)) as GetSidechainConfigResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -130,17 +121,13 @@ class GetSidechainConfigResponse extends $pb.GeneratedMessage {
   GetSidechainConfigResponse createEmptyInstance() => create();
   static $pb.PbList<GetSidechainConfigResponse> createRepeated() => $pb.PbList<GetSidechainConfigResponse>();
   @$core.pragma('dart2js:noInline')
-  static GetSidechainConfigResponse getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainConfigResponse>(create);
+  static GetSidechainConfigResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainConfigResponse>(create);
   static GetSidechainConfigResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get configContent => $_getSZ(0);
   @$pb.TagNumber(1)
-  set configContent($core.String v) {
-    $_setString(0, v);
-  }
-
+  set configContent($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
   $core.bool hasConfigContent() => $_has(0);
   @$pb.TagNumber(1)
@@ -149,10 +136,7 @@ class GetSidechainConfigResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get configPath => $_getSZ(1);
   @$pb.TagNumber(2)
-  set configPath($core.String v) {
-    $_setString(1, v);
-  }
-
+  set configPath($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
   $core.bool hasConfigPath() => $_has(1);
   @$pb.TagNumber(2)
@@ -161,10 +145,7 @@ class GetSidechainConfigResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get defaultConfig => $_getSZ(2);
   @$pb.TagNumber(3)
-  set defaultConfig($core.String v) {
-    $_setString(2, v);
-  }
-
+  set defaultConfig($core.String v) { $_setString(2, v); }
   @$pb.TagNumber(3)
   $core.bool hasDefaultConfig() => $_has(2);
   @$pb.TagNumber(3)
@@ -176,10 +157,7 @@ class GetSidechainConfigResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get network => $_getSZ(4);
   @$pb.TagNumber(5)
-  set network($core.String v) {
-    $_setString(4, v);
-  }
-
+  set network($core.String v) { $_setString(4, v); }
   @$pb.TagNumber(5)
   $core.bool hasNetwork() => $_has(4);
   @$pb.TagNumber(5)
@@ -201,28 +179,25 @@ class WriteSidechainConfigRequest extends $pb.GeneratedMessage {
     return $result;
   }
   WriteSidechainConfigRequest._() : super();
-  factory WriteSidechainConfigRequest.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory WriteSidechainConfigRequest.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+  factory WriteSidechainConfigRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WriteSidechainConfigRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteSidechainConfigRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteSidechainConfigRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sidechainName')
     ..aOS(2, _omitFieldNames ? '' : 'configContent')
-    ..hasRequiredFields = false;
+    ..hasRequiredFields = false
+  ;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
   WriteSidechainConfigRequest clone() => WriteSidechainConfigRequest()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
-  WriteSidechainConfigRequest copyWith(void Function(WriteSidechainConfigRequest) updates) =>
-      super.copyWith((message) => updates(message as WriteSidechainConfigRequest)) as WriteSidechainConfigRequest;
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WriteSidechainConfigRequest copyWith(void Function(WriteSidechainConfigRequest) updates) => super.copyWith((message) => updates(message as WriteSidechainConfigRequest)) as WriteSidechainConfigRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -231,17 +206,13 @@ class WriteSidechainConfigRequest extends $pb.GeneratedMessage {
   WriteSidechainConfigRequest createEmptyInstance() => create();
   static $pb.PbList<WriteSidechainConfigRequest> createRepeated() => $pb.PbList<WriteSidechainConfigRequest>();
   @$core.pragma('dart2js:noInline')
-  static WriteSidechainConfigRequest getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WriteSidechainConfigRequest>(create);
+  static WriteSidechainConfigRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WriteSidechainConfigRequest>(create);
   static WriteSidechainConfigRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sidechainName => $_getSZ(0);
   @$pb.TagNumber(1)
-  set sidechainName($core.String v) {
-    $_setString(0, v);
-  }
-
+  set sidechainName($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainName() => $_has(0);
   @$pb.TagNumber(1)
@@ -250,10 +221,7 @@ class WriteSidechainConfigRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get configContent => $_getSZ(1);
   @$pb.TagNumber(2)
-  set configContent($core.String v) {
-    $_setString(1, v);
-  }
-
+  set configContent($core.String v) { $_setString(1, v); }
   @$pb.TagNumber(2)
   $core.bool hasConfigContent() => $_has(1);
   @$pb.TagNumber(2)
@@ -263,26 +231,23 @@ class WriteSidechainConfigRequest extends $pb.GeneratedMessage {
 class WriteSidechainConfigResponse extends $pb.GeneratedMessage {
   factory WriteSidechainConfigResponse() => create();
   WriteSidechainConfigResponse._() : super();
-  factory WriteSidechainConfigResponse.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory WriteSidechainConfigResponse.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+  factory WriteSidechainConfigResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory WriteSidechainConfigResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteSidechainConfigResponse',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WriteSidechainConfigResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
   WriteSidechainConfigResponse clone() => WriteSidechainConfigResponse()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
-  WriteSidechainConfigResponse copyWith(void Function(WriteSidechainConfigResponse) updates) =>
-      super.copyWith((message) => updates(message as WriteSidechainConfigResponse)) as WriteSidechainConfigResponse;
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  WriteSidechainConfigResponse copyWith(void Function(WriteSidechainConfigResponse) updates) => super.copyWith((message) => updates(message as WriteSidechainConfigResponse)) as WriteSidechainConfigResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -291,8 +256,7 @@ class WriteSidechainConfigResponse extends $pb.GeneratedMessage {
   WriteSidechainConfigResponse createEmptyInstance() => create();
   static $pb.PbList<WriteSidechainConfigResponse> createRepeated() => $pb.PbList<WriteSidechainConfigResponse>();
   @$core.pragma('dart2js:noInline')
-  static WriteSidechainConfigResponse getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WriteSidechainConfigResponse>(create);
+  static WriteSidechainConfigResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<WriteSidechainConfigResponse>(create);
   static WriteSidechainConfigResponse? _defaultInstance;
 }
 
@@ -307,52 +271,39 @@ class SyncSidechainNetworkFromBitcoinConfRequest extends $pb.GeneratedMessage {
     return $result;
   }
   SyncSidechainNetworkFromBitcoinConfRequest._() : super();
-  factory SyncSidechainNetworkFromBitcoinConfRequest.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory SyncSidechainNetworkFromBitcoinConfRequest.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+  factory SyncSidechainNetworkFromBitcoinConfRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncSidechainNetworkFromBitcoinConfRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'SyncSidechainNetworkFromBitcoinConfRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
-      createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncSidechainNetworkFromBitcoinConfRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sidechainName')
-    ..hasRequiredFields = false;
+    ..hasRequiredFields = false
+  ;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  SyncSidechainNetworkFromBitcoinConfRequest clone() =>
-      SyncSidechainNetworkFromBitcoinConfRequest()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
-  SyncSidechainNetworkFromBitcoinConfRequest copyWith(
-          void Function(SyncSidechainNetworkFromBitcoinConfRequest) updates) =>
-      super.copyWith((message) => updates(message as SyncSidechainNetworkFromBitcoinConfRequest))
-          as SyncSidechainNetworkFromBitcoinConfRequest;
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SyncSidechainNetworkFromBitcoinConfRequest clone() => SyncSidechainNetworkFromBitcoinConfRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SyncSidechainNetworkFromBitcoinConfRequest copyWith(void Function(SyncSidechainNetworkFromBitcoinConfRequest) updates) => super.copyWith((message) => updates(message as SyncSidechainNetworkFromBitcoinConfRequest)) as SyncSidechainNetworkFromBitcoinConfRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static SyncSidechainNetworkFromBitcoinConfRequest create() => SyncSidechainNetworkFromBitcoinConfRequest._();
   SyncSidechainNetworkFromBitcoinConfRequest createEmptyInstance() => create();
-  static $pb.PbList<SyncSidechainNetworkFromBitcoinConfRequest> createRepeated() =>
-      $pb.PbList<SyncSidechainNetworkFromBitcoinConfRequest>();
+  static $pb.PbList<SyncSidechainNetworkFromBitcoinConfRequest> createRepeated() => $pb.PbList<SyncSidechainNetworkFromBitcoinConfRequest>();
   @$core.pragma('dart2js:noInline')
-  static SyncSidechainNetworkFromBitcoinConfRequest getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncSidechainNetworkFromBitcoinConfRequest>(create);
+  static SyncSidechainNetworkFromBitcoinConfRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncSidechainNetworkFromBitcoinConfRequest>(create);
   static SyncSidechainNetworkFromBitcoinConfRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sidechainName => $_getSZ(0);
   @$pb.TagNumber(1)
-  set sidechainName($core.String v) {
-    $_setString(0, v);
-  }
-
+  set sidechainName($core.String v) { $_setString(0, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechainName() => $_has(0);
   @$pb.TagNumber(1)
@@ -362,42 +313,32 @@ class SyncSidechainNetworkFromBitcoinConfRequest extends $pb.GeneratedMessage {
 class SyncSidechainNetworkFromBitcoinConfResponse extends $pb.GeneratedMessage {
   factory SyncSidechainNetworkFromBitcoinConfResponse() => create();
   SyncSidechainNetworkFromBitcoinConfResponse._() : super();
-  factory SyncSidechainNetworkFromBitcoinConfResponse.fromBuffer($core.List<$core.int> i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(i, r);
-  factory SyncSidechainNetworkFromBitcoinConfResponse.fromJson($core.String i,
-          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(i, r);
+  factory SyncSidechainNetworkFromBitcoinConfResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SyncSidechainNetworkFromBitcoinConfResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'SyncSidechainNetworkFromBitcoinConfResponse',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'),
-      createEmptyInstance: create)
-    ..hasRequiredFields = false;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SyncSidechainNetworkFromBitcoinConfResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
 
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-      'Will be removed in next major version')
-  SyncSidechainNetworkFromBitcoinConfResponse clone() =>
-      SyncSidechainNetworkFromBitcoinConfResponse()..mergeFromMessage(this);
-  @$core.Deprecated('Using this can add significant overhead to your binary. '
-      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-      'Will be removed in next major version')
-  SyncSidechainNetworkFromBitcoinConfResponse copyWith(
-          void Function(SyncSidechainNetworkFromBitcoinConfResponse) updates) =>
-      super.copyWith((message) => updates(message as SyncSidechainNetworkFromBitcoinConfResponse))
-          as SyncSidechainNetworkFromBitcoinConfResponse;
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SyncSidechainNetworkFromBitcoinConfResponse clone() => SyncSidechainNetworkFromBitcoinConfResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SyncSidechainNetworkFromBitcoinConfResponse copyWith(void Function(SyncSidechainNetworkFromBitcoinConfResponse) updates) => super.copyWith((message) => updates(message as SyncSidechainNetworkFromBitcoinConfResponse)) as SyncSidechainNetworkFromBitcoinConfResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static SyncSidechainNetworkFromBitcoinConfResponse create() => SyncSidechainNetworkFromBitcoinConfResponse._();
   SyncSidechainNetworkFromBitcoinConfResponse createEmptyInstance() => create();
-  static $pb.PbList<SyncSidechainNetworkFromBitcoinConfResponse> createRepeated() =>
-      $pb.PbList<SyncSidechainNetworkFromBitcoinConfResponse>();
+  static $pb.PbList<SyncSidechainNetworkFromBitcoinConfResponse> createRepeated() => $pb.PbList<SyncSidechainNetworkFromBitcoinConfResponse>();
   @$core.pragma('dart2js:noInline')
-  static SyncSidechainNetworkFromBitcoinConfResponse getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncSidechainNetworkFromBitcoinConfResponse>(create);
+  static SyncSidechainNetworkFromBitcoinConfResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncSidechainNetworkFromBitcoinConfResponse>(create);
   static SyncSidechainNetworkFromBitcoinConfResponse? _defaultInstance;
 }
 
@@ -405,19 +346,17 @@ class SidechainConfServiceApi {
   $pb.RpcClient _client;
   SidechainConfServiceApi(this._client);
 
-  $async.Future<GetSidechainConfigResponse> getSidechainConfig(
-          $pb.ClientContext? ctx, GetSidechainConfigRequest request) =>
-      _client.invoke<GetSidechainConfigResponse>(
-          ctx, 'SidechainConfService', 'GetSidechainConfig', request, GetSidechainConfigResponse());
-  $async.Future<WriteSidechainConfigResponse> writeSidechainConfig(
-          $pb.ClientContext? ctx, WriteSidechainConfigRequest request) =>
-      _client.invoke<WriteSidechainConfigResponse>(
-          ctx, 'SidechainConfService', 'WriteSidechainConfig', request, WriteSidechainConfigResponse());
-  $async.Future<SyncSidechainNetworkFromBitcoinConfResponse> syncSidechainNetworkFromBitcoinConf(
-          $pb.ClientContext? ctx, SyncSidechainNetworkFromBitcoinConfRequest request) =>
-      _client.invoke<SyncSidechainNetworkFromBitcoinConfResponse>(ctx, 'SidechainConfService',
-          'SyncSidechainNetworkFromBitcoinConf', request, SyncSidechainNetworkFromBitcoinConfResponse());
+  $async.Future<GetSidechainConfigResponse> getSidechainConfig($pb.ClientContext? ctx, GetSidechainConfigRequest request) =>
+    _client.invoke<GetSidechainConfigResponse>(ctx, 'SidechainConfService', 'GetSidechainConfig', request, GetSidechainConfigResponse())
+  ;
+  $async.Future<WriteSidechainConfigResponse> writeSidechainConfig($pb.ClientContext? ctx, WriteSidechainConfigRequest request) =>
+    _client.invoke<WriteSidechainConfigResponse>(ctx, 'SidechainConfService', 'WriteSidechainConfig', request, WriteSidechainConfigResponse())
+  ;
+  $async.Future<SyncSidechainNetworkFromBitcoinConfResponse> syncSidechainNetworkFromBitcoinConf($pb.ClientContext? ctx, SyncSidechainNetworkFromBitcoinConfRequest request) =>
+    _client.invoke<SyncSidechainNetworkFromBitcoinConfResponse>(ctx, 'SidechainConfService', 'SyncSidechainNetworkFromBitcoinConf', request, SyncSidechainNetworkFromBitcoinConfResponse())
+  ;
 }
+
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

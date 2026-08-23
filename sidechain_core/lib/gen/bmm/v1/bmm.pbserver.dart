@@ -33,55 +33,35 @@ abstract class BMMServiceBase extends $pb.GeneratedService {
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'Start':
-        return $3.StartRequest();
-      case 'Stop':
-        return $3.StopRequest();
-      case 'ClearHistory':
-        return $3.ClearHistoryRequest();
-      case 'Watch':
-        return $3.WatchRequest();
-      case 'GetRoundBids':
-        return $3.GetRoundBidsRequest();
-      case 'CreateBid':
-        return $3.CreateBidRequest();
-      case 'ConnectBid':
-        return $3.ConnectBidRequest();
-      case 'ListBids':
-        return $3.ListBidsRequest();
-      case 'AttackBid':
-        return $3.AttackBidRequest();
-      default:
-        throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Start': return $3.StartRequest();
+      case 'Stop': return $3.StopRequest();
+      case 'ClearHistory': return $3.ClearHistoryRequest();
+      case 'Watch': return $3.WatchRequest();
+      case 'GetRoundBids': return $3.GetRoundBidsRequest();
+      case 'CreateBid': return $3.CreateBidRequest();
+      case 'ConnectBid': return $3.ConnectBidRequest();
+      case 'ListBids': return $3.ListBidsRequest();
+      case 'AttackBid': return $3.AttackBidRequest();
+      default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
-  $async.Future<$pb.GeneratedMessage> handleCall(
-      $pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
+  $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'Start':
-        return this.start(ctx, request as $3.StartRequest);
-      case 'Stop':
-        return this.stop(ctx, request as $3.StopRequest);
-      case 'ClearHistory':
-        return this.clearHistory(ctx, request as $3.ClearHistoryRequest);
-      case 'Watch':
-        return this.watch(ctx, request as $3.WatchRequest);
-      case 'GetRoundBids':
-        return this.getRoundBids(ctx, request as $3.GetRoundBidsRequest);
-      case 'CreateBid':
-        return this.createBid(ctx, request as $3.CreateBidRequest);
-      case 'ConnectBid':
-        return this.connectBid(ctx, request as $3.ConnectBidRequest);
-      case 'ListBids':
-        return this.listBids(ctx, request as $3.ListBidsRequest);
-      case 'AttackBid':
-        return this.attackBid(ctx, request as $3.AttackBidRequest);
-      default:
-        throw $core.ArgumentError('Unknown method: $methodName');
+      case 'Start': return this.start(ctx, request as $3.StartRequest);
+      case 'Stop': return this.stop(ctx, request as $3.StopRequest);
+      case 'ClearHistory': return this.clearHistory(ctx, request as $3.ClearHistoryRequest);
+      case 'Watch': return this.watch(ctx, request as $3.WatchRequest);
+      case 'GetRoundBids': return this.getRoundBids(ctx, request as $3.GetRoundBidsRequest);
+      case 'CreateBid': return this.createBid(ctx, request as $3.CreateBidRequest);
+      case 'ConnectBid': return this.connectBid(ctx, request as $3.ConnectBidRequest);
+      case 'ListBids': return this.listBids(ctx, request as $3.ListBidsRequest);
+      case 'AttackBid': return this.attackBid(ctx, request as $3.AttackBidRequest);
+      default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $core.Map<$core.String, $core.dynamic> get $json => BMMServiceBase$json;
   $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> get $messageJson => BMMServiceBase$messageJson;
 }
+

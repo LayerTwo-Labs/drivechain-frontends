@@ -163,10 +163,14 @@ class GetWalletStatusResponse extends $pb.GeneratedMessage {
 class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
   factory ListSidechainDepositsRequest({
     $core.int? slot,
+    $core.String? walletId,
   }) {
     final $result = create();
     if (slot != null) {
       $result.slot = slot;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
     }
     return $result;
   }
@@ -176,6 +180,7 @@ class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListSidechainDepositsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.OU3)
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
     ..hasRequiredFields = false
   ;
 
@@ -208,6 +213,16 @@ class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
   $core.bool hasSlot() => $_has(0);
   @$pb.TagNumber(1)
   void clearSlot() => clearField(1);
+
+  /// Empty lists every wallet's deposits.
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
 }
 
 class SidechainDeposit extends $pb.GeneratedMessage {
@@ -218,6 +233,8 @@ class SidechainDeposit extends $pb.GeneratedMessage {
     $core.String? destination,
     $fixnum.Int64? amountSats,
     $core.String? createdAt,
+    $fixnum.Int64? feeSats,
+    $core.int? confirmations,
   }) {
     final $result = create();
     if (txid != null) {
@@ -238,6 +255,12 @@ class SidechainDeposit extends $pb.GeneratedMessage {
     if (createdAt != null) {
       $result.createdAt = createdAt;
     }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (confirmations != null) {
+      $result.confirmations = confirmations;
+    }
     return $result;
   }
   SidechainDeposit._() : super();
@@ -251,6 +274,8 @@ class SidechainDeposit extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'destination')
     ..aInt64(5, _omitFieldNames ? '' : 'amountSats')
     ..aOS(6, _omitFieldNames ? '' : 'createdAt')
+    ..aInt64(7, _omitFieldNames ? '' : 'feeSats')
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -328,6 +353,25 @@ class SidechainDeposit extends $pb.GeneratedMessage {
   $core.bool hasCreatedAt() => $_has(5);
   @$pb.TagNumber(6)
   void clearCreatedAt() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get feeSats => $_getI64(6);
+  @$pb.TagNumber(7)
+  set feeSats($fixnum.Int64 v) { $_setInt64(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasFeeSats() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearFeeSats() => clearField(7);
+
+  /// Blocks on top of the one holding this deposit. Zero while unconfirmed.
+  @$pb.TagNumber(8)
+  $core.int get confirmations => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set confirmations($core.int v) { $_setSignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasConfirmations() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearConfirmations() => clearField(8);
 }
 
 class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
@@ -372,6 +416,136 @@ class ListSidechainDepositsResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $core.List<SidechainDeposit> get deposits => $_getList(0);
+}
+
+class GetSidechainDepositTotalsRequest extends $pb.GeneratedMessage {
+  factory GetSidechainDepositTotalsRequest({
+    $fixnum.Int64? sinceUnix,
+    $core.String? walletId,
+  }) {
+    final $result = create();
+    if (sinceUnix != null) {
+      $result.sinceUnix = sinceUnix;
+    }
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    return $result;
+  }
+  GetSidechainDepositTotalsRequest._() : super();
+  factory GetSidechainDepositTotalsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSidechainDepositTotalsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainDepositTotalsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'sinceUnix')
+    ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSidechainDepositTotalsRequest clone() => GetSidechainDepositTotalsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSidechainDepositTotalsRequest copyWith(void Function(GetSidechainDepositTotalsRequest) updates) => super.copyWith((message) => updates(message as GetSidechainDepositTotalsRequest)) as GetSidechainDepositTotalsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainDepositTotalsRequest create() => GetSidechainDepositTotalsRequest._();
+  GetSidechainDepositTotalsRequest createEmptyInstance() => create();
+  static $pb.PbList<GetSidechainDepositTotalsRequest> createRepeated() => $pb.PbList<GetSidechainDepositTotalsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainDepositTotalsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainDepositTotalsRequest>(create);
+  static GetSidechainDepositTotalsRequest? _defaultInstance;
+
+  /// Seconds since the epoch. The recent total counts deposits at or after it.
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get sinceUnix => $_getI64(0);
+  @$pb.TagNumber(1)
+  set sinceUnix($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSinceUnix() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSinceUnix() => clearField(1);
+
+  /// Empty sums every wallet's deposits.
+  @$pb.TagNumber(2)
+  $core.String get walletId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set walletId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasWalletId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWalletId() => clearField(2);
+}
+
+class GetSidechainDepositTotalsResponse extends $pb.GeneratedMessage {
+  factory GetSidechainDepositTotalsResponse({
+    $fixnum.Int64? totalSats,
+    $fixnum.Int64? recentSats,
+  }) {
+    final $result = create();
+    if (totalSats != null) {
+      $result.totalSats = totalSats;
+    }
+    if (recentSats != null) {
+      $result.recentSats = recentSats;
+    }
+    return $result;
+  }
+  GetSidechainDepositTotalsResponse._() : super();
+  factory GetSidechainDepositTotalsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSidechainDepositTotalsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSidechainDepositTotalsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'totalSats')
+    ..aInt64(2, _omitFieldNames ? '' : 'recentSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSidechainDepositTotalsResponse clone() => GetSidechainDepositTotalsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSidechainDepositTotalsResponse copyWith(void Function(GetSidechainDepositTotalsResponse) updates) => super.copyWith((message) => updates(message as GetSidechainDepositTotalsResponse)) as GetSidechainDepositTotalsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainDepositTotalsResponse create() => GetSidechainDepositTotalsResponse._();
+  GetSidechainDepositTotalsResponse createEmptyInstance() => create();
+  static $pb.PbList<GetSidechainDepositTotalsResponse> createRepeated() => $pb.PbList<GetSidechainDepositTotalsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetSidechainDepositTotalsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSidechainDepositTotalsResponse>(create);
+  static GetSidechainDepositTotalsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get totalSats => $_getI64(0);
+  @$pb.TagNumber(1)
+  set totalSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTotalSats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTotalSats() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get recentSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set recentSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasRecentSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRecentSats() => clearField(2);
 }
 
 class GetNodeModeRequest extends $pb.GeneratedMessage {
@@ -11319,6 +11493,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<ListSidechainDepositsResponse> listSidechainDeposits($pb.ClientContext? ctx, ListSidechainDepositsRequest request) =>
     _client.invoke<ListSidechainDepositsResponse>(ctx, 'WalletManagerService', 'ListSidechainDeposits', request, ListSidechainDepositsResponse())
+  ;
+  $async.Future<GetSidechainDepositTotalsResponse> getSidechainDepositTotals($pb.ClientContext? ctx, GetSidechainDepositTotalsRequest request) =>
+    _client.invoke<GetSidechainDepositTotalsResponse>(ctx, 'WalletManagerService', 'GetSidechainDepositTotals', request, GetSidechainDepositTotalsResponse())
   ;
   $async.Future<GetNodeModeResponse> getNodeMode($pb.ClientContext? ctx, GetNodeModeRequest request) =>
     _client.invoke<GetNodeModeResponse>(ctx, 'WalletManagerService', 'GetNodeMode', request, GetNodeModeResponse())

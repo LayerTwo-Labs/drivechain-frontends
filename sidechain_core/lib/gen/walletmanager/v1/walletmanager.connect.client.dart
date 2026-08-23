@@ -48,6 +48,23 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  Future<walletmanagerv1walletmanager.GetSidechainDepositTotalsResponse> getSidechainDepositTotals(
+    walletmanagerv1walletmanager.GetSidechainDepositTotalsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.getSidechainDepositTotals,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   Future<walletmanagerv1walletmanager.GetNodeModeResponse> getNodeMode(
     walletmanagerv1walletmanager.GetNodeModeRequest input, {
     connect.Headers? headers,
