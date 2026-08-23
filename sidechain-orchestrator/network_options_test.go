@@ -68,9 +68,9 @@ func TestSelectECashNetworkPinsTheID(t *testing.T) {
 	require.Equal(t, "drynet4", o.RunningECashID(cat))
 }
 
-// A pinned network the catalog drops is gone, so the boot has to fall back
-// rather than ask for a fork nothing publishes.
-func TestSelectedECashIDFallsBackWhenTheCatalogDropsIt(t *testing.T) {
+// A pick the catalog drops is a network the user left long ago, and no conf
+// names it, so the record this install keeps decides instead.
+func TestRunningECashIDFallsBackWhenThePickIsDropped(t *testing.T) {
 	o := newTestOrchestrator(t)
 	cat := netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
@@ -214,9 +214,10 @@ func TestRunningECashIDPrefersTheUserPick(t *testing.T) {
 	require.Equal(t, "alphanet", o.RunningECashID(cat))
 }
 
-// A conf that names a network the catalog dropped points nowhere, so the
-// document decides again.
-func TestRunningECashIDFallsBackWhenTheCatalogDropsTheConfNetwork(t *testing.T) {
+// A conf that names a network the document dropped still names the fork whose
+// blocks are on disk. Reading the document instead would open those blocks as
+// another fork, so the install keeps its own network until the user moves it.
+func TestRunningECashIDKeepsAConfNetworkTheCatalogDropped(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
@@ -227,5 +228,5 @@ func TestRunningECashIDFallsBackWhenTheCatalogDropsTheConfNetwork(t *testing.T) 
 	trimmed := netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
 	}}
-	require.Equal(t, "alphanet", o.RunningECashID(trimmed))
+	require.Equal(t, "drynet4", o.RunningECashID(trimmed))
 }

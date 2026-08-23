@@ -42,10 +42,12 @@ type connectRemote struct {
 }
 
 // NewRemoteCoinNews returns a reader for the network's published CoinNews
-// indexer, or nil when the network publishes none.
-func NewRemoteCoinNews(bitwindowDir, network string) RemoteCoinNews {
-	catalog, _ := netcatalog.Load(bitwindowDir)
-	net, ok := catalog.ForNetwork(network)
+// indexer, or nil when the network publishes none. The bound is short: a slow
+// document must not hold up the API handlers this runs from.
+func NewRemoteCoinNews(ctx context.Context, network string) RemoteCoinNews {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	net, ok := netcatalog.Resolve(ctx).ForNetwork(network)
 	if !ok || net.Services.CoinNews.URL == "" {
 		return nil
 	}

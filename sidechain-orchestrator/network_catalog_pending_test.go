@@ -2,9 +2,13 @@ package orchestrator
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
@@ -13,7 +17,7 @@ import (
 
 func catalogWithECash(t *testing.T, id string) netcatalog.Catalog {
 	t.Helper()
-	c, _ := netcatalog.Load(t.TempDir())
+	c := netcatalog.Embedded()
 	// One eCash entry only, with endpoints that match its id: the published
 	// document is what the app reads them from.
 	networks := make([]netcatalog.Network, 0, len(c.Networks))
@@ -36,7 +40,52 @@ func catalogWithECash(t *testing.T, id string) netcatalog.Catalog {
 	return c
 }
 
-// ecashOnPendingNetwork puts a eCash install on drynet2 with a published
+// catalogWithECashRows lists several eCash networks in the order given, each
+// with endpoints that match its id.
+func catalogWithECashRows(t *testing.T, ids ...string) netcatalog.Catalog {
+	t.Helper()
+	c := catalogWithECash(t, ids[0])
+	rows := make([]netcatalog.Network, 0, len(c.Networks)+len(ids))
+	for _, n := range c.Networks {
+		rows = append(rows, n)
+		if n.Family != netcatalog.FamilyECash {
+			continue
+		}
+		for _, id := range ids[1:] {
+			extra := n
+			extra.ID = id
+			extra.P2P.Address = id + ".example:8335"
+			extra.Backends = []netcatalog.Backend{{Kind: "esplora", URL: "https://esplora." + id + ".example"}}
+			rows = append(rows, extra)
+		}
+	}
+	c.Networks = rows
+	return c
+}
+
+// publish serves a document to this orchestrator, as drivechain.dev does.
+func publish(t *testing.T, o *Orchestrator, c netcatalog.Catalog) {
+	t.Helper()
+	body, err := json.Marshal(c)
+	require.NoError(t, err)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	o.catalogURL = srv.URL
+}
+
+// awaitRefresh waits for the detached fetch to take the published document.
+func awaitRefresh(t *testing.T, o *Orchestrator, id string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		o.mu.RLock()
+		defer o.mu.RUnlock()
+		return o.Catalog.ECashID() == id
+	}, 5*time.Second, 10*time.Millisecond, "the published document must reach the process")
+}
+
+// ecashOnPendingNetwork puts a eCash install on drynet2, with a published
 // document that leads with drynet3 and keeps the drynet2 row.
 func ecashOnPendingNetwork(t *testing.T) *Orchestrator {
 	t.Helper()
@@ -51,27 +100,24 @@ func ecashOnPendingNetwork(t *testing.T) *Orchestrator {
 	o.coreReachable = func() bool { return false }
 	o.adoptCatalog(catalogWithECash(t, "drynet2"), "drynet2")
 	require.Equal(t, "drynet2", o.installedECashNetwork())
-	require.NoError(t, netcatalog.Save(o.BitwindowDir, catalogWithECashRows(t, "drynet3", "drynet2")))
+	// What a refresh takes: the live network first, the row this install runs
+	// kept, and the chain left where it is.
+	o.adoptCatalogRows(catalogWithECashRows(t, "drynet3", "drynet2"), "drynet2")
 	return o
 }
 
-// Switching generations destroys the old chain, so startup must leave it for
-// the user to confirm rather than wiping behind their back.
-func TestNewGenerationIsNotAppliedWithoutConsent(t *testing.T) {
-	o := ecashOnPendingNetwork(t)
+// The bug the picker had: a start held the published document back, so the
+// network the user was told about was never a row they could pick.
+func TestARefreshReachesThePickerWithoutMovingTheChain(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(catalogWithECash(t, "drynet2"), "drynet2")
+	publish(t, o, catalogWithECashRows(t, "drynet3", "drynet2"))
 
 	o.ResolveNetworkCatalog(context.Background())
-
-	require.Equal(t, "drynet2", config.ECashNetworkID())
-	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID, "the upgrade prompt must still see it")
-}
-
-// The picker draws the adopted document, so a start that holds the published
-// one back leaves the user no row to switch to.
-func TestPublishedNetworkReachesThePicker(t *testing.T) {
-	o := ecashOnPendingNetwork(t)
-
-	o.ResolveNetworkCatalog(context.Background())
+	awaitRefresh(t, o, "drynet3")
 
 	var ids []string
 	for _, n := range o.ListNetworks() {
@@ -80,6 +126,16 @@ func TestPublishedNetworkReachesThePicker(t *testing.T) {
 	require.Contains(t, ids, "drynet3", "the published network must be listed")
 	require.Contains(t, ids, "drynet2", "the network this install runs must stay listed")
 	require.Equal(t, "drynet2", config.ECashNetworkID(), "the chain stays where it is")
+	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID, "and the move is offered")
+}
+
+// Switching generations rewinds the chain, so startup must leave it for the
+// user to confirm rather than moving them behind their back.
+func TestNewGenerationIsNotAppliedWithoutConsent(t *testing.T) {
+	o := ecashOnPendingNetwork(t)
+
+	require.Equal(t, "drynet2", config.ECashNetworkID())
+	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID, "the upgrade prompt must still see it")
 }
 
 // The published document drops a network once it retires, and its backends are
@@ -96,25 +152,34 @@ func TestRefreshKeepsTheRowThisInstallRuns(t *testing.T) {
 	require.Equal(t, "https://esplora.drynet3.example", kept.BackendURL("esplora"))
 }
 
-// A swap to another network strips the conf sentinel. Without the record, the
-// next start reads the published document as the chain on disk.
+// A swap to another network strips the conf sentinel. Without the record, a
+// start reads the published document as the chain on disk.
 func TestStartOffECashKeepsTheRecordedChain(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Empty(t, o.installedECashNetwork(), "the swap strips the eCash sentinel")
 
 	o.ResolveNetworkCatalog(context.Background())
 
 	require.Equal(t, "drynet2", config.ECashNetworkID())
-	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID)
+}
+
+// A fresh install holds no chain, so it takes the published network at once
+// rather than starting on the compiled-in one and asking to move.
+func TestFreshInstallTakesThePublishedNetwork(t *testing.T) {
+	o := newTestOrchestrator(t)
+	publish(t, o, catalogWithECash(t, "drynet7"))
+
+	o.ResolveNetworkCatalog(context.Background())
+
+	require.Equal(t, "drynet7", config.ECashNetworkID())
+	require.Empty(t, o.PendingECashUpgrade().ID, "a fresh install has nothing to confirm")
 }
 
 // Confirming is the one moment a live Core can rewind to the fork, so the
-// switch happens here. A start has no Core and could only delete the chain.
+// switch happens here. A start has no Core and could only leave the two apart.
 func TestConfirmMovesTheChainOnTheSpot(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
 
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
@@ -127,10 +192,11 @@ func TestConfirmMovesTheChainOnTheSpot(t *testing.T) {
 // only bitcoin.conf leaves it retrying a retired endpoint forever.
 func TestConfirmedGenerationLandsOnTheNextStart(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
+	publish(t, o, catalogWithECashRows(t, "drynet3", "drynet2"))
 
 	o.ResolveNetworkCatalog(context.Background())
+	awaitRefresh(t, o, "drynet3")
 
 	require.Equal(t, "drynet3", config.ECashNetworkID())
 	require.Equal(t, "ecash-drynet3", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
@@ -139,13 +205,12 @@ func TestConfirmedGenerationLandsOnTheNextStart(t *testing.T) {
 	require.Empty(t, o.PendingECashUpgrade().ID)
 }
 
-// Confirming off eCash reaches no Core on that chain, so it records the drop
-// rather than deleting blocks both networks keep.
+// Confirming off eCash reaches no Core on that chain, so it records the move
+// rather than touching blocks both networks keep.
 func TestConfirmWorksFromAnotherNetwork(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	ecashDir := o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupECash)
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
-	o.ResolveNetworkCatalog(context.Background())
 	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID)
 
 	blocks := filepath.Join(ecashDir, "blocks")
@@ -162,7 +227,6 @@ func TestConfirmWorksFromAnotherNetwork(t *testing.T) {
 // Reporting success would clear the prompt and strand them on the retired chain.
 func TestConfirmRefusedForAUserManagedConf(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
 	o.BitcoinConf.HasPrivateConf = true
 
 	require.True(t, o.PendingECashUpgrade().UserManagedConf)
@@ -172,12 +236,11 @@ func TestConfirmRefusedForAUserManagedConf(t *testing.T) {
 		"the prompt must persist so they know the chain is retired")
 }
 
-// Entering eCash must not silently switch generation: the retired chain is
-// only deleted with the user's go-ahead, which the prompt collects.
+// Entering eCash must not silently switch generation: the chain moves only with
+// the user's go-ahead, which the prompt collects.
 func TestSwappingToECashKeepsTheGenerationPrompt(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
-	o.ResolveNetworkCatalog(context.Background())
 
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 
@@ -203,8 +266,6 @@ func TestSwappingNetworksResolvesTheIncomingBuild(t *testing.T) {
 // The generation rides in the subfolder, so a rollover resolves to a new path.
 func TestGenerationChangeResolvesANewCoreBinary(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
-
 	stale := writeResolvedCoreBinary(t, o, "drynet2 build")
 
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
@@ -234,24 +295,17 @@ func writeResolvedCoreBinary(t *testing.T, o *Orchestrator, body string) string 
 // Generations publish their own seed port — drynet4 answers on 8533 — so a
 // built name sends bitcoind somewhere nothing listens.
 func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
-	o := newTestOrchestrator(t)
-	require.NotNil(t, o.BitcoinConf)
-	require.NotNil(t, o.EnforcerConf)
-
-	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
-	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
-	o.coreReachable = func() bool { return false }
+	o := ecashOnPendingNetwork(t)
 	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet2\nenable-block-template-server=true"))
-
-	published := catalogWithECash(t, "drynet9")
+	published := catalogWithECashRows(t, "drynet9", "drynet2")
 	for i := range published.Networks {
-		if published.Networks[i].Family == netcatalog.FamilyECash {
+		if published.Networks[i].ID == "drynet9" {
 			published.Networks[i].P2P.Address = "drynet9.drivechain.dev:8533"
 		}
 	}
-	require.NoError(t, netcatalog.Save(o.BitwindowDir, published))
+	o.adoptCatalogRows(published, "drynet2")
 
-	o.ResolveNetworkCatalog(context.Background())
+	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
 	require.Equal(t, "drynet9", config.ECashNetworkID())
 	require.Equal(t, "drynet9.drivechain.dev:8533", o.BitcoinConf.Config.GetEffectiveSetting("addnode", "main"))
@@ -259,32 +313,8 @@ func TestRolloverWritesThePublishedPeerAndRetargetsTheEnforcer(t *testing.T) {
 	require.Equal(t, "true", o.EnforcerConf.Config.GetSetting("enable-block-template-server"))
 }
 
-// catalogWithECashRows lists several eCash networks in the order given, each
-// with endpoints that match its id.
-func catalogWithECashRows(t *testing.T, ids ...string) netcatalog.Catalog {
-	t.Helper()
-	c := catalogWithECash(t, ids[0])
-	rows := make([]netcatalog.Network, 0, len(c.Networks)+len(ids))
-	for _, n := range c.Networks {
-		rows = append(rows, n)
-		if n.Family != netcatalog.FamilyECash {
-			continue
-		}
-		for _, id := range ids[1:] {
-			extra := n
-			extra.ID = id
-			extra.P2P.Address = id + ".example:8335"
-			extra.Backends = []netcatalog.Backend{{Kind: "esplora", URL: "https://esplora." + id + ".example"}}
-			rows = append(rows, extra)
-		}
-	}
-	c.Networks = rows
-	return c
-}
-
-// A cache written in another order lists the retired rows first, and a retired
-// row publishes no endpoints. Document order alone moves the install to that
-// row, and the wallet then has no chain source at all.
+// A document that lists a retired row first must not move the install onto it.
+// A retired row publishes no endpoints, and the wallet then has no chain source.
 func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
@@ -300,9 +330,10 @@ func TestStartKeepsTheNetworkTheConfNames(t *testing.T) {
 			retiredFirst.Networks[i].Backends = nil
 		}
 	}
-	require.NoError(t, netcatalog.Save(o.BitwindowDir, retiredFirst))
+	publish(t, o, retiredFirst)
 
 	o.ResolveNetworkCatalog(context.Background())
+	awaitRefresh(t, o, "drynet2")
 
 	require.Equal(t, "drynet4", config.ECashNetworkID())
 	require.Equal(t, "ecash-drynet4", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))

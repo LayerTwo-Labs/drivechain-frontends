@@ -567,10 +567,9 @@ func TestIntegration_ActiveCoreBinaryPath_ExpandsECashPlaceholder(t *testing.T) 
 	assert.Equal(t, filepath.Join(BinDir(dataDir), "drynet4", "bitcoind"),
 		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "ecash", "drynet4"))
 
-	// The daemon keeps its generation until it restarts, and the confirm
-	// writes the next one to the cache at once. The path must follow the
-	// daemon, or `wipe bitcoind` deletes a build no process runs.
-	require.NoError(t, netcatalog.Save(bwDir, catalogWithECash(t, "drynet5")))
+	// The daemon keeps its generation until it restarts, so the path must follow
+	// the daemon, not the published document, or `wipe bitcoind` deletes a build
+	// no process runs.
 	assert.Equal(t, filepath.Join(BinDir(dataDir), "drynet4", "bitcoind"),
 		ActiveCoreBinaryPath(dataDir, bwDir, []BinaryConfig{cfg}, "bitcoind", "ecash", "drynet4"))
 

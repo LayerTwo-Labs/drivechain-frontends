@@ -11,10 +11,7 @@ import (
 const embeddedGeneration = "alphanet"
 
 func TestEmbeddedCatalogParses(t *testing.T) {
-	c, fromDisk := Load(t.TempDir())
-	if fromDisk {
-		t.Fatal("empty dir must not report a cached catalog")
-	}
+	c := Embedded()
 	if got := c.ECashID(); got != embeddedGeneration {
 		t.Errorf("embedded ECashID() = %q, want %s", got, embeddedGeneration)
 	}
@@ -66,44 +63,22 @@ func TestECashIDEmptyWithoutECash(t *testing.T) {
 	}
 }
 
-// The cache is the baseline for detecting a generation change, so a round trip
-// must preserve the id and report that it came from disk.
-func TestSaveThenLoadReportsFromDisk(t *testing.T) {
+// An older build kept the document on disk. Those files decide nothing now, so
+// a start deletes them rather than leaving a stale document to read.
+func TestRemoveLegacyFilesClearsBothCopies(t *testing.T) {
 	dir := t.TempDir()
-	saved, _ := Load(dir)
-	for i, n := range saved.Networks {
-		if n.Family == FamilyECash {
-			saved.Networks[i].ID = "betanet"
-			break
+	for _, name := range []string{cacheFilename, pendingFilename} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
 		}
 	}
-	if err := Save(dir, saved); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
 
-	got, fromDisk := Load(dir)
-	if !fromDisk {
-		t.Fatal("Load must report a catalog written by Save as coming from disk")
-	}
-	if got.ECashID() != "betanet" {
-		t.Errorf("ECashID() = %q, want betanet", got.ECashID())
-	}
-}
+	RemoveLegacyFiles(dir)
 
-// A corrupt cache must fall back to the embedded copy rather than surfacing a
-// half-written file — and must not claim to be from disk, which would let it
-// act as a wipe baseline.
-func TestCorruptCacheFallsBackToEmbedded(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, cacheFilename), []byte("{not json"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	c, fromDisk := Load(dir)
-	if fromDisk {
-		t.Error("corrupt cache must not report as from disk")
-	}
-	if c.ECashID() != embeddedGeneration {
-		t.Errorf("ECashID() = %q, want the embedded %s", c.ECashID(), embeddedGeneration)
+	for _, name := range []string{cacheFilename, pendingFilename} {
+		if _, err := os.Stat(filepath.Join(dir, name)); !os.IsNotExist(err) {
+			t.Errorf("%s must be gone, stat returned %v", name, err)
+		}
 	}
 }
 

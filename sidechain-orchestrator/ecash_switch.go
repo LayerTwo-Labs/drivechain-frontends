@@ -74,18 +74,13 @@ func (o *Orchestrator) PlanECashSwitch(toID string) (ECashSwitchPlan, error) {
 	return plan, nil
 }
 
-// ecashEntry finds a published eCash network by id: the catalog this process
-// serves, then the newest document on disk. A confirmed upgrade targets a
-// network the served catalog does not list yet.
+// ecashEntry finds a published eCash network by id in the catalog this process
+// serves.
 func (o *Orchestrator) ecashEntry(id string) (netcatalog.Network, bool) {
 	o.mu.RLock()
 	cat := o.Catalog
 	o.mu.RUnlock()
-	if n, ok := cat.ByID(id); ok {
-		return n, true
-	}
-	published, _ := netcatalog.Load(o.BitwindowDir)
-	return published.ByID(id)
+	return cat.ByID(id)
 }
 
 // RetargetECashEnforcerConf moves a persisted enforcer preset onto the eCash

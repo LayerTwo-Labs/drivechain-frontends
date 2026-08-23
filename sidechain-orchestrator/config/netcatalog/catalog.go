@@ -216,28 +216,36 @@ func (n Network) BackendURL(kind string) string {
 	return best.URL
 }
 
-// CachePath is where the last known good catalog is persisted.
-func CachePath(bitwindowDir string) string {
-	return filepath.Join(bitwindowDir, cacheFilename)
-}
-
-// Load returns the catalog persisted by a previous run. fromDisk is false when
-// no usable cache exists, in which case the embedded copy is returned — that
-// distinction matters to callers comparing generations, since only a cache
-// written by a previous run describes the state actually on disk.
-func Load(bitwindowDir string) (c Catalog, fromDisk bool) {
-	if raw, err := os.ReadFile(CachePath(bitwindowDir)); err == nil {
-		if parsed, err := parse(raw); err == nil {
-			return parsed, true
-		}
-	}
+// Embedded is the catalog compiled into the binary. It is what every reader
+// falls back to when the published document cannot be fetched.
+func Embedded() Catalog {
 	// The embedded copy is compiled in and always parses; a failure here is a
 	// build problem, not a runtime one.
 	parsed, err := parse(embedded)
 	if err != nil {
 		panic(fmt.Sprintf("netcatalog: embedded networks.json is invalid: %v", err))
 	}
-	return parsed, false
+	return parsed
+}
+
+// Resolve returns the published document, or the embedded copy when the fetch
+// fails. The catalog is a document rather than state, so no process keeps a
+// copy of it on disk.
+func Resolve(ctx context.Context) Catalog {
+	c, err := Fetch(ctx, DefaultURL)
+	if err != nil {
+		return Embedded()
+	}
+	return c
+}
+
+// RemoveLegacyFiles deletes the catalog copies an older build kept in the data
+// directory. That build served a cached document, and held a refresh back in a
+// second file until a start applied it.
+func RemoveLegacyFiles(bitwindowDir string) {
+	for _, name := range []string{cacheFilename, pendingFilename} {
+		_ = os.Remove(filepath.Join(bitwindowDir, name))
+	}
 }
 
 // EmbeddedECashID is the eCash network id compiled into the binary. It is the
@@ -250,22 +258,14 @@ func EmbeddedECashID() string {
 // EmbeddedECash is the eCash entry compiled into the binary, zero when it
 // carries none. Endpoint helpers fall back to it before the catalog resolves.
 func EmbeddedECash() Network {
-	c, err := parse(embedded)
-	if err != nil {
-		return Network{}
-	}
-	n, _ := c.CurrentECash()
+	n, _ := Embedded().CurrentECash()
 	return n
 }
 
 // EmbeddedPeer is the seed address the compiled-in catalog publishes for a
 // network id, empty when it lists none.
 func EmbeddedPeer(id string) string {
-	c, err := parse(embedded)
-	if err != nil {
-		return ""
-	}
-	n, ok := c.ByID(id)
+	n, ok := Embedded().ByID(id)
 	if !ok {
 		return ""
 	}
@@ -295,37 +295,6 @@ func Fetch(ctx context.Context, url string) (Catalog, error) {
 		return Catalog{}, fmt.Errorf("read catalog body: %w", err)
 	}
 	return parse(body)
-}
-
-// Save persists the newest document this install knows, which is what a start
-// reads when the fetch fails. The write is tmp-then-rename but deliberately
-// skips fsync: this is a cache, and a torn write simply fails to parse on the
-// next boot and falls back to the embedded copy.
-func Save(bitwindowDir string, c Catalog) error {
-	if err := os.MkdirAll(bitwindowDir, 0o755); err != nil {
-		return fmt.Errorf("mkdir bitwindow dir: %w", err)
-	}
-	data, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal catalog: %w", err)
-	}
-	path := CachePath(bitwindowDir)
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return fmt.Errorf("write catalog cache: %w", err)
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		_ = os.Remove(tmp)
-		return fmt.Errorf("rename catalog cache: %w", err)
-	}
-	return nil
-}
-
-// RemoveLegacyPending removes the second document an older build left on disk. That
-// build held a refresh back in its own file until a start applied it; a start
-// now takes the newest document as it stands.
-func RemoveLegacyPending(bitwindowDir string) {
-	_ = os.Remove(filepath.Join(bitwindowDir, pendingFilename))
 }
 
 // parse decodes a catalog document and rejects one that carries no networks or
