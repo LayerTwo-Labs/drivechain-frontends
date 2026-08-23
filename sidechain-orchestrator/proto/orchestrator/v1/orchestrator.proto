@@ -862,9 +862,8 @@ message ForkWalletClaim {
   string wallet_name = 2;
   uint64 claimable_sats = 3;
   repeated ForkClaimUtxo utxos = 4;
-  // False when this wallet's claim can't be replay-protected (enforcer wallet);
-  // such coins are shown but not swept.
-  bool replay_protectable = 5;
+  reserved 5;
+  reserved "replay_protectable";
 }
 
 message ForkClaimUtxo {

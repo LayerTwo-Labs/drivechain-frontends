@@ -1216,8 +1216,11 @@ const ForkWalletClaim$json = {
     {'1': 'wallet_name', '3': 2, '4': 1, '5': 9, '10': 'walletName'},
     {'1': 'claimable_sats', '3': 3, '4': 1, '5': 4, '10': 'claimableSats'},
     {'1': 'utxos', '3': 4, '4': 3, '5': 11, '6': '.orchestrator.v1.ForkClaimUtxo', '10': 'utxos'},
-    {'1': 'replay_protectable', '3': 5, '4': 1, '5': 8, '10': 'replayProtectable'},
   ],
+  '9': [
+    {'1': 5, '2': 6},
+  ],
+  '10': ['replay_protectable'],
 };
 
 /// Descriptor for `ForkWalletClaim`. Decode as a `google.protobuf.DescriptorProto`.
@@ -1225,7 +1228,7 @@ final $typed_data.Uint8List forkWalletClaimDescriptor = $convert.base64Decode(
     'Cg9Gb3JrV2FsbGV0Q2xhaW0SGwoJd2FsbGV0X2lkGAEgASgJUgh3YWxsZXRJZBIfCgt3YWxsZX'
     'RfbmFtZRgCIAEoCVIKd2FsbGV0TmFtZRIlCg5jbGFpbWFibGVfc2F0cxgDIAEoBFINY2xhaW1h'
     'YmxlU2F0cxI0CgV1dHhvcxgEIAMoCzIeLm9yY2hlc3RyYXRvci52MS5Gb3JrQ2xhaW1VdHhvUg'
-    'V1dHhvcxItChJyZXBsYXlfcHJvdGVjdGFibGUYBSABKAhSEXJlcGxheVByb3RlY3RhYmxl');
+    'V1dHhvc0oECAUQBlIScmVwbGF5X3Byb3RlY3RhYmxl');
 
 @$core.Deprecated('Use forkClaimUtxoDescriptor instead')
 const ForkClaimUtxo$json = {

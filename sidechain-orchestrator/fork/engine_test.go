@@ -22,7 +22,7 @@ func (f fakeWallets) Unspent(_ context.Context, id string, _ int) ([]Utxo, error
 // one wallet "w" holding a single spendable UTXO confirmed at the given height.
 func walletsAt(height int) fakeWallets {
 	return fakeWallets{
-		meta: []WalletMeta{{ID: "w", Name: "Main", ReplayProtectable: true}},
+		meta: []WalletMeta{{ID: "w", Name: "Main"}},
 		utxos: map[string][]Utxo{
 			"w": {{Outpoint: "tx:0", Address: "addr", Sats: 1000, Height: height, Spendable: true}},
 		},

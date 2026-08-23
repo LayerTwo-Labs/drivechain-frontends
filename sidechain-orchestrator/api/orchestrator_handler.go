@@ -403,11 +403,10 @@ func (h *Handler) GetForkStatus(ctx context.Context, req *connect.Request[pb.Get
 			}
 		}
 		claims[i] = &pb.ForkWalletClaim{
-			WalletId:          c.WalletID,
-			WalletName:        c.WalletName,
-			ClaimableSats:     c.ClaimableSats,
-			ReplayProtectable: c.ReplayProtectable,
-			Utxos:             utxos,
+			WalletId:      c.WalletID,
+			WalletName:    c.WalletName,
+			ClaimableSats: c.ClaimableSats,
+			Utxos:         utxos,
 		}
 	}
 	return connect.NewResponse(&pb.GetForkStatusResponse{

@@ -16,10 +16,6 @@ class WalletClaim {
   final String walletName;
   final int claimableSats;
 
-  /// False for wallets whose claim can't be replay-protected (the enforcer
-  /// wallet) — shown for awareness, but not swept.
-  final bool replayProtectable;
-
   /// Multisig policy of the wallet that holds the coins, null for single-sig.
   /// A multisig claim builds a PSBT its cosigners sign, not a broadcast.
   final wmpb.MultisigInfo? multisig;
@@ -35,7 +31,6 @@ class WalletClaim {
     required this.walletId,
     required this.walletName,
     required this.claimableSats,
-    required this.replayProtectable,
     required this.utxos,
     this.multisig,
     this.walletResolved = true,
@@ -164,10 +159,9 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     notifyListeners();
   }
 
-  /// Claims that can actually be swept (replay-protected). Excludes the
-  /// enforcer wallet, which is detected but not safely claimable, and a wallet
-  /// whose record has not arrived: a multisig claim must never sweep.
-  List<WalletClaim> get sweepableClaims => claims.where((c) => c.replayProtectable && c.walletResolved).toList();
+  /// Claims that can actually be swept. Excludes a wallet whose record has not
+  /// arrived: a multisig claim must never sweep.
+  List<WalletClaim> get sweepableClaims => claims.where((c) => c.walletResolved).toList();
 
   /// Blocks left until the next fork, by header height.
   int get blocksUntilFork => (forkHeight - currentHeaders).clamp(0, forkHeight == 0 ? 0 : forkHeight);
@@ -250,7 +244,6 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
               walletId: c.walletId,
               walletName: c.walletName,
               claimableSats: c.claimableSats.toInt(),
-              replayProtectable: c.replayProtectable,
               multisig: _walletReader.wallets.where((w) => w.id == c.walletId).firstOrNull?.multisig,
               walletResolved: _walletReader.wallets.any((w) => w.id == c.walletId),
               utxos: c.utxos
