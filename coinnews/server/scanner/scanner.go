@@ -24,6 +24,11 @@ type Scanner struct {
 
 	// PollInterval is how often we re-check the tip after catching up.
 	PollInterval time.Duration
+
+	// FromHeight is the first block to index. A chain that starts at a fork
+	// carries no CoinNews below it, so scanning from genesis only costs time.
+	// It moves a lagging cursor forward, and never rewinds one.
+	FromHeight uint32
 }
 
 // Run blocks until ctx is cancelled. Catches up to the tip, then
@@ -57,6 +62,11 @@ func (s *Scanner) catchUp(ctx context.Context) error {
 	cursor, _, err := store.LoadCursor(ctx, s.DB)
 	if err != nil {
 		return fmt.Errorf("load cursor: %w", err)
+	}
+	if s.FromHeight > 0 && cursor+1 < s.FromHeight {
+		s.Log.Info().Uint32("cursor", cursor).Uint32("from_height", s.FromHeight).
+			Msg("coinnews-scanner: skipping ahead to the configured start height")
+		cursor = s.FromHeight - 1
 	}
 	if cursor >= tip {
 		return nil
