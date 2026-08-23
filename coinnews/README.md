@@ -20,6 +20,9 @@ just test         # codec + server tests
   defaults — if your Core works for bitwindow it works for coinnews).
 - Override with `COINNEWS_BITCOIND_URL`, `COINNEWS_BITCOIND_USER`,
   `COINNEWS_BITCOIND_PASS`, `COINNEWS_NETWORK`.
+- `COINNEWS_SCAN_FROM_HEIGHT` (or `-scan-from-height`) sets the first block to
+  index. Point it at a chain's fork height to skip blocks that carry no
+  CoinNews. It moves a lagging cursor forward, and never rewinds one.
 
 Ports:
 

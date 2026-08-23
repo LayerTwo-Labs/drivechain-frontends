@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -33,6 +34,8 @@ func h2cProtocols() *http.Protocols {
 }
 
 func main() {
+	scanFromEnv, scanFromErr := envUint("COINNEWS_SCAN_FROM_HEIGHT", 0)
+
 	var (
 		listen         = flag.String("listen", envOr("COINNEWS_LISTEN", "0.0.0.0:8080"), "HTTP listen address")
 		dbPath         = flag.String("db", envOr("COINNEWS_DB", "./coinnews.db"), "SQLite path")
@@ -42,11 +45,16 @@ func main() {
 		bitcoindCookie = flag.String("bitcoind-cookie", envOr("COINNEWS_BITCOIND_COOKIE", ""), "Path to a Bitcoin Core .cookie file (contents: user:password); overrides -bitcoind-user/-bitcoind-pass when set")
 		network        = flag.String("network", envOr("COINNEWS_NETWORK", "signet"), "Network label (mainnet/signet/testnet/regtest) — informational")
 		scan           = flag.Bool("scan", envBool("COINNEWS_SCAN", true), "Run the block scanner; set false for read-only API mode")
+		scanFrom       = flag.Uint("scan-from-height", uint(scanFromEnv), "First block to index; moves a lagging cursor forward, never rewinds. Use a chain's fork height to skip blocks that carry no CoinNews")
 	)
 	flag.Parse()
 
 	log := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		With().Timestamp().Str("network", *network).Logger()
+
+	if scanFromErr != nil {
+		log.Fatal().Err(scanFromErr).Msg("COINNEWS_SCAN_FROM_HEIGHT")
+	}
 
 	// A cookie file lets us share Bitcoin Core's auto-generated
 	// `__cookie__:<pass>` credentials (e.g. a mounted Docker secret)
@@ -80,6 +88,7 @@ func main() {
 				DB:           db,
 				Log:          log.With().Str("component", "scanner").Logger(),
 				PollInterval: 5 * time.Second,
+				FromHeight:   uint32(*scanFrom),
 			}
 			if err := s.Run(ctx); err != nil {
 				log.Error().Err(err).Msg("scanner exited")
@@ -144,6 +153,21 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// envUint reads a uint32-ranged value. A set-but-unparsable value is an
+// error, never the fallback: a silent 0 here sends the scanner back to
+// genesis, which is the cost the setting exists to avoid.
+func envUint(key string, fallback uint64) (uint64, error) {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback, nil
+	}
+	n, err := strconv.ParseUint(v, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("%s=%q: want a whole number that fits in 32 bits", key, v)
+	}
+	return n, nil
 }
 
 func envBool(key string, fallback bool) bool {
