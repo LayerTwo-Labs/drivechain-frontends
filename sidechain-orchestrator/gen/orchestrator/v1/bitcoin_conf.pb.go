@@ -28,7 +28,6 @@ const (
 	WalletBackend_WALLET_BACKEND_UNSPECIFIED WalletBackend = 0 // keep the current backend
 	WalletBackend_WALLET_BACKEND_ELECTRUM    WalletBackend = 1
 	WalletBackend_WALLET_BACKEND_CORE        WalletBackend = 2
-	WalletBackend_WALLET_BACKEND_ENFORCER    WalletBackend = 3
 )
 
 // Enum value maps for WalletBackend.
@@ -37,13 +36,11 @@ var (
 		0: "WALLET_BACKEND_UNSPECIFIED",
 		1: "WALLET_BACKEND_ELECTRUM",
 		2: "WALLET_BACKEND_CORE",
-		3: "WALLET_BACKEND_ENFORCER",
 	}
 	WalletBackend_value = map[string]int32{
 		"WALLET_BACKEND_UNSPECIFIED": 0,
 		"WALLET_BACKEND_ELECTRUM":    1,
 		"WALLET_BACKEND_CORE":        2,
-		"WALLET_BACKEND_ENFORCER":    3,
 	}
 )
 
@@ -1169,12 +1166,11 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\x1fSetBitcoinConfigDataDirResponse\"B\n" +
 	"\x19WriteBitcoinConfigRequest\x12%\n" +
 	"\x0econfig_content\x18\x01 \x01(\tR\rconfigContent\"\x1c\n" +
-	"\x1aWriteBitcoinConfigResponse*\x82\x01\n" +
+	"\x1aWriteBitcoinConfigResponse*\x84\x01\n" +
 	"\rWalletBackend\x12\x1e\n" +
 	"\x1aWALLET_BACKEND_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17WALLET_BACKEND_ELECTRUM\x10\x01\x12\x17\n" +
-	"\x13WALLET_BACKEND_CORE\x10\x02\x12\x1b\n" +
-	"\x17WALLET_BACKEND_ENFORCER\x10\x032\xfb\x06\n" +
+	"\x13WALLET_BACKEND_CORE\x10\x02\"\x04\b\x03\x10\x03*\x17WALLET_BACKEND_ENFORCER2\xfb\x06\n" +
 	"\x12BitcoinConfService\x12g\n" +
 	"\x10GetBitcoinConfig\x12(.orchestrator.v1.GetBitcoinConfigRequest\x1a).orchestrator.v1.GetBitcoinConfigResponse\x12h\n" +
 	"\x14PrepareNetworkChange\x12,.orchestrator.v1.PrepareNetworkChangeRequest\x1a\".orchestrator.v1.NetworkChangePlan\x12[\n" +

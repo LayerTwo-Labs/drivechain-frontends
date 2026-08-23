@@ -292,8 +292,8 @@ var walletCreateCommand = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "type",
-			Usage: "wallet provider: enforcer or electrum",
-			Value: "enforcer",
+			Usage: "wallet provider: core or electrum",
+			Value: "core",
 		},
 		&cli.StringFlag{
 			Name:  "mnemonic",
@@ -301,7 +301,7 @@ var walletCreateCommand = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "passphrase",
-			Usage: "BIP39 passphrase (enforcer only)",
+			Usage: "BIP39 passphrase (core only)",
 		},
 		&cli.StringFlag{
 			Name:  "script-type",
@@ -311,10 +311,10 @@ var walletCreateCommand = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		client := newWalletClient(cctx)
 		switch cctx.String("type") {
-		case "enforcer":
+		case "core":
 			name := cctx.String("name")
 			if name == "" {
-				name = "Enforcer Wallet"
+				name = "Bitcoin Core Wallet"
 			}
 			resp, err := client.GenerateWallet(cctx.Context, connect.NewRequest(&pb.GenerateWalletRequest{
 				Name:           name,
@@ -347,7 +347,7 @@ var walletCreateCommand = &cli.Command{
 			fmt.Printf("\n⚠️  Reveal + back up the seed with: wallet seed %s\n\n", resp.Msg.WalletId)
 			return nil
 		default:
-			return fmt.Errorf("unknown wallet type %q (want enforcer or electrum)", cctx.String("type"))
+			return fmt.Errorf("unknown wallet type %q (want core or electrum)", cctx.String("type"))
 		}
 	},
 }

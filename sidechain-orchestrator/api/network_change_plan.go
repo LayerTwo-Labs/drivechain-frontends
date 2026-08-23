@@ -16,8 +16,6 @@ func walletBackendFromProto(b pb.WalletBackend) wallet.WalletType {
 		return wallet.WalletTypeElectrum
 	case pb.WalletBackend_WALLET_BACKEND_CORE:
 		return wallet.WalletTypeBitcoinCore
-	case pb.WalletBackend_WALLET_BACKEND_ENFORCER:
-		return wallet.WalletTypeEnforcer
 	default:
 		return ""
 	}
@@ -29,8 +27,6 @@ func walletBackendToProto(t wallet.WalletType) pb.WalletBackend {
 		return pb.WalletBackend_WALLET_BACKEND_ELECTRUM
 	case wallet.WalletTypeBitcoinCore:
 		return pb.WalletBackend_WALLET_BACKEND_CORE
-	case wallet.WalletTypeEnforcer:
-		return pb.WalletBackend_WALLET_BACKEND_ENFORCER
 	default:
 		return pb.WalletBackend_WALLET_BACKEND_UNSPECIFIED
 	}

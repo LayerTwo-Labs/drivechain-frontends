@@ -124,7 +124,8 @@ enum WalletBackend {
   WALLET_BACKEND_UNSPECIFIED = 0; // keep the current backend
   WALLET_BACKEND_ELECTRUM = 1;
   WALLET_BACKEND_CORE = 2;
-  WALLET_BACKEND_ENFORCER = 3;
+  reserved 3;
+  reserved "WALLET_BACKEND_ENFORCER";
 }
 
 message PrepareNetworkChangeRequest {
