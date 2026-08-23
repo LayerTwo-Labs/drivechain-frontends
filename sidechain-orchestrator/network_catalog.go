@@ -93,6 +93,11 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 	o.mu.RUnlock()
 	target := published.ECashID()
 	if target == "" || target == o.RunningECashID(published) {
+		// A previous confirm moved the chain but stopped before it finished. The
+		// same target is that retry, not a request for work already done.
+		if target != "" && o.pendingECashSwap() {
+			return o.ApplyECashSwitch(ctx, target)
+		}
 		return fmt.Errorf("no new eCash network to switch to")
 	}
 	if o.ecashSwitchIsManual() {

@@ -137,6 +137,34 @@ func (o *Orchestrator) AdoptECashID(id string) {
 	}
 }
 
+// resumeECashSwitch finishes a switch that moved the chain but stopped before
+// its records or its restart. A request for the network this install already
+// serves is that retry, and it does nothing when there is nothing left to do.
+//
+// Call it with swapNetworkMu held.
+func (o *Orchestrator) resumeECashSwitch(ctx context.Context, toID string) error {
+	if err := o.recordECashChain(toID); err != nil {
+		return err
+	}
+	if err := o.SelectECashNetwork(toID); err != nil {
+		return fmt.Errorf("record the network pick: %w", err)
+	}
+	if o.pendingSwap == nil || o.pendingSwap.network != config.NetworkECash {
+		return nil
+	}
+	if err := o.ApplyPendingEnforcerWipe(); err != nil {
+		return err
+	}
+	return o.finishNetworkSwap(config.NetworkECash, o.pendingSwap.restartL1)
+}
+
+// pendingECashSwap reports whether a switch left work for a retry to finish.
+func (o *Orchestrator) pendingECashSwap() bool {
+	o.swapNetworkMu.Lock()
+	defer o.swapNetworkMu.Unlock()
+	return o.pendingSwap != nil && o.pendingSwap.network == config.NetworkECash
+}
+
 // ApplyECashSwitch moves this install onto another eCash network: it rewinds
 // the chain to the last block the two share, stops the daemons, rewrites the
 // confs and starts the stack again. The enforcer's validator chain is
@@ -153,7 +181,7 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		return err
 	}
 	if plan.FromID == toID {
-		return nil
+		return o.resumeECashSwitch(ctx, toID)
 	}
 	if plan.Blocked {
 		return fmt.Errorf(
