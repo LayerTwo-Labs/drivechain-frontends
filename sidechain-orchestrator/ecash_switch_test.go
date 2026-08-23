@@ -189,6 +189,35 @@ func TestSwapToAnotherNetworkDrainsTheECashTail(t *testing.T) {
 	require.Equal(t, "alphanet", o.EnforcerConf.Config.GetSetting("network-preset"))
 }
 
+// The tail that a swap drains stopped the stack it owed a restart, so both
+// daemons read as stopped. The obligation has to ride on the swap that replaces
+// the tail, or the stack stays down.
+func TestSwapCarriesTheRestartTheDrainedTailOwed(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "alphanet")
+	// What a switch leaves when it stops a running stack and then fails.
+	o.pendingSwap = &pendingNetworkSwap{
+		network:     config.NetworkECash,
+		restartL1:   true,
+		fromECashID: "drynet4",
+	}
+
+	// With no bitcoind config the restart refuses at once, which is the only
+	// place this swap can report the obligation it carries.
+	o.mu.Lock()
+	delete(o.configs, "bitcoind")
+	o.mu.Unlock()
+
+	err := o.SwapNetwork(context.Background(), config.NetworkMainnet)
+
+	require.Error(t, err, "the swap owes a restart it cannot run")
+	require.NotNil(t, o.pendingSwap, "a restart that cannot run stays retryable")
+	require.True(t, o.pendingSwap.restartL1, "the drained restart must ride on")
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
