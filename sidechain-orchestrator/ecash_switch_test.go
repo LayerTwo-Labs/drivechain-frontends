@@ -141,6 +141,30 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 	require.Nil(t, o.pendingSwap, "the resumed switch leaves nothing behind")
 }
 
+// The network picker resumes a tail through SwapNetwork, not through the switch.
+// That door owes the same work: a restart alone leaves the enforcer conf, the
+// wallet scans and the clients on the retired fork.
+func TestSwapNetworkFinishesAnECashTail(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet4"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
+	o.Settings.bitwindowDir = blocked
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.NotNil(t, o.pendingSwap)
+
+	o.Settings.bitwindowDir = t.TempDir()
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+
+	require.Equal(t, "alphanet", o.Settings.ECashChainID())
+	require.Equal(t, "alphanet", o.EnforcerConf.Config.GetSetting("network-preset"))
+	require.Nil(t, o.pendingSwap, "the resumed tail leaves nothing behind")
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
