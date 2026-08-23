@@ -120,12 +120,16 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 
+	// The enforcer cleanup this switch journals is already recorded, so it
+	// writes nothing and the chain record is the first write to refuse.
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
 	// A file where the settings directory belongs, so every write refuses.
 	blocked := filepath.Join(t.TempDir(), "not-a-directory")
 	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
 	o.Settings.bitwindowDir = blocked
 
 	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.NotNil(t, o.pendingSwap, "the retry must find a tail to resume")
 }
 
 // A Core that is down cannot rewind, and nothing is recorded for later. The
