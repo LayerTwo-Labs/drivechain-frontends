@@ -130,6 +130,12 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 
 	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 	require.NotNil(t, o.pendingSwap, "the retry must find a tail to resume")
+
+	// The same target is the retry: it writes the record and finishes the swap.
+	o.Settings.bitwindowDir = t.TempDir()
+	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	require.Equal(t, "alphanet", o.Settings.ECashChainID())
+	require.Nil(t, o.pendingSwap, "the resumed switch leaves nothing behind")
 }
 
 // A Core that is down cannot rewind, and nothing is recorded for later. The
