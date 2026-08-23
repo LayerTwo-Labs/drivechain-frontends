@@ -35,7 +35,6 @@ import (
 )
 
 type configg struct {
-	wallet       mainchainv1connect.WalletServiceClient
 	enforcer     mainchainv1connect.ValidatorServiceClient
 	crypto       cryptov1connect.CryptoServiceClient
 	bitcoind     bitcoindv1alphaconnect.BitcoinServiceClient
@@ -52,9 +51,6 @@ func (o *configg) populate(_ *testing.T, ctrl *gomock.Controller, options ...Ser
 		option(o)
 	}
 
-	if o.wallet == nil {
-		o.wallet = mocks.NewMockWalletServiceClient(ctrl)
-	}
 	if o.enforcer == nil {
 		o.enforcer = mocks.NewMockValidatorServiceClient(ctrl)
 	}
@@ -73,10 +69,6 @@ func newConfig(t *testing.T, ctrl *gomock.Controller, options ...ServerOpt) conf
 	}
 	conf.populate(t, ctrl)
 	return conf
-}
-
-func WithWallet(wallet mainchainv1connect.WalletServiceClient) ServerOpt {
-	return func(opt *configg) { opt.wallet = wallet }
 }
 
 func WithValidator(validator mainchainv1connect.ValidatorServiceClient) ServerOpt {
