@@ -20,15 +20,18 @@ const WalletBackend$json = {
     {'1': 'WALLET_BACKEND_UNSPECIFIED', '2': 0},
     {'1': 'WALLET_BACKEND_ELECTRUM', '2': 1},
     {'1': 'WALLET_BACKEND_CORE', '2': 2},
-    {'1': 'WALLET_BACKEND_ENFORCER', '2': 3},
   ],
+  '4': [
+    {'1': 3, '2': 3},
+  ],
+  '5': ['WALLET_BACKEND_ENFORCER'],
 };
 
 /// Descriptor for `WalletBackend`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List walletBackendDescriptor = $convert.base64Decode(
     'Cg1XYWxsZXRCYWNrZW5kEh4KGldBTExFVF9CQUNLRU5EX1VOU1BFQ0lGSUVEEAASGwoXV0FMTE'
-    'VUX0JBQ0tFTkRfRUxFQ1RSVU0QARIXChNXQUxMRVRfQkFDS0VORF9DT1JFEAISGwoXV0FMTEVU'
-    'X0JBQ0tFTkRfRU5GT1JDRVIQAw==');
+    'VUX0JBQ0tFTkRfRUxFQ1RSVU0QARIXChNXQUxMRVRfQkFDS0VORF9DT1JFEAIiBAgDEAMqF1dB'
+    'TExFVF9CQUNLRU5EX0VORk9SQ0VS');
 
 @$core.Deprecated('Use getBitcoinConfigRequestDescriptor instead')
 const GetBitcoinConfigRequest$json = {

@@ -53,8 +53,6 @@ type Service struct {
 	// Dart: deleteAllWallets deletes per-binary wallet paths (L600-608)
 	// Returns list of wallet file paths for all managed binaries
 	GetBinaryWalletPaths func() []string
-	// Returns the enforcer's per-network wallet directories, so a restore that
-	// changes the enforcer seed can move the daemon state derived from the old
 	// Dart: _deleteCoreMultisigWallets (L534) — path to Bitcoin Core datadir
 	CoreDataDir string
 
@@ -533,7 +531,7 @@ func (s *Service) GetWalletByID(id string) *WalletData {
 	return nil
 }
 
-// GetL1Mnemonic returns the L1 mnemonic from the enforcer wallet.
+// GetL1Mnemonic returns the L1 mnemonic from the starter wallet.
 func (s *Service) GetL1Mnemonic() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -544,7 +542,7 @@ func (s *Service) GetL1Mnemonic() string {
 	return w.L1.Mnemonic
 }
 
-// GetSidechainMnemonic returns the sidechain mnemonic from the enforcer wallet.
+// GetSidechainMnemonic returns the sidechain mnemonic from the starter wallet.
 func (s *Service) GetSidechainMnemonic(slot int) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -716,7 +714,7 @@ func (s *Service) softDeleteCoreMultisigWallets() {
 	DeleteCoreMultisigWallets(s.CoreDataDir, s.log)
 }
 
-// CreateBitcoinCoreWallet creates a new Bitcoin Core wallet (subsequent, not first enforcer).
+// CreateBitcoinCoreWallet creates a new Bitcoin Core wallet.
 // Dart: WalletWriterProvider.createBitcoinCoreWallet (L134-153)
 func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMessage, slots []SidechainSlot) error {
 	wallet, err := s.GenerateWallet(name, "", "", slots)
@@ -1569,7 +1567,7 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 
 // --- Starter Files ---
 
-// WriteL1Starter writes the enforcer wallet's L1 mnemonic to a temp file.
+// WriteL1Starter writes the starter wallet's L1 mnemonic to a temp file.
 func (s *Service) WriteL1Starter() (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -1607,23 +1605,22 @@ func (s *Service) WriteSidechainStarter(slot int) (string, error) {
 
 	s.log.Info().Int("slot", slot).Msg("writing sidechain starter file")
 
-	// Use the enforcer wallet for sidechain starters (they're derived from the enforcer seed)
-	enforcer := s.primaryWallet()
-	if enforcer == nil {
-		s.log.Warn().Int("wallet_count", len(s.wallets)).Msg("sidechain starter: no enforcer wallet")
-		return "", fmt.Errorf("no enforcer wallet")
+	starter := s.primaryWallet()
+	if starter == nil {
+		s.log.Warn().Int("wallet_count", len(s.wallets)).Msg("sidechain starter: no starter wallet")
+		return "", fmt.Errorf("no starter wallet")
 	}
 
 	var mnemonic string
-	for _, sc := range enforcer.Sidechains {
+	for _, sc := range starter.Sidechains {
 		if sc.Slot == slot {
 			mnemonic = sc.Mnemonic
 			break
 		}
 	}
 	if mnemonic == "" {
-		s.log.Warn().Int("slot", slot).Int("sidechain_count", len(enforcer.Sidechains)).Msg("sidechain starter: slot not found in enforcer wallet")
-		return "", fmt.Errorf("sidechain slot %d not found in enforcer wallet", slot)
+		s.log.Warn().Int("slot", slot).Int("sidechain_count", len(starter.Sidechains)).Msg("sidechain starter: slot not found in starter wallet")
+		return "", fmt.Errorf("sidechain slot %d not found in starter wallet", slot)
 	}
 
 	dir := s.starterDir()

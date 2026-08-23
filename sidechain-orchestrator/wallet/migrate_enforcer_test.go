@@ -157,3 +157,32 @@ func TestEnforcerCoinsArriveInTheirOwnWallet(t *testing.T) {
 	assert.Equal(t, whatTheEnforcerUsed, found.Master.SeedHex)
 	assert.Contains(t, found.Name, "enforcer")
 }
+
+// Nothing outside the migration may read an enforcer wallet, so the load must
+// leave none behind — the companion wallet the migration adds included.
+func TestNoWalletKeepsTheEnforcerTypeAfterLoad(t *testing.T) {
+	dir := t.TempDir()
+	legacy := map[string]any{
+		"wallets": []map[string]any{{
+			"id":          "OLD",
+			"name":        "Enforcer",
+			"wallet_type": "enforcer",
+			"master":      map[string]any{"mnemonic": "abandon abandon about"},
+		}},
+		"active_wallet_id": "OLD",
+	}
+	body, err := json.Marshal(legacy)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), body, 0o600))
+
+	svc := NewService(dir, zerolog.Nop())
+	svc.SetNetwork(string(config.NetworkMainnet))
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+
+	wallets := svc.GetAllWallets()
+	require.Len(t, wallets, 2)
+	for _, w := range wallets {
+		assert.NotEqual(t, WalletTypeEnforcer, w.WalletType, "wallet %s", w.ID)
+	}
+}

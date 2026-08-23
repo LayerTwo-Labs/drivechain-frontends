@@ -38,9 +38,6 @@ class WalletData {
 
   bool get isMultisig => multisig != null;
 
-  /// True iff this wallet runs against the enforcer, whose wallet service can
-  /// watch no key but its own and so never derives a BIP47 payment code.
-
   /// The address types this wallet derives, its own kind first. Empty until
   /// the wallet stream reports them. A wallet on an explicit derivation path,
   /// a watch-only wallet, and a multisig wallet each derive exactly one.
