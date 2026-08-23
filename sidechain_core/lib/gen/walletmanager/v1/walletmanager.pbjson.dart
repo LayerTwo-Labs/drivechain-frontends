@@ -13,8 +13,8 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $2;
-import '../../google/protobuf/timestamp.pbjson.dart' as $1;
+import '../../google/protobuf/empty.pbjson.dart' as $16;
+import '../../google/protobuf/timestamp.pbjson.dart' as $15;
 
 @$core.Deprecated('Use nodeModeDescriptor instead')
 const NodeMode$json = {
@@ -1238,6 +1238,7 @@ const CreatePsbtRequest$json = {
     {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'requiredInputs'},
     {'1': 'raw_outputs', '3': 8, '4': 3, '5': 11, '6': '.walletmanager.v1.RawOutput', '10': 'rawOutputs'},
     {'1': 'external_inputs', '3': 9, '4': 3, '5': 11, '6': '.walletmanager.v1.ExternalInput', '10': 'externalInputs'},
+    {'1': 'replay_protect', '3': 10, '4': 1, '5': 8, '10': 'replayProtect'},
   ],
   '3': [CreatePsbtRequest_DestinationsEntry$json],
 };
@@ -1263,8 +1264,9 @@ final $typed_data.Uint8List createPsbtRequestDescriptor = $convert.base64Decode(
     'ZF9pbnB1dHMYByADKAsyHy53YWxsZXRtYW5hZ2VyLnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcm'
     'VkSW5wdXRzEjwKC3Jhd19vdXRwdXRzGAggAygLMhsud2FsbGV0bWFuYWdlci52MS5SYXdPdXRw'
     'dXRSCnJhd091dHB1dHMSSAoPZXh0ZXJuYWxfaW5wdXRzGAkgAygLMh8ud2FsbGV0bWFuYWdlci'
-    '52MS5FeHRlcm5hbElucHV0Ug5leHRlcm5hbElucHV0cxo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQ'
-    'CgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgB');
+    '52MS5FeHRlcm5hbElucHV0Ug5leHRlcm5hbElucHV0cxIlCg5yZXBsYXlfcHJvdGVjdBgKIAEo'
+    'CFINcmVwbGF5UHJvdGVjdBo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYASABKAlSA2tleR'
+    'IUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgB');
 
 @$core.Deprecated('Use createPsbtResponseDescriptor instead')
 const CreatePsbtResponse$json = {
@@ -2563,7 +2565,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletBackupsRequest': ListWalletBackupsRequest$json,
   '.walletmanager.v1.ListWalletBackupsResponse': ListWalletBackupsResponse$json,
   '.walletmanager.v1.WalletBackup': WalletBackup$json,
-  '.google.protobuf.Timestamp': $1.Timestamp$json,
+  '.google.protobuf.Timestamp': $15.Timestamp$json,
   '.walletmanager.v1.BackupWalletSummary': BackupWalletSummary$json,
   '.walletmanager.v1.BalanceSnapshot': BalanceSnapshot$json,
   '.walletmanager.v1.RestoreWalletBackupRequest': RestoreWalletBackupRequest$json,
@@ -2683,7 +2685,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.GetTorConfigResponse': GetTorConfigResponse$json,
   '.walletmanager.v1.SetTorConfigRequest': SetTorConfigRequest$json,
   '.walletmanager.v1.SetTorConfigResponse': SetTorConfigResponse$json,
-  '.google.protobuf.Empty': $2.Empty$json,
+  '.google.protobuf.Empty': $16.Empty$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
 };
 

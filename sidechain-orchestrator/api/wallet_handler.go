@@ -1911,6 +1911,7 @@ func (h *WalletHandler) CreatePsbt(ctx context.Context, req *connect.Request[pb.
 		FixedFeeSats:          req.Msg.FixedFeeSats,
 		OpReturnHex:           req.Msg.OpReturnHex,
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
+		ReplayProtect:         req.Msg.ReplayProtect,
 	}
 	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
 		return wallet.RequiredInput{
