@@ -142,20 +142,61 @@ func (o *Orchestrator) AdoptECashID(id string) {
 // serves is that retry, and it does nothing when there is nothing left to do.
 //
 // Call it with swapNetworkMu held.
-func (o *Orchestrator) resumeECashSwitch(ctx context.Context, toID string) error {
+func (o *Orchestrator) resumeECashSwitch(toID string) error {
+	if o.pendingSwap != nil && o.pendingSwap.network == config.NetworkECash {
+		return o.finishECashSwitch(o.pendingSwap.fromECashID, toID, o.pendingSwap.restartL1)
+	}
+	// No tail, so the records are all an earlier run can still owe. Both skip an
+	// unchanged value, which is what an ordinary same-target request finds.
 	if err := o.recordECashChain(toID); err != nil {
 		return err
 	}
 	if err := o.SelectECashNetwork(toID); err != nil {
 		return fmt.Errorf("record the network pick: %w", err)
 	}
-	if o.pendingSwap == nil || o.pendingSwap.network != config.NetworkECash {
-		return nil
+	return nil
+}
+
+// finishECashSwitch runs everything a switch owes once the chain and the conf
+// both moved: the two records, the enforcer conf, the wallet scans, the
+// enforcer chain, the caches and the restart. A retry runs the same steps.
+//
+// Call it with swapNetworkMu held.
+func (o *Orchestrator) finishECashSwitch(fromID, toID string, restartL1 bool) error {
+	// The blocks are on the new fork from here, and a swap to another network
+	// strips the conf sentinel that says so. A record that stays on the outgoing
+	// fork sends a later start after blocks this switch already moved.
+	if err := o.recordECashChain(toID); err != nil {
+		return err
+	}
+	// Only once the chain and the conf both moved. A pick recorded ahead of a
+	// failed switch would make the next boot read the old sentinel as stale and
+	// clear a chain this run still holds.
+	if err := o.SelectECashNetwork(toID); err != nil {
+		return fmt.Errorf("record the network pick: %w", err)
+	}
+	if o.EnforcerConf != nil {
+		if _, err := o.EnforcerConf.RetargetECashNetwork(fromID, toID); err != nil {
+			o.log.Warn().Err(err).Msg("could not rewrite bitwindow-enforcer.conf for the new eCash network")
+		}
+	}
+	// The wallet keys its cached scan on the network, and that key does not move
+	// between two eCash forks. A cold read would serve the retired fork's
+	// balances, transactions and UTXOs with no chain call to correct them.
+	if o.WalletSvc != nil {
+		o.WalletSvc.ClearNetworkScans(string(config.NetworkECash))
 	}
 	if err := o.ApplyPendingEnforcerWipe(); err != nil {
 		return err
 	}
-	return o.finishNetworkSwap(config.NetworkECash, o.pendingSwap.restartL1)
+	o.clearNetworkSwapCaches()
+
+	o.log.Info().
+		Str("previous", fromID).
+		Str("current", toID).
+		Msg("switched eCash network")
+
+	return o.finishNetworkSwap(config.NetworkECash, restartL1)
 }
 
 // pendingECashSwap reports whether a switch left work for a retry to finish.
@@ -181,7 +222,7 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		return err
 	}
 	if plan.FromID == toID {
-		return o.resumeECashSwitch(ctx, toID)
+		return o.resumeECashSwitch(toID)
 	}
 	if plan.Blocked {
 		return fmt.Errorf(
@@ -282,43 +323,13 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	// Installed before both records below, so a write that fails still leaves
 	// the ordinary same-network retry a tail to resume. Without it that retry
 	// reads FromID == ToID, takes the no-op path, and the stack stays stopped.
-	o.pendingSwap = &pendingNetworkSwap{network: config.NetworkECash, restartL1: restartL1}
+	o.pendingSwap = &pendingNetworkSwap{
+		network:     config.NetworkECash,
+		restartL1:   restartL1,
+		fromECashID: plan.FromID,
+	}
 
-	// The blocks are on the new fork from here, and a swap to another network
-	// strips the conf sentinel that says so. A record that stays on the outgoing
-	// fork sends a later start after blocks this switch already moved.
-	if err := o.recordECashChain(toID); err != nil {
-		return err
-	}
-	// Last, and only once the chain and the conf both moved. A pick recorded
-	// ahead of a failed switch would make the next boot read the old sentinel as
-	// stale and clear a chain this run still holds.
-	if err := o.SelectECashNetwork(toID); err != nil {
-		return fmt.Errorf("record the network pick: %w", err)
-	}
-	if o.EnforcerConf != nil {
-		if _, err := o.EnforcerConf.RetargetECashNetwork(plan.FromID, toID); err != nil {
-			o.log.Warn().Err(err).Msg("could not rewrite bitwindow-enforcer.conf for the new eCash network")
-		}
-	}
-	// The wallet keys its cached scan on the network, and that key does not move
-	// between two eCash forks. A cold read would serve the retired fork's
-	// balances, transactions and UTXOs with no chain call to correct them.
-	if o.WalletSvc != nil {
-		o.WalletSvc.ClearNetworkScans(string(config.NetworkECash))
-	}
-	if err := o.ApplyPendingEnforcerWipe(); err != nil {
-		return err
-	}
-	o.clearNetworkSwapCaches()
-
-	o.log.Info().
-		Str("previous", plan.FromID).
-		Str("current", toID).
-		Uint32("rewind_height", plan.RewindHeight).
-		Msg("switched eCash network")
-
-	return o.finishNetworkSwap(config.NetworkECash, restartL1)
+	return o.finishECashSwitch(plan.FromID, toID, restartL1)
 }
 
 // applyPendingEnforcerWipe clears the enforcer chain a switch journalled, and
