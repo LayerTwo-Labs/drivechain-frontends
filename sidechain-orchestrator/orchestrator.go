@@ -2028,6 +2028,19 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		}
 		return o.finishNetworkSwap(n, o.pendingSwap.restartL1)
 	}
+	// A tail an eCash switch left must not outlive the swap that replaces it:
+	// the record still names the outgoing fork, and this swap strips the conf
+	// sentinel that says otherwise. The restart waits for the swap below.
+	if o.pendingSwap != nil && o.pendingSwap.fromECashID != "" {
+		o.mu.RLock()
+		toID := o.ecashID
+		o.mu.RUnlock()
+		if err := o.recordECashSwitch(o.pendingSwap.fromECashID, toID); err != nil {
+			return err
+		}
+		o.pendingSwap = nil
+	}
+
 	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)})
 	if plan.MustSelectDatadir {
 		return fmt.Errorf("datadir not configured for %s", n)

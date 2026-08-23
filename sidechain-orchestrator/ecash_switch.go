@@ -158,11 +158,28 @@ func (o *Orchestrator) resumeECashSwitch(toID string) error {
 }
 
 // finishECashSwitch runs everything a switch owes once the chain and the conf
-// both moved: the two records, the enforcer conf, the wallet scans, the
-// enforcer chain, the caches and the restart. A retry runs the same steps.
+// both moved, and then restarts the stack. A retry runs the same steps.
 //
 // Call it with swapNetworkMu held.
 func (o *Orchestrator) finishECashSwitch(fromID, toID string, restartL1 bool) error {
+	if err := o.recordECashSwitch(fromID, toID); err != nil {
+		return err
+	}
+	o.log.Info().
+		Str("previous", fromID).
+		Str("current", toID).
+		Msg("switched eCash network")
+
+	return o.finishNetworkSwap(config.NetworkECash, restartL1)
+}
+
+// recordECashSwitch is everything a switch owes apart from the restart: the two
+// records, the enforcer conf, the wallet scans, the enforcer chain and the
+// caches. A swap to another network drains a tail through this, because that
+// swap starts its own stack.
+//
+// Call it with swapNetworkMu held.
+func (o *Orchestrator) recordECashSwitch(fromID, toID string) error {
 	// The blocks are on the new fork from here, and a swap to another network
 	// strips the conf sentinel that says so. A record that stays on the outgoing
 	// fork sends a later start after blocks this switch already moved.
@@ -190,13 +207,7 @@ func (o *Orchestrator) finishECashSwitch(fromID, toID string, restartL1 bool) er
 		return err
 	}
 	o.clearNetworkSwapCaches()
-
-	o.log.Info().
-		Str("previous", fromID).
-		Str("current", toID).
-		Msg("switched eCash network")
-
-	return o.finishNetworkSwap(config.NetworkECash, restartL1)
+	return nil
 }
 
 // pendingECashSwap reports whether a switch left work for a retry to finish.
