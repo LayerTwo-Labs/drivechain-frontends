@@ -246,22 +246,22 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	o.mu.Unlock()
 
 	config.SetECashNetworkID(toID)
+	if entry, ok := o.ecashEntry(toID); ok {
+		config.SetForkHeight(config.NetworkECash, entry.ForkHeight)
+		config.SetNetworkDisplayName(config.NetworkECash, entry.DisplayName)
+		config.SetECashEndpoints(entry)
+	}
+	// Installed before both records below, so a write that fails still leaves
+	// the ordinary same-network retry a tail to resume. Without it that retry
+	// reads FromID == ToID, takes the no-op path, and the stack stays stopped.
+	o.pendingSwap = &pendingNetworkSwap{network: config.NetworkECash, restartL1: restartL1}
+
 	// The blocks are on the new fork from here, and a swap to another network
 	// strips the conf sentinel that says so. A record that stays on the outgoing
 	// fork sends a later start after blocks this switch already moved.
 	if err := o.recordECashChain(toID); err != nil {
 		return err
 	}
-	if entry, ok := o.ecashEntry(toID); ok {
-		config.SetForkHeight(config.NetworkECash, entry.ForkHeight)
-		config.SetNetworkDisplayName(config.NetworkECash, entry.DisplayName)
-		config.SetECashEndpoints(entry)
-	}
-	// Installed before the pick, so a pick that cannot be written still leaves
-	// the ordinary same-network retry a tail to resume. Without it that retry
-	// reads FromID == ToID, takes the no-op path, and the stack stays stopped.
-	o.pendingSwap = &pendingNetworkSwap{network: config.NetworkECash, restartL1: restartL1}
-
 	// Last, and only once the chain and the conf both moved. A pick recorded
 	// ahead of a failed switch would make the next boot read the old sentinel as
 	// stale and clear a chain this run still holds.

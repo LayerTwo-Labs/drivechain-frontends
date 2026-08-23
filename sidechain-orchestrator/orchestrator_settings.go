@@ -312,6 +312,9 @@ func (s *SettingsStore) PendingEnforcerWipe() string {
 func (s *SettingsStore) SetPendingEnforcerWipe(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.current.PendingEnforcerWipe == id {
+		return nil
+	}
 	next := s.current
 	next.PendingEnforcerWipe = id
 	if err := SaveSettings(s.bitwindowDir, next); err != nil {
