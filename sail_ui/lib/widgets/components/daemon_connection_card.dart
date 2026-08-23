@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -103,6 +104,14 @@ class DaemonConnectionCard extends StatelessWidget {
                   );
                 },
               ),
+              _StartStopButton(
+                binaryName: connection.binary.name,
+                isInitializing: connection.initializingBinary || isDownloading,
+                isConnected: connection.connected,
+                isStopping: connection.stoppingBinary,
+                onStart: restartDaemon,
+                onStop: stopDaemon,
+              ),
               SailButton(
                 variant: ButtonVariant.icon,
                 onPressed: () async {
@@ -116,15 +125,6 @@ class DaemonConnectionCard extends StatelessWidget {
                 },
                 icon: SailSVGAsset.tabSettings,
               ),
-              _RestartStopButton(
-                binaryName: connection.binary.name,
-                isInitializing: connection.initializingBinary || isDownloading,
-                isConnected: connection.connected,
-                isStopping: connection.stoppingBinary,
-                onRestart: restartDaemon,
-                onStop: stopDaemon,
-                errorColor: theme.colors.error,
-              ),
               if (deleteFunction != null)
                 SailButton(
                   variant: ButtonVariant.icon,
@@ -133,38 +133,39 @@ class DaemonConnectionCard extends StatelessWidget {
                 ),
             ],
           ),
-          if (downloadProgress != null)
-            SizedBox(
-              width: 350,
-              child: DownloadStatusRow(
-                name: connection.binary.name,
-                download: downloadProgress,
-              ),
-            )
-          else if (syncInfo != null)
-            SizedBox(
-              width: 350,
-              child: BlockStatus(
-                name: connection.binary.name,
-                syncInfo: syncInfo!,
-              ),
+          // The row stays even with nothing to report, so a card that gains
+          // sync info or a download does not grow.
+          SizedBox(
+            width: 350,
+            height: progressRowHeight(context),
+            child: downloadProgress != null
+                ? DownloadStatusRow(
+                    name: connection.binary.name,
+                    download: downloadProgress,
+                  )
+                : syncInfo != null
+                ? BlockStatus(
+                    name: connection.binary.name,
+                    syncInfo: syncInfo!,
+                  )
+                : null,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: SailStyleValues.padding04),
+            child: DaemonStatusBlock(
+              message: infoMessage != null || connection.connectionError != null || !connection.connected
+                  ? prettifyLogMessage(
+                      resolveDaemonStatusMessage(
+                        connectionError: connection.connectionError,
+                        startupError: connection.startupError,
+                        infoMessage: infoMessage,
+                        initializingBinary: connection.initializingBinary,
+                        initializingFallback: providerBinary?.startupLogs.lastOrNull?.message,
+                      ),
+                    )
+                  : '',
             ),
-          if (infoMessage != null || connection.connectionError != null || !connection.connected)
-            Padding(
-              padding: const EdgeInsets.only(top: SailStyleValues.padding04),
-              child: SailText.secondary12(
-                prettifyLogMessage(
-                  resolveDaemonStatusMessage(
-                    connectionError: connection.connectionError,
-                    startupError: connection.startupError,
-                    infoMessage: infoMessage,
-                    initializingBinary: connection.initializingBinary,
-                    initializingFallback: providerBinary?.startupLogs.lastOrNull?.message,
-                  ),
-                ),
-                monospace: true,
-              ),
-            ),
+          ),
         ],
       ),
     );
@@ -179,6 +180,113 @@ class DaemonConnectionCard extends StatelessWidget {
     isDownloading: isDownloading,
     hasInfoMessage: infoMessage != null,
   );
+}
+
+/// Height of the progress bar itself.
+const double progressBarHeight = 16;
+
+/// The style the daemon status text renders in. One style measures and renders,
+/// or a block reserves a height the reader never gets.
+TextStyle daemonStatusStyle(BuildContext context) {
+  final theme = SailTheme.of(context);
+  return SailStyleValues.twelve.copyWith(
+    color: theme.colors.textSecondary,
+    fontFamily: theme.chrome.fontFamily ?? 'IBMPlexMono',
+  );
+}
+
+/// One rendered row of daemon status text, at the reader's text scale.
+double daemonStatusRowHeight(BuildContext context) {
+  final painter = TextPainter(
+    text: TextSpan(text: ' ', style: daemonStatusStyle(context)),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 2),
+  )..layout();
+  return painter.preferredLineHeight;
+}
+
+/// Height the progress row holds whether or not a daemon reports progress. A
+/// synced daemon puts text there instead of a bar, so the row fits both.
+double progressRowHeight(BuildContext context) => math.max(progressBarHeight, daemonStatusRowHeight(context));
+
+/// Daemon status in a block that always holds the same height, so a card never
+/// resizes as errors come and go. A message taller than the block hides behind
+/// "Show more", which the reader opens.
+class DaemonStatusBlock extends StatefulWidget {
+  /// Rows the block reserves. Three fits the enforcer's error and its two
+  /// causes, which is the tallest message the daemons produce.
+  static const int rows = 3;
+
+  /// Width the toggle holds. The slot stays even with nothing to open, so the
+  /// text wraps at the same point whether or not the toggle is there.
+  static const double toggleWidth = 96;
+
+  final String message;
+
+  const DaemonStatusBlock({super.key, required this.message});
+
+  @override
+  State<DaemonStatusBlock> createState() => _DaemonStatusBlockState();
+}
+
+class _DaemonStatusBlockState extends State<DaemonStatusBlock> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = daemonStatusStyle(context);
+    final scaler = MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 2);
+    final body = widget.message.trim().isEmpty ? null : widget.message.trimRight();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textWidth = (constraints.maxWidth - DaemonStatusBlock.toggleWidth).clamp(1.0, double.infinity);
+        final painter = TextPainter(
+          text: TextSpan(text: body ?? ' ', style: style),
+          maxLines: DaemonStatusBlock.rows,
+          textDirection: Directionality.of(context),
+          textScaler: scaler,
+        )..layout(maxWidth: textWidth);
+
+        final hasMore = body != null && painter.didExceedMaxLines;
+        final open = hasMore && _open;
+        final text = Text(
+          body ?? ' ',
+          style: style,
+          textScaler: scaler,
+          maxLines: open ? null : DaemonStatusBlock.rows,
+          overflow: open ? TextOverflow.clip : TextOverflow.ellipsis,
+        );
+
+        return SizedBox(
+          height: open ? null : daemonStatusRowHeight(context) * DaemonStatusBlock.rows,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: body == null ? text : Tooltip(message: body, child: text),
+              ),
+              SizedBox(
+                width: DaemonStatusBlock.toggleWidth,
+                child: hasMore
+                    ? Align(
+                        alignment: Alignment.topRight,
+                        child: SailButton(
+                          variant: ButtonVariant.ghost,
+                          small: true,
+                          padding: EdgeInsets.zero,
+                          label: open ? 'Show less' : 'Show more',
+                          onPressed: () async => setState(() => _open = !_open),
+                        ),
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 /// Renders the in-flight download progress for a daemon. Shown by the
@@ -359,80 +467,47 @@ String formatProgress(double progress, bool withDecimal) {
   return progress.toStringAsFixed(withDecimal ? 1 : 0);
 }
 
-class _RestartStopButton extends StatefulWidget {
+/// Start or stop one daemon. A reader who wants to bounce a daemon stops it and
+/// starts it again, so the head holds one button, not two.
+class _StartStopButton extends StatefulWidget {
   final String binaryName;
   final bool isInitializing;
   final bool isConnected;
   final bool isStopping;
-  final Future<void> Function() onRestart;
+  final Future<void> Function() onStart;
   final Future<void> Function() onStop;
-  final Color errorColor;
 
-  const _RestartStopButton({
+  const _StartStopButton({
     required this.binaryName,
     required this.isInitializing,
     required this.isConnected,
     required this.isStopping,
-    required this.onRestart,
+    required this.onStart,
     required this.onStop,
-    required this.errorColor,
   });
 
   @override
-  State<_RestartStopButton> createState() => _RestartStopButtonState();
+  State<_StartStopButton> createState() => _StartStopButtonState();
 }
 
-class _RestartStopButtonState extends State<_RestartStopButton> {
-  bool _isHovering = false;
+class _StartStopButtonState extends State<_StartStopButton> {
+  bool _hovering = false;
 
   @override
   Widget build(BuildContext context) {
-    // When initializing and hovering, show stop button instead of spinner
-    final showStopOnHover = widget.isInitializing && _isHovering;
+    // A daemon that boots offers a way out, so hover swaps the spinner for stop.
+    final stops = widget.isConnected || (widget.isInitializing && _hovering);
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showStopOnHover)
-            // Show stop button when hovering during initialization
-            Tooltip(
-              message: 'Stop ${widget.binaryName}',
-              child: SailButton(
-                variant: ButtonVariant.icon,
-                onPressed: widget.onStop,
-                loading: widget.isStopping,
-                icon: SailSVGAsset.square,
-                textColor: widget.errorColor,
-              ),
-            )
-          else ...[
-            // Normal restart button
-            Tooltip(
-              message: 'Restart ${widget.binaryName}',
-              child: SailButton(
-                variant: ButtonVariant.icon,
-                onPressed: widget.onRestart,
-                loading: widget.isInitializing,
-                icon: SailSVGAsset.iconRestart,
-              ),
-            ),
-            // Show stop button when connected (and not initializing)
-            if (widget.isConnected && !widget.isInitializing)
-              Tooltip(
-                message: 'Stop ${widget.binaryName}',
-                child: SailButton(
-                  variant: ButtonVariant.icon,
-                  onPressed: widget.onStop,
-                  loading: widget.isStopping,
-                  icon: SailSVGAsset.square,
-                  textColor: widget.errorColor,
-                ),
-              ),
-          ],
-        ],
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Tooltip(
+        message: stops ? 'Stop ${widget.binaryName}' : 'Start ${widget.binaryName}',
+        child: SailButton(
+          label: stops ? 'Stop' : 'Start',
+          loading: stops ? widget.isStopping : widget.isInitializing,
+          onPressed: stops ? widget.onStop : widget.onStart,
+        ),
       ),
     );
   }
