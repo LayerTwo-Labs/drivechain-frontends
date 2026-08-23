@@ -31,7 +31,6 @@ func TestService_Check(t *testing.T) {
 		// Create mocks for all services
 		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
 		mockValidator := mocks.NewMockValidatorServiceClient(ctrl)
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
 		mockCrypto := mocks.NewMockCryptoServiceClient(ctrl)
 
 		// Background operations for bitcoind
@@ -63,13 +62,6 @@ func TestService_Check(t *testing.T) {
 			}, nil).
 			AnyTimes()
 
-		mockWallet.EXPECT().
-			GetInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetInfoResponse]{
-				Msg: &mainchainv1.GetInfoResponse{},
-			}, nil).
-			AnyTimes()
-
 		mockCrypto.EXPECT().
 			Ripemd160(gomock.Any(), gomock.Any()).
 			Return(&connect.Response[cryptov1.Ripemd160Response]{
@@ -80,7 +72,6 @@ func TestService_Check(t *testing.T) {
 		cli := rpc.NewHealthServiceClient(apitests.API(t, db,
 			apitests.WithBitcoind(mockBitcoind),
 			apitests.WithValidator(mockValidator),
-			apitests.WithWallet(mockWallet),
 			apitests.WithCrypto(mockCrypto),
 		))
 
@@ -336,14 +327,6 @@ func TestService_Check(t *testing.T) {
 			AnyTimes()
 
 		// wallet healthy
-		mockWallet := mocks.NewMockWalletServiceClient(ctrl)
-		mockWallet.EXPECT().
-			GetInfo(gomock.Any(), gomock.Any()).
-			Return(&connect.Response[mainchainv1.GetInfoResponse]{
-				Msg: &mainchainv1.GetInfoResponse{},
-			}, nil).
-			AnyTimes()
-
 		// crypto unhealthy
 		mockCrypto := mocks.NewMockCryptoServiceClient(ctrl)
 		mockCrypto.EXPECT().
@@ -354,7 +337,6 @@ func TestService_Check(t *testing.T) {
 		cli := rpc.NewHealthServiceClient(apitests.API(t, db,
 			apitests.WithBitcoind(mockBitcoind),
 			apitests.WithValidator(mockValidator),
-			apitests.WithWallet(mockWallet),
 			apitests.WithCrypto(mockCrypto),
 		))
 

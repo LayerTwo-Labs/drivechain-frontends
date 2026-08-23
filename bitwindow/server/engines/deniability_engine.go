@@ -12,14 +12,11 @@ import (
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type DeniabilityEngine struct {
@@ -103,7 +100,16 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 	return nil
 }
 
-func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspentOutputsResponse_Output, []deniability.Denial, error) {
+// UTXO is one spendable output. Bitcoin Core and electrum report different
+// shapes, and both convert into this one.
+type UTXO struct {
+	Txid      string
+	Vout      uint32
+	Address   string
+	ValueSats uint64
+}
+
+func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*UTXO, []deniability.Denial, error) {
 	logger := zerolog.Ctx(ctx)
 
 	denials, err := deniability.List(ctx, e.db, deniability.WithExcludeCancelled())
@@ -116,7 +122,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 	}
 
 	// Build a map of wallet_id -> UTXOs for efficient lookup
-	walletUTXOs := make(map[string][]*pb.ListUnspentOutputsResponse_Output)
+	walletUTXOs := make(map[string][]*UTXO)
 
 	// Track wallets that had errors to avoid repeated attempts
 	failedWallets := make(map[string]bool)
@@ -168,7 +174,7 @@ func (e *DeniabilityEngine) CleanupDenials(ctx context.Context) ([]*pb.ListUnspe
 	return allUTXOs, denials, nil
 }
 
-func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs map[string][]*pb.ListUnspentOutputsResponse_Output, denials []deniability.Denial) error {
+func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs map[string][]*UTXO, denials []deniability.Denial) error {
 	logger := zerolog.Ctx(ctx)
 
 	for _, denial := range denials {
@@ -184,8 +190,8 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 			continue
 		}
 
-		utxoExists := lo.ContainsBy(utxos, func(utxo *pb.ListUnspentOutputsResponse_Output) bool {
-			return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
+		utxoExists := lo.ContainsBy(utxos, func(utxo *UTXO) bool {
+			return utxo.Txid == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
 		})
 
 		if !utxoExists {
@@ -203,9 +209,9 @@ func (e *DeniabilityEngine) cancelIfUTXOIsGone(ctx context.Context, walletUTXOs 
 	return nil
 }
 
-func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
-	tipUTXOs := lo.Filter(utxos, func(utxo *pb.ListUnspentOutputsResponse_Output, _ int) bool {
-		return utxo.Txid.Hex.Value == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
+func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*UTXO, denial deniability.Denial) error {
+	tipUTXOs := lo.Filter(utxos, func(utxo *UTXO, _ int) bool {
+		return utxo.Txid == denial.TipTXID && int32(utxo.Vout) == denial.TipVout
 	})
 	if len(tipUTXOs) == 0 {
 		return fmt.Errorf("no matching utxos found for tip %s:%d", denial.TipTXID, denial.TipVout)
@@ -214,7 +220,7 @@ func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListU
 	// Create a pool for parallel processing
 	pool := logpool.New(ctx, "denial-processing")
 	for _, utxo := range tipUTXOs {
-		pool.Go(fmt.Sprintf("utxo-%s-%d", utxo.Txid.Hex.Value, utxo.Vout), func(ctx context.Context) error {
+		pool.Go(fmt.Sprintf("utxo-%s-%d", utxo.Txid, utxo.Vout), func(ctx context.Context) error {
 			return e.ProcessUTXO(ctx, utxo, denial)
 		})
 	}
@@ -228,10 +234,10 @@ func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*pb.ListU
 	return nil
 }
 
-func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspentOutputsResponse_Output, denial deniability.Denial) error {
+func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial deniability.Denial) error {
 	logger := zerolog.Ctx(ctx).With().
 		Int64("denial_id", denial.ID).
-		Str("utxo_txid", utxo.Txid.Hex.Value).
+		Str("utxo_txid", utxo.Txid).
 		Uint32("utxo_vout", utxo.Vout).
 		Uint64("utxo_amount", utxo.ValueSats).
 		Str("tip_txid", denial.TipTXID).
@@ -303,12 +309,12 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 	}
 
 	for _, newUTXO := range newUTXOs {
-		if newUTXO.Txid.Hex.Value != txid {
+		if newUTXO.Txid != txid {
 			panic("DEVELOPER ERROR: returned UTXO txid did not match sent txid")
 		}
 
 		if err := deniability.RecordExecution(ctx, e.db, denial.ID,
-			utxo.Txid.Hex.Value,
+			utxo.Txid,
 			int32(utxo.Vout),
 			txid,
 			newUTXO.Vout,
@@ -333,7 +339,7 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *pb.ListUnspen
 func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 	ctx context.Context,
 	walletId string,
-	utxo *pb.ListUnspentOutputsResponse_Output,
+	utxo *UTXO,
 	destinations map[string]uint64,
 	fee uint64,
 ) (string, error) {
@@ -348,7 +354,7 @@ func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 	}
 
 	return SendCoreWithRequiredInputs(ctx, bitcoind, coreWalletName, []CoreOutpoint{
-		{Txid: utxo.Txid.Hex.Value, Vout: utxo.Vout},
+		{Txid: utxo.Txid, Vout: utxo.Vout},
 	}, destinations, 0, fee)
 }
 
@@ -357,7 +363,7 @@ func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
 func (e *DeniabilityEngine) sendElectrumTransaction(
 	ctx context.Context,
 	walletId string,
-	utxo *pb.ListUnspentOutputsResponse_Output,
+	utxo *UTXO,
 	destinations map[string]uint64,
 	fee uint64,
 ) (string, error) {
@@ -369,7 +375,7 @@ func (e *DeniabilityEngine) sendElectrumTransaction(
 		Destinations: dests,
 		FixedFeeSats: int64(fee),
 		RequiredInputs: []*orchpb.UnspentOutput{
-			{Txid: utxo.Txid.Hex.Value, Vout: int32(utxo.Vout)},
+			{Txid: utxo.Txid, Vout: int32(utxo.Vout)},
 		},
 	})
 }
@@ -381,7 +387,7 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 	walletId string,
 	txid string,
 	destinations map[string]uint64,
-) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+) ([]*UTXO, error) {
 	logger := zerolog.Ctx(ctx)
 
 	// Use a ticker for proper wait pattern
@@ -421,11 +427,11 @@ func (e *DeniabilityEngine) waitForUTXOsToAppear(
 				continue
 			}
 
-			var foundUTXOs []*pb.ListUnspentOutputsResponse_Output
+			var foundUTXOs []*UTXO
 			for _, utxo := range utxos {
-				if utxo.Txid.Hex.Value == txid {
+				if utxo.Txid == txid {
 					// Check if this UTXO's address matches any of our destination addresses
-					if _, exists := destinations[utxo.Address.Value]; exists {
+					if _, exists := destinations[utxo.Address]; exists {
 						foundUTXOs = append(foundUTXOs, utxo)
 					}
 					// any non-matched is change. We don't care about those
@@ -473,7 +479,7 @@ func (e *DeniabilityEngine) rejectWatchOnly(ctx context.Context, walletId string
 func (e *DeniabilityEngine) chooseDenialStrategy(
 	ctx context.Context,
 	denial deniability.Denial,
-	utxo *pb.ListUnspentOutputsResponse_Output,
+	utxo *UTXO,
 	fee uint64,
 	walletType WalletType,
 	walletId string,
@@ -507,7 +513,7 @@ func (e *DeniabilityEngine) chooseDenialStrategy(
 func (e *DeniabilityEngine) simpleSplit(
 	ctx context.Context,
 	denial deniability.Denial,
-	utxo *pb.ListUnspentOutputsResponse_Output,
+	utxo *UTXO,
 	fee uint64,
 	walletType WalletType,
 	walletId string,
@@ -540,7 +546,7 @@ func (e *DeniabilityEngine) simpleSplit(
 func (e *DeniabilityEngine) targetAmountSplit(
 	ctx context.Context,
 	denial deniability.Denial,
-	utxo *pb.ListUnspentOutputsResponse_Output,
+	utxo *UTXO,
 	fee uint64,
 	walletType WalletType,
 	walletId string,
@@ -610,12 +616,6 @@ func (e *DeniabilityEngine) getBitcoinCoreNewAddress(ctx context.Context, wallet
 	return resp.Msg.Address, nil
 }
 
-type UTXO struct {
-	TxID   string
-	Vout   int32
-	Amount uint64
-}
-
 // resolveDenialWallet names the wallet a denial spends from: the one stored
 // with it, or the active wallet for a row from before wallet_id existed.
 func (e *DeniabilityEngine) resolveDenialWallet(denial deniability.Denial) (string, error) {
@@ -636,7 +636,7 @@ func (e *DeniabilityEngine) resolveDenialWallet(denial deniability.Denial) (stri
 }
 
 // listUTXOsForWallet gets UTXOs for a specific wallet ID
-func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId string) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId string) ([]*UTXO, error) {
 	// A denial from before wallet_id existed names no wallet, and so does a
 	// single-wallet install. Both read Bitcoin Core's loaded wallet.
 	if e.walletEngine == nil {
@@ -669,23 +669,23 @@ func (e *DeniabilityEngine) listUTXOsForWallet(ctx context.Context, walletId str
 // listElectrumUTXOs lists an electrum wallet's UTXOs (served via the
 // orchestrator/Esplora) and converts them to the enforcer output shape the
 // rest of the engine works with.
-func (e *DeniabilityEngine) listElectrumUTXOs(ctx context.Context, walletId string) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+func (e *DeniabilityEngine) listElectrumUTXOs(ctx context.Context, walletId string) ([]*UTXO, error) {
 	utxos, err := e.walletEngine.GetElectrumUnspent(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("electrum: list unspent: %w", err)
 	}
-	return lo.Map(utxos, func(u *orchpb.UnspentOutput, _ int) *pb.ListUnspentOutputsResponse_Output {
-		return &pb.ListUnspentOutputsResponse_Output{
-			Txid:      &commonv1.ReverseHex{Hex: &wrapperspb.StringValue{Value: u.Txid}},
+	return lo.Map(utxos, func(u *orchpb.UnspentOutput, _ int) *UTXO {
+		return &UTXO{
+			Txid:      u.Txid,
 			Vout:      uint32(u.Vout),
 			ValueSats: uint64(u.AmountSats),
-			Address:   &wrapperspb.StringValue{Value: u.Address},
+			Address:   u.Address,
 		}
 	}), nil
 }
 
 // listBitcoinCoreUTXOs lists UTXOs from a Bitcoin Core wallet
-func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId string) ([]*pb.ListUnspentOutputsResponse_Output, error) {
+func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId string) ([]*UTXO, error) {
 	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get bitcoin core wallet name: %w", err)
@@ -703,16 +703,12 @@ func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId s
 		return nil, fmt.Errorf("bitcoin core list unspent: %w", err)
 	}
 
-	// Convert Bitcoin Core UTXOs to the enforcer format for compatibility
-	outputs := lo.Map(resp.Msg.Unspent, func(utxo *corepb.UnspentOutput, _ int) *pb.ListUnspentOutputsResponse_Output {
-		valueSats := uint64(utxo.Amount * 100000000)
-		return &pb.ListUnspentOutputsResponse_Output{
-			Txid: &commonv1.ReverseHex{
-				Hex: &wrapperspb.StringValue{Value: utxo.Txid},
-			},
+	outputs := lo.Map(resp.Msg.Unspent, func(utxo *corepb.UnspentOutput, _ int) *UTXO {
+		return &UTXO{
+			Txid:      utxo.Txid,
 			Vout:      utxo.Vout,
-			Address:   &wrapperspb.StringValue{Value: utxo.Address},
-			ValueSats: valueSats,
+			Address:   utxo.Address,
+			ValueSats: uint64(utxo.Amount * 100000000),
 		}
 	})
 

@@ -17,14 +17,11 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
-	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const denialWalletID = "80CEBA2163224572BDEADD2D2181C51B"
@@ -162,15 +159,8 @@ func TestDeniabilityEngine(t *testing.T) {
 			}, nil)
 
 		// Execute denial
-		err = engine.ExecuteDenial(ctx, []*pb.ListUnspentOutputsResponse_Output{
-			{
-				Txid: &commonv1.ReverseHex{
-					Hex: &wrapperspb.StringValue{Value: "test-txid"},
-				},
-				Vout:       0,
-				ValueSats:  1000000,
-				IsInternal: false,
-			},
+		err = engine.ExecuteDenial(ctx, []*engines.UTXO{
+			{Txid: "test-txid", Vout: 0, ValueSats: 1000000},
 		}, denial)
 		require.NoError(t, err)
 
@@ -195,13 +185,10 @@ func TestDeniabilityEngine(t *testing.T) {
 		require.NoError(t, err)
 
 		// Process UTXO with insufficient amount
-		err = engine.ProcessUTXO(ctx, &pb.ListUnspentOutputsResponse_Output{
-			Txid: &commonv1.ReverseHex{
-				Hex: &wrapperspb.StringValue{Value: "test-txid"},
-			},
-			Vout:       0,
-			ValueSats:  5000, // Less than fee
-			IsInternal: false,
+		err = engine.ProcessUTXO(ctx, &engines.UTXO{
+			Txid:      "test-txid",
+			Vout:      0,
+			ValueSats: 5000, // Less than fee
 		}, denial)
 		require.NoError(t, err)
 

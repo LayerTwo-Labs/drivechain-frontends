@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:logger/logger.dart';
-import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.connect.client.dart';
 import 'package:sidechain_core/gen/notification/v1/notification.pb.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
@@ -111,9 +110,6 @@ class MockEnforcerRPC extends EnforcerRPC {
   ValidatorServiceClient get validator => throw UnimplementedError();
 
   @override
-  WalletServiceClient get wallet => throw UnimplementedError();
-
-  @override
   Future<BlockchainInfo> getBlockchainInfo() {
     throw UnimplementedError();
   }
@@ -136,11 +132,6 @@ class MockEnforcerRPC extends EnforcerRPC {
       'transactions': [],
       'coinbasevalue': 5000000000,
     });
-  }
-
-  @override
-  Future<List<String>> getAddresses() {
-    return Future.value([]);
   }
 }
 

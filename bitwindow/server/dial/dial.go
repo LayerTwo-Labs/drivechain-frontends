@@ -30,7 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-// EnforcerValidator creates a CUSF enforcer (validator & wallet) client.
+// EnforcerValidator creates a CUSF enforcer validator client.
 // Bitcoind returns a btc-buf BitcoinService client against the orchestrator's
 // hosted core proxy. orchestratorAddr is a full URL (config.OrchestratorAddr
 // defaults to "http://localhost:30400"); a bare host:port also works and gets
@@ -77,28 +77,6 @@ func EnforcerValidator(ctx context.Context, url string) (
 	_, err := client.GetSidechains(ctx, connect.NewRequest(&pb.GetSidechainsRequest{}))
 	if err != nil {
 		return nil, fmt.Errorf("get sidechains: %w", err)
-	}
-
-	return client, nil
-}
-
-// EnforcerWallet creates a CUSF enforcer (wallet) client.
-func EnforcerWallet(ctx context.Context, url string) (
-	rpc.WalletServiceClient, error,
-) {
-	if url == "" {
-		return nil, errors.New("empty validator url")
-	}
-
-	client := rpc.NewWalletServiceClient(
-		getSharedClient(ctx),
-		fmt.Sprintf("http://%s", url),
-		connect.WithGRPC(),
-	)
-
-	_, err := client.CreateNewAddress(ctx, connect.NewRequest(&pb.CreateNewAddressRequest{}))
-	if err != nil {
-		return nil, fmt.Errorf("create new address: %w", err)
 	}
 
 	return client, nil
