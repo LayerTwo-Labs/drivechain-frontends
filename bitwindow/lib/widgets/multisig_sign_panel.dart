@@ -1,4 +1,5 @@
 import 'package:bitwindow/providers/address_book_provider.dart';
+import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
@@ -235,6 +236,16 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
     try {
       final hex = await _wallet.finalizePsbt(psbtBase64: draft.psbtBase64);
       final txid = await _wallet.broadcastTransaction(walletId: widget.walletId, txHex: hex);
+      final fork = GetIt.I.get<ForkProvider>();
+      final decoded = _decoded;
+      // An undecoded transaction can hold a coin from both chains, so it counts
+      // as one until the decode says otherwise.
+      final spendsRisk =
+          decoded == null || decoded.details.inputs.any((i) => fork.isReplayRisk('${i.prevTxid}:${i.prevVout}'));
+      final protected = decoded != null && decoded.details.locktime == replayLockTime;
+      if (spendsRisk && !protected) {
+        fork.rememberUnprotectedSend(txid);
+      }
 
       // The transaction is on the network from here on. A failure below is
       // bookkeeping only and must never read as a broadcast failure.

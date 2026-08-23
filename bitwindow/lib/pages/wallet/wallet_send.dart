@@ -5,6 +5,7 @@ import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
+import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
 import 'package:bitwindow/pages/wallet/widgets/fee_rate_chart.dart';
@@ -13,6 +14,7 @@ import 'package:bitwindow/utils/bitcoin_uri.dart';
 import 'package:bitwindow/signing/psbt_signer.dart';
 import 'package:bitwindow/signing/sign_and_broadcast.dart';
 import 'package:bitwindow/widgets/multisig_sign_panel.dart';
+import 'package:bitwindow/widgets/replay_protection_dialog.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/gen/walletpsbt/v1/walletpsbt.pb.dart';
 import 'package:bitwindow/utils/coin_selection.dart';
@@ -130,7 +132,11 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
     if (walletId == null) {
       return;
     }
-    final psbt = await viewModel.buildUnsignedPsbtForAirgap(context);
+    final plan = await viewModel.askReplayProtect(context);
+    if (plan == null || !context.mounted) {
+      return;
+    }
+    final psbt = await viewModel.buildUnsignedPsbtForAirgap(context, replayProtect: plan.protect);
     if (psbt == null || !context.mounted) {
       return;
     }
@@ -141,7 +147,13 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
         unsignedPsbtBase64: psbt,
         signer: signer,
       );
-      if (txid == null || !context.mounted) {
+      if (txid == null) {
+        return;
+      }
+      if (plan.risky && !plan.protect) {
+        GetIt.I<ForkProvider>().rememberUnprotectedSend(txid);
+      }
+      if (!context.mounted) {
         return;
       }
       showSailToast(context, 'Transaction broadcast', variant: SailToastVariant.success);
@@ -739,12 +751,98 @@ class SendPageViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// Coins this send may spend that also exist unspent on the other chain, so
+  /// spending them here replays the same transaction there.
+  /// The backend funds from every coin the wallet holds. A frozen coin is
+  /// bitwindow's own mark, so the backend can still spend it.
+  List<UnspentOutput> get splittableInputs => splittableAmong(
+    selectedUtxos,
+    allUtxos,
+    requiredSats: _sendTotalSats,
+    preForkOutpoints: GetIt.I<ForkProvider>().claimOutpoints,
+    preForkKnown: GetIt.I<ForkProvider>().claimsLoaded,
+    replayedTxids: GetIt.I<ForkProvider>().replayedTxids,
+  );
+
+  /// The sats the send pays out, plus the fee the wallet adds on top.
+  int get _sendTotalSats {
+    final amounts = recipients.fold<int>(
+      0,
+      (sum, r) =>
+          sum + parseAmountToSatoshis(r.amountController.text.isEmpty ? '0' : r.amountController.text, currentUnit),
+    );
+    if (_subtractFeeFromAmount) {
+      return amounts;
+    }
+    return amounts + parseAmountToSatoshis(feeController.text.isEmpty ? '0' : feeController.text, currentUnit);
+  }
+
+  /// The coins of a send that exist on both chains. A selection that cannot pay
+  /// the send is not the whole input set: the backend adds more coins from the
+  /// wallet, so every available coin counts. A pre-fork coin the split engine
+  /// did not check yet counts too, because it can still exist on both chains.
+  static List<UnspentOutput> splittableAmong(
+    List<UnspentOutput> selected,
+    List<UnspentOutput> available, {
+    int requiredSats = 0,
+    Set<String> preForkOutpoints = const {},
+    bool preForkKnown = true,
+    Set<String> replayedTxids = const {},
+  }) {
+    final selectedSats = selected.fold<int>(0, (sum, u) => sum + u.valueSats.toInt());
+    final source = selected.isNotEmpty && selectedSats >= requiredSats ? selected : available;
+    return source.where((u) {
+      // An unprotected send replays, so its own outputs land on both chains.
+      if (replayedTxids.contains(u.output.split(':').first)) {
+        return true;
+      }
+      if (u.hasSplittable()) {
+        return u.splittable;
+      }
+      // The pre-fork set is unread, so an unchecked coin can still be on both.
+      return !preForkKnown || preForkOutpoints.contains(u.output);
+    }).toList();
+  }
+
+  /// Asks about replay protection when the send spends a coin that exists on
+  /// both chains. Returns null when the user cancels. `risky` stays false for a
+  /// send whose coins live on one chain, so its own outputs raise no warning.
+  Future<({bool protect, bool risky})?> askReplayProtect(BuildContext context) async {
+    const safe = (protect: false, risky: false);
+    // A chain whose nodes reject the magic locktime has no protection to offer.
+    if (!GetIt.I<ForkProvider>().replayProtectionAvailable) {
+      return safe;
+    }
+    final splittable = splittableInputs;
+    // An empty coin list means the wallet did not report its coins yet. The
+    // backend still funds from its own pool, so the send stays a risk.
+    final coinsKnown = allUtxos.isNotEmpty;
+    if (splittable.isEmpty && coinsKnown) {
+      return safe;
+    }
+    final choice = await askReplayProtection(context, coins: splittable, coinsKnown: coinsKnown);
+    switch (choice) {
+      case ReplayChoice.cancel:
+        return null;
+      case ReplayChoice.sendPlain:
+        return (protect: false, risky: true);
+      case ReplayChoice.sendProtected:
+        return (protect: true, risky: true);
+    }
+  }
+
   Future<void> sendTransaction(BuildContext context) async {
+    final plan = await askReplayProtect(context);
+    if (plan == null || !context.mounted) {
+      return;
+    }
+    final replayProtect = plan.protect;
+
     // Multisig never auto-signs: save the PSBT as a draft and open its tab,
     // where each keystore signs explicitly and broadcast happens once the
     // threshold is met.
     if (isMultisig) {
-      await _createMultisigDraft(context);
+      await _createMultisigDraft(context, replayProtect: replayProtect);
       return;
     }
 
@@ -796,7 +894,11 @@ class SendPageViewModel extends BaseViewModel {
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
+        replayProtect: replayProtect,
       )).txid;
+      if (plan.risky && !replayProtect) {
+        GetIt.I<ForkProvider>().rememberUnprotectedSend(txid);
+      }
       await clearAll();
       log.d('Sent transaction: txid=$txid');
       final network = GetIt.I.get<BitcoinConfProvider>().network;
@@ -823,13 +925,13 @@ class SendPageViewModel extends BaseViewModel {
   /// Build the PSBT for a multisig send, save it as a draft, and switch to
   /// its tab at once. Reuses the airgap PSBT builder (validates
   /// recipients/fee and calls createPsbt).
-  Future<void> _createMultisigDraft(BuildContext context) async {
+  Future<void> _createMultisigDraft(BuildContext context, {bool replayProtect = false}) async {
     final walletId = activeWalletId;
     if (walletId == null) {
       return;
     }
     final generation = draftProvider.generation;
-    final psbt = await buildUnsignedPsbtForAirgap(context);
+    final psbt = await buildUnsignedPsbtForAirgap(context, replayProtect: replayProtect);
     if (psbt == null) {
       return;
     }
@@ -863,7 +965,7 @@ class SendPageViewModel extends BaseViewModel {
   /// Build an unsigned PSBT from the current recipients/fee/coin-selection for
   /// an external (airgap) signer. Returns base64, or null after surfacing an
   /// error toast.
-  Future<String?> buildUnsignedPsbtForAirgap(BuildContext context) async {
+  Future<String?> buildUnsignedPsbtForAirgap(BuildContext context, {bool replayProtect = false}) async {
     final missingAddress = recipients.indexWhere((r) => r.addressController.text.trim().isEmpty);
     if (missingAddress != -1) {
       showSailToast(context, 'Please enter an address for all recipients.');
@@ -899,6 +1001,7 @@ class SendPageViewModel extends BaseViewModel {
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
+        replayProtect: replayProtect,
       );
     } catch (error) {
       log.e('Error building unsigned PSBT: $error');
