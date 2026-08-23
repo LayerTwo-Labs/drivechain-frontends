@@ -25,13 +25,30 @@ class SettingsPage extends StatefulWidget {
     }
   }
 
+  static final List<SailSettingsSection> sections = [
+    SailSettingsSection(label: 'Node mode', builder: (_) => const SettingsNodeMode()),
+    SailSettingsSection(label: 'Network', builder: (_) => const SettingsNetwork()),
+    SailSettingsSection(label: 'Wallet', builder: (_) => const SettingsWallet()),
+    SailSettingsSection(label: 'Appearance', builder: (_) => const SettingsAppearance()),
+    SailSettingsSection(label: 'Advanced', builder: (_) => const SettingsAdvanced()),
+    SailSettingsSection(label: 'Reset', builder: (_) => const SettingsReset()),
+    SailSettingsSection(
+      label: 'About',
+      builder: (_) => SettingsInfo(
+        appName: 'BitWindow',
+        versionString: AppVersion.versionString,
+        buildDate: AppVersion.buildDate,
+        commitFull: AppVersion.commitFull,
+        applicationName: AppVersion.appName,
+      ),
+    ),
+  ];
+
   @override
   State<SettingsPage> createState() => SettingsPageState();
 }
 
 class SettingsPageState extends State<SettingsPage> {
-  static const _sectionCount = 6;
-
   late int _selectedIndex;
 
   @override
@@ -40,7 +57,7 @@ class SettingsPageState extends State<SettingsPage> {
     SettingsPage._currentState = this;
     final pending = SettingsPage._pendingSection;
     SettingsPage._pendingSection = null;
-    _selectedIndex = (pending ?? widget.initialSection).clamp(0, _sectionCount - 1);
+    _selectedIndex = (pending ?? widget.initialSection).clamp(0, SettingsPage.sections.length - 1);
   }
 
   @override
@@ -52,7 +69,7 @@ class SettingsPageState extends State<SettingsPage> {
   }
 
   void setSelectedIndex(int index) {
-    if (index >= 0 && index < _sectionCount) {
+    if (index >= 0 && index < SettingsPage.sections.length) {
       setState(() {
         _selectedIndex = index;
       });
@@ -65,24 +82,7 @@ class SettingsPageState extends State<SettingsPage> {
       subtitle: 'Manage your BitWindow settings',
       selectedIndex: _selectedIndex,
       onSectionSelected: setSelectedIndex,
-      sections: [
-        SailSettingsSection(label: 'Node mode', builder: (_) => const SettingsNodeMode()),
-        SailSettingsSection(label: 'Network', builder: (_) => const SettingsNetwork()),
-        SailSettingsSection(label: 'Wallet', builder: (_) => const SettingsWallet()),
-        SailSettingsSection(label: 'Appearance', builder: (_) => const SettingsAppearance()),
-        SailSettingsSection(label: 'Advanced', builder: (_) => const SettingsAdvanced()),
-        SailSettingsSection(label: 'Reset', builder: (_) => const SettingsReset()),
-        SailSettingsSection(
-          label: 'About',
-          builder: (_) => SettingsInfo(
-            appName: 'BitWindow',
-            versionString: AppVersion.versionString,
-            buildDate: AppVersion.buildDate,
-            commitFull: AppVersion.commitFull,
-            applicationName: AppVersion.appName,
-          ),
-        ),
-      ],
+      sections: SettingsPage.sections,
     );
   }
 }
