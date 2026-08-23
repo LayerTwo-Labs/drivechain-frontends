@@ -39,6 +39,53 @@
         }
       }
     },
+    "connect_block": {
+      "post": {
+        "description": "Connect a block template for which a BMM request was included in the\nspecified mainchain block. Returns `true` if it was accepted as the new\ntip.",
+        "operationId": "connect_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "block": {
+                    "type": "object",
+                    "required": [
+                      "header",
+                      "body"
+                    ],
+                    "properties": {
+                      "body": {
+                        "$ref": "#/components/schemas/Body"
+                      },
+                      "header": {
+                        "$ref": "#/components/schemas/Header"
+                      }
+                    }
+                  },
+                  "main_block_hash": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "connect_peer": {
       "post": {
         "description": "Connect to a peer",
@@ -358,6 +405,45 @@
                       }
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_template": {
+      "post": {
+        "description": "Assemble a block to blind merge mine, without requesting BMM for it.\nThe caller requests BMM for `critical_hash` itself, then passes the\nblock back to `connect_block`.",
+        "operationId": "get_block_template",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "critical_hash",
+                    "block",
+                    "fees_sats"
+                  ],
+                  "properties": {
+                    "block": {
+                      "$ref": "#/components/schemas/Block",
+                      "description": "Block to pass to `connect_block` once its BMM request is included in a\nmainchain block"
+                    },
+                    "critical_hash": {
+                      "$ref": "#/components/schemas/BlockHash",
+                      "description": "Block hash to commit to in a BMM request"
+                    },
+                    "fees_sats": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "description": "Fees collected by the transactions in the block, in sats",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
