@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -51,17 +50,12 @@ func main() {
 
 	// A cookie file lets us share Bitcoin Core's auto-generated
 	// `__cookie__:<pass>` credentials (e.g. a mounted Docker secret)
-	// instead of hardcoding a static rpcauth user/pass.
+	// instead of hardcoding a static rpcauth user/pass. Read it here only to
+	// fail fast on a bad path; the client re-reads it per call.
 	if *bitcoindCookie != "" {
-		raw, err := os.ReadFile(*bitcoindCookie)
-		if err != nil {
+		if _, _, err := scanner.ReadCookie(*bitcoindCookie); err != nil {
 			log.Fatal().Err(err).Str("file", *bitcoindCookie).Msg("read bitcoind cookie file")
 		}
-		user, pass, ok := strings.Cut(strings.TrimSpace(string(raw)), ":")
-		if !ok {
-			log.Fatal().Str("file", *bitcoindCookie).Msg("malformed bitcoind cookie file: expected user:password")
-		}
-		*bitcoindUser, *bitcoindPass = user, pass
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -77,10 +71,11 @@ func main() {
 		go func() {
 			s := &scanner.Scanner{
 				Client: &scanner.Client{
-					URL:  *bitcoindURL,
-					User: *bitcoindUser,
-					Pass: *bitcoindPass,
-					HTTP: &http.Client{Timeout: 30 * time.Second},
+					URL:        *bitcoindURL,
+					User:       *bitcoindUser,
+					Pass:       *bitcoindPass,
+					CookiePath: *bitcoindCookie,
+					HTTP:       &http.Client{Timeout: 30 * time.Second},
 				},
 				DB:           db,
 				Log:          log.With().Str("component", "scanner").Logger(),

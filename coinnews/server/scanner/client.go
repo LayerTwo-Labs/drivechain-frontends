@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"sync/atomic"
 )
 
@@ -18,8 +20,32 @@ type Client struct {
 	User string
 	Pass string
 
+	// CookiePath, when set, wins over User/Pass. Bitcoin Core writes a new
+	// password into this file on every start, so each call re-reads it.
+	CookiePath string
+
 	HTTP *http.Client
 	id   atomic.Uint64
+}
+
+// ReadCookie returns the user and password from a Bitcoin Core .cookie file.
+func ReadCookie(path string) (string, string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", "", fmt.Errorf("read cookie %s: %w", path, err)
+	}
+	user, pass, ok := strings.Cut(strings.TrimSpace(string(raw)), ":")
+	if !ok {
+		return "", "", fmt.Errorf("malformed cookie %s: expected user:password", path)
+	}
+	return user, pass, nil
+}
+
+func (c *Client) credentials() (string, string, error) {
+	if c.CookiePath == "" {
+		return c.User, c.Pass, nil
+	}
+	return ReadCookie(c.CookiePath)
 }
 
 type rpcRequest struct {
@@ -51,7 +77,11 @@ func (c *Client) call(ctx context.Context, method string, params any, out any) e
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(c.User, c.Pass)
+	user, pass, err := c.credentials()
+	if err != nil {
+		return fmt.Errorf("rpc %s: %w", method, err)
+	}
+	req.SetBasicAuth(user, pass)
 	req.Header.Set("content-type", "application/json")
 
 	httpClient := c.HTTP
@@ -63,6 +93,12 @@ func (c *Client) call(ctx context.Context, method string, params any, out any) e
 		return fmt.Errorf("rpc %s: %w", method, err)
 	}
 	defer resp.Body.Close() //nolint:errcheck
+
+	// Core answers a bad password with 401 and an empty body, which decodes
+	// as a bare EOF and hides the cause.
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("rpc %s: unauthorized (status %d)", method, resp.StatusCode)
+	}
 
 	var r rpcResponse
 	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
