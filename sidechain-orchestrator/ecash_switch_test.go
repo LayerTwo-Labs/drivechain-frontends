@@ -165,6 +165,30 @@ func TestSwapNetworkFinishesAnECashTail(t *testing.T) {
 	require.Nil(t, o.pendingSwap, "the resumed tail leaves nothing behind")
 }
 
+// A swap to another network replaces the tail, so the tail has to land first.
+// Its record still names the outgoing fork, and the swap strips the sentinel
+// that says otherwise, so a return to eCash would serve the fork it left.
+func TestSwapToAnotherNetworkDrainsTheECashTail(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupDefault, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet4"))
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
+	o.Settings.bitwindowDir = blocked
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+	o.Settings.bitwindowDir = t.TempDir()
+
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+
+	require.Equal(t, "alphanet", o.Settings.ECashChainID(),
+		"the record must name the fork the blocks are on")
+	require.Equal(t, "alphanet", o.EnforcerConf.Config.GetSetting("network-preset"))
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
