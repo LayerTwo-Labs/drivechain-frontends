@@ -106,7 +106,6 @@ void main() {
         walletId: 'w1',
         walletName: 'Main wallet',
         claimableSats: 100000,
-        replayProtectable: true,
         utxos: [bwpb.UnspentOutput(output: 'aa:0', valueSats: Int64(100000))],
       ),
     ];
@@ -124,7 +123,6 @@ void main() {
         walletId: 'w1',
         walletName: 'Main wallet',
         claimableSats: 100000,
-        replayProtectable: true,
         utxos: [bwpb.UnspentOutput(output: 'aa:0', valueSats: Int64(100000))],
       ),
     ];

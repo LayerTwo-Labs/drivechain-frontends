@@ -17,7 +17,6 @@ WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multis
     walletId: 'w1',
     walletName: 'Main wallet',
     claimableSats: 300,
-    replayProtectable: true,
     multisig: multisig,
     utxos: utxos,
   );
@@ -159,7 +158,6 @@ void main() {
         walletId: 'w1',
         walletName: 'Main wallet',
         claimableSats: 300,
-        replayProtectable: true,
         walletResolved: false,
         utxos: [utxo('aa:0')],
       ),

@@ -132,9 +132,8 @@ func (s *forkWalletScanner) Wallets() []fork.WalletMeta {
 			return fork.WalletMeta{}, false
 		}
 		return fork.WalletMeta{
-			ID:                w.ID,
-			Name:              w.Name,
-			ReplayProtectable: true,
+			ID:   w.ID,
+			Name: w.Name,
 		}, true
 	})
 }

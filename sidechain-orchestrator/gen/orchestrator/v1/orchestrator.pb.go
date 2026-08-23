@@ -4636,11 +4636,8 @@ type ForkWalletClaim struct {
 	WalletName    string                 `protobuf:"bytes,2,opt,name=wallet_name,json=walletName,proto3" json:"wallet_name,omitempty"`
 	ClaimableSats uint64                 `protobuf:"varint,3,opt,name=claimable_sats,json=claimableSats,proto3" json:"claimable_sats,omitempty"`
 	Utxos         []*ForkClaimUtxo       `protobuf:"bytes,4,rep,name=utxos,proto3" json:"utxos,omitempty"`
-	// False when this wallet's claim can't be replay-protected (enforcer wallet);
-	// such coins are shown but not swept.
-	ReplayProtectable bool `protobuf:"varint,5,opt,name=replay_protectable,json=replayProtectable,proto3" json:"replay_protectable,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ForkWalletClaim) Reset() {
@@ -4699,13 +4696,6 @@ func (x *ForkWalletClaim) GetUtxos() []*ForkClaimUtxo {
 		return x.Utxos
 	}
 	return nil
-}
-
-func (x *ForkWalletClaim) GetReplayProtectable() bool {
-	if x != nil {
-		return x.ReplayProtectable
-	}
-	return false
 }
 
 type ForkClaimUtxo struct {
@@ -5193,14 +5183,13 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0eshow_countdown\x18\b \x01(\bR\rshowCountdown\x128\n" +
 	"\x06claims\x18\t \x03(\v2 .orchestrator.v1.ForkWalletClaimR\x06claims\x12!\n" +
 	"\fnetwork_name\x18\n" +
-	" \x01(\tR\vnetworkNameJ\x04\b\x03\x10\x04\"\xdb\x01\n" +
+	" \x01(\tR\vnetworkNameJ\x04\b\x03\x10\x04\"\xc6\x01\n" +
 	"\x0fForkWalletClaim\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x1f\n" +
 	"\vwallet_name\x18\x02 \x01(\tR\n" +
 	"walletName\x12%\n" +
 	"\x0eclaimable_sats\x18\x03 \x01(\x04R\rclaimableSats\x124\n" +
-	"\x05utxos\x18\x04 \x03(\v2\x1e.orchestrator.v1.ForkClaimUtxoR\x05utxos\x12-\n" +
-	"\x12replay_protectable\x18\x05 \x01(\bR\x11replayProtectable\"\xbb\x01\n" +
+	"\x05utxos\x18\x04 \x03(\v2\x1e.orchestrator.v1.ForkClaimUtxoR\x05utxosJ\x04\b\x05\x10\x06R\x12replay_protectable\"\xbb\x01\n" +
 	"\rForkClaimUtxo\x12\x1a\n" +
 	"\boutpoint\x18\x01 \x01(\tR\boutpoint\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x12\n" +

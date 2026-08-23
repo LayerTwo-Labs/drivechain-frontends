@@ -5350,7 +5350,6 @@ class ForkWalletClaim extends $pb.GeneratedMessage {
     $core.String? walletName,
     $fixnum.Int64? claimableSats,
     $core.Iterable<ForkClaimUtxo>? utxos,
-    $core.bool? replayProtectable,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -5365,9 +5364,6 @@ class ForkWalletClaim extends $pb.GeneratedMessage {
     if (utxos != null) {
       $result.utxos.addAll(utxos);
     }
-    if (replayProtectable != null) {
-      $result.replayProtectable = replayProtectable;
-    }
     return $result;
   }
   ForkWalletClaim._() : super();
@@ -5379,7 +5375,6 @@ class ForkWalletClaim extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'walletName')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'claimableSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..pc<ForkClaimUtxo>(4, _omitFieldNames ? '' : 'utxos', $pb.PbFieldType.PM, subBuilder: ForkClaimUtxo.create)
-    ..aOB(5, _omitFieldNames ? '' : 'replayProtectable')
     ..hasRequiredFields = false
   ;
 
@@ -5433,17 +5428,6 @@ class ForkWalletClaim extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   $core.List<ForkClaimUtxo> get utxos => $_getList(3);
-
-  /// False when this wallet's claim can't be replay-protected (enforcer wallet);
-  /// such coins are shown but not swept.
-  @$pb.TagNumber(5)
-  $core.bool get replayProtectable => $_getBF(4);
-  @$pb.TagNumber(5)
-  set replayProtectable($core.bool v) { $_setBool(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasReplayProtectable() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearReplayProtectable() => clearField(5);
 }
 
 class ForkClaimUtxo extends $pb.GeneratedMessage {

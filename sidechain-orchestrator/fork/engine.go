@@ -52,17 +52,13 @@ type TipSource interface {
 }
 
 // WalletMeta identifies a spendable L1 wallet to scan for claimable coins.
-// ReplayProtectable is false for wallets whose claim can't be replay-protected
-// (the enforcer wallet) — those coins are detected but not safely sweepable.
 type WalletMeta struct {
-	ID                string
-	Name              string
-	ReplayProtectable bool
+	ID   string
+	Name string
 }
 
 // Utxo is one unspent output at an absolute confirmation height (0 if
-// unconfirmed). The scanner adapter normalizes each wallet backend to this —
-// Core derives height from confirmations, the enforcer reads it directly — so
+// unconfirmed). The scanner adapter normalizes each wallet backend to this, so
 // the engine only ever compares heights.
 type Utxo struct {
 	Outpoint  string // "txid:vout"
@@ -74,9 +70,9 @@ type Utxo struct {
 }
 
 // WalletScanner enumerates spendable wallets and their UTXOs, server-side. The
-// orchestrator adapts wallet.Service + wallet.WalletEngine + the enforcer wallet
-// to this. tipHeight is supplied so adapters that only know confirmations can
-// derive an absolute height.
+// orchestrator adapts wallet.Service + wallet.WalletEngine to this. tipHeight is
+// supplied so adapters that only know confirmations can derive an absolute
+// height.
 type WalletScanner interface {
 	Wallets() []WalletMeta
 	Unspent(ctx context.Context, walletID string, tipHeight int) ([]Utxo, error)
@@ -93,11 +89,10 @@ type ClaimUTXO struct {
 
 // WalletClaim is one wallet's claimable pre-fork coins.
 type WalletClaim struct {
-	WalletID          string
-	WalletName        string
-	ClaimableSats     uint64
-	ReplayProtectable bool
-	UTXOs             []ClaimUTXO
+	WalletID      string
+	WalletName    string
+	ClaimableSats uint64
+	UTXOs         []ClaimUTXO
 }
 
 // ForkState is the canonical fork snapshot every consumer reads.
@@ -177,11 +172,8 @@ func (e *Engine) compute(ctx context.Context) (*ForkState, error) {
 	if tip.Blocks >= claimBoundary {
 		st.Claims = e.scan(ctx, claimBoundary, tip.Blocks)
 	}
-	// Only replay-protectable claims count as "funds to claim" — the enforcer
-	// wallet is detected but can't be swept, so it must not keep the claim card
-	// open (or the countdown suppressed) once everything claimable is gone.
 	for _, c := range st.Claims {
-		if c.ReplayProtectable && c.ClaimableSats > 0 {
+		if c.ClaimableSats > 0 {
 			st.HasFundsToClaim = true
 			break
 		}
@@ -243,11 +235,10 @@ func (e *Engine) scan(ctx context.Context, claimBoundary, tipHeight int) []Walle
 		}
 		if len(picks) > 0 {
 			claims = append(claims, WalletClaim{
-				WalletID:          w.ID,
-				WalletName:        w.Name,
-				ClaimableSats:     sum,
-				ReplayProtectable: w.ReplayProtectable,
-				UTXOs:             picks,
+				WalletID:      w.ID,
+				WalletName:    w.Name,
+				ClaimableSats: sum,
+				UTXOs:         picks,
 			})
 		}
 	}
