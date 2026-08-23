@@ -2018,6 +2018,14 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		if o.pendingSwap == nil || o.pendingSwap.network != n {
 			return nil
 		}
+		// A tail an eCash fork switch left owes more than the restart: the two
+		// records, the enforcer conf, the wallet scans and the caches.
+		if o.pendingSwap.fromECashID != "" {
+			o.mu.RLock()
+			toID := o.ecashID
+			o.mu.RUnlock()
+			return o.finishECashSwitch(o.pendingSwap.fromECashID, toID, o.pendingSwap.restartL1)
+		}
 		return o.finishNetworkSwap(n, o.pendingSwap.restartL1)
 	}
 	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)})
