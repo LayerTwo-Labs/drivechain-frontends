@@ -112,7 +112,11 @@ func (o *Orchestrator) RetargetECashEnforcerConf(previousID string) {
 // follows writes bitcoin.conf and starts binaries, and both read the id from
 // here, so a stale one boots the network the user just left.
 func (o *Orchestrator) AdoptECashID(id string) {
-	o.recordECashChain(id)
+	// Logged, not returned: the swap that follows writes the conf sentinel, and
+	// that sentinel names the network this install runs.
+	if err := o.recordECashChain(id); err != nil {
+		o.log.Warn().Err(err).Msg("could not record the eCash network this install runs")
+	}
 
 	o.mu.Lock()
 	cat := o.Catalog
@@ -243,8 +247,11 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 
 	config.SetECashNetworkID(toID)
 	// The blocks are on the new fork from here, and a swap to another network
-	// strips the conf sentinel that says so.
-	o.recordECashChain(toID)
+	// strips the conf sentinel that says so. A record that stays on the outgoing
+	// fork sends a later start after blocks this switch already moved.
+	if err := o.recordECashChain(toID); err != nil {
+		return err
+	}
 	if entry, ok := o.ecashEntry(toID); ok {
 		config.SetForkHeight(config.NetworkECash, entry.ForkHeight)
 		config.SetNetworkDisplayName(config.NetworkECash, entry.DisplayName)

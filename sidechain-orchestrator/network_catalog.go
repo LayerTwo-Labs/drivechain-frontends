@@ -232,7 +232,11 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 		o.log.Warn().Msg("network catalog carries no eCash network, eCash downloads will not resolve")
 	}
 
-	o.recordECashChain(id)
+	// Logged, not returned: a start moves no chain, and the conf sentinel the
+	// swap writes still names the network this install runs.
+	if err := o.recordECashChain(id); err != nil {
+		o.log.Warn().Err(err).Msg("could not record the eCash network this install runs")
+	}
 	o.adoptCatalogRows(c, id)
 
 	o.mu.RLock()
@@ -270,13 +274,14 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 
 // recordECashChain persists the network this install serves, so a start off
 // eCash still knows which fork the blocks belong to.
-func (o *Orchestrator) recordECashChain(id string) {
+func (o *Orchestrator) recordECashChain(id string) error {
 	if id == "" || o.Settings == nil {
-		return
+		return nil
 	}
 	if err := o.Settings.SetECashChainID(id); err != nil {
-		o.log.Warn().Err(err).Str("network", id).Msg("could not record the eCash network this install runs")
+		return fmt.Errorf("record the eCash chain %s: %w", id, err)
 	}
+	return nil
 }
 
 // adoptCatalogRows takes a document in memory: the picker rows, their endpoints

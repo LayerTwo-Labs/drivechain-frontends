@@ -111,6 +111,23 @@ func TestApplyECashSwitchRecordsTheChainItMovedTo(t *testing.T) {
 		"a document that lists neither network must not send the boot back")
 }
 
+// A record that cannot be written is a failed switch, not a warning. Reporting
+// success would leave the record on the outgoing fork, which is the state this
+// record exists to rule out.
+func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+
+	// A file where the settings directory belongs, so every write refuses.
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
+	o.Settings.bitwindowDir = blocked
+
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
