@@ -2029,16 +2029,10 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		return o.finishNetworkSwap(n, o.pendingSwap.restartL1)
 	}
 	// A tail an eCash switch left must not outlive the swap that replaces it:
-	// the record still names the outgoing fork, and this swap strips the conf
-	// sentinel that says otherwise. The tail itself stays until the replacement
-	// below takes its place, so an error on the way there keeps the restart.
-	if o.pendingSwap != nil && o.pendingSwap.fromECashID != "" {
-		o.mu.RLock()
-		toID := o.ecashID
-		o.mu.RUnlock()
-		if err := o.recordECashSwitch(o.pendingSwap.fromECashID, toID); err != nil {
-			return err
-		}
+	// its records still name the outgoing fork, and this swap strips the conf
+	// sentinel that says otherwise.
+	if err := o.drainECashTail(); err != nil {
+		return err
 	}
 
 	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)})

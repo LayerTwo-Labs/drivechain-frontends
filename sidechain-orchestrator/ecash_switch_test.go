@@ -266,6 +266,30 @@ func TestASecondSwitchTakesOverTheRestart(t *testing.T) {
 	require.True(t, o.pendingSwap.restartL1, "the first tail's restart must ride on")
 }
 
+// Every path in a second switch can consume the note the first one left, and
+// the abort path restarts the stack. The first switch's records land first, or
+// that stack comes back up with the record naming the fork it left.
+func TestASecondSwitchLandsTheFirstRecords(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(ecashCatalog(), "alphanet")
+	// What a switch to alphanet leaves when its records refuse to write.
+	require.NoError(t, o.Settings.SetECashChainID("drynet4"))
+	o.pendingSwap = &pendingNetworkSwap{
+		network:     config.NetworkECash,
+		restartL1:   true,
+		fromECashID: "drynet4",
+	}
+
+	// The catalog lists no betanet, so this switch fails before it commits.
+	require.Error(t, o.ApplyECashSwitch(context.Background(), "betanet"))
+
+	require.Equal(t, "alphanet", o.Settings.ECashChainID(),
+		"the first switch's record must land before the second one runs")
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
