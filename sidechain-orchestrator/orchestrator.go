@@ -2087,6 +2087,9 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 type pendingNetworkSwap struct {
 	network   config.Network
 	restartL1 bool
+	// fromECashID is the network an eCash switch left. The retry rewrites the
+	// enforcer conf with it, which is where the retired endpoint still sits.
+	fromECashID string
 }
 
 // finishNetworkSwap rebinds wallet state and restarts L1. Everything here is

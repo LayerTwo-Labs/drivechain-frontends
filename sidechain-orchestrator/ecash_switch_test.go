@@ -120,6 +120,7 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 
+	require.NoError(t, o.EnforcerConf.WriteConfig("network-preset=drynet4"))
 	// The enforcer cleanup this switch journals is already recorded, so it
 	// writes nothing and the chain record is the first write to refuse.
 	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
@@ -135,6 +136,8 @@ func TestApplyECashSwitchFailsWhenTheChainRecordCannotBeWritten(t *testing.T) {
 	o.Settings.bitwindowDir = t.TempDir()
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 	require.Equal(t, "alphanet", o.Settings.ECashChainID())
+	require.Equal(t, "alphanet", o.EnforcerConf.Config.GetSetting("network-preset"),
+		"the retry owes the whole tail, not the records alone")
 	require.Nil(t, o.pendingSwap, "the resumed switch leaves nothing behind")
 }
 
