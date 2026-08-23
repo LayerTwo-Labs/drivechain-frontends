@@ -242,6 +242,9 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	o.mu.Unlock()
 
 	config.SetECashNetworkID(toID)
+	// The blocks are on the new fork from here, and a swap to another network
+	// strips the conf sentinel that says so.
+	o.recordECashChain(toID)
 	if entry, ok := o.ecashEntry(toID); ok {
 		config.SetForkHeight(config.NetworkECash, entry.ForkHeight)
 		config.SetNetworkDisplayName(config.NetworkECash, entry.DisplayName)
