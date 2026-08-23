@@ -218,6 +218,27 @@ func TestSwapCarriesTheRestartTheDrainedTailOwed(t *testing.T) {
 	require.True(t, o.pendingSwap.restartL1, "the drained restart must ride on")
 }
 
+// A swap that never commits must leave the tail it drained records from. The
+// stack is down, and that tail is the only thing that says it owes a restart.
+func TestARefusedSwapKeepsTheECashTail(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "alphanet")
+	o.pendingSwap = &pendingNetworkSwap{
+		network:     config.NetworkECash,
+		restartL1:   true,
+		fromECashID: "drynet4",
+	}
+
+	// Mainnet has no datadir here, so the swap refuses before it commits.
+	require.Error(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+
+	require.NotNil(t, o.pendingSwap, "the tail must outlive a swap that never lands")
+	require.True(t, o.pendingSwap.restartL1)
+	require.Equal(t, "drynet4", o.pendingSwap.fromECashID)
+}
+
 // A Core that is down cannot rewind, and nothing is recorded for later. The
 // chain stays as it is: every block below the fork is shared either way.
 func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
