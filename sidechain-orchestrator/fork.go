@@ -127,11 +127,8 @@ func (s *forkWalletScanner) Wallets() []fork.WalletMeta {
 	if s.o.WalletSvc == nil {
 		return nil
 	}
-	// Watch-only has no key, so it can't be swept. Core and enforcer
-	// wallets both hold spendable L1 BTC, but only Core claims can be
-	// replay-protected (the custom-serialized tx path is Core-only).
 	return lo.FilterMap(s.o.WalletSvc.GetAllWallets(), func(w wallet.WalletData, _ int) (fork.WalletMeta, bool) {
-		if w.IsWatchOnly() {
+		if !forkScannable(w) {
 			return fork.WalletMeta{}, false
 		}
 		return fork.WalletMeta{
@@ -140,6 +137,21 @@ func (s *forkWalletScanner) Wallets() []fork.WalletMeta {
 			ReplayProtectable: true,
 		}, true
 	})
+}
+
+// forkScannable reports whether a wallet's coins can reach a claim. A
+// single-sig watch-only wallet holds no key, so its coins can never move. A
+// multisig wallet always can: its split leaves as a PSBT, and the cosigners
+// sign it on a device or elsewhere.
+func forkScannable(w wallet.WalletData) bool {
+	return !w.IsWatchOnly() || w.Multisig != nil
+}
+
+// forkSpendable reports whether a coin can still move. A watch-only scan of a
+// multisig wallet marks every coin unspendable, but a psbt its cosigners sign
+// moves it, so the claim keeps it.
+func forkSpendable(spendable, multisig bool) bool {
+	return spendable || multisig
 }
 
 func (s *forkWalletScanner) Unspent(ctx context.Context, walletID string, tipHeight int) ([]fork.Utxo, error) {
@@ -156,6 +168,12 @@ func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, ti
 	if err != nil {
 		return nil, err
 	}
+	multisig := false
+	if s.o.WalletSvc != nil {
+		if w := s.o.WalletSvc.GetWalletByID(walletID); w != nil {
+			multisig = w.Multisig != nil
+		}
+	}
 	return lo.Map(coreUTXOs, func(u wallet.UTXO, _ int) fork.Utxo {
 		height := 0
 		if u.Confirmations > 0 {
@@ -167,7 +185,7 @@ func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, ti
 			Label:     u.Label,
 			Sats:      fork.BTCToSats(u.Amount),
 			Height:    height,
-			Spendable: u.Spendable,
+			Spendable: forkSpendable(u.Spendable, multisig),
 		}
 	}), nil
 }
