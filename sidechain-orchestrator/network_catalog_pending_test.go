@@ -164,16 +164,33 @@ func TestStartOffECashKeepsTheRecordedChain(t *testing.T) {
 	require.Equal(t, "drynet2", config.ECashNetworkID())
 }
 
-// A fresh install holds no chain, so it takes the published network at once
-// rather than starting on the compiled-in one and asking to move.
-func TestFreshInstallTakesThePublishedNetwork(t *testing.T) {
+// The document is fetched, so the endpoint can be slow or down. A start takes
+// the compiled-in document at once and never waits for the answer.
+func TestAStartNeverWaitsOnTheEndpoint(t *testing.T) {
 	o := newTestOrchestrator(t)
-	publish(t, o, catalogWithECash(t, "drynet7"))
+	held := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+		<-held
+	}))
+	t.Cleanup(func() {
+		close(held)
+		srv.Close()
+	})
+	o.catalogURL = srv.URL
 
-	o.ResolveNetworkCatalog(context.Background())
+	done := make(chan struct{})
+	go func() {
+		o.ResolveNetworkCatalog(context.Background())
+		close(done)
+	}()
 
-	require.Equal(t, "drynet7", config.ECashNetworkID())
-	require.Empty(t, o.PendingECashUpgrade().ID, "a fresh install has nothing to confirm")
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("a start must not wait on the catalog endpoint")
+	}
+	require.Equal(t, netcatalog.EmbeddedECashID(), config.ECashNetworkID(),
+		"the compiled-in document carries the start")
 }
 
 // Confirming is the one moment a live Core can rewind to the fork, so the
