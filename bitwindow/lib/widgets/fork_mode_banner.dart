@@ -58,7 +58,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       final selected = _selected.putIfAbsent(claim.walletId, () => {});
       final selectable = <String>{};
       for (final u in claim.utxos) {
-        if (ForkProvider.isSelectable(u)) {
+        if (widget.fork.canSelect(claim, u)) {
           selectable.add(u.output);
           if (seen.add(u.output)) {
             selected.add(u.output);
@@ -109,7 +109,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     _syncSelection();
     final selectedSats = _selectedSats;
     // A wallet with no selectable coin gets no picker — it offers no action.
-    final claims = widget.fork.sweepableClaims.where((c) => ForkProvider.defaultClaimInputs(c).isNotEmpty).toList();
+    final claims = widget.fork.sweepableClaims.where((c) => widget.fork.selectableInputs(c).isNotEmpty).toList();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -142,9 +142,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                       const SizedBox(height: 8),
                       if (_selectionValid)
                         SailButton(
-                          label: claims.length > 1
-                              ? 'Split ${formatter.formatSats(selectedSats)} from all wallets'
-                              : 'Split ${formatter.formatSats(selectedSats)}',
+                          label: _buttonLabel(formatter, selectedSats, claims),
                           icon: SailSVGAsset.iconCoins,
                           onPressed: () => _claim(context),
                         ),
@@ -159,6 +157,19 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
         ),
       ),
     );
+  }
+
+  /// A multisig split ends in a PSBT its cosigners still have to sign, so the
+  /// button never promises a finished split.
+  String _buttonLabel(FormatterProvider formatter, int selectedSats, List<WalletClaim> claims) {
+    final selectedClaims = claims.where((c) => (_selected[c.walletId] ?? {}).isNotEmpty).toList();
+    if (ForkProvider.splitNeedsSignatures(selectedClaims)) {
+      return 'Create split transaction';
+    }
+    if (claims.length > 1) {
+      return 'Split ${formatter.formatSats(selectedSats)} from all wallets';
+    }
+    return 'Split ${formatter.formatSats(selectedSats)}';
   }
 
   Widget _coinPicker(BuildContext context, WalletClaim claim, FormatterProvider formatter) {
@@ -187,7 +198,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
             ),
             const SizedBox(height: 8),
             ...claim.utxos.map((u) {
-              final selectable = ForkProvider.isSelectable(u);
+              final selectable = widget.fork.canSelect(claim, u);
               final isSelected = selected.contains(u.output);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -242,10 +253,28 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                 SailText.primary13(formatter.formatSats(selectedClaimSats), bold: true, monospace: true),
               ],
             ),
+            if (claim.isMultisig) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  SailText.secondary13('Signatures'),
+                  const Spacer(),
+                  SailText.primary13(
+                    '${claim.multisig!.m} of ${claim.multisig!.n} keys',
+                    bold: true,
+                    monospace: true,
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             SailText.secondary12('SENDS JUST ECX TO'),
             const SizedBox(height: 2),
-            SailText.secondary13('A fresh address in ${claim.walletName}'),
+            SailText.secondary13(
+              claim.isMultisig
+                  ? 'A fresh address in ${claim.walletName} · ${claim.multisig!.m}-of-${claim.multisig!.n} multisig'
+                  : 'A fresh address in ${claim.walletName}',
+            ),
           ],
         ),
       ),
@@ -265,10 +294,12 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
   }
 
   Widget _whyThisIsNecessary() {
-    const paragraphs = [
+    final paragraphs = [
       'You have coins on both BTC and ECX. We recommend splitting your coins to not lose any ECX or BTC you currently own.',
       'By default, a transaction valid on bitcoin is also valid on eCash. Therefore, by spending your bitcoin, you will make that same transaction on eCash. If you do not control the receiving eCash wallet, you will lose your eCash.',
       'Claiming sweeps the selected coins to a fresh address in the same wallet.',
+      if (widget.fork.sweepableClaims.any((c) => c.isMultisig))
+        'A multisig wallet holds some of these coins. BitWindow builds a PSBT instead of a finished transaction, and nothing is broadcast until the cosigners sign it on the send tab.',
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,15 +320,28 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     // Snapshot the plan first — claim() refetches and replaces the claims,
     // so one wallet's failure must not misreport the wallets already swept.
     final planned = widget.fork.sweepableClaims
-        .map((c) => (walletId: c.walletId, outpoints: Set<String>.of(_selected[c.walletId] ?? {})))
+        .map(
+          (c) => (
+            walletId: c.walletId,
+            multisig: c.isMultisig,
+            outpoints: Set<String>.of(_selected[c.walletId] ?? {}),
+          ),
+        )
         .where((p) => p.outpoints.isNotEmpty)
         .toList();
 
-    final txids = <String>[];
+    var broadcast = 0;
+    var drafted = 0;
     Object? firstError;
     for (final p in planned) {
       try {
-        txids.add(await widget.fork.claim(p.walletId, outpoints: p.outpoints));
+        if (p.multisig) {
+          await widget.fork.createSplitDraft(p.walletId, outpoints: p.outpoints);
+          drafted++;
+        } else {
+          await widget.fork.claim(p.walletId, outpoints: p.outpoints);
+          broadcast++;
+        }
       } catch (e) {
         firstError ??= e;
       }
@@ -305,14 +349,31 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     if (!context.mounted) {
       return;
     }
-    if (firstError == null) {
-      showSailToast(context, 'Claimed eCash in ${txids.length} transaction(s).');
-    } else {
+    if (firstError != null) {
       showSailToast(
         context,
-        'Claimed ${txids.length} of ${planned.length} wallet(s). First error: $firstError',
+        'Claimed ${broadcast + drafted} of ${planned.length} wallet(s). First error: $firstError',
         duration: const Duration(seconds: 5),
       );
+      return;
     }
+    if (drafted > 0 && broadcast == 0) {
+      showSailToast(
+        context,
+        'Split transaction created. Sign it on the send tab.',
+        duration: const Duration(seconds: 5),
+      );
+      return;
+    }
+    if (drafted > 0) {
+      showSailToast(
+        context,
+        'Claimed eCash in $broadcast transaction(s). '
+        '$drafted split transaction(s) wait for signatures on the send tab.',
+        duration: const Duration(seconds: 5),
+      );
+      return;
+    }
+    showSailToast(context, 'Claimed eCash in $broadcast transaction(s).');
   }
 }
