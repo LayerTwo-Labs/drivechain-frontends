@@ -210,6 +210,20 @@ func (o *Orchestrator) recordECashSwitch(fromID, toID string) error {
 	return nil
 }
 
+// drainECashTail lands the records a previous eCash switch left. The note itself
+// stays: it is what says the stack owes a restart.
+//
+// Call it with swapNetworkMu held.
+func (o *Orchestrator) drainECashTail() error {
+	if o.pendingSwap == nil || o.pendingSwap.fromECashID == "" {
+		return nil
+	}
+	o.mu.RLock()
+	toID := o.ecashID
+	o.mu.RUnlock()
+	return o.recordECashSwitch(o.pendingSwap.fromECashID, toID)
+}
+
 // pendingECashSwap reports whether a switch left work for a retry to finish.
 func (o *Orchestrator) pendingECashSwap() bool {
 	o.swapNetworkMu.Lock()
@@ -227,6 +241,12 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	// first just moved to.
 	o.swapNetworkMu.Lock()
 	defer o.swapNetworkMu.Unlock()
+
+	// A tail an earlier switch left lands first. Its records still name the fork
+	// that switch moved from, and every path below can consume the note.
+	if err := o.drainECashTail(); err != nil {
+		return err
+	}
 
 	plan, err := o.PlanECashSwitch(toID)
 	if err != nil {
