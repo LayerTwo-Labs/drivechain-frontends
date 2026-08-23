@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 type stubChainTip struct {
@@ -99,4 +101,29 @@ func TestChainSourceHeightResetsOnANetworkSwap(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, got)
 	require.Equal(t, 2, tip.calls)
+}
+
+// A multisig wallet whose cosigners all sign elsewhere still reaches a claim:
+// the split leaves as a PSBT for those signers.
+func TestForkScannableWallets(t *testing.T) {
+	held := wallet.WalletData{Master: wallet.MasterWallet{}}
+	require.True(t, forkScannable(held), "a wallet with a seed holds a key")
+
+	watchOnly := wallet.WalletData{WatchOnly: []byte(`{"xpub":"xpub661"}`)}
+	require.False(t, forkScannable(watchOnly), "a watch-only wallet can never sign")
+
+	externalMultisig := wallet.WalletData{
+		Multisig: &wallet.MultisigWalletData{
+			M: 2, N: 3,
+			Cosigners: []wallet.MultisigCosigner{{Xpub: "xpub1"}, {Xpub: "xpub2"}, {Xpub: "xpub3"}},
+		},
+	}
+	require.True(t, externalMultisig.IsWatchOnly())
+	require.True(t, forkScannable(externalMultisig), "the cosigners sign the psbt elsewhere")
+}
+
+func TestForkSpendableCoins(t *testing.T) {
+	require.True(t, forkSpendable(true, false), "a wallet key signs it")
+	require.False(t, forkSpendable(false, false), "no key, no signature")
+	require.True(t, forkSpendable(false, true), "the cosigners sign the psbt")
 }
