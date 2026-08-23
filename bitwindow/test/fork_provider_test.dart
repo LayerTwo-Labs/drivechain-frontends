@@ -2,6 +2,7 @@ import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
 bwpb.UnspentOutput utxo(String output, {bool? splittable}) {
   final u = bwpb.UnspentOutput(output: output, valueSats: Int64(100));
@@ -11,15 +12,18 @@ bwpb.UnspentOutput utxo(String output, {bool? splittable}) {
   return u;
 }
 
-WalletClaim claimWith(List<bwpb.UnspentOutput> utxos) {
+WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multisig}) {
   return WalletClaim(
     walletId: 'w1',
     walletName: 'Main wallet',
     claimableSats: 300,
     replayProtectable: true,
+    multisig: multisig,
     utxos: utxos,
   );
 }
+
+wmpb.MultisigInfo policy(int m, int n) => wmpb.MultisigInfo(m: m, n: n);
 
 void main() {
   test('a coin with unknown BTC status stays selectable', () {
@@ -65,5 +69,108 @@ void main() {
       claimWith([utxo('aa:0', splittable: false), utxo('bb:1')]),
     ];
     expect(provider.hasSelectableCoins, isTrue);
+  });
+
+  test('a claim without a policy is single-sig', () {
+    expect(claimWith([utxo('aa:0')]).isMultisig, isFalse);
+  });
+
+  test('a claim with a policy needs cosigner signatures', () {
+    final claim = claimWith([utxo('aa:0')], multisig: policy(2, 3));
+    expect(claim.isMultisig, isTrue);
+    expect(claim.multisig!.m, 2);
+    expect(claim.multisig!.n, 3);
+  });
+
+  test('a split needs signatures only when every selected claim is multisig', () {
+    final single = claimWith([utxo('aa:0')]);
+    final multi = claimWith([utxo('bb:0')], multisig: policy(2, 3));
+    expect(ForkProvider.splitNeedsSignatures([multi]), isTrue);
+    expect(ForkProvider.splitNeedsSignatures([multi, single]), isFalse);
+    expect(ForkProvider.splitNeedsSignatures([single]), isFalse);
+  });
+
+  test('an empty selection never needs signatures', () {
+    expect(ForkProvider.splitNeedsSignatures([]), isFalse);
+  });
+
+  test('a coin inside a pending split draft leaves the selection', () {
+    final provider = ForkProvider();
+    final claim = claimWith([utxo('aa:0'), utxo('bb:1')], multisig: policy(2, 3));
+    provider.claims = [claim];
+    expect(provider.selectableInputs(claim).length, 2);
+
+    provider.pendingSplits = [
+      PendingSplit(walletId: 'w1', draftId: 'd1', outpoints: {'aa:0'}),
+    ];
+    expect(provider.canSelect(claim, utxo('aa:0')), isFalse);
+    expect(provider.selectableInputs(claim).map((u) => u.output), ['bb:1']);
+  });
+
+  test('a wallet whose coins all wait for signatures offers no claim', () {
+    final provider = ForkProvider();
+    provider.claims = [
+      claimWith([utxo('aa:0')], multisig: policy(2, 3)),
+    ];
+    expect(provider.hasSelectableCoins, isTrue);
+
+    provider.pendingSplits = [
+      PendingSplit(walletId: 'w1', draftId: 'd1', outpoints: {'aa:0'}),
+    ];
+    expect(provider.hasSelectableCoins, isFalse);
+  });
+
+  test('a live draft keeps holding the coins it spends', () {
+    final pending = [
+      PendingSplit(walletId: 'w1', draftId: 'd1', outpoints: {'aa:0'}),
+    ];
+    expect(ForkProvider.keepLivePendingSplits(pending, {'d1'}, {}, {'d1'}).length, 1);
+  });
+
+  test('a discarded draft releases the coins it held', () {
+    final pending = [
+      PendingSplit(walletId: 'w1', draftId: 'd1', outpoints: {'aa:0'}),
+    ];
+    expect(ForkProvider.keepLivePendingSplits(pending, {}, {}, {'d1'}), isEmpty);
+  });
+
+  test('a wallet that answers nothing keeps its coins held', () {
+    final pending = [
+      PendingSplit(walletId: 'w2', draftId: 'd2', outpoints: {'bb:1'}),
+    ];
+    expect(ForkProvider.keepLivePendingSplits(pending, {}, {'w2'}, {'d2'}).length, 1);
+  });
+
+  test('a wallet with unread drafts offers no coin', () {
+    final provider = ForkProvider();
+    final claim = claimWith([utxo('aa:0')], multisig: policy(2, 3));
+    provider.claims = [claim];
+    expect(provider.hasSelectableCoins, isTrue);
+
+    provider.walletsWithUnreadDrafts = {'w1'};
+    expect(provider.canSelect(claim, utxo('aa:0')), isFalse);
+    expect(provider.hasSelectableCoins, isFalse);
+  });
+
+  test('a claim whose wallet record is missing offers no sweep', () {
+    final provider = ForkProvider();
+    provider.claims = [
+      WalletClaim(
+        walletId: 'w1',
+        walletName: 'Main wallet',
+        claimableSats: 300,
+        replayProtectable: true,
+        walletResolved: false,
+        utxos: [utxo('aa:0')],
+      ),
+    ];
+    expect(provider.sweepableClaims, isEmpty);
+  });
+
+  test('a split saved while the read ran keeps its coins', () {
+    final pending = [
+      PendingSplit(walletId: 'w1', draftId: 'new', outpoints: {'aa:0'}),
+    ];
+    expect(ForkProvider.keepLivePendingSplits(pending, {}, {}, {}).length, 1);
   });
 }
