@@ -8,7 +8,6 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,34 +36,8 @@ func catalogWithECash(t *testing.T, id string) netcatalog.Catalog {
 	return c
 }
 
-// The cache must always describe the data on disk. A promotion that cannot
-// wipe has to leave both the cache and the served generation alone, or the
-// next start trusts a rollover that never happened.
-func TestPendingNotPromotedWhenWipeCannotRun(t *testing.T) {
-	dir := t.TempDir()
-	current := catalogWithECash(t, "drynet2")
-	pending := catalogWithECash(t, "drynet3")
-	if err := netcatalog.SavePending(dir, pending); err != nil {
-		t.Fatal(err)
-	}
-
-	// No BitcoinConf, so the wipe cannot run.
-	o := &Orchestrator{BitwindowDir: dir, log: zerolog.Nop()}
-	got := o.promotePendingCatalog(context.Background(), current, pending, true)
-
-	if got.ECashID() != "drynet2" {
-		t.Errorf("served generation = %q, want the unchanged drynet2", got.ECashID())
-	}
-	if _, ok := netcatalog.LoadPending(dir); !ok {
-		t.Error("pending catalog must survive so the next start retries")
-	}
-	if cached, fromDisk := netcatalog.Load(dir); fromDisk && cached.ECashID() == "drynet3" {
-		t.Error("cache must not record a generation whose data was never wiped")
-	}
-}
-
-// ecashOnPendingNetwork puts a eCash install on drynet2 with drynet3
-// published but not applied.
+// ecashOnPendingNetwork puts a eCash install on drynet2 with a published
+// document that leads with drynet3 and keeps the drynet2 row.
 func ecashOnPendingNetwork(t *testing.T) *Orchestrator {
 	t.Helper()
 	o := newTestOrchestrator(t)
@@ -76,8 +49,9 @@ func ecashOnPendingNetwork(t *testing.T) *Orchestrator {
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
 	// Don't let the unmanaged-Core guard find a real node on this machine.
 	o.coreReachable = func() bool { return false }
-	require.NoError(t, netcatalog.Save(o.BitwindowDir, catalogWithECash(t, "drynet2")))
-	require.NoError(t, netcatalog.SavePending(o.BitwindowDir, catalogWithECash(t, "drynet3")))
+	o.adoptCatalog(catalogWithECash(t, "drynet2"), "drynet2")
+	require.Equal(t, "drynet2", o.installedECashNetwork())
+	require.NoError(t, netcatalog.Save(o.BitwindowDir, catalogWithECashRows(t, "drynet3", "drynet2")))
 	return o
 }
 
@@ -90,8 +64,50 @@ func TestNewGenerationIsNotAppliedWithoutConsent(t *testing.T) {
 
 	require.Equal(t, "drynet2", config.ECashNetworkID())
 	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID, "the upgrade prompt must still see it")
-	_, stillPending := netcatalog.LoadPending(o.BitwindowDir)
-	require.True(t, stillPending, "pending file must survive so the prompt persists")
+}
+
+// The picker draws the adopted document, so a start that holds the published
+// one back leaves the user no row to switch to.
+func TestPublishedNetworkReachesThePicker(t *testing.T) {
+	o := ecashOnPendingNetwork(t)
+
+	o.ResolveNetworkCatalog(context.Background())
+
+	var ids []string
+	for _, n := range o.ListNetworks() {
+		ids = append(ids, n.ID)
+	}
+	require.Contains(t, ids, "drynet3", "the published network must be listed")
+	require.Contains(t, ids, "drynet2", "the network this install runs must stay listed")
+	require.Equal(t, "drynet2", config.ECashNetworkID(), "the chain stays where it is")
+}
+
+// The published document drops a network once it retires, and its backends are
+// the only ones that reach the blocks this install holds.
+func TestRefreshKeepsTheRowThisInstallRuns(t *testing.T) {
+	current := catalogWithECashRows(t, "drynet2", "drynet3")
+	fetched := catalogWithECash(t, "drynet4")
+
+	next := retainRunningECash(fetched, current, "drynet3")
+
+	require.Equal(t, "drynet4", next.ECashID(), "the published network still leads")
+	kept, ok := next.ByID("drynet3")
+	require.True(t, ok, "the row this install runs must survive the refresh")
+	require.Equal(t, "https://esplora.drynet3.example", kept.BackendURL("esplora"))
+}
+
+// A swap to another network strips the conf sentinel. Without the record, the
+// next start reads the published document as the chain on disk.
+func TestStartOffECashKeepsTheRecordedChain(t *testing.T) {
+	o := ecashOnPendingNetwork(t)
+	o.ResolveNetworkCatalog(context.Background())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+	require.Empty(t, o.installedECashNetwork(), "the swap strips the eCash sentinel")
+
+	o.ResolveNetworkCatalog(context.Background())
+
+	require.Equal(t, "drynet2", config.ECashNetworkID())
+	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID)
 }
 
 // Confirming is the one moment a live Core can rewind to the fork, so the
@@ -102,11 +118,7 @@ func TestConfirmMovesTheChainOnTheSpot(t *testing.T) {
 
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
-	cached, fromDisk := netcatalog.Load(o.BitwindowDir)
-	require.True(t, fromDisk)
-	require.Equal(t, "drynet3", cached.ECashID())
-	_, stillPending := netcatalog.LoadPending(o.BitwindowDir)
-	require.False(t, stillPending, "the prompt must clear once confirmed")
+	require.Empty(t, o.PendingECashUpgrade().ID, "the prompt must clear once confirmed")
 	require.Equal(t, "drynet3", config.ECashNetworkID(), "this process moves onto the confirmed network")
 	require.Equal(t, "ecash-drynet3", o.BitcoinConf.Config.GetEffectiveSetting("uacomment", "main"))
 }
@@ -156,8 +168,8 @@ func TestConfirmRefusedForAUserManagedConf(t *testing.T) {
 	require.True(t, o.PendingECashUpgrade().UserManagedConf)
 	require.Error(t, o.ConfirmPendingECashNetwork(context.Background()))
 
-	_, stillPending := netcatalog.LoadPending(o.BitwindowDir)
-	require.True(t, stillPending, "the prompt must persist so they know the chain is retired")
+	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID,
+		"the prompt must persist so they know the chain is retired")
 }
 
 // Entering eCash must not silently switch generation: the retired chain is
@@ -171,19 +183,6 @@ func TestSwappingToECashKeepsTheGenerationPrompt(t *testing.T) {
 
 	require.Equal(t, "drynet2", config.ECashNetworkID())
 	require.Equal(t, "drynet3", o.PendingECashUpgrade().ID)
-}
-
-// An unchanged generation clears any stale pending file rather than leaving it
-// to be re-applied forever.
-func TestPromotionIsANoOpForTheSameGeneration(t *testing.T) {
-	dir := t.TempDir()
-	same := catalogWithECash(t, "drynet2")
-
-	o := &Orchestrator{BitwindowDir: dir, log: zerolog.Nop()}
-	got := o.promotePendingCatalog(context.Background(), same, same, true)
-	if got.ECashID() != "drynet2" {
-		t.Errorf("generation = %q, want drynet2", got.ECashID())
-	}
 }
 
 // Core is per-chain and every variant shares one path, so a build left by the

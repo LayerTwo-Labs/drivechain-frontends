@@ -101,15 +101,14 @@ func TestConfirmMovesTheChainToMatchTheConf(t *testing.T) {
 	require.NoError(t, err, "the blocks below the fork must survive the switch")
 }
 
-// The published network lives only in the pending document until a confirm
-// promotes it. A plan that reads the served catalog alone cannot price the
-// move, and the dialog then names a resync the switch never does.
-func TestPlanReadsANetworkFromThePendingCatalog(t *testing.T) {
+// A start adopts the newest document, so a process that started before the
+// refresh serves an older one. A plan that reads the served catalog alone
+// cannot price the move, and the dialog then names a resync the switch never does.
+func TestPlanReadsANetworkFromTheNewestDocument(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
 
 	_, served := o.Catalog.ByID("drynet3")
-	require.False(t, served, "drynet3 must still be pending only")
+	require.False(t, served, "this process still serves the document it started with")
 
 	plan, err := o.PlanECashSwitch("drynet3")
 	require.NoError(t, err)

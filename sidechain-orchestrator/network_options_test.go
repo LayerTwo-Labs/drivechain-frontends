@@ -58,14 +58,14 @@ func TestSelectECashNetworkPinsTheID(t *testing.T) {
 		{ID: "drynet4", Family: netcatalog.FamilyECash, ForkHeight: 961632},
 	}}
 	o.adoptCatalog(cat, "alphanet")
-	require.Equal(t, "alphanet", o.SelectedECashID(cat))
+	require.Equal(t, "alphanet", o.RunningECashID(cat))
 
 	require.NoError(t, o.SelectECashNetwork("drynet4"))
-	require.Equal(t, "drynet4", o.SelectedECashID(cat))
+	require.Equal(t, "drynet4", o.RunningECashID(cat))
 
 	// A bare slot name is not an id, so it must leave the pick alone.
 	require.NoError(t, o.SelectECashNetwork("ecash"))
-	require.Equal(t, "drynet4", o.SelectedECashID(cat))
+	require.Equal(t, "drynet4", o.RunningECashID(cat))
 }
 
 // A pinned network the catalog drops is gone, so the boot has to fall back
@@ -82,7 +82,7 @@ func TestSelectedECashIDFallsBackWhenTheCatalogDropsIt(t *testing.T) {
 	trimmed := netcatalog.Catalog{Networks: []netcatalog.Network{
 		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
 	}}
-	require.Equal(t, "alphanet", o.SelectedECashID(trimmed))
+	require.Equal(t, "alphanet", o.RunningECashID(trimmed))
 }
 
 // The refresh reports what appeared, so the app can name the network in the
@@ -194,7 +194,7 @@ func TestRunningECashIDKeepsTheNetworkTheConfNames(t *testing.T) {
 	require.Equal(t, "drynet4", o.installedECashNetwork())
 
 	require.Equal(t, "drynet4", o.RunningECashID(retiredFirst))
-	require.Equal(t, "drynet2", o.SelectedECashID(retiredFirst), "the document still resolves to its first row")
+	require.Equal(t, "drynet2", retiredFirst.ECashID(), "the document still resolves to its first row")
 }
 
 // The user's pick is the last word, so it outranks the conf the previous

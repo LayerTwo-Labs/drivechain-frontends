@@ -87,7 +87,7 @@ func TestApplyECashSwitchRewritesTheConfSentinel(t *testing.T) {
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 
 	require.Equal(t, "alphanet", o.installedECashNetwork())
-	require.Equal(t, "alphanet", o.SelectedECashID(ecashCatalog()))
+	require.Equal(t, "alphanet", o.RunningECashID(ecashCatalog()))
 	require.Equal(t, "alphanet", config.ECashNetworkID())
 }
 
@@ -143,7 +143,7 @@ func TestConfirmPendingECashNetworkRepinsTheSelection(t *testing.T) {
 
 	cached, _ := netcatalog.Load(o.BitwindowDir)
 	require.Equal(t, "drynet3", cached.ECashID())
-	require.Equal(t, "drynet3", o.SelectedECashID(cached), "the pick must move with the confirmation")
+	require.Equal(t, "drynet3", o.RunningECashID(cached), "the pick must move with the confirmation")
 }
 
 // The pending catalog is the one that names the confirmed network, and the
@@ -362,7 +362,7 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 	require.Equal(t, []string{"invalidateblock"}, marks(core))
 	require.Equal(t, []string{"bitcoind"}, stopped, "core stops only after the rewind reads it")
 	require.Equal(t, "alphanet", o.installedECashNetwork())
-	require.Equal(t, "alphanet", o.SelectedECashID(ecashCatalog()))
+	require.Equal(t, "alphanet", o.RunningECashID(ecashCatalog()))
 	require.Equal(t, forkBlock, o.Settings.RewoundBlockHash())
 	require.Nil(t, o.pendingSwap, "a tail that lands leaves nothing pending")
 }

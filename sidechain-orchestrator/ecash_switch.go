@@ -75,8 +75,8 @@ func (o *Orchestrator) PlanECashSwitch(toID string) (ECashSwitchPlan, error) {
 }
 
 // ecashEntry finds a published eCash network by id: the catalog this process
-// serves, then the pending document a refresh left. A confirmed upgrade targets
-// a network the served catalog does not list yet.
+// serves, then the newest document on disk. A confirmed upgrade targets a
+// network the served catalog does not list yet.
 func (o *Orchestrator) ecashEntry(id string) (netcatalog.Network, bool) {
 	o.mu.RLock()
 	cat := o.Catalog
@@ -84,10 +84,8 @@ func (o *Orchestrator) ecashEntry(id string) (netcatalog.Network, bool) {
 	if n, ok := cat.ByID(id); ok {
 		return n, true
 	}
-	if pending, ok := netcatalog.LoadPending(o.BitwindowDir); ok {
-		return pending.ByID(id)
-	}
-	return netcatalog.Network{}, false
+	published, _ := netcatalog.Load(o.BitwindowDir)
+	return published.ByID(id)
 }
 
 // RetargetECashEnforcerConf moves a persisted enforcer preset onto the eCash
@@ -119,6 +117,8 @@ func (o *Orchestrator) RetargetECashEnforcerConf(previousID string) {
 // follows writes bitcoin.conf and starts binaries, and both read the id from
 // here, so a stale one boots the network the user just left.
 func (o *Orchestrator) AdoptECashID(id string) {
+	o.recordECashChain(id)
+
 	o.mu.Lock()
 	cat := o.Catalog
 	o.ecashID = id

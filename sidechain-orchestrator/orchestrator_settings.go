@@ -22,6 +22,10 @@ type OrchestratorSettings struct {
 	// ("alphanet"). Empty means "whichever one the catalog lists first", which
 	// is what a fresh install and every non-eCash network use.
 	ECashNetworkID string `json:"ecash_network_id"`
+	// ECashChainID is the eCash network whose blocks this install holds. The
+	// pick above is the user's choice; this is the record of what runs, and it
+	// outlives the conf sentinel, which a swap to another network strips.
+	ECashChainID string `json:"ecash_chain_id,omitempty"`
 	// SeenNetworkIDs are the catalog ids this install already told the user
 	// about. TakeNewNetworks reports the rest once, then adds them here.
 	SeenNetworkIDs []string `json:"seen_network_ids"`
@@ -254,6 +258,28 @@ func (s *SettingsStore) SetECashNetworkID(id string) (string, error) {
 	}
 	s.current = next
 	return prev, nil
+}
+
+// ECashChainID returns the eCash network whose blocks this install holds,
+// empty when it holds none.
+func (s *SettingsStore) ECashChainID() string {
+	return s.Get().ECashChainID
+}
+
+// SetECashChainID persists the eCash network this install runs.
+func (s *SettingsStore) SetECashChainID(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.current.ECashChainID == id {
+		return nil
+	}
+	next := s.current
+	next.ECashChainID = id
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
 }
 
 // SeenNetworkIDs returns the catalog ids this install already told the user
