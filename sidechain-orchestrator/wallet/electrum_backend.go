@@ -988,6 +988,9 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 	if err != nil {
 		return "", err
 	}
+	if req.ReplayProtect {
+		replay.ApplyLockTime(packet.UnsignedTx)
+	}
 	return packet.B64Encode()
 }
 
