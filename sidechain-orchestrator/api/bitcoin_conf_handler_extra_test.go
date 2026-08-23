@@ -126,7 +126,7 @@ func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
 		{ID: "alphanet", Family: netcatalog.FamilyECash, ForkHeight: 963648},
 	}}
 	require.NoError(t, orch.SelectECashNetwork("drynet4"))
-	require.Equal(t, "drynet4", orch.SelectedECashID(orch.Catalog))
+	require.Equal(t, "drynet4", orch.RunningECashID(orch.Catalog))
 
 	h := NewBitcoinConfHandler(orch)
 	_, err := h.SetBitcoinConfigNetwork(context.Background(), connect.NewRequest(&pb.SetBitcoinConfigNetworkRequest{
@@ -135,6 +135,6 @@ func TestSetBitcoinConfigNetwork_RefusesBeforeMovingTheECashPick(t *testing.T) {
 	}))
 	require.Error(t, err, "an unwritable datadir must be refused")
 
-	assert.Equal(t, "drynet4", orch.SelectedECashID(orch.Catalog),
+	assert.Equal(t, "drynet4", orch.RunningECashID(orch.Catalog),
 		"a refused request must not move the pick")
 }

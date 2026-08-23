@@ -297,15 +297,11 @@ func Fetch(ctx context.Context, url string) (Catalog, error) {
 	return parse(body)
 }
 
-// Save persists a catalog as the baseline for the next run. The write is
-// tmp-then-rename but deliberately skips fsync: this is a cache, and a torn
-// write simply fails to parse on the next boot and falls back to the embedded
-// copy.
+// Save persists the newest document this install knows, which is what a start
+// reads when the fetch fails. The write is tmp-then-rename but deliberately
+// skips fsync: this is a cache, and a torn write simply fails to parse on the
+// next boot and falls back to the embedded copy.
 func Save(bitwindowDir string, c Catalog) error {
-	return writeCatalog(CachePath(bitwindowDir), bitwindowDir, c)
-}
-
-func writeCatalog(path, bitwindowDir string, c Catalog) error {
 	if err := os.MkdirAll(bitwindowDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir bitwindow dir: %w", err)
 	}
@@ -313,6 +309,7 @@ func writeCatalog(path, bitwindowDir string, c Catalog) error {
 	if err != nil {
 		return fmt.Errorf("marshal catalog: %w", err)
 	}
+	path := CachePath(bitwindowDir)
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return fmt.Errorf("write catalog cache: %w", err)
@@ -324,35 +321,11 @@ func writeCatalog(path, bitwindowDir string, c Catalog) error {
 	return nil
 }
 
-// PendingPath is where a refreshed catalog waits to be applied.
-func PendingPath(bitwindowDir string) string {
-	return filepath.Join(bitwindowDir, pendingFilename)
-}
-
-// SavePending records a freshly fetched catalog for the next start to apply.
-// The running process keeps serving whatever it loaded, so the cache — which
-// must always describe the data on disk — is left alone until startup promotes
-// this.
-func SavePending(bitwindowDir string, c Catalog) error {
-	return writeCatalog(PendingPath(bitwindowDir), bitwindowDir, c)
-}
-
-// LoadPending returns a catalog left by a previous run's refresh, if any.
-func LoadPending(bitwindowDir string) (Catalog, bool) {
-	raw, err := os.ReadFile(PendingPath(bitwindowDir))
-	if err != nil {
-		return Catalog{}, false
-	}
-	parsed, err := parse(raw)
-	if err != nil {
-		return Catalog{}, false
-	}
-	return parsed, true
-}
-
-// ClearPending removes a promoted or unusable pending catalog.
-func ClearPending(bitwindowDir string) {
-	_ = os.Remove(PendingPath(bitwindowDir))
+// RemoveLegacyPending removes the second document an older build left on disk. That
+// build held a refresh back in its own file until a start applied it; a start
+// now takes the newest document as it stands.
+func RemoveLegacyPending(bitwindowDir string) {
+	_ = os.Remove(filepath.Join(bitwindowDir, pendingFilename))
 }
 
 // parse decodes a catalog document and rejects one that carries no networks or
