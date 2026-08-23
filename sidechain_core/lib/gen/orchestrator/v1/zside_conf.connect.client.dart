@@ -7,7 +7,7 @@ import "package:connectrpc/connect.dart" as connect;
 import "zside_conf.pb.dart" as orchestratorv1zside_conf;
 import "zside_conf.connect.spec.dart" as specs;
 
-extension type ZSideConfServiceClient(connect.Transport _transport) {
+extension type ZSideConfServiceClient (connect.Transport _transport) {
   /// Get current ZSide sidechain configuration state.
   Future<orchestratorv1zside_conf.GetZSideConfigResponse> getZSideConfig(
     orchestratorv1zside_conf.GetZSideConfigRequest input, {

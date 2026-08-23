@@ -2841,7 +2841,6 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     ChainSync? enforcer,
     $core.Iterable<SidechainStatus>? sidechains,
     $core.String? walletSyncStatus,
-    ChainSync? enforcerWallet,
     ChainSync? chainSource,
   }) {
     final $result = create();
@@ -2857,9 +2856,6 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     if (walletSyncStatus != null) {
       $result.walletSyncStatus = walletSyncStatus;
     }
-    if (enforcerWallet != null) {
-      $result.enforcerWallet = enforcerWallet;
-    }
     if (chainSource != null) {
       $result.chainSource = chainSource;
     }
@@ -2874,7 +2870,6 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
     ..aOM<ChainSync>(2, _omitFieldNames ? '' : 'enforcer', subBuilder: ChainSync.create)
     ..pc<SidechainStatus>(3, _omitFieldNames ? '' : 'sidechains', $pb.PbFieldType.PM, subBuilder: SidechainStatus.create)
     ..aOS(4, _omitFieldNames ? '' : 'walletSyncStatus')
-    ..aOM<ChainSync>(5, _omitFieldNames ? '' : 'enforcerWallet', subBuilder: ChainSync.create)
     ..aOM<ChainSync>(6, _omitFieldNames ? '' : 'chainSource', subBuilder: ChainSync.create)
     ..hasRequiredFields = false
   ;
@@ -2942,31 +2937,18 @@ class GetSyncStatusResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearWalletSyncStatus() => clearField(4);
 
-  /// Tip the enforcer's own wallet is synced to. The wallet scans esplora
-  /// separately from the validator, so it can lag behind `enforcer`.
-  @$pb.TagNumber(5)
-  ChainSync get enforcerWallet => $_getN(4);
-  @$pb.TagNumber(5)
-  set enforcerWallet(ChainSync v) { setField(5, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasEnforcerWallet() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearEnforcerWallet() => clearField(5);
-  @$pb.TagNumber(5)
-  ChainSync ensureEnforcerWallet() => $_ensure(4);
-
   /// Tip the wallet chain source reports (esplora or electrum). An electrum
   /// wallet runs no local node, so this is the only height it has.
   @$pb.TagNumber(6)
-  ChainSync get chainSource => $_getN(5);
+  ChainSync get chainSource => $_getN(4);
   @$pb.TagNumber(6)
   set chainSource(ChainSync v) { setField(6, v); }
   @$pb.TagNumber(6)
-  $core.bool hasChainSource() => $_has(5);
+  $core.bool hasChainSource() => $_has(4);
   @$pb.TagNumber(6)
   void clearChainSource() => clearField(6);
   @$pb.TagNumber(6)
-  ChainSync ensureChainSource() => $_ensure(5);
+  ChainSync ensureChainSource() => $_ensure(4);
 }
 
 class SidechainStatus extends $pb.GeneratedMessage {

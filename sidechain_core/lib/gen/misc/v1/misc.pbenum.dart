@@ -20,7 +20,7 @@ class NewsAction extends $pb.ProtobufEnum {
   static const NewsAction NEWS_ACTION_COMMENT = NewsAction._(2, _omitEnumNames ? '' : 'NEWS_ACTION_COMMENT');
   static const NewsAction NEWS_ACTION_STORY = NewsAction._(3, _omitEnumNames ? '' : 'NEWS_ACTION_STORY');
 
-  static const $core.List<NewsAction> values = <NewsAction>[
+  static const $core.List<NewsAction> values = <NewsAction> [
     NEWS_ACTION_UNSPECIFIED,
     NEWS_ACTION_VOTE,
     NEWS_ACTION_COMMENT,
@@ -32,5 +32,6 @@ class NewsAction extends $pb.ProtobufEnum {
 
   const NewsAction._($core.int v, $core.String n) : super(v, n);
 }
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

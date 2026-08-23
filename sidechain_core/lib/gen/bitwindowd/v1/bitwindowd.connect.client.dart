@@ -8,7 +8,7 @@ import "../../google/protobuf/empty.pb.dart" as googleprotobufempty;
 import "bitwindowd.pb.dart" as bitwindowdv1bitwindowd;
 import "bitwindowd.connect.spec.dart" as specs;
 
-extension type BitwindowdServiceClient(connect.Transport _transport) {
+extension type BitwindowdServiceClient (connect.Transport _transport) {
   /// Window-close + clean exit. Relays to orchestratord.Shutdown (which is
   /// detached and drains bitcoind/enforcer over ~90s in the background), then
   /// tears down bitwindowd itself. Acks fast so the Flutter window can destroy

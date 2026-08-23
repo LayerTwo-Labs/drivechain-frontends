@@ -13,7 +13,7 @@ import "bmm.connect.spec.dart" as specs;
 /// A bid names the mainchain tip it was built on, so it is only valid in the
 /// very next block. A round is one such tip: every bid competing for it, and
 /// what became of them.
-extension type BMMServiceClient(connect.Transport _transport) {
+extension type BMMServiceClient (connect.Transport _transport) {
   /// Start bids on every new mainchain tip and connects the blocks miners take,
   /// until Stop. Bids are funded by the wallet the request names, and are
   /// raised toward max_bid_sats when a competitor outbids us.
