@@ -243,14 +243,8 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		)
 	}
 
-	bitcoindWasRunning := o.process.IsRunning("bitcoind")
-	enforcerWasRunning := o.process.IsRunning("enforcer")
-	restartL1 := bitcoindWasRunning || enforcerWasRunning
-	// A tail an earlier switch left stopped the stack it owed a restart, so both
-	// daemons read as stopped above. This switch takes that obligation over.
-	if o.pendingSwap != nil && o.pendingSwap.network == config.NetworkECash {
-		restartL1 = restartL1 || o.pendingSwap.restartL1
-	}
+	// Read before the stops below, which make both daemons read as stopped.
+	restartL1 := o.owedRestartL1()
 
 	// Everything that can fail stops while Core still answers. A rewind before
 	// these would leave Core parked under the fork with the old network still

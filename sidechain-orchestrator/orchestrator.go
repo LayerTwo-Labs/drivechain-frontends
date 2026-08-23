@@ -2030,8 +2030,8 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	}
 	// A tail an eCash switch left must not outlive the swap that replaces it:
 	// the record still names the outgoing fork, and this swap strips the conf
-	// sentinel that says otherwise. The restart waits for the swap below.
-	drainedRestartL1 := false
+	// sentinel that says otherwise. The tail itself stays until the replacement
+	// below takes its place, so an error on the way there keeps the restart.
 	if o.pendingSwap != nil && o.pendingSwap.fromECashID != "" {
 		o.mu.RLock()
 		toID := o.ecashID
@@ -2039,10 +2039,6 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 		if err := o.recordECashSwitch(o.pendingSwap.fromECashID, toID); err != nil {
 			return err
 		}
-		// The tail stays until the replacement below takes its place. An error on
-		// the way there would otherwise leave the stack down with nothing left
-		// to say it owes a restart.
-		drainedRestartL1 = o.pendingSwap.restartL1
 	}
 
 	plan := o.PlanNetworkChange(NetworkChangeRequest{Network: string(n)})
@@ -2055,6 +2051,8 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 
 	bitcoindWasRunning := o.process.IsRunning("bitcoind")
 	enforcerWasRunning := o.process.IsRunning("enforcer")
+	// Read before the stops below, which make both daemons read as stopped.
+	restartL1 := o.owedRestartL1()
 
 	var runningL2 []string
 	for _, c := range o.Configs() {
@@ -2104,13 +2102,8 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 	// Installed before the tail below, which can fail. Without it a retry reads
 	// the network as already swapped, takes the no-op path and reports success
 	// while the state is still parked and the daemons are still down.
-	// The drained tail stopped the stack it owed a restart, so both daemons read
-	// as stopped above. Its obligation rides on, or this swap leaves them down.
-	o.pendingSwap = &pendingNetworkSwap{
-		network:   n,
-		restartL1: bitcoindWasRunning || enforcerWasRunning || drainedRestartL1,
-	}
-	return o.finishNetworkSwap(n, o.pendingSwap.restartL1)
+	o.pendingSwap = &pendingNetworkSwap{network: n, restartL1: restartL1}
+	return o.finishNetworkSwap(n, restartL1)
 }
 
 // pendingNetworkSwap is the tail of a swap whose network is already committed.
@@ -2120,6 +2113,18 @@ type pendingNetworkSwap struct {
 	// fromECashID is the network an eCash switch left. The retry rewrites the
 	// enforcer conf with it, which is where the retired endpoint still sits.
 	fromECashID string
+}
+
+// owedRestartL1 reports whether the L1 stack has to come back up: it runs now,
+// or a switch that stopped it left the note that says so. Read it before any
+// stop, which makes a running daemon read as stopped.
+//
+// Call it with swapNetworkMu held.
+func (o *Orchestrator) owedRestartL1() bool {
+	if o.process.IsRunning("bitcoind") || o.process.IsRunning("enforcer") {
+		return true
+	}
+	return o.pendingSwap != nil && o.pendingSwap.restartL1
 }
 
 // finishNetworkSwap rebinds wallet state and restarts L1. Everything here is
