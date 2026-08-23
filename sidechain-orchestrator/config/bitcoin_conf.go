@@ -335,6 +335,7 @@ zmqpubrawblock=tcp://127.0.0.1:29003
 zmqpubrawtx=tcp://127.0.0.1:29004
 rpcthreads=10
 rpcworkqueue=50
+dbcache=%s
 rest=1
 uacomment=BitWindow-0.2
 chain=%s # current network
@@ -364,7 +365,7 @@ fallbackfee=0.00021
 # Regtest-specific settings
 [regtest]
 fallbackfee=0.00021
-`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, currentNetwork, mainSection)
+`, bitcoinConfVersionCommentPrefix, BitcoinConfMigrationsVersion, defaultDBCacheSetting(), currentNetwork, mainSection)
 }
 
 // SaveConfig writes the current config to disk.

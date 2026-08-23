@@ -20,6 +20,9 @@ type BitcoinConfMigration struct {
 	// invalidates (e.g. a signetchallenge change). Wiped only when the
 	// migration actually changes a value in an existing config.
 	WipeChainData []Network
+	// SkipIfSet leaves a key that the config already carries alone, so a
+	// migration that only backfills a default never overwrites a user's value.
+	SkipIfSet bool
 }
 
 var bitcoinConfMigrations = []BitcoinConfMigration{
@@ -146,10 +149,21 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 		},
 		WipeChainData: []Network{NetworkSignet},
 	},
+	{
+		// Core's default caches under 1 GiB of the UTXO set, so a large
+		// initial block download spends most of its time in chainstate reads.
+		Version:   11,
+		SkipIfSet: true,
+		Changes: map[string]map[string]string{
+			"": {
+				"dbcache": defaultDBCacheSetting(),
+			},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 10
+var BitcoinConfMigrationsVersion = 11
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // Returns whether any migration was applied, plus the networks whose chain
@@ -166,6 +180,9 @@ func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 		changed := false
 		for section, settings := range m.Changes {
 			for key, value := range settings {
+				if m.SkipIfSet && config.GetSetting(key, section) != "" {
+					continue
+				}
 				if config.GetSetting(key, section) != value {
 					changed = true
 				}
