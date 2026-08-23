@@ -3,9 +3,6 @@ import 'dart:convert';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.connect.client.dart';
-import 'package:sidechain_core/gen/cusf/mainchain/v1/wallet.pb.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// API to the enforcer server
@@ -13,21 +10,15 @@ abstract class EnforcerRPC extends RPCConnection {
   EnforcerRPC({required super.binaryType});
 
   ValidatorServiceClient get validator;
-  WalletServiceClient get wallet;
 
   Future<dynamic> callRAW(String url, [String body = '{}']);
   Future<Map<String, dynamic>> getBlockTemplate();
   List<String> getMethods();
-
-  /// Get all mainchain addresses from the enforcer wallet
-  Future<List<String>> getAddresses();
 }
 
 class EnforcerLive extends EnforcerRPC {
   @override
   late ValidatorServiceClient validator;
-  @override
-  late WalletServiceClient wallet;
   late grpc.Transport _grpcTransport;
 
   final String _host;
@@ -53,21 +44,13 @@ class EnforcerLive extends EnforcerRPC {
     );
 
     validator = ValidatorServiceClient(_grpcTransport);
-    wallet = WalletServiceClient(_grpcTransport);
   }
 
   @override
   Future<List<String>> binaryArgs() async {
-    final downloadsDir = await getDownloadsDirectory();
-    if (downloadsDir == null) {
-      throw Exception('Could not determine downloads directory');
-    }
-
-    // Handle wallet seed file
+    // The enforcer runs no wallet, and the orchestrator strips
+    // --wallet-seed-file from its args anyway.
     binary.extraBootArgs = binary.extraBootArgs.where((arg) => !arg.startsWith('--wallet-seed-file')).toList();
-    final walletReader = GetIt.I.get<WalletReaderProvider>();
-    final mnemonicFile = await walletReader.writeEnforcerL1Starter();
-    binary.addBootArg('--wallet-seed-file=${mnemonicFile.path}');
 
     final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
     final network = bitcoinConfProvider.network;
@@ -288,35 +271,6 @@ class EnforcerLive extends EnforcerRPC {
       'cusf.mainchain.v1.ValidatorService/GetSidechains',
       'cusf.mainchain.v1.ValidatorService/GetTwoWayPegData',
       'cusf.mainchain.v1.ValidatorService/SubscribeEvents',
-      'cusf.mainchain.v1.WalletService/BroadcastWithdrawalBundle',
-      'cusf.mainchain.v1.WalletService/CreateBmmCriticalDataTransaction',
-      'cusf.mainchain.v1.WalletService/CreateDepositTransaction',
-      'cusf.mainchain.v1.WalletService/CreateNewAddress',
-      'cusf.mainchain.v1.WalletService/CreateSidechainProposal',
-      'cusf.mainchain.v1.WalletService/CreateWallet',
-      'cusf.mainchain.v1.WalletService/GenerateBlocks',
-      'cusf.mainchain.v1.WalletService/GetBalance',
-      'cusf.mainchain.v1.WalletService/ListSidechainDepositTransactions',
-      'cusf.mainchain.v1.WalletService/ListTransactions',
-      'cusf.mainchain.v1.WalletService/ListUnspentOutputs',
-      'cusf.mainchain.v1.WalletService/SendTransaction',
-      'cusf.mainchain.v1.WalletService/UnlockWallet',
     ];
-  }
-
-  @override
-  Future<List<String>> getAddresses() async {
-    return await _withRecreate(() async {
-      final response = await wallet.listUnspentOutputs(
-        ListUnspentOutputsRequest(),
-      );
-      final addresses = <String>{};
-      for (final output in response.outputs) {
-        if (output.hasAddress() && output.address.value.isNotEmpty) {
-          addresses.add(output.address.value);
-        }
-      }
-      return addresses.toList();
-    });
   }
 }

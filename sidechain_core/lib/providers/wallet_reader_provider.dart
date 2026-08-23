@@ -493,22 +493,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     return wallet.sidechains.where((sc) => sc.slot == slot).firstOrNull?.mnemonic;
   }
 
-  Future<File> writeEnforcerL1Starter() async {
-    throw UnsupportedError(
-      'writeEnforcerL1Starter not needed — Go orchestrator handles starter injection',
-    );
-  }
-
-  Future<File> writeSidechainStarter(int slot) async {
-    throw UnsupportedError(
-      'writeSidechainStarter not needed — Go orchestrator handles starter injection',
-    );
-  }
-
-  Future<void> cleanupStarterFiles() async {
-    // No-op — Go handles cleanup
-  }
-
   void clearState() {
     wallets = [];
     activeWalletId = null;
