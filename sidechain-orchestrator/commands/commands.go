@@ -725,10 +725,10 @@ func binaryPathFor(cctx *cli.Context, dataDir, name string) string {
 	)
 }
 
-// servedECashNetwork returns the eCash network the daemon runs. Do not
-// read the catalog cache instead: the confirm writes a new generation there
-// before the restart that starts to use it, so a path from the cache names a
-// build no process runs, and `wipe` deletes that one while the live build stays.
+// servedECashNetwork returns the eCash network the daemon runs. Do not read the
+// published document instead: it names the newest network, and a path from that
+// document names a build no process runs — `wipe` then deletes that one while
+// the live build stays.
 func servedECashNetwork(cctx *cli.Context, bitwindowDir string) string {
 	// A path lookup must not wait forever on an address that never answers.
 	ctx, cancel := context.WithTimeout(cctx.Context, 2*time.Second)
@@ -740,10 +740,12 @@ func servedECashNetwork(cctx *cli.Context, bitwindowDir string) string {
 	if err == nil {
 		return resp.Msg.CurrentNetworkId
 	}
-	// No daemon answers, so no process serves an older generation. The cached
-	// one is what the next start uses.
-	c, _ := netcatalog.Load(bitwindowDir)
-	return c.ECashID()
+	// No daemon answers. The next start serves the network this install records,
+	// and only then the one compiled into the binary.
+	if s, err := orchestrator.LoadSettings(bitwindowDir); err == nil && s.ECashChainID != "" {
+		return s.ECashChainID
+	}
+	return netcatalog.EmbeddedECashID()
 }
 
 func extractVersion(s string) string {

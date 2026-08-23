@@ -45,9 +45,10 @@ func TestStartupKeepsTheChainWhenTheCatalogMovesOn(t *testing.T) {
 	// The install the user updated: blocks from drynet4, catalog on alphanet.
 	o.BitcoinConf.Config.SetSetting("uacomment", config.ECashUAComment("drynet4"), "main")
 	require.Equal(t, "drynet4", o.installedECashNetwork())
-	require.NoError(t, netcatalog.Save(o.BitwindowDir, catalogWithECash(t, "alphanet")))
+	publish(t, o, catalogWithECash(t, "alphanet"))
 
 	o.ResolveNetworkCatalog(context.Background())
+	awaitRefresh(t, o, "alphanet")
 
 	require.Equal(t, "drynet4", config.ECashNetworkID(), "startup must serve the network the blocks belong to")
 	for _, d := range []string{"blocks", "chainstate"} {
@@ -57,28 +58,17 @@ func TestStartupKeepsTheChainWhenTheCatalogMovesOn(t *testing.T) {
 	require.Equal(t, "alphanet", o.Catalog.ECashID(), "the offer still reaches the user")
 }
 
-// No blocks on disk, nothing to hold back: a fresh install takes what the
-// catalog publishes.
-func TestStartupTakesThePublishedNetworkWithNoChainOnDisk(t *testing.T) {
-	o := ecashInstall(t)
-	o.BitcoinConf.Config.SetSetting("uacomment", config.ECashUAComment("drynet4"), "main")
-	require.NoError(t, netcatalog.Save(o.BitwindowDir, catalogWithECash(t, "alphanet")))
-
-	o.ResolveNetworkCatalog(context.Background())
-
-	require.Equal(t, "alphanet", config.ECashNetworkID())
-}
-
 // A network the user picked is not an offer. Startup applies it.
 func TestStartupAppliesTheNetworkTheUserPicked(t *testing.T) {
 	o := ecashInstall(t)
 	seedCoreChainData(t, o.ecashDatadir())
 	o.BitcoinConf.Config.SetSetting("uacomment", config.ECashUAComment("drynet4"), "main")
-	require.NoError(t, netcatalog.Save(o.BitwindowDir, catalogWithECash(t, "alphanet")))
+	publish(t, o, catalogWithECash(t, "alphanet"))
 	_, err := o.Settings.SetECashNetworkID("alphanet")
 	require.NoError(t, err)
 
 	o.ResolveNetworkCatalog(context.Background())
+	awaitRefresh(t, o, "alphanet")
 
 	require.Equal(t, "alphanet", config.ECashNetworkID())
 }
@@ -87,7 +77,6 @@ func TestStartupAppliesTheNetworkTheUserPicked(t *testing.T) {
 // Recording the pick alone would park Core on the retired fork for good.
 func TestConfirmMovesTheChainToMatchTheConf(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
 	datadir := o.ecashDatadir()
 	require.NotEmpty(t, datadir)
 	seedCoreChainData(t, datadir)
@@ -101,14 +90,10 @@ func TestConfirmMovesTheChainToMatchTheConf(t *testing.T) {
 	require.NoError(t, err, "the blocks below the fork must survive the switch")
 }
 
-// A start adopts the newest document, so a process that started before the
-// refresh serves an older one. A plan that reads the served catalog alone
-// cannot price the move, and the dialog then names a resync the switch never does.
-func TestPlanReadsANetworkFromTheNewestDocument(t *testing.T) {
+// The dialog states what the move costs, so the plan reads both networks out of
+// the document this process serves.
+func TestPlanPricesThePublishedNetwork(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-
-	_, served := o.Catalog.ByID("drynet3")
-	require.False(t, served, "this process still serves the document it started with")
 
 	plan, err := o.PlanECashSwitch("drynet3")
 	require.NoError(t, err)
@@ -239,42 +224,4 @@ func TestAChangeWithNoForkHeightHoldsTheCatalogBack(t *testing.T) {
 	require.False(t, o.ecashChangeHasASharedBlock("drynet4", "alphanet"))
 
 	require.Empty(t, o.Settings.PendingEnforcerWipe(), "a change that cannot run journals nothing")
-}
-
-// An empty datadir override means Core's platform default, which is a
-// supported setup. Reading it as "nothing on disk" lets a start adopt the
-// published fork over blocks that are still there.
-func TestTheDefaultDatadirCountsAsChainOnDisk(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-	o := newTestOrchestrator(t)
-	// No datadir slot and no datadir= line: Core falls back to its own default.
-	o.setNetwork(string(config.NetworkECash))
-	require.Empty(t, o.ecashDatadir(), "this install runs on the platform default")
-
-	defaultDir := config.BitcoinCoreDirs.DatadirNetwork(config.NetworkECash, "")
-	require.NoError(t, os.MkdirAll(filepath.Join(defaultDir, "blocks"), 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(defaultDir, "blocks", "blk00000.dat"), []byte("chain"), 0o644))
-
-	require.True(t, o.ecashChainDataOnDisk(), "the default datadir holds the chain too")
-}
-
-// Only "not there" says the chain is gone. Any other refusal leaves blocks that
-// may exist, and adopting the published fork over them needs the user first.
-func TestAnUnreadableBlocksDirCountsAsChainOnDisk(t *testing.T) {
-	o := ecashInstall(t)
-	datadir := o.ecashDatadir()
-	require.NotEmpty(t, datadir)
-	seedCoreChainData(t, datadir)
-
-	require.NoError(t, os.Chmod(filepath.Join(datadir, "blocks"), 0o000))
-	t.Cleanup(func() { _ = os.Chmod(filepath.Join(datadir, "blocks"), 0o755) })
-
-	if entries, err := os.ReadDir(filepath.Join(datadir, "blocks")); err == nil {
-		_ = entries
-		t.Skip("this filesystem reads the directory anyway, so the failure cannot be staged")
-	}
-
-	require.True(t, o.ecashChainDataOnDisk(), "a chain we cannot read is still a chain")
 }

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,39 +16,48 @@ import (
 // appears in chains_config.json, so a new generation needs no config edit.
 const ecashPlaceholder = "{ecash}"
 
-// ResolveNetworkCatalog adopts the newest catalog document this install holds,
-// then refreshes it from the published one. The published document is always
-// the correct one; the copy on disk is what a start reads when the fetch fails.
+// firstRunFetchTimeout bounds the one fetch a start waits for. It only applies
+// to an install that has no eCash network of its own yet.
+const firstRunFetchTimeout = 3 * time.Second
+
+// ResolveNetworkCatalog adopts the catalog compiled into this build, then
+// refreshes it from the published document. The published document is always
+// the correct one; the compiled-in copy is what a start reads until the fetch
+// lands, and what an offline start keeps. Neither one is held on disk.
+//
 // A refresh moves no chain: it changes the rows the picker lists and the
-// endpoints they publish, and the eCash network this install runs stays the
+// endpoints they publish. The eCash network this install runs stays the
 // user's to change.
 func (o *Orchestrator) ResolveNetworkCatalog(ctx context.Context) {
-	// Disk first, and synchronously: this runs before the RPC listener binds,
-	// so anything slow here delays every caller, including the wallet list the
-	// UI needs to draw. A local read is microseconds.
-	current, _ := netcatalog.Load(o.BitwindowDir)
+	// The compiled-in document first, and with no I/O: this runs before the RPC
+	// listener binds, so anything slow here delays every caller, including the
+	// wallet list the UI needs to draw.
+	current := netcatalog.Embedded()
+	// An install with no eCash network of its own has no chain to keep, so the
+	// live document decides which one it starts on. One short wait beats an
+	// upgrade prompt on the first run, and the record below makes it the last.
+	if !o.hasOwnECashNetwork() {
+		fetchCtx, cancel := context.WithTimeout(ctx, firstRunFetchTimeout)
+		if fetched, err := netcatalog.Fetch(fetchCtx, o.publishedCatalogURL()); err == nil {
+			current = fetched
+		}
+		cancel()
+	}
 	o.seedToldNetworks(current)
-	netcatalog.RemoveLegacyPending(o.BitwindowDir)
+	netcatalog.RemoveLegacyFiles(o.BitwindowDir)
 
 	// The network this install serves, not the document's first row: the blocks
 	// on disk belong to one network, and only the user moves them to another.
 	ecashID := o.RunningECashID(current)
-	// RunningECashID already keeps a network the catalog still lists, so this
-	// only fires once the catalog drops the one the blocks belong to. Serving
-	// it with no endpoints beats opening its blocks as another fork: the user
-	// switches from Settings, which states the resync before it runs.
-	if installed := o.installedECashNetwork(); o.ecashNetworkMoved(installed, ecashID) {
+	if _, listed := current.ByID(ecashID); ecashID != "" && !listed {
 		o.log.Warn().
-			Str("installed", installed).
-			Str("published", ecashID).
-			Msg("the catalog dropped the installed eCash network, switch from Settings to move")
-		ecashID = installed
+			Str("network", ecashID).
+			Msg("the catalog does not list the eCash network this install runs, switch from Settings to move")
 	}
 	o.adoptCatalog(current, ecashID)
 
-	// The refresh is network I/O and must never gate startup. It runs detached
-	// and only writes the document to disk.
-	go o.refreshNetworkCatalog(ctx, current)
+	// The fetch is network I/O and must never gate startup, so it runs detached.
+	go o.refreshNetworkCatalog(ctx)
 }
 
 // PendingECashUpgrade is a published generation this install has not switched
@@ -66,10 +73,10 @@ type PendingECashUpgrade struct {
 }
 
 // PendingECashUpgrade reports the generation waiting for the user's go-ahead.
-// It reads the newest document on disk, not the one this process serves: the
-// refresh writes that document, and a start adopts it without moving a chain.
 func (o *Orchestrator) PendingECashUpgrade() PendingECashUpgrade {
-	published, _ := netcatalog.Load(o.BitwindowDir)
+	o.mu.RLock()
+	published := o.Catalog
+	o.mu.RUnlock()
 	// The document's first row against the network this install runs. A pick
 	// says which network runs, not that the user heard about the newer one, and
 	// the document keeps their row so its endpoints stay reachable.
@@ -102,7 +109,9 @@ func (o *Orchestrator) ecashSwitchIsManual() bool {
 // ConfirmPendingECashNetwork applies the user's go-ahead: it records the
 // published network as the pick, then moves the chain onto it.
 func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
-	published, _ := netcatalog.Load(o.BitwindowDir)
+	o.mu.RLock()
+	published := o.Catalog
+	o.mu.RUnlock()
 	target := published.ECashID()
 	if target == "" || target == o.RunningECashID(published) {
 		return fmt.Errorf("no new eCash network to switch to")
@@ -137,7 +146,7 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 
 	if config.NetworkFromString(o.Network) == config.NetworkECash {
 		// Here, not on the next start: this is the one moment a live Core can
-		// rewind to the fork. A start has none and could only delete the chain.
+		// rewind to the fork. A start has none, so it would leave Core above it.
 		if err := o.ApplyECashSwitch(ctx, target); err != nil {
 			// Only when the switch never committed. Past that point the
 			// chain and the conf already name the target, and putting the
@@ -152,18 +161,19 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 			return fmt.Errorf("switch to %s: %w", target, err)
 		}
 	} else {
-		// Off eCash the retired chain is cold files that no start will revisit,
-		// and there is no Core on that chain to rewind. Clear them here.
+		// Off eCash no Core answers on that chain, so nothing rewinds here. The
+		// blocks stay either way: both networks hold everything below the fork,
+		// and Core reorganises onto the confirmed one when it next runs.
 		//
-		// The pick on both sides, not each document's first row. A user on a
-		// retained entry holds that chain on disk, and comparing first rows
-		// reads two identical ids while the blocks belong to a third.
+		// The network this install runs, not the document's first row. A user on
+		// a retained entry holds that chain, and comparing first rows reads two
+		// identical ids while the blocks belong to a third.
 		o.mu.RLock()
 		served := o.Catalog
 		o.mu.RUnlock()
 		if !o.ecashChangeHasASharedBlock(o.RunningECashID(served), target) {
 			o.restoreECashPick(previousPick)
-			return fmt.Errorf("could not clear the retired eCash chain data")
+			return fmt.Errorf("no fork height says where the two eCash chains part")
 		}
 	}
 	o.log.Info().
@@ -184,34 +194,53 @@ func (o *Orchestrator) restoreECashPick(pick string) {
 	}
 }
 
-// refreshNetworkCatalog fetches the published catalog and records it as the
-// newest document this install knows. The next start adopts it.
-//
-// It deliberately mutates nothing in memory. This runs after the RPC server is
-// accepting requests, and the orchestrator's shared state — binary configs,
-// monitors, catalog, the bitcoin.conf manager — is read by those handlers
-// without a common lock.
-func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context, current netcatalog.Catalog) {
-	fetched, err := netcatalog.Fetch(ctx, netcatalog.DefaultURL)
+// refreshNetworkCatalog fetches the published document and takes it in memory.
+// A failed fetch is never fatal: the compiled-in document stays in force.
+func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context) {
+	fetched, err := netcatalog.Fetch(ctx, o.publishedCatalogURL())
 	if err != nil {
-		o.log.Warn().Err(err).Msg("network catalog refresh failed, using last known values")
+		o.log.Warn().Err(err).Msg("network catalog refresh failed, using the compiled-in document")
 		return
 	}
-	next := retainRunningECash(fetched, current, o.RunningECashID(current))
+	o.mu.RLock()
+	current := o.Catalog
+	running := o.ecashID
+	o.mu.RUnlock()
+
+	next := retainRunningECash(fetched, current, running)
 	// Every entry matters, not just the eCash one: the picker lists them all and
 	// the endpoints come from their backends. An id-only compare threw away a
 	// refresh that added a network, so it never reached the picker.
 	if next.SameAs(current) {
 		return
 	}
-	if err := netcatalog.Save(o.BitwindowDir, next); err != nil {
-		o.log.Warn().Err(err).Msg("could not record the refreshed network catalog")
-		return
-	}
+	// The rows only. The chain this install runs is the user's to change, and a
+	// conf rewrite under the running daemons is not this call's to make.
+	o.adoptCatalogRows(next, running)
 	o.log.Info().
-		Str("current", current.ECashID()).
+		Str("current", running).
 		Str("published", next.ECashID()).
-		Msg("the network catalog changed, restart to apply it")
+		Msg("took the published network catalog")
+}
+
+// publishedCatalogURL is where the document is fetched from.
+func (o *Orchestrator) publishedCatalogURL() string {
+	if o.catalogURL == "" {
+		return netcatalog.DefaultURL
+	}
+	return o.catalogURL
+}
+
+// hasOwnECashNetwork reports whether this install already runs an eCash network:
+// the user picked one, its conf names one, or a previous start recorded one.
+func (o *Orchestrator) hasOwnECashNetwork() bool {
+	if o.installedECashNetwork() != "" {
+		return true
+	}
+	if o.Settings == nil {
+		return false
+	}
+	return o.Settings.ECashNetworkID() != "" || o.Settings.ECashChainID() != ""
 }
 
 // retainRunningECash appends the entry for the eCash network this install runs
@@ -244,46 +273,15 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 	}
 
 	o.recordECashChain(id)
+	o.adoptCatalogRows(c, id)
 
-	o.mu.Lock()
-	o.Catalog = c
-	o.ecashID = id
-	// Always expand from the pristine configs: a previous adopt already
-	// replaced the placeholder, so re-expanding those would leave the old
-	// network pinned forever.
-	for name, raw := range o.rawConfigs {
-		o.configs[name] = expandECashPlaceholder(raw, id)
-	}
+	o.mu.RLock()
 	conf := o.BitcoinConf
 	enforcerConf := o.EnforcerConf
-	o.mu.Unlock()
+	o.mu.RUnlock()
 
 	if id == "" {
 		return
-	}
-	// The URL helpers and the conf writer both key off the eCash id, so both
-	// need the resolved one.
-	config.SetECashNetworkID(id)
-
-	// Fork heights ride along in the catalog, so a new eCash network — and the
-	// real fork — activate without a release.
-	for _, n := range c.Networks {
-		// An eCash id names no network, so writing it as one would stamp its
-		// values onto signet, which is what NetworkFromString falls back to.
-		if net, ok := config.LookupNetwork(n.ID); ok {
-			config.SetForkHeight(net, n.ForkHeight)
-			config.SetNetworkDisplayName(net, n.DisplayName)
-		}
-		if n.Family == netcatalog.FamilyECash {
-			config.SetECashPeer(n.ID, n.P2P.Address)
-		}
-	}
-	// The eCash slot takes the resolved entry's values, not the last listed
-	// one: the catalog keeps the retired networks after the live one.
-	if ecash, ok := c.ByID(id); ok {
-		config.SetForkHeight(config.NetworkECash, ecash.ForkHeight)
-		config.SetNetworkDisplayName(config.NetworkECash, ecash.DisplayName)
-		config.SetECashEndpoints(ecash)
 	}
 
 	// The esplora host and network preset name the eCash network, so a rollover
@@ -321,6 +319,50 @@ func (o *Orchestrator) recordECashChain(id string) {
 	}
 }
 
+// adoptCatalogRows takes a document in memory: the rows the picker lists, the
+// endpoints they publish and the fork heights they carry. It writes no conf, so
+// a refresh can call it while the daemons run.
+func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
+	o.mu.Lock()
+	o.Catalog = c
+	o.ecashID = id
+	// Always expand from the pristine configs: a previous adopt already
+	// replaced the placeholder, so re-expanding those would leave the old
+	// network pinned forever.
+	for name, raw := range o.rawConfigs {
+		o.configs[name] = expandECashPlaceholder(raw, id)
+	}
+	o.mu.Unlock()
+
+	if id == "" {
+		return
+	}
+	// The URL helpers and the conf writer both key off the eCash id, so both
+	// need the resolved one.
+	config.SetECashNetworkID(id)
+
+	// Fork heights ride along in the catalog, so a new eCash network — and the
+	// real fork — activate without a release.
+	for _, n := range c.Networks {
+		// An eCash id names no network, so writing it as one would stamp its
+		// values onto signet, which is what NetworkFromString falls back to.
+		if net, ok := config.LookupNetwork(n.ID); ok {
+			config.SetForkHeight(net, n.ForkHeight)
+			config.SetNetworkDisplayName(net, n.DisplayName)
+		}
+		if n.Family == netcatalog.FamilyECash {
+			config.SetECashPeer(n.ID, n.P2P.Address)
+		}
+	}
+	// The eCash slot takes the resolved entry's values, not the last listed
+	// one: the catalog keeps the retired networks after the live one.
+	if ecash, ok := c.ByID(id); ok {
+		config.SetForkHeight(config.NetworkECash, ecash.ForkHeight)
+		config.SetNetworkDisplayName(config.NetworkECash, ecash.DisplayName)
+		config.SetECashEndpoints(ecash)
+	}
+}
+
 // expandECashPlaceholder replaces the eCash placeholder throughout a binary's
 // Core variants. It is applied on every path that installs configs — including
 // the chains_config.json watcher — because a reload otherwise reinstates the
@@ -344,66 +386,33 @@ func expandECashPlaceholder(cfg BinaryConfig, id string) BinaryConfig {
 	return cfg
 }
 
-// ecashNetworkMoved reports whether startup must hold back the published eCash
-// network: it differs from the one the blocks on disk belong to, the user never
-// asked to move, and there are blocks to lose.
-func (o *Orchestrator) ecashNetworkMoved(installed, published string) bool {
-	if installed == "" || published == "" || installed == published {
-		return false
-	}
-	if config.NetworkFromString(o.Network) != config.NetworkECash {
-		return false
-	}
-	// A move the user already picked is not an offer.
-	if o.Settings != nil && o.Settings.ECashNetworkID() == published {
-		return false
-	}
-	return o.ecashChainDataOnDisk()
-}
-
-// ecashChainDataOnDisk reports whether Core holds eCash blocks worth keeping.
-func (o *Orchestrator) ecashChainDataOnDisk() bool {
-	// An empty override means Core's platform default, which is a supported
-	// setup — not an install with nothing on disk.
-	datadir := config.BitcoinCoreDirs.DatadirNetwork(config.NetworkECash, o.ecashDatadir())
-	if datadir == "" {
-		return false
-	}
-	entries, err := os.ReadDir(filepath.Join(datadir, "blocks"))
-	if err != nil {
-		// Only "not there" says there is nothing to keep. Any other refusal
-		// leaves a chain that may exist, and adopting over it needs the user.
-		return !os.IsNotExist(err)
-	}
-	return len(entries) > 0
-}
-
 // RunningECashID returns the eCash network this install serves: the user's pick,
 // then the id its bitcoin.conf names, then the recorded chain, and only then
-// the entry the catalog lists first. The conf and the record come before
-// document order because they name the fork whose blocks are on disk.
+// the entry the catalog lists first.
+//
+// The conf and the record win even when the document drops their network. They
+// name the fork whose blocks are on disk, and serving it with no endpoints
+// beats opening those blocks as another fork.
 func (o *Orchestrator) RunningECashID(c netcatalog.Catalog) string {
 	if picked := o.pinnedECashID(c); picked != "" {
 		return picked
 	}
 	if installed := o.installedECashNetwork(); installed != "" {
-		if _, ok := c.ByID(installed); ok {
-			return installed
-		}
+		return installed
 	}
 	// A swap to another network strips the conf sentinel, so off eCash this
 	// record is the only thing that still names the blocks on disk.
 	if o.Settings != nil {
 		if recorded := o.Settings.ECashChainID(); recorded != "" {
-			if _, ok := c.ByID(recorded); ok {
-				return recorded
-			}
+			return recorded
 		}
 	}
 	return c.ECashID()
 }
 
-// pinnedECashID returns the user's pick while the catalog still lists it.
+// pinnedECashID returns the user's pick while the catalog still lists it. A
+// pick the document dropped is a network the user left long ago, and the conf
+// then names the one whose blocks are on disk.
 func (o *Orchestrator) pinnedECashID(c netcatalog.Catalog) string {
 	if o.Settings == nil {
 		return ""
@@ -419,9 +428,8 @@ func (o *Orchestrator) pinnedECashID(c netcatalog.Catalog) string {
 }
 
 // SelectECashNetwork pins the eCash network the user picked. The switch itself
-// runs on the next start, which is the only place the stale chain can be wiped.
-// An id the catalog does not list is ignored: a caller that sends the bare slot
-// name keeps whatever the catalog resolves.
+// runs on the next start. An id the catalog does not list is ignored: a caller
+// that sends the bare slot name keeps whatever the catalog resolves.
 func (o *Orchestrator) SelectECashNetwork(id string) error {
 	o.mu.RLock()
 	cat := o.Catalog
@@ -459,7 +467,8 @@ func (o *Orchestrator) SelectECashNetwork(id string) error {
 		return fmt.Errorf("no fork height says where %s and %s part", previous, id)
 	}
 	// The enforcer keeps one validator chain per network, not per fork, so the
-	// new generation cannot inherit the old one's. Off eCash that directory
+	// new generation cannot inherit the old one's. That chain rebuilds from the
+	// blocks; Core's own block store is never touched. Off eCash the directory
 	// belongs to the running network, so the work waits for the swap back.
 	if err := o.Settings.SetPendingEnforcerWipe(id); err != nil {
 		o.log.Warn().Err(err).Msg("could not record the enforcer cleanup")

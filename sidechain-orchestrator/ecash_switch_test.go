@@ -136,14 +136,11 @@ func TestApplyECashSwitchKeepsTheChainWithNoPublishedForkHeight(t *testing.T) {
 // with nothing left to ask.
 func TestConfirmPendingECashNetworkRepinsTheSelection(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
 	require.NoError(t, o.SelectECashNetwork("drynet2"))
 
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
-	cached, _ := netcatalog.Load(o.BitwindowDir)
-	require.Equal(t, "drynet3", cached.ECashID())
-	require.Equal(t, "drynet3", o.RunningECashID(cached), "the pick must move with the confirmation")
+	require.Equal(t, "drynet3", o.Settings.ECashNetworkID(), "the pick must move with the confirmation")
 }
 
 // The pending catalog is the one that names the confirmed network, and the
@@ -151,8 +148,7 @@ func TestConfirmPendingECashNetworkRepinsTheSelection(t *testing.T) {
 // document drops the pick and the next start boots the old network again.
 func TestConfirmPendingECashNetworkRepinsAnUnlistedID(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
-	o.ResolveNetworkCatalog(context.Background())
-	require.Equal(t, "drynet2", o.ecashID, "the process still serves the old catalog")
+	require.Equal(t, "drynet2", o.ecashID, "the process runs the network the conf names")
 
 	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
 
