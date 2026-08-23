@@ -147,7 +147,8 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
                     'Deposits, withdrawals and the slot list are read from BIP300 state, which only a local '
                         'Bitcoin Core plus the enforcer can produce. Both must be running and fully synced '
                         'before this tab can do anything.',
-                  L1Gate.starting => 'Both daemons are coming up. The slot list appears once they are synced.',
+                  // One string for both: the enforcer drops in and out while it
+                  // catches up, and a per-state string reflows the page each time.
                   _ =>
                     'The slot list and balances stay empty until Core and the enforcer have caught up with '
                         'the chain tip. You can leave this tab — syncing carries on.',
@@ -173,25 +174,21 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
               stopDaemon: () => viewModel.stopDaemon(Enforcer()),
               navigateToLogs: viewModel.navigateToLogs,
             ),
-            const SailSpacing(SailStyleValues.padding16),
-            Row(
-              children: [
-                if (gate == L1Gate.stopped)
+            if (gate == L1Gate.stopped) ...[
+              const SailSpacing(SailStyleValues.padding16),
+              Row(
+                children: [
                   SailButton(
                     label: 'Start Bitcoin Core + Enforcer',
                     onPressed: viewModel.startL1,
                   ),
-                if (gate == L1Gate.stopped) const SizedBox(width: SailStyleValues.padding12),
-                Flexible(
-                  child: SailText.secondary12(
-                    switch (gate) {
-                      L1Gate.stopped => 'Takes a while on first run — the chain has to download and verify.',
-                      _ => 'Progress also shows in the status bar below.',
-                    },
+                  const SizedBox(width: SailStyleValues.padding12),
+                  Flexible(
+                    child: SailText.secondary12('Takes a while on first run — the chain has to download and verify.'),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
