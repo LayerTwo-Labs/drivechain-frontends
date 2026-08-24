@@ -85,6 +85,10 @@ class WalletPageViewModel extends BaseViewModel {
   }
 }
 
+/// Height the wallet tabs keep for their own header, so the claim card above
+/// them can never take the whole page.
+const double _minimumTabsHeight = 120;
+
 @RoutePage()
 class WalletPage extends StatelessWidget {
   TransactionProvider get transactionProvider => GetIt.I.get<TransactionProvider>();
@@ -185,18 +189,30 @@ class WalletPage extends StatelessWidget {
                 ),
               ];
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const ForkModeBanner(),
-                  Expanded(
-                    child: InlineTabBar(
-                      key: tabKey,
-                      tabs: allTabs,
-                      initialIndex: 0,
-                    ),
-                  ),
-                ],
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  // The claim card grows with the coin count, so it takes what
+                  // the tabs do not need and scrolls the rest.
+                  final bannerMaxHeight = constraints.hasBoundedHeight
+                      ? (constraints.maxHeight - _minimumTabsHeight).clamp(0.0, constraints.maxHeight)
+                      : double.infinity;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: bannerMaxHeight),
+                        child: const ForkModeBanner(),
+                      ),
+                      Expanded(
+                        child: InlineTabBar(
+                          key: tabKey,
+                          tabs: allTabs,
+                          initialIndex: 0,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               );
             },
           );

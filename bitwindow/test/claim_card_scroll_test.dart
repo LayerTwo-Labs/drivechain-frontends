@@ -62,6 +62,42 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsWidgets);
   });
 
+  // The wallet page hands the card a bound that keeps room for the tabs. The
+  // card fits whatever it gets, down to a height far below its natural one.
+  testWidgets('the claim card fits the height its page allows', (tester) async {
+    await registerTestDependencies();
+    _registerClaimProviders();
+
+    await tester.binding.setSurfaceSize(const Size(900, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      SailApp(
+        dense: false,
+        builder: (context) => MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 150),
+                  child: const ForkModeBanner(),
+                ),
+                Expanded(child: Container()),
+              ],
+            ),
+          ),
+        ),
+        initMethod: (_) async => (),
+        accentColor: SailColorScheme.black,
+        log: GetIt.I.get<Logger>(),
+      ),
+      duration: const Duration(seconds: 10),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull, reason: 'the card must fit a 150 pixel bound');
+  });
+
   // main.dart lets the window go down to 400 pixels tall, which leaves the card
   // far less room than a full-size window.
   testWidgets('the claim card fits the shortest window', (tester) async {

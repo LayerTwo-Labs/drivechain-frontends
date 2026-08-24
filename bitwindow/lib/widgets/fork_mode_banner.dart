@@ -121,6 +121,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       child: SailCard(
         color: theme.colors.orange.withValues(alpha: 0.08),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -142,34 +143,36 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
               ],
             ),
             const SizedBox(height: 16),
-            // The card sits above the wallet tabs and takes its natural
-            // height, so a wallet with many coins runs past the window.
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * _claimCardBodyHeightShare,
-              ),
-              child: SingleChildScrollView(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ...claims.map((c) => _coinPicker(context, c, formatter)),
-                          const SizedBox(height: 8),
-                          if (_selectionValid)
-                            SailButton(
-                              label: _buttonLabel(formatter, selectedSats, claims),
-                              icon: SailSVGAsset.iconCoins,
-                              onPressed: () => _claim(context),
-                            ),
-                        ],
+            // The page bounds the card, so the body takes what the header
+            // leaves and scrolls the rest. An unbounded host caps it instead.
+            Flexible(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * _claimCardBodyHeightShare,
+                ),
+                child: SingleChildScrollView(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ...claims.map((c) => _coinPicker(context, c, formatter)),
+                            const SizedBox(height: 8),
+                            if (_selectionValid)
+                              SailButton(
+                                label: _buttonLabel(formatter, selectedSats, claims),
+                                icon: SailSVGAsset.iconCoins,
+                                onPressed: () => _claim(context),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(child: _whyThisIsNecessary()),
-                  ],
+                      const SizedBox(width: 24),
+                      Expanded(child: _whyThisIsNecessary()),
+                    ],
+                  ),
                 ),
               ),
             ),
