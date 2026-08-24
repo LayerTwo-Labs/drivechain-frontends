@@ -1409,8 +1409,10 @@ func normalizeProxyAddr(raw string) (string, error) {
 	return trimmed, nil
 }
 
-// normalizeEsploraURL validates a user-supplied Esplora endpoint and returns it
-// trimmed of a trailing slash. It must be an absolute http/https URL with a host.
+// normalizeEsploraURL validates a user-supplied chain-source endpoint and
+// returns it trimmed of a trailing slash. It must be an absolute URL with a
+// host, either an Esplora REST API (http/https) or an Electrum-protocol server
+// (ssl/tcp), which is what a network's Fulcrum backend publishes.
 func normalizeEsploraURL(raw string) (string, error) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
@@ -1420,8 +1422,10 @@ func normalizeEsploraURL(raw string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid server URL: %w", err)
 	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return "", fmt.Errorf("server URL must be http or https, got %q", u.Scheme)
+	switch u.Scheme {
+	case "http", "https", "ssl", "tcp":
+	default:
+		return "", fmt.Errorf("server URL must be http, https, ssl or tcp, got %q", u.Scheme)
 	}
 	if u.Host == "" {
 		return "", errors.New("server URL must include a host")

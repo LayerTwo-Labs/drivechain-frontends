@@ -230,14 +230,21 @@ func IsEcashFork(n Network) bool {
 // WalletChainSourceURLsForNetwork returns the endpoints the electrum wallet
 // reads chain data from, primary first. Mainnet uses the drivechain Electrum
 // server (ssl://) — its public HTTP is a mempool.space API that lacks the
-// /address/:a/utxo and /fee-estimates endpoints the wallet needs — while other
-// networks use their Esplora REST. The scheme (ssl/tcp vs https) selects the
-// client. This is deliberately separate from EsploraURLForNetwork, which feeds
-// the enforcer's BDK sync and must stay an HTTP Esplora URL.
+// /address/:a/utxo and /fee-estimates endpoints the wallet needs. eCash takes
+// the published backends in kind order, so its Fulcrum server serves the
+// wallet and its Esplora stays as the fallback. Other networks use their
+// Esplora REST. The scheme (ssl/tcp vs https) selects the client. This is
+// deliberately separate from EsploraURLForNetwork, which feeds the enforcer's
+// BDK sync and must stay an HTTP Esplora URL.
 func WalletChainSourceURLsForNetwork(n Network) []string {
 	switch n {
 	case NetworkMainnet:
 		return []string{"ssl://explorer.mainnet.drivechain.info:50002"}
+	case NetworkECash:
+		if urls := ECashEndpoints().ChainSourceURLs(); len(urls) > 0 {
+			return urls
+		}
+		return EsploraURLsForNetwork(n)
 	default:
 		return EsploraURLsForNetwork(n)
 	}
@@ -261,7 +268,7 @@ func ElectrumHostPortForNetwork(n Network) (string, uint16) {
 	case NetworkMainnet:
 		return "ssl://explorer.mainnet.drivechain.info", 50002
 	case NetworkECash:
-		return splitElectrumURL(ECashEndpoints().BackendURL("electrum"))
+		return splitElectrumURL(ECashEndpoints().ElectrumURL())
 	default:
 		return "", 0
 	}

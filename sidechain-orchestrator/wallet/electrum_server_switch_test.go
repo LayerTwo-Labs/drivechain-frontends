@@ -106,6 +106,18 @@ func TestSetServerURLRejectsMalformed(t *testing.T) {
 	assert.Equal(t, []string{"https://original.example/api"}, fake.BaseURLs())
 }
 
+// A network whose default backend is a Fulcrum server publishes it as ssl://,
+// so "reset to the network default" must accept that scheme.
+func TestSetServerURLAcceptsElectrumSchemes(t *testing.T) {
+	p, _ := newSwitchableElectrumBackend(t, "https://original.example/api")
+
+	for _, url := range []string{"ssl://fulcrum.example:50002", "tcp://fulcrum.example:50001"} {
+		_, err := p.SetServerURL(context.Background(), url)
+		require.NoErrorf(t, err, "expected %q to be accepted", url)
+		assert.Equal(t, url, p.ServerURL())
+	}
+}
+
 func TestSetServerURLHonorsHTTPS(t *testing.T) {
 	p, _ := newSwitchableElectrumBackend(t, "http://plain.example/api")
 
