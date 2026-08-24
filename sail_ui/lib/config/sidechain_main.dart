@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -246,16 +245,7 @@ Future<void> initSidechainDependencies({
 }
 
 Future<File> getLogFile(Directory appDir) async {
-  try {
-    await appDir.create(recursive: true);
-  } catch (error) {
-    debugPrint('Failed to create appdir: $error');
-  }
-
-  final path = [appDir.path, 'debug.log'].join(Platform.pathSeparator);
-  final logFile = File(path);
-
-  return logFile;
+  return prepareLogFile(appDir, 'debug.log');
 }
 
 List<Binary> _noAdditionalBinaries() => [];

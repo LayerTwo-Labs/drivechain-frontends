@@ -55,3 +55,28 @@ func TestFinalizeLeavesOtherNetworksAlone(t *testing.T) {
 
 	require.DirExists(t, legacy)
 }
+
+// The frontend, bitwindowd, and orchestratord all append to one file. It sits
+// in the root dir, so a network swap does not move it.
+func TestFinalizePutsTheLogInTheSharedFile(t *testing.T) {
+	base := t.TempDir()
+
+	conf := &Config{Datadir: base}
+	require.NoError(t, conf.Finalize(NetworkSignet))
+	require.Equal(t, filepath.Join(base, "bitwindow.log"), conf.LogPath)
+
+	require.NoError(t, conf.Finalize(NetworkMainnet))
+	require.Equal(t, filepath.Join(base, "bitwindow.log"), conf.LogPath)
+}
+
+// A user who passes --log.path keeps that file across a network swap.
+func TestFinalizeKeepsAChosenLogPath(t *testing.T) {
+	base := t.TempDir()
+	chosen := filepath.Join(base, "my.log")
+
+	conf := &Config{Datadir: base, LogPath: chosen}
+	require.NoError(t, conf.Finalize(NetworkSignet))
+	require.NoError(t, conf.Finalize(NetworkMainnet))
+
+	require.Equal(t, chosen, conf.LogPath)
+}

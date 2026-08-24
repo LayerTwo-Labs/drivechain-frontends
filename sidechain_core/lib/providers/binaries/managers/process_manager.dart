@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/config/binaries.dart';
 import 'package:sidechain_core/providers/binaries/managers/pid_file_manager.dart';
 import 'package:sidechain_core/providers/log_provider.dart';
+import 'package:sidechain_core/utils/log_file.dart';
 
 class ProcessManager extends ChangeNotifier {
   final Directory appDir;
@@ -50,7 +51,14 @@ class ProcessManager extends ChangeNotifier {
       ),
     );
 
-    // Also write to debug.log via the logger.
+    // bitwindowd appends its own records to the shared log file, so the logger
+    // would write them a second time. Its stderr holds the boot lines and the
+    // panics that never reach that file.
+    if (writesToSharedLog(binary.type) && !isStderr) {
+      debugPrint('[${binary.name}] $cleanLine');
+      return;
+    }
+
     log.i('[${binary.name}] $cleanLine');
   }
 
@@ -106,7 +114,7 @@ class ProcessManager extends ChangeNotifier {
           (data) {
             stdoutController.add(data);
             _finalErr[binary.name] = data;
-            if (!isSpam(data)) {
+            if (!isSpam(data) && !writesToSharedLog(binary.type)) {
               log.d('${file.path.split(Platform.pathSeparator).last}: $data');
             }
             // Process each line separately for log capture

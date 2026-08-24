@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 )
 
 // ResetCategory maps 1:1 to the proto DeletionType enum and selects which
@@ -328,7 +329,7 @@ func (o *Orchestrator) DeleteFiles(ctx context.Context, paths []string, specs ..
 					masterTouched = true
 				}
 			} else {
-				if err := os.RemoveAll(p); err != nil && !os.IsNotExist(err) {
+				if err := removeOrTruncate(p); err != nil {
 					evt.Error = err.Error()
 				}
 			}
@@ -669,6 +670,23 @@ func isWalletPath(p string, walletSet map[string]bool) bool {
 	// Wallet directories: bitcoind's `wallets/`, the enforcer's `wallet/<net>`.
 	return strings.Contains(lower, "/wallet/") || strings.HasSuffix(lower, "/wallet") ||
 		strings.Contains(lower, "/wallets/") || strings.HasSuffix(lower, "/wallets")
+}
+
+// removeOrTruncate empties the shared log in place and removes every other
+// path. The frontend and orchestratord hold open append handles on that file,
+// and a removal leaves them writing to a file nobody can read.
+func removeOrTruncate(p string) error {
+	if filepath.Base(p) == logfile.Name {
+		if err := os.Truncate(p, 0); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+
+	if err := os.RemoveAll(p); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 func isWalletBackupPath(p string) bool {

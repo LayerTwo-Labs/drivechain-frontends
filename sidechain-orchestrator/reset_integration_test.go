@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -177,13 +178,13 @@ func bootedLayout(t *testing.T, home, network string) []string {
 
 	// --- bitwindowd: flutter app data + signet/ subdir. ----------------------
 	writeStub(t, filepath.Join(bwNet, "bitwindow.db"))
-	writeStub(t, filepath.Join(bwNet, "server.log"))
+	writeStub(t, filepath.Join(bwNet, "miner.log"))
 	writeStub(t, filepath.Join(bwNet, "wallet.json"))
 	writeStub(t, filepath.Join(bwNet, "wallet_encryption.json"))
 	writeDir(t, filepath.Join(bwNet, "bitdrive"))
 
 	for _, f := range []string{
-		"debug.log", "settings.json",
+		logfile.Name, "settings.json",
 		"wallet.json", "wallet_encryption.json",
 	} {
 		writeStub(t, filepath.Join(bwRoot, f))
@@ -200,13 +201,13 @@ func bootedLayout(t *testing.T, home, network string) []string {
 
 	add(
 		filepath.Join(bwNet, "bitwindow.db"),
-		filepath.Join(bwNet, "server.log"),
+		filepath.Join(bwNet, "miner.log"),
 		filepath.Join(bwNet, "wallet.json"),
 		filepath.Join(bwNet, "wallet_encryption.json"),
 		filepath.Join(bwNet, "bitdrive"),
 		filepath.Join(bwRoot, "assets"),
 		filepath.Join(bwRoot, "bitwindow-bitcoin.conf"),
-		filepath.Join(bwRoot, "debug.log"),
+		filepath.Join(bwRoot, logfile.Name),
 		filepath.Join(bwRoot, "downloads"),
 		filepath.Join(bwRoot, "pids"),
 		filepath.Join(bwRoot, "settings.json"),
@@ -338,4 +339,38 @@ func TestGather_PerSidechainScoping(t *testing.T) {
 			"gathering thunder must not surface another sidechain's paths")
 	}
 	assert.True(t, thunderSeen, "gathering thunder must enumerate its data dir")
+}
+
+// A log reset clears the shared file, the miner file, and the files an
+// earlier release wrote.
+func TestGetLogPathsFindsEveryBitwindowLog(t *testing.T) {
+	home := redirectHome(t)
+	root := filepath.Join(appRoot(home), "bitwindow")
+	networkDir := filepath.Join(root, "signet")
+
+	for _, p := range []string{
+		filepath.Join(root, logfile.Name),
+		filepath.Join(root, "debug.log"),
+		filepath.Join(root, "orchestratord.log"),
+		filepath.Join(networkDir, "miner.log"),
+		filepath.Join(networkDir, "server.log"),
+	} {
+		writeStub(t, p)
+	}
+
+	got := map[string]struct{}{}
+	for _, p := range config.BitWindowDirs.GetLogPaths(networkDir, testLogger(t)) {
+		got[filepath.Clean(p)] = struct{}{}
+	}
+
+	for _, want := range []string{
+		filepath.Join(root, logfile.Name),
+		filepath.Join(root, "debug.log"),
+		filepath.Join(root, "orchestratord.log"),
+		filepath.Join(networkDir, "miner.log"),
+		filepath.Join(networkDir, "server.log"),
+	} {
+		_, ok := got[filepath.Clean(want)]
+		require.True(t, ok, "the log reset must find %s", want)
+	}
 }
