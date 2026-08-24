@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
@@ -2224,4 +2225,51 @@ func TestElectrumCreatePSBTNoReplayProtect(t *testing.T) {
 	packet, err := decodePSBTBase64(unsigned)
 	require.NoError(t, err)
 	require.NotEqual(t, replay.ReplayLockTime, packet.UnsignedTx.LockTime)
+}
+
+func TestGapLimitFor(t *testing.T) {
+	assert.Equal(t, 20, gapLimitFor(true))
+	assert.Equal(t, 5, gapLimitFor(false))
+}
+
+// A refresh runs every few seconds. It walks a short lookahead past the last
+// used address, while the full BIP44 gap returns on the periodic deep walk.
+func TestElectrumRefreshWalksAShortLookahead(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 1)
+	require.NoError(t, err)
+
+	counting := &countingEsplora{ChainDataSource: newFakeEsplora()}
+	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	ctx := context.Background()
+
+	fake, ok := counting.ChainDataSource.(*fakeEsplora)
+	require.True(t, ok)
+	fake.stats[addrs[0]] = EsploraAddressStats{
+		Address:    addrs[0],
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+
+	_, _, err = p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	deepCalls := atomic.LoadInt32(&counting.statsCalls)
+	require.Positive(t, deepCalls)
+
+	// Age the cache so the next read re-walks, and mark the deep walk recent so
+	// that re-walk takes the refresh gap.
+	p.mu.Lock()
+	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
+	p.deepAt[w.ID] = time.Now()
+	p.mu.Unlock()
+
+	_, _, err = p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	refreshCalls := atomic.LoadInt32(&counting.statsCalls) - deepCalls
+
+	t.Logf("deep walk: %d requests, refresh walk: %d requests", deepCalls, refreshCalls)
+	require.Positive(t, refreshCalls, "a refresh still checks the addresses in use")
+	require.Less(t, refreshCalls, deepCalls, "a refresh must cost fewer requests than the full gap")
 }
