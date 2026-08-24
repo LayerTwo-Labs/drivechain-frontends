@@ -27,6 +27,43 @@ func TestECashWalletChainSourceRanksFulcrumFirst(t *testing.T) {
 	}
 }
 
+// The catalog decides which networks read an Electrum-protocol server, so a
+// signet that publishes a Fulcrum backend reads it without a code change.
+func TestPublishedElectrumBackendServesAnyNetwork(t *testing.T) {
+	original := PublishedEndpoints(NetworkSignet)
+	t.Cleanup(func() { SetNetworkEndpoints(NetworkSignet, original) })
+
+	SetNetworkEndpoints(NetworkSignet, netcatalog.Network{
+		ID: "signet",
+		Backends: []netcatalog.Backend{
+			{Kind: netcatalog.KindEsplora, URL: "https://esplora.signet.example"},
+			{Kind: netcatalog.KindFulcrum, URL: "ssl://fulcrum.signet.example:50002"},
+		},
+	})
+
+	want := []string{"ssl://fulcrum.signet.example:50002", "https://esplora.signet.example"}
+	if got := WalletChainSourceURLsForNetwork(NetworkSignet); !reflect.DeepEqual(got, want) {
+		t.Errorf("WalletChainSourceURLsForNetwork(signet) = %v, want %v", got, want)
+	}
+}
+
+// A network that publishes only an Esplora keeps the built-in endpoints, so
+// the catalog never drops mainnet off its Electrum server.
+func TestPublishedEsploraOnlyKeepsTheBuiltInEndpoints(t *testing.T) {
+	original := PublishedEndpoints(NetworkMainnet)
+	t.Cleanup(func() { SetNetworkEndpoints(NetworkMainnet, original) })
+
+	SetNetworkEndpoints(NetworkMainnet, netcatalog.Network{
+		ID:       "bitcoin",
+		Backends: []netcatalog.Backend{{Kind: netcatalog.KindEsplora, URL: "https://esplora.mainnet.example"}},
+	})
+
+	want := []string{"ssl://explorer.mainnet.drivechain.info:50002"}
+	if got := WalletChainSourceURLsForNetwork(NetworkMainnet); !reflect.DeepEqual(got, want) {
+		t.Errorf("WalletChainSourceURLsForNetwork(mainnet) = %v, want %v", got, want)
+	}
+}
+
 // A published fulcrum backend also serves the enforcer, which speaks the same
 // wire protocol.
 func TestECashElectrumHostPrefersFulcrum(t *testing.T) {

@@ -54,6 +54,7 @@ var (
 	forkHeights    = map[Network]int{}
 	displayNames   = map[Network]string{}
 	ecashEndpoints netcatalog.Network
+	published      = map[Network]netcatalog.Network{}
 )
 
 // SetECashPeer records the seed address published for a eCash network.
@@ -152,6 +153,27 @@ func ECashEndpoints() netcatalog.Network {
 	return netcatalog.EmbeddedECash()
 }
 
+// SetNetworkEndpoints records the entry the catalog publishes for a network.
+// Called once the network catalog is adopted, before anything dials. The
+// compiled-in copy is adopted at startup, so no read falls in a gap.
+func SetNetworkEndpoints(network Network, n netcatalog.Network) {
+	ecashMu.Lock()
+	defer ecashMu.Unlock()
+	published[network] = n
+}
+
+// PublishedEndpoints returns the entry the catalog publishes for a network,
+// zero when it lists none. eCash keys off its resolved entry, because its id is
+// free-form and names no network slot.
+func PublishedEndpoints(network Network) netcatalog.Network {
+	if network == NetworkECash {
+		return ECashEndpoints()
+	}
+	ecashMu.RLock()
+	defer ecashMu.RUnlock()
+	return published[network]
+}
+
 // ECashExplorerHost is the host BitWindow links block, transaction and address
 // pages at for the live eCash network, empty when it publishes no explorer.
 func ECashExplorerHost() string {
@@ -228,23 +250,22 @@ func IsEcashFork(n Network) bool {
 }
 
 // WalletChainSourceURLsForNetwork returns the endpoints the electrum wallet
-// reads chain data from, primary first. Mainnet uses the drivechain Electrum
-// server (ssl://) — its public HTTP is a mempool.space API that lacks the
-// /address/:a/utxo and /fee-estimates endpoints the wallet needs. eCash takes
-// the published backends in kind order, so its Fulcrum server serves the
-// wallet and its Esplora stays as the fallback. Other networks use their
-// Esplora REST. The scheme (ssl/tcp vs https) selects the client. This is
-// deliberately separate from EsploraURLForNetwork, which feeds the enforcer's
-// BDK sync and must stay an HTTP Esplora URL.
+// reads chain data from, best first. The catalog decides which networks read
+// an Electrum-protocol server: where it publishes one, the whole published list
+// applies, so the Fulcrum server serves the wallet and the Esplora stays as the
+// fallback. The rest keep the built-in endpoints. Mainnet's built-in one is the
+// drivechain Electrum server (ssl://), because its public HTTP is a
+// mempool.space API that lacks the /address/:a/utxo and /fee-estimates
+// endpoints the wallet needs. The scheme (ssl/tcp vs https) selects the client.
+// This is deliberately separate from EsploraURLForNetwork, which feeds the
+// enforcer's BDK sync and must stay an HTTP Esplora URL.
 func WalletChainSourceURLsForNetwork(n Network) []string {
+	if entry := PublishedEndpoints(n); entry.ElectrumURL() != "" {
+		return entry.ChainSourceURLs()
+	}
 	switch n {
 	case NetworkMainnet:
 		return []string{"ssl://explorer.mainnet.drivechain.info:50002"}
-	case NetworkECash:
-		if urls := ECashEndpoints().ChainSourceURLs(); len(urls) > 0 {
-			return urls
-		}
-		return EsploraURLsForNetwork(n)
 	default:
 		return EsploraURLsForNetwork(n)
 	}
