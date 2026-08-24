@@ -222,6 +222,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
           await windowProvider.open(SubWindowTypes.logs);
         },
       ),
+      CommandItem(
+        label: openLogsLabel(),
+        category: 'This Node',
+        onSelected: openLogs,
+      ),
 
       // Settings sections
       CommandItem(
@@ -375,6 +380,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             }
                           : null,
                     ),
+                    openLogsMenuItem(),
                   ],
                 ),
               ],

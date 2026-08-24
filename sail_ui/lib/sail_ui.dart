@@ -138,6 +138,7 @@ export 'widgets/nav/persistent_status_bar.dart';
 export 'widgets/nav/side_nav.dart';
 export 'widgets/nav/top_nav.dart';
 export 'widgets/optional_builder.dart';
+export 'widgets/logs_menu.dart';
 export 'widgets/platform_menu.dart';
 export 'widgets/spacing.dart';
 export 'widgets/static/static_field.dart';
