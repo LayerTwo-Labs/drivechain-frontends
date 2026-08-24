@@ -91,35 +91,58 @@ func (s *NetworkChainSource) current() (ChainDataSource, error) {
 
 	// One client per protocol class, re-pointed rather than replaced: an
 	// abandoned ElectrumClient's keepalive goroutine reconnects forever.
-	class := "esplora"
-	if electrumScheme(urls[0]) {
-		class = "electrum"
-	}
-	client, ok := s.clients[class]
-	if !ok {
-		client = NewChainDataSource(urls, s.log, target.Params)
-		if s.proxyOn {
-			if sw, isSwappable := client.(SwappableChainSource); isSwappable {
-				if err := sw.SetProxy(true, s.proxyAddr); err != nil {
-					s.mu.Unlock()
-					return nil, fmt.Errorf("apply proxy to %s chain source: %w", class, err)
+	classes, byClass := groupByClass(urls)
+	sources := make([]ChainDataSource, 0, len(classes))
+	for _, class := range classes {
+		classURLs := byClass[class]
+		client, ok := s.clients[class]
+		if !ok {
+			client = NewChainDataSource(classURLs, s.log, target.Params)
+			if s.proxyOn {
+				if sw, isSwappable := client.(SwappableChainSource); isSwappable {
+					if err := sw.SetProxy(true, s.proxyAddr); err != nil {
+						s.mu.Unlock()
+						return nil, fmt.Errorf("apply proxy to %s chain source: %w", class, err)
+					}
 				}
 			}
+			s.clients[class] = client
+			s.log.Info().Str("network", target.Network).Strs("urls", classURLs).Msg("chain source built")
+		} else {
+			if sw, isSwappable := client.(SwappableChainSource); isSwappable && !sameURLs(sw.BaseURLs(), classURLs) {
+				sw.SetBaseURLs(classURLs)
+				s.log.Info().Str("network", target.Network).Strs("urls", classURLs).Msg("chain source re-pointed")
+			}
+			if en, canSetNetwork := client.(interface{ SetNetwork(*chaincfg.Params) }); canSetNetwork {
+				en.SetNetwork(target.Params)
+			}
 		}
-		s.clients[class] = client
-		s.log.Info().Str("network", target.Network).Strs("urls", urls).Msg("chain source built")
-	} else {
-		if sw, isSwappable := client.(SwappableChainSource); isSwappable && !sameURLs(sw.BaseURLs(), urls) {
-			sw.SetBaseURLs(urls)
-			s.log.Info().Str("network", target.Network).Strs("urls", urls).Msg("chain source re-pointed")
-		}
-		if en, canSetNetwork := client.(interface{ SetNetwork(*chaincfg.Params) }); canSetNetwork {
-			en.SetNetwork(target.Params)
-		}
+		sources = append(sources, client)
 	}
 	s.mu.Unlock()
 
-	return client, nil
+	if len(sources) == 1 {
+		return sources[0], nil
+	}
+	return newFallbackChainSource(sources, s.log), nil
+}
+
+// groupByClass splits an endpoint list into one bucket per protocol class,
+// keeping the published order both between the classes and within each one.
+func groupByClass(urls []string) ([]string, map[string][]string) {
+	var classes []string
+	byClass := make(map[string][]string, 2)
+	for _, url := range urls {
+		class := "esplora"
+		if electrumScheme(url) {
+			class = "electrum"
+		}
+		if _, seen := byClass[class]; !seen {
+			classes = append(classes, class)
+		}
+		byClass[class] = append(byClass[class], url)
+	}
+	return classes, byClass
 }
 
 // sameURLs compares endpoint lists ignoring a trailing slash, which
@@ -281,7 +304,7 @@ func (s *NetworkChainSource) BaseURLs() []string {
 	if err != nil {
 		return nil
 	}
-	sw, ok := c.(SwappableChainSource)
+	sw, ok := c.(interface{ BaseURLs() []string })
 	if !ok {
 		return nil
 	}
