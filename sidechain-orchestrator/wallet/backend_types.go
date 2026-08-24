@@ -153,7 +153,7 @@ type SignRawTransactionResult struct {
 
 // SendRequest is everything a backend needs to pay destinations: amounts,
 // fee control (rate or fixed), an optional OP_RETURN payload, pinned inputs,
-// and replay protection. Backends reject fields they cannot honor.
+// and replay control. Backends reject fields they cannot honor.
 type SendRequest struct {
 	DestinationsSats      map[string]int64
 	FeeRateSatPerVB       int64 // 0 = backend's own fee estimation
@@ -161,7 +161,9 @@ type SendRequest struct {
 	OpReturnHex           string
 	RequiredInputs        []RequiredInput
 	SubtractFeeFromAmount bool
-	ReplayProtect         bool
+	// AllowReplay drops the eCash network's magic nLockTime for one send, so
+	// the transaction lands on Bitcoin too.
+	AllowReplay bool
 	// Replaceable signals BIP125, so a later transaction spending the same
 	// inputs can replace this one.
 	Replaceable bool

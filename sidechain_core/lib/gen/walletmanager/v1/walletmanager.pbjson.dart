@@ -1181,12 +1181,15 @@ const SendTransactionRequest$json = {
     {'1': 'op_return_hex', '3': 5, '4': 1, '5': 9, '10': 'opReturnHex'},
     {'1': 'fixed_fee_sats', '3': 6, '4': 1, '5': 3, '10': 'fixedFeeSats'},
     {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'requiredInputs'},
-    {'1': 'replay_protect', '3': 8, '4': 1, '5': 8, '10': 'replayProtect'},
+    {'1': 'allow_replay', '3': 12, '4': 1, '5': 8, '10': 'allowReplay'},
     {'1': 'raw_outputs', '3': 9, '4': 3, '5': 11, '6': '.walletmanager.v1.RawOutput', '10': 'rawOutputs'},
     {'1': 'external_inputs', '3': 10, '4': 3, '5': 11, '6': '.walletmanager.v1.ExternalInput', '10': 'externalInputs'},
     {'1': 'replaceable', '3': 11, '4': 1, '5': 8, '10': 'replaceable'},
   ],
   '3': [SendTransactionRequest_DestinationsEntry$json],
+  '9': [
+    {'1': 8, '2': 9},
+  ],
 };
 
 @$core.Deprecated('Use sendTransactionRequestDescriptor instead')
@@ -1208,12 +1211,12 @@ final $typed_data.Uint8List sendTransactionRequestDescriptor = $convert.base64De
     'X2Ftb3VudBgEIAEoCFIVc3VidHJhY3RGZWVGcm9tQW1vdW50EiIKDW9wX3JldHVybl9oZXgYBS'
     'ABKAlSC29wUmV0dXJuSGV4EiQKDmZpeGVkX2ZlZV9zYXRzGAYgASgDUgxmaXhlZEZlZVNhdHMS'
     'SAoPcmVxdWlyZWRfaW5wdXRzGAcgAygLMh8ud2FsbGV0bWFuYWdlci52MS5VbnNwZW50T3V0cH'
-    'V0Ug5yZXF1aXJlZElucHV0cxIlCg5yZXBsYXlfcHJvdGVjdBgIIAEoCFINcmVwbGF5UHJvdGVj'
-    'dBI8CgtyYXdfb3V0cHV0cxgJIAMoCzIbLndhbGxldG1hbmFnZXIudjEuUmF3T3V0cHV0UgpyYX'
-    'dPdXRwdXRzEkgKD2V4dGVybmFsX2lucHV0cxgKIAMoCzIfLndhbGxldG1hbmFnZXIudjEuRXh0'
-    'ZXJuYWxJbnB1dFIOZXh0ZXJuYWxJbnB1dHMSIAoLcmVwbGFjZWFibGUYCyABKAhSC3JlcGxhY2'
-    'VhYmxlGj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBXZhbHVlGAIg'
-    'ASgDUgV2YWx1ZToCOAE=');
+    'V0Ug5yZXF1aXJlZElucHV0cxIhCgxhbGxvd19yZXBsYXkYDCABKAhSC2FsbG93UmVwbGF5EjwK'
+    'C3Jhd19vdXRwdXRzGAkgAygLMhsud2FsbGV0bWFuYWdlci52MS5SYXdPdXRwdXRSCnJhd091dH'
+    'B1dHMSSAoPZXh0ZXJuYWxfaW5wdXRzGAogAygLMh8ud2FsbGV0bWFuYWdlci52MS5FeHRlcm5h'
+    'bElucHV0Ug5leHRlcm5hbElucHV0cxIgCgtyZXBsYWNlYWJsZRgLIAEoCFILcmVwbGFjZWFibG'
+    'UaPwoRRGVzdGluYXRpb25zRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKANS'
+    'BXZhbHVlOgI4AUoECAgQCQ==');
 
 @$core.Deprecated('Use sendTransactionResponseDescriptor instead')
 const SendTransactionResponse$json = {
@@ -1271,9 +1274,12 @@ const CreatePsbtRequest$json = {
     {'1': 'required_inputs', '3': 7, '4': 3, '5': 11, '6': '.walletmanager.v1.UnspentOutput', '10': 'requiredInputs'},
     {'1': 'raw_outputs', '3': 8, '4': 3, '5': 11, '6': '.walletmanager.v1.RawOutput', '10': 'rawOutputs'},
     {'1': 'external_inputs', '3': 9, '4': 3, '5': 11, '6': '.walletmanager.v1.ExternalInput', '10': 'externalInputs'},
-    {'1': 'replay_protect', '3': 10, '4': 1, '5': 8, '10': 'replayProtect'},
+    {'1': 'allow_replay', '3': 11, '4': 1, '5': 8, '10': 'allowReplay'},
   ],
   '3': [CreatePsbtRequest_DestinationsEntry$json],
+  '9': [
+    {'1': 10, '2': 11},
+  ],
 };
 
 @$core.Deprecated('Use createPsbtRequestDescriptor instead')
@@ -1297,9 +1303,9 @@ final $typed_data.Uint8List createPsbtRequestDescriptor = $convert.base64Decode(
     'ZF9pbnB1dHMYByADKAsyHy53YWxsZXRtYW5hZ2VyLnYxLlVuc3BlbnRPdXRwdXRSDnJlcXVpcm'
     'VkSW5wdXRzEjwKC3Jhd19vdXRwdXRzGAggAygLMhsud2FsbGV0bWFuYWdlci52MS5SYXdPdXRw'
     'dXRSCnJhd091dHB1dHMSSAoPZXh0ZXJuYWxfaW5wdXRzGAkgAygLMh8ud2FsbGV0bWFuYWdlci'
-    '52MS5FeHRlcm5hbElucHV0Ug5leHRlcm5hbElucHV0cxIlCg5yZXBsYXlfcHJvdGVjdBgKIAEo'
-    'CFINcmVwbGF5UHJvdGVjdBo/ChFEZXN0aW5hdGlvbnNFbnRyeRIQCgNrZXkYASABKAlSA2tleR'
-    'IUCgV2YWx1ZRgCIAEoA1IFdmFsdWU6AjgB');
+    '52MS5FeHRlcm5hbElucHV0Ug5leHRlcm5hbElucHV0cxIhCgxhbGxvd19yZXBsYXkYCyABKAhS'
+    'C2FsbG93UmVwbGF5Gj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIAEoCVIDa2V5EhQKBX'
+    'ZhbHVlGAIgASgDUgV2YWx1ZToCOAFKBAgKEAs=');
 
 @$core.Deprecated('Use createPsbtResponseDescriptor instead')
 const CreatePsbtResponse$json = {

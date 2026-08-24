@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 )
 
@@ -228,4 +229,58 @@ func TestNetworkParams(t *testing.T) {
 
 	_, err = NetworkParams("testnet")
 	assert.Error(t, err)
+}
+
+// TestNotificationTxSurvivesTheReplayLockTime proves the replay locktime is
+// safe to stamp on a notification tx: the blinded payload commits to the
+// designated outpoint, not to the locktime or the sequence, so the recipient
+// still recovers the sender's payment code.
+func TestNotificationTxSurvivesTheReplayLockTime(t *testing.T) {
+	recipient, err := bip47.ParsePaymentCode(bobPM)
+	require.NoError(t, err)
+
+	outp := wireOutpointFromHex(t, designatedOutpointHex)
+	var rpcTxIDBytes [32]byte
+	for i := 0; i < 32; i++ {
+		rpcTxIDBytes[i] = outp.Hash[31-i]
+	}
+	desig := DesignatedInput{
+		TxID:       hex.EncodeToString(rpcTxIDBytes[:]),
+		Vout:       outp.Index,
+		AmountSats: 100_000,
+	}
+	notifAddr, err := bip47.DeriveNotificationAddress(recipient, &chaincfg.MainNetParams)
+	require.NoError(t, err)
+
+	rawHex, _, err := BuildNotificationTx(
+		aliceSeedHex, recipient, desig, designatedPriv(t),
+		notifAddr, notifAddr, 546, 1000, &chaincfg.MainNetParams,
+	)
+	require.NoError(t, err)
+
+	protectedHex, err := replay.ApplyLockTimeHex(rawHex)
+	require.NoError(t, err)
+
+	rawBytes, err := hex.DecodeString(protectedHex)
+	require.NoError(t, err)
+	var msgTx wire.MsgTx
+	require.NoError(t, msgTx.Deserialize(strings.NewReader(string(rawBytes))))
+
+	assert.EqualValues(t, replay.ReplayLockTime, msgTx.LockTime)
+	require.Len(t, msgTx.TxIn, 1)
+	assert.Less(t, msgTx.TxIn[0].Sequence, uint32(wire.MaxTxInSequenceNum),
+		"the input must be non-final, else the locktime does nothing")
+	assert.Equal(t, outp, msgTx.TxIn[0].PreviousOutPoint,
+		"the payload blinds against this outpoint, so it must not move")
+
+	var opReturnPayload []byte
+	for _, out := range msgTx.TxOut {
+		if len(out.PkScript) == 83 && out.PkScript[0] == 0x6a && out.PkScript[1] == 0x4c {
+			opReturnPayload = out.PkScript[3:]
+			break
+		}
+	}
+	require.NotNil(t, opReturnPayload, "no OP_RETURN with an 80-byte payload found")
+	assert.Equal(t, aliceBlindedPayload, hex.EncodeToString(opReturnPayload),
+		"the replay locktime must not change the blinded payload")
 }

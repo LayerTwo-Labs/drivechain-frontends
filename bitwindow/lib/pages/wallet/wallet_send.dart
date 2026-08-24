@@ -136,7 +136,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
     if (plan == null || !context.mounted) {
       return;
     }
-    final psbt = await viewModel.buildUnsignedPsbtForAirgap(context, replayProtect: plan.protect);
+    final psbt = await viewModel.buildUnsignedPsbtForAirgap(context, allowReplay: plan.allowReplay);
     if (psbt == null || !context.mounted) {
       return;
     }
@@ -150,7 +150,7 @@ class SendTab extends ViewModelWidget<SendPageViewModel> {
       if (txid == null) {
         return;
       }
-      if (plan.risky && !plan.protect) {
+      if (plan.risky && plan.allowReplay) {
         GetIt.I<ForkProvider>().rememberUnprotectedSend(txid);
       }
       if (!context.mounted) {
@@ -807,8 +807,8 @@ class SendPageViewModel extends BaseViewModel {
   /// Asks about replay protection when the send spends a coin that exists on
   /// both chains. Returns null when the user cancels. `risky` stays false for a
   /// send whose coins live on one chain, so its own outputs raise no warning.
-  Future<({bool protect, bool risky})?> askReplayProtect(BuildContext context) async {
-    const safe = (protect: false, risky: false);
+  Future<({bool allowReplay, bool risky})?> askReplayProtect(BuildContext context) async {
+    const safe = (allowReplay: false, risky: false);
     // A chain whose nodes reject the magic locktime has no protection to offer.
     if (!GetIt.I<ForkProvider>().replayProtectionAvailable) {
       return safe;
@@ -825,9 +825,9 @@ class SendPageViewModel extends BaseViewModel {
       case ReplayChoice.cancel:
         return null;
       case ReplayChoice.sendPlain:
-        return (protect: false, risky: true);
+        return (allowReplay: true, risky: true);
       case ReplayChoice.sendProtected:
-        return (protect: true, risky: true);
+        return (allowReplay: false, risky: true);
     }
   }
 
@@ -836,13 +836,13 @@ class SendPageViewModel extends BaseViewModel {
     if (plan == null || !context.mounted) {
       return;
     }
-    final replayProtect = plan.protect;
+    final allowReplay = plan.allowReplay;
 
     // Multisig never auto-signs: save the PSBT as a draft and open its tab,
     // where each keystore signs explicitly and broadcast happens once the
     // threshold is met.
     if (isMultisig) {
-      await _createMultisigDraft(context, replayProtect: replayProtect);
+      await _createMultisigDraft(context, allowReplay: allowReplay);
       return;
     }
 
@@ -894,9 +894,9 @@ class SendPageViewModel extends BaseViewModel {
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
-        replayProtect: replayProtect,
+        allowReplay: allowReplay,
       )).txid;
-      if (plan.risky && !replayProtect) {
+      if (plan.risky && allowReplay) {
         GetIt.I<ForkProvider>().rememberUnprotectedSend(txid);
       }
       await clearAll();
@@ -925,13 +925,13 @@ class SendPageViewModel extends BaseViewModel {
   /// Build the PSBT for a multisig send, save it as a draft, and switch to
   /// its tab at once. Reuses the airgap PSBT builder (validates
   /// recipients/fee and calls createPsbt).
-  Future<void> _createMultisigDraft(BuildContext context, {bool replayProtect = false}) async {
+  Future<void> _createMultisigDraft(BuildContext context, {bool allowReplay = false}) async {
     final walletId = activeWalletId;
     if (walletId == null) {
       return;
     }
     final generation = draftProvider.generation;
-    final psbt = await buildUnsignedPsbtForAirgap(context, replayProtect: replayProtect);
+    final psbt = await buildUnsignedPsbtForAirgap(context, allowReplay: allowReplay);
     if (psbt == null) {
       return;
     }
@@ -965,7 +965,7 @@ class SendPageViewModel extends BaseViewModel {
   /// Build an unsigned PSBT from the current recipients/fee/coin-selection for
   /// an external (airgap) signer. Returns base64, or null after surfacing an
   /// error toast.
-  Future<String?> buildUnsignedPsbtForAirgap(BuildContext context, {bool replayProtect = false}) async {
+  Future<String?> buildUnsignedPsbtForAirgap(BuildContext context, {bool allowReplay = false}) async {
     final missingAddress = recipients.indexWhere((r) => r.addressController.text.trim().isEmpty);
     if (missingAddress != -1) {
       showSailToast(context, 'Please enter an address for all recipients.');
@@ -1001,7 +1001,7 @@ class SendPageViewModel extends BaseViewModel {
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
         requiredInputs: selectedUtxos,
-        replayProtect: replayProtect,
+        allowReplay: allowReplay,
       );
     } catch (error) {
       log.e('Error building unsigned PSBT: $error');

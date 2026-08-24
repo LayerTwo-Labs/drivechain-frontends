@@ -102,13 +102,13 @@ func TestSendTransactionPassesThroughConnectCodes(t *testing.T) {
 	// the handler must not rewrap it as internal.
 	elecFake.sendErr = connect.NewError(
 		connect.CodeInvalidArgument,
-		errors.New("replay protection is only supported for Bitcoin Core wallets"),
+		errors.New("this wallet cannot allow a replay"),
 	)
 
 	_, err := h.SendTransaction(context.Background(), connect.NewRequest(&pb.SendTransactionRequest{
-		WalletId:      elecID,
-		Destinations:  map[string]int64{"addr": 10_000},
-		ReplayProtect: true,
+		WalletId:     elecID,
+		Destinations: map[string]int64{"addr": 10_000},
+		AllowReplay:  true,
 	}))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))

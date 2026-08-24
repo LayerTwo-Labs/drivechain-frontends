@@ -440,6 +440,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	if err != nil {
 		return "", err
 	}
+	protect := ReplayProtect(p.svc.Network(), req.AllowReplay)
 
 	needsRawPath := req.OpReturnHex != "" ||
 		req.FeeRateSatPerVB > 0 ||
@@ -447,7 +448,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 		len(req.RequiredInputs) > 0 ||
 		len(req.RawOutputs) > 0 ||
 		len(req.ExternalInputs) > 0 ||
-		req.ReplayProtect // custom serialization needs the raw-tx path
+		protect // custom serialization needs the raw-tx path
 
 	// External inputs carry no signature, so Core cannot size the fee for them.
 	if len(req.ExternalInputs) > 0 && req.FixedFeeSats <= 0 {
@@ -469,7 +470,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	// Replay protection stamps a magic locktime; Core lowers the inputs it is
 	// given below SEQUENCE_FINAL so the locktime takes effect.
 	locktime := uint32(0)
-	if req.ReplayProtect {
+	if protect {
 		locktime = replay.ReplayLockTime
 	}
 
@@ -549,7 +550,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 0 {
 		options["subtractFeeFromOutputs"] = lo.Range(len(req.DestinationsSats))
 	}
-	if req.ReplayProtect || req.Replaceable {
+	if protect || req.Replaceable {
 		// Inputs Core selects during funding must also be non-final, else the
 		// locktime is ignored and there is no replay protection.
 		options["replaceable"] = true

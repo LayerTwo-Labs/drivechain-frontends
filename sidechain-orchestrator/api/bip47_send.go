@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
@@ -223,7 +224,16 @@ func (h *WalletHandler) buildBip47NotificationTx(
 // broadcastBip47Notification signs and broadcasts the notification tx through
 // the wallet's Core RPC, then marks the recipient as notified. Returns the
 // notification txid.
-func (h *WalletHandler) broadcastBip47Notification(ctx context.Context, walletID, recipientCode, rawHex string) (string, error) {
+func (h *WalletHandler) broadcastBip47Notification(ctx context.Context, walletID, recipientCode, rawHex string, allowReplay bool) (string, error) {
+	// The notification tx spends a real coin, so it takes the same locktime as
+	// the payment it precedes.
+	if wallet.ReplayProtect(h.svc.Network(), allowReplay) {
+		protectedHex, err := replay.ApplyLockTimeHex(rawHex)
+		if err != nil {
+			return "", connect.NewError(connect.CodeInternal, err)
+		}
+		rawHex = protectedHex
+	}
 	signed, err := h.engine.Backend().SignTransaction(ctx, walletID, rawHex)
 	if err != nil {
 		return "", fmt.Errorf("sign notification tx: %w", err)

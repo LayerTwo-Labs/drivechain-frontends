@@ -4434,10 +4434,10 @@ type SendTransactionRequest struct {
 	FixedFeeSats int64 `protobuf:"varint,6,opt,name=fixed_fee_sats,json=fixedFeeSats,proto3" json:"fixed_fee_sats,omitempty"`
 	// Explicit wallet inputs to spend.
 	RequiredInputs []*UnspentOutput `protobuf:"bytes,7,rep,name=required_inputs,json=requiredInputs,proto3" json:"required_inputs,omitempty"`
-	// Build a replay-protected transaction: stamp the magic nLockTime
-	// (499999999) and non-final input sequences so stock Bitcoin Core rejects it
-	// as non-final, while a patched bitcoind confirms it. Core/Electrum only.
-	ReplayProtect bool `protobuf:"varint,8,opt,name=replay_protect,json=replayProtect,proto3" json:"replay_protect,omitempty"`
+	// Send a transaction that can replay onto Bitcoin. The eCash network stamps
+	// the magic nLockTime (499999999) on every send, so stock Bitcoin Core
+	// rejects it; this drops that stamp for one send.
+	AllowReplay bool `protobuf:"varint,12,opt,name=allow_replay,json=allowReplay,proto3" json:"allow_replay,omitempty"`
 	// Outputs with an explicit raw scriptPubKey, kept in order before any
 	// address/op_return outputs. Used for non-standard scripts (e.g. a sidechain
 	// OP_DRIVECHAIN treasury output).
@@ -4532,9 +4532,9 @@ func (x *SendTransactionRequest) GetRequiredInputs() []*UnspentOutput {
 	return nil
 }
 
-func (x *SendTransactionRequest) GetReplayProtect() bool {
+func (x *SendTransactionRequest) GetAllowReplay() bool {
 	if x != nil {
-		return x.ReplayProtect
+		return x.AllowReplay
 	}
 	return false
 }
@@ -4738,10 +4738,10 @@ type CreatePsbtRequest struct {
 	RequiredInputs        []*UnspentOutput       `protobuf:"bytes,7,rep,name=required_inputs,json=requiredInputs,proto3" json:"required_inputs,omitempty"`
 	RawOutputs            []*RawOutput           `protobuf:"bytes,8,rep,name=raw_outputs,json=rawOutputs,proto3" json:"raw_outputs,omitempty"`
 	ExternalInputs        []*ExternalInput       `protobuf:"bytes,9,rep,name=external_inputs,json=externalInputs,proto3" json:"external_inputs,omitempty"`
-	// Stamp the magic nLockTime (499999999) and non-final input sequences before
-	// the PSBT goes out for signatures, so the signed transaction is valid on
-	// eCash only. Electrum wallets only.
-	ReplayProtect bool `protobuf:"varint,10,opt,name=replay_protect,json=replayProtect,proto3" json:"replay_protect,omitempty"`
+	// Build a PSBT that can replay onto Bitcoin. The eCash network stamps the
+	// magic nLockTime (499999999) on every PSBT; this drops that stamp for one
+	// PSBT.
+	AllowReplay   bool `protobuf:"varint,11,opt,name=allow_replay,json=allowReplay,proto3" json:"allow_replay,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4839,9 +4839,9 @@ func (x *CreatePsbtRequest) GetExternalInputs() []*ExternalInput {
 	return nil
 }
 
-func (x *CreatePsbtRequest) GetReplayProtect() bool {
+func (x *CreatePsbtRequest) GetAllowReplay() bool {
 	if x != nil {
-		return x.ReplayProtect
+		return x.AllowReplay
 	}
 	return false
 }
@@ -9798,7 +9798,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x15GetNewAddressResponse\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x14\n" +
 	"\x05index\x18\x02 \x01(\x05R\x05index\x12'\n" +
-	"\x0fderivation_path\x18\x03 \x01(\tR\x0ederivationPath\"\xa8\x05\n" +
+	"\x0fderivation_path\x18\x03 \x01(\tR\x0ederivationPath\"\xaa\x05\n" +
 	"\x16SendTransactionRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12^\n" +
 	"\fdestinations\x18\x02 \x03(\v2:.walletmanager.v1.SendTransactionRequest.DestinationsEntryR\fdestinations\x122\n" +
@@ -9806,8 +9806,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x18subtract_fee_from_amount\x18\x04 \x01(\bR\x15subtractFeeFromAmount\x12\"\n" +
 	"\rop_return_hex\x18\x05 \x01(\tR\vopReturnHex\x12$\n" +
 	"\x0efixed_fee_sats\x18\x06 \x01(\x03R\ffixedFeeSats\x12H\n" +
-	"\x0frequired_inputs\x18\a \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x0erequiredInputs\x12%\n" +
-	"\x0ereplay_protect\x18\b \x01(\bR\rreplayProtect\x12<\n" +
+	"\x0frequired_inputs\x18\a \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x0erequiredInputs\x12!\n" +
+	"\fallow_replay\x18\f \x01(\bR\vallowReplay\x12<\n" +
 	"\vraw_outputs\x18\t \x03(\v2\x1b.walletmanager.v1.RawOutputR\n" +
 	"rawOutputs\x12H\n" +
 	"\x0fexternal_inputs\x18\n" +
@@ -9815,7 +9815,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\vreplaceable\x18\v \x01(\bR\vreplaceable\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"-\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01J\x04\b\b\x10\t\"-\n" +
 	"\x17SendTransactionResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"I\n" +
 	"\tRawOutput\x12\x1d\n" +
@@ -9828,7 +9828,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x04vout\x18\x02 \x01(\x05R\x04vout\x12\x1d\n" +
 	"\n" +
 	"value_sats\x18\x03 \x01(\x03R\tvalueSats\x12*\n" +
-	"\x11script_pubkey_hex\x18\x04 \x01(\tR\x0fscriptPubkeyHex\"\xfc\x04\n" +
+	"\x11script_pubkey_hex\x18\x04 \x01(\tR\x0fscriptPubkeyHex\"\xfe\x04\n" +
 	"\x11CreatePsbtRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12Y\n" +
 	"\fdestinations\x18\x02 \x03(\v25.walletmanager.v1.CreatePsbtRequest.DestinationsEntryR\fdestinations\x122\n" +
@@ -9839,12 +9839,12 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x0frequired_inputs\x18\a \x03(\v2\x1f.walletmanager.v1.UnspentOutputR\x0erequiredInputs\x12<\n" +
 	"\vraw_outputs\x18\b \x03(\v2\x1b.walletmanager.v1.RawOutputR\n" +
 	"rawOutputs\x12H\n" +
-	"\x0fexternal_inputs\x18\t \x03(\v2\x1f.walletmanager.v1.ExternalInputR\x0eexternalInputs\x12%\n" +
-	"\x0ereplay_protect\x18\n" +
-	" \x01(\bR\rreplayProtect\x1a?\n" +
+	"\x0fexternal_inputs\x18\t \x03(\v2\x1f.walletmanager.v1.ExternalInputR\x0eexternalInputs\x12!\n" +
+	"\fallow_replay\x18\v \x01(\bR\vallowReplay\x1a?\n" +
 	"\x11DestinationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"5\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01J\x04\b\n" +
+	"\x10\v\"5\n" +
 	"\x12CreatePsbtResponse\x12\x1f\n" +
 	"\vpsbt_base64\x18\x01 \x01(\tR\n" +
 	"psbtBase64\"O\n" +

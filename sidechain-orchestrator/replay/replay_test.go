@@ -1,6 +1,8 @@
 package replay
 
 import (
+	"bytes"
+	"encoding/hex"
 	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -42,5 +44,70 @@ func TestApplyLockTimeLeavesNonFinalInputAlone(t *testing.T) {
 	ApplyLockTime(tx)
 	if tx.TxIn[0].Sequence != rbf {
 		t.Fatalf("non-final sequence changed: got %#x, want %#x", tx.TxIn[0].Sequence, rbf)
+	}
+}
+
+// rawHexOf serializes a tx to hex the way a builder hands it to a signer.
+func rawHexOf(t *testing.T, tx *wire.MsgTx) string {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := tx.Serialize(&buf); err != nil {
+		t.Fatalf("serialize: %v", err)
+	}
+	return hex.EncodeToString(buf.Bytes())
+}
+
+func TestApplyLockTimeHexStampsTheRawTransaction(t *testing.T) {
+	in := rawHexOf(t, txWithSequence(wire.MaxTxInSequenceNum))
+
+	out, err := ApplyLockTimeHex(in)
+	if err != nil {
+		t.Fatalf("ApplyLockTimeHex: %v", err)
+	}
+
+	raw, err := hex.DecodeString(out)
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	var tx wire.MsgTx
+	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
+		t.Fatalf("deserialize: %v", err)
+	}
+	if tx.LockTime != ReplayLockTime {
+		t.Fatalf("locktime = %d, want %d", tx.LockTime, ReplayLockTime)
+	}
+	if tx.TxIn[0].Sequence >= wire.MaxTxInSequenceNum {
+		t.Fatal("the input must be non-final, else the locktime does nothing")
+	}
+}
+
+func TestApplyLockTimeHexKeepsTheOutputs(t *testing.T) {
+	src := txWithSequence(wire.MaxTxInSequenceNum)
+	out, err := ApplyLockTimeHex(rawHexOf(t, src))
+	if err != nil {
+		t.Fatalf("ApplyLockTimeHex: %v", err)
+	}
+
+	raw, _ := hex.DecodeString(out)
+	var tx wire.MsgTx
+	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
+		t.Fatalf("deserialize: %v", err)
+	}
+	if len(tx.TxOut) != len(src.TxOut) {
+		t.Fatalf("outputs = %d, want %d", len(tx.TxOut), len(src.TxOut))
+	}
+	if tx.TxOut[0].Value != src.TxOut[0].Value {
+		t.Fatalf("value = %d, want %d", tx.TxOut[0].Value, src.TxOut[0].Value)
+	}
+	if tx.TxIn[0].PreviousOutPoint != src.TxIn[0].PreviousOutPoint {
+		t.Fatal("the outpoint must not move: the BIP47 payload blinds against it")
+	}
+}
+
+func TestApplyLockTimeHexRejectsBadInput(t *testing.T) {
+	for _, in := range []string{"zz", "00"} {
+		if _, err := ApplyLockTimeHex(in); err == nil {
+			t.Fatalf("ApplyLockTimeHex(%q) must return an error", in)
+		}
 	}
 }
