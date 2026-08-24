@@ -31,8 +31,10 @@ class ForkModeBanner extends StatelessWidget {
   }
 }
 
-/// Height the claim card body may take before it scrolls.
-const double _claimCardBodyMaxHeight = 420;
+/// Share of the window the claim card body may take before it scrolls. The
+/// window goes down to 400 pixels tall, so a fixed height leaves no room for
+/// the wallet tabs below.
+const double _claimCardBodyHeightShare = 0.4;
 
 class _ClaimEcashCard extends StatefulWidget {
   const _ClaimEcashCard({required this.fork});
@@ -143,7 +145,9 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
             // The card sits above the wallet tabs and takes its natural
             // height, so a wallet with many coins runs past the window.
             ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: _claimCardBodyMaxHeight),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * _claimCardBodyHeightShare,
+              ),
               child: SingleChildScrollView(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

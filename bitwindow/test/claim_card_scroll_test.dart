@@ -8,9 +8,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
-import 'package:sidechain_core/sidechain_core.dart';
+import 'package:logger/logger.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 import 'test_utils.dart';
+
+void _registerClaimProviders() {
+  final fork = ForkProvider();
+  fork.hasFundsToClaim = true;
+  fork.claims = [
+    WalletClaim(
+      walletId: 'w1',
+      walletName: 'bitkey',
+      claimableSats: 4000,
+      utxos: List.generate(
+        40,
+        (i) => bwpb.UnspentOutput(output: 'coin$i:0', valueSats: Int64(100), height: 900000 + i),
+      ),
+    ),
+  ];
+
+  if (!GetIt.I.isRegistered<ForkProvider>()) {
+    GetIt.I.registerSingleton<ForkProvider>(fork);
+  }
+  if (!GetIt.I.isRegistered<WalletReaderProvider>()) {
+    GetIt.I.registerSingleton<WalletReaderProvider>(WalletReaderProvider(Directory.systemTemp));
+  }
+  if (!GetIt.I.isRegistered<TransactionProvider>()) {
+    GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,29 +47,7 @@ void main() {
   testWidgets('the claim card scrolls instead of overflowing', (tester) async {
     await registerTestDependencies();
 
-    final fork = ForkProvider();
-    fork.hasFundsToClaim = true;
-    fork.claims = [
-      WalletClaim(
-        walletId: 'w1',
-        walletName: 'bitkey',
-        claimableSats: 4000,
-        utxos: List.generate(
-          40,
-          (i) => bwpb.UnspentOutput(output: 'coin$i:0', valueSats: Int64(100), height: 900000 + i),
-        ),
-      ),
-    ];
-
-    if (!GetIt.I.isRegistered<ForkProvider>()) {
-      GetIt.I.registerSingleton<ForkProvider>(fork);
-    }
-    if (!GetIt.I.isRegistered<WalletReaderProvider>()) {
-      GetIt.I.registerSingleton<WalletReaderProvider>(WalletReaderProvider(Directory.systemTemp));
-    }
-    if (!GetIt.I.isRegistered<TransactionProvider>()) {
-      GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());
-    }
+    _registerClaimProviders();
 
     await tester.pumpSailPage(
       Column(
@@ -55,5 +60,38 @@ void main() {
 
     expect(tester.takeException(), isNull, reason: '40 coins must not overflow the card');
     expect(find.byType(SingleChildScrollView), findsWidgets);
+  });
+
+  // main.dart lets the window go down to 400 pixels tall, which leaves the card
+  // far less room than a full-size window.
+  testWidgets('the claim card fits the shortest window', (tester) async {
+    await registerTestDependencies();
+    _registerClaimProviders();
+
+    await tester.binding.setSurfaceSize(const Size(900, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      SailApp(
+        dense: false,
+        builder: (context) => MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                const ForkModeBanner(),
+                Expanded(child: Container()),
+              ],
+            ),
+          ),
+        ),
+        initMethod: (_) async => (),
+        accentColor: SailColorScheme.black,
+        log: GetIt.I.get<Logger>(),
+      ),
+      duration: const Duration(seconds: 10),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull, reason: 'the card must fit a 400 pixel tall window');
   });
 }
