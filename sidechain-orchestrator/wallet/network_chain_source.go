@@ -40,6 +40,12 @@ type NetworkChainSource struct {
 	pinned  []string
 	clients map[string]ChainDataSource
 
+	// The wrapper carries the per-source cooldown, so a fresh one on every read
+	// would dial a dead server again on every read. It is rebuilt only when the
+	// endpoint list changes, which is also when the cooldown stops applying.
+	fallback     *fallbackChainSource
+	fallbackURLs []string
+
 	proxyOn   bool
 	proxyAddr string
 }
@@ -119,12 +125,20 @@ func (s *NetworkChainSource) current() (ChainDataSource, error) {
 		}
 		sources = append(sources, client)
 	}
+
+	if len(sources) == 1 {
+		s.fallback, s.fallbackURLs = nil, nil
+	} else if s.fallback == nil || !sameURLs(s.fallbackURLs, urls) {
+		s.fallback = newFallbackChainSource(sources, s.log)
+		s.fallbackURLs = append([]string(nil), urls...)
+	}
+	fallback := s.fallback
 	s.mu.Unlock()
 
 	if len(sources) == 1 {
 		return sources[0], nil
 	}
-	return newFallbackChainSource(sources, s.log), nil
+	return fallback, nil
 }
 
 // groupByClass splits an endpoint list into one bucket per protocol class,
