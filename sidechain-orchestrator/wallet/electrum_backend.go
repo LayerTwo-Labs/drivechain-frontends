@@ -36,6 +36,13 @@ const (
 	// electrumGapLimit is the BIP44 gap limit: scanning a chain stops after
 	// this many consecutive unused addresses.
 	electrumGapLimit = 20
+	// electrumRefreshGapLimit is the lookahead a refresh walks past the last
+	// used address. A refresh runs every few seconds, so the full BIP44 gap
+	// costs four times the requests to find the same coins.
+	electrumRefreshGapLimit = 5
+	// electrumDeepScanEvery forces the full gap again, so a payment to an
+	// address past the refresh lookahead still lands.
+	electrumDeepScanEvery = 5 * time.Minute
 	// electrumMaxScan caps per-chain derivation so a misbehaving backend
 	// can't drive an unbounded scan.
 	electrumMaxScan = 1000
@@ -75,6 +82,7 @@ type ElectrumBackend struct {
 	watchKeys   map[string][]WatchKey    // walletID -> extra keys to track
 	warm        map[string]bool          // walletID -> a scan is available to serve
 	liveScanned map[string]bool          // walletID -> a live walk finished this process
+	deepAt      map[string]time.Time     // walletID -> when the full-gap walk last ran
 	warmScan    map[string]*electrumScan // walletID -> cached scan, served between blocks
 	tipAt       map[string]int           // walletID -> chain tip the cached scan reflects
 	scanAt      map[string]time.Time     // walletID -> when the cached scan was taken
@@ -113,6 +121,7 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, params ParamsFunc,
 		watchKeys:   make(map[string][]WatchKey),
 		warm:        make(map[string]bool),
 		liveScanned: make(map[string]bool),
+		deepAt:      make(map[string]time.Time),
 		warmScan:    make(map[string]*electrumScan),
 		tipAt:       make(map[string]int),
 		scanAt:      make(map[string]time.Time),
@@ -153,6 +162,7 @@ func (p *ElectrumBackend) dropScanCaches() {
 	p.scanAt = make(map[string]time.Time)
 	p.warm = make(map[string]bool)
 	p.liveScanned = make(map[string]bool)
+	p.deepAt = make(map[string]time.Time)
 	p.lastScan = make(map[string][]byte)
 	p.mu.Unlock()
 
@@ -1735,6 +1745,12 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	// streaming those would spin the bottom-nav "Scanning…" status forever.
 	p.mu.Lock()
 	initial := !p.liveScanned[walletID]
+	// A refresh walks a short lookahead past the last used address. The full
+	// gap returns on the first scan and every electrumDeepScanEvery after it.
+	deep := initial || time.Since(p.deepAt[walletID]) >= electrumDeepScanEvery
+	if deep {
+		p.deepAt[walletID] = time.Now()
+	}
 	prior := p.warmScan[walletID]
 	p.mu.Unlock()
 	// prior holds the wallet's last known chain data (warm cache, else the
@@ -1760,7 +1776,7 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 			if i < len(chainNames) {
 				chain = chainNames[i]
 			}
-			addrs, err := p.scanChain(ctx, walletID, chain, d, prior, initial)
+			addrs, err := p.scanChain(ctx, walletID, chain, d, prior, deep, initial)
 			if err != nil {
 				return nil, err
 			}
@@ -2141,12 +2157,22 @@ func (p *ElectrumBackend) kindDerivers(w *WalletData, kind ScriptKind) ([]chainD
 	return out, nil
 }
 
-func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, prior *electrumScan, initial bool) ([]scannedAddr, error) {
+// gapLimitFor reports how many unused addresses in a row end a walk. A deep
+// walk takes the BIP44 gap; a refresh takes the short lookahead.
+func gapLimitFor(deep bool) int {
+	if deep {
+		return electrumGapLimit
+	}
+	return electrumRefreshGapLimit
+}
+
+func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, prior *electrumScan, deep, reportProgress bool) ([]scannedAddr, error) {
 	var out []scannedAddr
+	gap := gapLimitFor(deep)
 	consecutiveUnused := 0
 	found := 0
-	for i := uint32(0); consecutiveUnused < electrumGapLimit && i < electrumMaxScan; i++ {
-		if initial {
+	for i := uint32(0); consecutiveUnused < gap && i < electrumMaxScan; i++ {
+		if reportProgress {
 			p.svc.syncReporter.publish(walletID, scanProgress(chain, len(out), found))
 		}
 		a, err := derive(i)
