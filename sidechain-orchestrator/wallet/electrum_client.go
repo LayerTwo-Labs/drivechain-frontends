@@ -92,6 +92,9 @@ type ElectrumNotification struct {
 // multi-provider failover an endpoint list implies.
 func NewChainDataSource(urls []string, log zerolog.Logger, network *chaincfg.Params) ChainDataSource {
 	if len(urls) > 0 && (strings.HasPrefix(urls[0], "ssl://") || strings.HasPrefix(urls[0], "tcp://")) {
+		if len(urls) > 1 {
+			log.Warn().Strs("unused", urls[1:]).Msg("electrum client reads one server; the rest of the class is unused")
+		}
 		return NewElectrumClient(urls[0], log, network)
 	}
 	return NewEsploraClient(urls, log)

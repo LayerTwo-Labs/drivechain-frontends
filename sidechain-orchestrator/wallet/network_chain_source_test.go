@@ -330,3 +330,41 @@ func TestScanRejectsResultWhenNetworkSwitchesMidWalk(t *testing.T) {
 	_, persisted := svc.loadElectrumScan(svc.Network(), w.ID)
 	assert.False(t, persisted, "a rejected scan must not reach disk")
 }
+
+// A network that publishes a Fulcrum server and an Esplora must read the
+// Fulcrum one first, and must still answer when that server is down.
+func TestNetworkChainSource_FallsBackFromElectrumToEsplora(t *testing.T) {
+	esplora := newEsploraStub(t, 555)
+
+	nv := &networkVar{
+		network: "ecash",
+		urls: map[string][]string{
+			// Nothing listens on port 1, so the electrum client fails to dial.
+			"ecash": {"tcp://127.0.0.1:1", esplora.URL},
+		},
+		params: map[string]*chaincfg.Params{"ecash": &chaincfg.MainNetParams},
+	}
+
+	s := NewNetworkChainSource(nv.resolve, zerolog.Nop())
+	stats, err := s.AddressStats(context.Background(), "addr")
+	require.NoError(t, err)
+	assert.Equal(t, int64(555), stats.ChainStats.FundedTxoSum)
+	assert.Equal(t, int64(1), esplora.hits.Load())
+}
+
+// The published order decides which client serves, so the endpoint list must
+// reach the source in that order.
+func TestNetworkChainSource_ReportsEveryEndpointInOrder(t *testing.T) {
+	esplora := newEsploraStub(t, 1)
+
+	nv := &networkVar{
+		network: "ecash",
+		urls: map[string][]string{
+			"ecash": {"tcp://127.0.0.1:1", esplora.URL},
+		},
+		params: map[string]*chaincfg.Params{"ecash": &chaincfg.MainNetParams},
+	}
+
+	s := NewNetworkChainSource(nv.resolve, zerolog.Nop())
+	assert.Equal(t, []string{"tcp://127.0.0.1:1", esplora.URL}, s.BaseURLs())
+}
