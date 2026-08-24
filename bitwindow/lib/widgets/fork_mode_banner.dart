@@ -31,6 +31,9 @@ class ForkModeBanner extends StatelessWidget {
   }
 }
 
+/// Height the claim card body may take before it scrolls.
+const double _claimCardBodyMaxHeight = 420;
+
 class _ClaimEcashCard extends StatefulWidget {
   const _ClaimEcashCard({required this.fork});
   final ForkProvider fork;
@@ -137,27 +140,34 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
               ],
             ),
             const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ...claims.map((c) => _coinPicker(context, c, formatter)),
-                      const SizedBox(height: 8),
-                      if (_selectionValid)
-                        SailButton(
-                          label: _buttonLabel(formatter, selectedSats, claims),
-                          icon: SailSVGAsset.iconCoins,
-                          onPressed: () => _claim(context),
-                        ),
-                    ],
-                  ),
+            // The card sits above the wallet tabs and takes its natural
+            // height, so a wallet with many coins runs past the window.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: _claimCardBodyMaxHeight),
+              child: SingleChildScrollView(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ...claims.map((c) => _coinPicker(context, c, formatter)),
+                          const SizedBox(height: 8),
+                          if (_selectionValid)
+                            SailButton(
+                              label: _buttonLabel(formatter, selectedSats, claims),
+                              icon: SailSVGAsset.iconCoins,
+                              onPressed: () => _claim(context),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(child: _whyThisIsNecessary()),
+                  ],
                 ),
-                const SizedBox(width: 24),
-                Expanded(child: _whyThisIsNecessary()),
-              ],
+              ),
             ),
           ],
         ),
