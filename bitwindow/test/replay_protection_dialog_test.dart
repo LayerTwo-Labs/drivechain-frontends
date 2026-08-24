@@ -3,6 +3,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 
 import 'test_utils.dart';
@@ -70,5 +71,13 @@ void main() {
     expect(find.text('These coins exist on both chains'), findsOneWidget);
     expect(find.text('Coins on both chains'), findsNothing);
     expect(find.text('Enable replay protection'), findsWidgets);
+  });
+
+  testWidgets('the dialog hugs its content instead of filling the screen', (tester) async {
+    await openDialog(tester, [coin('tb1qm4v000000000000000008xr2', 30000000)]);
+
+    final card = tester.getSize(find.byType(SailCard).first);
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    expect(card.height, lessThan(screen.height * 0.7));
   });
 }
