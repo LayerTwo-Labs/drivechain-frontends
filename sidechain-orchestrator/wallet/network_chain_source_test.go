@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -346,7 +347,7 @@ func TestNetworkChainSource_FallsBackFromElectrumToEsplora(t *testing.T) {
 	}
 
 	s := NewNetworkChainSource(nv.resolve, zerolog.Nop())
-	stats, err := s.AddressStats(context.Background(), "addr")
+	stats, err := s.AddressStats(context.Background(), mainnetAddress)
 	require.NoError(t, err)
 	assert.Equal(t, int64(555), stats.ChainStats.FundedTxoSum)
 	assert.Equal(t, int64(1), esplora.hits.Load())
@@ -367,4 +368,53 @@ func TestNetworkChainSource_ReportsEveryEndpointInOrder(t *testing.T) {
 
 	s := NewNetworkChainSource(nv.resolve, zerolog.Nop())
 	assert.Equal(t, []string{"tcp://127.0.0.1:1", esplora.URL}, s.BaseURLs())
+}
+
+// mainnetAddress is decodable under MainNetParams, so the Electrum client gets
+// as far as the dial instead of failing on the address itself.
+const mainnetAddress = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+
+// deadElectrumServer accepts a connection and drops it, so a read reaches the
+// dial and then fails, as it does against a server that is down.
+type deadElectrumServer struct {
+	listener net.Listener
+}
+
+func newDeadElectrumServer(t *testing.T) *deadElectrumServer {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				return
+			}
+			_ = conn.Close()
+		}
+	}()
+	t.Cleanup(func() { _ = l.Close() })
+	return &deadElectrumServer{listener: l}
+}
+
+func (d *deadElectrumServer) url() string { return "tcp://" + d.listener.Addr().String() }
+
+// A dead primary sends no pushes, so the backend must read that through the
+// same wrapper it just marked down.
+func TestNetworkChainSource_ReportsNoPushesWhileThePrimaryIsDown(t *testing.T) {
+	dead := newDeadElectrumServer(t)
+	esplora := newEsploraStub(t, 555)
+
+	nv := &networkVar{
+		network: "ecash",
+		urls:    map[string][]string{"ecash": {dead.url(), esplora.URL}},
+		params:  map[string]*chaincfg.Params{"ecash": &chaincfg.MainNetParams},
+	}
+
+	s := NewNetworkChainSource(nv.resolve, zerolog.Nop())
+	assert.NotNil(t, s.Notifications(), "a healthy primary must offer its push stream")
+
+	_, err := s.AddressStats(context.Background(), mainnetAddress)
+	require.NoError(t, err)
+	assert.Nil(t, s.Notifications(), "a cooled-down primary must offer no push stream")
 }
