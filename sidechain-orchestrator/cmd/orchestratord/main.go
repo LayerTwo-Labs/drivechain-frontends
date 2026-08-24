@@ -442,7 +442,7 @@ func run(cctx *cli.Context) error {
 		if electrumBackend != nil {
 			electrumBackend.OnProxyChange(splitClient.SetProxy)
 		}
-		splitEngine := engines.NewSplitEngine(log, orch, splitClient, walletSvc, currentNetwork)
+		splitEngine := engines.NewSplitEngine(log, orch, orch, splitClient, walletSvc, currentNetwork)
 		walletEngine.OnNetworkReset(splitEngine.ResetForNetwork)
 		go func() {
 			if err := splitEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
