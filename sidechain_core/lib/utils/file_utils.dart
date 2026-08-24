@@ -75,29 +75,21 @@ Future<void> openDir(Directory dir) async {
   await Process.run(command, [dir.path]);
 }
 
-Future<void> openFile(File file) async {
-  final os = getOS();
+/// The command that shows [path] in the file manager of [os]. Windows takes
+/// the switch and the path as one argument, and Linux has no select flag.
+(String, List<String>) revealCommand(OS os, String path) => switch (os) {
+  OS.macos => ('open', ['-R', path]),
+  OS.windows => ('explorer', ['/select,$path']),
+  OS.linux => ('xdg-open', [File(path).parent.path]),
+};
 
+Future<void> openFile(File file) async {
   if (!await file.exists()) {
     return;
   }
 
-  switch (os) {
-    case OS.macos:
-      // On macOS, use 'open -R' to reveal and select the file
-      await Process.run('open', ['-R', file.path]);
-    case OS.windows:
-      // On Windows, use 'explorer /select,' to select the file
-      await Process.run('explorer', ['/select,', file.path]);
-    case OS.linux:
-      // On Linux, first try to use xdg-open with the file
-      // If that doesn't work, fall back to opening the directory
-      try {
-        await Process.run('xdg-open', [file.path]);
-      } catch (e) {
-        await openDir(file.parent);
-      }
-  }
+  final (command, args) = revealCommand(getOS(), file.path);
+  await Process.run(command, args);
 }
 
 enum OS {
@@ -131,3 +123,10 @@ OS getOS() {
   }
   throw Exception('unsupported platform');
 }
+
+/// Name of the file manager on this platform, for a menu label.
+String fileManagerName() => switch (getOS()) {
+  OS.macos => 'Finder',
+  OS.windows => 'File Explorer',
+  OS.linux => 'File Manager',
+};

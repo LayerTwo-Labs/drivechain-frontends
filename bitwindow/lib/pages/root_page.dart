@@ -327,6 +327,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'This Node',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.logs),
       ),
+      CommandItem(
+        label: openLogsLabel(),
+        category: 'This Node',
+        onSelected: openLogs,
+      ),
 
       // Help
       CommandItem(
@@ -898,6 +903,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                             }
                           : null,
                     ),
+                    openLogsMenuItem(),
                   ],
                 ),
               ],
