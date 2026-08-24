@@ -600,7 +600,7 @@ func (p *ElectrumBackend) Send(ctx context.Context, walletID string, req SendReq
 	if err != nil {
 		return "", err
 	}
-	return p.signAndBroadcast(ctx, walletID, packet, psbtInputs, effect, req.ReplayProtect)
+	return p.signAndBroadcast(ctx, walletID, packet, psbtInputs, effect, ReplayProtect(p.svc.Network(), req.AllowReplay))
 }
 
 // signAndBroadcast signs the wallet's inputs in packet, finalizes, broadcasts,
@@ -989,7 +989,7 @@ func (p *ElectrumBackend) CreatePSBT(ctx context.Context, walletID string, req S
 	if err != nil {
 		return "", err
 	}
-	if req.ReplayProtect {
+	if ReplayProtect(p.svc.Network(), req.AllowReplay) {
 		replay.ApplyLockTime(packet.UnsignedTx)
 	}
 	return packet.B64Encode()

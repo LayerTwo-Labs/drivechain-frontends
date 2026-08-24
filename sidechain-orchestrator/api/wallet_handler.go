@@ -836,7 +836,7 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	}
 
 	if expansion.notificationTxHex != "" {
-		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex)
+		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex, req.Msg.AllowReplay)
 		if err != nil {
 			// The payment never went out, so its index is still free.
 			h.releaseBip47Index(walletID, expansion)
@@ -851,7 +851,7 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		FixedFeeSats:          req.Msg.FixedFeeSats,
 		OpReturnHex:           req.Msg.OpReturnHex,
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
-		ReplayProtect:         req.Msg.ReplayProtect,
+		AllowReplay:           req.Msg.AllowReplay,
 		Replaceable:           req.Msg.Replaceable,
 	}
 	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
@@ -1911,7 +1911,7 @@ func (h *WalletHandler) CreatePsbt(ctx context.Context, req *connect.Request[pb.
 		FixedFeeSats:          req.Msg.FixedFeeSats,
 		OpReturnHex:           req.Msg.OpReturnHex,
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
-		ReplayProtect:         req.Msg.ReplayProtect,
+		AllowReplay:           req.Msg.AllowReplay,
 	}
 	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
 		return wallet.RequiredInput{

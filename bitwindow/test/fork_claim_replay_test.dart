@@ -10,7 +10,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 class _FakeWallet implements OrchestratorWalletRPC {
-  bool? sentReplayProtect;
+  bool? sentAllowReplay;
 
   @override
   Future<wmpb.GetNewAddressResponse> getNewAddress(String walletId, {wmpb.AddressType? addressType}) async =>
@@ -26,9 +26,9 @@ class _FakeWallet implements OrchestratorWalletRPC {
     String? opReturnMessage,
     String? opReturnHex,
     List<bwpb.UnspentOutput>? requiredInputs,
-    bool replayProtect = false,
+    bool allowReplay = false,
   }) async {
-    sentReplayProtect = replayProtect;
+    sentAllowReplay = allowReplay;
     return wmpb.SendTransactionResponse(txid: 'aa' * 32);
   }
 
@@ -99,7 +99,7 @@ void main() {
     await GetIt.I.reset();
   });
 
-  test('the sweep of a single-sig claim carries replay protection', () async {
+  test('the sweep never allows a replay', () async {
     final provider = ForkProvider();
     provider.claims = [
       WalletClaim(
@@ -112,23 +112,6 @@ void main() {
 
     await provider.claim('w1');
 
-    expect(wallet.sentReplayProtect, isTrue, reason: 'a plain sweep replays onto the other chain');
-  });
-
-  test('the sweep stays plain where the node rejects the magic locktime', () async {
-    await replace<BitcoinConfProvider>(_FakeConf(BitcoinNetwork.BITCOIN_NETWORK_SIGNET));
-    final provider = ForkProvider();
-    provider.claims = [
-      WalletClaim(
-        walletId: 'w1',
-        walletName: 'Main wallet',
-        claimableSats: 100000,
-        utxos: [bwpb.UnspentOutput(output: 'aa:0', valueSats: Int64(100000))],
-      ),
-    ];
-
-    await provider.claim('w1');
-
-    expect(wallet.sentReplayProtect, isFalse, reason: 'stock Core rejects a non-final transaction');
+    expect(wallet.sentAllowReplay, isFalse, reason: 'a swept coin must stay on this chain');
   });
 }

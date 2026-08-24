@@ -550,6 +550,7 @@ func TestCoreBackendSendFixedFeeResolvesSpentRequiredInput(t *testing.T) {
 
 func TestCoreBackendSendReplayProtect(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
+	backend.svc.SetNetwork("ecash")
 	fake.stubEnsureFlow()
 
 	net := &chaincfg.RegressionNetParams
@@ -577,7 +578,6 @@ func TestCoreBackendSendReplayProtect(t *testing.T) {
 	_, err := backend.Send(context.Background(), coreID, SendRequest{
 		DestinationsSats: map[string]int64{dest: 50_000},
 		FixedFeeSats:     1_000,
-		ReplayProtect:    true,
 	})
 	require.NoError(t, err)
 

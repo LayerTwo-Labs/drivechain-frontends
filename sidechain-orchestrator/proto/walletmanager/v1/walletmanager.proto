@@ -656,10 +656,11 @@ message SendTransactionRequest {
   int64 fixed_fee_sats = 6;
   // Explicit wallet inputs to spend.
   repeated UnspentOutput required_inputs = 7;
-  // Build a replay-protected transaction: stamp the magic nLockTime
-  // (499999999) and non-final input sequences so stock Bitcoin Core rejects it
-  // as non-final, while a patched bitcoind confirms it. Core/Electrum only.
-  bool replay_protect = 8;
+  reserved 8;
+  // Send a transaction that can replay onto Bitcoin. The eCash network stamps
+  // the magic nLockTime (499999999) on every send, so stock Bitcoin Core
+  // rejects it; this drops that stamp for one send.
+  bool allow_replay = 12;
   // Outputs with an explicit raw scriptPubKey, kept in order before any
   // address/op_return outputs. Used for non-standard scripts (e.g. a sidechain
   // OP_DRIVECHAIN treasury output).
@@ -702,10 +703,11 @@ message CreatePsbtRequest {
   repeated UnspentOutput required_inputs = 7;
   repeated RawOutput raw_outputs = 8;
   repeated ExternalInput external_inputs = 9;
-  // Stamp the magic nLockTime (499999999) and non-final input sequences before
-  // the PSBT goes out for signatures, so the signed transaction is valid on
-  // eCash only. Electrum wallets only.
-  bool replay_protect = 10;
+  reserved 10;
+  // Build a PSBT that can replay onto Bitcoin. The eCash network stamps the
+  // magic nLockTime (499999999) on every PSBT; this drops that stamp for one
+  // PSBT.
+  bool allow_replay = 11;
 }
 
 message CreatePsbtResponse {

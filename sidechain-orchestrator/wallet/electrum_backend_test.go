@@ -235,6 +235,7 @@ func TestElectrumSendBuildsSignsBroadcasts(t *testing.T) {
 // That only holds if the locktime/sequence are applied BEFORE signing.
 func TestElectrumSendReplayProtect(t *testing.T) {
 	p, fake, w, addr := newElectrumFixture(t)
+	p.svc.SetNetwork("ecash")
 	net := &chaincfg.SigNetParams
 	ctx := context.Background()
 
@@ -253,7 +254,6 @@ func TestElectrumSendReplayProtect(t *testing.T) {
 	_, err := p.Send(ctx, w.ID, SendRequest{
 		DestinationsSats: map[string]int64{dest: 50_000},
 		FeeRateSatPerVB:  2,
-		ReplayProtect:    true,
 	})
 	require.NoError(t, err)
 	require.Len(t, fake.broadcast, 1)
@@ -285,6 +285,73 @@ func TestElectrumSendReplayProtect(t *testing.T) {
 		txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sigHashes, utxoValue, prevOuts)
 	require.NoError(t, err)
 	require.NoError(t, vm.Execute(), "replay-protected tx signature must validate")
+}
+
+// TestElectrumSendAllowReplay proves one send can drop the eCash locktime, so
+// the user who picks an unprotected send gets a transaction Bitcoin accepts.
+func TestElectrumSendAllowReplay(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	p.svc.SetNetwork("ecash")
+	ctx := context.Background()
+
+	const utxoValue = 200_000
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: utxoValue, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "1111111111111111111111111111111111111111111111111111111111111111",
+		Vout: 0, Value: utxoValue,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+		AllowReplay:      true,
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+
+	var tx wire.MsgTx
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	assert.EqualValues(t, 0, tx.LockTime)
+}
+
+// TestElectrumSendOutsideEcashCarriesNoLockTime proves another network never
+// gets the magic locktime, because only a patched node reads it as final.
+func TestElectrumSendOutsideEcashCarriesNoLockTime(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	p.svc.SetNetwork("signet")
+	ctx := context.Background()
+
+	const utxoValue = 200_000
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: utxoValue, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "1111111111111111111111111111111111111111111111111111111111111111",
+		Vout: 0, Value: utxoValue,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+
+	var tx wire.MsgTx
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	assert.EqualValues(t, 0, tx.LockTime)
 }
 
 // TestElectrumSendSidechainDeposit drives the full BIP300 M5 deposit through the
@@ -2092,6 +2159,7 @@ func TestElectrumTaprootReceivePathUsesBIP86(t *testing.T) {
 // them and the finalized transaction still holds them.
 func TestElectrumCreatePSBTReplayProtect(t *testing.T) {
 	p, fake, w, addr := newElectrumFixture(t)
+	p.svc.SetNetwork("ecash")
 	ctx := context.Background()
 
 	fake.stats[addr] = EsploraAddressStats{
@@ -2107,7 +2175,6 @@ func TestElectrumCreatePSBTReplayProtect(t *testing.T) {
 	req := SendRequest{
 		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
 		FeeRateSatPerVB:  2,
-		ReplayProtect:    true,
 	}
 
 	unsigned, err := p.CreatePSBT(ctx, w.ID, req)

@@ -5024,10 +5024,10 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     $core.String? opReturnHex,
     $fixnum.Int64? fixedFeeSats,
     $core.Iterable<UnspentOutput>? requiredInputs,
-    $core.bool? replayProtect,
     $core.Iterable<RawOutput>? rawOutputs,
     $core.Iterable<ExternalInput>? externalInputs,
     $core.bool? replaceable,
+    $core.bool? allowReplay,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -5051,9 +5051,6 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     if (requiredInputs != null) {
       $result.requiredInputs.addAll(requiredInputs);
     }
-    if (replayProtect != null) {
-      $result.replayProtect = replayProtect;
-    }
     if (rawOutputs != null) {
       $result.rawOutputs.addAll(rawOutputs);
     }
@@ -5062,6 +5059,9 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     }
     if (replaceable != null) {
       $result.replaceable = replaceable;
+    }
+    if (allowReplay != null) {
+      $result.allowReplay = allowReplay;
     }
     return $result;
   }
@@ -5077,10 +5077,10 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'opReturnHex')
     ..aInt64(6, _omitFieldNames ? '' : 'fixedFeeSats')
     ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
-    ..aOB(8, _omitFieldNames ? '' : 'replayProtect')
     ..pc<RawOutput>(9, _omitFieldNames ? '' : 'rawOutputs', $pb.PbFieldType.PM, subBuilder: RawOutput.create)
     ..pc<ExternalInput>(10, _omitFieldNames ? '' : 'externalInputs', $pb.PbFieldType.PM, subBuilder: ExternalInput.create)
     ..aOB(11, _omitFieldNames ? '' : 'replaceable')
+    ..aOB(12, _omitFieldNames ? '' : 'allowReplay')
     ..hasRequiredFields = false
   ;
 
@@ -5159,40 +5159,40 @@ class SendTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.List<UnspentOutput> get requiredInputs => $_getList(6);
 
-  /// Build a replay-protected transaction: stamp the magic nLockTime
-  /// (499999999) and non-final input sequences so stock Bitcoin Core rejects it
-  /// as non-final, while a patched bitcoind confirms it. Core/Electrum only.
-  @$pb.TagNumber(8)
-  $core.bool get replayProtect => $_getBF(7);
-  @$pb.TagNumber(8)
-  set replayProtect($core.bool v) { $_setBool(7, v); }
-  @$pb.TagNumber(8)
-  $core.bool hasReplayProtect() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearReplayProtect() => clearField(8);
-
   /// Outputs with an explicit raw scriptPubKey, kept in order before any
   /// address/op_return outputs. Used for non-standard scripts (e.g. a sidechain
   /// OP_DRIVECHAIN treasury output).
   @$pb.TagNumber(9)
-  $core.List<RawOutput> get rawOutputs => $_getList(8);
+  $core.List<RawOutput> get rawOutputs => $_getList(7);
 
   /// Inputs not owned by the wallet that must be spent as-is, in order, before
   /// wallet-funded inputs. Used for anyone-can-spend scripts (e.g. a sidechain
   /// CTIP). They are added with an empty scriptSig and not signed.
   @$pb.TagNumber(10)
-  $core.List<ExternalInput> get externalInputs => $_getList(9);
+  $core.List<ExternalInput> get externalInputs => $_getList(8);
 
   /// Signal BIP125, so a later transaction spending the same inputs replaces
   /// this one. Used to raise a BMM bid.
   @$pb.TagNumber(11)
-  $core.bool get replaceable => $_getBF(10);
+  $core.bool get replaceable => $_getBF(9);
   @$pb.TagNumber(11)
-  set replaceable($core.bool v) { $_setBool(10, v); }
+  set replaceable($core.bool v) { $_setBool(9, v); }
   @$pb.TagNumber(11)
-  $core.bool hasReplaceable() => $_has(10);
+  $core.bool hasReplaceable() => $_has(9);
   @$pb.TagNumber(11)
   void clearReplaceable() => clearField(11);
+
+  /// Send a transaction that can replay onto Bitcoin. The eCash network stamps
+  /// the magic nLockTime (499999999) on every send, so stock Bitcoin Core
+  /// rejects it; this drops that stamp for one send.
+  @$pb.TagNumber(12)
+  $core.bool get allowReplay => $_getBF(10);
+  @$pb.TagNumber(12)
+  set allowReplay($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasAllowReplay() => $_has(10);
+  @$pb.TagNumber(12)
+  void clearAllowReplay() => clearField(12);
 }
 
 class SendTransactionResponse extends $pb.GeneratedMessage {
@@ -5415,7 +5415,7 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
     $core.Iterable<UnspentOutput>? requiredInputs,
     $core.Iterable<RawOutput>? rawOutputs,
     $core.Iterable<ExternalInput>? externalInputs,
-    $core.bool? replayProtect,
+    $core.bool? allowReplay,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -5445,8 +5445,8 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
     if (externalInputs != null) {
       $result.externalInputs.addAll(externalInputs);
     }
-    if (replayProtect != null) {
-      $result.replayProtect = replayProtect;
+    if (allowReplay != null) {
+      $result.allowReplay = allowReplay;
     }
     return $result;
   }
@@ -5464,7 +5464,7 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
     ..pc<UnspentOutput>(7, _omitFieldNames ? '' : 'requiredInputs', $pb.PbFieldType.PM, subBuilder: UnspentOutput.create)
     ..pc<RawOutput>(8, _omitFieldNames ? '' : 'rawOutputs', $pb.PbFieldType.PM, subBuilder: RawOutput.create)
     ..pc<ExternalInput>(9, _omitFieldNames ? '' : 'externalInputs', $pb.PbFieldType.PM, subBuilder: ExternalInput.create)
-    ..aOB(10, _omitFieldNames ? '' : 'replayProtect')
+    ..aOB(11, _omitFieldNames ? '' : 'allowReplay')
     ..hasRequiredFields = false
   ;
 
@@ -5546,17 +5546,17 @@ class CreatePsbtRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.List<ExternalInput> get externalInputs => $_getList(8);
 
-  /// Stamp the magic nLockTime (499999999) and non-final input sequences before
-  /// the PSBT goes out for signatures, so the signed transaction is valid on
-  /// eCash only. Electrum wallets only.
-  @$pb.TagNumber(10)
-  $core.bool get replayProtect => $_getBF(9);
-  @$pb.TagNumber(10)
-  set replayProtect($core.bool v) { $_setBool(9, v); }
-  @$pb.TagNumber(10)
-  $core.bool hasReplayProtect() => $_has(9);
-  @$pb.TagNumber(10)
-  void clearReplayProtect() => clearField(10);
+  /// Build a PSBT that can replay onto Bitcoin. The eCash network stamps the
+  /// magic nLockTime (499999999) on every PSBT; this drops that stamp for one
+  /// PSBT.
+  @$pb.TagNumber(11)
+  $core.bool get allowReplay => $_getBF(9);
+  @$pb.TagNumber(11)
+  set allowReplay($core.bool v) { $_setBool(9, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasAllowReplay() => $_has(9);
+  @$pb.TagNumber(11)
+  void clearAllowReplay() => clearField(11);
 }
 
 class CreatePsbtResponse extends $pb.GeneratedMessage {

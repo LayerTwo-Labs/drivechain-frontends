@@ -9,7 +9,13 @@
 // both the locktime and the sequences are covered by the signature.
 package replay
 
-import "github.com/btcsuite/btcd/wire"
+import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
+
+	"github.com/btcsuite/btcd/wire"
+)
 
 // ReplayLockTime is LOCKTIME_THRESHOLD - 1 (500000000 - 1).
 const ReplayLockTime uint32 = 499999999
@@ -27,4 +33,23 @@ func ApplyLockTime(tx *wire.MsgTx) {
 			in.Sequence = nonFinalSequence
 		}
 	}
+}
+
+// ApplyLockTimeHex stamps the replay locktime on an unsigned raw transaction
+// and returns the new hex. Call it before signing.
+func ApplyLockTimeHex(rawHex string) (string, error) {
+	raw, err := hex.DecodeString(rawHex)
+	if err != nil {
+		return "", fmt.Errorf("decode raw transaction: %w", err)
+	}
+	var tx wire.MsgTx
+	if err := tx.Deserialize(bytes.NewReader(raw)); err != nil {
+		return "", fmt.Errorf("deserialize raw transaction: %w", err)
+	}
+	ApplyLockTime(&tx)
+	var buf bytes.Buffer
+	if err := tx.Serialize(&buf); err != nil {
+		return "", fmt.Errorf("serialize raw transaction: %w", err)
+	}
+	return hex.EncodeToString(buf.Bytes()), nil
 }
