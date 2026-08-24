@@ -318,6 +318,7 @@ func (o *Orchestrator) adoptCatalogRows(c netcatalog.Catalog, id string) {
 		if net, ok := config.LookupNetwork(n.ID); ok {
 			config.SetForkHeight(net, n.ForkHeight)
 			config.SetNetworkDisplayName(net, n.DisplayName)
+			config.SetNetworkEndpoints(net, n)
 		}
 		if n.Family == netcatalog.FamilyECash {
 			config.SetECashPeer(n.ID, n.P2P.Address)
