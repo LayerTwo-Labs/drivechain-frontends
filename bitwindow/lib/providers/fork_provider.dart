@@ -141,6 +141,20 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// outside this set came after the fork, so it exists on one chain only.
   Set<String> get claimOutpoints => claims.expand((c) => c.utxos).map((u) => u.output).toSet();
 
+  /// The coins the user hid the claim card for. A new claimable coin brings
+  /// the card back.
+  Set<String> _dismissedClaimOutpoints = {};
+
+  /// True while the user hid the card and no new claimable coin arrived.
+  bool get claimCardDismissed =>
+      claimOutpoints.isNotEmpty && claimOutpoints.difference(_dismissedClaimOutpoints).isEmpty;
+
+  /// Hides the claim card until a new claimable coin arrives.
+  void dismissClaimCard() {
+    _dismissedClaimOutpoints = claimOutpoints;
+    notifyListeners();
+  }
+
   /// Every coin a pending split holds.
   Set<String> get pendingSplitOutpoints => {...pendingSplits.expand((p) => p.outpoints), ..._splitsInFlight};
 
@@ -196,6 +210,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     _readPsbtByDraft.clear();
     _splitsInFlight.clear();
     replayedTxids.clear();
+    _dismissedClaimOutpoints = {};
     walletsWithUnreadDrafts = {};
     notifyListeners();
     fetch();
