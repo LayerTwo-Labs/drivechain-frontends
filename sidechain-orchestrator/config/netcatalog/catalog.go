@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -96,8 +97,33 @@ type AssumeUTXO struct {
 	SizeBytes int64  `json:"size_bytes"`
 }
 
-// Backend is one endpoint a network can be read from. Kind is "esplora" or
-// "electrum"; lower Priority wins.
+// Backend kinds a network can publish. Fulcrum and electrum both speak the
+// Electrum wire protocol; esplora is the REST API.
+const (
+	KindFulcrum  = "fulcrum"
+	KindElectrum = "electrum"
+	KindEsplora  = "esplora"
+)
+
+// kindRank orders the backend kinds the wallet reads from, best first. Fulcrum
+// indexes the whole chain and pushes updates, so it beats a partial Electrum
+// server, which in turn beats polling an Esplora REST API. An unpublished kind
+// ranks last.
+var kindRank = map[string]int{
+	KindFulcrum:  0,
+	KindElectrum: 1,
+	KindEsplora:  2,
+}
+
+func rankOf(kind string) int {
+	if r, ok := kindRank[kind]; ok {
+		return r
+	}
+	return len(kindRank)
+}
+
+// Backend is one endpoint a network can be read from. Kind is "fulcrum",
+// "electrum" or "esplora"; lower Priority wins.
 type Backend struct {
 	Kind     string `json:"kind"`
 	URL      string `json:"url"`
@@ -214,6 +240,39 @@ func (n Network) BackendURL(kind string) string {
 		return ""
 	}
 	return best.URL
+}
+
+// ElectrumURL returns the highest-priority Electrum-protocol URL, fulcrum
+// first, or "" when the network publishes neither.
+func (n Network) ElectrumURL() string {
+	if url := n.BackendURL(KindFulcrum); url != "" {
+		return url
+	}
+	return n.BackendURL(KindElectrum)
+}
+
+// ChainSourceURLs returns every backend URL the wallet can read, best first:
+// by kind rank, then by published priority, then in document order. The wallet
+// reads the first that answers and drops to the next on a failure.
+func (n Network) ChainSourceURLs() []string {
+	ordered := make([]Backend, 0, len(n.Backends))
+	for _, b := range n.Backends {
+		if b.URL == "" || rankOf(b.Kind) == len(kindRank) {
+			continue
+		}
+		ordered = append(ordered, b)
+	}
+	sort.SliceStable(ordered, func(i, j int) bool {
+		if ri, rj := rankOf(ordered[i].Kind), rankOf(ordered[j].Kind); ri != rj {
+			return ri < rj
+		}
+		return ordered[i].Priority < ordered[j].Priority
+	})
+	urls := make([]string, 0, len(ordered))
+	for _, b := range ordered {
+		urls = append(urls, b.URL)
+	}
+	return urls
 }
 
 // Embedded is the catalog compiled into the binary. It is what every reader
