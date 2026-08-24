@@ -157,8 +157,19 @@ func (s *forkWalletScanner) Unspent(ctx context.Context, walletID string, tipHei
 	return s.coreUnspent(ctx, walletID, tipHeight)
 }
 
-// coreUnspent reads a Core wallet's UTXOs; Core only reports confirmations, so
-// height is derived tip - confirmations + 1.
+// utxoHeight is the absolute confirmation height of one coin. A backend that
+// knows the height supplies it; Core counts confirmations against its own tip.
+func utxoHeight(u wallet.UTXO, tipHeight int) int {
+	if u.BlockHeight > 0 {
+		return u.BlockHeight
+	}
+	if u.Confirmations > 0 {
+		return tipHeight - u.Confirmations + 1
+	}
+	return 0
+}
+
+// coreUnspent reads a wallet's UTXOs.
 func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, tipHeight int) ([]fork.Utxo, error) {
 	if s.engine == nil {
 		return nil, nil
@@ -174,16 +185,12 @@ func (s *forkWalletScanner) coreUnspent(ctx context.Context, walletID string, ti
 		}
 	}
 	return lo.Map(coreUTXOs, func(u wallet.UTXO, _ int) fork.Utxo {
-		height := 0
-		if u.Confirmations > 0 {
-			height = tipHeight - u.Confirmations + 1
-		}
 		return fork.Utxo{
 			Outpoint:  fork.Outpoint(u.TxID, u.Vout),
 			Address:   u.Address,
 			Label:     u.Label,
 			Sats:      fork.BTCToSats(u.Amount),
-			Height:    height,
+			Height:    utxoHeight(u, tipHeight),
 			Spendable: forkSpendable(u.Spendable, multisig),
 		}
 	}), nil
