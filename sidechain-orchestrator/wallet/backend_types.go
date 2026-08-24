@@ -14,9 +14,12 @@ type UTXO struct {
 	Label         string  `json:"label"`
 	Amount        float64 `json:"amount"`
 	Confirmations int     `json:"confirmations"`
-	Spendable     bool    `json:"spendable"`
-	Solvable      bool    `json:"solvable"`
-	ReceivedAt    int64   `json:"-"`
+	// BlockHeight is the absolute confirmation height. 0 when the coin is
+	// unconfirmed, or when the backend counts confirmations only.
+	BlockHeight int   `json:"-"`
+	Spendable   bool  `json:"spendable"`
+	Solvable    bool  `json:"solvable"`
+	ReceivedAt  int64 `json:"-"`
 	// HDPath is the BIP32 path of the owning address. Not unmarshalled: Core's
 	// listunspent doesn't supply it.
 	HDPath string `json:"-"`

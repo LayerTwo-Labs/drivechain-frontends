@@ -279,6 +279,7 @@ func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 				Address:       a.address,
 				Amount:        float64(u.Value) / 1e8,
 				Confirmations: confsFor(u.Status, tip),
+				BlockHeight:   heightFor(u.Status),
 				// Watch-only wallets hold no keys, so their coins are solvable
 				// (we know the script) but not spendable.
 				Spendable:  !scan.watchOnly,
@@ -2404,6 +2405,13 @@ func esploraTxToRaw(tx EsploraTx, rawHex string, tip int) *RawTransaction {
 		})
 	}
 	return raw
+}
+
+func heightFor(status EsploraStatus) int {
+	if !status.Confirmed {
+		return 0
+	}
+	return status.BlockHeight
 }
 
 func confsFor(status EsploraStatus, tip int) int {
