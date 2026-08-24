@@ -2273,3 +2273,58 @@ func TestElectrumRefreshWalksAShortLookahead(t *testing.T) {
 	require.Positive(t, refreshCalls, "a refresh still checks the addresses in use")
 	require.Less(t, refreshCalls, deepCalls, "a refresh must cost fewer requests than the full gap")
 }
+
+// A chain can hold a wide gap between two used addresses. A refresh must walk
+// through the far one, or its coins drop out of the wallet until the next deep
+// scan and drop out again after it.
+func TestElectrumRefreshKeepsAnAddressPastTheLookahead(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 8)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	// Index 0 and index 6 hold coins, with five unused addresses between them.
+	for _, i := range []int{0, 6} {
+		fake.stats[addrs[i]] = EsploraAddressStats{
+			Address:    addrs[i],
+			ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+		}
+	}
+
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	ctx := context.Background()
+
+	deep, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 0.002, deep, 1e-9, "the deep scan finds both coins")
+
+	// Age the cache so the next read re-walks, and mark the deep walk recent so
+	// that re-walk takes the refresh gap.
+	p.mu.Lock()
+	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
+	p.deepAt[w.ID] = time.Now()
+	p.mu.Unlock()
+
+	refresh, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, deep, refresh, 1e-9, "a refresh must not lose the far coin")
+}
+
+func TestPriorHighestUsed(t *testing.T) {
+	require.Zero(t, priorHighestUsed(nil, ScriptNativeSegwit, false))
+
+	prior := &electrumScan{addrs: []scannedAddr{
+		{index: 0, kind: ScriptNativeSegwit, stats: EsploraAddressStats{ChainStats: EsploraTxoStats{TxCount: 1}}},
+		{index: 6, kind: ScriptNativeSegwit, stats: EsploraAddressStats{ChainStats: EsploraTxoStats{TxCount: 1}}},
+		{index: 9, kind: ScriptNativeSegwit},
+		{index: 12, kind: ScriptNativeSegwit, change: true, stats: EsploraAddressStats{ChainStats: EsploraTxoStats{TxCount: 1}}},
+		{index: 30, kind: ScriptTaproot, stats: EsploraAddressStats{ChainStats: EsploraTxoStats{TxCount: 1}}},
+	}}
+
+	assert.Equal(t, uint32(6), priorHighestUsed(prior, ScriptNativeSegwit, false), "an unused index does not count")
+	assert.Equal(t, uint32(12), priorHighestUsed(prior, ScriptNativeSegwit, true))
+	assert.Equal(t, uint32(30), priorHighestUsed(prior, ScriptTaproot, false))
+}
