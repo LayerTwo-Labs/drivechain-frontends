@@ -204,6 +204,7 @@ export 'settings/homepage_configuration_setting.dart';
 export 'utils/change_tracker.dart';
 export 'utils/file_overrides.dart';
 export 'utils/file_utils.dart';
+export 'utils/log_file.dart';
 export 'utils/diff_utils.dart';
 export 'utils/ur_psbt.dart';
 export 'models/core_transaction.dart';

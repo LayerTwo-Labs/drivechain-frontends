@@ -128,6 +128,11 @@ type Runtime struct {
 // buildRuntime opens the network-scoped DB, instantiates engines, and
 // registers all Connect sub-handlers on a fresh mux. Engines are NOT
 // started — call rt.Start to kick goroutines off.
+// coinnewsLogPath returns the coinnews log of the active network.
+func coinnewsLogPath(conf config.Config) string {
+	return filepath.Join(conf.Datadir, "coinnews-sync.log")
+}
+
 func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -202,10 +207,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	rt.bitcoinEngine = engines.NewBitcoind(s.Bitcoind, rt.db, conf)
 	rt.bitcoinEngine.SetNodeMode(rt.walletEngine.NodeMode())
 
-	// Coinnews dedicated log lives next to the main server log. Path is
-	// derived from conf.LogPath which is also network-scoped (Finalize
-	// rewrites it), so each runtime's coinnews log is in its own folder.
-	coinnewsLogPath := filepath.Join(filepath.Dir(conf.LogPath), "coinnews-sync.log")
+	coinnewsLogPath := coinnewsLogPath(conf)
 	if coinnewsFile, err := os.OpenFile(coinnewsLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
 		coinnewsWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
 			w.Out = coinnewsFile

@@ -280,16 +280,7 @@ bool isCurrentChainActive({
 }
 
 Future<File> getLogFile(Directory datadir) async {
-  try {
-    await datadir.create(recursive: true);
-  } catch (error) {
-    debugPrint('Failed to create datadir: $error');
-  }
-
-  final path = [datadir.path, 'debug.log'].join(Platform.pathSeparator);
-  final logFile = File(path);
-
-  return logFile;
+  return prepareLogFile(datadir, 'debug.log');
 }
 
 void bootBinaries(Logger log) {

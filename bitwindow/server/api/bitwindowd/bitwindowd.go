@@ -1239,7 +1239,7 @@ func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.E
 func (s *Server) minerLogger(ctx context.Context) (*zerolog.Logger, func()) {
 	serverLog := zerolog.Ctx(ctx)
 
-	path := filepath.Join(filepath.Dir(s.config.LogPath), "miner.log")
+	path := filepath.Join(s.config.Datadir, "miner.log")
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		serverLog.Warn().Err(err).Str("path", path).Msg("could not open miner.log, logging to server log")

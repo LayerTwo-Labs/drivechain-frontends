@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -633,4 +634,29 @@ func TestResetOrdersCoverEveryDeletableBinary(t *testing.T) {
 		assert.Contains(t, resetStopOrder, binary, "%s is deletable but never stopped", binary.processName())
 		assert.Contains(t, resetStartOrder, binary, "%s is deletable but never restarted", binary.processName())
 	}
+}
+
+// A log reset runs while the frontend and orchestratord hold the shared file
+// open. Emptying it keeps their handles pointed at the file the user reads.
+func TestRemoveOrTruncateEmptiesTheSharedLog(t *testing.T) {
+	dir := t.TempDir()
+
+	shared := filepath.Join(dir, logfile.Name)
+	require.NoError(t, os.WriteFile(shared, []byte("old lines\n"), 0o644))
+
+	other := filepath.Join(dir, "server.log")
+	require.NoError(t, os.WriteFile(other, []byte("old lines\n"), 0o644))
+
+	require.NoError(t, removeOrTruncate(shared))
+	require.NoError(t, removeOrTruncate(other))
+
+	info, err := os.Stat(shared)
+	require.NoError(t, err, "the shared log must stay in place")
+	require.Zero(t, info.Size())
+
+	require.NoFileExists(t, other)
+}
+
+func TestRemoveOrTruncateAcceptsAMissingPath(t *testing.T) {
+	require.NoError(t, removeOrTruncate(filepath.Join(t.TempDir(), "gone.log")))
 }

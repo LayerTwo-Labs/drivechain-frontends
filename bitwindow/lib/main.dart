@@ -480,12 +480,7 @@ void ignoreOverflowErrors(
 
 Future<File> getLogFile() async {
   final datadir = await Environment.datadir();
-  await datadir.create(recursive: true);
-
-  final path = [datadir.path, 'debug.log'].join(Platform.pathSeparator);
-  final logFile = File(path);
-
-  return logFile;
+  return prepareLogFile(datadir, sharedLogFileName);
 }
 
 class BitwindowApp extends StatefulWidget {

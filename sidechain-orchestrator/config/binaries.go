@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/rs/zerolog"
 )
 
@@ -573,11 +574,10 @@ func (b BinaryDirConfig) GetSettingsPaths(networkDir string, network Network, lo
 		paths = append(paths, GetExistingFilesInDir(b.RootDir(), []string{"bitwindow-enforcer.conf"}, log)...)
 
 	case "bitwindowd":
-		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"server.log"}, log)...)
 		rootDir := BitWindowDirs.RootDir()
 		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
-			"assets", "bitwindow-bitcoin.conf",
-			"debug.log", "downloads", "pids", "settings.json",
+			"assets", "bitwindow-bitcoin.conf", logfile.Name,
+			"downloads", "pids", "settings.json",
 		}, log)...)
 
 	case "thunder":
@@ -626,9 +626,11 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"bip300301_enforcer.log", "logs"}, log)...)
 
 	case "bitwindowd":
-		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"server.log"}, log)...)
+		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"miner.log", "server.log"}, log)...)
 		rootDir := BitWindowDirs.RootDir()
-		paths = append(paths, GetExistingFilesInDir(rootDir, []string{"debug.log"}, log)...)
+		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
+			logfile.Name, "debug.log", "orchestratord.log",
+		}, log)...)
 
 	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"logs"}, log)...)
@@ -654,7 +656,7 @@ func (b BinaryDirConfig) LogPath(networkDir string) string {
 		return filepath.Join(networkDir, "debug.log")
 
 	case "bitwindowd":
-		return filepath.Join(networkDir, "server.log")
+		return logfile.Path(BitWindowDirs.RootDir())
 
 	case "bip300301-enforcer":
 		return findLatestEnforcerLog(networkDir)

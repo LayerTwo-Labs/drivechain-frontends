@@ -34,6 +34,7 @@ import (
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
@@ -315,7 +316,7 @@ func initLogger(logFile *os.File, logLevel zerolog.Level) {
 	// We want pretty printing to the file as well. This is not meant for
 	// centralized log ingestion, where JSON is crucial.
 	logWriter := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-		w.Out = logFile
+		w.Out = logfile.Tag(logFile, "bitwindowd")
 		w.NoColor = true // ANSI colors don't work well with file output.
 		w.TimeFormat = timeFormat
 	})
@@ -378,6 +379,15 @@ func isNoisyStartupMessage(msg string) bool {
 }
 
 // startOrchestratord starts the orchestrator daemon as a subprocess.
+// orchestratordLogPath keeps the child on the same file as bitwindowd, so
+// --log.path holds the whole merged stream.
+func orchestratordLogPath(conf config.Config, bitwindowDir string) string {
+	if conf.LogPath != "" {
+		return conf.LogPath
+	}
+	return logfile.Path(bitwindowDir)
+}
+
 func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, error) {
 	log := zerolog.Ctx(ctx)
 	bitwindowDir := conf.BitwindowDir()
@@ -444,7 +454,7 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	//   survives.
 	// - Process.Release: tells the Go runtime to stop tracking the child so we
 	//   don't dangle a finalizer waiting on a process we've handed to init.
-	orchLogPath := filepath.Join(bitwindowDir, "orchestratord.log")
+	orchLogPath := orchestratordLogPath(conf, bitwindowDir)
 	// On a fresh install the bitwindow dir doesn't exist yet; opening the log
 	// would fail, orchestratord would never spawn, and the UI would poll a dead
 	// port until timeout. Ensure the dir exists first.
@@ -475,6 +485,9 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 		cmd.Stdout = io.MultiWriter(os.Stdout, orchLogFile)
 		cmd.Stderr = io.MultiWriter(os.Stderr, orchLogFile)
 	} else {
+		// The child takes the file itself. Any other writer makes os/exec
+		// insert a pipe, and this child outlives us: once we exit, the read
+		// end closes and its next write kills it.
 		cmd.Stdout = orchLogFile
 		cmd.Stderr = orchLogFile
 	}

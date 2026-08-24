@@ -45,6 +45,7 @@ import (
 	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
@@ -158,7 +159,7 @@ func run(cctx *cli.Context) error {
 			os.Exit(1)
 		}
 		defer f.Close() //nolint:errcheck
-		logOut = zerolog.ConsoleWriter{Out: f, NoColor: true, TimeFormat: "15:04:05.000"}
+		logOut = zerolog.ConsoleWriter{Out: logfile.Tag(f, "orchestrator"), NoColor: true, TimeFormat: "15:04:05.000"}
 	}
 	log := zerolog.New(logOut).
 		Level(level).

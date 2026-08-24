@@ -916,7 +916,7 @@ String? flutterFrontendDirFor(BinaryType type, OS os, String home) {
   };
 }
 
-/// The CPU miner runs inside bitwindowd and logs beside its server log.
+/// The CPU miner writes its own file in the network datadir.
 String minerLogPath() => filePath([BitWindow().datadirNetwork(), 'miner.log']);
 
 extension BinaryPaths on Binary {
@@ -949,7 +949,7 @@ extension BinaryPaths on Binary {
         BitcoinCore().datadirNetwork(),
         'debug.log',
       ]),
-      BinaryType.BINARY_TYPE_BITWINDOWD => filePath([datadirNetwork(), 'server.log']),
+      BinaryType.BINARY_TYPE_BITWINDOWD => filePath([datadir(), sharedLogFileName]),
       BinaryType.BINARY_TYPE_THUNDER ||
       BinaryType.BINARY_TYPE_BITNAMES ||
       BinaryType.BINARY_TYPE_BITASSETS ||

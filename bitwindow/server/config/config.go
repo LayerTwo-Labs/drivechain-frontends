@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	dir "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dir"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -116,7 +117,7 @@ func (c *Config) Finalize(network Network) error {
 	}
 
 	if c.baseLogPath == "" {
-		c.LogPath = filepath.Join(c.Datadir, "server.log")
+		c.LogPath = logfile.Path(c.baseDatadir)
 	} else {
 		c.LogPath = c.baseLogPath
 	}

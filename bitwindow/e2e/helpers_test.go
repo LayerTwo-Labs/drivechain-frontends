@@ -358,8 +358,8 @@ func (h *runHandle) dumpDiagnostics(t *testing.T) {
 	// startOrchestratord's --logfile). Without it, boot-time failures like the
 	// auth cookie never appearing / RPC not responsive are invisible —
 	// bitwindowd's log only shows the client side.
-	if data, err := os.ReadFile(filepath.Join(h.dataDir, "orchestratord.log")); err == nil {
-		write("orchestratord.log", string(data))
+	if data, err := os.ReadFile(filepath.Join(h.dataDir, "bitwindow.log")); err == nil {
+		write("bitwindow.log", string(data))
 	}
 }
 
