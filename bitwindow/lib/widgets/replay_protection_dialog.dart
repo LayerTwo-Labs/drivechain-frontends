@@ -16,7 +16,7 @@ Future<ReplayChoice> askReplayProtection(
   final choice = await showThemedDialog<ReplayChoice>(
     context: context,
     builder: (context) => SailModal(
-      constraints: const BoxConstraints(maxWidth: 720),
+      constraints: const BoxConstraints(maxWidth: 560),
       child: SailCard(
         title: coinsKnown && coins.length == 1 ? 'This coin exists on both chains' : 'These coins exist on both chains',
         subtitle: coinsKnown
@@ -24,19 +24,10 @@ Future<ReplayChoice> askReplayProtection(
             : 'The wallet did not report its coins yet, so this send can spend one that exists on both chains.',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (coinsKnown) ...[
-              SailText.primary15('Coins on both chains', bold: true),
-              const SizedBox(height: SailStyleValues.padding08),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: coins.map((c) => _CoinRow(coin: c)).toList(),
-                  ),
-                ),
-              ),
+              _CoinList(coins: coins),
               const SizedBox(height: SailStyleValues.padding16),
             ],
             SailText.secondary13(
@@ -72,21 +63,71 @@ Future<ReplayChoice> askReplayProtection(
   return choice ?? ReplayChoice.cancel;
 }
 
-class _CoinRow extends StatelessWidget {
-  final UnspentOutput coin;
+/// The coins of the send, with their count and total on top. Scrolls once the
+/// list passes five rows, so a big send keeps the dialog short.
+class _CoinList extends StatelessWidget {
+  final List<UnspentOutput> coins;
 
-  const _CoinRow({required this.coin});
+  const _CoinList({required this.coins});
 
   @override
   Widget build(BuildContext context) {
     final formatter = GetIt.I.get<FormatterProvider>();
+    final total = coins.fold<int>(0, (sum, c) => sum + c.valueSats.toInt());
+
+    return SailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Row(
+            left: coins.length == 1 ? '1 coin' : '${coins.length} coins',
+            right: formatter.formatSats(total),
+            muted: true,
+          ),
+          const SizedBox(height: SailStyleValues.padding08),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 110),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: coins
+                    .map(
+                      (c) => _Row(
+                        left: formatter.formatSats(c.valueSats.toInt()),
+                        right: _shortAddress(c.address),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Row extends StatelessWidget {
+  final String left;
+  final String right;
+  final bool muted;
+
+  const _Row({required this.left, required this.right, this.muted = false});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: SailStyleValues.padding04),
       child: Row(
         children: [
-          SailText.secondary13(formatter.formatSats(coin.valueSats.toInt()), monospace: true),
+          if (muted) SailText.secondary12(left, bold: true) else SailText.primary13(left, monospace: true),
           const Spacer(),
-          SailText.secondary13(_shortAddress(coin.address), monospace: true),
+          if (muted)
+            SailText.secondary12(right, bold: true, monospace: true)
+          else
+            SailText.secondary13(right, monospace: true),
         ],
       ),
     );
