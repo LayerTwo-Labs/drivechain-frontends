@@ -22,7 +22,7 @@ class ForkModeBanner extends StatelessWidget {
         // Claim card only — the countdown is handled globally by
         // ForkCountdownTimer, and is hidden by the engine while coins are
         // unclaimed, so the two never overlap.
-        if (!_fork.hasFundsToClaim || !_fork.hasSelectableCoins) {
+        if (!_fork.hasFundsToClaim || !_fork.hasSelectableCoins || _fork.claimCardDismissed) {
           return const SizedBox.shrink();
         }
         return _ClaimEcashCard(fork: _fork);
@@ -128,6 +128,12 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                 ),
                 const SizedBox(width: 8),
                 SailText.primary15('You have eCash to claim', bold: true),
+                const Spacer(),
+                SailButton(
+                  variant: ButtonVariant.icon,
+                  icon: SailSVGAsset.iconClose,
+                  onPressed: () async => widget.fork.dismissClaimCard(),
+                ),
               ],
             ),
             const SizedBox(height: 16),
