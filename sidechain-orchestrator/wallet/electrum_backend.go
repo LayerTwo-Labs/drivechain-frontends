@@ -1750,8 +1750,9 @@ func (p *ElectrumBackend) scan(ctx context.Context, walletID string, allowCache 
 	p.mu.Lock()
 	initial := !p.liveScanned[walletID]
 	// A refresh walks a short lookahead past the last used address. The full
-	// gap returns on the first scan and every electrumDeepScanEvery after it.
-	deep := initial || time.Since(p.deepAt[walletID]) >= electrumDeepScanEvery
+	// gap returns on the first scan, on a rescan the user asked for, and every
+	// electrumDeepScanEvery after that.
+	deep := !allowCache || initial || time.Since(p.deepAt[walletID]) >= electrumDeepScanEvery
 	if deep {
 		p.deepAt[walletID] = time.Now()
 	}

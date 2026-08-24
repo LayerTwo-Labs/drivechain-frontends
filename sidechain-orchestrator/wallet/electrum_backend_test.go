@@ -2328,3 +2328,40 @@ func TestPriorHighestUsed(t *testing.T) {
 	assert.Equal(t, uint32(12), priorHighestUsed(prior, ScriptNativeSegwit, true))
 	assert.Equal(t, uint32(30), priorHighestUsed(prior, ScriptTaproot, false))
 }
+
+// A user asks for a rescan when a payment is missing, so it walks the full gap
+// however recently the periodic deep walk ran.
+func TestElectrumRescanWalksTheFullGap(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 20)
+	require.NoError(t, err)
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	ctx := context.Background()
+
+	_, _, err = p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+
+	// A payment lands far past the refresh lookahead, and the deep walk just ran.
+	fake.stats[addrs[15]] = EsploraAddressStats{
+		Address:    addrs[15],
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	p.mu.Lock()
+	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
+	p.deepAt[w.ID] = time.Now()
+	p.mu.Unlock()
+
+	scan, err := p.scan(ctx, w.ID, false)
+	require.NoError(t, err)
+
+	var total int64
+	for _, a := range scan.addrs {
+		total += a.stats.ChainStats.FundedTxoSum
+	}
+	require.Equal(t, int64(100_000), total, "a rescan must reach the far payment")
+}
