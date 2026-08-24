@@ -2170,18 +2170,41 @@ func gapLimitFor(deep bool) int {
 	return electrumRefreshGapLimit
 }
 
+// priorHighestUsed reports the highest index a previous scan saw in use on one
+// chain. A refresh walks through that index before it applies its lookahead,
+// so a coin further out than the lookahead stays in the wallet.
+func priorHighestUsed(prior *electrumScan, kind ScriptKind, change bool) uint32 {
+	if prior == nil {
+		return 0
+	}
+	var highest uint32
+	for _, a := range prior.addrs {
+		if a.kind == kind && a.change == change && a.stats.Used() && a.index > highest {
+			highest = a.index
+		}
+	}
+	return highest
+}
+
 func (p *ElectrumBackend) scanChain(ctx context.Context, walletID, chain string, derive chainDeriver, prior *electrumScan, deep, reportProgress bool) ([]scannedAddr, error) {
 	var out []scannedAddr
 	gap := gapLimitFor(deep)
 	consecutiveUnused := 0
 	found := 0
-	for i := uint32(0); consecutiveUnused < gap && i < electrumMaxScan; i++ {
-		if reportProgress {
-			p.svc.syncReporter.publish(walletID, scanProgress(chain, len(out), found))
-		}
+	var keepThrough uint32
+	for i := uint32(0); i < electrumMaxScan; i++ {
 		a, err := derive(i)
 		if err != nil {
 			return nil, err
+		}
+		if i == 0 {
+			keepThrough = priorHighestUsed(prior, a.kind, a.change)
+		}
+		if i > keepThrough && consecutiveUnused >= gap {
+			break
+		}
+		if reportProgress {
+			p.svc.syncReporter.publish(walletID, scanProgress(chain, len(out), found))
 		}
 		if err := p.hydrate(ctx, walletID, &a, prior); err != nil {
 			return nil, err
