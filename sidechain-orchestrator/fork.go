@@ -16,7 +16,29 @@ import (
 // available — called from main after NewWalletEngine. The fork.Engine is the
 // single source of truth for fork state; ForkState is a thin pass-through.
 func (o *Orchestrator) InitForkEngine(we *wallet.WalletEngine) {
-	o.forkEngine = fork.NewEngine(o, &forkWalletScanner{o: o, engine: we}, time.Second)
+	o.forkScanner = &forkWalletScanner{o: o, engine: we}
+	o.forkEngine = fork.NewEngine(o, o.forkScanner, time.Second)
+}
+
+// WalletUnspent lists every coin the scannable wallets hold. A wallet whose
+// backend errors is skipped, never fatal.
+func (o *Orchestrator) WalletUnspent(ctx context.Context) ([]fork.Utxo, error) {
+	if o.forkScanner == nil {
+		return nil, nil
+	}
+	tip, err := o.ForkTip(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []fork.Utxo
+	for _, w := range o.forkScanner.Wallets() {
+		utxos, err := o.forkScanner.Unspent(ctx, w.ID, tip.Blocks)
+		if err != nil {
+			continue
+		}
+		out = append(out, utxos...)
+	}
+	return out, nil
 }
 
 // SetWalletEngine hands the orchestrator the engine it resets on a network swap.

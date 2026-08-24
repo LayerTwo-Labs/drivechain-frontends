@@ -154,6 +154,10 @@ type Orchestrator struct {
 	// the enforcer wallet's UTXOs (set later, once the enforcer client exists).
 	forkEngine *fork.Engine
 
+	// forkScanner enumerates the wallets and their coins for the fork engine
+	// and for the split engine; wired by InitForkEngine.
+	forkScanner *forkWalletScanner
+
 	// chainTip reads the height from the wallet chain source (esplora or
 	// electrum), so an electrum wallet gets a tip with no local Core.
 	chainTip ChainTipSource
