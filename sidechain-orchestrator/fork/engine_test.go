@@ -95,3 +95,26 @@ func TestFixedHeightClaimsAfterFork(t *testing.T) {
 		t.Fatalf("claims: %+v", st.Claims)
 	}
 }
+
+func TestFixedHeightClaimsWhileNodeIsBehind(t *testing.T) {
+	// The chain passed 400 long ago, but the local node still downloads
+	// blocks. The coin at 391 is claimable all the same.
+	st := state(t, Tip{Network: "regtest", Blocks: 120, Headers: 900}, walletsAt(391))
+	if !st.HasFundsToClaim {
+		t.Fatal("a coin below the boundary is claimable while the node syncs")
+	}
+	if st.ShowCountdown {
+		t.Fatal("no countdown while coins are unclaimed")
+	}
+}
+
+func TestFixedHeightNoClaimsBeforeForkByHeaders(t *testing.T) {
+	// Headers stop short of 400, so the fork did not happen yet.
+	st := state(t, Tip{Network: "regtest", Blocks: 100, Headers: 390}, walletsAt(51))
+	if st.HasFundsToClaim {
+		t.Fatal("no claims before the chain reaches the fork height")
+	}
+	if !st.ShowCountdown {
+		t.Fatal("countdown should show before the fork")
+	}
+}

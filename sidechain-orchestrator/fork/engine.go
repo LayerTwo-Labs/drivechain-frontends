@@ -166,10 +166,9 @@ func (e *Engine) compute(ctx context.Context) (*ForkState, error) {
 		CurrentHeaders: tip.Headers,
 	}
 
-	// The fork has "happened" for these coins only once the tip reaches the
-	// claim boundary — guards against a fixed-height network showing claims
-	// before the fork.
-	if tip.Blocks >= claimBoundary {
+	// The chain passes the boundary, not the local node: a node in initial
+	// block download sits far behind the headers it already knows.
+	if tip.Headers >= claimBoundary {
 		st.Claims = e.scan(ctx, claimBoundary, tip.Blocks)
 	}
 	for _, c := range st.Claims {
