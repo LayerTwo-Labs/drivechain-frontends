@@ -317,7 +317,7 @@ class ImportTxidModalViewModel extends BaseViewModel {
         return 0;
       }
 
-      const isMainnet = String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
+      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
 
       for (int i = 0; i < keys.length; i++) {
         final keyData = keys[i];

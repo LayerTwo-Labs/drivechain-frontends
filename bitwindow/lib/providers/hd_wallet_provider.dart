@@ -439,7 +439,7 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<Map<String, String>> deriveKeyInfo(String mnemonic, String path) async {
-    final isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
+    final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
     return deriveExtendedKeyInfo(mnemonic, path, isMainnet);
   }
 }

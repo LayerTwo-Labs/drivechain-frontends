@@ -453,7 +453,7 @@ class CreateMultisigModalViewModel extends BaseViewModel {
 
   final Set<int> _sessionUsedAccountIndices = <int>{};
 
-  final bool isMainnet = const String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet') == 'mainnet';
+  final bool isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
 
   String get coinType => isMainnet ? "0'" : "1'";
   String get xpubPrefix => isMainnet ? 'xpub' : 'tpub';

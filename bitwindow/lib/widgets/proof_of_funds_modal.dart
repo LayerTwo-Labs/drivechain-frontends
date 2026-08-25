@@ -6,7 +6,6 @@ import 'dart:typed_data';
 import 'package:bitcoin_base/bitcoin_base.dart';
 import 'package:convert/convert.dart';
 
-import 'package:bitwindow/env.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
@@ -857,7 +856,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
         throw Exception('HD wallet not initialized');
       }
 
-      final isMainnet = env(Environment.network) == 'mainnet';
+      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
 
       // Find the correct derivation path for the address
       final keyInfo = await _findKeyForAddress(address, isMainnet);
@@ -1079,7 +1078,7 @@ class ProofOfFundsViewModel extends BaseViewModel {
     String address,
   ) async {
     try {
-      final isMainnet = env(Environment.network) == 'mainnet';
+      final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
 
       final derivedAddress = _publicKeyToBech32Address(publicKeyHex, isMainnet);
       if (derivedAddress != address) {
