@@ -61,12 +61,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
 
-// defaultNetwork is the network the orchestrator boots on when there's no saved
-// config and no --network/ORCHESTRATOR_NETWORK override. "signet" for the standard
-// build; variant builds override it at build time (the forknet build sets "forknet")
-// via: go build -ldflags "-X main.defaultNetwork=forknet" ./cmd/orchestratord
-var defaultNetwork = "signet"
-
 func main() {
 	app := &cli.App{
 		Name:  "orchestratord",
@@ -81,7 +75,7 @@ func main() {
 			&cli.StringFlag{
 				Name:    "network",
 				Usage:   "bitcoin network (mainnet, testnet, signet, regtest, forknet, ecash)",
-				Value:   defaultNetwork,
+				Value:   config.DefaultNetwork,
 				EnvVars: []string{"ORCHESTRATOR_NETWORK"},
 			},
 			&cli.StringFlag{
