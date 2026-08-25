@@ -431,7 +431,15 @@ func (h *WalletHandler) CreateElectrumWallet(ctx context.Context, req *connect.R
 			return nil, err
 		}
 	}
-	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.Passphrase, req.Msg.XpubOrDescriptor, req.Msg.ScriptType, account, path)
+	// A bare extended key states no kind, so its own history places it. With
+	// no history the chosen type stands.
+	scriptType := req.Msg.ScriptType
+	if req.Msg.XpubOrDescriptor != "" && wallet.BareKeyWithoutKind(req.Msg.XpubOrDescriptor) {
+		if detected, ok := h.engine.DetectScriptKind(ctx, req.Msg.XpubOrDescriptor); ok {
+			scriptType = detected.String()
+		}
+	}
+	w, err := h.svc.CreateElectrumWallet(req.Msg.Name, json.RawMessage(req.Msg.GradientJson), req.Msg.Slots, req.Msg.CustomMnemonic, req.Msg.Passphrase, req.Msg.XpubOrDescriptor, scriptType, account, path)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

@@ -179,6 +179,16 @@ func (e *WalletEngine) SetElectrumServerURL(ctx context.Context, url string) (in
 	return eb.SetServerURL(ctx, url)
 }
 
+// DetectScriptKind probes the chain for the script kind a bare extended key
+// actually uses. See ElectrumBackend.DetectScriptKind.
+func (e *WalletEngine) DetectScriptKind(ctx context.Context, xpubOrDescriptor string) (ScriptKind, bool) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return ScriptUnknown, false
+	}
+	return eb.DetectScriptKind(ctx, xpubOrDescriptor)
+}
+
 // TorConfig reports whether the electrum wallet routes chain connections
 // through a SOCKS5 proxy and the proxy address.
 func (e *WalletEngine) TorConfig() (bool, string, error) {
