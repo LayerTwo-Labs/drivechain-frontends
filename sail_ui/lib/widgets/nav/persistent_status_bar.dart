@@ -8,7 +8,8 @@ import 'package:sail_ui/sail_ui.dart';
 /// Renders [SizedBox.shrink] while everything is booting or running — the
 /// banner only appears when a monitored daemon reports a terminal failure
 /// (`connectionError != null` and no longer initializing). Tapping Restart
-/// re-invokes [BinaryProvider.start] for each failed daemon.
+/// re-invokes [BinaryProvider.start] for each failed daemon, and Send Logs To
+/// Devs shows the shared log file in the file manager.
 class PersistentStatusBar extends StatelessWidget {
   /// Binary types to monitor. Bitwindow wires up `orchestratord` +
   /// `bitWindow` here; other clients can pass their own pair.
@@ -19,12 +20,35 @@ class PersistentStatusBar extends StatelessWidget {
     this.monitored = const [BinaryType.BINARY_TYPE_ORCHESTRATORD, BinaryType.BINARY_TYPE_BITWINDOWD],
   });
 
+  /// orchestratord maps to no RPCConnection, so its outage reads from the
+  /// poll that already watches it.
+  static bool _orchestratorDown() {
+    if (!GetIt.I.isRegistered<BackendStateProvider>()) {
+      return false;
+    }
+    return !GetIt.I.get<BackendStateProvider>().orchestratorReachable;
+  }
+
+  static bool _isDown(BinaryProvider binaryProvider, Binary binary) {
+    if (binaryProvider.isConnected(binary) ||
+        binaryProvider.isInitializing(binary) ||
+        binaryProvider.isStopping(binary)) {
+      return false;
+    }
+    final err = binaryProvider.connectionError(binary);
+    if (err != null && err.isNotEmpty) {
+      return true;
+    }
+    return binary.type == BinaryType.BINARY_TYPE_ORCHESTRATORD && _orchestratorDown();
+  }
+
   @override
   Widget build(BuildContext context) {
     final binaryProvider = GetIt.I.get<BinaryProvider>();
+    final backendState = GetIt.I.isRegistered<BackendStateProvider>() ? GetIt.I.get<BackendStateProvider>() : null;
 
     return ListenableBuilder(
-      listenable: binaryProvider,
+      listenable: backendState == null ? binaryProvider : Listenable.merge([binaryProvider, backendState]),
       builder: (context, _) {
         final broken = <Binary>[];
         for (final type in monitored) {
@@ -32,17 +56,7 @@ class PersistentStatusBar extends StatelessWidget {
           if (binary == null) {
             continue;
           }
-          if (binaryProvider.isConnected(binary)) {
-            continue;
-          }
-          if (binaryProvider.isInitializing(binary)) {
-            continue;
-          }
-          if (binaryProvider.isStopping(binary)) {
-            continue;
-          }
-          final err = binaryProvider.connectionError(binary);
-          if (err == null || err.isEmpty) {
+          if (!_isDown(binaryProvider, binary)) {
             continue;
           }
           broken.add(binary);
@@ -75,6 +89,13 @@ class PersistentStatusBar extends StatelessWidget {
                     Expanded(
                       child: SailText.primary12(label, color: SailColorScheme.red),
                     ),
+                    SailButton(
+                      label: 'Send Logs To Devs',
+                      small: true,
+                      variant: ButtonVariant.outline,
+                      onPressed: openLogs,
+                    ),
+                    const SizedBox(width: 8),
                     SailButton(
                       label: 'Restart',
                       small: true,

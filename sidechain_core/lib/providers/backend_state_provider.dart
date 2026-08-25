@@ -35,6 +35,11 @@ class BackendStateProvider extends ChangeNotifier {
   /// Live binary status from the backend.
   Map<String, BinaryStatusMsg> binaries = {};
 
+  /// False once the orchestrator misses [_failuresBeforeDisconnected] polls in
+  /// a row. It is the only orchestratord health the frontend holds, because no
+  /// RPCConnection maps to that binary.
+  bool orchestratorReachable = true;
+
   Timer? _pollTimer;
   bool _polling = false;
   int _consecutiveFailures = 0;
@@ -65,6 +70,7 @@ class BackendStateProvider extends ChangeNotifier {
     try {
       final resp = await _orchestrator.listBinaries(forceBackend: Binary.isSidechainApp);
       _consecutiveFailures = 0;
+      orchestratorReachable = true;
       _apply(resp.binaries);
     } catch (e) {
       // A blip keeps the last frame on screen, but an orchestrator that stays
@@ -72,6 +78,7 @@ class BackendStateProvider extends ChangeNotifier {
       _consecutiveFailures++;
       if (_consecutiveFailures == _failuresBeforeDisconnected) {
         _log.w('BackendStateProvider: orchestrator unreachable, marking binaries disconnected: $e');
+        orchestratorReachable = false;
         _markAllDisconnected();
       }
       _log.d('BackendStateProvider: listBinaries failed: $e');
