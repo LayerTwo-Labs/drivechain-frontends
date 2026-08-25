@@ -25,6 +25,8 @@ WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multis
 wmpb.MultisigInfo policy(int m, int n) => wmpb.MultisigInfo(m: m, n: n);
 
 void main() {
+  _claimsForWalletTests();
+
   test('a coin with unknown BTC status stays selectable', () {
     expect(ForkProvider.isSelectable(utxo('aa:0')), isTrue);
   });
@@ -170,5 +172,47 @@ void main() {
       PendingSplit(walletId: 'w1', draftId: 'new', outpoints: {'aa:0'}),
     ];
     expect(ForkProvider.keepLivePendingSplits(pending, {}, {}, {}).length, 1);
+  });
+}
+
+void _claimsForWalletTests() {
+  test('claimsForWallet returns only the open wallet', () {
+    final fork = ForkProvider();
+    fork.claims = [
+      WalletClaim(walletId: 'open', walletName: 'Open', claimableSats: 100, utxos: [utxo('a:0')]),
+      WalletClaim(walletId: 'other', walletName: 'Other', claimableSats: 100, utxos: [utxo('b:0')]),
+    ];
+
+    expect(fork.claimsForWallet('open').map((c) => c.walletId), ['open']);
+    expect(fork.claimsForWallet('other').map((c) => c.walletId), ['other']);
+  });
+
+  test('claimsForWallet is empty without an open wallet', () {
+    final fork = ForkProvider();
+    fork.claims = [
+      WalletClaim(walletId: 'open', walletName: 'Open', claimableSats: 100, utxos: [utxo('a:0')]),
+    ];
+
+    expect(fork.claimsForWallet(null), isEmpty);
+  });
+
+  test('a wallet whose coins are all unselectable drops out', () {
+    final fork = ForkProvider();
+    fork.claims = [
+      WalletClaim(walletId: 'spent', walletName: 'Spent', claimableSats: 100, utxos: [utxo('a:0', splittable: false)]),
+    ];
+
+    expect(fork.claimsForWallet('spent'), isEmpty);
+    expect(fork.walletsWithClaims, isEmpty);
+  });
+
+  test('walletsWithClaims names every wallet the picker must mark', () {
+    final fork = ForkProvider();
+    fork.claims = [
+      WalletClaim(walletId: 'one', walletName: 'One', claimableSats: 100, utxos: [utxo('a:0')]),
+      WalletClaim(walletId: 'two', walletName: 'Two', claimableSats: 100, utxos: [utxo('b:0')]),
+    ];
+
+    expect(fork.walletsWithClaims, {'one', 'two'});
   });
 }

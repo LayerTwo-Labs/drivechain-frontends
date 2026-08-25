@@ -513,7 +513,6 @@ class _ClaimedCard extends StatelessWidget {
     final url = mempoolTxUrl(txid, network);
 
     return SailCard(
-      color: theme.colors.success.withValues(alpha: 0.13),
       child: SailColumn(
         spacing: 0,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -579,7 +578,6 @@ class _FailedCard extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return SailCard(
-      color: theme.colors.error.withValues(alpha: 0.10),
       child: SailColumn(
         spacing: 0,
         crossAxisAlignment: CrossAxisAlignment.start,
