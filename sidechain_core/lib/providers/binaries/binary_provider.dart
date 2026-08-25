@@ -8,6 +8,19 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sidechain_core/sidechain_core.dart';
 
+/// The binary whose restart brings [binary] back.
+///
+/// bitwindowd spawns orchestratord with the data directory, the bitwindow
+/// directory and the owner pid. A restart from the frontend carries none of
+/// them, so it would start a second orchestratord on the default paths. A
+/// sidechain app spawns orchestratord itself, with the right arguments.
+Binary restartTarget(Binary binary, List<Binary> binaries, {required bool isSidechainApp}) {
+  if (binary is! Orchestratord || isSidechainApp) {
+    return binary;
+  }
+  return binaries.whereType<BitWindow>().firstOrNull ?? binary;
+}
+
 /// Manages binaries via the Go orchestrator daemon.
 ///
 /// Orchestrator-managed binaries (bitcoind, enforcer, sidechains) are
@@ -160,6 +173,12 @@ class BinaryProvider extends ChangeNotifier {
   /// chain-settings modals, the persistent status bar, and the sidechains
   /// page. Reserve [start] for first-time chain bootstrap.
   Future<void> restart(Binary binary) async {
+    final owner = restartTarget(binary, binaries, isSidechainApp: isSidechainApp);
+    if (!identical(owner, binary)) {
+      log.i('BinaryProvider: restarting ${owner.name}, which owns ${binary.name}');
+      return restart(owner);
+    }
+
     if (_isDaemonBinary(binary)) {
       await _stopDaemonBinary(binary);
       await _startDaemonBinary(binary);
