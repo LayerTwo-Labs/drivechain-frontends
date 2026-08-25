@@ -18,6 +18,7 @@ import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/widgets/edit_wallet_flow.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fork_countdown_timer.dart';
 import 'package:bitwindow/widgets/proof_of_funds_modal.dart';
@@ -1057,28 +1058,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
                                 onCreateWallet: () async {
                                   await GetIt.I.get<AppRouter>().push(CreateAnotherWalletRoute());
                                 },
-                                onEditWallet: (wallet) async {
-                                  final renamed = await showRenameWalletDialog(context, wallet.name);
-                                  if (renamed == null || renamed == wallet.name) {
-                                    return;
-                                  }
-                                  await _walletReader.updateWalletMetadata(wallet.id, renamed, wallet.gradient);
-                                },
-                                onBackgroundChanged: (walletId, newBackgroundSvg) async {
-                                  final wallet = _walletReader.availableWallets
-                                      .where((w) => w.id == walletId)
-                                      .firstOrNull;
-                                  if (wallet != null) {
-                                    final updatedGradient = wallet.gradient.copyWith(
-                                      backgroundSvg: newBackgroundSvg,
-                                    );
-                                    await _walletReader.updateWalletMetadata(
-                                      walletId,
-                                      wallet.name,
-                                      updatedGradient,
-                                    );
-                                  }
-                                },
+                                onEditWallet: (wallet) async => editWallet(context, wallet),
                               ),
                             ),
                       routes: [for (final t in _navTabs) t.nav],

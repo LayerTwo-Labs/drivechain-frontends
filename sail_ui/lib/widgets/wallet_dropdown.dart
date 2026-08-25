@@ -7,7 +7,6 @@ class WalletDropdown extends StatelessWidget {
   final List<WalletMetadata> availableWallets;
   final Function(String walletId) onWalletSelected;
   final VoidCallback onCreateWallet;
-  final Function(String walletId, String newBackgroundSvg)? onBackgroundChanged;
   final Function(WalletMetadata wallet)? onEditWallet;
 
   /// Wallets that hold something the user still has to act on.
@@ -19,7 +18,6 @@ class WalletDropdown extends StatelessWidget {
     required this.availableWallets,
     required this.onWalletSelected,
     required this.onCreateWallet,
-    this.onBackgroundChanged,
     this.onEditWallet,
     this.walletsNeedingAttention = const {},
   });
@@ -69,7 +67,8 @@ class WalletDropdown extends StatelessWidget {
                       ),
                     ],
                     if (onEditWallet != null && wallet.id != currentWallet?.id) ...[
-                      const Spacer(),
+                      // A menu row lays out unbounded while the menu measures
+                      // its width, and a flex child throws there.
                       const SizedBox(width: 12),
                       SailTappable(
                         onTap: () async => onEditWallet!(wallet),
@@ -91,6 +90,17 @@ class WalletDropdown extends StatelessWidget {
           }
         },
         menuChildren: [
+          if (onEditWallet != null && currentWallet != null)
+            SailMenuItem(
+              onSelected: () async => onEditWallet!(currentWallet!),
+              child: Row(
+                children: [
+                  WalletBlobAvatar(gradient: currentWallet!.gradient, size: 24),
+                  const SizedBox(width: 12),
+                  SailText.primary13('Edit ${currentWallet!.name}'),
+                ],
+              ),
+            ),
           SailMenuItem(
             onSelected: () async {
               onCreateWallet();
