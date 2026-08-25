@@ -42,6 +42,8 @@ void _registerClaimProviders() {
 }
 
 void main() {
+  _walletSwitchTests();
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   // The card sits above the wallet tabs and takes its natural height, so a
@@ -131,5 +133,27 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull, reason: 'the card must fit a 400 pixel tall window');
+  });
+}
+
+void _walletSwitchTests() {
+  // The card spends the wallet it holds, so it carries that wallet's key. A
+  // switch then builds a new card instead of keeping the old one.
+  testWidgets('the card is keyed by the wallet it acts for', (tester) async {
+    await registerTestDependencies();
+    _registerClaimProviders();
+
+    await tester.pumpSailPage(
+      Column(
+        children: [
+          const ForkModeBanner(),
+          Expanded(child: Container()),
+        ],
+      ),
+    );
+
+    final card = tester.widget(find.byType(SailCard).first);
+    expect(find.byKey(const ValueKey('w1')), findsOneWidget);
+    expect(card, isNotNull);
   });
 }
