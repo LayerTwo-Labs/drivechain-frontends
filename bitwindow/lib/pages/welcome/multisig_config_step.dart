@@ -181,6 +181,11 @@ class SingleSigResult {
   });
 }
 
+/// The provider a new wallet starts on. A full-mode install runs Bitcoin Core,
+/// which is what the user asked for on the node mode step; light mode runs no
+/// local node, so only electrum can serve it.
+String defaultWalletProvider({required bool runsLocalBackends}) => runsLocalBackends ? 'core' : 'electrum';
+
 class MultisigConfigStep extends StatefulWidget {
   final void Function(WalletSetupResult result) onConfigured;
 
@@ -218,7 +223,9 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   String _scriptType = 'wpkh'; // multi: wsh|sh-wsh|sh|tr; single: wpkh|sh-wpkh|pkh|tr
   int _selectedTab = 0;
   bool _settingsOpen = false;
-  String _provider = 'electrum'; // electrum | core | enforcer
+  String _provider = defaultWalletProvider(
+    runsLocalBackends: NodeModeProvider.runsLocalBackends,
+  ); // electrum | core | enforcer
 
   /// One key is a single-sig wallet; the quorum slider is what makes it multisig.
   bool get _isSingle => _total == 1;
