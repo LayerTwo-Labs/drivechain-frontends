@@ -52,9 +52,11 @@ build_orch_tool() {
         [[ -n "$goarch" ]] && export GOARCH="$goarch"
         # Keep CGO on for the amd64-on-arm cross build.
         export CGO_ENABLED=1
-        # Bake the default network into orchestratord only.
-        if [[ "$cmd" == "orchestratord" && -n "${BITWINDOW_DEFAULT_NETWORK:-}" ]]; then
-            go build -ldflags "-X main.defaultNetwork=${BITWINDOW_DEFAULT_NETWORK}" -o "$out" "./cmd/$cmd"
+        # Bake the default network into every tool. The daemon and the control
+        # CLI read one value, so a wipe cannot target a network the daemon
+        # never ran.
+        if [[ -n "${BITWINDOW_DEFAULT_NETWORK:-}" ]]; then
+            go build -ldflags "-X github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config.DefaultNetwork=${BITWINDOW_DEFAULT_NETWORK}" -o "$out" "./cmd/$cmd"
         else
             go build -o "$out" "./cmd/$cmd"
         fi

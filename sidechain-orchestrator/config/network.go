@@ -22,6 +22,14 @@ const (
 	NetworkTestnet Network = "testnet"
 )
 
+// DefaultNetwork is the network an install runs with no saved config and no
+// --network/ORCHESTRATOR_NETWORK override. Every binary reads this one value,
+// so the daemon and the control CLI cannot target different networks. Variant
+// builds override it at link time:
+//
+//	go build -ldflags "-X <this package>.DefaultNetwork=forknet"
+var DefaultNetwork = string(NetworkECash)
+
 // AllNetworks lists every network the app can run.
 func AllNetworks() []Network {
 	return []Network{

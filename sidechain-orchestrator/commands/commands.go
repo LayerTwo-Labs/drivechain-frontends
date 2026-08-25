@@ -55,7 +55,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "network",
 		Usage:   "bitcoin network",
-		Value:   "signet",
+		Value:   config.DefaultNetwork,
 		EnvVars: []string{"ORCHESTRATOR_NETWORK"},
 	},
 	&cli.BoolFlag{
