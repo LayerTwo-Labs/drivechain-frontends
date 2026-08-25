@@ -81,6 +81,15 @@ class BitcoinConfProvider extends ChangeNotifier {
   /// enforcer/orchestrator, so it returns false there.
   bool get drivechainFeaturesAvailable => networkSupportsSidechains;
 
+  /// Whether the running network derives keys under Bitcoin mainnet
+  /// parameters. Forknet and eCash fork mainnet, so they share its coin type
+  /// and address prefixes; the orchestrator maps all three to MainNetParams.
+  bool get usesMainnetParams {
+    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
+        network == BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+  }
+
   int rpcPort = 38332;
 
   /// True when the active network and wallet backend need a datadir the user

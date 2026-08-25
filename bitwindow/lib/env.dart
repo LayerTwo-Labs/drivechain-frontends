@@ -33,7 +33,7 @@ class Environment {
   );
   static const network = Variable(
     'BITWINDOW_NETWORK',
-    String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'signet'),
+    String.fromEnvironment('BITWINDOW_NETWORK', defaultValue: 'ecash'),
   );
 
   static Future<Directory> datadir() async {
