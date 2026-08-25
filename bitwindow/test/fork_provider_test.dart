@@ -25,6 +25,8 @@ WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multis
 wmpb.MultisigInfo policy(int m, int n) => wmpb.MultisigInfo(m: m, n: n);
 
 void main() {
+  _oneWalletActionTests();
+
   _claimsForWalletTests();
 
   test('a coin with unknown BTC status stays selectable', () {
@@ -214,5 +216,24 @@ void _claimsForWalletTests() {
     ];
 
     expect(fork.walletsWithClaims, {'one', 'two'});
+  });
+}
+
+void _oneWalletActionTests() {
+  // The card acts for the wallet the user has open. A claim there must never
+  // reach into another wallet's coins.
+  test('the open wallet sees only its own claims', () {
+    final fork = ForkProvider();
+    fork.claims = [
+      WalletClaim(walletId: 'open', walletName: 'Open', claimableSats: 100, utxos: [utxo('a:0'), utxo('b:0')]),
+      WalletClaim(walletId: 'other', walletName: 'Other', claimableSats: 100, utxos: [utxo('c:0')]),
+    ];
+
+    final mine = fork.claimsForWallet('open');
+    expect(mine, hasLength(1));
+    expect(mine.single.utxos.map((u) => u.output), ['a:0', 'b:0']);
+
+    final coins = mine.expand((c) => c.utxos).map((u) => u.output).toSet();
+    expect(coins.contains('c:0'), isFalse, reason: "another wallet's coin must not appear");
   });
 }

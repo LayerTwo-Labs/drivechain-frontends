@@ -56,11 +56,14 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
   /// coins that left, drop coins that turned non-splittable, and check each
   /// coin the first time it appears while it is selectable. A user uncheck
   /// stays unchecked — a seen coin is never re-added.
+  /// The claims this card acts on: the open wallet's, and no other.
+  List<WalletClaim> get _claims => widget.fork.claimsForWallet(widget.walletId);
+
   void _syncSelection() {
-    final walletIds = widget.fork.sweepableClaims.map((c) => c.walletId).toSet();
+    final walletIds = _claims.map((c) => c.walletId).toSet();
     _selected.removeWhere((id, _) => !walletIds.contains(id));
     _seen.removeWhere((id, _) => !walletIds.contains(id));
-    for (final claim in widget.fork.sweepableClaims) {
+    for (final claim in _claims) {
       final seen = _seen.putIfAbsent(claim.walletId, () => {});
       final selected = _selected.putIfAbsent(claim.walletId, () => {});
       final selectable = <String>{};
@@ -80,7 +83,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
 
   int get _selectedSats {
     var sum = 0;
-    for (final claim in widget.fork.sweepableClaims) {
+    for (final claim in _claims) {
       final selected = _selected[claim.walletId] ?? {};
       for (final u in claim.utxos) {
         if (selected.contains(u.output)) {
@@ -95,7 +98,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
   /// selection can pay its sweep fee.
   bool get _selectionValid {
     var any = false;
-    for (final claim in widget.fork.sweepableClaims) {
+    for (final claim in _claims) {
       final selected = _selected[claim.walletId] ?? {};
       if (selected.isEmpty) {
         continue;
@@ -115,7 +118,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     final formatter = GetIt.I<FormatterProvider>();
     _syncSelection();
     final selectedSats = _selectedSats;
-    final claims = widget.fork.claimsForWallet(widget.walletId);
+    final claims = _claims;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -327,7 +330,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
       'You have coins on both BTC and ECX. We recommend splitting your coins to not lose any ECX or BTC you currently own.',
       'By default, a transaction valid on bitcoin is also valid on eCash. Therefore, by spending your bitcoin, you will make that same transaction on eCash. If you do not control the receiving eCash wallet, you will lose your eCash.',
       'Claiming sweeps the selected coins to a fresh address in the same wallet.',
-      if (widget.fork.sweepableClaims.any((c) => c.isMultisig))
+      if (_claims.any((c) => c.isMultisig))
         'A multisig wallet holds some of these coins. BitWindow builds a PSBT instead of a finished transaction, and nothing is broadcast until the cosigners sign it on the send tab.',
     ];
     return Column(
@@ -348,7 +351,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
   Future<void> _claim(BuildContext context) async {
     // Snapshot the plan first — claim() refetches and replaces the claims,
     // so one wallet's failure must not misreport the wallets already swept.
-    final planned = widget.fork.sweepableClaims
+    final planned = _claims
         .map(
           (c) => (
             walletId: c.walletId,
