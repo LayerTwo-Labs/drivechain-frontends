@@ -65,6 +65,7 @@ class OrchestratorWalletRPC {
     String? passphrase,
     int account = 0,
     String? derivationPath,
+    String? scriptType,
   }) {
     return _unaryClient.generateWallet(
       wmpb.GenerateWalletRequest(
@@ -73,6 +74,7 @@ class OrchestratorWalletRPC {
         passphrase: passphrase ?? '',
         account: account,
         derivationPath: derivationPath ?? '',
+        scriptType: scriptType ?? '',
       ),
     );
   }

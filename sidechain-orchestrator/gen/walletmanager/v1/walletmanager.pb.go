@@ -883,8 +883,12 @@ type GenerateWalletRequest struct {
 	// overriding the default purpose/coin/account. Empty = default (BIP84,
 	// network coin, account field). All three levels must be hardened.
 	DerivationPath string `protobuf:"bytes,5,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Address type: "legacy", "nested-segwit", "native-segwit" (default), or
+	// "taproot". Pass this rather than a derivation_path that only names the
+	// address type: a stored path pins the coin type to one network.
+	ScriptType    string `protobuf:"bytes,6,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GenerateWalletRequest) Reset() {
@@ -948,6 +952,13 @@ func (x *GenerateWalletRequest) GetAccount() uint32 {
 func (x *GenerateWalletRequest) GetDerivationPath() string {
 	if x != nil {
 		return x.DerivationPath
+	}
+	return ""
+}
+
+func (x *GenerateWalletRequest) GetScriptType() string {
+	if x != nil {
+		return x.ScriptType
 	}
 	return ""
 }
@@ -2913,9 +2924,10 @@ type CreateElectrumWalletRequest struct {
 	// (no private keys; cannot sign or send). Mutually exclusive with
 	// custom_mnemonic.
 	XpubOrDescriptor string `protobuf:"bytes,5,opt,name=xpub_or_descriptor,json=xpubOrDescriptor,proto3" json:"xpub_or_descriptor,omitempty"`
-	// Address type for a hot wallet: "legacy", "nested-segwit",
-	// "native-segwit" (default), or "taproot". Ignored for watch-only imports
-	// (the descriptor's own type wins).
+	// Address type: "legacy", "nested-segwit", "native-segwit" (default), or
+	// "taproot". A watch-only import uses it only for a bare extended key, which
+	// states no type of its own; a script wrapper, a SLIP-0132 header and an
+	// origin path's purpose all win over it.
 	ScriptType string `protobuf:"bytes,6,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
 	// Optional BIP32 account index for the account-level key. 0 = standard.
 	// Ignored when derivation_path set or for watch-only imports.
@@ -9553,7 +9565,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x14light_mode_available\x18\x02 \x01(\bR\x12lightModeAvailable\"D\n" +
 	"\x12SetNodeModeRequest\x12.\n" +
 	"\x04mode\x18\x01 \x01(\x0e2\x1a.walletmanager.v1.NodeModeR\x04mode\"\x15\n" +
-	"\x13SetNodeModeResponse\"\xb7\x01\n" +
+	"\x13SetNodeModeResponse\"\xd8\x01\n" +
 	"\x15GenerateWalletRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12'\n" +
 	"\x0fcustom_mnemonic\x18\x02 \x01(\tR\x0ecustomMnemonic\x12\x1e\n" +
@@ -9561,7 +9573,9 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"passphrase\x18\x03 \x01(\tR\n" +
 	"passphrase\x12\x18\n" +
 	"\aaccount\x18\x04 \x01(\rR\aaccount\x12'\n" +
-	"\x0fderivation_path\x18\x05 \x01(\tR\x0ederivationPath\"Q\n" +
+	"\x0fderivation_path\x18\x05 \x01(\tR\x0ederivationPath\x12\x1f\n" +
+	"\vscript_type\x18\x06 \x01(\tR\n" +
+	"scriptType\"Q\n" +
 	"\x16GenerateWalletResponse\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x1a\n" +
 	"\bmnemonic\x18\x02 \x01(\tR\bmnemonic\"1\n" +

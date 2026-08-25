@@ -29,6 +29,7 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
   String? generatedName;
   String? generatedMnemonic;
   String? generatedPassphrase;
+  String? generatedScriptType;
   List<int>? previewEntropy;
   String? previewSourceText;
   int? previewWordCount;
@@ -59,11 +60,13 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
     String? passphrase,
     int account = 0,
     String? derivationPath,
+    String? scriptType,
   }) async {
     generateWalletCalls++;
     generatedName = name;
     generatedMnemonic = customMnemonic;
     generatedPassphrase = passphrase;
+    generatedScriptType = scriptType;
     return wmpb.GenerateWalletResponse(walletId: 'wallet-1', mnemonic: customMnemonic);
   }
 }

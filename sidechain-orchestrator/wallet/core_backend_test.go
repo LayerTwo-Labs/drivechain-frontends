@@ -666,7 +666,7 @@ func TestCoreBackendCreateCpfpTaproot(t *testing.T) {
 	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
 	require.NoError(t, err)
 	// Explicit BIP86 path => taproot-only Core wallet (imports only tr()).
-	core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "m/86'/1'/0'", testSlots)
+	core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "m/86'/1'/0'", "", testSlots)
 	require.NoError(t, err)
 	require.Equal(t, WalletTypeBitcoinCore, core.WalletType)
 
@@ -766,7 +766,7 @@ func TestCoreBackendCpfpBase58Kinds(t *testing.T) {
 			svc := newTestService(t)
 			_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
 			require.NoError(t, err)
-			core, err := svc.GenerateWalletWithPath("Core-"+tc.name, "", "", 0, tc.path, testSlots)
+			core, err := svc.GenerateWalletWithPath("Core-"+tc.name, "", "", 0, tc.path, "", testSlots)
 			require.NoError(t, err)
 
 			fake := newFakeBitcoind(t)
@@ -1022,7 +1022,7 @@ func TestCoreBackendNextChangeAddressKind(t *testing.T) {
 		svc := newTestService(t)
 		_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
 		require.NoError(t, err)
-		core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "m/86'/1'/0'", testSlots)
+		core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "m/86'/1'/0'", "", testSlots)
 		require.NoError(t, err)
 
 		fake := newFakeBitcoind(t)
@@ -1229,4 +1229,60 @@ func TestCoreBackendRetryReimportsDescriptorsAfterPartialCreate(t *testing.T) {
 	require.NoError(t, json.Unmarshal(imports[1].Params[0], &singleSig))
 	require.Len(t, singleSig, 4)
 	assert.Contains(t, singleSig[0].Desc, "/84'/1'/0']")
+}
+
+// Core hands out no address it holds no descriptor for, so it imports exactly
+// the kinds the wallet advertises. A legacy wallet advertises legacy alone.
+func TestCoreBackendImportsTheWalletScriptTypeWithoutAPath(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	core, err := svc.GenerateWalletWithPath("CoreLegacy", "", "", 0, "", "legacy", testSlots)
+	require.NoError(t, err)
+	require.Empty(t, core.DerivationPath, "no path may travel with the wallet")
+	require.Equal(t, "legacy", core.ScriptType)
+
+	fake := newFakeBitcoind(t)
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	fake.stubEnsureFlow()
+
+	_, err = backend.Ensure(context.Background(), core.ID)
+	require.NoError(t, err)
+
+	imports := fake.callsFor("importdescriptors")
+	require.NotEmpty(t, imports)
+	var singleSig []ImportDescriptor
+	require.NoError(t, json.Unmarshal(imports[0].Params[0], &singleSig))
+	require.Len(t, singleSig, 2, "the legacy pair alone, external + change")
+	assert.Contains(t, singleSig[0].Desc, "pkh([")
+	assert.Contains(t, singleSig[0].Desc, "/44'/1'/0']")
+
+	// Address requests, change and CPFP sizing all read this. A different kind
+	// here asks Core for a family it holds no descriptor for.
+	assert.Equal(t, ScriptLegacy, backend.walletScriptKind(core.ID))
+	assert.Equal(t, []ScriptKind{ScriptLegacy}, ReceiveKinds(core))
+}
+
+// A taproot wallet advertises taproot and native segwit, so Core imports both
+// pairs. Importing the taproot pair alone would break the segwit Receive tab.
+func TestCoreBackendImportsEveryKindTheWalletAdvertises(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	core, err := svc.GenerateWalletWithPath("CoreTaproot", "", "", 0, "", "taproot", testSlots)
+	require.NoError(t, err)
+	require.Equal(t, []ScriptKind{ScriptTaproot, ScriptNativeSegwit}, ReceiveKinds(core))
+
+	fake := newFakeBitcoind(t)
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	fake.stubEnsureFlow()
+
+	_, err = backend.Ensure(context.Background(), core.ID)
+	require.NoError(t, err)
+
+	var singleSig []ImportDescriptor
+	require.NoError(t, json.Unmarshal(fake.callsFor("importdescriptors")[0].Params[0], &singleSig))
+	require.Len(t, singleSig, 4, "the taproot pair and the segwit pair")
+	assert.Contains(t, singleSig[0].Desc, "tr([")
+	assert.Contains(t, singleSig[2].Desc, "wpkh([")
 }

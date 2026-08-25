@@ -39,6 +39,7 @@ class WalletWriterProvider extends ChangeNotifier {
     String? passphrase,
     int account = 0,
     String? derivationPath,
+    String? scriptType,
   }) async {
     try {
       final resp = await _client.generateWallet(
@@ -47,6 +48,7 @@ class WalletWriterProvider extends ChangeNotifier {
         passphrase: passphrase,
         account: account,
         derivationPath: derivationPath,
+        scriptType: scriptType,
       );
 
       _logger.i(
@@ -73,6 +75,7 @@ class WalletWriterProvider extends ChangeNotifier {
     String? passphrase,
     int account = 0,
     String? derivationPath,
+    String? scriptType,
   }) async {
     final result = await generateWallet(
       name: name,
@@ -80,6 +83,7 @@ class WalletWriterProvider extends ChangeNotifier {
       passphrase: passphrase,
       account: account,
       derivationPath: derivationPath,
+      scriptType: scriptType,
     );
     final walletId = result['wallet_id'] as String?;
     if (walletId != null) {

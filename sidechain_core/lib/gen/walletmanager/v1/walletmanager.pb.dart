@@ -735,6 +735,7 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
     $core.String? passphrase,
     $core.int? account,
     $core.String? derivationPath,
+    $core.String? scriptType,
   }) {
     final $result = create();
     if (name != null) {
@@ -752,6 +753,9 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
     if (derivationPath != null) {
       $result.derivationPath = derivationPath;
     }
+    if (scriptType != null) {
+      $result.scriptType = scriptType;
+    }
     return $result;
   }
   GenerateWalletRequest._() : super();
@@ -764,6 +768,7 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'passphrase')
     ..a<$core.int>(4, _omitFieldNames ? '' : 'account', $pb.PbFieldType.OU3)
     ..aOS(5, _omitFieldNames ? '' : 'derivationPath')
+    ..aOS(6, _omitFieldNames ? '' : 'scriptType')
     ..hasRequiredFields = false
   ;
 
@@ -837,6 +842,18 @@ class GenerateWalletRequest extends $pb.GeneratedMessage {
   $core.bool hasDerivationPath() => $_has(4);
   @$pb.TagNumber(5)
   void clearDerivationPath() => clearField(5);
+
+  /// Address type: "legacy", "nested-segwit", "native-segwit" (default), or
+  /// "taproot". Pass this rather than a derivation_path that only names the
+  /// address type: a stored path pins the coin type to one network.
+  @$pb.TagNumber(6)
+  $core.String get scriptType => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set scriptType($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasScriptType() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearScriptType() => clearField(6);
 }
 
 class GenerateWalletResponse extends $pb.GeneratedMessage {
@@ -3276,9 +3293,10 @@ class CreateElectrumWalletRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   void clearXpubOrDescriptor() => clearField(5);
 
-  /// Address type for a hot wallet: "legacy", "nested-segwit",
-  /// "native-segwit" (default), or "taproot". Ignored for watch-only imports
-  /// (the descriptor's own type wins).
+  /// Address type: "legacy", "nested-segwit", "native-segwit" (default), or
+  /// "taproot". A watch-only import uses it only for a bare extended key, which
+  /// states no type of its own; a script wrapper, a SLIP-0132 header and an
+  /// origin path's purpose all win over it.
   @$pb.TagNumber(6)
   $core.String get scriptType => $_getSZ(5);
   @$pb.TagNumber(6)

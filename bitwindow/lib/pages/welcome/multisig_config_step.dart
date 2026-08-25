@@ -844,16 +844,11 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
     return 'Require $sigs to move funds, out of $keys total';
   }
 
-  // Electrum takes the script type directly, so a standard path is left off to
-  // keep every address kind open. Core has no script-type input.
+  // A stored path pins the coin type to the network the wallet was made on, so
+  // a later switch would leave the descriptor on the old coin. Both providers
+  // carry the address kind in its own field, so only a path the user typed
+  // himself travels with the wallet.
   String? _derivationPathToSubmit(CosignerKeystore k) {
-    // Electrum takes a script type; Core only takes a path, so dropping it
-    // there would silently ignore the address type just chosen. The enforcer
-    // honours neither — it mints its own addresses — so it gets the path only
-    // when the user set one explicitly.
-    if (_coreAvailable && _effectiveProvider == 'core') {
-      return k.derivationPath.isNotEmpty ? k.derivationPath : _standardPath;
-    }
     return k.derivationPath == _standardPath ? null : k.derivationPath;
   }
 
