@@ -16,6 +16,10 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
   /// False on a network with no remote chain server. Regtest and testnet.
   bool lightModeAvailable = true;
 
+  /// True once a read reaches the backend. A failed read is not an unpicked
+  /// mode, so the first-run question waits for this.
+  bool loaded = false;
+
   /// True until the user picks. The app must ask before it boots anything.
   bool get needsChoice => mode == wmpb.NodeMode.NODE_MODE_UNSPECIFIED;
 
@@ -41,6 +45,7 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
       final resp = await _client.getNodeMode();
       mode = resp.mode;
       lightModeAvailable = resp.lightModeAvailable;
+      loaded = true;
       notifyListeners();
     } catch (e) {
       // A failed read is not an unpicked mode. Clearing it here would drop a
@@ -57,6 +62,7 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
     final previous = mode;
     await _client.setNodeMode(next);
     mode = next;
+    loaded = true;
     notifyListeners();
 
     if (next == previous) {
