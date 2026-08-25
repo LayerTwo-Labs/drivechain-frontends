@@ -23,7 +23,7 @@ class ForkModeBanner extends StatelessWidget {
         // ForkCountdownTimer, and is hidden by the engine while coins are
         // unclaimed, so the two never overlap.
         final active = GetIt.I<WalletReaderProvider>().activeWalletId;
-        if (!_fork.hasFundsToClaim || _fork.claimsForWallet(active).isEmpty || _fork.claimCardDismissed) {
+        if (!_fork.hasFundsToClaim || _fork.claimsForWallet(active).isEmpty || _fork.claimCardDismissedFor(active)) {
           return const SizedBox.shrink();
         }
         return _ClaimEcashCard(fork: _fork, walletId: active);
@@ -141,7 +141,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                 SailButton(
                   variant: ButtonVariant.icon,
                   icon: SailSVGAsset.iconClose,
-                  onPressed: () async => widget.fork.dismissClaimCard(),
+                  onPressed: () async => widget.fork.dismissClaimCardFor(widget.walletId),
                 ),
               ],
             ),

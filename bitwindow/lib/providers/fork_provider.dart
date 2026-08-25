@@ -145,13 +145,20 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// the card back.
   Set<String> _dismissedClaimOutpoints = {};
 
-  /// True while the user hid the card and no new claimable coin arrived.
-  bool get claimCardDismissed =>
-      claimOutpoints.isNotEmpty && claimOutpoints.difference(_dismissedClaimOutpoints).isEmpty;
+  /// The coins one wallet can still claim.
+  Set<String> claimOutpointsFor(String? walletId) =>
+      claimsForWallet(walletId).expand((c) => c.utxos).map((u) => u.output).toSet();
 
-  /// Hides the claim card until a new claimable coin arrives.
-  void dismissClaimCard() {
-    _dismissedClaimOutpoints = claimOutpoints;
+  /// True while the user hid this wallet's card and no new coin arrived for
+  /// it. The card belongs to one wallet, so hiding it leaves the others alone.
+  bool claimCardDismissedFor(String? walletId) {
+    final outpoints = claimOutpointsFor(walletId);
+    return outpoints.isNotEmpty && outpoints.difference(_dismissedClaimOutpoints).isEmpty;
+  }
+
+  /// Hides one wallet's claim card until a new claimable coin arrives for it.
+  void dismissClaimCardFor(String? walletId) {
+    _dismissedClaimOutpoints = {..._dismissedClaimOutpoints, ...claimOutpointsFor(walletId)};
     notifyListeners();
   }
 
