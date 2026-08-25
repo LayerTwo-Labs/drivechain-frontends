@@ -420,9 +420,12 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// no action.
   bool get hasSelectableCoins => sweepableClaims.any((c) => selectableInputs(c).isNotEmpty);
 
-  /// Every wallet that still holds a coin to claim.
-  Set<String> get walletsWithClaims =>
-      sweepableClaims.where((c) => selectableInputs(c).isNotEmpty).map((c) => c.walletId).toSet();
+  /// Every wallet whose claim card the user can still open. A wallet whose
+  /// card the user closed carries no mark, or the mark points at nothing.
+  Set<String> get walletsWithClaims => sweepableClaims
+      .where((c) => selectableInputs(c).isNotEmpty && !claimCardDismissedFor(c.walletId))
+      .map((c) => c.walletId)
+      .toSet();
 
   /// The claims of one wallet. The card speaks for the wallet the user has
   /// open; the wallet picker marks the rest.

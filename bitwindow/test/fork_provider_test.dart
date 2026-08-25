@@ -25,6 +25,8 @@ WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multis
 wmpb.MultisigInfo policy(int m, int n) => wmpb.MultisigInfo(m: m, n: n);
 
 void main() {
+  _dotFollowsDismissalTests();
+
   _dismissalTests();
 
   _oneWalletActionTests();
@@ -275,5 +277,23 @@ void _dismissalTests() {
 
   test('a wallet with no claim reads as not dismissed', () {
     expect(twoWallets().claimCardDismissedFor('missing'), isFalse);
+  });
+}
+
+void _dotFollowsDismissalTests() {
+  // The dot sends the user to a card. A wallet whose card is closed must not
+  // carry one.
+  test('a dismissed wallet loses its mark', () {
+    final fork = ForkProvider();
+    fork.hasFundsToClaim = true;
+    fork.claims = [
+      WalletClaim(walletId: 'a', walletName: 'A', claimableSats: 100, utxos: [utxo('a1:0')]),
+      WalletClaim(walletId: 'b', walletName: 'B', claimableSats: 100, utxos: [utxo('b1:0')]),
+    ];
+
+    expect(fork.walletsWithClaims, {'a', 'b'});
+
+    fork.dismissClaimCardFor('a');
+    expect(fork.walletsWithClaims, {'b'});
   });
 }
