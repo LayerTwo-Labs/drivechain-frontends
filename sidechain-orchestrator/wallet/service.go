@@ -733,13 +733,13 @@ func (s *Service) CreateBitcoinCoreWallet(name string, gradientJSON json.RawMess
 // xpubOrDescriptor instead creates a watch-only electrum wallet with no
 // private keys; it is mutually exclusive with customMnemonic.
 func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, slots []uint32, customMnemonic, passphrase, xpubOrDescriptor, scriptType string, accountIndex uint32, derivationPath string) (*WalletData, error) {
-	if xpubOrDescriptor != "" {
-		return s.createElectrumWatchOnly(name, gradient, xpubOrDescriptor)
-	}
-
 	st, err := validateHotScriptType(scriptType)
 	if err != nil {
 		return nil, err
+	}
+
+	if xpubOrDescriptor != "" {
+		return s.createElectrumWatchOnly(name, gradient, xpubOrDescriptor, HotScriptKind(st))
 	}
 
 	sidechainSlots := make([]SidechainSlot, len(slots))
@@ -752,17 +752,7 @@ func (s *Service) CreateElectrumWallet(name string, gradient json.RawMessage, sl
 		s.mu.Unlock()
 		return nil, fmt.Errorf("wallet is locked, unlock before creating a wallet")
 	}
-	wallet, err := s.generateWalletOfType(name, customMnemonic, passphrase, accountIndex, derivationPath, sidechainSlots, WalletTypeElectrum)
-	if err == nil && st != "" {
-		for i := range s.wallets {
-			if s.wallets[i].ID == wallet.ID {
-				s.wallets[i].ScriptType = st
-				wallet.ScriptType = st
-				break
-			}
-		}
-		err = s.saveWalletFile()
-	}
+	wallet, err := s.generateWalletOfType(name, customMnemonic, passphrase, accountIndex, derivationPath, st, sidechainSlots, WalletTypeElectrum)
 	s.mu.Unlock()
 	if err != nil {
 		return nil, err
@@ -785,17 +775,18 @@ func validateHotScriptType(s string) (string, error) {
 	case "legacy", "nested-segwit", "taproot":
 		return s, nil
 	default:
-		return "", fmt.Errorf("unsupported electrum script type %q", s)
+		return "", fmt.Errorf("unsupported script type %q", s)
 	}
 }
 
 // createElectrumWatchOnly creates a watch-only electrum wallet from an xpub or
 // descriptor. Addresses derive from the public key material; with no seed the
-// ElectrumBackend can read balances/history but cannot sign or send.
-func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string) (*WalletData, error) {
+// ElectrumBackend can read balances/history but cannot sign or send. requested
+// is the kind to record when the key states none of its own.
+func (s *Service) createElectrumWatchOnly(name string, gradient json.RawMessage, xpubOrDescriptor string, requested ScriptKind) (*WalletData, error) {
 	// Parse-validate the descriptor and record its script kind so derivation
 	// scans the addresses the descriptor actually owns.
-	desc, err := ParseDescriptor(xpubOrDescriptor)
+	desc, err := ParseDescriptorAs(xpubOrDescriptor, requested)
 	if err != nil {
 		return nil, fmt.Errorf("invalid watch-only descriptor: %w", err)
 	}
@@ -1008,13 +999,18 @@ func (s *Service) UpdateWallet(wallet WalletData) error {
 // --- Generate ---
 
 func (s *Service) GenerateWallet(name, customMnemonic, passphrase string, slots []SidechainSlot) (*WalletData, error) {
-	return s.GenerateWalletWithPath(name, customMnemonic, passphrase, 0, "", slots)
+	return s.GenerateWalletWithPath(name, customMnemonic, passphrase, 0, "", "", slots)
 }
 
 // GenerateWalletWithPath is GenerateWallet with an optional account-index/
 // derivation-path override stored on the wallet so descriptor derivation honors
 // it. Both override args must be pre-validated (see ResolveCreateDerivationPath).
-func (s *Service) GenerateWalletWithPath(name, customMnemonic, passphrase string, accountIndex uint32, derivationPath string, slots []SidechainSlot) (*WalletData, error) {
+func (s *Service) GenerateWalletWithPath(name, customMnemonic, passphrase string, accountIndex uint32, derivationPath, scriptType string, slots []SidechainSlot) (*WalletData, error) {
+	st, err := validateHotScriptType(scriptType)
+	if err != nil {
+		return nil, err
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -1022,14 +1018,14 @@ func (s *Service) GenerateWalletWithPath(name, customMnemonic, passphrase string
 		return nil, fmt.Errorf("wallet is locked, unlock before generating a wallet")
 	}
 
-	return s.generateWalletOfType(name, customMnemonic, passphrase, accountIndex, derivationPath, slots, WalletTypeBitcoinCore)
+	return s.generateWalletOfType(name, customMnemonic, passphrase, accountIndex, derivationPath, st, slots, WalletTypeBitcoinCore)
 }
 
 // generateWalletOfType derives a full local wallet of the given type, appends
 // it as the new active wallet, and persists. Keys are always generated locally;
 // walletType only controls which daemon callbacks fire afterwards. Must be
 // called with mu held.
-func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, accountIndex uint32, derivationPath string, slots []SidechainSlot, walletType WalletType) (*WalletData, error) {
+func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, accountIndex uint32, derivationPath, scriptType string, slots []SidechainSlot, walletType WalletType) (*WalletData, error) {
 	s.log.Info().
 		Str("name", name).
 		Str("wallet_type", string(walletType)).
@@ -1058,6 +1054,7 @@ func (s *Service) generateWalletOfType(name, customMnemonic, passphrase string, 
 	wallet.Gradient = nil
 	wallet.AccountIndex = accountIndex
 	wallet.DerivationPath = derivationPath
+	wallet.ScriptType = scriptType
 
 	// Add to list and set as active
 	s.wallets = append(s.wallets, *wallet)

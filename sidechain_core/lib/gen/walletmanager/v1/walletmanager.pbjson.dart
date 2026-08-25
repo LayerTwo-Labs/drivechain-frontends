@@ -259,6 +259,7 @@ const GenerateWalletRequest$json = {
     {'1': 'passphrase', '3': 3, '4': 1, '5': 9, '10': 'passphrase'},
     {'1': 'account', '3': 4, '4': 1, '5': 13, '10': 'account'},
     {'1': 'derivation_path', '3': 5, '4': 1, '5': 9, '10': 'derivationPath'},
+    {'1': 'script_type', '3': 6, '4': 1, '5': 9, '10': 'scriptType'},
   ],
 };
 
@@ -267,7 +268,7 @@ final $typed_data.Uint8List generateWalletRequestDescriptor = $convert.base64Dec
     'ChVHZW5lcmF0ZVdhbGxldFJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRInCg9jdXN0b21fbW'
     '5lbW9uaWMYAiABKAlSDmN1c3RvbU1uZW1vbmljEh4KCnBhc3NwaHJhc2UYAyABKAlSCnBhc3Nw'
     'aHJhc2USGAoHYWNjb3VudBgEIAEoDVIHYWNjb3VudBInCg9kZXJpdmF0aW9uX3BhdGgYBSABKA'
-    'lSDmRlcml2YXRpb25QYXRo');
+    'lSDmRlcml2YXRpb25QYXRoEh8KC3NjcmlwdF90eXBlGAYgASgJUgpzY3JpcHRUeXBl');
 
 @$core.Deprecated('Use generateWalletResponseDescriptor instead')
 const GenerateWalletResponse$json = {

@@ -12,6 +12,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -301,4 +302,83 @@ func TestDeriveWalletReceiveAddresses(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEqual(t, acct0, got, "custom-account preview must differ from account 0")
 	})
+}
+
+// A Trezor legacy account exports a plain xpub, which states no script type.
+// Guessing BIP84 derives bc1 addresses the wallet does not own, so the import
+// reads as an empty wallet. The origin path's purpose settles it exactly.
+func TestBareKeyTakesTheKindFromItsOriginPurpose(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.MainNetParams
+
+	acct44, err := accountKeyFromSeed(seedHex, ScriptLegacy, net)
+	require.NoError(t, err)
+	xpub := neuter(t, acct44)
+
+	d, err := ParseDescriptor("[d34db33f/44'/0'/0']" + xpub)
+	require.NoError(t, err)
+	assert.Equal(t, ScriptLegacy, d.Kind, "a 44' origin names a legacy account")
+
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	assert.Equal(t, byte('1'), ds.address.EncodeAddress()[0], "legacy addresses start with 1")
+}
+
+// With no origin and no SLIP-0132 header the string states nothing, so the
+// address type the user picked decides rather than a fixed guess.
+func TestBareKeyFallsBackToTheRequestedKind(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.MainNetParams
+
+	acct44, err := accountKeyFromSeed(seedHex, ScriptLegacy, net)
+	require.NoError(t, err)
+	xpub := neuter(t, acct44)
+
+	d, err := ParseDescriptorAs(xpub, ScriptLegacy)
+	require.NoError(t, err)
+	assert.Equal(t, ScriptLegacy, d.Kind)
+
+	// Backward compatibility: an unstated type still reads as native segwit.
+	d, err = ParseDescriptor(xpub)
+	require.NoError(t, err)
+	assert.Equal(t, ScriptNativeSegwit, d.Kind)
+}
+
+// A SLIP-0132 header states the type, so it beats the requested one.
+func TestSLIP132HeaderBeatsTheRequestedKind(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.MainNetParams
+
+	acct84, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	zpub := reencodeVersion(t, neuter(t, acct84), 0x04B24746)
+
+	d, err := ParseDescriptorAs(zpub, ScriptLegacy)
+	require.NoError(t, err)
+	assert.Equal(t, ScriptNativeSegwit, d.Kind)
+}
+
+// The whole import path: a Trezor legacy xpub with the address type the user
+// picked must produce a legacy wallet, not a native segwit one.
+func TestWatchOnlyImportHonoursTheChosenAddressType(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	acct44, err := accountKeyFromSeed(seedHex, ScriptLegacy, &chaincfg.MainNetParams)
+	require.NoError(t, err)
+	xpub := neuter(t, acct44)
+
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Trezor", nil, nil, "", "", xpub, "legacy", 0, "")
+	require.NoError(t, err)
+	assert.Equal(t, ScriptLegacy.String(), w.ScriptType)
+
+	// The backend re-parses the stored key on every scan, so the kind must
+	// survive the round trip rather than fall back to native segwit again.
+	backend := NewElectrumBackend(svc, nil, StaticParams(&chaincfg.MainNetParams), zerolog.Nop())
+	d, err := backend.walletDescriptor(w)
+	require.NoError(t, err)
+	assert.Equal(t, ScriptLegacy, d.Kind)
+
+	ds, _, err := d.DeriveScript(false, 0, &chaincfg.MainNetParams)
+	require.NoError(t, err)
+	assert.Equal(t, byte('1'), ds.address.EncodeAddress()[0], "a legacy import must scan 1-prefixed addresses")
 }

@@ -186,3 +186,29 @@ func TestDescriptorHDPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "m/84'/1'/0'/0/7", descriptorHDPath(d, net, false, 7))
 }
+
+// A wallet made on signet and then switched to a mainnet-params network must
+// derive under the new coin type. A stored path froze it on 84'/1', so the
+// descriptor stayed on signet and the coins never showed.
+func TestAccountPathFollowsTheNetworkWithoutAStoredPath(t *testing.T) {
+	w := &WalletData{ScriptType: "taproot"}
+
+	ap, err := accountPathFor(w, ScriptTaproot, &chaincfg.SigNetParams)
+	require.NoError(t, err)
+	assert.Equal(t, "m/86'/1'/0'", ap.String())
+
+	ap, err = accountPathFor(w, ScriptTaproot, &chaincfg.MainNetParams)
+	require.NoError(t, err)
+	assert.Equal(t, "m/86'/0'/0'", ap.String())
+}
+
+// A path the user set himself is an override, so it stays whatever the network.
+func TestAccountPathKeepsAUserPathAcrossNetworks(t *testing.T) {
+	w := &WalletData{DerivationPath: "m/84'/1'/0'"}
+
+	for _, net := range []*chaincfg.Params{&chaincfg.SigNetParams, &chaincfg.MainNetParams} {
+		ap, err := accountPathFor(w, ScriptNativeSegwit, net)
+		require.NoError(t, err)
+		assert.Equal(t, "m/84'/1'/0'", ap.String())
+	}
+}

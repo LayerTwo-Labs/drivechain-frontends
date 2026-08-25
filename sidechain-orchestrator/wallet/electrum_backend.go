@@ -1505,7 +1505,8 @@ func (p *ElectrumBackend) walletDescriptorFor(w *WalletData, kind ScriptKind) (*
 	if err != nil {
 		return nil, err
 	}
-	return ParseDescriptor(desc)
+	// A bare xpub states no kind, so the one recorded at import decides.
+	return ParseDescriptorAs(desc, w.scriptKind())
 }
 
 // multisigSigningDescriptor builds the wallet's multisig descriptor, substituting

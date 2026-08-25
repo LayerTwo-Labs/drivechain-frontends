@@ -148,6 +148,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           name: _walletName,
           gradient: _selectedGradient!,
           xpubOrDescriptor: descriptor,
+          scriptType: _singleScriptType,
           hardwareDeviceType: _hardwareDeviceType,
           hardwareFingerprint: _hardwareFingerprint,
         );
@@ -157,6 +158,7 @@ class _CreateAnotherWalletPageState extends State<CreateAnotherWalletPage> {
           gradient: _selectedGradient!,
           customMnemonic: _mnemonic,
           passphrase: _passphrase,
+          scriptType: _singleScriptType,
           derivationPath: _singleDerivationPath.isEmpty ? null : _singleDerivationPath,
         );
       } else {

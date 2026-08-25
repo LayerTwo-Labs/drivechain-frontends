@@ -39,6 +39,13 @@ type DescriptorKey struct {
 // extended key (no script function) is accepted as native segwit for backward
 // compatibility. Multisig descriptors are handled by parseMultisig.
 func ParseDescriptor(s string) (*Descriptor, error) {
+	return ParseDescriptorAs(s, ScriptNativeSegwit)
+}
+
+// ParseDescriptorAs is ParseDescriptor with the script kind to assume for a
+// bare extended key that names none. A wrapper, a SLIP-0132 header and an
+// origin purpose each state the kind, so all three beat fallback.
+func ParseDescriptorAs(s string, fallback ScriptKind) (*Descriptor, error) {
 	body, err := stripDescriptorChecksum(s)
 	if err != nil {
 		return nil, err
@@ -48,15 +55,14 @@ func ParseDescriptor(s string) (*Descriptor, error) {
 		return nil, errors.New("empty descriptor")
 	}
 
-	// Bare extended key — no script wrapper. A SLIP-0132 header (ypub/zpub/…)
-	// sets the kind; a plain xpub/tpub defaults to native segwit (BIP84).
+	// Bare extended key — no script wrapper.
 	if !strings.Contains(body, "(") {
 		key, kind, hasKind, err := parseKeyExprKind(body)
 		if err != nil {
 			return nil, err
 		}
 		if !hasKind {
-			kind = ScriptNativeSegwit
+			kind = originScriptKind(key.Origin, fallback)
 		}
 		return &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{key}}, nil
 	}
@@ -162,6 +168,25 @@ func parseKeyExprKind(expr string) (DescriptorKey, ScriptKind, bool, error) {
 		return DescriptorKey{}, 0, false, fmt.Errorf("parse extended key %q: %w", keyToken, err)
 	}
 	return DescriptorKey{Origin: origin, Account: acct}, kind, hasKind, nil
+}
+
+// originScriptKind reads the script kind from a key origin's BIP purpose:
+// "d34db33f/44'/0'/0'" is legacy. Returns fallback when the origin is absent or
+// names no standard purpose.
+func originScriptKind(origin string, fallback ScriptKind) ScriptKind {
+	_, path, found := strings.Cut(origin, "/")
+	if !found {
+		return fallback
+	}
+	ap, err := ParseAccountPath(path)
+	if err != nil || !ap.Standard() {
+		return fallback
+	}
+	kind, ok := purposeToCoreKind(ap.Purpose)
+	if !ok {
+		return fallback
+	}
+	return kind
 }
 
 // validateBranchSuffix accepts only the standard wallet layouts so we never

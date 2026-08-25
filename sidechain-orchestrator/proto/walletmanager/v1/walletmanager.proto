@@ -225,6 +225,10 @@ message GenerateWalletRequest {
   // overriding the default purpose/coin/account. Empty = default (BIP84,
   // network coin, account field). All three levels must be hardened.
   string derivation_path = 5;
+  // Address type: "legacy", "nested-segwit", "native-segwit" (default), or
+  // "taproot". Pass this rather than a derivation_path that only names the
+  // address type: a stored path pins the coin type to one network.
+  string script_type = 6;
 }
 
 message GenerateWalletResponse {
@@ -469,9 +473,10 @@ message CreateElectrumWalletRequest {
   // (no private keys; cannot sign or send). Mutually exclusive with
   // custom_mnemonic.
   string xpub_or_descriptor = 5;
-  // Address type for a hot wallet: "legacy", "nested-segwit",
-  // "native-segwit" (default), or "taproot". Ignored for watch-only imports
-  // (the descriptor's own type wins).
+  // Address type: "legacy", "nested-segwit", "native-segwit" (default), or
+  // "taproot". A watch-only import uses it only for a bare extended key, which
+  // states no type of its own; a script wrapper, a SLIP-0132 header and an
+  // origin path's purpose all win over it.
   string script_type = 6;
   // Optional BIP32 account index for the account-level key. 0 = standard.
   // Ignored when derivation_path set or for watch-only imports.
