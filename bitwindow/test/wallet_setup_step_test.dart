@@ -14,6 +14,18 @@ void main() {
     });
   });
 
+  group('defaultWalletProvider', () {
+    // A user who picks Full node gets a Bitcoin Core wallet, not an electrum
+    // one. The wizard defaulted to electrum whatever the node mode was.
+    test('full mode starts on Bitcoin Core', () {
+      expect(defaultWalletProvider(runsLocalBackends: true), 'core');
+    });
+
+    test('light mode starts on electrum, which is all it can run', () {
+      expect(defaultWalletProvider(runsLocalBackends: false), 'electrum');
+    });
+  });
+
   group('coldcardConfig', () {
     MultisigWalletSpec spec(String scriptType, {String? fingerprint = 'd34db33f'}) {
       return MultisigWalletSpec(
