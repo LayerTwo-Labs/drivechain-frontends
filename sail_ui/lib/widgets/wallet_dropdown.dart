@@ -10,6 +10,9 @@ class WalletDropdown extends StatelessWidget {
   final Function(String walletId, String newBackgroundSvg)? onBackgroundChanged;
   final Function(WalletMetadata wallet)? onEditWallet;
 
+  /// Wallets that hold something the user still has to act on.
+  final Set<String> walletsNeedingAttention;
+
   const WalletDropdown({
     super.key,
     required this.currentWallet,
@@ -18,6 +21,7 @@ class WalletDropdown extends StatelessWidget {
     required this.onCreateWallet,
     this.onBackgroundChanged,
     this.onEditWallet,
+    this.walletsNeedingAttention = const {},
   });
 
   @override
@@ -53,6 +57,17 @@ class WalletDropdown extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     SailText.primary13(wallet.name),
+                    if (walletsNeedingAttention.contains(wallet.id)) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: theme.colors.error,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
                     if (onEditWallet != null && wallet.id != currentWallet?.id) ...[
                       const Spacer(),
                       const SizedBox(width: 12),

@@ -413,6 +413,16 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// no action.
   bool get hasSelectableCoins => sweepableClaims.any((c) => selectableInputs(c).isNotEmpty);
 
+  /// Every wallet that still holds a coin to claim.
+  Set<String> get walletsWithClaims =>
+      sweepableClaims.where((c) => selectableInputs(c).isNotEmpty).map((c) => c.walletId).toSet();
+
+  /// The claims of one wallet. The card speaks for the wallet the user has
+  /// open; the wallet picker marks the rest.
+  List<WalletClaim> claimsForWallet(String? walletId) => walletId == null
+      ? const []
+      : sweepableClaims.where((c) => c.walletId == walletId && selectableInputs(c).isNotEmpty).toList();
+
   /// Smallest selected sum a sweep can pay: the post-fee output must stay
   /// above dust. Generous estimate at the 1 sat/vB sweep rate.
   static int minClaimSats(int inputCount) => 546 + 150 + 70 * inputCount;

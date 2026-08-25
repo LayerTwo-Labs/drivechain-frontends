@@ -32,7 +32,9 @@ void _registerClaimProviders() {
     GetIt.I.registerSingleton<ForkProvider>(fork);
   }
   if (!GetIt.I.isRegistered<WalletReaderProvider>()) {
-    GetIt.I.registerSingleton<WalletReaderProvider>(WalletReaderProvider(Directory.systemTemp));
+    final reader = WalletReaderProvider(Directory.systemTemp);
+    reader.activeWalletId = 'w1';
+    GetIt.I.registerSingleton<WalletReaderProvider>(reader);
   }
   if (!GetIt.I.isRegistered<TransactionProvider>()) {
     GetIt.I.registerSingleton<TransactionProvider>(TransactionProvider());

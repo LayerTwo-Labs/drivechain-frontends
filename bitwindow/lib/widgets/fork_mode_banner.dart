@@ -22,10 +22,11 @@ class ForkModeBanner extends StatelessWidget {
         // Claim card only — the countdown is handled globally by
         // ForkCountdownTimer, and is hidden by the engine while coins are
         // unclaimed, so the two never overlap.
-        if (!_fork.hasFundsToClaim || !_fork.hasSelectableCoins || _fork.claimCardDismissed) {
+        final active = GetIt.I<WalletReaderProvider>().activeWalletId;
+        if (!_fork.hasFundsToClaim || _fork.claimsForWallet(active).isEmpty || _fork.claimCardDismissed) {
           return const SizedBox.shrink();
         }
-        return _ClaimEcashCard(fork: _fork);
+        return _ClaimEcashCard(fork: _fork, walletId: active);
       },
     );
   }
@@ -37,8 +38,9 @@ class ForkModeBanner extends StatelessWidget {
 const double _claimCardBodyHeightShare = 0.4;
 
 class _ClaimEcashCard extends StatefulWidget {
-  const _ClaimEcashCard({required this.fork});
+  const _ClaimEcashCard({required this.fork, required this.walletId});
   final ForkProvider fork;
+  final String? walletId;
 
   @override
   State<_ClaimEcashCard> createState() => _ClaimEcashCardState();
@@ -113,13 +115,11 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     final formatter = GetIt.I<FormatterProvider>();
     _syncSelection();
     final selectedSats = _selectedSats;
-    // A wallet with no selectable coin gets no picker — it offers no action.
-    final claims = widget.fork.sweepableClaims.where((c) => widget.fork.selectableInputs(c).isNotEmpty).toList();
+    final claims = widget.fork.claimsForWallet(widget.walletId);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: SailCard(
-        color: theme.colors.orange.withValues(alpha: 0.08),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +209,13 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SailText.secondary12('COINS TO SPLIT', bold: true),
+            Row(
+              children: [
+                SailText.secondary12(claim.walletName.toUpperCase(), bold: true),
+                const SizedBox(width: 8),
+                SailText.secondary12('${claim.utxos.length} coins'),
+              ],
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
