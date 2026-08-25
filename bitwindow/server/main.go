@@ -89,16 +89,17 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		return nil
 	}
 
-	// orchestratord owns bitcoin.conf: the network identity and RPC creds both
-	// live there. Start it, then ask it for the network.
-	bootLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	bootCtx := bootLogger.WithContext(ctx)
-
 	// Base bitwindow dir (pre-Finalize) holding wallet.json and the shared
 	// .auth.cookie. Capture before Finalize suffixes Datadir with the network,
 	// and point the orchestrator (Bitcoind proxy) client at it for local auth.
 	bitwindowDir := conf.BitwindowDir()
 	dial.SetCookieDir(bitwindowDir)
+
+	// orchestratord owns bitcoin.conf: the network identity and RPC creds both
+	// live there. Start it, then ask it for the network.
+	bootLogger := zerolog.New(bootLogWriter(orchestratordLogPath(conf, bitwindowDir), os.Stderr)).
+		With().Timestamp().Logger()
+	bootCtx := bootLogger.WithContext(ctx)
 
 	clients := lease.New(conf.OwnerPID, lease.DefaultGrace, func() {
 		bootLogger.Info().Msg("no clients left and the owner is gone, shutting down")
@@ -452,8 +453,8 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	//   zerolog (panics, child-process spew). Bitwindowd's fd closes when the
 	//   defer below runs; orchestratord inherits an independent fd that
 	//   survives.
-	// - Process.Release: tells the Go runtime to stop tracking the child so we
-	//   don't dangle a finalizer waiting on a process we've handed to init.
+	// - watchOrchestratord: bitwindowd keeps the handle and reaps the child, so
+	//   an early exit gets a line in the log instead of a silent dead port.
 	orchLogPath := orchestratordLogPath(conf, bitwindowDir)
 	// On a fresh install the bitwindow dir doesn't exist yet; opening the log
 	// would fail, orchestratord would never spawn, and the UI would poll a dead
@@ -498,11 +499,45 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 
 	log.Info().Int("pid", cmd.Process.Pid).Msg("orchestratord started")
 
-	if err := cmd.Process.Release(); err != nil {
-		log.Warn().Err(err).Msg("release orchestratord process handle (continuing — child is independent)")
-	}
+	go watchOrchestratord(cmd, log)
 
 	return cmd, nil
+}
+
+// bootLogWriter sends the boot lines to console and to the shared log file.
+// bitwindowd spawns orchestratord before initLogger runs, so without this the
+// one line that names a spawn failure reaches neither the file nor the user.
+// The handle stays open for the process lifetime, because watchOrchestratord
+// writes through it later.
+func bootLogWriter(path string, console io.Writer) io.Writer {
+	const timeFormat = time.DateTime + ".000"
+	consoleWriter := zerolog.ConsoleWriter{Out: console, TimeFormat: timeFormat}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return consoleWriter
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return consoleWriter
+	}
+	return zerolog.MultiLevelWriter(consoleWriter, zerolog.ConsoleWriter{
+		Out:        logfile.Tag(file, "bitwindowd"),
+		NoColor:    true,
+		TimeFormat: timeFormat,
+	})
+}
+
+// watchOrchestratord logs the exit of the child. bitwindowd serves on after
+// orchestratord dies, so the exit code is the one clue the log file holds.
+func watchOrchestratord(cmd *exec.Cmd, log *zerolog.Logger) {
+	err := cmd.Wait()
+	code := -1
+	if cmd.ProcessState != nil {
+		code = cmd.ProcessState.ExitCode()
+	}
+	log.Error().Err(err).
+		Int("pid", cmd.Process.Pid).
+		Int("exit_code", code).
+		Msg("orchestratord exited, its RPC port stays dead until BitWindow restarts")
 }
 
 func existingOrchestratorAdoptable(addr, bitwindowDir string) (bool, error) {
