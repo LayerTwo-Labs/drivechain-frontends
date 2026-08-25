@@ -335,6 +335,17 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 }
 
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
+  // bitwindowd's output already reaches the console. orchestratord runs
+  // detached and writes to the shared file, so a terminal launch shows nothing
+  // of the daemon that starts every other one.
+  if (!orchestratorLogsToStdout(Platform.environment)) {
+    await SharedLogTail(
+      file: logFile,
+      source: 'orchestrator',
+      onLine: debugPrint,
+    ).start();
+  }
+
   const windowOptions = WindowOptions(
     minimumSize: Size(400, 400),
     size: Size(1200, 600),
