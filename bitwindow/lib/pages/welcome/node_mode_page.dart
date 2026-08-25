@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
@@ -16,21 +19,63 @@ class NodeModePage extends StatefulWidget {
   State<NodeModePage> createState() => _NodeModePageState();
 }
 
+const String _backendDown = 'BitWindow cannot reach the local backend.';
+
 class _NodeModePageState extends State<NodeModePage> {
   NodeModeProvider get _nodeMode => GetIt.I.get<NodeModeProvider>();
+  Logger get _log => GetIt.I.get<Logger>();
 
   wmpb.NodeMode _selected = wmpb.NodeMode.NODE_MODE_LIGHT;
   bool _saving = false;
   String? _error;
+  Timer? _poll;
+  bool _reloading = false;
 
   @override
   void initState() {
     super.initState();
-    // A network with no remote chain server runs full mode only, so start the
-    // selection somewhere the user can confirm.
+    _alignSelection();
+    if (!_nodeMode.loaded) {
+      _poll = Timer.periodic(const Duration(seconds: 2), (_) => unawaited(_reload()));
+    }
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  // A network with no remote chain server runs full mode only, so start the
+  // selection somewhere the user can confirm.
+  void _alignSelection() {
     if (!_nodeMode.lightModeAvailable) {
       _selected = wmpb.NodeMode.NODE_MODE_FULL;
     }
+  }
+
+  /// A dead backend asks no question. Read again until it answers, then either
+  /// show the choice or move on with the choice the user already made.
+  Future<void> _reload() async {
+    if (_reloading) {
+      return;
+    }
+    _reloading = true;
+    try {
+      await _nodeMode.load();
+    } finally {
+      _reloading = false;
+    }
+    if (!mounted || !_nodeMode.loaded) {
+      return;
+    }
+    _poll?.cancel();
+    _poll = null;
+    if (!_nodeMode.needsChoice) {
+      widget.onModePicked();
+      return;
+    }
+    setState(_alignSelection);
   }
 
   Future<void> _confirm() async {
@@ -42,7 +87,8 @@ class _NodeModePageState extends State<NodeModePage> {
       await _nodeMode.select(_selected);
       widget.onModePicked();
     } catch (e) {
-      setState(() => _error = '$e');
+      _log.e('node mode: could not record the choice: $e');
+      setState(() => _error = _backendDown);
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -52,6 +98,23 @@ class _NodeModePageState extends State<NodeModePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_nodeMode.loaded) {
+      return SailPage(
+        title: 'BitWindow starts the local backend',
+        body: SailColumn(
+          spacing: SailStyleValues.padding20,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SailText.secondary13(_backendDown, color: SailTheme.of(context).colors.error),
+            SailButton(
+              label: 'Try again',
+              onPressed: _reload,
+            ),
+          ],
+        ),
+      );
+    }
+
     return SailPage(
       title: 'How do you want to run Bitcoin?',
       scrollable: true,
