@@ -16,17 +16,22 @@ class ForkModeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final walletReader = GetIt.I<WalletReaderProvider>();
+
+    // A wallet switch does not always reach the fork provider, and the card
+    // spends the wallet it holds, so it follows the picker as well.
     return ListenableBuilder(
-      listenable: _fork,
+      listenable: Listenable.merge([_fork, walletReader]),
       builder: (context, _) {
         // Claim card only — the countdown is handled globally by
         // ForkCountdownTimer, and is hidden by the engine while coins are
         // unclaimed, so the two never overlap.
-        final active = GetIt.I<WalletReaderProvider>().activeWalletId;
+        final active = walletReader.activeWalletId;
         if (!_fork.hasFundsToClaim || _fork.claimsForWallet(active).isEmpty || _fork.claimCardDismissedFor(active)) {
           return const SizedBox.shrink();
         }
-        return _ClaimEcashCard(fork: _fork, walletId: active);
+        // The key drops the previous wallet's selection with its card.
+        return _ClaimEcashCard(key: ValueKey(active ?? ''), fork: _fork, walletId: active);
       },
     );
   }
@@ -38,7 +43,7 @@ class ForkModeBanner extends StatelessWidget {
 const double _claimCardBodyHeightShare = 0.4;
 
 class _ClaimEcashCard extends StatefulWidget {
-  const _ClaimEcashCard({required this.fork, required this.walletId});
+  const _ClaimEcashCard({super.key, required this.fork, required this.walletId});
   final ForkProvider fork;
   final String? walletId;
 
