@@ -143,7 +143,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
 
   /// The coins the user hid the claim card for. A new claimable coin brings
   /// the card back.
-  Set<String> _dismissedClaimOutpoints = {};
+  final Map<String, Set<String>> _dismissedClaimOutpoints = {};
 
   /// The coins one wallet can still claim.
   Set<String> claimOutpointsFor(String? walletId) =>
@@ -153,12 +153,15 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// it. The card belongs to one wallet, so hiding it leaves the others alone.
   bool claimCardDismissedFor(String? walletId) {
     final outpoints = claimOutpointsFor(walletId);
-    return outpoints.isNotEmpty && outpoints.difference(_dismissedClaimOutpoints).isEmpty;
+    final dismissed = _dismissedClaimOutpoints[walletId ?? ''] ?? const <String>{};
+    return outpoints.isNotEmpty && outpoints.difference(dismissed).isEmpty;
   }
 
   /// Hides one wallet's claim card until a new claimable coin arrives for it.
   void dismissClaimCardFor(String? walletId) {
-    _dismissedClaimOutpoints = {..._dismissedClaimOutpoints, ...claimOutpointsFor(walletId)};
+    // Two wallets can watch the same coins, so each carries its own record.
+    final key = walletId ?? '';
+    _dismissedClaimOutpoints[key] = {...?_dismissedClaimOutpoints[key], ...claimOutpointsFor(walletId)};
     notifyListeners();
   }
 
@@ -217,7 +220,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     _readPsbtByDraft.clear();
     _splitsInFlight.clear();
     replayedTxids.clear();
-    _dismissedClaimOutpoints = {};
+    _dismissedClaimOutpoints.clear();
     walletsWithUnreadDrafts = {};
     notifyListeners();
     fetch();

@@ -25,6 +25,8 @@ WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multis
 wmpb.MultisigInfo policy(int m, int n) => wmpb.MultisigInfo(m: m, n: n);
 
 void main() {
+  _sharedCoinDismissalTests();
+
   _dotFollowsDismissalTests();
 
   _dismissalTests();
@@ -294,6 +296,25 @@ void _dotFollowsDismissalTests() {
     expect(fork.walletsWithClaims, {'a', 'b'});
 
     fork.dismissClaimCardFor('a');
+    expect(fork.walletsWithClaims, {'b'});
+  });
+}
+
+void _sharedCoinDismissalTests() {
+  // Two wallet records can watch the same descriptor, so they report the same
+  // coins. Closing one card must not close the other.
+  test('two wallets on the same coins keep their own card', () {
+    final fork = ForkProvider();
+    fork.hasFundsToClaim = true;
+    fork.claims = [
+      WalletClaim(walletId: 'a', walletName: 'A', claimableSats: 100, utxos: [utxo('shared:0')]),
+      WalletClaim(walletId: 'b', walletName: 'B', claimableSats: 100, utxos: [utxo('shared:0')]),
+    ];
+
+    fork.dismissClaimCardFor('a');
+
+    expect(fork.claimCardDismissedFor('a'), isTrue);
+    expect(fork.claimCardDismissedFor('b'), isFalse, reason: 'the other wallet keeps its card');
     expect(fork.walletsWithClaims, {'b'});
   });
 }
