@@ -7,6 +7,10 @@ import 'package:flutter/painting.dart';
 /// Can use either SVG background or gradient blob
 class WalletGradient {
   final String? backgroundSvg;
+
+  /// A picture the user chose, as a file on this computer. It replaces the
+  /// generated avatar while it is set.
+  final String? picturePath;
   final List<String> colors;
   final List<double> stops;
   final double centerX;
@@ -16,6 +20,7 @@ class WalletGradient {
 
   WalletGradient({
     this.backgroundSvg,
+    this.picturePath,
     required this.colors,
     required this.stops,
     required this.centerX,
@@ -27,6 +32,7 @@ class WalletGradient {
   Map<String, dynamic> toJson() {
     return {
       if (backgroundSvg != null) 'background_svg': backgroundSvg,
+      if (picturePath != null) 'picture_path': picturePath,
       'colors': colors,
       'stops': stops,
       'center_x': centerX,
@@ -39,6 +45,7 @@ class WalletGradient {
   factory WalletGradient.fromJson(Map<String, dynamic> json) {
     return WalletGradient(
       backgroundSvg: json['background_svg'] as String?,
+      picturePath: json['picture_path'] as String?,
       colors: (json['colors'] as List<dynamic>).map((c) => c as String).toList(),
       stops: (json['stops'] as List<dynamic>).map((s) => (s as num).toDouble()).toList(),
       centerX: (json['center_x'] as num).toDouble(),
@@ -99,8 +106,20 @@ class WalletGradient {
     );
   }
 
+  /// Drops the picture and brings the generated avatar back.
+  WalletGradient withoutPicture() => WalletGradient(
+    backgroundSvg: backgroundSvg,
+    colors: colors,
+    stops: stops,
+    centerX: centerX,
+    centerY: centerY,
+    radius: radius,
+    seed: seed,
+  );
+
   WalletGradient copyWith({
     String? backgroundSvg,
+    String? picturePath,
     List<String>? colors,
     List<double>? stops,
     double? centerX,
@@ -110,6 +129,7 @@ class WalletGradient {
   }) {
     return WalletGradient(
       backgroundSvg: backgroundSvg ?? this.backgroundSvg,
+      picturePath: picturePath ?? this.picturePath,
       colors: colors ?? this.colors,
       stops: stops ?? this.stops,
       centerX: centerX ?? this.centerX,

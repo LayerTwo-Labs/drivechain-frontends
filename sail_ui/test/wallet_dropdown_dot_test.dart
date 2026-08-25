@@ -19,6 +19,8 @@ WalletMetadata _wallet(String id, String name) => WalletMetadata(
 );
 
 void main() {
+  _editRouteTests();
+
   Widget host(Set<String> attention) => SailTheme(
     data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
     child: MaterialApp(
@@ -62,5 +64,41 @@ void main() {
       return d is BoxDecoration && d.shape == BoxShape.circle && c.constraints?.maxWidth == 8;
     });
     expect(dots, isEmpty);
+  });
+}
+
+// A user with one wallet still has to reach Edit, or the picture and the name
+// have no route at all.
+void _editRouteTests() {
+  testWidgets('the open wallet carries an Edit link', (tester) async {
+    var edited = 0;
+
+    await tester.pumpWidget(
+      SailTheme(
+        data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+        child: MaterialApp(
+          home: Scaffold(
+            body: WalletDropdown(
+              currentWallet: _wallet('a', 'Main'),
+              availableWallets: [_wallet('a', 'Main')],
+              onWalletSelected: (_) {},
+              onCreateWallet: () {},
+              onEditWallet: (_) async => edited++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(WalletDropdown));
+    await tester.pumpAndSettle();
+
+    // The list hides the open wallet, so its route is the menu entry.
+    expect(find.text('Edit Main'), findsOneWidget);
+
+    await tester.tap(find.text('Edit Main'));
+    await tester.pumpAndSettle();
+    expect(edited, 1);
   });
 }

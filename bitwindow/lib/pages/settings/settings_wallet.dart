@@ -1,3 +1,4 @@
+import 'package:bitwindow/widgets/edit_wallet_flow.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
@@ -16,7 +17,6 @@ class SettingsWallet extends StatefulWidget {
 
 class _SettingsWalletState extends State<SettingsWallet> {
   final WalletReaderProvider _walletReader = GetIt.I.get<WalletReaderProvider>();
-  final WalletWriterProvider _walletWriter = GetIt.I.get<WalletWriterProvider>();
   bool _isEncrypted = false;
   bool _isCheckingEncryption = true;
 
@@ -48,19 +48,10 @@ class _SettingsWalletState extends State<SettingsWallet> {
     }
   }
 
+  /// Settings and the wallet picker open the same dialog, so a picture and a
+  /// deletion behave the same from both.
   Future<void> _editWallet(WalletMetadata wallet) async {
-    await showThemedDialog(
-      context: context,
-      builder: (context) => WalletManagementDialog(
-        existingWallet: wallet,
-        onSave: (name, gradient) async {
-          await _walletWriter.updateWalletMetadata(wallet.id, name, gradient);
-        },
-        onDelete: () async {
-          await _walletReader.removeWalletFromList(wallet.id);
-        },
-      ),
-    );
+    await editWallet(context, wallet);
   }
 
   @override

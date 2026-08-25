@@ -60,7 +60,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passphraseController = TextEditingController();
-  final TextEditingController _walletNameController = TextEditingController();
   // Advanced derivation: account index (default 0) and an optional full
   // account-level path override (m/purpose'/coin'/account').
   final TextEditingController _accountController = TextEditingController();
@@ -95,7 +94,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     _passphraseController.addListener(setstate);
     _mnemonicController.addListener(_clearErrorOnInput);
     _passphraseController.addListener(_clearErrorOnInput);
-    _walletNameController.addListener(_clearErrorOnInput);
 
     _walletProvider.hasExistingWallet().then((value) {
       setState(() {
@@ -113,10 +111,8 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     _passphraseController.removeListener(setstate);
     _mnemonicController.removeListener(_clearErrorOnInput);
     _passphraseController.removeListener(_clearErrorOnInput);
-    _walletNameController.removeListener(_clearErrorOnInput);
     _mnemonicController.dispose();
     _passphraseController.dispose();
-    _walletNameController.dispose();
     _accountController.dispose();
     _derivationPathController.dispose();
     super.dispose();
@@ -229,15 +225,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                       ? 'Runs alongside your existing wallets. Nothing you already have is touched.'
                       : 'Pick where ${widget.appName} reads chain data from. The seed phrase is the same either way.',
                 ),
-                if (hasExistingWallet) ...[
-                  SailTextField(
-                    controller: _walletNameController,
-                    hintText: 'Wallet name (required)',
-                    textFieldType: TextFieldType.text,
-                    size: TextFieldSize.regular,
-                  ),
-                  const SizedBox(height: 24),
-                ],
                 _buildProviderCards(theme),
                 const SizedBox(height: 24),
                 // The scroll view leaves the height unbounded, so the row needs an
@@ -472,15 +459,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
                       'Restores your mainchain wallet and every sidechain wallet from a seed phrase, local wallet backup, or backup file.',
                 ),
                 const SizedBox(height: 24),
-                if (hasExistingWallet) ...[
-                  SailTextField(
-                    controller: _walletNameController,
-                    hintText: 'Wallet name (required)',
-                    textFieldType: TextFieldType.text,
-                    size: TextFieldSize.regular,
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 _buildProviderCards(theme),
                 const SizedBox(height: 16),
                 SailTextField(
@@ -652,7 +630,13 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     );
   }
 
-  String get _defaultWalletName => '${_selectedProvider.label} Wallet';
+  /// Every new wallet gets the next name in the sequence: wallet1, wallet2,
+  /// and so on. The user renames it in the wallet picker.
+  String get _defaultWalletName => nextWalletName(
+    GetIt.I.isRegistered<WalletReaderProvider>()
+        ? GetIt.I.get<WalletReaderProvider>().availableWallets.map((w) => w.name)
+        : const <String>[],
+  );
 
   /// Light mode runs no local node, so Bitcoin Core has nothing to talk to.
   /// That leaves one backend, and a choice of one is no choice — the cards
@@ -711,25 +695,13 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       setState(() => _error = null);
     }
     try {
-      final walletName = _walletNameController.text.trim();
-
-      if (hasExistingWallet && walletName.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _error = 'Please enter a wallet name';
-            _isGenerating = false;
-          });
-        }
-        return;
-      }
-
       try {
         await _awaitBackendReady();
       } catch (_) {
         return;
       }
 
-      final finalWalletName = walletName.isEmpty ? _defaultWalletName : walletName;
+      final finalWalletName = _defaultWalletName;
 
       await _createForProvider(name: finalWalletName);
       if (mounted) {
@@ -781,15 +753,6 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
       return;
     }
 
-    final walletName = _walletNameController.text.trim();
-
-    if (hasExistingWallet && walletName.isEmpty) {
-      if (mounted) {
-        setState(() => _error = 'Please enter a wallet name');
-      }
-      return;
-    }
-
     try {
       await _awaitBackendReady();
     } catch (_) {
@@ -797,7 +760,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     }
 
     try {
-      final finalWalletName = walletName.isEmpty ? _defaultWalletName : walletName;
+      final finalWalletName = _defaultWalletName;
 
       await _createForProvider(
         name: finalWalletName,

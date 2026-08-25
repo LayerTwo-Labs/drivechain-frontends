@@ -1,4 +1,4 @@
-import 'package:bitwindow/pages/welcome/create_another_wallet_page.dart';
+import 'package:sidechain_core/models/wallet_metadata.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
