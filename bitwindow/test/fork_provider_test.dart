@@ -25,6 +25,8 @@ WalletClaim claimWith(List<bwpb.UnspentOutput> utxos, {wmpb.MultisigInfo? multis
 wmpb.MultisigInfo policy(int m, int n) => wmpb.MultisigInfo(m: m, n: n);
 
 void main() {
+  _dismissalTests();
+
   _oneWalletActionTests();
 
   _claimsForWalletTests();
@@ -235,5 +237,43 @@ void _oneWalletActionTests() {
 
     final coins = mine.expand((c) => c.utxos).map((u) => u.output).toSet();
     expect(coins.contains('c:0'), isFalse, reason: "another wallet's coin must not appear");
+  });
+}
+
+void _dismissalTests() {
+  ForkProvider twoWallets() {
+    final fork = ForkProvider();
+    fork.hasFundsToClaim = true;
+    fork.claims = [
+      WalletClaim(walletId: 'a', walletName: 'A', claimableSats: 100, utxos: [utxo('a1:0')]),
+      WalletClaim(walletId: 'b', walletName: 'B', claimableSats: 100, utxos: [utxo('b1:0')]),
+    ];
+    return fork;
+  }
+
+  // Closing one wallet's card must leave the other wallet's card, or its red
+  // dot points at a card that never opens.
+  test('closing one card leaves the other wallet alone', () {
+    final fork = twoWallets();
+    fork.dismissClaimCardFor('a');
+
+    expect(fork.claimCardDismissedFor('a'), isTrue);
+    expect(fork.claimCardDismissedFor('b'), isFalse);
+  });
+
+  test('a new coin brings the card back for that wallet', () {
+    final fork = twoWallets();
+    fork.dismissClaimCardFor('a');
+
+    fork.claims = [
+      WalletClaim(walletId: 'a', walletName: 'A', claimableSats: 200, utxos: [utxo('a1:0'), utxo('a2:0')]),
+      WalletClaim(walletId: 'b', walletName: 'B', claimableSats: 100, utxos: [utxo('b1:0')]),
+    ];
+
+    expect(fork.claimCardDismissedFor('a'), isFalse);
+  });
+
+  test('a wallet with no claim reads as not dismissed', () {
+    expect(twoWallets().claimCardDismissedFor('missing'), isFalse);
   });
 }
