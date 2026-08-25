@@ -53,6 +53,20 @@ class _FakeBinaryProvider extends BinaryProvider {
   Future<void> stop(Binary binary, {bool skipDownstream = false, bool expectRestart = false}) async {}
 }
 
+class _FakeOrchestrator implements OrchestratorRPC {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeBackendState extends BackendStateProvider {
+  _FakeBackendState() : super(_FakeOrchestrator());
+
+  void setReachable(bool value) {
+    orchestratorReachable = value;
+    notifyListeners();
+  }
+}
+
 class _MockStore implements KeyValueStore {
   final _db = <String, String>{};
 
@@ -72,6 +86,7 @@ class _MockStore implements KeyValueStore {
 
 void main() {
   late _FakeBinaryProvider binaryProvider;
+  late _FakeBackendState backendState;
 
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -95,6 +110,9 @@ void main() {
       binaries: [Orchestratord(), BitWindow()],
     );
     getIt.registerSingleton<BinaryProvider>(binaryProvider);
+
+    backendState = _FakeBackendState();
+    getIt.registerSingleton<BackendStateProvider>(backendState);
   });
 
   tearDown(() async {
@@ -159,13 +177,49 @@ void main() {
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
     await tester.pump();
 
-    await tester.tap(find.byType(SailButton));
+    await tester.tap(find.widgetWithText(SailButton, 'Restart').first);
     await tester.pumpAndSettle();
 
     expect(
       binaryProvider.restartedTypes,
       containsAll(<BinaryType>[BinaryType.BINARY_TYPE_ORCHESTRATORD, BinaryType.BINARY_TYPE_BITWINDOWD]),
     );
+  });
+
+  // orchestratord maps to no RPCConnection, so its error field stays null
+  // whatever the daemon does. The poll that watches it is the only source.
+  testWidgets('shows the banner when the orchestrator misses its polls', (tester) async {
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
+    backendState.setReachable(false);
+
+    await tester.pumpWidget(wrap(const PersistentStatusBar()));
+    await tester.pump();
+
+    expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    expect(find.textContaining('Orchestratord'), findsOneWidget);
+  });
+
+  testWidgets('stays hidden while the orchestrator answers its polls', (tester) async {
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
+    backendState.setReachable(true);
+
+    await tester.pumpWidget(wrap(const PersistentStatusBar()));
+    await tester.pump();
+
+    final size = tester.getSize(find.byType(PersistentStatusBar));
+    expect(size.height, 0);
+  });
+
+  testWidgets('offers the logs to a stuck user', (tester) async {
+    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
+
+    await tester.pumpWidget(wrap(const PersistentStatusBar()));
+    await tester.pump();
+
+    expect(find.widgetWithText(SailButton, 'Send Logs To Devs'), findsWidgets);
   });
 
   testWidgets('mounts cleanly as Scaffold.bottomNavigationBar under MaterialApp.builder (crash regression)', (
