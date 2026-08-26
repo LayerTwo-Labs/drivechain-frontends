@@ -1,5 +1,5 @@
 // Package logfile holds the one log file that the bitwindow frontend,
-// bitwindowd, and orchestratord all append to.
+// bitwindowd, and drivechaind all append to.
 package logfile
 
 import (

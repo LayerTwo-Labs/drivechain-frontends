@@ -62,7 +62,7 @@ Future<void> initSidechainDependencies({
   // Register WalletReaderProvider pointing to bitwindow directory.
   // init() is deferred to bootBackendManagedSidechain — the seed call
   // requires OrchestratorRPC, which standalone sidechain launches register
-  // only after orchestratord is up.
+  // only after drivechaind is up.
   final walletReader = WalletReaderProvider(bitwindowDir);
   if (!GetIt.I.isRegistered<WalletReaderProvider>()) {
     GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
@@ -145,7 +145,7 @@ Future<void> initSidechainDependencies({
   if (!GetIt.I.isRegistered<BitcoindConnection>()) {
     GetIt.I.registerLazySingleton<BitcoindConnection>(() => mainchainRPC);
   }
-  // Enforcer traffic funnels through orchestratord's bridge — sidechain
+  // Enforcer traffic funnels through drivechaind's bridge — sidechain
   // apps never dial the enforcer directly.
   final enforcer = GetIt.I.isRegistered<EnforcerRPC>()
       ? GetIt.I.get<EnforcerRPC>()
@@ -172,7 +172,7 @@ Future<void> initSidechainDependencies({
     );
   }
 
-  // Binary lifecycle is managed by the backend (e.g. orchestratord).
+  // Binary lifecycle is managed by the backend (e.g. drivechaind).
   // State flows through BackendStateProvider.startWatching() → 1s
   // listBinaries poll → RPCConnection.
 
@@ -281,7 +281,7 @@ List<Binary> _initialBinaries(
 
 /// Embedded binaries that ship as separate per-arch copies on macOS (suffixed
 /// `-arm64` / `-x86_64`); the host-arch one is selected at launch.
-const _perArchDaemons = {'bitwindowd', 'orchestratord', 'orchestratorctl', 'hwi-daemon'};
+const _perArchDaemons = {'bitwindowd', 'drivechaind', 'drivechain-cli', 'hwi-daemon'};
 
 /// The asset filename to load from the bundle for [canonical]. On macOS the
 /// embedded daemons ship per-arch, so the host [arch] is appended; everywhere
@@ -296,9 +296,9 @@ Future<void> copyBinariesFromAssets(Logger log, Directory appDir) async {
   for (final binary in allBinaries) {
     await _copyEmbeddedBinary(log, fileDir, binary.binary, label: binary.name);
   }
-  // orchestratorctl is a CLI (not a launchable Binary in allBinaries), but the
+  // drivechain-cli is a CLI (not a launchable Binary in allBinaries), but the
   // console execs it from bin/, so it has to be staged here too.
-  await _copyEmbeddedBinary(log, fileDir, 'orchestratorctl');
+  await _copyEmbeddedBinary(log, fileDir, 'drivechain-cli');
   // hwi-daemon is the bundled hardware-wallet process.
   await _copyEmbeddedBinary(log, fileDir, 'hwi-daemon');
 
@@ -320,8 +320,8 @@ Future<void> _copyEmbeddedBinary(Logger log, Directory fileDir, String canonical
       buffer.asUint8List(binResource.offsetInBytes, binResource.lengthInBytes),
     );
 
-    // Ensure the copied binary is executable. bitwindowd spawns orchestratord
-    // via Go's exec.Command which does NOT chmod, so without this orchestratord
+    // Ensure the copied binary is executable. bitwindowd spawns drivechaind
+    // via Go's exec.Command which does NOT chmod, so without this drivechaind
     // fails with "permission denied" on fresh installs.
     if (!Platform.isWindows) {
       await Process.run('chmod', ['+x', file.path]);

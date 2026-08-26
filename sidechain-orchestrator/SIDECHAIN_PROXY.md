@@ -6,15 +6,15 @@ The orchestrator now provides proxy commands for interacting with sidechain node
 
 ```bash
 # Generate OpenAPI schema for a sidechain
-./orchestratorctl bitnames generate-schema
-./orchestratorctl thunder generate-schema
+./drivechain bitnames generate-schema
+./drivechain thunder generate-schema
 
 # Check wallet balance
-./orchestratorctl bitnames balance  
-./orchestratorctl thunder balance
+./drivechain bitnames balance  
+./drivechain thunder balance
 
 # All supported sidechains
-./orchestratorctl {bitassets|bitnames|coinshift|photon|thunder|truthcoin|zside} <command>
+./drivechain {bitassets|bitnames|coinshift|photon|thunder|truthcoin|zside} <command>
 ```
 
 ## Smart Binary Management
@@ -49,13 +49,13 @@ Replace manual binary downloads in workflows:
   run: curl ... | unzip ...
 
 # New approach  
-- name: Build orchestratorctl
-  run: go build -o orchestratorctl ./cmd/orchestratorctl/
+- name: Build drivechain
+  run: go build -o drivechain ./cmd/drivechain/
 
 - name: Generate schema
   env:
     ORCHESTRATOR_AUTO_DOWNLOAD: "1"
-  run: ./orchestratorctl bitnames generate-schema > schema.json
+  run: ./drivechain bitnames generate-schema > schema.json
 ```
 
 ## Ports

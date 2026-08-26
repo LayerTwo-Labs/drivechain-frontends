@@ -33,7 +33,7 @@ var (
 func chmod(_ string) error { return nil }
 
 // configureProcessAttr is a prerequisite for GenerateConsoleCtrlEvent —
-// without a dedicated group the signal would also hit orchestratord.
+// without a dedicated group the signal would also hit drivechaind.
 func configureProcessAttr(cmd *exec.Cmd) {
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
@@ -103,7 +103,7 @@ func findPidByName(binaryName string) (int, error) {
 // WM_CLOSE via plain taskkill does not reach them.
 func killProcess(pid int) error {
 	// Group 0 means "every process on our console" — that would CTRL_BREAK
-	// orchestratord itself.
+	// drivechaind itself.
 	if pid <= 0 {
 		return fmt.Errorf("refusing to signal invalid pid %d", pid)
 	}

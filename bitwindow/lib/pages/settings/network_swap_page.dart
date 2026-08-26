@@ -4,7 +4,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 /// Confirms a Bitcoin network change. Routes through bitwindowd's
-/// `UpdateNetwork` RPC: orchestratord rewrites the conf and restarts
+/// `UpdateNetwork` RPC: drivechaind rewrites the conf and restarts
 /// bitcoind on the new chain, then bitwindowd recycles its DB + engines
 /// in-process. The bitwindowd HTTP server stays up across the swap on
 /// the same port — no process restart, no launcher dance.

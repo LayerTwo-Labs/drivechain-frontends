@@ -45,7 +45,7 @@ int Scale(int source, double scale_factor) {
 void TerminateManagedDaemons() {
   static const wchar_t* const kNames[] = {
       L"bitwindowd.exe",
-      L"orchestratord.exe",
+      L"drivechaind.exe",
       L"bitcoind.exe",
       L"bip300301_enforcer.exe",
       L"thunder.exe",

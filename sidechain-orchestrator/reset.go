@@ -50,7 +50,7 @@ const (
 	ResetBinaryPhoton
 	ResetBinaryCoinShift
 	ResetBinaryGRPCurl
-	ResetBinaryOrchestratord
+	ResetBinaryDrivechaind
 	ResetBinaryZSided
 	ResetBinaryInquisition
 
@@ -104,8 +104,8 @@ func (b ResetBinary) processName() string {
 		return "coinshift"
 	case ResetBinaryGRPCurl:
 		return "grpcurl"
-	case ResetBinaryOrchestratord:
-		return "orchestratord"
+	case ResetBinaryDrivechaind:
+		return "drivechaind"
 	case ResetBinaryZSided:
 		return "zsided"
 	case ResetBinaryInquisition:
@@ -211,11 +211,11 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 			case catData:
 				add(cat, spec.Binary, dc.GetBlockchainDataPaths(networkDir, network, o.log))
 			case catSoftware:
-				// bitwindowd and orchestratord ship inside the app bundle and have
+				// bitwindowd and drivechaind ship inside the app bundle and have
 				// no download URL in chains_config.json — once deleted there is
 				// nothing to re-fetch, and the running stack can't recover. Never
 				// wipe them; every other binary's software is downloadable.
-				if spec.Binary == ResetBinaryBitwindowd || spec.Binary == ResetBinaryOrchestratord {
+				if spec.Binary == ResetBinaryBitwindowd || spec.Binary == ResetBinaryDrivechaind {
 					continue
 				}
 				add(cat, spec.Binary, dc.GetBinaryPaths(binDir, o.log))
@@ -673,7 +673,7 @@ func isWalletPath(p string, walletSet map[string]bool) bool {
 }
 
 // removeOrTruncate empties the shared log in place and removes every other
-// path. The frontend and orchestratord hold open append handles on that file,
+// path. The frontend and drivechaind hold open append handles on that file,
 // and a removal leaves them writing to a file nobody can read.
 func removeOrTruncate(p string) error {
 	if filepath.Base(p) == logfile.Name {

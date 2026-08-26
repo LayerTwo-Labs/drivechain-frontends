@@ -8,7 +8,7 @@ jump straight to them.
 ## TL;DR of what's missing
 
 1. A way for the frontend to get a Liquid **deposit address** and **balance**
-   the conventional way (through orchestratord), instead of the removed
+   the conventional way (through drivechaind), instead of the removed
    `elements-cli` `Process.run` hack.
 2. Connection **status** for Liquid in the UI (it has no RPC client today, so
    `_rpcFor` returns null and it never shows "connected").
@@ -60,16 +60,16 @@ This client is the thing your new orchestrator handler methods should call.
 In this repo the frontend does **not** open RPC sockets to daemons directly.
 See `sail_ui/lib/rpcs/bitcoind_connection.dart`:
 
-> No RPC client — orchestratord's BitcoinService is the canonical bitcoind proxy.
+> No RPC client — drivechaind's BitcoinService is the canonical bitcoind proxy.
 > All bitcoind RPCs go through OrchestratorRPC.
 
-So Liquid should follow the same shape: **frontend → orchestratord → Elements
+So Liquid should follow the same shape: **frontend → drivechaind → Elements
 node**, not frontend → Elements. That keeps the "frontend only dials local
 daemons (the orchestrator)" invariant and avoids putting Elements cookie auth in
 the Flutter layer. Concretely:
 
 - Direct Elements RPC lives in the Go client above (orchestrator side). ✅
-- The frontend talks to **orchestratord**, which uses that client.
+- The frontend talks to **drivechaind**, which uses that client.
 
 Do **not** resurrect a direct-from-Flutter Elements HTTP client.
 
@@ -144,7 +144,7 @@ without a Dart client at all — verify this before adding one.
 // sail_ui/lib/rpcs/liquid_signet_rpc.dart
 import 'package:sail_ui/sail_ui.dart';
 
-/// Connection-state holder for Liquid Signet. No direct RPC — orchestratord
+/// Connection-state holder for Liquid Signet. No direct RPC — drivechaind
 /// proxies Elements calls (mirrors BitcoindConnection). Status flags are
 /// written by BackendStateProvider.
 abstract class LiquidSignetRPC extends SidechainRPC {

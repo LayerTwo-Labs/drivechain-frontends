@@ -28,28 +28,28 @@ func TestExitError(t *testing.T) {
 }
 
 // A user who passes --log.path gets the whole merged stream in that file.
-func TestOrchestratordLogPathFollowsTheConfiguredPath(t *testing.T) {
+func TestDrivechaindLogPathFollowsTheConfiguredPath(t *testing.T) {
 	chosen := filepath.Join("/data", "my.log")
 
-	require.Equal(t, chosen, orchestratordLogPath(config.Config{LogPath: chosen}, "/data/bitwindow"))
+	require.Equal(t, chosen, drivechaindLogPath(config.Config{LogPath: chosen}, "/data/bitwindow"))
 	require.Equal(t,
 		filepath.Join("/data/bitwindow", "bitwindow.log"),
-		orchestratordLogPath(config.Config{}, "/data/bitwindow"),
+		drivechaindLogPath(config.Config{}, "/data/bitwindow"),
 	)
 }
 
-// The spawn of orchestratord happens before initLogger, and a user who sends us
+// The spawn of drivechaind happens before initLogger, and a user who sends us
 // the log file must get the reason it failed.
 func TestBootLogWriterTagsTheSharedFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sub", "bitwindow.log")
 
 	log := zerolog.New(bootLogWriter(path, io.Discard)).With().Timestamp().Logger()
-	log.Info().Msg("starting orchestratord (detached)")
+	log.Info().Msg("starting drivechaind (detached)")
 
 	written, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Contains(t, string(written), "[bitwindowd]")
-	require.Contains(t, string(written), "starting orchestratord (detached)")
+	require.Contains(t, string(written), "starting drivechaind (detached)")
 }
 
 func TestBootLogWriterKeepsTheConsoleOnAnUnwritablePath(t *testing.T) {
@@ -64,9 +64,9 @@ func TestBootLogWriterKeepsTheConsoleOnAnUnwritablePath(t *testing.T) {
 	require.Contains(t, console.String(), "boot line")
 }
 
-// A dead orchestratord leaves bitwindowd serving on a port nothing answers, so
+// A dead drivechaind leaves bitwindowd serving on a port nothing answers, so
 // the exit code is the one clue the log holds.
-func TestWatchOrchestratordLogsTheExitCode(t *testing.T) {
+func TestWatchDrivechaindLogsTheExitCode(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the test command is a POSIX shell")
 	}
@@ -75,8 +75,8 @@ func TestWatchOrchestratordLogsTheExitCode(t *testing.T) {
 
 	cmd := exec.Command("sh", "-c", "exit 7")
 	require.NoError(t, cmd.Start())
-	watchOrchestratord(cmd, &log)
+	watchDrivechaind(cmd, &log)
 
 	require.Contains(t, out.String(), `"exit_code":7`)
-	require.Contains(t, out.String(), "orchestratord exited")
+	require.Contains(t, out.String(), "drivechaind exited")
 }

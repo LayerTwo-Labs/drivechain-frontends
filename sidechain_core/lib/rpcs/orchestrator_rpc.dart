@@ -19,7 +19,7 @@ import 'package:sidechain_core/rpcs/orchestrator_wallet_rpc.dart';
 ///   HTTP/2 is the connectrpc-Dart well-trodden path with PING-based
 ///   liveness, paired with [StreamSupervisor] for application-level
 ///   reconnect / heartbeat.
-/// The orchestratord endpoint, overridable via --dart-define.
+/// The drivechaind endpoint, overridable via --dart-define.
 class OrchestratorEndpoint {
   static const host = String.fromEnvironment('ORCHESTRATOR_HOST', defaultValue: '127.0.0.1');
   static const port = int.fromEnvironment('ORCHESTRATOR_PORT', defaultValue: 30400);
@@ -325,7 +325,7 @@ class OrchestratorRPC {
     return _streamClient.shutdownAll(ShutdownAllRequest(force: force));
   }
 
-  /// Detached-daemon shutdown: orchestratord acks immediately and runs the
+  /// Detached-daemon shutdown: drivechaind acks immediately and runs the
   /// drain (bitcoind/enforcer/sidechains over up to ~90s) in the background.
   /// Survives the caller's exit. Idempotent. If bitwindow is relaunched
   /// mid-drain, the next [startWithL1] transparently adopts it server-side

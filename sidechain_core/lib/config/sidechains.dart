@@ -1021,7 +1021,7 @@ List<Binary> get coreBinaries => [
   resolveFromConfig(BinaryType.BINARY_TYPE_BITCOIND, () => BitcoinCore()),
   resolveFromConfig(BinaryType.BINARY_TYPE_ENFORCER, () => Enforcer()),
   resolveFromConfig(BinaryType.BINARY_TYPE_BITWINDOWD, () => BitWindow()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_ORCHESTRATORD, () => Orchestratord()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_DRIVECHAIND, () => Drivechaind()),
 ];
 
 List<Binary> get sidechainBinaries => [

@@ -7,7 +7,7 @@ mkdir -p $assets_dir
 
 cd ../sidechain-orchestrator
 
-echo "Building orchestratord in $(pwd)"
+echo "Building drivechaind in $(pwd)"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Forcing amd64 GOARCH"
@@ -15,14 +15,14 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     export CGO_ENABLED=1
 fi
 
-go build -o ./bin/orchestratord ./cmd/orchestratord/
+go build -o ./bin/drivechaind ./cmd/drivechaind/
 
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    mv bin/orchestratord $assets_dir/orchestratord.exe
-    echo "moved orchestratord to $assets_dir/orchestratord.exe"
+    mv bin/drivechaind $assets_dir/drivechaind.exe
+    echo "moved drivechaind to $assets_dir/drivechaind.exe"
 else
-    mv bin/orchestratord $assets_dir/orchestratord
-    echo "moved orchestratord to $assets_dir/orchestratord"
+    mv bin/drivechaind $assets_dir/drivechaind
+    echo "moved drivechaind to $assets_dir/drivechaind"
 fi
 
 cd $original_cwd

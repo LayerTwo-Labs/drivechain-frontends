@@ -4,7 +4,7 @@ set -euo pipefail
 BITCOIND=/opt/homebrew/opt/bitcoin/bin/bitcoind
 BITCOIN_CLI=/opt/homebrew/opt/bitcoin/bin/bitcoin-cli
 ORCH_DIR=$(cd "$(dirname "$0")" && pwd)
-CTL="$ORCH_DIR/bin/orchestratorctl"
+CTL="$ORCH_DIR/bin/drivechain-cli"
 DATADIR=$(mktemp -d)
 BITWINDOW_DIR=$(mktemp -d)
 
@@ -43,15 +43,15 @@ rpcport=$RPC_PORT
 EOF
 echo "Wrote bitwindow-bitcoin.conf pointing at $DATADIR (cookie auth) ✅"
 
-echo -e "\n=== 3. Start orchestratord ==="
-$ORCH_DIR/bin/orchestratord \
+echo -e "\n=== 3. Start drivechaind ==="
+$ORCH_DIR/bin/drivechaind \
     --network regtest \
     --bitwindow-dir "$BITWINDOW_DIR" \
     --rpclisten localhost:30401 \
     --loglevel warn 2>&1 &
 ORCH_PID=$!
 sleep 2
-echo "orchestratord running (PID $ORCH_PID) ✅"
+echo "drivechaind running (PID $ORCH_PID) ✅"
 export ORCHESTRATOR_RPCSERVER=localhost:30401
 
 echo -e "\n=== 4. Create enforcer wallet ==="

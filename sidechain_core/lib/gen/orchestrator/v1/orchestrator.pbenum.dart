@@ -62,7 +62,7 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_PHOTON = BinaryType._(9, _omitEnumNames ? '' : 'BINARY_TYPE_PHOTON');
   static const BinaryType BINARY_TYPE_COINSHIFT = BinaryType._(10, _omitEnumNames ? '' : 'BINARY_TYPE_COINSHIFT');
   static const BinaryType BINARY_TYPE_GRPCURL = BinaryType._(11, _omitEnumNames ? '' : 'BINARY_TYPE_GRPCURL');
-  static const BinaryType BINARY_TYPE_ORCHESTRATORD = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_ORCHESTRATORD');
+  static const BinaryType BINARY_TYPE_DRIVECHAIND = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_DRIVECHAIND');
   static const BinaryType BINARY_TYPE_ZSIDED = BinaryType._(13, _omitEnumNames ? '' : 'BINARY_TYPE_ZSIDED');
   static const BinaryType BINARY_TYPE_LIQUID_SIGNET = BinaryType._(14, _omitEnumNames ? '' : 'BINARY_TYPE_LIQUID_SIGNET');
   static const BinaryType BINARY_TYPE_INQUISITION = BinaryType._(15, _omitEnumNames ? '' : 'BINARY_TYPE_INQUISITION');
@@ -80,7 +80,7 @@ class BinaryType extends $pb.ProtobufEnum {
     BINARY_TYPE_PHOTON,
     BINARY_TYPE_COINSHIFT,
     BINARY_TYPE_GRPCURL,
-    BINARY_TYPE_ORCHESTRATORD,
+    BINARY_TYPE_DRIVECHAIND,
     BINARY_TYPE_ZSIDED,
     BINARY_TYPE_LIQUID_SIGNET,
     BINARY_TYPE_INQUISITION,

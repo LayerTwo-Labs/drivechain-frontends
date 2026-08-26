@@ -18,7 +18,7 @@ class AppDelegate: FlutterAppDelegate {
   // NSApplication.terminate(), which bypasses window_manager.setPreventClose
   // (that only hooks NSWindowDelegate.windowShouldClose:). Without this
   // override the app would exit immediately and leave bitwindowd +
-  // orchestratord orphaned. Instead, cancel the terminate and raise SIGINT
+  // drivechaind orphaned. Instead, cancel the terminate and raise SIGINT
   // on ourselves so setupSignalHandlers in main.dart runs BinaryProvider
   // .onShutdown() and exits cleanly.
   override func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

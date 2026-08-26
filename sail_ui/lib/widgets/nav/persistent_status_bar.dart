@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// An error-only banner that surfaces orchestratord / bitwindowd outages on
+/// An error-only banner that surfaces drivechaind / bitwindowd outages on
 /// pre-auth screens where the richer [BottomNav] is not mounted.
 ///
 /// Renders [SizedBox.shrink] while everything is booting or running — the
@@ -11,16 +11,16 @@ import 'package:sail_ui/sail_ui.dart';
 /// re-invokes [BinaryProvider.start] for each failed daemon, and Send Logs To
 /// Devs shows the shared log file in the file manager.
 class PersistentStatusBar extends StatelessWidget {
-  /// Binary types to monitor. Bitwindow wires up `orchestratord` +
+  /// Binary types to monitor. Bitwindow wires up `drivechaind` +
   /// `bitWindow` here; other clients can pass their own pair.
   final List<BinaryType> monitored;
 
   const PersistentStatusBar({
     super.key,
-    this.monitored = const [BinaryType.BINARY_TYPE_ORCHESTRATORD, BinaryType.BINARY_TYPE_BITWINDOWD],
+    this.monitored = const [BinaryType.BINARY_TYPE_DRIVECHAIND, BinaryType.BINARY_TYPE_BITWINDOWD],
   });
 
-  /// orchestratord maps to no RPCConnection, so its outage reads from the
+  /// drivechaind maps to no RPCConnection, so its outage reads from the
   /// poll that already watches it.
   static bool _orchestratorDown() {
     if (!GetIt.I.isRegistered<BackendStateProvider>()) {
@@ -39,7 +39,7 @@ class PersistentStatusBar extends StatelessWidget {
     if (err != null && err.isNotEmpty) {
       return true;
     }
-    return binary.type == BinaryType.BINARY_TYPE_ORCHESTRATORD && _orchestratorDown();
+    return binary.type == BinaryType.BINARY_TYPE_DRIVECHAIND && _orchestratorDown();
   }
 
   @override

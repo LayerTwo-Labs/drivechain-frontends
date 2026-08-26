@@ -10,12 +10,12 @@ import 'package:sidechain_core/sidechain_core.dart';
 
 /// The binary whose restart brings [binary] back.
 ///
-/// bitwindowd spawns orchestratord with the data directory, the bitwindow
+/// bitwindowd spawns drivechaind with the data directory, the bitwindow
 /// directory and the owner pid. A restart from the frontend carries none of
-/// them, so it would start a second orchestratord on the default paths. A
-/// sidechain app spawns orchestratord itself, with the right arguments.
+/// them, so it would start a second drivechaind on the default paths. A
+/// sidechain app spawns drivechaind itself, with the right arguments.
 Binary restartTarget(Binary binary, List<Binary> binaries, {required bool isSidechainApp}) {
-  if (binary is! Orchestratord || isSidechainApp) {
+  if (binary is! Drivechaind || isSidechainApp) {
     return binary;
   }
   return binaries.whereType<BitWindow>().firstOrNull ?? binary;
@@ -26,7 +26,7 @@ Binary restartTarget(Binary binary, List<Binary> binaries, {required bool isSide
 /// Orchestrator-managed binaries (bitcoind, enforcer, sidechains) are
 /// delegated to the orchestrator via OrchestratorRPC.
 ///
-/// Daemon binaries (orchestratord) are spawned directly via ProcessManager
+/// Daemon binaries (drivechaind) are spawned directly via ProcessManager
 /// since the orchestrator can't manage itself.
 class BinaryProvider extends ChangeNotifier {
   final log = Logger(level: Level.info);
@@ -136,7 +136,7 @@ class BinaryProvider extends ChangeNotifier {
   // Lifecycle operations
   // =========================================================================
 
-  /// Start a binary. Daemon binaries (Orchestratord) are spawned directly;
+  /// Start a binary. Daemon binaries (Drivechaind) are spawned directly;
   /// everything else is delegated to the orchestrator. The L1 boot stream
   /// is drained for stage logs + done/error — download bytes come through
   /// SyncProvider's polled GetSyncStatus, not this stream.
@@ -352,9 +352,9 @@ class BinaryProvider extends ChangeNotifier {
 
     _shuttingDown = true;
 
-    // Say we are leaving. orchestratord drains only once no client is left
+    // Say we are leaving. drivechaind drains only once no client is left
     // and the owner process is gone, so another app keeps its stack.
-    log.i('BinaryProvider: telling orchestratord we are leaving');
+    log.i('BinaryProvider: telling drivechaind we are leaving');
     try {
       await _orchestrator.shutdown(onlyIfLast: true);
     } catch (error) {
@@ -399,7 +399,7 @@ class BinaryProvider extends ChangeNotifier {
   /// Daemon binaries are spawned directly by Flutter rather than via the
   /// orchestrator RPC (it can't start itself, and bitwindowd is the host
   /// process for the embedded orchestrator).
-  bool _isDaemonBinary(Binary binary) => binary is BitWindow || binary is Orchestratord;
+  bool _isDaemonBinary(Binary binary) => binary is BitWindow || binary is Drivechaind;
 
   /// Start a daemon binary by spawning it via ProcessManager.
   /// Watches for exit and auto-restarts unless we're shutting down.

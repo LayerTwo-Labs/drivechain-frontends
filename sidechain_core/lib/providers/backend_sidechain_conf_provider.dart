@@ -10,7 +10,7 @@ import 'package:sidechain_core/gen/orchestrator/v1/sidechain_conf.pb.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
 /// RPC-backed sidechain configuration provider.
-/// Calls SidechainConfService on the orchestratord instead of reading/writing files.
+/// Calls SidechainConfService on the drivechaind instead of reading/writing files.
 /// Generic replacement for BackendThunderConfProvider, BackendZSideConfProvider, etc.
 class BackendSidechainConfProvider extends GenericSidechainConfProvider {
   final Logger _logger = GetIt.I.get<Logger>();

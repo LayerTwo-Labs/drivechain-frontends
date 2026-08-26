@@ -18,7 +18,7 @@ import (
 )
 
 // TestGetBitcoinConfig_ReturnsRpcCredentials guards a contract bitwindowd
-// depends on: after orchestratord becomes the owner of bitcoin.conf, every
+// depends on: after drivechaind becomes the owner of bitcoin.conf, every
 // other process (bitwindowd, sidechain frontends) reads the bitcoind RPC
 // credentials over gRPC instead of parsing the conf themselves. If
 // rpc_user / rpc_password ever stop flowing in the GetBitcoinConfig

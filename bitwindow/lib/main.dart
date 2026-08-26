@@ -335,7 +335,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 }
 
 Future<void> runMainWindow(Logger log, Directory applicationDir, File logFile) async {
-  // bitwindowd's output already reaches the console. orchestratord runs
+  // bitwindowd's output already reaches the console. drivechaind runs
   // detached and writes to the shared file, so a terminal launch shows nothing
   // of the daemon that starts every other one.
   if (!orchestratorLogsToStdout(Platform.environment)) {
@@ -744,7 +744,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
     }
   }());
 
-  // 1. Start bitwindowd — it manages orchestratord internally,
+  // 1. Start bitwindowd — it manages drivechaind internally,
   //    which in turn manages bitcoind, enforcer, and sidechains.
   //
   // Multi-instance: _adoptOrphanedProcesses (in the BinaryProvider
@@ -766,34 +766,34 @@ Future<void> bootBitwindowBackend(Logger log) async {
     log.i(loaded ? 'STARTUP: local auth cookie loaded' : 'STARTUP: local auth cookie did not appear');
   }
 
-  // 2. Wait for orchestratord (managed by bitwindowd) to become ready.
+  // 2. Wait for drivechaind (managed by bitwindowd) to become ready.
   //    _startDaemonBinary cleared bitwindow's initializingBinary when the
-  //    process came up, but we're not actually "ready" until orchestratord
+  //    process came up, but we're not actually "ready" until drivechaind
   //    is serving gRPC — re-assert the flag and push a startup log so
   //    DaemonConnectionCard keeps the spinner + status message during the
   //    wait rather than flashing "Not connected".
-  log.i('STARTUP: waiting for orchestratord readiness');
+  log.i('STARTUP: waiting for drivechaind readiness');
   final bitwindowRpc = GetIt.I.isRegistered<BitwindowRPC>() ? GetIt.I.get<BitwindowRPC>() : null;
   if (bitwindowRpc != null) {
     bitwindowRpc.initializingBinary = true;
     bitwindowRpc.connectionError = null;
     bitwindowRpc.markStateChanged();
   }
-  binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Waiting for orchestratord...');
-  binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_BITWINDOWD, 'Waiting for orchestratord...');
+  binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_DRIVECHAIND, 'Waiting for drivechaind...');
+  binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_BITWINDOWD, 'Waiting for drivechaind...');
 
   var orchestratorReady = false;
   for (var i = 0; i < 30; i++) {
     try {
       await orchestrator.listBinaries();
-      log.i('STARTUP: orchestratord is ready');
+      log.i('STARTUP: drivechaind is ready');
       orchestratorReady = true;
       // Backend is up now; load the real network before the UI shows so it
       // never renders the default one.
       await GetIt.I.get<BitcoinConfProvider>().loadConfig();
-      // SettingsProvider.create ran before orchestratord was up, so the
+      // SettingsProvider.create ran before drivechaind was up, so the
       // test-sidechains flag may still be the cached/default value. Pull
-      // the real one from orchestratord now — BinaryProvider listens to
+      // the real one from drivechaind now — BinaryProvider listens to
       // SettingsProvider and re-fetches binary release timestamps with
       // the right (test vs prod) URL when this flips.
       if (bitwindowRpc != null) {
@@ -803,7 +803,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
       break;
     } catch (_) {
       if (i == 29) {
-        log.e('STARTUP: orchestratord did not become ready after 15s');
+        log.e('STARTUP: drivechaind did not become ready after 15s');
       }
       await Future.delayed(const Duration(milliseconds: 500));
     }
@@ -811,10 +811,10 @@ Future<void> bootBitwindowBackend(Logger log) async {
   // If the wait exhausted without success, leave initializingBinary alone —
   // let the error state surface naturally via backendState.startWatching().
   if (!orchestratorReady) {
-    log.w('STARTUP: proceeding without orchestratord readiness confirmation');
+    log.w('STARTUP: proceeding without drivechaind readiness confirmation');
   }
 
-  // 3. Now that orchestratord is up, re-seed the wallet reader. The
+  // 3. Now that drivechaind is up, re-seed the wallet reader. The
   //    earlier init() in setupBitwindow runs before any backend exists, so
   //    its listWallets/getWalletStatus calls fail and the provider sits
   //    empty until the WatchWalletData stream eventually delivers — which
@@ -844,7 +844,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
   // 5. Kick off the L1 stack (bitcoind → wallet → IBD → enforcer). StartWithL1
   //    is fire-and-forget on the server now — boot runs on a background
   //    goroutine and survives any transport blip. If a previous bitwindowd's
-  //    orchestratord is still draining, StartWithL1 server-side adopts it
+  //    drivechaind is still draining, StartWithL1 server-side adopts it
   //    (cancels its pending exit + awaits the in-flight stops) before
   //    starting the fresh stack — caller-side glue not needed. Download
   //    bytes come via SyncProvider's polled GetSyncStatus; connection state
@@ -894,20 +894,20 @@ Future<void> rebootBitwindowBackend(Logger log) async {
   final binaryProvider = GetIt.I.get<BinaryProvider>();
 
   // Ask first, kill second: bitwindowd relays this on a clean exit, but it gets
-  // force-killed if it lingers, and then nothing would drain orchestratord.
+  // force-killed if it lingers, and then nothing would drain drivechaind.
   try {
     await GetIt.I.get<OrchestratorRPC>().shutdown();
   } catch (e) {
-    log.w('REBOOT: orchestratord shutdown call failed: $e');
+    log.w('REBOOT: drivechaind shutdown call failed: $e');
   }
   await binaryProvider.stop(BitWindow(), expectRestart: true);
-  await _awaitOrchestratordExit(log);
+  await _awaitDrivechaindExit(log);
   await bootBitwindowBackend(log);
 }
 
-/// Blocks until orchestratord's port stops accepting, the same signal bitwindowd
+/// Blocks until drivechaind's port stops accepting, the same signal bitwindowd
 /// uses to choose between adopting a live daemon and spawning one.
-Future<void> _awaitOrchestratordExit(Logger log) async {
+Future<void> _awaitDrivechaindExit(Logger log) async {
   final host = Environment.orchestratorHost.value;
   final port = Environment.orchestratorPort.value;
   final deadline = DateTime.now().add(const Duration(seconds: 150));
@@ -917,13 +917,13 @@ Future<void> _awaitOrchestratordExit(Logger log) async {
       final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 2));
       socket.destroy();
     } catch (_) {
-      log.i('REBOOT: orchestratord released $host:$port');
+      log.i('REBOOT: drivechaind released $host:$port');
       return;
     }
     await Future.delayed(const Duration(milliseconds: 500));
   }
   // Booting now would adopt the daemon we meant to replace.
-  throw StateError('orchestratord is still holding $host:$port — restart BitWindow to finish');
+  throw StateError('drivechaind is still holding $host:$port — restart BitWindow to finish');
 }
 
 // Restores a wallet from a backup file (.zip/.json). The backend RestoreBackup

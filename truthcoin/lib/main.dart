@@ -96,7 +96,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     log: log,
     router: router,
     currentVersion: AppVersion.version,
-    additionalBinaries: () => [Orchestratord()],
+    additionalBinaries: () => [Drivechaind()],
   );
 
   // Register shared orchestrator runtime and start the managed backend.

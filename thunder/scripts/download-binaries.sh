@@ -9,8 +9,8 @@ mkdir -p $assets_dir
 cd ../sidechain-orchestrator
 server_cwd=$(pwd)
 
-# Build orchestratord
-echo "Building orchestratord in $server_cwd"
+# Build drivechaind
+echo "Building drivechaind in $server_cwd"
 
 # force building for x86_64 on macOS, so both new and old macs
 # work
@@ -20,17 +20,17 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     export CGO_ENABLED=1
 fi
 
-go build -o ./bin/orchestratord ./cmd/orchestratord/
+go build -o ./bin/drivechaind ./cmd/drivechaind/
 
 # Move the necessary binaries to the assets directory
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    echo "moved bin/orchestratord to $assets_dir/orchestratord.exe"
-    mv bin/orchestratord $assets_dir/orchestratord.exe
+    echo "moved bin/drivechaind to $assets_dir/drivechaind.exe"
+    mv bin/drivechaind $assets_dir/drivechaind.exe
 else
-    echo "moved bin/orchestratord to $assets_dir/orchestratord"
-    mv bin/orchestratord $assets_dir/orchestratord
+    echo "moved bin/drivechaind to $assets_dir/drivechaind"
+    mv bin/drivechaind $assets_dir/drivechaind
 fi
 
-echo "orchestratord has been built and moved to $assets_dir"
+echo "drivechaind has been built and moved to $assets_dir"
 
 cd $original_cwd

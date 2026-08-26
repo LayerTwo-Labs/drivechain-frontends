@@ -15,7 +15,7 @@ import (
 // BuildUnsignedTransaction (tx assembly), and SignTransactionLocal with a
 // KeySource (P2WPKH/P2PKH signing). Type contracts for everything crossing
 // this interface live in provider_types.go. Wiring happens at one place,
-// cmd/orchestratord, by swapping the constructor.
+// cmd/drivechaind, by swapping the constructor.
 type Backend interface {
 	// Ensure makes walletID usable on the backend, creating backend state
 	// if needed, and returns the backend's handle for it (Core: the Core

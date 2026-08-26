@@ -27,7 +27,7 @@ func bitcoindBinaryPath(dataDir string, configs []orchestrator.BinaryConfig, var
 }
 
 // findBitcoind locates or downloads the bitcoind binary using the orchestrator's
-// download logic. This is the same path as `orchestratorctl download bitcoind`.
+// download logic. This is the same path as `drivechain-cli download bitcoind`.
 //
 // No fallbacks. Either the orchestrator download works or the test fails.
 func findBitcoind(t *testing.T, log zerolog.Logger) string {

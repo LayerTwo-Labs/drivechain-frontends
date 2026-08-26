@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Fixed because orchestratord resolves both from chains_config.json rather than
+// Fixed because drivechaind resolves both from chains_config.json rather than
 // from anything the test can pass in, so no stack may already be running.
 const (
 	enforcerPort    = 50051
@@ -40,11 +40,11 @@ const (
 )
 
 // TestInquisitionBMM blind merge mines the Inquisition sidechain through
-// orchestratord, which is the path the frontends drive: CreateBid asks the
+// drivechaind, which is the path the frontends drive: CreateBid asks the
 // sidechain node for a block template and pays for its commitment on the
 // mainchain, then ConnectBid submits the block once a miner takes the bid.
 //
-// Needs two binaries, supplied via env; orchestratord is built from source:
+// Needs two binaries, supplied via env; drivechaind is built from source:
 //
 //	INQUISITION_BITCOIND - bitcoind from the covenant-sidechain fork
 //	BIP300301_ENFORCER   - bip300301_enforcer
@@ -59,15 +59,15 @@ func TestInquisitionBMM(t *testing.T) {
 		t.Skip("set INQUISITION_BITCOIND and BIP300301_ENFORCER to run")
 	}
 
-	// orchestratord exits 0 when its port is already bound, and the enforcer's
+	// drivechaind exits 0 when its port is already bound, and the enforcer's
 	// readiness probe cannot tell a daemon it started from one it did not. Left
 	// unchecked the test would silently drive the developer's live stack.
 	requirePortsFree(t, mainchainRPCPort, mainchainZMQPort, enforcerPort, inquisitionPort, orchestratorPort)
 
 	// Built before HOME moves, so the Go build cache stays where it is.
-	orchBin := buildOrchestratord(t)
+	orchBin := buildDrivechaind(t)
 
-	// orchestratord and the sidechain node both resolve their datadirs from the
+	// drivechaind and the sidechain node both resolve their datadirs from the
 	// home directory, and the test then reads the same cookie they write.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -140,7 +140,7 @@ func TestInquisitionBMM(t *testing.T) {
 	orchURL := fmt.Sprintf("http://127.0.0.1:%d", orchestratorPort)
 	wallets := walletmanagerv1connect.NewWalletManagerServiceClient(httpClient, orchURL)
 	bmm := bmmv1connect.NewBMMServiceClient(httpClient, orchURL)
-	waitFor(t, 60*time.Second, "orchestratord", func() bool {
+	waitFor(t, 60*time.Second, "drivechaind", func() bool {
 		_, err := wallets.GetWalletStatus(ctx, connect.NewRequest(&wmpb.GetWalletStatusRequest{}))
 		return err == nil
 	})
@@ -331,11 +331,11 @@ func generateWallet(
 	return resp.Msg.WalletId
 }
 
-func buildOrchestratord(t *testing.T) string {
+func buildDrivechaind(t *testing.T) string {
 	t.Helper()
-	bin := filepath.Join(t.TempDir(), "orchestratord")
-	out, err := exec.Command("go", "build", "-o", bin, "./cmd/orchestratord").CombinedOutput()
-	require.NoError(t, err, "build orchestratord: %s", out)
+	bin := filepath.Join(t.TempDir(), "drivechaind")
+	out, err := exec.Command("go", "build", "-o", bin, "./cmd/drivechaind").CombinedOutput()
+	require.NoError(t, err, "build drivechaind: %s", out)
 	return bin
 }
 
@@ -349,7 +349,7 @@ func startOrchestrator(t *testing.T, bin, home, mainchainDir string) {
 	conf := fmt.Sprintf("chain=regtest\n[regtest]\ndatadir=%s\nrpcport=%d\n", mainchainDir, mainchainRPCPort)
 	require.NoError(t, os.WriteFile(filepath.Join(bitwindowDir, "bitwindow-bitcoin.conf"), []byte(conf), 0o600))
 
-	startProcess(t, "orchestratord", bin,
+	startProcess(t, "drivechaind", bin,
 		"--network", "regtest",
 		"--bitwindow-dir", bitwindowDir,
 		"--datadir", filepath.Join(home, "orchestrator"),

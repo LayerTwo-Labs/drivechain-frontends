@@ -9,7 +9,7 @@ import (
 )
 
 // TestJustRunBootsDaemons covers Issue 1: `just run` must successfully boot
-// bitwindowd and orchestratord on every supported OS. We assert positive
+// bitwindowd and drivechaind on every supported OS. We assert positive
 // signals (processes alive, ports listening, RPC responsive) rather than
 // matching error strings, which are noisy during the normal startup race.
 func TestJustRunBootsDaemons(t *testing.T) {
@@ -19,7 +19,7 @@ func TestJustRunBootsDaemons(t *testing.T) {
 	// and bitwindowd was intermittently not appearing within 6m.
 	const bootDeadline = 9 * time.Minute
 	const pollInterval = 2 * time.Second
-	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make orchestratord RPC-ready
+	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make drivechaind RPC-ready
 
 	t.Logf("Issue 1 / boot: launching `just run` on %s", runtime.GOOS)
 
@@ -35,21 +35,21 @@ func TestJustRunBootsDaemons(t *testing.T) {
 	})
 	t.Logf("bitwindowd pids: %s", prettyPIDs(processPIDs(t, bitwindowdName)))
 
-	// 2. orchestratord process — bitwindowd spawns it as a subprocess.
-	waitUntil(t, bootDeadline, pollInterval, "orchestratord did not start", func() bool {
-		return len(processPIDs(t, orchestratordName)) > 0
+	// 2. drivechaind process — bitwindowd spawns it as a subprocess.
+	waitUntil(t, bootDeadline, pollInterval, "drivechaind did not start", func() bool {
+		return len(processPIDs(t, drivechaindName)) > 0
 	})
-	t.Logf("orchestratord pids: %s", prettyPIDs(processPIDs(t, orchestratordName)))
+	t.Logf("drivechaind pids: %s", prettyPIDs(processPIDs(t, drivechaindName)))
 
 	// 3. Ports accepting connections — proves daemons got past init.
 	waitForPort(t, bitwindowdPort, rpcDeadline, "bitwindowd")
-	waitForPort(t, orchestratordPort, rpcDeadline, "orchestratord")
+	waitForPort(t, drivechaindPort, rpcDeadline, "drivechaind")
 	t.Logf("both daemons listening on their ports")
 
-	// 4. orchestratord RPC actually responds — proves it's serving, not
+	// 4. drivechaind RPC actually responds — proves it's serving, not
 	//    merely holding the port.
 	waitForOrchestratorRPC(t, rpcDeadline, run.dataDir)
-	t.Log("orchestratord RPC is responsive")
+	t.Log("drivechaind RPC is responsive")
 
 	// 5. Give it 10s to surface any early crash, then verify the daemons
 	//    are still alive (no crash loop).
@@ -59,10 +59,10 @@ func TestJustRunBootsDaemons(t *testing.T) {
 		run.dumpDiagnostics(t)
 		t.Fatal("bitwindowd exited after boot")
 	}
-	if got := len(processPIDs(t, orchestratordName)); got == 0 {
+	if got := len(processPIDs(t, drivechaindName)); got == 0 {
 		run.dumpDiagnostics(t)
-		t.Fatal("orchestratord exited after boot")
+		t.Fatal("drivechaind exited after boot")
 	}
 
-	t.Log("boot test passed: bitwindowd and orchestratord running + responsive")
+	t.Log("boot test passed: bitwindowd and drivechaind running + responsive")
 }

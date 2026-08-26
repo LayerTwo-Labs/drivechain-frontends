@@ -107,7 +107,7 @@ void main() {
 
     binaryProvider = _FakeBinaryProvider(
       appDir: Directory.systemTemp,
-      binaries: [Orchestratord(), BitWindow()],
+      binaries: [Drivechaind(), BitWindow()],
     );
     getIt.registerSingleton<BinaryProvider>(binaryProvider);
 
@@ -133,7 +133,7 @@ void main() {
   }
 
   testWidgets('collapses to shrink when both daemons are healthy', (tester) async {
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, connected: true);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND, connected: true);
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
@@ -146,7 +146,7 @@ void main() {
   });
 
   testWidgets('collapses to shrink while a daemon is initializing', (tester) async {
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, initializing: true, error: 'boot error');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND, initializing: true, error: 'boot error');
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
@@ -158,20 +158,20 @@ void main() {
   });
 
   testWidgets('shows error banner only when a daemon has a terminal error', (tester) async {
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'connection refused');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND, error: 'connection refused');
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
     await tester.pump();
 
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
-    expect(find.textContaining('Orchestratord'), findsOneWidget);
+    expect(find.textContaining('Drivechaind'), findsOneWidget);
     // SailButton renders its label twice (visual shadow layer), so accept widgets.
     expect(find.text('Restart'), findsWidgets);
   });
 
   testWidgets('tapping Restart calls BinaryProvider.restart for every broken daemon', (tester) async {
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND, error: 'down');
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, error: 'down');
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
@@ -182,14 +182,14 @@ void main() {
 
     expect(
       binaryProvider.restartedTypes,
-      containsAll(<BinaryType>[BinaryType.BINARY_TYPE_ORCHESTRATORD, BinaryType.BINARY_TYPE_BITWINDOWD]),
+      containsAll(<BinaryType>[BinaryType.BINARY_TYPE_DRIVECHAIND, BinaryType.BINARY_TYPE_BITWINDOWD]),
     );
   });
 
-  // orchestratord maps to no RPCConnection, so its error field stays null
+  // drivechaind maps to no RPCConnection, so its error field stays null
   // whatever the daemon does. The poll that watches it is the only source.
   testWidgets('shows the banner when the orchestrator misses its polls', (tester) async {
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND);
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
     backendState.setReachable(false);
 
@@ -197,11 +197,11 @@ void main() {
     await tester.pump();
 
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
-    expect(find.textContaining('Orchestratord'), findsOneWidget);
+    expect(find.textContaining('Drivechaind'), findsOneWidget);
   });
 
   testWidgets('stays hidden while the orchestrator answers its polls', (tester) async {
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD);
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND);
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
     backendState.setReachable(true);
 
@@ -213,7 +213,7 @@ void main() {
   });
 
   testWidgets('offers the logs to a stuck user', (tester) async {
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND, error: 'down');
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, connected: true);
 
     await tester.pumpWidget(wrap(const PersistentStatusBar()));
@@ -230,7 +230,7 @@ void main() {
     //     body: child, bottomNavigationBar: PersistentStatusBar()))
     // The bar must render with no "No Material widget"/"No Overlay widget"/
     // unbounded-constraints errors regardless of daemon state.
-    binaryProvider.setState(BinaryType.BINARY_TYPE_ORCHESTRATORD, error: 'down');
+    binaryProvider.setState(BinaryType.BINARY_TYPE_DRIVECHAIND, error: 'down');
     binaryProvider.setState(BinaryType.BINARY_TYPE_BITWINDOWD, error: 'down');
 
     tester.view.physicalSize = const Size(4000, 1200);

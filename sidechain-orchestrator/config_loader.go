@@ -231,20 +231,20 @@ func parseConfigJSON(data []byte) ([]BinaryConfig, error) {
 
 // jsonKeyToName maps JSON keys to internal binary names.
 var jsonKeyToName = map[string]string{
-	"bitcoincore":   "bitcoind",
-	"bitwindow":     "bitwindowd",
-	"enforcer":      "enforcer",
-	"grpcurl":       "grpcurl",
-	"orchestratord": "orchestratord",
-	"zsided":        "zsided",
-	"thunder":       "thunder",
-	"bitnames":      "bitnames",
-	"bitassets":     "bitassets",
-	"truthcoin":     "truthcoin",
-	"photon":        "photon",
-	"coinshift":     "coinshift",
-	"zside":         "zside",
-	"inquisition":   "inquisition",
+	"bitcoincore": "bitcoind",
+	"bitwindow":   "bitwindowd",
+	"enforcer":    "enforcer",
+	"grpcurl":     "grpcurl",
+	"drivechaind": "drivechaind",
+	"zsided":      "zsided",
+	"thunder":     "thunder",
+	"bitnames":    "bitnames",
+	"bitassets":   "bitassets",
+	"truthcoin":   "truthcoin",
+	"photon":      "photon",
+	"coinshift":   "coinshift",
+	"zside":       "zside",
+	"inquisition": "inquisition",
 }
 
 func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {

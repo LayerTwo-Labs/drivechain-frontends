@@ -22,8 +22,8 @@ func TestJustRunRestart(t *testing.T) {
 
 	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
-	const rpcDeadline = 90 * time.Second     // cold macOS/Windows CI runners are slow to make orchestratord RPC-ready
-	const shutdownDeadline = 3 * time.Minute // orchestratord finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s
+	const rpcDeadline = 90 * time.Second     // cold macOS/Windows CI runners are slow to make drivechaind RPC-ready
+	const shutdownDeadline = 3 * time.Minute // drivechaind finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s
 	const shutdownPoll = 500 * time.Millisecond
 
 	t.Logf("Issue 3 / restart: launching two successive `just run` on %s", runtime.GOOS)
@@ -39,10 +39,10 @@ func TestJustRunRestart(t *testing.T) {
 	waitUntil(t, bootDeadline, bootPoll, "first launch: bitwindowd did not start", func() bool {
 		return len(processPIDs(t, bitwindowdName)) > 0
 	})
-	waitUntil(t, bootDeadline, bootPoll, "first launch: orchestratord did not start", func() bool {
-		return len(processPIDs(t, orchestratordName)) > 0
+	waitUntil(t, bootDeadline, bootPoll, "first launch: drivechaind did not start", func() bool {
+		return len(processPIDs(t, drivechaindName)) > 0
 	})
-	waitForPort(t, orchestratordPort, rpcDeadline, "first launch: orchestratord")
+	waitForPort(t, drivechaindPort, rpcDeadline, "first launch: drivechaind")
 	waitForOrchestratorRPC(t, rpcDeadline, dataDir)
 
 	firstWalletID := generateTestWallet(t, dataDir)
@@ -52,8 +52,8 @@ func TestJustRunRestart(t *testing.T) {
 	waitUntil(t, shutdownDeadline, shutdownPoll, "first launch: bitwindowd lingered", func() bool {
 		return len(processPIDs(t, bitwindowdName)) == 0
 	})
-	waitUntil(t, shutdownDeadline, shutdownPoll, "first launch: orchestratord lingered", func() bool {
-		return len(processPIDs(t, orchestratordName)) == 0
+	waitUntil(t, shutdownDeadline, shutdownPoll, "first launch: drivechaind lingered", func() bool {
+		return len(processPIDs(t, drivechaindName)) == 0
 	})
 	t.Log("first launch: both daemons exited cleanly")
 
@@ -71,10 +71,10 @@ func TestJustRunRestart(t *testing.T) {
 	waitUntil(t, bootDeadline, bootPoll, "second launch: bitwindowd did not start", func() bool {
 		return len(processPIDs(t, bitwindowdName)) > 0
 	})
-	waitUntil(t, bootDeadline, bootPoll, "second launch: orchestratord did not start", func() bool {
-		return len(processPIDs(t, orchestratordName)) > 0
+	waitUntil(t, bootDeadline, bootPoll, "second launch: drivechaind did not start", func() bool {
+		return len(processPIDs(t, drivechaindName)) > 0
 	})
-	waitForPort(t, orchestratordPort, rpcDeadline, "second launch: orchestratord")
+	waitForPort(t, drivechaindPort, rpcDeadline, "second launch: drivechaind")
 	waitForOrchestratorRPC(t, rpcDeadline, dataDir)
 
 	hasWallet, activeID := walletStatus(t, dataDir)

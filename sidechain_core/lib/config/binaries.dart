@@ -33,7 +33,7 @@ Binary defaultBinaryFor(BinaryType type) => switch (type) {
   BinaryType.BINARY_TYPE_PHOTON => Photon(),
   BinaryType.BINARY_TYPE_COINSHIFT => CoinShift(),
   BinaryType.BINARY_TYPE_GRPCURL => GRPCurl(),
-  BinaryType.BINARY_TYPE_ORCHESTRATORD => Orchestratord(),
+  BinaryType.BINARY_TYPE_DRIVECHAIND => Drivechaind(),
   BinaryType.BINARY_TYPE_ZSIDED => ZSided(),
   BinaryType.BINARY_TYPE_LIQUID_SIGNET => LiquidSignet(),
   BinaryType.BINARY_TYPE_INQUISITION => Inquisition(),
@@ -206,7 +206,7 @@ abstract class Binary {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
     final subfolder = metadata.downloadConfig.extractSubfolder?[network]?[OS.current] ?? '';
 
-    // When the user has flipped test sidechains on for an L2, orchestratord
+    // When the user has flipped test sidechains on for an L2, drivechaind
     // extracts the alt build to bin/test/<binary>/ — on macOS that's a
     // Thunder.app-style bundle (Contents/MacOS/<TitleCase>), elsewhere a
     // plain executable. Mirror sidechain-orchestrator/config.go
@@ -516,9 +516,9 @@ class BitWindow extends Binary {
   }
 }
 
-class Orchestratord extends Binary {
-  Orchestratord({
-    super.name = 'Orchestratord',
+class Drivechaind extends Binary {
+  Drivechaind({
+    super.name = 'Drivechaind',
     super.version = 'latest',
     super.description = 'Sidechain orchestrator daemon',
     super.repoUrl = 'https://github.com/LayerTwo-Labs/drivechain-frontends/orchestrator',
@@ -533,21 +533,21 @@ class Orchestratord extends Binary {
              directories ??
              DirectoryConfig(
                binary: allNetworks({
-                 OS.linux: 'orchestratord',
-                 OS.macos: 'orchestratord',
-                 OS.windows: 'orchestratord',
+                 OS.linux: 'drivechaind',
+                 OS.macos: 'drivechaind',
+                 OS.windows: 'drivechaind',
                }),
                flutterFrontend: {
-                 OS.linux: 'orchestratord',
-                 OS.macos: 'orchestratord',
-                 OS.windows: 'orchestratord',
+                 OS.linux: 'drivechaind',
+                 OS.macos: 'drivechaind',
+                 OS.windows: 'drivechaind',
                },
              ),
          metadata:
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 binary: 'orchestratord',
+                 binary: 'drivechaind',
                  baseUrls: allNetworksUrl(''),
                  files: allNetworks({
                    OS.linux: '',
@@ -564,13 +564,13 @@ class Orchestratord extends Binary {
        );
 
   @override
-  BinaryType get type => BinaryType.BINARY_TYPE_ORCHESTRATORD;
+  BinaryType get type => BinaryType.BINARY_TYPE_DRIVECHAIND;
 
   @override
   Color get color => SailColorScheme.orange;
 
   @override
-  Orchestratord copyWith({
+  Drivechaind copyWith({
     String? version,
     String? description,
     String? repoUrl,
@@ -581,7 +581,7 @@ class Orchestratord extends Binary {
     int? chainLayer,
     DownloadInfo? downloadInfo,
   }) {
-    return Orchestratord(
+    return Drivechaind(
       name: name,
       version: version ?? this.version,
       description: description ?? this.description,
@@ -909,7 +909,7 @@ String? flutterFrontendDirFor(BinaryType type, OS os, String home) {
     BinaryType.BINARY_TYPE_BITCOIND ||
     BinaryType.BINARY_TYPE_ENFORCER ||
     BinaryType.BINARY_TYPE_GRPCURL ||
-    BinaryType.BINARY_TYPE_ORCHESTRATORD ||
+    BinaryType.BINARY_TYPE_DRIVECHAIND ||
     BinaryType.BINARY_TYPE_ZSIDED => null,
     BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
     _ => _unsupportedBinaryType(type),
@@ -961,7 +961,7 @@ extension BinaryPaths on Binary {
       // not the versioned-directory logs the Rust sidechains write.
       BinaryType.BINARY_TYPE_INQUISITION => filePath([datadirNetwork(), 'debug.log']),
       BinaryType.BINARY_TYPE_ENFORCER => _findLatestEnforcerLog(),
-      BinaryType.BINARY_TYPE_GRPCURL || BinaryType.BINARY_TYPE_ORCHESTRATORD || BinaryType.BINARY_TYPE_ZSIDED => '',
+      BinaryType.BINARY_TYPE_GRPCURL || BinaryType.BINARY_TYPE_DRIVECHAIND || BinaryType.BINARY_TYPE_ZSIDED => '',
       BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
       _ => _unsupportedBinaryType(type),
     };
@@ -1173,7 +1173,7 @@ extension BinaryPaths on Binary {
         return rootDir();
 
       case BinaryType.BINARY_TYPE_GRPCURL:
-      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_DRIVECHAIND:
       case BinaryType.BINARY_TYPE_ZSIDED:
         return rootDir();
 
@@ -1213,7 +1213,7 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_COINSHIFT:
       case BinaryType.BINARY_TYPE_LIQUID_SIGNET:
       case BinaryType.BINARY_TYPE_GRPCURL:
-      case BinaryType.BINARY_TYPE_ORCHESTRATORD:
+      case BinaryType.BINARY_TYPE_DRIVECHAIND:
       case BinaryType.BINARY_TYPE_ZSIDED:
         return baseDir;
 
@@ -1821,7 +1821,7 @@ BinaryType _binaryTypeFromJsonKey(String key) {
     'bitwindow' => BinaryType.BINARY_TYPE_BITWINDOWD,
     'enforcer' => BinaryType.BINARY_TYPE_ENFORCER,
     'grpcurl' => BinaryType.BINARY_TYPE_GRPCURL,
-    'orchestratord' => BinaryType.BINARY_TYPE_ORCHESTRATORD,
+    'drivechaind' => BinaryType.BINARY_TYPE_DRIVECHAIND,
     'zsided' => BinaryType.BINARY_TYPE_ZSIDED,
     'thunder' => BinaryType.BINARY_TYPE_THUNDER,
     'bitnames' => BinaryType.BINARY_TYPE_BITNAMES,
@@ -1842,7 +1842,7 @@ String binaryTypeToJsonKey(BinaryType type) {
     BinaryType.BINARY_TYPE_BITWINDOWD => 'bitwindow',
     BinaryType.BINARY_TYPE_ENFORCER => 'enforcer',
     BinaryType.BINARY_TYPE_GRPCURL => 'grpcurl',
-    BinaryType.BINARY_TYPE_ORCHESTRATORD => 'orchestratord',
+    BinaryType.BINARY_TYPE_DRIVECHAIND => 'drivechaind',
     BinaryType.BINARY_TYPE_ZSIDED => 'zsided',
     BinaryType.BINARY_TYPE_THUNDER => 'thunder',
     BinaryType.BINARY_TYPE_BITNAMES => 'bitnames',
@@ -1934,7 +1934,7 @@ Binary binaryFromJson(String key, Map<String, dynamic> json) {
       port: port,
       chainLayer: chainLayer,
     ),
-    BinaryType.BINARY_TYPE_ORCHESTRATORD => Orchestratord(
+    BinaryType.BINARY_TYPE_DRIVECHAIND => Drivechaind(
       name: name,
       version: version,
       description: description,

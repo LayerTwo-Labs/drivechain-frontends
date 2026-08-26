@@ -185,7 +185,7 @@ func newOrchestratorOnlyNode(t *testing.T) *orchestratorOnlyNode {
 
 	rootDir := t.TempDir()
 	bitcoindBin := findBitcoind(t)
-	orchBin := buildOrchestratord(t, rootDir)
+	orchBin := buildDrivechaind(t, rootDir)
 	basePort := randomPortBase(t)
 	rpcPort := basePort
 	p2pPort := basePort + 100
@@ -229,9 +229,9 @@ port=%d
 	require.NoError(t, os.WriteFile(filepath.Join(bitwindowDir, "bitwindow-bitcoin.conf"), []byte(bitwindowBitcoinConf), 0o600))
 
 	// `--binary=enforcer` auto-boots the L1 stack (bitcoind → enforcer)
-	// once orchestratord comes up, since the smoke test asserts both are
+	// once drivechaind comes up, since the smoke test asserts both are
 	// running. Production normally triggers this via StartWithL1; the
-	// orchestratord CLI flag is the same code path, just kicked from main.
+	// drivechaind CLI flag is the same code path, just kicked from main.
 	orchCmd := exec.Command(orchBin,
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
@@ -253,7 +253,7 @@ port=%d
 	select {
 	case <-ready:
 	case <-time.After(20 * time.Second):
-		t.Fatal("orchestratord did not start serving within 20s")
+		t.Fatal("drivechaind did not start serving within 20s")
 	}
 
 	node := &orchestratorOnlyNode{
@@ -414,15 +414,15 @@ func findBitcoind(t *testing.T) string {
 	return downloadedPath
 }
 
-func buildOrchestratord(t *testing.T, outDir string) string {
+func buildDrivechaind(t *testing.T, outDir string) string {
 	t.Helper()
-	binName := "orchestratord"
+	binName := "drivechaind"
 	if runtime.GOOS == "windows" {
 		binName += ".exe"
 	}
 	binPath := filepath.Join(outDir, binName)
 	cmd := exec.Command("go", "build", "-o", binPath, ".")
-	cmd.Dir = filepath.Join(repoRoot(t), "sidechain-orchestrator", "cmd", "orchestratord")
+	cmd.Dir = filepath.Join(repoRoot(t), "sidechain-orchestrator", "cmd", "drivechaind")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	require.NoError(t, cmd.Run())

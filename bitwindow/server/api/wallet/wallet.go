@@ -93,7 +93,7 @@ type Server struct {
 	walletEngine *engines.WalletEngine
 	backupEngine *engines.BackupEngine
 	walletDir    string
-	// restartL1 reboots the L1 stack (bitcoind + enforcer) via orchestratord;
+	// restartL1 reboots the L1 stack (bitcoind + enforcer) via drivechaind;
 	// nil when no orchestrator is configured. Called after a backup restore.
 	restartL1 func(context.Context) error
 }

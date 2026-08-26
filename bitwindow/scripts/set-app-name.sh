@@ -19,7 +19,7 @@ if [ "$BITWINDOW_VARIANT" = "forknet" ]; then
     } > build-vars.env
     # Picked up by download-binaries.sh to embed the default network into every
     # orchestrator tool (-ldflags -X config.DefaultNetwork). This is the
-    # authoritative lever — orchestratord owns the first-run network; Flutter
+    # authoritative lever — drivechaind owns the first-run network; Flutter
     # follows it.
     export BITWINDOW_DEFAULT_NETWORK=forknet
 else

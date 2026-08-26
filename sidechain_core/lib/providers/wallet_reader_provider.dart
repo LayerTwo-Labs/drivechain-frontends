@@ -314,7 +314,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
   ///
   /// Polled with backoff so the WalletGuard doesn't race the orchestrator's
   /// boot: on cold start, getWalletStatus() can throw "connection refused"
-  /// for a few seconds while orchestratord finishes coming up. Returning
+  /// for a few seconds while drivechaind finishes coming up. Returning
   /// false on that error silently misroutes existing users to the
   /// "Set up your wallet" screen, so we keep retrying for ~5s before giving
   /// up. Any non-transport error (e.g. a successful RPC with hasWallet=false)

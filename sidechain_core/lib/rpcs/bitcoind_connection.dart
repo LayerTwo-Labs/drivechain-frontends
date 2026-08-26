@@ -8,7 +8,7 @@ import 'package:sidechain_core/sidechain_core.dart';
 /// daemon-status card binds against, plus [binaryArgs] for the
 /// chain-settings-modal launch path.
 ///
-/// **No RPC client** — orchestratord's `BitcoinService` is the canonical
+/// **No RPC client** — drivechaind's `BitcoinService` is the canonical
 /// bitcoind proxy. All bitcoind RPCs go through `OrchestratorRPC.bitcoind`
 /// (or, for methods btc-buf doesn't type, `OrchestratorRPC.coreRawCall`).
 /// Sync state (blocks/headers/IBD) is fetched by [SyncProvider] from
@@ -51,7 +51,7 @@ class BitcoindConnection extends RPCConnection {
     return args;
   }
 
-  // RPCConnection abstracts. No live bitcoind callers — orchestratord's
+  // RPCConnection abstracts. No live bitcoind callers — drivechaind's
   // BitcoinService is the canonical proxy.
   @override
   Future<void> stopRPC() async {

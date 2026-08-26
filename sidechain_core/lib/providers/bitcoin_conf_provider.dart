@@ -97,8 +97,8 @@ class BitcoinConfProvider extends ChangeNotifier {
   bool mustSelectDatadir = false;
 
   /// bitwindow applies swaps through bitwindowd, which recycles its per-network
-  /// database; sidechain apps leave this null and reach orchestratord directly.
-  /// Planning always goes straight to orchestratord — it holds the facts.
+  /// database; sidechain apps leave this null and reach drivechaind directly.
+  /// Planning always goes straight to drivechaind — it holds the facts.
   Future<void> Function(String network, String dataDir, String networkId)? networkSwapper;
 
   BitcoinConfProvider._create(this.router);

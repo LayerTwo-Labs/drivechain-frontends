@@ -73,7 +73,7 @@ void main() {
     final bitwindow = BitWindow();
     final provider = BinaryProvider.test(
       appDir: Directory.systemTemp,
-      binaries: [bitwindow, Orchestratord()],
+      binaries: [bitwindow, Drivechaind()],
     );
 
     provider.addStartupLogForBinary(BinaryType.BINARY_TYPE_BITWINDOWD, 'Starting BitWindow...');
@@ -83,22 +83,22 @@ void main() {
     expect(logs.last.message, 'Starting BitWindow...');
   });
 
-  test('addStartupLogForBinary also captures logs targeting orchestratord', () {
+  test('addStartupLogForBinary also captures logs targeting drivechaind', () {
     final provider = BinaryProvider.test(
       appDir: Directory.systemTemp,
-      binaries: [BitWindow(), Orchestratord()],
+      binaries: [BitWindow(), Drivechaind()],
     );
 
-    provider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Waiting for orchestratord...');
+    provider.addStartupLogForBinary(BinaryType.BINARY_TYPE_DRIVECHAIND, 'Waiting for drivechaind...');
 
-    final logs = provider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD).startupLogs;
-    expect(logs.last.message, 'Waiting for orchestratord...');
+    final logs = provider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_DRIVECHAIND).startupLogs;
+    expect(logs.last.message, 'Waiting for drivechaind...');
   });
 
   test('shutdown disabled returns before running shutdown options', () async {
     final provider = BinaryProvider.test(
       appDir: Directory.systemTemp,
-      binaries: [BitWindow(), Orchestratord()],
+      binaries: [BitWindow(), Drivechaind()],
       shutdownEnabled: false,
     );
 

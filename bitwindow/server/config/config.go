@@ -24,9 +24,9 @@ const (
 
 // Config holds bitwindowd's runtime configuration. Network identity is
 // **not** declared here as a CLI flag — bitwindowd sources it from
-// orchestratord at startup via [Finalize] so it is always aligned with
+// drivechaind at startup via [Finalize] so it is always aligned with
 // orchestrator's view of the world. bitcoind RPC creds aren't needed
-// either: bitwindowd dials orchestratord's hosted BitcoinService for any
+// either: bitwindowd dials drivechaind's hosted BitcoinService for any
 // bitcoind call.
 type Config struct {
 	Version bool `long:"version" short:"v" description:"Print version information and exit"`
@@ -55,7 +55,7 @@ type Config struct {
 
 	OwnerPID int `long:"owner-pid" env:"BITWINDOWD_OWNER_PID" description:"Shut down once this process exits and no client is left. Unset means never"`
 
-	// BitcoinCoreNetwork is set by Finalize from orchestratord — never from
+	// BitcoinCoreNetwork is set by Finalize from drivechaind — never from
 	// CLI flags. Used downstream for Datadir scoping and chain-params lookup.
 	BitcoinCoreNetwork Network `no-flag:"true"`
 
@@ -95,13 +95,13 @@ func (c *Config) BitwindowDir() string {
 	return c.Datadir
 }
 
-// Finalize sets the network (sourced from orchestratord by the caller) and
+// Finalize sets the network (sourced from drivechaind by the caller) and
 // appends the per-network suffix to Datadir. Idempotent — re-running on
 // network swap recomputes paths from the original base, so suffixes don't
 // stack across swaps.
 func (c *Config) Finalize(network Network) error {
 	if network == "" {
-		return errors.New("Finalize: empty network — caller must source it from orchestratord")
+		return errors.New("Finalize: empty network — caller must source it from drivechaind")
 	}
 
 	// First call snapshots the un-suffixed base for future swaps.

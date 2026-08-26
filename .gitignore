@@ -60,5 +60,9 @@ ed25519.priv
 vendor/
 
 # Build artifacts
-sidechain-orchestrator/orchestratorctl
-sidechain-orchestrator/orchestratord
+sidechain-orchestrator/drivechain-cli
+sidechain-orchestrator/drivechaind
+
+sidechain-orchestrator/cmd/*/main
+
+dist/
