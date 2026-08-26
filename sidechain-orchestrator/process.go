@@ -32,6 +32,7 @@ type ManagedProcess struct {
 	PidName      string // PID-file basename used for this process
 	Started      time.Time
 	Adopted      bool // true if this process was found from a previous session
+	Orphan       bool // true if a previous run of this install started it and left it behind
 	ForceBackend bool // true if this sidechain was launched with --force-backend (skips flutter_frontend variant)
 
 	mu       sync.Mutex
@@ -721,6 +722,8 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 		return
 	}
 
+	orphan := pm.startedInAnEarlierRun(pidName, pid)
+
 	delete(pm.lastExited, config.Name)
 	pm.processes[config.Name] = &ManagedProcess{
 		Config:       config,
@@ -729,6 +732,7 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 		PidName:      pidName,
 		Started:      time.Now(),
 		Adopted:      true,
+		Orphan:       orphan,
 		ForceBackend: forceBackend,
 		logs:         make([]LogEntry, 0),
 		exitCh:       make(chan struct{}),
@@ -772,6 +776,45 @@ func (pm *ProcessManager) watchAdopted(name string, proc *ManagedProcess) {
 		close(proc.exitCh)
 		return
 	}
+}
+
+// pidRecordSkew covers the gap between a process start and the PID record this
+// install writes for it, plus the one-second resolution of a process age.
+const pidRecordSkew = 5 * time.Second
+
+// startedInAnEarlierRun reports whether a run of this install started the
+// process at pid. The PID record must name it, and the process must be older
+// than that record. A stranger that later took the same number is younger, so
+// the age is what a bare PID match cannot prove.
+func (pm *ProcessManager) startedInAnEarlierRun(pidName string, pid int) bool {
+	recorded, err := pm.pidManager.ReadPidFile(pidName)
+	if err != nil || recorded != pid {
+		return false
+	}
+
+	written, err := pm.pidManager.RecordTime(pidName)
+	if err != nil {
+		pm.log.Warn().Err(err).Str("binary", pidName).Msg("read the PID record time")
+		return false
+	}
+
+	age, err := processAge(pid)
+	if err != nil {
+		pm.log.Warn().Err(err).Int("pid", pid).Msg("read the process age")
+		return false
+	}
+
+	return time.Since(written) <= age+pidRecordSkew
+}
+
+// IsOrphan reports whether a previous run of this install started the named
+// process and left it behind. False for a process somebody else launched
+// against the same data directory.
+func (pm *ProcessManager) IsOrphan(name string) bool {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	p, exists := pm.processes[name]
+	return exists && p.Orphan
 }
 
 // IsAdopted returns true if the named process was adopted (not started by us).
@@ -888,6 +931,15 @@ func (m *PidFileManager) WritePidFile(binaryName string, pid int) error {
 	}
 	m.log.Debug().Str("binary", binaryName).Int("pid", pid).Msg("wrote PID file")
 	return nil
+}
+
+// RecordTime returns when this install wrote the PID record for a binary.
+func (m *PidFileManager) RecordTime(binaryName string) (time.Time, error) {
+	info, err := os.Stat(m.pidPath(binaryName))
+	if err != nil {
+		return time.Time{}, fmt.Errorf("stat the PID file for %s: %w", binaryName, err)
+	}
+	return info.ModTime(), nil
 }
 
 func (m *PidFileManager) ReadPidFile(binaryName string) (int, error) {

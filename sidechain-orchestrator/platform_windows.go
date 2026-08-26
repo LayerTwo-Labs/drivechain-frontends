@@ -49,6 +49,22 @@ func isPidAlive(pid int) bool {
 	return strings.Contains(string(out), strconv.Itoa(pid))
 }
 
+// processAge returns how long the process at pid ran. The OS reuses PID
+// numbers, so a caller that recorded a PID needs the age to tell that process
+// from a stranger that later took its number.
+func processAge(pid int) (time.Duration, error) {
+	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command",
+		fmt.Sprintf("[int]((Get-Date) - (Get-Process -Id %d).StartTime).TotalSeconds", pid)).Output()
+	if err != nil {
+		return 0, fmt.Errorf("read the age of PID %d: %w", pid, err)
+	}
+	seconds, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		return 0, fmt.Errorf("parse the age of PID %d: %w", pid, err)
+	}
+	return time.Duration(seconds) * time.Second, nil
+}
+
 func getProcessName(pid int) (string, error) {
 	out, err := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV", "/NH").CombinedOutput()
 	if err != nil {
