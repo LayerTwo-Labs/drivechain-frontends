@@ -173,6 +173,7 @@ type Orchestrator struct {
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
 	process    *ProcessManager
+	ownerLock  *OwnerLock
 	pidManager *PidFileManager
 	clients    *lease.Lease
 	log        zerolog.Logger
@@ -289,6 +290,18 @@ func (o *Orchestrator) DownloadStates() map[string]DownloadState {
 }
 
 // New creates a new Orchestrator.
+// SetOwnerLock records the lock this run holds. A nil lock means the install
+// belongs to somebody else, so the drain leaves adopted binaries alone.
+func (o *Orchestrator) SetOwnerLock(lock *OwnerLock) {
+	o.ownerLock = lock
+}
+
+// OwnsInstall reports whether this run holds the owner lock, and may therefore
+// stop the binaries it finds running.
+func (o *Orchestrator) OwnsInstall() bool {
+	return o != nil && o.ownerLock != nil
+}
+
 func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zerolog.Logger) *Orchestrator {
 	pidMgr := NewPidFileManager(dataDir, log)
 
@@ -1713,15 +1726,12 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 		ordered := orderForShutdown(running)
 
 		for _, name := range ordered {
-			// Dart binary_provider.dart pattern: don't shut down processes we
-			// didn't start. If it was adopted (running externally), just
-			// remove it from our tracking — the owning process manages its
-			// lifecycle.
-			if o.process.IsAdopted(name) {
-				// Dart binary_provider.dart pattern: don't shut down processes we
-				// didn't start. The owning process manages its lifecycle.
-				// Dart RPCConnection.markDisconnected() — keep timer in connectModeOnly
-				o.log.Info().Str("binary", name).Msg("adopted process, skipping shutdown (not ours to stop)")
+			// An adopted binary is only somebody else's while somebody else is
+			// alive. Holding the owner lock proves no other install is, so a
+			// leftover is an orphan of a dead run and this drain stops it.
+			// Skipping every adopted binary is what made one bad exit permanent.
+			if o.process.IsAdopted(name) && !o.OwnsInstall() {
+				o.log.Info().Str("binary", name).Msg("another install owns this process, skipping shutdown")
 				o.process.Remove(name)
 
 				// Transition monitor to connect-mode-only so it can detect

@@ -198,6 +198,23 @@ func run(cctx *cli.Context) error {
 	configPath := orchestrator.ConfigFilePath(bitwindowDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
 	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
+
+	// Whoever holds this owns the binaries in dataDir. The kernel frees it when
+	// the holder dies, so a leftover from a crashed run is ours to stop rather
+	// than a stranger's process. Without it every drain skipped adopted
+	// binaries, and one bad exit made a daemon permanent.
+	ownerLock, held, lockErr := orchestrator.TakeOwnerLock(dataDir)
+	if lockErr != nil {
+		return fmt.Errorf("take the owner lock: %w", lockErr)
+	}
+	if held {
+		defer func() { _ = ownerLock.Release() }()
+		orch.SetOwnerLock(ownerLock)
+	} else {
+		log.Warn().Str("datadir", dataDir).
+			Msg("another install owns this data directory; leaving its binaries alone")
+	}
+
 	orch.StartReleaseChecks(ctx)
 
 	// Local RPC auth (bitcoind-style cookie). When enabled, a fresh token is
