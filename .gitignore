@@ -62,6 +62,9 @@ vendor/
 # Build artifacts
 sidechain-orchestrator/drivechain-cli
 sidechain-orchestrator/drivechaind
+# Pre-rename output, so an old working tree cannot commit it.
+sidechain-orchestrator/orchestratorctl
+sidechain-orchestrator/orchestratord
 
 sidechain-orchestrator/cmd/*/main
 
