@@ -715,6 +715,33 @@
         }
       }
     },
+    "invalidate_block": {
+      "post": {
+        "description": "Invalidate a block, potentially re-orging to a valid ancestor of\nthe current tip.",
+        "operationId": "invalidate_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "latest_failed_withdrawal_bundle_height": {
       "post": {
         "description": "Get the height of the latest failed withdrawal bundle",
