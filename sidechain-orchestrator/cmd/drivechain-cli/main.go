@@ -8,10 +8,15 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// version is the release this binary comes from. The release build sets it with
+// -ldflags "-X main.version=...".
+var version = "dev"
+
 func main() {
 	app := &cli.App{
-		Name:                   "orchestratorctl",
-		Usage:                  "Control the sidechain orchestrator daemon",
+		Name:                   "drivechain-cli",
+		Usage:                  "Run and control a Drivechain node and its sidechains",
+		Version:                version,
 		Flags:                  commands.GlobalFlags,
 		Commands:               commands.Commands(),
 		UseShortOptionHandling: true,

@@ -25,10 +25,10 @@ func TestForceKillingAppReapsDaemons(t *testing.T) {
 		}
 	}
 
-	// The watchdog polls, and orchestratord drains bitcoind before it exits.
+	// The watchdog polls, and drivechaind drains bitcoind before it exits.
 	const reapDeadline = 150 * time.Second
 	const reapPoll = time.Second
-	for _, name := range []string{bitwindowdName, orchestratordName} {
+	for _, name := range []string{bitwindowdName, drivechaindName} {
 		waitUntil(t, reapDeadline, reapPoll,
 			fmt.Sprintf("%s survived a force-kill of the app", name),
 			func() bool { return len(processPIDs(t, name)) == 0 },
@@ -45,8 +45,8 @@ func waitForBoot(t *testing.T) []int {
 	waitUntil(t, bootDeadline, bootPoll, "bitwindowd did not start", func() bool {
 		return len(processPIDs(t, bitwindowdName)) > 0
 	})
-	waitUntil(t, bootDeadline, bootPoll, "orchestratord did not start", func() bool {
-		return len(processPIDs(t, orchestratordName)) > 0
+	waitUntil(t, bootDeadline, bootPoll, "drivechaind did not start", func() bool {
+		return len(processPIDs(t, drivechaindName)) > 0
 	})
 
 	appName := flutterAppProcessName()

@@ -14,7 +14,7 @@ import (
 
 // TestSwappableHandler_NotReady_Returns503 verifies that a swappableHandler
 // with no inner handler returns 503 Service Unavailable. This is the safety
-// net during orchestratord boot before startCoreProxy completes — clients
+// net during drivechaind boot before startCoreProxy completes — clients
 // hitting the BitcoinService path before the proxy is built must get a clean
 // retryable error, not a panic or hang.
 func TestSwappableHandler_NotReady_Returns503(t *testing.T) {
@@ -29,7 +29,7 @@ func TestSwappableHandler_NotReady_Returns503(t *testing.T) {
 }
 
 // TestSwappableHandler_AfterSwap_Forwards verifies that once a handler has
-// been swapped in, requests reach it. This is the happy-path: orchestratord
+// been swapped in, requests reach it. This is the happy-path: drivechaind
 // boots, builds the bitcoind proxy, swaps it in, and clients dispatch.
 func TestSwappableHandler_AfterSwap_Forwards(t *testing.T) {
 	s := newSwappableHandler()

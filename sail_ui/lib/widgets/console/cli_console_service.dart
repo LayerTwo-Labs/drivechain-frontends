@@ -64,7 +64,7 @@ class CLIConsole {
     'BitAssets': 'bitassets-cli',
     'CoinShift': 'coinshift-cli',
     'ZSide': 'zside-cli',
-    'Orchestratord': 'orchestratorctl',
+    'Drivechaind': 'drivechain-cli',
   };
 
   /// The orchestrator binary each CLI ships with. Every Core variant owns a
@@ -79,7 +79,7 @@ class CLIConsole {
     'bitassets-cli': 'bitassets',
     'coinshift-cli': 'coinshift',
     'zside-cli': 'zside',
-    'orchestratorctl': 'orchestratord',
+    'drivechain-cli': 'drivechaind',
   };
 
   /// Discover available CLI executables on disk. Returns map of cli name →

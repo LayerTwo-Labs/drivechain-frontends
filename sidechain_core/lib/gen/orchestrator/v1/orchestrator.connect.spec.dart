@@ -160,7 +160,7 @@ abstract final class OrchestratorService {
   );
 
   /// Detached-daemon shutdown. bitwindowd calls this on window close;
-  /// orchestratord acks immediately, drains its children (bitcoind, enforcer,
+  /// drivechaind acks immediately, drains its children (bitcoind, enforcer,
   /// sidechains) in a background goroutine, and os.Exit(0)s when done.
   /// Idempotent. If bitwindow is relaunched while the drain is still in
   /// flight, the next StartWithL1 transparently adopts it (flips the

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pbenum.dart';
 
 /// Name of the one file that the bitwindow frontend, bitwindowd, and
-/// orchestratord all append to.
+/// drivechaind all append to.
 const String sharedLogFileName = 'bitwindow.log';
 
 /// True when the binary appends to the shared log file itself.
@@ -19,7 +19,7 @@ Future<File> prepareLogFile(Directory dir, String name, {int maxBytes = maxLogFi
 
   final file = File([dir.path, name].join(Platform.pathSeparator));
   if (await file.exists() && await file.length() > maxBytes) {
-    // Empty the file in place. A detached orchestratord holds an open append
+    // Empty the file in place. A detached drivechaind holds an open append
     // handle, and a rename sends its lines to a file that nobody reads.
     await file.writeAsString('');
   }

@@ -62,8 +62,8 @@ func signalGroup(cmd *exec.Cmd, sig syscall.Signal) error {
 }
 
 // sweepPriorRunOrphans kills daemons left holding the ports this suite needs.
-// A previous case can leak an orchestratord past its own cleanup; the next
-// case's orchestratord then refuses to start, because it fails closed rather
+// A previous case can leak an drivechaind past its own cleanup; the next
+// case's drivechaind then refuses to start, because it fails closed rather
 // than adopt a listener it cannot authenticate against. The app ends up
 // talking to the stale process, whose auth cookie lives in a temp dir that has
 // already been removed, and every RPC fails with "local auth cookie is
@@ -74,7 +74,7 @@ func signalGroup(cmd *exec.Cmd, sig syscall.Signal) error {
 // ports the test is about to bind.
 func sweepPriorRunOrphans(t *testing.T) {
 	t.Helper()
-	for _, port := range []int{orchestratordPort, bitwindowdPort} {
+	for _, port := range []int{drivechaindPort, bitwindowdPort} {
 		out, err := exec.Command("lsof", "-ti", fmt.Sprintf("tcp:%d", port)).Output()
 		if err != nil {
 			continue // nothing listening, or no lsof — either way there is nothing to sweep

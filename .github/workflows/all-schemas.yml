@@ -48,15 +48,15 @@ jobs:
         working-directory: sidechain-orchestrator
         run: |
           set -euo pipefail
-          go build -o orchestratorctl ./cmd/orchestratorctl/
-          go build -o orchestratord ./cmd/orchestratord/
+          go build -o drivechain-cli ./cmd/drivechain-cli/
+          go build -o drivechaind ./cmd/drivechaind/
 
       - name: Start orchestrator daemon
         working-directory: sidechain-orchestrator
         run: |
           set -euo pipefail
           # Start daemon in background
-          ./orchestratord --datadir=/tmp/orchestrator-data &
+          ./drivechaind --datadir=/tmp/orchestrator-data &
           # Wait for daemon to be ready
           sleep 5
         env:
@@ -72,7 +72,7 @@ jobs:
           
           for sidechain in "${sidechains[@]}"; do
             echo "Downloading $sidechain binary..."
-            ./orchestratorctl download --wait --force-backend "$sidechain"
+            ./drivechain-cli download --wait --force-backend "$sidechain"
             
             echo "Contents of assets/bin:"
             ls -la /tmp/orchestrator-data/assets/bin/ || echo "No bin directory yet"

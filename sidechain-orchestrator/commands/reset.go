@@ -13,7 +13,7 @@ import (
 
 var resetCommand = &cli.Command{
 	Name:  "reset",
-	Usage: "Preview or run a data reset via orchestratord",
+	Usage: "Preview or run a data reset via drivechaind",
 	Subcommands: []*cli.Command{
 		resetPreviewCommand,
 		resetRunCommand,
@@ -314,7 +314,7 @@ var resetRunCommand = &cli.Command{
 		if err := ensureAnyResetCategory(cctx); err != nil {
 			return err
 		}
-		prompt := "this will delete data via orchestratord. proceed?"
+		prompt := "this will delete data via drivechaind. proceed?"
 		if cctx.Bool("wallets") {
 			prompt = "this will move WALLET files to wallet_backups/ and delete the rest. proceed?"
 		}

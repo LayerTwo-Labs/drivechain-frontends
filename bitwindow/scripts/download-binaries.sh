@@ -85,15 +85,15 @@ for target in "${targets[@]}"; do
 
     echo "Building embedded daemons (GOARCH=${goarch:-host}) -> *${sfx}${exe}"
     build_bitwindowd "$goarch" "$assets_dir/bitwindowd${sfx}${exe}"
-    build_orch_tool  "$goarch" orchestratord   "$assets_dir/orchestratord${sfx}${exe}"
-    build_orch_tool  "$goarch" orchestratorctl "$assets_dir/orchestratorctl${sfx}${exe}"
+    build_orch_tool  "$goarch" drivechaind   "$assets_dir/drivechaind${sfx}${exe}"
+    build_orch_tool  "$goarch" drivechain-cli "$assets_dir/drivechain-cli${sfx}${exe}"
     build_hwi_daemon "$goarch" "$assets_dir/hwi-daemon${sfx}${exe}"
 done
 
 # `just run` execs the daemons by their plain names, so stage host-arch copies.
 if [[ "$os" == "darwin" && "${STAGE_PLAIN_BINARIES:-}" == "1" ]]; then
     host_token="$(uname -m)"
-    for daemon in bitwindowd orchestratord orchestratorctl hwi-daemon; do
+    for daemon in bitwindowd drivechaind drivechain-cli hwi-daemon; do
         # macOS kills an in-place overwrite of a signed Mach-O, so rename instead.
         cp -f "$assets_dir/${daemon}-${host_token}" "$assets_dir/${daemon}.tmp"
         mv -f "$assets_dir/${daemon}.tmp" "$assets_dir/${daemon}"

@@ -1142,7 +1142,7 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
   @override
   void onWindowClose() async {
     // BinaryProvider.onShutdown relays to bitwindowd.Stop, which acks fast.
-    // orchestratord is detached and finishes its ~90s bitcoind drain in the
+    // drivechaind is detached and finishes its ~90s bitcoind drain in the
     // background. Window destroys in milliseconds — no force-kill path, no
     // shutdown page, no double-X handling needed.
     await GetIt.I.get<BinaryProvider>().onShutdown(

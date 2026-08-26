@@ -1929,8 +1929,8 @@ String _binaryTypeName(BinaryType type) {
       return 'Truthcoin';
     case BinaryType.BINARY_TYPE_COINSHIFT:
       return 'CoinShift';
-    case BinaryType.BINARY_TYPE_ORCHESTRATORD:
-      return 'Orchestratord';
+    case BinaryType.BINARY_TYPE_DRIVECHAIND:
+      return 'Drivechaind';
     case BinaryType.BINARY_TYPE_ZSIDED:
       return 'ZSided';
     case BinaryType.BINARY_TYPE_UNSPECIFIED:

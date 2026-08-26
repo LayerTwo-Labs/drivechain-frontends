@@ -36,7 +36,7 @@ class BackendStateProvider extends ChangeNotifier {
   Map<String, BinaryStatusMsg> binaries = {};
 
   /// False once the orchestrator misses [_failuresBeforeDisconnected] polls in
-  /// a row. It is the only orchestratord health the frontend holds, because no
+  /// a row. It is the only drivechaind health the frontend holds, because no
   /// RPCConnection maps to that binary.
   bool orchestratorReachable = true;
 

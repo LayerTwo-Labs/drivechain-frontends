@@ -37,7 +37,7 @@ import (
 var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "rpcserver",
-		Usage:   "orchestratord RPC address",
+		Usage:   "drivechaind RPC address",
 		Value:   "localhost:30400",
 		EnvVars: []string{"ORCHESTRATOR_RPCSERVER"},
 	},
@@ -94,7 +94,7 @@ func Commands() []*cli.Command {
 }
 
 // cookieDir returns the directory holding the local-auth cookie. Keep this
-// separate from --datadir: orchestratord writes .auth.cookie under
+// separate from --datadir: drivechaind writes .auth.cookie under
 // --bitwindow-dir, while --datadir controls binary/data-directory layout.
 func cookieDir(cctx *cli.Context) string {
 	if d := cctx.String("bitwindow-dir"); d != "" {
@@ -137,9 +137,9 @@ var downloadCommand = &cli.Command{
 			client := newClient(cctx)
 			resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
 			if err != nil {
-				return fmt.Errorf("usage: orchestratorctl download <binary>\n  (could not fetch binary list: %w)", err)
+				return fmt.Errorf("usage: drivechain download <binary>\n  (could not fetch binary list: %w)", err)
 			}
-			fmt.Println("usage: orchestratorctl download <binary>")
+			fmt.Println("usage: drivechain download <binary>")
 			fmt.Println()
 			fmt.Println("available binaries:")
 			for _, b := range resp.Msg.Binaries {
@@ -233,7 +233,7 @@ var startCommand = &cli.Command{
 		if withDeps {
 			// Fire-and-forget on the server side — boot proceeds in a
 			// background goroutine. Poll GetSyncStatus / ListBinaries via
-			// `orchestratorctl status` for progress.
+			// `drivechain status` for progress.
 			if _, err := client.StartWithL1(cctx.Context, connect.NewRequest(&pb.StartWithL1Request{
 				Target:     name,
 				TargetArgs: cctx.StringSlice("args"),
@@ -558,10 +558,10 @@ var doctorCommand = &cli.Command{
 
 		fmt.Println("\nget started:")
 		for _, name := range notDownloaded {
-			fmt.Printf("  orchestratorctl download %s\n", name)
+			fmt.Printf("  drivechain download %s\n", name)
 		}
 		for _, name := range notRunning {
-			fmt.Printf("  orchestratorctl start %s\n", name)
+			fmt.Printf("  drivechain start %s\n", name)
 		}
 
 		return nil
@@ -797,7 +797,7 @@ func runDownload(ctx context.Context, client rpc.OrchestratorServiceClient, name
 	}
 
 	if !wait {
-		fmt.Printf("downloading %s — poll status with `orchestratorctl status` for progress\n", name)
+		fmt.Printf("downloading %s — poll status with `drivechain status` for progress\n", name)
 		return nil
 	}
 
@@ -841,9 +841,9 @@ func printUsageWithBinaries(cctx *cli.Context, command string) error {
 	client := newClient(cctx)
 	resp, err := client.ListBinaries(cctx.Context, connect.NewRequest(&pb.ListBinariesRequest{}))
 	if err != nil {
-		return fmt.Errorf("usage: orchestratorctl %s <binary>", command)
+		return fmt.Errorf("usage: drivechain %s <binary>", command)
 	}
-	fmt.Printf("usage: orchestratorctl %s <binary>\n\navailable binaries:\n", command)
+	fmt.Printf("usage: drivechain %s <binary>\n\navailable binaries:\n", command)
 	for _, b := range resp.Msg.Binaries {
 		fmt.Printf("  %s\n", b.Name)
 	}
@@ -1097,7 +1097,7 @@ func createGenericSidechainCommand(sidechainName string, clientFactory ClientFac
 func createSidechainBalanceCommand(sidechainName string) *cli.Command {
 	return &cli.Command{
 		Name:  "balance",
-		Usage: "Show wallet balance through orchestratord",
+		Usage: "Show wallet balance through drivechaind",
 		Action: func(cctx *cli.Context) error {
 			return runSidechainBalance(cctx, sidechainName)
 		},

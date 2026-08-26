@@ -51,7 +51,7 @@ func main() {
 	start := time.Now()
 
 	// SIGTERM too, so `systemctl stop` / `docker stop` drain the server and
-	// relay Shutdown to orchestratord instead of orphaning it.
+	// relay Shutdown to drivechaind instead of orphaning it.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	if err := realMain(ctx, cancel); err != nil {
@@ -95,9 +95,9 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	bitwindowDir := conf.BitwindowDir()
 	dial.SetCookieDir(bitwindowDir)
 
-	// orchestratord owns bitcoin.conf: the network identity and RPC creds both
+	// drivechaind owns bitcoin.conf: the network identity and RPC creds both
 	// live there. Start it, then ask it for the network.
-	bootLogger := zerolog.New(bootLogWriter(orchestratordLogPath(conf, bitwindowDir), os.Stderr)).
+	bootLogger := zerolog.New(bootLogWriter(drivechaindLogPath(conf, bitwindowDir), os.Stderr)).
 		With().Timestamp().Logger()
 	bootCtx := bootLogger.WithContext(ctx)
 
@@ -107,20 +107,20 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	})
 	go clients.Run(ctx)
 
-	if _, err := startOrchestratord(bootCtx, conf); err != nil {
-		return fmt.Errorf("start orchestratord: %w", err)
+	if _, err := startDrivechaind(bootCtx, conf); err != nil {
+		return fmt.Errorf("start drivechaind: %w", err)
 	}
 
-	// Best-effort relay Shutdown to orchestratord on any bitwindowd exit path
+	// Best-effort relay Shutdown to drivechaind on any bitwindowd exit path
 	// (Ctrl-C, panic, etc.). The window-close flow goes through
 	// BitwindowdService.Stop which has already relayed by the time this
 	// fires — Shutdown is idempotent on the orchestrator side, so the double
-	// call is harmless. orchestratord is detached and survives bitwindowd's
+	// call is harmless. drivechaind is detached and survives bitwindowd's
 	// exit either way.
-	defer relayShutdownToOrchestratord(conf.OrchestratorAddr, bitwindowDir, bootLogger)
+	defer relayShutdownToDrivechaind(conf.OrchestratorAddr, bitwindowDir, bootLogger)
 
 	// bitcoin.conf is the source of truth, and reading it is one file read.
-	// Ask orchestratord only on a first run, where it still has to write the
+	// Ask drivechaind only on a first run, where it still has to write the
 	// file — a wait on its boot otherwise picks our datadir minutes late.
 	var ecashNetworkID string
 	network := ""
@@ -131,11 +131,11 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 		var err error
 		network, ecashNetworkID, err = waitForOrchestratorNetwork(bootCtx, conf.OrchestratorAddr, bitwindowDir, bootLogger)
 		if err != nil {
-			return fmt.Errorf("read network from orchestratord: %w (and from conf: %v)", err, confErr)
+			return fmt.Errorf("read network from drivechaind: %w (and from conf: %v)", err, confErr)
 		}
 	}
 
-	// Adopting a still-draining orchestratord (cancel its pending exit, await
+	// Adopting a still-draining drivechaind (cancel its pending exit, await
 	// in-flight stops) is owned by Flutter — see bootBitwindowBackend in
 	// bitwindow/lib/main.dart. That way the UI loads immediately and shows a
 	// "waiting for previous shutdown" status instead of blocking bitwindowd's
@@ -162,7 +162,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	log.Info().Msgf("logger initialized successfully with file %q", conf.LogPath)
 	log.Info().
 		Str("network", string(conf.BitcoinCoreNetwork)).
-		Msg("aligned bitwindowd to orchestratord network")
+		Msg("aligned bitwindowd to drivechaind network")
 
 	// Network alignment at startup. Subsequent network swaps are handled
 	// in-process via Server.Recycle — bitwindowd never exits across a swap.
@@ -379,21 +379,21 @@ func isNoisyStartupMessage(msg string) bool {
 	return false
 }
 
-// startOrchestratord starts the orchestrator daemon as a subprocess.
-// orchestratordLogPath keeps the child on the same file as bitwindowd, so
+// startDrivechaind starts the orchestrator daemon as a subprocess.
+// drivechaindLogPath keeps the child on the same file as bitwindowd, so
 // --log.path holds the whole merged stream.
-func orchestratordLogPath(conf config.Config, bitwindowDir string) string {
+func drivechaindLogPath(conf config.Config, bitwindowDir string) string {
 	if conf.LogPath != "" {
 		return conf.LogPath
 	}
 	return logfile.Path(bitwindowDir)
 }
 
-func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, error) {
+func startDrivechaind(ctx context.Context, conf config.Config) (*exec.Cmd, error) {
 	log := zerolog.Ctx(ctx)
 	bitwindowDir := conf.BitwindowDir()
 
-	// If a previous orchestratord is still draining, adopt it only after it
+	// If a previous drivechaind is still draining, adopt it only after it
 	// proves it knows the cookie. This avoids sending the bearer token to an
 	// arbitrary listener that managed to occupy the port.
 	adopted, err := existingOrchestratorAdoptable(conf.OrchestratorAddr, bitwindowDir)
@@ -401,32 +401,32 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 		return nil, err
 	}
 	if adopted {
-		log.Info().Str("addr", conf.OrchestratorAddr).Msg("orchestratord already running, adopting verified instance")
+		log.Info().Str("addr", conf.OrchestratorAddr).Msg("drivechaind already running, adopting verified instance")
 		return nil, nil
 	}
 
-	// Don't touch the cookie here: orchestratord overwrites it with a fresh
+	// Don't touch the cookie here: drivechaind overwrites it with a fresh
 	// token once it owns the listener. Deleting it from bitwindowd could yank
-	// the cookie out from under a still-live orchestratord we failed to adopt.
+	// the cookie out from under a still-live drivechaind we failed to adopt.
 
-	// Find the orchestratord binary next to our own binary.
+	// Find the drivechaind binary next to our own binary.
 	selfPath, err := os.Executable()
 	if err != nil {
 		return nil, fmt.Errorf("find self path: %w", err)
 	}
-	orchName := "orchestratord"
+	orchName := "drivechaind"
 	if runtime.GOOS == "windows" {
 		orchName += ".exe"
 	}
 	orchPath := filepath.Join(filepath.Dir(selfPath), orchName)
 	if _, err := os.Stat(orchPath); err != nil {
-		return nil, fmt.Errorf("orchestratord not found at %s: %w", orchPath, err)
+		return nil, fmt.Errorf("drivechaind not found at %s: %w", orchPath, err)
 	}
 
-	// orchestratord owns the bitcoin.conf — pick up network from there, not
+	// drivechaind owns the bitcoin.conf — pick up network from there, not
 	// from a CLI flag we'd have to keep aligned. conf.Datadir is the raw
 	// bitwindow base dir at this point (Finalize runs *after* we've queried
-	// orchestratord for the network).
+	// drivechaind for the network).
 	args := []string{
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
@@ -437,51 +437,51 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 		args = append(args, "--owner-pid", strconv.Itoa(conf.OwnerPID))
 	}
 
-	// Detached: orchestratord owns its own lifecycle and outlives bitwindowd.
+	// Detached: drivechaind owns its own lifecycle and outlives bitwindowd.
 	// On window close, bitwindowd relays a Shutdown RPC and exits immediately,
-	// while orchestratord keeps draining bitcoind for up to ~90s in the
-	// background. See plan: "Detach orchestratord + bitwindowd-mediated
+	// while drivechaind keeps draining bitcoind for up to ~90s in the
+	// background. See plan: "Detach drivechaind + bitwindowd-mediated
 	// shutdown with mid-shutdown recovery".
 	//
 	// - exec.Command (no Context): bitwindowd's ctx cancellation does NOT
-	//   propagate to orchestratord.
-	// - Setpgid: orchestratord runs in its own process group, so bitwindowd's
+	//   propagate to drivechaind.
+	// - Setpgid: drivechaind runs in its own process group, so bitwindowd's
 	//   exit doesn't deliver SIGHUP to it.
-	// - --logfile: orchestratord writes its zerolog stream to a file, since
+	// - --logfile: drivechaind writes its zerolog stream to a file, since
 	//   stdout/stderr become orphaned once bitwindowd exits.
 	// - Stdout/Stderr → log file too: catches anything not routed through
 	//   zerolog (panics, child-process spew). Bitwindowd's fd closes when the
-	//   defer below runs; orchestratord inherits an independent fd that
+	//   defer below runs; drivechaind inherits an independent fd that
 	//   survives.
-	// - watchOrchestratord: bitwindowd keeps the handle and reaps the child, so
+	// - watchDrivechaind: bitwindowd keeps the handle and reaps the child, so
 	//   an early exit gets a line in the log instead of a silent dead port.
-	orchLogPath := orchestratordLogPath(conf, bitwindowDir)
+	orchLogPath := drivechaindLogPath(conf, bitwindowDir)
 	// On a fresh install the bitwindow dir doesn't exist yet; opening the log
-	// would fail, orchestratord would never spawn, and the UI would poll a dead
+	// would fail, drivechaind would never spawn, and the UI would poll a dead
 	// port until timeout. Ensure the dir exists first.
 	if err := os.MkdirAll(bitwindowDir, 0o755); err != nil {
 		return nil, fmt.Errorf("create bitwindow dir %s: %w", bitwindowDir, err)
 	}
 	orchLogFile, err := os.OpenFile(orchLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		return nil, fmt.Errorf("open orchestratord log %s: %w", orchLogPath, err)
+		return nil, fmt.Errorf("open drivechaind log %s: %w", orchLogPath, err)
 	}
 	defer orchLogFile.Close() //nolint:errcheck — child has its own fd post-spawn
 
-	// Dev ergonomics: with ORCHESTRATORD_STDOUT=1, skip --logfile so orchestratord
+	// Dev ergonomics: with ORCHESTRATORD_STDOUT=1, skip --logfile so drivechaind
 	// logs to its stdout (zerolog's default), and tee that into bitwindowd's own
 	// stdout — which the Flutter ProcessManager already streams to the `just run`
 	// terminal. The file copy is kept too. Prod leaves this unset so the detached
-	// orchestratord keeps logging after bitwindowd's stdout is orphaned.
+	// drivechaind keeps logging after bitwindowd's stdout is orphaned.
 	orchToStdout := os.Getenv("ORCHESTRATORD_STDOUT") == "1" || os.Getenv("ORCHESTRATORD_STDOUT") == "true"
 	if !orchToStdout {
 		args = append(args, "--logfile", orchLogPath)
 	}
 
-	log.Info().Str("path", orchPath).Strs("args", args).Str("logfile", orchLogPath).Bool("stdout", orchToStdout).Msg("starting orchestratord (detached)")
+	log.Info().Str("path", orchPath).Strs("args", args).Str("logfile", orchLogPath).Bool("stdout", orchToStdout).Msg("starting drivechaind (detached)")
 
 	cmd := exec.Command(orchPath, args...)
-	configureOrchestratordSpawn(cmd)
+	configureDrivechaindSpawn(cmd)
 	if orchToStdout {
 		cmd.Stdout = io.MultiWriter(os.Stdout, orchLogFile)
 		cmd.Stderr = io.MultiWriter(os.Stderr, orchLogFile)
@@ -494,20 +494,20 @@ func startOrchestratord(ctx context.Context, conf config.Config) (*exec.Cmd, err
 	}
 
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("start orchestratord: %w", err)
+		return nil, fmt.Errorf("start drivechaind: %w", err)
 	}
 
-	log.Info().Int("pid", cmd.Process.Pid).Msg("orchestratord started")
+	log.Info().Int("pid", cmd.Process.Pid).Msg("drivechaind started")
 
-	go watchOrchestratord(cmd, log)
+	go watchDrivechaind(cmd, log)
 
 	return cmd, nil
 }
 
 // bootLogWriter sends the boot lines to console and to the shared log file.
-// bitwindowd spawns orchestratord before initLogger runs, so without this the
+// bitwindowd spawns drivechaind before initLogger runs, so without this the
 // one line that names a spawn failure reaches neither the file nor the user.
-// The handle stays open for the process lifetime, because watchOrchestratord
+// The handle stays open for the process lifetime, because watchDrivechaind
 // writes through it later.
 func bootLogWriter(path string, console io.Writer) io.Writer {
 	const timeFormat = time.DateTime + ".000"
@@ -526,9 +526,9 @@ func bootLogWriter(path string, console io.Writer) io.Writer {
 	})
 }
 
-// watchOrchestratord logs the exit of the child. bitwindowd serves on after
-// orchestratord dies, so the exit code is the one clue the log file holds.
-func watchOrchestratord(cmd *exec.Cmd, log *zerolog.Logger) {
+// watchDrivechaind logs the exit of the child. bitwindowd serves on after
+// drivechaind dies, so the exit code is the one clue the log file holds.
+func watchDrivechaind(cmd *exec.Cmd, log *zerolog.Logger) {
 	err := cmd.Wait()
 	code := -1
 	if cmd.ProcessState != nil {
@@ -537,7 +537,7 @@ func watchOrchestratord(cmd *exec.Cmd, log *zerolog.Logger) {
 	log.Error().Err(err).
 		Int("pid", cmd.Process.Pid).
 		Int("exit_code", code).
-		Msg("orchestratord exited, its RPC port stays dead until BitWindow restarts")
+		Msg("drivechaind exited, its RPC port stays dead until BitWindow restarts")
 }
 
 func existingOrchestratorAdoptable(addr, bitwindowDir string) (bool, error) {
@@ -633,14 +633,14 @@ func orchestratorHostPort(addr string) (string, error) {
 	return u.Host, nil
 }
 
-// waitForOrchestratorNetwork polls orchestratord for the current network.
-// orchestratord owns the bitcoin.conf — bitwindowd is just a consumer of
-// relayShutdownToOrchestratord fires the orchestratord Shutdown RPC on
-// bitwindowd exit. Best-effort: orchestratord acks immediately (the drain
+// waitForOrchestratorNetwork polls drivechaind for the current network.
+// drivechaind owns the bitcoin.conf — bitwindowd is just a consumer of
+// relayShutdownToDrivechaind fires the drivechaind Shutdown RPC on
+// bitwindowd exit. Best-effort: drivechaind acks immediately (the drain
 // runs in its own goroutine), and Shutdown is idempotent so a duplicate call
 // (Stop handler already relayed) is harmless. Short timeout so a dead/wedged
-// orchestratord doesn't keep bitwindowd hanging on shutdown.
-func relayShutdownToOrchestratord(addr, bitwindowDir string, log zerolog.Logger) {
+// drivechaind doesn't keep bitwindowd hanging on shutdown.
+func relayShutdownToDrivechaind(addr, bitwindowDir string, log zerolog.Logger) {
 	if addr == "" {
 		return
 	}
@@ -648,16 +648,16 @@ func relayShutdownToOrchestratord(addr, bitwindowDir string, log zerolog.Logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	// only_if_last: we cannot see a sidechain frontend attached straight to
-	// orchestratord, so let its own lease decide.
+	// drivechaind, so let its own lease decide.
 	if _, err := client.Shutdown(ctx, connect.NewRequest(&orchpb.ShutdownRequest{OnlyIfLast: true})); err != nil {
-		log.Warn().Err(err).Msg("relay Shutdown to orchestratord on exit (continuing)")
+		log.Warn().Err(err).Msg("relay Shutdown to drivechaind on exit (continuing)")
 		return
 	}
-	log.Info().Msg("relayed Shutdown to orchestratord on exit")
+	log.Info().Msg("relayed Shutdown to drivechaind on exit")
 }
 
-// that view of the world. Retries for ~15s while orchestratord boots.
-// waitForOrchestratorNetwork returns the network orchestratord serves and, for
+// that view of the world. Retries for ~15s while drivechaind boots.
+// waitForOrchestratorNetwork returns the network drivechaind serves and, for
 // eCash, the catalog id inside it. The id seeds the runtime identity: the eCash
 // rows share one network, so only the id tells two of them apart.
 func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, log zerolog.Logger) (string, string, error) {
@@ -672,13 +672,13 @@ func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, 
 		if err == nil {
 			network := resp.Msg.GetNetwork()
 			if network == "" {
-				return "", "", fmt.Errorf("orchestratord returned empty network")
+				return "", "", fmt.Errorf("drivechaind returned empty network")
 			}
-			log.Info().Str("network", network).Int("attempts", i+1).Msg("aligned to orchestratord network")
+			log.Info().Str("network", network).Int("attempts", i+1).Msg("aligned to drivechaind network")
 			return network, resp.Msg.GetEcashNetworkId(), nil
 		}
 		if i == 29 {
-			return "", "", fmt.Errorf("orchestratord did not become ready: %w", err)
+			return "", "", fmt.Errorf("drivechaind did not become ready: %w", err)
 		}
 		select {
 		case <-ctx.Done():
@@ -686,7 +686,7 @@ func waitForOrchestratorNetwork(ctx context.Context, addr, bitwindowDir string, 
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
-	return "", "", fmt.Errorf("orchestratord did not become ready in time")
+	return "", "", fmt.Errorf("drivechaind did not become ready in time")
 }
 
 // splitAddr parses a host:port flag value.

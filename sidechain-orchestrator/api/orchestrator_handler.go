@@ -328,11 +328,11 @@ func (h *Handler) ShutdownAll(ctx context.Context, req *connect.Request[pb.Shutd
 	return nil
 }
 
-// Shutdown is the detached-daemon entry point — kicks the orchestratord into
+// Shutdown is the detached-daemon entry point — kicks the drivechaind into
 // its drain-and-exit goroutine and returns immediately. See shutdown.go.
 // CancelShutdownExit / AwaitIdle / GetShutdownState are intentionally not
 // exposed: when a fresh bitwindowd calls StartWithL1 mid-drain,
-// orchestratord adopts the in-flight drain itself (flips will-exit + awaits)
+// drivechaind adopts the in-flight drain itself (flips will-exit + awaits)
 // before booting the new stack. No caller-side glue.
 func (h *Handler) Shutdown(_ context.Context, req *connect.Request[pb.ShutdownRequest]) (*connect.Response[pb.ShutdownResponse], error) {
 	if req.Msg.GetOnlyIfLast() {
@@ -571,8 +571,8 @@ func binaryTypeFromName(name string) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_LIQUID_SIGNET
 	case "grpcurl":
 		return pb.BinaryType_BINARY_TYPE_GRPCURL
-	case "orchestratord":
-		return pb.BinaryType_BINARY_TYPE_ORCHESTRATORD
+	case "drivechaind":
+		return pb.BinaryType_BINARY_TYPE_DRIVECHAIND
 	case "zsided":
 		return pb.BinaryType_BINARY_TYPE_ZSIDED
 	default:
@@ -782,8 +782,8 @@ func resetBinaryFromType(t pb.BinaryType) orchestrator.ResetBinary {
 		return orchestrator.ResetBinaryCoinShift
 	case pb.BinaryType_BINARY_TYPE_GRPCURL:
 		return orchestrator.ResetBinaryGRPCurl
-	case pb.BinaryType_BINARY_TYPE_ORCHESTRATORD:
-		return orchestrator.ResetBinaryOrchestratord
+	case pb.BinaryType_BINARY_TYPE_DRIVECHAIND:
+		return orchestrator.ResetBinaryDrivechaind
 	case pb.BinaryType_BINARY_TYPE_ZSIDED:
 		return orchestrator.ResetBinaryZSided
 	case pb.BinaryType_BINARY_TYPE_INQUISITION:
@@ -817,8 +817,8 @@ func binaryTypeFromResetBinary(binary orchestrator.ResetBinary) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_COINSHIFT
 	case orchestrator.ResetBinaryGRPCurl:
 		return pb.BinaryType_BINARY_TYPE_GRPCURL
-	case orchestrator.ResetBinaryOrchestratord:
-		return pb.BinaryType_BINARY_TYPE_ORCHESTRATORD
+	case orchestrator.ResetBinaryDrivechaind:
+		return pb.BinaryType_BINARY_TYPE_DRIVECHAIND
 	case orchestrator.ResetBinaryZSided:
 		return pb.BinaryType_BINARY_TYPE_ZSIDED
 	case orchestrator.ResetBinaryInquisition:
@@ -1079,7 +1079,7 @@ func (h *Handler) callCoreRPC(ctx context.Context, method, paramsJSON, wallet st
 	if paramsJSON == "" {
 		paramsJSON = "[]"
 	}
-	body := []byte(fmt.Sprintf(`{"jsonrpc":"1.0","id":"orchestratord","method":%q,"params":%s}`, method, paramsJSON))
+	body := []byte(fmt.Sprintf(`{"jsonrpc":"1.0","id":"drivechaind","method":%q,"params":%s}`, method, paramsJSON))
 
 	url := fmt.Sprintf("http://localhost:%d", port)
 	if wallet != "" {

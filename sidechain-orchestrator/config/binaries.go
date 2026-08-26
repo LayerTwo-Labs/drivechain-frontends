@@ -629,7 +629,7 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"miner.log", "server.log"}, log)...)
 		rootDir := BitWindowDirs.RootDir()
 		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
-			logfile.Name, "debug.log", "orchestratord.log",
+			logfile.Name, "debug.log", "drivechaind.log",
 		}, log)...)
 
 	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":

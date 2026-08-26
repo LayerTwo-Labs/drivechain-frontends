@@ -1,4 +1,4 @@
-// Package localauth is a bitcoin-cookie-style local auth shared by orchestratord
+// Package localauth is a bitcoin-cookie-style local auth shared by drivechaind
 // and bitwindowd. The orchestrator writes a random token to
 // <bitwindowDir>/.auth.cookie (0600) — beside wallet.json — and every RPC must
 // carry it. A process that can read that file (same OS user) is trusted; a

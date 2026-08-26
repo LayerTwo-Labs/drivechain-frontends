@@ -61,10 +61,15 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
 
+// version is the release this binary comes from. The release build sets it with
+// -ldflags "-X main.version=...".
+var version = "dev"
+
 func main() {
 	app := &cli.App{
-		Name:  "orchestratord",
-		Usage: "Sidechain orchestrator daemon",
+		Name:    "drivechaind",
+		Usage:   "Sidechain orchestrator daemon",
+		Version: version,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "datadir",
@@ -171,7 +176,7 @@ func run(cctx *cli.Context) error {
 		Str("datadir", dataDir).
 		Str("network", network).
 		Str("rpclisten", listenAddr).
-		Msg("starting orchestratord")
+		Msg("starting drivechaind")
 
 	if err := wallet.SanityCheck(); err != nil {
 		return fmt.Errorf("random source sanity check failed, refusing to start: %w", err)
@@ -185,7 +190,7 @@ func run(cctx *cli.Context) error {
 		if localAuth {
 			return fmt.Errorf("RPC address %s is already in use; refusing to adopt an existing listener while local auth is enabled", listenAddr)
 		}
-		log.Info().Str("addr", listenAddr).Msg("orchestratord already running on this port; exiting (will be adopted by caller)")
+		log.Info().Str("addr", listenAddr).Msg("drivechaind already running on this port; exiting (will be adopted by caller)")
 		return nil
 	}
 
@@ -281,7 +286,7 @@ func run(cctx *cli.Context) error {
 	mux := http.NewServeMux()
 	if localAuth {
 		// Allows a relaunched bitwindowd to verify that an occupied RPC port is
-		// the previous orchestratord without sending the bearer cookie to an
+		// the previous drivechaind without sending the bearer cookie to an
 		// arbitrary listener.
 		mux.HandleFunc("/local-auth/challenge", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodGet {
@@ -319,7 +324,7 @@ func run(cctx *cli.Context) error {
 	multisigLoungeHandler.SetService(walletSvc)
 	multisigLoungeHandler.SetCoreCaller(handler.RawCoreCall)
 
-	// bitwindow-bitcoin.conf wins over the --network flag, which orchestratord
+	// bitwindow-bitcoin.conf wins over the --network flag, which drivechaind
 	// is usually launched without.
 	currentNetwork := func() string {
 		if n := orch.CurrentNetwork(); n != "" {
@@ -364,7 +369,7 @@ func run(cctx *cli.Context) error {
 
 	if enforcerCfg, ok := orch.Configs()["enforcer"]; ok {
 		// Enforcer passthrough: sidechain apps funnel all enforcer traffic
-		// through orchestratord instead of dialing the enforcer directly.
+		// through drivechaind instead of dialing the enforcer directly.
 		enforcerBridge, err := enforcerproxy.Connect(enforcerCfg.RPCURL())
 		if err != nil {
 			return fmt.Errorf("enforcer bridge: %w", err)
@@ -702,7 +707,7 @@ func run(cctx *cli.Context) error {
 	_ = orch.AwaitShutdownIdle(context.Background())
 	os.Exit(0)
 
-	log.Info().Msg("orchestratord shutdown complete")
+	log.Info().Msg("drivechaind shutdown complete")
 	return nil
 }
 

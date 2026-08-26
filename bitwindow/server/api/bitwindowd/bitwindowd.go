@@ -145,7 +145,7 @@ func (s *Server) observeTip(height uint32, hash string) (changed bool) {
 // per-network runtime in-process — bitwindowd never exits.
 //
 // Sequence:
-//  1. Forward to orchestratord's SetBitcoinConfigNetwork. orchestratord
+//  1. Forward to drivechaind's SetBitcoinConfigNetwork. drivechaind
 //     rewrites bitcoin.conf, restarts bitcoind on the new chain, and
 //     atomically rebuilds its hosted bitcoin proxy. All `service.Service`
 //     reconnect loops (bitcoind, enforcer, wallet) reconverge automatically.
@@ -210,16 +210,16 @@ func isKnownNetwork(n config.Network) bool {
 
 // Stop implements drivechainv1connect.DrivechainServiceHandler.
 // Stop is the window-close hook + clean-exit entry point. Relays to
-// orchestratord.Shutdown — orchestratord is detached and drains
+// drivechaind.Shutdown — drivechaind is detached and drains
 // bitcoind/enforcer in the background over ~90s — then triggers bitwindowd's
 // own teardown. Acks the frontend in milliseconds so the window can
 // windowManager.destroy() immediately. With skip_downstream=true the
-// orchestratord stack stays running (only bitwindowd dies).
+// drivechaind stack stays running (only bitwindowd dies).
 func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdServiceStopRequest]) (*connect.Response[emptypb.Empty], error) {
 	log := zerolog.Ctx(ctx)
 
 	if req.Msg.SkipDownstream {
-		log.Info().Msg("skip_downstream=true, bitwindowd-only exit (orchestratord stays running)")
+		log.Info().Msg("skip_downstream=true, bitwindowd-only exit (drivechaind stays running)")
 	} else if s.config.OrchestratorAddr != "" {
 		client := orchrpc.NewOrchestratorServiceClient(
 			http.DefaultClient,
@@ -228,15 +228,15 @@ func (s *Server) Stop(ctx context.Context, req *connect.Request[pb.BitwindowdSer
 			connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
 		)
 		// Fresh context — the inbound ctx may be cancelled by the frontend
-		// the moment we return. Short timeout because orchestratord acks
+		// the moment we return. Short timeout because drivechaind acks
 		// immediately (the drain runs in its own goroutine).
 		rpcCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		// only_if_last: a sidechain frontend may hold orchestratord directly.
+		// only_if_last: a sidechain frontend may hold drivechaind directly.
 		if _, err := client.Shutdown(rpcCtx, connect.NewRequest(&orchpb.ShutdownRequest{OnlyIfLast: true})); err != nil {
-			log.Warn().Err(err).Msg("relay Shutdown to orchestratord (continuing with bitwindowd teardown)")
+			log.Warn().Err(err).Msg("relay Shutdown to drivechaind (continuing with bitwindowd teardown)")
 		} else {
-			log.Info().Msg("orchestratord Shutdown relayed; it will drain children in the background")
+			log.Info().Msg("drivechaind Shutdown relayed; it will drain children in the background")
 		}
 	}
 
@@ -1164,7 +1164,7 @@ func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.E
 	}
 
 	// cpuminer talks raw bitcoind JSON-RPC; pull the live creds from
-	// orchestratord so we always match whatever bitcoind is running with.
+	// drivechaind so we always match whatever bitcoind is running with.
 	confClient := orchrpc.NewBitcoinConfServiceClient(
 		http.DefaultClient,
 		s.config.OrchestratorAddr,

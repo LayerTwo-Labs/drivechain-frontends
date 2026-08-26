@@ -194,14 +194,14 @@ func TestGather_NeverWipesBundledBinarySoftware(t *testing.T) {
 
 	files, err := o.GatherFilesToDelete([]GatherSpec{
 		{Binary: ResetBinaryBitwindowd, Categories: []ResetCategory{catSoftware}},
-		{Binary: ResetBinaryOrchestratord, Categories: []ResetCategory{catSoftware}},
+		{Binary: ResetBinaryDrivechaind, Categories: []ResetCategory{catSoftware}},
 		{Binary: ResetBinaryBitcoind, Categories: []ResetCategory{catSoftware}},
 	})
 	require.NoError(t, err)
 
 	for _, f := range files {
 		assert.NotEqualf(t, ResetBinaryBitwindowd, f.Binary, "bitwindowd software must never be gathered: %q", f.Path)
-		assert.NotEqualf(t, ResetBinaryOrchestratord, f.Binary, "orchestratord software must never be gathered: %q", f.Path)
+		assert.NotEqualf(t, ResetBinaryDrivechaind, f.Binary, "drivechaind software must never be gathered: %q", f.Path)
 	}
 	assert.NotEmpty(t, files, "bitcoind software should still be gathered")
 }
@@ -636,7 +636,7 @@ func TestResetOrdersCoverEveryDeletableBinary(t *testing.T) {
 	}
 }
 
-// A log reset runs while the frontend and orchestratord hold the shared file
+// A log reset runs while the frontend and drivechaind hold the shared file
 // open. Emptying it keeps their handles pointed at the file the user reads.
 func TestRemoveOrTruncateEmptiesTheSharedLog(t *testing.T) {
 	dir := t.TempDir()

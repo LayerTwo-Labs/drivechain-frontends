@@ -1,5 +1,5 @@
 // Package enforcerproxy forwards enforcer traffic for the daemons that
-// front it (orchestratord for sidechain apps, bitwindowd for bitwindow):
+// front it (drivechaind for sidechain apps, bitwindowd for bitwindow):
 // Connect/gRPC service calls and the JSON-RPC mining endpoint. Frontends
 // only ever dial their local daemon.
 package enforcerproxy

@@ -26,7 +26,7 @@ class EnforcerLive extends EnforcerRPC {
   String get _baseUrl => 'http://$_host:$_port';
 
   /// [host]/[port] point at the app's local daemon, which bridges all
-  /// enforcer traffic: bitwindowd in bitwindow, orchestratord in sidechain
+  /// enforcer traffic: bitwindowd in bitwindow, drivechaind in sidechain
   /// apps. The enforcer itself is never dialed directly.
   EnforcerLive({required this._host, required this._port}) : super(binaryType: BinaryType.BINARY_TYPE_ENFORCER) {
     _initializeConnection();

@@ -56,7 +56,7 @@ func TestFinalizeLeavesOtherNetworksAlone(t *testing.T) {
 	require.DirExists(t, legacy)
 }
 
-// The frontend, bitwindowd, and orchestratord all append to one file. It sits
+// The frontend, bitwindowd, and drivechaind all append to one file. It sits
 // in the root dir, so a network swap does not move it.
 func TestFinalizePutsTheLogInTheSharedFile(t *testing.T) {
 	base := t.TempDir()

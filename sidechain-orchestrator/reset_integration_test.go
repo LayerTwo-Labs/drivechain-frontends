@@ -351,7 +351,7 @@ func TestGetLogPathsFindsEveryBitwindowLog(t *testing.T) {
 	for _, p := range []string{
 		filepath.Join(root, logfile.Name),
 		filepath.Join(root, "debug.log"),
-		filepath.Join(root, "orchestratord.log"),
+		filepath.Join(root, "drivechaind.log"),
 		filepath.Join(networkDir, "miner.log"),
 		filepath.Join(networkDir, "server.log"),
 	} {
@@ -366,7 +366,7 @@ func TestGetLogPathsFindsEveryBitwindowLog(t *testing.T) {
 	for _, want := range []string{
 		filepath.Join(root, logfile.Name),
 		filepath.Join(root, "debug.log"),
-		filepath.Join(root, "orchestratord.log"),
+		filepath.Join(root, "drivechaind.log"),
 		filepath.Join(networkDir, "miner.log"),
 		filepath.Join(networkDir, "server.log"),
 	} {

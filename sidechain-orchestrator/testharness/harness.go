@@ -1,7 +1,7 @@
 // Package testharness provides a reusable integration test harness for the
 // wallet stack. It spins up real regtest Bitcoin Core nodes and real
-// orchestratord subprocesses so tests exercise the full pipeline: gRPC
-// client → orchestratord → Bitcoin Core.
+// drivechaind subprocesses so tests exercise the full pipeline: gRPC
+// client → drivechaind → Bitcoin Core.
 package testharness
 
 import (
@@ -23,13 +23,13 @@ type Harness struct {
 }
 
 // New creates a Harness with nodeCount fully-wired nodes.
-// Each node gets its own bitcoind subprocess, orchestratord subprocess, and
+// Each node gets its own bitcoind subprocess, drivechaind subprocess, and
 // gRPC client. Tests interact exclusively via the gRPC client.
 //
 // The harness:
-// 1. Builds orchestratord from source (ensures we test current code)
+// 1. Builds drivechaind from source (ensures we test current code)
 // 2. Finds/downloads bitcoind via orchestrator download logic
-// 3. Starts N independent (bitcoind + orchestratord) pairs
+// 3. Starts N independent (bitcoind + drivechaind) pairs
 func New(t *testing.T, nodeCount int) *Harness {
 	t.Helper()
 
@@ -39,8 +39,8 @@ func New(t *testing.T, nodeCount int) *Harness {
 	// Find bitcoind via orchestrator download logic.
 	bitcoindBin := findBitcoind(t, log)
 
-	// Build orchestratord from source.
-	orchBin := buildOrchestratord(t, rootDir, log)
+	// Build drivechaind from source.
+	orchBin := buildDrivechaind(t, rootDir, log)
 
 	h := &Harness{
 		Datadir: rootDir,
@@ -66,30 +66,30 @@ func (h *Harness) Close() {
 	}
 }
 
-// buildOrchestratord compiles the orchestratord binary from source.
-func buildOrchestratord(t *testing.T, rootDir string, log zerolog.Logger) string {
+// buildDrivechaind compiles the drivechaind binary from source.
+func buildDrivechaind(t *testing.T, rootDir string, log zerolog.Logger) string {
 	t.Helper()
 
 	binPath := filepath.Join(rootDir, orchBinaryName())
 
-	// Find the orchestratord source directory relative to the testharness package.
-	// We're at sidechain-orchestrator/testharness/, cmd is at sidechain-orchestrator/cmd/orchestratord/
-	orchSrcDir := filepath.Join(srcDir(), "cmd", "orchestratord")
+	// Find the drivechaind source directory relative to the testharness package.
+	// We're at sidechain-orchestrator/testharness/, cmd is at sidechain-orchestrator/cmd/drivechaind/
+	orchSrcDir := filepath.Join(srcDir(), "cmd", "drivechaind")
 	if _, err := os.Stat(orchSrcDir); err != nil {
-		t.Fatalf("testharness: orchestratord source not found at %s: %v", orchSrcDir, err)
+		t.Fatalf("testharness: drivechaind source not found at %s: %v", orchSrcDir, err)
 	}
 
-	log.Info().Str("src", orchSrcDir).Str("out", binPath).Msg("building orchestratord")
+	log.Info().Str("src", orchSrcDir).Str("out", binPath).Msg("building drivechaind")
 
 	cmd := exec.Command("go", "build", "-o", binPath, ".")
 	cmd.Dir = orchSrcDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("testharness: build orchestratord: %v", err)
+		t.Fatalf("testharness: build drivechaind: %v", err)
 	}
 
-	log.Info().Str("path", binPath).Msg("orchestratord built")
+	log.Info().Str("path", binPath).Msg("drivechaind built")
 	return binPath
 }
 

@@ -16,7 +16,7 @@ bool orchestratorLogsToStdout(Map<String, String> env) {
 
 /// Prints the lines that another process appends to the shared log file.
 ///
-/// orchestratord runs detached, so its output reaches no pipe the frontend
+/// drivechaind runs detached, so its output reaches no pipe the frontend
 /// owns. A pipe would also kill it: the child outlives bitwindowd, and the
 /// first write after the reader goes away ends the process.
 ///

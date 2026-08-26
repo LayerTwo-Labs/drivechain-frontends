@@ -102,7 +102,7 @@ class BitwindowRPCLive extends BitwindowRPC {
   @override
   Future<List<String>> binaryArgs() async {
     final bitwBinary = GetIt.I.get<BinaryProvider>().binaries.where((b) => b.name == binary.name).first;
-    // bitwindowd queries orchestratord at startup for network + bitcoind
+    // bitwindowd queries drivechaind at startup for network + bitcoind
     // creds. It only needs our pid, to know when we are gone.
     return ['--owner-pid=$pid', ...bitwBinary.extraBootArgs];
   }
@@ -415,7 +415,7 @@ abstract class BitwindowAPI {
 
   Future<GetNetworkStatsResponse> getNetworkStats();
 
-  /// Swap bitcoind network. bitwindowd forwards to orchestratord and exits
+  /// Swap bitcoind network. bitwindowd forwards to drivechaind and exits
   /// for a launcher restart so the DB rescopes to the new network folder.
   Future<void> updateNetwork(String network, {String dataDir, String networkId});
 }
@@ -2353,7 +2353,7 @@ extension StringExtension on String {
   }
 }
 
-/// Routes a raw bitcoind RPC through orchestratord's CoreRawCall passthrough.
+/// Routes a raw bitcoind RPC through drivechaind's CoreRawCall passthrough.
 /// Use this when btc-buf doesn't type the method (finalizepsbt,
 /// descriptorprocesspsbt, decodepsbt, getdescriptorinfo, listwallets, …).
 /// Encodes [params] as a JSON array on the way in; decodes the JSON result

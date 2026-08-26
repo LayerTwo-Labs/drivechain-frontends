@@ -28,7 +28,7 @@ HttpClient unaryHttpClient() {
 /// PING config:
 /// - `pingInterval: 20s` keeps the server's `ReadIdleTimeout: 30s` from
 ///   firing without flooding it. Earlier we ran 10s with idle-pings on,
-///   which caused both bitwindowd and orchestratord to tear streams down
+///   which caused both bitwindowd and drivechaind to tear streams down
 ///   every ~15s with HTTP/2 PROTOCOL_ERROR / GOAWAY (CONNECT_ERROR=10) —
 ///   server-side flood-protection mistook the steady ping cadence on
 ///   otherwise-quiet streams for misbehavior.

@@ -1802,7 +1802,7 @@ class _DepositModalState extends State<DepositModal> {
     }
 
     // Get the RPC for this sidechain type
-    // Thunder goes through orchestratord, so no direct SidechainRPC available here
+    // Thunder goes through drivechaind, so no direct SidechainRPC available here
     final rpc = switch (sidechain) {
       Truthcoin() => GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null,
       Photon() => GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null,

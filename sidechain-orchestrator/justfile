@@ -1,9 +1,9 @@
 build:
-    go build -o ./bin/orchestratord ./cmd/orchestratord
-    go build -o ./bin/orchestratorctl ./cmd/orchestratorctl
+    go build -o ./bin/drivechaind ./cmd/drivechaind
+    go build -o ./bin/drivechain-cli ./cmd/drivechain-cli
 
 run *args:
-    go run -v ./cmd/orchestratord {{args}}
+    go run -v ./cmd/drivechaind {{args}}
 
 test *args:
     go test -v ./... {{args}}

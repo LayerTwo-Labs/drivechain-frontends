@@ -1,7 +1,7 @@
 name: BitWindow E2E
 
 # Drives `just run` on Linux, macOS, and Windows and asserts that
-# bitwindowd + orchestratord boot, run, shut down, and survive a restart.
+# bitwindowd + drivechaind boot, run, shut down, and survive a restart.
 # Each test maps to one user-reported issue; they run independently so
 # a single platform regression lights up one clear signal.
 

@@ -7,10 +7,10 @@ import (
 	"syscall"
 )
 
-// configureOrchestratordSpawn detaches orchestratord from bitwindowd's
-// process group so console signals don't propagate. See startOrchestratord
+// configureDrivechaindSpawn detaches drivechaind from bitwindowd's
+// process group so console signals don't propagate. See startDrivechaind
 // in main.go for the rest of the detach setup.
-func configureOrchestratordSpawn(cmd *exec.Cmd) {
+func configureDrivechaindSpawn(cmd *exec.Cmd) {
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}

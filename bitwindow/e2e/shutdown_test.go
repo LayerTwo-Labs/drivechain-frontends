@@ -9,8 +9,8 @@ import (
 )
 
 // TestJustRunShutsDownDaemons covers Issue 2: closing the bitwindow window
-// should tear down bitwindowd and orchestratord. The reported symptoms are
-// that bitwindowd lingers on Mac+Linux and orchestratord specifically lingers
+// should tear down bitwindowd and drivechaind. The reported symptoms are
+// that bitwindowd lingers on Mac+Linux and drivechaind specifically lingers
 // on Linux, so we assert OS-level process death rather than Flutter-side
 // state.
 func TestJustRunShutsDownDaemons(t *testing.T) {
@@ -18,7 +18,7 @@ func TestJustRunShutsDownDaemons(t *testing.T) {
 
 	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
-	const shutdownDeadline = 3 * time.Minute // orchestratord finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s
+	const shutdownDeadline = 3 * time.Minute // drivechaind finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s
 	const shutdownPoll = 500 * time.Millisecond
 
 	t.Logf("Issue 2 / shutdown: launching `just run` on %s", runtime.GOOS)
@@ -34,13 +34,13 @@ func TestJustRunShutsDownDaemons(t *testing.T) {
 	waitUntil(t, bootDeadline, bootPoll, "bitwindowd did not start", func() bool {
 		return len(processPIDs(t, bitwindowdName)) > 0
 	})
-	waitUntil(t, bootDeadline, bootPoll, "orchestratord did not start", func() bool {
-		return len(processPIDs(t, orchestratordName)) > 0
+	waitUntil(t, bootDeadline, bootPoll, "drivechaind did not start", func() bool {
+		return len(processPIDs(t, drivechaindName)) > 0
 	})
 	bitwindowdBefore := processPIDs(t, bitwindowdName)
-	orchestratordBefore := processPIDs(t, orchestratordName)
-	t.Logf("booted: bitwindowd=%s orchestratord=%s",
-		prettyPIDs(bitwindowdBefore), prettyPIDs(orchestratordBefore))
+	drivechaindBefore := processPIDs(t, drivechaindName)
+	t.Logf("booted: bitwindowd=%s drivechaind=%s",
+		prettyPIDs(bitwindowdBefore), prettyPIDs(drivechaindBefore))
 
 	// Let the app settle so shutdown isn't racing against late init work.
 	time.Sleep(5 * time.Second)
@@ -63,15 +63,15 @@ func TestJustRunShutsDownDaemons(t *testing.T) {
 		t.Fatalf("bitwindowd lingered after shutdown: %s", prettyPIDs(pids))
 	}
 
-	// orchestratord must be gone. Linux was the user's specific report:
+	// drivechaind must be gone. Linux was the user's specific report:
 	// "The orchestrator also isn't shutting down on Linux".
-	waitUntil(t, shutdownDeadline, shutdownPoll, "orchestratord did not exit after shutdown", func() bool {
-		return len(processPIDs(t, orchestratordName)) == 0
+	waitUntil(t, shutdownDeadline, shutdownPoll, "drivechaind did not exit after shutdown", func() bool {
+		return len(processPIDs(t, drivechaindName)) == 0
 	})
-	if pids := processPIDs(t, orchestratordName); len(pids) > 0 {
+	if pids := processPIDs(t, drivechaindName); len(pids) > 0 {
 		run.dumpDiagnostics(t)
-		t.Fatalf("orchestratord lingered after shutdown: %s", prettyPIDs(pids))
+		t.Fatalf("drivechaind lingered after shutdown: %s", prettyPIDs(pids))
 	}
 
-	t.Log("shutdown test passed: bitwindowd and orchestratord both exited cleanly")
+	t.Log("shutdown test passed: bitwindowd and drivechaind both exited cleanly")
 }

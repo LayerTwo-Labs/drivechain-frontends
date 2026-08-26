@@ -49,9 +49,9 @@ Future<void> bootBackendManagedSidechain({
     final targetBinaryName = binaryTypeToJsonKey(binary);
 
     if (await _backendIsReady(orchestrator)) {
-      log.i('bootBackendManagedSidechain: orchestratord already ready');
-      // Cold-start funnels --binary=<target> into orchestratord's auto-boot
-      // hook (cmd/orchestratord/main.go:336), but a hot-start lands here and
+      log.i('bootBackendManagedSidechain: drivechaind already ready');
+      // Cold-start funnels --binary=<target> into drivechaind's auto-boot
+      // hook (cmd/drivechaind/main.go:336), but a hot-start lands here and
       // never tells anyone to bring the sidechain up. StartWithL1 on the Go
       // side is idempotent — bitcoind/enforcer get adopted via PID files and
       // the target sidechain is only spawned if it isn't already running —
@@ -60,7 +60,7 @@ Future<void> bootBackendManagedSidechain({
         try {
           // forceBackend: sidechain frontends always want the prod-download
           // binary for their own backend. Without this, a user who toggled
-          // "Use test sidechains" in Bitwindow would have orchestratord
+          // "Use test sidechains" in Bitwindow would have drivechaind
           // re-spawn another Flutter bundle here instead of the real node.
           await orchestrator.startWithL1(targetBinaryName, forceBackend: true);
         } catch (e) {
@@ -69,7 +69,7 @@ Future<void> bootBackendManagedSidechain({
       }());
     } else {
       // Seed the app-level "initializing" state so DaemonConnectionCard
-      // renders the spinner + startup log during the pre-orchestratord
+      // renders the spinner + startup log during the pre-drivechaind
       // phase of cold-boot rather than flashing "Not connected".
       // BackendStateProvider.startWatching() clears the flag once the
       // orchestrator's listBinaries poll starts reporting.
@@ -77,32 +77,32 @@ Future<void> bootBackendManagedSidechain({
         appRpc.initializingBinary = true;
         appRpc.connectionError = null;
         appRpc.markStateChanged();
-        binaryProvider.addStartupLogForBinary(appRpc.binaryType, 'Starting orchestratord...');
+        binaryProvider.addStartupLogForBinary(appRpc.binaryType, 'Starting drivechaind...');
       }
-      binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Starting orchestratord...');
+      binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_DRIVECHAIND, 'Starting drivechaind...');
 
-      // Pass --binary flag so orchestratord auto-boots the sidechain with deps.
+      // Pass --binary flag so drivechaind auto-boots the sidechain with deps.
       // --force-backend pairs with it so the auto-boot skips the frontend build
       // (see hot-start path above for the rationale).
-      final orchestratord = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_ORCHESTRATORD);
-      orchestratord.addBootArg('--binary=$targetBinaryName');
-      orchestratord.addBootArg('--force-backend');
+      final drivechaind = binaryProvider.binaries.firstWhere((b) => b.type == BinaryType.BINARY_TYPE_DRIVECHAIND);
+      drivechaind.addBootArg('--binary=$targetBinaryName');
+      drivechaind.addBootArg('--force-backend');
       // Detached from us, so it needs our pid to know when we are gone.
-      orchestratord.addBootArg('--owner-pid=$pid');
-      log.i('bootBackendManagedSidechain: starting orchestratord with --binary=$targetBinaryName --force-backend');
-      await binaryProvider.start(orchestratord);
+      drivechaind.addBootArg('--owner-pid=$pid');
+      log.i('bootBackendManagedSidechain: starting drivechaind with --binary=$targetBinaryName --force-backend');
+      await binaryProvider.start(drivechaind);
 
-      log.i('bootBackendManagedSidechain: waiting for orchestratord readiness');
+      log.i('bootBackendManagedSidechain: waiting for drivechaind readiness');
       if (appRpc != null) {
-        binaryProvider.addStartupLogForBinary(appRpc.binaryType, 'Waiting for orchestratord...');
+        binaryProvider.addStartupLogForBinary(appRpc.binaryType, 'Waiting for drivechaind...');
       }
-      binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_ORCHESTRATORD, 'Waiting for orchestratord...');
+      binaryProvider.addStartupLogForBinary(BinaryType.BINARY_TYPE_DRIVECHAIND, 'Waiting for drivechaind...');
       final ready = await _waitForBackendReady(orchestrator);
       if (!ready) {
-        throw StateError('orchestratord did not become ready after 15s');
+        throw StateError('drivechaind did not become ready after 15s');
       }
 
-      log.i('bootBackendManagedSidechain: orchestratord is ready');
+      log.i('bootBackendManagedSidechain: drivechaind is ready');
       // Leave clearing the flag to BackendStateProvider — it owns the
       // authoritative connection state once the listBinaries poll is up.
     }

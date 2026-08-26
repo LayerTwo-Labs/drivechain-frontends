@@ -8,7 +8,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 )
 
-// Internal orchestratord shutdown state. The wire format (GetShutdownState
+// Internal drivechaind shutdown state. The wire format (GetShutdownState
 // in orchestrator.proto) exposes this as two bools (draining, will_exit).
 const (
 	shutdownStateRunning      int32 = 0
@@ -38,7 +38,7 @@ func (o *Orchestrator) ClientLeaving() {
 	}
 }
 
-// BeginShutdown kicks off the orchestratord shutdown sequence. Idempotent:
+// BeginShutdown kicks off the drivechaind shutdown sequence. Idempotent:
 // subsequent calls while a drain is in flight are no-ops. Returns true iff
 // this call initiated a fresh drain.
 func (o *Orchestrator) BeginShutdown() bool {

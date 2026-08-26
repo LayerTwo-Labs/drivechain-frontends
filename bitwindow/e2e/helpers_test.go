@@ -1,7 +1,7 @@
 //go:build e2e
 
 // End-to-end tests that drive `just run` as a subprocess and verify the
-// daemons bitwindow manages (bitwindowd, orchestratord) come up, stay up,
+// daemons bitwindow manages (bitwindowd, drivechaind) come up, stay up,
 // and shut down cleanly on every supported OS.
 //
 // Run with: go test -tags e2e -v -timeout 20m ./bitwindow/e2e/...
@@ -28,13 +28,13 @@ import (
 )
 
 const (
-	bitwindowdName    = "bitwindowd"
-	orchestratordName = "orchestratord"
+	bitwindowdName  = "bitwindowd"
+	drivechaindName = "drivechaind"
 
-	bitwindowdPort    = 30301
-	orchestratordPort = 30400
+	bitwindowdPort  = 30301
+	drivechaindPort = 30400
 
-	// authCookieFile mirrors localauth.CookieFile: orchestratord writes a
+	// authCookieFile mirrors localauth.CookieFile: drivechaind writes a
 	// per-session bearer token here under the bitwindow data dir, and every
 	// RPC must carry it as `Authorization: Bearer <token>`. Kept as a literal
 	// so the e2e module stays dependency-free.
@@ -82,7 +82,7 @@ func startJustRun(t *testing.T, extraEnv map[string]string) *runHandle {
 }
 
 // Windows holds file handles on Dart-spawned detached daemons (bitwindowd,
-// orchestratord) past test end; t.TempDir's fatal RemoveAll races against
+// drivechaind) past test end; t.TempDir's fatal RemoveAll races against
 // that. Swallow the error — the test already passed or failed on its own.
 func makeTempDataDir(t *testing.T) string {
 	t.Helper()
@@ -119,7 +119,7 @@ func startJustRunIn(t *testing.T, dataDir string, extraEnv map[string]string) *r
 	cmd.Env = env
 
 	// Put the child in its own process group so we can signal the whole tree
-	// (just → bash → flutter run → bitwindow → bitwindowd → orchestratord).
+	// (just → bash → flutter run → bitwindow → bitwindowd → drivechaind).
 	applyProcessGroup(cmd)
 
 	stdoutPipe, err := cmd.StdoutPipe()
@@ -354,8 +354,8 @@ func (h *runHandle) dumpDiagnostics(t *testing.T) {
 		write("bitwindow-debug.log", string(data))
 	}
 
-	// orchestratord runs detached and writes its own zerolog stream here (see
-	// startOrchestratord's --logfile). Without it, boot-time failures like the
+	// drivechaind runs detached and writes its own zerolog stream here (see
+	// startDrivechaind's --logfile). Without it, boot-time failures like the
 	// auth cookie never appearing / RPC not responsive are invisible —
 	// bitwindowd's log only shows the client side.
 	if data, err := os.ReadFile(filepath.Join(h.dataDir, "bitwindow.log")); err == nil {
@@ -460,7 +460,7 @@ func connectCall(port int, procedure string, req any, cookieDir string) (json.Ra
 // the wallet is identifiable across runs even without bitcoind.
 func generateTestWallet(t *testing.T, cookieDir string) string {
 	t.Helper()
-	raw, err := connectCall(orchestratordPort,
+	raw, err := connectCall(drivechaindPort,
 		"walletmanager.v1.WalletManagerService/GenerateWallet",
 		map[string]string{
 			"name":            testWalletName,
@@ -481,11 +481,11 @@ func generateTestWallet(t *testing.T, cookieDir string) string {
 	return resp.WalletID
 }
 
-// walletStatus returns (has_wallet, active_wallet_id) from orchestratord's
+// walletStatus returns (has_wallet, active_wallet_id) from drivechaind's
 // GetWalletStatus. Pure-state RPC — doesn't depend on bitcoind being up.
 func walletStatus(t *testing.T, cookieDir string) (hasWallet bool, activeID string) {
 	t.Helper()
-	raw, err := connectCall(orchestratordPort,
+	raw, err := connectCall(drivechaindPort,
 		"walletmanager.v1.WalletManagerService/GetWalletStatus",
 		map[string]any{}, cookieDir)
 	if err != nil {
@@ -501,11 +501,11 @@ func walletStatus(t *testing.T, cookieDir string) (hasWallet bool, activeID stri
 	return resp.HasWallet, resp.ActiveWalletID
 }
 
-// listWalletIDs returns the wallet_ids stored on orchestratord. Pure state,
+// listWalletIDs returns the wallet_ids stored on drivechaind. Pure state,
 // doesn't depend on bitcoind.
 func listWalletIDs(t *testing.T, cookieDir string) []string {
 	t.Helper()
-	raw, err := connectCall(orchestratordPort,
+	raw, err := connectCall(drivechaindPort,
 		"walletmanager.v1.WalletManagerService/ListWallets",
 		map[string]any{}, cookieDir)
 	if err != nil {
@@ -535,12 +535,12 @@ func waitForPort(t *testing.T, port int, deadline time.Duration, label string) {
 }
 
 // waitForOrchestratorRPC polls ListBinaries (a cheap, always-available RPC)
-// until it returns 200 OK or deadline. This proves orchestratord is actually
+// until it returns 200 OK or deadline. This proves drivechaind is actually
 // serving RPCs, not merely holding a port.
 func waitForOrchestratorRPC(t *testing.T, deadline time.Duration, cookieDir string) {
 	t.Helper()
-	waitUntil(t, deadline, 1*time.Second, "orchestratord RPC not responsive", func() bool {
-		_, err := connectCall(orchestratordPort,
+	waitUntil(t, deadline, 1*time.Second, "drivechaind RPC not responsive", func() bool {
+		_, err := connectCall(drivechaindPort,
 			"orchestrator.v1.OrchestratorService/ListBinaries",
 			map[string]any{}, cookieDir)
 		return err == nil

@@ -34,15 +34,15 @@ void main() {
     await tail.start();
 
     await file.writeAsString(
-      '[orchestrator]  starting orchestratord\n[bitwindowd]    listening\n',
+      '[orchestrator]  starting drivechaind\n[bitwindowd]    listening\n',
       mode: FileMode.append,
     );
     await tail.readNow();
 
-    expect(printed, ['[orchestrator]  starting orchestratord']);
+    expect(printed, ['[orchestrator]  starting drivechaind']);
   });
 
-  // orchestratord writes the reason it refuses to start to its raw stderr,
+  // drivechaind writes the reason it refuses to start to its raw stderr,
   // before its logger exists. That line reaches the file with no tag.
   test('prints a line that carries no tag', () async {
     await file.writeAsString('');

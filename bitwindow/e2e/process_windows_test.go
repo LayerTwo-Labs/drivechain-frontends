@@ -79,7 +79,7 @@ func sweepPriorRunOrphans(t *testing.T) {
 	images := []string{
 		flutterAppProcessName() + ".exe",
 		"bitwindowd.exe",
-		"orchestratord.exe",
+		"drivechaind.exe",
 		"bitcoind.exe",
 		"bip300301_enforcer.exe",
 	}
