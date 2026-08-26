@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
@@ -1818,9 +1819,14 @@ func (o *Orchestrator) stopBinaryViaRPC(_ context.Context, name string) bool {
 		rpcErr = o.callSidechainStopRPC(cfg)
 	}
 
-	// Wait even if the ack failed — daemons close their RPC listener
-	// partway through shutdown, and re-signaling a flushing daemon can
-	// corrupt on-disk state.
+	// Any other error may follow a request that landed: bitcoind answers `stop`
+	// and then drops the connection while it flushes, and re-signaling it there
+	// can corrupt on-disk state. Wait that one out.
+	if unreachable(rpcErr) {
+		o.log.Info().Err(rpcErr).Str("binary", name).Msg("stop RPC never reached the daemon, signalling instead")
+		return false
+	}
+
 	if o.process.WaitForExit(name, gracefulKillTimeout) {
 		o.log.Info().Err(rpcErr).Str("binary", name).Msg("stopped via RPC")
 		return true
@@ -1830,10 +1836,29 @@ func (o *Orchestrator) stopBinaryViaRPC(_ context.Context, name string) bool {
 	return false
 }
 
+// errNoStopClient means the stop RPC had nothing to send the request with.
+var errNoStopClient = errors.New("no stop client")
+
+// unreachable reports whether the stop RPC never got to the daemon, so no
+// shutdown is under way and waiting for one buys nothing.
+func unreachable(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, errNoStopClient) {
+		return true
+	}
+	if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.EHOSTUNREACH) {
+		return true
+	}
+	var netErr *net.OpError
+	return errors.As(err, &netErr) && netErr.Op == "dial"
+}
+
 func (o *Orchestrator) callBitcoindStopRPC() error {
 	client, err := o.CoreStatusClient()
 	if err != nil {
-		return fmt.Errorf("bitcoind RPC stop: no core client: %w", err)
+		return fmt.Errorf("bitcoind RPC stop: %w: %w", errNoStopClient, err)
 	}
 	// Detached: a near-expired upstream ctx would force an unsafe fallback.
 	rpcCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -1851,7 +1876,7 @@ func (o *Orchestrator) callSidechainStopRPC(cfg BinaryConfig) error {
 func (o *Orchestrator) callEnforcerStopRPC() error {
 	cfg, ok := o.Configs()["enforcer"]
 	if !ok || cfg.Port == 0 {
-		return fmt.Errorf("enforcer RPC stop: no config")
+		return fmt.Errorf("enforcer RPC stop: %w: no config", errNoStopClient)
 	}
 	httpClient := &http.Client{
 		Transport: &http2.Transport{
