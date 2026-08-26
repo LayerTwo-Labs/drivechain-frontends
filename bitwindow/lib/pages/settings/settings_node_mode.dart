@@ -1,3 +1,4 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -45,6 +46,11 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
       return;
     }
 
+    // The side navigation stays live through the awaits below, so this page can
+    // go away mid-transition. The router outlives it, and a half-applied mode
+    // leaves full mode written with no directory and no daemons.
+    final router = context.router;
+
     final confirmed = await _confirm(next);
     if (!confirmed) {
       return;
@@ -56,13 +62,32 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
     });
     try {
       await _nodeMode.select(next);
+      // select() starts nothing while the network has no data directory, and
+      // the route guards never re-run for a page already on screen. So this
+      // toggle walks the same path the guard does.
+      if (next == wmpb.NodeMode.NODE_MODE_FULL) {
+        final ready = await ensureDataDirThenStartBackends(router);
+        if (!ready) {
+          // select() already wrote full mode, so a toggle left on here would
+          // read as full mode with every local daemon down.
+          await _nodeMode.select(wmpb.NodeMode.NODE_MODE_LIGHT);
+          _showError('Full mode stores the chain on disk, so it needs a data directory.');
+        }
+      }
     } catch (e) {
-      setState(() => _error = '$e');
+      _showError('$e');
     } finally {
       if (mounted) {
         setState(() => _switching = false);
       }
     }
+  }
+
+  void _showError(String message) {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _error = message);
   }
 
   /// True when the active wallet reads its chain from the local node.
