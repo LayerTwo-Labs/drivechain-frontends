@@ -2,29 +2,15 @@
 
 set -e
 
-# Same name/icon for every variant (default-network-only variants, no rebrand).
+# Same name/icon for every build.
 app_name=BitWindow
 
-# BITWINDOW_VARIANT selects the build flavor: "standard" (default) or "forknet".
-# The forknet variant ships an identical app that simply defaults to ForkNet and
-# self-updates from its own appcast feed. Everything below is the only build-time
-# difference between the two.
+# BITWINDOW_VARIANT selects the build flavor. Only "standard" ships today: the
+# default network lives in the orchestrator, and every build reads that one
+# value. A variant reappears the day two builds must default to two networks.
 : "${BITWINDOW_VARIANT:=standard}"
 
-if [ "$BITWINDOW_VARIANT" = "forknet" ]; then
-    # Flutter compile-time defines (consumed via --dart-define-from-file).
-    {
-        echo "BITWINDOW_NETWORK=forknet"
-        echo "BITWINDOW_APPCAST_URL=https://releases.drivechain.info/appcast-bitwindow-forknet.xml"
-    } > build-vars.env
-    # Picked up by download-binaries.sh to embed the default network into every
-    # orchestrator tool (-ldflags -X config.DefaultNetwork). This is the
-    # authoritative lever — drivechaind owns the first-run network; Flutter
-    # follows it.
-    export BITWINDOW_DEFAULT_NETWORK=forknet
-else
-    echo "" > build-vars.env
-fi
+echo "" > build-vars.env
 
 # Export so the parent build script (and the binary build it spawns) see them.
 export app_name BITWINDOW_VARIANT
