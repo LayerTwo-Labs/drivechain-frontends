@@ -28,11 +28,15 @@ func chmod(path string) error {
 	return os.Chmod(path, 0o755)
 }
 
-// isPidAlive checks if a process with the given PID is alive.
-// Dart: isPidAlive (L91-101) — uses exitCode == 0
+// isPidAlive checks if a process with the given PID is alive. A zombie still
+// answers `ps -p`, so the state column decides.
 func isPidAlive(pid int) bool {
-	err := exec.Command("ps", "-p", strconv.Itoa(pid)).Run()
-	return err == nil
+	out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "stat=").Output()
+	if err != nil {
+		return false
+	}
+	stat := strings.TrimSpace(string(out))
+	return stat != "" && !strings.HasPrefix(stat, "Z")
 }
 
 // getProcessName returns the executable name for a given PID.
