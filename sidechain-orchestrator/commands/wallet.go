@@ -160,7 +160,7 @@ var walletRestoreCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
-			return fmt.Errorf("usage: drivechain wallet restore-wallet <backup-id> [--password PASSWORD]")
+			return fmt.Errorf("usage: drivechain-cli wallet restore-wallet <backup-id> [--password PASSWORD]")
 		}
 		backupID := cctx.Args().First()
 		if err := confirmOrAbort(cctx, "restore wallet backup? current wallet files will be moved to wallet_backups/ first"); err != nil {
@@ -411,7 +411,7 @@ var walletSetActiveCommand = &cli.Command{
 	ArgsUsage: "<wallet-id>",
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
-			return fmt.Errorf("usage: drivechain wallet setactive <wallet-id>")
+			return fmt.Errorf("usage: drivechain-cli wallet setactive <wallet-id>")
 		}
 
 		client := newWalletClient(cctx)
@@ -454,7 +454,7 @@ var walletDeleteCommand = &cli.Command{
 		}
 
 		if cctx.NArg() < 1 {
-			return fmt.Errorf("usage: drivechain wallet delete <wallet-id> [--all]")
+			return fmt.Errorf("usage: drivechain-cli wallet delete <wallet-id> [--all]")
 		}
 
 		walletID := cctx.Args().First()
@@ -588,7 +588,7 @@ var walletRenameCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
-			return fmt.Errorf("usage: drivechain wallet rename <wallet-id> --name NAME [--gradient JSON]")
+			return fmt.Errorf("usage: drivechain-cli wallet rename <wallet-id> --name NAME [--gradient JSON]")
 		}
 		client := newWalletClient(cctx)
 		_, err := client.UpdateWalletMetadata(cctx.Context, connect.NewRequest(&pb.UpdateWalletMetadataRequest{
@@ -836,7 +836,7 @@ var walletTxCommand = &cli.Command{
 	ArgsUsage: "[wallet-id] <txid>",
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() == 0 {
-			return fmt.Errorf("usage: drivechain wallet tx [wallet-id] <txid>")
+			return fmt.Errorf("usage: drivechain-cli wallet tx [wallet-id] <txid>")
 		}
 		client := newWalletClient(cctx)
 
@@ -904,7 +904,7 @@ var walletBumpFeeCommand = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() == 0 {
-			return fmt.Errorf("usage: drivechain wallet bump-fee [wallet-id] <txid> [--fee-rate N]")
+			return fmt.Errorf("usage: drivechain-cli wallet bump-fee [wallet-id] <txid> [--fee-rate N]")
 		}
 		client := newWalletClient(cctx)
 		var walletID, txid string
