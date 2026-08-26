@@ -39,6 +39,48 @@ func isPidAlive(pid int) bool {
 	return stat != "" && !strings.HasPrefix(stat, "Z")
 }
 
+// processAge returns how long the process at pid ran. The OS reuses PID
+// numbers, so a caller that recorded a PID needs the age to tell that process
+// from a stranger that later took its number.
+func processAge(pid int) (time.Duration, error) {
+	out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "etime=").Output()
+	if err != nil {
+		return 0, fmt.Errorf("read the age of PID %d: %w", pid, err)
+	}
+	return parseElapsed(strings.TrimSpace(string(out)))
+}
+
+// parseElapsed reads the ps elapsed-time column, which is [[DD-]HH:]MM:SS.
+func parseElapsed(elapsed string) (time.Duration, error) {
+	days := 0
+	if head, tail, cut := strings.Cut(elapsed, "-"); cut {
+		parsed, err := strconv.Atoi(head)
+		if err != nil {
+			return 0, fmt.Errorf("parse the day count %q: %w", head, err)
+		}
+		days, elapsed = parsed, tail
+	}
+
+	fields := strings.Split(elapsed, ":")
+	if len(fields) < 2 || len(fields) > 3 {
+		return 0, fmt.Errorf("parse the elapsed time %q", elapsed)
+	}
+	for len(fields) < 3 {
+		fields = append([]string{"0"}, fields...)
+	}
+
+	units := []time.Duration{time.Hour, time.Minute, time.Second}
+	age := time.Duration(days) * 24 * time.Hour
+	for i, field := range fields {
+		value, err := strconv.Atoi(field)
+		if err != nil {
+			return 0, fmt.Errorf("parse the elapsed time %q: %w", elapsed, err)
+		}
+		age += time.Duration(value) * units[i]
+	}
+	return age, nil
+}
+
 // getProcessName returns the executable name for a given PID.
 func getProcessName(pid int) (string, error) {
 	out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "comm=").CombinedOutput()

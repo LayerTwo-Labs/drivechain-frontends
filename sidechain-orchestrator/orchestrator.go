@@ -300,6 +300,13 @@ func (o *Orchestrator) SetOwnerLock(lock *OwnerLock) {
 	o.ownerLock = lock
 }
 
+// mayStopAdopted reports whether an adopted binary is ours to stop: a run of
+// this install started it, and the owner lock proves no other install is alive
+// to claim it.
+func (o *Orchestrator) mayStopAdopted(name string) bool {
+	return o.process.IsOrphan(name) && o.OwnsInstall()
+}
+
 // OwnsInstall reports whether this run holds the owner lock, and may therefore
 // stop the binaries it finds running.
 func (o *Orchestrator) OwnsInstall() bool {
@@ -1735,12 +1742,9 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan Shut
 		ordered := orderForShutdown(running)
 
 		for _, name := range ordered {
-			// An adopted binary is only somebody else's while somebody else is
-			// alive. Holding the owner lock proves no other install is, so a
-			// leftover is an orphan of a dead run and this drain stops it.
 			// Skipping every adopted binary is what made one bad exit permanent.
-			if o.process.IsAdopted(name) && !o.OwnsInstall() {
-				o.log.Info().Str("binary", name).Msg("another install owns this process, skipping shutdown")
+			if o.process.IsAdopted(name) && !o.mayStopAdopted(name) {
+				o.log.Info().Str("binary", name).Msg("not ours to stop, skipping shutdown")
 				o.process.Remove(name)
 
 				// Transition monitor to connect-mode-only so it can detect
