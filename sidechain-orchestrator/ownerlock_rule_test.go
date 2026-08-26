@@ -1,7 +1,9 @@
 package orchestrator
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -22,4 +24,28 @@ func TestOwnedInstallMayStopAnAdoptedBinary(t *testing.T) {
 
 	o.SetOwnerLock(lock)
 	require.True(t, o.OwnsInstall(), "the lock holder stops what it finds")
+}
+
+// Case 2: a restart races the previous session's exit. The lock is held for a
+// moment, and the install must claim itself when it frees — without a second
+// restart, and without holding up its own startup.
+func TestClaimOwnerLockTakesOverWhenThePreviousSessionLetsGo(t *testing.T) {
+	dir := t.TempDir()
+
+	first, held, err := TakeOwnerLock(dir)
+	require.NoError(t, err)
+	require.True(t, held)
+
+	o := newTestOrchestrator(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	start := time.Now()
+	o.ClaimOwnerLock(ctx, dir)
+	require.Less(t, time.Since(start), time.Second, "a contested lock must not hold up startup")
+	require.False(t, o.OwnsInstall(), "a live holder keeps the install")
+
+	require.NoError(t, first.Release())
+	require.Eventually(t, o.OwnsInstall, 5*time.Second, 50*time.Millisecond,
+		"the install must claim itself once the previous session lets go")
 }

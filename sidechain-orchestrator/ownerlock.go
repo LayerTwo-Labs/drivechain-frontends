@@ -1,9 +1,11 @@
 package orchestrator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // ownerLockName is the file every install holds open while it runs.
@@ -44,6 +46,46 @@ func TakeOwnerLock(dataDir string) (lock *OwnerLock, held bool, err error) {
 		return nil, false, nil
 	}
 	return &OwnerLock{file: f}, true, nil
+}
+
+// ClaimOwnerLock takes the lock, and keeps retrying in the background until it
+// does, because a start that races the previous session's exit finds it held
+// for a moment. Nothing waits on this: an unowned install serves normally.
+func (o *Orchestrator) ClaimOwnerLock(ctx context.Context, dataDir string) {
+	lock, held, err := TakeOwnerLock(dataDir)
+	if err != nil {
+		o.log.Warn().Err(err).Msg("owner lock failed")
+		return
+	}
+	if held {
+		o.SetOwnerLock(lock)
+		return
+	}
+
+	o.log.Info().Str("datadir", dataDir).
+		Msg("the previous session still owns this data directory, waiting for it to let go")
+
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+			lock, held, err := TakeOwnerLock(dataDir)
+			if err != nil {
+				o.log.Warn().Err(err).Msg("owner lock retry failed")
+				return
+			}
+			if held {
+				o.SetOwnerLock(lock)
+				o.log.Info().Str("datadir", dataDir).Msg("the previous install let go, this one owns its binaries now")
+				return
+			}
+		}
+	}()
 }
 
 // Release drops the lock. The kernel does this on exit too, so a caller only

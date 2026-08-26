@@ -173,6 +173,7 @@ type Orchestrator struct {
 	configs    map[string]BinaryConfig
 	download   *DownloadManager
 	process    *ProcessManager
+	ownerMu    sync.Mutex
 	ownerLock  *OwnerLock
 	pidManager *PidFileManager
 	clients    *lease.Lease
@@ -293,13 +294,20 @@ func (o *Orchestrator) DownloadStates() map[string]DownloadState {
 // SetOwnerLock records the lock this run holds. A nil lock means the install
 // belongs to somebody else, so the drain leaves adopted binaries alone.
 func (o *Orchestrator) SetOwnerLock(lock *OwnerLock) {
+	o.ownerMu.Lock()
+	defer o.ownerMu.Unlock()
 	o.ownerLock = lock
 }
 
 // OwnsInstall reports whether this run holds the owner lock, and may therefore
 // stop the binaries it finds running.
 func (o *Orchestrator) OwnsInstall() bool {
-	return o != nil && o.ownerLock != nil
+	if o == nil {
+		return false
+	}
+	o.ownerMu.Lock()
+	defer o.ownerMu.Unlock()
+	return o.ownerLock != nil
 }
 
 func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zerolog.Logger) *Orchestrator {
