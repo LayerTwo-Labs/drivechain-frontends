@@ -613,6 +613,13 @@ func (b BinaryDirConfig) GetAllDatadirPaths(networkDir string) []string {
 	return paths
 }
 
+// BitwindowRootLogs names the log files the bitwindow root directory holds. It
+// keeps orchestratord.log: an install from before the rename still holds one,
+// and a user who clears the logs means that one too.
+func BitwindowRootLogs() []string {
+	return []string{logfile.Name, "debug.log", "drivechaind.log", "orchestratord.log"}
+}
+
 // GetLogPaths returns log file paths for a binary (for deletion).
 // Dart: getLogPaths (L579-627)
 func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []string {
@@ -628,9 +635,7 @@ func (b BinaryDirConfig) GetLogPaths(networkDir string, log zerolog.Logger) []st
 	case "bitwindowd":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"miner.log", "server.log"}, log)...)
 		rootDir := BitWindowDirs.RootDir()
-		paths = append(paths, GetExistingFilesInDir(rootDir, []string{
-			logfile.Name, "debug.log", "drivechaind.log",
-		}, log)...)
+		paths = append(paths, GetExistingFilesInDir(rootDir, BitwindowRootLogs(), log)...)
 
 	case "thunder", "bitnames", "bitassets", "thunder-orchard", "truthcoin", "photon", "coinshift":
 		paths = append(paths, GetExistingFilesInDir(networkDir, []string{"logs"}, log)...)
