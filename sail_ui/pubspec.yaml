@@ -8,7 +8,7 @@ environment:
   flutter: 3.44.8
 
 dependencies:
-  archive: ^4.0.9
+  archive: ^4.2.0
   auto_route: ^11.1.0
   auto_updater: ^1.0.0
   collection: ^1.19.1
