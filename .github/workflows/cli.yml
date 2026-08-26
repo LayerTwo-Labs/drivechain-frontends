@@ -1,0 +1,99 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - "drivechain-v*"
+  pull_request:
+    paths:
+      - "sidechain-orchestrator/**"
+      - "scripts/build-cli-release.sh"
+      - ".github/workflows/cli.yml"
+  workflow_dispatch:
+
+env:
+  GO_VERSION: "1.26"
+
+jobs:
+  build:
+    name: ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+          - os: windows-2022
+            goos: windows
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Read the version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "VERSION=${GITHUB_REF_NAME#drivechain-v}" >> $GITHUB_ENV
+          else
+            echo "VERSION=dev-${GITHUB_SHA::7}" >> $GITHUB_ENV
+          fi
+
+      - name: Build the zip
+        shell: bash
+        run: bash scripts/build-cli-release.sh "$VERSION" "${{ matrix.goos }}" "${{ matrix.goarch }}"
+
+      # A pull request proves that every target still builds and zips.
+      - uses: actions/upload-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          name: drivechain-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Attach the zips to the release
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One job owns the release, so four matrix jobs cannot race to create it.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Write the checksums
+        run: cd dist && sha256sum *.zip > SHA256SUMS && cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            dist/SHA256SUMS
+          fail_on_unmatched_files: true
+          body: |
+            Each zip holds two binaries: the `drivechain-cli` client and the `drivechaind` daemon.
+
+            Start the daemon first. The CLI talks to it on `localhost:30400`.
+
+            macOS marks a downloaded binary. Remove the mark before the first run:
+
+                xattr -d com.apple.quarantine drivechain-cli drivechaind
+
+            Check your download against `SHA256SUMS`.
