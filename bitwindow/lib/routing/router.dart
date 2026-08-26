@@ -88,12 +88,14 @@ class AppRouter extends RootStackRouter {
         ),
       ],
       guards: [
-        DataDirGuard(),
-        // Ahead of WalletGuard: the mode decides whether a local node runs, so
-        // a wallet made first could pick a backend the mode cannot serve.
+        // First: the mode decides whether a local node runs at all, so both
+        // gates below depend on it. A wallet made first could pick a backend
+        // the mode cannot serve, and a datadir asked for first is asked for
+        // even in light mode, which stores no chain.
         NodeModeGuard(
           nodeModeRoute: (onModePicked) => NodeModeRoute(onModePicked: onModePicked),
         ),
+        DataDirGuard(),
         WalletGuard(
           createWalletRoute: (onWalletCreated) => CreateAnotherWalletRoute(onWalletCreated: onWalletCreated),
         ),

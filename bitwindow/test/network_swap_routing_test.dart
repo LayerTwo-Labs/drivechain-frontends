@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
 import 'test_utils.dart';
 
@@ -31,12 +32,20 @@ void main() {
   // Regression for "switching to Mainnet doesn't give an option for a datadir":
   // entering the app on a network that requires a datadir but has none must
   // route to DataDirSetupPage (DataDirGuard), not silently continue.
+  //
+  // The mode gate runs first, so the mode is already picked here. A datadir
+  // asked for ahead of it would be asked for in light mode too, which stores
+  // no chain at all.
   testWidgets('no datadir for mainnet routes to the datadir setup page', (tester) async {
     await registerTestDependencies();
     if (GetIt.I.isRegistered<BitcoinConfProvider>()) {
       await GetIt.I.unregister<BitcoinConfProvider>();
     }
     GetIt.I.registerSingleton<BitcoinConfProvider>(_FakeConf(mustSelectDatadir: true));
+    if (GetIt.I.isRegistered<NodeModeProvider>()) {
+      await GetIt.I.unregister<NodeModeProvider>();
+    }
+    GetIt.I.registerSingleton<NodeModeProvider>(NodeModeProvider()..mode = wmpb.NodeMode.NODE_MODE_FULL);
 
     final router = AppRouter();
     await tester.pumpWidget(

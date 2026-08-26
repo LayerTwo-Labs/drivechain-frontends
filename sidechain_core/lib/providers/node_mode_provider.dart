@@ -71,6 +71,14 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
     try {
       final orchestrator = GetIt.I.get<OrchestratorRPC>();
       if (next == wmpb.NodeMode.NODE_MODE_FULL) {
+        // The backend refuses this until the network has a data directory, and
+        // the datadir gate runs right after this one. Skipping the call keeps
+        // a refusal out of the log on a first run.
+        final conf = GetIt.I.get<BitcoinConfProvider>();
+        await conf.loadConfig();
+        if (conf.mustSelectDatadir) {
+          return;
+        }
         await orchestrator.startWithL1('enforcer');
       } else {
         await orchestrator.shutdownAll().drain<void>();
