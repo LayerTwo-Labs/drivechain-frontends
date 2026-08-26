@@ -735,6 +735,43 @@ func (pm *ProcessManager) AdoptProcessResolved(config BinaryConfig, pid int, bin
 	}
 
 	pm.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
+
+	go pm.watchAdopted(config.Name, pm.processes[config.Name])
+}
+
+const adoptedPollInterval = time.Second
+
+// watchAdopted closes the exit channel of an adopted process once it dies.
+// Only a parent gets word of a child's exit, so an adopted PID needs a poll.
+func (pm *ProcessManager) watchAdopted(name string, proc *ManagedProcess) {
+	for {
+		time.Sleep(adoptedPollInterval)
+
+		pm.mu.Lock()
+		tracked := pm.processes[name] == proc
+		pm.mu.Unlock()
+		if !tracked {
+			return
+		}
+
+		if isPidAlive(proc.Pid) {
+			continue
+		}
+
+		pm.mu.Lock()
+		if pm.processes[name] != proc {
+			pm.mu.Unlock()
+			return
+		}
+		delete(pm.processes, name)
+		pm.lastExited[name] = proc
+		pm.mu.Unlock()
+
+		_ = pm.pidManager.DeletePidFile(proc.PidName)
+		pm.log.Info().Str("binary", name).Int("pid", proc.Pid).Msg("adopted process exited")
+		close(proc.exitCh)
+		return
+	}
 }
 
 // IsAdopted returns true if the named process was adopted (not started by us).
