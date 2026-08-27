@@ -50,6 +50,53 @@ class ReceiveTab extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              SailRow(
+                                spacing: SailStyleValues.padding08,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  SizedBox(
+                                    width: 128,
+                                    child: SailCard(
+                                      padding: true,
+                                      child: QrImageView(
+                                        padding: EdgeInsets.zero,
+                                        eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
+                                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                                        data: model.address,
+                                        version: QrVersions.auto,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: SailTextField(
+                                      loading: LoadingDetails(
+                                        enabled: model.address.isEmpty,
+                                        description: 'Waiting for enforcer to start and wallet to sync..',
+                                      ),
+                                      controller: TextEditingController(text: model.address),
+                                      hintText: 'A Drivechain address',
+                                      readOnly: true,
+                                      suffixWidget: SailRow(
+                                        spacing: SailStyleValues.padding08,
+                                        children: [
+                                          if (model.addressDerivationPath.isNotEmpty)
+                                            SailText.secondary12(model.addressDerivationPath, monospace: true),
+                                          CopyButton(text: model.address),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (model.address.isEmpty)
+                                SailButton(
+                                  label: 'Generate new address',
+                                  onPressed: model.generateNewAddress,
+                                ),
+                            ],
+                          ),
+                          widgetHeaderEnd: SailRow(
+                            children: [
                               // A wallet that derives one kind has nothing to choose.
                               if (model.addressTypes.length > 1)
                                 SailDropdownButton<wmpb.AddressType>(
@@ -68,44 +115,7 @@ class ReceiveTab extends StatelessWidget {
                                       )
                                       .toList(),
                                 ),
-                              SailRow(
-                                spacing: SailStyleValues.padding08,
-                                children: [
-                                  Expanded(
-                                    child: SailTextField(
-                                      loading: LoadingDetails(
-                                        enabled: model.address.isEmpty,
-                                        description: 'Waiting for enforcer to start and wallet to sync..',
-                                      ),
-                                      controller: TextEditingController(text: model.address),
-                                      hintText: 'A Drivechain address',
-                                      readOnly: true,
-                                      suffixWidget: CopyButton(text: model.address),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (model.addressDerivationPath.isNotEmpty)
-                                SailText.secondary12(model.addressDerivationPath, monospace: true),
-                              if (model.address.isEmpty)
-                                SailButton(
-                                  label: 'Generate new address',
-                                  onPressed: model.generateNewAddress,
-                                ),
                             ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 128,
-                        child: SailCard(
-                          padding: true,
-                          child: QrImageView(
-                            padding: EdgeInsets.zero,
-                            eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
-                            dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
-                            data: model.address,
-                            version: QrVersions.auto,
                           ),
                         ),
                       ),
