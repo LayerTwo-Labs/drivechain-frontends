@@ -12,8 +12,8 @@ github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633 h1:nZoVjdmpvOnKq3W21H3MsCPVfChYiV/vxNIW2xVER+g=
 github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633/go.mod h1:uQjgzk/ORQGsQDuBMPPX+hIf/UjHeb/gEKk8dYyBNaU=
-github.com/brianvoe/gofakeit/v7 v7.15.0 h1:kGLYAWN8tnmxq2PelKVK6zwpM7kMxdz9SGPH31mFkNs=
-github.com/brianvoe/gofakeit/v7 v7.15.0/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
+github.com/brianvoe/gofakeit/v7 v7.16.0 h1:LXNcvT4Klw72/hqpLNNdEWFIcP7G0VFPNsqvEIGONBE=
+github.com/brianvoe/gofakeit/v7 v7.16.0/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
 github.com/btcsuite/btcd v0.25.0 h1:JPbjwvHGpSywBRuorFFqTjaVP4y6Qw69XJ1nQ6MyWJM=
 github.com/btcsuite/btcd v0.25.0/go.mod h1:qbPE+pEiR9643E1s1xu57awsRhlCIm1ZIi6FfeRA4KE=
 github.com/btcsuite/btcd/address/v2 v2.0.0 h1:UVu8Hal6Siu4XastFe+JX5JkeBYONbDUIY5E+SVTs6I=
