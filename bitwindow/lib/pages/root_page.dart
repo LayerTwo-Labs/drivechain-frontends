@@ -1274,7 +1274,7 @@ class _StatusBarState extends State<StatusBar> {
           onTap: () async {
             final confProvider = GetIt.I.get<BitcoinConfProvider>();
             final settingsTabIndex = confProvider.networkSupportsSidechains ? 6 : 5;
-            SettingsPage.setSection(4);
+            SettingsPage.setSection(5);
             final tabsRouter = AutoTabsRouter.of(context);
             tabsRouter.setActiveIndex(settingsTabIndex);
           },
