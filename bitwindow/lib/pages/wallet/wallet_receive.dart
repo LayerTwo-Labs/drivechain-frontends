@@ -45,14 +45,9 @@ class ReceiveTab extends StatelessWidget {
                         child: SailCard(
                           title: 'Receive Bitcoin on L1',
                           error: model.modelError,
-                          child: SailColumn(
-                            spacing: SailStyleValues.padding16,
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // A wallet that derives one kind has nothing to choose.
-                              if (model.addressTypes.length > 1)
-                                SailDropdownButton<wmpb.AddressType>(
+                          // A wallet that derives one kind has nothing to choose.
+                          widgetHeaderEnd: model.addressTypes.length > 1
+                              ? SailDropdownButton<wmpb.AddressType>(
                                   value: model.addressType,
                                   onChanged: (type) {
                                     if (type != null) {
@@ -67,9 +62,16 @@ class ReceiveTab extends StatelessWidget {
                                         ),
                                       )
                                       .toList(),
-                                ),
+                                )
+                              : null,
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding16,
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               SailRow(
                                 spacing: SailStyleValues.padding08,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
                                     child: SailTextField(
@@ -80,32 +82,34 @@ class ReceiveTab extends StatelessWidget {
                                       controller: TextEditingController(text: model.address),
                                       hintText: 'A Drivechain address',
                                       readOnly: true,
-                                      suffixWidget: CopyButton(text: model.address),
+                                      suffixWidget: SailRow(
+                                        spacing: SailStyleValues.padding08,
+                                        children: [
+                                          if (model.addressDerivationPath.isNotEmpty)
+                                            SailText.secondary12(model.addressDerivationPath, monospace: true),
+                                          CopyButton(text: model.address),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 128,
+                                    child: SailCard(
+                                      padding: true,
+                                      child: QrImageView(
+                                        padding: EdgeInsets.zero,
+                                        eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
+                                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                                        data: model.address,
+                                        version: QrVersions.auto,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              if (model.addressDerivationPath.isNotEmpty)
-                                SailText.secondary12(model.addressDerivationPath, monospace: true),
                               if (model.address.isEmpty)
-                                SailButton(
-                                  label: 'Generate new address',
-                                  onPressed: model.generateNewAddress,
-                                ),
+                                SailButton(label: 'Generate new address', onPressed: model.generateNewAddress),
                             ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 128,
-                        child: SailCard(
-                          padding: true,
-                          child: QrImageView(
-                            padding: EdgeInsets.zero,
-                            eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
-                            dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
-                            data: model.address,
-                            version: QrVersions.auto,
                           ),
                         ),
                       ),
@@ -113,10 +117,7 @@ class ReceiveTab extends StatelessWidget {
                   );
 
                   if (constraints.maxWidth < _claimBesideAddress) {
-                    return SailColumn(
-                      spacing: SailStyleValues.padding16,
-                      children: [addressRow, const ClaimEcxCard()],
-                    );
+                    return SailColumn(spacing: SailStyleValues.padding16, children: [addressRow, const ClaimEcxCard()]);
                   }
 
                   return SailRow(
@@ -304,10 +305,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                     SailTableHeaderCell(name: 'Type', onSort: () => onSort('type')),
                     SailTableHeaderCell(name: 'Change', onSort: () => onSort('chain')),
                     SailTableHeaderCell(name: 'Label', onSort: () => onSort('label')),
-                    SailTableHeaderCell(
-                      name: 'Balance',
-                      onSort: () => onSort('current_balance_sat'),
-                    ),
+                    SailTableHeaderCell(name: 'Balance', onSort: () => onSort('current_balance_sat')),
                   ],
                   rowBuilder: (context, row, selected) {
                     final utxo = entries[row];
@@ -377,9 +375,7 @@ class _ReceiveAddressesTableState extends State<ReceiveAddressesTable> {
                             );
                           });
                         },
-                        child: SailText.primary12(
-                          entry.label.isEmpty ? 'Add Label' : 'Update Label',
-                        ),
+                        child: SailText.primary12(entry.label.isEmpty ? 'Add Label' : 'Update Label'),
                       ),
                       SailMenuItem(
                         onSelected: () => launchUrl(Uri.parse(mempoolAddressUrl(entry.address, network))),
@@ -436,12 +432,7 @@ class ReceivePageViewModel extends BaseViewModel {
 
   AddressBookEntry get matchingEntry => _addressBookProvider.receiveEntries.firstWhere(
     (e) => e.address == address,
-    orElse: () => AddressBookEntry(
-      id: Int64(0),
-      label: '',
-      address: '',
-      direction: Direction.DIRECTION_RECEIVE,
-    ),
+    orElse: () => AddressBookEntry(id: Int64(0), label: '', address: '', direction: Direction.DIRECTION_RECEIVE),
   );
   bool get hasExistingLabel => matchingEntry.label.isNotEmpty;
 
