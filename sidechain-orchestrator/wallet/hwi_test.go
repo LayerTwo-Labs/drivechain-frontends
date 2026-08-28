@@ -95,3 +95,26 @@ func TestSignPSBTEmptyResult(t *testing.T) {
 	_, err := r.SignPSBT(context.Background(), HardwareSelector{}, "cHNidP8")
 	require.Error(t, err)
 }
+
+// A custom network that keeps mainnet's address encoding is mainnet to a
+// device. Told any other coin, the device refuses a coin type 0h path.
+func TestHwiChainArgCustomMainnet(t *testing.T) {
+	alpha := chaincfg.MainNetParams
+	alpha.Name = "ecash"
+	require.Equal(t, "main", hwiChainArg(&alpha))
+
+	custom := chaincfg.TestNet3Params
+	custom.Name = "somethingelse"
+	require.Equal(t, "test", hwiChainArg(&custom))
+
+	// A guess reaches the device as the wrong coin, so an unknown encoding stops
+	// the process rather than picking one.
+	unknown := chaincfg.MainNetParams
+	unknown.Name = "nosuchnet"
+	unknown.Bech32HRPSegwit = "zz"
+	require.Panics(t, func() { hwiChainArg(&unknown) })
+
+	require.Equal(t, "main", hwiChainArg(&chaincfg.MainNetParams))
+	require.Equal(t, "signet", hwiChainArg(&chaincfg.SigNetParams))
+	require.Equal(t, "regtest", hwiChainArg(&chaincfg.RegressionNetParams))
+}

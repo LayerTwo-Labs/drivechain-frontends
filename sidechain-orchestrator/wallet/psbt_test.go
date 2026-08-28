@@ -559,6 +559,8 @@ func TestFinalizeRejectsForeignRedeemScript(t *testing.T) {
 	_, err = finalizeAndExtract(packet)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "redeem script does not match the output it spends")
+}
+
 // A cosigner pasted as a bare xpub has no origin, and a made-up path fails a
 // hardware signer: it checks every path in the packet before it signs any of
 // them. A master account key is the one case where [chain, index] is true.

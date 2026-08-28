@@ -42,6 +42,9 @@ func NewHWIRunner(net *chaincfg.Params) *HWIRunner {
 	return &HWIRunner{chain: hwiChainArg(net), call: hwiCall}
 }
 
+// hwiChainArg names the coin a device validates against. A custom network takes
+// the coin its address encoding belongs to: the device refuses a coin type 0h
+// path under any coin but mainnet, and it shows an address in that coin's form.
 func hwiChainArg(net *chaincfg.Params) string {
 	switch net.Name {
 	case "mainnet":
@@ -50,9 +53,19 @@ func hwiChainArg(net *chaincfg.Params) string {
 		return "signet"
 	case "regtest", "simnet":
 		return "regtest"
-	default:
-		return "test"
 	}
+	switch net.Bech32HRPSegwit {
+	case chaincfg.MainNetParams.Bech32HRPSegwit:
+		return "main"
+	case chaincfg.TestNet3Params.Bech32HRPSegwit:
+		return "test"
+	case chaincfg.RegressionNetParams.Bech32HRPSegwit:
+		return "regtest"
+	}
+	// A guess here reaches the device as the wrong coin, and it costs a refused
+	// path or a signature over the wrong script.
+	panic(fmt.Sprintf("hwi: unknown network %q with address prefix %q",
+		net.Name, net.Bech32HRPSegwit))
 }
 
 func (r *HWIRunner) request(cmd string, sel HardwareSelector) map[string]any {
