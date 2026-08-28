@@ -1834,10 +1834,10 @@ func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub s
 			Xpub:        c.Xpub,
 			Fingerprint: c.Fingerprint,
 			OriginPath:  c.OriginPath,
-			// Emit a [fingerprint/origin] prefix whenever we have the origin, so
-			// every cosigner's key-origin lands in the PSBT (needed to attribute
-			// signatures and for external-wallet interop) — not just held keys.
-			IsWallet: c.Fingerprint != "" && c.OriginPath != "",
+			// Emit a key-origin prefix for every cosigner we know a fingerprint
+			// for, so each origin lands in the PSBT. A hardware signer needs all
+			// of them to rebuild the multisig script it signs over.
+			IsWallet: c.Fingerprint != "",
 		})
 		if !c.Held() {
 			continue

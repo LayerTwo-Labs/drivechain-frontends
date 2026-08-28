@@ -32,14 +32,29 @@ type MultisigLoungeGroup struct {
 	Keys []MultisigLoungeKey
 }
 
-// keyDescriptor renders one key expression, mirroring the BitWindow Dart
-// MultisigDescriptorBuilder: wallet keys get a [fingerprint/origin] prefix, all
-// others are the bare xpub.
+// keyDescriptor renders one key expression: a key with a known fingerprint gets
+// a [fingerprint/origin] prefix, all others are the bare xpub. A master xpub has
+// no origin path, so it gets a bare [fingerprint] prefix. Every key origin must
+// reach the PSBT, or a hardware signer cannot rebuild the multisig script.
 func (k MultisigLoungeKey) keyDescriptor() string {
-	if k.IsWallet && k.Fingerprint != "" && k.OriginPath != "" {
+	if !k.IsWallet || k.Fingerprint == "" {
+		return k.Xpub
+	}
+	if k.OriginPath != "" {
 		return fmt.Sprintf("[%s/%s]%s", k.Fingerprint, k.OriginPath, k.Xpub)
 	}
-	return k.Xpub
+	// Only a master key sits at the fingerprint with no path. An account key
+	// with no path cannot say where it sits, so it stays a bare xpub rather
+	// than claim a derivation that reaches a different child.
+	if !isMasterKey(k.Xpub) {
+		return k.Xpub
+	}
+	return fmt.Sprintf("[%s]%s", k.Fingerprint, k.Xpub)
+}
+
+func isMasterKey(xpub string) bool {
+	key, err := hdkeychain.NewKeyFromString(xpub)
+	return err == nil && key.Depth() == 0
 }
 
 // sortKeysByBIP67 sorts the group's keys lexicographically by xpub string,
