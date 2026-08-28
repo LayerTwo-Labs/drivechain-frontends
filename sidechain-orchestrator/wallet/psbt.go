@@ -639,9 +639,26 @@ func verifyPartialSig(
 		return err
 	}
 	if !sig.Verify(hash, pub) {
-		return fmt.Errorf("key %s signed a different transaction", signerName(in, ps.PubKey))
+		// A hardware signer rebuilds a multisig script from the packet's
+		// derivation records, so a key it cannot place gives it a script nobody
+		// else holds. Name what the signature covers, or the report says only
+		// that a key is wrong.
+		return fmt.Errorf("key %s signed a different transaction: %d of %d keys in this input carry a key origin, witness script %x",
+			signerName(in, ps.PubKey), keysWithOrigin(in), len(in.Bip32Derivation), sha256.Sum256(in.WitnessScript))
 	}
 	return nil
+}
+
+// keysWithOrigin counts an input's derivation records that name a real path. A
+// bare xpub cosigner has none, and a signer cannot place that key.
+func keysWithOrigin(in *psbt.PInput) int {
+	n := 0
+	for _, d := range in.Bip32Derivation {
+		if len(d.Bip32Path) > 2 {
+			n++
+		}
+	}
+	return n
 }
 
 // signerName identifies a partial signature's signer the way the key table
