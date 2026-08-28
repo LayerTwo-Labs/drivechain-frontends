@@ -515,8 +515,17 @@ func verifyTaprootSigs(
 	return nil
 }
 
-// oddYPrefix is the compressed-key header byte for an odd y coordinate.
-const oddYPrefix = 0x03
+// The header bytes of a compressed public key, by the parity of its y coordinate.
+const (
+	evenYPrefix = 0x02
+	oddYPrefix  = 0x03
+)
+
+// isCompressedPubKey reports whether a key carries the 33-byte compressed form,
+// the only one segwit v0 accepts.
+func isCompressedPubKey(pubKey []byte) bool {
+	return len(pubKey) == 33 && (pubKey[0] == evenYPrefix || pubKey[0] == oddYPrefix)
+}
 
 // verifyTaprootLeaves makes sure each revealed leaf and its control block commit
 // to the output key the input spends.
@@ -670,6 +679,13 @@ func partialSigHash(
 			return nil, errors.New("the redeem script does not match the output it spends")
 		}
 		script = in.RedeemScript
+	}
+	// Segwit v0 takes only a compressed key, and the finalizer copies this one
+	// into the witness.
+	if txscript.IsPayToWitnessScriptHash(script) || txscript.IsPayToWitnessPubKeyHash(script) {
+		if !isCompressedPubKey(pubKey) {
+			return nil, errors.New("a segwit input needs a compressed public key")
+		}
 	}
 	switch {
 	case txscript.IsPayToWitnessScriptHash(script):

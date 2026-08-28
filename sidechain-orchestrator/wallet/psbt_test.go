@@ -1100,3 +1100,16 @@ func derInt(value []byte) []byte {
 	}
 	return append([]byte{0x02, byte(len(value))}, value...)
 }
+
+// TestFinalizeRejectsUncompressedKey: segwit v0 takes only a compressed key,
+// and the finalizer copies this one into the witness.
+func TestFinalizeRejectsUncompressedKey(t *testing.T) {
+	packet, _, _ := multisigPacket(t)
+	pub, err := btcec.ParsePubKey(packet.Inputs[0].PartialSigs[0].PubKey)
+	require.NoError(t, err)
+	packet.Inputs[0].PartialSigs[0].PubKey = pub.SerializeUncompressed()
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "compressed public key")
+}
