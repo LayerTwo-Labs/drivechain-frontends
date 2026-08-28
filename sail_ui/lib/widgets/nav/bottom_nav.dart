@@ -245,7 +245,7 @@ class BottomNav extends StatelessWidget {
                 children: [
                   if (showMainchain &&
                       (!model.mainchain.connected ||
-                          !(model.syncProvider.mainchainSyncInfo?.isSynced ?? false) ||
+                          !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
                           (model.syncProvider.mainchainSyncInfo?.offNetwork ?? false) ||
                           !onlyShowAdditional))
                     DaemonConnectionCard(
@@ -267,7 +267,7 @@ class BottomNav extends StatelessWidget {
                     ),
                   if (showEnforcer &&
                       (!model.enforcer.connected ||
-                          !(model.syncProvider.enforcerSyncInfo?.isSynced ?? false) ||
+                          !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
                           !onlyShowAdditional))
                     DaemonConnectionCard(
                       connection: model.enforcer,

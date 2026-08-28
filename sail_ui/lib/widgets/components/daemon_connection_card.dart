@@ -136,8 +136,8 @@ class DaemonConnectionCard extends StatelessWidget {
           // The row stays even with nothing to report, so a card that gains
           // sync info or a download does not grow.
           SizedBox(
-            width: 350,
-            height: progressRowHeight(context),
+            width: progressBlockWidth(downloadProgress != null ? 1 : syncRowCount(syncInfo)),
+            height: progressBlockHeight(context, downloadProgress != null ? 1 : syncRowCount(syncInfo)),
             child: downloadProgress != null
                 ? DownloadStatusRow(
                     name: connection.binary.name,
@@ -185,6 +185,12 @@ class DaemonConnectionCard extends StatelessWidget {
 /// Height of the progress bar itself.
 const double progressBarHeight = 16;
 
+/// Width of the progress bar itself.
+const double progressBarWidth = 350;
+
+/// Width the label column holds when a card draws more than one bar.
+const double syncLabelWidth = 56;
+
 /// The style the daemon status text renders in. One style measures and renders,
 /// or a block reserves a height the reader never gets.
 TextStyle daemonStatusStyle(BuildContext context) {
@@ -208,6 +214,18 @@ double daemonStatusRowHeight(BuildContext context) {
 /// Height the progress row holds whether or not a daemon reports progress. A
 /// synced daemon puts text there instead of a bar, so the row fits both.
 double progressRowHeight(BuildContext context) => math.max(progressBarHeight, daemonStatusRowHeight(context));
+
+/// Bars a daemon card draws. One is the chain tip alone.
+int syncRowCount(SyncInfo? info) => info == null ? 1 : BlockStatus.rowsFor(info).length;
+
+/// Width the progress block holds. One bar carries no label, so it keeps the
+/// bar's own width.
+double progressBlockWidth(int rows) =>
+    rows > 1 ? syncLabelWidth + SailStyleValues.padding08 + progressBarWidth : progressBarWidth;
+
+/// Height the progress block holds for [rows] stacked bars.
+double progressBlockHeight(BuildContext context, int rows) =>
+    progressRowHeight(context) * rows + SailStyleValues.padding08 * (rows - 1);
 
 /// Daemon status in a block that always holds the same height, so a card never
 /// resizes as errors come and go. A message taller than the block hides behind
@@ -420,14 +438,58 @@ Color resolveDaemonStatusColor({
   return theme.colors.orangeLight;
 }
 
+/// One sync a daemon reports, with the height it counts towards.
+class SyncRow {
+  final String label;
+  final double current;
+  final double goal;
+
+  const SyncRow(this.label, this.current, this.goal);
+}
+
 class BlockStatus extends StatelessWidget {
   final String name;
   final SyncInfo syncInfo;
 
   const BlockStatus({super.key, required this.name, required this.syncInfo});
 
+  /// Every sync the daemon reports. Bitcoin Core adds the height it verified
+  /// from genesis while it runs from a UTXO snapshot. Verification finishes at
+  /// the snapshot's base block, so that row carries its own goal.
+  static List<SyncRow> rowsFor(SyncInfo info) {
+    final rows = <SyncRow>[SyncRow('Blocks', info.progressCurrent, info.progressGoal)];
+    if (info.verifiedBlocks > 0 && info.verifiedGoal > 0) {
+      rows.add(SyncRow('Verified', info.verifiedBlocks.toDouble(), info.verifiedGoal.toDouble()));
+    }
+    return rows;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final rows = rowsFor(syncInfo);
+    if (rows.length > 1) {
+      return SailColumn(
+        spacing: SailStyleValues.padding08,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final row in rows)
+            SailRow(
+              spacing: SailStyleValues.padding08,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(width: syncLabelWidth, child: SailText.secondary12(row.label)),
+                SizedBox(
+                  width: progressBarWidth,
+                  child: ProgressBar(current: row.current, goal: row.goal),
+                ),
+              ],
+            ),
+        ],
+      );
+    }
+
     final currentProgress = formatProgress(syncInfo.progressCurrent, false);
     final goalProgress = formatProgress(syncInfo.progressGoal, false);
 
