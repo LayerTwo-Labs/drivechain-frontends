@@ -9591,6 +9591,7 @@ class BumpFeeRequest extends $pb.GeneratedMessage {
     $core.String? walletId,
     $core.String? txid,
     $fixnum.Int64? newFeeRate,
+    $core.int? feeFromVout,
   }) {
     final $result = create();
     if (walletId != null) {
@@ -9602,6 +9603,9 @@ class BumpFeeRequest extends $pb.GeneratedMessage {
     if (newFeeRate != null) {
       $result.newFeeRate = newFeeRate;
     }
+    if (feeFromVout != null) {
+      $result.feeFromVout = feeFromVout;
+    }
     return $result;
   }
   BumpFeeRequest._() : super();
@@ -9612,6 +9616,7 @@ class BumpFeeRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'walletId')
     ..aOS(2, _omitFieldNames ? '' : 'txid')
     ..aInt64(3, _omitFieldNames ? '' : 'newFeeRate')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'feeFromVout', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -9662,15 +9667,30 @@ class BumpFeeRequest extends $pb.GeneratedMessage {
   $core.bool hasNewFeeRate() => $_has(2);
   @$pb.TagNumber(3)
   void clearNewFeeRate() => clearField(3);
+
+  /// Output that pays the higher fee. Unset takes it from the change output,
+  /// which is the only output a bump may touch without the user's consent.
+  @$pb.TagNumber(4)
+  $core.int get feeFromVout => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set feeFromVout($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFeeFromVout() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFeeFromVout() => clearField(4);
 }
 
 class BumpFeeResponse extends $pb.GeneratedMessage {
   factory BumpFeeResponse({
     $core.String? newTxid,
+    BumpFeePlan? plan,
   }) {
     final $result = create();
     if (newTxid != null) {
       $result.newTxid = newTxid;
+    }
+    if (plan != null) {
+      $result.plan = plan;
     }
     return $result;
   }
@@ -9680,6 +9700,7 @@ class BumpFeeResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BumpFeeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'newTxid')
+    ..aOM<BumpFeePlan>(2, _omitFieldNames ? '' : 'plan', subBuilder: BumpFeePlan.create)
     ..hasRequiredFields = false
   ;
 
@@ -9712,6 +9733,597 @@ class BumpFeeResponse extends $pb.GeneratedMessage {
   $core.bool hasNewTxid() => $_has(0);
   @$pb.TagNumber(1)
   void clearNewTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  BumpFeePlan get plan => $_getN(1);
+  @$pb.TagNumber(2)
+  set plan(BumpFeePlan v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPlan() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPlan() => clearField(2);
+  @$pb.TagNumber(2)
+  BumpFeePlan ensurePlan() => $_ensure(1);
+}
+
+class PreviewBumpFeeRequest extends $pb.GeneratedMessage {
+  factory PreviewBumpFeeRequest({
+    $core.String? walletId,
+    $core.String? txid,
+    $fixnum.Int64? newFeeRate,
+    $core.int? feeFromVout,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (newFeeRate != null) {
+      $result.newFeeRate = newFeeRate;
+    }
+    if (feeFromVout != null) {
+      $result.feeFromVout = feeFromVout;
+    }
+    return $result;
+  }
+  PreviewBumpFeeRequest._() : super();
+  factory PreviewBumpFeeRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewBumpFeeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewBumpFeeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'txid')
+    ..aInt64(3, _omitFieldNames ? '' : 'newFeeRate')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'feeFromVout', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewBumpFeeRequest clone() => PreviewBumpFeeRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewBumpFeeRequest copyWith(void Function(PreviewBumpFeeRequest) updates) => super.copyWith((message) => updates(message as PreviewBumpFeeRequest)) as PreviewBumpFeeRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewBumpFeeRequest create() => PreviewBumpFeeRequest._();
+  PreviewBumpFeeRequest createEmptyInstance() => create();
+  static $pb.PbList<PreviewBumpFeeRequest> createRepeated() => $pb.PbList<PreviewBumpFeeRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewBumpFeeRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewBumpFeeRequest>(create);
+  static PreviewBumpFeeRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get txid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxid() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get newFeeRate => $_getI64(2);
+  @$pb.TagNumber(3)
+  set newFeeRate($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasNewFeeRate() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNewFeeRate() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get feeFromVout => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set feeFromVout($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFeeFromVout() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFeeFromVout() => clearField(4);
+}
+
+class PreviewBumpFeeResponse extends $pb.GeneratedMessage {
+  factory PreviewBumpFeeResponse({
+    $core.int? inputCount,
+    $fixnum.Int64? vsizeVbytes,
+    $fixnum.Int64? oldFeeSats,
+    $core.double? oldFeeRateSatVb,
+    $fixnum.Int64? suggestedFeeRate,
+    $core.Iterable<BumpFeeOutput>? outputs,
+    BumpFeePlan? plan,
+    $core.String? reason,
+    $core.bool? canReplace,
+    $core.bool? hasChild,
+    $core.bool? addsInputs,
+  }) {
+    final $result = create();
+    if (inputCount != null) {
+      $result.inputCount = inputCount;
+    }
+    if (vsizeVbytes != null) {
+      $result.vsizeVbytes = vsizeVbytes;
+    }
+    if (oldFeeSats != null) {
+      $result.oldFeeSats = oldFeeSats;
+    }
+    if (oldFeeRateSatVb != null) {
+      $result.oldFeeRateSatVb = oldFeeRateSatVb;
+    }
+    if (suggestedFeeRate != null) {
+      $result.suggestedFeeRate = suggestedFeeRate;
+    }
+    if (outputs != null) {
+      $result.outputs.addAll(outputs);
+    }
+    if (plan != null) {
+      $result.plan = plan;
+    }
+    if (reason != null) {
+      $result.reason = reason;
+    }
+    if (canReplace != null) {
+      $result.canReplace = canReplace;
+    }
+    if (hasChild != null) {
+      $result.hasChild = hasChild;
+    }
+    if (addsInputs != null) {
+      $result.addsInputs = addsInputs;
+    }
+    return $result;
+  }
+  PreviewBumpFeeResponse._() : super();
+  factory PreviewBumpFeeResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewBumpFeeResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewBumpFeeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'inputCount', $pb.PbFieldType.O3)
+    ..aInt64(2, _omitFieldNames ? '' : 'vsizeVbytes')
+    ..aInt64(3, _omitFieldNames ? '' : 'oldFeeSats')
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'oldFeeRateSatVb', $pb.PbFieldType.OD)
+    ..aInt64(5, _omitFieldNames ? '' : 'suggestedFeeRate')
+    ..pc<BumpFeeOutput>(6, _omitFieldNames ? '' : 'outputs', $pb.PbFieldType.PM, subBuilder: BumpFeeOutput.create)
+    ..aOM<BumpFeePlan>(7, _omitFieldNames ? '' : 'plan', subBuilder: BumpFeePlan.create)
+    ..aOS(8, _omitFieldNames ? '' : 'reason')
+    ..aOB(9, _omitFieldNames ? '' : 'canReplace')
+    ..aOB(10, _omitFieldNames ? '' : 'hasChild')
+    ..aOB(11, _omitFieldNames ? '' : 'addsInputs')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewBumpFeeResponse clone() => PreviewBumpFeeResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewBumpFeeResponse copyWith(void Function(PreviewBumpFeeResponse) updates) => super.copyWith((message) => updates(message as PreviewBumpFeeResponse)) as PreviewBumpFeeResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewBumpFeeResponse create() => PreviewBumpFeeResponse._();
+  PreviewBumpFeeResponse createEmptyInstance() => create();
+  static $pb.PbList<PreviewBumpFeeResponse> createRepeated() => $pb.PbList<PreviewBumpFeeResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewBumpFeeResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewBumpFeeResponse>(create);
+  static PreviewBumpFeeResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get inputCount => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set inputCount($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasInputCount() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInputCount() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get vsizeVbytes => $_getI64(1);
+  @$pb.TagNumber(2)
+  set vsizeVbytes($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVsizeVbytes() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVsizeVbytes() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get oldFeeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set oldFeeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasOldFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearOldFeeSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get oldFeeRateSatVb => $_getN(3);
+  @$pb.TagNumber(4)
+  set oldFeeRateSatVb($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasOldFeeRateSatVb() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearOldFeeRateSatVb() => clearField(4);
+
+  /// Fee rate the backend suggests for the next blocks, in sat/vB.
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get suggestedFeeRate => $_getI64(4);
+  @$pb.TagNumber(5)
+  set suggestedFeeRate($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasSuggestedFeeRate() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSuggestedFeeRate() => clearField(5);
+
+  /// Every output of the transaction, in order.
+  @$pb.TagNumber(6)
+  $core.List<BumpFeeOutput> get outputs => $_getList(5);
+
+  /// The replacement. Unset when the wallet cannot build one.
+  @$pb.TagNumber(7)
+  BumpFeePlan get plan => $_getN(6);
+  @$pb.TagNumber(7)
+  set plan(BumpFeePlan v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasPlan() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearPlan() => clearField(7);
+  @$pb.TagNumber(7)
+  BumpFeePlan ensurePlan() => $_ensure(6);
+
+  /// Why the wallet cannot build a replacement. Empty when plan is set.
+  @$pb.TagNumber(8)
+  $core.String get reason => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set reason($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasReason() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearReason() => clearField(8);
+
+  /// The wallet holds the keys of every input, so it can sign a replacement at
+  /// some fee rate. False marks a transaction no rate can replace.
+  @$pb.TagNumber(9)
+  $core.bool get canReplace => $_getBF(8);
+  @$pb.TagNumber(9)
+  set canReplace($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasCanReplace() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearCanReplace() => clearField(9);
+
+  /// Another transaction already spends this one. A replacement must outpay that
+  /// child too, and a child transaction cannot speed this one up either.
+  @$pb.TagNumber(10)
+  $core.bool get hasChild => $_getBF(9);
+  @$pb.TagNumber(10)
+  set hasChild($core.bool v) { $_setBool(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasHasChild() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearHasChild() => clearField(10);
+
+  /// The backend funds a higher fee from another coin when the chosen output
+  /// cannot cover it, so a replacement holds even with no plan to show.
+  @$pb.TagNumber(11)
+  $core.bool get addsInputs => $_getBF(10);
+  @$pb.TagNumber(11)
+  set addsInputs($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasAddsInputs() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearAddsInputs() => clearField(11);
+}
+
+/// BumpFeeOutput is one output of the transaction the fee can come from.
+class BumpFeeOutput extends $pb.GeneratedMessage {
+  factory BumpFeeOutput({
+    $core.int? vout,
+    $fixnum.Int64? amountSats,
+    $core.String? address,
+    $core.bool? isChange,
+    $fixnum.Int64? dustSats,
+    $core.bool? isMine,
+  }) {
+    final $result = create();
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (amountSats != null) {
+      $result.amountSats = amountSats;
+    }
+    if (address != null) {
+      $result.address = address;
+    }
+    if (isChange != null) {
+      $result.isChange = isChange;
+    }
+    if (dustSats != null) {
+      $result.dustSats = dustSats;
+    }
+    if (isMine != null) {
+      $result.isMine = isMine;
+    }
+    return $result;
+  }
+  BumpFeeOutput._() : super();
+  factory BumpFeeOutput.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BumpFeeOutput.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BumpFeeOutput', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.O3)
+    ..aInt64(2, _omitFieldNames ? '' : 'amountSats')
+    ..aOS(3, _omitFieldNames ? '' : 'address')
+    ..aOB(4, _omitFieldNames ? '' : 'isChange')
+    ..aInt64(5, _omitFieldNames ? '' : 'dustSats')
+    ..aOB(6, _omitFieldNames ? '' : 'isMine')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BumpFeeOutput clone() => BumpFeeOutput()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BumpFeeOutput copyWith(void Function(BumpFeeOutput) updates) => super.copyWith((message) => updates(message as BumpFeeOutput)) as BumpFeeOutput;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BumpFeeOutput create() => BumpFeeOutput._();
+  BumpFeeOutput createEmptyInstance() => create();
+  static $pb.PbList<BumpFeeOutput> createRepeated() => $pb.PbList<BumpFeeOutput>();
+  @$core.pragma('dart2js:noInline')
+  static BumpFeeOutput getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BumpFeeOutput>(create);
+  static BumpFeeOutput? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get vout => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set vout($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasVout() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearVout() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get amountSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set amountSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAmountSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAmountSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get address => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set address($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAddress() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAddress() => clearField(3);
+
+  /// The wallet owns this output and it sits on the change chain.
+  @$pb.TagNumber(4)
+  $core.bool get isChange => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isChange($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasIsChange() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsChange() => clearField(4);
+
+  /// Amount below which the output cannot stay in the transaction.
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get dustSats => $_getI64(4);
+  @$pb.TagNumber(5)
+  set dustSats($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDustSats() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDustSats() => clearField(5);
+
+  /// The wallet owns this output. CPFP spends such an output, so a transaction
+  /// with none of them has no child to speed it up.
+  @$pb.TagNumber(6)
+  $core.bool get isMine => $_getBF(5);
+  @$pb.TagNumber(6)
+  set isMine($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasIsMine() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearIsMine() => clearField(6);
+}
+
+/// BumpFeePlan is the replacement transaction a fee bump builds.
+class BumpFeePlan extends $pb.GeneratedMessage {
+  factory BumpFeePlan({
+    $fixnum.Int64? oldFeeSats,
+    $fixnum.Int64? newFeeSats,
+    $fixnum.Int64? extraFeeSats,
+    $core.double? newFeeRateSatVb,
+    $core.int? feeFromVout,
+    $fixnum.Int64? amountBeforeSats,
+    $fixnum.Int64? amountAfterSats,
+    $core.bool? outputRemoved,
+    $core.bool? reducesPayment,
+  }) {
+    final $result = create();
+    if (oldFeeSats != null) {
+      $result.oldFeeSats = oldFeeSats;
+    }
+    if (newFeeSats != null) {
+      $result.newFeeSats = newFeeSats;
+    }
+    if (extraFeeSats != null) {
+      $result.extraFeeSats = extraFeeSats;
+    }
+    if (newFeeRateSatVb != null) {
+      $result.newFeeRateSatVb = newFeeRateSatVb;
+    }
+    if (feeFromVout != null) {
+      $result.feeFromVout = feeFromVout;
+    }
+    if (amountBeforeSats != null) {
+      $result.amountBeforeSats = amountBeforeSats;
+    }
+    if (amountAfterSats != null) {
+      $result.amountAfterSats = amountAfterSats;
+    }
+    if (outputRemoved != null) {
+      $result.outputRemoved = outputRemoved;
+    }
+    if (reducesPayment != null) {
+      $result.reducesPayment = reducesPayment;
+    }
+    return $result;
+  }
+  BumpFeePlan._() : super();
+  factory BumpFeePlan.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BumpFeePlan.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BumpFeePlan', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'oldFeeSats')
+    ..aInt64(2, _omitFieldNames ? '' : 'newFeeSats')
+    ..aInt64(3, _omitFieldNames ? '' : 'extraFeeSats')
+    ..a<$core.double>(4, _omitFieldNames ? '' : 'newFeeRateSatVb', $pb.PbFieldType.OD)
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'feeFromVout', $pb.PbFieldType.O3)
+    ..aInt64(6, _omitFieldNames ? '' : 'amountBeforeSats')
+    ..aInt64(7, _omitFieldNames ? '' : 'amountAfterSats')
+    ..aOB(8, _omitFieldNames ? '' : 'outputRemoved')
+    ..aOB(9, _omitFieldNames ? '' : 'reducesPayment')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BumpFeePlan clone() => BumpFeePlan()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BumpFeePlan copyWith(void Function(BumpFeePlan) updates) => super.copyWith((message) => updates(message as BumpFeePlan)) as BumpFeePlan;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BumpFeePlan create() => BumpFeePlan._();
+  BumpFeePlan createEmptyInstance() => create();
+  static $pb.PbList<BumpFeePlan> createRepeated() => $pb.PbList<BumpFeePlan>();
+  @$core.pragma('dart2js:noInline')
+  static BumpFeePlan getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BumpFeePlan>(create);
+  static BumpFeePlan? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get oldFeeSats => $_getI64(0);
+  @$pb.TagNumber(1)
+  set oldFeeSats($fixnum.Int64 v) { $_setInt64(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOldFeeSats() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOldFeeSats() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get newFeeSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set newFeeSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasNewFeeSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNewFeeSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get extraFeeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set extraFeeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasExtraFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearExtraFeeSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get newFeeRateSatVb => $_getN(3);
+  @$pb.TagNumber(4)
+  set newFeeRateSatVb($core.double v) { $_setDouble(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasNewFeeRateSatVb() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNewFeeRateSatVb() => clearField(4);
+
+  /// Output that pays, and what it holds before and after.
+  @$pb.TagNumber(5)
+  $core.int get feeFromVout => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set feeFromVout($core.int v) { $_setSignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasFeeFromVout() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearFeeFromVout() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get amountBeforeSats => $_getI64(5);
+  @$pb.TagNumber(6)
+  set amountBeforeSats($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasAmountBeforeSats() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearAmountBeforeSats() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get amountAfterSats => $_getI64(6);
+  @$pb.TagNumber(7)
+  set amountAfterSats($fixnum.Int64 v) { $_setInt64(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasAmountAfterSats() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearAmountAfterSats() => clearField(7);
+
+  /// The output falls under the dust limit, so it goes away and its remainder
+  /// joins the fee.
+  @$pb.TagNumber(8)
+  $core.bool get outputRemoved => $_getBF(7);
+  @$pb.TagNumber(8)
+  set outputRemoved($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasOutputRemoved() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearOutputRemoved() => clearField(8);
+
+  /// The output belongs to the recipient, not to the wallet.
+  @$pb.TagNumber(9)
+  $core.bool get reducesPayment => $_getBF(8);
+  @$pb.TagNumber(9)
+  set reducesPayment($core.bool v) { $_setBool(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasReducesPayment() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearReducesPayment() => clearField(9);
 }
 
 class CreateCpfpRequest extends $pb.GeneratedMessage {
@@ -11625,6 +12237,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<BumpFeeResponse> bumpFee($pb.ClientContext? ctx, BumpFeeRequest request) =>
     _client.invoke<BumpFeeResponse>(ctx, 'WalletManagerService', 'BumpFee', request, BumpFeeResponse())
+  ;
+  $async.Future<PreviewBumpFeeResponse> previewBumpFee($pb.ClientContext? ctx, PreviewBumpFeeRequest request) =>
+    _client.invoke<PreviewBumpFeeResponse>(ctx, 'WalletManagerService', 'PreviewBumpFee', request, PreviewBumpFeeResponse())
   ;
   $async.Future<CreateCpfpResponse> createCpfp($pb.ClientContext? ctx, CreateCpfpRequest request) =>
     _client.invoke<CreateCpfpResponse>(ctx, 'WalletManagerService', 'CreateCpfp', request, CreateCpfpResponse())

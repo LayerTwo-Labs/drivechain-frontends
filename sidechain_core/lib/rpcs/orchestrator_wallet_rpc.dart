@@ -616,16 +616,38 @@ class OrchestratorWalletRPC {
     );
   }
 
+  /// Replaces [txid] with a transaction that pays more. [feeFromVout] takes the
+  /// higher fee from that output instead of the change output.
   Future<wmpb.BumpFeeResponse> bumpFee({
     required String walletId,
     required String txid,
     int? newFeeRate,
+    int? feeFromVout,
   }) {
     return _unaryClient.bumpFee(
       wmpb.BumpFeeRequest(
         walletId: walletId,
         txid: txid,
         newFeeRate: Int64(newFeeRate ?? 0),
+        feeFromVout: feeFromVout,
+      ),
+    );
+  }
+
+  /// Reports what a fee bump of [txid] costs, and which output pays it.
+  /// Broadcasts nothing.
+  Future<wmpb.PreviewBumpFeeResponse> previewBumpFee({
+    required String walletId,
+    required String txid,
+    int? newFeeRate,
+    int? feeFromVout,
+  }) {
+    return _unaryClient.previewBumpFee(
+      wmpb.PreviewBumpFeeRequest(
+        walletId: walletId,
+        txid: txid,
+        newFeeRate: Int64(newFeeRate ?? 0),
+        feeFromVout: feeFromVout,
       ),
     );
   }

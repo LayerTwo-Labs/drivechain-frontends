@@ -62,6 +62,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$17.GetTransactionDetailsResponse> getTransactionDetails($pb.ServerContext ctx, $17.GetTransactionDetailsRequest request);
   $async.Future<$17.DecodeTransactionResponse> decodeTransaction($pb.ServerContext ctx, $17.DecodeTransactionRequest request);
   $async.Future<$17.BumpFeeResponse> bumpFee($pb.ServerContext ctx, $17.BumpFeeRequest request);
+  $async.Future<$17.PreviewBumpFeeResponse> previewBumpFee($pb.ServerContext ctx, $17.PreviewBumpFeeRequest request);
   $async.Future<$17.CreateCpfpResponse> createCpfp($pb.ServerContext ctx, $17.CreateCpfpRequest request);
   $async.Future<$17.DeriveAddressesResponse> deriveAddresses($pb.ServerContext ctx, $17.DeriveAddressesRequest request);
   $async.Future<$17.CreatePsbtResponse> createPsbt($pb.ServerContext ctx, $17.CreatePsbtRequest request);
@@ -133,6 +134,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'GetTransactionDetails': return $17.GetTransactionDetailsRequest();
       case 'DecodeTransaction': return $17.DecodeTransactionRequest();
       case 'BumpFee': return $17.BumpFeeRequest();
+      case 'PreviewBumpFee': return $17.PreviewBumpFeeRequest();
       case 'CreateCpfp': return $17.CreateCpfpRequest();
       case 'DeriveAddresses': return $17.DeriveAddressesRequest();
       case 'CreatePsbt': return $17.CreatePsbtRequest();
@@ -207,6 +209,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'GetTransactionDetails': return this.getTransactionDetails(ctx, request as $17.GetTransactionDetailsRequest);
       case 'DecodeTransaction': return this.decodeTransaction(ctx, request as $17.DecodeTransactionRequest);
       case 'BumpFee': return this.bumpFee(ctx, request as $17.BumpFeeRequest);
+      case 'PreviewBumpFee': return this.previewBumpFee(ctx, request as $17.PreviewBumpFeeRequest);
       case 'CreateCpfp': return this.createCpfp(ctx, request as $17.CreateCpfpRequest);
       case 'DeriveAddresses': return this.deriveAddresses(ctx, request as $17.DeriveAddressesRequest);
       case 'CreatePsbt': return this.createPsbt(ctx, request as $17.CreatePsbtRequest);

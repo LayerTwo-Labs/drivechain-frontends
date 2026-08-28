@@ -309,6 +309,15 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.BumpFeeResponse.new,
   );
 
+  /// PreviewBumpFee reports what a fee bump costs, and which output pays it,
+  /// without broadcasting anything.
+  static const previewBumpFee = connect.Spec(
+    '/$name/PreviewBumpFee',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.PreviewBumpFeeRequest.new,
+    walletmanagerv1walletmanager.PreviewBumpFeeResponse.new,
+  );
+
   /// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
   /// fee lifts the parent+child package to the target fee rate (CPFP).
   static const createCpfp = connect.Spec(

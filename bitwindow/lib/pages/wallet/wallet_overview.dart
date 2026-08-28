@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
+import 'package:bitwindow/pages/wallet/bump_fee_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
@@ -131,6 +132,18 @@ class OverviewTab extends StatelessWidget {
   }
 }
 
+/// Column keys of the transaction table, in the order the table draws them.
+/// The last column holds the row actions and does not sort.
+const List<String> transactionColumns = ['date', 'txid', 'address', 'note', 'status', 'amount', ''];
+
+/// Width of the action column, so its button never widens the table.
+const double bumpFeeColumnWidth = 104;
+
+/// Only a transaction that waits for a block can carry a replacement. Whether
+/// this wallet signs its inputs comes from the backend preview, because a
+/// self-send and a consolidation both read as amount zero here.
+bool canBumpFee(WalletTransaction tx) => tx.confirmationTime.height == 0;
+
 class TransactionTable extends StatefulWidget {
   final Widget searchWidget;
   final OverviewViewModel model;
@@ -173,6 +186,10 @@ class _TransactionTableState extends State<TransactionTable> {
         case 'note':
           aValue = a.note;
           bValue = b.note;
+          break;
+        case 'status':
+          aValue = a.confirmationTime.height;
+          bValue = b.confirmationTime.height;
           break;
         case 'amount':
           // Calculate total amount for each transaction
@@ -269,13 +286,24 @@ class _TransactionTableState extends State<TransactionTable> {
                           onSort: () => onSort('note'),
                         ),
                         SailTableHeaderCell(
+                          name: 'Status',
+                          alignment: Alignment.centerLeft,
+                          onSort: () => onSort('status'),
+                        ),
+                        SailTableHeaderCell(
                           name: 'Amount',
                           alignment: Alignment.centerLeft,
                           onSort: () => onSort('amount'),
                         ),
+                        const SailTableHeaderCell(
+                          name: '',
+                          alignment: Alignment.centerRight,
+                        ),
                       ],
                       rowBuilder: (context, row, selected) {
                         final entry = entries[row];
+                        final unconfirmed = entry.confirmationTime.height == 0;
+                        final replaceable = canBumpFee(entry);
 
                         // Calculate amount and determine sign
                         final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
@@ -301,9 +329,26 @@ class _TransactionTableState extends State<TransactionTable> {
                             alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
+                            value: unconfirmed ? 'Unconfirmed' : 'Confirmed',
+                            alignment: Alignment.centerLeft,
+                            textColor: unconfirmed ? context.sailTheme.colors.orange : null,
+                          ),
+                          SailTableCell(
                             value: formattedAmount,
                             alignment: Alignment.centerLeft,
                             monospace: true,
+                          ),
+                          SailTableCell(
+                            value: replaceable ? 'Bump fee' : '',
+                            width: bumpFeeColumnWidth,
+                            alignment: Alignment.centerRight,
+                            child: replaceable
+                                ? SailButton(
+                                    label: 'Bump fee',
+                                    onPressed: () async => widget.model.openBumpFee(context, entry),
+                                    insideTable: true,
+                                  )
+                                : const SizedBox.shrink(),
                           ),
                         ];
                       },
@@ -347,13 +392,13 @@ class _TransactionTableState extends State<TransactionTable> {
                             },
                             child: SailText.primary12(entry.note.isEmpty ? 'Add Note' : 'Update Note'),
                           ),
-                          // RBF bump fee - only for unconfirmed Core wallet transactions
-                          if (isUnconfirmed && widget.model.isCoreWallet)
+                          if (canBumpFee(entry))
                             SailMenuItem(
+                              closeOnSelect: false,
                               onSelected: () async {
-                                await widget.model.bumpFee(context, entry);
+                                await widget.model.openBumpFee(context, entry);
                               },
-                              child: SailText.primary12('Bump Fee (RBF)'),
+                              child: SailText.primary12('Bump fee'),
                             ),
                           // CPFP - accelerate an unconfirmed incoming tx whose
                           // output this wallet can spend (RBF can't bump it).
@@ -371,16 +416,14 @@ class _TransactionTableState extends State<TransactionTable> {
                       rowCount: entries.length,
                       emptyPlaceholder: 'No transactions yet',
                       drawGrid: true,
-                      sortColumnIndex: [
-                        'date',
-                        'txid',
-                        'address',
-                        'note',
-                        'amount',
-                      ].indexOf(sortColumn),
+                      sortColumnIndex: transactionColumns.indexOf(sortColumn),
                       sortAscending: sortAscending,
                       onSort: (columnIndex, ascending) {
-                        onSort(['date', 'txid', 'address', 'note', 'amount'][columnIndex]);
+                        final column = transactionColumns[columnIndex];
+                        if (column.isEmpty) {
+                          return;
+                        }
+                        onSort(column);
                       },
                       onDoubleTap: (rowId) => showTransactionDetails(context, rowId),
                     ),
@@ -491,9 +534,6 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     return filteredTransactions;
   }
-
-  /// Electrum wallets cannot bump a fee, so the RBF menu item hides for them.
-  bool get isCoreWallet => !(_walletReader.activeWallet?.isElectrum ?? false);
 
   String sortColumn = 'date';
   bool sortAscending = true;
@@ -620,30 +660,15 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
   }
 
-  Future<void> bumpFee(BuildContext context, WalletTransaction tx) async {
-    final log = GetIt.I<Logger>();
-
-    try {
-      final walletId = _walletReader.activeWalletId;
-      if (walletId == null) {
-        throw Exception('No active wallet');
-      }
-
-      final result = await _orchestratorWallet.bumpFee(
-        walletId: walletId,
-        txid: tx.txid,
-      );
-
-      log.i('RBF transaction broadcast: ${result.newTxid} (replaced ${tx.txid})');
-
-      if (context.mounted) {
-        showSailToast(context, 'Fee bumped! New txid: ${result.newTxid}');
-      }
-    } catch (e) {
-      log.e('Failed to bump fee: $e');
-      if (context.mounted) {
-        showSailToast(context, 'Failed to bump fee: $e');
-      }
+  /// Opens the fee bump. A transaction with no change output has no
+  /// replacement to build, so the dialog offers CPFP and hands it back here.
+  Future<void> openBumpFee(BuildContext context, WalletTransaction tx) async {
+    final outcome = await showThemedDialog<BumpFeeOutcome>(
+      context: context,
+      builder: (context) => BumpFeeDialog(txid: tx.txid),
+    );
+    if (outcome == BumpFeeOutcome.accelerate && context.mounted) {
+      await accelerateCpfp(context, tx);
     }
   }
 
