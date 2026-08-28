@@ -96,8 +96,14 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 }
 
 func (h *BitcoinConfHandler) PrepareNetworkChange(ctx context.Context, req *connect.Request[pb.PrepareNetworkChangeRequest]) (*connect.Response[pb.NetworkChangePlan], error) {
+	network := strings.TrimSpace(req.Msg.Network)
+	if _, known := h.orch.NetworkForOption(network); !known {
+		if _, named := config.LookupNetwork(network); network != "" && !named {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network %q", network))
+		}
+	}
 	plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{
-		Network:       strings.TrimSpace(req.Msg.Network),
+		Network:       network,
 		WalletBackend: walletBackendFromProto(req.Msg.WalletBackend),
 		WalletID:      strings.TrimSpace(req.Msg.WalletId),
 	})
