@@ -178,26 +178,90 @@ type ActiveSnapshot struct {
 	VerificationProgress float64
 }
 
+// CoreChainStates is what getchainstates reports: the snapshot chainstate Core
+// loaded, and the height it verified from genesis behind that snapshot.
+type CoreChainStates struct {
+	Snapshot ActiveSnapshot
+	// VerifiedBlocks is the tip of the background chainstate, the one Core
+	// validates from genesis. Zero when Core loaded no snapshot, because a
+	// node without one verifies every block it counts in Blocks.
+	VerifiedBlocks int64
+	// VerifiedGoal is the height the background chainstate must reach: the
+	// block the snapshot commits to, not the chain tip. Zero with no snapshot.
+	VerifiedGoal int64
+}
+
 // SnapshotStatus returns the published and currently-loaded snapshots.
 func (o *Orchestrator) SnapshotStatus(ctx context.Context) SnapshotStatus {
-	s := SnapshotStatus{Active: o.activeSnapshot(ctx)}
+	s := SnapshotStatus{}
+	if states, err := o.chainStatesFrom(ctx); err == nil {
+		s.Active = states.Snapshot
+	}
 	if a := o.publishedSnapshot(); a != nil {
 		s.Available = *a
 	}
 	return s
 }
 
-// activeSnapshot returns the assumeutxo chainstate loaded in Core.
-func (o *Orchestrator) activeSnapshot(ctx context.Context) ActiveSnapshot {
+// chainStatesFrom reads getchainstates from the running Core, then resolves the
+// snapshot's base height. Verification finishes at that base, not at the tip, so
+// a bar measured against headers never reaches 100%.
+func (o *Orchestrator) chainStatesFrom(ctx context.Context) (CoreChainStates, error) {
 	client, err := o.CoreStatusClient()
 	if err != nil {
-		return ActiveSnapshot{}
+		return CoreChainStates{}, err
 	}
 	raw, err := client.call(ctx, "getchainstates")
 	if err != nil {
-		return ActiveSnapshot{}
+		return CoreChainStates{}, err
 	}
-	var states struct {
+	states, err := parseChainStates(raw)
+	if err != nil {
+		return CoreChainStates{}, err
+	}
+	if !states.Snapshot.Present {
+		return states, nil
+	}
+
+	header, err := client.call(ctx, "getblockheader", states.Snapshot.Blockhash)
+	if err != nil {
+		return CoreChainStates{}, err
+	}
+	states.VerifiedGoal, err = parseBlockHeight(header)
+	if err != nil {
+		return CoreChainStates{}, err
+	}
+	return completeValidatedSnapshot(states), nil
+}
+
+// completeValidatedSnapshot reads a finished verification as finished. Core
+// removes the background chainstate once it validates the snapshot, so the
+// verified height drops to zero while the goal stays set — which reads as
+// "never started" instead of "done".
+func completeValidatedSnapshot(states CoreChainStates) CoreChainStates {
+	if states.Snapshot.Validated && states.VerifiedBlocks == 0 {
+		states.VerifiedBlocks = states.VerifiedGoal
+	}
+	return states
+}
+
+// parseBlockHeight reads the height out of a getblockheader reply.
+func parseBlockHeight(raw []byte) (int64, error) {
+	var header struct {
+		Height int64 `json:"height"`
+	}
+	if err := json.Unmarshal(raw, &header); err != nil {
+		return 0, fmt.Errorf("decode getblockheader: %w", err)
+	}
+	return header.Height, nil
+}
+
+// parseChainStates projects a getchainstates reply. Core reports one
+// chainstate normally and two behind an assumeutxo snapshot: the snapshot one
+// carries snapshot_blockhash and sits at the tip, and the other holds the
+// height Core verified from genesis.
+func parseChainStates(raw []byte) (CoreChainStates, error) {
+	var reply struct {
 		ChainStates []struct {
 			Blocks               int64   `json:"blocks"`
 			SnapshotBlockhash    string  `json:"snapshot_blockhash"`
@@ -205,21 +269,29 @@ func (o *Orchestrator) activeSnapshot(ctx context.Context) ActiveSnapshot {
 			VerificationProgress float64 `json:"verificationprogress"`
 		} `json:"chainstates"`
 	}
-	if err := json.Unmarshal(raw, &states); err != nil {
-		return ActiveSnapshot{}
+	if err := json.Unmarshal(raw, &reply); err != nil {
+		return CoreChainStates{}, fmt.Errorf("decode getchainstates: %w", err)
 	}
-	for _, s := range states.ChainStates {
-		if s.SnapshotBlockhash != "" {
-			return ActiveSnapshot{
-				Present:              true,
-				Blockhash:            s.SnapshotBlockhash,
-				Height:               s.Blocks,
-				Validated:            s.Validated,
-				VerificationProgress: s.VerificationProgress,
-			}
+
+	var out CoreChainStates
+	var background int64
+	for _, s := range reply.ChainStates {
+		if s.SnapshotBlockhash == "" {
+			background = max(background, s.Blocks)
+			continue
+		}
+		out.Snapshot = ActiveSnapshot{
+			Present:              true,
+			Blockhash:            s.SnapshotBlockhash,
+			Height:               s.Blocks,
+			Validated:            s.Validated,
+			VerificationProgress: s.VerificationProgress,
 		}
 	}
-	return ActiveSnapshot{}
+	if out.Snapshot.Present {
+		out.VerifiedBlocks = background
+	}
+	return out, nil
 }
 
 func catalogEntryForNetwork(cat netcatalog.Catalog, n config.Network) (netcatalog.Network, bool) {

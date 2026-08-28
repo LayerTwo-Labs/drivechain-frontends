@@ -2808,8 +2808,15 @@ type ChainSync struct {
 	// Where the refused branch leaves this node's chain, 0 when the node
 	// refuses none. The invalid block sits at or above it. Mainchain only.
 	RefusedBranchStart int32 `protobuf:"varint,7,opt,name=refused_branch_start,json=refusedBranchStart,proto3" json:"refused_branch_start,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Height Core verified from genesis, 0 when it loaded no UTXO snapshot.
+	// Behind a snapshot, blocks reaches the tip long before this does.
+	// Mainchain only.
+	VerifiedBlocks int32 `protobuf:"varint,8,opt,name=verified_blocks,json=verifiedBlocks,proto3" json:"verified_blocks,omitempty"`
+	// Height verified_blocks counts towards: the block the snapshot commits to,
+	// not the chain tip. 0 when no snapshot is loaded. Mainchain only.
+	VerifiedGoal  int32 `protobuf:"varint,9,opt,name=verified_goal,json=verifiedGoal,proto3" json:"verified_goal,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChainSync) Reset() {
@@ -2887,6 +2894,20 @@ func (x *ChainSync) GetRejectedBranch() bool {
 func (x *ChainSync) GetRefusedBranchStart() int32 {
 	if x != nil {
 		return x.RefusedBranchStart
+	}
+	return 0
+}
+
+func (x *ChainSync) GetVerifiedBlocks() int32 {
+	if x != nil {
+		return x.VerifiedBlocks
+	}
+	return 0
+}
+
+func (x *ChainSync) GetVerifiedGoal() int32 {
+	if x != nil {
+		return x.VerifiedGoal
 	}
 	return 0
 }
@@ -5048,7 +5069,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\fchain_source\x18\x06 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\vchainSourceJ\x04\b\x05\x10\x06R\x0fenforcer_wallet\"u\n" +
 	"\x0fSidechainStatus\x122\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1e.orchestrator.v1.SidechainTypeR\x04type\x12.\n" +
-	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"\xec\x01\n" +
+	"\x04sync\x18\x02 \x01(\v2\x1a.orchestrator.v1.ChainSyncR\x04sync\"\xba\x02\n" +
 	"\tChainSync\x12\x16\n" +
 	"\x06blocks\x18\x01 \x01(\x05R\x06blocks\x12\x18\n" +
 	"\aheaders\x18\x02 \x01(\x05R\aheaders\x12\x12\n" +
@@ -5056,7 +5077,9 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x05error\x18\x04 \x01(\tR\x05error\x12(\n" +
 	"\x10peer_best_height\x18\x05 \x01(\x05R\x0epeerBestHeight\x12'\n" +
 	"\x0frejected_branch\x18\x06 \x01(\bR\x0erejectedBranch\x120\n" +
-	"\x14refused_branch_start\x18\a \x01(\x05R\x12refusedBranchStart\"\x1a\n" +
+	"\x14refused_branch_start\x18\a \x01(\x05R\x12refusedBranchStart\x12'\n" +
+	"\x0fverified_blocks\x18\b \x01(\x05R\x0everifiedBlocks\x12#\n" +
+	"\rverified_goal\x18\t \x01(\x05R\fverifiedGoal\"\x1a\n" +
 	"\x18GetDownloadStatusRequest\"Z\n" +
 	"\x19GetDownloadStatusResponse\x12=\n" +
 	"\tdownloads\x18\x01 \x03(\v2\x1f.orchestrator.v1.DownloadStatusR\tdownloads\"\x9f\x01\n" +

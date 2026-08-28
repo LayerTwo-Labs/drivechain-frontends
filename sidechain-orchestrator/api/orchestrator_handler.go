@@ -512,6 +512,8 @@ func chainSyncToProto(s *orchestrator.ChainSyncResult) *pb.ChainSync {
 		PeerBestHeight:     int32(s.PeerBestHeight),
 		RejectedBranch:     s.RejectedBranch,
 		RefusedBranchStart: int32(s.RefusedBranchStart),
+		VerifiedBlocks:     int32(s.VerifiedBlocks),
+		VerifiedGoal:       int32(s.VerifiedGoal),
 	}
 }
 

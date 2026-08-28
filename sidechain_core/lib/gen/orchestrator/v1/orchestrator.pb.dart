@@ -3026,6 +3026,8 @@ class ChainSync extends $pb.GeneratedMessage {
     $core.int? peerBestHeight,
     $core.bool? rejectedBranch,
     $core.int? refusedBranchStart,
+    $core.int? verifiedBlocks,
+    $core.int? verifiedGoal,
   }) {
     final $result = create();
     if (blocks != null) {
@@ -3049,6 +3051,12 @@ class ChainSync extends $pb.GeneratedMessage {
     if (refusedBranchStart != null) {
       $result.refusedBranchStart = refusedBranchStart;
     }
+    if (verifiedBlocks != null) {
+      $result.verifiedBlocks = verifiedBlocks;
+    }
+    if (verifiedGoal != null) {
+      $result.verifiedGoal = verifiedGoal;
+    }
     return $result;
   }
   ChainSync._() : super();
@@ -3063,6 +3071,8 @@ class ChainSync extends $pb.GeneratedMessage {
     ..a<$core.int>(5, _omitFieldNames ? '' : 'peerBestHeight', $pb.PbFieldType.O3)
     ..aOB(6, _omitFieldNames ? '' : 'rejectedBranch')
     ..a<$core.int>(7, _omitFieldNames ? '' : 'refusedBranchStart', $pb.PbFieldType.O3)
+    ..a<$core.int>(8, _omitFieldNames ? '' : 'verifiedBlocks', $pb.PbFieldType.O3)
+    ..a<$core.int>(9, _omitFieldNames ? '' : 'verifiedGoal', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -3161,6 +3171,29 @@ class ChainSync extends $pb.GeneratedMessage {
   $core.bool hasRefusedBranchStart() => $_has(6);
   @$pb.TagNumber(7)
   void clearRefusedBranchStart() => clearField(7);
+
+  /// Height Core verified from genesis, 0 when it loaded no UTXO snapshot.
+  /// Behind a snapshot, blocks reaches the tip long before this does.
+  /// Mainchain only.
+  @$pb.TagNumber(8)
+  $core.int get verifiedBlocks => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set verifiedBlocks($core.int v) { $_setSignedInt32(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasVerifiedBlocks() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearVerifiedBlocks() => clearField(8);
+
+  /// Height verified_blocks counts towards: the block the snapshot commits to,
+  /// not the chain tip. 0 when no snapshot is loaded. Mainchain only.
+  @$pb.TagNumber(9)
+  $core.int get verifiedGoal => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set verifiedGoal($core.int v) { $_setSignedInt32(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasVerifiedGoal() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearVerifiedGoal() => clearField(9);
 }
 
 class GetDownloadStatusRequest extends $pb.GeneratedMessage {
