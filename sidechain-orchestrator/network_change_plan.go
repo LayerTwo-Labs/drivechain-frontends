@@ -47,8 +47,12 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 	if req.Network != "" {
 		if resolved, ok := o.NetworkForOption(req.Network); ok {
 			target = resolved
+		} else if resolved, ok := config.LookupNetwork(req.Network); ok {
+			target = resolved
 		} else {
-			target = config.NetworkFromString(req.Network)
+			// A request names this, and a handler checks it. Signet here would
+			// plan a switch to a chain nobody asked for.
+			panic(fmt.Sprintf("unknown network %q", req.Network))
 		}
 		if plan, err := o.PlanECashSwitch(req.Network); err == nil {
 			ecashSwitch = plan.FromID != "" && plan.FromID != plan.ToID

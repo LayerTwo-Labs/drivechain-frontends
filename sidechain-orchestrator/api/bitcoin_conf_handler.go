@@ -164,6 +164,9 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 		}
 	}
 
+	if _, known := config.LookupNetwork(networkStr); networkStr != "" && !known {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network %q", networkStr))
+	}
 	// Apply is authoritative: re-plan so a stale prepare can't smuggle through a
 	// requirement the user never resolved.
 	plan := h.orch.PlanNetworkChange(orchestrator.NetworkChangeRequest{Network: networkStr})
@@ -238,7 +241,10 @@ func (h *BitcoinConfHandler) SetBitcoinConfigDataDir(ctx context.Context, req *c
 	if networkStr == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("network is required"))
 	}
-	forNetwork := config.NetworkFromString(networkStr)
+	forNetwork, known := config.LookupNetwork(networkStr)
+	if !known {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown network %q", networkStr))
+	}
 
 	dataDir := strings.TrimSpace(req.Msg.DataDir)
 
