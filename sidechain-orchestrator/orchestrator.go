@@ -231,6 +231,7 @@ type Orchestrator struct {
 	enforcerSync      *CachedConnection[*ChainSyncResult]
 	sidechainSyncs    map[string]*CachedConnection[*ChainSyncResult]
 	chainFork         *CachedConnection[*ChainForkState]
+	chainStates       *CachedConnection[*CoreChainStates]
 	chainSourceHeight *CachedConnection[int]
 
 	// httpClientsMu guards the lazy HTTP-client singletons used by the
@@ -2443,6 +2444,7 @@ func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.enforcerSync = nil
 	o.sidechainSyncs = nil
 	o.chainFork = nil
+	o.chainStates = nil
 	o.chainSourceHeight = nil
 	o.syncConnMu.Unlock()
 
@@ -2690,6 +2692,10 @@ const chainSyncCacheTTL = 100 * time.Millisecond
 // this reads far less often than the tip itself.
 const chainForkCacheTTL = 30 * time.Second
 
+// chainStatesCacheTTL bounds the getchainstates probe. Core verifies the blocks
+// below a snapshot over hours, so a second-old number is still current.
+const chainStatesCacheTTL = 2 * time.Second
+
 // Connection is the only thing that differs between chains: a pure RPC call
 // that returns one typed value or an error. No caching, no single-flight,
 // no error preservation. Implementations wrap their wire protocol and
@@ -2910,6 +2916,38 @@ func forkStateFrom(tips []coreChainTip, peers []corePeerTip) ChainForkState {
 	}
 }
 
+// chainStatesConnection reads getchainstates. A node behind a UTXO snapshot
+// counts the tip in Blocks long before it verifies the blocks below it.
+type chainStatesConnection struct{ o *Orchestrator }
+
+// Fetch reports no snapshot on a Core that has no getchainstates at all. That
+// answer is cached; the cache holds its TTL only after a success, so returning
+// an error would re-probe an old Core on every 100ms poll. Every other failure
+// stays an error, which keeps the last-good heights instead of blanking them.
+func (c *chainStatesConnection) Fetch(ctx context.Context) (*CoreChainStates, error) {
+	states, err := c.o.chainStatesFrom(ctx)
+	if err == nil {
+		return &states, nil
+	}
+	if CoreLacksMethod(err) {
+		return &CoreChainStates{}, nil
+	}
+	return nil, err
+}
+
+// chainStatesCached returns the shared cache for the getchainstates probe.
+func (o *Orchestrator) chainStatesCached() *CachedConnection[*CoreChainStates] {
+	o.syncConnMu.Lock()
+	defer o.syncConnMu.Unlock()
+	if o.chainStates == nil {
+		o.chainStates = &CachedConnection[*CoreChainStates]{
+			inner: &chainStatesConnection{o: o},
+			ttl:   chainStatesCacheTTL,
+		}
+	}
+	return o.chainStates
+}
+
 // chainForkCached returns the shared cache for the fork probe. Two more RPCs
 // per poll would be wasteful: a refused branch stays refused.
 func (o *Orchestrator) chainForkCached() *CachedConnection[*ChainForkState] {
@@ -3066,6 +3104,12 @@ type ChainSyncResult struct {
 	// RefusedBranchStart is where the refused branch leaves this node's
 	// chain, zero when none. The invalid block sits at or above it.
 	RefusedBranchStart int64
+	// VerifiedBlocks is the height Core verified from genesis, zero when it
+	// loaded no UTXO snapshot. Mainchain only.
+	VerifiedBlocks int64
+	// VerifiedGoal is the height VerifiedBlocks counts towards: the snapshot's
+	// base block, zero when no snapshot is loaded. Mainchain only.
+	VerifiedGoal int64
 }
 
 // SyncStatus is the atomic snapshot returned by GetSyncStatus. Mainchain +
@@ -3227,7 +3271,27 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		}()
 	}
 
+	var chainStates *CoreChainStates
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		states, err := o.chainStatesCached().Fetch(ctx)
+		if err != nil {
+			o.log.Debug().Err(err).Msg("getchainstates probe failed")
+		}
+		// The cache hands back its last good states next to a transient error,
+		// so a failed refresh must not blank the verified heights.
+		if states != nil {
+			chainStates = states
+		}
+	}()
+
 	wg.Wait()
+
+	if chainStates != nil && out.Mainchain.Error == "" {
+		out.Mainchain.VerifiedBlocks = chainStates.VerifiedBlocks
+		out.Mainchain.VerifiedGoal = chainStates.VerifiedGoal
+	}
 
 	if fork != nil && out.Mainchain.Error == "" {
 		out.Mainchain.PeerBestHeight = fork.PeerBestHeight

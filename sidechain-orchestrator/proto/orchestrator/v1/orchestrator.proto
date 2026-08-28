@@ -545,6 +545,13 @@ message ChainSync {
   // Where the refused branch leaves this node's chain, 0 when the node
   // refuses none. The invalid block sits at or above it. Mainchain only.
   int32 refused_branch_start = 7;
+  // Height Core verified from genesis, 0 when it loaded no UTXO snapshot.
+  // Behind a snapshot, blocks reaches the tip long before this does.
+  // Mainchain only.
+  int32 verified_blocks = 8;
+  // Height verified_blocks counts towards: the block the snapshot commits to,
+  // not the chain tip. 0 when no snapshot is loaded. Mainchain only.
+  int32 verified_goal = 9;
 }
 
 // GetDownloadStatus

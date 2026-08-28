@@ -771,6 +771,8 @@ const ChainSync$json = {
     {'1': 'peer_best_height', '3': 5, '4': 1, '5': 5, '10': 'peerBestHeight'},
     {'1': 'rejected_branch', '3': 6, '4': 1, '5': 8, '10': 'rejectedBranch'},
     {'1': 'refused_branch_start', '3': 7, '4': 1, '5': 5, '10': 'refusedBranchStart'},
+    {'1': 'verified_blocks', '3': 8, '4': 1, '5': 5, '10': 'verifiedBlocks'},
+    {'1': 'verified_goal', '3': 9, '4': 1, '5': 5, '10': 'verifiedGoal'},
   ],
 };
 
@@ -780,7 +782,8 @@ final $typed_data.Uint8List chainSyncDescriptor = $convert.base64Decode(
     'VhZGVycxISCgR0aW1lGAMgASgDUgR0aW1lEhQKBWVycm9yGAQgASgJUgVlcnJvchIoChBwZWVy'
     'X2Jlc3RfaGVpZ2h0GAUgASgFUg5wZWVyQmVzdEhlaWdodBInCg9yZWplY3RlZF9icmFuY2gYBi'
     'ABKAhSDnJlamVjdGVkQnJhbmNoEjAKFHJlZnVzZWRfYnJhbmNoX3N0YXJ0GAcgASgFUhJyZWZ1'
-    'c2VkQnJhbmNoU3RhcnQ=');
+    'c2VkQnJhbmNoU3RhcnQSJwoPdmVyaWZpZWRfYmxvY2tzGAggASgFUg52ZXJpZmllZEJsb2Nrcx'
+    'IjCg12ZXJpZmllZF9nb2FsGAkgASgFUgx2ZXJpZmllZEdvYWw=');
 
 @$core.Deprecated('Use getDownloadStatusRequestDescriptor instead')
 const GetDownloadStatusRequest$json = {
