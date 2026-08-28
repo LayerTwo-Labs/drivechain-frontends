@@ -47,3 +47,81 @@ func TestEsploraAddressTxsPaginationUsesConfirmedCursor(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, txs, 27, "all pages must be fetched via the confirmed cursor")
 }
+
+// outspendStub answers the status and outspend paths for one transaction.
+func outspendStub(t *testing.T, txid string, knowsTx bool, spent string, hits *int) string {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		*hits++
+		switch r.URL.Path {
+		case "/api/tx/" + txid + "/status":
+			if !knowsTx {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			_, _ = w.Write([]byte(`{"confirmed":true}`))
+		case "/api/tx/" + txid + "/outspend/0":
+			_, _ = w.Write([]byte(spent))
+		default:
+			http.Error(w, "unexpected path: "+r.URL.Path, http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL + "/api"
+}
+
+// TestEsploraOutspendKeepsOneProvider: a server answers "not spent" for a
+// transaction it never saw. Taking that answer from one server and the
+// transaction from another reports a spent coin as unspent.
+func TestEsploraOutspendKeepsOneProvider(t *testing.T) {
+	const txid = "aa"
+	var blindHits, knowingHits int
+	blind := outspendStub(t, txid, false, `{"spent":false}`, &blindHits)
+	knowing := outspendStub(t, txid, true, `{"spent":true,"status":{"confirmed":true}}`, &knowingHits)
+
+	client := NewEsploraClient([]string{blind, knowing}, zerolog.Nop())
+	out, found, err := client.Outspend(context.Background(), txid, 0)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.True(t, out.Spent, "the answer must come from the server that holds the transaction")
+	// The spend answer comes first, then the transaction check exposes the
+	// server that does not hold it.
+	require.Equal(t, 2, blindHits)
+}
+
+// TestEsploraOutspendUnknownEverywhere: no server holds the transaction, so the
+// coin is not one Bitcoin knows.
+func TestEsploraOutspendUnknownEverywhere(t *testing.T) {
+	const txid = "aa"
+	var a, b int
+	client := NewEsploraClient([]string{
+		outspendStub(t, txid, false, `{"spent":false}`, &a),
+		outspendStub(t, txid, false, `{"spent":false}`, &b),
+	}, zerolog.Nop())
+
+	_, found, err := client.Outspend(context.Background(), txid, 0)
+	require.NoError(t, err)
+	require.False(t, found)
+	require.Equal(t, 2, a)
+	require.Equal(t, 2, b)
+}
+
+// TestEsploraOutspendEvictedTransaction: a transaction can drop out of the
+// mempool between the two reads. The coin must read as absent, because the
+// engine caches an "unspent" answer forever.
+func TestEsploraOutspendEvictedTransaction(t *testing.T) {
+	const txid = "aa"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/tx/"+txid+"/status" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte(`{"spent":false}`))
+	}))
+	defer srv.Close()
+
+	client := NewEsploraClient([]string{srv.URL + "/api"}, zerolog.Nop())
+	_, found, err := client.Outspend(context.Background(), txid, 0)
+	require.NoError(t, err)
+	require.False(t, found)
+}

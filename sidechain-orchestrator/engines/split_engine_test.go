@@ -23,11 +23,8 @@ type fakeOutspend struct {
 	mempoolSpent map[string]bool
 	missing      map[string]bool
 	fail         map[string]bool
-	// unknownTx names transactions Bitcoin never saw. Their outputs still read
-	// as "not spent", the way a real server answers.
+	// unknownTx names transactions Bitcoin never saw.
 	unknownTx map[string]bool
-	txCalls   map[string]int
-	txFail    map[string]bool
 }
 
 func newFakeOutspend() *fakeOutspend {
@@ -38,17 +35,7 @@ func newFakeOutspend() *fakeOutspend {
 		missing:      map[string]bool{},
 		fail:         map[string]bool{},
 		unknownTx:    map[string]bool{},
-		txCalls:      map[string]int{},
-		txFail:       map[string]bool{},
 	}
-}
-
-func (f *fakeOutspend) TxKnown(_ context.Context, txid string) (bool, error) {
-	f.txCalls[txid]++
-	if f.txFail[txid] {
-		return false, errors.New("boom")
-	}
-	return !f.unknownTx[txid], nil
 }
 
 func (f *fakeOutspend) Outspend(_ context.Context, txid string, vout int) (wallet.EsploraOutspend, bool, error) {
@@ -57,7 +44,7 @@ func (f *fakeOutspend) Outspend(_ context.Context, txid string, vout int) (walle
 	if f.fail[op] {
 		return wallet.EsploraOutspend{}, false, errors.New("boom")
 	}
-	if f.missing[op] {
+	if f.missing[op] || f.unknownTx[txid] {
 		return wallet.EsploraOutspend{}, false, nil
 	}
 	if f.mempoolSpent[op] {
@@ -373,37 +360,6 @@ func TestSplitEngineIgnoresCoinBitcoinNeverSaw(t *testing.T) {
 
 	e.tick(context.Background())
 
-	require.Equal(t, 1, btc.txCalls["aa"])
+	require.Equal(t, 1, btc.calls["aa:0"])
 	require.Empty(t, store.statuses)
-}
-
-// TestSplitEngineAsksNothingMoreForASpentCoin: a spend proves the transaction
-// exists, so the second lookup is wasted.
-func TestSplitEngineAsksNothingMoreForASpentCoin(t *testing.T) {
-	btc := newFakeOutspend()
-	btc.spent["aa:0"] = true
-	store := &fakeSplitStore{statuses: map[string]bool{}}
-	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
-
-	e.tick(context.Background())
-
-	require.Equal(t, 0, btc.txCalls["aa"])
-	require.Equal(t, map[string]bool{"aa:0": false}, store.statuses)
-}
-
-// TestSplitEngineRetriesAfterTxLookupError: a dead provider must leave the coin
-// open for the next tick, not cache a guess.
-func TestSplitEngineRetriesAfterTxLookupError(t *testing.T) {
-	btc := newFakeOutspend()
-	btc.txFail["aa"] = true
-	store := &fakeSplitStore{statuses: map[string]bool{}}
-	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
-
-	e.tick(context.Background())
-	require.Empty(t, store.statuses)
-
-	btc.txFail["aa"] = false
-	e.tick(context.Background())
-
-	require.Equal(t, map[string]bool{"aa:0": true}, store.statuses)
 }
