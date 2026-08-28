@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/samber/lo"
 )
 
@@ -505,6 +506,24 @@ func LookupNetwork(s string) (Network, bool) {
 	default:
 		return NetworkSignet, false
 	}
+}
+
+// ChainParamsFor gives the address encoding and coin type a network takes.
+// Every Network value has params; a value outside the set is a programming
+// error, and a guess here is a wrong address.
+func ChainParamsFor(n Network) *chaincfg.Params {
+	switch n {
+	// Forknet and eCash run on mainnet params: same encoding, same coin type.
+	case NetworkMainnet, NetworkForknet, NetworkECash:
+		return &chaincfg.MainNetParams
+	case NetworkTestnet:
+		return &chaincfg.TestNet3Params
+	case NetworkSignet:
+		return &chaincfg.SigNetParams
+	case NetworkRegtest:
+		return &chaincfg.RegressionNetParams
+	}
+	panic(fmt.Sprintf("no chain params for network %q", n))
 }
 
 // SupportsLightMode reports whether a network can run without a local node.

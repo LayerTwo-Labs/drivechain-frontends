@@ -57,7 +57,6 @@ import (
 	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	zsidesvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47state"
 )
 
@@ -350,15 +349,15 @@ func run(cctx *cli.Context) error {
 	// Every key path, address and hardware request takes its coin from these
 	// params. A guess reaches a device as the wrong coin, so an unknown network
 	// stops the daemon here rather than deeper, one wrong answer at a time.
-	if _, perr := bip47send.NetworkParams(currentNetwork()); perr != nil {
-		return fmt.Errorf("unknown network %q: %w", currentNetwork(), perr)
+	if _, known := config.LookupNetwork(currentNetwork()); !known {
+		return fmt.Errorf("unknown network %q", currentNetwork())
 	}
 	netParams := wallet.ParamsFunc(func() *chaincfg.Params {
-		params, err := bip47send.NetworkParams(currentNetwork())
-		if err != nil {
-			panic(fmt.Sprintf("network %q became unknown after startup: %v", currentNetwork(), err))
+		n, known := config.LookupNetwork(currentNetwork())
+		if !known {
+			panic(fmt.Sprintf("network %q became unknown after startup", currentNetwork()))
 		}
-		return params
+		return config.ChainParamsFor(n)
 	})
 	orch.NetParams = netParams
 
