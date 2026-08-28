@@ -56,17 +56,27 @@ class URPsbt {
     return encode(base64.decode(psbtBase64.trim()), maxFragmentLen: maxFragmentLen);
   }
 
-  static URDecoder decoder() => URDecoder();
+  static URDecoder decoder() => URDecoder(acceptTypes: const {type});
 }
 
-/// Stateful reassembler for multi-part `ur:crypto-psbt` frames. Feed frames as
-/// they are scanned; [isComplete] flips once enough distinct parts arrive.
+/// Stateful reassembler for multi-part `ur:` frames. Feed frames as they are
+/// scanned; [isComplete] flips once every part arrives.
+///
+/// [acceptTypes] limits the UR types the decoder takes; a null set takes any
+/// type. The first accepted frame fixes [type] for the rest of the capture.
 class URDecoder {
+  final Set<String>? acceptTypes;
+  String? _type;
   int? _seqLen;
   int? _messageLen;
   int? _checksum;
   final Map<int, Uint8List> _parts = {};
   Uint8List? _single;
+
+  URDecoder({this.acceptTypes});
+
+  /// The UR type of the frames seen so far, or null before the first frame.
+  String? get type => _type;
 
   /// Number of distinct parts received so far.
   int get receivedCount => _single != null ? 1 : _parts.length;
@@ -87,15 +97,30 @@ class URDecoder {
   /// Feed one `ur:...` frame. Returns true if this frame was accepted (correct
   /// type and well-formed). Throws [FormatException] on a malformed frame.
   bool receive(String frame) {
-    final lower = frame.trim().toLowerCase();
-    if (!lower.startsWith('ur:${URPsbt.type}/')) {
-      throw const FormatException('not a ur:crypto-psbt frame');
+    final trimmed = frame.trim();
+    final lower = trimmed.toLowerCase();
+    if (!lower.startsWith('ur:')) {
+      throw const FormatException('not a ur frame');
     }
-    final body = frame.trim().substring('ur:${URPsbt.type}/'.length);
+    final typeEnd = lower.indexOf('/', 3);
+    if (typeEnd == -1) {
+      throw const FormatException('ur frame has no body');
+    }
+    final frameType = lower.substring(3, typeEnd);
+    final accept = acceptTypes;
+    if (accept != null && !accept.contains(frameType)) {
+      throw FormatException('unexpected ur type "$frameType"');
+    }
+    if (_type != null && _type != frameType) {
+      throw FormatException('ur type changed to "$frameType"');
+    }
+    _type = frameType;
+
+    final body = trimmed.substring(typeEnd + 1);
     final slash = body.indexOf('/');
 
     if (slash == -1) {
-      _single = _cborUnwrapBytes(ByteWords.decode(body));
+      _single = ByteWords.decode(body);
       return true;
     }
 
@@ -115,15 +140,22 @@ class URDecoder {
     if (part.seqLen != _seqLen || part.messageLen != _messageLen || part.checksum != _checksum) {
       throw const FormatException('mismatched multipart frame');
     }
-    if (seqNum != part.seqNum || seqNum < 1 || seqNum > _seqLen!) {
+    if (seqNum != part.seqNum || seqNum < 1) {
       throw const FormatException('bad sequence number');
+    }
+    if (seqNum > _seqLen!) {
+      // A fountain part mixes several fragments and this decoder reads the
+      // pure parts only. Keeping what already arrived lets the sequence
+      // finish on its next pass.
+      return false;
     }
     _parts[seqNum] = part.fragment;
     return true;
   }
 
-  /// Assembled PSBT bytes. Throws if not yet [isComplete] or checksum fails.
-  Uint8List result() {
+  /// The assembled CBOR message. Throws if not yet [isComplete] or the
+  /// checksum fails.
+  Uint8List messageBytes() {
     if (_single != null) {
       return _single!;
     }
@@ -144,8 +176,11 @@ class URDecoder {
     if (_crc32(message) != _checksum) {
       throw const FormatException('checksum mismatch');
     }
-    return _cborUnwrapBytes(message);
+    return message;
   }
+
+  /// Assembled PSBT bytes, unwrapped from the CBOR byte string.
+  Uint8List result() => _cborUnwrapBytes(messageBytes());
 
   /// Assembled PSBT as base64.
   String resultBase64() => base64.encode(result());
