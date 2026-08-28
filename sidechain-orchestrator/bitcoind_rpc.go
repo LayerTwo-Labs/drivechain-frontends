@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -84,12 +85,33 @@ func CallBitcoindRPC(ctx context.Context, url, user, password, method string, pa
 		return nil, fmt.Errorf("decode %s: %w", method, jerr)
 	}
 	if rpcResp.Error != nil {
-		return nil, fmt.Errorf("%s RPC error %d: %s", method, rpcResp.Error.Code, rpcResp.Error.Message)
+		return nil, &RPCError{Method: method, Code: rpcResp.Error.Code, Message: rpcResp.Error.Message}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s: HTTP %d", method, resp.StatusCode)
 	}
 	return rpcResp.Result, nil
+}
+
+// RPCMethodNotFound is the JSON-RPC code Core answers for an unknown method.
+const RPCMethodNotFound = -32601
+
+// RPCError is a JSON-RPC error reply from bitcoind, carrying Core's own code so
+// a caller can tell a missing method from a call that simply failed.
+type RPCError struct {
+	Method  string
+	Code    int
+	Message string
+}
+
+func (e *RPCError) Error() string {
+	return fmt.Sprintf("%s RPC error %d: %s", e.Method, e.Code, e.Message)
+}
+
+// CoreLacksMethod reports an RPC this Core does not implement at all.
+func CoreLacksMethod(err error) bool {
+	var rpcErr *RPCError
+	return errors.As(err, &rpcErr) && rpcErr.Code == RPCMethodNotFound
 }
 
 func acquireBitcoindRPCSlot(ctx context.Context, method string) (release func(), err error) {
