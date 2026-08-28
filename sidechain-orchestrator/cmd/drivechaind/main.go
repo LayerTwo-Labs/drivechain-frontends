@@ -101,6 +101,11 @@ func main() {
 				Value:   orchestrator.DefaultBitwindowDir(),
 				EnvVars: []string{"ORCHESTRATOR_BITWINDOW_DIR"},
 			},
+			&cli.StringFlag{
+				Name:    "app-home",
+				Usage:   "home directory every binary's data directory resolves against (default: the user's home)",
+				EnvVars: []string{"ORCHESTRATOR_APP_HOME"},
+			},
 			&cli.BoolFlag{
 				Name:    "local-auth",
 				Usage:   "write a per-session cookie token to <bitwindow-dir>/.auth.cookie and require it on every RPC (bitcoind-style local auth)",
@@ -171,6 +176,11 @@ func run(cctx *cli.Context) error {
 	listenAddr := cctx.String("rpclisten")
 	bitwindowDir := cctx.String("bitwindow-dir")
 	localAuth := cctx.Bool("local-auth")
+
+	if appHome := cctx.String("app-home"); appHome != "" {
+		config.SetHomeDir(appHome)
+		log.Info().Str("app_home", appHome).Msg("binary paths resolve against app-home")
+	}
 
 	log.Info().
 		Str("datadir", dataDir).
