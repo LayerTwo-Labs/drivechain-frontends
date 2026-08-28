@@ -28,30 +28,6 @@ Future<String> createWalletBackup({
   return destinationPath;
 }
 
-/// Restore wallet files from a validated backup.
-///
-/// DEPRECATED: Use WalletAPI.restoreBackup() RPC instead, which handles
-/// wallet.json restoration and imports multisig/transaction data into the DB.
-@Deprecated('Use WalletAPI.restoreBackup() RPC instead')
-Future<void> restoreWalletFiles({
-  required Directory tempDir,
-  required Logger log,
-  required WalletWriterProvider walletProvider,
-}) async {
-  final bitwindowAppDir = walletProvider.bitwindowAppDir;
-
-  // wallet.json is mandatory — fail hard if missing
-  final tempWalletJson = File(path.join(tempDir.path, 'wallet.json'));
-  if (!await tempWalletJson.exists()) {
-    throw Exception('Restore failed: wallet.json is missing from backup');
-  }
-  final destWalletJson = File(path.join(bitwindowAppDir.path, 'wallet.json'));
-  await tempWalletJson.copy(destWalletJson.path);
-  log.i('Restored: wallet.json');
-
-  log.i('Wallet files restored successfully');
-}
-
 /// Result of backup validation
 class BackupValidationResult {
   final bool isValid;

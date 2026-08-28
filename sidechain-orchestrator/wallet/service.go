@@ -10,15 +10,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
-	"github.com/btcsuite/btcd/chaincfg"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
+	"github.com/btcsuite/btcd/chaincfg"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
@@ -46,6 +48,11 @@ type Service struct {
 	starterWalletID string
 	encryptionKey   []byte
 	unlockedPass    string
+
+	// The wallet file content this process last read. Every write compares
+	// against it, so a write can never drop a change made behind our back.
+	lastWalletDigest      walletfile.Digest
+	lastWalletDigestKnown bool
 
 	// Callbacks
 	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
@@ -136,12 +143,16 @@ func (s *Service) moveToBackup(path string) (string, error) {
 
 func (s *Service) moveMasterWalletFilesToBackup() error {
 	backupRoot := filepath.Join(s.bitwindowDir, "wallet_backups", time.Now().UTC().Format("20060102-150405"))
-	for _, p := range s.MasterWalletPaths() {
-		if _, err := s.moveToBackupRoot(p, backupRoot); err != nil {
-			return fmt.Errorf("back up current wallet path %s: %w", p, err)
+	// Take the write lock across the move. A writer that already passed its
+	// compare would otherwise put the wallet back after the wipe ran.
+	return walletfile.WithLock(s.walletFilePath(), func() error {
+		for _, p := range s.MasterWalletPaths() {
+			if _, err := s.moveToBackupRoot(p, backupRoot); err != nil {
+				return fmt.Errorf("back up current wallet path %s: %w", p, err)
+			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
 func (s *Service) moveToBackupRoot(path, backupRoot string) (string, error) {
@@ -197,6 +208,7 @@ func (s *Service) ClearInMemoryState() {
 	s.activeWalletID = ""
 	s.encryptionKey = nil
 	s.unlockedPass = ""
+	s.setWalletDigestLocked(nil)
 	s.mu.Unlock()
 }
 
@@ -1193,7 +1205,8 @@ func (s *Service) EncryptWallet(password string) error {
 		return fmt.Errorf("encrypt: %w", err)
 	}
 
-	if err := atomicWrite(walletPath, []byte(encrypted)); err != nil {
+	s.setWalletDigestLocked(plaintext)
+	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
 		s.log.Error().Err(err).Msg("failed to write encrypted wallet")
 		return fmt.Errorf("write encrypted wallet: %w", err)
 	}
@@ -1264,7 +1277,8 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		return fmt.Errorf("encrypt: %w", err)
 	}
 
-	if err := atomicWrite(s.walletFilePath(), []byte(encrypted)); err != nil {
+	s.setWalletDigestLocked(data)
+	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
 		return fmt.Errorf("write wallet: %w", err)
 	}
 
@@ -1349,7 +1363,8 @@ func (s *Service) RemoveEncryption(password string) error {
 	s.log.Debug().Str("backup_path", backupPath).Msg("wallet backed up before decryption")
 
 	// Write plaintext
-	if err := atomicWrite(walletPath, []byte(plaintext)); err != nil {
+	s.setWalletDigestLocked(data)
+	if err := s.writeWalletFileLocked([]byte(plaintext)); err != nil {
 		return fmt.Errorf("write wallet: %w", err)
 	}
 
@@ -1471,7 +1486,7 @@ func (s *Service) DeleteWallet(walletID string) error {
 
 	s.deleteElectrumScan(walletID)
 	s.log.Info().Str("wallet_id", walletID).Int("remaining", len(s.wallets)).Msg("wallet deleted")
-	return s.saveWalletFile()
+	return s.saveWalletFileAllowingDrop()
 }
 
 // DeleteAllWallets performs a full wallet wipe matching Dart's deleteAllWallets (L554-653).
@@ -1543,6 +1558,7 @@ func (s *Service) DeleteAllWallets(onStatusUpdate func(string), beforeBoot func(
 	s.activeWalletID = ""
 	s.encryptionKey = nil
 	s.unlockedPass = ""
+	s.setWalletDigestLocked(nil)
 	s.mu.Unlock()
 	s.wipeElectrumScans()
 
@@ -1734,6 +1750,7 @@ func (s *Service) loadWalletFile() error {
 			s.log.Debug().Msg("wallet file does not exist yet")
 			s.wallets = nil
 			s.activeWalletID = ""
+			s.setWalletDigestLocked(nil)
 			return nil
 		}
 		return fmt.Errorf("read wallet file: %w", err)
@@ -1771,6 +1788,9 @@ func (s *Service) loadWalletFile() error {
 	s.wallets = wf.Wallets
 	s.activeWalletID = wf.ActiveWalletID
 	s.starterWalletID = wf.StarterWalletID
+	// Only a file this process read, decrypted, and parsed stands as the state
+	// a later write compares against.
+	s.setWalletDigestLocked(data)
 
 	// Backfill missing wallet_type for wallets created before the field was
 	// introduced. Anything with a Master.Mnemonic but no type is the original
@@ -1907,8 +1927,15 @@ func (s *Service) enforcerLegacyWallet(w *WalletData, target WalletType) (*Walle
 	return &legacy, nil
 }
 
-// saveWalletFile writes wallet.json atomically. Must be called with mu held.
-func (s *Service) saveWalletFile() error {
+// saveWalletFile writes wallet.json atomically, keeping every wallet the file
+// on disk holds. Must be called with mu held.
+func (s *Service) saveWalletFile() error { return s.saveWalletFileWithOptions(false) }
+
+// saveWalletFileAllowingDrop writes wallet.json for a caller that takes a
+// wallet away on purpose. Must be called with mu held.
+func (s *Service) saveWalletFileAllowingDrop() error { return s.saveWalletFileWithOptions(true) }
+
+func (s *Service) saveWalletFileWithOptions(allowDrop bool) error {
 	// Locking clears s.wallets and the key, so saving now would write a wallet
 	// file missing every locked wallet, in plaintext over the encrypted one.
 	if s.locked() {
@@ -1939,7 +1966,7 @@ func (s *Service) saveWalletFile() error {
 	}
 
 	s.log.Debug().Str("path", s.walletFilePath()).Int("data_len", len(data)).Msg("saving wallet file")
-	if err := atomicWrite(s.walletFilePath(), []byte(data)); err != nil {
+	if err := s.writeWalletFileWithOptionsLocked([]byte(data), allowDrop); err != nil {
 		return err
 	}
 	s.notifyChanged()
