@@ -4,14 +4,15 @@ import 'dart:io';
 
 import 'package:bitwindow/main.dart' show restoreBitwindowWalletFromFile;
 import 'package:bitwindow/pages/welcome/wallet_backup_page.dart';
+import 'package:bitwindow/utils/ur_key.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/hardware_device_picker.dart';
+import 'package:bitwindow/widgets/key_qr_scanner.dart';
 import 'package:bitwindow/widgets/ur_qr_scanner.dart' show urCameraScanSupported;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:sidechain_core/gen/multisiglounge/v1/multisiglounge.pb.dart' as mlpb;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sail_ui/sail_ui.dart';
@@ -229,6 +230,10 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
 
   /// One key is a single-sig wallet; the quorum slider is what makes it multisig.
   bool get _isSingle => _total == 1;
+
+  /// The policy's script type, used to pick a key out of a multi-key export.
+  /// Single-sig holds wpkh|sh-wpkh|pkh|tr here, multisig holds wsh|sh-wsh|sh|tr.
+  String get _activeScriptType => _scriptType;
   bool _building = false;
   String? _error;
   bool _restoringBackup = false;
@@ -1587,7 +1592,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
         return;
       }
       final content = await File(path).readAsString();
-      final parsed = _parseKeyFile(content);
+      final parsed = _parseKeyFile(content, _activeScriptType);
       if (parsed == null) {
         setState(() => _error = 'No extended public key found in that file');
         return;
@@ -1599,19 +1604,12 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
   }
 
   Future<void> _addFromQr(BuildContext context, int index) async {
-    final raw = await showThemedDialog<String>(
-      context: context,
-      builder: (context) => const _XpubQrScannerDialog(),
-    );
-    if (raw == null) {
+    setState(() => _error = null);
+    final key = await showKeyQrScanner(context, scriptType: _activeScriptType);
+    if (key == null) {
       return;
     }
-    final k = _keystoreFromRaw(raw, 'Key ${index + 1}');
-    if (k == null) {
-      setState(() => _error = 'Scanned code is not an extended public key');
-      return;
-    }
-    _setKeystore(index, k);
+    _setKeystore(index, _keystoreFromUrKey(key, 'Key ${index + 1}', CosignerSource.qr));
   }
 
   Future<void> _addFromDevice(BuildContext context, int index) async {
@@ -1664,24 +1662,27 @@ CosignerKeystore? _keystoreFromRaw(String raw, String owner) {
     ..source = CosignerSource.qr;
 }
 
-/// Parses a JSON key export (Coldcard-style fields) into a keystore, or null.
-CosignerKeystore? _parseKeyFile(String content) {
+/// Builds a keystore from a scanned or imported key.
+CosignerKeystore _keystoreFromUrKey(UrKey key, String fallbackOwner, CosignerSource source) {
+  final name = key.name ?? '';
+  final origin = (key.originPath ?? '').isEmpty ? null : key.originPath;
+  return CosignerKeystore(owner: name.isEmpty ? fallbackOwner : name)
+    ..xpub = key.xpub
+    ..fingerprint = key.fingerprint
+    ..originPath = origin
+    ..derivationPath = origin == null ? '' : 'm/$origin'
+    ..isWallet = false
+    ..source = source;
+}
+
+/// Parses a wallet export file into a keystore, or null when it holds no key.
+CosignerKeystore? _parseKeyFile(String content, String scriptType) {
   try {
-    final json = jsonDecode(content) as Map<String, dynamic>;
-    final xpub = (json['xpub'] ?? json['extended_public_key'] ?? json['pubkey'] ?? '') as String;
-    if (!isPlausibleXpub(xpub)) {
+    final key = pickKeyForScriptType(parseWalletExportJson(content), scriptType);
+    if (key == null || !isPlausibleXpub(key.xpub)) {
       return null;
     }
-    final path = (json['path'] ?? json['derivation_path'] ?? json['bip32_path'] ?? '') as String;
-    final origin =
-        (json['origin_path'] ?? json['origin'] ?? (path.startsWith('m/') ? path.substring(2) : path)) as String;
-    return CosignerKeystore(owner: (json['owner'] ?? json['name'] ?? '') as String)
-      ..xpub = xpub
-      ..derivationPath = path
-      ..originPath = origin.isEmpty ? null : origin
-      ..fingerprint = (json['fingerprint'] ?? json['master_fingerprint']) as String?
-      ..isWallet = false
-      ..source = CosignerSource.file;
+    return _keystoreFromUrKey(key, '', CosignerSource.file);
   } catch (_) {
     return null;
   }
@@ -1882,76 +1883,6 @@ class _PasteXpubDialogState extends State<_PasteXpubDialog> {
                     k.source = CosignerSource.xpub;
                     Navigator.of(context).pop(k);
                   },
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Dialog that scans a single QR frame containing an xpub or descriptor string.
-class _XpubQrScannerDialog extends StatefulWidget {
-  const _XpubQrScannerDialog();
-
-  @override
-  State<_XpubQrScannerDialog> createState() => _XpubQrScannerDialogState();
-}
-
-class _XpubQrScannerDialogState extends State<_XpubQrScannerDialog> {
-  final MobileScannerController _controller = MobileScannerController(
-    formats: const [BarcodeFormat.qrCode],
-  );
-  bool _done = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onDetect(BarcodeCapture capture) {
-    if (_done) {
-      return;
-    }
-    for (final b in capture.barcodes) {
-      final raw = b.rawValue;
-      if (raw == null || raw.isEmpty) {
-        continue;
-      }
-      _done = true;
-      Navigator.of(context).pop(raw.trim());
-      return;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SailModal(
-      constraints: const BoxConstraints(maxWidth: 420),
-      child: SailCard(
-        title: 'Scan key QR',
-        child: SailColumn(
-          spacing: SailStyleValues.padding16,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (urCameraScanSupported)
-              SizedBox(
-                width: 320,
-                height: 320,
-                child: MobileScanner(controller: _controller, onDetect: _onDetect),
-              )
-            else
-              SailText.secondary13('Camera scanning is not available on this platform.'),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SailButton(
-                  label: 'Cancel',
-                  variant: ButtonVariant.ghost,
-                  onPressed: () async => Navigator.of(context).pop(),
                 ),
               ],
             ),
