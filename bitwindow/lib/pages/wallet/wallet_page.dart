@@ -104,6 +104,10 @@ class WalletPage extends StatelessWidget {
     _sendViewModel?.handleBitcoinURI(uri);
   }
 
+  static void selectSendDraft(String draftId) {
+    _sendViewModel?.selectDraftById(draftId);
+  }
+
   static void setSubtab(int index) {
     tabKey.currentState?.setIndex(index, null);
   }

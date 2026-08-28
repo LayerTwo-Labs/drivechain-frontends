@@ -4,6 +4,7 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/multisig_sign_panel.dart';
+import 'package:bitwindow/widgets/tx_flow_diagram.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -144,6 +145,23 @@ void main() {
       find.byWidgetPredicate((w) => w is SailButton && w.label == 'Broadcast'),
     );
   }
+
+  testWidgets('the flow diagram stays hidden until the user asks', (tester) async {
+    final draftId = await setUpPanelDeps();
+
+    await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+    await tester.pumpAndSettle();
+
+    final toggle = find.byWidgetPredicate((w) => w is SailButton && w.label == 'Show diagram');
+    expect(find.byType(TxFlowDiagram), findsNothing);
+    expect(toggle, findsOneWidget);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TxFlowDiagram), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is SailButton && w.label == 'Hide diagram'), findsOneWidget);
+  });
 
   testWidgets('the keys table renders one row per cosigner', (tester) async {
     final draftId = await setUpPanelDeps();

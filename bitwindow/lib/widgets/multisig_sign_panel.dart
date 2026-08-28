@@ -43,7 +43,7 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
   Set<String> _walletAddresses = {};
   String? _busyKey;
   String? _error;
-  bool _showDiagram = true;
+  bool _showDiagram = false;
   String _decodedForPsbt = '';
   final Map<int, DateTime> _signedAt = {};
 
