@@ -29,8 +29,21 @@ class SyncInfo {
   /// none. The invalid block sits at or above it.
   final int refusedBranchStart;
 
+  /// Height Core verified from genesis, 0 when it loaded no UTXO snapshot.
+  /// Behind a snapshot, progressCurrent reaches the tip long before this does.
+  final int verifiedBlocks;
+
+  /// Height [verifiedBlocks] counts towards: the block the snapshot commits
+  /// to, not the chain tip. 0 when no snapshot is loaded.
+  final int verifiedGoal;
+
   double get progress => progressGoal == 0 ? 0 : progressCurrent / progressGoal;
   bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
+
+  /// True when every height this daemon reports reached the goal. A snapshot
+  /// node hits the tip in blocks hours before it verifies the rest, so a card
+  /// that hides on [isSynced] hides the one bar the reader wants.
+  bool get allSyncsComplete => isSynced && (verifiedGoal == 0 || verifiedBlocks >= verifiedGoal);
 
   /// The node refuses a branch at or above its own tip while its peers run
   /// ahead. Blocks and headers both read 100% here, because the node counts
@@ -48,6 +61,8 @@ class SyncInfo {
     this.peerBestHeight = 0,
     this.rejectedBranch = false,
     this.refusedBranchStart = 0,
+    this.verifiedBlocks = 0,
+    this.verifiedGoal = 0,
   });
 
   @override
@@ -61,12 +76,22 @@ class SyncInfo {
         other.lastBlockAt == lastBlockAt &&
         other.peerBestHeight == peerBestHeight &&
         other.rejectedBranch == rejectedBranch &&
-        other.refusedBranchStart == refusedBranchStart;
+        other.refusedBranchStart == refusedBranchStart &&
+        other.verifiedBlocks == verifiedBlocks &&
+        other.verifiedGoal == verifiedGoal;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(progressCurrent, progressGoal, lastBlockAt, peerBestHeight, rejectedBranch, refusedBranchStart);
+  int get hashCode => Object.hash(
+    progressCurrent,
+    progressGoal,
+    lastBlockAt,
+    peerBestHeight,
+    rejectedBranch,
+    refusedBranchStart,
+    verifiedBlocks,
+    verifiedGoal,
+  );
 }
 
 /// Represents a binary that has some sort of sync-status
@@ -426,6 +451,8 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       peerBestHeight: cs?.peerBestHeight ?? 0,
       rejectedBranch: cs?.rejectedBranch ?? false,
       refusedBranchStart: cs?.refusedBranchStart ?? 0,
+      verifiedBlocks: cs?.verifiedBlocks ?? 0,
+      verifiedGoal: cs?.verifiedGoal ?? 0,
     );
   }
 
