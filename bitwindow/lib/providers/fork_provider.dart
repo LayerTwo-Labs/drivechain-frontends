@@ -127,6 +127,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   /// Coins of a split this session still builds. They hold from the click, so
   /// a second click cannot build a conflicting draft of the same coins.
   final Set<String> _splitsInFlight = {};
+  final Set<String> _splitWalletsInFlight = {};
 
   /// Transactions this session sent without protection. Their outputs exist on
   /// both chains, so spending one replays again.
@@ -219,6 +220,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     pendingSplits = [];
     _readPsbtByDraft.clear();
     _splitsInFlight.clear();
+    _splitWalletsInFlight.clear();
     replayedTxids.clear();
     _dismissedClaimOutpoints.clear();
     walletsWithUnreadDrafts = {};
@@ -414,6 +416,11 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   bool canSelect(WalletClaim claim, bwpb.UnspentOutput u) =>
       isSelectable(u) && !pendingSplitOutpoints.contains(u.output) && !walletsWithUnreadDrafts.contains(claim.walletId);
 
+  /// True while a split of this wallet's coins builds. The reservation hides
+  /// every coin of the wallet, so the card that started the split must outlive
+  /// its own claims or it unmounts under the user mid-build.
+  bool splitInFlightFor(String? walletId) => walletId != null && _splitWalletsInFlight.contains(walletId);
+
   /// The coins of one claim the user can still pick.
   List<bwpb.UnspentOutput> selectableInputs(WalletClaim claim) =>
       claim.utxos.where((u) => canSelect(claim, u)).toList();
@@ -467,11 +474,13 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
     }
     // Hold the coins from here, so a second click builds nothing.
     _splitsInFlight.addAll(reserved);
+    _splitWalletsInFlight.add(walletId);
     notifyListeners();
     try {
       return await _buildSplitDraft(claim, inputs);
     } finally {
       _splitsInFlight.removeAll(reserved);
+      _splitWalletsInFlight.remove(walletId);
       notifyListeners();
     }
   }

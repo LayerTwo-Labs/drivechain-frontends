@@ -532,6 +532,16 @@ class SendPageViewModel extends BaseViewModel {
   /// 0 is Create Transaction; a draft sits at its list index + 1.
   int sendTabIndex = 0;
 
+  /// The send tab a draft sits on: 0 is Create Transaction, a draft is at its
+  /// list index plus one. An unknown id falls back to the create form.
+  static int draftTabIndex(List<PsbtDraft> drafts, String id) {
+    final index = drafts.indexWhere((d) => d.id == id);
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  /// Opens the draft's own panel.
+  void selectDraftById(String id) => selectSendTab(draftTabIndex(drafts, id));
+
   void selectSendTab(int index) {
     sendTabIndex = index;
     notifyListeners();

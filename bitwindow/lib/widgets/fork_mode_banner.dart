@@ -1,5 +1,8 @@
+import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/utils/navigation_registry.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -9,6 +12,31 @@ import 'package:sail_ui/sail_ui.dart';
 /// - after the fork, with un-swept pre-fork coins: the big "claim your eCash"
 ///   hero card,
 /// - otherwise nothing.
+/// Whether the claim card renders. A split reserves every coin it spends
+/// before its first await, so the claims go empty mid-build; the card has to
+/// outlive that or it unmounts under the user and drops the result.
+bool showClaimCard({
+  required bool hasFundsToClaim,
+  required bool hasClaims,
+  required bool dismissed,
+  required bool splitInFlight,
+}) {
+  if (splitInFlight) {
+    return true;
+  }
+  return hasFundsToClaim && hasClaims && !dismissed;
+}
+
+/// The wallet subtab to open after a claim run, or null to stay put. A split
+/// ends as a draft the cosigners sign on the send tab, so a clean run that
+/// drafted one takes the user there.
+int? forwardSubtabAfterClaim({required int drafted, required Object? firstError}) {
+  if (firstError != null || drafted == 0) {
+    return null;
+  }
+  return WalletSubtabs.send;
+}
+
 class ForkModeBanner extends StatelessWidget {
   const ForkModeBanner({super.key});
 
@@ -27,7 +55,13 @@ class ForkModeBanner extends StatelessWidget {
         // ForkCountdownTimer, and is hidden by the engine while coins are
         // unclaimed, so the two never overlap.
         final active = walletReader.activeWalletId;
-        if (!_fork.hasFundsToClaim || _fork.claimsForWallet(active).isEmpty || _fork.claimCardDismissedFor(active)) {
+        final show = showClaimCard(
+          hasFundsToClaim: _fork.hasFundsToClaim,
+          hasClaims: _fork.claimsForWallet(active).isNotEmpty,
+          dismissed: _fork.claimCardDismissedFor(active),
+          splitInFlight: _fork.splitInFlightFor(active),
+        );
+        if (!show) {
           return const SizedBox.shrink();
         }
         // The key drops the previous wallet's selection with its card.
@@ -54,6 +88,7 @@ class _ClaimEcashCard extends StatefulWidget {
 class _ClaimEcashCardState extends State<_ClaimEcashCard> {
   final Map<String, Set<String>> _selected = {};
   final Map<String, Set<String>> _seen = {};
+  bool _busy = false;
 
   TransactionProvider get _transactions => GetIt.I<TransactionProvider>();
 
@@ -168,9 +203,11 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                           children: [
                             ...claims.map((c) => _coinPicker(context, c, formatter)),
                             const SizedBox(height: 8),
-                            if (_selectionValid)
+                            if (_selectionValid || _busy)
                               SailButton(
                                 label: _buttonLabel(formatter, selectedSats, claims),
+                                loadingLabel: 'Creating transaction',
+                                loading: _busy,
                                 icon: SailSVGAsset.iconCoins,
                                 onPressed: () => _claim(context),
                               ),
@@ -369,22 +406,42 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
 
     var broadcast = 0;
     var drafted = 0;
+    String? lastDraftId;
     Object? firstError;
-    for (final p in planned) {
-      try {
-        if (p.multisig) {
-          await widget.fork.createSplitDraft(p.walletId, outpoints: p.outpoints);
-          drafted++;
-        } else {
-          await widget.fork.claim(p.walletId, outpoints: p.outpoints);
-          broadcast++;
+    setState(() => _busy = true);
+    try {
+      for (final p in planned) {
+        try {
+          if (p.multisig) {
+            lastDraftId = await widget.fork.createSplitDraft(p.walletId, outpoints: p.outpoints);
+            drafted++;
+          } else {
+            await widget.fork.claim(p.walletId, outpoints: p.outpoints);
+            broadcast++;
+          }
+        } catch (e) {
+          firstError ??= e;
         }
-      } catch (e) {
-        firstError ??= e;
+      }
+      if (drafted > 0) {
+        // The send tab lists the drafts it last loaded, so a fresh split only
+        // appears after this refetch.
+        await GetIt.I<PsbtDraftProvider>().fetch();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
       }
     }
     if (!context.mounted) {
       return;
+    }
+    final forwardTo = forwardSubtabAfterClaim(drafted: drafted, firstError: firstError);
+    if (forwardTo != null) {
+      WalletPage.setSubtab(forwardTo);
+      if (lastDraftId != null) {
+        WalletPage.selectSendDraft(lastDraftId);
+      }
     }
     if (firstError != null) {
       showSailToast(
