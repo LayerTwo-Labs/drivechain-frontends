@@ -1092,3 +1092,70 @@ func TestValidateDescriptor(t *testing.T) {
 		assert.Error(t, err, "descriptor %q must be rejected", bad)
 	}
 }
+
+// TestMasterKeyCosignerKeepsOrigin: a cosigner whose xpub is a master key has no
+// origin path, but it still needs its [fingerprint] prefix. Without the prefix
+// the PSBT carries no global xpub for that leg, and a hardware signer cannot
+// rebuild the multisig script it must sign over. The prefix must not move a
+// single address.
+func TestMasterKeyCosignerKeepsOrigin(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	group, _ := loungeTestKeys(t)
+
+	master, err := hdkeychain.NewMaster(MnemonicToSeed(testMnemonic, "master"), net)
+	require.NoError(t, err)
+	pub, err := master.Neuter()
+	require.NoError(t, err)
+	mpub, err := master.ECPubKey()
+	require.NoError(t, err)
+	fp := hex.EncodeToString(btcutil.Hash160(mpub.SerializeCompressed())[:4])
+
+	group.Keys[0] = MultisigLoungeKey{Xpub: pub.String(), Fingerprint: fp, IsWallet: true}
+
+	receive, _, err := BuildMultisigLoungeDescriptorsTyped(group, "wsh")
+	require.NoError(t, err)
+	assert.Contains(t, receive, "["+fp+"]"+pub.String())
+
+	d, err := ParseDescriptor(receive)
+	require.NoError(t, err)
+	assert.Len(t, multisigGlobalXpubs(d), 3, "every cosigner must reach the PSBT as a global xpub")
+
+	bare := group
+	bare.Keys = append([]MultisigLoungeKey(nil), group.Keys...)
+	bare.Keys[0].IsWallet = false
+	bareReceive, _, err := BuildMultisigLoungeDescriptorsTyped(bare, "wsh")
+	require.NoError(t, err)
+	bareDesc, err := ParseDescriptor(bareReceive)
+	require.NoError(t, err)
+
+	for i := uint32(0); i < 3; i++ {
+		with, _, err := d.DeriveScript(false, i, net)
+		require.NoError(t, err)
+		without, _, err := bareDesc.DeriveScript(false, i, net)
+		require.NoError(t, err)
+		assert.Equal(t, without.address.String(), with.address.String())
+	}
+}
+
+// TestAccountKeyWithoutOriginStaysBare: an account key with a fingerprint but no
+// path must not claim a master origin. That origin names a child the device
+// never derives, and every input then fails on the device.
+func TestAccountKeyWithoutOriginStaysBare(t *testing.T) {
+	group, accts := loungeTestKeys(t)
+	require.Greater(t, accts[0].Depth(), uint8(0))
+
+	group.Keys[0] = MultisigLoungeKey{
+		Xpub:        accts[0].String(),
+		Fingerprint: group.Keys[0].Fingerprint,
+		IsWallet:    true,
+	}
+
+	receive, _, err := BuildMultisigLoungeDescriptorsTyped(group, "wsh")
+	require.NoError(t, err)
+	assert.NotContains(t, receive, "["+group.Keys[0].Fingerprint+"]"+accts[0].String())
+	assert.Contains(t, receive, accts[0].String()+"/0/*")
+
+	d, err := ParseDescriptor(receive)
+	require.NoError(t, err)
+	assert.Len(t, multisigGlobalXpubs(d), 2)
+}
