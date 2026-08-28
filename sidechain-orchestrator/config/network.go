@@ -1,13 +1,14 @@
 package config
 
 import (
-	"github.com/samber/lo"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/samber/lo"
 )
 
 // Network represents the Bitcoin network type.
@@ -473,7 +474,10 @@ func NetworkFromConfig(conf *BitcoinConfig, fallback Network) Network {
 // NetworkFromString converts a string (e.g. CLI flag) to a Network value,
 // falling back to signet for anything it does not recognise.
 func NetworkFromString(s string) Network {
-	n, _ := LookupNetwork(s)
+	n, ok := LookupNetwork(s)
+	if !ok {
+		panic(fmt.Sprintf("unknown network %q", s))
+	}
 	return n
 }
 
@@ -492,7 +496,7 @@ func LookupNetwork(s string) (Network, bool) {
 	// boot a different network than the caller asked for.
 	case "ecash", "drynet":
 		return NetworkECash, true
-	case "testnet", "test":
+	case "testnet", "test", "testnet4":
 		return NetworkTestnet, true
 	case "signet":
 		return NetworkSignet, true

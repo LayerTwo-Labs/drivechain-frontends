@@ -299,7 +299,8 @@ func (c *CoreStatusClient) IsHeaderSyncComplete(ctx context.Context) (bool, erro
 
 	// Regtest has no peers feeding headers — the "<10 headers" peer-driven
 	// guard would block enforcer startup forever. Empty regtest is steady state.
-	if config.NetworkFromString(info.Chain) == config.NetworkRegtest {
+	chain, known := config.LookupNetwork(info.Chain)
+	if known && chain == config.NetworkRegtest {
 		if info.InitialBlockDownload && info.Blocks == 0 {
 			return true, nil
 		}

@@ -473,7 +473,12 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 // orchestrator, the getters route per call to it for electrum wallets and to
 // the local clients otherwise; without a hosted instance they're always local.
 func (s *Server) buildDataSource(conf config.Config) datasource.DataSource {
-	remoteURL := orchconfig.RemoteOrchestratorURLForNetwork(orchconfig.NetworkFromString(string(conf.BitcoinCoreNetwork)))
+	// A runtime without a network has no remote orchestrator either, which is
+	// the state a test server starts in.
+	var remoteURL string
+	if n, known := orchconfig.LookupNetwork(string(conf.BitcoinCoreNetwork)); known {
+		remoteURL = orchconfig.RemoteOrchestratorURLForNetwork(n)
+	}
 	if remoteURL == "" || s.svcs.OrchestratorAddr == "" {
 		return datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get)
 	}
@@ -638,7 +643,8 @@ func chainParamsFor(network config.Network) *chaincfg.Params {
 		return &chaincfg.SigNetParams
 	case config.NetworkRegtest:
 		return &chaincfg.RegressionNetParams
-	default:
-		return &chaincfg.SigNetParams
 	}
+	// These params name the coin every address and key path takes, so a guess
+	// here is a wrong address, not a small mistake.
+	panic(fmt.Sprintf("unknown network %q", network))
 }
