@@ -5,9 +5,11 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -399,4 +401,664 @@ func TestPSBTSignSidechainDeposit(t *testing.T) {
 		txscript.StandardVerifyFlags|txscript.ScriptVerifyTaproot, nil, sigHashes, walletAmount, prevOuts)
 	require.NoError(t, err)
 	require.NoError(t, vmWallet.Execute(), "wallet must validly sign the sidechain deposit")
+}
+
+// multisigPacket builds a 2-of-3 P2WSH spend signed by two of the three keys.
+func multisigPacket(t *testing.T) (*psbt.Packet, derivedScript, int64) {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct := func(pass string) *hdkeychain.ExtendedKey {
+		a, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, pass)), ScriptNativeSegwit, net)
+		require.NoError(t, err)
+		return a
+	}
+	priv := func(a *hdkeychain.ExtendedKey) *btcec.PrivateKey {
+		p, ok, err := deriveChildPrivIfPossible(a, 0, 0)
+		require.NoError(t, err)
+		require.True(t, ok)
+		return p
+	}
+	a, b, c := acct("a"), acct("b"), acct("c")
+	d := &Descriptor{Kind: ScriptMultisig, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr: scannedAddr{
+			scriptPubKey: ds.scriptPubKey, witnessScript: ds.witnessScript,
+			kind: ScriptMultisig, multisigPrivs: []*btcec.PrivateKey{priv(a), priv(b)},
+		},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, func(string) (*wire.MsgTx, error) { return prevTx, nil })
+	require.NoError(t, err)
+	_, err = signPSBT(packet, []psbtInput{in}, net)
+	require.NoError(t, err)
+	return packet, ds, amount
+}
+
+// TestFinalizeRejectsSignatureForAnotherTx: a partial signature that covers a
+// different transaction must fail before the broadcast, naming the key. Without
+// this the finalizer builds a witness the network rejects for a failed
+// CHECKMULTISIG, and the user only learns of it from the node.
+func TestFinalizeRejectsSignatureForAnotherTx(t *testing.T) {
+	packet, _, _ := multisigPacket(t)
+	require.Len(t, packet.Inputs[0].PartialSigs, 2)
+
+	packet.UnsignedTx.TxOut[0].Value -= 1
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "signed a different transaction")
+}
+
+// TestFinalizeRejectsSignatureOverAnotherScript: a signer that covers the wrong
+// k-of-n script — the shape a hardware wallet produces when it rebuilds the
+// multisig from incomplete PSBT metadata — is caught before the broadcast.
+func TestFinalizeRejectsSignatureOverAnotherScript(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	packet, ds, amount := multisigPacket(t)
+
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	fetcher := txscript.NewCannedPrevOutputFetcher(ds.scriptPubKey, amount)
+	sigHashes := txscript.NewTxSigHashes(packet.UnsignedTx, fetcher)
+	wrong, err := multisigWitnessScript(2, []*btcec.PublicKey{priv.PubKey(), priv.PubKey()}, net)
+	require.NoError(t, err)
+	sig, err := txscript.RawTxInWitnessSignature(packet.UnsignedTx, sigHashes, 0, amount, wrong, txscript.SigHashAll, priv)
+	require.NoError(t, err)
+	packet.Inputs[0].PartialSigs[1] = &psbt.PartialSig{PubKey: priv.PubKey().SerializeCompressed(), Signature: sig}
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "signed a different transaction")
+}
+
+// TestCombinePSBTRejectsDifferentTx: an imported cosigner PSBT for another
+// transaction must not donate its signatures to this one.
+func TestCombinePSBTRejectsDifferentTx(t *testing.T) {
+	base, _, _ := multisigPacket(t)
+	other, _, _ := multisigPacket(t)
+	other.UnsignedTx.TxOut[0].Value -= 1
+
+	err := combinePSBT(base, other)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "different transactions")
+}
+
+// TestFinalizeRejectsForeignWitnessScript: an imported PSBT can carry any
+// witness script. The check must bind it to the output it spends, or a signer
+// that signed the wrong script passes.
+func TestFinalizeRejectsForeignWitnessScript(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	packet, _, _ := multisigPacket(t)
+
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	foreign, err := multisigWitnessScript(2, []*btcec.PublicKey{priv.PubKey(), priv.PubKey()}, net)
+	require.NoError(t, err)
+	packet.Inputs[0].WitnessScript = foreign
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not match the output it spends")
+}
+
+// TestFinalizeRejectsForeignRedeemScript: the same binding must hold for the
+// P2SH redeem script a nested or legacy input carries.
+func TestFinalizeRejectsForeignRedeemScript(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct := func(pass string) *hdkeychain.ExtendedKey {
+		a, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, pass)), ScriptNativeSegwit, net)
+		require.NoError(t, err)
+		return a
+	}
+	priv := func(a *hdkeychain.ExtendedKey) *btcec.PrivateKey {
+		p, ok, err := deriveChildPrivIfPossible(a, 0, 0)
+		require.NoError(t, err)
+		require.True(t, ok)
+		return p
+	}
+	a, b, c := acct("a"), acct("b"), acct("c")
+	d := &Descriptor{Kind: ScriptMultisigNested, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr: scannedAddr{
+			scriptPubKey: ds.scriptPubKey, redeem: ds.redeemScript, witnessScript: ds.witnessScript,
+			kind: ScriptMultisigNested, multisigPrivs: []*btcec.PrivateKey{priv(a), priv(b)},
+		},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, func(string) (*wire.MsgTx, error) { return prevTx, nil })
+	require.NoError(t, err)
+	_, err = signPSBT(packet, []psbtInput{in}, net)
+	require.NoError(t, err)
+
+	other, _, err := (&Descriptor{Kind: ScriptMultisigNested, Threshold: 2, Keys: []DescriptorKey{{Account: b}, {Account: c}, {Account: a}}}).DeriveScript(true, 7, net)
+	require.NoError(t, err)
+	packet.Inputs[0].RedeemScript = other.redeemScript
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "redeem script does not match the output it spends")
+}
+
+// taprootMultisigPacket builds a 2-of-3 tr(sortedmulti_a) spend signed by two keys.
+func taprootMultisigPacket(t *testing.T) *psbt.Packet {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct := func(pass string) *hdkeychain.ExtendedKey {
+		a, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, pass)), ScriptTaproot, net)
+		require.NoError(t, err)
+		return a
+	}
+	priv := func(a *hdkeychain.ExtendedKey) *btcec.PrivateKey {
+		p, ok, err := deriveChildPrivIfPossible(a, 0, 0)
+		require.NoError(t, err)
+		require.True(t, ok)
+		return p
+	}
+	a, b, c := acct("a"), acct("b"), acct("c")
+	d := &Descriptor{Kind: ScriptMultisigTaproot, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr: scannedAddr{
+			scriptPubKey:    ds.scriptPubKey,
+			tapLeafScript:   ds.tapLeafScript,
+			tapControlBlock: ds.tapControlBlock,
+			tapInternal:     ds.tapInternal,
+			kind:            ScriptMultisigTaproot,
+			multisigPrivs:   []*btcec.PrivateKey{priv(a), priv(b)},
+		},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, nil)
+	require.NoError(t, err)
+	_, err = signPSBT(packet, []psbtInput{in}, net)
+	require.NoError(t, err)
+	require.Len(t, packet.Inputs[0].TaprootScriptSpendSig, 2)
+	return packet
+}
+
+// TestFinalizeTaprootMultisig: the good path still extracts and verifies through
+// txscript, with the signature check in place.
+func TestFinalizeTaprootMultisig(t *testing.T) {
+	packet := taprootMultisigPacket(t)
+	prevOut := prevOutForInput(packet, 0)
+	require.NotNil(t, prevOut)
+
+	rawHex, err := finalizeAndExtract(packet)
+	require.NoError(t, err)
+
+	var final wire.MsgTx
+	raw, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	require.NoError(t, final.Deserialize(bytes.NewReader(raw)))
+	fetcher := txscript.NewCannedPrevOutputFetcher(prevOut.PkScript, prevOut.Value)
+	vm, err := txscript.NewEngine(prevOut.PkScript, &final, 0, txscript.StandardVerifyFlags, nil,
+		txscript.NewTxSigHashes(&final, fetcher), prevOut.Value, fetcher)
+	require.NoError(t, err)
+	require.NoError(t, vm.Execute())
+}
+
+// TestFinalizeRejectsTaprootSignatureForAnotherTx: a schnorr signature over
+// another transaction must fail before the broadcast, like an ECDSA one.
+func TestFinalizeRejectsTaprootSignatureForAnotherTx(t *testing.T) {
+	packet := taprootMultisigPacket(t)
+	packet.UnsignedTx.TxOut[0].Value -= 1
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "signed a different transaction")
+}
+
+// TestFinalizeRejectsForeignLeafScript: an imported PSBT can name any leaf. The
+// control block must commit to the output the input spends.
+func TestFinalizeRejectsForeignLeafScript(t *testing.T) {
+	packet := taprootMultisigPacket(t)
+	other := taprootMultisigPacket(t)
+	other.Inputs[0].TaprootLeafScript[0].Script = append([]byte{txscript.OP_1, txscript.OP_DROP}, other.Inputs[0].TaprootLeafScript[0].Script...)
+	packet.Inputs[0].TaprootLeafScript = other.Inputs[0].TaprootLeafScript
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not match the output it spends")
+}
+
+// TestFinalizeRejectsForeignKeyForP2PKH: a legacy signature from a key that does
+// not hash to the output it spends must fail before the broadcast.
+func TestFinalizeRejectsForeignKeyForP2PKH(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, "")), ScriptLegacy, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptLegacy, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr:     scannedAddr{scriptPubKey: ds.scriptPubKey, priv: priv, pub: priv.PubKey(), kind: ScriptLegacy},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, func(string) (*wire.MsgTx, error) { return prevTx, nil })
+	require.NoError(t, err)
+	_, err = signPSBT(packet, []psbtInput{in}, net)
+	require.NoError(t, err)
+	require.Len(t, packet.Inputs[0].PartialSigs, 1)
+
+	foreign, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	sig, err := txscript.RawTxInSignature(packet.UnsignedTx, 0, ds.scriptPubKey, txscript.SigHashAll, foreign)
+	require.NoError(t, err)
+	packet.Inputs[0].PartialSigs[0] = &psbt.PartialSig{PubKey: foreign.PubKey().SerializeCompressed(), Signature: sig}
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "the key does not match the output it spends")
+}
+
+// TestFinalizeRejectsLeafVersionMismatch: the network hashes with the control
+// block's leaf version, so a leaf that names another version is refused.
+func TestFinalizeRejectsLeafVersionMismatch(t *testing.T) {
+	packet := taprootMultisigPacket(t)
+	packet.Inputs[0].TaprootLeafScript[0].LeafVersion = txscript.BaseLeafVersion + 2
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "leaf version does not match its control block")
+}
+
+// TestFinalizeRejectsForeignPreviousTx: an imported PSBT can carry any previous
+// transaction. It must be the one the input spends.
+func TestFinalizeRejectsForeignPreviousTx(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, "")), ScriptLegacy, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptLegacy, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr:     scannedAddr{scriptPubKey: ds.scriptPubKey, priv: priv, pub: priv.PubKey(), kind: ScriptLegacy},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, func(string) (*wire.MsgTx, error) { return prevTx, nil })
+	require.NoError(t, err)
+	_, err = signPSBT(packet, []psbtInput{in}, net)
+	require.NoError(t, err)
+
+	foreign := wire.NewMsgTx(2)
+	foreign.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xfffffffe}, []byte{0x01}, nil))
+	foreign.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	packet.Inputs[0].NonWitnessUtxo = foreign
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not the one it spends")
+}
+
+// TestFinalizeTaprootSigHashAll: an external signer can use a non-default
+// sighash type. The check must honour it, and the witness must carry the byte.
+func TestFinalizeTaprootSigHashAll(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct := func(pass string) *hdkeychain.ExtendedKey {
+		a, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, pass)), ScriptTaproot, net)
+		require.NoError(t, err)
+		return a
+	}
+	priv := func(a *hdkeychain.ExtendedKey) *btcec.PrivateKey {
+		p, ok, err := deriveChildPrivIfPossible(a, 0, 0)
+		require.NoError(t, err)
+		require.True(t, ok)
+		return p
+	}
+	a, b, c := acct("a"), acct("b"), acct("c")
+	d := &Descriptor{Kind: ScriptMultisigTaproot, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr: scannedAddr{
+			scriptPubKey:    ds.scriptPubKey,
+			tapLeafScript:   ds.tapLeafScript,
+			tapControlBlock: ds.tapControlBlock,
+			tapInternal:     ds.tapInternal,
+			kind:            ScriptMultisigTaproot,
+		},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, nil)
+	require.NoError(t, err)
+
+	leaf := txscript.NewBaseTapLeaf(ds.tapLeafScript)
+	leafHash := leaf.TapHash()
+	fetcher := txscript.NewCannedPrevOutputFetcher(ds.scriptPubKey, amount)
+	sigHashes := txscript.NewTxSigHashes(packet.UnsignedTx, fetcher)
+	for _, p := range []*btcec.PrivateKey{priv(a), priv(b)} {
+		// Store it the way the PSBT decoder does: 64 bytes plus the type apart.
+		raw, err := txscript.RawTxInTapscriptSignature(
+			packet.UnsignedTx, sigHashes, 0, amount, ds.scriptPubKey, leaf, txscript.SigHashAll, p,
+		)
+		require.NoError(t, err)
+		require.Len(t, raw, 65)
+		packet.Inputs[0].TaprootScriptSpendSig = append(packet.Inputs[0].TaprootScriptSpendSig, &psbt.TaprootScriptSpendSig{
+			XOnlyPubKey: schnorr.SerializePubKey(p.PubKey()),
+			LeafHash:    leafHash[:],
+			Signature:   raw[:64],
+			SigHash:     txscript.SigHashAll,
+		})
+	}
+
+	rawHex, err := finalizeAndExtract(packet)
+	require.NoError(t, err)
+
+	var final wire.MsgTx
+	decoded, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	require.NoError(t, final.Deserialize(bytes.NewReader(decoded)))
+	vm, err := txscript.NewEngine(ds.scriptPubKey, &final, 0, txscript.StandardVerifyFlags, nil,
+		txscript.NewTxSigHashes(&final, fetcher), amount, fetcher)
+	require.NoError(t, err)
+	require.NoError(t, vm.Execute())
+}
+
+// taprootKeySpendPacket builds a signed single-key taproot spend.
+func taprootKeySpendPacket(t *testing.T) (*psbt.Packet, derivedScript, int64) {
+	t.Helper()
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, "")), ScriptTaproot, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptTaproot, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	ds, pub, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr:     scannedAddr{scriptPubKey: ds.scriptPubKey, priv: priv, pub: pub, tapInternal: pub, kind: ScriptTaproot},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, nil)
+	require.NoError(t, err)
+	_, err = signPSBT(packet, []psbtInput{in}, net)
+	require.NoError(t, err)
+	require.Len(t, packet.Inputs[0].TaprootKeySpendSig, 64)
+	return packet, ds, amount
+}
+
+// TestFinalizeTaprootKeySpend: the good path extracts and verifies.
+func TestFinalizeTaprootKeySpend(t *testing.T) {
+	packet, ds, amount := taprootKeySpendPacket(t)
+
+	rawHex, err := finalizeAndExtract(packet)
+	require.NoError(t, err)
+
+	var final wire.MsgTx
+	raw, err := hex.DecodeString(rawHex)
+	require.NoError(t, err)
+	require.NoError(t, final.Deserialize(bytes.NewReader(raw)))
+	fetcher := txscript.NewCannedPrevOutputFetcher(ds.scriptPubKey, amount)
+	vm, err := txscript.NewEngine(ds.scriptPubKey, &final, 0, txscript.StandardVerifyFlags, nil,
+		txscript.NewTxSigHashes(&final, fetcher), amount, fetcher)
+	require.NoError(t, err)
+	require.NoError(t, vm.Execute())
+}
+
+// TestFinalizeRejectsKeySpendSigHashMismatch: the finalizer appends the input's
+// sighash type to a bare signature, so a disagreement must fail here.
+func TestFinalizeRejectsKeySpendSigHashMismatch(t *testing.T) {
+	packet, _, _ := taprootKeySpendPacket(t)
+	packet.Inputs[0].SighashType = txscript.SigHashAll
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "input sighash type disagree")
+}
+
+// TestFinalizeRejectsWrongControlBlockParity: script execution reads the parity
+// bit, so a flipped bit must fail here and not at the broadcast.
+func TestFinalizeRejectsWrongControlBlockParity(t *testing.T) {
+	packet := taprootMultisigPacket(t)
+	packet.Inputs[0].TaprootLeafScript[0].ControlBlock[0] ^= 1
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "wrong output key parity")
+}
+
+// TestFinalizeRejectsExplicitDefaultSigHash: script verification takes the
+// default taproot sighash only in the 64-byte form.
+func TestFinalizeRejectsExplicitDefaultSigHash(t *testing.T) {
+	packet, _, _ := taprootKeySpendPacket(t)
+	packet.Inputs[0].TaprootKeySpendSig = append(packet.Inputs[0].TaprootKeySpendSig, 0x00)
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "drop the default sighash byte")
+}
+
+// TestFinalizeRejectsUnknownSigHashType: a standard node refuses an undefined
+// sighash byte, so the check must refuse it first.
+func TestFinalizeRejectsUnknownSigHashType(t *testing.T) {
+	packet, _, _ := multisigPacket(t)
+	sig := packet.Inputs[0].PartialSigs[0].Signature
+	packet.Inputs[0].PartialSigs[0].Signature = append(append([]byte(nil), sig[:len(sig)-1]...), 0x04)
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown sighash type 0x4")
+}
+
+// TestFinalizeRejectsForeignFinalWitness: a cosigner can hand back a PSBT it
+// finalized itself. That witness must still spend this transaction's input.
+func TestFinalizeRejectsForeignFinalWitness(t *testing.T) {
+	packet, _, _ := multisigPacket(t)
+	require.NoError(t, psbt.MaybeFinalizeAll(packet))
+	require.NotEmpty(t, packet.Inputs[0].FinalScriptWitness)
+
+	packet.UnsignedTx.TxOut[0].Value -= 1
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not spend this output")
+}
+
+// TestFinalizeAcceptsOwnFinalWitness: the good path stays green once an input
+// carries its final witness.
+func TestFinalizeAcceptsOwnFinalWitness(t *testing.T) {
+	packet, _, _ := multisigPacket(t)
+	require.NoError(t, psbt.MaybeFinalizeAll(packet))
+
+	_, err := finalizeAndExtract(packet)
+	require.NoError(t, err)
+}
+
+// TestFinalizeRejectsLegacyInputWithoutPreviousTx: the finalizer takes its
+// witness path whenever a witness utxo is set, so a legacy input signed against
+// one lands in the wrong field.
+func TestFinalizeRejectsLegacyInputWithoutPreviousTx(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct, err := accountKeyFromSeed(hex.EncodeToString(MnemonicToSeed(testMnemonic, "")), ScriptLegacy, net)
+	require.NoError(t, err)
+	d := &Descriptor{Kind: ScriptLegacy, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr:     scannedAddr{scriptPubKey: ds.scriptPubKey, priv: priv, pub: priv.PubKey(), kind: ScriptLegacy},
+	}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+	packet, err := buildPSBT([]psbtInput{in}, out, net, func(string) (*wire.MsgTx, error) { return prevTx, nil })
+	require.NoError(t, err)
+	_, err = signPSBT(packet, []psbtInput{in}, net)
+	require.NoError(t, err)
+
+	packet.Inputs[0].NonWitnessUtxo = nil
+	packet.Inputs[0].WitnessUtxo = wire.NewTxOut(amount, ds.scriptPubKey)
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "needs its previous transaction")
+}
+
+// TestFinalizeVerifiesBarePubKeyScript: a bare standard output is verified like
+// any other, so a final scriptSig that does not spend it fails here.
+func TestFinalizeVerifiesBarePubKeyScript(t *testing.T) {
+	const amount = int64(100_000)
+
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	pkScript, err := txscript.NewScriptBuilder().
+		AddData(priv.PubKey().SerializeCompressed()).
+		AddOp(txscript.OP_CHECKSIG).
+		Script()
+	require.NoError(t, err)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, pkScript))
+
+	tx := wire.NewMsgTx(2)
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Hash: prevTx.TxHash(), Index: 0}, nil, nil))
+	tx.AddTxOut(wire.NewTxOut(amount-1000, pkScript))
+	packet, err := psbt.NewFromUnsignedTx(tx)
+	require.NoError(t, err)
+	packet.Inputs[0].NonWitnessUtxo = prevTx
+
+	other, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	sig, err := txscript.RawTxInSignature(tx, 0, pkScript, txscript.SigHashAll, other)
+	require.NoError(t, err)
+	packet.Inputs[0].FinalScriptSig, err = txscript.NewScriptBuilder().AddData(sig).Script()
+	require.NoError(t, err)
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not spend this output")
+}
+
+// TestFinalizeRejectsHighSSignature: a high-S signature still verifies by
+// mathematics, but a standard node refuses it, and the finalizer copies the
+// bytes through unchanged.
+func TestFinalizeRejectsHighSSignature(t *testing.T) {
+	packet, _, _ := multisigPacket(t)
+	ps := packet.Inputs[0].PartialSigs[0]
+	der := ps.Signature[:len(ps.Signature)-1]
+	sig, err := ecdsa.ParseDERSignature(der)
+	require.NoError(t, err)
+
+	require.NoError(t, ecdsa.VerifyLowS(der))
+	high := highSDER(t, sig)
+	require.Error(t, ecdsa.VerifyLowS(high))
+	packet.Inputs[0].PartialSigs[0].Signature = append(high, ps.Signature[len(ps.Signature)-1])
+
+	_, err = finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "a standard node refuses")
+}
+
+// highSDER re-encodes a signature with the mirrored s value, the form a
+// standard node refuses. The library serializer always writes the low form, so
+// the DER is built by hand.
+func highSDER(t *testing.T, sig *ecdsa.Signature) []byte {
+	t.Helper()
+	order, ok := new(big.Int).SetString(
+		"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16,
+	)
+	require.True(t, ok)
+	r := sig.R()
+	s := sig.S()
+	rBytes := r.Bytes()
+	sBytes := s.Bytes()
+	high := new(big.Int).Sub(order, new(big.Int).SetBytes(sBytes[:]))
+
+	body := append(derInt(rBytes[:]), derInt(high.Bytes())...)
+	return append([]byte{0x30, byte(len(body))}, body...)
+}
+
+func derInt(value []byte) []byte {
+	for len(value) > 1 && value[0] == 0 {
+		value = value[1:]
+	}
+	if value[0]&0x80 != 0 {
+		value = append([]byte{0x00}, value...)
+	}
+	return append([]byte{0x02, byte(len(value))}, value...)
 }

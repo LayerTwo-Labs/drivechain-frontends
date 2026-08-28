@@ -1159,6 +1159,9 @@ func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, ps
 		if out == nil {
 			return "", fmt.Errorf("psbt input %d missing prevout", i)
 		}
+		if !bytes.Equal(sa.scriptPubKey, out.PkScript) {
+			return "", fmt.Errorf("psbt input %d does not pay an address of this multisig wallet", i)
+		}
 		inputs[i] = psbtInput{
 			outpoint: packet.UnsignedTx.TxIn[i].PreviousOutPoint,
 			amount:   out.Value,

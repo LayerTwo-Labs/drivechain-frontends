@@ -268,7 +268,12 @@ func finalizeTaprootMultisigInput(packet *psbt.Packet, i int) error {
 	}
 	sigByPub := make(map[string][]byte, len(in.TaprootScriptSpendSig))
 	for _, s := range in.TaprootScriptSpendSig {
-		sigByPub[hex.EncodeToString(s.XOnlyPubKey)] = s.Signature
+		// The witness carries the sighash byte; the PSBT keeps it apart.
+		sig := s.Signature
+		if s.SigHash != txscript.SigHashDefault {
+			sig = append(append([]byte(nil), sig...), byte(s.SigHash))
+		}
+		sigByPub[hex.EncodeToString(s.XOnlyPubKey)] = sig
 	}
 
 	// A multi_a leaf ends in <m> OP_NUMEQUAL — the witness must carry EXACTLY m
