@@ -155,6 +155,10 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 	}
 
 	srv, err := api.New(ctx, services, config.Config{
+		// The name picks the data source and the coin news set, and regtest has
+		// no hosted orchestrator, so every read stays on the mocks above. The
+		// ChainParams above pick the address encoding the fixtures use.
+		BitcoinCoreNetwork: config.NetworkRegtest,
 		GuiBootedMainchain: false,
 		GuiBootedEnforcer:  false,
 	}, func(shutdownCtx context.Context) {
