@@ -23,6 +23,11 @@ type fakeOutspend struct {
 	mempoolSpent map[string]bool
 	missing      map[string]bool
 	fail         map[string]bool
+	// unknownTx names transactions Bitcoin never saw. Their outputs still read
+	// as "not spent", the way a real server answers.
+	unknownTx map[string]bool
+	txCalls   map[string]int
+	txFail    map[string]bool
 }
 
 func newFakeOutspend() *fakeOutspend {
@@ -32,7 +37,18 @@ func newFakeOutspend() *fakeOutspend {
 		mempoolSpent: map[string]bool{},
 		missing:      map[string]bool{},
 		fail:         map[string]bool{},
+		unknownTx:    map[string]bool{},
+		txCalls:      map[string]int{},
+		txFail:       map[string]bool{},
 	}
+}
+
+func (f *fakeOutspend) TxKnown(_ context.Context, txid string) (bool, error) {
+	f.txCalls[txid]++
+	if f.txFail[txid] {
+		return false, errors.New("boom")
+	}
+	return !f.unknownTx[txid], nil
 }
 
 func (f *fakeOutspend) Outspend(_ context.Context, txid string, vout int) (wallet.EsploraOutspend, bool, error) {
@@ -344,4 +360,50 @@ func TestCheckReplayStatusReturnsTheLookupError(t *testing.T) {
 func (e *SplitEngine) passRecheckInterval() {
 	base := e.now()
 	e.now = func() time.Time { return base.Add(absentRecheckInterval) }
+}
+
+// TestSplitEngineIgnoresCoinBitcoinNeverSaw: a server answers "not spent" for a
+// transaction it never saw, exactly as it does for a live output. A coin this
+// chain alone made must not read as a coin both chains hold.
+func TestSplitEngineIgnoresCoinBitcoinNeverSaw(t *testing.T) {
+	btc := newFakeOutspend()
+	btc.unknownTx["aa"] = true
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
+
+	e.tick(context.Background())
+
+	require.Equal(t, 1, btc.txCalls["aa"])
+	require.Empty(t, store.statuses)
+}
+
+// TestSplitEngineAsksNothingMoreForASpentCoin: a spend proves the transaction
+// exists, so the second lookup is wasted.
+func TestSplitEngineAsksNothingMoreForASpentCoin(t *testing.T) {
+	btc := newFakeOutspend()
+	btc.spent["aa:0"] = true
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
+
+	e.tick(context.Background())
+
+	require.Equal(t, 0, btc.txCalls["aa"])
+	require.Equal(t, map[string]bool{"aa:0": false}, store.statuses)
+}
+
+// TestSplitEngineRetriesAfterTxLookupError: a dead provider must leave the coin
+// open for the next tick, not cache a guess.
+func TestSplitEngineRetriesAfterTxLookupError(t *testing.T) {
+	btc := newFakeOutspend()
+	btc.txFail["aa"] = true
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
+
+	e.tick(context.Background())
+	require.Empty(t, store.statuses)
+
+	btc.txFail["aa"] = false
+	e.tick(context.Background())
+
+	require.Equal(t, map[string]bool{"aa:0": true}, store.statuses)
 }
