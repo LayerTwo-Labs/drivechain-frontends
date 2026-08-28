@@ -18,6 +18,9 @@ const _claimCardWidth = 420.0;
 /// Below this the claim card drops under the address card instead of beside it.
 const _claimBesideAddress = 1100.0;
 
+/// Below this the derivation path drops under the address field instead of into it.
+const _pathBesideAddress = 600.0;
+
 class ReceiveTab extends StatelessWidget {
   const ReceiveTab({super.key});
 
@@ -68,43 +71,66 @@ class ReceiveTab extends StatelessWidget {
                                       )
                                       .toList(),
                                 ),
-                              SailRow(
-                                spacing: SailStyleValues.padding08,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: SailTextField(
-                                      loading: LoadingDetails(
-                                        enabled: model.address.isEmpty,
-                                        description: 'Waiting for enforcer to start and wallet to sync..',
-                                      ),
-                                      controller: TextEditingController(text: model.address),
-                                      hintText: 'A Drivechain address',
-                                      readOnly: true,
-                                      suffixWidget: SailRow(
+                              LayoutBuilder(
+                                builder: (context, addressConstraints) {
+                                  final pathBesideAddress =
+                                      addressConstraints.maxWidth >= _pathBesideAddress &&
+                                      model.addressDerivationPath.isNotEmpty;
+
+                                  return SailColumn(
+                                    spacing: SailStyleValues.padding08,
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SailRow(
                                         spacing: SailStyleValues.padding08,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          if (model.addressDerivationPath.isNotEmpty)
-                                            SailText.secondary12(model.addressDerivationPath, monospace: true),
-                                          CopyButton(text: model.address),
+                                          Expanded(
+                                            child: SailTextField(
+                                              loading: LoadingDetails(
+                                                enabled: model.address.isEmpty,
+                                                description: 'Waiting for enforcer to start and wallet to sync..',
+                                              ),
+                                              controller: TextEditingController(text: model.address),
+                                              hintText: 'A Drivechain address',
+                                              readOnly: true,
+                                              suffixWidget: SailRow(
+                                                spacing: SailStyleValues.padding08,
+                                                children: [
+                                                  if (pathBesideAddress)
+                                                    SailText.secondary12(
+                                                      model.addressDerivationPath,
+                                                      monospace: true,
+                                                    ),
+                                                  CopyButton(text: model.address),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 128,
+                                            child: SailCard(
+                                              padding: true,
+                                              child: QrImageView(
+                                                padding: EdgeInsets.zero,
+                                                eyeStyle: QrEyeStyle(
+                                                  color: theme.colors.text,
+                                                  eyeShape: QrEyeShape.square,
+                                                ),
+                                                dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
+                                                data: model.address,
+                                                version: QrVersions.auto,
+                                              ),
+                                            ),
+                                          ),
                                         ],
                                       ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 128,
-                                    child: SailCard(
-                                      padding: true,
-                                      child: QrImageView(
-                                        padding: EdgeInsets.zero,
-                                        eyeStyle: QrEyeStyle(color: theme.colors.text, eyeShape: QrEyeShape.square),
-                                        dataModuleStyle: QrDataModuleStyle(color: theme.colors.text),
-                                        data: model.address,
-                                        version: QrVersions.auto,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                      if (!pathBesideAddress && model.addressDerivationPath.isNotEmpty)
+                                        SailText.secondary12(model.addressDerivationPath, monospace: true),
+                                    ],
+                                  );
+                                },
                               ),
                               if (model.address.isEmpty)
                                 SailButton(label: 'Generate new address', onPressed: model.generateNewAddress),
