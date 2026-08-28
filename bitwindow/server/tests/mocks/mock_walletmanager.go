@@ -748,6 +748,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) ParseMultisigConfig(arg0, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseMultisigConfig", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).ParseMultisigConfig), arg0, arg1)
 }
 
+// PreviewBumpFee mocks base method.
+func (m *MockWalletManagerServiceClient) PreviewBumpFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewBumpFeeRequest]) (*connect.Response[walletmanagerv1.PreviewBumpFeeResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PreviewBumpFee", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewBumpFeeResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PreviewBumpFee indicates an expected call of PreviewBumpFee.
+func (mr *MockWalletManagerServiceClientMockRecorder) PreviewBumpFee(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreviewBumpFee", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).PreviewBumpFee), arg0, arg1)
+}
+
 // PreviewWalletFromEntropy mocks base method.
 func (m *MockWalletManagerServiceClient) PreviewWalletFromEntropy(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewWalletFromEntropyRequest]) (*connect.Response[walletmanagerv1.PreviewWalletFromEntropyResponse], error) {
 	m.ctrl.T.Helper()
@@ -1790,6 +1805,21 @@ func (m *MockWalletManagerServiceHandler) ParseMultisigConfig(arg0 context.Conte
 func (mr *MockWalletManagerServiceHandlerMockRecorder) ParseMultisigConfig(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseMultisigConfig", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).ParseMultisigConfig), arg0, arg1)
+}
+
+// PreviewBumpFee mocks base method.
+func (m *MockWalletManagerServiceHandler) PreviewBumpFee(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.PreviewBumpFeeRequest]) (*connect.Response[walletmanagerv1.PreviewBumpFeeResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PreviewBumpFee", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[walletmanagerv1.PreviewBumpFeeResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PreviewBumpFee indicates an expected call of PreviewBumpFee.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) PreviewBumpFee(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreviewBumpFee", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).PreviewBumpFee), arg0, arg1)
 }
 
 // PreviewWalletFromEntropy mocks base method.

@@ -461,14 +461,44 @@ func TestWalletIntegration(t *testing.T) {
 		require.NoError(t, err)
 		origTxid := sendResp.Msg.Txid
 
-		// BumpFee.
-		bumpResp, err := client.BumpFee(ctx, connect.NewRequest(&pb.BumpFeeRequest{
+		// The preview reports the fee, the size and the change output that pays.
+		preview, err := client.PreviewBumpFee(ctx, connect.NewRequest(&pb.PreviewBumpFeeRequest{
 			Txid: origTxid,
+		}))
+		require.NoError(t, err)
+		require.Empty(t, preview.Msg.Reason)
+		require.NotNil(t, preview.Msg.Plan)
+		require.Positive(t, preview.Msg.OldFeeSats)
+		require.Positive(t, preview.Msg.VsizeVbytes)
+		require.NotEmpty(t, preview.Msg.Outputs)
+		var changeOutputs int
+		for _, out := range preview.Msg.Outputs {
+			if out.IsChange {
+				changeOutputs++
+			}
+		}
+		require.Equal(t, 1, changeOutputs, "the send returns change, and the preview marks it")
+		require.False(t, preview.Msg.Plan.ReducesPayment, "the change pays, not the recipient")
+
+		newRate := preview.Msg.SuggestedFeeRate + 5
+		bumpResp, err := client.BumpFee(ctx, connect.NewRequest(&pb.BumpFeeRequest{
+			Txid:       origTxid,
+			NewFeeRate: newRate,
 		}))
 		require.NoError(t, err)
 		require.NotEmpty(t, bumpResp.Msg.NewTxid)
 		require.NotEqual(t, origTxid, bumpResp.Msg.NewTxid)
-		t.Logf("bumped fee: %s → %s", origTxid, bumpResp.Msg.NewTxid)
+		require.NotNil(t, bumpResp.Msg.Plan)
+		require.Greater(t, bumpResp.Msg.Plan.NewFeeSats, bumpResp.Msg.Plan.OldFeeSats,
+			"the replacement pays more than the transaction it replaces")
+		t.Logf("bumped fee: %s → %s (%d → %d sats)", origTxid, bumpResp.Msg.NewTxid,
+			bumpResp.Msg.Plan.OldFeeSats, bumpResp.Msg.Plan.NewFeeSats)
+
+		// A confirmed transaction has no replacement.
+		_, err = client.PreviewBumpFee(ctx, connect.NewRequest(&pb.PreviewBumpFeeRequest{
+			Txid: "0000000000000000000000000000000000000000000000000000000000000000",
+		}))
+		require.Error(t, err, "a transaction that waits in no mempool cannot be replaced")
 
 		// Mine 1 block.
 		err = nodeA.Mine(ctx, t, 1)

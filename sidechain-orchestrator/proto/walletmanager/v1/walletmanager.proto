@@ -68,6 +68,9 @@ service WalletManagerService {
   rpc GetTransactionDetails(GetTransactionDetailsRequest) returns (GetTransactionDetailsResponse);
   rpc DecodeTransaction(DecodeTransactionRequest) returns (DecodeTransactionResponse);
   rpc BumpFee(BumpFeeRequest) returns (BumpFeeResponse);
+  // PreviewBumpFee reports what a fee bump costs, and which output pays it,
+  // without broadcasting anything.
+  rpc PreviewBumpFee(PreviewBumpFeeRequest) returns (PreviewBumpFeeResponse);
   // CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
   // fee lifts the parent+child package to the target fee rate (CPFP).
   rpc CreateCpfp(CreateCpfpRequest) returns (CreateCpfpResponse);
@@ -1067,10 +1070,76 @@ message BumpFeeRequest {
   string wallet_id = 1;
   string txid = 2;
   int64 new_fee_rate = 3;  // sat/vB, 0 = automatic
+  // Output that pays the higher fee. Unset takes it from the change output,
+  // which is the only output a bump may touch without the user's consent.
+  optional int32 fee_from_vout = 4;
 }
 
 message BumpFeeResponse {
   string new_txid = 1;
+  BumpFeePlan plan = 2;
+}
+
+message PreviewBumpFeeRequest {
+  string wallet_id = 1;
+  string txid = 2;
+  int64 new_fee_rate = 3;  // sat/vB, 0 = the backend's own estimate
+  optional int32 fee_from_vout = 4;
+}
+
+message PreviewBumpFeeResponse {
+  int32 input_count = 1;
+  int64 vsize_vbytes = 2;
+  int64 old_fee_sats = 3;
+  double old_fee_rate_sat_vb = 4;
+  // Fee rate the backend suggests for the next blocks, in sat/vB.
+  int64 suggested_fee_rate = 5;
+  // Every output of the transaction, in order.
+  repeated BumpFeeOutput outputs = 6;
+  // The replacement. Unset when the wallet cannot build one.
+  BumpFeePlan plan = 7;
+  // Why the wallet cannot build a replacement. Empty when plan is set.
+  string reason = 8;
+  // The wallet holds the keys of every input, so it can sign a replacement at
+  // some fee rate. False marks a transaction no rate can replace.
+  bool can_replace = 9;
+  // Another transaction already spends this one. A replacement must outpay that
+  // child too, and a child transaction cannot speed this one up either.
+  bool has_child = 10;
+  // The backend funds a higher fee from another coin when the chosen output
+  // cannot cover it, so a replacement holds even with no plan to show.
+  bool adds_inputs = 11;
+}
+
+// BumpFeeOutput is one output of the transaction the fee can come from.
+message BumpFeeOutput {
+  int32 vout = 1;
+  int64 amount_sats = 2;
+  string address = 3;
+  // The wallet owns this output and it sits on the change chain.
+  bool is_change = 4;
+  // Amount below which the output cannot stay in the transaction.
+  int64 dust_sats = 5;
+  // The wallet owns this output. CPFP spends such an output, so a transaction
+  // with none of them has no child to speed it up.
+  bool is_mine = 6;
+}
+
+// BumpFeePlan is the replacement transaction a fee bump builds.
+message BumpFeePlan {
+  int64 old_fee_sats = 1;
+  int64 new_fee_sats = 2;
+  int64 extra_fee_sats = 3;
+  double new_fee_rate_sat_vb = 4;
+  // Output that pays, and what it holds before and after.
+  int32 fee_from_vout = 5;
+  int64 amount_before_sats = 6;
+  int64 amount_after_sats = 7;
+  // The output falls under the dust limit, so it goes away and its remainder
+  // joins the fee.
+  bool output_removed = 8;
+  // The output belongs to the recipient, not to the wallet.
+  bool reduces_payment = 9;
 }
 
 message CreateCpfpRequest {

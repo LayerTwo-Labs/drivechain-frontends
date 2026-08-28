@@ -1286,3 +1286,311 @@ func TestCoreBackendImportsEveryKindTheWalletAdvertises(t *testing.T) {
 	assert.Contains(t, singleSig[0].Desc, "tr([")
 	assert.Contains(t, singleSig[2].Desc, "wpkh([")
 }
+
+// coreBumpFeeFixture stubs an unconfirmed wallet transaction that pays a
+// stranger and returns change, so a fee bump has both kinds of output.
+func coreBumpFeeFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, string, string) {
+	t.Helper()
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	paymentAddr := p2wpkhAddr(t, fixedKey(0x88), &chaincfg.RegressionNetParams)
+	changeAddr := p2wpkhAddr(t, fixedKey(0x99), &chaincfg.RegressionNetParams)
+
+	fake.handle("getmempoolentry", func(c bitcoindCall) (any, string) {
+		var txid string
+		_ = json.Unmarshal(c.Params[0], &txid)
+		if txid != coreBumpTxid {
+			// Core picks its own size and fee for the replacement, and they
+			// differ from what the plan predicted.
+			return map[string]any{"vsize": 162, "fees": map[string]any{"base": float64(1620) / 1e8}, "descendantcount": 1}, ""
+		}
+		return map[string]any{"vsize": 150, "fees": map[string]any{"base": float64(150) / 1e8}, "descendantcount": 1}, ""
+	})
+	fake.handle("estimatesmartfee", func(bitcoindCall) (any, string) {
+		return map[string]any{"feerate": 0.00002, "blocks": 3}, ""
+	})
+	fake.handle("gettransaction", func(bitcoindCall) (any, string) {
+		return map[string]any{"txid": coreBumpTxid, "fee": -0.00000150}, ""
+	})
+	// Core carries no prevout for a transaction that waits in the mempool, so
+	// the funding transaction answers who owns each input.
+	fake.handle("getrawtransaction", func(c bitcoindCall) (any, string) {
+		if mustString(t, c.Params[0]) == coreBumpFundingTxid {
+			return map[string]any{
+				"txid": coreBumpFundingTxid,
+				"vout": []map[string]any{
+					{"value": 0.002, "n": 0, "scriptPubKey": map[string]any{"address": changeAddr, "type": "witness_v0_keyhash"}},
+				},
+			}, ""
+		}
+		return map[string]any{
+			"txid":     coreBumpTxid,
+			"vsize":    150,
+			"locktime": 0,
+			"vin":      []map[string]any{{"txid": coreBumpFundingTxid, "vout": 0, "sequence": 4294967293}},
+			"vout": []map[string]any{
+				{"value": 0.001, "n": 0, "scriptPubKey": map[string]any{"address": paymentAddr, "type": "witness_v0_keyhash"}},
+				{"value": 0.0009985, "n": 1, "scriptPubKey": map[string]any{"address": changeAddr, "type": "witness_v0_keyhash"}},
+			},
+		}, ""
+	})
+	fake.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
+		var address string
+		_ = json.Unmarshal(c.Params[0], &address)
+		return map[string]any{
+			"address":   address,
+			"hdkeypath": "m/84'/1'/0'/1/0",
+			"ismine":    address == changeAddr,
+			"ischange":  address == changeAddr,
+		}, ""
+	})
+	return backend, fake, coreID, paymentAddr, changeAddr
+}
+
+// serveReplacement teaches the fake to answer getrawtransaction for the
+// transaction a bump broadcasts, the way Core answers for its own replacement.
+func (f *fakeBitcoind) serveReplacement(t *testing.T, txid, paymentAddr string, paymentBTC float64, changeAddr string, changeBTC float64) {
+	t.Helper()
+	previous := f.handlers["getrawtransaction"]
+	f.handle("getrawtransaction", func(c bitcoindCall) (any, string) {
+		if mustString(t, c.Params[0]) == txid {
+			return map[string]any{
+				"txid": txid,
+				"vout": []map[string]any{
+					{"value": paymentBTC, "n": 0, "scriptPubKey": map[string]any{"address": paymentAddr}},
+					{"value": changeBTC, "n": 1, "scriptPubKey": map[string]any{"address": changeAddr}},
+				},
+			}, ""
+		}
+		return previous(c)
+	})
+}
+
+const (
+	coreBumpTxid        = "77777777777777777777777777777777777777777777777777777777777777aa"
+	coreBumpFundingTxid = "88888888888888888888888888888888888888888888888888888888888888bb"
+)
+
+func TestCoreBackendBumpFeeTakesItFromChange(t *testing.T) {
+	backend, fake, coreID, paymentAddr, changeAddr := coreBumpFeeFixture(t)
+	fake.handle("bumpfee", func(bitcoindCall) (any, string) {
+		return map[string]any{"txid": "replacement-txid"}, ""
+	})
+	fake.serveReplacement(t, "replacement-txid", paymentAddr, 0.001, changeAddr, 0.0009838)
+
+	result, err := backend.BumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Equal(t, "replacement-txid", result.NewTxID)
+	assert.False(t, result.Plan.ReducesPayment)
+	assert.Equal(t, 1, result.Plan.FeeFromVout, "the change output pays")
+	assert.Equal(t, int64(1620), result.Plan.NewFeeSats, "the plan reports what the replacement really pays, not what it planned")
+	assert.Equal(t, int64(1470), result.Plan.ExtraFeeSats)
+	assert.InDelta(t, 10.0, result.Plan.NewFeeRate, 0.001, "the rate follows the size Core chose")
+	assert.Equal(t, int64(98_380), result.Plan.AmountAfter, "the plan reports what the change output really holds")
+
+	calls := fake.callsFor("bumpfee")
+	require.Len(t, calls, 1)
+	require.Len(t, calls[0].Params, 2, "bumpfee must carry the fee rate")
+	var options map[string]any
+	require.NoError(t, json.Unmarshal(calls[0].Params[1], &options))
+	assert.Equal(t, float64(10), options["fee_rate"])
+	assert.Empty(t, fake.callsFor("sendrawtransaction"), "Core builds the replacement itself")
+}
+
+func TestCoreBackendBumpFeeTakesItFromAPayment(t *testing.T) {
+	backend, fake, coreID, paymentAddr, changeAddr := coreBumpFeeFixture(t)
+	fake.serveReplacement(t, "rebuilt-txid", paymentAddr, 0.0009865, changeAddr, 0.0009985)
+	var signedHex string
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		signedHex = mustString(t, c.Params[0])
+		return map[string]any{"hex": signedHex, "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "rebuilt-txid", "" })
+
+	vout := 0
+	result, err := backend.BumpFee(context.Background(), coreID, BumpFeeRequest{
+		TxID: coreBumpTxid, NewFeeRate: 10, FeeFromVout: &vout,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "rebuilt-txid", result.NewTxID)
+	assert.True(t, result.Plan.ReducesPayment)
+	assert.Equal(t, int64(98_650), result.Plan.AmountAfter)
+	assert.Empty(t, fake.callsFor("bumpfee"), "Core's bumpfee refuses to touch a payment")
+
+	raw, err := hex.DecodeString(signedHex)
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	require.Len(t, tx.TxIn, 1, "the replacement spends the same input")
+	assert.Equal(t, coreBumpFundingTxid, tx.TxIn[0].PreviousOutPoint.Hash.String())
+	assert.Equal(t, bip125Sequence, tx.TxIn[0].Sequence, "the replacement stays replaceable")
+	require.Len(t, tx.TxOut, 2)
+	assert.Equal(t, int64(98_650), tx.TxOut[0].Value, "the recipient pays the higher fee")
+	assert.Equal(t, int64(99_850), tx.TxOut[1].Value, "the change keeps its amount")
+}
+
+func TestCoreBackendPreviewBumpFeeReportsTheOutputs(t *testing.T) {
+	backend, _, coreID, paymentAddr, changeAddr := coreBumpFeeFixture(t)
+
+	preview, err := backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Equal(t, int64(150), preview.OldFeeSats)
+	assert.Equal(t, int64(150), preview.VsizeVBytes)
+	assert.Equal(t, 1, preview.InputCount)
+	require.Len(t, preview.Outputs, 2)
+	assert.Equal(t, paymentAddr, preview.Outputs[0].Address)
+	assert.False(t, preview.Outputs[0].IsChange)
+	assert.Equal(t, changeAddr, preview.Outputs[1].Address)
+	assert.True(t, preview.Outputs[1].IsChange)
+	require.NotNil(t, preview.Plan)
+	assert.Equal(t, int64(1350), preview.Plan.ExtraFeeSats)
+}
+
+// A transaction this wallet does not fund has no replacement to build: Core
+// reports no fee for it, and the rebuild could never sign its inputs.
+func TestCoreBackendPreviewBumpFeeRefusesForeignInputs(t *testing.T) {
+	backend, fake, coreID, _, _ := coreBumpFeeFixture(t)
+	fake.handle("gettransaction", func(bitcoindCall) (any, string) {
+		return map[string]any{"txid": coreBumpTxid}, ""
+	})
+
+	preview, err := backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.Contains(t, preview.Reason, "signs none of the inputs")
+
+	vout := 0
+	_, err = backend.BumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10, FeeFromVout: &vout})
+	require.Error(t, err, "a replacement it cannot sign must not reach the node")
+	assert.Empty(t, fake.callsFor("sendrawtransaction"))
+}
+
+// A rebuild signs every input again. A transaction with an input this wallet
+// cannot sign — a sidechain CTIP, or a collaborative send — has no rebuild.
+func TestCoreBackendPreviewBumpFeeRefusesAPartlyOwnedTransaction(t *testing.T) {
+	backend, fake, coreID, _, _ := coreBumpFeeFixture(t)
+	// Core counts only the wallet's own debit, so its fee falls short of the
+	// fee the mempool reports when a foreign input helps fund the transaction.
+	fake.handle("gettransaction", func(bitcoindCall) (any, string) {
+		return map[string]any{"txid": coreBumpTxid, "fee": -0.00000100}, ""
+	})
+
+	for _, req := range []BumpFeeRequest{
+		{TxID: coreBumpTxid, NewFeeRate: 10},
+		{TxID: coreBumpTxid, NewFeeRate: 10, FeeFromVout: intPtr(0)},
+	} {
+		preview, err := backend.PreviewBumpFee(context.Background(), coreID, req)
+		require.NoError(t, err)
+		assert.Nil(t, preview.Plan)
+		assert.False(t, preview.CanReplace, "neither Core's bumpfee nor a rebuild can sign it")
+		assert.Contains(t, preview.Reason, "only part of the inputs")
+	}
+}
+
+// A transaction that already carries a child has no replacement: it must outpay
+// the child too, and Core's own bumpfee refuses such a parent.
+func TestCoreBackendPreviewBumpFeeRefusesAParentWithAChild(t *testing.T) {
+	backend, fake, coreID, _, _ := coreBumpFeeFixture(t)
+	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
+		return map[string]any{"vsize": 150, "fees": map[string]any{"base": float64(150) / 1e8}, "descendantcount": 2}, ""
+	})
+
+	preview, err := backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.False(t, preview.CanReplace)
+	assert.True(t, preview.HasChild, "a child transaction cannot speed this one up either")
+	assert.Contains(t, preview.Reason, "already spends this one")
+}
+
+func intPtr(v int) *int { return &v }
+
+// A send that asks to stay replaceable must carry BIP125 sequences, so a fee
+// bump can follow it. createrawtransaction cannot set them.
+func TestCoreBackendReplaceableSendSignalsBip125(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	dest := p2wpkhAddr(t, fixedKey(0x21), &chaincfg.RegressionNetParams)
+
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": coreBumpFundingTxid, "vout": 0, "amount": 0.01, "spendable": true, "confirmations": 3},
+		}, ""
+	})
+	fake.handle("getrawchangeaddress", func(bitcoindCall) (any, string) {
+		return p2wpkhAddr(t, fixedKey(0x22), &chaincfg.RegressionNetParams), ""
+	})
+	var signedHex string
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		signedHex = mustString(t, c.Params[0])
+		return map[string]any{"hex": signedHex, "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "sent-txid", "" })
+
+	_, err := backend.Send(context.Background(), coreID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 500_000},
+		FixedFeeSats:     1_000,
+		Replaceable:      true,
+	})
+	require.NoError(t, err)
+
+	assert.Empty(t, fake.callsFor("createrawtransaction"),
+		"createrawtransaction cannot signal BIP125, so the send builds the transaction itself")
+	raw, err := hex.DecodeString(signedHex)
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	require.NotEmpty(t, tx.TxIn)
+	for i, in := range tx.TxIn {
+		assert.Equal(t, bip125Sequence, in.Sequence, "input %d does not signal BIP125", i)
+	}
+}
+
+// Core refuses to bump a transaction that does not signal replacement, so the
+// preview says so before the dialog offers one.
+func TestCoreBackendPreviewBumpFeeRefusesAFinalTransaction(t *testing.T) {
+	backend, fake, coreID, paymentAddr, changeAddr := coreBumpFeeFixture(t)
+	fake.handle("getrawtransaction", func(c bitcoindCall) (any, string) {
+		if mustString(t, c.Params[0]) == coreBumpFundingTxid {
+			return map[string]any{
+				"txid": coreBumpFundingTxid,
+				"vout": []map[string]any{{"value": 0.002, "n": 0, "scriptPubKey": map[string]any{"address": changeAddr}}},
+			}, ""
+		}
+		return map[string]any{
+			"txid":     coreBumpTxid,
+			"vsize":    150,
+			"locktime": 0,
+			"vin":      []map[string]any{{"txid": coreBumpFundingTxid, "vout": 0, "sequence": 4294967295}},
+			"vout": []map[string]any{
+				{"value": 0.001, "n": 0, "scriptPubKey": map[string]any{"address": paymentAddr}},
+				{"value": 0.0009985, "n": 1, "scriptPubKey": map[string]any{"address": changeAddr}},
+			},
+		}, ""
+	})
+
+	preview, err := backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.False(t, preview.CanReplace)
+	assert.Contains(t, preview.Reason, "does not signal replacement")
+}
+
+// Core adds a coin when the change cannot pay the higher fee, so the change
+// path holds even when the planner finds no room in that output.
+func TestCoreBackendPreviewBumpFeeAddsInputsForTheChangePath(t *testing.T) {
+	backend, _, coreID, _, _ := coreBumpFeeFixture(t)
+
+	preview, err := backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{TxID: coreBumpTxid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.True(t, preview.AddsInputs, "Core funds the change path itself")
+
+	// A rebuild spends exactly what it replaces, so it cannot add a coin.
+	vout := 0
+	preview, err = backend.PreviewBumpFee(context.Background(), coreID, BumpFeeRequest{
+		TxID: coreBumpTxid, NewFeeRate: 10, FeeFromVout: &vout,
+	})
+	require.NoError(t, err)
+	assert.False(t, preview.AddsInputs)
+}

@@ -184,12 +184,20 @@ func (r *BackendRouter) SignTransaction(ctx context.Context, walletID, rawHex st
 	return p.SignTransaction(ctx, walletID, rawHex)
 }
 
-func (r *BackendRouter) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
+func (r *BackendRouter) BumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeeResult, error) {
 	p, err := r.pick(walletID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return p.BumpFee(ctx, walletID, txid, newFeeRate)
+	return p.BumpFee(ctx, walletID, req)
+}
+
+func (r *BackendRouter) PreviewBumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeePreview, error) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, err
+	}
+	return p.PreviewBumpFee(ctx, walletID, req)
 }
 
 func (r *BackendRouter) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {

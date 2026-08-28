@@ -568,7 +568,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 func (p *CoreBackend) createRawTx(
 	ctx context.Context, req SendRequest, inputs []RawInput, outputs []TxOutSpec, locktime uint32,
 ) (string, error) {
-	if len(req.RawOutputs) == 0 && len(req.ExternalInputs) == 0 {
+	if len(req.RawOutputs) == 0 && len(req.ExternalInputs) == 0 && !req.Replaceable {
 		rawHex, err := p.rpc.CreateRawTransaction(ctx, inputs, rpcOutputs(outputs), locktime)
 		if err != nil {
 			return "", fmt.Errorf("create raw transaction: %w", err)
@@ -739,12 +739,244 @@ func (p *CoreBackend) SignTransaction(ctx context.Context, walletID, rawHex stri
 	return p.rpc.SignRawTransactionWithWallet(ctx, name, rawHex)
 }
 
-func (p *CoreBackend) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
+// PreviewBumpFee reports what a replacement of req.TxID costs, and which output
+// pays for it. A transaction it cannot replace comes back with a Reason and no
+// Plan, so the caller can tell the user why.
+func (p *CoreBackend) PreviewBumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeePreview, error) {
 	name, err := p.walletName(ctx, walletID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return p.rpc.BumpFee(ctx, name, txid, newFeeRate)
+	preview, _, err := p.previewBumpFee(ctx, name, req)
+	return preview, err
+}
+
+func (p *CoreBackend) previewBumpFee(ctx context.Context, name string, req BumpFeeRequest) (*BumpFeePreview, *RawTransaction, error) {
+	entry, err := p.rpc.GetMempoolEntry(ctx, req.TxID)
+	if err != nil {
+		return nil, nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s waits in no mempool: %w", req.TxID, err))
+	}
+	if entry.Vsize <= 0 {
+		return nil, nil, fmt.Errorf("transaction %s reports no size", req.TxID)
+	}
+	tx, err := p.rpc.GetRawTransaction(ctx, req.TxID)
+	if err != nil {
+		return nil, nil, err
+	}
+	oldFee := btcToSats(entry.Fees.Base)
+
+	outputs := make([]BumpFeeOutput, 0, len(tx.Vout))
+	for _, vout := range tx.Vout {
+		out := BumpFeeOutput{
+			Vout:       vout.N,
+			AmountSats: btcToSats(vout.Value),
+			Address:    vout.ScriptPubKey.Address,
+		}
+		if out.Address != "" {
+			kind := addressKind(out.Address, p.net())
+			out.DustSats = dustThreshold(kind)
+			out.VsizeBytes = int64(outputVsizeForKind(kind))
+			info, err := p.rpc.GetAddressInfo(ctx, name, out.Address)
+			if err != nil {
+				return nil, nil, err
+			}
+			out.IsMine = info.IsMine
+			out.IsChange = info.IsMine && info.IsChange
+		} else {
+			out.VsizeBytes = int64(outputVsizeForKind(ScriptLegacy))
+		}
+		outputs = append(outputs, out)
+	}
+
+	suggested := minBumpFeeRate(oldFee, entry.Vsize, len(tx.Vin))
+	// A node with no fee history answers nothing; the floor above then stands.
+	if rate, err := p.rpc.EstimateSmartFee(ctx, coreBumpFeeTarget); err == nil {
+		if ceil := int64(math.Ceil(rate)); ceil > suggested {
+			suggested = ceil
+		}
+	}
+	preview := &BumpFeePreview{
+		InputCount:    len(tx.Vin),
+		VsizeVBytes:   entry.Vsize,
+		OldFeeSats:    oldFee,
+		OldFeeRate:    float64(oldFee) / float64(entry.Vsize),
+		SuggestedRate: suggested,
+		Outputs:       outputs,
+	}
+
+	// A replacement must outpay the transaction it replaces and every child of
+	// it. Core's own bumpfee refuses such a parent, and so does this. It answers
+	// before ownership, because a child blocks every path.
+	if entry.DescendantCount > 1 {
+		preview.HasChild = true
+		preview.Reason = "another transaction already spends this one, so it has no replacement"
+		return preview, tx, nil
+	}
+	// Core refuses to bump a transaction that does not signal BIP125.
+	if !signalsBip125(lo.Map(tx.Vin, func(in RawTxIn, _ int) int64 { return in.Sequence })) {
+		preview.Reason = "this transaction does not signal replacement, so no replacement can follow it"
+		return preview, tx, nil
+	}
+
+	// Core reports the fee of a transaction only when this wallet paid it. A
+	// transaction with no fee here spends inputs this wallet cannot sign, so it
+	// has no replacement to build.
+	raw, err := p.rpc.GetTransaction(ctx, name, req.TxID)
+	if err != nil {
+		preview.Reason = "this wallet does not hold the transaction, so it cannot build a replacement"
+		return preview, tx, nil
+	}
+	var walletTx struct {
+		Fee *float64 `json:"fee"`
+	}
+	if err := json.Unmarshal(raw, &walletTx); err != nil {
+		return nil, nil, fmt.Errorf("decode gettransaction: %w", err)
+	}
+	if walletTx.Fee == nil {
+		preview.Reason = "this wallet signs none of the inputs, so it cannot build a replacement"
+		return preview, tx, nil
+	}
+	// Core reports the fee as the wallet's own debit less the outputs, so it
+	// matches the real fee only when the wallet funds every input. A rebuild
+	// signs them all again, and Core's own bumpfee refuses a foreign input too.
+	if btcToSats(-*walletTx.Fee) != oldFee {
+		preview.Reason = "this wallet signs only part of the inputs, so it cannot replace the transaction"
+		return preview, tx, nil
+	}
+
+	preview.CanReplace = true
+	// Core's own bumpfee adds a coin when the change cannot pay the higher fee,
+	// so the change path holds even when the planner finds no room.
+	preview.AddsInputs = true
+
+	rate := req.NewFeeRate
+	if rate <= 0 {
+		rate = suggested
+	}
+	target, err := pickBumpFeeOutput(outputs, req.FeeFromVout)
+	if err != nil {
+		preview.Reason = err.Error()
+		return preview, tx, nil
+	}
+	// A rebuild spends exactly what the transaction it replaces spends, so only
+	// the change path reaches Core's own coin selection.
+	preview.AddsInputs = target.IsChange
+	plan, err := planBumpFee(bumpFeeTx{
+		OldFeeSats:  oldFee,
+		VsizeBytes:  entry.Vsize,
+		InputCount:  len(tx.Vin),
+		OutputCount: len(tx.Vout),
+	}, rate, target)
+	if err != nil {
+		preview.Reason = err.Error()
+		return preview, tx, nil
+	}
+	preview.Plan = &plan
+	return preview, tx, nil
+}
+
+// BumpFee replaces req.TxID with a transaction that pays a higher fee out of
+// one output. Core's own bumpfee takes it from the change output; an output the
+// user picks by hand is a rebuild, because bumpfee refuses to touch a payment.
+func (p *CoreBackend) BumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeeResult, error) {
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	preview, tx, err := p.previewBumpFee(ctx, name, req)
+	if err != nil {
+		return nil, err
+	}
+	if preview.Plan == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(preview.Reason))
+	}
+	plan := *preview.Plan
+	rate := req.NewFeeRate
+	if rate <= 0 {
+		rate = preview.SuggestedRate
+	}
+	var targetAddress string
+	for _, out := range preview.Outputs {
+		if out.Vout == plan.FeeFromVout {
+			targetAddress = out.Address
+			break
+		}
+	}
+
+	if !plan.ReducesPayment {
+		newTxID, err := p.rpc.BumpFee(ctx, name, req.TxID, rate)
+		if err != nil {
+			return nil, err
+		}
+		return &BumpFeeResult{NewTxID: newTxID, Plan: p.settledPlan(ctx, newTxID, targetAddress, plan)}, nil
+	}
+
+	inputs := lo.Map(tx.Vin, func(in RawTxIn, _ int) RawInput {
+		return RawInput{TxID: in.TxID, Vout: in.Vout}
+	})
+	outputs := make([]TxOutSpec, 0, len(tx.Vout))
+	for _, vout := range tx.Vout {
+		amount := btcToSats(vout.Value)
+		if vout.N == plan.FeeFromVout {
+			if plan.OutputRemoved {
+				continue
+			}
+			amount = plan.AmountAfter
+		}
+		out := TxOutSpec{AmountBTC: float64(amount) / 1e8, AmountSats: amount}
+		if vout.ScriptPubKey.Address == "" {
+			out.RawScriptHex = vout.ScriptPubKey.Hex
+		} else {
+			out.Address = vout.ScriptPubKey.Address
+		}
+		outputs = append(outputs, out)
+	}
+	// The replacement keeps the locktime of the transaction it replaces, so an
+	// eCash send keeps its replay stamp.
+	rawHex, err := p.createRawTx(ctx, SendRequest{Replaceable: true}, inputs, outputs, uint32(tx.Locktime))
+	if err != nil {
+		return nil, err
+	}
+	newTxID, err := p.signAndBroadcast(ctx, name, rawHex, false)
+	if err != nil {
+		return nil, err
+	}
+	return &BumpFeeResult{NewTxID: newTxID, Plan: p.settledPlan(ctx, newTxID, targetAddress, plan)}, nil
+}
+
+// settledPlan replaces the planned numbers with what the broadcast transaction
+// really pays and really holds. Core picks its own inputs, size and output to
+// reduce, so the plan alone would report numbers nobody paid.
+func (p *CoreBackend) settledPlan(ctx context.Context, txid, targetAddress string, plan BumpFeePlan) BumpFeePlan {
+	entry, err := p.rpc.GetMempoolEntry(ctx, txid)
+	if err != nil || entry.Vsize <= 0 {
+		p.log.Warn().Err(err).Str("txid", txid).Msg("replacement broadcast, but its own fee stays unread")
+		return plan
+	}
+	plan.NewFeeSats = btcToSats(entry.Fees.Base)
+	plan.ExtraFeeSats = plan.NewFeeSats - plan.OldFeeSats
+	plan.NewFeeRate = float64(plan.NewFeeSats) / float64(entry.Vsize)
+
+	raw, err := p.rpc.GetRawTransaction(ctx, txid)
+	if err != nil || raw == nil {
+		p.log.Warn().Err(err).Str("txid", txid).Msg("replacement broadcast, but its own outputs stay unread")
+		return plan
+	}
+	if targetAddress == "" {
+		return plan
+	}
+	plan.OutputRemoved = true
+	plan.AmountAfter = 0
+	for _, vout := range raw.Vout {
+		if vout.ScriptPubKey.Address != targetAddress {
+			continue
+		}
+		plan.OutputRemoved = false
+		plan.FeeFromVout = vout.N
+		plan.AmountAfter = btcToSats(vout.Value)
+		break
+	}
+	return plan
 }
 
 func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpRequest) (string, error) {

@@ -500,6 +500,8 @@ type MempoolEntry struct {
 	Fees  struct {
 		Base float64 `json:"base"`
 	} `json:"fees"`
+	// DescendantCount counts this transaction and every child of it.
+	DescendantCount int64 `json:"descendantcount"`
 }
 
 // GetMempoolEntry returns mempool metadata for an unconfirmed txid, including
@@ -514,6 +516,26 @@ func (c *CoreRPCClient) GetMempoolEntry(ctx context.Context, txid string) (*Memp
 		return nil, fmt.Errorf("decode getmempoolentry: %w", err)
 	}
 	return &entry, nil
+}
+
+// EstimateSmartFee returns the fee rate in sat/vB Core expects for a
+// confirmation target in blocks. A node with no fee history answers an error.
+func (c *CoreRPCClient) EstimateSmartFee(ctx context.Context, confTarget int) (float64, error) {
+	result, err := c.call(ctx, "", "estimatesmartfee", confTarget)
+	if err != nil {
+		return 0, err
+	}
+	var resp struct {
+		FeeRate float64  `json:"feerate"`
+		Errors  []string `json:"errors"`
+	}
+	if err := json.Unmarshal(result, &resp); err != nil {
+		return 0, fmt.Errorf("decode estimatesmartfee: %w", err)
+	}
+	if resp.FeeRate <= 0 {
+		return 0, fmt.Errorf("no fee estimate for %d blocks: %v", confTarget, resp.Errors)
+	}
+	return resp.FeeRate * 1e8 / 1000, nil
 }
 
 // GetBlockchainInfo returns blockchain info (used for health checks and sync).
@@ -561,6 +583,7 @@ type AddressInfo struct {
 	HDKeyPath  string `json:"hdkeypath"`
 	HDSeedID   string `json:"hdseedid"`
 	IsMine     bool   `json:"ismine"`
+	IsChange   bool   `json:"ischange"`
 	Solvable   bool   `json:"solvable"`
 	IsScript   bool   `json:"isscript"`
 	IsWitness  bool   `json:"iswitness"`

@@ -154,6 +154,9 @@ const (
 	// WalletManagerServiceBumpFeeProcedure is the fully-qualified name of the WalletManagerService's
 	// BumpFee RPC.
 	WalletManagerServiceBumpFeeProcedure = "/walletmanager.v1.WalletManagerService/BumpFee"
+	// WalletManagerServicePreviewBumpFeeProcedure is the fully-qualified name of the
+	// WalletManagerService's PreviewBumpFee RPC.
+	WalletManagerServicePreviewBumpFeeProcedure = "/walletmanager.v1.WalletManagerService/PreviewBumpFee"
 	// WalletManagerServiceCreateCpfpProcedure is the fully-qualified name of the WalletManagerService's
 	// CreateCpfp RPC.
 	WalletManagerServiceCreateCpfpProcedure = "/walletmanager.v1.WalletManagerService/CreateCpfp"
@@ -300,6 +303,9 @@ type WalletManagerServiceClient interface {
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
+	// PreviewBumpFee reports what a fee bump costs, and which output pays it,
+	// without broadcasting anything.
+	PreviewBumpFee(context.Context, *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error)
 	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
 	// fee lifts the parent+child package to the target fee rate (CPFP).
 	CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error)
@@ -607,6 +613,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
 			connect.WithClientOptions(opts...),
 		),
+		previewBumpFee: connect.NewClient[v1.PreviewBumpFeeRequest, v1.PreviewBumpFeeResponse](
+			httpClient,
+			baseURL+WalletManagerServicePreviewBumpFeeProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("PreviewBumpFee")),
+			connect.WithClientOptions(opts...),
+		),
 		createCpfp: connect.NewClient[v1.CreateCpfpRequest, v1.CreateCpfpResponse](
 			httpClient,
 			baseURL+WalletManagerServiceCreateCpfpProcedure,
@@ -820,6 +832,7 @@ type walletManagerServiceClient struct {
 	getTransactionDetails        *connect.Client[v1.GetTransactionDetailsRequest, v1.GetTransactionDetailsResponse]
 	decodeTransaction            *connect.Client[v1.DecodeTransactionRequest, v1.DecodeTransactionResponse]
 	bumpFee                      *connect.Client[v1.BumpFeeRequest, v1.BumpFeeResponse]
+	previewBumpFee               *connect.Client[v1.PreviewBumpFeeRequest, v1.PreviewBumpFeeResponse]
 	createCpfp                   *connect.Client[v1.CreateCpfpRequest, v1.CreateCpfpResponse]
 	deriveAddresses              *connect.Client[v1.DeriveAddressesRequest, v1.DeriveAddressesResponse]
 	createPsbt                   *connect.Client[v1.CreatePsbtRequest, v1.CreatePsbtResponse]
@@ -1050,6 +1063,11 @@ func (c *walletManagerServiceClient) BumpFee(ctx context.Context, req *connect.R
 	return c.bumpFee.CallUnary(ctx, req)
 }
 
+// PreviewBumpFee calls walletmanager.v1.WalletManagerService.PreviewBumpFee.
+func (c *walletManagerServiceClient) PreviewBumpFee(ctx context.Context, req *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error) {
+	return c.previewBumpFee.CallUnary(ctx, req)
+}
+
 // CreateCpfp calls walletmanager.v1.WalletManagerService.CreateCpfp.
 func (c *walletManagerServiceClient) CreateCpfp(ctx context.Context, req *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error) {
 	return c.createCpfp.CallUnary(ctx, req)
@@ -1252,6 +1270,9 @@ type WalletManagerServiceHandler interface {
 	GetTransactionDetails(context.Context, *connect.Request[v1.GetTransactionDetailsRequest]) (*connect.Response[v1.GetTransactionDetailsResponse], error)
 	DecodeTransaction(context.Context, *connect.Request[v1.DecodeTransactionRequest]) (*connect.Response[v1.DecodeTransactionResponse], error)
 	BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error)
+	// PreviewBumpFee reports what a fee bump costs, and which output pays it,
+	// without broadcasting anything.
+	PreviewBumpFee(context.Context, *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error)
 	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
 	// fee lifts the parent+child package to the target fee rate (CPFP).
 	CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error)
@@ -1555,6 +1576,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		connect.WithSchema(walletManagerServiceMethods.ByName("BumpFee")),
 		connect.WithHandlerOptions(opts...),
 	)
+	walletManagerServicePreviewBumpFeeHandler := connect.NewUnaryHandler(
+		WalletManagerServicePreviewBumpFeeProcedure,
+		svc.PreviewBumpFee,
+		connect.WithSchema(walletManagerServiceMethods.ByName("PreviewBumpFee")),
+		connect.WithHandlerOptions(opts...),
+	)
 	walletManagerServiceCreateCpfpHandler := connect.NewUnaryHandler(
 		WalletManagerServiceCreateCpfpProcedure,
 		svc.CreateCpfp,
@@ -1805,6 +1832,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceDecodeTransactionHandler.ServeHTTP(w, r)
 		case WalletManagerServiceBumpFeeProcedure:
 			walletManagerServiceBumpFeeHandler.ServeHTTP(w, r)
+		case WalletManagerServicePreviewBumpFeeProcedure:
+			walletManagerServicePreviewBumpFeeHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateCpfpProcedure:
 			walletManagerServiceCreateCpfpHandler.ServeHTTP(w, r)
 		case WalletManagerServiceDeriveAddressesProcedure:
@@ -2028,6 +2057,10 @@ func (UnimplementedWalletManagerServiceHandler) DecodeTransaction(context.Contex
 
 func (UnimplementedWalletManagerServiceHandler) BumpFee(context.Context, *connect.Request[v1.BumpFeeRequest]) (*connect.Response[v1.BumpFeeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.BumpFee is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) PreviewBumpFee(context.Context, *connect.Request[v1.PreviewBumpFeeRequest]) (*connect.Response[v1.PreviewBumpFeeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.PreviewBumpFee is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) CreateCpfp(context.Context, *connect.Request[v1.CreateCpfpRequest]) (*connect.Response[v1.CreateCpfpResponse], error) {

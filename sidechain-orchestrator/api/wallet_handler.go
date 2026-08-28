@@ -1347,14 +1347,88 @@ func (h *WalletHandler) BumpFee(ctx context.Context, req *connect.Request[pb.Bum
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	newTxID, err := h.engine.Backend().BumpFee(ctx, walletID, req.Msg.Txid, req.Msg.NewFeeRate)
+	result, err := h.engine.Backend().BumpFee(ctx, walletID, wallet.BumpFeeRequest{
+		TxID:        req.Msg.Txid,
+		NewFeeRate:  req.Msg.NewFeeRate,
+		FeeFromVout: voutPointer(req.Msg.FeeFromVout),
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, rpcError(err)
 	}
 
 	return connect.NewResponse(&pb.BumpFeeResponse{
-		NewTxid: newTxID,
+		NewTxid: result.NewTxID,
+		Plan:    bumpFeePlanToProto(result.Plan),
 	}), nil
+}
+
+func (h *WalletHandler) PreviewBumpFee(ctx context.Context, req *connect.Request[pb.PreviewBumpFeeRequest]) (*connect.Response[pb.PreviewBumpFeeResponse], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	preview, err := h.engine.Backend().PreviewBumpFee(ctx, walletID, wallet.BumpFeeRequest{
+		TxID:        req.Msg.Txid,
+		NewFeeRate:  req.Msg.NewFeeRate,
+		FeeFromVout: voutPointer(req.Msg.FeeFromVout),
+	})
+	if err != nil {
+		return nil, rpcError(err)
+	}
+
+	resp := &pb.PreviewBumpFeeResponse{
+		InputCount:       int32(preview.InputCount),
+		VsizeVbytes:      preview.VsizeVBytes,
+		OldFeeSats:       preview.OldFeeSats,
+		OldFeeRateSatVb:  preview.OldFeeRate,
+		SuggestedFeeRate: preview.SuggestedRate,
+		Reason:           preview.Reason,
+		CanReplace:       preview.CanReplace,
+		HasChild:         preview.HasChild,
+		AddsInputs:       preview.AddsInputs,
+		Outputs: lo.Map(preview.Outputs, func(o wallet.BumpFeeOutput, _ int) *pb.BumpFeeOutput {
+			return &pb.BumpFeeOutput{
+				Vout:       int32(o.Vout),
+				AmountSats: o.AmountSats,
+				Address:    o.Address,
+				IsChange:   o.IsChange,
+				DustSats:   o.DustSats,
+				IsMine:     o.IsMine,
+			}
+		}),
+	}
+	if preview.Plan != nil {
+		resp.Plan = bumpFeePlanToProto(*preview.Plan)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// voutPointer maps the request's optional output index onto the backend's.
+func voutPointer(vout *int32) *int {
+	if vout == nil {
+		return nil
+	}
+	v := int(*vout)
+	return &v
+}
+
+func bumpFeePlanToProto(plan wallet.BumpFeePlan) *pb.BumpFeePlan {
+	return &pb.BumpFeePlan{
+		OldFeeSats:       plan.OldFeeSats,
+		NewFeeSats:       plan.NewFeeSats,
+		ExtraFeeSats:     plan.ExtraFeeSats,
+		NewFeeRateSatVb:  plan.NewFeeRate,
+		FeeFromVout:      int32(plan.FeeFromVout),
+		AmountBeforeSats: plan.AmountBefore,
+		AmountAfterSats:  plan.AmountAfter,
+		OutputRemoved:    plan.OutputRemoved,
+		ReducesPayment:   plan.ReducesPayment,
+	}
 }
 
 func (h *WalletHandler) CreateCpfp(ctx context.Context, req *connect.Request[pb.CreateCpfpRequest]) (*connect.Response[pb.CreateCpfpResponse], error) {

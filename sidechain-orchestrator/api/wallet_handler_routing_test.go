@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/proto"
+
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
@@ -21,6 +23,9 @@ type recordingProvider struct {
 	lastSendWallet string
 	lastSend       wallet.SendRequest
 	sendErr        error
+	lastBumpWallet string
+	lastBump       wallet.BumpFeeRequest
+	bumpErr        error
 }
 
 func (f *recordingProvider) Send(ctx context.Context, walletID string, req wallet.SendRequest) (string, error) {
@@ -143,4 +148,110 @@ func TestGetBalanceEmptyWalletIDResolvesActive(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(150_000_000), resp.Msg.ConfirmedSats)
 	_ = coreID
+}
+
+func (f *recordingProvider) BumpFee(ctx context.Context, walletID string, req wallet.BumpFeeRequest) (*wallet.BumpFeeResult, error) {
+	f.lastBumpWallet = walletID
+	f.lastBump = req
+	if f.bumpErr != nil {
+		return nil, f.bumpErr
+	}
+	return &wallet.BumpFeeResult{
+		NewTxID: "replacement-txid",
+		Plan: wallet.BumpFeePlan{
+			OldFeeSats: 150, NewFeeSats: 1500, ExtraFeeSats: 1350, NewFeeRate: 10,
+			FeeFromVout: 1, AmountBefore: 99_850, AmountAfter: 98_500,
+			OutputRemoved: false, ReducesPayment: true,
+		},
+	}, nil
+}
+
+func (f *recordingProvider) PreviewBumpFee(ctx context.Context, walletID string, req wallet.BumpFeeRequest) (*wallet.BumpFeePreview, error) {
+	f.lastBumpWallet = walletID
+	f.lastBump = req
+	return &wallet.BumpFeePreview{
+		InputCount: 2, VsizeVBytes: 151, OldFeeSats: 151, OldFeeRate: 1, SuggestedRate: 10,
+		CanReplace: true, HasChild: true, Reason: "another transaction already spends this one",
+		Outputs: []wallet.BumpFeeOutput{
+			{Vout: 0, AmountSats: 100_000, Address: "tb1qpayment", DustSats: 294, VsizeBytes: 31},
+			{Vout: 1, AmountSats: 99_849, Address: "tb1qchange", IsChange: true, IsMine: true, DustSats: 294, VsizeBytes: 31},
+		},
+	}, nil
+}
+
+// Output 0 is a real choice. It must not arrive at the backend as "take it from
+// the change output", which would replace the transaction the user never asked
+// for.
+func TestBumpFeeCarriesOutputZero(t *testing.T) {
+	h, elecFake, _, elecID, _ := newRoutedHandler(t)
+
+	_, err := h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+		WalletId: elecID, Txid: "abc", NewFeeRate: 10, FeeFromVout: proto.Int32(0),
+	}))
+	require.NoError(t, err)
+	require.NotNil(t, elecFake.lastBump.FeeFromVout)
+	assert.Equal(t, 0, *elecFake.lastBump.FeeFromVout)
+
+	_, err = h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+		WalletId: elecID, Txid: "abc", NewFeeRate: 10,
+	}))
+	require.NoError(t, err)
+	assert.Nil(t, elecFake.lastBump.FeeFromVout, "an unset output means the change output")
+}
+
+func TestBumpFeeReportsThePlan(t *testing.T) {
+	h, _, _, elecID, _ := newRoutedHandler(t)
+
+	resp, err := h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+		WalletId: elecID, Txid: "abc", NewFeeRate: 10,
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "replacement-txid", resp.Msg.NewTxid)
+	require.NotNil(t, resp.Msg.Plan)
+	assert.Equal(t, int64(150), resp.Msg.Plan.OldFeeSats)
+	assert.Equal(t, int64(1500), resp.Msg.Plan.NewFeeSats)
+	assert.Equal(t, int64(1350), resp.Msg.Plan.ExtraFeeSats)
+	assert.InDelta(t, 10.0, resp.Msg.Plan.NewFeeRateSatVb, 0.001)
+	assert.Equal(t, int32(1), resp.Msg.Plan.FeeFromVout)
+	assert.Equal(t, int64(99_850), resp.Msg.Plan.AmountBeforeSats)
+	assert.Equal(t, int64(98_500), resp.Msg.Plan.AmountAfterSats)
+	assert.False(t, resp.Msg.Plan.OutputRemoved)
+	assert.True(t, resp.Msg.Plan.ReducesPayment)
+}
+
+func TestPreviewBumpFeeReportsEveryField(t *testing.T) {
+	h, _, _, elecID, _ := newRoutedHandler(t)
+
+	resp, err := h.PreviewBumpFee(context.Background(), connect.NewRequest(&pb.PreviewBumpFeeRequest{
+		WalletId: elecID, Txid: "abc",
+	}))
+	require.NoError(t, err)
+	msg := resp.Msg
+	assert.Equal(t, int32(2), msg.InputCount)
+	assert.Equal(t, int64(151), msg.VsizeVbytes)
+	assert.Equal(t, int64(151), msg.OldFeeSats)
+	assert.Equal(t, int64(10), msg.SuggestedFeeRate)
+	assert.True(t, msg.CanReplace)
+	assert.True(t, msg.HasChild)
+	assert.Contains(t, msg.Reason, "already spends this one")
+	assert.Nil(t, msg.Plan)
+	require.Len(t, msg.Outputs, 2)
+	assert.Equal(t, int32(1), msg.Outputs[1].Vout)
+	assert.Equal(t, "tb1qchange", msg.Outputs[1].Address)
+	assert.True(t, msg.Outputs[1].IsChange)
+	assert.True(t, msg.Outputs[1].IsMine)
+	assert.Equal(t, int64(294), msg.Outputs[1].DustSats)
+	assert.False(t, msg.Outputs[0].IsMine)
+}
+
+func TestBumpFeeKeepsTheBackendErrorCode(t *testing.T) {
+	h, elecFake, _, elecID, _ := newRoutedHandler(t)
+	elecFake.bumpErr = connect.NewError(connect.CodeFailedPrecondition, errors.New("transaction is confirmed"))
+
+	_, err := h.BumpFee(context.Background(), connect.NewRequest(&pb.BumpFeeRequest{
+		WalletId: elecID, Txid: "abc",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err),
+		"the dialog shows a reason, not an internal error")
 }
