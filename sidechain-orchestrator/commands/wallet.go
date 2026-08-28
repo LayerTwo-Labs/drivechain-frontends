@@ -901,10 +901,12 @@ var walletBumpFeeCommand = &cli.Command{
 	ArgsUsage: "[wallet-id] <txid>",
 	Flags: []cli.Flag{
 		&cli.Int64Flag{Name: "fee-rate", Usage: "new fee rate in sat/vB (0 = automatic)"},
+		&cli.IntFlag{Name: "from-output", Usage: "output that pays the higher fee (default: the change output)", Value: -1},
+		&cli.BoolFlag{Name: "preview", Usage: "report what the bump costs, and broadcast nothing"},
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() == 0 {
-			return fmt.Errorf("usage: drivechain-cli wallet bump-fee [wallet-id] <txid> [--fee-rate N]")
+			return fmt.Errorf("usage: drivechain-cli wallet bump-fee [wallet-id] <txid> [--fee-rate N] [--from-output N] [--preview]")
 		}
 		client := newWalletClient(cctx)
 		var walletID, txid string
@@ -921,17 +923,70 @@ var walletBumpFeeCommand = &cli.Command{
 			txid = cctx.Args().Get(1)
 		}
 
+		var feeFromVout *int32
+		if v := cctx.Int("from-output"); v >= 0 {
+			vout := int32(v)
+			feeFromVout = &vout
+		}
+
+		if cctx.Bool("preview") {
+			resp, err := client.PreviewBumpFee(cctx.Context, connect.NewRequest(&pb.PreviewBumpFeeRequest{
+				WalletId:    walletID,
+				Txid:        txid,
+				NewFeeRate:  cctx.Int64("fee-rate"),
+				FeeFromVout: feeFromVout,
+			}))
+			if err != nil {
+				return err
+			}
+			msg := resp.Msg
+			fmt.Printf("inputs: %d, size: %d vB\n", msg.InputCount, msg.VsizeVbytes)
+			fmt.Printf("fee now: %d sats (%.2f sat/vB), suggested rate: %d sat/vB\n",
+				msg.OldFeeSats, msg.OldFeeRateSatVb, msg.SuggestedFeeRate)
+			for _, out := range msg.Outputs {
+				kind := "payment"
+				if out.IsChange {
+					kind = "change"
+				}
+				fmt.Printf("  output %d: %d sats %s %s\n", out.Vout, out.AmountSats, kind, out.Address)
+			}
+			if msg.Plan == nil {
+				fmt.Printf("no replacement: %s\n", msg.Reason)
+				return nil
+			}
+			printBumpFeePlan(msg.Plan)
+			return nil
+		}
+
 		resp, err := client.BumpFee(cctx.Context, connect.NewRequest(&pb.BumpFeeRequest{
-			WalletId:   walletID,
-			Txid:       txid,
-			NewFeeRate: cctx.Int64("fee-rate"),
+			WalletId:    walletID,
+			Txid:        txid,
+			NewFeeRate:  cctx.Int64("fee-rate"),
+			FeeFromVout: feeFromVout,
 		}))
 		if err != nil {
 			return err
 		}
 		fmt.Printf("replaced txid: %s\n", resp.Msg.NewTxid)
+		printBumpFeePlan(resp.Msg.Plan)
 		return nil
 	},
+}
+
+func printBumpFeePlan(plan *pb.BumpFeePlan) {
+	if plan == nil {
+		return
+	}
+	fmt.Printf("fee: %d -> %d sats (%.2f sat/vB), %d sats more\n",
+		plan.OldFeeSats, plan.NewFeeSats, plan.NewFeeRateSatVb, plan.ExtraFeeSats)
+	if plan.OutputRemoved {
+		fmt.Printf("output %d goes away, its %d sats join the fee\n", plan.FeeFromVout, plan.AmountBeforeSats)
+		return
+	}
+	fmt.Printf("output %d: %d -> %d sats\n", plan.FeeFromVout, plan.AmountBeforeSats, plan.AmountAfterSats)
+	if plan.ReducesPayment {
+		fmt.Println("the recipient of that output gets less")
+	}
 }
 
 var walletDeriveCommand = &cli.Command{

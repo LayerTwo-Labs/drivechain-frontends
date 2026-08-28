@@ -43,6 +43,9 @@ const (
 	// electrumDeepScanEvery forces the full gap again, so a payment to an
 	// address past the refresh lookahead still lands.
 	electrumDeepScanEvery = 5 * time.Minute
+	// electrumBumpFeeTarget is the confirmation target, in blocks, behind the
+	// fee rate a fee bump suggests.
+	electrumBumpFeeTarget = 3
 	// electrumMaxScan caps per-chain derivation so a misbehaving backend
 	// can't drive an unbounded scan.
 	electrumMaxScan = 1000
@@ -652,6 +655,79 @@ func (p *ElectrumBackend) signAndBroadcast(ctx context.Context, walletID string,
 	return txid, nil
 }
 
+// holdsTx reports whether the history already carries that transaction.
+func holdsTx(txs []EsploraTx, txid string) bool {
+	for _, t := range txs {
+		if t.TxID == txid {
+			return true
+		}
+	}
+	return false
+}
+
+// scanHoldsChildOf reports whether the wallet knows a transaction that spends
+// txid. A replacement evicts such a child, so it must outpay that child too.
+func scanHoldsChildOf(scan *electrumScan, txid string) bool {
+	for _, a := range scan.addrs {
+		for _, t := range a.txs {
+			if t.TxID == txid {
+				continue
+			}
+			for _, vin := range t.Vin {
+				if vin.TxID == txid {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// creditScan adds one output the send pays to this wallet into the cached scan,
+// so balance and UTXO reads carry it before the next walk.
+func creditScan(scan *electrumScan, txid string, sentTx EsploraTx, addr scannedAddr, sats int64, vout int) {
+	if vout < 0 {
+		return
+	}
+	utxo := EsploraUTXO{TxID: txid, Vout: vout, Value: sats}
+	if i := indexOfAddr(scan.addrs, addr.address); i >= 0 {
+		a := &scan.addrs[i]
+		a.utxos = append(append([]EsploraUTXO(nil), a.utxos...), utxo)
+		a.stats.MempoolStats.FundedTxoSum += sats
+		a.stats.MempoolStats.FundedTxoCount++
+		if !holdsTx(a.txs, txid) {
+			a.stats.MempoolStats.TxCount++
+			a.txs = append(append([]EsploraTx(nil), a.txs...), sentTx)
+		}
+		return
+	}
+	ca := addr
+	ca.utxos = []EsploraUTXO{utxo}
+	ca.txs = []EsploraTx{sentTx}
+	ca.stats.Address = ca.address
+	ca.stats.MempoolStats.FundedTxoSum += sats
+	ca.stats.MempoolStats.FundedTxoCount++
+	ca.stats.MempoolStats.TxCount++
+	scan.addrs = append(scan.addrs, ca)
+}
+
+// findVout returns the index of the output paying script for sats, or -1.
+func findVout(packet *psbt.Packet, script []byte, sats int64) int {
+	for i, out := range packet.UnsignedTx.TxOut {
+		if bytes.Equal(out.PkScript, script) && out.Value == sats {
+			return i
+		}
+	}
+	return -1
+}
+
+// walletCredit is one output a send pays back to this wallet.
+type walletCredit struct {
+	addr scannedAddr
+	sats int64
+	vout int
+}
+
 // spendEffect captures what a send consumed and produced so the cached scan can
 // be updated in place after broadcast instead of re-walking the wallet: the
 // inputs it spent and the change it created (change is nil when none).
@@ -659,6 +735,19 @@ type spendEffect struct {
 	spent      []electrumUTXO
 	change     *scannedAddr
 	changeSats int64
+	// evicted holds outputs the broadcast kills without spending them: the
+	// outputs of a transaction that a replacement pushes out of the mempool.
+	// They leave the cache, but they are not inputs of the new transaction.
+	evicted []electrumUTXO
+	// credited holds every output the send pays to this wallet, for a send that
+	// pays itself on more than the change branch.
+	credited []walletCredit
+	// replacedTxID is the transaction this one pushes out of the mempool.
+	replacedTxID string
+	// replaces marks a transaction that replaces another one. The cache already
+	// counts its inputs as spent, because the transaction it replaces spent
+	// them, so only the outputs move.
+	replaces bool
 }
 
 // applySpend folds a just-broadcast send into the cached scan with no network
@@ -684,55 +773,60 @@ func (p *ElectrumBackend) applySpend(walletID, txid string, effect *spendEffect,
 	// version from Esplora.
 	sentTx := buildSentTx(txid, effect, packet, net, time.Now().Unix())
 
-	spentOutpoints := make(map[string]bool, len(effect.spent))
-	spentByAddr := make(map[string]int64)
-	for _, u := range effect.spent {
+	dead := map[string]bool{}
+	if effect.replacedTxID != "" {
+		dead[effect.replacedTxID] = true
+	}
+	if len(dead) > 0 {
+		for i := range scan.addrs {
+			a := &scan.addrs[i]
+			a.txs = lo.Filter(a.txs, func(t EsploraTx, _ int) bool { return !dead[t.TxID] })
+		}
+	}
+
+	gone := append(append([]electrumUTXO(nil), effect.spent...), effect.evicted...)
+	spentOutpoints := make(map[string]bool, len(gone))
+	for _, u := range gone {
 		spentOutpoints[fmt.Sprintf("%s:%d", u.txid, u.vout)] = true
+	}
+	// Every address the send touches carries its history row, but a replacement
+	// spends what the transaction it replaces already spent: counting those
+	// inputs again would drop the balance by their whole value.
+	touched := make(map[string]bool, len(gone))
+	for _, u := range gone {
+		touched[u.address] = true
+	}
+	counted := effect.evicted
+	if !effect.replaces {
+		counted = gone
+	}
+	spentByAddr := make(map[string]int64)
+	for _, u := range counted {
 		spentByAddr[u.address] += u.amountSats
 	}
 	for i := range scan.addrs {
 		a := &scan.addrs[i]
-		sats, ok := spentByAddr[a.address]
-		if !ok {
+		if !touched[a.address] {
 			continue
 		}
 		a.utxos = lo.Filter(a.utxos, func(u EsploraUTXO, _ int) bool {
 			return !spentOutpoints[fmt.Sprintf("%s:%d", u.TxID, u.Vout)]
 		})
-		a.stats.MempoolStats.SpentTxoSum += sats
-		a.stats.MempoolStats.SpentTxoCount++
-		a.stats.MempoolStats.TxCount++
-		a.txs = append(append([]EsploraTx(nil), a.txs...), sentTx)
+		if sats, counts := spentByAddr[a.address]; counts {
+			a.stats.MempoolStats.SpentTxoSum += sats
+			a.stats.MempoolStats.SpentTxoCount++
+		}
+		if !holdsTx(a.txs, txid) {
+			a.stats.MempoolStats.TxCount++
+			a.txs = append(append([]EsploraTx(nil), a.txs...), sentTx)
+		}
 	}
 
 	if effect.change != nil {
-		vout := -1
-		for i, out := range packet.UnsignedTx.TxOut {
-			if bytes.Equal(out.PkScript, effect.change.scriptPubKey) {
-				vout = i
-				break
-			}
-		}
-		if vout >= 0 {
-			utxo := EsploraUTXO{TxID: txid, Vout: vout, Value: effect.changeSats}
-			if i := indexOfAddr(scan.addrs, effect.change.address); i >= 0 {
-				a := &scan.addrs[i]
-				a.utxos = append(append([]EsploraUTXO(nil), a.utxos...), utxo)
-				a.stats.MempoolStats.FundedTxoSum += effect.changeSats
-				a.stats.MempoolStats.FundedTxoCount++
-				a.stats.MempoolStats.TxCount++
-				a.txs = append(append([]EsploraTx(nil), a.txs...), sentTx)
-			} else {
-				ca := *effect.change
-				ca.utxos = []EsploraUTXO{utxo}
-				ca.txs = []EsploraTx{sentTx}
-				ca.stats.Address = ca.address
-				ca.stats.MempoolStats.FundedTxoSum += effect.changeSats
-				ca.stats.MempoolStats.FundedTxoCount++
-				ca.stats.MempoolStats.TxCount++
-				scan.addrs = append(scan.addrs, ca)
-			}
-		}
+		creditScan(scan, txid, sentTx, *effect.change, effect.changeSats, findVout(packet, effect.change.scriptPubKey, effect.changeSats))
+	}
+	for _, credit := range effect.credited {
+		creditScan(scan, txid, sentTx, credit.addr, credit.sats, credit.vout)
 	}
 
 	finalizeScan(scan)
@@ -1212,8 +1306,213 @@ func (p *ElectrumBackend) SignTransaction(ctx context.Context, walletID, rawHex 
 	return SignTransactionLocal(rawHex, prevOuts, scan.keys, net)
 }
 
-func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error) {
-	return "", errors.New("fee bumping is not supported for electrum wallets")
+// PreviewBumpFee reports what a replacement of req.TxID costs, and which output
+// pays for it. A transaction it cannot replace comes back with a Reason and no
+// Plan, so the caller can tell the user why.
+func (p *ElectrumBackend) PreviewBumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeePreview, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return nil, err
+	}
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := p.client.Tx(ctx, req.TxID)
+	if err != nil {
+		return nil, err
+	}
+	return p.previewBumpFee(ctx, scan, tx, req)
+}
+
+func (p *ElectrumBackend) previewBumpFee(ctx context.Context, scan *electrumScan, tx EsploraTx, req BumpFeeRequest) (*BumpFeePreview, error) {
+	net := p.params()
+	if tx.Status.Confirmed {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("transaction %s is confirmed", tx.TxID))
+	}
+	if tx.Weight <= 0 {
+		return nil, fmt.Errorf("transaction %s reports no weight", tx.TxID)
+	}
+	vsize := int64(math.Ceil(float64(tx.Weight) / 4))
+
+	outputs := make([]BumpFeeOutput, 0, len(tx.Vout))
+	for i, vout := range tx.Vout {
+		out := BumpFeeOutput{Vout: i, AmountSats: vout.Value, Address: vout.ScriptPubKeyAddress}
+		// A watch-only wallet knows the address but holds no key for it. It can
+		// neither replace the transaction nor spend the output with a child.
+		if sa, owned := scan.byAddr[vout.ScriptPubKeyAddress]; owned && !scan.watchOnly {
+			out.IsMine = true
+			out.IsChange = sa.change
+		}
+		if out.Address != "" {
+			kind := addressKind(out.Address, net)
+			out.DustSats = dustThreshold(kind)
+			out.VsizeBytes = int64(outputVsizeForKind(kind))
+		}
+		outputs = append(outputs, out)
+	}
+
+	suggested := int64(math.Ceil(p.FeeRateForTarget(ctx, electrumBumpFeeTarget)))
+	if floor := minBumpFeeRate(tx.Fee, vsize, len(tx.Vin)); suggested < floor {
+		suggested = floor
+	}
+	preview := &BumpFeePreview{
+		InputCount:    len(tx.Vin),
+		VsizeVBytes:   vsize,
+		OldFeeSats:    tx.Fee,
+		OldFeeRate:    float64(tx.Fee) / float64(vsize),
+		SuggestedRate: suggested,
+		Outputs:       outputs,
+	}
+
+	if scan.watchOnly {
+		preview.Reason = "this wallet holds no key, so it cannot sign a replacement"
+		return preview, nil
+	}
+	if scanHoldsChildOf(scan, tx.TxID) {
+		preview.HasChild = true
+		preview.Reason = "another transaction already spends this one, so it has no replacement"
+		return preview, nil
+	}
+	for _, vin := range tx.Vin {
+		if vin.Prevout == nil || !scan.owns(vin.Prevout.ScriptPubKeyAddress) {
+			preview.Reason = fmt.Sprintf("this wallet signs none of input %s:%d, so it cannot build a replacement", vin.TxID, vin.Vout)
+			return preview, nil
+		}
+	}
+
+	preview.CanReplace = true
+
+	rate := req.NewFeeRate
+	if rate <= 0 {
+		rate = suggested
+	}
+	target, err := pickBumpFeeOutput(outputs, req.FeeFromVout)
+	if err != nil {
+		preview.Reason = err.Error()
+		return preview, nil
+	}
+	plan, err := planBumpFee(bumpFeeTx{
+		OldFeeSats:  tx.Fee,
+		VsizeBytes:  vsize,
+		InputCount:  len(tx.Vin),
+		OutputCount: len(tx.Vout),
+	}, rate, target)
+	if err != nil {
+		preview.Reason = err.Error()
+		return preview, nil
+	}
+	preview.Plan = &plan
+	return preview, nil
+}
+
+// BumpFee replaces req.TxID with a transaction that spends the same inputs and
+// pays the same recipients, but pays a higher fee out of one output. Every
+// signature of the original dies with the changed output, so the replacement is
+// built and signed from the start.
+func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeeResult, error) {
+	if err := p.requireElectrum(walletID); err != nil {
+		return nil, err
+	}
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	if scan.watchOnly {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("watch-only electrum wallet cannot sign or send"))
+	}
+	tx, err := p.client.Tx(ctx, req.TxID)
+	if err != nil {
+		return nil, err
+	}
+	preview, err := p.previewBumpFee(ctx, scan, tx, req)
+	if err != nil {
+		return nil, err
+	}
+	if preview.Plan == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(preview.Reason))
+	}
+	plan := *preview.Plan
+
+	net := p.params()
+	psbtInputs := make([]psbtInput, 0, len(tx.Vin))
+	spent := make([]electrumUTXO, 0, len(tx.Vin))
+	for _, vin := range tx.Vin {
+		sa, ok := scan.byAddr[vin.Prevout.ScriptPubKeyAddress]
+		if !ok {
+			return nil, fmt.Errorf("no derivation info for input address %s", vin.Prevout.ScriptPubKeyAddress)
+		}
+		h, err := chainhash.NewHashFromStr(vin.TxID)
+		if err != nil {
+			return nil, fmt.Errorf("parse input txid %q: %w", vin.TxID, err)
+		}
+		psbtInputs = append(psbtInputs, psbtInput{
+			outpoint: wire.OutPoint{Hash: *h, Index: uint32(vin.Vout)},
+			amount:   vin.Prevout.Value,
+			addr:     sa,
+		})
+		spent = append(spent, electrumUTXO{
+			txid:       vin.TxID,
+			vout:       vin.Vout,
+			address:    sa.address,
+			amountSats: vin.Prevout.Value,
+		})
+	}
+
+	// The replaced transaction dies with its own outputs. The cached scan holds
+	// them as spendable, so they leave the cache with it.
+	var evicted []electrumUTXO
+	for i, vout := range tx.Vout {
+		if !scan.owns(vout.ScriptPubKeyAddress) {
+			continue
+		}
+		evicted = append(evicted, electrumUTXO{
+			txid:       tx.TxID,
+			vout:       i,
+			address:    vout.ScriptPubKeyAddress,
+			amountSats: vout.Value,
+		})
+	}
+
+	effect := &spendEffect{spent: spent, evicted: evicted, replaces: true, replacedTxID: tx.TxID}
+	outputs := make([]TxOutSpec, 0, len(tx.Vout))
+	for i, vout := range tx.Vout {
+		amount := vout.Value
+		if i == plan.FeeFromVout {
+			if plan.OutputRemoved {
+				continue
+			}
+			amount = plan.AmountAfter
+		}
+		spec := TxOutSpec{AmountBTC: float64(amount) / 1e8, AmountSats: amount}
+		if vout.ScriptPubKeyAddress == "" {
+			spec.RawScriptHex = vout.ScriptPubKey
+			outputs = append(outputs, spec)
+			continue
+		}
+		spec.Address = vout.ScriptPubKeyAddress
+		if sa, owned := scan.byAddr[vout.ScriptPubKeyAddress]; owned {
+			spec.Kind = sa.kind
+			spec.Derivations = sa.derivations
+			// Every output this wallet owns goes back into the cache, not only
+			// the change one: a consolidation pays itself on the receive branch.
+			effect.credited = append(effect.credited, walletCredit{addr: sa, sats: amount, vout: len(outputs)})
+		}
+		outputs = append(outputs, spec)
+	}
+
+	packet, err := buildPSBT(psbtInputs, outputs, net, p.prevTxFetcher(ctx))
+	if err != nil {
+		return nil, err
+	}
+	// The replacement keeps the locktime of the transaction it replaces, so an
+	// eCash send keeps its replay stamp.
+	packet.UnsignedTx.LockTime = uint32(tx.Locktime)
+
+	newTxID, err := p.signAndBroadcast(ctx, walletID, packet, psbtInputs, effect, false)
+	if err != nil {
+		return nil, err
+	}
+	return &BumpFeeResult{NewTxID: newTxID, Plan: plan}, nil
 }
 
 // CreateCpfp builds a child transaction that spends an unconfirmed wallet UTXO

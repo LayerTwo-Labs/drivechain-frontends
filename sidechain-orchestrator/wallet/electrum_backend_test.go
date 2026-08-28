@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -2364,4 +2365,519 @@ func TestElectrumRescanWalksTheFullGap(t *testing.T) {
 		total += a.stats.ChainStats.FundedTxoSum
 	}
 	require.Equal(t, int64(100_000), total, "a rescan must reach the far payment")
+}
+
+// bumpFeeFixture wires an unconfirmed wallet transaction that pays a stranger
+// and returns change, so a fee bump has both kinds of output to pick from.
+func bumpFeeFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, string, string) {
+	t.Helper()
+	p, fake, w, addr := newElectrumFixture(t)
+
+	changeAddr, err := p.NextChangeAddress(context.Background(), w.ID)
+	require.NoError(t, err)
+
+	const (
+		txid        = "3333333333333333333333333333333333333333333333333333333333333333"
+		fundingTxid = "1111111111111111111111111111111111111111111111111111111111111111"
+		paymentAddr = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	)
+	tx := EsploraTx{
+		TxID:   txid,
+		Weight: 601, // 151 vB
+		Fee:    151, // 1 sat/vB, deliberately too low
+		Status: EsploraStatus{Confirmed: false},
+		Vin: []EsploraVin{{
+			TxID:    fundingTxid,
+			Vout:    0,
+			Prevout: &EsploraVout{ScriptPubKeyAddress: addr, Value: 200_000},
+		}},
+		Vout: []EsploraVout{
+			{ScriptPubKeyAddress: paymentAddr, Value: 100_000},
+			{ScriptPubKeyAddress: changeAddr, Value: 99_849},
+		},
+	}
+	fake.txByID[txid] = tx
+
+	// The wallet already knows the transaction: the input is spent in the
+	// mempool, and the change waits there as a coin.
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		ChainStats:   EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+		MempoolStats: EsploraTxoStats{SpentTxoCount: 1, SpentTxoSum: 200_000, TxCount: 1},
+	}
+	fake.txs[addr] = []EsploraTx{tx}
+	fake.stats[changeAddr] = EsploraAddressStats{
+		Address:      changeAddr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 1},
+	}
+	fake.utxos[changeAddr] = []EsploraUTXO{{TxID: txid, Vout: 1, Value: 99_849}}
+	fake.txs[changeAddr] = []EsploraTx{tx}
+	return p, fake, w, txid, changeAddr
+}
+
+func TestElectrumBumpFeeTakesItFromChange(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	result, err := p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Equal(t, "broadcasttxid", result.NewTxID)
+	assert.False(t, result.Plan.ReducesPayment)
+	assert.Equal(t, int64(1510), result.Plan.NewFeeSats)
+	assert.Equal(t, int64(1359), result.Plan.ExtraFeeSats)
+	assert.Equal(t, int64(98_490), result.Plan.AmountAfter)
+
+	require.Len(t, fake.broadcast, 1)
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	require.Len(t, tx.TxIn, 1, "the replacement spends the same input")
+	assert.Equal(t, "1111111111111111111111111111111111111111111111111111111111111111", tx.TxIn[0].PreviousOutPoint.Hash.String())
+	require.NotEmpty(t, tx.TxIn[0].Witness, "the replacement carries a new signature")
+	assert.Equal(t, bip125Sequence, tx.TxIn[0].Sequence, "the replacement stays replaceable")
+
+	require.Len(t, tx.TxOut, 2)
+	assert.Equal(t, int64(100_000), tx.TxOut[0].Value, "the payment keeps its amount")
+	assert.Equal(t, int64(98_490), tx.TxOut[1].Value, "the change pays the higher fee")
+}
+
+func TestElectrumBumpFeeRefusesRateBelowMinimum(t *testing.T) {
+	p, _, w, txid, _ := bumpFeeFixture(t)
+
+	preview, err := p.PreviewBumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 1})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.NotEmpty(t, preview.Reason)
+	assert.Equal(t, int64(151), preview.OldFeeSats)
+	assert.Equal(t, int64(151), preview.VsizeVBytes)
+}
+
+func TestElectrumPreviewBumpFeeMarksTheChangeOutput(t *testing.T) {
+	p, _, w, txid, changeAddr := bumpFeeFixture(t)
+
+	preview, err := p.PreviewBumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	require.Len(t, preview.Outputs, 2)
+	assert.False(t, preview.Outputs[0].IsChange)
+	assert.False(t, preview.Outputs[0].IsMine)
+	assert.True(t, preview.Outputs[1].IsChange)
+	assert.True(t, preview.Outputs[1].IsMine)
+	assert.Equal(t, changeAddr, preview.Outputs[1].Address)
+	assert.Positive(t, preview.Outputs[1].DustSats)
+	assert.Equal(t, 1, preview.InputCount)
+	require.NotNil(t, preview.Plan)
+	assert.Equal(t, 1, preview.Plan.FeeFromVout)
+}
+
+func TestElectrumBumpFeeTakesItFromAPayment(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+	vout := 0
+
+	result, err := p.BumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10, FeeFromVout: &vout})
+	require.NoError(t, err)
+	assert.True(t, result.Plan.ReducesPayment)
+	assert.Equal(t, int64(98_641), result.Plan.AmountAfter)
+
+	require.Len(t, fake.broadcast, 1)
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	require.Len(t, tx.TxOut, 2)
+	assert.Equal(t, int64(98_641), tx.TxOut[0].Value, "the recipient pays the higher fee")
+	assert.Equal(t, int64(99_849), tx.TxOut[1].Value, "the change keeps its amount")
+}
+
+func TestElectrumBumpFeeRefusesATransactionWithNoChange(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+	tx := fake.txByID[txid]
+	tx.Vout = tx.Vout[:1] // the payment alone, no change
+	tx.Fee = 100_151
+	fake.txByID[txid] = tx
+
+	preview, err := p.PreviewBumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.Contains(t, preview.Reason, "no change output")
+
+	_, err = p.BumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+func TestElectrumBumpFeeRefusesAConfirmedTransaction(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+	tx := fake.txByID[txid]
+	tx.Status = EsploraStatus{Confirmed: true, BlockHeight: 100}
+	fake.txByID[txid] = tx
+
+	_, err := p.BumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+// A replacement kills the outputs of the transaction it replaces. The cached
+// scan must drop them, or the next send picks an outpoint that no longer
+// exists.
+func TestElectrumBumpFeeDropsTheReplacedChange(t *testing.T) {
+	p, fake, w, txid, changeAddr := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	fake.stats[changeAddr] = EsploraAddressStats{
+		Address:      changeAddr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 1},
+	}
+	fake.utxos[changeAddr] = []EsploraUTXO{{
+		TxID: txid, Vout: 1, Value: 99_849,
+		Status: EsploraStatus{Confirmed: false},
+	}}
+	p.mu.Lock()
+	delete(p.warmScan, w.ID)
+	p.mu.Unlock()
+
+	before, err := p.ListUnspent(ctx, w.ID)
+	require.NoError(t, err)
+	require.True(t, holdsOutpoint(before, txid, 1), "the wallet starts with the original change")
+
+	_, err = p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+
+	after, err := p.ListUnspent(ctx, w.ID)
+	require.NoError(t, err)
+	assert.False(t, holdsOutpoint(after, txid, 1), "the replaced change stays spendable")
+
+	// The replaced change leaves the cache, but it is no input of the
+	// replacement. A history row that counts it reports a fee nobody paid.
+	rows, err := p.ListTransactions(ctx, w.ID, 20)
+	require.NoError(t, err)
+	var found bool
+	for _, row := range rows {
+		if row.TxID != "broadcasttxid" {
+			continue
+		}
+		found = true
+		assert.InDelta(t, -0.0000151, row.Fee, 1e-9, "the replacement reports the fee it pays")
+	}
+	require.True(t, found, "the replacement shows in the history")
+}
+
+func holdsOutpoint(utxos []UTXO, txid string, vout int) bool {
+	for _, u := range utxos {
+		if u.TxID == txid && u.Vout == vout {
+			return true
+		}
+	}
+	return false
+}
+
+// A wallet that signs none of the inputs cannot replace the transaction. The
+// preview says so, so the dialog can offer CPFP instead of an error.
+func TestElectrumPreviewBumpFeeReportsForeignInputs(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+	tx := fake.txByID[txid]
+	tx.Vin[0].Prevout = &EsploraVout{ScriptPubKeyAddress: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", Value: 200_000}
+	fake.txByID[txid] = tx
+
+	preview, err := p.PreviewBumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.Contains(t, preview.Reason, "signs none of input")
+	assert.True(t, preview.Outputs[1].IsMine, "the wallet still owns its own output, so CPFP stays open")
+}
+
+// A consolidation pays itself on the receive branch, not the change branch. The
+// cache must carry that output after a bump, or the balance loses the coin
+// until the next walk.
+func TestElectrumBumpFeeKeepsAReceiveBranchOutput(t *testing.T) {
+	p, fake, w, txid, changeAddr := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	tx := fake.txByID[txid]
+	receiveAddr := tx.Vin[0].Prevout.ScriptPubKeyAddress
+	tx.Vout[0].ScriptPubKeyAddress = receiveAddr
+	fake.txByID[txid] = tx
+
+	fake.stats[changeAddr] = EsploraAddressStats{
+		Address:      changeAddr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 1},
+	}
+	fake.utxos[changeAddr] = []EsploraUTXO{{TxID: txid, Vout: 1, Value: 99_849}}
+	fake.utxos[receiveAddr] = []EsploraUTXO{{TxID: txid, Vout: 0, Value: 100_000}}
+	p.mu.Lock()
+	delete(p.warmScan, w.ID)
+	p.mu.Unlock()
+
+	_, err := p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+
+	after, err := p.ListUnspent(ctx, w.ID)
+	require.NoError(t, err)
+	values := map[int64]bool{}
+	for _, u := range after {
+		if u.TxID == "broadcasttxid" {
+			values[int64(math.Round(u.Amount*1e8))] = true
+		}
+	}
+	assert.True(t, values[100_000], "the receive-branch output leaves the cache")
+	assert.Len(t, after, 2, "the cache holds one coin per output of the replacement")
+	assert.True(t, values[98_490], "the change output leaves the cache")
+	assert.False(t, holdsOutpoint(after, txid, 0), "the replaced receive output stays spendable")
+	assert.False(t, holdsOutpoint(after, txid, 1), "the replaced change stays spendable")
+}
+
+// The replacement pushes the original out of the mempool. A history that keeps
+// both offers a fee bump for a transaction that no longer exists.
+func TestElectrumBumpFeeDropsTheReplacedHistoryRow(t *testing.T) {
+	p, fake, w, txid, changeAddr := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	fake.stats[changeAddr] = EsploraAddressStats{
+		Address:      changeAddr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 1},
+	}
+	fake.utxos[changeAddr] = []EsploraUTXO{{TxID: txid, Vout: 1, Value: 99_849}}
+	fake.txs[changeAddr] = []EsploraTx{fake.txByID[txid]}
+	p.mu.Lock()
+	delete(p.warmScan, w.ID)
+	p.mu.Unlock()
+
+	_, err := p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+
+	rows, err := p.ListTransactions(ctx, w.ID, 20)
+	require.NoError(t, err)
+	for _, row := range rows {
+		assert.NotEqual(t, txid, row.TxID, "the replaced transaction stays in the history")
+	}
+}
+
+// A replacement spends what the transaction it replaces already spent. The
+// balance may fall by the higher fee, and by nothing more.
+func TestElectrumBumpFeeMovesTheBalanceByTheFeeOnly(t *testing.T) {
+	p, fake, w, txid, changeAddr := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	inputAddr := fake.txByID[txid].Vin[0].Prevout.ScriptPubKeyAddress
+	fake.stats[inputAddr] = EsploraAddressStats{
+		Address:      inputAddr,
+		ChainStats:   EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+		MempoolStats: EsploraTxoStats{SpentTxoCount: 1, SpentTxoSum: 200_000, TxCount: 1},
+	}
+	fake.stats[changeAddr] = EsploraAddressStats{
+		Address:      changeAddr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 1},
+	}
+	fake.utxos[changeAddr] = []EsploraUTXO{{TxID: txid, Vout: 1, Value: 99_849}}
+	p.mu.Lock()
+	delete(p.warmScan, w.ID)
+	p.mu.Unlock()
+
+	confirmedBefore, pendingBefore, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+
+	_, err = p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+
+	confirmedAfter, pendingAfter, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+
+	before := confirmedBefore + pendingBefore
+	after := confirmedAfter + pendingAfter
+	assert.InDelta(t, 0.00001359, before-after, 1e-9,
+		"the balance falls by the higher fee alone (%v -> %v)", before, after)
+}
+
+// A watch-only wallet knows its addresses but holds no key. It can neither sign
+// a replacement nor spend an output with a child, so the preview says so before
+// the dialog offers either.
+func TestElectrumPreviewBumpFeeRefusesAWatchOnlyWallet(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	seedWallet, err := svc.CreateElectrumWallet("Seed", nil, nil, testMnemonic, "", "", "", 0, "")
+	require.NoError(t, err)
+	xpub := accountXpub(t, seedWallet.Master.SeedHex, &chaincfg.SigNetParams)
+	woWallet, err := svc.CreateElectrumWallet("Watch", nil, nil, "", "", xpub, "", 0, "")
+	require.NoError(t, err)
+
+	seedAddrs, err := DeriveBIP84Addresses(seedWallet.Master.SeedHex, &chaincfg.SigNetParams, 0, 1)
+	require.NoError(t, err)
+	addr := seedAddrs[0]
+
+	fake := newFakeEsplora()
+	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	const txid = "6666666666666666666666666666666666666666666666666666666666666666"
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 1},
+	}
+	fake.txByID[txid] = EsploraTx{
+		TxID:   txid,
+		Weight: 600,
+		Fee:    150,
+		Status: EsploraStatus{Confirmed: false},
+		Vin: []EsploraVin{{
+			TxID:    "1111111111111111111111111111111111111111111111111111111111111111",
+			Vout:    0,
+			Prevout: &EsploraVout{ScriptPubKeyAddress: addr, Value: 200_000},
+		}},
+		Vout: []EsploraVout{
+			{ScriptPubKeyAddress: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", Value: 100_000},
+			{ScriptPubKeyAddress: addr, Value: 99_850},
+		},
+	}
+
+	preview, err := p.PreviewBumpFee(ctx, woWallet.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.Contains(t, preview.Reason, "holds no key")
+	for _, out := range preview.Outputs {
+		assert.False(t, out.IsMine, "a watched output offers no child transaction either")
+	}
+
+	_, err = p.BumpFee(ctx, woWallet.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.Error(t, err)
+}
+
+// A replacement evicts every child of the transaction it replaces, so it must
+// outpay them too. The wallet refuses the bump and points at CPFP instead.
+func TestElectrumPreviewBumpFeeRefusesAParentWithAChild(t *testing.T) {
+	p, fake, w, txid, changeAddr := bumpFeeFixture(t)
+
+	const childTxid = "9999999999999999999999999999999999999999999999999999999999999999"
+	fake.stats[changeAddr] = EsploraAddressStats{
+		Address:      changeAddr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 99_849, TxCount: 2},
+	}
+	fake.txs[changeAddr] = []EsploraTx{
+		fake.txByID[txid],
+		{TxID: childTxid, Vin: []EsploraVin{{TxID: txid, Vout: 1}}, Fee: 2_200},
+	}
+	p.mu.Lock()
+	delete(p.warmScan, w.ID)
+	p.mu.Unlock()
+
+	preview, err := p.PreviewBumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	assert.Nil(t, preview.Plan)
+	assert.False(t, preview.CanReplace)
+	assert.True(t, preview.HasChild, "a child transaction cannot speed this one up either")
+	assert.Contains(t, preview.Reason, "already spends this one")
+}
+
+// A replacement drops the transaction it replaces from the history, even when
+// the wallet owns none of its outputs.
+func TestElectrumBumpFeeDropsAReplacedSendWithNoChange(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	inputAddr := fake.txByID[txid].Vin[0].Prevout.ScriptPubKeyAddress
+	tx := fake.txByID[txid]
+	tx.Vout = []EsploraVout{{ScriptPubKeyAddress: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", Value: 199_849}}
+	fake.txByID[txid] = tx
+	fake.txs[inputAddr] = []EsploraTx{tx}
+	p.mu.Lock()
+	delete(p.warmScan, w.ID)
+	p.mu.Unlock()
+
+	vout := 0
+	_, err := p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10, FeeFromVout: &vout})
+	require.NoError(t, err)
+
+	rows, err := p.ListTransactions(ctx, w.ID, 20)
+	require.NoError(t, err)
+	var replacement bool
+	for _, row := range rows {
+		assert.NotEqual(t, txid, row.TxID, "the replaced transaction stays in the history")
+		if row.TxID == "broadcasttxid" {
+			replacement = true
+		}
+	}
+	assert.True(t, replacement, "the replacement takes its place in the history")
+}
+
+// A change output that falls under the dust limit goes away, and its remainder
+// joins the fee. The broadcast transaction must carry one output less.
+func TestElectrumBumpFeeDropsADustChangeOutput(t *testing.T) {
+	p, fake, w, txid, changeAddr := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	tx := fake.txByID[txid]
+	tx.Vout[1].Value = 1_500 // a change output the higher fee nearly consumes
+	fake.txByID[txid] = tx
+	fake.stats[changeAddr] = EsploraAddressStats{
+		Address:      changeAddr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 1_500, TxCount: 1},
+	}
+	fake.utxos[changeAddr] = []EsploraUTXO{{TxID: txid, Vout: 1, Value: 1_500}}
+	p.mu.Lock()
+	delete(p.warmScan, w.ID)
+	p.mu.Unlock()
+
+	result, err := p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	require.True(t, result.Plan.OutputRemoved, "the plan keeps a change output under the dust limit")
+	assert.Equal(t, int64(0), result.Plan.AmountAfter)
+	assert.Equal(t, int64(1_651), result.Plan.NewFeeSats, "the whole change joins the fee")
+	// The replacement drops a 31 vB output, so it pays over fewer bytes than the
+	// transaction it replaces.
+	assert.InDelta(t, float64(1_651)/float64(151-31), result.Plan.NewFeeRate, 0.01,
+		"the rate follows the size the replacement really carries")
+
+	require.Len(t, fake.broadcast, 1)
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var built wire.MsgTx
+	require.NoError(t, built.Deserialize(bytes.NewReader(raw)))
+	require.Len(t, built.TxOut, 1, "the replacement drops the dust change output")
+	assert.Equal(t, int64(100_000), built.TxOut[0].Value, "the payment keeps its amount")
+
+	after, err := p.ListUnspent(ctx, w.ID)
+	require.NoError(t, err)
+	assert.Empty(t, after, "the dust change leaves the wallet no coin")
+}
+
+// The replacement keeps the locktime of the transaction it replaces, so an
+// eCash send keeps its replay stamp.
+func TestElectrumBumpFeeKeepsTheLockTime(t *testing.T) {
+	p, fake, w, txid, _ := bumpFeeFixture(t)
+
+	tx := fake.txByID[txid]
+	tx.Locktime = 499_999_999
+	fake.txByID[txid] = tx
+
+	_, err := p.BumpFee(context.Background(), w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var built wire.MsgTx
+	require.NoError(t, built.Deserialize(bytes.NewReader(raw)))
+	assert.Equal(t, uint32(499_999_999), built.LockTime)
+}
+
+// One transaction leaves one history row per address. The scan cache holds a
+// unique index on (address, txid), and a second row rolls the whole write back.
+func TestElectrumBumpFeeWritesOneHistoryRowPerAddress(t *testing.T) {
+	p, _, w, txid, _ := bumpFeeFixture(t)
+	ctx := context.Background()
+
+	_, err := p.BumpFee(ctx, w.ID, BumpFeeRequest{TxID: txid, NewFeeRate: 10})
+	require.NoError(t, err)
+
+	p.mu.Lock()
+	scan := p.warmScan[w.ID]
+	p.mu.Unlock()
+	require.NotNil(t, scan)
+	for _, a := range scan.addrs {
+		seen := map[string]int{}
+		for _, tx := range a.txs {
+			seen[tx.TxID]++
+		}
+		for id, count := range seen {
+			assert.Equal(t, 1, count, "address %s carries %s twice", a.address, id)
+		}
+	}
 }

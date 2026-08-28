@@ -47,7 +47,8 @@ type Backend interface {
 	// signing, and broadcast however the backend does it.
 	Send(ctx context.Context, walletID string, req SendRequest) (string, error)
 	SignTransaction(ctx context.Context, walletID, rawHex string) (*SignRawTransactionResult, error)
-	BumpFee(ctx context.Context, walletID, txid string, newFeeRate int64) (string, error)
+	BumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeeResult, error)
+	PreviewBumpFee(ctx context.Context, walletID string, req BumpFeeRequest) (*BumpFeePreview, error)
 	// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
 	// fee lifts the parent+child package to req.TargetRate, then broadcasts it and
 	// returns the child txid.
