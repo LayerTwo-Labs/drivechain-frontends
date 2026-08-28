@@ -14,6 +14,7 @@ import 'test_utils.dart';
 
 const _address = 'bcrt1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq';
 const _cardTitle = 'Receive Bitcoin on L1';
+const _derivationPath = "m/84'/1'/0'/0/0";
 
 class _FakeBitwindow extends ChangeNotifier implements BitwindowRPC {
   @override
@@ -46,7 +47,7 @@ class _FakeTransactions extends ChangeNotifier implements TransactionProvider {
   String address = _address;
 
   @override
-  String addressDerivationPath = "m/84'/1'/0'/0/0";
+  String addressDerivationPath = _derivationPath;
 
   @override
   final List<wmpb.AddressType> addressTypes;
@@ -172,8 +173,22 @@ void main() {
   testWidgets('the derivation path sits beside the copy button', (tester) async {
     await _pumpReceiveTab(tester);
 
-    final path = find.descendant(of: _addressCard(), matching: find.text("m/84'/1'/0'/0/0"));
+    final path = find.descendant(of: _addressCard(), matching: find.text(_derivationPath));
     expect(path, findsOneWidget);
     expect(tester.getTopLeft(path).dx, lessThan(tester.getTopLeft(_qr()).dx));
+  });
+
+  testWidgets('the derivation path drops below the field at the narrow window minimum', (tester) async {
+    await _pumpReceiveTab(tester);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(400, 900));
+    await tester.pump();
+    await tester.pump();
+
+    final path = find.descendant(of: _addressCard(), matching: find.text(_derivationPath));
+    expect(path, findsOneWidget);
+    expect(tester.getTopLeft(path).dy, greaterThan(tester.getBottomLeft(_addressField()).dy));
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(_addressField()).width, greaterThan(200));
   });
 }
