@@ -485,11 +485,10 @@ type EsploraOutspend struct {
 	Status EsploraStatus `json:"status"`
 }
 
-// Outspend reports the spend status of one output. found is false only when
-// every configured server answers 404 — one server's 404 is not authoritative
+// getAcrossRoots asks each configured server in turn for path. found is false
+// only when every server answers 404 — one server's 404 is not authoritative
 // (a provider with a broken index serves 404 for everything).
-func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (EsploraOutspend, bool, error) {
-	path := "/tx/" + txid + "/outspend/" + strconv.Itoa(vout)
+func (c *EsploraClient) getAcrossRoots(ctx context.Context, path string) ([]byte, bool, error) {
 	roots := c.BaseURLs()
 	notFound := 0
 	var lastErr error
@@ -506,19 +505,39 @@ func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (Es
 			lastErr = err
 			continue
 		}
-		var o EsploraOutspend
-		if err := json.Unmarshal(body, &o); err != nil {
-			return EsploraOutspend{}, false, fmt.Errorf("decode %s: %w", path, err)
-		}
-		return o, true, nil
+		return body, true, nil
 	}
 	if notFound == len(roots) && notFound > 0 {
-		return EsploraOutspend{}, false, nil
+		return nil, false, nil
 	}
 	if lastErr == nil {
 		lastErr = fmt.Errorf("no server configured")
 	}
-	return EsploraOutspend{}, false, fmt.Errorf("outspend %s: %w", path, lastErr)
+	return nil, false, fmt.Errorf("get %s: %w", path, lastErr)
+}
+
+// Outspend reports the spend status of one output. found is false only when
+// every configured server answers 404.
+//
+// A "not spent" answer is not proof the output exists: a server that never saw
+// the transaction answers the same way. Pair it with TxKnown.
+func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (EsploraOutspend, bool, error) {
+	path := "/tx/" + txid + "/outspend/" + strconv.Itoa(vout)
+	body, found, err := c.getAcrossRoots(ctx, path)
+	if err != nil || !found {
+		return EsploraOutspend{}, false, err
+	}
+	var o EsploraOutspend
+	if err := json.Unmarshal(body, &o); err != nil {
+		return EsploraOutspend{}, false, fmt.Errorf("decode %s: %w", path, err)
+	}
+	return o, true, nil
+}
+
+// TxKnown reports whether the servers hold this transaction at all.
+func (c *EsploraClient) TxKnown(ctx context.Context, txid string) (bool, error) {
+	_, found, err := c.getAcrossRoots(ctx, "/tx/"+txid+"/status")
+	return found, err
 }
 
 // TxHex returns the raw transaction hex.
