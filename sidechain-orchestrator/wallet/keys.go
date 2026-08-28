@@ -19,7 +19,10 @@ import (
 // match the network. go-bip32 hardcodes mainnet xprv version bytes; for any
 // other chain Core rejects the serialized key, so we strip + replace + re-sum.
 func serializeKeyForNetwork(key *bip32.Key, network *chaincfg.Params) string {
-	if network == nil || network.HDPrivateKeyID == chaincfg.MainNetParams.HDPrivateKeyID {
+	if network == nil {
+		panic("serializeKeyForNetwork: no network; a key's version bytes name its chain")
+	}
+	if network.HDPrivateKeyID == chaincfg.MainNetParams.HDPrivateKeyID {
 		return key.String()
 	}
 

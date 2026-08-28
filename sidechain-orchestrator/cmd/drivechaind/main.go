@@ -347,17 +347,20 @@ func run(cctx *cli.Context) error {
 		}
 		return network
 	}
+	// Every key path, address and hardware request takes its coin from these
+	// params. A guess reaches a device as the wrong coin, so an unknown network
+	// stops the daemon here rather than deeper, one wrong answer at a time.
+	if _, perr := bip47send.NetworkParams(currentNetwork()); perr != nil {
+		return fmt.Errorf("unknown network %q: %w", currentNetwork(), perr)
+	}
 	netParams := wallet.ParamsFunc(func() *chaincfg.Params {
 		params, err := bip47send.NetworkParams(currentNetwork())
 		if err != nil {
-			return nil
+			panic(fmt.Sprintf("network %q became unknown after startup: %v", currentNetwork(), err))
 		}
 		return params
 	})
 	orch.NetParams = netParams
-	if _, perr := bip47send.NetworkParams(currentNetwork()); perr != nil {
-		log.Warn().Err(perr).Str("network", currentNetwork()).Msg("unrecognised network; BIP47 features will be disabled")
-	}
 
 	// Chain wallet provider — CoreBackend today; electrum/btcd providers
 	// slot in behind the same wallet.Backend interface.

@@ -2078,7 +2078,10 @@ func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
 	// mainnet reads their coin type as 1 and skips the companion they need.
 	net, err := bip47send.NetworkParams(s.network)
 	if err != nil {
-		net = &chaincfg.TestNet3Params
+		// Testnet params here read the coin type as 1, which is the answer this
+		// function exists to avoid. The daemon refuses an unknown network at
+		// startup, so this cannot happen.
+		panic(fmt.Sprintf("unknown network %q: %v", s.network, err))
 	}
 	ap, err := accountPathFor(w, walletReceiveKind(w), net)
 	if err != nil {
