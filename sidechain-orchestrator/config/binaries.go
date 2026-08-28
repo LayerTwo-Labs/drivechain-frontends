@@ -64,7 +64,7 @@ type BinaryDirConfig struct {
 // AppDir returns the platform base directory for this binary.
 // Dart: Binary.appdir() (L1495-1514)
 func (b BinaryDirConfig) AppDir() string {
-	home, _ := os.UserHomeDir()
+	home := HomeDir()
 
 	switch currentOSName() {
 	case osLinux:
@@ -154,7 +154,7 @@ func (b BinaryDirConfig) RootDir() string {
 // FlutterFrontendPath returns the Flutter app's getApplicationSupportDirectory() path.
 // Dart: flutterFrontendDir() (L1306-1353)
 func (b BinaryDirConfig) FlutterFrontendPath() string {
-	home, _ := os.UserHomeDir()
+	home := HomeDir()
 	subdir := b.FlutterFrontendDir[currentOSName()]
 	if subdir == "" {
 		return ""

@@ -153,6 +153,8 @@ port=%d
 	orchCmd := exec.Command(orchBin,
 		"--datadir", bitwindowDir,
 		"--bitwindow-dir", bitwindowDir,
+		// Keeps every binary path this node resolves inside its own temp tree.
+		"--app-home", nodeDir,
 		"--network", "regtest",
 		"--rpclisten", fmt.Sprintf("127.0.0.1:%d", grpcPort),
 		"--loglevel", "info",
