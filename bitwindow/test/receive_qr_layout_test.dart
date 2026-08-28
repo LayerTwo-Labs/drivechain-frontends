@@ -149,7 +149,7 @@ void main() {
     expect(tester.getTopLeft(_qr()).dx, greaterThanOrEqualTo(tester.getTopRight(_addressField()).dx));
   });
 
-  testWidgets('the address type dropdown sits in the card header', (tester) async {
+  testWidgets('the address type dropdown sits above the address field', (tester) async {
     await _pumpReceiveTab(
       tester,
       addressTypes: const [wmpb.AddressType.ADDRESS_TYPE_SEGWIT, wmpb.AddressType.ADDRESS_TYPE_TAPROOT],

@@ -45,9 +45,14 @@ class ReceiveTab extends StatelessWidget {
                         child: SailCard(
                           title: 'Receive Bitcoin on L1',
                           error: model.modelError,
-                          // A wallet that derives one kind has nothing to choose.
-                          widgetHeaderEnd: model.addressTypes.length > 1
-                              ? SailDropdownButton<wmpb.AddressType>(
+                          child: SailColumn(
+                            spacing: SailStyleValues.padding16,
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // A wallet that derives one kind has nothing to choose.
+                              if (model.addressTypes.length > 1)
+                                SailDropdownButton<wmpb.AddressType>(
                                   value: model.addressType,
                                   onChanged: (type) {
                                     if (type != null) {
@@ -62,13 +67,7 @@ class ReceiveTab extends StatelessWidget {
                                         ),
                                       )
                                       .toList(),
-                                )
-                              : null,
-                          child: SailColumn(
-                            spacing: SailStyleValues.padding16,
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                                ),
                               SailRow(
                                 spacing: SailStyleValues.padding08,
                                 crossAxisAlignment: CrossAxisAlignment.start,
