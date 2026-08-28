@@ -559,6 +559,42 @@ func TestFinalizeRejectsForeignRedeemScript(t *testing.T) {
 	_, err = finalizeAndExtract(packet)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "redeem script does not match the output it spends")
+// A cosigner pasted as a bare xpub has no origin, and a made-up path fails a
+// hardware signer: it checks every path in the packet before it signs any of
+// them. A master account key is the one case where [chain, index] is true.
+func TestDerivationsSkipUnknownOrigin(t *testing.T) {
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	net := &chaincfg.SigNetParams
+
+	master, err := hdkeychain.NewMaster(mustHex(t, seedHex), net)
+	require.NoError(t, err)
+	masterPub, err := master.Neuter()
+	require.NoError(t, err)
+
+	deepStr, err := DeriveAccountXpub(seedHex, "m/48h/1h/0h/2h", net)
+	require.NoError(t, err)
+	deep, err := hdkeychain.NewKeyFromString(deepStr)
+	require.NoError(t, err)
+
+	d := &Descriptor{Kind: ScriptMultisig, Threshold: 2, Keys: []DescriptorKey{
+		{Origin: "abcd1234/48h/1h/0h/2h", Account: deep},
+		{Origin: "", Account: deep},
+		{Origin: "", Account: masterPub},
+	}}
+
+	derivs, err := d.derivations(false, 0)
+	require.NoError(t, err)
+	require.Len(t, derivs, 2, "the origin-less deep key gets no record")
+	require.Equal(t, []uint32{hdkeychain.HardenedKeyStart + 48, hdkeychain.HardenedKeyStart + 1,
+		hdkeychain.HardenedKeyStart, hdkeychain.HardenedKeyStart + 2, 0, 0}, derivs[0].path)
+	require.Equal(t, []uint32{0, 0}, derivs[1].path, "a master key's path is true")
+}
+
+func mustHex(t *testing.T, s string) []byte {
+	t.Helper()
+	b, err := hex.DecodeString(s)
+	require.NoError(t, err)
+	return b
 }
 
 // taprootMultisigPacket builds a 2-of-3 tr(sortedmulti_a) spend signed by two keys.
