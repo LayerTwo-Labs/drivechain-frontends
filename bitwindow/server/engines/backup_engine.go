@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 	"github.com/rs/zerolog"
 )
 
@@ -189,8 +190,8 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	}
 
 	// Restore wallet.json
-	walletPath := filepath.Join(e.walletDir, "wallet.json")
-	if err := os.WriteFile(walletPath, walletJSON, 0600); err != nil {
+	walletPath := filepath.Join(e.walletDir, walletfile.Name)
+	if err := walletfile.Write(walletPath, walletJSON, walletfile.Options{}); err != nil {
 		return fmt.Errorf("write wallet.json: %w", err)
 	}
 	log.Info().Msg("restore: wrote wallet.json")

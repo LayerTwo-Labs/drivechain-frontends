@@ -246,7 +246,7 @@ func (s *Service) restoreWalletBackup(backupID, password string, progress Restor
 	}
 
 	if err := runStep(restoreStepRestoreFiles, func() error {
-		if err := copyExistingFile(walletSrc, s.walletFilePath()); err != nil {
+		if err := s.restoreWalletFileLocked(walletSrc); err != nil {
 			return fmt.Errorf("restore wallet.json: %w", err)
 		}
 		if fileExists(encryptionSrc) {
