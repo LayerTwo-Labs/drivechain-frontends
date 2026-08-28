@@ -2,12 +2,15 @@ package wallet
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
 
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -306,6 +309,9 @@ func prevOutForInput(packet *psbt.Packet, i int) *wire.TxOut {
 
 // finalizeAndExtract finalizes a fully-signed PSBT and returns the raw tx hex.
 func finalizeAndExtract(packet *psbt.Packet) (string, error) {
+	if err := verifySignatures(packet); err != nil {
+		return "", err
+	}
 	// tr(sortedmulti_a) inputs are finalized by assembling the tapscript witness
 	// ourselves; the generic finalizer then sees them as already final.
 	for i := range packet.Inputs {
@@ -327,6 +333,382 @@ func finalizeAndExtract(packet *psbt.Packet) (string, error) {
 		return "", fmt.Errorf("serialize final tx: %w", err)
 	}
 	return hex.EncodeToString(buf.Bytes()), nil
+}
+
+// verifySignatures checks every signature against the sighash it must cover. A
+// signer that covers the wrong transaction, script, or amount still returns a
+// well-formed signature, and the network then rejects the spend for a failed
+// script check. Catch it here and name the key that produced it.
+func verifySignatures(packet *psbt.Packet) error {
+	tx := packet.UnsignedTx
+	prevOuts := make(map[wire.OutPoint]*wire.TxOut, len(packet.Inputs))
+	for i := range packet.Inputs {
+		out, err := authenticatedPrevOut(packet, i)
+		if err != nil {
+			return fmt.Errorf("psbt input %d %w", i, err)
+		}
+		if out == nil {
+			return fmt.Errorf("psbt input %d missing prevout", i)
+		}
+		prevOuts[tx.TxIn[i].PreviousOutPoint] = out
+	}
+	fetcher := txscript.NewMultiPrevOutFetcher(prevOuts)
+	sigHashes := txscript.NewTxSigHashes(tx, fetcher)
+	for i := range packet.Inputs {
+		in := &packet.Inputs[i]
+		prevOut := prevOuts[tx.TxIn[i].PreviousOutPoint]
+		if in.FinalScriptSig != nil || in.FinalScriptWitness != nil {
+			if err := verifyFinalInput(tx, fetcher, i, in, prevOut); err != nil {
+				return fmt.Errorf("psbt input %d: %w", i, err)
+			}
+			continue
+		}
+		for _, ps := range in.PartialSigs {
+			if err := verifyPartialSig(tx, sigHashes, i, in, prevOut, ps); err != nil {
+				return fmt.Errorf("psbt input %d: %w", i, err)
+			}
+		}
+		if err := verifyTaprootSigs(tx, sigHashes, fetcher, i, in, prevOut); err != nil {
+			return fmt.Errorf("psbt input %d: %w", i, err)
+		}
+	}
+	return nil
+}
+
+// verifyFinalInput runs script verification over an input that already carries a
+// final scriptSig or witness, so a cosigner that finalized for another
+// transaction cannot reach the network. A prevout the standard rules do not
+// describe — a BIP300 treasury output — is left to the chain.
+func verifyFinalInput(
+	tx *wire.MsgTx,
+	fetcher txscript.PrevOutputFetcher,
+	i int,
+	in *psbt.PInput,
+	prevOut *wire.TxOut,
+) error {
+	if !standardPrevOut(prevOut.PkScript) {
+		return nil
+	}
+	final := tx.Copy()
+	final.TxIn[i].SignatureScript = in.FinalScriptSig
+	if len(in.FinalScriptWitness) > 0 {
+		witness, err := readWitnessStack(in.FinalScriptWitness)
+		if err != nil {
+			return err
+		}
+		final.TxIn[i].Witness = witness
+	}
+	vm, err := txscript.NewEngine(
+		prevOut.PkScript, final, i, txscript.StandardVerifyFlags, nil,
+		txscript.NewTxSigHashes(final, fetcher), prevOut.Value, fetcher,
+	)
+	if err != nil {
+		return fmt.Errorf("the final script is not spendable: %w", err)
+	}
+	if err := vm.Execute(); err != nil {
+		return fmt.Errorf("the final script does not spend this output: %w", err)
+	}
+	return nil
+}
+
+func standardPrevOut(pkScript []byte) bool {
+	switch txscript.GetScriptClass(pkScript) {
+	case txscript.PubKeyTy, txscript.PubKeyHashTy, txscript.MultiSigTy, txscript.ScriptHashTy,
+		txscript.WitnessV0PubKeyHashTy, txscript.WitnessV0ScriptHashTy, txscript.WitnessV1TaprootTy:
+		return true
+	}
+	return false
+}
+
+// maxWitnessItems caps a witness stack read from an imported PSBT.
+const maxWitnessItems = 1000
+
+func readWitnessStack(raw []byte) (wire.TxWitness, error) {
+	r := bytes.NewReader(raw)
+	count, err := wire.ReadVarInt(r, 0)
+	if err != nil {
+		return nil, fmt.Errorf("read witness count: %w", err)
+	}
+	if count > maxWitnessItems {
+		return nil, fmt.Errorf("the witness holds %d items", count)
+	}
+	stack := make(wire.TxWitness, count)
+	for j := range stack {
+		item, err := wire.ReadVarBytes(r, 0, txscript.MaxScriptSize, "witness item")
+		if err != nil {
+			return nil, fmt.Errorf("read witness item %d: %w", j, err)
+		}
+		stack[j] = item
+	}
+	return stack, nil
+}
+
+// verifyTaprootSigs checks a taproot input's schnorr signatures, key-path and
+// script-path alike, and binds every revealed leaf to the output it spends.
+func verifyTaprootSigs(
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	fetcher txscript.PrevOutputFetcher,
+	i int,
+	in *psbt.PInput,
+	prevOut *wire.TxOut,
+) error {
+	if len(in.TaprootKeySpendSig) == 0 && len(in.TaprootScriptSpendSig) == 0 {
+		return nil
+	}
+	if !txscript.IsPayToTaproot(prevOut.PkScript) {
+		return errors.New("the input carries a taproot signature but spends no taproot output")
+	}
+	outputKey := prevOut.PkScript[2:34]
+	if err := verifyTaprootLeaves(in, outputKey); err != nil {
+		return err
+	}
+	if len(in.TaprootKeySpendSig) > 0 {
+		pub, err := schnorr.ParsePubKey(outputKey)
+		if err != nil {
+			return fmt.Errorf("the output key is not a public key: %w", err)
+		}
+		sig, hashType, err := splitSchnorrSig(in.TaprootKeySpendSig)
+		if err != nil {
+			return err
+		}
+		// The finalizer appends the input's sighash type to a bare 64-byte
+		// signature, so the two must agree or the witness commits to another
+		// hash than the signer covered.
+		if len(in.TaprootKeySpendSig) == schnorr.SignatureSize && in.SighashType != txscript.SigHashDefault {
+			return errors.New("the key-spend signature and the input sighash type disagree")
+		}
+		hash, err := txscript.CalcTaprootSignatureHash(sigHashes, hashType, tx, i, fetcher)
+		if err != nil {
+			return err
+		}
+		if !sig.Verify(hash, pub) {
+			return fmt.Errorf("key %x signed a different transaction", outputKey)
+		}
+	}
+	for _, s := range in.TaprootScriptSpendSig {
+		leaf, err := tapLeafForHash(in, s.LeafHash)
+		if err != nil {
+			return err
+		}
+		pub, err := schnorr.ParsePubKey(s.XOnlyPubKey)
+		if err != nil {
+			return fmt.Errorf("key %x is not a public key: %w", s.XOnlyPubKey, err)
+		}
+		// The decoder splits a tapscript signature: 64 bytes here, the sighash
+		// type in its own field.
+		sig, err := schnorr.ParseSignature(s.Signature)
+		if err != nil {
+			return fmt.Errorf("key %x gave a malformed signature: %w", s.XOnlyPubKey, err)
+		}
+		if !validTaprootSigHashType(s.SigHash) {
+			return fmt.Errorf("key %x used an unknown sighash type %#x", s.XOnlyPubKey, byte(s.SigHash))
+		}
+		hash, err := txscript.CalcTapscriptSignaturehash(sigHashes, s.SigHash, tx, i, fetcher, leaf)
+		if err != nil {
+			return err
+		}
+		if !sig.Verify(hash, pub) {
+			return fmt.Errorf("key %x signed a different transaction", s.XOnlyPubKey)
+		}
+	}
+	return nil
+}
+
+// oddYPrefix is the compressed-key header byte for an odd y coordinate.
+const oddYPrefix = 0x03
+
+// verifyTaprootLeaves makes sure each revealed leaf and its control block commit
+// to the output key the input spends.
+func verifyTaprootLeaves(in *psbt.PInput, outputKey []byte) error {
+	for _, l := range in.TaprootLeafScript {
+		cb, err := txscript.ParseControlBlock(l.ControlBlock)
+		if err != nil {
+			return fmt.Errorf("parse taproot control block: %w", err)
+		}
+		// The witness carries the control block, so its leaf version is the one
+		// the network hashes with. A leaf that names another version signs one
+		// script and spends another.
+		if l.LeafVersion != cb.LeafVersion {
+			return errors.New("the leaf version does not match its control block")
+		}
+		key := txscript.ComputeTaprootOutputKey(cb.InternalKey, cb.RootHash(l.Script))
+		if !bytes.Equal(schnorr.SerializePubKey(key), outputKey) {
+			return errors.New("the leaf script does not match the output it spends")
+		}
+		// Script execution also reads the parity bit, so the control block must
+		// state the parity of the key it commits to.
+		if cb.OutputKeyYIsOdd != (key.SerializeCompressed()[0] == oddYPrefix) {
+			return errors.New("the control block states the wrong output key parity")
+		}
+	}
+	return nil
+}
+
+func tapLeafForHash(in *psbt.PInput, leafHash []byte) (txscript.TapLeaf, error) {
+	for _, l := range in.TaprootLeafScript {
+		leaf := txscript.NewTapLeaf(l.LeafVersion, l.Script)
+		hash := leaf.TapHash()
+		if bytes.Equal(hash[:], leafHash) {
+			return leaf, nil
+		}
+	}
+	return txscript.TapLeaf{}, errors.New("the signature names a leaf script the input does not carry")
+}
+
+// validSigHashType reports whether a sighash byte is one script verification
+// accepts: a base type of ALL, NONE, or SINGLE, plus the optional ANYONECANPAY bit.
+func validSigHashType(t txscript.SigHashType) bool {
+	switch t &^ txscript.SigHashAnyOneCanPay {
+	case txscript.SigHashAll, txscript.SigHashNone, txscript.SigHashSingle:
+		return true
+	}
+	return false
+}
+
+// validTaprootSigHashType is validSigHashType plus the BIP341 default type.
+func validTaprootSigHashType(t txscript.SigHashType) bool {
+	return t == txscript.SigHashDefault || validSigHashType(t)
+}
+
+// splitSchnorrSig separates a key-path signature from its optional sighash byte.
+func splitSchnorrSig(raw []byte) (*schnorr.Signature, txscript.SigHashType, error) {
+	hashType := txscript.SigHashDefault
+	switch len(raw) {
+	case schnorr.SignatureSize:
+	case schnorr.SignatureSize + 1:
+		hashType = txscript.SigHashType(raw[schnorr.SignatureSize])
+		// Script verification takes the default type only in the 64-byte form.
+		if hashType == txscript.SigHashDefault {
+			return nil, 0, errors.New("a signature must drop the default sighash byte")
+		}
+		raw = raw[:schnorr.SignatureSize]
+	default:
+		return nil, 0, fmt.Errorf("a schnorr signature is not %d bytes long", len(raw))
+	}
+	if !validTaprootSigHashType(hashType) {
+		return nil, 0, fmt.Errorf("unknown sighash type %#x", byte(hashType))
+	}
+	sig, err := schnorr.ParseSignature(raw)
+	if err != nil {
+		return nil, 0, fmt.Errorf("malformed schnorr signature: %w", err)
+	}
+	return sig, hashType, nil
+}
+
+func verifyPartialSig(
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	i int,
+	in *psbt.PInput,
+	prevOut *wire.TxOut,
+	ps *psbt.PartialSig,
+) error {
+	if len(ps.Signature) < 2 {
+		return fmt.Errorf("key %s gave an empty signature", signerName(in, ps.PubKey))
+	}
+	pub, err := btcec.ParsePubKey(ps.PubKey)
+	if err != nil {
+		return fmt.Errorf("key %s is not a public key: %w", signerName(in, ps.PubKey), err)
+	}
+	der := ps.Signature[:len(ps.Signature)-1]
+	sig, err := ecdsa.ParseDERSignature(der)
+	if err != nil {
+		return fmt.Errorf("key %s gave a malformed signature: %w", signerName(in, ps.PubKey), err)
+	}
+	// A standard node refuses a high-S signature, and the finalizer copies these
+	// bytes through unchanged.
+	if err := ecdsa.VerifyLowS(der); err != nil {
+		return fmt.Errorf("key %s gave a signature a standard node refuses: %w", signerName(in, ps.PubKey), err)
+	}
+	hashType := txscript.SigHashType(ps.Signature[len(ps.Signature)-1])
+	if !validSigHashType(hashType) {
+		return fmt.Errorf("key %s used an unknown sighash type %#x", signerName(in, ps.PubKey), byte(hashType))
+	}
+	hash, err := partialSigHash(tx, sigHashes, i, in, prevOut, ps.PubKey, hashType)
+	if err != nil {
+		return err
+	}
+	if !sig.Verify(hash, pub) {
+		return fmt.Errorf("key %s signed a different transaction", signerName(in, ps.PubKey))
+	}
+	return nil
+}
+
+// signerName identifies a partial signature's signer the way the key table
+// shows it: the master fingerprint when the input records one, else the pubkey.
+func signerName(in *psbt.PInput, pubKey []byte) string {
+	for _, d := range in.Bip32Derivation {
+		if !bytes.Equal(d.PubKey, pubKey) {
+			continue
+		}
+		var fp [4]byte
+		binary.LittleEndian.PutUint32(fp[:], d.MasterKeyFingerprint)
+		return hex.EncodeToString(fp[:])
+	}
+	return hex.EncodeToString(pubKey)
+}
+
+// partialSigHash recomputes the sighash one partial signature must cover. Every
+// script the PSBT supplies must hash to the output it spends, so an imported
+// PSBT cannot point the check at a script of its own choice.
+func partialSigHash(
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	i int,
+	in *psbt.PInput,
+	prevOut *wire.TxOut,
+	pubKey []byte,
+	hashType txscript.SigHashType,
+) ([]byte, error) {
+	script := prevOut.PkScript
+	if len(in.RedeemScript) > 0 {
+		if !txscript.IsPayToScriptHash(script) {
+			return nil, errors.New("the input carries a redeem script but spends no script hash")
+		}
+		if !bytes.Equal(btcutil.Hash160(in.RedeemScript), script[2:22]) {
+			return nil, errors.New("the redeem script does not match the output it spends")
+		}
+		script = in.RedeemScript
+	}
+	switch {
+	case txscript.IsPayToWitnessScriptHash(script):
+		hash := sha256.Sum256(in.WitnessScript)
+		if len(in.WitnessScript) == 0 || !bytes.Equal(hash[:], script[2:34]) {
+			return nil, errors.New("the witness script does not match the output it spends")
+		}
+		return txscript.CalcWitnessSigHash(in.WitnessScript, sigHashes, hashType, tx, i, prevOut.Value)
+	case txscript.IsPayToWitnessPubKeyHash(script):
+		hash := btcutil.Hash160(pubKey)
+		if !bytes.Equal(hash, script[2:22]) {
+			return nil, errors.New("the key does not match the output it spends")
+		}
+		code, err := p2wpkhScriptCode(hash)
+		if err != nil {
+			return nil, err
+		}
+		return txscript.CalcWitnessSigHash(code, sigHashes, hashType, tx, i, prevOut.Value)
+	default:
+		// The finalizer picks its witness path whenever a witness utxo is set,
+		// so a legacy input signed against one lands in the wrong field.
+		if in.NonWitnessUtxo == nil {
+			return nil, errors.New("a legacy input needs its previous transaction")
+		}
+		if txscript.IsPayToPubKeyHash(script) && !bytes.Equal(btcutil.Hash160(pubKey), script[3:23]) {
+			return nil, errors.New("the key does not match the output it spends")
+		}
+		return txscript.CalcSignatureHash(script, hashType, tx, i)
+	}
+}
+
+func p2wpkhScriptCode(keyHash []byte) ([]byte, error) {
+	return txscript.NewScriptBuilder().
+		AddOp(txscript.OP_DUP).
+		AddOp(txscript.OP_HASH160).
+		AddData(keyHash).
+		AddOp(txscript.OP_EQUALVERIFY).
+		AddOp(txscript.OP_CHECKSIG).
+		Script()
 }
 
 // signMultisigInput adds this wallet's partial signature(s) to a P2WSH multisig
@@ -396,6 +778,12 @@ func hasPartialSig(sigs []*psbt.PartialSig, pub []byte) bool {
 // base. All packets must describe the same unsigned transaction.
 func combinePSBT(base *psbt.Packet, others ...*psbt.Packet) error {
 	for _, o := range others {
+		if o.UnsignedTx == nil || base.UnsignedTx == nil {
+			return errors.New("psbt has no unsigned transaction")
+		}
+		if o.UnsignedTx.TxHash() != base.UnsignedTx.TxHash() {
+			return errors.New("the psbts describe different transactions")
+		}
 		if len(o.Inputs) != len(base.Inputs) {
 			return errors.New("psbt input count mismatch")
 		}

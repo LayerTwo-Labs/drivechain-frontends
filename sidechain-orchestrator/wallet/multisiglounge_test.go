@@ -1137,6 +1137,17 @@ func TestMasterKeyCosignerKeepsOrigin(t *testing.T) {
 	}
 }
 
+// TestFinalizeNamesTheFingerprint: the failure message must name the signer the
+// way the key table shows it, so the user knows which device to sign on again.
+func TestFinalizeNamesTheFingerprint(t *testing.T) {
+	packet := loungeMultisigPSBT(t, loungeTestAccts(t), 2)
+	packet.UnsignedTx.TxOut[0].Value -= 1
+
+	_, err := finalizeAndExtract(packet)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "key 73c5da0a signed a different transaction")
+}
+
 // TestAccountKeyWithoutOriginStaysBare: an account key with a fingerprint but no
 // path must not claim a master origin. That origin names a child the device
 // never derives, and every input then fails on the device.
