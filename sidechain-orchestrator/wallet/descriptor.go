@@ -284,8 +284,9 @@ func (d *Descriptor) DeriveScript(change bool, index uint32, net *chaincfg.Param
 // deriveChildPub derives account/chain/index and returns the child public key.
 // derivations returns the PSBT key-derivation records for the address at
 // (change, index): one per descriptor key, each with the child pubkey, master
-// fingerprint, and full path. Keys with no parseable origin fall back to the
-// account key's own fingerprint and a path of just [chain, index].
+// fingerprint, and full path. A key whose origin is unknown gets a record only
+// when its account key is a master key, where [chain, index] is the true path
+// from it.
 func (d *Descriptor) derivations(change bool, index uint32) ([]keyDerivation, error) {
 	chain := chainIndex(change)
 	out := make([]keyDerivation, 0, len(d.Keys))
@@ -295,11 +296,16 @@ func (d *Descriptor) derivations(change bool, index uint32) ([]keyDerivation, er
 			return nil, err
 		}
 		fp, path, ok := parseOrigin(k.Origin)
-		if ok {
+		switch {
+		case ok:
 			path = append(path, chain, index)
-		} else {
+		case k.Account.Depth() == 0:
 			fp = keyFingerprint(k.Account)
 			path = []uint32{chain, index}
+		default:
+			// A hardware signer checks every path in the packet before it signs
+			// any of them, so one made-up path fails the whole transaction.
+			continue
 		}
 		out = append(out, keyDerivation{pub: pub, fingerprint: fp, path: path})
 	}

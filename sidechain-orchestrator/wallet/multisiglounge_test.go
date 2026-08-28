@@ -393,25 +393,19 @@ func TestValidatePsbtCosignerChildMismatch(t *testing.T) {
 // the group. A changed child on that record must still fail.
 func TestValidatePsbtBareCosignerChildMismatch(t *testing.T) {
 	group, _ := loungeTestKeys(t)
-	for i := 1; i < len(group.Keys); i++ {
-		group.Keys[i] = MultisigLoungeKey{Xpub: group.Keys[i].Xpub}
-	}
+	// Only the last cosigner is bare, so a second record survives to tamper with.
+	group.Keys[len(group.Keys)-1] = MultisigLoungeKey{Xpub: group.Keys[len(group.Keys)-1].Xpub}
 	accts := loungeTestAccts(t)
 
-	packet := loungeBareCosignerPSBT(t, accts)
+	packet := loungeBareCosignerPSBT(t, accts, 2)
 	_, err := ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
 	require.NoError(t, err)
 
 	// The first record still carries the true child, so the script check reads
 	// the right hint and the tampered record reaches the origin check.
-	var bare *psbt.Bip32Derivation
-	for _, d := range packet.Inputs[0].Bip32Derivation[1:] {
-		if len(d.Bip32Path) == 2 {
-			bare = d
-		}
-	}
-	require.NotNil(t, bare, "the group carries a bare-xpub cosigner record")
-	bare.Bip32Path[len(bare.Bip32Path)-1] = 6
+	require.Len(t, packet.Inputs[0].Bip32Derivation, 2)
+	rec := packet.Inputs[0].Bip32Derivation[1]
+	rec.Bip32Path[len(rec.Bip32Path)-1] = 6
 
 	_, err = ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
 	require.Error(t, err)
@@ -463,7 +457,7 @@ func TestValidatePsbtStrippedOriginsCrossGroup(t *testing.T) {
 // bare-xpub cosigners produces: only the wallet key carries a [fp/origin], so the
 // other two derivation records fall back to the xpub's own self-root fingerprint
 // and a chain/index-only path — what Core emits for a prefix-less descriptor key.
-func loungeBareCosignerPSBT(t *testing.T, accts []*hdkeychain.ExtendedKey) *psbt.Packet {
+func loungeBareCosignerPSBT(t *testing.T, accts []*hdkeychain.ExtendedKey, origins int) *psbt.Packet {
 	t.Helper()
 	net := &chaincfg.SigNetParams
 	const amount = int64(100_000)
@@ -473,7 +467,9 @@ func loungeBareCosignerPSBT(t *testing.T, accts []*hdkeychain.ExtendedKey) *psbt
 	for i, a := range accts {
 		keys[i] = DescriptorKey{Account: a}
 	}
-	keys[0].Origin = "73c5da0a/48h/1h/0h/2h"
+	for i := 0; i < origins; i++ {
+		keys[i].Origin = fmt.Sprintf("73c5da0a/48h/1h/0h/%dh", i+2)
+	}
 	d := &Descriptor{Kind: ScriptMultisig, Threshold: 2, Keys: keys}
 	ds, _, err := d.DeriveScript(false, 0, net)
 	require.NoError(t, err)
@@ -509,14 +505,10 @@ func TestValidatePsbtBareXpubCosigners(t *testing.T) {
 	}
 	accts := loungeTestAccts(t)
 
-	packet := loungeBareCosignerPSBT(t, accts)
-	bare := 0
-	for _, d := range packet.Inputs[0].Bip32Derivation {
-		if len(d.Bip32Path) == 2 {
-			bare++
-		}
-	}
-	require.Equal(t, 2, bare, "the two bare-xpub cosigners carry chain/index-only paths")
+	packet := loungeBareCosignerPSBT(t, accts, 1)
+	// A bare cosigner carries no derivation record: a made-up path fails a
+	// hardware signer, which checks every path in the packet.
+	require.Len(t, packet.Inputs[0].Bip32Derivation, 1)
 
 	res, err := ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
 	require.NoError(t, err, "a group's own spend must not be rejected over external cosigner metadata")
