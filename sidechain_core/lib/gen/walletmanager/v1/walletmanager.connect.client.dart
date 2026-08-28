@@ -707,6 +707,25 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// PreviewBumpFee reports what a fee bump costs, and which output pays it,
+  /// without broadcasting anything.
+  Future<walletmanagerv1walletmanager.PreviewBumpFeeResponse> previewBumpFee(
+    walletmanagerv1walletmanager.PreviewBumpFeeRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.previewBumpFee,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// CreateCpfp spends an unconfirmed wallet UTXO with a child transaction whose
   /// fee lifts the parent+child package to the target fee rate (CPFP).
   Future<walletmanagerv1walletmanager.CreateCpfpResponse> createCpfp(
