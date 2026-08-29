@@ -29,13 +29,13 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
+	bbcrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bbc/v1/bbcv1connect"
 	bitassetsrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	bitnamesrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
 	bmmrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1/bmmv1connect"
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
-	inquisitionrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/inquisition/v1/inquisitionv1connect"
 	multisigloungerpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1/multisigloungev1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
@@ -48,10 +48,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpcmeter"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+	bbcsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	coinshiftsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
-	inquisitionsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/inquisition"
 	photonsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	thundersvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -618,7 +618,7 @@ func run(cctx *cli.Context) error {
 			path, handler := zsiderpc.NewZSideServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
-		case "inquisition":
+		case "bbc":
 			// Core derived: its own client, authenticated by the node's cookie.
 			dirs, ok := config.DirConfigByName(name)
 			if !ok {
@@ -626,8 +626,8 @@ func run(cctx *cli.Context) error {
 				continue
 			}
 			cookie := filepath.Join(dirs.DatadirNetwork(config.Network(orch.Network), ""), ".cookie")
-			h := inquisitionsvc.NewHandler(inquisitionsvc.NewClient(cfg.RPCHost(), cfg.Port, cookie))
-			path, handler := inquisitionrpc.NewInquisitionServiceHandler(h, connect.WithInterceptors(authIC))
+			h := bbcsvc.NewHandler(bbcsvc.NewClient(cfg.RPCHost(), cfg.Port, cookie))
+			path, handler := bbcrpc.NewBbcServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		}

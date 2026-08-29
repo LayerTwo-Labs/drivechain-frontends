@@ -15,11 +15,11 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import '../../orchestrator/v1/orchestrator.pbenum.dart' as $2;
+import '../../orchestrator/v1/orchestrator.pbenum.dart' as $3;
 
 class StartRequest extends $pb.GeneratedMessage {
   factory StartRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
     $fixnum.Int64? minBidSats,
     $fixnum.Int64? maxBidSats,
     $core.String? walletId,
@@ -44,7 +44,7 @@ class StartRequest extends $pb.GeneratedMessage {
   factory StartRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..aInt64(2, _omitFieldNames ? '' : 'minBidSats')
     ..aInt64(3, _omitFieldNames ? '' : 'maxBidSats')
     ..aOS(4, _omitFieldNames ? '' : 'walletId')
@@ -73,9 +73,9 @@ class StartRequest extends $pb.GeneratedMessage {
   static StartRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -147,7 +147,7 @@ class StartResponse extends $pb.GeneratedMessage {
 
 class StopRequest extends $pb.GeneratedMessage {
   factory StopRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -160,7 +160,7 @@ class StopRequest extends $pb.GeneratedMessage {
   factory StopRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StopRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..hasRequiredFields = false
   ;
 
@@ -186,9 +186,9 @@ class StopRequest extends $pb.GeneratedMessage {
   static StopRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -229,7 +229,7 @@ class StopResponse extends $pb.GeneratedMessage {
 
 class ClearHistoryRequest extends $pb.GeneratedMessage {
   factory ClearHistoryRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -242,7 +242,7 @@ class ClearHistoryRequest extends $pb.GeneratedMessage {
   factory ClearHistoryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ClearHistoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..hasRequiredFields = false
   ;
 
@@ -268,9 +268,9 @@ class ClearHistoryRequest extends $pb.GeneratedMessage {
   static ClearHistoryRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -311,7 +311,7 @@ class ClearHistoryResponse extends $pb.GeneratedMessage {
 
 class WatchRequest extends $pb.GeneratedMessage {
   factory WatchRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -324,7 +324,7 @@ class WatchRequest extends $pb.GeneratedMessage {
   factory WatchRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..hasRequiredFields = false
   ;
 
@@ -350,9 +350,9 @@ class WatchRequest extends $pb.GeneratedMessage {
   static WatchRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -865,7 +865,7 @@ class Bid extends $pb.GeneratedMessage {
 
 class GetRoundBidsRequest extends $pb.GeneratedMessage {
   factory GetRoundBidsRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
     $core.String? prevMainHash,
   }) {
     final $result = create();
@@ -882,7 +882,7 @@ class GetRoundBidsRequest extends $pb.GeneratedMessage {
   factory GetRoundBidsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetRoundBidsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..aOS(2, _omitFieldNames ? '' : 'prevMainHash')
     ..hasRequiredFields = false
   ;
@@ -909,9 +909,9 @@ class GetRoundBidsRequest extends $pb.GeneratedMessage {
   static GetRoundBidsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -981,7 +981,7 @@ class GetRoundBidsResponse extends $pb.GeneratedMessage {
 
 class CreateBidRequest extends $pb.GeneratedMessage {
   factory CreateBidRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
     $core.String? walletId,
     $fixnum.Int64? bidSats,
     $core.String? replaceTxid,
@@ -1014,7 +1014,7 @@ class CreateBidRequest extends $pb.GeneratedMessage {
   factory CreateBidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateBidRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
     ..aInt64(3, _omitFieldNames ? '' : 'bidSats')
     ..aOS(4, _omitFieldNames ? '' : 'replaceTxid')
@@ -1045,9 +1045,9 @@ class CreateBidRequest extends $pb.GeneratedMessage {
   static CreateBidRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -1234,7 +1234,7 @@ class CreateBidResponse extends $pb.GeneratedMessage {
 
 class ConnectBidRequest extends $pb.GeneratedMessage {
   factory ConnectBidRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
     $core.String? criticalHash,
     $core.String? blockJson,
     $core.String? mainBlockHash,
@@ -1259,7 +1259,7 @@ class ConnectBidRequest extends $pb.GeneratedMessage {
   factory ConnectBidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConnectBidRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..aOS(2, _omitFieldNames ? '' : 'criticalHash')
     ..aOS(3, _omitFieldNames ? '' : 'blockJson')
     ..aOS(4, _omitFieldNames ? '' : 'mainBlockHash')
@@ -1288,9 +1288,9 @@ class ConnectBidRequest extends $pb.GeneratedMessage {
   static ConnectBidRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -1396,7 +1396,7 @@ class ConnectBidResponse extends $pb.GeneratedMessage {
 
 class ListBidsRequest extends $pb.GeneratedMessage {
   factory ListBidsRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -1409,7 +1409,7 @@ class ListBidsRequest extends $pb.GeneratedMessage {
   factory ListBidsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListBidsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..hasRequiredFields = false
   ;
 
@@ -1435,9 +1435,9 @@ class ListBidsRequest extends $pb.GeneratedMessage {
   static ListBidsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
@@ -1491,7 +1491,7 @@ class ListBidsResponse extends $pb.GeneratedMessage {
 
 class AttackBidRequest extends $pb.GeneratedMessage {
   factory AttackBidRequest({
-    $2.BinaryType? sidechain,
+    $3.BinaryType? sidechain,
     $core.String? walletId,
     $fixnum.Int64? bidSats,
   }) {
@@ -1512,7 +1512,7 @@ class AttackBidRequest extends $pb.GeneratedMessage {
   factory AttackBidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AttackBidRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
     ..aInt64(3, _omitFieldNames ? '' : 'bidSats')
     ..hasRequiredFields = false
@@ -1540,9 +1540,9 @@ class AttackBidRequest extends $pb.GeneratedMessage {
   static AttackBidRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get sidechain => $_getN(0);
+  $3.BinaryType get sidechain => $_getN(0);
   @$pb.TagNumber(1)
-  set sidechain($2.BinaryType v) { setField(1, v); }
+  set sidechain($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)

@@ -15,48 +15,48 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'bmm.pb.dart' as $3;
+import 'bmm.pb.dart' as $4;
 import 'bmm.pbjson.dart';
 
 export 'bmm.pb.dart';
 
 abstract class BMMServiceBase extends $pb.GeneratedService {
-  $async.Future<$3.StartResponse> start($pb.ServerContext ctx, $3.StartRequest request);
-  $async.Future<$3.StopResponse> stop($pb.ServerContext ctx, $3.StopRequest request);
-  $async.Future<$3.ClearHistoryResponse> clearHistory($pb.ServerContext ctx, $3.ClearHistoryRequest request);
-  $async.Future<$3.WatchResponse> watch($pb.ServerContext ctx, $3.WatchRequest request);
-  $async.Future<$3.GetRoundBidsResponse> getRoundBids($pb.ServerContext ctx, $3.GetRoundBidsRequest request);
-  $async.Future<$3.CreateBidResponse> createBid($pb.ServerContext ctx, $3.CreateBidRequest request);
-  $async.Future<$3.ConnectBidResponse> connectBid($pb.ServerContext ctx, $3.ConnectBidRequest request);
-  $async.Future<$3.ListBidsResponse> listBids($pb.ServerContext ctx, $3.ListBidsRequest request);
-  $async.Future<$3.AttackBidResponse> attackBid($pb.ServerContext ctx, $3.AttackBidRequest request);
+  $async.Future<$4.StartResponse> start($pb.ServerContext ctx, $4.StartRequest request);
+  $async.Future<$4.StopResponse> stop($pb.ServerContext ctx, $4.StopRequest request);
+  $async.Future<$4.ClearHistoryResponse> clearHistory($pb.ServerContext ctx, $4.ClearHistoryRequest request);
+  $async.Future<$4.WatchResponse> watch($pb.ServerContext ctx, $4.WatchRequest request);
+  $async.Future<$4.GetRoundBidsResponse> getRoundBids($pb.ServerContext ctx, $4.GetRoundBidsRequest request);
+  $async.Future<$4.CreateBidResponse> createBid($pb.ServerContext ctx, $4.CreateBidRequest request);
+  $async.Future<$4.ConnectBidResponse> connectBid($pb.ServerContext ctx, $4.ConnectBidRequest request);
+  $async.Future<$4.ListBidsResponse> listBids($pb.ServerContext ctx, $4.ListBidsRequest request);
+  $async.Future<$4.AttackBidResponse> attackBid($pb.ServerContext ctx, $4.AttackBidRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'Start': return $3.StartRequest();
-      case 'Stop': return $3.StopRequest();
-      case 'ClearHistory': return $3.ClearHistoryRequest();
-      case 'Watch': return $3.WatchRequest();
-      case 'GetRoundBids': return $3.GetRoundBidsRequest();
-      case 'CreateBid': return $3.CreateBidRequest();
-      case 'ConnectBid': return $3.ConnectBidRequest();
-      case 'ListBids': return $3.ListBidsRequest();
-      case 'AttackBid': return $3.AttackBidRequest();
+      case 'Start': return $4.StartRequest();
+      case 'Stop': return $4.StopRequest();
+      case 'ClearHistory': return $4.ClearHistoryRequest();
+      case 'Watch': return $4.WatchRequest();
+      case 'GetRoundBids': return $4.GetRoundBidsRequest();
+      case 'CreateBid': return $4.CreateBidRequest();
+      case 'ConnectBid': return $4.ConnectBidRequest();
+      case 'ListBids': return $4.ListBidsRequest();
+      case 'AttackBid': return $4.AttackBidRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'Start': return this.start(ctx, request as $3.StartRequest);
-      case 'Stop': return this.stop(ctx, request as $3.StopRequest);
-      case 'ClearHistory': return this.clearHistory(ctx, request as $3.ClearHistoryRequest);
-      case 'Watch': return this.watch(ctx, request as $3.WatchRequest);
-      case 'GetRoundBids': return this.getRoundBids(ctx, request as $3.GetRoundBidsRequest);
-      case 'CreateBid': return this.createBid(ctx, request as $3.CreateBidRequest);
-      case 'ConnectBid': return this.connectBid(ctx, request as $3.ConnectBidRequest);
-      case 'ListBids': return this.listBids(ctx, request as $3.ListBidsRequest);
-      case 'AttackBid': return this.attackBid(ctx, request as $3.AttackBidRequest);
+      case 'Start': return this.start(ctx, request as $4.StartRequest);
+      case 'Stop': return this.stop(ctx, request as $4.StopRequest);
+      case 'ClearHistory': return this.clearHistory(ctx, request as $4.ClearHistoryRequest);
+      case 'Watch': return this.watch(ctx, request as $4.WatchRequest);
+      case 'GetRoundBids': return this.getRoundBids(ctx, request as $4.GetRoundBidsRequest);
+      case 'CreateBid': return this.createBid(ctx, request as $4.CreateBidRequest);
+      case 'ConnectBid': return this.connectBid(ctx, request as $4.ConnectBidRequest);
+      case 'ListBids': return this.listBids(ctx, request as $4.ListBidsRequest);
+      case 'AttackBid': return this.attackBid(ctx, request as $4.AttackBidRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

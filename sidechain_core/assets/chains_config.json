@@ -1,5 +1,5 @@
 {
-  "version": 11,
+  "version": 12,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -797,12 +797,12 @@
       },
       "hashes": {}
     },
-    "inquisition": {
+    "bbc": {
       "type": "sidechain",
-      "slot": 119,
-      "name": "Inquisition",
+      "slot": 1,
+      "name": "Big Block Covenant",
       "version": "29.4.0",
-      "description": "Covenant sidechain in slot 119: CTV, CAT, CSFS, APO, CCV.",
+      "description": "Covenant sidechain in slot 1: CTV, CAT, CSFS, APO, CCV.",
       "repo_url": "https://github.com/sohibit/bitcoin",
       "port": 18743,
       "chain_layer": 2,
@@ -816,26 +816,26 @@
       "directories": {
         "binary": {
           "default": {
-            "linux": ".inquisition",
-            "macos": "Inquisition",
-            "windows": "Inquisition"
+            "linux": ".bbc",
+            "macos": "Big Block Covenant",
+            "windows": "Big Block Covenant"
           }
         },
         "flutter_frontend": {
-          "linux": "com.layertwolabs.inquisition",
-          "macos": "com.layertwolabs.inquisition",
-          "windows": "10520LayertwoLabs/Inquisition"
+          "linux": "com.layertwolabs.bbc",
+          "macos": "com.layertwolabs.bbc",
+          "windows": "10520LayertwoLabs/Bbc"
         }
       },
       "download": {
-        "binary": "inquisition",
+        "binary": "bbc",
         "files": {
           "default": {
             "base_url": "https://api.github.com/repos/sohibit/bitcoin/releases/latest",
-            "linux-x86_64": "L2-S119-Inquisition-.+-x86_64-unknown-linux-gnu\\.zip",
-            "macos-x86_64": "L2-S119-Inquisition-.+-x86_64-apple-darwin\\.zip",
-            "macos-arm64": "L2-S119-Inquisition-.+-arm64-apple-darwin\\.zip",
-            "windows-x86_64": "L2-S119-Inquisition-.+-x86_64-w64-msvc\\.zip"
+            "linux-x86_64": "L2-S1-BBC-.+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "L2-S1-BBC-.+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "L2-S1-BBC-.+-arm64-apple-darwin\\.zip",
+            "windows-x86_64": "L2-S1-BBC-.+-x86_64-w64-msvc\\.zip"
           }
         }
       },

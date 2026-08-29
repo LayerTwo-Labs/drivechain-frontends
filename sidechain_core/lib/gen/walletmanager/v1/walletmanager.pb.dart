@@ -17,7 +17,7 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import '../../google/protobuf/empty.pb.dart' as $16;
 import '../../google/protobuf/timestamp.pb.dart' as $15;
-import '../../orchestrator/v1/orchestrator.pbenum.dart' as $2;
+import '../../orchestrator/v1/orchestrator.pbenum.dart' as $3;
 import 'walletmanager.pbenum.dart';
 
 export 'walletmanager.pbenum.dart';
@@ -2292,7 +2292,7 @@ class DeleteAllWalletsResponse extends $pb.GeneratedMessage {
 
 class BalanceSnapshot extends $pb.GeneratedMessage {
   factory BalanceSnapshot({
-    $2.BinaryType? binary,
+    $3.BinaryType? binary,
     $core.String? displayName,
     $fixnum.Int64? confirmedSats,
     $fixnum.Int64? pendingSats,
@@ -2321,7 +2321,7 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
   factory BalanceSnapshot.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BalanceSnapshot', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
-    ..e<$2.BinaryType>(1, _omitFieldNames ? '' : 'binary', $pb.PbFieldType.OE, defaultOrMaker: $2.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $2.BinaryType.valueOf, enumValues: $2.BinaryType.values)
+    ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'binary', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..aOS(2, _omitFieldNames ? '' : 'displayName')
     ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'confirmedSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
     ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'pendingSats', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
@@ -2351,9 +2351,9 @@ class BalanceSnapshot extends $pb.GeneratedMessage {
   static BalanceSnapshot? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.BinaryType get binary => $_getN(0);
+  $3.BinaryType get binary => $_getN(0);
   @$pb.TagNumber(1)
-  set binary($2.BinaryType v) { setField(1, v); }
+  set binary($3.BinaryType v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasBinary() => $_has(0);
   @$pb.TagNumber(1)

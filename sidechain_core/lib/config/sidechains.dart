@@ -47,8 +47,8 @@ abstract class Sidechain extends Binary {
       case 'liquid-signet':
         return LiquidSignet();
 
-      case 'inquisition':
-        return Inquisition();
+      case 'bbc':
+        return Bbc();
     }
     return null;
   }
@@ -162,8 +162,8 @@ abstract class Sidechain extends Binary {
           chainLayer: binary.chainLayer,
         );
 
-      case 'Inquisition':
-        return Inquisition(
+      case 'Big Block Covenant':
+        return Bbc(
           name: binary.name,
           version: binary.version,
           description: binary.description,
@@ -243,12 +243,12 @@ class LiquidSignet extends Sidechain {
   );
 }
 
-/// Bitcoin Inquisition fork carrying the covenant opcodes, run as a drivechain
+/// Bitcoin Core fork carrying the covenant opcodes, run as a drivechain
 /// sidechain. Core-derived like Liquid Signet, so it speaks Core-style JSON-RPC
 /// rather than the CUSF interface the Rust sidechains use.
-class Inquisition extends Sidechain {
-  Inquisition({
-    super.name = 'Inquisition',
+class Bbc extends Sidechain {
+  Bbc({
+    super.name = 'Big Block Covenant',
     super.version = '29.4.0',
     super.description = 'Covenant sidechain: CTV, CAT, CSFS, APO, CCV',
     super.repoUrl = 'https://github.com/sohibit/bitcoin',
@@ -259,19 +259,19 @@ class Inquisition extends Sidechain {
     super.downloadInfo = const DownloadInfo(),
     super.extraBootArgs = const [],
   }) : super(
-         directories: directories ?? DirectoryConfig(binary: allPlatforms('inquisition'), flutterFrontend: const {}),
+         directories: directories ?? DirectoryConfig(binary: allPlatforms('bbc'), flutterFrontend: const {}),
          metadata:
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 binary: 'inquisition',
+                 binary: 'bbc',
                  baseUrls: allNetworksUrl('https://api.github.com/repos/sohibit/bitcoin/releases/latest'),
 
                  // The release tag moves, so match the asset by its platform.
                  files: allNetworks({
-                   OS.linux: r'L2-S119-Inquisition-.+-x86_64-unknown-linux-gnu\.zip',
-                   OS.macos: r'L2-S119-Inquisition-.+-x86_64-apple-darwin\.zip',
-                   OS.windows: r'L2-S119-Inquisition-.+-x86_64-w64-msvc\.zip',
+                   OS.linux: r'L2-S1-BBC-.+-x86_64-unknown-linux-gnu\.zip',
+                   OS.macos: r'L2-S1-BBC-.+-x86_64-apple-darwin\.zip',
+                   OS.windows: r'L2-S1-BBC-.+-x86_64-w64-msvc\.zip',
                  }),
                ),
                remoteTimestamp: null,
@@ -282,10 +282,10 @@ class Inquisition extends Sidechain {
        );
 
   @override
-  int get slot => 119;
+  int get slot => 1;
 
   @override
-  BinaryType get type => BinaryType.BINARY_TYPE_INQUISITION;
+  BinaryType get type => BinaryType.BINARY_TYPE_BBC;
 
   @override
   Color get color => Colors.orange;
@@ -294,7 +294,7 @@ class Inquisition extends Sidechain {
   bool get developedByLayerTwoLabs => false;
 
   @override
-  Inquisition copyWith({
+  Bbc copyWith({
     String? version,
     String? description,
     String? repoUrl,
@@ -303,7 +303,7 @@ class Inquisition extends Sidechain {
     int? port,
     int? chainLayer,
     DownloadInfo? downloadInfo,
-  }) => Inquisition(
+  }) => Bbc(
     name: name,
     version: version ?? this.version,
     description: description ?? this.description,
@@ -1033,7 +1033,7 @@ List<Binary> get sidechainBinaries => [
   resolveFromConfig(BinaryType.BINARY_TYPE_COINSHIFT, () => CoinShift()),
   resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDE, () => ZSide()),
   resolveFromConfig(BinaryType.BINARY_TYPE_LIQUID_SIGNET, () => LiquidSignet()),
-  resolveFromConfig(BinaryType.BINARY_TYPE_INQUISITION, () => Inquisition()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_BBC, () => Bbc()),
 ];
 
 Binary resolveFromConfig(BinaryType type, Binary Function() fallback) {
