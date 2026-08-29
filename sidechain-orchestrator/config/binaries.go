@@ -277,7 +277,7 @@ var (
 	TruthcoinDirs   = MustDirConfig("truthcoin")
 	PhotonDirs      = MustDirConfig("photon")
 	CoinShiftDirs   = MustDirConfig("coinshift")
-	InquisitionDirs = MustDirConfig("inquisition")
+	BbcDirs         = MustDirConfig("bbc")
 )
 
 // DirConfigByName returns the BinaryDirConfig for a given binary name.

@@ -65,7 +65,7 @@ class BinaryType extends $pb.ProtobufEnum {
   static const BinaryType BINARY_TYPE_DRIVECHAIND = BinaryType._(12, _omitEnumNames ? '' : 'BINARY_TYPE_DRIVECHAIND');
   static const BinaryType BINARY_TYPE_ZSIDED = BinaryType._(13, _omitEnumNames ? '' : 'BINARY_TYPE_ZSIDED');
   static const BinaryType BINARY_TYPE_LIQUID_SIGNET = BinaryType._(14, _omitEnumNames ? '' : 'BINARY_TYPE_LIQUID_SIGNET');
-  static const BinaryType BINARY_TYPE_INQUISITION = BinaryType._(15, _omitEnumNames ? '' : 'BINARY_TYPE_INQUISITION');
+  static const BinaryType BINARY_TYPE_BBC = BinaryType._(15, _omitEnumNames ? '' : 'BINARY_TYPE_BBC');
 
   static const $core.List<BinaryType> values = <BinaryType> [
     BINARY_TYPE_UNSPECIFIED,
@@ -83,7 +83,7 @@ class BinaryType extends $pb.ProtobufEnum {
     BINARY_TYPE_DRIVECHAIND,
     BINARY_TYPE_ZSIDED,
     BINARY_TYPE_LIQUID_SIGNET,
-    BINARY_TYPE_INQUISITION,
+    BINARY_TYPE_BBC,
   ];
 
   static final $core.Map<$core.int, BinaryType> _byValue = $pb.ProtobufEnum.initByValue(values);

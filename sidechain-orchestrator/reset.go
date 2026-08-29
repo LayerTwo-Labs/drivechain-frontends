@@ -52,7 +52,7 @@ const (
 	ResetBinaryGRPCurl
 	ResetBinaryDrivechaind
 	ResetBinaryZSided
-	ResetBinaryInquisition
+	ResetBinaryBbc
 
 	// resetBinaryCount bounds iteration over the values above.
 	resetBinaryCount
@@ -108,8 +108,8 @@ func (b ResetBinary) processName() string {
 		return "drivechaind"
 	case ResetBinaryZSided:
 		return "zsided"
-	case ResetBinaryInquisition:
-		return "inquisition"
+	case ResetBinaryBbc:
+		return "bbc"
 	default:
 		return ""
 	}
@@ -137,8 +137,8 @@ func (b ResetBinary) dirConfig() (config.BinaryDirConfig, bool) {
 		return config.PhotonDirs, true
 	case ResetBinaryCoinShift:
 		return config.CoinShiftDirs, true
-	case ResetBinaryInquisition:
-		return config.InquisitionDirs, true
+	case ResetBinaryBbc:
+		return config.BbcDirs, true
 	default:
 		return config.BinaryDirConfig{}, false
 	}
@@ -361,7 +361,7 @@ type resetPlan struct {
 }
 
 var resetSidechainBinaries = []ResetBinary{
-	ResetBinaryInquisition,
+	ResetBinaryBbc,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,
@@ -372,7 +372,7 @@ var resetSidechainBinaries = []ResetBinary{
 }
 
 var resetStopOrder = []ResetBinary{
-	ResetBinaryInquisition,
+	ResetBinaryBbc,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,
@@ -389,7 +389,7 @@ var resetStartOrder = []ResetBinary{
 	ResetBinaryBitcoind,
 	ResetBinaryEnforcer,
 	ResetBinaryBitwindowd,
-	ResetBinaryInquisition,
+	ResetBinaryBbc,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,

@@ -18,10 +18,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/inquisition"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -553,8 +553,8 @@ func binaryTypeFromName(name string) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_ENFORCER
 	case "bitwindowd":
 		return pb.BinaryType_BINARY_TYPE_BITWINDOWD
-	case "inquisition":
-		return pb.BinaryType_BINARY_TYPE_INQUISITION
+	case "bbc":
+		return pb.BinaryType_BINARY_TYPE_BBC
 	case "thunder":
 		return pb.BinaryType_BINARY_TYPE_THUNDER
 	case "zside":
@@ -642,8 +642,8 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 		return "photon", "Photon", nil
 	case pb.BinaryType_BINARY_TYPE_COINSHIFT:
 		return "coinshift", "CoinShift", nil
-	case pb.BinaryType_BINARY_TYPE_INQUISITION:
-		return "inquisition", "Inquisition", nil
+	case pb.BinaryType_BINARY_TYPE_BBC:
+		return "bbc", "Big Block Covenant", nil
 	default:
 		return "", "", fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
@@ -700,8 +700,8 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryTyp
 		}
 		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
 		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_INQUISITION:
-		total, available, err := inquisition.NewClient("localhost", port, h.inquisitionCookiePath()).GetBalance(ctx)
+	case pb.BinaryType_BINARY_TYPE_BBC:
+		total, available, err := bbc.NewClient("localhost", port, h.bbcCookiePath()).GetBalance(ctx)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -712,10 +712,10 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryTyp
 	}
 }
 
-// inquisitionCookiePath is the .cookie the node writes into its datadir.
-func (h *Handler) inquisitionCookiePath() string {
+// bbcCookiePath is the .cookie the node writes into its datadir.
+func (h *Handler) bbcCookiePath() string {
 	network := config.NetworkFromString(h.orch.CurrentNetwork())
-	return filepath.Join(config.InquisitionDirs.DatadirNetwork(network, ""), ".cookie")
+	return filepath.Join(config.BbcDirs.DatadirNetwork(network, ""), ".cookie")
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {
@@ -788,8 +788,8 @@ func resetBinaryFromType(t pb.BinaryType) orchestrator.ResetBinary {
 		return orchestrator.ResetBinaryDrivechaind
 	case pb.BinaryType_BINARY_TYPE_ZSIDED:
 		return orchestrator.ResetBinaryZSided
-	case pb.BinaryType_BINARY_TYPE_INQUISITION:
-		return orchestrator.ResetBinaryInquisition
+	case pb.BinaryType_BINARY_TYPE_BBC:
+		return orchestrator.ResetBinaryBbc
 	default:
 		return orchestrator.ResetBinaryUnknown
 	}
@@ -823,8 +823,8 @@ func binaryTypeFromResetBinary(binary orchestrator.ResetBinary) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_DRIVECHAIND
 	case orchestrator.ResetBinaryZSided:
 		return pb.BinaryType_BINARY_TYPE_ZSIDED
-	case orchestrator.ResetBinaryInquisition:
-		return pb.BinaryType_BINARY_TYPE_INQUISITION
+	case orchestrator.ResetBinaryBbc:
+		return pb.BinaryType_BINARY_TYPE_BBC
 	default:
 		return pb.BinaryType_BINARY_TYPE_UNSPECIFIED
 	}

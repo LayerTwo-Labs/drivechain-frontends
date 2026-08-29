@@ -25,7 +25,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/inquisition"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 )
 
 // bmmAncestorWalk bounds the walk back from the tip when looking for the block
@@ -560,7 +560,7 @@ func sidechainProxy(cfg orchestrator.BinaryConfig, network config.Network) (side
 		return nil, fmt.Errorf("no directory config for %s", cfg.Name)
 	}
 	cookie := filepath.Join(dirs.DatadirNetwork(network, ""), ".cookie")
-	return inquisition.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
+	return bbc.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
 }
 
 // sidechainConfig resolves a sidechain binary to its config, with the slot it

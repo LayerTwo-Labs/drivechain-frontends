@@ -225,8 +225,8 @@ class MockBitwindowRPC extends BitwindowRPC {
   }
 }
 
-class MockInquisitionRPC extends InquisitionRPC {
-  MockInquisitionRPC() : super(binaryType: BinaryType.BINARY_TYPE_INQUISITION);
+class MockBbcRPC extends BbcRPC {
+  MockBbcRPC() : super(binaryType: BinaryType.BINARY_TYPE_BBC);
 
   bool _connected = false;
 
@@ -239,7 +239,7 @@ class MockInquisitionRPC extends InquisitionRPC {
   }
 
   @override
-  Future<InquisitionPegInfo> getPegInfo() async => const InquisitionPegInfo(synced: false);
+  Future<BbcPegInfo> getPegInfo() async => const BbcPegInfo(synced: false);
 
   @override
   Future<String> getMainchainTip() async => '';
@@ -283,7 +283,7 @@ class MockInquisitionRPC extends InquisitionRPC {
   Future<void> stopRPC() async {}
 
   @override
-  Future<String> getDepositAddress() async => 's119_bcrt1qmock_000000';
+  Future<String> getDepositAddress() async => 's1_bcrt1qmock_000000';
 
   @override
   Future<String> getSideAddress() async => 'bcrt1qmock';

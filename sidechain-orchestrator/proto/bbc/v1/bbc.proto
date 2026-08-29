@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package bbc.v1;
+
+// Big Block Covenant is a Bitcoin Core fork run as a drivechain sidechain, so its RPC
+// surface is Core's rather than the CUSF one the other sidechains expose.
+service BbcService {
+  // Get current block count.
+  rpc GetBlockCount(GetBlockCountRequest) returns (GetBlockCountResponse);
+
+  // Get the node's chain state.
+  rpc GetBlockchainInfo(GetBlockchainInfoRequest) returns (GetBlockchainInfoResponse);
+
+  // Report whether the node has caught up with the mainchain.
+  rpc GetSidechainInfo(GetSidechainInfoRequest) returns (GetSidechainInfoResponse);
+
+  // Get the mainchain block hash the node is following.
+  rpc GetMainchainTip(GetMainchainTipRequest) returns (GetMainchainTipResponse);
+
+  // Get the sidechain block a mainchain block commits to, empty when none.
+  rpc GetBmmCommitment(GetBmmCommitmentRequest) returns (GetBmmCommitmentResponse);
+
+  // Get a new address from the wallet.
+  rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
+
+  // Send to a sidechain address.
+  rpc Send(SendRequest) returns (SendResponse);
+
+  // Estimate the fee rate in sats per kvB.
+  rpc EstimateFee(EstimateFeeRequest) returns (EstimateFeeResponse);
+
+  // List wallet UTXOs.
+  rpc ListUtxos(ListUtxosRequest) returns (ListUtxosResponse);
+
+  // List wallet transactions, most recent first.
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+
+  // Stop the node.
+  rpc Stop(StopRequest) returns (StopResponse);
+}
+
+message GetBlockCountRequest {}
+
+message GetBlockCountResponse {
+  int64 count = 1;
+}
+
+message GetBlockchainInfoRequest {}
+
+message GetBlockchainInfoResponse {
+  string chain = 1;
+  int64 blocks = 2;
+  int64 headers = 3;
+  string best_block_hash = 4;
+  double difficulty = 5;
+  int64 time = 6;
+  int64 median_time = 7;
+  double verification_progress = 8;
+  bool initial_block_download = 9;
+  string chain_work = 10;
+  int64 size_on_disk = 11;
+  bool pruned = 12;
+  repeated string warnings = 13;
+}
+
+message GetSidechainInfoRequest {}
+
+message GetSidechainInfoResponse {
+  bool synced = 1;
+  string mainchain_tip = 2;
+  string last_error = 3;
+}
+
+message GetMainchainTipRequest {}
+
+message GetMainchainTipResponse {
+  string block_hash = 1;
+}
+
+message GetBmmCommitmentRequest {
+  string mainchain_block_hash = 1;
+}
+
+message GetBmmCommitmentResponse {
+  string commitment = 1;
+}
+
+message GetNewAddressRequest {}
+
+message GetNewAddressResponse {
+  string address = 1;
+}
+
+message SendRequest {
+  string address = 1;
+  int64 amount_sats = 2;
+  bool subtract_fee_from_amount = 3;
+}
+
+message SendResponse {
+  string txid = 1;
+}
+
+message EstimateFeeRequest {}
+
+message EstimateFeeResponse {
+  int64 sats_per_kvb = 1;
+}
+
+message ListUtxosRequest {}
+
+message Utxo {
+  string txid = 1;
+  int64 vout = 2;
+  string address = 3;
+  int64 value_sats = 4;
+  int64 confirmations = 5;
+}
+
+message ListUtxosResponse {
+  repeated Utxo utxos = 1;
+}
+
+message ListTransactionsRequest {
+  int64 count = 1;
+}
+
+message Transaction {
+  string txid = 1;
+  int64 amount_sats = 2;
+  int64 confirmations = 3;
+  int64 time = 4;
+  string address = 5;
+  string category = 6;
+}
+
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+}
+
+message StopRequest {}
+
+message StopResponse {}

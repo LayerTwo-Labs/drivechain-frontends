@@ -28,8 +28,8 @@ func newBMMClient(cctx *cli.Context) bmmv1connect.BMMServiceClient {
 	)
 }
 
-// sidechainType resolves a name the way a person would type it: "inquisition"
-// rather than BINARY_TYPE_INQUISITION.
+// sidechainType resolves a name the way a person would type it: "bbc"
+// rather than BINARY_TYPE_BBC.
 func sidechainType(name string) (pb.BinaryType, error) {
 	full := "BINARY_TYPE_" + strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
 	value, ok := pb.BinaryType_value[full]
