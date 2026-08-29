@@ -473,6 +473,9 @@ func (h *WalletHandler) CreateMultisigWallet(ctx context.Context, req *connect.R
 			}
 			xpub = derived
 		}
+		if err := wallet.CheckCosignerKeyMatchesOrigin(xpub, c.OriginPath); err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
 		cosigners = append(cosigners, wallet.MultisigCosigner{
 			Xpub:               xpub,
 			OriginPath:         c.OriginPath,

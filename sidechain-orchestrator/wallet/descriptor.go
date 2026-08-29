@@ -327,8 +327,28 @@ func parseOrigin(origin string) (uint32, []uint32, bool) {
 	if err != nil || len(fpBytes) != 4 {
 		return 0, nil, false
 	}
-	path := make([]uint32, 0, len(parts)-1)
-	for _, seg := range parts[1:] {
+	path, ok := parsePathSegments(parts[1:])
+	if !ok {
+		return 0, nil, false
+	}
+	return binary.LittleEndian.Uint32(fpBytes), path, true
+}
+
+// parseOriginPath parses a derivation path, with or without a leading "m/",
+// into the hardened-aware elements a descriptor origin records.
+func parseOriginPath(path string) ([]uint32, bool) {
+	segs := strings.Split(strings.TrimSpace(path), "/")
+	if segs[0] == "m" || segs[0] == "M" || segs[0] == "" {
+		segs = segs[1:]
+	}
+	return parsePathSegments(segs)
+}
+
+// parsePathSegments parses "84h/0h/0h" written as its segments. A hardened
+// segment ends in h, H, or an apostrophe.
+func parsePathSegments(segs []string) ([]uint32, bool) {
+	path := make([]uint32, 0, len(segs))
+	for _, seg := range segs {
 		if seg == "" {
 			continue
 		}
@@ -339,7 +359,7 @@ func parseOrigin(origin string) (uint32, []uint32, bool) {
 		}
 		n, err := strconv.ParseUint(seg, 10, 32)
 		if err != nil {
-			return 0, nil, false
+			return nil, false
 		}
 		v := uint32(n)
 		if hardened {
@@ -347,7 +367,7 @@ func parseOrigin(origin string) (uint32, []uint32, bool) {
 		}
 		path = append(path, v)
 	}
-	return binary.LittleEndian.Uint32(fpBytes), path, true
+	return path, true
 }
 
 // keyFingerprint computes an extended key's own fingerprint (hash160 of its
