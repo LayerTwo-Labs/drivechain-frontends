@@ -34,11 +34,10 @@ type UnspentSource interface {
 	WalletUnspent(ctx context.Context) ([]fork.Utxo, error)
 }
 
-// OutspendSource answers BTC-mainnet spend status per output, and whether a
-// transaction exists there at all.
+// OutspendSource answers BTC-mainnet spend status per output. The bool reports
+// whether Bitcoin holds the transaction at all.
 type OutspendSource interface {
 	Outspend(ctx context.Context, txid string, vout int) (wallet.EsploraOutspend, bool, error)
-	TxKnown(ctx context.Context, txid string) (bool, error)
 }
 
 // SplitStore persists the per-outpoint split status.
@@ -215,18 +214,9 @@ func checkReplayStatus(ctx context.Context, btc OutspendSource, outpoint string)
 		return btcPending, nil
 	case out.Spent:
 		return btcSpent, nil
+	default:
+		return btcUnspent, nil
 	}
-	// A server that never saw the transaction reports the same "not spent" as
-	// one holding a live output, so the coin counts as shared only once the
-	// transaction itself turns up.
-	known, err := btc.TxKnown(ctx, txid)
-	if err != nil {
-		return btcUnknown, err
-	}
-	if !known {
-		return btcUnknown, nil
-	}
-	return btcUnspent, nil
 }
 
 func parseOutpoint(outpoint string) (string, int, bool) {

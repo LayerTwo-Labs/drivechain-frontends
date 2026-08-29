@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -22,8 +23,12 @@ func outspendServer(t *testing.T, status int, body string) *httptest.Server {
 }
 
 func TestEsploraOutspendUnspent(t *testing.T) {
+	var mu sync.Mutex
+	var paths []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/api/tx/aa/outspend/1", r.URL.Path)
+		mu.Lock()
+		paths = append(paths, r.URL.Path)
+		mu.Unlock()
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"spent":false}`))
 	}))
@@ -36,6 +41,8 @@ func TestEsploraOutspendUnspent(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 	require.False(t, out.Spent)
+	// One server answers both questions, so the two facts agree.
+	require.Equal(t, []string{"/api/tx/aa/outspend/1", "/api/tx/aa/status"}, paths)
 }
 
 // A 404 from every server means the transaction is not on the chain.
