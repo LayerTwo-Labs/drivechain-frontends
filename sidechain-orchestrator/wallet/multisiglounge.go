@@ -737,6 +737,11 @@ func isCosignerRecord(fingerprint uint32, path []uint32, pubKey []byte, origins 
 // derived. A record for another child leaves that cosigner unable to sign the
 // input this gate accepts.
 func verifyChildPath(path []uint32, bound boundInput) error {
+	// A cosigner with no key origin claims no derivation, so it names no child
+	// at all. The script binding still holds it to the group.
+	if len(path) == 0 {
+		return nil
+	}
 	c, i, ok := chainIndexFromPath(path)
 	if !ok || c != bound.change || i != bound.index {
 		return errors.New("carries a cosigner derivation for another child of the group")
