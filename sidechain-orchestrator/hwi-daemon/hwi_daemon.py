@@ -7,6 +7,7 @@ firmware, so promptpin and sendpin are two independent opens.
 """
 
 import json
+import os
 import sys
 
 from hwilib import commands
@@ -19,6 +20,27 @@ CHAINS = {
     "signet": Chain.SIGNET,
     "regtest": Chain.REGTEST,
 }
+
+
+def _enable_protocol_log():
+    """Write every message the host sends to the device, and every answer.
+
+    A device that signs a transaction the host did not build shows the fault
+    only in the messages between them. The messages carry the PIN and the
+    passphrase, so the log stays off until HWI_PROTOCOL_LOG asks for it.
+    """
+    if not os.environ.get("HWI_PROTOCOL_LOG"):
+        return
+    try:
+        import logging
+
+        from trezorlib import log as trezor_log
+
+        trezor_log.enable_debug_output()
+        logging.getLogger("trezorlib").setLevel(logging.DEBUG)
+        _log("protocol log enabled")
+    except Exception as e:  # A device library the build leaves out must not stop the daemon.
+        _log("protocol log unavailable: %s" % e)
 
 
 def _chain(req):
@@ -102,6 +124,7 @@ def _write(obj):
 
 
 def main():
+    _enable_protocol_log()
     for line in sys.stdin:
         line = line.strip()
         if not line:
