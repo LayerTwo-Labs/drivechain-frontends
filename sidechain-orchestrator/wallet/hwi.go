@@ -150,7 +150,46 @@ func (r *HWIRunner) SignPSBT(ctx context.Context, sel HardwareSelector, psbtBase
 	if res.PSBT == "" {
 		return "", errors.New("hwi signtx returned no psbt")
 	}
+	if err := checkDeviceSignatures(res.PSBT); err != nil {
+		return "", err
+	}
 	return res.PSBT, nil
+}
+
+// checkDeviceSignatures rejects a signature the device gives for another
+// transaction. The broadcast is the next step that reads a signature, so a
+// device fault reaches the user as a broadcast failure and names no device.
+func checkDeviceSignatures(psbtBase64 string) error {
+	packet, err := psbt.NewFromRawBytes(strings.NewReader(psbtBase64), true)
+	if err != nil {
+		return fmt.Errorf("read the psbt the device signed: %w", err)
+	}
+	// A packet the device gives back can lack a prevout this check needs. Check
+	// the signatures it carries, and leave the rest to the finalizer.
+	if !packetHasSignedPrevOuts(packet) {
+		return nil
+	}
+	if err := verifySignatures(packet); err != nil {
+		return fmt.Errorf("the device signed a different transaction: %w", err)
+	}
+	return nil
+}
+
+// packetHasSignedPrevOuts reports whether every input names the output it
+// spends and at least one input carries a signature.
+func packetHasSignedPrevOuts(packet *psbt.Packet) bool {
+	signed := false
+	for i := range packet.Inputs {
+		out, err := authenticatedPrevOut(packet, i)
+		if err != nil || out == nil {
+			return false
+		}
+		in := &packet.Inputs[i]
+		if len(in.PartialSigs) > 0 || len(in.TaprootKeySpendSig) > 0 || len(in.TaprootScriptSpendSig) > 0 {
+			signed = true
+		}
+	}
+	return signed
 }
 
 // DisplayAddress shows an address for the given output descriptor on the device.
