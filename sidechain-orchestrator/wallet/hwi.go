@@ -131,6 +131,9 @@ func (r *HWIRunner) SignPSBT(ctx context.Context, sel HardwareSelector, psbtBase
 	if err := checkDeviceCanSignPaths(packet, sel.Fingerprint); err != nil {
 		return "", err
 	}
+	if err := r.checkDeviceHoldsWalletKeys(ctx, sel, packet); err != nil {
+		return "", err
+	}
 	req := r.request("signtx", sel)
 	req["psbt"] = psbtBase64
 	raw, err := r.call(ctx, req)
