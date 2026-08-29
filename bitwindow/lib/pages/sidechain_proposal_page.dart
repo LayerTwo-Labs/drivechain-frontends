@@ -148,8 +148,15 @@ class SidechainProposalViewModel extends BaseViewModel {
     commitHashController.addListener(notifyListeners);
   }
 
+  // FormState.validate() calls setState() on the Form, so a build that reads
+  // this getter would mark the Form dirty mid-build. Run the validators here
+  // instead, and leave validate() to the submit path.
   bool get isFormValid {
-    return formKey.currentState?.validate() ?? false;
+    return validateSlot(slotController.text) == null &&
+        validateTitle(titleController.text) == null &&
+        validateVersion(versionController.text) == null &&
+        validateHash(tarballHashController.text, 256) == null &&
+        validateHash(commitHashController.text, 160) == null;
   }
 
   String? validateSlot(String? value) {
@@ -203,7 +210,8 @@ class SidechainProposalViewModel extends BaseViewModel {
   }
 
   Future<void> proposeSidechain(BuildContext context) async {
-    if (!isFormValid) {
+    // Outside build, so this one may touch the Form: it renders the messages.
+    if (!(formKey.currentState?.validate() ?? false)) {
       return;
     }
 
