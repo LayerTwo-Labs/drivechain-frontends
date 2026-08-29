@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,12 +67,26 @@ func TestGetXpub(t *testing.T) {
 
 func TestSignPSBT(t *testing.T) {
 	var req map[string]any
-	r := fakeRunner("regtest", `{"psbt":"cHNidP8signed","signed":true}`, nil, &req)
-	signed, err := r.SignPSBT(context.Background(), HardwareSelector{Fingerprint: "1a2b3c4d"}, "cHNidP8unsigned")
+	r := &HWIRunner{chain: "regtest", call: func(_ context.Context, q map[string]any) (json.RawMessage, error) {
+		req = q
+		// The device gives back the packet it signed; an unsigned one carries no
+		// signature to check.
+		return json.RawMessage(`{"psbt":"` + q["psbt"].(string) + `","signed":true}`), nil
+	}}
+
+	tx := wire.NewMsgTx(2)
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{}, nil, nil))
+	tx.AddTxOut(wire.NewTxOut(1000, make([]byte, 22)))
+	packet, err := psbt.NewFromUnsignedTx(tx)
 	require.NoError(t, err)
-	require.Equal(t, "cHNidP8signed", signed)
+	unsigned, err := packet.B64Encode()
+	require.NoError(t, err)
+
+	signed, err := r.SignPSBT(context.Background(), HardwareSelector{Fingerprint: "1a2b3c4d"}, unsigned)
+	require.NoError(t, err)
+	require.Equal(t, unsigned, signed)
 	require.Equal(t, "signtx", req["cmd"])
-	require.Equal(t, "cHNidP8unsigned", req["psbt"])
+	require.Equal(t, unsigned, req["psbt"])
 }
 
 func TestPinFlow(t *testing.T) {
