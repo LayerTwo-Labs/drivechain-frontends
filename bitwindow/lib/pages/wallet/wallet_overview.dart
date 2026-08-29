@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/wallet/bump_fee_dialog.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/utils/transaction_search.dart';
 import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
@@ -503,9 +504,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     final filteredTransactions = _txProvider.walletTransactions.where((tx) {
-      final txDate = tx.confirmationTime.timestamp.toDateTime();
-
-      if (searchController.text.isNotEmpty && !tx.txid.contains(searchController.text)) {
+      if (!transactionMatchesSearch(tx, searchController.text)) {
         return false;
       }
 
@@ -513,6 +512,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
         final rangeStart = DateTime(dateRange!.start.year, dateRange!.start.month, dateRange!.start.day);
         final rangeEnd = DateTime(dateRange!.end.year, dateRange!.end.month, dateRange!.end.day, 23, 59, 59);
 
+        final txDate = tx.confirmationTime.timestamp.toDateTime();
         if (txDate.isBefore(rangeStart) || txDate.isAfter(rangeEnd)) {
           return false;
         }
