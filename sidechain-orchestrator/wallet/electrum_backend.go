@@ -1167,6 +1167,36 @@ func (p *ElectrumBackend) SignPSBTWithCosigner(ctx context.Context, walletID, ps
 			amount:   out.Value,
 			addr:     sa,
 		}
+		// A hardware signer refuses a multisig path that is not BIP48 or BIP45,
+		// and it names neither the key nor the path in its answer.
+		paths := make([]string, 0, len(packet.Inputs[i].Bip32Derivation))
+		for _, d := range packet.Inputs[i].Bip32Derivation {
+			var fp [4]byte
+			binary.LittleEndian.PutUint32(fp[:], d.MasterKeyFingerprint)
+			paths = append(paths, fmt.Sprintf("%x=%s", fp, pathString(d.Bip32Path)))
+		}
+		// The device signs over the amount the packet carries; this backend checks
+		// the signature against the amount it looks up. A difference between the
+		// two reads as a bad signature and says nothing about the cause.
+		var packetAmount int64 = -1
+		if wu := packet.Inputs[i].WitnessUtxo; wu != nil {
+			packetAmount = wu.Value
+		}
+		p.log.Info().
+			Str("wallet", walletID).
+			Int("input", i).
+			Str("kind", sa.kind.String()).
+			Int64("amount", out.Value).
+			Int64("packet_amount", packetAmount).
+			Int("witness_script_bytes", len(packet.Inputs[i].WitnessScript)).
+			Uint32("sighash", uint32(packet.Inputs[i].SighashType)).
+			Bool("change", change).
+			Uint32("index", index).
+			Int("keys", len(desc.Keys)).
+			Int("derivations", len(sa.derivations)).
+			Int("global_xpubs", len(packet.XPubs)).
+			Strs("paths", paths).
+			Msg("multisig input ready to sign")
 	}
 	if _, err := signPSBT(packet, inputs, net); err != nil {
 		return "", err
