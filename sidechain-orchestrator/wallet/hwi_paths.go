@@ -1,11 +1,14 @@
 package wallet
 
 import (
+	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"strings"
 
+	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 )
 
@@ -80,4 +83,79 @@ func parseFingerprint(s string) (uint32, bool) {
 		return 0, false
 	}
 	return binary.LittleEndian.Uint32(raw), true
+}
+
+// checkDeviceHoldsWalletKeys makes sure the device carries the keys this packet
+// files under its fingerprint. A signer returns a signature for the key it
+// derives, and the caller files that signature under the key the packet names.
+// A device whose seed or passphrase differs gives a valid signature for a key
+// this wallet does not hold, and only a check of the keys names that cause.
+func (r *HWIRunner) checkDeviceHoldsWalletKeys(
+	ctx context.Context,
+	sel HardwareSelector,
+	packet *psbt.Packet,
+) error {
+	want, ok := parseFingerprint(sel.Fingerprint)
+	if !ok {
+		return nil
+	}
+	for _, x := range packet.XPubs {
+		if x.MasterKeyFingerprint != want || len(x.ExtendedKey) < 78 {
+			continue
+		}
+		path := pathString(x.Bip32Path)
+		got, err := r.GetXpub(ctx, sel, path)
+		if err != nil {
+			return fmt.Errorf("read the device key at %s: %w", path, err)
+		}
+		raw := base58.Decode(got)
+		if len(raw) < 82 {
+			return fmt.Errorf("the device gave a key at %s this wallet cannot read", path)
+		}
+		if bytes.Equal(raw[13:78], x.ExtendedKey[13:78]) {
+			continue
+		}
+		if real, ok := r.findKeyOnDevice(ctx, sel, x.Bip32Path, x.ExtendedKey); ok {
+			return fmt.Errorf(
+				"this wallet records cosigner %s at %s, but the device holds that key at %s; the wallet stored the wrong path when it imported the key, so correct the cosigner origin to %s and the device signs the same script",
+				sel.Fingerprint, path, real, real)
+		}
+		return fmt.Errorf(
+			"the device holds a different key at %s than wallet fingerprint %s names, and no nearby account holds it either; the device seed or passphrase does not match the key this wallet stored",
+			path, sel.Fingerprint)
+	}
+	return nil
+}
+
+// findKeyOnDevice names the path a stored key really lives at. A wallet that
+// imports a cosigner at one path and records another gives a signer a key it
+// cannot derive, and the script stays correct, so the path alone needs a fix.
+// The search stays near the recorded path: the account and the script type.
+func (r *HWIRunner) findKeyOnDevice(
+	ctx context.Context,
+	sel HardwareSelector,
+	recorded []uint32,
+	want []byte,
+) (string, bool) {
+	if len(recorded) != 4 || len(want) < 78 {
+		return "", false
+	}
+	for account := uint32(0); account < 6; account++ {
+		for kind := uint32(0); kind < 4; kind++ {
+			try := []uint32{recorded[0], recorded[1], account | hardenedKey, kind | hardenedKey}
+			if try[2] == recorded[2] && try[3] == recorded[3] {
+				continue
+			}
+			path := pathString(try)
+			got, err := r.GetXpub(ctx, sel, path)
+			if err != nil {
+				continue
+			}
+			raw := base58.Decode(got)
+			if len(raw) >= 78 && bytes.Equal(raw[13:78], want[13:78]) {
+				return path, true
+			}
+		}
+	}
+	return "", false
 }
