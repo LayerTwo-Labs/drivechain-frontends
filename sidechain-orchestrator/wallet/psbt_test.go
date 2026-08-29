@@ -561,9 +561,10 @@ func TestFinalizeRejectsForeignRedeemScript(t *testing.T) {
 	assert.Contains(t, err.Error(), "redeem script does not match the output it spends")
 }
 
-// A cosigner pasted as a bare xpub has no origin, and a made-up path fails a
-// hardware signer: it checks every path in the packet before it signs any of
-// them. A master account key is the one case where [chain, index] is true.
+// A cosigner pasted as a bare xpub has no origin. Its record carries an empty
+// path: a made-up path fails a hardware signer, and no record at all leaves the
+// signer a script with a key missing. A master account key is the one case
+// where [chain, index] is true.
 func TestDerivationsSkipUnknownOrigin(t *testing.T) {
 	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
 	net := &chaincfg.SigNetParams
@@ -586,10 +587,11 @@ func TestDerivationsSkipUnknownOrigin(t *testing.T) {
 
 	derivs, err := d.derivations(false, 0)
 	require.NoError(t, err)
-	require.Len(t, derivs, 2, "the origin-less deep key gets no record")
+	require.Len(t, derivs, 3, "every key reaches the signer")
 	require.Equal(t, []uint32{hdkeychain.HardenedKeyStart + 48, hdkeychain.HardenedKeyStart + 1,
 		hdkeychain.HardenedKeyStart, hdkeychain.HardenedKeyStart + 2, 0, 0}, derivs[0].path)
-	require.Equal(t, []uint32{0, 0}, derivs[1].path, "a master key's path is true")
+	require.Empty(t, derivs[1].path, "the origin-less deep key claims no derivation")
+	require.Equal(t, []uint32{0, 0}, derivs[2].path, "a master key's path is true")
 }
 
 func mustHex(t *testing.T, s string) []byte {

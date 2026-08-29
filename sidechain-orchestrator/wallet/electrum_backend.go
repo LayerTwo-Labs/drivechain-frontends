@@ -1820,6 +1820,14 @@ func (p *ElectrumBackend) multisigSigningDescriptor(w *WalletData) (*Descriptor,
 	return p.multisigSigningDescriptorFor(w, "")
 }
 
+// shortXpub names a key in a log line without printing the whole thing.
+func shortXpub(xpub string) string {
+	if len(xpub) <= 16 {
+		return xpub
+	}
+	return xpub[:12] + "…" + xpub[len(xpub)-4:]
+}
+
 // multisigSigningDescriptorFor builds the multisig descriptor with held cosigners
 // substituted as their xprv. When onlyXpub is non-empty, only that cosigner's
 // xprv is substituted (the rest stay xpubs), so signing adds a single cosigner's
@@ -1832,7 +1840,14 @@ func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub s
 	}
 	group := MultisigLoungeGroup{M: ms.M, N: ms.N}
 	signWithXprv := map[string]string{}
+	// A cosigner with no origin reaches the PSBT as a bare key, and a hardware
+	// signer cannot place it in the script it rebuilds. Name it here: the device
+	// reports only a bad signature, which says nothing about which leg is short.
+	var noOrigin []string
 	for _, c := range ms.Cosigners {
+		if c.Fingerprint == "" {
+			noOrigin = append(noOrigin, shortXpub(c.Xpub))
+		}
 		group.Keys = append(group.Keys, MultisigLoungeKey{
 			Xpub:        c.Xpub,
 			Fingerprint: c.Fingerprint,
@@ -1858,6 +1873,20 @@ func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub s
 			xprv = x
 		}
 		signWithXprv[c.Xpub] = xprv
+	}
+
+	p.log.Info().
+		Str("wallet", w.ID).
+		Int("m", ms.M).
+		Int("n", ms.N).
+		Int("with_origin", len(ms.Cosigners)-len(noOrigin)).
+		Strs("without_origin", noOrigin).
+		Msg("multisig signing descriptor")
+	if len(noOrigin) > 0 {
+		p.log.Warn().
+			Str("wallet", w.ID).
+			Strs("cosigners", noOrigin).
+			Msg("cosigner has no key origin; a hardware signer cannot rebuild this script")
 	}
 
 	scriptType := multisigTypeString(w.scriptKind())

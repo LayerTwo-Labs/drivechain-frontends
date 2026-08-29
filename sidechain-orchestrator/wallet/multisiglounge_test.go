@@ -403,8 +403,13 @@ func TestValidatePsbtBareCosignerChildMismatch(t *testing.T) {
 
 	// The first record still carries the true child, so the script check reads
 	// the right hint and the tampered record reaches the origin check.
-	require.Len(t, packet.Inputs[0].Bip32Derivation, 2)
-	rec := packet.Inputs[0].Bip32Derivation[1]
+	var rec *psbt.Bip32Derivation
+	for _, d := range packet.Inputs[0].Bip32Derivation[1:] {
+		if len(d.Bip32Path) > 2 {
+			rec = d
+		}
+	}
+	require.NotNil(t, rec, "a second record carries a real path")
 	rec.Bip32Path[len(rec.Bip32Path)-1] = 6
 
 	_, err = ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
@@ -506,9 +511,16 @@ func TestValidatePsbtBareXpubCosigners(t *testing.T) {
 	accts := loungeTestAccts(t)
 
 	packet := loungeBareCosignerPSBT(t, accts, 1)
-	// A bare cosigner carries no derivation record: a made-up path fails a
-	// hardware signer, which checks every path in the packet.
-	require.Len(t, packet.Inputs[0].Bip32Derivation, 1)
+	// A bare cosigner carries a record with an empty path: a made-up path fails
+	// a hardware signer, and no record leaves it a script with a key missing.
+	require.Len(t, packet.Inputs[0].Bip32Derivation, 3)
+	empty := 0
+	for _, d := range packet.Inputs[0].Bip32Derivation {
+		if len(d.Bip32Path) == 0 {
+			empty++
+		}
+	}
+	require.Equal(t, 2, empty, "the two bare cosigners claim no derivation")
 
 	res, err := ValidateMultisigPsbt(psbtToBase64(t, packet), 2, &group)
 	require.NoError(t, err, "a group's own spend must not be rejected over external cosigner metadata")

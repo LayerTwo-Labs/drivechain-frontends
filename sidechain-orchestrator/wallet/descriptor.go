@@ -303,9 +303,12 @@ func (d *Descriptor) derivations(change bool, index uint32) ([]keyDerivation, er
 			fp = keyFingerprint(k.Account)
 			path = []uint32{chain, index}
 		default:
-			// A hardware signer checks every path in the packet before it signs
-			// any of them, so one made-up path fails the whole transaction.
-			continue
+			// The key stands, but its path from a master does not. An empty path
+			// names the key without claiming a derivation: a made-up path fails
+			// a hardware signer, and no record at all leaves it a script with a
+			// key missing.
+			fp = keyFingerprint(k.Account)
+			path = nil
 		}
 		out = append(out, keyDerivation{pub: pub, fingerprint: fp, path: path})
 	}
