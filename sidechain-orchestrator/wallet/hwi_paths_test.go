@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/base58"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
 )
@@ -144,4 +146,55 @@ func TestDeviceKeyFoundAtAnotherPath(t *testing.T) {
 		HardwareSelector{Type: "trezor", Fingerprint: "d8d3f926"}, packet)
 	require.ErrorContains(t, err, "records cosigner d8d3f926 at m/48'/0'/1'/2'")
 	require.ErrorContains(t, err, "device holds that key at m/48'/0'/0'/2'")
+}
+
+// TestDeviceSignatureCheckedAtTheDevice: a device that signs another
+// transaction must fail at the device call. The broadcast is otherwise the
+// first step that reads the signature, and it names no device.
+func TestDeviceSignatureCheckedAtTheDevice(t *testing.T) {
+	net := &chaincfg.MainNetParams
+	seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, ""))
+	acct, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+	require.NoError(t, err)
+	priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	pkh := btcutil.Hash160(priv.PubKey().SerializeCompressed())
+	spk, err := txscript.NewScriptBuilder().AddOp(txscript.OP_0).AddData(pkh).Script()
+	require.NoError(t, err)
+
+	tx := wire.NewMsgTx(2)
+	tx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0}, nil, nil))
+	tx.AddTxOut(wire.NewTxOut(900, spk))
+	packet, err := psbt.NewFromUnsignedTx(tx)
+	require.NoError(t, err)
+	packet.Inputs[0].WitnessUtxo = wire.NewTxOut(1000, spk)
+
+	// A signature over another transaction: the same input, another amount.
+	other := wire.NewMsgTx(2)
+	other.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0}, nil, nil))
+	other.AddTxOut(wire.NewTxOut(500, spk))
+	f := txscript.NewCannedPrevOutputFetcher(spk, 1000)
+	wrong, err := txscript.RawTxInWitnessSignature(
+		other, txscript.NewTxSigHashes(other, f), 0, 1000, spk, txscript.SigHashAll, priv)
+	require.NoError(t, err)
+	packet.Inputs[0].PartialSigs = []*psbt.PartialSig{
+		{PubKey: priv.PubKey().SerializeCompressed(), Signature: wrong},
+	}
+	b64, err := packet.B64Encode()
+	require.NoError(t, err)
+
+	err = checkDeviceSignatures(b64)
+	require.ErrorContains(t, err, "the device signed a different transaction")
+
+	// A taproot key-path spend carries its signature in one field of its own,
+	// and it reaches the same check.
+	taproot, err := psbt.NewFromUnsignedTx(tx.Copy())
+	require.NoError(t, err)
+	taproot.Inputs[0].WitnessUtxo = wire.NewTxOut(1000, spk)
+	taproot.Inputs[0].TaprootKeySpendSig = wrong
+	b64, err = taproot.B64Encode()
+	require.NoError(t, err)
+	require.Error(t, checkDeviceSignatures(b64))
 }
