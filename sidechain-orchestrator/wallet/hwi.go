@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
 )
 
@@ -122,6 +124,13 @@ func (r *HWIRunner) GetXpub(ctx context.Context, sel HardwareSelector, path stri
 
 // SignPSBT sends a base64 PSBT to the device and returns the signed PSBT.
 func (r *HWIRunner) SignPSBT(ctx context.Context, sel HardwareSelector, psbtBase64 string) (string, error) {
+	packet, err := psbt.NewFromRawBytes(strings.NewReader(psbtBase64), true)
+	if err != nil {
+		return "", fmt.Errorf("read psbt for the device: %w", err)
+	}
+	if err := checkDeviceCanSignPaths(packet, sel.Fingerprint); err != nil {
+		return "", err
+	}
 	req := r.request("signtx", sel)
 	req["psbt"] = psbtBase64
 	raw, err := r.call(ctx, req)
