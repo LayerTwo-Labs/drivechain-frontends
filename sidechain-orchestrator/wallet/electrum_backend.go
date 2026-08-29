@@ -1024,11 +1024,9 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		effect.change = &changeAddr
 		effect.changeSats = changeSats
 		outputs = append(outputs, TxOutSpec{
-			Address:     changeAddr.address,
-			AmountBTC:   float64(changeSats) / 1e8,
-			Kind:        changeAddr.kind,
-			Derivations: changeAddr.derivations,
-		})
+			Address:   changeAddr.address,
+			AmountBTC: float64(changeSats) / 1e8,
+		}.describeOwned(changeAddr))
 	}
 
 	// External inputs come first (e.g. the CTIP at input 0), then wallet inputs.
@@ -1494,8 +1492,7 @@ func (p *ElectrumBackend) BumpFee(ctx context.Context, walletID string, req Bump
 		}
 		spec.Address = vout.ScriptPubKeyAddress
 		if sa, owned := scan.byAddr[vout.ScriptPubKeyAddress]; owned {
-			spec.Kind = sa.kind
-			spec.Derivations = sa.derivations
+			spec = spec.describeOwned(sa)
 			// Every output this wallet owns goes back into the cache, not only
 			// the change one: a consolidation pays itself on the receive branch.
 			effect.credited = append(effect.credited, walletCredit{addr: sa, sats: amount, vout: len(outputs)})

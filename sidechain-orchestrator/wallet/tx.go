@@ -30,6 +30,22 @@ type TxOutSpec struct {
 	// Set for an owned change output so the PSBT carries its derivation records.
 	Kind        ScriptKind
 	Derivations []keyDerivation
+	// The scripts an owned change output pays to. A signer that gets a change
+	// path without them rebuilds the output as a single-key one, and it then
+	// signs a transaction that pays somewhere else.
+	RedeemScript  []byte
+	WitnessScript []byte
+}
+
+// describeOwned marks an output this wallet owns, so a signer can check it as
+// its own. It takes the paths and the scripts together, because a signer that
+// gets the paths alone rebuilds the output as a single-key one.
+func (o TxOutSpec) describeOwned(sa scannedAddr) TxOutSpec {
+	o.Kind = sa.kind
+	o.Derivations = sa.derivations
+	o.RedeemScript = sa.redeem
+	o.WitnessScript = sa.witnessScript
+	return o
 }
 
 // BuildUnsignedTransaction assembles a raw unsigned transaction in-process,

@@ -191,9 +191,22 @@ func buildPSBT(inputs []psbtInput, outputs []TxOutSpec, net *chaincfg.Params, pr
 		}
 	}
 
-	// Mark owned change outputs so a signer can verify them as its own.
+	// Mark owned change outputs so a signer can verify them as its own. The
+	// scripts go with the paths: a signer that gets a change path alone rebuilds
+	// the output as a single-key one, and it then signs a transaction that pays
+	// somewhere else.
 	for i, out := range outputs {
 		addBip32Derivations(nil, &packet.Outputs[i], out.Kind, out.Derivations)
+		if len(out.RedeemScript) > 0 {
+			if err := updater.AddOutRedeemScript(out.RedeemScript, i); err != nil {
+				return nil, err
+			}
+		}
+		if len(out.WitnessScript) > 0 {
+			if err := updater.AddOutWitnessScript(out.WitnessScript, i); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return packet, nil
 }
