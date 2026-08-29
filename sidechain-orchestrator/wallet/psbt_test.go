@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -1114,4 +1116,79 @@ func TestFinalizeRejectsUncompressedKey(t *testing.T) {
 	_, err = finalizeAndExtract(packet)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "compressed public key")
+}
+
+// TestChangeOutputCarriesItsScript: a multisig change output must carry its
+// witness script beside its derivation records. A hardware signer that gets the
+// paths alone rebuilds the output as a single-key one, and it then signs a
+// transaction that pays somewhere else.
+func TestChangeOutputCarriesItsScript(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acct := func(pass string) *hdkeychain.ExtendedKey {
+		seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, pass))
+		k, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+		require.NoError(t, err)
+		return k
+	}
+	d := &Descriptor{Kind: ScriptMultisig, Threshold: 2,
+		Keys: []DescriptorKey{{Account: acct("a")}, {Account: acct("b")}, {Account: acct("c")}}}
+	spend, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+	change, _, err := d.DeriveScript(true, 0, net)
+	require.NoError(t, err)
+	sum := sha256.Sum256(change.witnessScript)
+	changeWSH, err := btcutil.NewAddressWitnessScriptHash(sum[:], net)
+	require.NoError(t, err)
+	changeAddr := changeWSH.EncodeAddress()
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, spend.scriptPubKey))
+
+	in := psbtInput{
+		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
+		amount:   amount,
+		addr: scannedAddr{scriptPubKey: spend.scriptPubKey, witnessScript: spend.witnessScript,
+			kind: ScriptMultisig},
+	}
+	derivations, err := d.derivations(true, 0)
+	require.NoError(t, err)
+	outs := []TxOutSpec{
+		{Address: dest, AmountBTC: 0.0005},
+		{
+			Address: changeAddr, AmountBTC: 0.0004,
+			Kind: ScriptMultisig, Derivations: derivations,
+			WitnessScript: change.witnessScript,
+		},
+	}
+
+	packet, err := buildPSBT([]psbtInput{in}, outs, net, nil)
+	require.NoError(t, err)
+	require.Empty(t, packet.Outputs[0].WitnessScript, "a payment output is not ours to describe")
+	require.Equal(t, change.witnessScript, packet.Outputs[1].WitnessScript,
+		"the change output must carry the script its paths describe")
+
+	// The script must hash to the output it pays, or a signer rebuilds another.
+	require.Equal(t, change.scriptPubKey[2:34], sum[:])
+}
+
+// TestOwnedOutputTakesPathsAndScriptsTogether: an owned output takes its paths
+// and its scripts from one place, so no builder describes one without the other.
+func TestOwnedOutputTakesPathsAndScriptsTogether(t *testing.T) {
+	sa := scannedAddr{
+		kind:          ScriptMultisig,
+		redeem:        []byte{0x01},
+		witnessScript: []byte{0x02},
+		derivations:   []keyDerivation{{fingerprint: 7}},
+	}
+	got := TxOutSpec{Address: "x", AmountSats: 5}.describeOwned(sa)
+	require.Equal(t, ScriptMultisig, got.Kind)
+	require.Equal(t, sa.derivations, got.Derivations)
+	require.Equal(t, sa.redeem, got.RedeemScript)
+	require.Equal(t, sa.witnessScript, got.WitnessScript)
+	require.Equal(t, "x", got.Address, "describing an output keeps what it pays")
+	require.Equal(t, int64(5), got.AmountSats)
 }
