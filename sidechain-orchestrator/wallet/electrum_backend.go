@@ -3,6 +3,7 @@ package wallet
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -641,6 +642,7 @@ func (p *ElectrumBackend) signAndBroadcast(ctx context.Context, walletID string,
 	}
 	hexToSend, err := finalizeAndExtract(packet)
 	if err != nil {
+		p.logRejectedPacket(packet, err)
 		return "", err
 	}
 	txid, err := p.client.Broadcast(ctx, hexToSend)
@@ -1218,7 +1220,43 @@ func (p *ElectrumBackend) FinalizePSBT(psbtBase64 string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return finalizeAndExtract(packet)
+	raw, err := finalizeAndExtract(packet)
+	if err != nil {
+		p.logRejectedPacket(packet, err)
+		return "", err
+	}
+	return raw, nil
+}
+
+// logRejectedPacket writes what a finalizer rejected. A signature a device gives
+// and this backend refuses is the one failure the packet alone explains, so the
+// report carries the packet, the transaction, and every key the input names.
+func (p *ElectrumBackend) logRejectedPacket(packet *psbt.Packet, cause error) {
+	event := p.log.Error().Err(cause)
+	if b64, err := packet.B64Encode(); err == nil {
+		event = event.Str("psbt", b64)
+	}
+	if packet.UnsignedTx != nil {
+		event = event.Str("txid", packet.UnsignedTx.TxHash().String())
+	}
+	for i := range packet.Inputs {
+		in := &packet.Inputs[i]
+		keys := make([]string, 0, len(in.Bip32Derivation))
+		for _, d := range in.Bip32Derivation {
+			var fp [4]byte
+			binary.LittleEndian.PutUint32(fp[:], d.MasterKeyFingerprint)
+			keys = append(keys, fmt.Sprintf("%x=%s=%x", fp, pathString(d.Bip32Path), d.PubKey))
+		}
+		sigs := make([]string, 0, len(in.PartialSigs))
+		for _, ps := range in.PartialSigs {
+			sigs = append(sigs, fmt.Sprintf("%x=%x", ps.PubKey, ps.Signature))
+		}
+		event = event.
+			Strs(fmt.Sprintf("input%d_keys", i), keys).
+			Strs(fmt.Sprintf("input%d_sigs", i), sigs).
+			Str(fmt.Sprintf("input%d_witness_script", i), hex.EncodeToString(in.WitnessScript))
+	}
+	event.Msg("the finalizer rejected this packet")
 }
 
 // psbtInputsFromPacket reconstructs the per-input signing metadata for a PSBT by
