@@ -652,9 +652,219 @@ func verifyPartialSig(
 		return err
 	}
 	if !sig.Verify(hash, pub) {
-		return fmt.Errorf("key %s signed a different transaction", signerName(in, ps.PubKey))
+		// A hardware signer rebuilds a multisig script from the packet's
+		// derivation records, so a key it cannot place gives it a script nobody
+		// else holds. Name what the signature covers, or the report says only
+		// that a key is wrong.
+		return fmt.Errorf("key %s signed a different transaction: %s; %d of %d keys in this input carry a key origin, witness script %x",
+			signerName(in, ps.PubKey), signedInstead(tx, sigHashes, i, in, prevOut, ps.PubKey, sig, pub, hashType),
+			keysWithOrigin(in), len(in.Bip32Derivation), sha256.Sum256(in.WitnessScript))
 	}
 	return nil
+}
+
+// signedInstead names what a rejected signature covers. A hardware signer builds
+// its own sighash from the packet, so the way its result differs from this
+// packet identifies the fault: a signer that treats a multisig input as
+// single-sig, one that keeps the cosigner order the descriptor sorts, one that
+// takes a different amount or a different sighash type.
+func signedInstead(
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	i int,
+	in *psbt.PInput,
+	prevOut *wire.TxOut,
+	pubKey []byte,
+	sig *ecdsa.Signature,
+	pub *btcec.PublicKey,
+	hashType txscript.SigHashType,
+) string {
+	covers := func(hash []byte, err error) bool {
+		return err == nil && sig.Verify(hash, pub)
+	}
+
+	if code, err := p2wpkhScriptCode(btcutil.Hash160(pubKey)); err == nil {
+		if covers(txscript.CalcWitnessSigHash(code, sigHashes, hashType, tx, i, prevOut.Value)) {
+			return "it signed this input as single-key p2wpkh, not as multisig"
+		}
+	}
+	if covers(txscript.CalcSignatureHash(in.WitnessScript, hashType, tx, i)) {
+		return "it signed the legacy sighash, which omits the input amount"
+	}
+	if order, ok := multisigKeyOrderThatMatches(tx, sigHashes, i, in, prevOut, hashType, covers); ok {
+		return fmt.Sprintf("it built the multisig script with the keys in the order %v; this wallet sorts them", order)
+	}
+	if name, ok := anotherKeyInScript(in, pubKey, sig, tx, sigHashes, i, prevOut, hashType); ok {
+		return fmt.Sprintf("the signature belongs to %s, another key in this script", name)
+	}
+	for _, t := range []txscript.SigHashType{
+		txscript.SigHashAll, txscript.SigHashNone, txscript.SigHashSingle,
+		txscript.SigHashAll | txscript.SigHashAnyOneCanPay,
+		txscript.SigHashNone | txscript.SigHashAnyOneCanPay,
+		txscript.SigHashSingle | txscript.SigHashAnyOneCanPay,
+	} {
+		if t == hashType {
+			continue
+		}
+		if covers(txscript.CalcWitnessSigHash(in.WitnessScript, sigHashes, t, tx, i, prevOut.Value)) {
+			return fmt.Sprintf("it signed sighash type %#x and reported %#x", byte(t), byte(hashType))
+		}
+	}
+	var paid int64
+	for _, o := range tx.TxOut {
+		paid += o.Value
+	}
+	for _, v := range []int64{0, paid} {
+		if v == prevOut.Value {
+			continue
+		}
+		if covers(txscript.CalcWitnessSigHash(in.WitnessScript, sigHashes, hashType, tx, i, v)) {
+			return fmt.Sprintf("it signed the amount %d, and this input holds %d", v, prevOut.Value)
+		}
+	}
+	return "no known signer fault matches the signature"
+}
+
+// multisigKeyOrderThatMatches finds a key order whose script the signature
+// covers. A descriptor with sortedmulti sorts its keys; a signer that builds
+// the script in any other order signs a script this wallet never holds.
+func multisigKeyOrderThatMatches(
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	i int,
+	in *psbt.PInput,
+	prevOut *wire.TxOut,
+	hashType txscript.SigHashType,
+	covers func([]byte, error) bool,
+) ([]int, bool) {
+	m, n, ok := multisigLimits(in.WitnessScript)
+	if !ok || n != len(in.Bip32Derivation) || n > 6 {
+		return nil, false
+	}
+	keys := make([][]byte, n)
+	for k, d := range in.Bip32Derivation {
+		keys[k] = d.PubKey
+	}
+	order := make([]int, n)
+	for k := range order {
+		order[k] = k
+	}
+	var found []int
+	permute(order, 0, func(p []int) bool {
+		b := txscript.NewScriptBuilder().AddInt64(int64(m))
+		for _, k := range p {
+			b.AddData(keys[k])
+		}
+		script, err := b.AddInt64(int64(n)).AddOp(txscript.OP_CHECKMULTISIG).Script()
+		if err != nil || bytes.Equal(script, in.WitnessScript) {
+			return false
+		}
+		if !covers(txscript.CalcWitnessSigHash(script, sigHashes, hashType, tx, i, prevOut.Value)) {
+			return false
+		}
+		found = append([]int(nil), p...)
+		return true
+	})
+	return found, found != nil
+}
+
+// permute calls fn for each order of xs and stops at the first true answer.
+func permute(xs []int, k int, fn func([]int) bool) bool {
+	if k == len(xs) {
+		return fn(xs)
+	}
+	for j := k; j < len(xs); j++ {
+		xs[k], xs[j] = xs[j], xs[k]
+		if permute(xs, k+1, fn) {
+			return true
+		}
+		xs[k], xs[j] = xs[j], xs[k]
+	}
+	return false
+}
+
+// anotherKeyInScript names the key a signature really covers when the packet
+// files it under a different one. A signer that derives one key and reports
+// another gives a signature no key in the packet explains.
+func anotherKeyInScript(
+	in *psbt.PInput,
+	pubKey []byte,
+	sig *ecdsa.Signature,
+	tx *wire.MsgTx,
+	sigHashes *txscript.TxSigHashes,
+	i int,
+	prevOut *wire.TxOut,
+	hashType txscript.SigHashType,
+) (string, bool) {
+	hash, err := txscript.CalcWitnessSigHash(in.WitnessScript, sigHashes, hashType, tx, i, prevOut.Value)
+	if err != nil {
+		return "", false
+	}
+	for _, d := range in.Bip32Derivation {
+		if bytes.Equal(d.PubKey, pubKey) {
+			continue
+		}
+		pub, err := btcec.ParsePubKey(d.PubKey)
+		if err != nil || !sig.Verify(hash, pub) {
+			continue
+		}
+		return signerName(in, d.PubKey), true
+	}
+	return "", false
+}
+
+// multisigInRecordOrder rebuilds a bare multisig script from an input's
+// derivation records, keeping the order the packet lists them in. A descriptor
+// with sortedmulti sorts its keys, so a signer that keeps packet order builds
+// this script instead.
+func multisigInRecordOrder(in *psbt.PInput) ([]byte, bool) {
+	m, n, ok := multisigLimits(in.WitnessScript)
+	if !ok || n != len(in.Bip32Derivation) {
+		return nil, false
+	}
+	b := txscript.NewScriptBuilder().AddInt64(int64(m))
+	for _, d := range in.Bip32Derivation {
+		b.AddData(d.PubKey)
+	}
+	script, err := b.AddInt64(int64(n)).AddOp(txscript.OP_CHECKMULTISIG).Script()
+	if err != nil {
+		return nil, false
+	}
+	return script, true
+}
+
+// multisigLimits reads the m and the n of a bare multisig script.
+func multisigLimits(script []byte) (int, int, bool) {
+	if len(script) < 3 || script[len(script)-1] != txscript.OP_CHECKMULTISIG {
+		return 0, 0, false
+	}
+	small := func(op byte) (int, bool) {
+		if op < txscript.OP_1 || op > txscript.OP_16 {
+			return 0, false
+		}
+		return int(op-txscript.OP_1) + 1, true
+	}
+	m, ok := small(script[0])
+	if !ok {
+		return 0, 0, false
+	}
+	n, ok := small(script[len(script)-2])
+	if !ok {
+		return 0, 0, false
+	}
+	return m, n, true
+}
+
+// keysWithOrigin counts an input's derivation records that name a real path. A
+// bare xpub cosigner has none, and a signer cannot place that key.
+func keysWithOrigin(in *psbt.PInput) int {
+	n := 0
+	for _, d := range in.Bip32Derivation {
+		if len(d.Bip32Path) > 2 {
+			n++
+		}
+	}
+	return n
 }
 
 // signerName identifies a partial signature's signer the way the key table

@@ -1118,6 +1118,75 @@ func TestFinalizeRejectsUncompressedKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "compressed public key")
 }
 
+// TestFinalizeNamesTheSignerFault: a hardware signer that builds its own sighash
+// gives a signature this packet cannot explain. The report must name the fault,
+// not report only a wrong key.
+func TestFinalizeNamesTheSignerFault(t *testing.T) {
+	net := &chaincfg.SigNetParams
+	const amount = int64(100_000)
+	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+
+	acctXprv := func(pass string) *hdkeychain.ExtendedKey {
+		seedHex := hex.EncodeToString(MnemonicToSeed(testMnemonic, pass))
+		acct, err := accountKeyFromSeed(seedHex, ScriptNativeSegwit, net)
+		require.NoError(t, err)
+		return acct
+	}
+	a, b, c := acctXprv("a"), acctXprv("b"), acctXprv("c")
+	d := &Descriptor{Kind: ScriptMultisig, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
+	ds, _, err := d.DeriveScript(false, 0, net)
+	require.NoError(t, err)
+
+	privAt := func(acct *hdkeychain.ExtendedKey) *btcec.PrivateKey {
+		priv, ok, err := deriveChildPrivIfPossible(acct, 0, 0)
+		require.NoError(t, err)
+		require.True(t, ok)
+		return priv
+	}
+	priv := privAt(a)
+
+	prevTx := wire.NewMsgTx(2)
+	prevTx.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
+	prevTx.AddTxOut(wire.NewTxOut(amount, ds.scriptPubKey))
+	outpoint := wire.OutPoint{Hash: prevTx.TxHash(), Index: 0}
+	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
+
+	packetWithSig := func(script []byte) *psbt.Packet {
+		in := psbtInput{outpoint: outpoint, amount: amount, addr: scannedAddr{
+			scriptPubKey: ds.scriptPubKey, witnessScript: ds.witnessScript,
+			kind: ScriptMultisig, multisigPrivs: []*btcec.PrivateKey{priv, privAt(b)},
+		}}
+		packet, err := buildPSBT([]psbtInput{in}, out, net, nil)
+		require.NoError(t, err)
+		_, err = signPSBT(packet, []psbtInput{in}, net)
+		require.NoError(t, err)
+
+		fetcher := txscript.NewCannedPrevOutputFetcher(ds.scriptPubKey, amount)
+		sigHashes := txscript.NewTxSigHashes(packet.UnsignedTx, fetcher)
+		wrong, err := txscript.RawTxInWitnessSignature(
+			packet.UnsignedTx, sigHashes, 0, amount, script, txscript.SigHashAll, priv)
+		require.NoError(t, err)
+		for _, ps := range packet.Inputs[0].PartialSigs {
+			if bytes.Equal(ps.PubKey, priv.PubKey().SerializeCompressed()) {
+				ps.Signature = wrong
+			}
+		}
+		return packet
+	}
+
+	code, err := p2wpkhScriptCode(btcutil.Hash160(priv.PubKey().SerializeCompressed()))
+	require.NoError(t, err)
+	_, err = finalizeAndExtract(packetWithSig(code))
+	require.ErrorContains(t, err, "signed this input as single-key p2wpkh")
+
+	// A packet without derivation records cannot name a cosigner order.
+	if unsorted, ok := multisigInRecordOrder(&packetWithSig(ds.witnessScript).Inputs[0]); ok &&
+		!bytes.Equal(unsorted, ds.witnessScript) {
+		_, err = finalizeAndExtract(packetWithSig(unsorted))
+		require.ErrorContains(t, err, "built the multisig script with the keys in the order")
+	}
+}
+
 // TestChangeOutputCarriesItsScript: a multisig change output must carry its
 // witness script beside its derivation records. A hardware signer that gets the
 // paths alone rebuilds the output as a single-key one, and it then signs a
