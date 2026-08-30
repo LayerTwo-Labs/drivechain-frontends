@@ -1991,6 +1991,14 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 			continue
 		}
 
+		// A prod PID file for a sidechain the resolver would have sent to the
+		// frontend build can only come from a --force-backend start, so the
+		// adopted process keeps that flag.
+		forceBackend := false
+		if !isTestPid && !isGUIPid && config.ChainLayer == 2 && o.process.SidechainVariant != nil {
+			_, forceBackend = o.process.SidechainVariant(config)
+		}
+
 		binPath := BinaryPath(o.DataDir, config.BinaryName)
 		if isGUIPid {
 			config.Name = sidechainGUIProcessName(config.Name)
@@ -2009,7 +2017,7 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 				binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 			}
 		}
-		o.process.AdoptProcessResolved(config, pid, binPath, pidName, false)
+		o.process.AdoptProcessResolved(config, pid, binPath, pidName, forceBackend)
 		o.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
 	}
 
