@@ -28,6 +28,9 @@ type SidechainConfSpec struct {
 	PortStyle string
 	// DirKey is the chains_config.json key for the data directory lookup.
 	DirKey string
+	// ConfOnly marks a conf the daemon never receives on its command line.
+	// Elements takes Core-style -flags and exits on an unknown --option.
+	ConfOnly bool
 }
 
 // SidechainConfManager manages a sidechain's key-value config file.
@@ -391,7 +394,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Thunder",
 		ConfigFilename: "thunder.conf",
 		BasePort:       6009,
-		SkippedCliKeys: []string{"network"},
+		SkippedCliKeys: nil,
 		PortStyle:      "grpc",
 		DirKey:         "thunder",
 	},
@@ -415,7 +418,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "ZSide",
 		ConfigFilename: "zside.conf",
 		BasePort:       6098,
-		SkippedCliKeys: []string{"network"},
+		SkippedCliKeys: nil,
 		PortStyle:      "grpc",
 		DirKey:         "zside",
 	},
@@ -423,7 +426,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Photon",
 		ConfigFilename: "photon.conf",
 		BasePort:       6099,
-		SkippedCliKeys: []string{"network"},
+		SkippedCliKeys: nil,
 		PortStyle:      "grpc",
 		DirKey:         "photon",
 	},
@@ -431,7 +434,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Truthcoin",
 		ConfigFilename: "truthcoin.conf",
 		BasePort:       6013,
-		SkippedCliKeys: []string{"network"},
+		SkippedCliKeys: nil,
 		PortStyle:      "grpc",
 		DirKey:         "truthcoin",
 	},
@@ -439,7 +442,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "CoinShift",
 		ConfigFilename: "coinshift.conf",
 		BasePort:       6255,
-		SkippedCliKeys: []string{"network"},
+		SkippedCliKeys: nil,
 		PortStyle:      "grpc",
 		DirKey:         "coinshift",
 	},
@@ -450,5 +453,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		SkippedCliKeys: []string{"network"},
 		PortStyle:      "grpc",
 		DirKey:         "liquid-signet",
+		ConfOnly:       true,
 	},
 }

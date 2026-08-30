@@ -619,6 +619,7 @@ func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinar
 	case ResetBinaryBitwindowd:
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)
 	default:
+		o.prepareSidechainArgs(cfg, &opts)
 		o.injectSidechainStarter(cfg, &opts)
 		o.injectHeadlessForForcedBackend(cfg, &opts)
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -115,6 +116,61 @@ func TestPrepareEnforcerArgs_NoOpWhenAlreadySet(t *testing.T) {
 	opts := StartOpts{EnforcerArgs: []string{"--my=arg"}}
 	o.prepareEnforcerArgs(&opts)
 	require.Equal(t, []string{"--my=arg"}, opts.EnforcerArgs)
+}
+
+// TestPrepareSidechainArgs_CarriesSelectedNetwork is the regression guard for
+// "launching a sidechain on regtest boots it on signet": the daemon gets no
+// network or port flags of its own, so the conf's values have to reach argv.
+func TestPrepareSidechainArgs_CarriesSelectedNetwork(t *testing.T) {
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir("") })
+
+	o := New(t.TempDir(), string(config.NetworkRegtest), t.TempDir(), AllDefaults(), testLogger(t))
+	cfg, err := o.getConfig("thunder")
+	require.NoError(t, err)
+
+	opts := StartOpts{}
+	o.prepareSidechainArgs(cfg, &opts)
+
+	require.Contains(t, opts.TargetArgs, "--network=regtest")
+	require.Contains(t, opts.TargetArgs, "--rpc-addr=127.0.0.1:16009")
+}
+
+// TestPrepareSidechainArgs_SkipsConfOnlySidechain guards Elements: it takes
+// Core-style -flags and exits on an unknown --option, so none of its conf may
+// reach the command line.
+func TestPrepareSidechainArgs_SkipsConfOnlySidechain(t *testing.T) {
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir("") })
+
+	o := New(t.TempDir(), string(config.NetworkSignet), t.TempDir(), AllDefaults(), testLogger(t))
+	cfg, err := o.getConfig("liquid-signet")
+	require.NoError(t, err)
+
+	opts := StartOpts{}
+	o.prepareSidechainArgs(cfg, &opts)
+	require.Empty(t, opts.TargetArgs)
+}
+
+// TestPrepareSidechainArgs_MergesWithCallerArgs covers the light-mode order:
+// pointSidechainAtRemoteMainchain has already put --mainchain-grpc-url in
+// TargetArgs, so the helper must keep that flag and still contribute the rest
+// of the conf rather than bail out on a non-empty TargetArgs.
+func TestPrepareSidechainArgs_MergesWithCallerArgs(t *testing.T) {
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir("") })
+
+	o := New(t.TempDir(), string(config.NetworkRegtest), t.TempDir(), AllDefaults(), testLogger(t))
+	cfg, err := o.getConfig("thunder")
+	require.NoError(t, err)
+
+	opts := StartOpts{TargetArgs: []string{"--mainchain-grpc-url=https://remote.example"}}
+	o.prepareSidechainArgs(cfg, &opts)
+
+	require.Contains(t, opts.TargetArgs, "--mainchain-grpc-url=https://remote.example")
+	require.NotContains(t, opts.TargetArgs, "--mainchain-grpc-url=http://localhost:50051")
+	require.Contains(t, opts.TargetArgs, "--network=regtest")
+	require.Contains(t, opts.TargetArgs, "--rpc-addr=127.0.0.1:16009")
 }
 
 // TestStartEnforcerWhenReady_AlreadyInPM_NoPhantomStart is the symmetric

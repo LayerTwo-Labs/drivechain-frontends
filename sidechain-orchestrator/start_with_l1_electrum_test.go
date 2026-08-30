@@ -2,6 +2,9 @@ package orchestrator
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -72,6 +75,44 @@ func TestPointSidechainAtRemoteMainchainFailsWithoutRemote(t *testing.T) {
 	require.False(t, o.pointSidechainAtRemoteMainchain(cfg, &opts, ch))
 	require.Empty(t, opts.TargetArgs)
 	require.Error(t, (<-ch).Error)
+}
+
+// Light mode fills --mainchain-grpc-url before the conf-derived args are
+// built, and the daemon has no network flag of its own — so the spawned argv
+// has to carry both the remote mainchain and the selected network, or the
+// sidechain silently boots on its clap default of signet.
+func TestStartWithL1LightModeSidechainArgvCarriesNetwork(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses a shell script as the fake binary")
+	}
+
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir("") })
+
+	dataDir := t.TempDir()
+	o := New(dataDir, string(config.NetworkSignet), t.TempDir(), AllDefaults(), testLogger(t))
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
+
+	// A binary on disk keeps the boot off the network. It outlives the spawn
+	// long enough for the exit to be the thing that ends the connection wait.
+	binDir := BinDir(dataDir)
+	require.NoError(t, os.MkdirAll(binDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(binDir, "thunder"), []byte("#!/bin/sh\nsleep 1\n"), 0o755))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// ForceBackend: the daemon takes the argv, not the sidechain's Flutter GUI.
+	ch, err := o.StartWithL1(ctx, "thunder", StartOpts{ForceBackend: true})
+	require.NoError(t, err)
+	for range ch {
+	}
+
+	proc := o.process.LatestRun("thunder")
+	require.NotNil(t, proc)
+	require.Contains(t, proc.Cmd.Args, "--network=signet")
+	require.Contains(t, proc.Cmd.Args, "--mainchain-grpc-url=https://orchestrator.signet.drivechain.info")
+	require.NotContains(t, proc.Cmd.Args, "--mainchain-grpc-url=http://localhost:50051")
 }
 
 // zmq-style sidechains carry no mainchain-grpc-url and can't reach a remote
