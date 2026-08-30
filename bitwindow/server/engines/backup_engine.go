@@ -544,21 +544,23 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 		case "multisig/multisig.json", "multisig\\multisig.json":
 			msData, err := readZipEntry(f)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("read %s in zip: %w", f.Name, err)
 			}
 			var tmp interface{}
-			if json.Unmarshal(msData, &tmp) == nil {
-				contents.HasMultisig = true
+			if err := json.Unmarshal(msData, &tmp); err != nil {
+				return nil, fmt.Errorf("%s invalid: %w", f.Name, err)
 			}
+			contents.HasMultisig = true
 		case "transactions.json":
 			txData, err := readZipEntry(f)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("read %s in zip: %w", f.Name, err)
 			}
 			var tmp interface{}
-			if json.Unmarshal(txData, &tmp) == nil {
-				contents.HasTransactions = true
+			if err := json.Unmarshal(txData, &tmp); err != nil {
+				return nil, fmt.Errorf("%s invalid: %w", f.Name, err)
 			}
+			contents.HasTransactions = true
 		}
 	}
 

@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"hash/crc32"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -86,6 +88,49 @@ func TestValidateBackup_ZIP_Valid(t *testing.T) {
 	}
 	if !contents.HasMultisig {
 		t.Fatal("expected HasMultisig true")
+	}
+}
+
+// a present-but-unreadable multisig entry must fail validation, not read as absent
+func TestValidateBackup_ZIP_CorruptMultisig(t *testing.T) {
+	e := &BackupEngine{}
+
+	wallet := map[string]interface{}{"master": "seed", "l1": "key"}
+	walletData, _ := json.Marshal(wallet)
+
+	multisig := map[string]interface{}{"groups": []interface{}{}}
+	msData, _ := json.Marshal(multisig)
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, _ := zw.Create("wallet.json")
+	_, _ = w.Write(walletData)
+	// stored uncompressed with a wrong CRC32, so reading it fails the checksum
+	w, err := zw.CreateRaw(&zip.FileHeader{
+		Name:               "multisig/multisig.json",
+		Method:             zip.Store,
+		CRC32:              ^crc32.ChecksumIEEE(msData),
+		CompressedSize64:   uint64(len(msData)),
+		UncompressedSize64: uint64(len(msData)),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = w.Write(msData)
+	_ = zw.Close()
+
+	_, err = e.ValidateBackup(context.TODO(), buf.Bytes(), "backup.zip")
+	if err == nil {
+		t.Fatal("expected error for corrupt multisig.json")
+	}
+	if !strings.Contains(err.Error(), "multisig.json") {
+		t.Fatalf("error does not name multisig.json: %v", err)
+	}
+
+	// restore must reject it too, rather than importing zero groups
+	e2 := &BackupEngine{walletDir: t.TempDir()}
+	if err := e2.RestoreBackup(testCtx(), buf.Bytes(), "backup.zip"); err == nil {
+		t.Fatal("expected RestoreBackup to reject a corrupt multisig.json")
 	}
 }
 
