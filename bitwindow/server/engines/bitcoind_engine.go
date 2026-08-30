@@ -753,6 +753,7 @@ func (p *Parser) handleOpReturns(
 
 	// Only fetch this a single time if handling multiple outputs
 	var rawTx *corepb.GetRawTransactionResponse
+	var feeUnknown bool
 
 	var opReturns []opreturns.OPReturn
 	for vout, txout := range tx.TxOut {
@@ -804,7 +805,7 @@ func (p *Parser) handleOpReturns(
 		// condition where blocks are processed in parallel and a topic
 		// created in one block isn't yet registered when a news article
 		// in a later block (same batch) checks isKnownTopic.
-		if rawTx == nil {
+		if rawTx == nil && !feeUnknown {
 			core, err := p.bitcoind.Get(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("get bitcoind: %w", err)
@@ -815,10 +816,23 @@ func (p *Parser) handleOpReturns(
 				Verbosity: corepb.GetRawTransactionRequest_VERBOSITY_TX_INFO,
 				Txid:      txid,
 			}))
-			if err != nil {
+			switch {
+			case err != nil && height != nil && isTxIndexMiss(err.Error()):
+				// Confirmed only: an unconfirmed miss means the transaction
+				// left the mempool, and that row must not land. The fee is the
+				// only field this call feeds, but returning the error aborts
+				// the whole block batch, so processed_blocks never advances.
+				zerolog.Ctx(ctx).Warn().
+					Str("txid", txid).
+					Msg("bitcoind_engine/parser: no txindex entry, recording OP_RETURN without a fee")
+				feeUnknown = true
+
+			case err != nil:
 				return nil, fmt.Errorf("get raw transaction %q: %w", txid, err)
+
+			default:
+				rawTx = res.Msg
 			}
-			rawTx = res.Msg
 		}
 
 		fee, err := btcutil.NewAmount(rawTx.GetFee())
@@ -837,6 +851,15 @@ func (p *Parser) handleOpReturns(
 	}
 
 	return opReturns, nil
+}
+
+// isTxIndexMiss reports whether getrawtransaction failed because the node
+// carries no txindex entry for the transaction, either because the index is
+// off or because Core still builds it after a reindex. Both shapes carry
+// JSON-RPC code -5.
+func isTxIndexMiss(errMsg string) bool {
+	return strings.Contains(errMsg, "No such mempool or blockchain transaction") ||
+		strings.Contains(errMsg, "Blockchain transactions are still in the process of being indexed")
 }
 
 // recentScanWindow is how far back a lagging scan reaches: about a week at ten
