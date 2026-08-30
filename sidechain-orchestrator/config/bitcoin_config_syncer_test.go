@@ -925,9 +925,70 @@ func TestApplyMainSectionDefaultsECashThenMainnet(t *testing.T) {
 	require.Equal(t, "", m.Config.GetSetting("uacomment", "main"))
 }
 
+// A [main] value the operator set by hand is not ours to delete: it survives
+// a mainnet → signet → mainnet round trip.
+func TestApplyMainSectionDefaultsKeepsUserMainnetPorts(t *testing.T) {
+	m := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "alphanet", log: zerolog.Nop()}
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("port", "28333", "main")
+	m.Config.SetSetting("rpcport", "28332", "main")
+	m.Config.SetSetting("addnode", "mypeer:1234", "main")
+	m.Config.SetSetting("rpcbind", "127.0.0.1", "main")
+
+	m.applyMainSectionDefaults(NetworkSignet)
+	m.applyMainSectionDefaults(NetworkMainnet)
+
+	require.Equal(t, "28333", m.Config.GetSetting("port", "main"))
+	require.Equal(t, "28332", m.Config.GetSetting("rpcport", "main"))
+	require.Equal(t, "mypeer:1234", m.Config.GetSetting("addnode", "main"))
+	require.Equal(t, "127.0.0.1", m.Config.GetSetting("rpcbind", "main"))
+}
+
+// Forknet → mainnet still strips everything forknet injected, while leaving
+// the operator's own addnode alone.
+func TestApplyMainSectionDefaultsForknetThenMainnet(t *testing.T) {
+	m := &BitcoinConfManager{Config: NewBitcoinConfig(), ECashID: "alphanet", log: zerolog.Nop()}
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("addnode", "mypeer:1234", "main")
+
+	m.applyMainSectionDefaults(NetworkForknet)
+	require.Equal(t, "8300", m.Config.GetSetting("port", "main"))
+
+	m.applyMainSectionDefaults(NetworkMainnet)
+	require.Equal(t, "", m.Config.GetSetting("port", "main"))
+	require.Equal(t, "", m.Config.GetSetting("rpcport", "main"))
+	require.Equal(t, "", m.Config.GetSetting("drivechain", "main"))
+	require.Equal(t, "", m.Config.GetSetting("fallbackfee", "main"))
+	require.Equal(t, "mypeer:1234", m.Config.GetSetting("addnode", "main"))
+}
+
 // ---------------------------------------------------------------------------
 // UpdateNetwork
 // ---------------------------------------------------------------------------
+
+// The round trip goes through the file too: a swap away and back must not
+// rewrite the master conf without the operator's ports.
+func TestUpdateNetworkRoundTripKeepsUserMainnetPorts(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := newTestManager(tmpDir)
+	m.Network = NetworkMainnet
+	m.Config.SetSetting("chain", "main")
+	m.Config.SetSetting("port", "28333", "main")
+	m.Config.SetSetting("rpcport", "28332", "main")
+
+	masterPath := m.getBitWindowConfigPath()
+	require.NoError(t, os.MkdirAll(filepath.Dir(masterPath), 0755))
+	require.NoError(t, os.WriteFile(masterPath, []byte(m.Config.Serialize()), 0644))
+
+	require.NoError(t, m.UpdateNetwork(NetworkSignet))
+	require.NoError(t, m.UpdateNetwork(NetworkMainnet))
+
+	data, err := os.ReadFile(masterPath)
+	require.NoError(t, err)
+	saved := ParseBitcoinConfig(string(data))
+	require.Equal(t, "28333", saved.GetSetting("port", "main"))
+	require.Equal(t, "28332", saved.GetSetting("rpcport", "main"))
+}
 
 func TestUpdateNetworkCallsCallback(t *testing.T) {
 	tmpDir := t.TempDir()

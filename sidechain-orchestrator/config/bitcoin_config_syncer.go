@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -538,22 +539,32 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 	if m.Config == nil {
 		return
 	}
-	// Keys that identify a specific chain=main network (forknet vs eCash vs
-	// real mainnet). Strip them first so a swap never leaves a sibling's port
-	// or peer behind — forknet and eCash use different ports, and only
-	// eCash sets addnode/uacomment.
-	mainVariantKeys := []string{
-		"port", "rpcport", "rpcbind", "rpcallowip", "addnode", "uacomment",
-		"assumevalid", "minimumchainwork", "listenonion", "drivechain", "fallbackfee",
-	}
-	for _, k := range mainVariantKeys {
-		m.Config.RemoveSetting(k, "main")
+	// Strip the keys we wrote ourselves first, so a swap never leaves a
+	// sibling's port or peer behind — forknet and eCash use different ports,
+	// and only eCash sets addnode/uacomment. A value the operator set by hand
+	// is theirs: deleting a custom port= moves their node, and deleting a
+	// custom rpcport= can stop Core from starting at all.
+	for k, ourValues := range m.injectedMainValues() {
+		if slices.Contains(ourValues, m.Config.GetSetting(k, "main")) {
+			m.Config.RemoveSetting(k, "main")
+		}
 	}
 
-	var defaults []struct{ k, v string }
+	for _, kv := range m.mainSectionDefaults(n) {
+		// An unpublished peer must not become `addnode=`, which bitcoind rejects.
+		if kv.v == "" {
+			continue
+		}
+		m.Config.SetSetting(kv.k, kv.v, "main")
+	}
+}
+
+// mainSectionDefaults is the [main] block n wants. Networks that don't read
+// [main] get none.
+func (m *BitcoinConfManager) mainSectionDefaults(n Network) []struct{ k, v string } {
 	switch n {
 	case NetworkForknet:
-		defaults = []struct{ k, v string }{
+		return []struct{ k, v string }{
 			{"port", "8300"},
 			{"rpcport", "18301"},
 			{"assumevalid", "0000000000000000000000000000000000000000000000000000000000000000"},
@@ -563,7 +574,7 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 			{"fallbackfee", "0.00021"},
 		}
 	case NetworkECash:
-		defaults = []struct{ k, v string }{
+		return []struct{ k, v string }{
 			{"port", "8301"},
 			{"rpcport", "18302"},
 			{"addnode", m.ECashPeer()},
@@ -575,13 +586,26 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 			{"fallbackfee", "0.00021"},
 		}
 	}
-	for _, kv := range defaults {
-		// An unpublished peer must not become `addnode=`, which bitcoind rejects.
-		if kv.v == "" {
-			continue
+	return nil
+}
+
+// injectedMainValues maps each [main] key BitWindow writes to the values it
+// writes there. Anything else under [main] is the operator's own.
+func (m *BitcoinConfManager) injectedMainValues() map[string][]string {
+	out := map[string][]string{}
+	for _, n := range []Network{NetworkForknet, NetworkECash} {
+		for _, kv := range m.mainSectionDefaults(n) {
+			out[kv.k] = append(out[kv.k], kv.v)
 		}
-		m.Config.SetSetting(kv.k, kv.v, "main")
 	}
+	// The eCash id and its seed come from the catalog, so what's on disk can
+	// be older than what mainSectionDefaults builds now. A uacomment naming an
+	// eCash network marks the block as ours, stale values included.
+	if uacomment := m.Config.GetSetting("uacomment", "main"); IsECashUAComment(uacomment) {
+		out["uacomment"] = append(out["uacomment"], uacomment)
+		out["addnode"] = append(out["addnode"], m.Config.GetSetting("addnode", "main"))
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
