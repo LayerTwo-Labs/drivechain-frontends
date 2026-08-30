@@ -663,7 +663,7 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryTyp
 		if err != nil {
 			return 0, 0, err
 		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
+		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats(), resp.AvailableSats())
 		return confirmed, pending, nil
 	case pb.BinaryType_BINARY_TYPE_BITNAMES:
 		resp, err := bitnames.NewClient("localhost", port).Balance(ctx)

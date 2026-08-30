@@ -1,10 +1,23 @@
 // Package zside provides a JSON-RPC client for the Zside sidechain.
 package zside
 
-// BalanceResponse is the reply from the "balance" RPC.
+// BalanceResponse is the reply from the "balance" RPC. ZSide splits the wallet
+// into a shielded and a transparent pool.
 type BalanceResponse struct {
-	TotalSats     int64 `json:"total_sats"`
-	AvailableSats int64 `json:"available_sats"`
+	TotalShieldedSats        int64 `json:"total_shielded_sats"`
+	TotalTransparentSats     int64 `json:"total_transparent_sats"`
+	AvailableShieldedSats    int64 `json:"available_shielded_sats"`
+	AvailableTransparentSats int64 `json:"available_transparent_sats"`
+}
+
+// TotalSats is the total balance across both pools.
+func (b BalanceResponse) TotalSats() int64 {
+	return b.TotalShieldedSats + b.TotalTransparentSats
+}
+
+// AvailableSats is the available balance across both pools.
+func (b BalanceResponse) AvailableSats() int64 {
+	return b.AvailableShieldedSats + b.AvailableTransparentSats
 }
 
 // PeerInfo describes a connected peer.

@@ -40,16 +40,26 @@ func clientFromServer(srv *httptest.Server) *Client {
 }
 
 func TestBalance(t *testing.T) {
+	// The exact keys the zside node emits.
 	srv := fakeRPC(t, map[string]interface{}{
-		"balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
+		"balance": map[string]int64{
+			"total_shielded_sats":        60_000,
+			"total_transparent_sats":     40_000,
+			"available_shielded_sats":    50_000,
+			"available_transparent_sats": 30_000,
+		},
 	})
 	defer srv.Close()
 
 	c := clientFromServer(srv)
 	bal, err := c.Balance(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, int64(100_000), bal.TotalSats)
-	assert.Equal(t, int64(80_000), bal.AvailableSats)
+	assert.Equal(t, int64(60_000), bal.TotalShieldedSats)
+	assert.Equal(t, int64(40_000), bal.TotalTransparentSats)
+	assert.Equal(t, int64(50_000), bal.AvailableShieldedSats)
+	assert.Equal(t, int64(30_000), bal.AvailableTransparentSats)
+	assert.Equal(t, int64(100_000), bal.TotalSats())
+	assert.Equal(t, int64(80_000), bal.AvailableSats())
 }
 
 func TestGetBlockCount(t *testing.T) {
