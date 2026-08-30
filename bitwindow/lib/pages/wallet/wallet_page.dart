@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/wallet/bitdrive_page.dart';
+import 'package:bitwindow/pages/wallet/wallet_consolidate.dart';
 import 'package:bitwindow/pages/wallet/psbt_signer_tab.dart';
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/explorer/load_transaction_dialog.dart';
@@ -108,8 +109,23 @@ class WalletPage extends StatelessWidget {
     _sendViewModel?.selectDraftById(draftId);
   }
 
+  static const String consolidateSubtabLabel = 'Consolidate';
+
   static void setSubtab(int index) {
     tabKey.currentState?.setIndex(index, null);
+  }
+
+  /// Opens a tab by label, including an item inside a multi-select tab.
+  static void openSubtab(String label) {
+    final state = tabKey.currentState;
+    if (state == null) {
+      return;
+    }
+    final found = walletTabIndexForLabel(state.widget.tabs, label);
+    if (found == null) {
+      return;
+    }
+    state.setIndex(found.index, found.subLabel);
   }
 
   @override
@@ -161,6 +177,13 @@ class WalletPage extends StatelessWidget {
                       child: DeniabilityTab(
                         newWindowButton: SubWindowTypes.deniability,
                       ),
+                      onTap: () {
+                        transactionProvider.fetch();
+                      },
+                    ),
+                    TabItem(
+                      label: consolidateSubtabLabel,
+                      child: const ConsolidateTab(),
                       onTap: () {
                         transactionProvider.fetch();
                       },
@@ -374,4 +397,30 @@ class DetailRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Where a label sits in the wallet tab bar. [subLabel] is set when the label
+/// names an item inside a multi-select tab.
+class WalletTabLocation {
+  final int index;
+  final String? subLabel;
+
+  const WalletTabLocation(this.index, this.subLabel);
+}
+
+/// Finds [label] among [tabs], and inside every multi-select tab.
+WalletTabLocation? walletTabIndexForLabel(List<TabItem> tabs, String label) {
+  for (var i = 0; i < tabs.length; i++) {
+    final tab = tabs[i];
+    if (tab is MultiSelectTabItem) {
+      if (tab.items.any((item) => item.label == label)) {
+        return WalletTabLocation(i, label);
+      }
+      continue;
+    }
+    if (tab.label == label) {
+      return WalletTabLocation(i, null);
+    }
+  }
+  return null;
 }

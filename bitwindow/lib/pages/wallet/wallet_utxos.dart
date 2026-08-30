@@ -1,15 +1,15 @@
 import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
+import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/pages/wallet/widgets/utxo_distribution_chart.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
-import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/providers/consolidation_provider.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class UTXOsTab extends StatefulWidget {
   const UTXOsTab({super.key});
@@ -26,6 +26,7 @@ class _UTXOsTabState extends State<UTXOsTab> {
 
   BitwindowRPC get _rpc => GetIt.I<BitwindowRPC>();
   CoinSelectionProvider get _coinSelection => GetIt.I<CoinSelectionProvider>();
+  ConsolidationProvider get _consolidation => GetIt.I<ConsolidationProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
 
   void _showBucketContextMenu(BuildContext context, UTXOBucket bucket, Offset position) {
@@ -40,12 +41,23 @@ class _UTXOsTabState extends State<UTXOsTab> {
           if (isSingleUtxo && outpoint != null) ...[
             SailMenuItem(
               onSelected: () async {
+                // A consolidation broadcasts its queued transactions without
+                // freezing again, so releasing one of its coins here would
+                // break that send.
+                if (_consolidation.reservedOutpoints.contains(outpoint)) {
+                  showSailToast(context, 'A consolidation holds this coin. Stop it from the Consolidate tab first.');
+                  return;
+                }
                 final isFrozen = _coinSelection.isFrozen(outpoint);
                 await _rpc.wallet.setUTXOMetadata(outpoint, isFrozen: !isFrozen);
                 await _coinSelection.fetch();
               },
               child: SailText.primary12(
-                _coinSelection.isFrozen(outpoint) ? 'Unfreeze UTXO' : 'Freeze UTXO',
+                _consolidation.reservedOutpoints.contains(outpoint)
+                    ? 'Held by a consolidation'
+                    : _coinSelection.isFrozen(outpoint)
+                    ? 'Unfreeze UTXO'
+                    : 'Freeze UTXO',
               ),
             ),
             SailMenuItem(
@@ -65,22 +77,6 @@ class _UTXOsTabState extends State<UTXOsTab> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _handleConsolidate(BuildContext context, List<UTXOBucket> smallBuckets) async {
-    final walletId = _walletReader.activeWalletId;
-    if (walletId == null) {
-      return;
-    }
-
-    // Show the consolidation dialog
-    await showThemedDialog(
-      context: context,
-      builder: (context) => _ConsolidateDialog(
-        walletId: walletId,
-        initialBuckets: smallBuckets,
       ),
     );
   }
@@ -146,9 +142,7 @@ class _UTXOsTabState extends State<UTXOsTab> {
                           onBucketContextMenu: (bucket, position) {
                             _showBucketContextMenu(context, bucket, position);
                           },
-                          onConsolidate: (smallBuckets) {
-                            _handleConsolidate(context, smallBuckets);
-                          },
+                          onConsolidate: (_) => WalletPage.openSubtab(WalletPage.consolidateSubtabLabel),
                         ),
                       ),
                     ),
@@ -601,270 +595,3 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
 }
 
 /// Dialog for consolidating small UTXOs
-class _ConsolidateDialog extends StatefulWidget {
-  final String walletId;
-  final List<UTXOBucket> initialBuckets;
-
-  const _ConsolidateDialog({
-    required this.walletId,
-    required this.initialBuckets,
-  });
-
-  @override
-  State<_ConsolidateDialog> createState() => _ConsolidateDialogState();
-}
-
-class _ConsolidateDialogState extends State<_ConsolidateDialog> {
-  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I<OrchestratorRPC>().wallet;
-  TransactionProvider get _txProvider => GetIt.I<TransactionProvider>();
-  FormatterProvider get _formatter => GetIt.I<FormatterProvider>();
-
-  // Threshold options in satoshis
-  static const List<int> _thresholdOptions = [
-    10000, // 0.0001 BTC
-    50000, // 0.0005 BTC
-    100000, // 0.001 BTC
-    500000, // 0.005 BTC
-    1000000, // 0.01 BTC
-    5000000, // 0.05 BTC
-    10000000, // 0.1 BTC
-  ];
-
-  int _selectedThreshold = 100000; // Default 0.001 BTC
-  Set<String> _selectedOutpoints = {};
-  bool _isLoading = false;
-
-  List<UnspentOutput> get _allUtxos => _txProvider.utxos.toList();
-
-  List<UnspentOutput> get _utxosBelowThreshold {
-    return _allUtxos.where((u) => u.valueSats.toInt() <= _selectedThreshold).toList()
-      ..sort((a, b) => a.valueSats.compareTo(b.valueSats));
-  }
-
-  int get _totalSelectedSats {
-    return _selectedOutpoints.fold<int>(0, (sum, op) {
-      final utxo = _allUtxos.firstWhere((u) => u.output == op, orElse: () => UnspentOutput());
-      return sum + utxo.valueSats.toInt();
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // Pre-select UTXOs from initial buckets
-    for (final bucket in widget.initialBuckets) {
-      _selectedOutpoints.addAll(bucket.outpoints);
-    }
-    // Also select any below default threshold
-    _updateSelectionFromThreshold();
-  }
-
-  void _updateSelectionFromThreshold() {
-    setState(() {
-      _selectedOutpoints = _utxosBelowThreshold.map((u) => u.output).toSet();
-    });
-  }
-
-  Future<void> _consolidate() async {
-    if (_selectedOutpoints.length < 2) {
-      showSailToast(context, 'Select at least 2 UTXOs to consolidate');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Get a new address via orchestrator — shared wallet primitive
-      final resp = await _orchestratorWallet.getNewAddress(widget.walletId);
-      final newAddress = resp.address;
-
-      // Build list of required inputs
-      final requiredInputs = _selectedOutpoints.map((op) => UnspentOutput(output: op)).toList();
-
-      // Send transaction - fee will be deducted from total
-      final txid = (await _orchestratorWallet.sendTransaction(
-        walletId: widget.walletId,
-        destinations: {newAddress: _totalSelectedSats},
-        feeRateSatPerVbyte: 1, // Low fee rate for consolidation
-        requiredInputs: requiredInputs,
-      )).txid;
-
-      final network = GetIt.I.get<BitcoinConfProvider>().network;
-      GetIt.I.get<NotificationProvider>().add(
-        title: 'Consolidation sent',
-        content: txid,
-        dialogType: DialogType.info,
-        onPressed: () => launchUrl(Uri.parse(mempoolTxUrl(txid, network))),
-      );
-
-      if (mounted) {
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        showSailToast(context, 'Consolidation failed: $e');
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-    final utxosBelowThreshold = _utxosBelowThreshold;
-
-    return SailModal(
-      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
-      child: SailCard(
-        title: 'Consolidate UTXOs',
-        subtitle: 'Combine multiple small UTXOs into one',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Threshold selector
-            SailRow(
-              spacing: SailStyleValues.padding12,
-              children: [
-                SailText.primary13('Include UTXOs smaller than:'),
-                SailDropdownButton<int>(
-                  value: _selectedThreshold,
-                  items: _thresholdOptions.map((sats) {
-                    return SailDropdownItem<int>(
-                      value: sats,
-                      label: _formatter.formatSats(sats),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      _selectedThreshold = value;
-                      _updateSelectionFromThreshold();
-                    }
-                  },
-                ),
-              ],
-            ),
-
-            const SailSpacing(SailStyleValues.padding12),
-
-            // Summary
-            Container(
-              padding: const EdgeInsets.all(SailStyleValues.padding12),
-              decoration: BoxDecoration(
-                color: theme.colors.backgroundSecondary,
-                borderRadius: SailStyleValues.borderRadiusSmall,
-              ),
-              child: SailRow(
-                spacing: SailStyleValues.padding16,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SailText.secondary13('${_selectedOutpoints.length} UTXOs selected'),
-                  SailText.primary13(_formatter.formatSats(_totalSelectedSats)),
-                ],
-              ),
-            ),
-
-            const SailSpacing(SailStyleValues.padding12),
-
-            // UTXO list
-            SailText.secondary12('Select UTXOs to consolidate:'),
-            const SailSpacing(SailStyleValues.padding08),
-
-            Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: theme.colors.divider),
-                  borderRadius: SailStyleValues.borderRadiusSmall,
-                ),
-                child: utxosBelowThreshold.isEmpty
-                    ? Center(
-                        child: SailText.secondary12('No UTXOs below threshold'),
-                      )
-                    : ListView.builder(
-                        itemCount: utxosBelowThreshold.length,
-                        itemBuilder: (context, index) {
-                          final utxo = utxosBelowThreshold[index];
-                          final isSelected = _selectedOutpoints.contains(utxo.output);
-
-                          return SailTappable(
-                            onTap: () async {
-                              setState(() {
-                                if (isSelected) {
-                                  _selectedOutpoints.remove(utxo.output);
-                                } else {
-                                  _selectedOutpoints.add(utxo.output);
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: SailStyleValues.padding12,
-                                vertical: SailStyleValues.padding08,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? theme.colors.info.withValues(alpha: 0.1)
-                                    : SailColorScheme.transparent,
-                                border: Border(
-                                  bottom: BorderSide(color: theme.colors.divider, width: 0.5),
-                                ),
-                              ),
-                              child: SailRow(
-                                spacing: SailStyleValues.padding12,
-                                children: [
-                                  SailCheckbox(
-                                    value: isSelected,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        if (value) {
-                                          _selectedOutpoints.add(utxo.output);
-                                        } else {
-                                          _selectedOutpoints.remove(utxo.output);
-                                        }
-                                      });
-                                    },
-                                  ),
-                                  Expanded(
-                                    child: SailText.secondary12(
-                                      '${utxo.output.substring(0, 8)}...:${utxo.output.split(':').last}',
-                                      monospace: true,
-                                    ),
-                                  ),
-                                  SailText.primary12(
-                                    _formatter.formatSats(utxo.valueSats.toInt()),
-                                    monospace: true,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ),
-
-            const SailSpacing(SailStyleValues.padding16),
-
-            // Actions
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SailButton(
-                  label: 'Cancel',
-                  variant: ButtonVariant.ghost,
-                  onPressed: () async => Navigator.pop(context),
-                ),
-                SailButton(
-                  label: 'Consolidate ${_selectedOutpoints.length} UTXOs',
-                  disabled: _selectedOutpoints.length < 2,
-                  loading: _isLoading,
-                  onPressed: _consolidate,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
