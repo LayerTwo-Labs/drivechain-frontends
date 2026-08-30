@@ -435,7 +435,7 @@ func (o *Orchestrator) rewindBelowTheFork(ctx context.Context, height uint32) (s
 	if o.Settings != nil {
 		previous = o.Settings.RewoundBlockHash()
 	}
-	hash, err := dropForkAbove(ctx, client, height, previous)
+	hash, err := resolveForkAbove(ctx, client, height, previous)
 	if err != nil {
 		return "", err
 	}
@@ -444,12 +444,15 @@ func (o *Orchestrator) rewindBelowTheFork(ctx context.Context, height uint32) (s
 	// meant to leave.
 	o.clearedMark = previous
 
-	// A drop nobody recorded cannot be taken back, and the next switch would bar
-	// this branch too — leaving Core under the fork with neither to follow. It
-	// runs for an empty hash too, which records that nothing is barred.
+	// The record goes in before the bar, never after. A drop nobody recorded
+	// cannot be taken back, and the next switch would bar this branch too —
+	// leaving Core under the fork with neither to follow. A record whose bar
+	// never lands costs nothing: clearMark tolerates a block Core does not hold
+	// and reconsiderblock on a live block is a no-op. It runs for an empty hash
+	// too, which records that nothing is barred.
 	if o.Settings != nil {
 		if err := o.Settings.CommitRewind(hash); err != nil {
-			o.restoreRewind(ctx, hash)
+			o.restoreRewind(ctx, "")
 			return "", fmt.Errorf("record the dropped block %s: %w", hash, err)
 		}
 	}
@@ -457,6 +460,12 @@ func (o *Orchestrator) rewindBelowTheFork(ctx context.Context, height uint32) (s
 		o.log.Info().Uint32("height", height).
 			Msg("the chain sits below the fork, so nothing had to be dropped")
 		return "", nil
+	}
+	if _, err := client.call(ctx, "invalidateblock", hash); err != nil {
+		// The call may have landed and only the answer been lost, so the rollback
+		// names the block: reconsidering one Core never barred is a no-op.
+		o.restoreRewind(ctx, hash)
+		return "", fmt.Errorf("drop block %s: %w", hash, err)
 	}
 	o.log.Info().Str("block", hash).Uint32("height", height+1).
 		Msg("dropped the retired eCash chain from this block up")
@@ -496,18 +505,23 @@ func (o *Orchestrator) restoreRewind(ctx context.Context, hash string) {
 	}
 }
 
-// dropForkAbove bars the retired fork from height+1 up and returns the block it
-// barred. previousMark is the block an earlier switch barred, or empty.
+// resolveForkAbove names the block the drop has to bar — the first one above
+// height — and lifts the mark an earlier switch left. previousMark is the block
+// that switch barred, or empty. An empty result means the chain sits below the
+// fork and nothing has to go.
+//
+// The bar itself is the caller's, so the record of what is about to go can land
+// before the call that cannot be taken back.
 //
 // It reads the outgoing block before clearing previousMark. reconsiderblock
 // revalidates the branch it clears, and a branch with more work becomes the
 // active chain — a read after it would name the incoming fork and bar the very
 // chain this switch moves to.
 //
-// It bars height+1, not height. invalidateblock bars the block AND every
+// It names height+1, not height. invalidateblock bars the block AND every
 // descendant, so barring the last shared block would bar the incoming chain too
 // and Core could never move past it.
-func dropForkAbove(ctx context.Context, client *CoreStatusClient, height uint32, previousMark string) (string, error) {
+func resolveForkAbove(ctx context.Context, client *CoreStatusClient, height uint32, previousMark string) (string, error) {
 	// A node still below the fork holds no block either network disagrees on, so
 	// there is nothing to drop and the switch goes on. Asking for the block
 	// anyway fails the switch until the chain catches up.
@@ -538,10 +552,6 @@ func dropForkAbove(ctx context.Context, client *CoreStatusClient, height uint32,
 	// the network it dropped would park forever. Clear it before the new one.
 	if err := clearMark(ctx, client, previousMark); err != nil {
 		return "", err
-	}
-
-	if _, err := client.call(ctx, "invalidateblock", hash); err != nil {
-		return "", fmt.Errorf("drop block %s: %w", hash, err)
 	}
 	return hash, nil
 }
