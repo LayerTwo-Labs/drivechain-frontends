@@ -186,7 +186,9 @@ func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 				if config.GetSetting(key, section) != value {
 					changed = true
 				}
-				config.SetSetting(key, value, section)
+				// Replace: a migration names the one value the key should
+				// carry, so appending would leave the superseded peer behind.
+				config.ReplaceSetting(key, value, section)
 			}
 		}
 		if changed {

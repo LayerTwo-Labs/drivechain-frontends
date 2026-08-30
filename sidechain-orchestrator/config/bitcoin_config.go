@@ -20,6 +20,25 @@ const bitcoinConfVersionCommentPrefix = "# bitwindow-bitcoin-conf-version="
 // authoritative for the orchestrator on the next group swap.
 const datadirSlotCommentPrefix = "# bitwindow-datadir-"
 
+// multiValuedKeys are the options Bitcoin Core reads every occurrence of, so a
+// section may legitimately carry several lines for them.
+var multiValuedKeys = map[string]bool{
+	"addnode":     true,
+	"bind":        true,
+	"connect":     true,
+	"externalip":  true,
+	"includeconf": true,
+	"loadblock":   true,
+	"onlynet":     true,
+	"rpcallowip":  true,
+	"rpcauth":     true,
+	"rpcbind":     true,
+	"seednode":    true,
+	"wallet":      true,
+	"whitebind":   true,
+	"whitelist":   true,
+}
+
 // BitcoinConfig represents a parsed Bitcoin Core configuration file.
 //
 // Order matters: the conf editor and the user expect the on-disk order to be
@@ -31,7 +50,11 @@ type BitcoinConfig struct {
 	GlobalOrder     []string
 	NetworkSettings map[string]map[string]string // "main", "test", "signet", "regtest"
 	NetworkOrder    map[string][]string
-	ConfigVersion   int
+	// GlobalMulti/NetworkMulti hold every value of a multiValuedKeys key, in
+	// the order it was set. The settings maps above keep the first one.
+	GlobalMulti   map[string][]string
+	NetworkMulti  map[string]map[string][]string
+	ConfigVersion int
 	// DatadirSlots holds the per-group datadir snapshots read from / written
 	// to # bitwindow-datadir-<group>= comment lines. Keyed by DatadirGroup
 	// value ("default", "forknet"). Empty string = unset/cleared.
@@ -53,6 +76,13 @@ func NewBitcoinConfig() *BitcoinConfig {
 			"test":    nil,
 			"signet":  nil,
 			"regtest": nil,
+		},
+		GlobalMulti: make(map[string][]string),
+		NetworkMulti: map[string]map[string][]string{
+			"main":    {},
+			"test":    {},
+			"signet":  {},
+			"regtest": {},
 		},
 		ConfigVersion: 0,
 		DatadirSlots:  map[DatadirGroup]string{},
@@ -161,7 +191,9 @@ func (c *BitcoinConfig) Serialize() string {
 	if len(c.GlobalSettings) > 0 {
 		b.WriteString("# [common settings]\n")
 		for _, key := range c.orderedKeys("") {
-			fmt.Fprintf(&b, "%s=%s\n", key, c.GlobalSettings[key])
+			for _, value := range c.values(key, "") {
+				fmt.Fprintf(&b, "%s=%s\n", key, value)
+			}
 		}
 		b.WriteString("\n")
 	}
@@ -185,7 +217,9 @@ func (c *BitcoinConfig) Serialize() string {
 			fmt.Fprintf(&b, "# Options for %s only\n", label)
 			fmt.Fprintf(&b, "%s\n", sectionNames[network])
 			for _, key := range c.orderedKeys(network) {
-				fmt.Fprintf(&b, "%s=%s\n", key, settings[key])
+				for _, value := range c.values(key, network) {
+					fmt.Fprintf(&b, "%s=%s\n", key, value)
+				}
 			}
 			b.WriteString("\n")
 		}
@@ -225,6 +259,27 @@ func (c *BitcoinConfig) orderedKeys(section string) []string {
 	return out
 }
 
+// values returns every value stored for a key in a section (globals if
+// section == ""), in the order it was set. Single-valued keys yield one.
+func (c *BitcoinConfig) values(key, section string) []string {
+	if section != "" {
+		if vs := c.NetworkMulti[section][key]; len(vs) > 0 {
+			return vs
+		}
+		if v, ok := c.NetworkSettings[section][key]; ok {
+			return []string{v}
+		}
+		return nil
+	}
+	if vs := c.GlobalMulti[key]; len(vs) > 0 {
+		return vs
+	}
+	if v, ok := c.GlobalSettings[key]; ok {
+		return []string{v}
+	}
+	return nil
+}
+
 func (c *BitcoinConfig) GetSetting(key string, section ...string) string {
 	if len(section) > 0 && section[0] != "" {
 		if s, ok := c.NetworkSettings[section[0]]; ok {
@@ -245,6 +300,18 @@ func (c *BitcoinConfig) GetEffectiveSetting(key, network string) string {
 	return c.GlobalSettings[key]
 }
 
+// GetSettings returns every value stored for a key, in order. A multi-valued
+// key (see multiValuedKeys) may hold more than one.
+func (c *BitcoinConfig) GetSettings(key string, section ...string) []string {
+	if len(section) > 0 {
+		return c.values(key, section[0])
+	}
+	return c.values(key, "")
+}
+
+// SetSetting sets a key's value. A multi-valued key keeps the values already
+// set and appends this one, so a rewrite never drops a peer the user added;
+// use ReplaceSetting to collapse such a key to a single value.
 func (c *BitcoinConfig) SetSetting(key, value string, section ...string) {
 	if len(section) > 0 && section[0] != "" {
 		s := section[0]
@@ -253,14 +320,62 @@ func (c *BitcoinConfig) SetSetting(key, value string, section ...string) {
 		}
 		if _, exists := c.NetworkSettings[s][key]; !exists {
 			c.NetworkOrder[s] = append(c.NetworkOrder[s], key)
+			c.NetworkSettings[s][key] = value
+		} else if !multiValuedKeys[key] {
+			c.NetworkSettings[s][key] = value
 		}
-		c.NetworkSettings[s][key] = value
 	} else {
 		if _, exists := c.GlobalSettings[key]; !exists {
 			c.GlobalOrder = append(c.GlobalOrder, key)
+			c.GlobalSettings[key] = value
+		} else if !multiValuedKeys[key] {
+			c.GlobalSettings[key] = value
 		}
-		c.GlobalSettings[key] = value
 	}
+	if multiValuedKeys[key] {
+		c.appendValue(key, value, section...)
+	}
+}
+
+// ReplaceSetting sets a key to exactly this value, dropping any other values a
+// multi-valued key holds. Its position in the section is preserved.
+func (c *BitcoinConfig) ReplaceSetting(key, value string, section ...string) {
+	c.SetSetting(key, value, section...)
+	if !multiValuedKeys[key] {
+		return
+	}
+	if len(section) > 0 && section[0] != "" {
+		s := section[0]
+		c.NetworkSettings[s][key] = value
+		c.NetworkMulti[s][key] = []string{value}
+		return
+	}
+	c.GlobalSettings[key] = value
+	c.GlobalMulti[key] = []string{value}
+}
+
+// appendValue records value in the key's value list, ignoring a duplicate.
+func (c *BitcoinConfig) appendValue(key, value string, section ...string) {
+	multi := c.GlobalMulti
+	if len(section) > 0 && section[0] != "" {
+		s := section[0]
+		if c.NetworkMulti == nil {
+			c.NetworkMulti = make(map[string]map[string][]string)
+		}
+		if _, ok := c.NetworkMulti[s]; !ok {
+			c.NetworkMulti[s] = make(map[string][]string)
+		}
+		multi = c.NetworkMulti[s]
+	} else if multi == nil {
+		multi = make(map[string][]string)
+		c.GlobalMulti = multi
+	}
+	for _, v := range multi[key] {
+		if v == value {
+			return
+		}
+	}
+	multi[key] = append(multi[key], value)
 }
 
 func (c *BitcoinConfig) RemoveSetting(key string, section ...string) {
@@ -268,10 +383,12 @@ func (c *BitcoinConfig) RemoveSetting(key string, section ...string) {
 		s := section[0]
 		if settings, ok := c.NetworkSettings[s]; ok {
 			delete(settings, key)
+			delete(c.NetworkMulti[s], key)
 			c.NetworkOrder[s] = removeFromOrder(c.NetworkOrder[s], key)
 		}
 	} else {
 		delete(c.GlobalSettings, key)
+		delete(c.GlobalMulti, key)
 		c.GlobalOrder = removeFromOrder(c.GlobalOrder, key)
 	}
 }
