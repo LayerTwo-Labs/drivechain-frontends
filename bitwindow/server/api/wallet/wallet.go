@@ -573,6 +573,11 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	// History is wallet data, so a locked wallet must not hand it out.
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	if walletType == engines.WalletTypeElectrum {
 		entries, err := s.walletEngine.GetElectrumTransactions(ctx, walletId)
 		if err != nil {

@@ -12,6 +12,7 @@ import (
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/transactions"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -397,6 +398,44 @@ func TestService_LockWallet(t *testing.T) {
 
 		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
+	})
+}
+
+func TestService_ListTransactionsLocked(t *testing.T) {
+	t.Parallel()
+
+	t.Run("locked wallet does not return history", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		require.NoError(t, transactions.SetNote(context.Background(), database, testWalletID,
+			"deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", "secret note"))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.ListTransactions(context.Background(), connect.NewRequest(&walletv1.ListTransactionsRequest{
+			WalletId: testWalletID,
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.NotContains(t, err.Error(), "secret note")
 	})
 }
 
