@@ -1239,6 +1239,7 @@ class _MultisigConfigStepState extends State<MultisigConfigStep> with AutomaticK
           title: '${k.owner} seed',
           subtitle: 'Anyone with these words can spend from this key.',
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
@@ -1835,6 +1836,7 @@ class _PasteXpubDialogState extends State<_PasteXpubDialog> {
         subtitle: 'An xpub / Zpub, or the full [fingerprint/origin]xpub form',
         error: _error,
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

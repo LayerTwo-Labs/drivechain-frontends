@@ -152,6 +152,7 @@ class _HardwareDevicePickerState extends State<HardwareDevicePicker> {
         subtitle: 'Unlock your device and select it',
         error: _error,
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -418,6 +419,7 @@ class _DevicePassphraseDialogState extends State<DevicePassphraseDialog> {
         title: 'Enter passphrase',
         subtitle: 'The BIP39 passphrase selects which hidden wallet to open.',
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -475,6 +477,7 @@ class _TrezorPinDialogState extends State<TrezorPinDialog> {
         title: 'Enter device PIN',
         subtitle: 'Click the positions matching the scrambled digits shown on your device.',
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

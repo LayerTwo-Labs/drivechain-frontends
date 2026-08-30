@@ -38,6 +38,7 @@ class PSBTCoordinatorModal extends StatelessWidget {
             error: viewModel.modalError,
             withCloseButton: true,
             child: SailColumn(
+              mainAxisSize: MainAxisSize.min,
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -111,6 +112,7 @@ class _GroupSelectionModal extends StatelessWidget {
         subtitle: 'Choose a funded group to create a transaction',
         withCloseButton: true,
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

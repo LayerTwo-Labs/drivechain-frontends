@@ -372,6 +372,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
           error: _modalError,
           child: SingleChildScrollView(
             child: SailColumn(
+              mainAxisSize: MainAxisSize.min,
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -528,6 +529,7 @@ class _ImportPSBTModalState extends State<ImportPSBTModal> {
         error: _modalError,
         child: SingleChildScrollView(
           child: SailColumn(
+            mainAxisSize: MainAxisSize.min,
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -171,6 +171,7 @@ class _PlacePictureDialogState extends State<_PlacePictureDialog> {
       child: SailCard(
         title: 'Place the picture',
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

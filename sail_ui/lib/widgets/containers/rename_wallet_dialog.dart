@@ -53,6 +53,7 @@ class _RenameWalletDialogState extends State<_RenameWalletDialog> {
         title: 'Rename wallet',
         subtitle: 'The name is only shown here. It does not change any keys.',
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

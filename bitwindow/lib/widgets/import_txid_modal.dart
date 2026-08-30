@@ -27,6 +27,7 @@ class ImportTxidModal extends StatelessWidget {
             error: viewModel.modalError,
             child: SingleChildScrollView(
               child: SailColumn(
+                mainAxisSize: MainAxisSize.min,
                 spacing: SailStyleValues.padding16,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
