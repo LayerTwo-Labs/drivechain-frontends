@@ -145,6 +145,42 @@ func TestRestoreBackup_JSON(t *testing.T) {
 	}
 }
 
+func TestRestoreBackup_ReplacesExistingWallet(t *testing.T) {
+	resident := []byte(`{"wallets":[{"id":"old","master":"old-seed","l1":"old-key"}]}`)
+	backup := []byte(`{"wallets":[{"id":"new","master":"new-seed","l1":"new-key"}]}`)
+
+	for _, tc := range []struct {
+		name    string
+		current []byte
+	}{
+		{"valid", resident},
+		{"corrupt", []byte("not json")},
+		{"empty", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			e := &BackupEngine{walletDir: tmpDir}
+
+			walletPath := filepath.Join(tmpDir, "wallet.json")
+			if err := os.WriteFile(walletPath, tc.current, 0600); err != nil {
+				t.Fatalf("seed wallet.json: %v", err)
+			}
+
+			if err := e.RestoreBackup(testCtx(), backup, "wallet.json"); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			content, err := os.ReadFile(walletPath)
+			if err != nil {
+				t.Fatalf("wallet.json not found: %v", err)
+			}
+			if !bytes.Equal(content, backup) {
+				t.Fatalf("wallet.json holds %s, want the backup", content)
+			}
+		})
+	}
+}
+
 func TestHasCurrentWallet(t *testing.T) {
 	tmpDir := t.TempDir()
 	e := &BackupEngine{walletDir: tmpDir}
