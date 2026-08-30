@@ -480,6 +480,9 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 	defer o.monitorsMu.Unlock()
 
 	if mon, ok := o.monitors[name]; ok {
+		// Endpoints move — a network swap gives bitcoind a new RPC port — so a
+		// cached monitor takes the checker it was handed.
+		mon.ReplaceChecker(checker, startupPatterns)
 		return mon
 	}
 
@@ -909,6 +912,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 
 		o.prepareCoreArgs(&opts)
 		o.prepareEnforcerArgs(&opts)
+		o.prepareSidechainArgs(config, &opts)
 		o.injectSidechainStarter(config, &opts)
 		o.injectHeadlessForForcedBackend(config, &opts)
 
@@ -916,6 +920,13 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		if !skipLocalL1 {
 			if !o.startBitcoindOnly(ctx, opts, ch) {
 				return
+			}
+
+			// A pick made from another network could only journal the rewind it
+			// owes. Here, because this is the first Core that can make it, and
+			// it goes before the enforcer validates the retired fork's blocks.
+			if err := o.ApplyPendingRewind(ctx); err != nil {
+				o.log.Error().Err(err).Msg("could not drop the eCash fork the network pick left behind")
 			}
 
 			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
@@ -967,6 +978,43 @@ func (o *Orchestrator) prepareEnforcerArgs(opts *StartOpts) {
 	}
 	opts.EnforcerArgs = o.EnforcerConf.GetCliArgs()
 	o.log.Info().Strs("enforcer_args", opts.EnforcerArgs).Msg("auto-built enforcer args from config")
+}
+
+// prepareSidechainArgs fills opts.TargetArgs from the sidechain's conf. Without
+// it a layer-2 daemon gets no network or port flags at all and boots on its own
+// built-in signet default. Merges per flag rather than bailing out on a
+// non-empty TargetArgs, so an override the caller already placed — electrum's
+// --mainchain-grpc-url — wins on that flag and still gets the rest of the conf.
+func (o *Orchestrator) prepareSidechainArgs(config BinaryConfig, opts *StartOpts) {
+	if config.ChainLayer != 2 || config.IsBitcoinCore {
+		return
+	}
+	scm := o.SidechainConfs[config.Name]
+	if scm == nil || scm.Spec.ConfOnly {
+		return
+	}
+	// The conf's network and ports track the active L1 network.
+	if err := scm.SyncNetworkFromBitcoinConf(); err != nil {
+		o.log.Warn().Err(err).Str("binary", config.Name).Msg("failed to sync sidechain conf from bitcoin conf")
+	}
+	preset := make(map[string]bool, len(opts.TargetArgs))
+	for _, arg := range opts.TargetArgs {
+		preset[cliFlagName(arg)] = true
+	}
+	var fromConf []string
+	for _, arg := range scm.GetCliArgs() {
+		if !preset[cliFlagName(arg)] {
+			fromConf = append(fromConf, arg)
+		}
+	}
+	opts.TargetArgs = append(fromConf, opts.TargetArgs...)
+	o.log.Info().Str("binary", config.Name).Strs("target_args", opts.TargetArgs).Msg("auto-built sidechain args from config")
+}
+
+// cliFlagName is the --flag part of a "--flag=value" or "--flag" argument.
+func cliFlagName(arg string) string {
+	name, _, _ := strings.Cut(arg, "=")
+	return name
 }
 
 // injectSidechainStarter writes the sidechain seed to a temp file and appends
@@ -1283,6 +1331,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 
 		default:
+			o.prepareSidechainArgs(config, &opts)
 			o.injectSidechainStarter(config, &opts)
 			o.injectHeadlessForForcedBackend(config, &opts)
 			// startTargetOnly emits its own "done" event.
@@ -1945,6 +1994,14 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 			continue
 		}
 
+		// A prod PID file for a sidechain the resolver would have sent to the
+		// frontend build can only come from a --force-backend start, so the
+		// adopted process keeps that flag.
+		forceBackend := false
+		if !isTestPid && !isGUIPid && config.ChainLayer == 2 && o.process.SidechainVariant != nil {
+			_, forceBackend = o.process.SidechainVariant(config)
+		}
+
 		binPath := BinaryPath(o.DataDir, config.BinaryName)
 		if isGUIPid {
 			config.Name = sidechainGUIProcessName(config.Name)
@@ -1963,7 +2020,7 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 				binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 			}
 		}
-		o.process.AdoptProcessResolved(config, pid, binPath, pidName, false)
+		o.process.AdoptProcessResolved(config, pid, binPath, pidName, forceBackend)
 		o.log.Info().Str("binary", config.Name).Int("pid", pid).Msg("adopted orphaned process")
 	}
 
@@ -3596,10 +3653,15 @@ func (o *Orchestrator) findConfigByBinaryName(binaryName string) (BinaryConfig, 
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 
+	// Exact match, executable name first. A loose match let "thunder-orchard"
+	// resolve to the "thunder" config on whatever order the map handed out.
 	for _, config := range o.configs {
-		if processNameMatches(config.BinaryName, binaryName) || processNameMatches(config.Name, binaryName) {
+		if config.BinaryName == binaryName {
 			return config, true
 		}
+	}
+	if config, ok := o.configs[binaryName]; ok {
+		return config, true
 	}
 	return BinaryConfig{}, false
 }

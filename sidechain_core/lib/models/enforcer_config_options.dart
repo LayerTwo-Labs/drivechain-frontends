@@ -180,14 +180,6 @@ class EnforcerConfigOptions {
       defaultValue: '127.0.0.1:8122',
     ),
     EnforcerConfigOption(
-      key: 'serve-json-rpc-addr',
-      category: 'Server',
-      description: 'JSON-RPC Address',
-      tooltip: 'Address to serve other JSON-RPC methods.',
-      inputType: EnforcerConfigInputType.text,
-      defaultValue: '127.0.0.1:8123',
-    ),
-    EnforcerConfigOption(
       key: 'serve-grpc-addr',
       category: 'Server',
       description: 'gRPC Address',
@@ -199,15 +191,6 @@ class EnforcerConfigOptions {
     // ===================
     // Wallet Options
     // ===================
-    EnforcerConfigOption(
-      key: 'wallet-full-scan',
-      category: 'Wallet',
-      description: 'Full Scan on Startup',
-      tooltip:
-          'If true, the wallet will perform a full scan of the blockchain on startup, before proceeding with normal operations.',
-      inputType: EnforcerConfigInputType.boolean,
-      defaultValue: false,
-    ),
     EnforcerConfigOption(
       key: 'wallet-auto-create',
       category: 'Wallet',
@@ -300,13 +283,6 @@ class EnforcerConfigOptions {
       tooltip: 'Path to the Bitcoin Core bitcoin-cli binary.',
       inputType: EnforcerConfigInputType.path,
       defaultValue: 'bitcoin-cli',
-    ),
-    EnforcerConfigOption(
-      key: 'signet-miner-coinbase-recipient',
-      category: 'Signet Miner',
-      description: 'Coinbase Recipient',
-      tooltip: 'Address for block reward payment.',
-      inputType: EnforcerConfigInputType.text,
     ),
 
     // ===================

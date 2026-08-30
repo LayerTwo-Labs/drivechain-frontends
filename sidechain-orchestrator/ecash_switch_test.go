@@ -309,6 +309,29 @@ func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
 	require.Equal(t, "alphanet", o.installedECashNetwork())
 }
 
+// A mark an earlier switch left bars a branch that may be the target's own, and
+// only a live Core lifts it. Committing with Core down points this install at a
+// chain Core can never follow, and the same-target retry skips the rewind.
+func TestApplyECashSwitchRefusesOfflineWhenAMarkStaysBarred(t *testing.T) {
+	o := newTestOrchestrator(t)
+	datadir := t.TempDir()
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.Settings.SetRewoundBlockHash(staleMark))
+
+	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), staleMark, "the error has to name the barred block")
+
+	require.Equal(t, "drynet4", o.ecashID, "the old network stays selected")
+	require.Equal(t, "drynet4", o.installedECashNetwork(), "the conf keeps naming it")
+	require.Equal(t, "drynet4", o.Settings.ECashChainID())
+	require.Empty(t, o.Settings.PendingEnforcerWipe(), "a refused switch journals no cleanup")
+	require.Equal(t, staleMark, o.Settings.RewoundBlockHash(), "the mark waits for a live core")
+}
+
 // No published fork height leaves nothing to rewind to, so the switch refuses
 // and the chain stays where it is.
 func TestApplyECashSwitchKeepsTheChainWithNoPublishedForkHeight(t *testing.T) {
@@ -426,6 +449,65 @@ func TestAdoptECashIDMovesTheInMemoryState(t *testing.T) {
 	require.Equal(t, "alphanet", config.ECashNetworkID())
 	require.Equal(t, "alphanet", o.BitcoinConf.ECashID)
 	require.EqualValues(t, 963648, config.PublishedForkHeight(config.NetworkECash))
+}
+
+// Off eCash the chain is cold and no Core can drop what the retired fork added.
+// Left with no record, those blocks outrank the picked network's and the start
+// that follows serves the chain the user just left.
+func TestAdoptECashIDJournalsTheRewindTheColdPickOwes(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NotEqual(t, string(config.NetworkECash), o.Network)
+
+	o.AdoptECashID("alphanet")
+
+	height, forID, fromID := o.Settings.PendingRewind()
+	require.EqualValues(t, 961631, height, "the last block the two networks share")
+	require.Equal(t, "alphanet", forID)
+	require.Equal(t, "drynet4", fromID, "the blocks above that height are drynet4's")
+}
+
+// Staying on the network this install runs drops nothing, so it may not leave a
+// rewind behind for the next start to make.
+func TestAdoptECashIDOwesNoRewindForTheRunningNetwork(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+
+	o.AdoptECashID("drynet4")
+
+	_, forID, _ := o.Settings.PendingRewind()
+	require.Empty(t, forID)
+}
+
+// A cold pick moves the records, not the chain. A pick that comes back to the
+// network that wrote the blocks owes nothing — and dropping them would bar the
+// user's own chain below the fork for good.
+func TestAdoptECashIDClearsTheRewindOnTheWayBack(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	o.AdoptECashID("alphanet")
+
+	o.AdoptECashID("drynet4")
+
+	_, forID, fromID := o.Settings.PendingRewind()
+	require.Empty(t, forID, "the blocks on disk are the picked network's own")
+	require.Empty(t, fromID)
+}
+
+// The blocks stay with the network that wrote them across every cold pick, so
+// the next one rewinds to what it shares with that network, not with the pick
+// before it.
+func TestAdoptECashIDKeepsTheForkTheBlocksBelongTo(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	o.AdoptECashID("alphanet")
+
+	o.AdoptECashID("alphanet2")
+
+	height, forID, fromID := o.Settings.PendingRewind()
+	require.EqualValues(t, 961631, height, "drynet4 wrote the blocks, so its fork height is the floor")
+	require.Equal(t, "alphanet2", forID)
+	require.Equal(t, "drynet4", fromID)
 }
 
 // attachFakeCore points the orchestrator's Core RPC at a stub and reports the
@@ -560,6 +642,86 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 	require.Equal(t, "alphanet", o.RunningECashID(ecashCatalog()))
 	require.Equal(t, forkBlock, o.Settings.RewoundBlockHash())
 	require.Nil(t, o.pendingSwap, "a tail that lands leaves nothing pending")
+}
+
+// The journalled drop is what the first live Core owes: it bars the retired
+// fork's first block, records it and clears the journal.
+func TestApplyPendingRewindDropsTheForkTheColdPickLeft(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "alphanet")
+	require.NoError(t, o.Settings.SetPendingRewind(961631, "alphanet", "drynet4"))
+
+	core := &fakeCore{tips: []int64{979000}, hashes: map[int64]string{979000: tipBlock, 961632: forkBlock}}
+	attachFakeCore(t, o, core)
+	o.process.AdoptProcess(o.configs["bitcoind"], 1)
+
+	require.NoError(t, o.ApplyPendingRewind(context.Background()))
+
+	require.Equal(t, []string{"invalidateblock"}, marks(core))
+	require.Equal(t, []string{forkBlock}, markParams(core), "the first divergent block goes")
+	require.Equal(t, forkBlock, o.Settings.RewoundBlockHash())
+	height, forID, fromID := o.Settings.PendingRewind()
+	require.Zero(t, height)
+	require.Empty(t, forID, "a drop that landed leaves nothing owed")
+	require.Empty(t, fromID)
+}
+
+// A start that brings no Core up cannot make the drop. The blocks below the
+// fork are shared either way, so the record waits rather than being lost.
+func TestApplyPendingRewindKeepsTheRecordWithNoLiveCore(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(ecashCatalog(), "alphanet")
+	require.NoError(t, o.Settings.SetPendingRewind(961631, "alphanet", "drynet4"))
+
+	require.NoError(t, o.ApplyPendingRewind(context.Background()))
+
+	height, forID, _ := o.Settings.PendingRewind()
+	require.EqualValues(t, 961631, height)
+	require.Equal(t, "alphanet", forID, "the next start still owes the drop")
+}
+
+// The Core that answers off eCash follows the network the user is on, so
+// barring a block there costs them that chain. The record waits for the start
+// that brings the picked network up.
+func TestApplyPendingRewindSparesACoreOnAnotherNetwork(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.adoptCatalog(ecashCatalog(), "alphanet")
+	require.NoError(t, o.Settings.SetPendingRewind(961631, "alphanet", "drynet4"))
+
+	core := &fakeCore{tips: []int64{979000}, hashes: map[int64]string{979000: tipBlock, 961632: forkBlock}}
+	attachFakeCore(t, o, core)
+	o.process.AdoptProcess(o.configs["bitcoind"], 1)
+
+	require.NoError(t, o.ApplyPendingRewind(context.Background()))
+
+	require.Empty(t, core.methods, "no block may go on the network the user is on")
+	_, forID, _ := o.Settings.PendingRewind()
+	require.Equal(t, "alphanet", forID, "the record waits for the network it names")
+}
+
+// A record left by a pick that never landed names a network this install does
+// not run. Making that drop would bar a block on the chain it does.
+func TestApplyPendingRewindDropsARecordForAPickThatNeverLanded(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.Settings.SetPendingRewind(961631, "alphanet", "drynet4"))
+
+	core := &fakeCore{tips: []int64{979000}, hashes: map[int64]string{979000: tipBlock, 961632: forkBlock}}
+	attachFakeCore(t, o, core)
+	o.process.AdoptProcess(o.configs["bitcoind"], 1)
+
+	require.NoError(t, o.ApplyPendingRewind(context.Background()))
+
+	require.Empty(t, core.methods, "the running network's chain stays as it is")
+	_, forID, _ := o.Settings.PendingRewind()
+	require.Empty(t, forID)
 }
 
 // The conf goes before Core stops, so a failure there can still put the drop

@@ -121,7 +121,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     if (err != null) {
       showSailToast(
         context,
-        'Could not switch server (kept previous): $err',
+        'Could not switch server: $err',
         variant: SailToastVariant.destructive,
       );
       return;
@@ -142,7 +142,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     if (err != null) {
       showSailToast(
         context,
-        'Could not reset server (kept previous): $err',
+        'Could not reset server: $err',
         variant: SailToastVariant.destructive,
       );
       return;
@@ -172,7 +172,7 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     if (err != null) {
       showSailToast(
         context,
-        'Could not apply Tor config (kept previous): $err',
+        'Could not apply Tor config: $err',
         variant: SailToastVariant.destructive,
       );
       return;

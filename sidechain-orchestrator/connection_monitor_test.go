@@ -161,6 +161,72 @@ func TestConnectionMonitor_PingEpoch_DiscardsStaleResult(t *testing.T) {
 	mon.mu.Unlock()
 }
 
+// --- ReplaceChecker tests ---
+
+// blockingChecker parks inside Check until released, so a test can swap the
+// monitor's checker while a ping is in flight.
+type blockingChecker struct {
+	calls   atomic.Int32
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (b *blockingChecker) Check(_ context.Context) error {
+	b.calls.Add(1)
+	select {
+	case b.entered <- struct{}{}:
+	default:
+	}
+	<-b.release
+	return nil
+}
+
+func TestConnectionMonitor_ReplaceChecker_PollsNewEndpoint(t *testing.T) {
+	// A network swap rebinds the monitor to the new network's RPC port.
+	old := &blockingChecker{entered: make(chan struct{}, 1), release: make(chan struct{})}
+	mon := newTestMonitor(t, old, nil)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		mon.testConnection(context.Background())
+	}()
+	<-old.entered
+
+	fresh := &mockChecker{}
+	fresh.healthy.Store(true)
+	mon.ReplaceChecker(fresh, bitcoindStartupPatterns)
+
+	// The old endpoint's late success belongs to the previous epoch.
+	close(old.release)
+	<-done
+	assert.False(t, mon.Connected())
+
+	mon.testConnection(context.Background())
+	assert.True(t, mon.Connected())
+	assert.Equal(t, int32(1), old.calls.Load())
+}
+
+func TestGetOrCreateMonitor_CachedMonitorTakesNewChecker(t *testing.T) {
+	// Every start path builds a checker from the live config and hands it to
+	// getOrCreateMonitor. After a network swap that checker points at the new
+	// network, so a cached monitor must stop polling the old one.
+	o := newTestOrchestrator(t)
+
+	old := &mockChecker{}
+	old.healthy.Store(true)
+	mon := o.getOrCreateMonitor("bitcoind", old, bitcoindStartupPatterns)
+	mon.testConnection(context.Background())
+	require.True(t, mon.Connected())
+
+	// Nothing answers on the new network yet.
+	fresh := &mockChecker{}
+	require.Same(t, mon, o.getOrCreateMonitor("bitcoind", fresh, bitcoindStartupPatterns))
+
+	mon.testConnection(context.Background())
+	assert.False(t, mon.Connected())
+}
+
 // --- StartConnectionTimer tests ---
 
 func TestConnectionMonitor_StartConnectionTimer_ImmediateConnect(t *testing.T) {

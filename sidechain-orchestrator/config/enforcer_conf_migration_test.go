@@ -32,3 +32,21 @@ func TestMigrationRunsTwiceAndKeepsAHandSetValue(t *testing.T) {
 	assert.Equal(t, "true", c.GetSetting("enable-mempool"),
 		"the template server needs the mempool, so clap would reject the argv without it")
 }
+
+// The enforcer dropped these flags and exits on an unknown option, so an
+// existing conf that still lists one must self-heal on load.
+func TestMigrationDropsFlagsTheEnforcerRemoved(t *testing.T) {
+	c := &EnforcerConfig{ConfigVersion: 3, Settings: map[string]string{}}
+	c.SetSetting("serve-json-rpc-addr", "127.0.0.1:8123")
+	c.SetSetting("wallet-full-scan", "true")
+	c.SetSetting("signet-miner-coinbase-recipient", "tb1qexample")
+	c.SetSetting("serve-rpc-addr", "127.0.0.1:8122")
+
+	require.True(t, RunEnforcerConfMigrations(c))
+
+	assert.Empty(t, c.GetSetting("serve-json-rpc-addr"))
+	assert.Empty(t, c.GetSetting("wallet-full-scan"))
+	assert.Empty(t, c.GetSetting("signet-miner-coinbase-recipient"))
+	assert.Equal(t, "127.0.0.1:8122", c.GetSetting("serve-rpc-addr"), "a flag it still accepts stays")
+	assert.Equal(t, 4, c.ConfigVersion)
+}

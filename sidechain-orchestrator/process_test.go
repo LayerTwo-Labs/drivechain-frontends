@@ -246,18 +246,25 @@ func TestPidFile_OverwriteKeepsLatest(t *testing.T) {
 	assert.Equal(t, 200, pid)
 }
 
+// A reported name matches its own binary, the path macOS prints for it, and
+// the 15-character name Linux truncates it to — nothing else. A substring
+// match adopted a stranger and then signalled its PID.
 func TestProcessNameMatches(t *testing.T) {
 	tests := []struct {
 		proc, bin string
 		want      bool
 	}{
 		{"bitcoind", "bitcoind", true},
-		{"Bitcoind", "bitcoind", true},   // case insensitive
-		{"bitcoin", "bitcoind", true},    // ps truncation
-		{"bitcoind", "bitcoin", true},    // reverse contains
-		{"unrelated", "bitcoind", false}, // no overlap
+		{"Bitcoind", "bitcoind", true},
+		{"/opt/bin/bitcoind", "bitcoind", true},
+		{"bitcoin", "bitcoind", false},
+		{"bitcoind", "bitcoin", false},
+		{"unrelated", "bitcoind", false},
+		{"thunder-orchard", "thunder", false},
+		{"thunder", "thunder-orchard", false},
 		{"bip300301-enforcer", "bip300301-enforcer", true},
-		{"bip300301", "bip300301-enforcer", true}, // truncated
+		{"bip300301-enfor", "bip300301-enforcer", true},
+		{"bip300301", "bip300301-enforcer", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.proc+"_vs_"+tt.bin, func(t *testing.T) {
