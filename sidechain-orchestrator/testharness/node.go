@@ -241,9 +241,10 @@ func (n *Node) close() {
 func waitForBitcoind(t *testing.T, rpcClient *wallet.CoreRPCClient, nodeName string) {
 	t.Helper()
 
-	// 90s, not 30s: the Windows CI runners are slow to bring bitcoind's RPC up
-	// and were flaking the integration suite on the readiness wait.
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	// 180s, not 90s: the first launch of a freshly built bitcoind waits on the
+	// Windows virus scanner and missed 90s twice, while the next test in the
+	// same job reached RPC one second after start.
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 
 	for {
