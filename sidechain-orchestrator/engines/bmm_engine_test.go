@@ -584,6 +584,88 @@ func TestBmmEngineResumesAWonBlockThatNeverConnected(t *testing.T) {
 	assert.Greater(t, backend.connects, before, "the won block is retried after a restart")
 }
 
+// The opening bid is broadcast the moment the round opens, so a restart before
+// anything settles it must resume the block it may have won.
+func TestBmmEngineResumesAnOpenRoundAfterRestart(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	// The engine dies with the round still open.
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, store)
+	restarted.resumeUnconnected()
+
+	backend.commitment = "critical"
+	backend.connected = true
+	tip.set("block-2")
+	before := backend.connects
+	restarted.retryConnects(ctx, testSidechain, tip.hash, tip.height)
+
+	assert.Greater(t, backend.connects, before, "the open round's bid is connected after a restart")
+	history := mustHistory(t, restarted)
+	require.NotEmpty(t, history)
+	assert.Equal(t, ResultWon, history[0].Result)
+}
+
+// A restarted engine still has an M8 of its own in the mempool, so it must carry
+// that round on rather than open a second one and bid against itself.
+func TestBmmEngineCarriesOnAResumedOpenRound(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	backend.feesSats = 50_000
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 30_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	backend.others = []*bmmpb.Bid{
+		{Txid: "txid-1", CriticalHash: "critical", BidSats: 10_000, PrevMainHash: "block-1"},
+	}
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, store)
+	restarted.resumeUnconnected()
+	require.NoError(t, restarted.Start(testSidechain, "", 10_000, 30_000))
+	restarted.tick(ctx)
+
+	assert.Equal(t, 1, backend.bids, "the resumed round is not bid on again")
+	current := restarted.Current(testSidechain)
+	require.NotNil(t, current)
+	require.Len(t, current.OurBids, 1)
+	assert.Equal(t, "txid-1", current.OurBids[0].Txid, "the round in play is the one from disk")
+
+	restarted.tick(ctx)
+	assert.Equal(t, 1, backend.bids, "our own outstanding bid is not competition to raise against")
+	assert.Empty(t, restarted.Current(testSidechain).OtherBids)
+}
+
+// A resumed round bids on the tip that is still current, so the block deciding
+// it is not mined yet. Waiting for it must not burn the retries that keep the
+// paid bid alive.
+func TestBmmEngineWaitsForTheBlockThatDecidesAResumedRound(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, store)
+	restarted.resumeUnconnected()
+	for range bmmConnectAttempts + 1 {
+		restarted.retryConnects(ctx, testSidechain, tip.hash, tip.height)
+	}
+
+	backend.commitment = "critical"
+	backend.connected = true
+	tip.set("block-2")
+	before := backend.connects
+	restarted.retryConnects(ctx, testSidechain, tip.hash, tip.height)
+
+	assert.Greater(t, backend.connects, before, "the bid still connects once the tip moves")
+}
+
 func TestBmmEngineRecordsBlockHeights(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
 	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
