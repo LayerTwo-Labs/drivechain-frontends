@@ -83,6 +83,15 @@ func Parse() (Config, error) {
 		conf.Datadir = datadir
 	}
 
+	// Absolute so everything downstream — including the value we forward to
+	// drivechaind, which launches children with a different working directory —
+	// resolves against our cwd and not theirs.
+	datadir, err := filepath.Abs(conf.Datadir)
+	if err != nil {
+		return Config{}, fmt.Errorf("resolve data directory %q: %w", conf.Datadir, err)
+	}
+	conf.Datadir = datadir
+
 	return conf, nil
 }
 

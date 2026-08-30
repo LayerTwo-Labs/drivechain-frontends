@@ -170,10 +170,18 @@ func run(cctx *cli.Context) error {
 		Timestamp().
 		Logger()
 
-	dataDir := cctx.String("datadir")
+	// Absolute up front: we launch children with cmd.Dir set elsewhere, so a
+	// relative path here would re-resolve against the wrong directory.
+	dataDir, err := filepath.Abs(cctx.String("datadir"))
+	if err != nil {
+		return fmt.Errorf("resolve --datadir: %w", err)
+	}
 	network := cctx.String("network")
 	listenAddr := cctx.String("rpclisten")
-	bitwindowDir := cctx.String("bitwindow-dir")
+	bitwindowDir, err := filepath.Abs(cctx.String("bitwindow-dir"))
+	if err != nil {
+		return fmt.Errorf("resolve --bitwindow-dir: %w", err)
+	}
 	localAuth := cctx.Bool("local-auth")
 
 	if appHome := cctx.String("app-home"); appHome != "" {

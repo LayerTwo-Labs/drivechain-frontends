@@ -30,6 +30,29 @@ func TestProcessManager_StartAndStop(t *testing.T) {
 	assert.False(t, pm.IsRunning("sleep-test"))
 }
 
+// A relative data dir must still launch: cmd.Dir is set to it, so an
+// unresolved binary path would be looked up under <dataDir>/<dataDir>.
+func TestProcessManager_StartWithRelativeDataDir(t *testing.T) {
+	t.Chdir(t.TempDir())
+
+	const dir = "orchestrator"
+	log := testLogger(t)
+	pm := NewProcessManager(dir, NewPidFileManager(dir, log), log)
+	t.Cleanup(func() {
+		_ = pm.StopAll(context.Background(), true)
+		pm.WaitForExit("sleep-test", 5*time.Second)
+	})
+	symlinkSystemBinary(t, dir, "sleep")
+
+	pid, err := pm.Start(context.Background(), BinaryConfig{
+		Name: "sleep-test", BinaryName: "sleep",
+	}, []string{"30"}, nil)
+	require.NoError(t, err)
+	assert.Greater(t, pid, 0)
+
+	require.NoError(t, pm.Stop(context.Background(), "sleep-test", false))
+}
+
 func TestProcessManager_ConcurrentStartSpawnsOnce(t *testing.T) {
 	pm, dir := newTestProcessManager(t)
 	symlinkSystemBinary(t, dir, "sleep")
