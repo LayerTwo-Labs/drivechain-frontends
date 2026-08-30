@@ -2,23 +2,29 @@ package m4
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"slices"
 
 	"connectrpc.com/connect"
 	m4models "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	m4pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/samber/lo"
 )
 
 type Server struct {
 	m4Engine *engines.M4Engine
+	enforcer *service.Service[validatorrpc.ValidatorServiceClient]
 }
 
-func NewServer(m4Engine *engines.M4Engine) *Server {
-	return &Server{m4Engine: m4Engine}
+func NewServer(m4Engine *engines.M4Engine, enforcer *service.Service[validatorrpc.ValidatorServiceClient]) *Server {
+	return &Server{m4Engine: m4Engine, enforcer: enforcer}
 }
 
 func (s *Server) GetM4History(
@@ -167,70 +173,72 @@ func (s *Server) GenerateM4Bytes(
 		return p.SidechainSlot
 	})
 
-	// Generate M4 bytes using version 0x02 (2 bytes per sidechain)
-	// Only include sidechains that have pending bundles
-	var m4Bytes []byte
-	m4Bytes = append(m4Bytes, 0x02) // Version
+	enforcer, err := s.enforcer.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enforcer: %w", err)
+	}
+	sidechains, err := enforcer.GetSidechains(ctx, connect.NewRequest(&validatorpb.GetSidechainsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("get sidechains: %w", err)
+	}
+	slots := lo.Map(sidechains.Msg.GetSidechains(), func(sc *validatorpb.GetSidechainsResponse_SidechainInfo, _ int) uint8 {
+		return uint8(sc.GetSidechainNumber().GetValue())
+	})
+	slices.Sort(slots)
 
-	var interpretation string
-	interpretation = "M4 Vote Bytes:\n\n"
+	votes := make([]uint16, len(slots))
+	descs := make([]string, len(slots))
+	for i, slot := range slots {
+		sidechainBundles := bundlesBySidechain[slot]
+		pref, hasPreference := prefMap[slot]
 
-	// Process sidechains in order
-	for slot := 0; slot <= 255; slot++ {
-		sidechainBundles, hasBundles := bundlesBySidechain[uint8(slot)]
-		if !hasBundles {
-			continue
-		}
-
-		pref, hasPreference := prefMap[uint8(slot)]
-
-		var voteBytes [2]byte
-		var voteDesc string
-
+		votes[i] = m4models.VoteAbstain
+		descs[i] = "Abstain from all withdrawals"
 		switch {
 		case !hasPreference || pref.VoteType == m4models.VoteTypeAbstain:
-			// Abstain: 0xFFFF
-			voteBytes[0] = 0xFF
-			voteBytes[1] = 0xFF
-			voteDesc = "Abstain from all withdrawals"
 		case pref.VoteType == m4models.VoteTypeAlarm:
-			// Alarm (downvote all): 0xFFFE
-			voteBytes[0] = 0xFE
-			voteBytes[1] = 0xFF
-			voteDesc = "Alarm - Downvote all withdrawals"
+			votes[i] = m4models.VoteAlarm
+			descs[i] = "Alarm - Downvote all withdrawals"
 		case pref.VoteType == m4models.VoteTypeUpvote:
-			// Find bundle index by hash
-			bundleIndex := uint16(0xFFFF) // Default to abstain if not found
-			if pref.BundleHash != nil {
-				for i, b := range sidechainBundles {
-					if b.BundleHash == *pref.BundleHash {
-						bundleIndex = uint16(i)
-						break
-					}
-				}
+			descs[i] = "Abstain (bundle not found)"
+			if pref.BundleHash == nil {
+				break
 			}
-			if bundleIndex == 0xFFFF {
-				voteBytes[0] = 0xFF
-				voteBytes[1] = 0xFF
-				voteDesc = "Abstain (bundle not found)"
-			} else {
-				// Little-endian encoding
-				voteBytes[0] = byte(bundleIndex & 0xFF)
-				voteBytes[1] = byte(bundleIndex >> 8)
-				voteDesc = fmt.Sprintf("Upvote withdrawal #%d", bundleIndex)
-				if pref.BundleHash != nil {
-					hash := *pref.BundleHash
-					if len(hash) > 16 {
-						hash = hash[:16] + "..."
-					}
-					voteDesc += fmt.Sprintf(" (%s)", hash)
+			for j, b := range sidechainBundles {
+				if b.BundleHash != *pref.BundleHash {
+					continue
 				}
+				votes[i] = uint16(j)
+				hash := *pref.BundleHash
+				if len(hash) > 16 {
+					hash = hash[:16] + "..."
+				}
+				descs[i] = fmt.Sprintf("Upvote withdrawal #%d (%s)", j, hash)
+				break
 			}
 		}
+	}
 
-		m4Bytes = append(m4Bytes, voteBytes[0], voteBytes[1])
-		interpretation += fmt.Sprintf("Sidechain #%d: %02x%02x\n  %s\n  (%d pending bundles)\n\n",
-			slot, voteBytes[0], voteBytes[1], voteDesc, len(sidechainBundles))
+	// The enforcer rejects a two-byte vector when every vote fits in one byte.
+	oneByte := lo.EveryBy(votes, func(v uint16) bool {
+		return v <= 253 || v >= m4models.VoteAlarm
+	})
+
+	m4Bytes := []byte{0x02}
+	if oneByte {
+		m4Bytes = []byte{0x01}
+	}
+	interpretation := "M4 Vote Bytes:\n\n"
+	for i, slot := range slots {
+		var voteBytes []byte
+		if oneByte {
+			voteBytes = []byte{byte(votes[i])}
+		} else {
+			voteBytes = binary.LittleEndian.AppendUint16(nil, votes[i])
+		}
+		m4Bytes = append(m4Bytes, voteBytes...)
+		interpretation += fmt.Sprintf("Sidechain #%d: %x\n  %s\n  (%d pending bundles)\n\n",
+			slot, voteBytes, descs[i], len(bundlesBySidechain[slot]))
 	}
 
 	hexStr := hex.EncodeToString(m4Bytes)
