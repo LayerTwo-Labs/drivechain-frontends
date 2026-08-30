@@ -1352,12 +1352,14 @@ func (p *CoreBackend) createWatchOnlyWallet(ctx context.Context, walletName stri
 				return fmt.Errorf("add checksum: %w", err)
 			}
 		}
-		descriptors = append(descriptors, ImportDescriptor{
-			Desc:      desc,
-			Active:    true,
-			Timestamp: "now",
-			Range:     []int{0, 1000},
-		})
+		// Core rejects a range on an un-ranged descriptor, and only a ranged
+		// descriptor may be active, so a fixed one imports as neither.
+		imp := ImportDescriptor{Desc: desc, Timestamp: "now"}
+		if strings.Contains(desc, "*") {
+			imp.Active = true
+			imp.Range = []int{0, 1000}
+		}
+		descriptors = append(descriptors, imp)
 	} else if watchOnly.Xpub != "" {
 		descriptors = append(descriptors,
 			ImportDescriptor{

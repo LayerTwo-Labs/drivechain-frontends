@@ -1482,6 +1482,43 @@ func TestCoreBackendImportsEveryKindTheWalletAdvertises(t *testing.T) {
 	assert.Contains(t, singleSig[2].Desc, "wpkh([")
 }
 
+// Core rejects a range on an un-ranged descriptor and refuses to make one
+// active, so a fixed watch-only descriptor must be imported with neither.
+func TestCoreBackendWatchOnlyRangeFollowsTheDescriptor(t *testing.T) {
+	const xpub = "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+	tests := []struct {
+		name       string
+		descriptor string
+		wantActive bool
+		wantRange  []int
+	}{
+		{"fixed", "addr(" + p2wpkhAddr(t, fixedKey(0x42), &chaincfg.RegressionNetParams) + ")", false, nil},
+		{"ranged", "wpkh(" + xpub + "/0/*)", true, []int{0, 1000}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := newTestService(t)
+			require.NoError(t, svc.CreateWatchOnlyWallet("Watch", tt.descriptor, `{"background_svg":""}`))
+
+			fake := newFakeBitcoind(t)
+			fake.stubEnsureFlow()
+			backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+
+			_, err := backend.Ensure(context.Background(), svc.ActiveWalletID())
+			require.NoError(t, err)
+
+			imports := fake.callsFor("importdescriptors")
+			require.Len(t, imports, 1, "watch-only wallets import no bip47 notification key")
+			var descs []ImportDescriptor
+			require.NoError(t, json.Unmarshal(imports[0].Params[0], &descs))
+			require.Len(t, descs, 1)
+			assert.Contains(t, descs[0].Desc, "#", "descriptor carries a checksum")
+			assert.Equal(t, tt.wantActive, descs[0].Active)
+			assert.Equal(t, tt.wantRange, descs[0].Range)
+		})
+	}
+}
+
 // coreBumpFeeFixture stubs an unconfirmed wallet transaction that pays a
 // stranger and returns change, so a fee bump has both kinds of output.
 func coreBumpFeeFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string, string, string) {
