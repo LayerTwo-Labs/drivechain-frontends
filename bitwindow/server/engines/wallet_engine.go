@@ -537,15 +537,8 @@ func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, wallet
 		// Otherwise fall through to local fallback.
 	}
 
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Check cache
-	if walletName, exists := e.coreWallets[walletId]; exists {
-		return walletName, nil
-	}
-
-	// Get wallet info
+	// Get wallet info before taking the write lock — for an encrypted wallet
+	// GetWalletInfo read-locks e.mu, which self-deadlocks under a held write lock.
 	wallet, err := e.GetWalletInfo(ctx, walletId)
 	if err != nil {
 		return "", err
@@ -553,6 +546,14 @@ func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, wallet
 
 	if wallet.WalletType != WalletTypeBitcoinCore {
 		return "", fmt.Errorf("wallet %s is not a Bitcoin Core wallet", walletId)
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Check cache
+	if walletName, exists := e.coreWallets[walletId]; exists {
+		return walletName, nil
 	}
 
 	// Generate wallet name from wallet ID
@@ -980,15 +981,8 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 		// Otherwise fall through to local on error
 	}
 
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Check cache
-	if walletName, exists := e.coreWallets[walletId]; exists {
-		return walletName, nil
-	}
-
-	// Get wallet info
+	// Get wallet info before taking the write lock — for an encrypted wallet
+	// GetWalletInfo read-locks e.mu, which self-deadlocks under a held write lock.
 	wallet, err := e.GetWalletInfo(ctx, walletId)
 	if err != nil {
 		return "", err
@@ -996,6 +990,14 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 
 	if !wallet.IsWatchOnly() {
 		return "", fmt.Errorf("wallet %s is not a watch-only wallet", walletId)
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Check cache
+	if walletName, exists := e.coreWallets[walletId]; exists {
+		return walletName, nil
 	}
 
 	// Generate wallet name from wallet ID
