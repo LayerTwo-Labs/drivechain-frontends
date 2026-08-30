@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -133,12 +135,6 @@ class _BasicInfoStep extends StatelessWidget {
           hintText: 'Detailed description of the market and resolution criteria...',
           maxLines: 4,
         ),
-        const SizedBox(height: 8),
-        SailText.secondary13('Tags (comma-separated)'),
-        SailTextField(
-          controller: model.tagsController,
-          hintText: 'e.g., bitcoin, crypto, 2026',
-        ),
       ],
     );
   }
@@ -191,20 +187,20 @@ class _DimensionsStep extends StatelessWidget {
             hintText: 'e.g., 004008',
           ),
         ] else if (model.marketType == MarketType.categorical) ...[
-          SailText.secondary13('Enter slot IDs for categorical outcomes.'),
+          SailText.secondary13('This creates a market with one outcome per option of a category decision.'),
           const SizedBox(height: 8),
-          SailText.secondary13('Slot IDs (comma-separated)'),
+          SailText.secondary13('Category Decision ID'),
           SailTextField(
             controller: model.dimensionsController,
-            hintText: 'e.g., 004008,004009,004010',
+            hintText: 'e.g., 004008',
           ),
         ] else ...[
-          SailText.secondary13('Enter custom dimension specification using bracket notation.'),
+          SailText.secondary13('Enter decision slot IDs, or paste DimensionInput JSON.'),
           const SizedBox(height: 8),
           SailText.secondary13('Dimensions'),
           SailTextField(
             controller: model.dimensionsController,
-            hintText: 'e.g., [004008] or [[004008,004009]]',
+            hintText: 'e.g., 004008,004009 or [{"type":"existing","id":"004008"}]',
           ),
           const SizedBox(height: 8),
           Container(
@@ -217,9 +213,9 @@ class _DimensionsStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SailText.secondary12('Dimension Syntax:', bold: true),
-                SailText.secondary12('[slot_id] - Binary outcome from single slot'),
-                SailText.secondary12('[s1,s2,s3] - Combined binary slots'),
-                SailText.secondary12('[[s1,s2,s3]] - Categorical from related slots'),
+                SailText.secondary12('slot_id - One dimension per claimed decision'),
+                SailText.secondary12('{"type":"existing","id":"s1"} - Reference a claimed decision'),
+                SailText.secondary12('{"type":"new",...} - Claim a decision with the market'),
               ],
             ),
           ),
@@ -317,6 +313,7 @@ class _LiquidityStep extends StatelessWidget {
           SailButton(
             label: 'Calculate Preview',
             small: true,
+            disabled: model.effectiveDimensions.isEmpty,
             onPressed: () async => model.calculateLiquidityPreview(),
           ),
         ],
@@ -404,9 +401,8 @@ class _ReviewStep extends StatelessWidget {
                     ? '${model.descriptionController.text.substring(0, 100)}...'
                     : model.descriptionController.text,
               ),
-              _ReviewRow(label: 'Tags', value: model.tagsController.text.isEmpty ? 'None' : model.tagsController.text),
               _ReviewRow(label: 'Type', value: model.marketType.name),
-              _ReviewRow(label: 'Dimensions', value: model.effectiveDimensions),
+              _ReviewRow(label: 'Dimensions', value: model.dimensionInputs),
               _ReviewRow(
                 label: model.liquidityMethod == LiquidityMethod.beta ? 'Beta' : 'Liquidity',
                 value: model.liquidityMethod == LiquidityMethod.beta
@@ -572,7 +568,6 @@ class MarketCreationViewModel extends BaseViewModel {
 
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
-  final TextEditingController tagsController = TextEditingController();
   final TextEditingController dimensionsController = TextEditingController();
   final TextEditingController liquidityController = TextEditingController(text: '100000');
   final TextEditingController betaController = TextEditingController(text: '7.0');
@@ -585,6 +580,8 @@ class MarketCreationViewModel extends BaseViewModel {
   bool isCreating = false;
   String? createError;
 
+  /// Dimensions in the bracket notation calculate_initial_liquidity takes.
+  /// Empty when a dimension claims a new decision, which has no ID yet.
   String get effectiveDimensions {
     final input = dimensionsController.text.trim();
     if (input.isEmpty) return '';
@@ -593,11 +590,39 @@ class MarketCreationViewModel extends BaseViewModel {
       case MarketType.binary:
         return '[$input]';
       case MarketType.categorical:
-        final slots = input.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
-        return '[[${slots.join(',')}]]';
+        return '[[$input]]';
       case MarketType.custom:
-        return input;
+        final dimensions = (jsonDecode(dimensionInputs) as List).cast<Map>();
+        if (dimensions.any((d) => d['type'] != 'existing')) {
+          return '';
+        }
+        return '[${dimensions.map((d) => d['id']).join(',')}]';
     }
+  }
+
+  /// Dimensions as the `DimensionInput` JSON array that market_create takes.
+  String get dimensionInputs {
+    final input = dimensionsController.text.trim();
+    if (input.isEmpty) {
+      return '[]';
+    }
+
+    try {
+      final decoded = jsonDecode(input);
+      if (decoded is Map) {
+        return jsonEncode([decoded]);
+      }
+      if (decoded is List && decoded.every((d) => d is Map)) {
+        return input;
+      }
+    } on FormatException {
+      // Not JSON, so the input holds decision IDs.
+    }
+
+    final ids = input.split(RegExp(r'[\s,\[\]]+')).where((id) => id.isNotEmpty);
+    return jsonEncode([
+      for (final id in ids) {'type': 'existing', 'id': id},
+    ]);
   }
 
   bool get canContinue {
@@ -605,7 +630,11 @@ class MarketCreationViewModel extends BaseViewModel {
       case 0:
         return titleController.text.trim().isNotEmpty && descriptionController.text.trim().isNotEmpty;
       case 1:
-        return dimensionsController.text.trim().isNotEmpty;
+        final input = dimensionsController.text.trim();
+        if (marketType == MarketType.categorical) {
+          return RegExp(r'^[0-9a-fA-F]+$').hasMatch(input);
+        }
+        return input.isNotEmpty;
       case 2:
         return liquidityMethod == LiquidityMethod.beta
             ? (double.tryParse(betaController.text) ?? 0) > 0
@@ -667,19 +696,16 @@ class MarketCreationViewModel extends BaseViewModel {
     createError = null;
     notifyListeners();
 
-    final tags = tagsController.text.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
-
     final txid = await _marketProvider.createMarket(
       title: titleController.text.trim(),
       description: descriptionController.text.trim(),
-      dimensions: effectiveDimensions,
+      dimensions: dimensionInputs,
       feeSats: 1000,
       beta: liquidityMethod == LiquidityMethod.beta ? double.tryParse(betaController.text) : null,
       initialLiquidity: liquidityMethod == LiquidityMethod.initialLiquidity
           ? int.tryParse(liquidityController.text)
           : null,
       tradingFee: (double.tryParse(tradingFeeController.text) ?? 0.5) / 100,
-      tags: tags.isNotEmpty ? tags : null,
     );
 
     isCreating = false;
@@ -703,7 +729,6 @@ class MarketCreationViewModel extends BaseViewModel {
   void dispose() {
     titleController.dispose();
     descriptionController.dispose();
-    tagsController.dispose();
     dimensionsController.dispose();
     liquidityController.dispose();
     betaController.dispose();
