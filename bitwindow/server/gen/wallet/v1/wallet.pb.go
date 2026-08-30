@@ -764,9 +764,12 @@ type UnspentOutput struct {
 	// split engine checked it.
 	Splittable *bool `protobuf:"varint,9,opt,name=splittable,proto3,oneof" json:"splittable,omitempty"`
 	// Confirmation block height; 0 when unconfirmed or unknown.
-	Height        int32 `protobuf:"varint,10,opt,name=height,proto3" json:"height,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Height int32 `protobuf:"varint,10,opt,name=height,proto3" json:"height,omitempty"`
+	// The largest weight, in weight units, that spending this output costs. 0
+	// when the backend cannot report the output's descriptor.
+	InputWeightUnits int32 `protobuf:"varint,11,opt,name=input_weight_units,json=inputWeightUnits,proto3" json:"input_weight_units,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *UnspentOutput) Reset() {
@@ -865,6 +868,13 @@ func (x *UnspentOutput) GetSplittable() bool {
 func (x *UnspentOutput) GetHeight() int32 {
 	if x != nil {
 		return x.Height
+	}
+	return 0
+}
+
+func (x *UnspentOutput) GetInputWeightUnits() int32 {
+	if x != nil {
+		return x.InputWeightUnits
 	}
 	return 0
 }
@@ -4378,7 +4388,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x11confirmed_satoshi\x18\x01 \x01(\x04R\x10confirmedSatoshi\x12'\n" +
 	"\x0fpending_satoshi\x18\x02 \x01(\x04R\x0ependingSatoshi\"\\\n" +
 	"\x18ListTransactionsResponse\x12@\n" +
-	"\ftransactions\x18\x01 \x03(\v2\x1c.wallet.v1.WalletTransactionR\ftransactions\"\x96\x03\n" +
+	"\ftransactions\x18\x01 \x03(\v2\x1c.wallet.v1.WalletTransactionR\ftransactions\"\xc4\x03\n" +
 	"\rUnspentOutput\x12\x16\n" +
 	"\x06output\x18\x01 \x01(\tR\x06output\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x14\n" +
@@ -4395,7 +4405,8 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"splittable\x18\t \x01(\bH\x01R\n" +
 	"splittable\x88\x01\x01\x12\x16\n" +
 	"\x06height\x18\n" +
-	" \x01(\x05R\x06heightB\x0e\n" +
+	" \x01(\x05R\x06height\x12,\n" +
+	"\x12input_weight_units\x18\v \x01(\x05R\x10inputWeightUnitsB\x0e\n" +
 	"\f_denial_infoB\r\n" +
 	"\v_splittable\"E\n" +
 	"\x13ListUnspentResponse\x12.\n" +

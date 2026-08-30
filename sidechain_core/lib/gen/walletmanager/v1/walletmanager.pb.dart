@@ -8131,6 +8131,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $15.Timestamp? receivedAt,
     $core.String? derivationPath,
     $core.bool? splittable,
+    $core.int? inputWeightUnits,
   }) {
     final $result = create();
     if (txid != null) {
@@ -8172,6 +8173,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (splittable != null) {
       $result.splittable = splittable;
     }
+    if (inputWeightUnits != null) {
+      $result.inputWeightUnits = inputWeightUnits;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -8192,6 +8196,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOM<$15.Timestamp>(11, _omitFieldNames ? '' : 'receivedAt', subBuilder: $15.Timestamp.create)
     ..aOS(12, _omitFieldNames ? '' : 'derivationPath')
     ..aOB(13, _omitFieldNames ? '' : 'splittable')
+    ..a<$core.int>(14, _omitFieldNames ? '' : 'inputWeightUnits', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -8340,6 +8345,18 @@ class UnspentOutput extends $pb.GeneratedMessage {
   $core.bool hasSplittable() => $_has(12);
   @$pb.TagNumber(13)
   void clearSplittable() => clearField(13);
+
+  /// The largest weight, in weight units, that spending this output costs. Read
+  /// from the output's descriptor, so it covers every script kind the wallet
+  /// holds. 0 when the backend cannot report a descriptor.
+  @$pb.TagNumber(14)
+  $core.int get inputWeightUnits => $_getIZ(13);
+  @$pb.TagNumber(14)
+  set inputWeightUnits($core.int v) { $_setSignedInt32(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasInputWeightUnits() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearInputWeightUnits() => clearField(14);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {

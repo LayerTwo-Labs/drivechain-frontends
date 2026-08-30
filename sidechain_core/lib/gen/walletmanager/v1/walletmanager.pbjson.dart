@@ -1867,6 +1867,7 @@ const UnspentOutput$json = {
     {'1': 'received_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'receivedAt'},
     {'1': 'derivation_path', '3': 12, '4': 1, '5': 9, '10': 'derivationPath'},
     {'1': 'splittable', '3': 13, '4': 1, '5': 8, '9': 0, '10': 'splittable', '17': true},
+    {'1': 'input_weight_units', '3': 14, '4': 1, '5': 5, '10': 'inputWeightUnits'},
   ],
   '8': [
     {'1': '_splittable'},
@@ -1882,7 +1883,8 @@ final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
     'bmRhYmxlEhoKCHNvbHZhYmxlGAkgASgIUghzb2x2YWJsZRIbCgl3YWxsZXRfaWQYCiABKAlSCH'
     'dhbGxldElkEjsKC3JlY2VpdmVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFt'
     'cFIKcmVjZWl2ZWRBdBInCg9kZXJpdmF0aW9uX3BhdGgYDCABKAlSDmRlcml2YXRpb25QYXRoEi'
-    'MKCnNwbGl0dGFibGUYDSABKAhIAFIKc3BsaXR0YWJsZYgBAUINCgtfc3BsaXR0YWJsZQ==');
+    'MKCnNwbGl0dGFibGUYDSABKAhIAFIKc3BsaXR0YWJsZYgBARIsChJpbnB1dF93ZWlnaHRfdW5p'
+    'dHMYDiABKAVSEGlucHV0V2VpZ2h0VW5pdHNCDQoLX3NwbGl0dGFibGU=');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {

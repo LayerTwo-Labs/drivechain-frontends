@@ -947,6 +947,10 @@ message UnspentOutput {
   // True when the outpoint exists unspent on BTC mainnet. Unset until the
   // split engine checked it.
   optional bool splittable = 13;
+  // The largest weight, in weight units, that spending this output costs. Read
+  // from the output's descriptor, so it covers every script kind the wallet
+  // holds. 0 when the backend cannot report a descriptor.
+  int32 input_weight_units = 14;
 }
 
 message ListUnspentResponse {

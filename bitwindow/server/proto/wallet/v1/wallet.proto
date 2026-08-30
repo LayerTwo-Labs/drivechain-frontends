@@ -161,6 +161,9 @@ message UnspentOutput {
   optional bool splittable = 9;
   // Confirmation block height; 0 when unconfirmed or unknown.
   int32 height = 10;
+  // The largest weight, in weight units, that spending this output costs. 0
+  // when the backend cannot report the output's descriptor.
+  int32 input_weight_units = 11;
 }
 
 message ListUnspentResponse {
