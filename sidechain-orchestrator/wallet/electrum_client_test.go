@@ -217,6 +217,81 @@ func TestElectrumClientHeightCacheRevoked(t *testing.T) {
 	assert.Equal(t, 0, got.Status.BlockHeight)
 }
 
+// TestElectrumClientSwapDropsTipCache checks that a server or proxy switch reads a fresh tip.
+func TestElectrumClientSwapDropsTipCache(t *testing.T) {
+	ctx := context.Background()
+	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+		if method == "blockchain.headers.subscribe" {
+			return map[string]interface{}{"height": 800000}
+		}
+		return nil
+	})
+	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+
+	tip, err := c.TipHeight(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 800000, tip)
+
+	c.SetBaseURLs([]string{"ssl://127.0.0.1:1"})
+	_, err = c.TipHeight(ctx)
+	assert.Error(t, err, "a swap to an unreachable server must not serve the previous server's tip")
+
+	c.SetBaseURLs([]string{url})
+	require.NoError(t, c.SetProxy(true, "127.0.0.1:1"))
+	_, err = c.TipHeight(ctx)
+	assert.Error(t, err, "a swap to an unreachable proxy must not serve the cached tip")
+}
+
+// TestElectrumClientSwapReachesTheNewServer checks that the first call after a
+// swap goes to the new server, not to the socket the swap closed.
+func TestElectrumClientSwapReachesTheNewServer(t *testing.T) {
+	ctx := context.Background()
+	serve := func(height int) string {
+		return startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+			if method == "blockchain.headers.subscribe" {
+				return map[string]interface{}{"height": height}
+			}
+			return nil
+		})
+	}
+	urls := []string{serve(100), serve(200)}
+	c := NewElectrumClient(urls[0], zerolog.Nop(), &chaincfg.SigNetParams)
+	_, err := c.TipHeight(ctx)
+	require.NoError(t, err)
+
+	c.SetBaseURLs(urls[1:])
+	c.connMu.Lock()
+	assert.Nil(t, c.conn, "the swap must retire the old socket before it returns")
+	c.connMu.Unlock()
+	tip, err := c.TipHeight(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 200, tip)
+}
+
+// TestElectrumClientTipFromTheOldEndpointIsNotCached checks that a header push
+// or a reply from before a swap does not fill the cache.
+func TestElectrumClientTipFromTheOldEndpointIsNotCached(t *testing.T) {
+	ctx := context.Background()
+	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+		if method == "blockchain.headers.subscribe" {
+			return map[string]interface{}{"height": 800000}
+		}
+		return nil
+	})
+	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+	_, err := c.TipHeight(ctx)
+	require.NoError(t, err)
+	epoch := c.currentTipEpoch()
+
+	c.SetBaseURLs([]string{"ssl://127.0.0.1:1"})
+	c.handleNotification("blockchain.headers.subscribe", json.RawMessage(`[{"height":800001}]`), epoch)
+	c.setTip(epoch, 800002)
+
+	c.tipMu.Lock()
+	defer c.tipMu.Unlock()
+	assert.True(t, c.tipFetched.IsZero())
+}
+
 func TestElectrumClientFeeRateConversion(t *testing.T) {
 	ctx := context.Background()
 	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
