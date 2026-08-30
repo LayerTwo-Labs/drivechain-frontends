@@ -439,7 +439,7 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 				for _, tx := range block.Transactions {
 					blockTime := block.Header.Timestamp
 					if err := p.opReturnForTXID(ctx, tx, &height, &blockTime); err != nil {
-						return lo.Tuple2[uint32, *wire.MsgBlock]{}, fmt.Errorf("process transaction %s: %w", tx.TxID(), err)
+						return lo.Tuple2[uint32, *wire.MsgBlock]{}, fmt.Errorf("process transaction %s: %w", p.txID(tx), err)
 					}
 				}
 
@@ -495,7 +495,7 @@ func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint3
 			Hash:      block.Header.BlockHash(),
 			BlockTime: block.Header.Timestamp,
 			Txids: lo.Map(block.Transactions, func(tx *wire.MsgTx, _ int) chainhash.Hash {
-				return tx.TxHash()
+				return p.txHash(tx)
 			}),
 		}
 	})); err != nil {
@@ -719,22 +719,22 @@ func (p *Parser) getBlock(ctx context.Context, height uint32) (*wire.MsgBlock, e
 		return nil, fmt.Errorf("decode block hex: %w", err)
 	}
 
-	var msgBlock wire.MsgBlock
-	if err := msgBlock.Deserialize(bytes.NewReader(blockBytes)); err != nil {
+	msgBlock, err := p.deserializeBlock(blockBytes)
+	if err != nil {
 		return nil, fmt.Errorf("deserialize block: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Trace().
 		Msgf("bitcoind_engine/parser: fetched block %d in %s", height, time.Since(start))
 
-	return &msgBlock, nil
+	return msgBlock, nil
 }
 
 // finds all OP_RETURN outputs for a specific tx
 func (p *Parser) handleOpReturns(
 	ctx context.Context, tx *wire.MsgTx, height *uint32, createdAt *time.Time,
 ) ([]opreturns.OPReturn, error) {
-	txid := tx.TxID()
+	txid := p.txID(tx)
 
 	var emptyHash chainhash.Hash
 	isCoinbase := len(tx.TxIn) > 0 && tx.TxIn[0].PreviousOutPoint.Hash.IsEqual(&emptyHash)

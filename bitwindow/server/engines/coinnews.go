@@ -45,7 +45,7 @@ func (p *Parser) indexCoinNewsBlocks(ctx context.Context, blocks []lo.Tuple2[uin
 // dropped (logged at debug, never persisted).
 func (p *Parser) indexCoinNewsForBlock(ctx context.Context, height uint32, block *wire.MsgBlock) error {
 	for txIdx, tx := range block.Transactions {
-		txid := tx.TxID()
+		txid := p.txID(tx)
 		for vout, txout := range tx.TxOut {
 			data, ok := coinNewsPayload(txout.PkScript)
 			if !ok {
