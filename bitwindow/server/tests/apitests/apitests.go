@@ -310,6 +310,17 @@ func ExpectCoreWalletSetup(mock *mocks.MockBitcoinServiceClient) {
 		}, nil).
 		AnyTimes()
 
+	// The parser ticker races the test, and starts by fetching block 1. A test
+	// that outlives one tick reaches this, so every custom mock wants the
+	// allowance defaultBitcoindMock already carries. Height 1 only, or the
+	// catch-all swallows the counted expectations a test sets for its own
+	// heights.
+	mock.EXPECT().
+		GetBlockHash(gomock.Any(), gomock.Cond(func(req *connect.Request[corepb.GetBlockHashRequest]) bool {
+			return req.Msg.GetHeight() == 1
+		})).
+		Return(nil, fmt.Errorf("Block height out of range")). //nolint:staticcheck // bitcoind's wording, which the parser matches on
+		AnyTimes()
 }
 
 // ExpectOrchestratorReads allows the read-only wallet-manager calls the engines
