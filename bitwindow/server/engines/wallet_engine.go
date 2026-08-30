@@ -873,6 +873,12 @@ func (e *WalletEngine) RequireFullNode(ctx context.Context, op string) error {
 // orchestrator wallet manager now — the same path the normal "Send" flow uses.
 // This is the single broadcast seam every server-side OP_RETURN sender shares.
 func (e *WalletEngine) BroadcastOpReturn(ctx context.Context, data []byte, feeSatPerVByte, feeSats uint64) (string, error) {
+	// An unencrypted wallet keeps reading wallet.json after Lock, so the spend
+	// has to be refused here.
+	if !e.IsUnlocked() {
+		return "", errors.New("wallet is locked")
+	}
+
 	activeWallet, err := e.GetActiveWallet(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get active wallet: %w", err)
