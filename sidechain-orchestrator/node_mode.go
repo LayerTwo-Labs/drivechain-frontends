@@ -65,10 +65,12 @@ func WriteNodeMode(bitwindowDir string, mode NodeMode) error {
 	return nil
 }
 
-// NodeModeForNetwork resolves the mode a network can actually run. Regtest and
-// testnet serve no Esplora, so they run full mode whatever the file says.
+// NodeModeForNetwork resolves the mode a network can actually run. A network
+// with no remote chain server — regtest and testnet — runs full mode whatever
+// the file says, so the stored mode never applies there and the user is never
+// asked.
 func NodeModeForNetwork(mode NodeMode, network config.Network) NodeMode {
-	if mode == NodeModeLight && !config.SupportsLightMode(network) {
+	if !config.SupportsLightMode(network) {
 		return NodeModeFull
 	}
 	return mode
