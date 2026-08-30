@@ -438,7 +438,14 @@ func (o *Orchestrator) SelectECashNetwork(id string) error {
 	// blocks; Core's own block store is never touched. Off eCash the directory
 	// belongs to the running network, so the work waits for the swap back.
 	if err := o.Settings.SetPendingEnforcerWipe(id); err != nil {
-		o.log.Warn().Err(err).Msg("could not record the enforcer cleanup")
+		// Put the pick back: a durable pick with no cleanup record boots the new
+		// generation on the retired generation's validator chain, and the
+		// previous == id guard above keeps a retry from ever writing it.
+		if _, rbErr := o.Settings.SetECashNetworkID(previous); rbErr != nil {
+			o.log.Error().Err(rbErr).Str("previous", previous).
+				Msg("could not put the eCash network pick back")
+		}
+		return fmt.Errorf("record the enforcer cleanup for %s: %w", id, err)
 	}
 	return nil
 }
