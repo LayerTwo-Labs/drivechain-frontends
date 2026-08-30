@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:connectrpc/protocol/grpc.dart' as grpc;
 import 'package:get_it/get_it.dart';
@@ -25,6 +26,8 @@ class EnforcerLive extends EnforcerRPC {
   final int _port;
   String get _baseUrl => 'http://$_host:$_port';
 
+  ({HttpClient client, void Function() close}) _pool = closableUnaryHttpClient();
+
   /// [host]/[port] point at the app's local daemon, which bridges all
   /// enforcer traffic: bitwindowd in bitwindow, drivechaind in sidechain
   /// apps. The enforcer itself is never dialed directly.
@@ -33,12 +36,12 @@ class EnforcerLive extends EnforcerRPC {
   }
 
   void _initializeConnection() {
-    // Create new HTTP/2 transport and client
-    final httpClient = unaryHttpClient();
+    // The transport reads the pool per request rather than capture one, so a
+    // rebuild never strands a client a consumer already holds.
     _grpcTransport = grpc.Transport(
       baseUrl: _baseUrl,
       codec: const ProtoCodec(),
-      httpClient: httpClient,
+      httpClient: (req) => _pool.client(req),
       statusParser: const StatusParser(),
       interceptors: [LocalAuth.interceptor()],
     );
@@ -221,9 +224,14 @@ class EnforcerLive extends EnforcerRPC {
     }
   }
 
+  /// Replace the socket pool behind the transport. The old pool closes, or its
+  /// sockets stay open until GC runs and a reconnect loop exhausts the process
+  /// file descriptors.
   void _recreateConnection() {
     log.w('Recreating HTTP/2 connection for enforcer');
-    _initializeConnection();
+    final previous = _pool;
+    _pool = closableUnaryHttpClient();
+    previous.close();
   }
 
   Future<T> _withRecreate<T>(Future<T> Function() operation) async {

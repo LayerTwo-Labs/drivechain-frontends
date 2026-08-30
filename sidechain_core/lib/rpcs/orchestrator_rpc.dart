@@ -1,3 +1,4 @@
+import 'package:connectrpc/connect.dart';
 import 'package:connectrpc/protobuf.dart';
 import 'package:sidechain_core/auth/local_auth.dart';
 import 'package:sidechain_core/rpcs/keepalive_http_client.dart';
@@ -27,35 +28,35 @@ class OrchestratorEndpoint {
 }
 
 class OrchestratorRPC {
-  late OrchestratorServiceClient _unaryClient;
-  late OrchestratorServiceClient _streamClient;
-  late OrchestratorWalletRPC wallet;
-  late OrchestratorBmmRPC bmm;
-  late OrchestratorMultisigLoungeRPC multisigLounge;
+  late final OrchestratorServiceClient _unaryClient;
+  late final OrchestratorServiceClient _streamClient;
+  late final OrchestratorWalletRPC wallet;
+  late final OrchestratorBmmRPC bmm;
+  late final OrchestratorMultisigLoungeRPC multisigLounge;
 
   /// btc-buf BitcoinService — single canonical bitcoind proxy for all
   /// callers. Routes peers / mempool / fee / blocks / PSBT helpers.
-  late BitcoinServiceClient bitcoind;
+  late final BitcoinServiceClient bitcoind;
   final String _host;
   final int _port;
 
+  ({HttpClient client, void Function() close}) _unaryPool = closableUnaryHttpClient();
+  HttpClient _streamPool = streamingHttpClient();
+
   OrchestratorRPC({required this._host, required this._port}) {
-    _initializeConnection();
-  }
-
-  String get _baseUrl => 'http://$_host:$_port';
-
-  void _initializeConnection() {
     final unaryTransport = connect.Transport(
       baseUrl: _baseUrl,
       codec: const ProtoCodec(),
-      httpClient: unaryHttpClient(),
+      // Both transports read the pool per request rather than capture one, so
+      // a rebuild never strands a client a consumer already holds. BMMProvider
+      // caches its wrapper for the life of the app.
+      httpClient: (req) => _unaryPool.client(req),
       interceptors: [LocalAuth.interceptor()],
     );
     final streamTransport = connect.Transport(
       baseUrl: _baseUrl,
       codec: const ProtoCodec(),
-      httpClient: streamingHttpClient(),
+      httpClient: (req) => _streamPool(req),
       interceptors: [LocalAuth.interceptor()],
     );
     _unaryClient = OrchestratorServiceClient(unaryTransport);
@@ -66,16 +67,25 @@ class OrchestratorRPC {
     bitcoind = BitcoinServiceClient(unaryTransport);
   }
 
-  /// Rebuild both transports. Called by [StreamSupervisor] when it
-  /// classifies an error as transport-level (GOAWAY, PROTOCOL_ERROR,
-  /// half-open detected by watchdog). Both transports are rebuilt because
-  /// the failure mode that knocks out HTTP/2 streams (network drop, sleep)
-  /// also typically invalidates HTTP/1.1 keepalive connections.
+  String get _baseUrl => 'http://$_host:$_port';
+
+  /// Replace the socket pool behind both transports. Called by
+  /// [StreamSupervisor] when it classifies an error as transport-level
+  /// (GOAWAY, PROTOCOL_ERROR, half-open detected by watchdog). Both pools go
+  /// because the failure mode that knocks out HTTP/2 streams (network drop,
+  /// sleep) also typically invalidates HTTP/1.1 keepalive connections.
+  ///
+  /// The old pool closes, or its sockets stay open until GC runs. This fires
+  /// on a tight loop while the daemon is still coming up, so leaking them
+  /// exhausts the process file descriptors.
   void recreateConnection() {
     // Silent — this fires constantly during boot while the daemon is still
     // coming up. The supervisor's own attempt counter surfaces a warning
     // once it's clearly stuck.
-    _initializeConnection();
+    final previous = _unaryPool;
+    _unaryPool = closableUnaryHttpClient();
+    previous.close();
+    _streamPool = streamingHttpClient();
   }
 
   static bool isHttp2ConnectionError(Object e) {

@@ -11,11 +11,24 @@ import 'package:connectrpc/io.dart' as connect_io;
 /// only long-running streams. We deliberately don't share an HTTP/2
 /// connection between unary and streaming calls so a poisoned streaming
 /// transport can't take down list/get RPCs that are otherwise fine.
-HttpClient unaryHttpClient() {
+HttpClient unaryHttpClient() => closableUnaryHttpClient().client;
+
+/// [unaryHttpClient] plus the callback that retires its socket pool.
+///
+/// A connectrpc [HttpClient] is a bare closure, so a caller that rebuilds a
+/// transport cannot reach the pool behind the old one. Those sockets then stay
+/// open until GC finalizes the client, and a reconnect loop runs the process
+/// out of file descriptors long before that.
+///
+/// The close drops the idle sockets and refuses new ones, but it lets a
+/// request already in flight finish. A stream supervisor rebuilds on an HTTP/2
+/// fault that says nothing about a healthy unary call, and most callers do not
+/// retry.
+({HttpClient client, void Function() close}) closableUnaryHttpClient() {
   final client = io.HttpClient()
     ..idleTimeout = const Duration(minutes: 5)
     ..connectionTimeout = const Duration(seconds: 30);
-  return connect_io.createHttpClient(client);
+  return (client: connect_io.createHttpClient(client), close: client.close);
 }
 
 /// HTTP transport for **server-streaming** RPCs — HTTP/2 with keepalive PINGs.
@@ -42,6 +55,10 @@ HttpClient streamingHttpClient() {
       pingInterval: const Duration(seconds: 20),
       pingTimeout: const Duration(seconds: 10),
       pingIdleConnections: false,
+      // Http2ClientTransport exposes no close, so an abandoned transport holds
+      // its socket for the whole idle window. The timer only arms once the
+      // connection carries no open stream, so a live stream never trips it.
+      idleConnectionTimeout: const Duration(minutes: 1),
     ),
   );
 }
