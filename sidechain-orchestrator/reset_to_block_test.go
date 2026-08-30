@@ -216,6 +216,30 @@ func TestResetCoreToBlockClearsTheMarkWhenTheTipReadFails(t *testing.T) {
 	}
 }
 
+// A reconsiderblock that never reached Core left the target invalid, so the
+// failed replay must still take the drop back.
+func TestResetCoreToBlockClearsTheMarkWhenTheReplayFails(t *testing.T) {
+	resetSyncPollInterval = time.Millisecond
+	t.Cleanup(func() { resetSyncPollInterval = time.Second })
+
+	core := &fakeCore{
+		tips:         []int64{978999},
+		hashes:       map[int64]string{978999: parent},
+		headers:      map[string]blockHeader{target979000: {Height: 979000, Confirmations: 473, PreviousBlockHash: parent}},
+		reconsiderNo: true,
+	}
+
+	base := ResetProgress{TargetHeight: 979000, TargetHash: target979000, TipHeight: 979472, BlocksTotal: 473}
+	if _, err := resetCoreToBlock(context.Background(), core.start(t), base, func(ResetProgress) {}); err == nil {
+		t.Fatal("resetCoreToBlock reported no error after a failed replay")
+	}
+
+	calls := strings.Join(core.methods, ",")
+	if got := strings.Count(calls, "reconsiderblock"); got != 2 {
+		t.Errorf("reconsiderblock calls = %d in %s, want a retry after the failed replay", got, calls)
+	}
+}
+
 // Progress is a snapshot, so a slow reader may miss ticks. The terminal
 // message carries the outcome, so a full buffer must not drop it.
 func TestResetEmitKeepsTheTerminalMessage(t *testing.T) {

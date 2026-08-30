@@ -293,7 +293,6 @@ func resetCoreToBlock(
 	// reconsiderblock returns, so that one call is the whole replay. A poll on
 	// the side is the only way to report how far it got.
 	replay := make(chan error, 1)
-	reconsidered = true
 	go func() {
 		_, err := client.call(ctx, "reconsiderblock", base.TargetHash)
 		replay <- err
@@ -308,6 +307,9 @@ func resetCoreToBlock(
 	if err := awaitResetReplay(ctx, client, base, parked, replay, emit); err != nil {
 		return fail(ResetPhaseSyncForward, err)
 	}
+	// A reconsiderblock that never reached Core leaves the mark in force, so
+	// only a call Core answered retires the retry.
+	reconsidered = true
 
 	final, _, err := coreTip(ctx, client)
 	if err != nil {
