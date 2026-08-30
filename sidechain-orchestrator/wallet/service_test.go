@@ -832,6 +832,48 @@ func TestServiceCreateWatchOnlyWalletWithDescriptor(t *testing.T) {
 	assert.Empty(t, watchOnly["xpub"])
 }
 
+const watchOnlyTestTpub = "tpubDCBWBScQPGv4Xk3JSbhw6wYYpayMjb2eAYyArpbSqQTbLDpphHGAetB6VQgVeftLML8vDSUEWcC2xDi3qJJ3YCDChJDvqVzpgoYSuT52MhJ"
+
+// The imported descriptor decides the wallet's receive kind: a tr() wallet left
+// on the native-segwit default hands out bech32 addresses Core never imported.
+func TestServiceCreateWatchOnlyWalletRecordsDescriptorKind(t *testing.T) {
+	svc := newTestService(t)
+
+	descriptor := "tr(" + watchOnlyTestTpub + "/0/*)"
+	require.NoError(t, svc.CreateWatchOnlyWallet("Taproot WO", descriptor, `{"background_svg":""}`))
+
+	w := svc.GetWalletByID(svc.ActiveWalletID())
+	require.NotNil(t, w)
+	assert.Equal(t, "taproot", w.ScriptType)
+	assert.Equal(t, []ScriptKind{ScriptTaproot}, ReceiveKinds(w))
+}
+
+// A watch-only wallet imported before the kind was recorded is backfilled at
+// load, so an existing tr() wallet stops asking Core for bech32.
+func TestServiceBackfillsWatchOnlyScriptType(t *testing.T) {
+	dir := t.TempDir()
+	legacy := map[string]any{
+		"wallets": []map[string]any{{
+			"id":          "OLD",
+			"name":        "Taproot WO",
+			"wallet_type": "bitcoinCore",
+			"watch_only":  map[string]string{"descriptor": "tr(" + watchOnlyTestTpub + "/0/*)"},
+		}},
+		"activeWalletId": "OLD",
+	}
+	body, err := json.Marshal(legacy)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), body, 0o600))
+
+	svc := NewService(dir, zerolog.Nop())
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+
+	w := svc.GetWalletByID("OLD")
+	require.NotNil(t, w)
+	assert.Equal(t, "taproot", w.ScriptType)
+}
+
 // TestServiceCreateElectrumWatchOnlyRejectsPrivateKey: importing a descriptor
 // that carries a private extended key must fail so a watch-only wallet can
 // never store or sign with private material.

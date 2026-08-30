@@ -1276,6 +1276,35 @@ func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
 	assert.Equal(t, "bech32m", mintedType)
 }
 
+// A watch-only wallet's default receive kind comes from the descriptor it
+// imported: Core has no bech32 descriptor to serve for a tr() import.
+func TestCoreBackendNextReceiveAddressWatchOnlyTaproot(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	svc := newTestService(t)
+	require.NoError(t, svc.CreateWatchOnlyWallet("WO Taproot", "tr("+watchOnlyTestTpub+"/0/*)", `{"background_svg":""}`))
+	woID := svc.ActiveWalletID()
+
+	fake := newFakeBitcoind(t)
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+	require.Equal(t, ScriptTaproot, backend.walletScriptKind(woID))
+	fake.stubEnsureFlow()
+
+	minted := p2trAddr(t, fixedKey(0x41), net)
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) { return []map[string]any{}, "" })
+	var mintedType string
+	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
+		if len(c.Params) > 1 {
+			mintedType = mustString(t, c.Params[1])
+		}
+		return minted, ""
+	})
+
+	addr, err := nextAddr(backend, context.Background(), woID, ScriptUnknown)
+	require.NoError(t, err)
+	assert.Equal(t, minted, addr)
+	assert.Equal(t, "bech32m", mintedType)
+}
+
 // TestCoreBackendNextChangeAddressKind pins change addresses to the wallet's own
 // script kind: a tr()-only wallet has no bech32 ScriptPubKeyMan to serve.
 func TestCoreBackendNextChangeAddressKind(t *testing.T) {

@@ -906,6 +906,20 @@ func (s *Service) CreateElectrumMultisig(
 	return &wallet, nil
 }
 
+// watchOnlyScriptType is the address kind a watch-only descriptor holds, so
+// receive and change ask Core for a family it imported. Empty keeps the
+// native-segwit default for a form Core serves but this parser does not model.
+func watchOnlyScriptType(descriptor string) string {
+	d, err := ParseDescriptor(descriptor)
+	if err != nil {
+		return ""
+	}
+	if _, ok := coreAddressType(d.Kind); !ok {
+		return ""
+	}
+	return d.Kind.String()
+}
+
 // CreateWatchOnlyWallet creates a watch-only wallet from an xpub or descriptor.
 // Dart: WalletWriterProvider.createWatchOnlyWallet (L156-214)
 func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {
@@ -924,8 +938,10 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 	isDescriptor := strings.Contains(xpubOrDescriptor, "(") && strings.Contains(xpubOrDescriptor, ")")
 
 	watchOnly := map[string]string{}
+	scriptType := ""
 	if isDescriptor {
 		watchOnly["descriptor"] = xpubOrDescriptor
+		scriptType = watchOnlyScriptType(xpubOrDescriptor)
 	} else {
 		watchOnly["xpub"] = xpubOrDescriptor
 	}
@@ -942,6 +958,7 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 		CreatedAt:  time.Now(),
 		WalletType: WalletTypeBitcoinCore,
 		WatchOnly:  json.RawMessage(watchOnlyJSON),
+		ScriptType: scriptType,
 	}
 
 	s.wallets = append(s.wallets, wallet)
@@ -1892,6 +1909,24 @@ func (s *Service) loadWalletFile() error {
 		} else {
 			s.wallets[i].WalletType = WalletTypeBitcoinCore
 		}
+		migrated = true
+	}
+	// Backfill script_type on watch-only wallets imported before the descriptor's
+	// kind was recorded: a tr() wallet otherwise asks Core for bech32, which it
+	// imported no descriptor for.
+	for i := range s.wallets {
+		if s.wallets[i].ScriptType != "" {
+			continue
+		}
+		desc := s.wallets[i].watchOnlyField("descriptor")
+		if desc == "" {
+			continue
+		}
+		kind := watchOnlyScriptType(desc)
+		if kind == "" || kind == ScriptNativeSegwit.String() {
+			continue
+		}
+		s.wallets[i].ScriptType = kind
 		migrated = true
 	}
 	enforcerMigrated, err := s.migrateEnforcerWallets()
