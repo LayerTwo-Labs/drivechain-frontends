@@ -3,8 +3,10 @@ package orchestrator
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -208,4 +210,24 @@ func TestEnforcerNetworkSwapStatePathsClearCollidingNetworks(t *testing.T) {
 	require.NotEmpty(t, paths)
 	assert.Contains(t, paths, config.EnforcerValidatorDir(config.NetworkMainnet))
 	assert.Contains(t, paths, config.EnforcerWalletDir(config.NetworkMainnet))
+}
+
+func TestSwapNetwork_BootPollsTheNewCorePort(t *testing.T) {
+	o := fakeCoreFixture(t, "#!/bin/sh\nsleep 30\n")
+	signet := o.configs["bitcoind"]
+	signet.Port = o.BitcoinConf.GetRPCPort()
+	o.getOrCreateMonitor("bitcoind", NewHealthChecker(signet), bitcoindStartupPatterns)
+
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkRegtest))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	o.startBitcoindOnly(ctx, StartOpts{}, newBootSink())
+
+	mon := o.getOrCreateMonitor("bitcoind", nil, nil)
+	mon.mu.Lock()
+	checker, ok := mon.Checker.(*BitcoindHealthCheck)
+	mon.mu.Unlock()
+	require.True(t, ok)
+	require.True(t, strings.HasSuffix(checker.URL, ":18443"), checker.URL)
 }

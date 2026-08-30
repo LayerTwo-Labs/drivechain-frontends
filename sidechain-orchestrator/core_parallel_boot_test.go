@@ -16,6 +16,7 @@ func TestParallelCoreBootsWaitForTheReservedProcess(t *testing.T) {
 	marker := filepath.Join(t.TempDir(), "starts")
 	o := fakeCoreFixture(t, fmt.Sprintf("#!/bin/sh\nprintf x >> %q\nexec sleep 30\n", marker))
 	checker := &mockChecker{}
+	useCoreChecker(o, checker)
 	monitor := o.getOrCreateMonitor("bitcoind", checker, bitcoindStartupPatterns)
 
 	reserved := make(chan struct{})
