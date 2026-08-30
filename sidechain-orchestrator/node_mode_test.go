@@ -36,10 +36,13 @@ func TestDamagedNodeModeReadsAsUnset(t *testing.T) {
 	assert.Equal(t, NodeModeUnset, ReadNodeMode(dir))
 }
 
-// Regtest serves no Esplora, so light mode cannot read a chain there.
+// Regtest serves no Esplora, so the stored mode never applies there. An unset
+// mode must read as full too, or the app asks a question regtest cannot answer.
 func TestNodeModeForNetworkForcesFullWhereNoEsplora(t *testing.T) {
 	assert.Equal(t, NodeModeFull, NodeModeForNetwork(NodeModeLight, config.NetworkRegtest))
 	assert.Equal(t, NodeModeFull, NodeModeForNetwork(NodeModeLight, config.NetworkTestnet))
+	assert.Equal(t, NodeModeFull, NodeModeForNetwork(NodeModeUnset, config.NetworkRegtest))
+	assert.Equal(t, NodeModeFull, NodeModeForNetwork(NodeModeUnset, config.NetworkTestnet))
 	assert.Equal(t, NodeModeLight, NodeModeForNetwork(NodeModeLight, config.NetworkMainnet))
-	assert.Equal(t, NodeModeUnset, NodeModeForNetwork(NodeModeUnset, config.NetworkRegtest))
+	assert.Equal(t, NodeModeUnset, NodeModeForNetwork(NodeModeUnset, config.NetworkMainnet))
 }
