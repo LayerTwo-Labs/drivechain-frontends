@@ -270,6 +270,87 @@ func TestServiceStaleEncryptionMetadataRemoveEncryptionRetry(t *testing.T) {
 	assert.Len(t, svc.ListWallets(), 1)
 }
 
+// interruptedPasswordChange returns a service left in the state a ChangePassword
+// that died between the wallet write and the metadata rename produces: wallet.json
+// holds ciphertext under the new password while wallet_encryption.json still holds
+// the old salt and the new one sits in the staging file. Skips Init so the file
+// watcher cannot reload concurrently.
+func interruptedPasswordChange(t *testing.T, oldPass, newPass string) *Service {
+	t.Helper()
+	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	svc := NewService(t.TempDir(), log)
+
+	_, err := svc.GenerateWallet("PW Crash", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.EncryptWallet(oldPass))
+
+	oldMeta, err := os.ReadFile(svc.metadataFilePath())
+	require.NoError(t, err)
+	require.NoError(t, svc.ChangePassword(oldPass, newPass))
+
+	// Rewind the rename that committed the new salt.
+	newMeta, err := os.ReadFile(svc.metadataFilePath())
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(svc.stagedMetadataFilePath(), newMeta, 0600))
+	require.NoError(t, os.WriteFile(svc.metadataFilePath(), oldMeta, 0600))
+
+	svc.LockWallet()
+	return svc
+}
+
+// The new password must still open a wallet left mid-change, rather than being
+// rejected forever against the old salt.
+func TestServiceInterruptedPasswordChangeUnlocksWithNewPassword(t *testing.T) {
+	svc := interruptedPasswordChange(t, "oldpass", "newpass")
+
+	require.NoError(t, svc.UnlockWallet("newpass"))
+	assert.True(t, svc.IsUnlocked())
+	assert.Len(t, svc.ListWallets(), 1)
+
+	_, err := os.Stat(svc.stagedMetadataFilePath())
+	assert.True(t, os.IsNotExist(err), "staged metadata should be promoted")
+}
+
+func TestServiceInterruptedPasswordChangeRejectsOldPassword(t *testing.T) {
+	svc := interruptedPasswordChange(t, "oldpass", "newpass")
+
+	assert.Error(t, svc.UnlockWallet("oldpass"))
+	assert.False(t, svc.IsUnlocked())
+
+	// A wrong password must not consume the staging file the right one needs.
+	_, err := os.Stat(svc.stagedMetadataFilePath())
+	assert.NoError(t, err)
+	require.NoError(t, svc.UnlockWallet("newpass"))
+}
+
+// A change that died before the wallet write leaves a staging file describing a
+// salt no wallet uses. The old password still opens the wallet, and clears it.
+func TestServiceStaleStagedMetadataDroppedOnUnlock(t *testing.T) {
+	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
+	svc := NewService(t.TempDir(), log)
+
+	_, err := svc.GenerateWallet("Stale Staged", "", "", testSlots)
+	require.NoError(t, err)
+	require.NoError(t, svc.EncryptWallet("mypass"))
+
+	salt, err := GenerateSalt()
+	require.NoError(t, err)
+	staged, err := EncryptionMetadata{
+		Salt:       base64.StdEncoding.EncodeToString(salt),
+		Iterations: DefaultIterations,
+		Encrypted:  true,
+		Version:    "1.0",
+	}.Marshal()
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(svc.stagedMetadataFilePath(), staged, 0600))
+
+	svc.LockWallet()
+	require.NoError(t, svc.UnlockWallet("mypass"))
+
+	_, err = os.Stat(svc.stagedMetadataFilePath())
+	assert.True(t, os.IsNotExist(err), "stale staged metadata should be gone")
+}
+
 func TestServiceSwitchWallet(t *testing.T) {
 	svc := newTestService(t)
 

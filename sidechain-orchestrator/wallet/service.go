@@ -1123,10 +1123,22 @@ func (s *Service) UnlockWallet(password string) error {
 	}
 
 	s.log.Debug().Int("encrypted_data_len", len(data)).Msg("attempting decryption")
-	_, err = Decrypt(string(data), key)
-	if err != nil {
-		s.log.Warn().Msg("unlock failed: incorrect password (decryption failed)")
-		return fmt.Errorf("incorrect password")
+	if _, decErr := Decrypt(string(data), key); decErr != nil {
+		// The wallet may hold ciphertext from an interrupted ChangePassword,
+		// described by the staged salt rather than by the live metadata.
+		stagedKey, err := s.promoteStagedMetadataLocked(password, data)
+		if err != nil {
+			return err
+		}
+		if stagedKey == nil {
+			s.log.Warn().Msg("unlock failed: incorrect password (decryption failed)")
+			return fmt.Errorf("incorrect password")
+		}
+		key = stagedKey
+	} else {
+		// The live metadata opens the wallet, so any staged salt belongs to a
+		// password change that never reached the wallet file.
+		s.removeStagedMetadataLocked()
 	}
 
 	s.encryptionKey = key
@@ -1277,11 +1289,6 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		return fmt.Errorf("encrypt: %w", err)
 	}
 
-	s.setWalletDigestLocked(data)
-	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
-		return fmt.Errorf("write wallet: %w", err)
-	}
-
 	newMeta := EncryptionMetadata{
 		Salt:       base64.StdEncoding.EncodeToString(newSalt),
 		Iterations: DefaultIterations,
@@ -1289,8 +1296,36 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		Version:    "1.0",
 	}
 	metaBytes, _ := newMeta.Marshal()
-	if err := os.WriteFile(s.metadataFilePath(), metaBytes, 0600); err != nil {
+
+	// Stage the new salt before the wallet write. The wallet file and the
+	// metadata cannot change in one step, and a crash in between would otherwise
+	// leave new-key ciphertext described by the old salt, which no password
+	// unlocks. UnlockWallet finishes the change from the staging file.
+	if err := atomicWrite(s.stagedMetadataFilePath(), metaBytes); err != nil {
+		return fmt.Errorf("stage metadata: %w", err)
+	}
+
+	// Backup
+	walletPath := s.walletFilePath()
+	backupPath := fmt.Sprintf("%s.backup_before_password_change_%d", walletPath, time.Now().UnixMilli())
+	if err := os.WriteFile(backupPath, data, 0600); err != nil {
+		return fmt.Errorf("backup wallet: %w", err)
+	}
+	s.log.Debug().Str("backup_path", backupPath).Msg("wallet backed up before password change")
+
+	s.setWalletDigestLocked(data)
+	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
+		return fmt.Errorf("write wallet: %w", err)
+	}
+
+	if err := os.Rename(s.stagedMetadataFilePath(), s.metadataFilePath()); err != nil {
 		return fmt.Errorf("write metadata: %w", err)
+	}
+
+	// The change committed, so the old ciphertext is one more copy of the seed
+	// the old password opens.
+	if err := os.Remove(backupPath); err != nil {
+		s.log.Warn().Err(err).Str("backup_path", backupPath).Msg("could not remove the wallet backup taken before the password change; delete it manually")
 	}
 
 	// Adopt the new key only if we already held one. While locked there is no
@@ -1666,6 +1701,12 @@ func (s *Service) metadataFilePath() string {
 	return filepath.Join(s.bitwindowDir, "wallet_encryption.json")
 }
 
+// stagedMetadataFilePath holds the new salt ChangePassword writes before it
+// rewrites the wallet, until the rename that commits it.
+func (s *Service) stagedMetadataFilePath() string {
+	return s.metadataFilePath() + ".new"
+}
+
 func (s *Service) starterDir() string {
 	return filepath.Join(os.TempDir(), fmt.Sprintf("bitwindow_starters_%d", os.Getpid()))
 }
@@ -1704,6 +1745,45 @@ func (s *Service) dropStaleEncryptionMetadata(walletData []byte) (bool, error) {
 	s.unlockedPass = ""
 	s.log.Warn().Msg("wallet file is plaintext but metadata claimed encrypted; dropped stale encryption metadata")
 	return true, nil
+}
+
+// promoteStagedMetadataLocked finishes a ChangePassword that died between the
+// wallet write and the rename that commits the new salt, leaving a wallet only
+// the staged salt opens. Returns the key that salt derives from password, or nil
+// when there is no staging file or it does not decrypt walletData — a stale
+// staging file from a change that never reached the wallet write. Must be called
+// with mu held.
+func (s *Service) promoteStagedMetadataLocked(password string, walletData []byte) ([]byte, error) {
+	staged, err := os.ReadFile(s.stagedMetadataFilePath())
+	if err != nil {
+		return nil, nil
+	}
+	meta, err := UnmarshalEncryptionMetadata(staged)
+	if err != nil || !meta.Encrypted {
+		return nil, nil
+	}
+	salt, err := base64.StdEncoding.DecodeString(meta.Salt)
+	if err != nil {
+		return nil, nil
+	}
+	key := DeriveKey(password, salt, meta.Iterations)
+	if _, err := Decrypt(string(walletData), key); err != nil {
+		return nil, nil
+	}
+	if err := os.Rename(s.stagedMetadataFilePath(), s.metadataFilePath()); err != nil {
+		s.log.Error().Err(err).Str("path", s.stagedMetadataFilePath()).Msg("could not promote the staged encryption metadata")
+		return nil, fmt.Errorf("promote staged encryption metadata: %w", err)
+	}
+	s.log.Warn().Msg("wallet held ciphertext from an interrupted password change; finished it from the staged metadata")
+	return key, nil
+}
+
+// removeStagedMetadataLocked drops a staging file left by a password change that
+// never reached the wallet write. Must be called with mu held.
+func (s *Service) removeStagedMetadataLocked() {
+	if err := os.Remove(s.stagedMetadataFilePath()); err != nil && !os.IsNotExist(err) {
+		s.log.Warn().Err(err).Str("path", s.stagedMetadataFilePath()).Msg("could not remove stale staged encryption metadata")
+	}
 }
 
 // isPlaintextWalletFile reports whether data is an unencrypted wallet file.
