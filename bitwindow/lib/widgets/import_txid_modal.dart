@@ -257,6 +257,7 @@ class ImportTxidModalViewModel extends BaseViewModel {
 
       await _saveImportedGroup(multisigData);
 
+      Object? syncError;
       try {
         loadingStatus = 'Setting up watch wallet...';
         notifyListeners();
@@ -282,16 +283,21 @@ class ImportTxidModalViewModel extends BaseViewModel {
         notifyListeners();
         await BalanceManager.updateGroupBalance(group);
       } catch (e) {
-        // Failed to restore transaction history - not critical for import
+        // Best-effort: the group is saved, but the wallet is not usable until it syncs.
+        syncError = e;
+        _logger.w('Failed to sync imported multisig group: $e');
       }
 
       loadingStatus = null;
 
       if (context.mounted) {
+        final name = multisigData['name'] ?? 'Unknown';
         showSailToast(
           context,
-          'Successfully imported multisig: ${multisigData['name'] ?? 'Unknown'}',
-          variant: SailToastVariant.success,
+          syncError == null
+              ? 'Successfully imported multisig: $name'
+              : 'Imported multisig: $name, but watch-wallet/history sync failed: $syncError - open the group to retry',
+          variant: syncError == null ? SailToastVariant.success : SailToastVariant.warning,
         );
         Navigator.of(context).pop(true);
       }
