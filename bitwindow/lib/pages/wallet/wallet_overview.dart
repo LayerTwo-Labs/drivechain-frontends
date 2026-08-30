@@ -315,7 +315,9 @@ class _TransactionTableState extends State<TransactionTable> {
                         return [
                           SailTableCell(
                             opacity: opacity,
-                            value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
+                            value: unconfirmed
+                                ? ''
+                                : formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
                             alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
