@@ -59,9 +59,25 @@ func (s *Scanner) catchUp(ctx context.Context) error {
 		return fmt.Errorf("getblockcount: %w", err)
 	}
 
-	cursor, _, err := store.LoadCursor(ctx, s.DB)
+	cursor, cursorHash, err := store.LoadCursor(ctx, s.DB)
 	if err != nil {
 		return fmt.Errorf("load cursor: %w", err)
+	}
+	// A reorg that replaces the cursor block leaves its height alone, so only
+	// the hash says the chain moved under us.
+	if cursor > 0 && cursor <= tip {
+		same, err := s.coreHoldsBlock(ctx, cursor, cursorHash)
+		if err != nil {
+			return err
+		}
+		if !same {
+			s.Log.Warn().Uint32("height", cursor).
+				Msg("coinnews-scanner: the chain forked at the cursor, purging and replaying from there")
+			if err := store.PurgeAtOrAbove(ctx, s.DB, cursor); err != nil {
+				return fmt.Errorf("purge at or above %d: %w", cursor, err)
+			}
+			cursor--
+		}
 	}
 	if s.FromHeight > 0 && cursor+1 < s.FromHeight {
 		s.Log.Info().Uint32("cursor", cursor).Uint32("from_height", s.FromHeight).
@@ -85,6 +101,23 @@ func (s *Scanner) catchUp(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// coreHoldsBlock reports whether Core's block at height is the one we
+// recorded. A zero stored hash is nothing to compare against, so it passes.
+func (s *Scanner) coreHoldsBlock(ctx context.Context, height uint32, stored [32]byte) (bool, error) {
+	if stored == ([32]byte{}) {
+		return true, nil
+	}
+	hash, err := s.Client.GetBlockHash(ctx, height)
+	if err != nil {
+		return false, fmt.Errorf("getblockhash %d: %w", height, err)
+	}
+	canonical, err := decodeHashLE(hash)
+	if err != nil {
+		return false, err
+	}
+	return canonical == stored, nil
 }
 
 func (s *Scanner) indexHeight(ctx context.Context, height uint32) error {
