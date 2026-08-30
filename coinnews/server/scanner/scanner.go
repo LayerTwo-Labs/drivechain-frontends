@@ -214,7 +214,7 @@ func parsePush(b []byte) ([]byte, bool) {
 	switch {
 	case op >= 0x01 && op <= 0x4b:
 		n := int(op)
-		if len(b) < 1+n {
+		if len(b) != 1+n {
 			return nil, false
 		}
 		return b[1 : 1+n], true
@@ -223,7 +223,7 @@ func parsePush(b []byte) ([]byte, bool) {
 			return nil, false
 		}
 		n := int(b[1])
-		if len(b) < 2+n {
+		if len(b) != 2+n {
 			return nil, false
 		}
 		return b[2 : 2+n], true
@@ -232,7 +232,7 @@ func parsePush(b []byte) ([]byte, bool) {
 			return nil, false
 		}
 		n := int(b[1]) | int(b[2])<<8
-		if len(b) < 3+n {
+		if len(b) != 3+n {
 			return nil, false
 		}
 		return b[3 : 3+n], true

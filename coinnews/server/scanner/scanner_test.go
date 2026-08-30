@@ -64,6 +64,29 @@ func TestParsePush_UnsupportedOp(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestParsePush_TrailingPush(t *testing.T) {
+	t.Parallel()
+	// PUSH 5 "hello" followed by a second push — multi-push is not a payload.
+	_, ok := parsePush([]byte{0x05, 'h', 'e', 'l', 'l', 'o', 0x01, 0x99})
+	assert.False(t, ok)
+}
+
+func TestParsePush_PushData1_TrailingPush(t *testing.T) {
+	t.Parallel()
+	payload := make([]byte, 200)
+	b := append([]byte{0x4c, byte(len(payload))}, payload...)
+	_, ok := parsePush(append(b, 0x01, 0x99))
+	assert.False(t, ok)
+}
+
+func TestParsePush_PushData2_TrailingPush(t *testing.T) {
+	t.Parallel()
+	payload := make([]byte, 1000)
+	b := append([]byte{0x4d, byte(1000 & 0xff), byte(1000 >> 8)}, payload...)
+	_, ok := parsePush(append(b, 0x01, 0x99))
+	assert.False(t, ok)
+}
+
 func TestOpReturnPayload_NotNullData(t *testing.T) {
 	t.Parallel()
 	_, ok := opReturnPayload("6a05hello", "scripthash")
@@ -90,6 +113,26 @@ func TestOpReturnPayload_OK(t *testing.T) {
 	got, ok := opReturnPayload(hex.EncodeToString(script), "nulldata")
 	require.True(t, ok)
 	assert.Equal(t, []byte("hello"), got)
+}
+
+// A real encoded story is accepted on its own, and rejected once a
+// second push is appended — a multi-push script is not a payload.
+func TestOpReturnPayload_Story_TrailingPush(t *testing.T) {
+	t.Parallel()
+	storyBytes, err := codec.EncodeStory(codec.Story{
+		Topic:    codec.Topic{1, 2, 3, 4},
+		Headline: "multi-push",
+	})
+	require.NoError(t, err)
+	require.LessOrEqual(t, len(storyBytes), 0x4b)
+
+	script := append([]byte{0x6a, byte(len(storyBytes))}, storyBytes...)
+	got, ok := opReturnPayload(hex.EncodeToString(script), "nulldata")
+	require.True(t, ok)
+	assert.Equal(t, storyBytes, got)
+
+	_, ok = opReturnPayload(hex.EncodeToString(append(script, 0x01, 0x99)), "nulldata")
+	assert.False(t, ok)
 }
 
 func TestDecodeHashLE(t *testing.T) {
