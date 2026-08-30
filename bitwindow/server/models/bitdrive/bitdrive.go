@@ -183,6 +183,20 @@ func Delete(ctx context.Context, db *sql.DB, id int64) error {
 	return nil
 }
 
+func DeleteAll(ctx context.Context, db *sql.DB) error {
+	_, err := db.ExecContext(ctx, `
+		DELETE FROM bitdrive_files
+	`)
+	if err != nil {
+		return fmt.Errorf("delete all bitdrive files: %w", err)
+	}
+
+	zerolog.Ctx(ctx).Info().
+		Msg("deleted all bitdrive file records")
+
+	return nil
+}
+
 func Exists(ctx context.Context, db *sql.DB, txid string) (bool, error) {
 	var count int
 	err := db.QueryRowContext(ctx, `
