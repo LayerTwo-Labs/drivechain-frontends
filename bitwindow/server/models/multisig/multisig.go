@@ -10,7 +10,10 @@ import (
 
 // Group represents a multisig group stored in the DB.
 type Group struct {
-	ID                string
+	ID string
+	// WalletID is the wallet that created the group. Empty on groups saved
+	// before wallet scoping existed, which stay visible to every wallet.
+	WalletID          string
 	Name              string
 	N                 int
 	M                 int
@@ -127,12 +130,23 @@ type execer interface {
 
 // ─── Groups ────────────────────────────────────────────────────────
 
+// ListGroups returns every group, regardless of which wallet owns it.
 func (s *Store) ListGroups(ctx context.Context) ([]Group, error) {
+	return s.listGroups(ctx, "", nil)
+}
+
+// ListGroupsForWallet returns the groups walletID may see: its own, plus the
+// legacy groups that carry no wallet stamp.
+func (s *Store) ListGroupsForWallet(ctx context.Context, walletID string) ([]Group, error) {
+	return s.listGroups(ctx, `WHERE wallet_id IS NULL OR wallet_id = ?`, []interface{}{walletID})
+}
+
+func (s *Store) listGroups(ctx context.Context, where string, args []interface{}) ([]Group, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, name, n, m, created, COALESCE(txid,''), COALESCE(descriptor,''),
+		SELECT id, COALESCE(wallet_id,''), name, n, m, created, COALESCE(txid,''), COALESCE(descriptor,''),
 		       COALESCE(descriptor_receive,''), COALESCE(descriptor_change,''),
 		       COALESCE(watch_wallet_name,''), balance, utxos, next_receive_index, next_change_index
-		FROM multisig_groups ORDER BY created ASC`)
+		FROM multisig_groups `+where+` ORDER BY created ASC`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list groups: %w", err)
 	}
@@ -141,7 +155,7 @@ func (s *Store) ListGroups(ctx context.Context) ([]Group, error) {
 	var groups []Group
 	for rows.Next() {
 		var g Group
-		if err := rows.Scan(&g.ID, &g.Name, &g.N, &g.M, &g.Created,
+		if err := rows.Scan(&g.ID, &g.WalletID, &g.Name, &g.N, &g.M, &g.Created,
 			&g.Txid, &g.Descriptor, &g.DescriptorReceive, &g.DescriptorChange,
 			&g.WatchWalletName, &g.Balance, &g.Utxos, &g.NextReceiveIndex, &g.NextChangeIndex); err != nil {
 			return nil, fmt.Errorf("scan group: %w", err)
@@ -151,22 +165,39 @@ func (s *Store) ListGroups(ctx context.Context) ([]Group, error) {
 	return groups, rows.Err()
 }
 
+// GroupVisibleTo reports whether walletID may read or write the group. A group
+// with no wallet stamp is visible to every wallet, and so is one that does not
+// exist yet — the caller is about to create it.
+func (s *Store) GroupVisibleTo(ctx context.Context, groupID, walletID string) (bool, error) {
+	var owner sql.NullString
+	err := s.db.QueryRowContext(ctx, `SELECT wallet_id FROM multisig_groups WHERE id = ?`, groupID).Scan(&owner)
+	if err == sql.ErrNoRows {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return !owner.Valid || owner.String == walletID, nil
+}
+
 func (s *Store) SaveGroup(ctx context.Context, g Group) error {
 	return saveGroupOn(ctx, s.db, g)
 }
 
 func saveGroupOn(ctx context.Context, e execer, g Group) error {
+	// wallet_id is stamped on insert only: a legacy group stays unstamped, and an
+	// owned one keeps its owner, whichever wallet is active on a later save.
 	_, err := e.ExecContext(ctx, `
-		INSERT INTO multisig_groups (id, name, n, m, created, txid, descriptor, descriptor_receive,
+		INSERT INTO multisig_groups (id, wallet_id, name, n, m, created, txid, descriptor, descriptor_receive,
 		    descriptor_change, watch_wallet_name, balance, utxos, next_receive_index, next_change_index)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 		    name=excluded.name, n=excluded.n, m=excluded.m, created=excluded.created,
 		    txid=excluded.txid, descriptor=excluded.descriptor,
 		    descriptor_receive=excluded.descriptor_receive, descriptor_change=excluded.descriptor_change,
 		    watch_wallet_name=excluded.watch_wallet_name, balance=excluded.balance, utxos=excluded.utxos,
 		    next_receive_index=excluded.next_receive_index, next_change_index=excluded.next_change_index`,
-		g.ID, g.Name, g.N, g.M, g.Created, nullStr(g.Txid), nullStr(g.Descriptor),
+		g.ID, nullStr(g.WalletID), g.Name, g.N, g.M, g.Created, nullStr(g.Txid), nullStr(g.Descriptor),
 		nullStr(g.DescriptorReceive), nullStr(g.DescriptorChange), nullStr(g.WatchWalletName),
 		g.Balance, g.Utxos, g.NextReceiveIndex, g.NextChangeIndex)
 	return err
@@ -430,19 +461,26 @@ func replaceGroupTransactionIDsOn(ctx context.Context, e execer, groupID string,
 // ─── Transactions ──────────────────────────────────────────────────
 
 func (s *Store) ListTransactions(ctx context.Context, groupID string) ([]Transaction, error) {
-	query := `
-		SELECT id, group_id, initial_psbt, COALESCE(combined_psbt,''), COALESCE(final_hex,''),
-		       COALESCE(txid,''), status, type, created, broadcast_time, amount, destination, fee,
-		       confirmations, required_signatures
-		FROM multisig_transactions`
-	var args []interface{}
-	if groupID != "" {
-		query += ` WHERE group_id = ?`
-		args = append(args, groupID)
+	if groupID == "" {
+		return s.listTransactions(ctx, "", nil)
 	}
-	query += ` ORDER BY created ASC`
+	return s.listTransactions(ctx, `WHERE t.group_id = ?`, []interface{}{groupID})
+}
 
-	rows, err := s.db.QueryContext(ctx, query, args...)
+// ListTransactionsForWallet returns the transactions of every group walletID
+// may see: its own, plus the legacy groups that carry no wallet stamp.
+func (s *Store) ListTransactionsForWallet(ctx context.Context, walletID string) ([]Transaction, error) {
+	return s.listTransactions(ctx, `
+		JOIN multisig_groups g ON g.id = t.group_id
+		WHERE g.wallet_id IS NULL OR g.wallet_id = ?`, []interface{}{walletID})
+}
+
+func (s *Store) listTransactions(ctx context.Context, clause string, args []interface{}) ([]Transaction, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT t.id, t.group_id, t.initial_psbt, COALESCE(t.combined_psbt,''), COALESCE(t.final_hex,''),
+		       COALESCE(t.txid,''), t.status, t.type, t.created, t.broadcast_time, t.amount, t.destination,
+		       t.fee, t.confirmations, t.required_signatures
+		FROM multisig_transactions t `+clause+` ORDER BY t.created ASC`, args...)
 	if err != nil {
 		return nil, err
 	}
