@@ -40,12 +40,37 @@ func loadEnforcerWallet(t *testing.T, network config.Network, passphrase string)
 	return svc
 }
 
-// The seed makes the wallet; the path only says where to look first. On a
-// network whose coin type is 1 the enforcer's account is the standard one, so a
-// companion would be an exact duplicate of the wallet beside it.
-func TestNoCompanionWhereTheEnforcerAccountIsStandard(t *testing.T) {
+// On a network whose coin type is 1 the enforcer's account is the standard one,
+// so the companion is a duplicate view of the wallet beside it. It is still
+// written: the migration only runs once, and the next boot may be mainnet.
+func TestCompanionEvenWhereTheEnforcerAccountIsStandard(t *testing.T) {
 	svc := loadEnforcerWallet(t, config.NetworkSignet, "")
-	assert.Len(t, svc.GetAllWallets(), 1, "the wallet already looks where the coins are")
+	require.Len(t, svc.GetAllWallets(), 2)
+}
+
+// wallet.json outlives the boot that migrated it, and the migration never runs
+// again. A first boot on signet must still leave the enforcer's account on
+// disk, or a later mainnet boot — which derives m/84'/0'/0' — reads a zero
+// balance over untouched coins.
+func TestTheEnforcerAccountOutlivesTheBootNetwork(t *testing.T) {
+	first := loadEnforcerWallet(t, config.NetworkSignet, "")
+	dir := first.bitwindowDir
+	first.Close()
+
+	later := NewService(dir, zerolog.Nop())
+	later.SetNetwork(string(config.NetworkMainnet))
+	require.NoError(t, later.Init())
+	t.Cleanup(func() { later.Close() })
+
+	wallets := later.GetAllWallets()
+	var found *WalletData
+	for i := range wallets {
+		if wallets[i].ImportedFromEnforcer {
+			found = &wallets[i]
+		}
+	}
+	require.NotNil(t, found, "the enforcer's account must outlive the boot network")
+	assert.Equal(t, EnforcerAccountPath, found.DerivationPath)
 }
 
 // On mainnet the enforcer's coin type 1 is not the standard account, so its
