@@ -120,6 +120,25 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// Resolve a commitment from a BitName
   Future<String> resolveCommit(String bitname);
 
+  /// Address holding the BitName UTXO, or null when the BitName is unknown.
+  Future<String?> resolveOwnerAddress(String bitnameHash) async {
+    final utxos = await listAllUTXOs();
+    for (final utxo in utxos) {
+      if (utxo.type != OutpointType.bitname || utxo is! BitnamesUTXO) {
+        continue;
+      }
+      try {
+        final content = jsonDecode(utxo.content) as Map<String, dynamic>;
+        if (content['BitName'] == bitnameHash) {
+          return utxo.address;
+        }
+      } catch (e) {
+        // Skip malformed content
+      }
+    }
+    return null;
+  }
+
   /// Sign an arbitrary message with the specified verifying key
   Future<String> signArbitraryMsg({
     required String msg,
