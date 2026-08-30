@@ -206,6 +206,81 @@ func TestGather_NeverWipesBundledBinarySoftware(t *testing.T) {
 	assert.NotEmpty(t, files, "bitcoind software should still be gathered")
 }
 
+// seedBitwindowDatabase writes <networkDir>/bitwindow.db and returns its path.
+func seedBitwindowDatabase(t *testing.T, o *Orchestrator) string {
+	t.Helper()
+	dc, ok := config.DirConfigByName("bitwindowd")
+	require.True(t, ok)
+	p := filepath.Join(dc.DatadirNetwork(config.Network(o.Network), ""), "bitwindow.db")
+	seedFile(t, p)
+	return p
+}
+
+// A wallet-only reset has to take bitwindow.db too: its UTXO metadata and
+// multisig rows carry no wallet id, so leaving it hands the next wallet the
+// previous one's data.
+func TestGather_WalletResetTakesBitwindowDatabase(t *testing.T) {
+	redirectHome(t)
+	o := newResetTestOrchestrator(t)
+	dbPath := seedBitwindowDatabase(t, o)
+
+	files, err := o.GatherFilesToDelete([]GatherSpec{
+		{Binary: ResetBinaryBitwindowd, Categories: []ResetCategory{catWallet}},
+	})
+	require.NoError(t, err)
+
+	var found bool
+	for _, f := range files {
+		if f.Path == dbPath {
+			found = true
+			assert.Equal(t, catWallet, f.Category)
+		}
+	}
+	assert.True(t, found, "bitwindow.db must be gathered by a wallet-only reset")
+
+	// It is wallet state, not logs or settings: those resets must leave it.
+	for _, cat := range []ResetCategory{catLogs, catSettings} {
+		other, err := o.GatherFilesToDelete([]GatherSpec{
+			{Binary: ResetBinaryBitwindowd, Categories: []ResetCategory{cat}},
+		})
+		require.NoError(t, err)
+		for _, f := range other {
+			assert.NotEqualf(t, dbPath, f.Path, "bitwindow.db must not be gathered by category %v", cat)
+		}
+	}
+}
+
+// Gathering bitwindow.db under catWallet must not reclassify it as a wallet
+// path: a chain-data reset still hard-deletes it, rather than growing a
+// wallet_backups/ copy on every run.
+func TestDeleteFiles_ChainDataResetStillHardDeletesBitwindowDatabase(t *testing.T) {
+	redirectHome(t)
+	o := newResetTestOrchestrator(t)
+	dbPath := seedBitwindowDatabase(t, o)
+
+	gathered, err := o.GatherFilesToDelete([]GatherSpec{
+		{Binary: ResetBinaryBitwindowd, Categories: []ResetCategory{catData}},
+	})
+	require.NoError(t, err)
+	var paths []string
+	for _, f := range gathered {
+		paths = append(paths, f.Path)
+	}
+	require.Contains(t, paths, dbPath)
+
+	assert.False(t, isWalletPath(dbPath, o.allWalletPaths()),
+		"bitwindow.db must not be classified as a wallet path")
+
+	ch, err := o.DeleteFiles(context.Background(), paths)
+	require.NoError(t, err)
+	for evt := range ch {
+		assert.Empty(t, evt.Error)
+	}
+
+	require.NoFileExists(t, dbPath)
+	require.NoDirExists(t, filepath.Join(filepath.Dir(dbPath), "wallet_backups"))
+}
+
 func TestGather_NoSideEffects(t *testing.T) {
 	o := newResetTestOrchestrator(t)
 

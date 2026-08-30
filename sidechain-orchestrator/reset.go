@@ -234,6 +234,14 @@ func (o *Orchestrator) GatherFilesToDelete(specs []GatherSpec) ([]ResetFileInfo,
 				if dc.BinaryName == "bitwindowd" && o.WalletSvc != nil {
 					add(cat, spec.Binary, o.WalletSvc.MasterWalletPaths())
 				}
+				// bitwindow.db's UTXO metadata and multisig rows carry no wallet
+				// id, so leaving it hands the next wallet the previous one's
+				// labels, freezes and groups. It holds no keys, so DeleteFiles
+				// removes it rather than backing it up; the next boot recreates
+				// it from migrations and re-indexes the chain-derived rows.
+				if dc.BinaryName == "bitwindowd" {
+					add(cat, spec.Binary, config.GetExistingFilesInDir(networkDir, []string{"bitwindow.db"}, o.log))
+				}
 			}
 		}
 	}
