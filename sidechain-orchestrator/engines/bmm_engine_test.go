@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
@@ -250,10 +251,26 @@ const fakeBidVsize = 200
 func newFakeFee() *fakeFee { return &fakeFee{rate: 50} }
 
 type fakeTip struct {
-	mu     sync.Mutex
-	calls  int
-	hash   string
-	height int32
+	mu      sync.Mutex
+	calls   int
+	hash    string
+	height  int32
+	network string
+}
+
+func (f *fakeTip) CurrentNetwork() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.network
+}
+
+// swap moves the tip to another network, as SwapNetwork does before the reset.
+func (f *fakeTip) swap(network, hash string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.network = network
+	f.hash = hash
+	f.height = 1
 }
 
 func (f *fakeTip) ChainTip(context.Context) (string, int32, error) {
@@ -280,7 +297,7 @@ func (f *fakeTip) jump(hash string, blocks int32) {
 func newEngine(t *testing.T) (*BmmEngine, *fakeBackend, *fakeTip, *bmmstate.Store) {
 	t.Helper()
 	backend := &fakeBackend{feesSats: 12500}
-	tip := &fakeTip{hash: "block-1", height: 100}
+	tip := &fakeTip{hash: "block-1", height: 100, network: "signet"}
 	store := bmmstate.NewStore(t.TempDir(), 0)
 	return NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store), backend, tip, store
 }
@@ -294,6 +311,139 @@ func TestBmmEngineIdleUntilStarted(t *testing.T) {
 	assert.Zero(t, backend.bids)
 	running, _, _ := engine.Running(testSidechain)
 	assert.False(t, running)
+}
+
+func TestBmmEngineResetForNetworkLoadsTheNewTargets(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	ctx := context.Background()
+	require.NoError(t, engine.Start(ctx, testSidechain, "wallet-a", 10_000, false))
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	const other = pb.BinaryType_BINARY_TYPE_BITNAMES
+	networkB := t.TempDir()
+	require.NoError(t, bmmstate.NewStore(networkB, 0).SaveTarget(bmmstate.Target{
+		Sidechain:  int32(other),
+		WalletID:   "wallet-b",
+		MaxBidSats: 20_000,
+	}))
+
+	engine.ResetForNetwork(networkB)
+
+	running, _, _ := engine.Running(testSidechain)
+	assert.False(t, running)
+	assert.Nil(t, engine.Current(testSidechain))
+	running, wallet, max := engine.Running(other)
+	assert.True(t, running)
+	assert.Equal(t, "wallet-b", wallet)
+	assert.Equal(t, int64(20_000), max)
+
+	tip.set("block-2")
+	engine.tick(ctx)
+	assert.Equal(t, 2, backend.bids)
+	assert.Equal(t, "wallet-b", backend.lastWalletID)
+	assert.Nil(t, engine.Current(testSidechain))
+}
+
+// SwapNetwork switches the network before the reset hook reloads the targets,
+// so a tick in that window must not bid for the old targets on the new chain.
+func TestBmmEngineWaitsForTheResetAfterASwap(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	ctx := context.Background()
+	require.NoError(t, engine.Start(ctx, testSidechain, "wallet-a", 10_000, false))
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	networkB := t.TempDir()
+	require.NoError(t, bmmstate.NewStore(networkB, 0).SaveTarget(bmmstate.Target{
+		Sidechain:  int32(testSidechain),
+		WalletID:   "wallet-b",
+		MaxBidSats: 20_000,
+	}))
+
+	tip.swap("regtest", "regtest-block-1")
+	engine.tick(ctx)
+	assert.Equal(t, 1, backend.bids, "a bid went out for the old targets on the new network")
+
+	engine.ResetForNetwork(networkB)
+	engine.tick(ctx)
+	assert.Equal(t, 2, backend.bids)
+	assert.Equal(t, "wallet-b", backend.lastWalletID)
+}
+
+// A swap can reset the engine before Run loads the store at startup. The two
+// loads must not stack the same unconnected round twice.
+func TestBmmEngineStartupLoadAfterAReset(t *testing.T) {
+	engine, _, _, store := newEngine(t)
+	require.NoError(t, store.Save(*unconnectedRound("won-round", 996770)))
+
+	dir := t.TempDir()
+	require.NoError(t, bmmstate.NewStore(dir, 0).Save(*unconnectedRound("won-round", 996770)))
+	engine.ResetForNetwork(dir)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	require.ErrorIs(t, engine.Run(ctx), context.Canceled)
+
+	assert.Equal(t, 1, pendingCount(engine))
+}
+
+// gatedTip holds ChainTip until release closes, so a test can swap the network
+// while a tick is in flight.
+type gatedTip struct {
+	*fakeTip
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (g *gatedTip) ChainTip(ctx context.Context) (string, int32, error) {
+	close(g.entered)
+	<-g.release
+	return g.fakeTip.ChainTip(ctx)
+}
+
+func TestBmmEngineResetWaitsForTheTickInFlight(t *testing.T) {
+	backend := &fakeBackend{feesSats: 12500}
+	tip := &gatedTip{
+		fakeTip: &fakeTip{hash: "block-1", height: 100, network: "signet"},
+		entered: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	engine := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), bmmstate.NewStore(t.TempDir(), 0))
+	ctx := context.Background()
+	require.NoError(t, engine.Start(ctx, testSidechain, "wallet-a", 10_000, false))
+
+	networkB := t.TempDir()
+	require.NoError(t, bmmstate.NewStore(networkB, 0).SaveTarget(bmmstate.Target{
+		Sidechain:  int32(testSidechain),
+		WalletID:   "wallet-b",
+		MaxBidSats: 20_000,
+	}))
+
+	ticked := make(chan struct{})
+	go func() {
+		engine.tick(ctx)
+		close(ticked)
+	}()
+	<-tip.entered
+	reset := make(chan struct{})
+	go func() {
+		engine.ResetForNetwork(networkB)
+		close(reset)
+	}()
+	select {
+	case <-reset:
+		t.Fatal("the reset ran while a tick was in flight")
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(tip.release)
+	<-ticked
+	<-reset
+
+	rounds, err := bmmstate.NewStore(networkB, 0).All()
+	require.NoError(t, err)
+	assert.Empty(t, rounds, "a round from the old network reached the new store")
+	assert.Nil(t, engine.Current(testSidechain))
 }
 
 // Only a new tip opens a round, so a repeated tip must not bid again.
