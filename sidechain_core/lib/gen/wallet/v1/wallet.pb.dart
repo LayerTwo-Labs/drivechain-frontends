@@ -699,6 +699,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.String? derivationPath,
     $core.bool? splittable,
     $core.int? height,
+    $core.int? inputWeightUnits,
   }) {
     final $result = create();
     if (output != null) {
@@ -731,6 +732,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (height != null) {
       $result.height = height;
     }
+    if (inputWeightUnits != null) {
+      $result.inputWeightUnits = inputWeightUnits;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -748,6 +752,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOS(8, _omitFieldNames ? '' : 'derivationPath')
     ..aOB(9, _omitFieldNames ? '' : 'splittable')
     ..a<$core.int>(10, _omitFieldNames ? '' : 'height', $pb.PbFieldType.O3)
+    ..a<$core.int>(11, _omitFieldNames ? '' : 'inputWeightUnits', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -876,6 +881,17 @@ class UnspentOutput extends $pb.GeneratedMessage {
   $core.bool hasHeight() => $_has(9);
   @$pb.TagNumber(10)
   void clearHeight() => clearField(10);
+
+  /// The largest weight, in weight units, that spending this output costs. 0
+  /// when the backend cannot report the output's descriptor.
+  @$pb.TagNumber(11)
+  $core.int get inputWeightUnits => $_getIZ(10);
+  @$pb.TagNumber(11)
+  set inputWeightUnits($core.int v) { $_setSignedInt32(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasInputWeightUnits() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearInputWeightUnits() => clearField(11);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {
