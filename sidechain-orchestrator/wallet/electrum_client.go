@@ -65,6 +65,8 @@ type ElectrumClient struct {
 	tipMu      sync.Mutex
 	tipVal     int
 	tipFetched time.Time
+	// tipEpoch bumps on every endpoint change, so a tip from the old endpoint never lands in the cache.
+	tipEpoch int
 }
 
 var (
@@ -274,7 +276,7 @@ func (c *ElectrumClient) ensureConnLocked() error {
 	}
 	c.conn = conn
 	c.gen++
-	go c.readLoop(c.gen, bufio.NewReaderSize(conn, 1<<20))
+	go c.readLoop(c.gen, c.currentTipEpoch(), bufio.NewReaderSize(conn, 1<<20))
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -283,18 +285,18 @@ func (c *ElectrumClient) ensureConnLocked() error {
 	return nil
 }
 
-func (c *ElectrumClient) readLoop(gen int, r *bufio.Reader) {
+func (c *ElectrumClient) readLoop(gen, tipEpoch int, r *bufio.Reader) {
 	for {
 		line, err := r.ReadBytes('\n')
 		if err != nil {
 			c.onDisconnect(gen, err)
 			return
 		}
-		c.dispatch(line)
+		c.dispatch(line, tipEpoch)
 	}
 }
 
-func (c *ElectrumClient) dispatch(line []byte) {
+func (c *ElectrumClient) dispatch(line []byte, tipEpoch int) {
 	var msg struct {
 		ID     *int            `json:"id"`
 		Method string          `json:"method"`
@@ -322,10 +324,10 @@ func (c *ElectrumClient) dispatch(line []byte) {
 		}
 		return
 	}
-	c.handleNotification(msg.Method, msg.Params)
+	c.handleNotification(msg.Method, msg.Params, tipEpoch)
 }
 
-func (c *ElectrumClient) handleNotification(method string, params json.RawMessage) {
+func (c *ElectrumClient) handleNotification(method string, params json.RawMessage, tipEpoch int) {
 	switch method {
 	case "blockchain.scripthash.subscribe":
 		var p []json.RawMessage
@@ -343,7 +345,7 @@ func (c *ElectrumClient) handleNotification(method string, params json.RawMessag
 		if json.Unmarshal(params, &p) != nil || len(p) < 1 {
 			return
 		}
-		c.setTip(p[0].Height)
+		c.setTip(tipEpoch, p[0].Height)
 		c.emit(ElectrumNotification{Kind: "headers", Height: p[0].Height})
 	}
 }
@@ -364,13 +366,25 @@ func (c *ElectrumClient) onDisconnect(gen int, cause error) {
 		c.connMu.Unlock()
 		return
 	}
+	pend := c.retireConnLocked()
+	c.connMu.Unlock()
+	c.failPending(pend, cause)
+}
+
+// retireConnLocked closes the live connection and takes its in-flight calls.
+// The generation bump makes its reader's own disconnect a no-op. connMu must be held.
+func (c *ElectrumClient) retireConnLocked() map[int]chan rpcResult {
+	c.gen++
 	if c.conn != nil {
 		_ = c.conn.Close()
 		c.conn = nil
 	}
 	pend := c.pending
 	c.pending = map[int]chan rpcResult{}
-	c.connMu.Unlock()
+	return pend
+}
+
+func (c *ElectrumClient) failPending(pend map[int]chan rpcResult, cause error) {
 	for _, ch := range pend {
 		ch <- rpcResult{err: ioErr(cause)}
 	}
@@ -392,11 +406,20 @@ func (c *ElectrumClient) clearPending(id int) {
 	c.connMu.Unlock()
 }
 
-func (c *ElectrumClient) setTip(height int) {
+// setTip caches height unless the endpoint changed since epoch.
+func (c *ElectrumClient) setTip(epoch, height int) {
 	c.tipMu.Lock()
-	c.tipVal = height
-	c.tipFetched = time.Now()
+	if c.tipEpoch == epoch {
+		c.tipVal = height
+		c.tipFetched = time.Now()
+	}
 	c.tipMu.Unlock()
+}
+
+func (c *ElectrumClient) currentTipEpoch() int {
+	c.tipMu.Lock()
+	defer c.tipMu.Unlock()
+	return c.tipEpoch
 }
 
 func (c *ElectrumClient) startKeepalive() {
@@ -426,13 +449,14 @@ func (c *ElectrumClient) Subscribe(ctx context.Context, scriptHash string) (stri
 
 // SubscribeHeaders registers for new-block pushes and returns the current tip.
 func (c *ElectrumClient) SubscribeHeaders(ctx context.Context) (int, error) {
+	epoch := c.currentTipEpoch()
 	var head struct {
 		Height int `json:"height"`
 	}
 	if err := c.call(ctx, &head, "blockchain.headers.subscribe"); err != nil {
 		return 0, err
 	}
-	c.setTip(head.Height)
+	c.setTip(epoch, head.Height)
 	return head.Height, nil
 }
 
@@ -577,6 +601,7 @@ func (c *ElectrumClient) TipHeight(ctx context.Context) (int, error) {
 		c.tipMu.Unlock()
 		return v, nil
 	}
+	epoch := c.tipEpoch
 	c.tipMu.Unlock()
 
 	var head struct {
@@ -585,10 +610,7 @@ func (c *ElectrumClient) TipHeight(ctx context.Context) (int, error) {
 	if err := c.call(ctx, &head, "blockchain.headers.subscribe"); err != nil {
 		return 0, err
 	}
-	c.tipMu.Lock()
-	c.tipVal = head.Height
-	c.tipFetched = time.Now()
-	c.tipMu.Unlock()
+	c.setTip(epoch, head.Height)
 	return head.Height, nil
 }
 
@@ -792,14 +814,20 @@ func (c *ElectrumClient) SetProxy(enabled bool, proxyAddr string) error {
 	return nil
 }
 
-// resetConn drops the live connection so the next call reconnects (to a changed
-// endpoint or through a changed proxy).
+// resetConn drops the live connection and the cached tip, so the next call
+// reconnects to a changed endpoint or through a changed proxy. Both happen under
+// connMu: no call can reach the old socket with the new epoch.
 func (c *ElectrumClient) resetConn() {
 	c.connMu.Lock()
-	conn := c.conn
+	c.tipMu.Lock()
+	c.tipEpoch++
+	c.tipFetched = time.Time{}
+	c.tipMu.Unlock()
+	live := c.conn != nil
+	pend := c.retireConnLocked()
 	c.connMu.Unlock()
-	if conn != nil {
-		_ = conn.Close()
+	if live {
+		c.failPending(pend, net.ErrClosed)
 	}
 }
 
