@@ -1,6 +1,7 @@
 package engines
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"slices"
@@ -330,4 +331,54 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 	news, err := opreturns.ListCoinNews(ctx, db)
 	require.NoError(t, err)
 	assert.Empty(t, news, "whitespace-only headlines must not surface as canonical stories")
+}
+
+// TestOpReturnHandling_CoinbaseIsNeverIndexed covers both halves of the
+// coinbase gate: a coinbase's OP_RETURNs stay out of op_returns whatever
+// its output count, and a BIP300/301 message is skipped on its tag rather
+// than on a hardcoded payload.
+func TestOpReturnHandling_CoinbaseIsNeverIndexed(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := database.Test(t)
+
+	// No EXPECT: a fetch here means an output was about to be indexed.
+	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	parser := &Parser{
+		db: db,
+		bitcoind: service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return core, nil
+		}),
+	}
+
+	// M2 (ACK sidechain): 4-byte tag, 32-byte proposal hash, 1-byte slot.
+	m2 := append([]byte{0xd6, 0xe1, 0xc5, 0xdf}, bytes.Repeat([]byte{0xab}, 33)...)
+	// Merged mining tag: AuxPoW magic, 32-byte hash, size and nonce.
+	mergedMining := append([]byte{0xfa, 0xbe, 0x6d, 0x6d}, bytes.Repeat([]byte{0xcd}, 40)...)
+
+	height := uint32(400)
+	now := time.Now()
+
+	coinbase := &wire.MsgTx{
+		TxIn: []*wire.TxIn{{PreviousOutPoint: wire.OutPoint{Hash: chainhash.Hash{}, Index: 0xffffffff}}},
+		TxOut: []*wire.TxOut{
+			{Value: 5_000_000_000, PkScript: append([]byte{txscript.OP_0, 0x14}, bytes.Repeat([]byte{0x01}, 20)...)},
+			{Value: 0, PkScript: pkScript(t, m2)},
+			{Value: 0, PkScript: pkScript(t, mergedMining)},
+		},
+	}
+	require.NoError(t, parser.opReturnForTXID(ctx, coinbase, &height, &now))
+
+	// The tag rule also holds off-coinbase, where the old blacklist only
+	// matched two specific M2 payloads.
+	spend := &wire.MsgTx{
+		TxIn:  []*wire.TxIn{{PreviousOutPoint: wire.OutPoint{Hash: chainhash.Hash{7}, Index: 0}}},
+		TxOut: []*wire.TxOut{{Value: 0, PkScript: pkScript(t, m2)}},
+	}
+	require.NoError(t, parser.opReturnForTXID(ctx, spend, &height, &now))
+
+	stored, err := opreturns.List(ctx, db, 0)
+	require.NoError(t, err)
+	assert.Empty(t, stored, "coinbase consensus messages must not reach op_returns")
 }

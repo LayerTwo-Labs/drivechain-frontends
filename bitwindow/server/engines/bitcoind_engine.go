@@ -738,8 +738,9 @@ func (p *Parser) handleOpReturns(
 
 	var emptyHash chainhash.Hash
 	isCoinbase := len(tx.TxIn) > 0 && tx.TxIn[0].PreviousOutPoint.Hash.IsEqual(&emptyHash)
-	// every coinbase transaction has a OP_RETURN output we don't care about
-	if isCoinbase && len(tx.TxOut) == 2 {
+	// a coinbase OP_RETURN is always consensus data — the witness commitment,
+	// a BIP300/301 message or a miner tag — never a user payload
+	if isCoinbase {
 		return nil, nil
 	}
 
@@ -992,24 +993,26 @@ func isWitnessCommitment(pkScript []byte) bool {
 		bytes.Equal(pkScript[2:6], witnessCommitmentMagic)
 }
 
+// BIP300/301 message tags. A payload carrying one of these is sidechain
+// consensus data, not a user OP_RETURN.
+const (
+	tagM1ProposeSidechain = "d5e0c4af"
+	tagM2AckSidechain     = "d6e1c5df"
+	tagM3ProposeBundle    = "d45aa943"
+	tagM4AckBundleV1      = "d77d177601"
+	tagM7                 = "d1617368"
+)
+
 func shouldSkip(pkScript []byte) bool {
-	data := pkScript[2:]
-	// heck if i know what these are, but they are related to sidechains!
+	data := opreturns.OPReturnToReadable(pkScript[2:])
 	switch {
-	case strings.HasPrefix(opreturns.OPReturnToReadable(data), "d1617368"):
+	case strings.HasPrefix(data, tagM1ProposeSidechain),
+		strings.HasPrefix(data, tagM2AckSidechain),
+		strings.HasPrefix(data, tagM3ProposeBundle),
+		strings.HasPrefix(data, tagM4AckBundleV1),
+		strings.HasPrefix(data, tagM7):
 		return true
-	case strings.HasPrefix(opreturns.OPReturnToReadable(data), "d77d177601"):
-		return true
-		// thunder sidechain creation
-	case opreturns.OPReturnToReadable(data) == "d6e1c5df09879b5f8ebc8bab50ca9218849c2e173a596d1ac0e84b9f10981c3078da6571af":
-		return true
-	case opreturns.OPReturnToReadable(data) == "d6e1c5df02f82573d5420e910fe350d5e1b61da16551a269d682b51f35f2343c265285c056":
-		return true
-	case opreturns.OPReturnToReadable(data) == "64656164626565664e6f7277656769616e2042c3b8726765204272656e6465206265636f6d657320707265736964656e74206f6620574546":
-		return true
-	case opreturns.OPReturnToReadable(data) == "d5e0c4af0900077468756e6465727468756e646572206465736372697074696f6e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000":
-		return true
-	case opreturns.OPReturnToReadable(data) == "d45aa943091303c6de5739c2fb3a021a8bd2b8c9fa8bcd8f8c18954bec00aa8f9b2cf13602":
+	case data == "64656164626565664e6f7277656769616e2042c3b8726765204272656e6465206265636f6d657320707265736964656e74206f6620574546":
 		return true
 	}
 	return false
