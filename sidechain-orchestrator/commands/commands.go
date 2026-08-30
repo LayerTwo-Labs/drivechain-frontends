@@ -1087,8 +1087,6 @@ func thunderCommand() *cli.Command {
 
 // SidechainClient interface for all sidechain RPC clients
 type SidechainClient interface {
-	// Every sidechain client should have these core methods
-	Balance(ctx context.Context) (interface{}, error)
 	OpenAPISchema(ctx context.Context) (json.RawMessage, error)
 }
 
@@ -1100,10 +1098,6 @@ type BitnamesClientWrapper struct {
 	*bitnames.Client
 }
 
-func (w *BitnamesClientWrapper) Balance(ctx context.Context) (interface{}, error) {
-	return w.Client.Balance(ctx)
-}
-
 func (w *BitnamesClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
 	return w.Client.OpenAPISchema(ctx)
 }
@@ -1111,10 +1105,6 @@ func (w *BitnamesClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMess
 // ThunderClientWrapper adapts the thunder.Client to SidechainClient interface
 type ThunderClientWrapper struct {
 	*thunder.Client
-}
-
-func (w *ThunderClientWrapper) Balance(ctx context.Context) (interface{}, error) {
-	return w.Client.Balance(ctx)
 }
 
 func (w *ThunderClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
@@ -1126,10 +1116,6 @@ type BitassetsClientWrapper struct {
 	*bitassets.Client
 }
 
-func (w *BitassetsClientWrapper) Balance(ctx context.Context) (interface{}, error) {
-	return w.Client.Balance(ctx)
-}
-
 func (w *BitassetsClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
 	return w.Client.OpenAPISchema(ctx)
 }
@@ -1137,10 +1123,6 @@ func (w *BitassetsClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMes
 // CoinshiftClientWrapper adapts the coinshift.Client to SidechainClient interface
 type CoinshiftClientWrapper struct {
 	*coinshift.Client
-}
-
-func (w *CoinshiftClientWrapper) Balance(ctx context.Context) (interface{}, error) {
-	return w.Client.Balance(ctx)
 }
 
 func (w *CoinshiftClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
@@ -1152,10 +1134,6 @@ type PhotonClientWrapper struct {
 	*photon.Client
 }
 
-func (w *PhotonClientWrapper) Balance(ctx context.Context) (interface{}, error) {
-	return w.Client.Balance(ctx)
-}
-
 func (w *PhotonClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
 	return w.Client.OpenAPISchema(ctx)
 }
@@ -1165,10 +1143,6 @@ type TruthcoinClientWrapper struct {
 	*truthcoin.Client
 }
 
-func (w *TruthcoinClientWrapper) Balance(ctx context.Context) (interface{}, error) {
-	return w.Client.Balance(ctx)
-}
-
 func (w *TruthcoinClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {
 	return w.Client.OpenAPISchema(ctx)
 }
@@ -1176,10 +1150,6 @@ func (w *TruthcoinClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMes
 // ZsideClientWrapper adapts the zside.Client to SidechainClient interface
 type ZsideClientWrapper struct {
 	*zside.Client
-}
-
-func (w *ZsideClientWrapper) Balance(ctx context.Context) (interface{}, error) {
-	return w.Client.Balance(ctx)
 }
 
 func (w *ZsideClientWrapper) OpenAPISchema(ctx context.Context) (json.RawMessage, error) {

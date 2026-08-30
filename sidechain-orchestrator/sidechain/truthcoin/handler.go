@@ -25,20 +25,28 @@ func NewHandler(proxy *sidechain.JSONRPCProxy) *Handler {
 	return &Handler{proxy: proxy}
 }
 
-// --- Common Node methods ---
-
-func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
-	// Truthcoin uses "bitcoin_balance" instead of "balance"
+// WalletBalance returns the local wallet balance, in sats.
+func (h *Handler) WalletBalance(ctx context.Context) (total, available int64, err error) {
 	var result struct {
 		TotalSats     int64 `json:"total_sats"`
 		AvailableSats int64 `json:"available_sats"`
 	}
 	if err := h.proxy.Client.Call(ctx, "bitcoin_balance", nil, &result); err != nil {
+		return 0, 0, err
+	}
+	return result.TotalSats, result.AvailableSats, nil
+}
+
+// --- Common Node methods ---
+
+func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
+	total, available, err := h.WalletBalance(ctx)
+	if err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetBalanceResponse{
-		TotalSats:     result.TotalSats,
-		AvailableSats: result.AvailableSats,
+		TotalSats:     total,
+		AvailableSats: available,
 	}), nil
 }
 

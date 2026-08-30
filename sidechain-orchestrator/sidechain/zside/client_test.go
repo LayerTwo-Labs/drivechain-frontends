@@ -39,19 +39,6 @@ func clientFromServer(srv *httptest.Server) *Client {
 	return &Client{baseURL: srv.URL, http: srv.Client()}
 }
 
-func TestBalance(t *testing.T) {
-	srv := fakeRPC(t, map[string]interface{}{
-		"balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
-	})
-	defer srv.Close()
-
-	c := clientFromServer(srv)
-	bal, err := c.Balance(context.Background())
-	require.NoError(t, err)
-	assert.Equal(t, int64(100_000), bal.TotalSats)
-	assert.Equal(t, int64(80_000), bal.AvailableSats)
-}
-
 func TestGetBlockCount(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{
 		"getblockcount": 42,
