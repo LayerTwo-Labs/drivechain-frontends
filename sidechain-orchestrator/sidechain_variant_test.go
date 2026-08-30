@@ -356,6 +356,8 @@ func TestOrchestrator_ForceBackend_AdoptsProdPidWhenTestSidechainsEnabled(t *tes
 	require.NoError(t, o.AdoptOrphans(context.Background()))
 	require.True(t, o.process.IsRunning(cfg.Name), "prod PID should be adopted as force-backend fallback while test sidechains are enabled")
 
+	assert.True(t, o.process.ForceBackendFor(cfg.Name), "adoption must keep the ForceBackend flag of a prod PID file")
+
 	// The path fields answer the request, so ask the way the backend was started.
 	status := o.StatusWithOptions(cfg.Name, DownloadOptions{ForceBackend: true})
 	assert.True(t, status.Running)
