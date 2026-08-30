@@ -1754,12 +1754,14 @@ func purposeToCoreKind(purpose uint32) (ScriptKind, bool) {
 
 // createAndImport creates a Core wallet and imports descriptors.
 func (p *CoreBackend) createAndImport(ctx context.Context, walletName string, disablePrivateKeys bool, descriptors []ImportDescriptor) error {
-	return createAndImport(ctx, p.rpc, p.log, walletName, disablePrivateKeys, descriptors)
+	return createAndImport(ctx, p.rpc, p.log, walletName, disablePrivateKeys, false, descriptors)
 }
 
+// createAndImport creates a Core wallet and imports descriptors. waitForRescan
+// holds the import open until Core's rescan ends, however long it runs.
 func createAndImport(
 	ctx context.Context, rpc *CoreRPCClient, log zerolog.Logger,
-	walletName string, disablePrivateKeys bool, descriptors []ImportDescriptor,
+	walletName string, disablePrivateKeys, waitForRescan bool, descriptors []ImportDescriptor,
 ) error {
 	existing, err := rpc.ListWallets(ctx)
 	if err != nil {
@@ -1810,11 +1812,25 @@ func createAndImport(
 		}
 	}
 
-	results, err := rpc.ImportDescriptors(ctx, walletName, descriptors)
+	importDescriptors := rpc.ImportDescriptors
+	if waitForRescan {
+		importDescriptors = rpc.ImportDescriptorsAndWait
+	}
+	results, err := importDescriptors(ctx, walletName, descriptors)
 	if err != nil {
 		return fmt.Errorf("import descriptors: %w", err)
 	}
+	if err := importResultsErr(results); err != nil {
+		return err
+	}
 
+	if created {
+		log.Info().Str("wallet", walletName).Msg("created Bitcoin Core wallet")
+	}
+	return nil
+}
+
+func importResultsErr(results []ImportDescriptorResult) error {
 	for i, r := range results {
 		if !r.Success {
 			errMsg := "unknown"
@@ -1823,10 +1839,6 @@ func createAndImport(
 			}
 			return fmt.Errorf("descriptor %d import failed: %s", i, errMsg)
 		}
-	}
-
-	if created {
-		log.Info().Str("wallet", walletName).Msg("created Bitcoin Core wallet")
 	}
 	return nil
 }
