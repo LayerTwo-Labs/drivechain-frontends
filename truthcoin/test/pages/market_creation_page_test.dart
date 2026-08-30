@@ -76,4 +76,79 @@ void main() {
       expect(find.textContaining('Back'), findsWidgets);
     });
   });
+
+  group('MarketCreationViewModel.dimensionInputs', () {
+    const twoExisting = '[{"type":"existing","id":"004008"},{"type":"existing","id":"004009"}]';
+
+    test('a slot ID becomes an existing DimensionInput', () {
+      final model = MarketCreationViewModel()..dimensionsController.text = '004008';
+
+      expect(model.dimensionInputs, '[{"type":"existing","id":"004008"}]');
+    });
+
+    test('comma-separated slot IDs become one DimensionInput each', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = '004008, 004009';
+
+      expect(model.dimensionInputs, twoExisting);
+    });
+
+    test('bracket notation is flattened to existing references', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = '[[004008,004009]]';
+
+      expect(model.dimensionInputs, twoExisting);
+    });
+
+    test('a single DimensionInput object becomes a one-entry array', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = '{"type":"existing","id":"004008"}';
+
+      expect(model.dimensionInputs, '[{"type":"existing","id":"004008"}]');
+    });
+
+    test('DimensionInput JSON passes through', () {
+      const dimensions = '[{"type":"new","period_index":3,"decision_type":"binary","header":"Rain?"}]';
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = dimensions;
+
+      expect(model.dimensionInputs, dimensions);
+    });
+  });
+
+  group('MarketCreationViewModel.effectiveDimensions', () {
+    test('a categorical market takes one category decision', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.categorical)
+        ..currentStep = 1
+        ..dimensionsController.text = '004008';
+
+      expect(model.canContinue, true);
+      expect(model.effectiveDimensions, '[[004008]]');
+      expect(model.dimensionInputs, '[{"type":"existing","id":"004008"}]');
+
+      model.dimensionsController.text = '004008,004009';
+      expect(model.canContinue, false);
+    });
+
+    test('custom DimensionInput JSON previews its existing decisions', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = '[{"type":"existing","id":"004008"},{"type":"existing","id":"004009"}]';
+
+      expect(model.effectiveDimensions, '[004008,004009]');
+    });
+
+    test('a new decision has no ID to preview', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = '[{"type":"new","period_index":3,"decision_type":"binary","header":"Rain?"}]';
+
+      expect(model.effectiveDimensions, '');
+    });
+  });
 }
