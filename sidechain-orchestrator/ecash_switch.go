@@ -294,6 +294,17 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		case err == nil:
 			dropped = hash
 		case errors.Is(err, errNoLiveCore):
+			// A mark an earlier switch left bars a branch only a live Core can
+			// lift, and the target's own ancestor may be it. Committing would
+			// park Core under the fork with no chain left to follow.
+			if mark := o.outstandingMark(); mark != "" {
+				o.restartAfterAbort(ctx, restartL1, stoppedL2)
+				return fmt.Errorf(
+					"start bitcoin core first: block %s stays barred from an earlier switch, "+
+						"and only a live core lifts it",
+					mark,
+				)
+			}
 			// The chain stays as it is. Core reorganises to the new network on
 			// its own once it runs, and the blocks below the fork are shared.
 			o.log.Warn().Uint32("rewind_height", plan.RewindHeight).
@@ -404,6 +415,15 @@ func (o *Orchestrator) ApplyPendingEnforcerWipe() error {
 
 // errNoLiveCore says the rollback found no Bitcoin Core to talk to.
 var errNoLiveCore = errors.New("no live bitcoin core")
+
+// outstandingMark is the block an earlier switch barred and nothing has lifted,
+// empty when no branch is barred.
+func (o *Orchestrator) outstandingMark() string {
+	if o.Settings == nil {
+		return ""
+	}
+	return o.Settings.RewoundBlockHash()
+}
 
 // rewindBelowTheFork leaves the chain at height and drops what sits above it,
 // so Core follows the new eCash network from there.

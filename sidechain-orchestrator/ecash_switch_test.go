@@ -309,6 +309,29 @@ func TestApplyECashSwitchKeepsTheChainWhenNoCoreAnswers(t *testing.T) {
 	require.Equal(t, "alphanet", o.installedECashNetwork())
 }
 
+// A mark an earlier switch left bars a branch that may be the target's own, and
+// only a live Core lifts it. Committing with Core down points this install at a
+// chain Core can never follow, and the same-target retry skips the rewind.
+func TestApplyECashSwitchRefusesOfflineWhenAMarkStaysBarred(t *testing.T) {
+	o := newTestOrchestrator(t)
+	datadir := t.TempDir()
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, datadir)
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.coreReachable = func() bool { return false }
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.Settings.SetRewoundBlockHash(staleMark))
+
+	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), staleMark, "the error has to name the barred block")
+
+	require.Equal(t, "drynet4", o.ecashID, "the old network stays selected")
+	require.Equal(t, "drynet4", o.installedECashNetwork(), "the conf keeps naming it")
+	require.Equal(t, "drynet4", o.Settings.ECashChainID())
+	require.Empty(t, o.Settings.PendingEnforcerWipe(), "a refused switch journals no cleanup")
+	require.Equal(t, staleMark, o.Settings.RewoundBlockHash(), "the mark waits for a live core")
+}
+
 // No published fork height leaves nothing to rewind to, so the switch refuses
 // and the chain stays where it is.
 func TestApplyECashSwitchKeepsTheChainWithNoPublishedForkHeight(t *testing.T) {
