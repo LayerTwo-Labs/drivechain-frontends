@@ -65,6 +65,11 @@ func (r *BackendRouter) pick(walletID string) (Backend, error) {
 		if r.electrum == nil {
 			return nil, errors.New("electrum wallet backend not configured")
 		}
+		// A network with no published chain source (regtest) can never serve
+		// this wallet, so the pollers skip it instead of failing every tick.
+		if !r.ElectrumConfigured() {
+			return nil, errors.New("electrum wallet " + walletID + " has no chain source on this network")
+		}
 		return r.electrum, nil
 	}
 	if r.chain == nil {

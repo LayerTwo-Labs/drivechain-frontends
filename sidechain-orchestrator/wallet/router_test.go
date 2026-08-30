@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -110,4 +112,26 @@ func TestBackendRouterEnsureAllOnlyChain(t *testing.T) {
 	assert.Equal(t, 7, n)
 	assert.Equal(t, []string{"EnsureAll"}, chainFake.calls)
 	assert.Empty(t, enfFake.calls)
+}
+
+// Regtest publishes no chain source, so an electrum wallet there has no
+// backend at all. The pollers read Bip47BackendFor and skip the wallet
+// instead of failing on every tick.
+func TestBackendRouterRefusesElectrumWithoutChainSource(t *testing.T) {
+	svc := newTestService(t)
+	elec, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	params := StaticParams(&chaincfg.RegressionNetParams)
+	source := NewNetworkChainSource(func() ChainTarget {
+		return ChainTarget{Network: "regtest", Params: params()}
+	}, log)
+	router := NewBackendRouter(svc, nil, NewElectrumBackend(svc, source, params, log))
+
+	_, _, err = router.Balance(context.Background(), elec.ID)
+	require.ErrorContains(t, err, "has no chain source on this network")
+
+	_, ok := router.Bip47BackendFor(elec.ID)
+	assert.False(t, ok)
 }
