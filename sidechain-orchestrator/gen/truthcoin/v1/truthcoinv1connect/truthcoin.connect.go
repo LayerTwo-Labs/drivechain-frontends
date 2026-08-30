@@ -154,9 +154,6 @@ const (
 	// TruthcoinServiceSlotClaimCategoryProcedure is the fully-qualified name of the TruthcoinService's
 	// SlotClaimCategory RPC.
 	TruthcoinServiceSlotClaimCategoryProcedure = "/truthcoin.v1.TruthcoinService/SlotClaimCategory"
-	// TruthcoinServiceVoteRegisterProcedure is the fully-qualified name of the TruthcoinService's
-	// VoteRegister RPC.
-	TruthcoinServiceVoteRegisterProcedure = "/truthcoin.v1.TruthcoinService/VoteRegister"
 	// TruthcoinServiceVoteVoterProcedure is the fully-qualified name of the TruthcoinService's
 	// VoteVoter RPC.
 	TruthcoinServiceVoteVoterProcedure = "/truthcoin.v1.TruthcoinService/VoteVoter"
@@ -288,8 +285,6 @@ type TruthcoinServiceClient interface {
 	SlotClaim(context.Context, *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error)
 	// Claim multiple slots as a category.
 	SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error)
-	// Register as a voter.
-	VoteRegister(context.Context, *connect.Request[v1.VoteRegisterRequest]) (*connect.Response[v1.VoteRegisterResponse], error)
 	// Get voter info.
 	VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error)
 	// List all voters.
@@ -579,12 +574,6 @@ func NewTruthcoinServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaimCategory")),
 			connect.WithClientOptions(opts...),
 		),
-		voteRegister: connect.NewClient[v1.VoteRegisterRequest, v1.VoteRegisterResponse](
-			httpClient,
-			baseURL+TruthcoinServiceVoteRegisterProcedure,
-			connect.WithSchema(truthcoinServiceMethods.ByName("VoteRegister")),
-			connect.WithClientOptions(opts...),
-		),
 		voteVoter: connect.NewClient[v1.VoteVoterRequest, v1.VoteVoterResponse](
 			httpClient,
 			baseURL+TruthcoinServiceVoteVoterProcedure,
@@ -721,7 +710,6 @@ type truthcoinServiceClient struct {
 	slotGet                               *connect.Client[v1.SlotGetRequest, v1.SlotGetResponse]
 	slotClaim                             *connect.Client[v1.SlotClaimRequest, v1.SlotClaimResponse]
 	slotClaimCategory                     *connect.Client[v1.SlotClaimCategoryRequest, v1.SlotClaimCategoryResponse]
-	voteRegister                          *connect.Client[v1.VoteRegisterRequest, v1.VoteRegisterResponse]
 	voteVoter                             *connect.Client[v1.VoteVoterRequest, v1.VoteVoterResponse]
 	voteVoters                            *connect.Client[v1.VoteVotersRequest, v1.VoteVotersResponse]
 	voteSubmit                            *connect.Client[v1.VoteSubmitRequest, v1.VoteSubmitResponse]
@@ -945,11 +933,6 @@ func (c *truthcoinServiceClient) SlotClaimCategory(ctx context.Context, req *con
 	return c.slotClaimCategory.CallUnary(ctx, req)
 }
 
-// VoteRegister calls truthcoin.v1.TruthcoinService.VoteRegister.
-func (c *truthcoinServiceClient) VoteRegister(ctx context.Context, req *connect.Request[v1.VoteRegisterRequest]) (*connect.Response[v1.VoteRegisterResponse], error) {
-	return c.voteRegister.CallUnary(ctx, req)
-}
-
 // VoteVoter calls truthcoin.v1.TruthcoinService.VoteVoter.
 func (c *truthcoinServiceClient) VoteVoter(ctx context.Context, req *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error) {
 	return c.voteVoter.CallUnary(ctx, req)
@@ -1109,8 +1092,6 @@ type TruthcoinServiceHandler interface {
 	SlotClaim(context.Context, *connect.Request[v1.SlotClaimRequest]) (*connect.Response[v1.SlotClaimResponse], error)
 	// Claim multiple slots as a category.
 	SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error)
-	// Register as a voter.
-	VoteRegister(context.Context, *connect.Request[v1.VoteRegisterRequest]) (*connect.Response[v1.VoteRegisterResponse], error)
 	// Get voter info.
 	VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error)
 	// List all voters.
@@ -1396,12 +1377,6 @@ func NewTruthcoinServiceHandler(svc TruthcoinServiceHandler, opts ...connect.Han
 		connect.WithSchema(truthcoinServiceMethods.ByName("SlotClaimCategory")),
 		connect.WithHandlerOptions(opts...),
 	)
-	truthcoinServiceVoteRegisterHandler := connect.NewUnaryHandler(
-		TruthcoinServiceVoteRegisterProcedure,
-		svc.VoteRegister,
-		connect.WithSchema(truthcoinServiceMethods.ByName("VoteRegister")),
-		connect.WithHandlerOptions(opts...),
-	)
 	truthcoinServiceVoteVoterHandler := connect.NewUnaryHandler(
 		TruthcoinServiceVoteVoterProcedure,
 		svc.VoteVoter,
@@ -1576,8 +1551,6 @@ func NewTruthcoinServiceHandler(svc TruthcoinServiceHandler, opts ...connect.Han
 			truthcoinServiceSlotClaimHandler.ServeHTTP(w, r)
 		case TruthcoinServiceSlotClaimCategoryProcedure:
 			truthcoinServiceSlotClaimCategoryHandler.ServeHTTP(w, r)
-		case TruthcoinServiceVoteRegisterProcedure:
-			truthcoinServiceVoteRegisterHandler.ServeHTTP(w, r)
 		case TruthcoinServiceVoteVoterProcedure:
 			truthcoinServiceVoteVoterHandler.ServeHTTP(w, r)
 		case TruthcoinServiceVoteVotersProcedure:
@@ -1779,10 +1752,6 @@ func (UnimplementedTruthcoinServiceHandler) SlotClaim(context.Context, *connect.
 
 func (UnimplementedTruthcoinServiceHandler) SlotClaimCategory(context.Context, *connect.Request[v1.SlotClaimCategoryRequest]) (*connect.Response[v1.SlotClaimCategoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.SlotClaimCategory is not implemented"))
-}
-
-func (UnimplementedTruthcoinServiceHandler) VoteRegister(context.Context, *connect.Request[v1.VoteRegisterRequest]) (*connect.Response[v1.VoteRegisterResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("truthcoin.v1.TruthcoinService.VoteRegister is not implemented"))
 }
 
 func (UnimplementedTruthcoinServiceHandler) VoteVoter(context.Context, *connect.Request[v1.VoteVoterRequest]) (*connect.Response[v1.VoteVoterResponse], error) {

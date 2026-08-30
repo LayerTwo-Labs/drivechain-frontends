@@ -62,7 +62,6 @@ abstract class TruthcoinServiceBase extends $pb.GeneratedService {
   $async.Future<$17.SlotGetResponse> slotGet($pb.ServerContext ctx, $17.SlotGetRequest request);
   $async.Future<$17.SlotClaimResponse> slotClaim($pb.ServerContext ctx, $17.SlotClaimRequest request);
   $async.Future<$17.SlotClaimCategoryResponse> slotClaimCategory($pb.ServerContext ctx, $17.SlotClaimCategoryRequest request);
-  $async.Future<$17.VoteRegisterResponse> voteRegister($pb.ServerContext ctx, $17.VoteRegisterRequest request);
   $async.Future<$17.VoteVoterResponse> voteVoter($pb.ServerContext ctx, $17.VoteVoterRequest request);
   $async.Future<$17.VoteVotersResponse> voteVoters($pb.ServerContext ctx, $17.VoteVotersRequest request);
   $async.Future<$17.VoteSubmitResponse> voteSubmit($pb.ServerContext ctx, $17.VoteSubmitRequest request);
@@ -122,7 +121,6 @@ abstract class TruthcoinServiceBase extends $pb.GeneratedService {
       case 'SlotGet': return $17.SlotGetRequest();
       case 'SlotClaim': return $17.SlotClaimRequest();
       case 'SlotClaimCategory': return $17.SlotClaimCategoryRequest();
-      case 'VoteRegister': return $17.VoteRegisterRequest();
       case 'VoteVoter': return $17.VoteVoterRequest();
       case 'VoteVoters': return $17.VoteVotersRequest();
       case 'VoteSubmit': return $17.VoteSubmitRequest();
@@ -185,7 +183,6 @@ abstract class TruthcoinServiceBase extends $pb.GeneratedService {
       case 'SlotGet': return this.slotGet(ctx, request as $17.SlotGetRequest);
       case 'SlotClaim': return this.slotClaim(ctx, request as $17.SlotClaimRequest);
       case 'SlotClaimCategory': return this.slotClaimCategory(ctx, request as $17.SlotClaimCategoryRequest);
-      case 'VoteRegister': return this.voteRegister(ctx, request as $17.VoteRegisterRequest);
       case 'VoteVoter': return this.voteVoter(ctx, request as $17.VoteVoterRequest);
       case 'VoteVoters': return this.voteVoters(ctx, request as $17.VoteVotersRequest);
       case 'VoteSubmit': return this.voteSubmit(ctx, request as $17.VoteSubmitRequest);

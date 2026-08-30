@@ -4249,120 +4249,6 @@ class SlotClaimCategoryResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
 }
 
-class VoteRegisterRequest extends $pb.GeneratedMessage {
-  factory VoteRegisterRequest({
-    $fixnum.Int64? feeSats,
-    $fixnum.Int64? reputationBondSats,
-  }) {
-    final $result = create();
-    if (feeSats != null) {
-      $result.feeSats = feeSats;
-    }
-    if (reputationBondSats != null) {
-      $result.reputationBondSats = reputationBondSats;
-    }
-    return $result;
-  }
-  VoteRegisterRequest._() : super();
-  factory VoteRegisterRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory VoteRegisterRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VoteRegisterRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'feeSats')
-    ..aInt64(2, _omitFieldNames ? '' : 'reputationBondSats')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  VoteRegisterRequest clone() => VoteRegisterRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  VoteRegisterRequest copyWith(void Function(VoteRegisterRequest) updates) => super.copyWith((message) => updates(message as VoteRegisterRequest)) as VoteRegisterRequest;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static VoteRegisterRequest create() => VoteRegisterRequest._();
-  VoteRegisterRequest createEmptyInstance() => create();
-  static $pb.PbList<VoteRegisterRequest> createRepeated() => $pb.PbList<VoteRegisterRequest>();
-  @$core.pragma('dart2js:noInline')
-  static VoteRegisterRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VoteRegisterRequest>(create);
-  static VoteRegisterRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $fixnum.Int64 get feeSats => $_getI64(0);
-  @$pb.TagNumber(1)
-  set feeSats($fixnum.Int64 v) { $_setInt64(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasFeeSats() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearFeeSats() => clearField(1);
-
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get reputationBondSats => $_getI64(1);
-  @$pb.TagNumber(2)
-  set reputationBondSats($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasReputationBondSats() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearReputationBondSats() => clearField(2);
-}
-
-class VoteRegisterResponse extends $pb.GeneratedMessage {
-  factory VoteRegisterResponse({
-    $core.String? txid,
-  }) {
-    final $result = create();
-    if (txid != null) {
-      $result.txid = txid;
-    }
-    return $result;
-  }
-  VoteRegisterResponse._() : super();
-  factory VoteRegisterResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory VoteRegisterResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'VoteRegisterResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'truthcoin.v1'), createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'txid')
-    ..hasRequiredFields = false
-  ;
-
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  VoteRegisterResponse clone() => VoteRegisterResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  VoteRegisterResponse copyWith(void Function(VoteRegisterResponse) updates) => super.copyWith((message) => updates(message as VoteRegisterResponse)) as VoteRegisterResponse;
-
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static VoteRegisterResponse create() => VoteRegisterResponse._();
-  VoteRegisterResponse createEmptyInstance() => create();
-  static $pb.PbList<VoteRegisterResponse> createRepeated() => $pb.PbList<VoteRegisterResponse>();
-  @$core.pragma('dart2js:noInline')
-  static VoteRegisterResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<VoteRegisterResponse>(create);
-  static VoteRegisterResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get txid => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set txid($core.String v) { $_setString(0, v); }
-  @$pb.TagNumber(1)
-  $core.bool hasTxid() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearTxid() => clearField(1);
-}
-
 class VoteVoterRequest extends $pb.GeneratedMessage {
   factory VoteVoterRequest({
     $core.String? address,
@@ -6173,9 +6059,6 @@ class TruthcoinServiceApi {
   ;
   $async.Future<SlotClaimCategoryResponse> slotClaimCategory($pb.ClientContext? ctx, SlotClaimCategoryRequest request) =>
     _client.invoke<SlotClaimCategoryResponse>(ctx, 'TruthcoinService', 'SlotClaimCategory', request, SlotClaimCategoryResponse())
-  ;
-  $async.Future<VoteRegisterResponse> voteRegister($pb.ClientContext? ctx, VoteRegisterRequest request) =>
-    _client.invoke<VoteRegisterResponse>(ctx, 'TruthcoinService', 'VoteRegister', request, VoteRegisterResponse())
   ;
   $async.Future<VoteVoterResponse> voteVoter($pb.ClientContext? ctx, VoteVoterRequest request) =>
     _client.invoke<VoteVoterResponse>(ctx, 'TruthcoinService', 'VoteVoter', request, VoteVoterResponse())

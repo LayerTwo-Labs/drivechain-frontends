@@ -263,7 +263,7 @@ func (h *Handler) GetWalletAddresses(ctx context.Context, req *connect.Request[p
 }
 
 func (h *Handler) MyUtxos(ctx context.Context, req *connect.Request[pb.MyUtxosRequest]) (*connect.Response[pb.MyUtxosResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "my_utxos", nil)
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_wallet_utxos", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -384,8 +384,18 @@ func (h *Handler) MarketPositions(ctx context.Context, req *connect.Request[pb.M
 
 // --- Slots ---
 
+func (h *Handler) claimDecisions(ctx context.Context, claim map[string]any) (string, error) {
+	var result struct {
+		Txid string `json:"txid"`
+	}
+	if err := h.proxy.Client.Call(ctx, "decision_claim", []any{claim}, &result); err != nil {
+		return "", err
+	}
+	return result.Txid, nil
+}
+
 func (h *Handler) SlotStatus(ctx context.Context, req *connect.Request[pb.SlotStatusRequest]) (*connect.Response[pb.SlotStatusResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "slot_status", nil)
+	raw, err := h.proxy.Client.CallRaw(ctx, "decision_status", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -393,8 +403,11 @@ func (h *Handler) SlotStatus(ctx context.Context, req *connect.Request[pb.SlotSt
 }
 
 func (h *Handler) SlotList(ctx context.Context, req *connect.Request[pb.SlotListRequest]) (*connect.Response[pb.SlotListResponse], error) {
-	params := []any{req.Msg.Period, req.Msg.Status}
-	raw, err := h.proxy.Client.CallRaw(ctx, "slot_list", params)
+	filter := map[string]any{
+		"period": req.Msg.Period,
+		"status": req.Msg.Status,
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "decision_list", []any{filter})
 	if err != nil {
 		return nil, err
 	}
@@ -402,41 +415,56 @@ func (h *Handler) SlotList(ctx context.Context, req *connect.Request[pb.SlotList
 }
 
 func (h *Handler) SlotGet(ctx context.Context, req *connect.Request[pb.SlotGetRequest]) (*connect.Response[pb.SlotGetResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "slot_get", []any{req.Msg.SlotId})
+	raw, err := h.proxy.Client.CallRaw(ctx, "decision_get", []any{req.Msg.SlotId})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.SlotGetResponse{SlotJson: string(raw)}), nil
+	return connect.NewResponse(&pb.SlotGetResponse{SlotJson: optionalJSON(raw)}), nil
+}
+
+// optionalJSON maps the JSON null a node returns for a missing item to "",
+// which the clients read as absent.
+func optionalJSON(raw json.RawMessage) string {
+	if string(raw) == "null" {
+		return ""
+	}
+	return string(raw)
 }
 
 func (h *Handler) SlotClaim(ctx context.Context, req *connect.Request[pb.SlotClaimRequest]) (*connect.Response[pb.SlotClaimResponse], error) {
-	var txid string
-	params := []any{
-		req.Msg.FeeSats,
-		req.Msg.PeriodIndex,
-		req.Msg.SlotIndex,
-		req.Msg.Question,
-		req.Msg.IsStandard,
-		req.Msg.IsScaled,
-		req.Msg.Min,
-		req.Msg.Max,
+	decisionType := "binary"
+	if req.Msg.GetIsScaled() {
+		decisionType = "scaled"
 	}
-	if err := h.proxy.Client.Call(ctx, "slot_claim", params, &txid); err != nil {
+	txid, err := h.claimDecisions(ctx, map[string]any{
+		"decision_type": decisionType,
+		"decisions": []any{map[string]any{
+			"period_index": req.Msg.PeriodIndex,
+			"header":       req.Msg.Question,
+		}},
+		"min":         req.Msg.Min,
+		"max":         req.Msg.Max,
+		"tx_fee_sats": req.Msg.FeeSats,
+	})
+	if err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.SlotClaimResponse{Txid: txid}), nil
 }
 
 func (h *Handler) SlotClaimCategory(ctx context.Context, req *connect.Request[pb.SlotClaimCategoryRequest]) (*connect.Response[pb.SlotClaimCategoryResponse], error) {
-	var slots any
+	decisions := []any{}
 	if req.Msg.SlotsJson != "" {
-		if err := json.Unmarshal([]byte(req.Msg.SlotsJson), &slots); err != nil {
+		if err := json.Unmarshal([]byte(req.Msg.SlotsJson), &decisions); err != nil {
 			return nil, fmt.Errorf("unmarshal slots: %w", err)
 		}
 	}
-	var txid string
-	params := []any{slots, req.Msg.IsStandard, req.Msg.FeeSats}
-	if err := h.proxy.Client.Call(ctx, "slot_claim_category", params, &txid); err != nil {
+	txid, err := h.claimDecisions(ctx, map[string]any{
+		"decision_type": "category",
+		"decisions":     decisions,
+		"tx_fee_sats":   req.Msg.FeeSats,
+	})
+	if err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.SlotClaimCategoryResponse{Txid: txid}), nil
@@ -444,21 +472,12 @@ func (h *Handler) SlotClaimCategory(ctx context.Context, req *connect.Request[pb
 
 // --- Voting ---
 
-func (h *Handler) VoteRegister(ctx context.Context, req *connect.Request[pb.VoteRegisterRequest]) (*connect.Response[pb.VoteRegisterResponse], error) {
-	var txid string
-	params := []any{req.Msg.FeeSats, req.Msg.ReputationBondSats}
-	if err := h.proxy.Client.Call(ctx, "vote_register", params, &txid); err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&pb.VoteRegisterResponse{Txid: txid}), nil
-}
-
 func (h *Handler) VoteVoter(ctx context.Context, req *connect.Request[pb.VoteVoterRequest]) (*connect.Response[pb.VoteVoterResponse], error) {
 	raw, err := h.proxy.Client.CallRaw(ctx, "vote_voter", []any{req.Msg.Address})
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VoteVoterResponse{VoterJson: string(raw)}), nil
+	return connect.NewResponse(&pb.VoteVoterResponse{VoterJson: optionalJSON(raw)}), nil
 }
 
 func (h *Handler) VoteVoters(ctx context.Context, req *connect.Request[pb.VoteVotersRequest]) (*connect.Response[pb.VoteVotersResponse], error) {
@@ -485,8 +504,12 @@ func (h *Handler) VoteSubmit(ctx context.Context, req *connect.Request[pb.VoteSu
 }
 
 func (h *Handler) VoteList(ctx context.Context, req *connect.Request[pb.VoteListRequest]) (*connect.Response[pb.VoteListResponse], error) {
-	params := []any{req.Msg.Voter, req.Msg.DecisionId, req.Msg.PeriodId}
-	raw, err := h.proxy.Client.CallRaw(ctx, "vote_list", params)
+	filter := map[string]any{
+		"voter":       req.Msg.Voter,
+		"decision_id": req.Msg.DecisionId,
+		"period_id":   req.Msg.PeriodId,
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "vote_list", []any{filter})
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +521,7 @@ func (h *Handler) VotePeriod(ctx context.Context, req *connect.Request[pb.VotePe
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.VotePeriodResponse{PeriodJson: string(raw)}), nil
+	return connect.NewResponse(&pb.VotePeriodResponse{PeriodJson: optionalJSON(raw)}), nil
 }
 
 // --- Votecoin ---
@@ -506,7 +529,7 @@ func (h *Handler) VotePeriod(ctx context.Context, req *connect.Request[pb.VotePe
 func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.VotecoinTransferRequest]) (*connect.Response[pb.VotecoinTransferResponse], error) {
 	var txid string
 	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats, req.Msg.Memo}
-	if err := h.proxy.Client.Call(ctx, "votecoin_transfer", params, &txid); err != nil {
+	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.VotecoinTransferResponse{Txid: txid}), nil

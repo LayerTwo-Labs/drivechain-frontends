@@ -811,11 +811,6 @@ class MockTruthcoinRPC extends TruthcoinRPC {
 
   // Voting
   @override
-  Future<String> voteRegister({required int feeSats, int? reputationBondSats}) {
-    return Future.value('vote_register_1234');
-  }
-
-  @override
   Future<Map<String, dynamic>?> voteVoter(String address) {
     return Future.value(null);
   }

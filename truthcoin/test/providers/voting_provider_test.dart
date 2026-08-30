@@ -218,27 +218,6 @@ void main() {
       });
     });
 
-    group('registerAsVoter', () {
-      test('registers voter without bond', () async {
-        mockRpc.voteRegisterResponse = 'register_txid';
-
-        final txid = await votingProvider.registerAsVoter(feeSats: 1000);
-
-        expect(txid, 'register_txid');
-      });
-
-      test('registers voter with bond', () async {
-        mockRpc.voteRegisterResponse = 'register_with_bond_txid';
-
-        final txid = await votingProvider.registerAsVoter(
-          bondSats: 10000,
-          feeSats: 1000,
-        );
-
-        expect(txid, 'register_with_bond_txid');
-      });
-    });
-
     group('notifyListeners', () {
       test('notifies on slot status load', () async {
         mockRpc.slotStatusResponse = TestData.sampleSlotStatus;

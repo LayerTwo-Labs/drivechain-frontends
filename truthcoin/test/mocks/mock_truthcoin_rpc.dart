@@ -45,7 +45,6 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   Map<String, dynamic>? voteVoterResponse;
   List<Map<String, dynamic>> voteVotersResponse = [];
   Map<String, dynamic>? votePeriodResponse;
-  String voteRegisterResponse = 'test_register_txid';
   String voteSubmitResponse = 'test_submit_txid';
 
   List<String> walletAddresses = ['tb1qtest1234567890'];
@@ -282,11 +281,6 @@ class TestTruthcoinRPC extends TruthcoinRPC {
   }
 
   // Voting
-  @override
-  Future<String> voteRegister({required int feeSats, int? reputationBondSats}) async {
-    return voteRegisterResponse;
-  }
-
   @override
   Future<Map<String, dynamic>?> voteVoter(String address) async => voteVoterResponse;
 

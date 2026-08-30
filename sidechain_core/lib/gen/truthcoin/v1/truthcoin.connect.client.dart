@@ -746,24 +746,6 @@ extension type TruthcoinServiceClient (connect.Transport _transport) {
     );
   }
 
-  /// Register as a voter.
-  Future<truthcoinv1truthcoin.VoteRegisterResponse> voteRegister(
-    truthcoinv1truthcoin.VoteRegisterRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.TruthcoinService.voteRegister,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
-
   /// Get voter info.
   Future<truthcoinv1truthcoin.VoteVoterResponse> voteVoter(
     truthcoinv1truthcoin.VoteVoterRequest input, {

@@ -36,7 +36,7 @@ enum SlotState {
     if (lower == 'available') return SlotState.available;
     if (lower == 'claimed') return SlotState.claimed;
     if (lower == 'voting') return SlotState.voting;
-    if (lower == 'ossified') return SlotState.ossified;
+    if (lower == 'ossified' || lower == 'resolved') return SlotState.ossified;
     return SlotState.available;
   }
 
@@ -72,9 +72,9 @@ class SlotListItem {
 
   factory SlotListItem.fromJson(Map<String, dynamic> json) {
     return SlotListItem(
-      slotIdHex: json['slot_id_hex']?.toString() ?? '',
+      slotIdHex: json['decision_id_hex']?.toString() ?? '',
       periodIndex: (json['period_index'] ?? 0) as int,
-      slotIndex: (json['slot_index'] ?? 0) as int,
+      slotIndex: (json['decision_index'] ?? 0) as int,
       state: json['state'] != null ? SlotState.fromString(json['state'].toString()) : SlotState.available,
       decision: json['decision'] != null ? DecisionInfo.fromJson(json['decision'] as Map<String, dynamic>) : null,
     );
@@ -102,14 +102,15 @@ class DecisionInfo {
   });
 
   factory DecisionInfo.fromJson(Map<String, dynamic> json) {
+    final scaled = _scaledRange(json['decision_type']);
     return DecisionInfo(
       id: json['id']?.toString() ?? '',
       marketMakerPubkeyHash: json['market_maker_pubkey_hash']?.toString() ?? '',
       isStandard: json['is_standard'] as bool? ?? true,
-      isScaled: json['is_scaled'] as bool? ?? false,
-      question: json['question']?.toString() ?? '',
-      min: json['min'] as int?,
-      max: json['max'] as int?,
+      isScaled: scaled != null,
+      question: json['header']?.toString() ?? '',
+      min: (scaled?['min'] as num?)?.toInt(),
+      max: (scaled?['max'] as num?)?.toInt(),
     );
   }
 
@@ -256,23 +257,32 @@ class DecisionSummary {
   final bool isStandard;
   final bool isScaled;
 
+  /// The option labels of a category decision, empty for any other kind. A vote
+  /// names the index of one option.
+  final List<String> categoryOptions;
+
   DecisionSummary({
     required this.slotIdHex,
     required this.question,
     required this.isStandard,
     required this.isScaled,
+    this.categoryOptions = const [],
   });
 
   factory DecisionSummary.fromJson(Map<String, dynamic> json) {
+    final decisionType = json['decision_type'];
+    final category = decisionType is Map<String, dynamic> ? decisionType['Category'] as Map<String, dynamic>? : null;
     return DecisionSummary(
-      slotIdHex: json['slot_id_hex']?.toString() ?? '',
-      question: json['question']?.toString() ?? '',
+      slotIdHex: json['decision_id_hex']?.toString() ?? '',
+      question: json['header']?.toString() ?? '',
       isStandard: json['is_standard'] as bool? ?? true,
-      isScaled: json['is_scaled'] as bool? ?? false,
+      isScaled: _scaledRange(decisionType) != null,
+      categoryOptions: [for (final option in category?['options'] as List? ?? []) option.toString()],
     );
   }
 
-  bool get isBinary => !isScaled;
+  bool get isCategory => categoryOptions.isNotEmpty;
+  bool get isBinary => !isScaled && !isCategory;
 }
 
 /// Period statistics
@@ -840,4 +850,11 @@ class InitialLiquidityCalculation {
       outcomeBreakdown: json['outcome_breakdown']?.toString() ?? '',
     );
   }
+}
+
+Map<String, dynamic>? _scaledRange(Object? decisionType) {
+  if (decisionType is Map<String, dynamic>) {
+    return decisionType['Scaled'] as Map<String, dynamic>?;
+  }
+  return null;
 }

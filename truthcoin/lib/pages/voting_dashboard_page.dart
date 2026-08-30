@@ -84,12 +84,7 @@ class _VoterStatusCard extends StatelessWidget {
           ? SailColumn(
               spacing: SailStyleValues.padding12,
               children: [
-                SailText.secondary15('Not registered as a voter'),
-                const SizedBox(height: 8),
-                SailButton(
-                  label: 'Register as Voter',
-                  onPressed: () async => model.showRegisterDialog(context),
-                ),
+                SailText.secondary15('No voting history yet'),
               ],
             )
           : SailColumn(
@@ -321,12 +316,18 @@ class _DecisionCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: decision.isScaled
-                          ? theme.colors.info.withValues(alpha: 0.2)
-                          : theme.colors.success.withValues(alpha: 0.2),
+                      color: decision.isBinary
+                          ? theme.colors.success.withValues(alpha: 0.2)
+                          : theme.colors.info.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: SailText.secondary12(decision.isScaled ? 'Scaled' : 'Binary'),
+                    child: SailText.secondary12(
+                      decision.isScaled
+                          ? 'Scaled'
+                          : decision.isCategory
+                          ? 'Category'
+                          : 'Binary',
+                    ),
                   ),
                   if (hasVote) SailSVG.fromAsset(SailSVGAsset.circleCheck, width: 16, color: theme.colors.success),
                 ],
@@ -340,6 +341,12 @@ class _DecisionCard extends StatelessWidget {
           // Vote input
           if (decision.isScaled)
             _ScaledVoteInput(
+              value: pendingVote,
+              onChanged: onVoteChanged,
+            )
+          else if (decision.isCategory)
+            _CategoryVoteInput(
+              options: decision.categoryOptions,
               value: pendingVote,
               onChanged: onVoteChanged,
             )
@@ -386,6 +393,49 @@ class _BinaryVoteInput extends StatelessWidget {
             onTap: () => onChanged(value == 1.0 ? null : 1.0),
           ),
         ),
+        SizedBox(
+          width: 80,
+          child: _VoteButton(
+            label: 'Abstain',
+            isSelected: false,
+            color: theme.colors.text,
+            onTap: () => onChanged(null),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryVoteInput extends StatelessWidget {
+  final List<String> options;
+  final double? value;
+  final ValueChanged<double?> onChanged;
+
+  const _CategoryVoteInput({
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return Wrap(
+      spacing: SailStyleValues.padding08,
+      runSpacing: SailStyleValues.padding08,
+      children: [
+        for (final (index, label) in options.indexed)
+          SizedBox(
+            width: 160,
+            child: _VoteButton(
+              label: label,
+              isSelected: value == index.toDouble(),
+              color: theme.colors.primary,
+              onTap: () => onChanged(value == index.toDouble() ? null : index.toDouble()),
+            ),
+          ),
         SizedBox(
           width: 80,
           child: _VoteButton(
@@ -573,103 +623,9 @@ class VotingDashboardViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> showRegisterDialog(BuildContext context) async {
-    final result = await showThemedDialog<bool>(
-      context: context,
-      builder: (context) => _RegisterVoterDialog(
-        votingProvider: _votingProvider,
-      ),
-    );
-
-    if (result == true) {
-      await loadData();
-    }
-  }
-
   @override
   void dispose() {
     _votingProvider.removeListener(_onProviderChange);
-    super.dispose();
-  }
-}
-
-class _RegisterVoterDialog extends StatefulWidget {
-  final VotingProvider votingProvider;
-
-  const _RegisterVoterDialog({required this.votingProvider});
-
-  @override
-  State<_RegisterVoterDialog> createState() => _RegisterVoterDialogState();
-}
-
-class _RegisterVoterDialogState extends State<_RegisterVoterDialog> {
-  final TextEditingController bondController = TextEditingController();
-  bool isLoading = false;
-  String? error;
-
-  @override
-  Widget build(BuildContext context) {
-    return SailDialog(
-      title: 'Register as Voter',
-      maxWidth: 460,
-      error: error,
-      actions: [
-        SailButton(
-          label: 'Cancel',
-          variant: ButtonVariant.ghost,
-          onPressed: () async => Navigator.of(context).pop(false),
-        ),
-        SailButton(
-          label: 'Register',
-          loading: isLoading,
-          onPressed: () async => _register(),
-        ),
-      ],
-      child: SailColumn(
-        spacing: SailStyleValues.padding08,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SailText.secondary13(
-            'Register to participate in the oracle voting system. '
-            'You can optionally provide a reputation bond to increase your initial reputation.',
-          ),
-          const SizedBox(height: 8),
-          SailText.secondary12('Reputation Bond (optional, in sats)'),
-          const SizedBox(height: 4),
-          SailTextField(
-            controller: bondController,
-            hintText: 'e.g., 10000',
-            textFieldType: TextFieldType.number,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _register() async {
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
-
-    final bondSats = int.tryParse(bondController.text);
-    final txid = await widget.votingProvider.registerAsVoter(
-      bondSats: bondSats,
-      feeSats: 1000,
-    );
-
-    setState(() => isLoading = false);
-
-    if (txid != null && mounted) {
-      Navigator.of(context).pop(true);
-    } else {
-      setState(() => error = widget.votingProvider.error ?? 'Registration failed');
-    }
-  }
-
-  @override
-  void dispose() {
-    bondController.dispose();
     super.dispose();
   }
 }
