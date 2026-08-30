@@ -13,7 +13,10 @@ import (
 // EnsureCoreWalletFromMnemonic creates a Bitcoin Core wallet holding the keys a
 // BIP39 mnemonic describes. A Core derived sidechain takes no seed flag, so
 // this is how its slot starter reaches the node; an existing wallet is loaded
-// rather than rebuilt.
+// rather than rebuilt. The descriptors import at timestamp 0: the starter is
+// derived from the master seed, so a restored seed — or a wallet recreated over
+// chainstate the node kept — can hold coins older than the import, which "now"
+// would leave unseen.
 func EnsureCoreWalletFromMnemonic(
 	ctx context.Context, rpc *CoreRPCClient, log zerolog.Logger,
 	walletName, mnemonic string, net *chaincfg.Params,
@@ -50,13 +53,13 @@ func EnsureCoreWalletFromMnemonic(
 		{
 			Desc:      mustAddChecksum(fmt.Sprintf("%s%s/0/*%s", open, origin, close)),
 			Active:    true,
-			Timestamp: "now",
+			Timestamp: int64(0),
 			Range:     []int{0, 999},
 		},
 		{
 			Desc:      mustAddChecksum(fmt.Sprintf("%s%s/1/*%s", open, origin, close)),
 			Active:    true,
-			Timestamp: "now",
+			Timestamp: int64(0),
 			Internal:  true,
 			Range:     []int{0, 999},
 		},
