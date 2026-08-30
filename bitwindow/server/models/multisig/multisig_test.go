@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -198,6 +199,92 @@ func TestDeleteGroupCascades(t *testing.T) {
 	dbKeys, err := store.ListKeysForGroup(ctx, g.ID)
 	require.NoError(t, err)
 	assert.Empty(t, dbKeys)
+}
+
+// The shipped database is opened without foreign_keys=ON, so DeleteGroup has to
+// remove the group's rows itself instead of relying on ON DELETE CASCADE.
+func TestDeleteGroupRemovesChildrenWithoutForeignKeys(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(database.Test(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
+		Group:          g,
+		Keys:           []multisig.Key{{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"}},
+		Addresses:      []multisig.Address{{GroupID: g.ID, AddrType: "receive", Index: 0, Addr: "bc1q1"}},
+		UtxoDetails:    []multisig.UtxoDetail{{GroupID: g.ID, Txid: "utxo-tx", Vout: 0, Amount: 1.0}},
+		TransactionIDs: []string{"tx-1"},
+	}))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
+		Transaction: multisig.Transaction{
+			ID: "tx-1", GroupID: g.ID, InitialPSBT: "psbt", Status: 1, Type: 1,
+			Created: 1700000500, Amount: 0.5, Destination: "bc1qdestination",
+		},
+		KeyPSBTs: []multisig.TxKeyPSBT{{TransactionID: "tx-1", KeyID: "key-1", PSBT: "signed-psbt", IsSigned: true}},
+		Inputs:   []multisig.TxInput{{TransactionID: "tx-1", Txid: "input-txid", Vout: 0, Amount: 1.0}},
+	}))
+
+	require.NoError(t, store.DeleteGroup(ctx, g.ID))
+
+	txns, err := store.ListTransactions(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Empty(t, txns, "deleted group's transactions survived")
+
+	txPSBTs, err := store.ListTxKeyPSBTs(ctx, "tx-1")
+	require.NoError(t, err)
+	assert.Empty(t, txPSBTs, "deleted group's signed PSBTs survived")
+
+	txInputs, err := store.ListTxInputs(ctx, "tx-1")
+	require.NoError(t, err)
+	assert.Empty(t, txInputs)
+
+	txIDs, err := store.ListGroupTransactionIDs(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Empty(t, txIDs)
+
+	dbKeys, err := store.ListKeysForGroup(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Empty(t, dbKeys)
+
+	dbAddrs, err := store.ListAddresses(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Empty(t, dbAddrs)
+
+	dbUtxos, err := store.ListUtxoDetails(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Empty(t, dbUtxos)
+}
+
+// Databases written before DeleteGroup cleaned up after itself still hold orphan
+// rows; recreating a group under a reused id must not adopt them.
+func TestSaveGroupAtomicDropsOrphanedTransactions(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+	store := multisig.NewStore(db)
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, g))
+	require.NoError(t, store.SaveTransactionAtomic(ctx, multisig.SaveTransactionAtomicParams{
+		Transaction: multisig.Transaction{
+			ID: "tx-1", GroupID: g.ID, InitialPSBT: "psbt", Status: 1, Type: 1,
+			Created: 1700000500, Amount: 0.5, Destination: "bc1qdestination",
+		},
+		KeyPSBTs: []multisig.TxKeyPSBT{{TransactionID: "tx-1", KeyID: "key-1", PSBT: "signed-psbt", IsSigned: true}},
+	}))
+
+	// Delete the way the old DeleteGroup did, leaving the transaction orphaned.
+	_, err := db.ExecContext(ctx, `DELETE FROM multisig_groups WHERE id = ?`, g.ID)
+	require.NoError(t, err)
+
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{Group: g}))
+
+	txns, err := store.ListTransactions(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Empty(t, txns, "recreated group inherited the deleted group's spend")
+
+	txPSBTs, err := store.ListTxKeyPSBTs(ctx, "tx-1")
+	require.NoError(t, err)
+	assert.Empty(t, txPSBTs)
 }
 
 func TestReplaceKeysForGroup(t *testing.T) {
