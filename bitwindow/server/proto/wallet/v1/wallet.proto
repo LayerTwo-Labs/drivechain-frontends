@@ -333,6 +333,8 @@ message CheckChequeFundingRequest {
 
 message CheckChequeFundingResponse {
   bool funded = 1;
+  // Confirmed value only. Unconfirmed payments are listed in funded_txids with
+  // min_confirmations 0, but never count towards funding.
   uint64 actual_amount_sats = 2;
   repeated string funded_txids = 3;
   optional google.protobuf.Timestamp funded_at = 4;

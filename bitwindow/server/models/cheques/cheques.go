@@ -24,9 +24,10 @@ type Cheque struct {
 	SweptAt            *time.Time
 }
 
-// IsFunded returns true if actual funds meet or exceed the expected amount
+// IsFunded returns true if actual funds meet or exceed the expected amount.
+// Zero never counts: CheckChequeFunding records confirmed value only.
 func (c *Cheque) IsFunded() bool {
-	return c.ActualAmountSats != nil && *c.ActualAmountSats >= c.ExpectedAmountSats
+	return c.ActualAmountSats != nil && *c.ActualAmountSats > 0 && *c.ActualAmountSats >= c.ExpectedAmountSats
 }
 
 // IsPartiallyFunded returns true if some funds arrived but less than expected

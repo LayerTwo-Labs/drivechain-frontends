@@ -1594,6 +1594,10 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 	}), nil
 }
 
+// A funding output must be this deep to count: an unconfirmed payment can still
+// be double spent, and funding is what releases the bearer private key.
+const chequeMinConfirmations = 1
+
 // CheckChequeFunding implements walletv1connect.WalletServiceHandler.
 func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.CheckChequeFundingRequest]) (*connect.Response[pb.CheckChequeFundingResponse], error) {
 	log := zerolog.Ctx(ctx)
@@ -1626,11 +1630,15 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		Msg("CheckChequeFunding: UTXOs found")
 
 	if len(utxos) > 0 {
-		var amountSats uint64
+		// Only confirmed value counts, but every txid is recorded so a cheque
+		// with a payment in flight still reads as partially funded.
+		var confirmedSats uint64
 		var txids []string
 		var minConfirmations uint32 = math.MaxUint32
 		for _, utxo := range utxos {
-			amountSats += uint64(utxo.ValueSats)
+			if utxo.Confirmations >= chequeMinConfirmations {
+				confirmedSats += uint64(utxo.ValueSats)
+			}
 			txids = append(txids, utxo.TxID)
 			if confs := uint32(utxo.Confirmations); confs < minConfirmations {
 				minConfirmations = confs
@@ -1638,7 +1646,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		}
 
 		// Always update — handles new fundings arriving after first one
-		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, amountSats); err != nil {
+		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, confirmedSats); err != nil {
 			log.Error().Err(err).Msg("failed to update cheque funding")
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
 		}
@@ -1646,9 +1654,10 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		log.Info().
 			Int64("id", c.Msg.Id).
 			Str("address", cheque.Address).
-			Uint64("amount_sats", amountSats).
+			Uint64("confirmed_sats", confirmedSats).
+			Uint32("min_confirmations", minConfirmations).
 			Int("utxo_count", len(txids)).
-			Msg("cheque funded")
+			Msg("cheque funding checked")
 
 		// Re-fetch to get updated funded_at timestamp
 		cheque, err = cheques.Get(ctx, s.database, walletId, c.Msg.Id)
@@ -1658,7 +1667,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 		resp := &pb.CheckChequeFundingResponse{
 			Funded:           cheque.IsFunded(),
-			ActualAmountSats: amountSats,
+			ActualAmountSats: confirmedSats,
 			FundedTxids:      txids,
 			MinConfirmations: minConfirmations,
 		}

@@ -82,6 +82,8 @@ func TestCheckChequeFunding_UnfundedCheck(t *testing.T) {
 	require.False(t, resp.Msg.Funded)
 }
 
+// A payment sitting in the mempool can still be double spent, so it is
+// reported but never counted: the cheque stays unfunded.
 func TestCheckChequeFunding_DetectsUnconfirmedTx(t *testing.T) {
 	t.Parallel()
 	db := database.Test(t)
@@ -106,9 +108,95 @@ func TestCheckChequeFunding_DetectsUnconfirmedTx(t *testing.T) {
 		Id:       chequeID,
 	}))
 	require.NoError(t, err)
-	require.True(t, resp.Msg.Funded)
-	require.Equal(t, []string{fundingTxid}, resp.Msg.FundedTxids)
+	require.False(t, resp.Msg.Funded, "zero-confirmation funding must not count")
+	require.EqualValues(t, 0, resp.Msg.ActualAmountSats)
+	require.Equal(t, []string{fundingTxid}, resp.Msg.FundedTxids, "the txid is still reported so the UI can keep polling")
 	require.EqualValues(t, 0, resp.Msg.MinConfirmations)
+}
+
+// A top-up that hasn't confirmed yet must not push a cheque over its expected
+// amount.
+func TestCheckChequeFunding_UnconfirmedTopUpDoesNotCount(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	chequeAddr := "tb1qtopuptestaddr0000000000000000000000000"
+	confirmed := "1111000011110000111100001111000011110000111100001111000011110000"
+	pending := "2222000022220000222200002222000022220000222200002222000022220000"
+
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+			address: chequeAddr,
+			utxos: []*orchpb.AddressUnspentOutput{
+				{Txid: confirmed, Vout: 0, ValueSats: 100_000_000, Confirmations: 2},
+				{Txid: pending, Vout: 0, ValueSats: 100_000_000, Confirmations: 0},
+			},
+		})),
+	)
+
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 200_000_000, chequeAddr)
+	require.NoError(t, err)
+
+	resp, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.NoError(t, err)
+	require.False(t, resp.Msg.Funded)
+	require.Equal(t, uint64(100_000_000), resp.Msg.ActualAmountSats, "only the confirmed output counts")
+	require.Len(t, resp.Msg.FundedTxids, 2)
+	require.EqualValues(t, 0, resp.Msg.MinConfirmations)
+}
+
+// The bearer private key is what spends a cheque, so it must stay hidden until
+// the funding is confirmed and can no longer be double spent.
+func TestCheckChequeFunding_WithholdsKeyUntilConfirmed(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	chequeAddr := "tb1qbearerkeytestaddr0000000000000000000000"
+	fundingTxid := "cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000cafe0000"
+
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+			address: chequeAddr,
+			perCall: func(n int32) []*orchpb.AddressUnspentOutput {
+				confirmations := int32(0)
+				if n > 1 {
+					confirmations = 1
+				}
+				return []*orchpb.AddressUnspentOutput{
+					{Txid: fundingTxid, Vout: 0, ValueSats: 100_000_000, Confirmations: confirmations},
+				}
+			},
+		})),
+	)
+
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+
+	check := func() *walletv1.Cheque {
+		t.Helper()
+		_, err := cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.NoError(t, err)
+		got, err := cli.GetCheque(context.Background(), connect.NewRequest(&walletv1.GetChequeRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.NoError(t, err)
+		return got.Msg.Cheque
+	}
+
+	unconfirmed := check()
+	require.False(t, unconfirmed.Funded)
+	require.Nil(t, unconfirmed.PrivateKeyWif, "the bearer key must not leak at zero confirmations")
+
+	confirmed := check()
+	require.True(t, confirmed.Funded)
+	require.NotEmpty(t, confirmed.GetPrivateKeyWif())
 }
 
 func TestCheckChequeFunding_DetectsConfirmedTx(t *testing.T) {
@@ -155,7 +243,7 @@ func TestCheckChequeFunding_PersistsFundingToDatabase(t *testing.T) {
 		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
-				{Txid: fundingTxid, Vout: 0, ValueSats: 100_000_000},
+				{Txid: fundingTxid, Vout: 0, ValueSats: 100_000_000, Confirmations: 1},
 			},
 		})),
 	)
@@ -190,8 +278,8 @@ func TestCheckChequeFunding_MultipleUTXOs(t *testing.T) {
 		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
 			address: chequeAddr,
 			utxos: []*orchpb.AddressUnspentOutput{
-				{Txid: first, Vout: 0, ValueSats: 100_000_000, Confirmations: 0},
-				{Txid: second, Vout: 0, ValueSats: 100_000_000, Confirmations: 1},
+				{Txid: first, Vout: 0, ValueSats: 100_000_000, Confirmations: 1},
+				{Txid: second, Vout: 0, ValueSats: 100_000_000, Confirmations: 2},
 			},
 		})),
 	)
@@ -209,7 +297,7 @@ func TestCheckChequeFunding_MultipleUTXOs(t *testing.T) {
 	require.Len(t, resp.Msg.FundedTxids, 2)
 	require.Contains(t, resp.Msg.FundedTxids, first)
 	require.Contains(t, resp.Msg.FundedTxids, second)
-	require.EqualValues(t, 0, resp.Msg.MinConfirmations, "the least-confirmed output sets the floor")
+	require.EqualValues(t, 1, resp.Msg.MinConfirmations, "the least-confirmed output sets the floor")
 }
 
 func TestCheckChequeFunding_PartialFunding(t *testing.T) {
@@ -246,7 +334,8 @@ func TestCheckChequeFunding_PartialFunding(t *testing.T) {
 }
 
 // Mirrors the Flutter polling loop: the first poll can race the broadcast and
-// must report unfunded; a later one flips the cheque to funded and persists it.
+// must report unfunded; a later one, once the funding has confirmed, flips the
+// cheque to funded and persists it.
 func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 	t.Parallel()
 	db := database.Test(t)
@@ -262,7 +351,7 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 					return nil
 				}
 				return []*orchpb.AddressUnspentOutput{
-					{Txid: fundingTxid, Vout: 0, ValueSats: 210_000_000},
+					{Txid: fundingTxid, Vout: 0, ValueSats: 210_000_000, Confirmations: 1},
 				}
 			},
 		})),
