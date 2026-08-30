@@ -388,12 +388,9 @@ func (c *CoreStatusClient) Stop(ctx context.Context) error {
 
 // callWallet calls a method on a specific wallet using the /wallet/<name> URL path.
 func (c *CoreStatusClient) callWallet(ctx context.Context, walletName, method string, params ...interface{}) (json.RawMessage, error) {
-	origURL := c.url
-	c.url = fmt.Sprintf("%s/wallet/%s", origURL, walletName)
-	defer func() { c.url = origURL }()
-
 	if params == nil {
 		params = []interface{}{}
 	}
-	return c.call(ctx, method, params...)
+	walletURL := fmt.Sprintf("%s/wallet/%s", c.url, walletName)
+	return CallBitcoindRPC(ctx, walletURL, c.user, c.password, method, params)
 }
