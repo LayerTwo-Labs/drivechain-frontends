@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -95,9 +96,11 @@ type BmmBackend interface {
 	TemplateOnTip(ctx context.Context, sidechain pb.BinaryType, blockJSON string) (bool, error)
 }
 
-// MainchainTip reports the mainchain tip the enforcer has validated.
+// MainchainTip reports the mainchain tip the enforcer has validated, and the
+// network it belongs to.
 type MainchainTip interface {
 	ChainTip(context.Context) (hash string, height int32, err error)
+	CurrentNetwork() string
 }
 
 // relayMinimumRate is the last resort rate, in sats per vByte, for when Core
@@ -131,7 +134,13 @@ type BmmEngine struct {
 	fee     feerate.FeeEstimator
 	store   *bmmstate.Store
 
-	mu      sync.Mutex
+	// passMu holds a network reset off until the tick in flight ends, so no
+	// round from the old network reaches the new store.
+	passMu sync.Mutex
+
+	mu sync.Mutex
+	// network is the network whose targets and rounds the engine holds.
+	network string
 	targets map[pb.BinaryType]bmmTarget
 	current map[pb.BinaryType]*bmmstate.Round
 	// unconnected holds rounds a miner took but the sidechain has not accepted
@@ -151,8 +160,13 @@ func NewBmmEngine(
 	log zerolog.Logger, backend BmmBackend, tip MainchainTip,
 	fee feerate.FeeEstimator, store *bmmstate.Store,
 ) *BmmEngine {
+	var network string
+	if tip != nil {
+		network = tip.CurrentNetwork()
+	}
 	return &BmmEngine{
 		log:         log.With().Str("component", "bmm").Logger(),
+		network:     network,
 		backend:     backend,
 		tip:         tip,
 		fee:         fee,
@@ -322,6 +336,34 @@ func (e *BmmEngine) Stop(sidechain pb.BinaryType) error {
 	return nil
 }
 
+// ResetForNetwork points the engine at the store in dir and loads the targets
+// and rounds of that network.
+func (e *BmmEngine) ResetForNetwork(dir string) {
+	e.passMu.Lock()
+	defer e.passMu.Unlock()
+
+	e.store.Rebind(dir)
+	e.load()
+	e.notify()
+	e.poke()
+}
+
+// load replaces the targets and rounds in memory with the ones in the store.
+// The caller holds passMu.
+func (e *BmmEngine) load() {
+	e.mu.Lock()
+	e.network = e.tip.CurrentNetwork()
+	e.targets = make(map[pb.BinaryType]bmmTarget)
+	e.current = make(map[pb.BinaryType]*bmmstate.Round)
+	e.unconnected = make(map[pb.BinaryType][]*bmmstate.Round)
+	e.preparedTip = ""
+	e.prepareTries = 0
+	e.mu.Unlock()
+
+	e.resumeTargets()
+	e.resumeUnconnected()
+}
+
 // Running reports whether the engine bids for sidechain, with the wallet it
 // spends from and its bid ceiling.
 func (e *BmmEngine) Running(sidechain pb.BinaryType) (bool, string, int64) {
@@ -434,8 +476,9 @@ func (e *BmmEngine) Run(ctx context.Context) error {
 	ticker := time.NewTicker(bmmTickInterval)
 	defer ticker.Stop()
 
-	e.resumeTargets()
-	e.resumeUnconnected()
+	e.passMu.Lock()
+	e.load()
+	e.passMu.Unlock()
 	e.log.Info().Dur("interval", bmmTickInterval).Msg("bmm engine started")
 
 	for {
@@ -545,6 +588,9 @@ func (e *BmmEngine) resumeUnconnected() {
 }
 
 func (e *BmmEngine) tick(ctx context.Context) {
+	e.passMu.Lock()
+	defer e.passMu.Unlock()
+
 	e.mu.Lock()
 	targets := make(map[pb.BinaryType]bmmTarget, len(e.targets))
 	for k, v := range e.targets {
@@ -563,6 +609,10 @@ func (e *BmmEngine) tick(ctx context.Context) {
 		return
 	}
 	if tip == "" {
+		return
+	}
+	if e.networkMoved() {
+		e.log.Debug().Msg("network swap in progress, waiting for the reset")
 		return
 	}
 
@@ -608,6 +658,17 @@ func (e *BmmEngine) tick(ctx context.Context) {
 		e.settleRound(ctx, sidechain, tip, height)
 		e.openRound(ctx, sidechain, tip, height, target)
 	}
+}
+
+var errNetworkMoved = errors.New("the network changed before its bmm state loaded")
+
+// networkMoved reports whether the active network is no longer the one whose
+// targets and rounds the engine holds: a swap ran and its reset has not.
+func (e *BmmEngine) networkMoved() bool {
+	e.mu.Lock()
+	network := e.network
+	e.mu.Unlock()
+	return e.tip.CurrentNetwork() != network
 }
 
 // pendingSidechains lists sidechains with an open round or an unconnected win.
@@ -879,6 +940,9 @@ func (e *BmmEngine) placeBid(
 	walletID string, bidSats int64, feeRateSatVb float64, maxBidSats int64, replaceTxid string,
 	capToBlockWorth bool,
 ) error {
+	if e.networkMoved() {
+		return errNetworkMoved
+	}
 	resp, err := e.backend.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
 		Sidechain:          sidechain,
 		WalletId:           walletID,
