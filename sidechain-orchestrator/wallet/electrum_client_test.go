@@ -217,6 +217,33 @@ func TestElectrumClientHeightCacheRevoked(t *testing.T) {
 	assert.Equal(t, 0, got.Status.BlockHeight)
 }
 
+// TestElectrumClientSwapDropsTipCache proves a re-point does not let the old
+// server's cached tip answer for the new one, so an unreachable endpoint fails
+// its validation probe instead of reading as connected.
+func TestElectrumClientSwapDropsTipCache(t *testing.T) {
+	ctx := context.Background()
+	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+		if method == "blockchain.headers.subscribe" {
+			return map[string]interface{}{"height": 800000}
+		}
+		return nil
+	})
+	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+
+	tip, err := c.TipHeight(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 800000, tip)
+
+	c.SetBaseURLs([]string{"ssl://127.0.0.1:1"})
+	_, err = c.TipHeight(ctx)
+	assert.Error(t, err, "a swap to an unreachable server must not serve the previous server's tip")
+
+	c.SetBaseURLs([]string{url})
+	require.NoError(t, c.SetProxy(true, "127.0.0.1:1"))
+	_, err = c.TipHeight(ctx)
+	assert.Error(t, err, "a swap to an unreachable proxy must not serve the cached tip")
+}
+
 func TestElectrumClientFeeRateConversion(t *testing.T) {
 	ctx := context.Background()
 	url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
