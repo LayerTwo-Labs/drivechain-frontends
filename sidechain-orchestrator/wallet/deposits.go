@@ -7,7 +7,10 @@ import (
 )
 
 // SidechainDeposit is one deposit this install made to a sidechain treasury.
+// Network is the chain the deposit was broadcast to; empty means the one the
+// service is on now.
 type SidechainDeposit struct {
+	Network     string
 	Txid        string
 	WalletID    string
 	Slot        uint32
@@ -25,11 +28,17 @@ func (s *Service) RecordSidechainDeposit(ctx context.Context, d SidechainDeposit
 	if db == nil {
 		return fmt.Errorf("record sidechain deposit: database not open")
 	}
+	// A network swap racing this insert would otherwise file the row under the
+	// chain we swapped to, hiding it from the one it was broadcast to.
+	network := d.Network
+	if network == "" {
+		network = s.Network()
+	}
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO sidechain_deposits (network, txid, wallet_id, slot, destination, amount_sats, fee_sats, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (network, txid) DO NOTHING`,
-		s.Network(), d.Txid, d.WalletID, d.Slot, d.Destination, d.AmountSats, d.FeeSats, time.Now().Unix())
+		network, d.Txid, d.WalletID, d.Slot, d.Destination, d.AmountSats, d.FeeSats, time.Now().Unix())
 	if err != nil {
 		return fmt.Errorf("insert sidechain deposit: %w", err)
 	}
