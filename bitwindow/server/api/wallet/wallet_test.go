@@ -378,6 +378,27 @@ func TestService_LockWallet(t *testing.T) {
 	})
 }
 
+func TestService_ListReceiveAddresses(t *testing.T) {
+	t.Parallel()
+
+	t.Run("locked wallet returns no addresses", func(t *testing.T) {
+		t.Parallel()
+
+		database := database.Test(t)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.ListReceiveAddresses(context.Background(), connect.NewRequest(&walletv1.ListReceiveAddressesRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+}
+
 func TestService_UnlockWallet(t *testing.T) {
 	t.Parallel()
 

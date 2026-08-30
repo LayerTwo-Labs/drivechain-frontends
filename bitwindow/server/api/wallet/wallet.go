@@ -1277,6 +1277,11 @@ func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial
 func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
 	walletId := c.Msg.WalletId
 
+	// Addresses and their balances are wallet state, so the wallet has to be unlocked
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	// Bitcoin Core version
 	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
