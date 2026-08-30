@@ -134,9 +134,6 @@ service TruthcoinService {
 
   // --- Voting ---
 
-  // Register as a voter.
-  rpc VoteRegister(VoteRegisterRequest) returns (VoteRegisterResponse);
-
   // Get voter info.
   rpc VoteVoter(VoteVoterRequest) returns (VoteVoterResponse);
 
@@ -600,17 +597,6 @@ message SlotClaimCategoryResponse {
 }
 
 // --- Voting messages ---
-
-// VoteRegister
-
-message VoteRegisterRequest {
-  int64 fee_sats = 1;
-  optional int64 reputation_bond_sats = 2;
-}
-
-message VoteRegisterResponse {
-  string txid = 1;
-}
 
 // VoteVoter
 

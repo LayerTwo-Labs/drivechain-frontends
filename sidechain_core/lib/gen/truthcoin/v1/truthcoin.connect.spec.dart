@@ -338,14 +338,6 @@ abstract final class TruthcoinService {
     truthcoinv1truthcoin.SlotClaimCategoryResponse.new,
   );
 
-  /// Register as a voter.
-  static const voteRegister = connect.Spec(
-    '/$name/VoteRegister',
-    connect.StreamType.unary,
-    truthcoinv1truthcoin.VoteRegisterRequest.new,
-    truthcoinv1truthcoin.VoteRegisterResponse.new,
-  );
-
   /// Get voter info.
   static const voteVoter = connect.Spec(
     '/$name/VoteVoter',

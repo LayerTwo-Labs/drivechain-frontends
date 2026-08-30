@@ -87,6 +87,35 @@ void main() {
       mockRpc.voteVoterResponse = TestData.sampleVoterInfo;
     });
 
+    testWidgets('offers the options of a category decision', (WidgetTester tester) async {
+      mockRpc.votePeriodResponse = {
+        ...TestData.sampleVotingPeriod,
+        'decisions': [
+          {
+            'decision_id_hex': '002a0004',
+            'header': 'Who wins the election?',
+            'is_standard': true,
+            'decision_type': {
+              'Category': {
+                'options': ['Alice', 'Bob', 'Carol'],
+              },
+            },
+          },
+        ],
+      };
+
+      await tester.pumpSailPage(const VotingDashboardPage());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Category'), findsOneWidget);
+      for (final option in ['Alice', 'Bob', 'Carol']) {
+        expect(find.text(option), findsOneWidget);
+      }
+      expect(find.text('Yes'), findsNothing);
+
+      mockRpc.votePeriodResponse = TestData.sampleVotingPeriod;
+    });
+
     testWidgets('handles empty period gracefully', (WidgetTester tester) async {
       mockRpc.votePeriodResponse = null;
 

@@ -157,9 +157,6 @@ abstract class TruthcoinRPC extends SidechainRPC {
   });
 
   // Voting
-  /// Register as a voter
-  Future<String> voteRegister({required int feeSats, int? reputationBondSats});
-
   /// Get voter info
   Future<Map<String, dynamic>?> voteVoter(String address);
 
@@ -720,17 +717,6 @@ class TruthcoinLive extends TruthcoinRPC {
 
   // Voting
   @override
-  Future<String> voteRegister({required int feeSats, int? reputationBondSats}) async {
-    final resp = await _client.voteRegister(
-      pb.VoteRegisterRequest(
-        feeSats: Int64(feeSats),
-        reputationBondSats: reputationBondSats != null ? Int64(reputationBondSats) : null,
-      ),
-    );
-    return resp.txid;
-  }
-
-  @override
   Future<Map<String, dynamic>?> voteVoter(String address) async {
     final resp = await _client.voteVoter(pb.VoteVoterRequest(address: address));
     if (resp.voterJson.isEmpty) {
@@ -914,6 +900,10 @@ final truthcoinRPCMethods = [
   'calculate_initial_liquidity',
   'connect_peer',
   'create_deposit',
+  'decision_claim',
+  'decision_get',
+  'decision_list',
+  'decision_status',
   'decrypt_msg',
   'encrypt_msg',
   'format_deposit_address',
@@ -941,7 +931,6 @@ final truthcoinRPCMethods = [
   'market_sell',
   'mine',
   'my_unconfirmed_utxos',
-  'my_utxos',
   'openapi_schema',
   'pending_withdrawal_bundle',
   'refresh_wallet',
@@ -950,22 +939,15 @@ final truthcoinRPCMethods = [
   'sidechain_wealth',
   'sign_arbitrary_msg',
   'sign_arbitrary_msg_as_addr',
-  'slot_claim',
-  'slot_claim_category',
-  'slot_get',
-  'slot_list',
-  'slot_status',
   'stop',
   'transfer',
   'transfer_votecoin',
   'verify_signature',
   'vote_list',
   'vote_period',
-  'vote_register',
   'vote_submit',
   'vote_voter',
   'vote_voters',
   'votecoin_balance',
-  'votecoin_transfer',
   'withdraw',
 ];

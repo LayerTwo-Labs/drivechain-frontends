@@ -3775,102 +3775,6 @@ func (x *SlotClaimCategoryResponse) GetTxid() string {
 	return ""
 }
 
-type VoteRegisterRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	FeeSats            int64                  `protobuf:"varint,1,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
-	ReputationBondSats *int64                 `protobuf:"varint,2,opt,name=reputation_bond_sats,json=reputationBondSats,proto3,oneof" json:"reputation_bond_sats,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *VoteRegisterRequest) Reset() {
-	*x = VoteRegisterRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[82]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VoteRegisterRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VoteRegisterRequest) ProtoMessage() {}
-
-func (x *VoteRegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[82]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use VoteRegisterRequest.ProtoReflect.Descriptor instead.
-func (*VoteRegisterRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{82}
-}
-
-func (x *VoteRegisterRequest) GetFeeSats() int64 {
-	if x != nil {
-		return x.FeeSats
-	}
-	return 0
-}
-
-func (x *VoteRegisterRequest) GetReputationBondSats() int64 {
-	if x != nil && x.ReputationBondSats != nil {
-		return *x.ReputationBondSats
-	}
-	return 0
-}
-
-type VoteRegisterResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *VoteRegisterResponse) Reset() {
-	*x = VoteRegisterResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[83]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VoteRegisterResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VoteRegisterResponse) ProtoMessage() {}
-
-func (x *VoteRegisterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[83]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use VoteRegisterResponse.ProtoReflect.Descriptor instead.
-func (*VoteRegisterResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{83}
-}
-
-func (x *VoteRegisterResponse) GetTxid() string {
-	if x != nil {
-		return x.Txid
-	}
-	return ""
-}
-
 type VoteVoterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Address       string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
@@ -3880,7 +3784,7 @@ type VoteVoterRequest struct {
 
 func (x *VoteVoterRequest) Reset() {
 	*x = VoteVoterRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[84]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3892,7 +3796,7 @@ func (x *VoteVoterRequest) String() string {
 func (*VoteVoterRequest) ProtoMessage() {}
 
 func (x *VoteVoterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[84]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3905,7 +3809,7 @@ func (x *VoteVoterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteVoterRequest.ProtoReflect.Descriptor instead.
 func (*VoteVoterRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{84}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *VoteVoterRequest) GetAddress() string {
@@ -3924,7 +3828,7 @@ type VoteVoterResponse struct {
 
 func (x *VoteVoterResponse) Reset() {
 	*x = VoteVoterResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[85]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3936,7 +3840,7 @@ func (x *VoteVoterResponse) String() string {
 func (*VoteVoterResponse) ProtoMessage() {}
 
 func (x *VoteVoterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[85]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3949,7 +3853,7 @@ func (x *VoteVoterResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteVoterResponse.ProtoReflect.Descriptor instead.
 func (*VoteVoterResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{85}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *VoteVoterResponse) GetVoterJson() string {
@@ -3967,7 +3871,7 @@ type VoteVotersRequest struct {
 
 func (x *VoteVotersRequest) Reset() {
 	*x = VoteVotersRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[86]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3979,7 +3883,7 @@ func (x *VoteVotersRequest) String() string {
 func (*VoteVotersRequest) ProtoMessage() {}
 
 func (x *VoteVotersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[86]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3992,7 +3896,7 @@ func (x *VoteVotersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteVotersRequest.ProtoReflect.Descriptor instead.
 func (*VoteVotersRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{86}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{84}
 }
 
 type VoteVotersResponse struct {
@@ -4004,7 +3908,7 @@ type VoteVotersResponse struct {
 
 func (x *VoteVotersResponse) Reset() {
 	*x = VoteVotersResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[87]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4016,7 +3920,7 @@ func (x *VoteVotersResponse) String() string {
 func (*VoteVotersResponse) ProtoMessage() {}
 
 func (x *VoteVotersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[87]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4029,7 +3933,7 @@ func (x *VoteVotersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteVotersResponse.ProtoReflect.Descriptor instead.
 func (*VoteVotersResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{87}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *VoteVotersResponse) GetVotersJson() string {
@@ -4049,7 +3953,7 @@ type VoteSubmitRequest struct {
 
 func (x *VoteSubmitRequest) Reset() {
 	*x = VoteSubmitRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[88]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4061,7 +3965,7 @@ func (x *VoteSubmitRequest) String() string {
 func (*VoteSubmitRequest) ProtoMessage() {}
 
 func (x *VoteSubmitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[88]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4074,7 +3978,7 @@ func (x *VoteSubmitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteSubmitRequest.ProtoReflect.Descriptor instead.
 func (*VoteSubmitRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{88}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *VoteSubmitRequest) GetVotesJson() string {
@@ -4100,7 +4004,7 @@ type VoteSubmitResponse struct {
 
 func (x *VoteSubmitResponse) Reset() {
 	*x = VoteSubmitResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[89]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4112,7 +4016,7 @@ func (x *VoteSubmitResponse) String() string {
 func (*VoteSubmitResponse) ProtoMessage() {}
 
 func (x *VoteSubmitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[89]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4125,7 +4029,7 @@ func (x *VoteSubmitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteSubmitResponse.ProtoReflect.Descriptor instead.
 func (*VoteSubmitResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{89}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *VoteSubmitResponse) GetTxid() string {
@@ -4146,7 +4050,7 @@ type VoteListRequest struct {
 
 func (x *VoteListRequest) Reset() {
 	*x = VoteListRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[90]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4158,7 +4062,7 @@ func (x *VoteListRequest) String() string {
 func (*VoteListRequest) ProtoMessage() {}
 
 func (x *VoteListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[90]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4171,7 +4075,7 @@ func (x *VoteListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteListRequest.ProtoReflect.Descriptor instead.
 func (*VoteListRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{90}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *VoteListRequest) GetVoter() string {
@@ -4204,7 +4108,7 @@ type VoteListResponse struct {
 
 func (x *VoteListResponse) Reset() {
 	*x = VoteListResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[91]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4216,7 +4120,7 @@ func (x *VoteListResponse) String() string {
 func (*VoteListResponse) ProtoMessage() {}
 
 func (x *VoteListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[91]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4229,7 +4133,7 @@ func (x *VoteListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoteListResponse.ProtoReflect.Descriptor instead.
 func (*VoteListResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{91}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *VoteListResponse) GetVotesJson() string {
@@ -4248,7 +4152,7 @@ type VotePeriodRequest struct {
 
 func (x *VotePeriodRequest) Reset() {
 	*x = VotePeriodRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[92]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4260,7 +4164,7 @@ func (x *VotePeriodRequest) String() string {
 func (*VotePeriodRequest) ProtoMessage() {}
 
 func (x *VotePeriodRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[92]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4273,7 +4177,7 @@ func (x *VotePeriodRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VotePeriodRequest.ProtoReflect.Descriptor instead.
 func (*VotePeriodRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{92}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *VotePeriodRequest) GetPeriodId() int32 {
@@ -4292,7 +4196,7 @@ type VotePeriodResponse struct {
 
 func (x *VotePeriodResponse) Reset() {
 	*x = VotePeriodResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[93]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4304,7 +4208,7 @@ func (x *VotePeriodResponse) String() string {
 func (*VotePeriodResponse) ProtoMessage() {}
 
 func (x *VotePeriodResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[93]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4317,7 +4221,7 @@ func (x *VotePeriodResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VotePeriodResponse.ProtoReflect.Descriptor instead.
 func (*VotePeriodResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{93}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *VotePeriodResponse) GetPeriodJson() string {
@@ -4339,7 +4243,7 @@ type VotecoinTransferRequest struct {
 
 func (x *VotecoinTransferRequest) Reset() {
 	*x = VotecoinTransferRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[94]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4351,7 +4255,7 @@ func (x *VotecoinTransferRequest) String() string {
 func (*VotecoinTransferRequest) ProtoMessage() {}
 
 func (x *VotecoinTransferRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[94]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4364,7 +4268,7 @@ func (x *VotecoinTransferRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VotecoinTransferRequest.ProtoReflect.Descriptor instead.
 func (*VotecoinTransferRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{94}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *VotecoinTransferRequest) GetDest() string {
@@ -4404,7 +4308,7 @@ type VotecoinTransferResponse struct {
 
 func (x *VotecoinTransferResponse) Reset() {
 	*x = VotecoinTransferResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[95]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4416,7 +4320,7 @@ func (x *VotecoinTransferResponse) String() string {
 func (*VotecoinTransferResponse) ProtoMessage() {}
 
 func (x *VotecoinTransferResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[95]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4429,7 +4333,7 @@ func (x *VotecoinTransferResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VotecoinTransferResponse.ProtoReflect.Descriptor instead.
 func (*VotecoinTransferResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{95}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *VotecoinTransferResponse) GetTxid() string {
@@ -4448,7 +4352,7 @@ type VotecoinBalanceRequest struct {
 
 func (x *VotecoinBalanceRequest) Reset() {
 	*x = VotecoinBalanceRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[96]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4460,7 +4364,7 @@ func (x *VotecoinBalanceRequest) String() string {
 func (*VotecoinBalanceRequest) ProtoMessage() {}
 
 func (x *VotecoinBalanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[96]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4473,7 +4377,7 @@ func (x *VotecoinBalanceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VotecoinBalanceRequest.ProtoReflect.Descriptor instead.
 func (*VotecoinBalanceRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{96}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *VotecoinBalanceRequest) GetAddress() string {
@@ -4492,7 +4396,7 @@ type VotecoinBalanceResponse struct {
 
 func (x *VotecoinBalanceResponse) Reset() {
 	*x = VotecoinBalanceResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[97]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4504,7 +4408,7 @@ func (x *VotecoinBalanceResponse) String() string {
 func (*VotecoinBalanceResponse) ProtoMessage() {}
 
 func (x *VotecoinBalanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[97]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4517,7 +4421,7 @@ func (x *VotecoinBalanceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VotecoinBalanceResponse.ProtoReflect.Descriptor instead.
 func (*VotecoinBalanceResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{97}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *VotecoinBalanceResponse) GetBalance() int64 {
@@ -4539,7 +4443,7 @@ type TransferVotecoinRequest struct {
 
 func (x *TransferVotecoinRequest) Reset() {
 	*x = TransferVotecoinRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[98]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4551,7 +4455,7 @@ func (x *TransferVotecoinRequest) String() string {
 func (*TransferVotecoinRequest) ProtoMessage() {}
 
 func (x *TransferVotecoinRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[98]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4564,7 +4468,7 @@ func (x *TransferVotecoinRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferVotecoinRequest.ProtoReflect.Descriptor instead.
 func (*TransferVotecoinRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{98}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *TransferVotecoinRequest) GetDest() string {
@@ -4604,7 +4508,7 @@ type TransferVotecoinResponse struct {
 
 func (x *TransferVotecoinResponse) Reset() {
 	*x = TransferVotecoinResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[99]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4616,7 +4520,7 @@ func (x *TransferVotecoinResponse) String() string {
 func (*TransferVotecoinResponse) ProtoMessage() {}
 
 func (x *TransferVotecoinResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[99]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4629,7 +4533,7 @@ func (x *TransferVotecoinResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferVotecoinResponse.ProtoReflect.Descriptor instead.
 func (*TransferVotecoinResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{99}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *TransferVotecoinResponse) GetTxid() string {
@@ -4647,7 +4551,7 @@ type GetNewEncryptionKeyRequest struct {
 
 func (x *GetNewEncryptionKeyRequest) Reset() {
 	*x = GetNewEncryptionKeyRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[100]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4659,7 +4563,7 @@ func (x *GetNewEncryptionKeyRequest) String() string {
 func (*GetNewEncryptionKeyRequest) ProtoMessage() {}
 
 func (x *GetNewEncryptionKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[100]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4672,7 +4576,7 @@ func (x *GetNewEncryptionKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNewEncryptionKeyRequest.ProtoReflect.Descriptor instead.
 func (*GetNewEncryptionKeyRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{100}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{98}
 }
 
 type GetNewEncryptionKeyResponse struct {
@@ -4684,7 +4588,7 @@ type GetNewEncryptionKeyResponse struct {
 
 func (x *GetNewEncryptionKeyResponse) Reset() {
 	*x = GetNewEncryptionKeyResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[101]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4696,7 +4600,7 @@ func (x *GetNewEncryptionKeyResponse) String() string {
 func (*GetNewEncryptionKeyResponse) ProtoMessage() {}
 
 func (x *GetNewEncryptionKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[101]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4709,7 +4613,7 @@ func (x *GetNewEncryptionKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNewEncryptionKeyResponse.ProtoReflect.Descriptor instead.
 func (*GetNewEncryptionKeyResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{101}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *GetNewEncryptionKeyResponse) GetKey() string {
@@ -4727,7 +4631,7 @@ type GetNewVerifyingKeyRequest struct {
 
 func (x *GetNewVerifyingKeyRequest) Reset() {
 	*x = GetNewVerifyingKeyRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[102]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4739,7 +4643,7 @@ func (x *GetNewVerifyingKeyRequest) String() string {
 func (*GetNewVerifyingKeyRequest) ProtoMessage() {}
 
 func (x *GetNewVerifyingKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[102]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4752,7 +4656,7 @@ func (x *GetNewVerifyingKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNewVerifyingKeyRequest.ProtoReflect.Descriptor instead.
 func (*GetNewVerifyingKeyRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{102}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{100}
 }
 
 type GetNewVerifyingKeyResponse struct {
@@ -4764,7 +4668,7 @@ type GetNewVerifyingKeyResponse struct {
 
 func (x *GetNewVerifyingKeyResponse) Reset() {
 	*x = GetNewVerifyingKeyResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[103]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4776,7 +4680,7 @@ func (x *GetNewVerifyingKeyResponse) String() string {
 func (*GetNewVerifyingKeyResponse) ProtoMessage() {}
 
 func (x *GetNewVerifyingKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[103]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4789,7 +4693,7 @@ func (x *GetNewVerifyingKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNewVerifyingKeyResponse.ProtoReflect.Descriptor instead.
 func (*GetNewVerifyingKeyResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{103}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *GetNewVerifyingKeyResponse) GetKey() string {
@@ -4809,7 +4713,7 @@ type EncryptMsgRequest struct {
 
 func (x *EncryptMsgRequest) Reset() {
 	*x = EncryptMsgRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[104]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4821,7 +4725,7 @@ func (x *EncryptMsgRequest) String() string {
 func (*EncryptMsgRequest) ProtoMessage() {}
 
 func (x *EncryptMsgRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[104]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4834,7 +4738,7 @@ func (x *EncryptMsgRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EncryptMsgRequest.ProtoReflect.Descriptor instead.
 func (*EncryptMsgRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{104}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *EncryptMsgRequest) GetMsg() string {
@@ -4860,7 +4764,7 @@ type EncryptMsgResponse struct {
 
 func (x *EncryptMsgResponse) Reset() {
 	*x = EncryptMsgResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[105]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4872,7 +4776,7 @@ func (x *EncryptMsgResponse) String() string {
 func (*EncryptMsgResponse) ProtoMessage() {}
 
 func (x *EncryptMsgResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[105]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4885,7 +4789,7 @@ func (x *EncryptMsgResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EncryptMsgResponse.ProtoReflect.Descriptor instead.
 func (*EncryptMsgResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{105}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *EncryptMsgResponse) GetCiphertext() string {
@@ -4905,7 +4809,7 @@ type DecryptMsgRequest struct {
 
 func (x *DecryptMsgRequest) Reset() {
 	*x = DecryptMsgRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[106]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4917,7 +4821,7 @@ func (x *DecryptMsgRequest) String() string {
 func (*DecryptMsgRequest) ProtoMessage() {}
 
 func (x *DecryptMsgRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[106]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4930,7 +4834,7 @@ func (x *DecryptMsgRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecryptMsgRequest.ProtoReflect.Descriptor instead.
 func (*DecryptMsgRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{106}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *DecryptMsgRequest) GetCiphertext() string {
@@ -4956,7 +4860,7 @@ type DecryptMsgResponse struct {
 
 func (x *DecryptMsgResponse) Reset() {
 	*x = DecryptMsgResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[107]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4968,7 +4872,7 @@ func (x *DecryptMsgResponse) String() string {
 func (*DecryptMsgResponse) ProtoMessage() {}
 
 func (x *DecryptMsgResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[107]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4981,7 +4885,7 @@ func (x *DecryptMsgResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecryptMsgResponse.ProtoReflect.Descriptor instead.
 func (*DecryptMsgResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{107}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *DecryptMsgResponse) GetPlaintext() string {
@@ -5001,7 +4905,7 @@ type SignArbitraryMsgRequest struct {
 
 func (x *SignArbitraryMsgRequest) Reset() {
 	*x = SignArbitraryMsgRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[108]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5013,7 +4917,7 @@ func (x *SignArbitraryMsgRequest) String() string {
 func (*SignArbitraryMsgRequest) ProtoMessage() {}
 
 func (x *SignArbitraryMsgRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[108]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5026,7 +4930,7 @@ func (x *SignArbitraryMsgRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignArbitraryMsgRequest.ProtoReflect.Descriptor instead.
 func (*SignArbitraryMsgRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{108}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *SignArbitraryMsgRequest) GetMsg() string {
@@ -5052,7 +4956,7 @@ type SignArbitraryMsgResponse struct {
 
 func (x *SignArbitraryMsgResponse) Reset() {
 	*x = SignArbitraryMsgResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[109]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5064,7 +4968,7 @@ func (x *SignArbitraryMsgResponse) String() string {
 func (*SignArbitraryMsgResponse) ProtoMessage() {}
 
 func (x *SignArbitraryMsgResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[109]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5077,7 +4981,7 @@ func (x *SignArbitraryMsgResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignArbitraryMsgResponse.ProtoReflect.Descriptor instead.
 func (*SignArbitraryMsgResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{109}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *SignArbitraryMsgResponse) GetSignature() string {
@@ -5097,7 +5001,7 @@ type SignArbitraryMsgAsAddrRequest struct {
 
 func (x *SignArbitraryMsgAsAddrRequest) Reset() {
 	*x = SignArbitraryMsgAsAddrRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[110]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5109,7 +5013,7 @@ func (x *SignArbitraryMsgAsAddrRequest) String() string {
 func (*SignArbitraryMsgAsAddrRequest) ProtoMessage() {}
 
 func (x *SignArbitraryMsgAsAddrRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[110]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5122,7 +5026,7 @@ func (x *SignArbitraryMsgAsAddrRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignArbitraryMsgAsAddrRequest.ProtoReflect.Descriptor instead.
 func (*SignArbitraryMsgAsAddrRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{110}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *SignArbitraryMsgAsAddrRequest) GetMsg() string {
@@ -5149,7 +5053,7 @@ type SignArbitraryMsgAsAddrResponse struct {
 
 func (x *SignArbitraryMsgAsAddrResponse) Reset() {
 	*x = SignArbitraryMsgAsAddrResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[111]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5161,7 +5065,7 @@ func (x *SignArbitraryMsgAsAddrResponse) String() string {
 func (*SignArbitraryMsgAsAddrResponse) ProtoMessage() {}
 
 func (x *SignArbitraryMsgAsAddrResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[111]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5174,7 +5078,7 @@ func (x *SignArbitraryMsgAsAddrResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignArbitraryMsgAsAddrResponse.ProtoReflect.Descriptor instead.
 func (*SignArbitraryMsgAsAddrResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{111}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *SignArbitraryMsgAsAddrResponse) GetVerifyingKey() string {
@@ -5203,7 +5107,7 @@ type VerifySignatureRequest struct {
 
 func (x *VerifySignatureRequest) Reset() {
 	*x = VerifySignatureRequest{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[112]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5215,7 +5119,7 @@ func (x *VerifySignatureRequest) String() string {
 func (*VerifySignatureRequest) ProtoMessage() {}
 
 func (x *VerifySignatureRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[112]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5228,7 +5132,7 @@ func (x *VerifySignatureRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifySignatureRequest.ProtoReflect.Descriptor instead.
 func (*VerifySignatureRequest) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{112}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *VerifySignatureRequest) GetMsg() string {
@@ -5268,7 +5172,7 @@ type VerifySignatureResponse struct {
 
 func (x *VerifySignatureResponse) Reset() {
 	*x = VerifySignatureResponse{}
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[113]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5280,7 +5184,7 @@ func (x *VerifySignatureResponse) String() string {
 func (*VerifySignatureResponse) ProtoMessage() {}
 
 func (x *VerifySignatureResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[113]
+	mi := &file_truthcoin_v1_truthcoin_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5293,7 +5197,7 @@ func (x *VerifySignatureResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifySignatureResponse.ProtoReflect.Descriptor instead.
 func (*VerifySignatureResponse) Descriptor() ([]byte, []int) {
-	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{113}
+	return file_truthcoin_v1_truthcoin_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *VerifySignatureResponse) GetValid() bool {
@@ -5544,12 +5448,6 @@ const file_truthcoin_v1_truthcoin_proto_rawDesc = "" +
 	"isStandard\x12\x19\n" +
 	"\bfee_sats\x18\x03 \x01(\x03R\afeeSats\"/\n" +
 	"\x19SlotClaimCategoryResponse\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x80\x01\n" +
-	"\x13VoteRegisterRequest\x12\x19\n" +
-	"\bfee_sats\x18\x01 \x01(\x03R\afeeSats\x125\n" +
-	"\x14reputation_bond_sats\x18\x02 \x01(\x03H\x00R\x12reputationBondSats\x88\x01\x01B\x17\n" +
-	"\x15_reputation_bond_sats\"*\n" +
-	"\x14VoteRegisterResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\",\n" +
 	"\x10VoteVoterRequest\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\"2\n" +
@@ -5642,7 +5540,7 @@ const file_truthcoin_v1_truthcoin_proto_rawDesc = "" +
 	"\rverifying_key\x18\x03 \x01(\tR\fverifyingKey\x12\x10\n" +
 	"\x03dst\x18\x04 \x01(\tR\x03dst\"/\n" +
 	"\x17VerifySignatureResponse\x12\x14\n" +
-	"\x05valid\x18\x01 \x01(\bR\x05valid2\x83)\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid2\xac(\n" +
 	"\x10TruthcoinService\x12O\n" +
 	"\n" +
 	"GetBalance\x12\x1f.truthcoin.v1.GetBalanceRequest\x1a .truthcoin.v1.GetBalanceResponse\x12X\n" +
@@ -5688,8 +5586,7 @@ const file_truthcoin_v1_truthcoin_proto_rawDesc = "" +
 	"\bSlotList\x12\x1d.truthcoin.v1.SlotListRequest\x1a\x1e.truthcoin.v1.SlotListResponse\x12F\n" +
 	"\aSlotGet\x12\x1c.truthcoin.v1.SlotGetRequest\x1a\x1d.truthcoin.v1.SlotGetResponse\x12L\n" +
 	"\tSlotClaim\x12\x1e.truthcoin.v1.SlotClaimRequest\x1a\x1f.truthcoin.v1.SlotClaimResponse\x12d\n" +
-	"\x11SlotClaimCategory\x12&.truthcoin.v1.SlotClaimCategoryRequest\x1a'.truthcoin.v1.SlotClaimCategoryResponse\x12U\n" +
-	"\fVoteRegister\x12!.truthcoin.v1.VoteRegisterRequest\x1a\".truthcoin.v1.VoteRegisterResponse\x12L\n" +
+	"\x11SlotClaimCategory\x12&.truthcoin.v1.SlotClaimCategoryRequest\x1a'.truthcoin.v1.SlotClaimCategoryResponse\x12L\n" +
 	"\tVoteVoter\x12\x1e.truthcoin.v1.VoteVoterRequest\x1a\x1f.truthcoin.v1.VoteVoterResponse\x12O\n" +
 	"\n" +
 	"VoteVoters\x12\x1f.truthcoin.v1.VoteVotersRequest\x1a .truthcoin.v1.VoteVotersResponse\x12O\n" +
@@ -5724,7 +5621,7 @@ func file_truthcoin_v1_truthcoin_proto_rawDescGZIP() []byte {
 	return file_truthcoin_v1_truthcoin_proto_rawDescData
 }
 
-var file_truthcoin_v1_truthcoin_proto_msgTypes = make([]protoimpl.MessageInfo, 114)
+var file_truthcoin_v1_truthcoin_proto_msgTypes = make([]protoimpl.MessageInfo, 112)
 var file_truthcoin_v1_truthcoin_proto_goTypes = []any{
 	(*GetBalanceRequest)(nil),                             // 0: truthcoin.v1.GetBalanceRequest
 	(*GetBalanceResponse)(nil),                            // 1: truthcoin.v1.GetBalanceResponse
@@ -5808,38 +5705,36 @@ var file_truthcoin_v1_truthcoin_proto_goTypes = []any{
 	(*SlotClaimResponse)(nil),                             // 79: truthcoin.v1.SlotClaimResponse
 	(*SlotClaimCategoryRequest)(nil),                      // 80: truthcoin.v1.SlotClaimCategoryRequest
 	(*SlotClaimCategoryResponse)(nil),                     // 81: truthcoin.v1.SlotClaimCategoryResponse
-	(*VoteRegisterRequest)(nil),                           // 82: truthcoin.v1.VoteRegisterRequest
-	(*VoteRegisterResponse)(nil),                          // 83: truthcoin.v1.VoteRegisterResponse
-	(*VoteVoterRequest)(nil),                              // 84: truthcoin.v1.VoteVoterRequest
-	(*VoteVoterResponse)(nil),                             // 85: truthcoin.v1.VoteVoterResponse
-	(*VoteVotersRequest)(nil),                             // 86: truthcoin.v1.VoteVotersRequest
-	(*VoteVotersResponse)(nil),                            // 87: truthcoin.v1.VoteVotersResponse
-	(*VoteSubmitRequest)(nil),                             // 88: truthcoin.v1.VoteSubmitRequest
-	(*VoteSubmitResponse)(nil),                            // 89: truthcoin.v1.VoteSubmitResponse
-	(*VoteListRequest)(nil),                               // 90: truthcoin.v1.VoteListRequest
-	(*VoteListResponse)(nil),                              // 91: truthcoin.v1.VoteListResponse
-	(*VotePeriodRequest)(nil),                             // 92: truthcoin.v1.VotePeriodRequest
-	(*VotePeriodResponse)(nil),                            // 93: truthcoin.v1.VotePeriodResponse
-	(*VotecoinTransferRequest)(nil),                       // 94: truthcoin.v1.VotecoinTransferRequest
-	(*VotecoinTransferResponse)(nil),                      // 95: truthcoin.v1.VotecoinTransferResponse
-	(*VotecoinBalanceRequest)(nil),                        // 96: truthcoin.v1.VotecoinBalanceRequest
-	(*VotecoinBalanceResponse)(nil),                       // 97: truthcoin.v1.VotecoinBalanceResponse
-	(*TransferVotecoinRequest)(nil),                       // 98: truthcoin.v1.TransferVotecoinRequest
-	(*TransferVotecoinResponse)(nil),                      // 99: truthcoin.v1.TransferVotecoinResponse
-	(*GetNewEncryptionKeyRequest)(nil),                    // 100: truthcoin.v1.GetNewEncryptionKeyRequest
-	(*GetNewEncryptionKeyResponse)(nil),                   // 101: truthcoin.v1.GetNewEncryptionKeyResponse
-	(*GetNewVerifyingKeyRequest)(nil),                     // 102: truthcoin.v1.GetNewVerifyingKeyRequest
-	(*GetNewVerifyingKeyResponse)(nil),                    // 103: truthcoin.v1.GetNewVerifyingKeyResponse
-	(*EncryptMsgRequest)(nil),                             // 104: truthcoin.v1.EncryptMsgRequest
-	(*EncryptMsgResponse)(nil),                            // 105: truthcoin.v1.EncryptMsgResponse
-	(*DecryptMsgRequest)(nil),                             // 106: truthcoin.v1.DecryptMsgRequest
-	(*DecryptMsgResponse)(nil),                            // 107: truthcoin.v1.DecryptMsgResponse
-	(*SignArbitraryMsgRequest)(nil),                       // 108: truthcoin.v1.SignArbitraryMsgRequest
-	(*SignArbitraryMsgResponse)(nil),                      // 109: truthcoin.v1.SignArbitraryMsgResponse
-	(*SignArbitraryMsgAsAddrRequest)(nil),                 // 110: truthcoin.v1.SignArbitraryMsgAsAddrRequest
-	(*SignArbitraryMsgAsAddrResponse)(nil),                // 111: truthcoin.v1.SignArbitraryMsgAsAddrResponse
-	(*VerifySignatureRequest)(nil),                        // 112: truthcoin.v1.VerifySignatureRequest
-	(*VerifySignatureResponse)(nil),                       // 113: truthcoin.v1.VerifySignatureResponse
+	(*VoteVoterRequest)(nil),                              // 82: truthcoin.v1.VoteVoterRequest
+	(*VoteVoterResponse)(nil),                             // 83: truthcoin.v1.VoteVoterResponse
+	(*VoteVotersRequest)(nil),                             // 84: truthcoin.v1.VoteVotersRequest
+	(*VoteVotersResponse)(nil),                            // 85: truthcoin.v1.VoteVotersResponse
+	(*VoteSubmitRequest)(nil),                             // 86: truthcoin.v1.VoteSubmitRequest
+	(*VoteSubmitResponse)(nil),                            // 87: truthcoin.v1.VoteSubmitResponse
+	(*VoteListRequest)(nil),                               // 88: truthcoin.v1.VoteListRequest
+	(*VoteListResponse)(nil),                              // 89: truthcoin.v1.VoteListResponse
+	(*VotePeriodRequest)(nil),                             // 90: truthcoin.v1.VotePeriodRequest
+	(*VotePeriodResponse)(nil),                            // 91: truthcoin.v1.VotePeriodResponse
+	(*VotecoinTransferRequest)(nil),                       // 92: truthcoin.v1.VotecoinTransferRequest
+	(*VotecoinTransferResponse)(nil),                      // 93: truthcoin.v1.VotecoinTransferResponse
+	(*VotecoinBalanceRequest)(nil),                        // 94: truthcoin.v1.VotecoinBalanceRequest
+	(*VotecoinBalanceResponse)(nil),                       // 95: truthcoin.v1.VotecoinBalanceResponse
+	(*TransferVotecoinRequest)(nil),                       // 96: truthcoin.v1.TransferVotecoinRequest
+	(*TransferVotecoinResponse)(nil),                      // 97: truthcoin.v1.TransferVotecoinResponse
+	(*GetNewEncryptionKeyRequest)(nil),                    // 98: truthcoin.v1.GetNewEncryptionKeyRequest
+	(*GetNewEncryptionKeyResponse)(nil),                   // 99: truthcoin.v1.GetNewEncryptionKeyResponse
+	(*GetNewVerifyingKeyRequest)(nil),                     // 100: truthcoin.v1.GetNewVerifyingKeyRequest
+	(*GetNewVerifyingKeyResponse)(nil),                    // 101: truthcoin.v1.GetNewVerifyingKeyResponse
+	(*EncryptMsgRequest)(nil),                             // 102: truthcoin.v1.EncryptMsgRequest
+	(*EncryptMsgResponse)(nil),                            // 103: truthcoin.v1.EncryptMsgResponse
+	(*DecryptMsgRequest)(nil),                             // 104: truthcoin.v1.DecryptMsgRequest
+	(*DecryptMsgResponse)(nil),                            // 105: truthcoin.v1.DecryptMsgResponse
+	(*SignArbitraryMsgRequest)(nil),                       // 106: truthcoin.v1.SignArbitraryMsgRequest
+	(*SignArbitraryMsgResponse)(nil),                      // 107: truthcoin.v1.SignArbitraryMsgResponse
+	(*SignArbitraryMsgAsAddrRequest)(nil),                 // 108: truthcoin.v1.SignArbitraryMsgAsAddrRequest
+	(*SignArbitraryMsgAsAddrResponse)(nil),                // 109: truthcoin.v1.SignArbitraryMsgAsAddrResponse
+	(*VerifySignatureRequest)(nil),                        // 110: truthcoin.v1.VerifySignatureRequest
+	(*VerifySignatureResponse)(nil),                       // 111: truthcoin.v1.VerifySignatureResponse
 }
 var file_truthcoin_v1_truthcoin_proto_depIdxs = []int32{
 	0,   // 0: truthcoin.v1.TruthcoinService.GetBalance:input_type -> truthcoin.v1.GetBalanceRequest
@@ -5883,81 +5778,79 @@ var file_truthcoin_v1_truthcoin_proto_depIdxs = []int32{
 	76,  // 38: truthcoin.v1.TruthcoinService.SlotGet:input_type -> truthcoin.v1.SlotGetRequest
 	78,  // 39: truthcoin.v1.TruthcoinService.SlotClaim:input_type -> truthcoin.v1.SlotClaimRequest
 	80,  // 40: truthcoin.v1.TruthcoinService.SlotClaimCategory:input_type -> truthcoin.v1.SlotClaimCategoryRequest
-	82,  // 41: truthcoin.v1.TruthcoinService.VoteRegister:input_type -> truthcoin.v1.VoteRegisterRequest
-	84,  // 42: truthcoin.v1.TruthcoinService.VoteVoter:input_type -> truthcoin.v1.VoteVoterRequest
-	86,  // 43: truthcoin.v1.TruthcoinService.VoteVoters:input_type -> truthcoin.v1.VoteVotersRequest
-	88,  // 44: truthcoin.v1.TruthcoinService.VoteSubmit:input_type -> truthcoin.v1.VoteSubmitRequest
-	90,  // 45: truthcoin.v1.TruthcoinService.VoteList:input_type -> truthcoin.v1.VoteListRequest
-	92,  // 46: truthcoin.v1.TruthcoinService.VotePeriod:input_type -> truthcoin.v1.VotePeriodRequest
-	94,  // 47: truthcoin.v1.TruthcoinService.VotecoinTransfer:input_type -> truthcoin.v1.VotecoinTransferRequest
-	96,  // 48: truthcoin.v1.TruthcoinService.VotecoinBalance:input_type -> truthcoin.v1.VotecoinBalanceRequest
-	98,  // 49: truthcoin.v1.TruthcoinService.TransferVotecoin:input_type -> truthcoin.v1.TransferVotecoinRequest
-	100, // 50: truthcoin.v1.TruthcoinService.GetNewEncryptionKey:input_type -> truthcoin.v1.GetNewEncryptionKeyRequest
-	102, // 51: truthcoin.v1.TruthcoinService.GetNewVerifyingKey:input_type -> truthcoin.v1.GetNewVerifyingKeyRequest
-	104, // 52: truthcoin.v1.TruthcoinService.EncryptMsg:input_type -> truthcoin.v1.EncryptMsgRequest
-	106, // 53: truthcoin.v1.TruthcoinService.DecryptMsg:input_type -> truthcoin.v1.DecryptMsgRequest
-	108, // 54: truthcoin.v1.TruthcoinService.SignArbitraryMsg:input_type -> truthcoin.v1.SignArbitraryMsgRequest
-	110, // 55: truthcoin.v1.TruthcoinService.SignArbitraryMsgAsAddr:input_type -> truthcoin.v1.SignArbitraryMsgAsAddrRequest
-	112, // 56: truthcoin.v1.TruthcoinService.VerifySignature:input_type -> truthcoin.v1.VerifySignatureRequest
-	1,   // 57: truthcoin.v1.TruthcoinService.GetBalance:output_type -> truthcoin.v1.GetBalanceResponse
-	3,   // 58: truthcoin.v1.TruthcoinService.GetBlockCount:output_type -> truthcoin.v1.GetBlockCountResponse
-	5,   // 59: truthcoin.v1.TruthcoinService.Stop:output_type -> truthcoin.v1.StopResponse
-	7,   // 60: truthcoin.v1.TruthcoinService.GetNewAddress:output_type -> truthcoin.v1.GetNewAddressResponse
-	9,   // 61: truthcoin.v1.TruthcoinService.Withdraw:output_type -> truthcoin.v1.WithdrawResponse
-	11,  // 62: truthcoin.v1.TruthcoinService.Transfer:output_type -> truthcoin.v1.TransferResponse
-	13,  // 63: truthcoin.v1.TruthcoinService.GetSidechainWealth:output_type -> truthcoin.v1.GetSidechainWealthResponse
-	15,  // 64: truthcoin.v1.TruthcoinService.CreateDeposit:output_type -> truthcoin.v1.CreateDepositResponse
-	17,  // 65: truthcoin.v1.TruthcoinService.GetPendingWithdrawalBundle:output_type -> truthcoin.v1.GetPendingWithdrawalBundleResponse
-	19,  // 66: truthcoin.v1.TruthcoinService.ConnectPeer:output_type -> truthcoin.v1.ConnectPeerResponse
-	21,  // 67: truthcoin.v1.TruthcoinService.ListPeers:output_type -> truthcoin.v1.ListPeersResponse
-	23,  // 68: truthcoin.v1.TruthcoinService.Mine:output_type -> truthcoin.v1.MineResponse
-	25,  // 69: truthcoin.v1.TruthcoinService.GetBlock:output_type -> truthcoin.v1.GetBlockResponse
-	27,  // 70: truthcoin.v1.TruthcoinService.GetBestMainchainBlockHash:output_type -> truthcoin.v1.GetBestMainchainBlockHashResponse
-	29,  // 71: truthcoin.v1.TruthcoinService.GetBestSidechainBlockHash:output_type -> truthcoin.v1.GetBestSidechainBlockHashResponse
-	31,  // 72: truthcoin.v1.TruthcoinService.GetBmmInclusions:output_type -> truthcoin.v1.GetBmmInclusionsResponse
-	33,  // 73: truthcoin.v1.TruthcoinService.GetWalletUtxos:output_type -> truthcoin.v1.GetWalletUtxosResponse
-	35,  // 74: truthcoin.v1.TruthcoinService.ListUtxos:output_type -> truthcoin.v1.ListUtxosResponse
-	37,  // 75: truthcoin.v1.TruthcoinService.RemoveFromMempool:output_type -> truthcoin.v1.RemoveFromMempoolResponse
-	39,  // 76: truthcoin.v1.TruthcoinService.GetLatestFailedWithdrawalBundleHeight:output_type -> truthcoin.v1.GetLatestFailedWithdrawalBundleHeightResponse
-	41,  // 77: truthcoin.v1.TruthcoinService.GenerateMnemonic:output_type -> truthcoin.v1.GenerateMnemonicResponse
-	43,  // 78: truthcoin.v1.TruthcoinService.SetSeedFromMnemonic:output_type -> truthcoin.v1.SetSeedFromMnemonicResponse
-	45,  // 79: truthcoin.v1.TruthcoinService.CallRaw:output_type -> truthcoin.v1.CallRawResponse
-	47,  // 80: truthcoin.v1.TruthcoinService.RefreshWallet:output_type -> truthcoin.v1.RefreshWalletResponse
-	49,  // 81: truthcoin.v1.TruthcoinService.GetTransaction:output_type -> truthcoin.v1.GetTransactionResponse
-	51,  // 82: truthcoin.v1.TruthcoinService.GetTransactionInfo:output_type -> truthcoin.v1.GetTransactionInfoResponse
-	53,  // 83: truthcoin.v1.TruthcoinService.GetWalletAddresses:output_type -> truthcoin.v1.GetWalletAddressesResponse
-	55,  // 84: truthcoin.v1.TruthcoinService.MyUtxos:output_type -> truthcoin.v1.MyUtxosResponse
-	57,  // 85: truthcoin.v1.TruthcoinService.MyUnconfirmedUtxos:output_type -> truthcoin.v1.MyUnconfirmedUtxosResponse
-	59,  // 86: truthcoin.v1.TruthcoinService.CalculateInitialLiquidity:output_type -> truthcoin.v1.CalculateInitialLiquidityResponse
-	61,  // 87: truthcoin.v1.TruthcoinService.MarketCreate:output_type -> truthcoin.v1.MarketCreateResponse
-	63,  // 88: truthcoin.v1.TruthcoinService.MarketList:output_type -> truthcoin.v1.MarketListResponse
-	65,  // 89: truthcoin.v1.TruthcoinService.MarketGet:output_type -> truthcoin.v1.MarketGetResponse
-	67,  // 90: truthcoin.v1.TruthcoinService.MarketBuy:output_type -> truthcoin.v1.MarketBuyResponse
-	69,  // 91: truthcoin.v1.TruthcoinService.MarketSell:output_type -> truthcoin.v1.MarketSellResponse
-	71,  // 92: truthcoin.v1.TruthcoinService.MarketPositions:output_type -> truthcoin.v1.MarketPositionsResponse
-	73,  // 93: truthcoin.v1.TruthcoinService.SlotStatus:output_type -> truthcoin.v1.SlotStatusResponse
-	75,  // 94: truthcoin.v1.TruthcoinService.SlotList:output_type -> truthcoin.v1.SlotListResponse
-	77,  // 95: truthcoin.v1.TruthcoinService.SlotGet:output_type -> truthcoin.v1.SlotGetResponse
-	79,  // 96: truthcoin.v1.TruthcoinService.SlotClaim:output_type -> truthcoin.v1.SlotClaimResponse
-	81,  // 97: truthcoin.v1.TruthcoinService.SlotClaimCategory:output_type -> truthcoin.v1.SlotClaimCategoryResponse
-	83,  // 98: truthcoin.v1.TruthcoinService.VoteRegister:output_type -> truthcoin.v1.VoteRegisterResponse
-	85,  // 99: truthcoin.v1.TruthcoinService.VoteVoter:output_type -> truthcoin.v1.VoteVoterResponse
-	87,  // 100: truthcoin.v1.TruthcoinService.VoteVoters:output_type -> truthcoin.v1.VoteVotersResponse
-	89,  // 101: truthcoin.v1.TruthcoinService.VoteSubmit:output_type -> truthcoin.v1.VoteSubmitResponse
-	91,  // 102: truthcoin.v1.TruthcoinService.VoteList:output_type -> truthcoin.v1.VoteListResponse
-	93,  // 103: truthcoin.v1.TruthcoinService.VotePeriod:output_type -> truthcoin.v1.VotePeriodResponse
-	95,  // 104: truthcoin.v1.TruthcoinService.VotecoinTransfer:output_type -> truthcoin.v1.VotecoinTransferResponse
-	97,  // 105: truthcoin.v1.TruthcoinService.VotecoinBalance:output_type -> truthcoin.v1.VotecoinBalanceResponse
-	99,  // 106: truthcoin.v1.TruthcoinService.TransferVotecoin:output_type -> truthcoin.v1.TransferVotecoinResponse
-	101, // 107: truthcoin.v1.TruthcoinService.GetNewEncryptionKey:output_type -> truthcoin.v1.GetNewEncryptionKeyResponse
-	103, // 108: truthcoin.v1.TruthcoinService.GetNewVerifyingKey:output_type -> truthcoin.v1.GetNewVerifyingKeyResponse
-	105, // 109: truthcoin.v1.TruthcoinService.EncryptMsg:output_type -> truthcoin.v1.EncryptMsgResponse
-	107, // 110: truthcoin.v1.TruthcoinService.DecryptMsg:output_type -> truthcoin.v1.DecryptMsgResponse
-	109, // 111: truthcoin.v1.TruthcoinService.SignArbitraryMsg:output_type -> truthcoin.v1.SignArbitraryMsgResponse
-	111, // 112: truthcoin.v1.TruthcoinService.SignArbitraryMsgAsAddr:output_type -> truthcoin.v1.SignArbitraryMsgAsAddrResponse
-	113, // 113: truthcoin.v1.TruthcoinService.VerifySignature:output_type -> truthcoin.v1.VerifySignatureResponse
-	57,  // [57:114] is the sub-list for method output_type
-	0,   // [0:57] is the sub-list for method input_type
+	82,  // 41: truthcoin.v1.TruthcoinService.VoteVoter:input_type -> truthcoin.v1.VoteVoterRequest
+	84,  // 42: truthcoin.v1.TruthcoinService.VoteVoters:input_type -> truthcoin.v1.VoteVotersRequest
+	86,  // 43: truthcoin.v1.TruthcoinService.VoteSubmit:input_type -> truthcoin.v1.VoteSubmitRequest
+	88,  // 44: truthcoin.v1.TruthcoinService.VoteList:input_type -> truthcoin.v1.VoteListRequest
+	90,  // 45: truthcoin.v1.TruthcoinService.VotePeriod:input_type -> truthcoin.v1.VotePeriodRequest
+	92,  // 46: truthcoin.v1.TruthcoinService.VotecoinTransfer:input_type -> truthcoin.v1.VotecoinTransferRequest
+	94,  // 47: truthcoin.v1.TruthcoinService.VotecoinBalance:input_type -> truthcoin.v1.VotecoinBalanceRequest
+	96,  // 48: truthcoin.v1.TruthcoinService.TransferVotecoin:input_type -> truthcoin.v1.TransferVotecoinRequest
+	98,  // 49: truthcoin.v1.TruthcoinService.GetNewEncryptionKey:input_type -> truthcoin.v1.GetNewEncryptionKeyRequest
+	100, // 50: truthcoin.v1.TruthcoinService.GetNewVerifyingKey:input_type -> truthcoin.v1.GetNewVerifyingKeyRequest
+	102, // 51: truthcoin.v1.TruthcoinService.EncryptMsg:input_type -> truthcoin.v1.EncryptMsgRequest
+	104, // 52: truthcoin.v1.TruthcoinService.DecryptMsg:input_type -> truthcoin.v1.DecryptMsgRequest
+	106, // 53: truthcoin.v1.TruthcoinService.SignArbitraryMsg:input_type -> truthcoin.v1.SignArbitraryMsgRequest
+	108, // 54: truthcoin.v1.TruthcoinService.SignArbitraryMsgAsAddr:input_type -> truthcoin.v1.SignArbitraryMsgAsAddrRequest
+	110, // 55: truthcoin.v1.TruthcoinService.VerifySignature:input_type -> truthcoin.v1.VerifySignatureRequest
+	1,   // 56: truthcoin.v1.TruthcoinService.GetBalance:output_type -> truthcoin.v1.GetBalanceResponse
+	3,   // 57: truthcoin.v1.TruthcoinService.GetBlockCount:output_type -> truthcoin.v1.GetBlockCountResponse
+	5,   // 58: truthcoin.v1.TruthcoinService.Stop:output_type -> truthcoin.v1.StopResponse
+	7,   // 59: truthcoin.v1.TruthcoinService.GetNewAddress:output_type -> truthcoin.v1.GetNewAddressResponse
+	9,   // 60: truthcoin.v1.TruthcoinService.Withdraw:output_type -> truthcoin.v1.WithdrawResponse
+	11,  // 61: truthcoin.v1.TruthcoinService.Transfer:output_type -> truthcoin.v1.TransferResponse
+	13,  // 62: truthcoin.v1.TruthcoinService.GetSidechainWealth:output_type -> truthcoin.v1.GetSidechainWealthResponse
+	15,  // 63: truthcoin.v1.TruthcoinService.CreateDeposit:output_type -> truthcoin.v1.CreateDepositResponse
+	17,  // 64: truthcoin.v1.TruthcoinService.GetPendingWithdrawalBundle:output_type -> truthcoin.v1.GetPendingWithdrawalBundleResponse
+	19,  // 65: truthcoin.v1.TruthcoinService.ConnectPeer:output_type -> truthcoin.v1.ConnectPeerResponse
+	21,  // 66: truthcoin.v1.TruthcoinService.ListPeers:output_type -> truthcoin.v1.ListPeersResponse
+	23,  // 67: truthcoin.v1.TruthcoinService.Mine:output_type -> truthcoin.v1.MineResponse
+	25,  // 68: truthcoin.v1.TruthcoinService.GetBlock:output_type -> truthcoin.v1.GetBlockResponse
+	27,  // 69: truthcoin.v1.TruthcoinService.GetBestMainchainBlockHash:output_type -> truthcoin.v1.GetBestMainchainBlockHashResponse
+	29,  // 70: truthcoin.v1.TruthcoinService.GetBestSidechainBlockHash:output_type -> truthcoin.v1.GetBestSidechainBlockHashResponse
+	31,  // 71: truthcoin.v1.TruthcoinService.GetBmmInclusions:output_type -> truthcoin.v1.GetBmmInclusionsResponse
+	33,  // 72: truthcoin.v1.TruthcoinService.GetWalletUtxos:output_type -> truthcoin.v1.GetWalletUtxosResponse
+	35,  // 73: truthcoin.v1.TruthcoinService.ListUtxos:output_type -> truthcoin.v1.ListUtxosResponse
+	37,  // 74: truthcoin.v1.TruthcoinService.RemoveFromMempool:output_type -> truthcoin.v1.RemoveFromMempoolResponse
+	39,  // 75: truthcoin.v1.TruthcoinService.GetLatestFailedWithdrawalBundleHeight:output_type -> truthcoin.v1.GetLatestFailedWithdrawalBundleHeightResponse
+	41,  // 76: truthcoin.v1.TruthcoinService.GenerateMnemonic:output_type -> truthcoin.v1.GenerateMnemonicResponse
+	43,  // 77: truthcoin.v1.TruthcoinService.SetSeedFromMnemonic:output_type -> truthcoin.v1.SetSeedFromMnemonicResponse
+	45,  // 78: truthcoin.v1.TruthcoinService.CallRaw:output_type -> truthcoin.v1.CallRawResponse
+	47,  // 79: truthcoin.v1.TruthcoinService.RefreshWallet:output_type -> truthcoin.v1.RefreshWalletResponse
+	49,  // 80: truthcoin.v1.TruthcoinService.GetTransaction:output_type -> truthcoin.v1.GetTransactionResponse
+	51,  // 81: truthcoin.v1.TruthcoinService.GetTransactionInfo:output_type -> truthcoin.v1.GetTransactionInfoResponse
+	53,  // 82: truthcoin.v1.TruthcoinService.GetWalletAddresses:output_type -> truthcoin.v1.GetWalletAddressesResponse
+	55,  // 83: truthcoin.v1.TruthcoinService.MyUtxos:output_type -> truthcoin.v1.MyUtxosResponse
+	57,  // 84: truthcoin.v1.TruthcoinService.MyUnconfirmedUtxos:output_type -> truthcoin.v1.MyUnconfirmedUtxosResponse
+	59,  // 85: truthcoin.v1.TruthcoinService.CalculateInitialLiquidity:output_type -> truthcoin.v1.CalculateInitialLiquidityResponse
+	61,  // 86: truthcoin.v1.TruthcoinService.MarketCreate:output_type -> truthcoin.v1.MarketCreateResponse
+	63,  // 87: truthcoin.v1.TruthcoinService.MarketList:output_type -> truthcoin.v1.MarketListResponse
+	65,  // 88: truthcoin.v1.TruthcoinService.MarketGet:output_type -> truthcoin.v1.MarketGetResponse
+	67,  // 89: truthcoin.v1.TruthcoinService.MarketBuy:output_type -> truthcoin.v1.MarketBuyResponse
+	69,  // 90: truthcoin.v1.TruthcoinService.MarketSell:output_type -> truthcoin.v1.MarketSellResponse
+	71,  // 91: truthcoin.v1.TruthcoinService.MarketPositions:output_type -> truthcoin.v1.MarketPositionsResponse
+	73,  // 92: truthcoin.v1.TruthcoinService.SlotStatus:output_type -> truthcoin.v1.SlotStatusResponse
+	75,  // 93: truthcoin.v1.TruthcoinService.SlotList:output_type -> truthcoin.v1.SlotListResponse
+	77,  // 94: truthcoin.v1.TruthcoinService.SlotGet:output_type -> truthcoin.v1.SlotGetResponse
+	79,  // 95: truthcoin.v1.TruthcoinService.SlotClaim:output_type -> truthcoin.v1.SlotClaimResponse
+	81,  // 96: truthcoin.v1.TruthcoinService.SlotClaimCategory:output_type -> truthcoin.v1.SlotClaimCategoryResponse
+	83,  // 97: truthcoin.v1.TruthcoinService.VoteVoter:output_type -> truthcoin.v1.VoteVoterResponse
+	85,  // 98: truthcoin.v1.TruthcoinService.VoteVoters:output_type -> truthcoin.v1.VoteVotersResponse
+	87,  // 99: truthcoin.v1.TruthcoinService.VoteSubmit:output_type -> truthcoin.v1.VoteSubmitResponse
+	89,  // 100: truthcoin.v1.TruthcoinService.VoteList:output_type -> truthcoin.v1.VoteListResponse
+	91,  // 101: truthcoin.v1.TruthcoinService.VotePeriod:output_type -> truthcoin.v1.VotePeriodResponse
+	93,  // 102: truthcoin.v1.TruthcoinService.VotecoinTransfer:output_type -> truthcoin.v1.VotecoinTransferResponse
+	95,  // 103: truthcoin.v1.TruthcoinService.VotecoinBalance:output_type -> truthcoin.v1.VotecoinBalanceResponse
+	97,  // 104: truthcoin.v1.TruthcoinService.TransferVotecoin:output_type -> truthcoin.v1.TransferVotecoinResponse
+	99,  // 105: truthcoin.v1.TruthcoinService.GetNewEncryptionKey:output_type -> truthcoin.v1.GetNewEncryptionKeyResponse
+	101, // 106: truthcoin.v1.TruthcoinService.GetNewVerifyingKey:output_type -> truthcoin.v1.GetNewVerifyingKeyResponse
+	103, // 107: truthcoin.v1.TruthcoinService.EncryptMsg:output_type -> truthcoin.v1.EncryptMsgResponse
+	105, // 108: truthcoin.v1.TruthcoinService.DecryptMsg:output_type -> truthcoin.v1.DecryptMsgResponse
+	107, // 109: truthcoin.v1.TruthcoinService.SignArbitraryMsg:output_type -> truthcoin.v1.SignArbitraryMsgResponse
+	109, // 110: truthcoin.v1.TruthcoinService.SignArbitraryMsgAsAddr:output_type -> truthcoin.v1.SignArbitraryMsgAsAddrResponse
+	111, // 111: truthcoin.v1.TruthcoinService.VerifySignature:output_type -> truthcoin.v1.VerifySignatureResponse
+	56,  // [56:112] is the sub-list for method output_type
+	0,   // [0:56] is the sub-list for method input_type
 	0,   // [0:0] is the sub-list for extension type_name
 	0,   // [0:0] is the sub-list for extension extendee
 	0,   // [0:0] is the sub-list for field type_name
@@ -5975,18 +5868,17 @@ func file_truthcoin_v1_truthcoin_proto_init() {
 	file_truthcoin_v1_truthcoin_proto_msgTypes[70].OneofWrappers = []any{}
 	file_truthcoin_v1_truthcoin_proto_msgTypes[74].OneofWrappers = []any{}
 	file_truthcoin_v1_truthcoin_proto_msgTypes[78].OneofWrappers = []any{}
-	file_truthcoin_v1_truthcoin_proto_msgTypes[82].OneofWrappers = []any{}
+	file_truthcoin_v1_truthcoin_proto_msgTypes[88].OneofWrappers = []any{}
 	file_truthcoin_v1_truthcoin_proto_msgTypes[90].OneofWrappers = []any{}
 	file_truthcoin_v1_truthcoin_proto_msgTypes[92].OneofWrappers = []any{}
-	file_truthcoin_v1_truthcoin_proto_msgTypes[94].OneofWrappers = []any{}
-	file_truthcoin_v1_truthcoin_proto_msgTypes[98].OneofWrappers = []any{}
+	file_truthcoin_v1_truthcoin_proto_msgTypes[96].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_truthcoin_v1_truthcoin_proto_rawDesc), len(file_truthcoin_v1_truthcoin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   114,
+			NumMessages:   112,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

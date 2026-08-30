@@ -112,6 +112,23 @@ void main() {
         expect(period.decisions.first.question, contains('BTC'));
         expect(period.decisions.last.isScaled, true);
       });
+
+      test('parses a category decision with its options', () {
+        final decision = DecisionSummary.fromJson({
+          'decision_id_hex': '002a0004',
+          'header': 'Who wins the election?',
+          'decision_type': {
+            'Category': {
+              'options': ['Alice', 'Bob', 'Carol'],
+            },
+          },
+        });
+
+        expect(decision.isCategory, true);
+        expect(decision.isBinary, false);
+        expect(decision.isScaled, false);
+        expect(decision.categoryOptions, ['Alice', 'Bob', 'Carol']);
+      });
     });
 
     group('MarketSummary', () {

@@ -1048,36 +1048,6 @@ const SlotClaimCategoryResponse$json = {
 final $typed_data.Uint8List slotClaimCategoryResponseDescriptor = $convert.base64Decode(
     'ChlTbG90Q2xhaW1DYXRlZ29yeVJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
-@$core.Deprecated('Use voteRegisterRequestDescriptor instead')
-const VoteRegisterRequest$json = {
-  '1': 'VoteRegisterRequest',
-  '2': [
-    {'1': 'fee_sats', '3': 1, '4': 1, '5': 3, '10': 'feeSats'},
-    {'1': 'reputation_bond_sats', '3': 2, '4': 1, '5': 3, '9': 0, '10': 'reputationBondSats', '17': true},
-  ],
-  '8': [
-    {'1': '_reputation_bond_sats'},
-  ],
-};
-
-/// Descriptor for `VoteRegisterRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List voteRegisterRequestDescriptor = $convert.base64Decode(
-    'ChNWb3RlUmVnaXN0ZXJSZXF1ZXN0EhkKCGZlZV9zYXRzGAEgASgDUgdmZWVTYXRzEjUKFHJlcH'
-    'V0YXRpb25fYm9uZF9zYXRzGAIgASgDSABSEnJlcHV0YXRpb25Cb25kU2F0c4gBAUIXChVfcmVw'
-    'dXRhdGlvbl9ib25kX3NhdHM=');
-
-@$core.Deprecated('Use voteRegisterResponseDescriptor instead')
-const VoteRegisterResponse$json = {
-  '1': 'VoteRegisterResponse',
-  '2': [
-    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
-  ],
-};
-
-/// Descriptor for `VoteRegisterResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List voteRegisterResponseDescriptor = $convert.base64Decode(
-    'ChRWb3RlUmVnaXN0ZXJSZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
-
 @$core.Deprecated('Use voteVoterRequestDescriptor instead')
 const VoteVoterRequest$json = {
   '1': 'VoteVoterRequest',
@@ -1520,7 +1490,6 @@ const $core.Map<$core.String, $core.dynamic> TruthcoinServiceBase$json = {
     {'1': 'SlotGet', '2': '.truthcoin.v1.SlotGetRequest', '3': '.truthcoin.v1.SlotGetResponse'},
     {'1': 'SlotClaim', '2': '.truthcoin.v1.SlotClaimRequest', '3': '.truthcoin.v1.SlotClaimResponse'},
     {'1': 'SlotClaimCategory', '2': '.truthcoin.v1.SlotClaimCategoryRequest', '3': '.truthcoin.v1.SlotClaimCategoryResponse'},
-    {'1': 'VoteRegister', '2': '.truthcoin.v1.VoteRegisterRequest', '3': '.truthcoin.v1.VoteRegisterResponse'},
     {'1': 'VoteVoter', '2': '.truthcoin.v1.VoteVoterRequest', '3': '.truthcoin.v1.VoteVoterResponse'},
     {'1': 'VoteVoters', '2': '.truthcoin.v1.VoteVotersRequest', '3': '.truthcoin.v1.VoteVotersResponse'},
     {'1': 'VoteSubmit', '2': '.truthcoin.v1.VoteSubmitRequest', '3': '.truthcoin.v1.VoteSubmitResponse'},
@@ -1623,8 +1592,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> TruthcoinS
   '.truthcoin.v1.SlotClaimResponse': SlotClaimResponse$json,
   '.truthcoin.v1.SlotClaimCategoryRequest': SlotClaimCategoryRequest$json,
   '.truthcoin.v1.SlotClaimCategoryResponse': SlotClaimCategoryResponse$json,
-  '.truthcoin.v1.VoteRegisterRequest': VoteRegisterRequest$json,
-  '.truthcoin.v1.VoteRegisterResponse': VoteRegisterResponse$json,
   '.truthcoin.v1.VoteVoterRequest': VoteVoterRequest$json,
   '.truthcoin.v1.VoteVoterResponse': VoteVoterResponse$json,
   '.truthcoin.v1.VoteVotersRequest': VoteVotersRequest$json,
@@ -1727,31 +1694,30 @@ final $typed_data.Uint8List truthcoinServiceDescriptor = $convert.base64Decode(
     'JMCglTbG90Q2xhaW0SHi50cnV0aGNvaW4udjEuU2xvdENsYWltUmVxdWVzdBofLnRydXRoY29p'
     'bi52MS5TbG90Q2xhaW1SZXNwb25zZRJkChFTbG90Q2xhaW1DYXRlZ29yeRImLnRydXRoY29pbi'
     '52MS5TbG90Q2xhaW1DYXRlZ29yeVJlcXVlc3QaJy50cnV0aGNvaW4udjEuU2xvdENsYWltQ2F0'
-    'ZWdvcnlSZXNwb25zZRJVCgxWb3RlUmVnaXN0ZXISIS50cnV0aGNvaW4udjEuVm90ZVJlZ2lzdG'
-    'VyUmVxdWVzdBoiLnRydXRoY29pbi52MS5Wb3RlUmVnaXN0ZXJSZXNwb25zZRJMCglWb3RlVm90'
-    'ZXISHi50cnV0aGNvaW4udjEuVm90ZVZvdGVyUmVxdWVzdBofLnRydXRoY29pbi52MS5Wb3RlVm'
-    '90ZXJSZXNwb25zZRJPCgpWb3RlVm90ZXJzEh8udHJ1dGhjb2luLnYxLlZvdGVWb3RlcnNSZXF1'
-    'ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVWb3RlcnNSZXNwb25zZRJPCgpWb3RlU3VibWl0Eh8udH'
-    'J1dGhjb2luLnYxLlZvdGVTdWJtaXRSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVTdWJtaXRS'
-    'ZXNwb25zZRJJCghWb3RlTGlzdBIdLnRydXRoY29pbi52MS5Wb3RlTGlzdFJlcXVlc3QaHi50cn'
-    'V0aGNvaW4udjEuVm90ZUxpc3RSZXNwb25zZRJPCgpWb3RlUGVyaW9kEh8udHJ1dGhjb2luLnYx'
-    'LlZvdGVQZXJpb2RSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVQZXJpb2RSZXNwb25zZRJhCh'
-    'BWb3RlY29pblRyYW5zZmVyEiUudHJ1dGhjb2luLnYxLlZvdGVjb2luVHJhbnNmZXJSZXF1ZXN0'
-    'GiYudHJ1dGhjb2luLnYxLlZvdGVjb2luVHJhbnNmZXJSZXNwb25zZRJeCg9Wb3RlY29pbkJhbG'
-    'FuY2USJC50cnV0aGNvaW4udjEuVm90ZWNvaW5CYWxhbmNlUmVxdWVzdBolLnRydXRoY29pbi52'
-    'MS5Wb3RlY29pbkJhbGFuY2VSZXNwb25zZRJhChBUcmFuc2ZlclZvdGVjb2luEiUudHJ1dGhjb2'
-    'luLnYxLlRyYW5zZmVyVm90ZWNvaW5SZXF1ZXN0GiYudHJ1dGhjb2luLnYxLlRyYW5zZmVyVm90'
-    'ZWNvaW5SZXNwb25zZRJqChNHZXROZXdFbmNyeXB0aW9uS2V5EigudHJ1dGhjb2luLnYxLkdldE'
-    '5ld0VuY3J5cHRpb25LZXlSZXF1ZXN0GikudHJ1dGhjb2luLnYxLkdldE5ld0VuY3J5cHRpb25L'
-    'ZXlSZXNwb25zZRJnChJHZXROZXdWZXJpZnlpbmdLZXkSJy50cnV0aGNvaW4udjEuR2V0TmV3Vm'
-    'VyaWZ5aW5nS2V5UmVxdWVzdBooLnRydXRoY29pbi52MS5HZXROZXdWZXJpZnlpbmdLZXlSZXNw'
-    'b25zZRJPCgpFbmNyeXB0TXNnEh8udHJ1dGhjb2luLnYxLkVuY3J5cHRNc2dSZXF1ZXN0GiAudH'
-    'J1dGhjb2luLnYxLkVuY3J5cHRNc2dSZXNwb25zZRJPCgpEZWNyeXB0TXNnEh8udHJ1dGhjb2lu'
-    'LnYxLkRlY3J5cHRNc2dSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLkRlY3J5cHRNc2dSZXNwb25zZR'
-    'JhChBTaWduQXJiaXRyYXJ5TXNnEiUudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1'
-    'ZXN0GiYudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXNwb25zZRJzChZTaWduQXJiaX'
-    'RyYXJ5TXNnQXNBZGRyEisudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXF1'
-    'ZXN0GiwudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXNwb25zZRJeCg9WZX'
-    'JpZnlTaWduYXR1cmUSJC50cnV0aGNvaW4udjEuVmVyaWZ5U2lnbmF0dXJlUmVxdWVzdBolLnRy'
-    'dXRoY29pbi52MS5WZXJpZnlTaWduYXR1cmVSZXNwb25zZQ==');
+    'ZWdvcnlSZXNwb25zZRJMCglWb3RlVm90ZXISHi50cnV0aGNvaW4udjEuVm90ZVZvdGVyUmVxdW'
+    'VzdBofLnRydXRoY29pbi52MS5Wb3RlVm90ZXJSZXNwb25zZRJPCgpWb3RlVm90ZXJzEh8udHJ1'
+    'dGhjb2luLnYxLlZvdGVWb3RlcnNSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLlZvdGVWb3RlcnNSZX'
+    'Nwb25zZRJPCgpWb3RlU3VibWl0Eh8udHJ1dGhjb2luLnYxLlZvdGVTdWJtaXRSZXF1ZXN0GiAu'
+    'dHJ1dGhjb2luLnYxLlZvdGVTdWJtaXRSZXNwb25zZRJJCghWb3RlTGlzdBIdLnRydXRoY29pbi'
+    '52MS5Wb3RlTGlzdFJlcXVlc3QaHi50cnV0aGNvaW4udjEuVm90ZUxpc3RSZXNwb25zZRJPCgpW'
+    'b3RlUGVyaW9kEh8udHJ1dGhjb2luLnYxLlZvdGVQZXJpb2RSZXF1ZXN0GiAudHJ1dGhjb2luLn'
+    'YxLlZvdGVQZXJpb2RSZXNwb25zZRJhChBWb3RlY29pblRyYW5zZmVyEiUudHJ1dGhjb2luLnYx'
+    'LlZvdGVjb2luVHJhbnNmZXJSZXF1ZXN0GiYudHJ1dGhjb2luLnYxLlZvdGVjb2luVHJhbnNmZX'
+    'JSZXNwb25zZRJeCg9Wb3RlY29pbkJhbGFuY2USJC50cnV0aGNvaW4udjEuVm90ZWNvaW5CYWxh'
+    'bmNlUmVxdWVzdBolLnRydXRoY29pbi52MS5Wb3RlY29pbkJhbGFuY2VSZXNwb25zZRJhChBUcm'
+    'Fuc2ZlclZvdGVjb2luEiUudHJ1dGhjb2luLnYxLlRyYW5zZmVyVm90ZWNvaW5SZXF1ZXN0GiYu'
+    'dHJ1dGhjb2luLnYxLlRyYW5zZmVyVm90ZWNvaW5SZXNwb25zZRJqChNHZXROZXdFbmNyeXB0aW'
+    '9uS2V5EigudHJ1dGhjb2luLnYxLkdldE5ld0VuY3J5cHRpb25LZXlSZXF1ZXN0GikudHJ1dGhj'
+    'b2luLnYxLkdldE5ld0VuY3J5cHRpb25LZXlSZXNwb25zZRJnChJHZXROZXdWZXJpZnlpbmdLZX'
+    'kSJy50cnV0aGNvaW4udjEuR2V0TmV3VmVyaWZ5aW5nS2V5UmVxdWVzdBooLnRydXRoY29pbi52'
+    'MS5HZXROZXdWZXJpZnlpbmdLZXlSZXNwb25zZRJPCgpFbmNyeXB0TXNnEh8udHJ1dGhjb2luLn'
+    'YxLkVuY3J5cHRNc2dSZXF1ZXN0GiAudHJ1dGhjb2luLnYxLkVuY3J5cHRNc2dSZXNwb25zZRJP'
+    'CgpEZWNyeXB0TXNnEh8udHJ1dGhjb2luLnYxLkRlY3J5cHRNc2dSZXF1ZXN0GiAudHJ1dGhjb2'
+    'luLnYxLkRlY3J5cHRNc2dSZXNwb25zZRJhChBTaWduQXJiaXRyYXJ5TXNnEiUudHJ1dGhjb2lu'
+    'LnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1ZXN0GiYudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcn'
+    'lNc2dSZXNwb25zZRJzChZTaWduQXJiaXRyYXJ5TXNnQXNBZGRyEisudHJ1dGhjb2luLnYxLlNp'
+    'Z25BcmJpdHJhcnlNc2dBc0FkZHJSZXF1ZXN0GiwudHJ1dGhjb2luLnYxLlNpZ25BcmJpdHJhcn'
+    'lNc2dBc0FkZHJSZXNwb25zZRJeCg9WZXJpZnlTaWduYXR1cmUSJC50cnV0aGNvaW4udjEuVmVy'
+    'aWZ5U2lnbmF0dXJlUmVxdWVzdBolLnRydXRoY29pbi52MS5WZXJpZnlTaWduYXR1cmVSZXNwb2'
+    '5zZQ==');
 

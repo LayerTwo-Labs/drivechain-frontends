@@ -173,20 +173,6 @@ class VotingProvider extends ChangeNotifier {
     }
   }
 
-  /// Register as a voter
-  Future<String?> registerAsVoter({int? bondSats, required int feeSats}) async {
-    try {
-      final txid = await _rpc.voteRegister(feeSats: feeSats, reputationBondSats: bondSats);
-      _log.i('Registered as voter: $txid');
-      return txid;
-    } catch (e) {
-      error = 'Failed to register: $e';
-      _log.e(error);
-      notifyListeners();
-      return null;
-    }
-  }
-
   /// Claim a decision slot
   Future<String?> claimSlot({
     required int periodIndex,
