@@ -1,8 +1,10 @@
 package api_drivechain
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -554,10 +556,6 @@ func (s *Server) processPegDataBlocks(blocks []*validatorpb.GetTwoWayPegDataResp
 
 // mergeBundles merges existing cached bundles with new bundles, updating statuses
 func (s *Server) mergeBundles(existing, new []*pb.WithdrawalBundle) []*pb.WithdrawalBundle {
-	if len(existing) == 0 {
-		return new
-	}
-
 	// Create a map of existing bundles by M6Id for quick lookup
 	bundleMap := lo.KeyBy(existing, func(b *pb.WithdrawalBundle) string {
 		return b.M6Id
@@ -595,6 +593,9 @@ func (s *Server) mergeBundles(existing, new []*pb.WithdrawalBundle) []*pb.Withdr
 	for _, b := range bundleMap {
 		result = append(result, b)
 	}
+	slices.SortFunc(result, func(a, b *pb.WithdrawalBundle) int {
+		return cmp.Or(cmp.Compare(a.BlockHeight, b.BlockHeight), cmp.Compare(a.M6Id, b.M6Id))
+	})
 
 	return result
 }
