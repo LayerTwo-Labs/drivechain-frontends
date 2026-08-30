@@ -320,6 +320,46 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 	})
 }
 
+// A locked wallet must not be able to drop a cheque row: the row is the only
+// record of the derivation index that address belongs to.
+func TestService_DeleteChequeRequiresUnlockedWallet(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	db := database.Test(t)
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	mockBitcoind.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+			Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+		}, nil).AnyTimes()
+	mockBitcoind.EXPECT().
+		CreateWallet(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+			Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
+		}, nil).AnyTimes()
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+	// Unfunded and unswept, so only the lock can stop the delete.
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qlockeddelete00000000000000000000000000000")
+	require.NoError(t, err)
+
+	_, err = cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+	_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+	require.NoError(t, err)
+}
+
 func TestService_IsWalletUnlocked(t *testing.T) {
 	t.Parallel()
 

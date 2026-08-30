@@ -1851,6 +1851,10 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	// Check if cheque exists
 	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
