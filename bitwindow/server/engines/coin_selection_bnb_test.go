@@ -160,6 +160,53 @@ func TestBranchAndBoundFallsBackWhenNoExactMatch(t *testing.T) {
 	}
 }
 
+func TestBranchAndBoundExactMatchBehindNonContributingCoins(t *testing.T) {
+	const feeRate = 10
+	numOutputs := 2
+
+	feePerInput := int64(InputVbytes) * feeRate
+	value := func(effectiveValue int64) int64 { return effectiveValue + feePerInput }
+
+	// The exact match is the second and third coin (400k + 300k effective). The
+	// first coin overshoots the target by more than costOfChange with either of
+	// them, and even with every tiny coin it stays short — so the whole subtree
+	// that includes it must be pruned before the search reaches the match.
+	values := []int64{value(500_000), value(400_000), value(300_000)}
+	for i := 0; i < 20; i++ {
+		values = append(values, value(1_000))
+	}
+	utxos := bnbUTXOs(values...)
+
+	target := int64(700_000)
+	sendAmount := target - int64(OverheadVbytes+OutputVbytes)*feeRate
+
+	result, err := SelectCoins(
+		utxos,
+		map[string]bool{},
+		sendAmount,
+		feeRate,
+		numOutputs,
+		walletpb.CoinSelectionStrategy_COIN_SELECTION_STRATEGY_BRANCH_AND_BOUND,
+		map[string]bool{},
+	)
+	if err != nil {
+		t.Fatalf("SelectCoins: %v", err)
+	}
+	if result.ChangeSats != 0 {
+		t.Fatalf("BnB missed the exact no-change match, produced change=%d", result.ChangeSats)
+	}
+
+	want := map[string]bool{utxos[1].Output: true, utxos[2].Output: true}
+	if len(result.SelectedUTXOs) != len(want) {
+		t.Fatalf("expected %d inputs, got %d", len(want), len(result.SelectedUTXOs))
+	}
+	for _, u := range result.SelectedUTXOs {
+		if !want[u.Output] {
+			t.Fatalf("unexpected input %s (%d sats) in selection", u.Output, u.ValueSats)
+		}
+	}
+}
+
 // exactMatchAvail returns the value of a single available UTXO whose effective
 // value, added to the required inputs, exactly funds a no-change transaction.
 // A correct BnB must select it (change == 0); the double-counted-fee bug aims
