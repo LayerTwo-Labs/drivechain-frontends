@@ -103,8 +103,13 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 
 	// Check cache
 	if name, ok := p.coreWallets[walletID]; ok {
-		p.retryBip47NotificationDescriptor(ctx, walletID, name)
-		return name, nil
+		if p.coreWalletLoaded(ctx, name) {
+			p.retryBip47NotificationDescriptor(ctx, walletID, name)
+			return name, nil
+		}
+		// bitcoind restarted and dropped the wallet; re-create it below, which
+		// falls through to loadwallet for one that is only unloaded.
+		delete(p.coreWallets, walletID)
 	}
 
 	// Short-circuit while a recent attempt is still in the bitcoind-warming-up
@@ -252,16 +257,20 @@ func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 	return synced, nil
 }
 
+// coreWalletLoaded reports whether Core still holds the wallet. A bitcoind
+// restart unloads it, so a cached name is no proof. A failing listwallets
+// answers "loaded", so an unreachable node doesn't cost the cache entry.
+// Caller holds p.mu.
+func (p *CoreBackend) coreWalletLoaded(ctx context.Context, name string) bool {
+	loaded, err := p.rpc.ListWallets(ctx)
+	if err != nil {
+		return true
+	}
+	return lo.Contains(loaded, name)
+}
+
 // walletName returns the Core wallet name for a wallet ID, ensuring it exists.
 func (p *CoreBackend) walletName(ctx context.Context, walletID string) (string, error) {
-	p.mu.Lock()
-	if name, ok := p.coreWallets[walletID]; ok {
-		p.retryBip47NotificationDescriptor(ctx, walletID, name)
-		p.mu.Unlock()
-		return name, nil
-	}
-	p.mu.Unlock()
-
 	return p.Ensure(ctx, walletID)
 }
 

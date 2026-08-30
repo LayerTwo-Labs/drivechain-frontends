@@ -35,6 +35,8 @@ type fakeBitcoind struct {
 	mu       sync.Mutex
 	calls    []bitcoindCall
 	handlers map[string]func(c bitcoindCall) (any, string)
+	loaded   map[string]bool // wallets listwallets reports
+	onDisk   map[string]bool // wallets that exist, loaded or not
 }
 
 type bitcoindCall struct {
@@ -45,7 +47,11 @@ type bitcoindCall struct {
 
 func newFakeBitcoind(t *testing.T) *fakeBitcoind {
 	t.Helper()
-	f := &fakeBitcoind{handlers: map[string]func(bitcoindCall) (any, string){}}
+	f := &fakeBitcoind{
+		handlers: map[string]func(bitcoindCall) (any, string){},
+		loaded:   map[string]bool{},
+		onDisk:   map[string]bool{},
+	}
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Method string            `json:"method"`
@@ -113,9 +119,38 @@ func (f *fakeBitcoind) client(t *testing.T) *CoreRPCClient {
 }
 
 // stubEnsureFlow installs the happy-path handlers for lazy wallet creation.
+// listwallets reports what createwallet/loadwallet actually loaded, and
+// createwallet refuses a wallet that already exists — as bitcoind does.
 func (f *fakeBitcoind) stubEnsureFlow() {
-	f.handle("listwallets", func(bitcoindCall) (any, string) { return []string{}, "" })
-	f.handle("createwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	f.handle("listwallets", func(bitcoindCall) (any, string) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		names := make([]string, 0, len(f.loaded))
+		for name := range f.loaded {
+			names = append(names, name)
+		}
+		return names, ""
+	})
+	f.handle("createwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		_ = json.Unmarshal(c.Params[0], &name)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.onDisk[name] {
+			return nil, "Database already exists."
+		}
+		f.onDisk[name] = true
+		f.loaded[name] = true
+		return map[string]any{}, ""
+	})
+	f.handle("loadwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		_ = json.Unmarshal(c.Params[0], &name)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		f.loaded[name] = true
+		return map[string]any{}, ""
+	})
 	f.handle("importdescriptors", func(c bitcoindCall) (any, string) {
 		var descs []ImportDescriptor
 		_ = json.Unmarshal(c.Params[0], &descs)
@@ -131,6 +166,14 @@ func (f *fakeBitcoind) stubEnsureFlow() {
 		_ = json.Unmarshal(c.Params[0], &address)
 		return map[string]any{"address": address, "hdkeypath": "m/84'/1'/0'/0/0", "ismine": true}, ""
 	})
+}
+
+// restart unloads every wallet, as a bitcoind restart does: the wallet files
+// stay on disk, but only a load_on_startup wallet comes back by itself.
+func (f *fakeBitcoind) restart() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.loaded = map[string]bool{}
 }
 
 // newCoreBackendFixture wires a real Service (enforcer + bitcoinCore
@@ -161,6 +204,13 @@ func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
 	creates := fake.callsFor("createwallet")
 	require.Len(t, creates, 1)
 	assert.Equal(t, name, mustString(t, creates[0].Params[0]))
+	// createwallet "name" disable_private_keys blank "passphrase" avoid_reuse
+	// descriptors load_on_startup — the last one is what makes Core reload the
+	// wallet by itself after a restart.
+	require.Len(t, creates[0].Params, 7)
+	var loadOnStartup bool
+	require.NoError(t, json.Unmarshal(creates[0].Params[6], &loadOnStartup))
+	assert.True(t, loadOnStartup, "createwallet must set load_on_startup")
 
 	imports := fake.callsFor("importdescriptors")
 	require.Len(t, imports, 2, "BIP84 pair + BIP47 notification descriptor")
@@ -193,11 +243,49 @@ func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
 	assert.Contains(t, notif[0].Desc, "#", "descriptor carries a checksum")
 	assert.Equal(t, float64(0), asFloat(t, notif[0].Timestamp), "rescan from genesis")
 
-	// Second Ensure hits the cache — no further RPC traffic.
-	before := len(fake.callsFor("listwallets"))
+	// Second Ensure hits the cache — the wallet is neither re-created nor
+	// re-imported.
 	_, err = backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
-	assert.Equal(t, before, len(fake.callsFor("listwallets")))
+	assert.Len(t, fake.callsFor("createwallet"), 1)
+	assert.Len(t, fake.callsFor("importdescriptors"), 2)
+}
+
+// A bitcoind restart unloads every wallet the orchestrator created. The cached
+// wallet name outlives it, so the backend must notice the wallet is gone and
+// load it back instead of serving a name Core answers -18 for.
+func TestCoreBackendReloadsWalletAfterBitcoindRestart(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("getbalance", func(c bitcoindCall) (any, string) {
+		fake.mu.Lock()
+		defer fake.mu.Unlock()
+		if !fake.loaded[c.Wallet] {
+			return nil, "Requested wallet does not exist or is not loaded"
+		}
+		return 1.25, ""
+	})
+	fake.handle("getunconfirmedbalance", func(bitcoindCall) (any, string) { return 0.5, "" })
+	ctx := context.Background()
+
+	name, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.Len(t, fake.callsFor("createwallet"), 1)
+
+	fake.restart()
+
+	confirmed, unconfirmed, err := backend.Balance(ctx, coreID)
+	require.NoError(t, err)
+	assert.Equal(t, 1.25, confirmed)
+	assert.Equal(t, 0.5, unconfirmed)
+
+	// The wallet already exists on disk, so it is loaded back, not re-created.
+	loads := fake.callsFor("loadwallet")
+	require.Len(t, loads, 1)
+	assert.Equal(t, name, mustString(t, loads[0].Params[0]))
+	var loadOnStartup bool
+	require.NoError(t, json.Unmarshal(loads[0].Params[1], &loadOnStartup))
+	assert.True(t, loadOnStartup, "loadwallet must set load_on_startup")
 }
 
 // A backend constructed without chain params (unrecognized network) must
