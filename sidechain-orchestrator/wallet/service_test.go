@@ -166,6 +166,45 @@ func TestServiceEncryptDecryptCycle(t *testing.T) {
 	assert.Equal(t, "Encrypt Test", wallets[0].Name)
 }
 
+// An encrypted wallet that a restore puts in place of the loaded one leaves the
+// service locked, so the next unlock reads the restored wallet.
+func TestServiceLocksWhenARestoreReplacesTheWallet(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		password string
+	}{
+		{"plaintext wallet loaded", ""},
+		{"encrypted wallet unlocked", "current"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := newTestService(t)
+			_, err := svc.GenerateWallet("Current", "", "", testSlots)
+			require.NoError(t, err)
+			if tc.password != "" {
+				require.NoError(t, svc.EncryptWallet(tc.password))
+			}
+
+			backup := newTestService(t)
+			_, err = backup.GenerateWallet("Restored", "", "", testSlots)
+			require.NoError(t, err)
+			require.NoError(t, backup.EncryptWallet("restored"))
+			for _, name := range []string{"wallet_encryption.json", "wallet.json"} {
+				data, err := os.ReadFile(filepath.Join(backup.bitwindowDir, name))
+				require.NoError(t, err)
+				require.NoError(t, os.WriteFile(filepath.Join(svc.bitwindowDir, name), data, 0600))
+			}
+
+			svc.mu.Lock()
+			require.NoError(t, svc.loadWalletFile())
+			svc.mu.Unlock()
+			assert.False(t, svc.IsUnlocked())
+
+			require.NoError(t, svc.UnlockWallet("restored"))
+			assert.Equal(t, "Restored", svc.ActiveWalletName())
+		})
+	}
+}
+
 func TestServiceChangePassword(t *testing.T) {
 	svc := newTestService(t)
 

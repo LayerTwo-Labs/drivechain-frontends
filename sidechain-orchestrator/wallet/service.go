@@ -1140,12 +1140,16 @@ func (s *Service) LockWallet() {
 	defer s.mu.Unlock()
 
 	s.log.Info().Int("wallet_count", len(s.wallets)).Msg("locking wallet")
+	s.lockLocked()
+	s.log.Info().Msg("wallet locked, starter files cleaned up")
+}
+
+// lockLocked drops the decrypted wallets and the key. Must be called with mu held.
+func (s *Service) lockLocked() {
 	s.wallets = nil
 	s.encryptionKey = nil
 	s.unlockedPass = ""
 	s.CleanupStarterFiles()
-
-	s.log.Info().Msg("wallet locked, starter files cleaned up")
 }
 
 // --- Encrypt/Decrypt ---
@@ -1773,13 +1777,19 @@ func (s *Service) loadWalletFile() error {
 
 	// If encrypted, try to decrypt
 	if s.isEncrypted() {
+		// A restore can put an encrypted wallet in place of the loaded one.
 		if s.encryptionKey == nil {
-			s.log.Debug().Msg("wallet is encrypted but no key available, keeping existing state")
+			if len(s.wallets) > 0 {
+				s.log.Info().Msg("an encrypted wallet replaced the loaded one, locking")
+				s.lockLocked()
+			}
 			return nil
 		}
 		decrypted, err := Decrypt(jsonStr, s.encryptionKey)
 		if err != nil {
-			return fmt.Errorf("decrypt wallet: %w", err)
+			s.log.Info().Msg("the wallet file does not open with the held key, locking")
+			s.lockLocked()
+			return nil
 		}
 		jsonStr = decrypted
 		s.log.Debug().Msg("wallet file decrypted")

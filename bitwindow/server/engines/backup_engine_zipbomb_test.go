@@ -26,7 +26,7 @@ func TestBackupZipEntryCapped(t *testing.T) {
 	defer func() { maxBackupEntrySize = orig }()
 
 	bomb := zipWith(t, "wallet.json", bytes.Repeat([]byte("a"), 8<<10))
-	if _, _, _, _, err := extractZIP(bomb); err == nil {
+	if _, _, _, _, _, err := extractZIP(bomb); err == nil {
 		t.Fatal("extractZIP accepted an over-cap entry")
 	}
 	e := &BackupEngine{}
@@ -36,7 +36,7 @@ func TestBackupZipEntryCapped(t *testing.T) {
 
 	// a valid within-cap backup still works
 	ok := zipWith(t, "wallet.json", []byte(`{"master":"x","l1":"y"}`))
-	wallet, _, _, _, err := extractZIP(ok)
+	wallet, _, _, _, _, err := extractZIP(ok)
 	if err != nil {
 		t.Fatalf("extractZIP rejected a valid backup: %v", err)
 	}
