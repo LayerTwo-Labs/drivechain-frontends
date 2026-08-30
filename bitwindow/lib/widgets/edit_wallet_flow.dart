@@ -13,7 +13,7 @@ Future<void> editWallet(BuildContext context, WalletMetadata wallet) async {
   final result = await showEditWalletDialog(
     context,
     currentName: wallet.name,
-    hasPicture: (wallet.gradient.picturePath ?? '').isNotEmpty,
+    gradient: wallet.gradient,
     onChangePicture: () async => _pickWalletPicture(context),
     onConfirmDelete: () async => _confirmDeleteWallet(context, wallet.name),
   );

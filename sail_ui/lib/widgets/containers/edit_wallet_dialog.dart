@@ -30,7 +30,7 @@ class EditWalletResult {
 Future<EditWalletResult?> showEditWalletDialog(
   BuildContext context, {
   required String currentName,
-  required bool hasPicture,
+  required WalletGradient gradient,
   required Future<Uint8List?> Function() onChangePicture,
   required Future<bool> Function() onConfirmDelete,
 }) {
@@ -38,7 +38,7 @@ Future<EditWalletResult?> showEditWalletDialog(
     context: context,
     builder: (context) => _EditWalletDialog(
       currentName: currentName,
-      hasPicture: hasPicture,
+      gradient: gradient,
       onChangePicture: onChangePicture,
       onConfirmDelete: onConfirmDelete,
     ),
@@ -47,13 +47,13 @@ Future<EditWalletResult?> showEditWalletDialog(
 
 class _EditWalletDialog extends StatefulWidget {
   final String currentName;
-  final bool hasPicture;
+  final WalletGradient gradient;
   final Future<Uint8List?> Function() onChangePicture;
   final Future<bool> Function() onConfirmDelete;
 
   const _EditWalletDialog({
     required this.currentName,
-    required this.hasPicture,
+    required this.gradient,
     required this.onChangePicture,
     required this.onConfirmDelete,
   });
@@ -83,7 +83,9 @@ class _EditWalletDialogState extends State<_EditWalletDialog> {
     super.dispose();
   }
 
-  bool get _showsPicture => _picture != null || (widget.hasPicture && !_removePicture);
+  bool get _hasPicture => (widget.gradient.picturePath ?? '').isNotEmpty;
+
+  bool get _showsPicture => _picture != null || (_hasPicture && !_removePicture);
 
   void _submit() {
     final next = _name.text.trim();
@@ -97,47 +99,55 @@ class _EditWalletDialogState extends State<_EditWalletDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
     return SailModal(
-      constraints: const BoxConstraints(maxWidth: 480),
+      constraints: const BoxConstraints(maxWidth: 440),
       child: SailCard(
         title: 'Edit wallet',
+        withCloseButton: true,
         child: SailColumn(
-          spacing: SailStyleValues.padding16,
+          mainAxisSize: MainAxisSize.min,
+          spacing: SailStyleValues.padding20,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailRow(
-              spacing: SailStyleValues.padding08,
+              spacing: SailStyleValues.padding16,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SailButton(
-                  label: 'Change picture',
-                  variant: ButtonVariant.outline,
-                  small: true,
-                  onPressed: () async {
-                    final picked = await widget.onChangePicture();
-                    if (picked == null) {
-                      return;
-                    }
-                    setState(() {
-                      _picture = picked;
-                      _removePicture = false;
-                    });
-                  },
-                ),
-                if (_showsPicture)
-                  SailButton(
-                    label: 'Remove picture',
-                    variant: ButtonVariant.outline,
-                    small: true,
-                    onPressed: () async => setState(() {
-                      _picture = null;
-                      _removePicture = true;
-                    }),
+                _avatar(),
+                Expanded(
+                  child: SailColumn(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: SailStyleValues.padding08,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SailRow(
+                        spacing: SailStyleValues.padding08,
+                        children: [
+                          SailButton(
+                            label: 'Change picture',
+                            variant: ButtonVariant.outline,
+                            small: true,
+                            onPressed: _pick,
+                          ),
+                          if (_showsPicture)
+                            SailButton(
+                              label: 'Remove',
+                              variant: ButtonVariant.ghost,
+                              small: true,
+                              onPressed: () async => setState(() {
+                                _picture = null;
+                                _removePicture = true;
+                              }),
+                            ),
+                        ],
+                      ),
+                      SailText.secondary12('Set your own picture avatar to remember this wallet by.'),
+                    ],
                   ),
+                ),
               ],
-            ),
-            SailText.secondary12(
-              'Change picture opens the file picker, then the crop window. '
-              'Remove picture brings back the automatic avatar.',
             ),
             SailTextField(
               label: 'Wallet name',
@@ -147,31 +157,24 @@ class _EditWalletDialogState extends State<_EditWalletDialog> {
               size: TextFieldSize.small,
               onSubmitted: (_) => _submit(),
             ),
-            SailText.secondary12('The wizard names each new wallet wallet1, wallet2, and so on.'),
+            Divider(height: 1, thickness: 1, color: theme.colors.divider),
             SailRow(
               spacing: SailStyleValues.padding08,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 SailButton(
                   label: 'Delete wallet',
-                  variant: ButtonVariant.destructive,
+                  variant: ButtonVariant.ghost,
+                  textColor: theme.colors.error,
                   small: true,
-                  onPressed: () async {
-                    final go = await widget.onConfirmDelete();
-                    if (!go || !context.mounted) {
-                      return;
-                    }
-                    Navigator.of(context).pop(
-                      EditWalletResult(name: widget.currentName, delete: true),
-                    );
-                  },
+                  onPressed: _delete,
                 ),
                 SailRow(
                   spacing: SailStyleValues.padding08,
                   children: [
                     SailButton(
                       label: 'Cancel',
-                      variant: ButtonVariant.secondary,
+                      variant: ButtonVariant.outline,
                       small: true,
                       onPressed: () async => Navigator.of(context).pop(),
                     ),
@@ -188,6 +191,40 @@ class _EditWalletDialogState extends State<_EditWalletDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Shows what the wallet looks like after the dialog: the picture the user
+  /// just placed, or the avatar the wallet falls back to.
+  Widget _avatar() {
+    final picture = _picture;
+    if (picture != null) {
+      return ClipOval(
+        child: Image.memory(picture, width: 48, height: 48, fit: BoxFit.cover),
+      );
+    }
+    final gradient = _removePicture ? widget.gradient.withoutPicture() : widget.gradient;
+    return WalletBlobAvatar(gradient: gradient, size: 48);
+  }
+
+  Future<void> _pick() async {
+    final picked = await widget.onChangePicture();
+    if (picked == null) {
+      return;
+    }
+    setState(() {
+      _picture = picked;
+      _removePicture = false;
+    });
+  }
+
+  Future<void> _delete() async {
+    final go = await widget.onConfirmDelete();
+    if (!go || !mounted) {
+      return;
+    }
+    Navigator.of(context).pop(
+      EditWalletResult(name: widget.currentName, delete: true),
     );
   }
 }
