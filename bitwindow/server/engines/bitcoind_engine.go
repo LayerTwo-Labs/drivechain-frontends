@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -478,6 +479,9 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 // processBlock processes a single block: checks if it contains any OP_RETURN transactions, inserts any found into the database,
 // and marks the block as processed.
 func (p *Parser) processBlocks(ctx context.Context, coreBlocks []lo.Tuple2[uint32, *wire.MsgBlock]) error {
+	// The parallel fetcher returns blocks in completion order. Every pass
+	// below applies state per height, and M4 votes are order-dependent.
+	sort.Slice(coreBlocks, func(i, j int) bool { return coreBlocks[i].A < coreBlocks[j].A })
 
 	// CoinNews indexing must commit BEFORE the block is marked processed:
 	// if it fails, we want the next sync attempt to retry, not skip the
