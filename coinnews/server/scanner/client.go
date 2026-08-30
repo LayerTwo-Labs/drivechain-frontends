@@ -128,11 +128,12 @@ func (c *Client) GetBlockHash(ctx context.Context, height uint32) (string, error
 // Block is the verbose=2 representation we care about. Only fields
 // the scanner reads are unmarshalled.
 type Block struct {
-	Hash       string `json:"hash"`
-	Height     uint32 `json:"height"`
-	Time       int64  `json:"time"`
-	Mediantime int64  `json:"mediantime"`
-	Tx         []struct {
+	Hash              string `json:"hash"`
+	PreviousBlockHash string `json:"previousblockhash"`
+	Height            uint32 `json:"height"`
+	Time              int64  `json:"time"`
+	Mediantime        int64  `json:"mediantime"`
+	Tx                []struct {
 		Txid string `json:"txid"`
 		Vout []struct {
 			ScriptPubKey struct {
@@ -147,4 +148,17 @@ type Block struct {
 func (c *Client) GetBlock(ctx context.Context, hash string) (*Block, error) {
 	var b Block
 	return &b, c.call(ctx, "getblock", []any{hash, 2}, &b)
+}
+
+// BlockHeader is the part of getblockheader the scanner reads. Confirmations
+// is -1 for a block off the active chain.
+type BlockHeader struct {
+	Confirmations     int64  `json:"confirmations"`
+	PreviousBlockHash string `json:"previousblockhash"`
+}
+
+// GetBlockHeader fetches the header of a block by hash, on the active chain or off it.
+func (c *Client) GetBlockHeader(ctx context.Context, hash string) (*BlockHeader, error) {
+	var h BlockHeader
+	return &h, c.call(ctx, "getblockheader", []any{hash, true}, &h)
 }

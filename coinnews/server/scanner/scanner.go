@@ -53,20 +53,37 @@ func (s *Scanner) Run(ctx context.Context) error {
 	}
 }
 
+var errChainMoved = errors.New("the next block does not extend the indexed chain")
+
 func (s *Scanner) catchUp(ctx context.Context) error {
 	tip, err := s.Client.GetBlockCount(ctx)
 	if err != nil {
 		return fmt.Errorf("getblockcount: %w", err)
 	}
 
-	cursor, _, err := store.LoadCursor(ctx, s.DB)
+	cursor, cursorHash, err := store.LoadCursor(ctx, s.DB)
 	if err != nil {
 		return fmt.Errorf("load cursor: %w", err)
+	}
+	ancestor, ancestorHash, err := s.commonAncestor(ctx, cursor, cursorHash)
+	if err != nil {
+		return err
+	}
+	if ancestor < cursor {
+		s.Log.Warn().Uint32("cursor", cursor).Uint32("ancestor", ancestor).
+			Msg("coinnews-scanner: the chain forked below the cursor, purging and replaying")
+		if err := store.PurgeAtOrAbove(ctx, s.DB, ancestor+1); err != nil {
+			return fmt.Errorf("purge at or above %d: %w", ancestor+1, err)
+		}
+		if err := store.SaveCursor(ctx, s.DB, ancestor, ancestorHash); err != nil {
+			return fmt.Errorf("save cursor %d: %w", ancestor, err)
+		}
+		cursor, cursorHash = ancestor, ancestorHash
 	}
 	if s.FromHeight > 0 && cursor+1 < s.FromHeight {
 		s.Log.Info().Uint32("cursor", cursor).Uint32("from_height", s.FromHeight).
 			Msg("coinnews-scanner: skipping ahead to the configured start height")
-		cursor = s.FromHeight - 1
+		cursor, cursorHash = s.FromHeight-1, [32]byte{}
 	}
 	if cursor >= tip {
 		return nil
@@ -74,8 +91,9 @@ func (s *Scanner) catchUp(ctx context.Context) error {
 
 	s.Log.Info().Uint32("from", cursor+1).Uint32("to", tip).Msg("coinnews-scanner: catching up")
 
+	prev := cursorHash
 	for h := cursor + 1; h <= tip; h++ {
-		if err := s.indexHeight(ctx, h); err != nil {
+		if prev, err = s.indexHeight(ctx, h, prev); err != nil {
 			return fmt.Errorf("index height %d: %w", h, err)
 		}
 		select {
@@ -87,14 +105,38 @@ func (s *Scanner) catchUp(ctx context.Context) error {
 	return nil
 }
 
-func (s *Scanner) indexHeight(ctx context.Context, height uint32) error {
+// commonAncestor walks back from the cursor to the last block the active chain
+// still holds. A zero hash carries nothing to check, so it stands.
+func (s *Scanner) commonAncestor(ctx context.Context, height uint32, hash [32]byte) (uint32, [32]byte, error) {
+	for height > 0 && hash != ([32]byte{}) {
+		header, err := s.Client.GetBlockHeader(ctx, hex.EncodeToString(hash[:]))
+		if err != nil {
+			return 0, [32]byte{}, fmt.Errorf("getblockheader %d: %w", height, err)
+		}
+		if header.Confirmations >= 0 {
+			return height, hash, nil
+		}
+		if hash, err = decodeHashLE(header.PreviousBlockHash); err != nil {
+			return 0, [32]byte{}, err
+		}
+		height--
+	}
+	return height, hash, nil
+}
+
+// indexHeight indexes the block at height, which must extend prev, and
+// returns its hash. A zero prev extends anything.
+func (s *Scanner) indexHeight(ctx context.Context, height uint32, prev [32]byte) ([32]byte, error) {
 	hash, err := s.Client.GetBlockHash(ctx, height)
 	if err != nil {
-		return fmt.Errorf("getblockhash %d: %w", height, err)
+		return [32]byte{}, fmt.Errorf("getblockhash %d: %w", height, err)
 	}
 	block, err := s.Client.GetBlock(ctx, hash)
 	if err != nil {
-		return fmt.Errorf("getblock %s: %w", hash, err)
+		return [32]byte{}, fmt.Errorf("getblock %s: %w", hash, err)
+	}
+	if prev != ([32]byte{}) && block.PreviousBlockHash != hex.EncodeToString(prev[:]) {
+		return [32]byte{}, errChainMoved
 	}
 
 	blockTime := time.Unix(block.Time, 0).UTC()
@@ -113,16 +155,16 @@ func (s *Scanner) indexHeight(ctx context.Context, height uint32) error {
 				TxID:        tx.Txid,
 			}
 			if err := s.indexPayload(ctx, data, pos); err != nil {
-				return err
+				return [32]byte{}, err
 			}
 		}
 	}
 
 	hashBytes, err := decodeHashLE(hash)
 	if err != nil {
-		return err
+		return [32]byte{}, err
 	}
-	return store.SaveCursor(ctx, s.DB, height, hashBytes)
+	return hashBytes, store.SaveCursor(ctx, s.DB, height, hashBytes)
 }
 
 // indexPayload classifies one OP_RETURN payload and persists it.
