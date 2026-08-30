@@ -435,9 +435,41 @@ func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
 	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database,
 		apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
 
-	resp, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{Slot: 9}))
+	resp, err := cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{
+		WalletId: "test-wallet-id-1234",
+		Slot:     9,
+	}))
 	require.NoError(t, err)
 	require.Len(t, resp.Msg.Deposits, 1)
 	require.Equal(t, "deadbeef", resp.Msg.Deposits[0].Txid)
 	require.Equal(t, int64(50_000), resp.Msg.Deposits[0].Amount)
+}
+
+// Deposit history names the amounts and counterparties a wallet dealt with, so a
+// locked wallet must not hand it out.
+func TestListSidechainDepositsRequiresUnlock(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	database := database.Test(t)
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+	// No ListSidechainDeposits expectation: the orchestrator must not be reached.
+	mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+	apitests.ExpectOrchestratorReads(mockOrch)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database,
+		apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
+
+	_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	_, err = cli.ListSidechainDeposits(context.Background(), connect.NewRequest(&walletv1.ListSidechainDepositsRequest{
+		WalletId: "test-wallet-id-1234",
+		Slot:     9,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	require.Contains(t, err.Error(), "wallet is locked")
 }

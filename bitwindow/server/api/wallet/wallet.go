@@ -786,6 +786,19 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 	if c.Msg.Slot < 0 || c.Msg.Slot > 255 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("slot must be 0-255"))
 	}
+
+	// Wallet ID validation only - deposit history reads the same for all wallet
+	// types. An empty ID would list every wallet's deposits.
+	_, err := s.walletEngine.GetWalletBackendType(ctx, c.Msg.WalletId)
+	if err != nil {
+		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	// Deposit history is wallet data, so the wallet has to be unlocked
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	deposits, err := s.walletEngine.ListSidechainDeposits(ctx, uint32(c.Msg.Slot), c.Msg.WalletId)
 	if err != nil {
 		return nil, fmt.Errorf("list sidechain deposits: %w", err)
