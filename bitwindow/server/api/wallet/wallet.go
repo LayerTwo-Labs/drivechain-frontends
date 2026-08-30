@@ -142,9 +142,23 @@ func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request
 	}), nil
 }
 
+// requireUnlocked rejects an operation that spends or derives keys while the
+// wallet is locked.
+func (s *Server) requireUnlocked() error {
+	if !s.walletEngine.IsUnlocked() {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+	return nil
+}
+
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	walletId := c.Msg.WalletId
+
+	// Spending needs an unlocked wallet.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
 
 	if len(c.Msg.Destinations) == 0 {
 		err := errors.New("must provide a destination")
@@ -189,6 +203,11 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	destinations := make(map[string]float64)
 	for addr, sats := range c.Msg.Destinations {
 		destinations[addr] = float64(sats) / 1e8
+	}
+
+	// Re-check as late as possible: a lock can land while we resolve the wallet.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
 	}
 
 	// If requiredInputs is specified, use raw transaction flow

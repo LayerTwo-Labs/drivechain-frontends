@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 
@@ -399,6 +400,37 @@ func TestService_LockWallet(t *testing.T) {
 		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
 		require.NoError(t, err)
 	})
+}
+
+// A send that starts after the wallet is locked must not reach bitcoind.
+func TestService_SendTransactionRequiresUnlocked(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	database := database.Test(t)
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+	mockBitcoind.EXPECT().Send(gomock.Any(), gomock.Any()).Times(0)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+	// The unencrypted fixture wallet auto-unlocks in the background: wait for
+	// that, otherwise the unlock can land after the lock below.
+	require.Eventually(t, func() bool {
+		_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		return err == nil
+	}, 5*time.Second, 10*time.Millisecond)
+
+	_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	_, err = cli.SendTransaction(context.Background(), connect.NewRequest(&walletv1.SendTransactionRequest{
+		WalletId:     "test-wallet-id-1234",
+		Destinations: map[string]uint64{"bcrt1qsendlocked00000000000000000000000000000000": 100_000},
+	}))
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	require.Contains(t, err.Error(), "wallet is locked")
 }
 
 func TestService_UnlockWallet(t *testing.T) {
