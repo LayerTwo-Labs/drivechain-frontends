@@ -1664,7 +1664,13 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 	if err != nil {
 		return "", err
 	}
-	childVsize := int64(11 + walletInputVsize(d) + outputVsizeForKind(d.Kind))
+	// A BIP47 watch key (empty hdPath) is a P2PKH import, not one of the wallet's
+	// descriptor addresses, so its input spends far wider than the descriptor says.
+	inVsize := walletInputVsize(d)
+	if a, ok := scan.byAddr[parentUTXO.address]; ok && a.hdPath == "" {
+		inVsize = inputVsize(ScriptLegacy)
+	}
+	childVsize := int64(11 + inVsize + outputVsizeForKind(d.Kind))
 	childFee := packageChildFee(req.TargetRate, parentVsize, parentFee, childVsize, 1)
 	if childFee >= parentUTXO.amountSats {
 		return "", connect.NewError(connect.CodeInvalidArgument,

@@ -1085,13 +1085,14 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 			fmt.Errorf("target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize))
 	}
 
-	// Size the child for the wallet's own script kind: a taproot (BIP86) wallet
-	// imports only tr() descriptors, so its child is P2TR — using native-segwit
-	// sizing mis-estimates the fee. Default wallets resolve to native segwit.
+	// The child's output takes the wallet's own kind (a tr()-only wallet's child
+	// is P2TR); its input is sized from the parent's own script, which for a
+	// BIP47 payment window is a pkh() import twice as wide as the wallet's.
 	childKind := p.walletScriptKind(walletID)
+	parentKind := addressKind(parent.Address, p.net())
 
 	parentValueSats := int64(math.Round(parent.Amount * 1e8))
-	childVsize := int64(11 + inputVsize(childKind) + outputVsizeForKind(childKind))
+	childVsize := int64(11 + inputVsize(parentKind) + outputVsizeForKind(childKind))
 	_, outputSats, err := cpfpChildPlan(req.TargetRate, parentVsize, parentFee, childVsize, parentValueSats)
 	if err != nil {
 		return "", connect.NewError(connect.CodeInvalidArgument, err)

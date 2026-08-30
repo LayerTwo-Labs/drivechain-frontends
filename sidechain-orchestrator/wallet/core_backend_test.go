@@ -730,10 +730,11 @@ func TestCoreBackendCreateCpfp(t *testing.T) {
 		targetRate  = int64(20)
 	)
 	childAddr := p2wpkhAddr(t, fixedKey(0x77), &chaincfg.RegressionNetParams)
+	parentAddr := p2wpkhAddr(t, fixedKey(0x78), &chaincfg.RegressionNetParams)
 
 	fake.handle("listunspent", func(bitcoindCall) (any, string) {
 		return []map[string]any{
-			{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0},
+			{"txid": parentTxid, "vout": 0, "address": parentAddr, "amount": 0.002, "spendable": true, "confirmations": 0},
 		}, ""
 	})
 	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
@@ -782,6 +783,75 @@ func TestCoreBackendCreateCpfp(t *testing.T) {
 	assert.Positive(t, outputSats)
 }
 
+// TestCoreBackendCreateCpfpBip47Parent proves the child's input is sized from the
+// parent outpoint's own script: a BIP47 payment window is a pkh() import, so a
+// native-segwit wallet still spends a 148 vB legacy input. Sizing it as the
+// wallet's P2WPKH pays for a 110 vB child and leaves the package below target.
+func TestCoreBackendCreateCpfpBip47Parent(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	net := &chaincfg.RegressionNetParams
+	require.Equal(t, ScriptNativeSegwit, backend.walletScriptKind(coreID))
+
+	const (
+		parentTxid  = "66666666666666666666666666666666666666666666666666666666666666dd"
+		parentValue = int64(200_000)
+		parentVsize = int64(150)
+		parentFee   = int64(150)
+		targetRate  = int64(20)
+	)
+	childAddr := p2wpkhAddr(t, fixedKey(0x77), net)
+	// The parent pays a BIP47 payment address: pkh(), not one of the wallet's
+	// own wpkh() descriptors.
+	parentAddr := p2pkhAddr(t, fixedKey(0x47), net)
+
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": parentTxid, "vout": 0, "address": parentAddr, "amount": 0.002, "spendable": true, "confirmations": 0},
+		}, ""
+	})
+	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
+		return map[string]any{"vsize": parentVsize, "fees": map[string]any{"base": float64(parentFee) / 1e8}}, ""
+	})
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		return []map[string]any{{"address": childAddr, "amount": 0.0, "txids": []string{}}}, ""
+	})
+	var builtOutputs []map[string]any
+	fake.handle("createrawtransaction", func(c bitcoindCall) (any, string) {
+		require.NoError(t, json.Unmarshal(c.Params[1], &builtOutputs))
+		return "deadbeefcpfp47", ""
+	})
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "child-bip47", "" })
+
+	childTxid, err := backend.CreateCpfp(context.Background(), coreID, CpfpRequest{
+		ParentTxID: parentTxid,
+		ParentVout: 0,
+		TargetRate: targetRate,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "child-bip47", childTxid)
+
+	// Legacy input, native-segwit output: 190 vB, not the wallet-kind 110 vB.
+	childVsize := int64(11 + inputVsize(ScriptLegacy) + outputVsizeForKind(ScriptNativeSegwit))
+	require.Equal(t, int64(190), childVsize)
+	childFee, outputSats, err := cpfpChildPlan(targetRate, parentVsize, parentFee, childVsize, parentValue)
+	require.NoError(t, err)
+	require.Len(t, builtOutputs, 1, "self-send: single output")
+	assert.InDelta(t, btcutil.Amount(outputSats).ToBTC(), builtOutputs[0][childAddr], 1e-12)
+
+	// The package clears the requested rate at the child's real size.
+	assert.GreaterOrEqual(t, float64(parentFee+childFee)/float64(parentVsize+childVsize), float64(targetRate))
+
+	// The wallet-kind sizing pays for a 110 vB child, which underpays the package.
+	walletSized := int64(11 + inputVsize(ScriptNativeSegwit) + outputVsizeForKind(ScriptNativeSegwit))
+	underFee, _, err := cpfpChildPlan(targetRate, parentVsize, parentFee, walletSized, parentValue)
+	require.NoError(t, err)
+	assert.Less(t, float64(parentFee+underFee)/float64(parentVsize+childVsize), float64(targetRate))
+}
+
 // TestCoreBackendCreateCpfpTaproot proves CPFP works for a taproot-only (BIP86)
 // Core wallet: the child must be sized as P2TR and a bech32m address requested,
 // not the hardcoded native-segwit child that would break a tr()-only wallet.
@@ -814,10 +884,11 @@ func TestCoreBackendCreateCpfpTaproot(t *testing.T) {
 	// A P2TR (bech32m) child address — regtest HRP "bcrt" + "1p".
 	taprootAddr := p2trAddr(t, fixedKey(0x88), &chaincfg.RegressionNetParams)
 	require.True(t, strings.HasPrefix(taprootAddr, "bcrt1p"), "child address must be bech32m taproot")
+	parentAddr := p2trAddr(t, fixedKey(0x89), &chaincfg.RegressionNetParams)
 
 	fake.handle("listunspent", func(bitcoindCall) (any, string) {
 		return []map[string]any{
-			{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0},
+			{"txid": parentTxid, "vout": 0, "address": parentAddr, "amount": 0.002, "spendable": true, "confirmations": 0},
 		}, ""
 	})
 	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
@@ -909,7 +980,7 @@ func TestCoreBackendCpfpBase58Kinds(t *testing.T) {
 				targetRate  = int64(20)
 			)
 			fake.handle("listunspent", func(bitcoindCall) (any, string) {
-				return []map[string]any{{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0}}, ""
+				return []map[string]any{{"txid": parentTxid, "vout": 0, "address": childAddr, "amount": 0.002, "spendable": true, "confirmations": 0}}, ""
 			})
 			fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
 				return map[string]any{"vsize": parentVsize, "fees": map[string]any{"base": float64(parentFee) / 1e8}}, ""
