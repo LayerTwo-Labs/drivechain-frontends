@@ -564,6 +564,32 @@ func TestService_UnlockWallet(t *testing.T) {
 	})
 }
 
+// The distribution buckets carry outpoints, so a locked wallet must not answer.
+func TestService_GetUTXODistribution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("locked wallet returns failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.GetUTXODistribution(context.Background(), connect.NewRequest(&walletv1.GetUTXODistributionRequest{
+			WalletId: testWalletID,
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+}
+
 // The orchestrator records each deposit as it broadcasts it, because an M5 is
 // an ordinary transaction on the wire.
 func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {

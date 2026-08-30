@@ -2167,6 +2167,10 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get wallet type: %w", err))
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	// Simple label getter since we don't need labels for distribution
 	getLabel := func(addr string) string { return "" }
 
