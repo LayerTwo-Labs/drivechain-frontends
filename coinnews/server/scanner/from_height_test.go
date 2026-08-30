@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -53,7 +54,11 @@ func (f *fakeCore) start(t *testing.T) *httptest.Server {
 			// A hash the scanner can decode: 32 bytes, height in the low byte.
 			_, _ = fmt.Fprintf(w, `{"result":"%064x","error":null}`, h)
 		case "getblock":
-			_, _ = fmt.Fprint(w, `{"result":{"hash":"00","height":0,"time":1,"mediantime":1,"tx":[]},"error":null}`)
+			var hash string
+			require.NoError(t, json.Unmarshal(req.Params[0], &hash))
+			h, err := strconv.ParseUint(hash, 16, 32)
+			require.NoError(t, err)
+			_, _ = fmt.Fprintf(w, `{"result":{"hash":%q,"previousblockhash":"%064x","height":%d,"time":1,"mediantime":1,"tx":[]},"error":null}`, hash, h-1, h)
 		default:
 			t.Errorf("unexpected method %q", req.Method)
 		}
