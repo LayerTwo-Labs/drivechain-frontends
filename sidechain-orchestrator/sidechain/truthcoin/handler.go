@@ -282,23 +282,34 @@ func (h *Handler) CalculateInitialLiquidity(ctx context.Context, req *connect.Re
 }
 
 func (h *Handler) MarketCreate(ctx context.Context, req *connect.Request[pb.MarketCreateRequest]) (*connect.Response[pb.MarketCreateResponse], error) {
-	var txid string
-	params := []any{
-		req.Msg.Title,
-		req.Msg.Description,
-		req.Msg.Dimensions,
-		req.Msg.FeeSats,
-		req.Msg.Beta,
-		req.Msg.InitialLiquidity,
-		req.Msg.TradingFee,
-		req.Msg.Tags,
-		req.Msg.CategoryTxids,
-		req.Msg.ResidualNames,
+	// market_create takes a single request object; dimensions is an array of
+	// DimensionInput carried over the wire as JSON.
+	var dimensions []any
+	if err := json.Unmarshal([]byte(req.Msg.Dimensions), &dimensions); err != nil {
+		return nil, fmt.Errorf("unmarshal dimensions: %w", err)
 	}
-	if err := h.proxy.Client.Call(ctx, "market_create", params, &txid); err != nil {
+	request := map[string]any{
+		"title":       req.Msg.Title,
+		"description": req.Msg.Description,
+		"dimensions":  dimensions,
+		"tx_fee_sats": req.Msg.FeeSats,
+	}
+	if req.Msg.Beta != nil {
+		request["beta"] = *req.Msg.Beta
+	}
+	if req.Msg.TradingFee != nil {
+		request["trading_fee"] = *req.Msg.TradingFee
+	}
+	if req.Msg.InitialLiquidity != nil {
+		request["initial_liquidity"] = *req.Msg.InitialLiquidity
+	}
+	var result struct {
+		Txid string `json:"txid"`
+	}
+	if err := h.proxy.Client.Call(ctx, "market_create", []any{request}, &result); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.MarketCreateResponse{Txid: txid}), nil
+	return connect.NewResponse(&pb.MarketCreateResponse{Txid: result.Txid}), nil
 }
 
 func (h *Handler) MarketList(ctx context.Context, req *connect.Request[pb.MarketListRequest]) (*connect.Response[pb.MarketListResponse], error) {
@@ -318,15 +329,19 @@ func (h *Handler) MarketGet(ctx context.Context, req *connect.Request[pb.MarketG
 }
 
 func (h *Handler) MarketBuy(ctx context.Context, req *connect.Request[pb.MarketBuyRequest]) (*connect.Response[pb.MarketBuyResponse], error) {
-	params := []any{
-		req.Msg.MarketId,
-		req.Msg.OutcomeIndex,
-		req.Msg.SharesAmount,
-		req.Msg.DryRun,
-		req.Msg.FeeSats,
-		req.Msg.MaxCost,
+	// market_buy takes a single request object with integer shares.
+	request := map[string]any{
+		"market_id":     req.Msg.MarketId,
+		"outcome_index": req.Msg.OutcomeIndex,
+		"shares_amount": int64(req.Msg.SharesAmount),
 	}
-	raw, err := h.proxy.Client.CallRaw(ctx, "market_buy", params)
+	if req.Msg.DryRun != nil {
+		request["dry_run"] = *req.Msg.DryRun
+	}
+	if req.Msg.MaxCost != nil {
+		request["max_cost"] = *req.Msg.MaxCost
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "market_buy", []any{request})
 	if err != nil {
 		return nil, err
 	}
@@ -334,16 +349,20 @@ func (h *Handler) MarketBuy(ctx context.Context, req *connect.Request[pb.MarketB
 }
 
 func (h *Handler) MarketSell(ctx context.Context, req *connect.Request[pb.MarketSellRequest]) (*connect.Response[pb.MarketSellResponse], error) {
-	params := []any{
-		req.Msg.MarketId,
-		req.Msg.OutcomeIndex,
-		req.Msg.SharesAmount,
-		req.Msg.SellerAddress,
-		req.Msg.DryRun,
-		req.Msg.FeeSats,
-		req.Msg.MinProceeds,
+	// market_sell takes a single request object.
+	request := map[string]any{
+		"market_id":      req.Msg.MarketId,
+		"outcome_index":  req.Msg.OutcomeIndex,
+		"shares_amount":  req.Msg.SharesAmount,
+		"seller_address": req.Msg.SellerAddress,
 	}
-	raw, err := h.proxy.Client.CallRaw(ctx, "market_sell", params)
+	if req.Msg.DryRun != nil {
+		request["dry_run"] = *req.Msg.DryRun
+	}
+	if req.Msg.MinProceeds != nil {
+		request["min_proceeds"] = *req.Msg.MinProceeds
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "market_sell", []any{request})
 	if err != nil {
 		return nil, err
 	}

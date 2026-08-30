@@ -78,4 +78,39 @@ void main() {
       expect(find.textContaining('Back'), findsWidgets);
     });
   });
+
+  group('MarketCreationViewModel.dimensionInputs', () {
+    const twoExisting = '[{"type":"existing","id":"004008"},{"type":"existing","id":"004009"}]';
+
+    test('a slot ID becomes an existing DimensionInput', () {
+      final model = MarketCreationViewModel()..dimensionsController.text = '004008';
+
+      expect(model.dimensionInputs, '[{"type":"existing","id":"004008"}]');
+    });
+
+    test('comma-separated slot IDs become one DimensionInput each', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.categorical)
+        ..dimensionsController.text = '004008, 004009';
+
+      expect(model.dimensionInputs, twoExisting);
+    });
+
+    test('bracket notation is flattened to existing references', () {
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = '[[004008,004009]]';
+
+      expect(model.dimensionInputs, twoExisting);
+    });
+
+    test('DimensionInput JSON passes through', () {
+      const dimensions = '[{"type":"new","period_index":3,"decision_type":"binary","header":"Rain?"}]';
+      final model = MarketCreationViewModel()
+        ..setMarketType(MarketType.custom)
+        ..dimensionsController.text = dimensions;
+
+      expect(model.dimensionInputs, dimensions);
+    });
+  });
 }

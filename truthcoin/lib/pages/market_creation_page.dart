@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -191,7 +193,7 @@ class _DimensionsStep extends StatelessWidget {
             hintText: 'e.g., 004008',
           ),
         ] else if (model.marketType == MarketType.categorical) ...[
-          SailText.secondary13('Enter slot IDs for categorical outcomes.'),
+          SailText.secondary13('Enter one decision slot ID per dimension.'),
           const SizedBox(height: 8),
           SailText.secondary13('Slot IDs (comma-separated)'),
           SailTextField(
@@ -199,12 +201,12 @@ class _DimensionsStep extends StatelessWidget {
             hintText: 'e.g., 004008,004009,004010',
           ),
         ] else ...[
-          SailText.secondary13('Enter custom dimension specification using bracket notation.'),
+          SailText.secondary13('Enter decision slot IDs, or paste DimensionInput JSON.'),
           const SizedBox(height: 8),
           SailText.secondary13('Dimensions'),
           SailTextField(
             controller: model.dimensionsController,
-            hintText: 'e.g., [004008] or [[004008,004009]]',
+            hintText: 'e.g., 004008,004009 or [{"type":"existing","id":"004008"}]',
           ),
           const SizedBox(height: 8),
           Container(
@@ -217,9 +219,9 @@ class _DimensionsStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SailText.secondary12('Dimension Syntax:', bold: true),
-                SailText.secondary12('[slot_id] - Binary outcome from single slot'),
-                SailText.secondary12('[s1,s2,s3] - Combined binary slots'),
-                SailText.secondary12('[[s1,s2,s3]] - Categorical from related slots'),
+                SailText.secondary12('slot_id - One dimension per claimed decision'),
+                SailText.secondary12('{"type":"existing","id":"s1"} - Reference a claimed decision'),
+                SailText.secondary12('{"type":"new",...} - Claim a decision with the market'),
               ],
             ),
           ),
@@ -600,6 +602,26 @@ class MarketCreationViewModel extends BaseViewModel {
     }
   }
 
+  /// Dimensions as the `DimensionInput` JSON array market_create takes. Every
+  /// decision ID becomes an `existing` reference; already-formed JSON passes
+  /// through so custom mode can claim new decisions.
+  String get dimensionInputs {
+    final input = dimensionsController.text.trim();
+    if (input.isEmpty) return '[]';
+
+    try {
+      final decoded = jsonDecode(input);
+      if (decoded is List && decoded.every((d) => d is Map)) return input;
+    } on FormatException {
+      // Not JSON: read the input as decision IDs.
+    }
+
+    final ids = input.split(RegExp(r'[\s,\[\]]+')).where((id) => id.isNotEmpty);
+    return jsonEncode([
+      for (final id in ids) {'type': 'existing', 'id': id},
+    ]);
+  }
+
   bool get canContinue {
     switch (currentStep) {
       case 0:
@@ -672,7 +694,7 @@ class MarketCreationViewModel extends BaseViewModel {
     final txid = await _marketProvider.createMarket(
       title: titleController.text.trim(),
       description: descriptionController.text.trim(),
-      dimensions: effectiveDimensions,
+      dimensions: dimensionInputs,
       feeSats: 1000,
       beta: liquidityMethod == LiquidityMethod.beta ? double.tryParse(betaController.text) : null,
       initialLiquidity: liquidityMethod == LiquidityMethod.initialLiquidity
