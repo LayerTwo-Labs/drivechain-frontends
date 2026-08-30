@@ -41,11 +41,17 @@ type fakeChain struct {
 	funded  map[string][]ChequeUTXO
 	queried []string
 	err     error
+	// failures makes the next reads fail, as a chain source that still boots does.
+	failures int
 }
 
 func (f *fakeChain) AddressUnspent(_ context.Context, address string) ([]ChequeUTXO, error) {
 	if f.err != nil {
 		return nil, f.err
+	}
+	if f.failures > 0 {
+		f.failures--
+		return nil, errors.New("connection refused")
 	}
 	f.queried = append(f.queried, address)
 	return f.funded[address], nil

@@ -2,12 +2,14 @@ package engines
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -22,23 +24,27 @@ type ChequeRecovery struct {
 	Index   uint32
 	Address string
 	Amount  uint64
-	Txid    string
+	Outputs []cheques.FundingOutput
 }
 
 // ChequeEngine derives cheque keys from the wallet seed, and reads their
 // addresses off the chain.
 type ChequeEngine struct {
+	db           *sql.DB
 	walletEngine *WalletEngine
 	chainParams  *chaincfg.Params
 	chain        ChequeChain
+	scanRetry    time.Duration
 }
 
 // NewChequeEngine creates a new cheque engine
-func NewChequeEngine(walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain) *ChequeEngine {
+func NewChequeEngine(db *sql.DB, walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain) *ChequeEngine {
 	return &ChequeEngine{
+		db:           db,
 		walletEngine: walletEngine,
 		chainParams:  chainParams,
 		chain:        chain,
+		scanRetry:    10 * time.Second,
 	}
 }
 
@@ -173,17 +179,17 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, count 
 		}
 
 		var amountSats uint64
-		var txid string
+		var outputs []cheques.FundingOutput
 		for _, utxo := range utxos {
 			amountSats += uint64(utxo.ValueSats)
-			txid = utxo.TxID
+			outputs = append(outputs, cheques.FundingOutput{Txid: utxo.TxID, BlockHeight: utxo.Height})
 		}
 
 		recoveries = append(recoveries, ChequeRecovery{
 			Index:   i,
 			Address: address,
 			Amount:  amountSats,
-			Txid:    txid,
+			Outputs: outputs,
 		})
 
 		log.Info().
@@ -248,25 +254,57 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 	}
 
 	totalRecoveries := 0
-	for _, wallet := range wallets {
-		recoveries, err := e.ScanForFunds(ctx, wallet.ID, 20)
-		if err != nil {
-			// A watch-only wallet holds no seed, and a chain source that still
-			// boots refuses every read. Neither is a fault of this scan.
-			level := zerolog.WarnLevel
-			if strings.Contains(err.Error(), "has no seed") || IsBitcoinCoreStartupError(err.Error()) {
-				level = zerolog.DebugLevel
+	pending := wallets
+	warned := map[string]bool{}
+	for {
+		var failed []WalletInfo
+		for _, wallet := range pending {
+			recoveries, err := e.ScanForFunds(ctx, wallet.ID, 20)
+			if err != nil {
+				if strings.Contains(err.Error(), "has no seed") {
+					continue
+				}
+				// The chain source refuses reads while it boots, so scan again
+				// later. A failure that stays is reported one time.
+				level := zerolog.WarnLevel
+				if IsBitcoinCoreStartupError(err.Error()) || warned[wallet.ID] {
+					level = zerolog.DebugLevel
+				}
+				warned[wallet.ID] = true
+				log.WithLevel(level).Err(err).Str("wallet_id", wallet.ID).Msg("failed to scan wallet for cheque funds")
+				failed = append(failed, wallet)
+				continue
 			}
-			log.WithLevel(level).Err(err).Str("wallet_id", wallet.ID).Msg("failed to scan wallet for cheque funds")
-			continue
+
+			for _, recovery := range recoveries {
+				if err := cheques.CreateOrUpdateFromRecovery(
+					ctx, e.db, wallet.ID, recovery.Index, recovery.Address, recovery.Outputs, recovery.Amount,
+				); err != nil {
+					log.Error().Err(err).
+						Str("wallet_id", wallet.ID).
+						Uint32("index", recovery.Index).
+						Msg("failed to save recovered cheque")
+					return
+				}
+			}
+
+			if len(recoveries) > 0 {
+				log.Info().
+					Str("wallet_id", wallet.ID).
+					Int("count", len(recoveries)).
+					Msg("found funded cheques during recovery scan")
+				totalRecoveries += len(recoveries)
+			}
 		}
 
-		if len(recoveries) > 0 {
-			log.Info().
-				Str("wallet_id", wallet.ID).
-				Int("count", len(recoveries)).
-				Msg("found funded cheques during recovery scan")
-			totalRecoveries += len(recoveries)
+		if len(failed) == 0 {
+			break
+		}
+		pending = failed
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(e.scanRetry):
 		}
 	}
 

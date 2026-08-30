@@ -361,7 +361,7 @@ func Delete(ctx context.Context, db *sql.DB, walletID string, id int64) error {
 }
 
 // CreateOrUpdateFromRecovery creates or updates a cheque from recovery scan
-func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, txids []string, amount uint64) error {
+func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string, index uint32, address string, outputs []FundingOutput, amount uint64) error {
 	// Check if cheque already exists
 	existing, err := GetByAddress(ctx, db, walletID, address)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -369,10 +369,6 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 	}
 
 	if existing != nil {
-		outputs := make([]FundingOutput, len(txids))
-		for i, txid := range txids {
-			outputs[i] = FundingOutput{Txid: txid}
-		}
 		return UpdateFunding(ctx, db, walletID, existing.ID, outputs, amount)
 	}
 
@@ -396,11 +392,15 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 	if err != nil {
 		return fmt.Errorf("failed to get last insert id: %w", err)
 	}
-	for _, txid := range txids {
+	for _, out := range outputs {
+		var height sql.NullInt64
+		if out.BlockHeight > 0 {
+			height = sql.NullInt64{Int64: int64(out.BlockHeight), Valid: true}
+		}
 		if _, err := tx.ExecContext(ctx, `
-			INSERT OR IGNORE INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats)
-			VALUES (?, ?, 0, 0)
-		`, id, txid); err != nil {
+			INSERT OR IGNORE INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats, block_height)
+			VALUES (?, ?, 0, 0, ?)
+		`, id, out.Txid, height); err != nil {
 			return fmt.Errorf("record recovered funding output: %w", err)
 		}
 	}

@@ -42,7 +42,7 @@ func TestGetNextIndex_SkipsDeletedRecoveredIndex(t *testing.T) {
 	ctx := context.Background()
 
 	txid := "aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000aaaa0000"
-	require.NoError(t, cheques.CreateOrUpdateFromRecovery(ctx, db, testWalletID, 4, "addr-4", []string{txid}, 1000))
+	require.NoError(t, cheques.CreateOrUpdateFromRecovery(ctx, db, testWalletID, 4, "addr-4", []cheques.FundingOutput{{Txid: txid}}, 1000))
 
 	recovered, err := cheques.GetByAddress(ctx, db, testWalletID, "addr-4")
 	require.NoError(t, err)
