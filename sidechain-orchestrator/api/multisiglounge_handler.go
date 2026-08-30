@@ -335,6 +335,40 @@ func groupDataToLoungeGroup(g *pb.GroupData) wallet.MultisigLoungeGroup {
 	}
 }
 
+// groupScriptType reads the group's multisig script type ("wsh", "sh-wsh",
+// "sh", or "tr") back out of its declared receive descriptor, so every
+// descriptor the orchestrator rebuilds matches the one the group published. A
+// legacy group that declares no descriptor gets "", the native-P2WSH default.
+func groupScriptType(g *pb.GroupData) string {
+	desc := g.GetDescriptorReceive()
+	if desc == "" {
+		return ""
+	}
+	_, _, scriptType, _, err := wallet.ParseMultisigDescriptor(desc)
+	if err != nil {
+		return ""
+	}
+	return scriptType
+}
+
+// multisigChangeType maps a group's multisig script type to the Core
+// walletcreatefundedpsbt change_type, so change pays an address the watch
+// wallet's own descriptors cover. Empty when the group declares no type.
+func multisigChangeType(scriptType string) string {
+	switch scriptType {
+	case "sh":
+		return "legacy"
+	case "sh-wsh":
+		return "p2sh-segwit"
+	case "wsh":
+		return "bech32"
+	case "tr":
+		return "bech32m"
+	default:
+		return ""
+	}
+}
+
 // coreCall invokes a bitcoind JSON-RPC method with positional params, wallet-less
 // (matching the Dart multisig path), and unmarshals the result into out.
 func (h *MultisigLoungeHandler) coreCall(ctx context.Context, method string, params []interface{}, out interface{}) error {
@@ -415,7 +449,7 @@ func (h *MultisigLoungeHandler) SignTransaction(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet owns none of the group's keys; cannot sign"))
 	}
 
-	receiveDesc, changeDesc, err := wallet.BuildMultisigSigningDescriptors(loungeGroup, signWithXprv)
+	receiveDesc, changeDesc, err := wallet.BuildMultisigSigningDescriptorsTyped(loungeGroup, signWithXprv, groupScriptType(group))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build signing descriptors: %w", err))
 	}
@@ -641,7 +675,7 @@ func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.Gro
 	}
 	wantEnd := watchRangeEnd(state.next)
 
-	receive, change, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(g))
+	receive, change, err := wallet.BuildMultisigLoungeDescriptorsTyped(groupDataToLoungeGroup(g), groupScriptType(g))
 	if err != nil {
 		return "", fmt.Errorf("build descriptors: %w", err)
 	}
@@ -900,6 +934,11 @@ func (h *MultisigLoungeHandler) CreateSpendPsbt(
 	options := map[string]interface{}{
 		"includeWatching": true,
 		"changePosition":  1,
+	}
+	// The watch wallet holds only the group's own change descriptor, so Core must
+	// be told which output type that is or it cannot produce a change address.
+	if ct := multisigChangeType(groupScriptType(group)); ct != "" {
+		options["change_type"] = ct
 	}
 	if rate := req.Msg.GetFeeRateSatVb(); rate > 0 {
 		options["fee_rate"] = rate

@@ -557,3 +557,69 @@ func TestCreateSpendPsbtE2E(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cab.Msg.Txid, 64, "the CreateSpendPsbt output must sign+combine+broadcast end to end")
 }
+
+// TestGroupScriptType pins the script type read back out of a group's declared
+// receive descriptor; a group that declares none stays on the wsh default.
+func TestGroupScriptType(t *testing.T) {
+	base := loungeSyncTestGroup(t)
+	for _, scriptType := range []string{"wsh", "sh-wsh", "sh", "tr"} {
+		t.Run(scriptType, func(t *testing.T) {
+			receive, _, err := wallet.BuildMultisigLoungeDescriptorsTyped(groupDataToLoungeGroup(base), scriptType)
+			require.NoError(t, err)
+			require.Equal(t, scriptType, groupScriptType(&pb.GroupData{DescriptorReceive: receive}))
+		})
+	}
+	require.Equal(t, "", groupScriptType(&pb.GroupData{}), "a legacy group declares no descriptor")
+	require.Equal(t, "", groupScriptType(&pb.GroupData{DescriptorReceive: "not a descriptor"}))
+}
+
+// TestWatchWalletUsesDeclaredScriptType pins the non-wsh path: a group whose
+// declared descriptors are sh(wsh(sortedmulti)) must import THOSE descriptors
+// into its watch wallet, and fund its change from the same script type.
+func TestWatchWalletUsesDeclaredScriptType(t *testing.T) {
+	group := loungeSyncTestGroup(t)
+	receive, change, err := wallet.BuildMultisigLoungeDescriptorsTyped(groupDataToLoungeGroup(group), "sh-wsh")
+	require.NoError(t, err)
+	group.DescriptorReceive = receive
+	group.DescriptorChange = change
+
+	var imported []map[string]interface{}
+	var fundOptions map[string]interface{}
+	unmarshalParam := func(paramsJSON string, i int, out interface{}) {
+		var params []json.RawMessage
+		require.NoError(t, json.Unmarshal([]byte(paramsJSON), &params))
+		require.NoError(t, json.Unmarshal(params[i], out))
+	}
+
+	h := NewMultisigLoungeHandler()
+	h.SetCoreCaller(func(_ context.Context, method, paramsJSON, _ string) (json.RawMessage, error) {
+		switch method {
+		case "listwallets":
+			return json.RawMessage(`[]`), nil
+		case "loadwallet":
+			return nil, fmt.Errorf("wallet not found")
+		case "createwallet":
+			return json.RawMessage(`{}`), nil
+		case "listdescriptors":
+			return json.RawMessage(`{"descriptors":[]}`), nil
+		case "importdescriptors":
+			unmarshalParam(paramsJSON, 0, &imported)
+			return json.RawMessage(`[{"success":true},{"success":true}]`), nil
+		case "walletcreatefundedpsbt":
+			unmarshalParam(paramsJSON, 3, &fundOptions)
+			return json.RawMessage(`{"psbt":"cHNidP8BAAA=","fee":0.0001}`), nil
+		}
+		return nil, fmt.Errorf("unexpected method %s", method)
+	})
+
+	_, err = h.CreateSpendPsbt(context.Background(), connect.NewRequest(&pb.CreateSpendPsbtRequest{
+		Group:        group,
+		Destinations: []*pb.SpendDestination{{Address: "bcrt1qdest", Sats: 50_000}},
+	}))
+	require.NoError(t, err)
+
+	require.Len(t, imported, 2)
+	require.Equal(t, receive, imported[0]["desc"], "the watch wallet must import the group's declared receive descriptor")
+	require.Equal(t, change, imported[1]["desc"], "the watch wallet must import the group's declared change descriptor")
+	require.Equal(t, "p2sh-segwit", fundOptions["change_type"], "change must pay the group's own script type")
+}
