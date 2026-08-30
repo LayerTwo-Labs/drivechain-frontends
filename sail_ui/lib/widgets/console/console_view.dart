@@ -46,42 +46,70 @@ class ConsoleView extends StatefulWidget {
 }
 
 class _ConsoleViewState extends State<ConsoleView> {
-  late final List<String> _allCommands;
-  String? _currentService;
+  static const _maxSuggestions = 40;
+
+  late final List<_Completion> _allCommands;
+
+  /// The service the next command goes to. It sticks after a command runs, so
+  /// a name no CLI claims still reaches the CLI the user last used.
+  ConsoleService? _stickyService;
 
   final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
+  final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
   final List<String> _commandHistory = [];
+
+  /// Position in the filtered history, or -1 when the user is not browsing.
   int _historyIndex = -1;
+  String _historySeed = '';
+
+  List<_Completion> _suggestions = const [];
 
   List<ConsoleEntry> entries = [];
 
   @override
   void initState() {
     super.initState();
-    _focusNode.requestFocus();
+    _inputFocus.requestFocus();
 
-    // Merge all commands into one list
-    _allCommands = widget.services.expand((service) => service.commands).toList();
+    _allCommands = [
+      for (final service in widget.services)
+        for (final command in service.commands) _Completion(command, service),
+    ];
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _focusNode.dispose();
+    _inputFocus.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  ConsoleService _determineService(String command) {
+  /// The service that publishes this command, or null when none does.
+  ConsoleService? _publisherOf(String command) {
     for (final service in widget.services) {
       if (service.commands.contains(command)) {
         return service;
       }
     }
-    // Default to first service if command not found
-    return widget.services.first;
+    return null;
+  }
+
+  /// The service a typed command runs on. Two CLIs can publish the same name,
+  /// such as help, so the one the user last used answers for it.
+  ConsoleService _determineService(String command) {
+    final sticky = _stickyService;
+    if (sticky != null && sticky.commands.contains(command)) {
+      return sticky;
+    }
+    return _publisherOf(command) ?? sticky ?? widget.services.first;
+  }
+
+  String _firstWord(String text) {
+    final trimmed = text.trim();
+    final space = trimmed.indexOf(' ');
+    return space == -1 ? trimmed : trimmed.substring(0, space);
   }
 
   void _handleSubmitted(String text) async {
@@ -121,9 +149,11 @@ class _ConsoleViewState extends State<ConsoleView> {
         ),
       );
       _commandHistory.add(text);
-      _historyIndex = _commandHistory.length;
+      _historyIndex = -1;
+      _historySeed = '';
+      _suggestions = const [];
       _controller.clear();
-      _currentService = service.name;
+      _stickyService = service;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -185,31 +215,134 @@ class _ConsoleViewState extends State<ConsoleView> {
     );
   }
 
-  void _handleKeyPress(KeyEvent event) {
-    if (event is! KeyDownEvent) {
+  KeyEventResult _handleKeyPress(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowUp) {
+      _stepHistory(-1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowDown) {
+      _stepHistory(1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.tab) {
+      return _completeFirst() ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+    if (key == LogicalKeyboardKey.escape && _suggestions.isNotEmpty) {
+      setState(() => _suggestions = const []);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _setText(String value) {
+    _controller.text = value;
+    _controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: value.length),
+    );
+  }
+
+  /// Walks the history, oldest to newest. What the user typed before the first
+  /// arrow press narrows it, so `gen` + up finds only the generate commands.
+  void _stepHistory(int step) {
+    if (_historyIndex == -1) {
+      _historySeed = _controller.text.trim();
+    }
+    final matches = _historyMatches();
+    if (matches.isEmpty) {
       return;
     }
 
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      if (_historyIndex > 0) {
-        _historyIndex--;
-        _controller.text = _commandHistory[_historyIndex];
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: _controller.text.length),
-        );
+    final from = _historyIndex == -1 ? matches.length : _historyIndex;
+    final next = from + step;
+    if (next >= matches.length) {
+      setState(() {
+        _historyIndex = -1;
+        _suggestions = const [];
+      });
+      _setText(_historySeed);
+      return;
+    }
+
+    setState(() {
+      _historyIndex = next < 0 ? 0 : next;
+      _suggestions = const [];
+    });
+    _setText(matches[_historyIndex]);
+  }
+
+  /// History entries that hold the seed, oldest first, each one only once.
+  List<String> _historyMatches() {
+    final seed = _historySeed.toLowerCase();
+    final seen = <String>{};
+    final newestFirst = <String>[];
+    for (var i = _commandHistory.length - 1; i >= 0; i--) {
+      final entry = _commandHistory[i];
+      if (seed.isNotEmpty && !entry.toLowerCase().contains(seed)) {
+        continue;
       }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_historyIndex < _commandHistory.length - 1) {
-        _historyIndex++;
-        _controller.text = _commandHistory[_historyIndex];
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: _controller.text.length),
-        );
-      } else {
-        _historyIndex = _commandHistory.length;
-        _controller.clear();
+      if (seen.add(entry)) {
+        newestFirst.add(entry);
       }
     }
+    return newestFirst.reversed.toList();
+  }
+
+  bool _completeFirst() {
+    if (_suggestions.isEmpty) {
+      return false;
+    }
+    _accept(_suggestions.first);
+    return true;
+  }
+
+  void _accept(_Completion completion) {
+    _setText('${completion.command} ');
+    setState(() {
+      _suggestions = const [];
+      // The user picked this row, so its service answers the command even when
+      // another CLI publishes the same name.
+      _stickyService = completion.service;
+    });
+    _inputFocus.requestFocus();
+  }
+
+  /// Commands that match what the user typed, whole-prefix matches first. Only
+  /// the first word completes — the rest of the line is arguments.
+  List<_Completion> _matches(String text) {
+    if (text.contains(' ')) {
+      return const [];
+    }
+    final term = text.trim().toLowerCase();
+    if (term.isEmpty) {
+      return const [];
+    }
+
+    final starts = <_Completion>[];
+    final holds = <_Completion>[];
+    for (final completion in _allCommands) {
+      final lower = completion.command.toLowerCase();
+      if (lower == term) {
+        continue;
+      }
+      if (lower.startsWith(term)) {
+        starts.add(completion);
+      } else if (lower.contains(term)) {
+        holds.add(completion);
+      }
+    }
+    return [...starts, ...holds].take(_maxSuggestions).toList();
+  }
+
+  void _onChanged(String value) {
+    setState(() {
+      _historyIndex = -1;
+      _suggestions = _matches(value);
+    });
   }
 
   void _addResponse(ConsoleEntry responseEntry) {
@@ -288,125 +421,107 @@ class _ConsoleViewState extends State<ConsoleView> {
         Container(
           color: theme.colors.backgroundSecondary,
           padding: const EdgeInsets.all(8),
-          child: Row(
+          child: SailColumn(
+            mainAxisSize: MainAxisSize.min,
+            spacing: SailStyleValues.padding04,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: KeyboardListener(
-                  focusNode: _focusNode,
-                  onKeyEvent: _handleKeyPress,
-                  child: Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return const Iterable<String>.empty();
-                      }
-                      final searchTerm = textEditingValue.text.toLowerCase();
-                      return _allCommands.where((command) {
-                        final service = _determineService(command);
-                        return command.toLowerCase().contains(searchTerm) ||
-                            service.name.toLowerCase().contains(searchTerm) ||
-                            service.name.toLowerCase().replaceAll('_', '').replaceAll('-', '').contains(searchTerm);
-                      });
-                    },
-                    optionsViewBuilder: (context, onSelected, options) {
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4,
-                          color: theme.colors.background,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 150),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              shrinkWrap: true,
-                              itemCount: options.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                final command = options.elementAt(index);
-                                final service = _determineService(command);
-                                return InkWell(
-                                  onTap: () => onSelected(command),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    child: SailText.primary12(
-                                      service.name == command ? command : '${service.name} -> $command',
-                                      color: theme.colors.text,
-                                      monospace: true,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    onSelected: (String selection) {
-                      setState(() {
-                        _currentService = _determineService(selection).name;
-                        _controller.text = selection;
-                        _controller.selection = TextSelection.fromPosition(
-                          TextPosition(offset: selection.length),
-                        );
-                      });
-                    },
-                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        style: TextStyle(
-                          color: theme.colors.text,
-                          fontFamily: 'IBMPlexMono',
-                        ),
-                        decoration: InputDecoration(
-                          prefixIcon: Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            constraints: const BoxConstraints(
-                              maxWidth: 150,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (_currentService != null)
-                                  SailText.primary13(
-                                    _currentService!,
-                                    color: theme.colors.textSecondary,
-                                    monospace: true,
-                                  ),
-                                if (_currentService != null) const SizedBox(width: 8),
-                                SailText.primary13('>', monospace: true),
-                                const SizedBox(width: 8),
-                              ],
-                            ),
-                          ),
-                          prefixIconConstraints: const BoxConstraints(
-                            minWidth: 0,
-                            minHeight: 0,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: SailStyleValues.borderRadius,
-                          ),
-                          fillColor: theme.colors.background,
-                          filled: true,
-                        ),
-                        onSubmitted: _handleSubmitted,
-                        onChanged: (value) {
-                          if (_currentService != null) {
-                            setState(() {
-                              _currentService = null;
-                            });
-                          }
-                        },
-                      );
-                    },
+              if (_suggestions.isNotEmpty) _suggestionList(theme),
+              Focus(
+                onKeyEvent: _handleKeyPress,
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _inputFocus,
+                  style: TextStyle(
+                    color: theme.colors.text,
+                    fontFamily: 'IBMPlexMono',
                   ),
+                  decoration: InputDecoration(
+                    prefixIcon: Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      constraints: const BoxConstraints(maxWidth: 150),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SailText.primary13(
+                            _determineService(_firstWord(_controller.text)).name,
+                            color: theme.colors.textSecondary,
+                            monospace: true,
+                          ),
+                          const SizedBox(width: 8),
+                          SailText.primary13('>', monospace: true),
+                          const SizedBox(width: 8),
+                        ],
+                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 0,
+                      minHeight: 0,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: SailStyleValues.borderRadius,
+                      borderSide: BorderSide(color: theme.colors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: SailStyleValues.borderRadius,
+                      borderSide: BorderSide(color: theme.colors.primary, width: 1.5),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: SailStyleValues.borderRadius,
+                      borderSide: BorderSide(color: theme.colors.border),
+                    ),
+                    fillColor: theme.colors.background,
+                    filled: true,
+                  ),
+                  onSubmitted: _handleSubmitted,
+                  onChanged: _onChanged,
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _suggestionList(SailThemeData theme) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 160),
+      decoration: BoxDecoration(
+        color: theme.colors.background,
+        border: Border.all(color: theme.colors.border),
+        borderRadius: SailStyleValues.borderRadius,
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        itemCount: _suggestions.length,
+        itemBuilder: (context, index) {
+          final completion = _suggestions[index];
+          final first = index == 0;
+          return InkWell(
+            onTap: () => _accept(completion),
+            child: Container(
+              color: first ? theme.colors.primary.withValues(alpha: 0.10) : null,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: [
+                  SailText.primary12(completion.command, monospace: true),
+                  const Spacer(),
+                  if (first) ...[
+                    SailText.secondary12('tab', monospace: true),
+                    const SizedBox(width: 8),
+                  ],
+                  SailText.secondary12(
+                    completion.service.name,
+                    monospace: true,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -496,4 +611,13 @@ class ConsoleEntryWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One command a console can complete, with the service that publishes it.
+/// Two CLIs can publish the same name, so the name alone names no service.
+class _Completion {
+  const _Completion(this.command, this.service);
+
+  final String command;
+  final ConsoleService service;
 }
