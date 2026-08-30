@@ -845,8 +845,9 @@ class CreateMultisigModalViewModel extends BaseViewModel {
       final firstHash = sha256.convert(xpubBytes).bytes;
       final secondHash = sha256.convert(firstHash).bytes;
 
-      final idBytes = secondHash.sublist(0, 3);
-      return hex.encode(idBytes);
+      // Full digest: a truncated id collides, and the colliding group's save
+      // overwrites the other group's stored state.
+      return hex.encode(secondHash);
     } catch (e) {
       throw Exception('Failed to compute multisig ID: $e');
     }
