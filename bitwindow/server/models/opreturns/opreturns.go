@@ -91,7 +91,9 @@ func Persist(
 		`ON CONFLICT (txid, vout) DO UPDATE SET 
 			op_return_data = excluded.op_return_data, 
 			height = COALESCE(excluded.height, op_returns.height), 
-			fee_sats = excluded.fee_sats,
+			-- Zero reads as unknown: a scan on a node with no txindex cannot
+			-- fetch the fee, and must not erase one the mempool already gave us.
+			fee_sats = COALESCE(NULLIF(excluded.fee_sats, 0), op_returns.fee_sats),
 			created_at = CASE
 				WHEN excluded.height IS NOT NULL THEN excluded.created_at
 				ELSE op_returns.created_at

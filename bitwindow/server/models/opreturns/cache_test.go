@@ -303,3 +303,55 @@ func TestListCoinNews_TopicNameMatchesEachRow(t *testing.T) {
 	assert.Equal(t, topicA, byHeadline["ha"].Topic)
 	assert.Equal(t, topicB, byHeadline["hb"].Topic)
 }
+
+// A node with no txindex cannot read the fee of a confirmed transaction, so
+// the scan records zero. ZMQ already stored the real fee from the mempool, and
+// the confirming write must not erase it.
+func TestConfirmingARowKeepsAFeeTheMempoolAlreadyGave(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db := database.Test(t)
+
+	const txid = "a1b2c3"
+	unconfirmed := time.Now()
+	require.NoError(t, Persist(ctx, db, []OPReturn{{
+		TxID: txid, Vout: 0, Data: []byte{0x01}, Fee: 4200, CreatedAt: &unconfirmed,
+	}}))
+
+	height := uint32(995432)
+	blockTime := unconfirmed.Add(time.Minute)
+	require.NoError(t, Persist(ctx, db, []OPReturn{{
+		TxID: txid, Vout: 0, Data: []byte{0x01}, Fee: 0, Height: &height, CreatedAt: &blockTime,
+	}}))
+
+	rows, err := List(ctx, db, 10)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.EqualValues(t, 4200, rows[0].Fee, "an unknown fee must not replace a known one")
+	require.NotNil(t, rows[0].Height)
+	assert.EqualValues(t, height, *rows[0].Height, "the row must still confirm")
+}
+
+// A fee the scan does read still replaces whatever the row held.
+func TestConfirmingARowStillWritesAKnownFee(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db := database.Test(t)
+
+	const txid = "d4e5f6"
+	unconfirmed := time.Now()
+	require.NoError(t, Persist(ctx, db, []OPReturn{{
+		TxID: txid, Vout: 0, Data: []byte{0x02}, Fee: 4200, CreatedAt: &unconfirmed,
+	}}))
+
+	height := uint32(995433)
+	blockTime := unconfirmed.Add(time.Minute)
+	require.NoError(t, Persist(ctx, db, []OPReturn{{
+		TxID: txid, Vout: 0, Data: []byte{0x02}, Fee: 999, Height: &height, CreatedAt: &blockTime,
+	}}))
+
+	rows, err := List(ctx, db, 10)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.EqualValues(t, 999, rows[0].Fee)
+}
