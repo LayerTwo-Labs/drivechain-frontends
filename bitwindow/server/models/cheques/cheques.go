@@ -44,7 +44,13 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 		return 0, fmt.Errorf("address cannot be empty")
 	}
 
-	result, err := db.ExecContext(ctx, `
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	result, err := tx.ExecContext(ctx, `
 		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address)
 		VALUES (?, ?, ?, ?)
 	`, walletID, index, expectedAmount, address)
@@ -57,7 +63,35 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 		return 0, fmt.Errorf("failed to get last insert id: %w", err)
 	}
 
+	if err := bumpIndexCounter(ctx, tx, walletID, index); err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit cheque: %w", err)
+	}
+
 	return id, nil
+}
+
+// execer is satisfied by both *sql.DB and *sql.Tx.
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+// bumpIndexCounter raises the wallet's index allocator past index. The counter
+// never decreases, so deleting a cheque cannot hand its index — and with it its
+// address — to the next one.
+func bumpIndexCounter(ctx context.Context, db execer, walletID string, index uint32) error {
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO cheque_index_counters (wallet_id, next_index)
+		VALUES (?, ?)
+		ON CONFLICT (wallet_id) DO UPDATE
+		SET next_index = MAX(cheque_index_counters.next_index, excluded.next_index)
+	`, walletID, uint64(index)+1); err != nil {
+		return fmt.Errorf("failed to bump cheque index counter: %w", err)
+	}
+	return nil
 }
 
 // scanCheque scans a cheque row from the database
@@ -281,24 +315,24 @@ func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txi
 	return nil
 }
 
-// GetNextIndex returns the next available cheque index for a specific wallet
+// GetNextIndex returns the next available cheque index for a specific wallet.
+// It takes the higher of the monotonic counter and the live rows, so an index
+// is never handed out twice even after the cheque that used it was deleted.
 func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, error) {
-	var maxIndex sql.NullInt64
+	var nextIndex int64
 
 	err := db.QueryRowContext(ctx, `
-		SELECT MAX(derivation_index) FROM cheques WHERE wallet_id = ?
-	`, walletID).Scan(&maxIndex)
+		SELECT MAX(
+			COALESCE((SELECT next_index FROM cheque_index_counters WHERE wallet_id = ?), 0),
+			COALESCE((SELECT MAX(derivation_index) + 1 FROM cheques WHERE wallet_id = ?), 0)
+		)
+	`, walletID, walletID).Scan(&nextIndex)
 
 	if err != nil && err != sql.ErrNoRows {
 		return 0, fmt.Errorf("failed to get max index: %w", err)
 	}
 
-	if !maxIndex.Valid {
-		// No cheques yet for this wallet, start at 0
-		return 0, nil
-	}
-
-	return uint32(maxIndex.Int64) + 1, nil
+	return uint32(nextIndex), nil
 }
 
 // Delete deletes a cheque by ID for a specific wallet
@@ -359,5 +393,5 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 		}
 	}
 
-	return nil
+	return bumpIndexCounter(ctx, db, walletID, index)
 }
