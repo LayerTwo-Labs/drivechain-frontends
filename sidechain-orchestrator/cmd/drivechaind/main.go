@@ -671,8 +671,9 @@ func run(cctx *cli.Context) error {
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "truthcoin":
 			h := truthcoinsvc.NewHandler(proxy)
-			path, handler := truthcoinrpc.NewTruthcoinServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			path, truthcoinHandler := truthcoinrpc.NewTruthcoinServiceHandler(h, connect.WithInterceptors(authIC))
+			mux.Handle(path, truthcoinHandler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "coinshift":
 			h := coinshiftsvc.NewHandler(proxy)

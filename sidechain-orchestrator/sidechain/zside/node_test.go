@@ -63,3 +63,14 @@ func TestZSideAddressesReportTheFault(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "get_transparent_wallet_addresses")
 }
+
+func TestZSideBalanceSumsBothPools(t *testing.T) {
+	node := nodeServer(t, map[string]any{
+		"balance": json.RawMessage(`{"total_shielded_sats":30000,"total_transparent_sats":70000,"available_shielded_sats":20000,"available_transparent_sats":60000}`),
+	})
+
+	total, available, err := node.GetBalance(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, int64(100_000), total)
+	assert.Equal(t, int64(80_000), available)
+}

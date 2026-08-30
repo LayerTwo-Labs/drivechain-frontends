@@ -21,6 +21,21 @@ func NewNode(host string, port int) *Node {
 	return &Node{JSONRPCProxy: sidechain.NewJSONRPCProxy(host, port)}
 }
 
+// GetBalance sums the shielded and transparent pools, in sats.
+func (n *Node) GetBalance(ctx context.Context) (total, available int64, err error) {
+	var result struct {
+		TotalShieldedSats        int64 `json:"total_shielded_sats"`
+		TotalTransparentSats     int64 `json:"total_transparent_sats"`
+		AvailableShieldedSats    int64 `json:"available_shielded_sats"`
+		AvailableTransparentSats int64 `json:"available_transparent_sats"`
+	}
+	if err := n.Client.Call(ctx, "balance", nil, &result); err != nil {
+		return 0, 0, err
+	}
+	return result.TotalShieldedSats + result.TotalTransparentSats,
+		result.AvailableShieldedSats + result.AvailableTransparentSats, nil
+}
+
 // WalletAddressList joins both kinds of address the wallet holds. zSide keeps
 // its transparent and its shielded addresses apart, and serves no combined
 // method.

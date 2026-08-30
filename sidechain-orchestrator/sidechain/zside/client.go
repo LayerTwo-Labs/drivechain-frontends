@@ -107,17 +107,8 @@ func unmarshal[T any](c *Client, ctx context.Context, method string, params inte
 }
 
 // ---------------------------------------------------------------------------
-// Wallet / Balance
+// Wallet
 // ---------------------------------------------------------------------------
-
-// Balance returns the node wallet balance.
-func (c *Client) Balance(ctx context.Context) (*BalanceResponse, error) {
-	r, err := unmarshal[BalanceResponse](c, ctx, "balance", nil)
-	if err != nil {
-		return nil, err
-	}
-	return &r, nil
-}
 
 // GetNewAddress generates and returns a new wallet address.
 func (c *Client) GetNewAddress(ctx context.Context) (string, error) {
