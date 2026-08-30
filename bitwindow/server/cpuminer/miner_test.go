@@ -141,3 +141,52 @@ func TestRunRoutineHighHashDoesNotLoopForever(t *testing.T) {
 		t.Fatalf("fetched %d templates for %d submissions", got, submits.Load())
 	}
 }
+
+// JSON-RPC 1.0 responders (older Bitcoin Core, proxies) spell success as
+// "error":null. That decodes to a non-nil raw message, which the miner used to
+// treat as a failure, so every call against such a node failed.
+func TestJsonRpcCallErrorMember(t *testing.T) {
+	tests := []struct {
+		name     string
+		response string
+		want     string
+	}{
+		{name: "explicit null error", response: `{"result":{"height":1},"error":null,"id":1}`},
+		{name: "omitted error", response: `{"result":{"height":1},"id":1}`},
+		{
+			name:     "real error",
+			response: `{"result":null,"error":{"code":-1,"message":"boom"},"id":1}`,
+			want:     "boom",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				//nolint:errcheck
+				w.Write([]byte(tt.response))
+			}))
+			defer srv.Close()
+
+			miner, err := New(Config{RpcURL: srv.URL})
+			if err != nil {
+				t.Fatalf("new miner: %v", err)
+			}
+
+			result, err := miner.jsonRpcCall(context.Background(), "getblocktemplate", nil)
+			if tt.want != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.want) {
+					t.Fatalf("expected an error containing %q, got: %v", tt.want, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("jsonRpcCall: %v", err)
+			}
+			if got := string(result); got != `{"height":1}` {
+				t.Fatalf("got result %s", got)
+			}
+		})
+	}
+}
