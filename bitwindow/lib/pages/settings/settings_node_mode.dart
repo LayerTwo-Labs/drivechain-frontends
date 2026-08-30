@@ -147,9 +147,7 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
           children: [
             SailSettingsRow(
               label: 'Full mode',
-              description:
-                  'Runs Bitcoin Core and the enforcer here. Gives you sidechains and mining. '
-                  'Needs hundreds of gigabytes of disk.',
+              description: 'If enabled, gives you sidechains and mining. Needs 1TB of disk.',
               trailing: _ModeToggle(
                 value: isFull,
                 // The row below says light mode is unavailable here, so the
