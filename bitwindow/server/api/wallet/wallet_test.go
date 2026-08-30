@@ -378,6 +378,31 @@ func TestService_LockWallet(t *testing.T) {
 	})
 }
 
+func TestService_GetStats(t *testing.T) {
+	t.Parallel()
+
+	t.Run("locked wallet returns failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.GetStats(context.Background(), connect.NewRequest(&walletv1.GetStatsRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+}
+
 func TestService_UnlockWallet(t *testing.T) {
 	t.Parallel()
 

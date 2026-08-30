@@ -1357,6 +1357,11 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
 	walletId := c.Msg.WalletId
 
+	// The stats aggregate wallet history, so the wallet has to be unlocked
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	// Bitcoin Core version
 	// Get UTXOs
 	utxos, err := s.ListUnspent(ctx, connect.NewRequest(&pb.ListUnspentRequest{WalletId: walletId}))
