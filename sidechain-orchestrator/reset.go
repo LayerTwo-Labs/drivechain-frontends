@@ -363,6 +363,8 @@ type resetRestart struct {
 type resetPlan struct {
 	stop    map[ResetBinary]bool
 	restart []resetRestart
+	// foreign names the adopted processes in stop that another install owns.
+	foreign []string
 }
 
 var resetSidechainBinaries = []ResetBinary{
@@ -435,8 +437,13 @@ func (o *Orchestrator) buildResetPlan(specs []GatherSpec) resetPlan {
 	}
 
 	restart := make([]resetRestart, 0, len(stop))
+	var foreign []string
 	for _, binary := range resetStartOrder {
-		if !stop[binary] || !o.isResetBinaryRunning(binary) || o.isResetBinaryAdopted(binary) {
+		if !stop[binary] || !o.isResetBinaryRunning(binary) {
+			continue
+		}
+		if o.isResetBinaryForeign(binary) {
+			foreign = append(foreign, binary.processName())
 			continue
 		}
 		restart = append(restart, resetRestart{
@@ -445,7 +452,7 @@ func (o *Orchestrator) buildResetPlan(specs []GatherSpec) resetPlan {
 		})
 	}
 
-	return resetPlan{stop: stop, restart: restart}
+	return resetPlan{stop: stop, restart: restart, foreign: foreign}
 }
 
 func (p resetPlan) runningProcessNames() []string {
@@ -468,6 +475,11 @@ func (o *Orchestrator) isResetBinaryAdopted(binary ResetBinary) bool {
 	return name != "" && o.process.IsAdopted(name)
 }
 
+// isResetBinaryForeign reports whether an adopted binary belongs to another install.
+func (o *Orchestrator) isResetBinaryForeign(binary ResetBinary) bool {
+	return o.isResetBinaryAdopted(binary) && !o.mayStopAdopted(binary.processName())
+}
+
 func (o *Orchestrator) configForResetBinary(binary ResetBinary) (BinaryConfig, bool) {
 	name := binary.processName()
 	if name == "" {
@@ -478,6 +490,10 @@ func (o *Orchestrator) configForResetBinary(binary ResetBinary) (BinaryConfig, b
 }
 
 func (o *Orchestrator) stopResetPlan(ctx context.Context, plan resetPlan) error {
+	if len(plan.foreign) > 0 {
+		return fmt.Errorf("stop %s before the reset: this install did not start it",
+			strings.Join(plan.foreign, ", "))
+	}
 	for _, binary := range resetStopOrder {
 		if !plan.stop[binary] {
 			continue
@@ -495,11 +511,8 @@ func (o *Orchestrator) stopResetBinary(ctx context.Context, binary ResetBinary) 
 		return nil
 	}
 
-	if o.process.IsAdopted(name) {
-		o.log.Info().Str("binary", name).Msg("adopted process, skipping reset shutdown")
-		o.process.Remove(name)
-		o.markResetBinaryStopped(name)
-		return nil
+	if o.isResetBinaryForeign(binary) {
+		return fmt.Errorf("stop %s before the reset: this install did not start it", name)
 	}
 
 	o.setResetBinaryStopping(name, true)
