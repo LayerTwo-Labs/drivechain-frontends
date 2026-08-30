@@ -35,6 +35,9 @@ type BitcoinConfig struct {
 	// to # bitwindow-datadir-<group>= comment lines. Keyed by DatadirGroup
 	// value ("default", "ecash"). Empty string = unset/cleared.
 	DatadirSlots map[DatadirGroup]string
+	// repeated holds every value of a key the file sets more than one time,
+	// keyed by section ("" for global), then key.
+	repeated map[string]map[string][]string
 }
 
 func NewBitcoinConfig() *BitcoinConfig {
@@ -55,6 +58,7 @@ func NewBitcoinConfig() *BitcoinConfig {
 		},
 		ConfigVersion: 0,
 		DatadirSlots:  map[DatadirGroup]string{},
+		repeated:      map[string]map[string][]string{},
 	}
 }
 
@@ -119,11 +123,35 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 			if hashIdx := strings.Index(value, "#"); hashIdx >= 0 {
 				value = strings.TrimSpace(value[:hashIdx])
 			}
-			config.SetSetting(key, value, currentSection)
+			config.addSetting(key, value, currentSection)
 		}
 	}
 
 	return config
+}
+
+// addSetting sets key and keeps the values it already holds.
+func (c *BitcoinConfig) addSetting(key, value, section string) {
+	values := c.values(key, section)
+	c.SetSetting(key, value, section)
+	if len(values) == 0 {
+		return
+	}
+	if c.repeated[section] == nil {
+		c.repeated[section] = map[string][]string{}
+	}
+	c.repeated[section][key] = append(values, value)
+}
+
+// values returns every value of key in section, in file order.
+func (c *BitcoinConfig) values(key, section string) []string {
+	if values := c.repeated[section][key]; len(values) > 0 {
+		return values
+	}
+	if c.HasSetting(key, section) {
+		return []string{c.GetSetting(key, section)}
+	}
+	return nil
 }
 
 // Serialize writes the config back to file format, preserving the order in
@@ -160,7 +188,9 @@ func (c *BitcoinConfig) Serialize() string {
 	if len(c.GlobalSettings) > 0 {
 		b.WriteString("# [common settings]\n")
 		for _, key := range c.orderedKeys("") {
-			fmt.Fprintf(&b, "%s=%s\n", key, c.GlobalSettings[key])
+			for _, value := range c.values(key, "") {
+				fmt.Fprintf(&b, "%s=%s\n", key, value)
+			}
 		}
 		b.WriteString("\n")
 	}
@@ -184,7 +214,9 @@ func (c *BitcoinConfig) Serialize() string {
 			fmt.Fprintf(&b, "# Options for %s only\n", label)
 			fmt.Fprintf(&b, "%s\n", sectionNames[network])
 			for _, key := range c.orderedKeys(network) {
-				fmt.Fprintf(&b, "%s=%s\n", key, settings[key])
+				for _, value := range c.values(key, network) {
+					fmt.Fprintf(&b, "%s=%s\n", key, value)
+				}
 			}
 			b.WriteString("\n")
 		}
@@ -247,6 +279,7 @@ func (c *BitcoinConfig) GetEffectiveSetting(key, network string) string {
 func (c *BitcoinConfig) SetSetting(key, value string, section ...string) {
 	if len(section) > 0 && section[0] != "" {
 		s := section[0]
+		delete(c.repeated[s], key)
 		if _, ok := c.NetworkSettings[s]; !ok {
 			c.NetworkSettings[s] = make(map[string]string)
 		}
@@ -258,6 +291,7 @@ func (c *BitcoinConfig) SetSetting(key, value string, section ...string) {
 		if _, exists := c.GlobalSettings[key]; !exists {
 			c.GlobalOrder = append(c.GlobalOrder, key)
 		}
+		delete(c.repeated[""], key)
 		c.GlobalSettings[key] = value
 	}
 }
@@ -265,11 +299,13 @@ func (c *BitcoinConfig) SetSetting(key, value string, section ...string) {
 func (c *BitcoinConfig) RemoveSetting(key string, section ...string) {
 	if len(section) > 0 && section[0] != "" {
 		s := section[0]
+		delete(c.repeated[s], key)
 		if settings, ok := c.NetworkSettings[s]; ok {
 			delete(settings, key)
 			c.NetworkOrder[s] = removeFromOrder(c.NetworkOrder[s], key)
 		}
 	} else {
+		delete(c.repeated[""], key)
 		delete(c.GlobalSettings, key)
 		c.GlobalOrder = removeFromOrder(c.GlobalOrder, key)
 	}
