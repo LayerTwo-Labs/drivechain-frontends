@@ -34,6 +34,7 @@ import 'package:bitwindow/providers/notification_stream_provider.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/providers/coin_selection_provider.dart';
+import 'package:bitwindow/providers/consolidation_provider.dart';
 import 'package:bitwindow/routing/router.dart';
 import 'package:bitwindow/widgets/address_list.dart';
 import 'package:bitwindow/widgets/ecash_upgrade_banner.dart';
@@ -298,6 +299,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<M4Provider>(M4Provider());
   NetworkScopedRegistry.register<AddressBookProvider>(AddressBookProvider());
   GetIt.I.registerSingleton<CoinSelectionProvider>(CoinSelectionProvider());
+  NetworkScopedRegistry.register<ConsolidationProvider>(ConsolidationProvider());
   GetIt.I.registerSingleton<MiningProvider>(MiningProvider());
   NetworkScopedRegistry.register<HDWalletProvider>(HDWalletProvider());
   GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
