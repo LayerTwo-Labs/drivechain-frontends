@@ -404,12 +404,15 @@ func (s *Server) ListWithdrawals(
 	// Determine start block for fetching
 	var startBlockHash string
 	var existingBundles []*pb.WithdrawalBundle
+	var incremental bool
 
-	if cache != nil && cache.activationHeight == activationHeight && cache.lastBlockHeight > 0 {
+	if cache != nil && cache.activationHeight == activationHeight && cache.lastBlockHeight > 0 &&
+		s.cachedTipOnActiveChain(ctx, cache, chainTipResp.BlockHeaderInfo) {
 		// We have a cache - only fetch new blocks since last fetch
 		// Start from the block AFTER our last cached block
 		startBlockHash = cache.lastBlockHash
 		existingBundles = cache.bundles
+		incremental = true
 		log.Debug().
 			Uint32("sidechain", sidechainId).
 			Uint32("fromHeight", cache.lastBlockHeight).
@@ -417,7 +420,8 @@ func (s *Server) ListWithdrawals(
 			Int("cachedBundles", len(existingBundles)).
 			Msg("ListWithdrawals: incremental fetch")
 	} else {
-		// No cache or activation height changed - need full fetch from activation
+		// No usable cache (missing, stale activation height, or reorged away) -
+		// need full fetch from activation
 		// Get the activation block hash
 		ancestorsNeeded := currentHeight - activationHeight
 		activationBlockResp, err := s.data.BlockHeaderInfo(ctx, &validatorpb.GetBlockHeaderInfoRequest{
@@ -454,6 +458,13 @@ func (s *Server) ListWithdrawals(
 		EndBlockHash:   &commonpb.ReverseHex{Hex: wrapperspb.String(currentBlockHash)},
 	})
 	if err != nil {
+		if incremental {
+			// The cached start block may be unusable. Drop the cache so the next
+			// call rescans from activation instead of re-sending it.
+			s.withdrawalCacheMu.Lock()
+			delete(s.withdrawalCaches, sidechainId)
+			s.withdrawalCacheMu.Unlock()
+		}
 		log.Error().Err(err).Msg("could not get two-way peg data")
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("get two-way peg data: %w", err))
@@ -478,6 +489,31 @@ func (s *Server) ListWithdrawals(
 	return connect.NewResponse(&pb.ListWithdrawalsResponse{
 		Bundles: s.updateBundleAges(allBundles, currentHeight),
 	}), nil
+}
+
+// cachedTipOnActiveChain reports whether the cached block is still an ancestor
+// of the current tip. A reorg can orphan it, which makes it useless as an
+// incremental start block.
+func (s *Server) cachedTipOnActiveChain(ctx context.Context, cache *withdrawalCache, tip *validatorpb.BlockHeaderInfo) bool {
+	if cache.lastBlockHeight > tip.Height {
+		return false
+	}
+
+	ancestorsNeeded := tip.Height - cache.lastBlockHeight
+	resp, err := s.data.BlockHeaderInfo(ctx, &validatorpb.GetBlockHeaderInfoRequest{
+		BlockHash:    tip.BlockHash,
+		MaxAncestors: &ancestorsNeeded,
+	})
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("could not verify cached withdrawal block, rescanning")
+		return false
+	}
+
+	_, found := lo.Find(resp.HeaderInfos, func(headerInfo *validatorpb.BlockHeaderInfo) bool {
+		return headerInfo.Height == cache.lastBlockHeight &&
+			headerInfo.GetBlockHash().GetHex().GetValue() == cache.lastBlockHash
+	})
+	return found
 }
 
 // BIP300 withdrawal verification period (max age for a bundle)
