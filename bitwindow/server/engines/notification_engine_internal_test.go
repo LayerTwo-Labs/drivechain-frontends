@@ -8,8 +8,13 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/notifications"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -140,5 +145,33 @@ func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
 		require.Equal(t, uint64(100_000_000), event.GetTransaction().GetAmountSats())
 	default:
 		t.Fatal("expected a sent notification, got none")
+	}
+}
+
+func TestCheckTimestampConfirmations_SkipsDiscovered(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+
+	txid := "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+	_, err := timestamps.Create(ctx, db, timestamps.FileTimestamp{
+		FileHash:  "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+		TxID:      &txid,
+		Status:    timestamps.StatusConfirming,
+		CreatedAt: time.Now(),
+	})
+	require.NoError(t, err)
+
+	core := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+	engine := NewNotificationEngine(db, service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+		return core, nil
+	}))
+	events := engine.Subscribe(ctx)
+
+	require.NoError(t, engine.checkTimestampConfirmations(ctx))
+
+	select {
+	case event := <-events:
+		t.Fatalf("announced a discovered timestamp: %v", event)
+	default:
 	}
 }

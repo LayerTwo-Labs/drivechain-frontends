@@ -102,7 +102,8 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 	}
 
 	for _, ts := range confirmingTimestamps {
-		if ts.TxID == nil {
+		// A discovered timestamp has no filename; this app did not create it.
+		if ts.TxID == nil || ts.Filename == "" {
 			continue
 		}
 
