@@ -141,6 +141,20 @@ func (e *BmmEngine) Stop(sidechain pb.BinaryType) {
 	e.notify()
 }
 
+// ResetForNetwork drops automation and per-chain round state, and repoints the
+// store, so a network swap cannot leave the engine bidding on a chain the user
+// never armed it for.
+func (e *BmmEngine) ResetForNetwork(networkDir string) {
+	e.store.Rebind(networkDir)
+	e.mu.Lock()
+	e.targets = make(map[pb.BinaryType]bmmTarget)
+	e.current = make(map[pb.BinaryType]*bmmstate.Round)
+	e.unconnected = make(map[pb.BinaryType][]*bmmstate.Round)
+	e.mu.Unlock()
+	e.log.Info().Msg("bmm automation cleared for network swap")
+	e.notify()
+}
+
 // Running reports whether the engine bids for sidechain, with the wallet it
 // spends from and its bid bounds.
 func (e *BmmEngine) Running(sidechain pb.BinaryType) (bool, string, int64, int64) {

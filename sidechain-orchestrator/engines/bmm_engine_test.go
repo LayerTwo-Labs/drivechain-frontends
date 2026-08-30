@@ -154,6 +154,27 @@ func TestBmmEngineIdleUntilStarted(t *testing.T) {
 	assert.False(t, running)
 }
 
+// A network swap disarms automation: bidding on the incoming chain was never
+// asked for, and its money is not the money the user armed.
+func TestBmmEngineResetForNetworkDisarms(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, 20_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	engine.ResetForNetwork(t.TempDir())
+
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Equal(t, 1, backend.bids, "no bid on a chain the user never armed")
+	running, _, _, _ := engine.Running(testSidechain)
+	assert.False(t, running)
+	assert.Nil(t, engine.Current(testSidechain))
+}
+
 // Only a new tip opens a round, so a repeated tip must not bid again.
 func TestBmmEngineOpensOneRoundPerTip(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)

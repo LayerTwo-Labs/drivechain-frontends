@@ -502,7 +502,7 @@ func run(cctx *cli.Context) error {
 	bmmStore := bmmstate.NewStore(walletSvc.NetworkDir(), 0)
 	bmmEngine := engines.NewBmmEngine(log, bmmHandler, orch, bmmStore)
 	bmmHandler.SetEngine(bmmEngine)
-	walletEngine.OnNetworkReset(func(dir string) { bmmStore.Rebind(dir) })
+	walletEngine.OnNetworkReset(bmmEngine.ResetForNetwork)
 	go func() {
 		if err := bmmEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			log.Error().Err(err).Msg("bmm engine exited")
