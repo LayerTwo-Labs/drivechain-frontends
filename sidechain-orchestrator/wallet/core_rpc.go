@@ -142,6 +142,12 @@ func (c *CoreRPCClient) LoadWallet(ctx context.Context, name string) error {
 	return err
 }
 
+// UnloadWallet unloads a wallet from Bitcoin Core, leaving its files on disk.
+func (c *CoreRPCClient) UnloadWallet(ctx context.Context, name string) error {
+	_, err := c.call(ctx, "", "unloadwallet", name)
+	return err
+}
+
 // ListWallets returns loaded wallet names.
 func (c *CoreRPCClient) ListWallets(ctx context.Context) ([]string, error) {
 	result, err := c.call(ctx, "", "listwallets")

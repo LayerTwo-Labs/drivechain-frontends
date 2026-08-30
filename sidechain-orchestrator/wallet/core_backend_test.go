@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -231,6 +233,128 @@ func TestCoreBackendEnsureTransientBackoff(t *testing.T) {
 	_, err = backend.Ensure(ctx, coreID)
 	require.ErrorContains(t, err, "Verifying blocks")
 	assert.Len(t, fake.callsFor("listwallets"), 1)
+}
+
+// A deleted wallet's Core wallet must not stay loaded: it keeps serving keys
+// the user deleted, and a same-prefix successor would reuse its descriptors.
+func TestCoreBackendForgetUnloadsWallet(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("unloadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	ctx := context.Background()
+
+	name, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+
+	require.NoError(t, backend.Forget(ctx, coreID))
+	unloads := fake.callsFor("unloadwallet")
+	require.Len(t, unloads, 1)
+	assert.Equal(t, name, mustString(t, unloads[0].Params[0]))
+
+	// The cached name is gone with it, so the next Ensure provisions from
+	// scratch instead of handing back a wallet Core no longer has.
+	creates := len(fake.callsFor("createwallet"))
+	_, err = backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Len(t, fake.callsFor("createwallet"), creates+1)
+}
+
+// Unloading alone isn't enough: the wallet's directory has to move aside too.
+// Core refuses to create a wallet over an existing directory, and
+// createAndImport's fallback would load the deleted wallet and import a
+// same-named successor's descriptors into it.
+func TestCoreBackendForgetBacksUpWalletDir(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	coreDir := t.TempDir()
+	backend.svc.CoreDataDir = coreDir
+	walletsDir := filepath.Join(coreDir, "regtest", "wallets")
+
+	fake.stubEnsureFlow()
+	// bitcoind creates the wallet's directory, and refuses a name whose
+	// directory is already there.
+	fake.handle("createwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		if err := json.Unmarshal(c.Params[0], &name); err != nil {
+			return nil, err.Error()
+		}
+		dir := filepath.Join(walletsDir, name)
+		if _, err := os.Stat(dir); err == nil {
+			return nil, "Failed to create database path '" + dir + "'. Database already exists."
+		}
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, err.Error()
+		}
+		if err := os.WriteFile(filepath.Join(dir, "wallet.dat"), []byte(name), 0o600); err != nil {
+			return nil, err.Error()
+		}
+		return map[string]any{}, ""
+	})
+	fake.handle("loadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	fake.handle("unloadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	ctx := context.Background()
+
+	name, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.DirExists(t, filepath.Join(walletsDir, name))
+
+	require.NoError(t, backend.Forget(ctx, coreID))
+	assert.NoDirExists(t, filepath.Join(walletsDir, name))
+	backup := findBackup(t, filepath.Join(coreDir, "wallet_backups"), name)
+	require.NotEmpty(t, backup, "wallet dir moved to backup, never removed")
+	assert.FileExists(t, filepath.Join(backup, "wallet.dat"))
+
+	// A same-named successor now gets a Core wallet of its own: createwallet
+	// succeeds and imports into it, and Core is never asked to load the
+	// deleted wallet's file.
+	imports := len(fake.callsFor("importdescriptors"))
+	_, err = backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Len(t, fake.callsFor("createwallet"), 2)
+	assert.Empty(t, fake.callsFor("loadwallet"))
+	assert.Greater(t, len(fake.callsFor("importdescriptors")), imports)
+}
+
+// Core rejects unloadwallet for a wallet it never loaded — one left behind by
+// an earlier run. That's not a failure for the delete path, and the wallet's
+// directory still has to move aside.
+func TestCoreBackendForgetIgnoresUnloadedWallet(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	coreDir := t.TempDir()
+	backend.svc.CoreDataDir = coreDir
+	name := "wallet_" + coreID[:8]
+	dir := filepath.Join(coreDir, "regtest", "wallets", name)
+	require.NoError(t, os.MkdirAll(dir, 0o700))
+	fake.handle("unloadwallet", func(bitcoindCall) (any, string) {
+		return nil, "Requested wallet does not exist or is not loaded"
+	})
+
+	require.NoError(t, backend.Forget(context.Background(), coreID))
+	require.Len(t, fake.callsFor("unloadwallet"), 1)
+	assert.NoDirExists(t, dir)
+	assert.NotEmpty(t, findBackup(t, filepath.Join(coreDir, "wallet_backups"), name))
+}
+
+// The delete path reaches Core through the engine, which can no longer resolve
+// the wallet's type — the wallet is already out of wallet.json.
+func TestWalletEngineForgetWalletAfterDelete(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("unloadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	ctx := context.Background()
+
+	svc := backend.svc
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	router := NewBackendRouter(svc, backend, nil)
+	engine := NewWalletEngine(svc, router, StaticParams(&chaincfg.RegressionNetParams), log)
+
+	name, err := engine.Backend().Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.NoError(t, svc.DeleteWallet(coreID))
+
+	require.NoError(t, engine.ForgetWallet(ctx, coreID))
+	unloads := fake.callsFor("unloadwallet")
+	require.Len(t, unloads, 1)
+	assert.Equal(t, name, mustString(t, unloads[0].Params[0]))
 }
 
 // A failed BIP47 notification import doesn't break wallet loading, but the

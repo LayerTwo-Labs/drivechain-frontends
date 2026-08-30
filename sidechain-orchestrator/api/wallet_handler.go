@@ -321,8 +321,19 @@ func (h *WalletHandler) UpdateWalletMetadata(ctx context.Context, req *connect.R
 }
 
 func (h *WalletHandler) DeleteWallet(ctx context.Context, req *connect.Request[pb.DeleteWalletRequest]) (*connect.Response[pb.DeleteWalletResponse], error) {
+	// Read the type before the delete: afterwards the wallet is gone.
+	w := h.svc.GetWalletByID(req.Msg.WalletId)
+	usesCore := w != nil && w.WalletType == wallet.WalletTypeBitcoinCore
+
 	if err := h.svc.DeleteWallet(req.Msg.WalletId); err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	// The wallet is out of wallet.json, but Core still holds it loaded and
+	// serving keys. A failed unload only leaves that stale Core wallet behind.
+	if usesCore && h.engine != nil {
+		if err := h.engine.ForgetWallet(ctx, req.Msg.WalletId); err != nil {
+			h.svc.Log().Warn().Err(err).Str("wallet_id", req.Msg.WalletId).Msg("could not unload deleted wallet from core")
+		}
 	}
 	return connect.NewResponse(&pb.DeleteWalletResponse{}), nil
 }

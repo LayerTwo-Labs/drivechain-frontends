@@ -88,6 +88,16 @@ func (r *BackendRouter) EnsureAll(ctx context.Context) (int, error) {
 	return r.chain.EnsureAll(ctx)
 }
 
+// Forget drops a deleted wallet's chain-backend state. It can't dispatch on
+// wallet type — the wallet is gone — and only the chain backend holds any.
+func (r *BackendRouter) Forget(ctx context.Context, walletID string) error {
+	f, ok := r.chain.(ForgetBackend)
+	if !ok {
+		return nil
+	}
+	return f.Forget(ctx, walletID)
+}
+
 func (r *BackendRouter) Balance(ctx context.Context, walletID string) (float64, float64, error) {
 	p, err := r.pick(walletID)
 	if err != nil {

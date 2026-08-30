@@ -56,6 +56,16 @@ func (e *WalletEngine) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
 	return b, ok
 }
 
+// ForgetWallet drops the backend state a deleted wallet held: Core unloads its
+// wallet. Call it after the wallet is out of wallet.json. No-op otherwise.
+func (e *WalletEngine) ForgetWallet(ctx context.Context, walletID string) error {
+	f, ok := e.backend.(ForgetBackend)
+	if !ok {
+		return nil
+	}
+	return f.Forget(ctx, walletID)
+}
+
 // ChainForWallet returns the chain source for a wallet's backend, dispatching
 // by wallet type so electrum wallets read/broadcast over Esplora.
 func (e *WalletEngine) ChainForWallet(walletID string) ChainSource {
