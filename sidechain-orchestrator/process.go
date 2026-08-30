@@ -575,6 +575,10 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	return cmd.Process.Pid, nil
 }
 
+// forceKillReapTimeout bounds the wait for a force-killed process to be
+// reaped, so a Stop that returns nil means the slot is free to start again.
+const forceKillReapTimeout = 5 * time.Second
+
 func (pm *ProcessManager) Stop(_ context.Context, name string, force bool) error {
 	pm.mu.Lock()
 	proc, exists := pm.processes[name]
@@ -585,10 +589,7 @@ func (pm *ProcessManager) Stop(_ context.Context, name string, force bool) error
 	}
 
 	if force {
-		if err := forceKillProcess(proc.Pid); err != nil {
-			return fmt.Errorf("force kill %s: %w", name, err)
-		}
-		return nil
+		return pm.forceKill(name, proc)
 	}
 
 	if err := killProcess(proc.Pid); err != nil {
@@ -603,7 +604,22 @@ func (pm *ProcessManager) Stop(_ context.Context, name string, force bool) error
 			Str("binary", name).
 			Dur("timeout", gracefulKillTimeout).
 			Msg("graceful shutdown timed out, force killing")
-		return forceKillProcess(proc.Pid)
+		return pm.forceKill(name, proc)
+	}
+}
+
+// forceKill kills the process and waits for the reaper to free its slot.
+// Returning before that lets an immediate restart hit "already running".
+func (pm *ProcessManager) forceKill(name string, proc *ManagedProcess) error {
+	if err := forceKillProcess(proc.Pid); err != nil {
+		return fmt.Errorf("force kill %s: %w", name, err)
+	}
+
+	select {
+	case <-proc.exitCh:
+		return nil
+	case <-time.After(forceKillReapTimeout):
+		return fmt.Errorf("%s did not exit after the force kill", name)
 	}
 }
 

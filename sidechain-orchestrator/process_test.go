@@ -30,6 +30,23 @@ func TestProcessManager_StartAndStop(t *testing.T) {
 	assert.False(t, pm.IsRunning("sleep-test"))
 }
 
+// A force stop only counts as done once the slot is free — a restart starts
+// the binary again the moment Stop returns.
+func TestProcessManager_ForceStopFreesSlot(t *testing.T) {
+	pm, dir := newTestProcessManager(t)
+	symlinkSystemBinary(t, dir, "sleep")
+
+	config := BinaryConfig{Name: "sleep-test", BinaryName: "sleep"}
+	_, err := pm.Start(context.Background(), config, []string{"30"}, nil)
+	require.NoError(t, err)
+
+	require.NoError(t, pm.Stop(context.Background(), "sleep-test", true))
+	assert.False(t, pm.IsRunning("sleep-test"))
+
+	_, err = pm.Start(context.Background(), config, []string{"30"}, nil)
+	require.NoError(t, err, "a force stop must free the slot for an immediate restart")
+}
+
 func TestProcessManager_ConcurrentStartSpawnsOnce(t *testing.T) {
 	pm, dir := newTestProcessManager(t)
 	symlinkSystemBinary(t, dir, "sleep")
