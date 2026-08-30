@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
@@ -175,6 +176,42 @@ func TestAnEnforcerCleanupForAnAbortedSwitchIsDropped(t *testing.T) {
 	require.DirExists(t, chain, "the running generation's validator chain must survive")
 	require.Empty(t, o.Settings.PendingEnforcerWipe(),
 		"a cleanup for a network we never moved to must go")
+}
+
+// A switch in flight is not an aborted one. An enforcer restart that lands
+// between the record and the commit would read it as aborted and drop a cleanup
+// that is still owed, leaving the retired generation's chain in place.
+func TestAnEnforcerCleanupWaitsForTheSwitchThatJournalledIt(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	o := ecashInstall(t)
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+	require.NoError(t, o.Settings.SetPendingEnforcerWipe("alphanet"))
+
+	chain := filepath.Join(config.EnforcerDirs.RootDir(), "validator", "bitcoin")
+	require.NoError(t, os.MkdirAll(chain, 0o755))
+
+	// A switch to alphanet in flight: its record is written and the selection
+	// still names the fork this install is leaving.
+	o.swapNetworkMu.Lock()
+	done := make(chan error, 1)
+	go func() { done <- o.ApplyPendingEnforcerWipe() }()
+	select {
+	case <-done:
+		t.Fatal("a restart must not consume the record of a switch in flight")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	// The switch commits, so the cleanup now names the generation that runs.
+	o.mu.Lock()
+	o.ecashID = "alphanet"
+	o.mu.Unlock()
+	o.swapNetworkMu.Unlock()
+
+	require.NoError(t, <-done)
+	require.NoDirExists(t, chain, "the retired generation's validator chain must go")
+	require.Empty(t, o.Settings.PendingEnforcerWipe(), "cleanup that ran clears its journal")
 }
 
 // A pick made from another network reaches eCash through SwapNetwork, not

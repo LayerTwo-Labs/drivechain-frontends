@@ -203,7 +203,7 @@ func (o *Orchestrator) recordECashSwitch(fromID, toID string) error {
 	if o.WalletSvc != nil {
 		o.WalletSvc.ClearNetworkScans(string(config.NetworkECash))
 	}
-	if err := o.ApplyPendingEnforcerWipe(); err != nil {
+	if err := o.applyPendingEnforcerWipeLocked(); err != nil {
 		return err
 	}
 	o.clearNetworkSwapCaches()
@@ -365,10 +365,24 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	return o.finishECashSwitch(plan.FromID, toID, restartL1)
 }
 
-// applyPendingEnforcerWipe clears the enforcer chain a switch journalled, and
+// ApplyPendingEnforcerWipe clears the enforcer chain a switch journalled, and
 // keeps the record until it is gone. The enforcer keeps one validator chain per
 // network, not per fork, so a leftover serves the retired generation.
+//
+// The lock makes the record the in-flight switch's own. That switch writes it
+// before it commits its selection, so a caller that reads in between — an
+// enforcer restart, say — finds running != recorded and drops a cleanup the
+// switch still owes.
 func (o *Orchestrator) ApplyPendingEnforcerWipe() error {
+	o.swapNetworkMu.Lock()
+	defer o.swapNetworkMu.Unlock()
+	return o.applyPendingEnforcerWipeLocked()
+}
+
+// applyPendingEnforcerWipeLocked is ApplyPendingEnforcerWipe's body.
+//
+// Call it with swapNetworkMu held.
+func (o *Orchestrator) applyPendingEnforcerWipeLocked() error {
 	if o.Settings == nil {
 		return nil
 	}
