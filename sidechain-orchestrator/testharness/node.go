@@ -57,11 +57,29 @@ func testPorts(base, nodeIndex int) (rpcPort, p2pPort, grpcPort int) {
 	return nodeBase, nodeBase + 100, nodeBase + 200
 }
 
-// randomPortBase picks a random base port in 40000-59000 range.
+// ephemeralFloor is the lowest port any supported platform hands out to an
+// outbound socket. Linux sets it: net.ipv4.ip_local_port_range starts at 32768,
+// where Windows and macOS both start at 49152. A test port at or above the
+// floor may already belong to a live connection, and the node fails to bind.
+const ephemeralFloor = 32768
+
+// portBaseCount is how many bases randomPortBase chooses between. The highest
+// base plus the widest band must stay under [ephemeralFloor].
+const portBaseCount = 110
+
+// randomPortBase picks a random base port in the 20000-30900 range, so a
+// four-node harness tops out at 32000.
+//
+// Asking the kernel for a free port instead is worse, not better — it answers
+// from the ephemeral range, and bitcoind took the number back before
+// drivechaind bound it.
+//
+// The floor keeps the band clear of the Core RPC ports: 8332 mainnet, 18332
+// testnet, 18443 regtest.
 func randomPortBase() int {
 	b := make([]byte, 2)
 	_, _ = rand.Read(b)
-	return 40000 + int(b[0])%190*100
+	return 20000 + int(b[0])%portBaseCount*100
 }
 
 // newNode creates and starts a fully-wired Node with real subprocesses.
@@ -244,13 +262,15 @@ func waitForBitcoind(t *testing.T, rpcClient *wallet.CoreRPCClient, nodeName str
 	// 180s, not 90s: the first launch of a freshly built bitcoind waits on the
 	// Windows virus scanner and missed 90s twice, while the next test in the
 	// same job reached RPC one second after start.
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	const budget = 180 * time.Second
+
+	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
 
 	for {
 		select {
 		case <-ctx.Done():
-			t.Fatalf("testharness[%s]: bitcoind did not become ready within 90s", nodeName)
+			t.Fatalf("testharness[%s]: bitcoind did not become ready within %s", nodeName, budget)
 		default:
 		}
 		if result, err := rpcClient.GetBlockchainInfo(ctx); err == nil && result != nil {
