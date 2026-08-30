@@ -178,6 +178,22 @@ func (e *SidechainMonitorEngine) GetWithdrawalByTxid(ctx context.Context, txid s
 
 // RegisterPendingFastWithdrawal adds a pending fast withdrawal to monitor for
 func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Context, withdrawal PendingFastWithdrawal) error {
+	// Reject malformed server responses: they can never be completed, so they
+	// would sit in the map forever and pin the poll interval.
+	if err := validateWithdrawalHash(withdrawal.Hash); err != nil {
+		return fmt.Errorf("invalid withdrawal hash: %w", err)
+	}
+	if withdrawal.ServerAddress == "" {
+		return fmt.Errorf("missing server address")
+	}
+	if withdrawal.ExpectedAmount <= 0 {
+		return fmt.Errorf("invalid expected amount: %d", withdrawal.ExpectedAmount)
+	}
+
+	if withdrawal.CreatedAt.IsZero() {
+		withdrawal.CreatedAt = time.Now()
+	}
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -287,7 +303,8 @@ func (e *SidechainMonitorEngine) getPollInterval() time.Duration {
 	}
 }
 
-// cleanupOldWithdrawals removes withdrawals older than 1 hour to prevent memory bloat
+// cleanupOldWithdrawals removes detected withdrawals older than 1 hour, and pending
+// fast withdrawals older than 24 hours, to prevent memory bloat
 func (e *SidechainMonitorEngine) cleanupOldWithdrawals() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -296,6 +313,15 @@ func (e *SidechainMonitorEngine) cleanupOldWithdrawals() {
 	for txid, withdrawal := range e.detectedWithdrawals {
 		if withdrawal.DetectedAt.Before(cutoff) {
 			delete(e.detectedWithdrawals, txid)
+		}
+	}
+
+	// Longer TTL, so a withdrawal that never gets paid eventually stops
+	// pinning the poll interval.
+	pendingCutoff := time.Now().Add(-24 * time.Hour)
+	for hash, pending := range e.pendingFastWithdrawals {
+		if pending.CreatedAt.Before(pendingCutoff) {
+			delete(e.pendingFastWithdrawals, hash)
 		}
 	}
 }
