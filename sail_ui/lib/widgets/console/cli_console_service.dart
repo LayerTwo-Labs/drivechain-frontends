@@ -48,6 +48,7 @@ class _CLIConsoleViewState extends State<CLIConsoleView> {
 class CLIConsole {
   static const _maxOutputBytes = 200 * 1024;
   static const _commandTimeout = Duration(minutes: 5);
+  static const _helpTimeout = Duration(seconds: 10);
 
   /// Real CLI binaries we discover on disk and exec. Every binary downloaded
   /// by the orchestrator lands in BitWindow's `assets/bin/` (the Bitcoin Core
@@ -166,20 +167,23 @@ class CLIConsole {
     final services = <ConsoleService>[];
 
     final clis = await discoverCLIs();
-    for (final entry in clis.entries) {
-      services.add(
-        ConsoleService(
-          name: entry.key,
-          commands: [entry.key],
-          execute: (command, args) {
-            // Drop a leading cli-name (explicit form) so `bitcoin-cli generate 1`
-            // and bare `generate 1` produce the same argv to the binary.
-            final effectiveArgs = command == entry.key ? args : [command, ...args];
-            return _execProcess(entry.key, entry.value, effectiveArgs);
-          },
-        ),
-      );
-    }
+    services.addAll(
+      await Future.wait(
+        clis.entries.map((entry) async {
+          final commands = await _loadCommands(entry.key, entry.value);
+          return ConsoleService(
+            name: entry.key,
+            commands: [entry.key, ...commands],
+            execute: (command, args) {
+              // Drop a leading cli-name (explicit form) so `bitcoin-cli generate 1`
+              // and bare `generate 1` produce the same argv to the binary.
+              final effectiveArgs = command == entry.key ? args : [command, ...args];
+              return _execProcess(entry.key, entry.value, effectiveArgs);
+            },
+          );
+        }),
+      ),
+    );
 
     final enforcer = _buildEnforcerService();
     if (enforcer != null) {
@@ -187,6 +191,55 @@ class CLIConsole {
     }
 
     return services;
+  }
+
+  /// The command list the binary reports, so the console can complete it. A
+  /// daemon that is down reports none, and the console still runs commands.
+  static Future<List<String>> _loadCommands(String cli, String exePath) async {
+    try {
+      final result = await Process.run(
+        exePath,
+        _wrapArgs(cli, ['help']),
+        runInShell: false,
+      ).timeout(_helpTimeout);
+      return _parseHelp('${result.stdout}\n${result.stderr}');
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Reads command names out of a `help` listing. Bitcoin Core prints one
+  /// command per unindented line under `== Group ==` headers; a Go or Rust CLI
+  /// prints them indented under a `COMMANDS:` header.
+  static List<String> _parseHelp(String out) {
+    final names = <String>{};
+    final sectionHeader = RegExp(r'^[A-Za-z][A-Za-z ]*:$');
+    final commandName = RegExp(r'^[a-z][a-z0-9_-]*$');
+    var inCommandSection = false;
+
+    for (final raw in out.split('\n')) {
+      final line = raw.trimRight();
+      if (line.isEmpty || line.startsWith('==')) {
+        continue;
+      }
+      final trimmed = line.trim();
+      if (sectionHeader.hasMatch(trimmed)) {
+        inCommandSection = trimmed.toLowerCase() == 'commands:';
+        continue;
+      }
+      // An indented line is a command only inside a COMMANDS: section. Outside
+      // one it is a continuation of the line above.
+      if (line.startsWith(' ') && !inCommandSection) {
+        continue;
+      }
+      final token = trimmed.split(RegExp(r'\s+')).first;
+      if (commandName.hasMatch(token)) {
+        names.add(token);
+      }
+    }
+
+    final sorted = names.toList()..sort();
+    return sorted;
   }
 
   /// Synthetic `enforcer-cli` powered by the bitwindowd JSON bridge at
