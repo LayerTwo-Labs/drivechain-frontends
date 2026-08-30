@@ -378,6 +378,13 @@ func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error)
 		}
 		activeWalletId = e.activeWalletId
 		e.mu.RUnlock()
+
+		// The orchestrator owns the active wallet, and a SwitchWallet there
+		// never reaches the id cached at unlock — an encrypted wallet.json
+		// can't be re-read. Ask it, and keep the cached id if it can't answer.
+		if id := e.orchestratorActiveWalletId(ctx); id != "" {
+			activeWalletId = id
+		}
 	} else {
 		// For unencrypted wallets, read directly from wallet.json
 		walletData, err := wallet.LoadUnencryptedWallet(e.walletDir)
@@ -393,6 +400,23 @@ func (e *WalletEngine) GetActiveWallet(ctx context.Context) (*WalletInfo, error)
 	}
 
 	return e.GetWalletInfo(ctx, activeWalletId)
+}
+
+// orchestratorActiveWalletId asks the orchestrator which wallet is active and
+// refreshes the cached id, returning "" when it has no answer.
+func (e *WalletEngine) orchestratorActiveWalletId(ctx context.Context) string {
+	if e.orchClient == nil {
+		return ""
+	}
+	resp, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
+	if err != nil || resp.Msg.ActiveWalletId == "" {
+		return ""
+	}
+
+	e.mu.Lock()
+	e.activeWalletId = resp.Msg.ActiveWalletId
+	e.mu.Unlock()
+	return resp.Msg.ActiveWalletId
 }
 
 // ============================================================================
