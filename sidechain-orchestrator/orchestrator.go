@@ -480,6 +480,9 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 	defer o.monitorsMu.Unlock()
 
 	if mon, ok := o.monitors[name]; ok {
+		// Endpoints move — a network swap gives bitcoind a new RPC port — so a
+		// cached monitor takes the checker it was handed.
+		mon.ReplaceChecker(checker, startupPatterns)
 		return mon
 	}
 

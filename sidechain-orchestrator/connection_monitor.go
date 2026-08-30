@@ -161,6 +161,18 @@ func NewConnectionMonitor(name string, checker HealthChecker, startupPatterns []
 	}
 }
 
+// ReplaceChecker rebinds the monitor to a new endpoint — a network swap moves
+// bitcoind's RPC port, and the monitor has to follow it. The ping epoch bumps
+// so a check still in flight against the old endpoint is discarded.
+func (m *ConnectionMonitor) ReplaceChecker(checker HealthChecker, startupPatterns []string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.pingEpoch++
+	m.Checker = checker
+	m.startupPatterns = startupPatterns
+}
+
 // AddStartupLog appends a startup progress message. Keeps the last 20.
 // Dart: Binary.addStartupLog
 func (m *ConnectionMonitor) AddStartupLog(ts time.Time, msg string) {
@@ -342,6 +354,7 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 	oldConnErr := m.connectionError
 	oldStartupErr := m.startupError
 	isConnectModeOnly := m.connectModeOnly
+	checker := m.Checker
 
 	m.mu.Unlock()
 
@@ -357,7 +370,7 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 		m.mu.Unlock()
 	}()
 
-	err := m.Checker.Check(ctx)
+	err := checker.Check(ctx)
 
 	m.mu.Lock()
 
