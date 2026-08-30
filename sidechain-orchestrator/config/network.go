@@ -253,10 +253,18 @@ func SplitCheckEsploraURLs() []string {
 	return []string{"https://mempool.space/api", "https://blockstream.info/api"}
 }
 
-// IsEcashFork reports whether the network is a fork of BTC mainnet, so its
-// pre-fork outpoints also exist on BTC.
+// IsEcashFork reports whether the network runs the eCash fork flow (claims,
+// split UI).
 func IsEcashFork(n Network) bool {
 	return n == NetworkForknet || n == NetworkECash
+}
+
+// SharesBitcoinHistory reports whether the network forked off BTC mainnet, so
+// its pre-fork outpoints also exist on BTC. Forknet is excluded: it is a
+// fresh-genesis rehearsal chain that only reuses mainnet params, so none of its
+// outpoints can ever exist on Bitcoin.
+func SharesBitcoinHistory(n Network) bool {
+	return n == NetworkECash
 }
 
 // WalletChainSourceURLsForNetwork returns the endpoints the electrum wallet

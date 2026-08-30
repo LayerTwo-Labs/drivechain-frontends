@@ -142,6 +142,19 @@ func TestSplitEngineSkipsNonEcashNetwork(t *testing.T) {
 	require.Empty(t, store.statuses)
 }
 
+// Forknet has its own genesis, so no coin of its can exist on Bitcoin. Asking
+// mempool.space about one leaks the txid and answers 404 forever.
+func TestSplitEngineSkipsForknet(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "forknet")
+
+	e.tick(context.Background())
+
+	require.Empty(t, btc.calls)
+	require.Empty(t, store.statuses)
+}
+
 func TestSplitEngineSkipsSimulatedFork(t *testing.T) {
 	btc := newFakeOutspend()
 	store := &fakeSplitStore{statuses: map[string]bool{}}
