@@ -436,7 +436,7 @@ func (o *Orchestrator) buildResetPlan(specs []GatherSpec) resetPlan {
 
 	restart := make([]resetRestart, 0, len(stop))
 	for _, binary := range resetStartOrder {
-		if !stop[binary] || !o.isResetBinaryRunning(binary) || o.isResetBinaryAdopted(binary) {
+		if !stop[binary] || !o.isResetBinaryRunning(binary) || o.isResetBinaryForeign(binary) {
 			continue
 		}
 		restart = append(restart, resetRestart{
@@ -468,6 +468,12 @@ func (o *Orchestrator) isResetBinaryAdopted(binary ResetBinary) bool {
 	return name != "" && o.process.IsAdopted(name)
 }
 
+// isResetBinaryForeign reports whether an adopted binary belongs to somebody
+// else, so a reset must neither stop nor restart it.
+func (o *Orchestrator) isResetBinaryForeign(binary ResetBinary) bool {
+	return o.isResetBinaryAdopted(binary) && !o.mayStopAdopted(binary.processName())
+}
+
 func (o *Orchestrator) configForResetBinary(binary ResetBinary) (BinaryConfig, bool) {
 	name := binary.processName()
 	if name == "" {
@@ -495,11 +501,11 @@ func (o *Orchestrator) stopResetBinary(ctx context.Context, binary ResetBinary) 
 		return nil
 	}
 
-	if o.process.IsAdopted(name) {
-		o.log.Info().Str("binary", name).Msg("adopted process, skipping reset shutdown")
-		o.process.Remove(name)
-		o.markResetBinaryStopped(name)
-		return nil
+	// A reset wipes the datadir out from under this process, so dropping it from
+	// tracking and deleting anyway is never safe. Stop the orphans this install
+	// owns; refuse the reset for anything else.
+	if o.isResetBinaryForeign(binary) {
+		return fmt.Errorf("%s is running but was not started by this install: stop it before resetting", name)
 	}
 
 	o.setResetBinaryStopping(name, true)
