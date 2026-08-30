@@ -2487,6 +2487,13 @@ func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.Restor
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
 	}
 
+	// Restoring overwrites the current wallet.json, so an existing encrypted
+	// wallet has to be unlocked first. First launch has no wallet to protect,
+	// and an unencrypted wallet has no unlock to wait for.
+	if s.backupEngine.HasCurrentWallet() && wallet.IsWalletEncrypted(s.walletDir) && !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	if err := s.backupEngine.RestoreBackup(ctx, c.Msg.BackupData, c.Msg.Filename); err != nil {
 		return nil, fmt.Errorf("restore backup: %w", err)
 	}
