@@ -3650,10 +3650,15 @@ func (o *Orchestrator) findConfigByBinaryName(binaryName string) (BinaryConfig, 
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 
+	// Exact match, executable name first. A loose match let "thunder-orchard"
+	// resolve to the "thunder" config on whatever order the map handed out.
 	for _, config := range o.configs {
-		if processNameMatches(config.BinaryName, binaryName) || processNameMatches(config.Name, binaryName) {
+		if config.BinaryName == binaryName {
 			return config, true
 		}
+	}
+	if config, ok := o.configs[binaryName]; ok {
+		return config, true
 	}
 	return BinaryConfig{}, false
 }

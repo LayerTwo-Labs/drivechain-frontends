@@ -18,7 +18,22 @@ import (
 // live process, so the drain has something it must actually signal.
 func startSleeper(t *testing.T) int {
 	t.Helper()
-	cmd := exec.Command("sleep", "300")
+	return startSleeperNamed(t, "sleep")
+}
+
+// startSleeperNamed runs the sleeper from a copy named for the binary it will
+// stand in for, so the name check before a signal recognises it.
+func startSleeperNamed(t *testing.T, name string) int {
+	t.Helper()
+	sleep, err := exec.LookPath("sleep")
+	require.NoError(t, err)
+	body, err := os.ReadFile(sleep)
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), name)
+	require.NoError(t, os.WriteFile(path, body, 0o755))
+
+	cmd := exec.Command(path, "300")
+	cmd.Args[0] = "sleep" // busybox picks its applet from argv[0]
 	require.NoError(t, cmd.Start())
 	pid := cmd.Process.Pid
 	t.Cleanup(func() {
@@ -53,9 +68,9 @@ func waitGone(t *testing.T, pid int, timeout time.Duration) bool {
 // process as a leftover of an earlier run of ours.
 func adoptSleeper(t *testing.T, o *Orchestrator, recordPid bool) int {
 	t.Helper()
-	pid := startSleeper(t)
 	cfg, err := o.getConfig("bitcoind")
 	require.NoError(t, err)
+	pid := startSleeperNamed(t, cfg.BinaryName)
 	if recordPid {
 		require.NoError(t, o.pidManager.WritePidFile(cfg.BinaryName, pid))
 	}
@@ -101,6 +116,44 @@ func TestDrainStopsAnAdoptedOrphanThisInstallOwns(t *testing.T) {
 	drain(t, o)
 
 	require.True(t, waitGone(t, pid, 30*time.Second), "the drain must stop an orphan this install owns")
+}
+
+// An adopted PID came off disk and the OS reuses PID numbers. A stop that
+// trusts the cached number signals whichever stranger now holds it.
+func TestStopRefusesAnAdoptedPidThatIsNoLongerTheBinary(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	cfg, err := o.getConfig("bitcoind")
+	require.NoError(t, err)
+	pid := startSleeper(t) // runs as "sleep", not as bitcoind
+	require.NoError(t, o.pidManager.WritePidFile(cfg.BinaryName, pid))
+	o.process.AdoptProcess(cfg, pid)
+
+	require.Error(t, o.process.Stop(context.Background(), "bitcoind", false))
+	require.True(t, alive(t, pid), "a PID that is not the binary must not be signalled")
+	require.False(t, o.process.IsRunning("bitcoind"), "the registration that named it must go")
+	_, err = o.pidManager.ReadPidFile(cfg.BinaryName)
+	require.Error(t, err, "so must the PID record")
+}
+
+// thunder-orchard is zSide's executable. A substring match let it answer for
+// "thunder", so the zSide daemon filled Thunder's slot and the next stop of
+// Thunder signalled it.
+func TestAdoptOrphansNeverPutsZsideInThundersSlot(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	cfg, err := o.getConfig("zside")
+	require.NoError(t, err)
+	require.Equal(t, "thunder-orchard", cfg.BinaryName)
+	pid := startSleeperNamed(t, cfg.BinaryName)
+	require.NoError(t, o.pidManager.WritePidFile(cfg.BinaryName, pid))
+
+	require.NoError(t, o.AdoptOrphans(context.Background()))
+
+	require.Nil(t, o.process.Get("thunder"), "zSide's PID must never fill Thunder's slot")
+	proc := o.process.Get("zside")
+	require.NotNil(t, proc, "zSide's PID belongs in zSide's slot")
+	require.Equal(t, pid, proc.Pid)
 }
 
 // A binary a different live install owns stays untouched, whatever this run

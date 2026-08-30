@@ -220,6 +220,17 @@ func (pm *ProcessManager) resolvePaths(config BinaryConfig, forceBackend bool) (
 	return binPath, pidName
 }
 
+// pidNameBinary strips the suffix that marks a GUI companion or a frontend
+// build, leaving the executable name the process at that PID reports.
+func pidNameBinary(pidName string) string {
+	for _, suffix := range []string{"-gui", "-test"} {
+		if strings.HasSuffix(pidName, suffix) {
+			return strings.TrimSuffix(pidName, suffix)
+		}
+	}
+	return pidName
+}
+
 // ProcessStartOptions tweaks process.Start behaviour per-call.
 type ProcessStartOptions struct {
 	// ForceBackend skips the SidechainVariant resolver so the prod-download
@@ -584,6 +595,18 @@ func (pm *ProcessManager) Stop(_ context.Context, name string, force bool) error
 		return fmt.Errorf("%s is not running", name)
 	}
 
+	// An adopted PID came off disk, and the OS reuses PID numbers. Re-read the
+	// name before signalling, so a stranger that took the number is dropped
+	// rather than killed.
+	if proc.Adopted {
+		binary := pidNameBinary(proc.PidName)
+		if !pm.pidManager.ValidatePid(proc.Pid, binary) {
+			pm.forget(name, proc)
+			_ = pm.pidManager.DeletePidFile(proc.PidName)
+			return fmt.Errorf("stop %s: pid %d is no longer %s", name, proc.Pid, binary)
+		}
+	}
+
 	if force {
 		if err := forceKillProcess(proc.Pid); err != nil {
 			return fmt.Errorf("force kill %s: %w", name, err)
@@ -842,6 +865,21 @@ func (pm *ProcessManager) Remove(name string) {
 	delete(pm.processes, name)
 }
 
+// forget drops a registration that turned out to name somebody else's process
+// and releases whoever waits on it. A no-op once watchAdopted got there first.
+func (pm *ProcessManager) forget(name string, proc *ManagedProcess) {
+	pm.mu.Lock()
+	won := pm.processes[name] == proc
+	if won {
+		delete(pm.processes, name)
+	}
+	pm.mu.Unlock()
+
+	if won {
+		close(proc.exitCh)
+	}
+}
+
 // Spam filter patterns (ported from Dart isSpam function)
 var spamPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`tower_http`),
@@ -988,13 +1026,20 @@ func (m *PidFileManager) ValidatePid(pid int, binaryName string) bool {
 	return processNameMatches(procName, binaryName)
 }
 
-// processNameMatches compares process names case-insensitively with bidirectional
-// contains check (handles truncated names from ps).
+// commMaxLen is the length Linux truncates a process name to (TASK_COMM_LEN-1).
+const commMaxLen = 15
+
+// processNameMatches compares a name the OS reported against a binary name.
+// macOS reports an executable path, Linux truncates the name to commMaxLen.
+// Anything looser adopts a stranger: "thunder-orchard" answered for "thunder".
 func processNameMatches(procName, binaryName string) bool {
-	procLower := strings.ToLower(procName)
+	procLower := strings.ToLower(filepath.Base(procName))
 	binLower := strings.ToLower(binaryName)
 
-	return strings.Contains(procLower, binLower) || strings.Contains(binLower, procLower)
+	if procLower == binLower {
+		return true
+	}
+	return len(procLower) == commMaxLen && strings.HasPrefix(binLower, procLower)
 }
 
 // ListPidFiles returns all PID files and their PIDs.
