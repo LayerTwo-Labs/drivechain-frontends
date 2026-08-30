@@ -2,6 +2,7 @@ package coinshift
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -244,6 +245,21 @@ func (h *Handler) OpenapiSchema(ctx context.Context, req *connect.Request[pb.Ope
 
 // --- Swap methods ---
 
+// swapIDParam turns a hex swap id into the 32-byte array coinshift expects.
+// The bytes are widened to ints because encoding/json marshals []byte as base64.
+func swapIDParam(hexID string) ([]int, error) {
+	b, err := hex.DecodeString(hexID)
+	if err != nil || len(b) != 32 {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("swap_id must be 32 bytes hex, got %q", hexID))
+	}
+	ids := make([]int, len(b))
+	for i, v := range b {
+		ids[i] = int(v)
+	}
+	return ids, nil
+}
+
 func (h *Handler) CreateSwap(ctx context.Context, req *connect.Request[pb.CreateSwapRequest]) (*connect.Response[pb.CreateSwapResponse], error) {
 	var result struct {
 		SwapID string `json:"swap_id"`
@@ -268,8 +284,12 @@ func (h *Handler) CreateSwap(ctx context.Context, req *connect.Request[pb.Create
 }
 
 func (h *Handler) ClaimSwap(ctx context.Context, req *connect.Request[pb.ClaimSwapRequest]) (*connect.Response[pb.ClaimSwapResponse], error) {
+	swapID, err := swapIDParam(req.Msg.SwapId)
+	if err != nil {
+		return nil, err
+	}
 	var txid string
-	params := []any{req.Msg.SwapId, req.Msg.L2ClaimerAddress}
+	params := []any{swapID, req.Msg.L2ClaimerAddress}
 	if err := h.proxy.Client.Call(ctx, "claim_swap", params, &txid); err != nil {
 		return nil, err
 	}
@@ -277,7 +297,11 @@ func (h *Handler) ClaimSwap(ctx context.Context, req *connect.Request[pb.ClaimSw
 }
 
 func (h *Handler) GetSwapStatus(ctx context.Context, req *connect.Request[pb.GetSwapStatusRequest]) (*connect.Response[pb.GetSwapStatusResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_swap_status", []any{req.Msg.SwapId})
+	swapID, err := swapIDParam(req.Msg.SwapId)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_swap_status", []any{swapID})
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +325,11 @@ func (h *Handler) ListSwapsByRecipient(ctx context.Context, req *connect.Request
 }
 
 func (h *Handler) UpdateSwapL1Txid(ctx context.Context, req *connect.Request[pb.UpdateSwapL1TxidRequest]) (*connect.Response[pb.UpdateSwapL1TxidResponse], error) {
-	params := []any{req.Msg.SwapId, req.Msg.L1TxidHex, req.Msg.Confirmations}
+	swapID, err := swapIDParam(req.Msg.SwapId)
+	if err != nil {
+		return nil, err
+	}
+	params := []any{swapID, req.Msg.L1TxidHex, req.Msg.Confirmations}
 	if err := h.proxy.Client.Call(ctx, "update_swap_l1_txid", params, nil); err != nil {
 		return nil, err
 	}
