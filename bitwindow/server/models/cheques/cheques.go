@@ -280,6 +280,27 @@ func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txi
 	return nil
 }
 
+// ReplaceSweptTxid points cheques swept by oldTxid at its replacement, and
+// returns how many rows moved. Txids are unique, so this spans all wallets.
+func ReplaceSweptTxid(ctx context.Context, db *sql.DB, oldTxid string, newTxid string) (int64, error) {
+	result, err := db.ExecContext(ctx, `
+		UPDATE cheques
+		SET swept_txid = ?
+		WHERE swept_txid = ?
+	`, newTxid, oldTxid)
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to replace swept txid: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rows, nil
+}
+
 // GetNextIndex returns the next available cheque index for a specific wallet
 func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, error) {
 	var maxIndex sql.NullInt64

@@ -12,9 +12,12 @@ import (
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 const testWalletID = "test-wallet-id-1234"
@@ -314,4 +317,45 @@ func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
 		Id:       chequeID,
 	}))
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+}
+
+// Core's bumpfee evicts the sweep transaction, so a cheque swept by the old
+// txid has to end up pointing at the replacement.
+func TestBumpFee_RepointsSweptCheque(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	db := database.Test(t)
+
+	oldTxid := "1111000011110000111100001111000011110000111100001111000011110000"
+	newTxid := "2222000022220000222200002222000022220000222200002222000022220000"
+
+	// BumpFee walks the loaded wallets, so Core has to report one.
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	mockBitcoind.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+			Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{"test_wallet"}},
+		}, nil).
+		AnyTimes()
+	mockBitcoind.EXPECT().
+		BumpFee(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.BumpFeeResponse]{
+			Msg: &bitcoindv1alpha.BumpFeeResponse{Txid: newTxid, OriginalFee: 0.0001, NewFee: 0.0002},
+		}, nil)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qbumpfeetestaddr0000000000000000000000000")
+	require.NoError(t, err)
+	require.NoError(t, cheques.UpdateSwept(context.Background(), db, testWalletID, chequeID, oldTxid))
+
+	resp, err := cli.BumpFee(context.Background(), connect.NewRequest(&walletv1.BumpFeeRequest{Txid: oldTxid}))
+	require.NoError(t, err)
+	require.Equal(t, newTxid, resp.Msg.Txid)
+
+	persisted, err := cheques.Get(context.Background(), db, testWalletID, chequeID)
+	require.NoError(t, err)
+	require.NotNil(t, persisted.SweptTxid)
+	require.Equal(t, newTxid, *persisted.SweptTxid, "the cheque must follow the replacement")
 }

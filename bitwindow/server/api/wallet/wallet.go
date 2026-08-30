@@ -2320,6 +2320,15 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 		Float64("new_fee", bumpResp.Msg.NewFee).
 		Msg("RBF transaction broadcast via Core bumpfee")
 
+	// The replacement evicts the old txid, so a cheque swept by it must follow.
+	rebound, err := cheques.ReplaceSweptTxid(ctx, s.database, txid, bumpResp.Msg.Txid)
+	if err != nil {
+		// The bump already broadcast, so don't fail the call over bookkeeping.
+		log.Warn().Err(err).Msg("failed to point swept cheques at the replacement txid")
+	} else if rebound > 0 {
+		log.Info().Int64("cheques", rebound).Msg("pointed swept cheques at the replacement txid")
+	}
+
 	return connect.NewResponse(&pb.BumpFeeResponse{
 		Txid:        bumpResp.Msg.Txid,
 		OriginalFee: bumpResp.Msg.OriginalFee,
