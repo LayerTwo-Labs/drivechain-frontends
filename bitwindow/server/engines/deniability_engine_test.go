@@ -226,4 +226,65 @@ func TestDeniabilityEngine(t *testing.T) {
 		assert.NotNil(t, denial.CancelledAt)
 		assert.Equal(t, "utxo is too small to split", *denial.CancelReason)
 	})
+
+	t.Run("executeDenial finds an unconfirmed hop output", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
+				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
+			}, nil)
+		mockOrch.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			Times(1).
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
+			}, nil)
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		mockBitcoind.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.GetNewAddressResponse]{
+				Msg: &corepb.GetNewAddressResponse{Address: "bc1qtest"},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.ListUnspentRequest]) (*connect.Response[corepb.ListUnspentResponse], error) {
+				var unspent []*corepb.UnspentOutput
+				if assert.NotNil(t, req.Msg.MinimumConfirmations) && *req.Msg.MinimumConfirmations == 0 {
+					unspent = append(unspent, &corepb.UnspentOutput{
+						Txid: "new-txid", Address: "bc1qtest", Vout: 0, Amount: 0.005, Confirmations: 0,
+					})
+				}
+				return &connect.Response[corepb.ListUnspentResponse]{
+					Msg: &corepb.ListUnspentResponse{Unspent: unspent},
+				}, nil
+			})
+
+		waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		err = engine.ExecuteDenial(waitCtx, []*engines.UTXO{
+			{Txid: "test-txid", Vout: 0, ValueSats: 1000000},
+		}, denial)
+		require.NoError(t, err)
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		require.Len(t, denial.ExecutedDenials, 1)
+		assert.Equal(t, "new-txid", denial.ExecutedDenials[0].ToTxID)
+	})
 }
