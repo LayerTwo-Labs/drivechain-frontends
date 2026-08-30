@@ -231,6 +231,49 @@ func TestSyncGroupBalanceE2E(t *testing.T) {
 	require.Equal(t, msAddr, resp.Msg.Utxos[0].Address)
 }
 
+// TestSyncGroupPolicyChangeReimports proves a same-id policy edit (2-of-3 to
+// 3-of-3) re-imports the watch wallet's descriptors instead of silently serving
+// the retired policy: a deposit made to the new policy before the re-import —
+// so only a rescan can find it — must show up in SyncGroup.
+func TestSyncGroupPolicyChangeReimports(t *testing.T) {
+	rt := newLoungeRegtest(t)
+	h := newSyncHandler(rt)
+	group := loungeSyncTestGroup(t)
+	ctx := context.Background()
+
+	// First sync imports the 2-of-3 descriptors with a range that stays ample.
+	_, err := h.SyncGroup(ctx, connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	require.NoError(t, err)
+
+	rt.rpcInto(t, "", "createwallet", `["fund"]`, nil)
+	var fundAddr string
+	rt.rpcInto(t, "fund", "getnewaddress", "", &fundAddr)
+	rt.rpcInto(t, "", "generatetoaddress", fmt.Sprintf(`[101,%q]`, fundAddr), nil)
+
+	// Same id, same keys, new threshold: what editing a group produces.
+	group.M = 3
+	receive, _, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(group))
+	require.NoError(t, err)
+	var addrs []string
+	rt.rpcInto(t, "", "deriveaddresses", fmt.Sprintf(`[%q,[0,0]]`, receive), &addrs)
+	require.Len(t, addrs, 1)
+
+	rt.rpcInto(t, "fund", "sendtoaddress", fmt.Sprintf(`[%q,"1.0"]`, addrs[0]), nil)
+	rt.rpcInto(t, "", "generatetoaddress", fmt.Sprintf(`[1,%q]`, fundAddr), nil)
+
+	resp, err := h.SyncGroup(ctx, connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	require.NoError(t, err)
+	require.Equal(t, int64(100_000_000), resp.Msg.ConfirmedSats, "the 3-of-3 deposit must be visible")
+	require.Len(t, resp.Msg.Utxos, 1)
+	require.Equal(t, addrs[0], resp.Msg.Utxos[0].Address)
+
+	// The wallet now tracks the new policy, and reports it in the spelling the
+	// next sync compares against — so it does not re-import (and rescan) again.
+	state, err := h.watchDescriptorRange(ctx, watchWalletName(group))
+	require.NoError(t, err)
+	require.Equal(t, normalizeDescriptor(receive), state.receive)
+}
+
 func TestRestoreHistoryE2E(t *testing.T) {
 	rt := newLoungeRegtest(t)
 	h := newSyncHandler(rt)
