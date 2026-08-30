@@ -1811,10 +1811,18 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
 	}
 
-	// Try to find and mark the cheque as swept in database if it exists
-	cheque, err := cheques.GetByAddress(ctx, s.database, walletId, addressStr)
+	// Try to find and mark the cheque as swept in database if it exists. The
+	// sweep spends the WIF's coins whatever wallet asked, so the row is looked
+	// up and updated by its own owner, not the requesting wallet.
+	cheque, err := cheques.GetByAddressAnyWallet(ctx, s.database, addressStr)
 	if err == nil && cheque.SweptTxid == nil {
-		if err := cheques.UpdateSwept(ctx, s.database, walletId, cheque.ID, txid); err != nil {
+		if cheque.WalletID != walletId {
+			log.Warn().
+				Str("cheque_wallet_id", cheque.WalletID).
+				Str("request_wallet_id", walletId).
+				Msg("swept a cheque owned by another wallet")
+		}
+		if err := cheques.UpdateSwept(ctx, s.database, cheque.WalletID, cheque.ID, txid); err != nil {
 			log.Warn().Err(err).Msg("failed to mark cheque as swept in database")
 		}
 	}

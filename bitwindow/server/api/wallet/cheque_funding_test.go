@@ -14,6 +14,9 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,8 +30,9 @@ type fakeOrchestrator struct {
 	address string
 	utxos   []*orchpb.AddressUnspentOutput
 	// perCall serves a different answer per poll, for the poll-after-send case.
-	perCall func(n int32) []*orchpb.AddressUnspentOutput
-	calls   atomic.Int32
+	perCall       func(n int32) []*orchpb.AddressUnspentOutput
+	calls         atomic.Int32
+	broadcastTxid string
 }
 
 // The pollers ask before each tick. A full-mode answer keeps them running,
@@ -60,6 +64,12 @@ func (f *fakeOrchestrator) GetAddressUnspent(
 		utxos = f.perCall(f.calls.Add(1))
 	}
 	return connect.NewResponse(&orchpb.GetAddressUnspentResponse{Utxos: utxos, TipHeight: 100}), nil
+}
+
+func (f *fakeOrchestrator) BroadcastElectrumTransaction(
+	_ context.Context, _ *connect.Request[orchpb.BroadcastElectrumTransactionRequest],
+) (*connect.Response[orchpb.BroadcastElectrumTransactionResponse], error) {
+	return connect.NewResponse(&orchpb.BroadcastElectrumTransactionResponse{Txid: f.broadcastTxid}), nil
 }
 
 func TestCheckChequeFunding_UnfundedCheck(t *testing.T) {
@@ -403,4 +413,57 @@ func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
 		Id:       chequeID,
 	}))
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+}
+
+// The sweep spends the WIF's coins whatever wallet the caller passes, so the
+// owner's row must be marked swept even when another wallet asks.
+func TestSweepCheque_MarksOwnerRowFromAnotherWallet(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	privKey, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	wif, err := btcutil.NewWIF(privKey, &chaincfg.SigNetParams, true)
+	require.NoError(t, err)
+
+	source, err := btcutil.NewAddressWitnessPubKeyHash(
+		btcutil.Hash160(privKey.PubKey().SerializeCompressed()), &chaincfg.SigNetParams,
+	)
+	require.NoError(t, err)
+	chequeAddr := source.EncodeAddress()
+
+	const (
+		ownerWalletID = "other-wallet-id-5678"
+		destAddress   = "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl"
+		fundingTxid   = "c0de0000c0de0000c0de0000c0de0000c0de0000c0de0000c0de0000c0de0000"
+		sweepTxid     = "5eed00005eed00005eed00005eed00005eed00005eed00005eed00005eed0000"
+	)
+
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+			address: chequeAddr,
+			utxos: []*orchpb.AddressUnspentOutput{
+				{Txid: fundingTxid, Vout: 0, ValueSats: 100_000_000, Confirmations: 1},
+			},
+			broadcastTxid: sweepTxid,
+		})),
+	)
+
+	_, err = cheques.Create(context.Background(), db, ownerWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+
+	resp, err := cli.SweepCheque(context.Background(), connect.NewRequest(&walletv1.SweepChequeRequest{
+		WalletId:           testWalletID,
+		PrivateKeyWif:      wif.String(),
+		DestinationAddress: destAddress,
+		FeeSatPerVbyte:     1,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, sweepTxid, resp.Msg.Txid)
+
+	owned, err := cheques.GetByAddress(context.Background(), db, ownerWalletID, chequeAddr)
+	require.NoError(t, err)
+	require.NotNil(t, owned.SweptTxid, "the owner's cheque should be marked swept")
+	require.Equal(t, sweepTxid, *owned.SweptTxid)
+	require.NotNil(t, owned.SweptAt)
 }

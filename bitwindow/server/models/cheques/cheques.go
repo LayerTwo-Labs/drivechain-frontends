@@ -179,6 +179,28 @@ func GetByAddress(ctx context.Context, db *sql.DB, walletID string, address stri
 	return cheque, nil
 }
 
+// GetByAddressAnyWallet retrieves a cheque by address, whichever wallet owns
+// it. Addresses are globally unique, so the match is unambiguous.
+func GetByAddressAnyWallet(ctx context.Context, db *sql.DB, address string) (*Cheque, error) {
+	row := db.QueryRowContext(ctx, `
+		SELECT id, wallet_id, derivation_index, expected_amount_sats, address,
+		       actual_amount_sats, created_at, funded_at,
+		       swept_txid, swept_at
+		FROM cheques
+		WHERE address = ?
+	`, address)
+
+	cheque, err := scanCheque(row)
+	if err != nil {
+		return nil, fmt.Errorf("get cheque by address: %w", err)
+	}
+	if err := attachFundingOutputs(ctx, db, cheque.WalletID, []*Cheque{cheque}); err != nil {
+		return nil, err
+	}
+
+	return cheque, nil
+}
+
 // List retrieves all cheques for a specific wallet
 func List(ctx context.Context, db *sql.DB, walletID string) ([]Cheque, error) {
 	rows, err := db.QueryContext(ctx, `
