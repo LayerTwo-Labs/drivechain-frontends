@@ -1187,7 +1187,7 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, ge
 		return nil, fmt.Errorf("bitcoin Core list unspent: %w", err)
 	}
 
-	denials, err := deniability.List(ctx, s.database)
+	denials, err := deniability.List(ctx, s.database, deniability.WithWalletID(walletId))
 	if err != nil {
 		return nil, fmt.Errorf("bitcoin core: could not list denials: %w", err)
 	}
