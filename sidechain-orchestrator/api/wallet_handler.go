@@ -1849,6 +1849,8 @@ func (h *WalletHandler) SetElectrumServer(ctx context.Context, req *connect.Requ
 		}
 	}
 
+	prevURL, _ := h.engine.ElectrumServerURL()
+
 	tip, err := h.engine.SetElectrumServerURL(ctx, target)
 	if err != nil {
 		return nil, err
@@ -1860,7 +1862,19 @@ func (h *WalletHandler) SetElectrumServer(ctx context.Context, req *connect.Requ
 			persist = ""
 		}
 		if perr := h.orch.PersistElectrumServerURL(persist); perr != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("server switched but persisting it failed: %w", perr))
+			// The live swap already committed, so put the engine back on the
+			// previous endpoint rather than leaving it somewhere it won't
+			// remember after a restart.
+			rerr := errors.New("no previous server recorded")
+			if prevURL != "" {
+				_, rerr = h.engine.SetElectrumServerURL(ctx, prevURL)
+			}
+			if rerr != nil {
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf(
+					"persisting %s failed (%v) and restoring %s failed (%v); wallet is now on %s",
+					target, perr, prevURL, rerr, target))
+			}
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("could not persist electrum server, kept previous %s: %w", prevURL, perr))
 		}
 	}
 
@@ -1899,6 +1913,8 @@ func (h *WalletHandler) SetTorConfig(ctx context.Context, req *connect.Request[p
 		proxyAddr = orchestrator.DefaultTorProxy
 	}
 
+	prevEnabled, prevProxy, _ := h.engine.TorConfig()
+
 	tip, err := h.engine.SetTorConfig(ctx, req.Msg.Enabled, proxyAddr)
 	if err != nil {
 		return nil, err
@@ -1910,7 +1926,16 @@ func (h *WalletHandler) SetTorConfig(ctx context.Context, req *connect.Request[p
 			persistProxy = ""
 		}
 		if perr := h.orch.PersistTorConfig(req.Msg.Enabled, persistProxy); perr != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("tor routing switched but persisting it failed: %w", perr))
+			// The live swap already committed, so put the engine back on the
+			// previous routing rather than leaving it somewhere it won't
+			// remember after a restart.
+			if _, rerr := h.engine.SetTorConfig(ctx, prevEnabled, prevProxy); rerr != nil {
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf(
+					"persisting the tor config failed (%v) and restoring the previous one failed (%v); wallet is now on %s",
+					perr, rerr, torRouteDescription(req.Msg.Enabled, proxyAddr)))
+			}
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf(
+				"could not persist tor config, kept previous (%s): %w", torRouteDescription(prevEnabled, prevProxy), perr))
 		}
 	}
 
@@ -1919,6 +1944,14 @@ func (h *WalletHandler) SetTorConfig(ctx context.Context, req *connect.Request[p
 		Proxy:     proxyAddr,
 		TipHeight: int64(tip),
 	}), nil
+}
+
+// torRouteDescription names a Tor routing state for an error message.
+func torRouteDescription(enabled bool, proxyAddr string) string {
+	if !enabled {
+		return "no tor"
+	}
+	return "tor via " + proxyAddr
 }
 
 func coreVariantDisplayName(id string) string {
