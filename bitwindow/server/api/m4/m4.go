@@ -10,15 +10,18 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	m4pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
+	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	"github.com/samber/lo"
 )
 
 type Server struct {
 	m4Engine *engines.M4Engine
+	data     datasource.DrivechainReader
 }
 
-func NewServer(m4Engine *engines.M4Engine) *Server {
-	return &Server{m4Engine: m4Engine}
+func NewServer(m4Engine *engines.M4Engine, data datasource.DrivechainReader) *Server {
+	return &Server{m4Engine: m4Engine, data: data}
 }
 
 func (s *Server) GetM4History(
@@ -167,8 +170,21 @@ func (s *Server) GenerateM4Bytes(
 		return p.SidechainSlot
 	})
 
+	// The enforcer requires exactly one vote per active sidechain, so the
+	// active set - not the set with bundles - decides the vector length.
+	sidechains, err := s.data.Sidechains(ctx, &validatorpb.GetSidechainsRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("get sidechains: %w", err)
+	}
+
+	activeSlots := make(map[uint8]bool, len(sidechains.Sidechains))
+	for _, sc := range sidechains.Sidechains {
+		if n := sc.GetSidechainNumber().GetValue(); n <= 255 {
+			activeSlots[uint8(n)] = true
+		}
+	}
+
 	// Generate M4 bytes using version 0x02 (2 bytes per sidechain)
-	// Only include sidechains that have pending bundles
 	var m4Bytes []byte
 	m4Bytes = append(m4Bytes, 0x02) // Version
 
@@ -177,10 +193,12 @@ func (s *Server) GenerateM4Bytes(
 
 	// Process sidechains in order
 	for slot := 0; slot <= 255; slot++ {
-		sidechainBundles, hasBundles := bundlesBySidechain[uint8(slot)]
-		if !hasBundles {
+		if !activeSlots[uint8(slot)] {
 			continue
 		}
+
+		// Active sidechains without a pending bundle get an abstain entry.
+		sidechainBundles := bundlesBySidechain[uint8(slot)]
 
 		pref, hasPreference := prefMap[uint8(slot)]
 
