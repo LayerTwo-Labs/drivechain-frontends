@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 	"github.com/btcsuite/btcd/chaincfg"
 
@@ -1899,25 +1898,19 @@ func (s *Service) migrateEnforcerWallets() (bool, error) {
 
 // enforcerLegacyWallet builds the wallet the enforcer daemon actually ran: the
 // bare mnemonic with no BIP39 passphrase, on the account it hardcoded.
-//
-// The seed is what makes a wallet, and the path only says where to look first.
-// So this returns nil when both already match what the wallet derives — on a
-// network whose coin type is 1, the enforcer's account is the standard one, and
-// a companion would be an exact duplicate.
+// It runs once, so it writes the companion on every network. One companion
+// serves every wallet that shares its mnemonic.
 func (s *Service) enforcerLegacyWallet(w *WalletData, target WalletType) (*WalletData, error) {
 	if w.Master.Mnemonic == "" {
 		return nil, nil
 	}
 	for i := range s.wallets {
-		if s.wallets[i].ImportedFromEnforcer {
+		if s.wallets[i].ImportedFromEnforcer && s.wallets[i].Master.Mnemonic == w.Master.Mnemonic {
 			return nil, nil
 		}
 	}
 
 	seed := MnemonicToSeed(w.Master.Mnemonic, "")
-	if hex.EncodeToString(seed) == w.Master.SeedHex && s.derivesEnforcerAccount(w) {
-		return nil, nil
-	}
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
 		return nil, fmt.Errorf("rebuild the enforcer master key: %w", err)
@@ -2131,25 +2124,6 @@ func (s *Service) StarterWalletID() string {
 		return w.ID
 	}
 	return ""
-}
-
-// derivesEnforcerAccount reports whether the wallet already looks at the
-// account the enforcer hardcoded. True on a network whose coin type is 1.
-func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
-	// eCash runs on mainnet params, so a string compare against
-	// mainnet reads their coin type as 1 and skips the companion they need.
-	net, err := bip47send.NetworkParams(s.network)
-	if err != nil {
-		// Testnet params here read the coin type as 1, which is the answer this
-		// function exists to avoid. The daemon refuses an unknown network at
-		// startup, so this cannot happen.
-		panic(fmt.Sprintf("unknown network %q: %v", s.network, err))
-	}
-	ap, err := accountPathFor(w, w.scriptKind(), net)
-	if err != nil {
-		return false
-	}
-	return ap.String() == EnforcerAccountPath
 }
 
 // CoinbaseRecipient is an address the block reward can pay to, derived from the
