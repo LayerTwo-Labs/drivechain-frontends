@@ -40,22 +40,9 @@ class DeniabilityTab extends StatelessWidget {
             return SailColumn(
               spacing: SailStyleValues.padding16,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: DenyAllButton(
-                        onPressed: () => model.showDenyAllDialog(context),
-                        utxoCount: model.utxosWithoutDenial.length,
-                      ),
-                    ),
-                    const SizedBox(width: SailStyleValues.padding16),
-                    Expanded(
-                      child: ConsolidateButton(
-                        onPressed: () => model.showConsolidateDialog(context),
-                        utxoCount: model.utxos.length,
-                      ),
-                    ),
-                  ],
+                DenyAllButton(
+                  onPressed: () => model.showDenyAllDialog(context),
+                  utxoCount: model.utxosWithoutDenial.length,
                 ),
                 Expanded(
                   child: DeniabilityTable(
@@ -135,66 +122,6 @@ class DenyAllButton extends StatelessWidget {
               utxoCount > 0
                   ? 'Click here to start deniability on all $utxoCount UTXOs'
                   : 'All UTXOs already have active deniability',
-              color: theme.colors.textSecondary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ConsolidateButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final int utxoCount;
-
-  const ConsolidateButton({
-    super.key,
-    required this.onPressed,
-    required this.utxoCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-    final canConsolidate = utxoCount > 1;
-
-    return SailTappable(
-      onTap: canConsolidate ? () async => onPressed() : null,
-      borderRadius: SailStyleValues.borderRadius,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          borderRadius: SailStyleValues.borderRadius,
-          color: theme.colors.backgroundSecondary,
-          border: Border.all(
-            color: canConsolidate ? theme.colors.primary : theme.colors.divider,
-            width: 1.0,
-          ),
-        ),
-        child: Column(
-          children: [
-            SailRow(
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: SailStyleValues.padding08,
-              children: [
-                SailSVG.icon(
-                  SailSVGAsset.iconReceive,
-                  color: canConsolidate ? theme.colors.text : theme.colors.textTertiary,
-                  height: 24,
-                ),
-                SailText.primary24(
-                  'Consolidate',
-                  bold: true,
-                  color: canConsolidate ? null : theme.colors.textTertiary,
-                ),
-              ],
-            ),
-            SailText.secondary13(
-              canConsolidate
-                  ? 'Click here to merge all $utxoCount UTXOs into one'
-                  : 'Need more than 1 UTXO to consolidate',
               color: theme.colors.textSecondary,
             ),
           ],
@@ -680,13 +607,6 @@ class DeniabilityViewModel extends BaseViewModel {
     showThemedDialog(
       context: context,
       builder: (context) => DenialDialog(utxos: utxosWithoutDenial),
-    );
-  }
-
-  void showConsolidateDialog(BuildContext context) {
-    showThemedDialog(
-      context: context,
-      builder: (context) => ConsolidateDialog(utxos: utxos),
     );
   }
 
