@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -589,6 +591,62 @@ func TestApplyECashSwitchTakesTheRewindBackWhenTheConfWillNotWrite(t *testing.T)
 		"a conf that will not write must leave the chain as it was")
 	require.Empty(t, o.Settings.RewoundBlockHash())
 	require.Equal(t, "drynet4", o.ecashID)
+}
+
+// blockOnLog breaks the world once, the first time a log line starts with
+// prefix. It is the only seam a test has between two steps of one call.
+type blockOnLog struct {
+	prefix string
+	block  func()
+	fired  bool
+}
+
+func (h *blockOnLog) Run(_ *zerolog.Event, _ zerolog.Level, msg string) {
+	if h.fired || !strings.HasPrefix(msg, h.prefix) {
+		return
+	}
+	h.fired = true
+	h.block()
+}
+
+// The enforcer cleanup is journalled after the rewind is recorded, so a fault
+// that only shows up there aborts with the retired branch still barred. Core
+// then follows neither chain: the branch on disk is invalidated and the
+// incoming fork was never fetched.
+func TestApplyECashSwitchTakesTheRewindBackWhenTheJournalWillNotWrite(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+
+	core := &fakeCore{tips: []int64{979000}, hashes: map[int64]string{979000: tipBlock, 961632: forkBlock}}
+	attachFakeCore(t, o, core)
+	o.process.AdoptProcess(o.configs["bitcoind"], 1)
+	o.stopBinary = func(_ context.Context, name string, _ bool, _ ...StopOptions) error {
+		o.process.Remove(name)
+		return nil
+	}
+
+	// A file where the settings directory belongs, so every write refuses. It
+	// goes in on the line the rewind logs once it has recorded its drop, the
+	// only seam between that record and the journal write below it.
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
+	hook := &blockOnLog{
+		prefix: "dropped the retired eCash chain",
+		block:  func() { o.Settings.bitwindowDir = blocked },
+	}
+	o.log = o.log.Hook(hook)
+
+	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	require.Error(t, err)
+
+	require.True(t, hook.fired, "the rewind has to land before the journal write refuses")
+	require.Equal(t, []string{"invalidateblock", "reconsiderblock"}, marks(core),
+		"a journal that will not write must leave the chain as it was")
+	require.Equal(t, []string{forkBlock, forkBlock}, markParams(core))
+	require.Equal(t, "drynet4", o.ecashID, "the old network stays selected")
+	require.Equal(t, "drynet4", o.installedECashNetwork(), "the conf keeps naming the old network")
 }
 
 // Barring the outgoing branch while the incoming one is still barred parks Core

@@ -308,6 +308,9 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 		// The enforcer chain goes on every switch. Journalled because past the
 		// commit below a retry reads FromID == ToID and skips this call.
 		if err := o.Settings.SetPendingEnforcerWipe(toID); err != nil {
+			// Core still answers, so the drop goes back. Left barred, the
+			// branch on disk is one Core can no longer follow.
+			o.restoreRewind(ctx, dropped)
 			o.restartAfterAbort(ctx, restartL1, stoppedL2)
 			return fmt.Errorf("journal the enforcer cleanup for %s: %w", toID, err)
 		}
