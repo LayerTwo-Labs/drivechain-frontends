@@ -722,7 +722,7 @@ class SailTableCell extends StatelessWidget {
   final int opacity;
   final bool monospace;
   final bool italic;
-  
+
   @override
   Widget build(BuildContext context) {
     var tableRow = context.findAncestorWidgetOfExactType<_TableRow>();
