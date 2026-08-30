@@ -2,10 +2,14 @@ package scanner
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -198,6 +202,171 @@ func TestIndexPayload_NotCoinNews_Drops(t *testing.T) {
 	feed, err := store.ListFeed(ctx, db, store.FeedFilter{Sort: store.SortNewest})
 	require.NoError(t, err)
 	assert.Empty(t, feed)
+}
+
+// TestIndexPayload_DropsUnresolvableComment: a validly-signed Comment
+// whose parent was never indexed MUST be dropped (spec §4.1, §7).
+func TestIndexPayload_DropsUnresolvableComment(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db, s := newScanner(t)
+
+	var parent codec.ItemID
+	parent[0] = 0xde // never indexed
+	require.NoError(t, s.indexPayload(ctx, signedComment(t, parent), posAt(9, 0, 0)))
+
+	assert.Zero(t, countRows(t, db, "cn_comments"), "comment with unresolvable parent MUST NOT persist")
+	assert.Zero(t, countRows(t, db, "cn_items"), "no cn_items row for a dropped comment")
+}
+
+// TestIndexPayload_DropsUnresolvableVote: a validly-signed Vote against
+// a target that was never indexed MUST be dropped (spec §4.1, §8).
+func TestIndexPayload_DropsUnresolvableVote(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db, s := newScanner(t)
+
+	var target codec.ItemID
+	target[0] = 0xad // never indexed
+	require.NoError(t, s.indexPayload(ctx, signedVote(t, target), posAt(9, 0, 0)))
+
+	assert.Zero(t, countRows(t, db, "cn_votes"), "vote against unresolvable target MUST NOT persist")
+	assert.Zero(t, countRows(t, db, "cn_items"), "no cn_items row for a dropped vote")
+}
+
+// TestIndexPayload_DropsCommentOnLaterParent: a parent that exists but
+// sits later in canonical scan order is not "earlier" (spec §4.2), so
+// the Comment MUST be dropped.
+func TestIndexPayload_DropsCommentOnLaterParent(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db, s := newScanner(t)
+
+	storyPos := posAt(20, 0, 0)
+	require.NoError(t, s.indexPayload(ctx, story(t, "later story"), storyPos))
+
+	// Comment sits in an earlier block than the story it replies to.
+	require.NoError(t, s.indexPayload(ctx, signedComment(t, itemIDAt(t, storyPos)), posAt(10, 0, 0)))
+
+	assert.Zero(t, countRows(t, db, "cn_comments"), "comment referencing a later parent MUST NOT persist")
+	assert.Equal(t, 1, countRows(t, db, "cn_items"), "only the story is indexed")
+}
+
+// TestIndexPayload_DropsContinuationInOtherBlock: §9 confines a
+// Continuation to the head's own block, after it in scan order.
+func TestIndexPayload_DropsContinuationInOtherBlock(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db, s := newScanner(t)
+
+	headPos := posAt(30, 0, 0)
+	require.NoError(t, s.indexPayload(ctx, story(t, "head story"), headPos))
+
+	chunk, err := codec.EncodeContinuation(codec.Continuation{Head: itemIDAt(t, headPos), Seq: 0, Chunk: []byte{0x02, 0x01, 'x'}})
+	require.NoError(t, err)
+	require.NoError(t, s.indexPayload(ctx, chunk, posAt(31, 0, 0)))
+
+	assert.Zero(t, countRows(t, db, "cn_continuations"), "continuation in a different block MUST NOT persist")
+}
+
+// TestIndexPayload_IndexesResolvableRefs is the positive control: an
+// earlier, resolvable reference still gets indexed.
+func TestIndexPayload_IndexesResolvableRefs(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db, s := newScanner(t)
+
+	storyPos := posAt(40, 0, 0)
+	require.NoError(t, s.indexPayload(ctx, story(t, "root story"), storyPos))
+	storyID := itemIDAt(t, storyPos)
+
+	require.NoError(t, s.indexPayload(ctx, signedComment(t, storyID), posAt(41, 0, 0)))
+	require.NoError(t, s.indexPayload(ctx, signedVote(t, storyID), posAt(42, 0, 0)))
+
+	chunk, err := codec.EncodeContinuation(codec.Continuation{Head: storyID, Seq: 0, Chunk: []byte{0x02, 0x01, 'x'}})
+	require.NoError(t, err)
+	require.NoError(t, s.indexPayload(ctx, chunk, posAt(40, 0, 1)))
+
+	assert.Equal(t, 1, countRows(t, db, "cn_comments"), "comment on an earlier parent persists")
+	assert.Equal(t, 1, countRows(t, db, "cn_votes"), "vote on an earlier target persists")
+	assert.Equal(t, 1, countRows(t, db, "cn_continuations"), "continuation after its same-block head persists")
+}
+
+func newScanner(t *testing.T) (*sql.DB, *Scanner) {
+	t.Helper()
+	db, err := store.Open(context.Background(), t.TempDir()+"/coinnews.db")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	return db, &Scanner{DB: db, Log: zerolog.Nop()}
+}
+
+// posAt returns a BlockPos whose txid is unique to the scan position,
+// so cn_items rows don't collide across a scenario.
+func posAt(height, txIdx, voutIdx uint32) store.BlockPos {
+	return store.BlockPos{
+		BlockHeight: height,
+		TxIndex:     txIdx,
+		VoutIndex:   voutIdx,
+		BlockTime:   time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC),
+		TxID:        fmt.Sprintf("%064x", uint64(height)<<32|uint64(txIdx)<<16|uint64(voutIdx)),
+	}
+}
+
+// itemIDAt is the ItemID a message at `pos` is indexed under.
+func itemIDAt(t *testing.T, pos store.BlockPos) codec.ItemID {
+	t.Helper()
+	natural, err := store.HashTxIDLE(pos.TxID)
+	require.NoError(t, err)
+	return codec.ComputeItemID(natural, pos.VoutIndex)
+}
+
+func story(t *testing.T, headline string) []byte {
+	t.Helper()
+	out, err := codec.EncodeStory(codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: headline})
+	require.NoError(t, err)
+	return out
+}
+
+func signedComment(t *testing.T, parent codec.ItemID) []byte {
+	t.Helper()
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	tlvs := []codec.TLV{{Tag: codec.TLVBody, Value: []byte("reply")}}
+	blob, err := codec.SerialiseTLVs(tlvs)
+	require.NoError(t, err)
+	digest := codec.CommentSigHash(parent, blob)
+	sig, err := schnorr.Sign(priv, digest[:])
+	require.NoError(t, err)
+
+	c := codec.Comment{Parent: parent, TLVs: tlvs}
+	copy(c.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
+	copy(c.Sig[:], sig.Serialize())
+	out, err := codec.EncodeComment(c)
+	require.NoError(t, err)
+	return out
+}
+
+func signedVote(t *testing.T, target codec.ItemID) []byte {
+	t.Helper()
+	priv, err := btcec.NewPrivateKey()
+	require.NoError(t, err)
+	digest := codec.VoteSigHash(codec.TypeUpvote, target)
+	sig, err := schnorr.Sign(priv, digest[:])
+	require.NoError(t, err)
+
+	v := codec.Vote{Kind: codec.TypeUpvote, Target: target}
+	copy(v.AuthorXPK[:], schnorr.SerializePubKey(priv.PubKey()))
+	copy(v.Sig[:], sig.Serialize())
+	out, err := codec.EncodeVote(v)
+	require.NoError(t, err)
+	return out
+}
+
+func countRows(t *testing.T, db *sql.DB, table string) int {
+	t.Helper()
+	var n int
+	require.NoError(t, db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM `+table).Scan(&n))
+	return n
 }
 
 func hexZero(n int) string {

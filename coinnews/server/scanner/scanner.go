@@ -159,9 +159,9 @@ func (s *Scanner) indexHeight(ctx context.Context, height uint32) error {
 }
 
 // indexPayload classifies one OP_RETURN payload and persists it.
-// Mirrors bitwindow's engine hook: signature verification gates
-// persistence, malformed and non-CoinNews payloads are dropped
-// silently.
+// Mirrors bitwindow's engine hook: signature verification and
+// reference resolvability gate persistence, malformed and
+// non-CoinNews payloads are dropped silently.
 func (s *Scanner) indexPayload(ctx context.Context, data []byte, pos store.BlockPos) error {
 	tag, msg, err := codec.DecodeMessage(data)
 	if err != nil {
@@ -172,15 +172,49 @@ func (s *Scanner) indexPayload(ctx context.Context, data []byte, pos store.Block
 			Msg("coinnews-scanner: malformed payload, dropping")
 		return nil
 	}
+	self := store.ItemRef{BlockHeight: pos.BlockHeight, TxIndex: pos.TxIndex, VoutIndex: pos.VoutIndex}
+
 	switch m := msg.(type) {
 	case *codec.Comment:
 		if err := codec.VerifyComment(m); err != nil {
 			s.Log.Debug().Err(err).Str("txid", pos.TxID).Msg("coinnews-scanner: comment sig invalid")
 			return nil
 		}
+		// §7: drop Comments whose parent is unresolvable. §4.2: the
+		// parent must be earlier than the comment in scan order.
+		parent, ok, err := store.ResolveItem(ctx, s.DB, m.Parent)
+		if err != nil {
+			return err
+		}
+		if !ok || !parent.Before(self) {
+			s.Log.Debug().Str("txid", pos.TxID).Msg("coinnews-scanner: comment parent unresolvable")
+			return nil
+		}
 	case *codec.Vote:
 		if err := codec.VerifyVote(m); err != nil {
 			s.Log.Debug().Err(err).Str("txid", pos.TxID).Msg("coinnews-scanner: vote sig invalid")
+			return nil
+		}
+		// §8: drop Votes against an unresolvable target. §4.2: a vote
+		// against a same-tx target must sit at a higher vout_index —
+		// covered by requiring the target to be strictly earlier.
+		target, ok, err := store.ResolveItem(ctx, s.DB, m.Target)
+		if err != nil {
+			return err
+		}
+		if !ok || !target.Before(self) {
+			s.Log.Debug().Str("txid", pos.TxID).Msg("coinnews-scanner: vote target unresolvable")
+			return nil
+		}
+	case *codec.Continuation:
+		// §9: continuations live in the head's tx or a later tx in the
+		// same block, after the head in scan order.
+		head, ok, err := store.ResolveItem(ctx, s.DB, m.Head)
+		if err != nil {
+			return err
+		}
+		if !ok || head.BlockHeight != pos.BlockHeight || !head.Before(self) {
+			s.Log.Debug().Str("txid", pos.TxID).Msg("coinnews-scanner: continuation head unresolvable")
 			return nil
 		}
 	}
