@@ -819,8 +819,9 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	} else if slot == nil {
 		slot = &c.Msg.Slot
 	}
-	if *slot > 255 {
-		return nil, fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot)
+	if *slot < 0 || *slot > 255 {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot))
 	}
 
 	amount, err := btcutil.NewAmount(c.Msg.Amount)

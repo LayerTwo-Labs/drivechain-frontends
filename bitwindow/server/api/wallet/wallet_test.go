@@ -3,6 +3,7 @@ package api_wallet_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -440,4 +441,38 @@ func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
 	require.Len(t, resp.Msg.Deposits, 1)
 	require.Equal(t, "deadbeef", resp.Msg.Deposits[0].Txid)
 	require.Equal(t, int64(50_000), resp.Msg.Deposits[0].Amount)
+}
+
+// A negative slot must be rejected here, not cast to uint32 and forwarded: the
+// cast wraps, and -4294967289 lands on slot 7 — someone else's sidechain.
+func TestCreateSidechainDepositRejectsNegativeSlot(t *testing.T) {
+	t.Parallel()
+
+	for _, slot := range []int64{-1, -4294967289} {
+		t.Run(fmt.Sprint(slot), func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			database := database.Test(t)
+			mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+			apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+			// No CreateDeposit expectation: the request must not reach it.
+			mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+			apitests.ExpectOrchestratorReads(mockOrch)
+
+			cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database,
+				apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
+
+			_, err := cli.CreateSidechainDeposit(context.Background(), connect.NewRequest(&walletv1.CreateSidechainDepositRequest{
+				WalletId:    "test-wallet-id-1234",
+				Destination: "13tqn1jxdcrbDycej4bp5S5PcffYtdGNPy",
+				Slot:        slot,
+				Amount:      0.001,
+				Fee:         0.0001,
+			}))
+			require.Error(t, err)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		})
+	}
 }
