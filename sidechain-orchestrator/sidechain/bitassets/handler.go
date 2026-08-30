@@ -278,7 +278,8 @@ func (h *Handler) ReserveBitAsset(ctx context.Context, req *connect.Request[pb.R
 
 func (h *Handler) TransferBitAsset(ctx context.Context, req *connect.Request[pb.TransferBitAssetRequest]) (*connect.Response[pb.TransferBitAssetResponse], error) {
 	var txid string
-	params := []any{req.Msg.AssetId, req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats}
+	// transfer_bitasset accepts [dest, asset_id, amount, fee_sats, memo]
+	params := []any{req.Msg.Dest, req.Msg.AssetId, req.Msg.Amount, req.Msg.FeeSats}
 	if err := h.proxy.Client.Call(ctx, "transfer_bitasset", params, &txid); err != nil {
 		return nil, err
 	}
