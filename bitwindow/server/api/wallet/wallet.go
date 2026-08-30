@@ -2467,6 +2467,12 @@ func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCo
 
 // CreateBackup implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateBackup(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[pb.CreateBackupResponse], error) {
+	// The archive carries wallet.json plus the multisig and transaction
+	// exports, so it needs an unlocked wallet.
+	if s.backupEngine.HasCurrentWallet() && !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	data, filename, err := s.backupEngine.CreateBackup(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("create backup: %w", err)

@@ -506,6 +506,44 @@ func TestService_UnlockWallet(t *testing.T) {
 	})
 }
 
+func TestService_CreateBackup(t *testing.T) {
+	t.Parallel()
+
+	// The unencrypted fixture wallet auto-unlocks in a startup goroutine.
+	waitUnlocked := func(t *testing.T, cli walletv1connect.WalletServiceClient) {
+		require.Eventually(t, func() bool {
+			_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+			return err == nil
+		}, 5*time.Second, 10*time.Millisecond)
+	}
+
+	t.Run("unlocked wallet backs up", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t)))
+		waitUnlocked(t, cli)
+
+		resp, err := cli.CreateBackup(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		require.NotEmpty(t, resp.Msg.BackupData)
+	})
+
+	t.Run("locked wallet cannot back up", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t)))
+		waitUnlocked(t, cli)
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		resp, err := cli.CreateBackup(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.Nil(t, resp)
+	})
+}
+
 // The orchestrator records each deposit as it broadcasts it, because an M5 is
 // an ordinary transaction on the wire.
 func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
