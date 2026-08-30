@@ -1535,6 +1535,10 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

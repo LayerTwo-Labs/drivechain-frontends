@@ -216,6 +216,42 @@ func TestService_GetCheque(t *testing.T) {
 		// "no rows" internal error.
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
+
+	t.Run("locked wallet cannot read a cheque", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		db := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qlockedcheque00000000000000000000000000000")
+		require.NoError(t, err)
+
+		_, err = cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		// A cheque address is derived from the seed, so a locked wallet must
+		// not hand it out.
+		_, err = cli.GetCheque(context.Background(), connect.NewRequest(&walletv1.GetChequeRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
 }
 
 func TestService_DeleteCheque(t *testing.T) {
