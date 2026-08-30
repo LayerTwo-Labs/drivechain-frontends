@@ -1588,6 +1588,10 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	chequeList, err := cheques.List(ctx, s.database, walletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list cheques: %w", err))

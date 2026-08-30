@@ -150,6 +150,38 @@ func TestService_ListCheques(t *testing.T) {
 		require.NoError(t, err)
 		require.Empty(t, resp.Msg.Cheques)
 	})
+
+	// Cheque rows are wallet-derived data: addresses and amounts must not be
+	// readable once the wallet is locked.
+	t.Run("locked wallet returns failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.ListCheques(context.Background(), connect.NewRequest(&walletv1.ListChequesRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
 }
 
 func TestService_GetCheque(t *testing.T) {
