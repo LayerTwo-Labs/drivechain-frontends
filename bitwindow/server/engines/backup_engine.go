@@ -191,7 +191,15 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 
 	// Restore wallet.json
 	walletPath := filepath.Join(e.walletDir, walletfile.Name)
-	if err := walletfile.Write(walletPath, walletJSON, walletfile.Options{}); err != nil {
+	opts := walletfile.Options{AllowDrop: true}
+	current, err := os.ReadFile(walletPath)
+	switch {
+	case err == nil:
+		opts.Expected, opts.ExpectedKnown = walletfile.DigestOf(current), true
+	case !os.IsNotExist(err):
+		return fmt.Errorf("read wallet.json before the restore: %w", err)
+	}
+	if err := walletfile.Write(walletPath, walletJSON, opts); err != nil {
 		return fmt.Errorf("write wallet.json: %w", err)
 	}
 	log.Info().Msg("restore: wrote wallet.json")
