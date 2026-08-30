@@ -300,10 +300,23 @@ func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 				Solvable:   true,
 				ReceivedAt: u.Status.BlockTime,
 				HDPath:     a.hdPath,
+				// Electrum reports no descriptor, but the scan knows each
+				// address's script kind, so the weight is still exact.
+				InputWeightUnits: inputWeightForKind(a.kind),
 			}
 		})
 	})
 	return out, nil
+}
+
+// inputWeightForKind reports 0 for a kind this cannot size, which leaves the
+// caller to decide what to do with the coin.
+func inputWeightForKind(kind ScriptKind) int {
+	weight, err := InputWeightUnitsForKind(kind)
+	if err != nil {
+		return 0
+	}
+	return weight
 }
 
 func (p *ElectrumBackend) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {
