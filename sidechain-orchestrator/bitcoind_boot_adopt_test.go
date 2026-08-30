@@ -44,6 +44,11 @@ func fakeCoreFixture(t *testing.T, binary string) *Orchestrator {
 	return o
 }
 
+// useCoreChecker makes every bitcoind boot poll checker.
+func useCoreChecker(o *Orchestrator, checker HealthChecker) {
+	o.newCoreChecker = func(BinaryConfig, HealthCheckOpts) HealthChecker { return checker }
+}
+
 // writeCorePidFile writes the native PID file that discoverPid reads.
 func writeCorePidFile(t *testing.T, o *Orchestrator, pid int) {
 	t.Helper()
@@ -125,7 +130,7 @@ func TestStartBitcoindOnly_AdoptsExternalCoreWhenThePingLoses(t *testing.T) {
 
 	checker := &coldChecker{}
 	checker.cold.Store(1)
-	o.getOrCreateMonitor("bitcoind", checker, bitcoindStartupPatterns)
+	useCoreChecker(o, checker)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -187,7 +192,7 @@ func TestAdoptIfCoreOwnsDatadir_OtherErrorStillFails(t *testing.T) {
 // end: a start that fails for any other reason is still a failed boot.
 func TestStartBitcoindOnly_OtherStartErrorStillFails(t *testing.T) {
 	o := fakeCoreFixture(t, "this file is no executable image")
-	o.getOrCreateMonitor("bitcoind", &mockChecker{}, bitcoindStartupPatterns)
+	useCoreChecker(o, &mockChecker{})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

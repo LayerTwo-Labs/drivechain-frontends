@@ -537,8 +537,9 @@ func (o *Orchestrator) restoreMigrationCoreMonitor() error {
 	if cfg.Port == 0 {
 		cfg.Port = o.BitcoinConf.GetRPCPort()
 	}
-	checker := NewHealthChecker(cfg, HealthCheckOpts{Credentials: o.BitcoinConf.GetRPCCredentials})
+	checker := o.newCoreChecker(cfg, HealthCheckOpts{Credentials: o.BitcoinConf.GetRPCCredentials})
 	monitor := o.getOrCreateMonitor("bitcoind", checker, bitcoindStartupPatterns)
+	monitor.SetChecker(checker)
 	ctx := context.Background()
 	monitor.StartConnectionTimer(ctx)
 	// Migration completion proves RPC startup before presync ends.

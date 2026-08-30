@@ -271,6 +271,9 @@ type Orchestrator struct {
 	// this to o.Stop; tests override it to inject force/graceful failures.
 	stopBinary func(ctx context.Context, name string, force bool, options ...StopOptions) error
 
+	// newCoreChecker builds the bitcoind health checker. Tests override it.
+	newCoreChecker func(cfg BinaryConfig, opts HealthCheckOpts) HealthChecker
+
 	// bootBitcoindForVariantSwap boots bitcoind after a variant swap. Returns
 	// a channel that is closed when boot is complete. Production wires this to
 	// the real boot helper; tests override it to bypass process spawning.
@@ -406,6 +409,9 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	orch.process.SidechainVariant = sidechainVariantResolver
 
 	orch.stopBinary = orch.Stop
+	orch.newCoreChecker = func(cfg BinaryConfig, opts HealthCheckOpts) HealthChecker {
+		return NewHealthChecker(cfg, opts)
+	}
 	orch.process.BeforeStart = orch.checkECashMigrationStart
 	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
 	orch.coreReachable = orch.dialCoreRPC
@@ -1446,8 +1452,9 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 		}
 		coreHealthOpts.Credentials = o.BitcoinConf.GetRPCCredentials
 	}
-	coreChecker := NewHealthChecker(coreCfg, coreHealthOpts)
+	coreChecker := o.newCoreChecker(coreCfg, coreHealthOpts)
 	coreMon := o.getOrCreateMonitor("bitcoind", coreChecker, bitcoindStartupPatterns)
+	coreMon.SetChecker(coreChecker)
 
 	coreMon.StartConnectionTimer(ctx)
 
