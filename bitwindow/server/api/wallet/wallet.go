@@ -203,6 +203,19 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}), nil
 	}
 
+	// Core's send RPC has no absolute fee field, only a rate, so an exact fee
+	// has to go through the raw transaction path.
+	if c.Msg.FixedFeeSats > 0 {
+		txid, err := engines.SendCoreWithFixedFee(ctx, bitcoind, coreWalletName, c.Msg.Destinations, c.Msg.FixedFeeSats)
+		if err != nil {
+			return nil, err
+		}
+		log.Info().Msgf("send tx: broadcast transaction with fixed fee (Bitcoin Core): %s", txid)
+		return connect.NewResponse(&pb.SendTransactionResponse{
+			Txid: txid,
+		}), nil
+	}
+
 	sendReq := &corepb.SendRequest{
 		Destinations: destinations,
 		Wallet:       coreWalletName,
