@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -57,6 +58,7 @@ type fakeEsplora struct {
 	txByID    map[string]EsploraTx
 	hexByID   map[string]string
 	tip       int
+	tipErr    error
 	feeRate   float64
 	broadcast []string
 }
@@ -124,6 +126,9 @@ func (f *fakeEsplora) Broadcast(_ context.Context, rawHex string) (string, error
 func (f *fakeEsplora) TipHeight(_ context.Context) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.tipErr != nil {
+		return 0, f.tipErr
+	}
 	return f.tip, nil
 }
 
@@ -1590,6 +1595,71 @@ func TestElectrumCreateCpfpRejectsConfirmedParent(t *testing.T) {
 	_, err := p.CreateCpfp(ctx, w.ID, CpfpRequest{ParentTxID: parentTxid, ParentVout: 0, TargetRate: 10})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// A tip outage serves a scan that predates the parent's confirmation, and the
+// Electrum client's Tx status is stale for the same reason. Only a fresh read of
+// the parent's address sees the confirmation, and it must reject the child.
+func TestElectrumCreateCpfpRejectsLiveConfirmedParent(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const parentTxid = "6666666666666666666666666666666666666666666666666666666666666666"
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: parentTxid, Vout: 0, Value: 100_000,
+		Status: EsploraStatus{Confirmed: false},
+	}}
+	// Left unconfirmed for the whole test: ElectrumClient.Tx reads a height cache
+	// only the address walk refreshes, so it cannot report the confirmation here.
+	fake.txByID[parentTxid] = EsploraTx{TxID: parentTxid, Weight: 600, Fee: 150} // 1 sat/vB
+
+	_, _, err := p.Balance(ctx, w.ID) // warm the scan while the parent is unconfirmed
+	require.NoError(t, err)
+
+	// The parent confirms, but the tip check fails, so the stale scan is served.
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: parentTxid, Vout: 0, Value: 100_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 111},
+	}}
+	fake.tipErr = errors.New("network blip")
+
+	_, err = p.CreateCpfp(ctx, w.ID, CpfpRequest{ParentTxID: parentTxid, ParentVout: 0, TargetRate: 20})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	assert.Empty(t, fake.broadcast, "a confirmed parent must not be paid for by a child")
+}
+
+// The same outage, with the parent's output spent out from under the cached
+// scan instead of confirmed: the child must not be built on a gone outpoint.
+func TestElectrumCreateCpfpRejectsSpentParentOutput(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const parentTxid = "7777777777777777777777777777777777777777777777777777777777777777"
+	fake.stats[addr] = EsploraAddressStats{
+		Address:      addr,
+		MempoolStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: parentTxid, Vout: 0, Value: 100_000,
+		Status: EsploraStatus{Confirmed: false},
+	}}
+	fake.txByID[parentTxid] = EsploraTx{TxID: parentTxid, Weight: 600, Fee: 150} // 1 sat/vB
+
+	_, _, err := p.Balance(ctx, w.ID) // warm the scan while the output is unspent
+	require.NoError(t, err)
+
+	fake.utxos[addr] = nil
+	fake.tipErr = errors.New("network blip")
+
+	_, err = p.CreateCpfp(ctx, w.ID, CpfpRequest{ParentTxID: parentTxid, ParentVout: 0, TargetRate: 20})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	assert.Empty(t, fake.broadcast)
 }
 
 func TestElectrumCreateCpfpRejectsLowTarget(t *testing.T) {
