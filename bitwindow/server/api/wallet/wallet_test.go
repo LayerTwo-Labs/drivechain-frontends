@@ -13,6 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
@@ -114,12 +115,52 @@ func TestService_GetNewAddress(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
 
+		// Addresses need an unlocked wallet, and the unencrypted fixture wallet
+		// auto-unlocks in the background.
+		require.Eventually(t, func() bool {
+			_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+			return err == nil
+		}, 5*time.Second, 10*time.Millisecond)
+
 		// Use the test wallet ID from apitests.createTestWalletJSON
 		resp, err := cli.GetNewAddress(context.Background(), connect.NewRequest(&walletv1.GetNewAddressRequest{
 			WalletId: "test-wallet-id-1234",
 		}))
 		require.NoError(t, err)
 		require.Equal(t, "bc1qtest123456789", resp.Msg.Address)
+	})
+
+	t.Run("locked wallet gets no address", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+
+		// The unencrypted fixture wallet auto-unlocks in the background. Wait for
+		// that, so the unlock cannot land after the lock below.
+		require.Eventually(t, func() bool {
+			_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+			return err == nil
+		}, 5*time.Second, 10*time.Millisecond)
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.GetNewAddress(context.Background(), connect.NewRequest(&walletv1.GetNewAddressRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		// Nothing was derived, so nothing reached the address book either.
+		entries, err := addressbook.ListByWallet(context.Background(), database, "test-wallet-id-1234")
+		require.NoError(t, err)
+		require.Empty(t, entries)
 	})
 }
 

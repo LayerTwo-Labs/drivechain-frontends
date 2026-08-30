@@ -281,6 +281,17 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	// Deriving an address needs the seed, so the wallet has to be unlocked.
+	// A watch-only wallet has no seed, and serves addresses from its imported
+	// descriptor.
+	watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
+	if err != nil {
+		return nil, err
+	}
+	if !watchOnly && !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	addressType := c.Msg.AddressType
 	if addressType == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
 		addressType = pb.AddressType_ADDRESS_TYPE_SEGWIT
@@ -329,10 +340,6 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		// Watch-only Core wallets import a descriptor; full wallets use the
 		// seed-derived wallet. Both serve addresses from Bitcoin Core.
 		ensure := s.walletEngine.GetBitcoinCoreWalletName
-		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
-		if err != nil {
-			return nil, err
-		}
 		if watchOnly {
 			ensure = s.walletEngine.EnsureWatchOnlyWallet
 		}
