@@ -35,11 +35,49 @@ var derivedEnforcerSettings = []string{
 	"network-preset",
 }
 
+// enforcerKnownKeys are the settings the shipped enforcer accepts as CLI
+// flags. Its argument parser exits on an unknown option, so GetCliArgs drops
+// anything outside this set rather than bricking the daemon on a key an old
+// conf still carries.
+var enforcerKnownKeys = map[string]bool{
+	"coinbase-recipient":             true,
+	"data-dir":                       true,
+	"enable-block-template-server":   true,
+	"enable-mempool":                 true,
+	"exit-after-sync":                true,
+	"log-directory":                  true,
+	"log-format":                     true,
+	"log-level":                      true,
+	"log-rotation":                   true,
+	"max-log-file-size-mb":           true,
+	"max-log-files":                  true,
+	"network-preset":                 true,
+	"node-blocks-dir":                true,
+	"node-rpc-addr":                  true,
+	"node-rpc-cookie-path":           true,
+	"node-rpc-pass":                  true,
+	"node-rpc-user":                  true,
+	"node-zmq-addr-sequence":         true,
+	"serve-grpc-addr":                true,
+	"serve-rpc-addr":                 true,
+	"signet-miner-bitcoin-cli-path":  true,
+	"signet-miner-bitcoin-util-path": true,
+	"signet-miner-script-debug":      true,
+	"signet-miner-script-path":       true,
+	"wallet-auto-create":             true,
+	"wallet-electrum-host":           true,
+	"wallet-electrum-port":           true,
+	"wallet-esplora-url":             true,
+	"wallet-seed-file":               true,
+	"wallet-skip-periodic-sync":      true,
+	"wallet-sync-source":             true,
+}
+
 // ---------------------------------------------------------------------------
 // Migration system (Dart: _kEnforcerConfVersion, _enforcerConfMigrations)
 // ---------------------------------------------------------------------------
 
-const enforcerConfMigrationsVersion = 3
+const enforcerConfMigrationsVersion = 4
 
 // EnforcerConfMigration represents a versioned enforcer config migration.
 type EnforcerConfMigration struct {
@@ -62,6 +100,16 @@ var enforcerConfMigrations = []EnforcerConfMigration{
 			// argv without it. A hand-set false would make the enforcer
 			// reject its own arguments.
 			config.SetSetting("enable-mempool", "true")
+		},
+	},
+	{
+		// The enforcer dropped these three flags and exits on an unknown
+		// option, so a conf that still carries one never starts.
+		Version: 4,
+		Apply: func(config *EnforcerConfig) {
+			config.RemoveSetting("serve-json-rpc-addr")
+			config.RemoveSetting("wallet-full-scan")
+			config.RemoveSetting("signet-miner-coinbase-recipient")
 		},
 	},
 }
@@ -295,6 +343,12 @@ func (m *EnforcerConfManager) GetCliArgs() []string {
 
 	if m.Config != nil {
 		for key, value := range m.Config.Settings {
+			// The enforcer exits on an unknown option, so a key it does not
+			// accept is dropped instead of bricking the whole daemon.
+			if !enforcerKnownKeys[key] {
+				m.log.Warn().Str("key", key).Msg("dropping enforcer setting the binary does not accept")
+				continue
+			}
 			switch value {
 			case "true":
 				args = append(args, fmt.Sprintf("--%s", key))

@@ -232,6 +232,26 @@ func TestGetCliArgs(t *testing.T) {
 	}
 }
 
+// The enforcer exits on an unknown option, so a settings file that still
+// carries a flag it dropped must not reach the argv — one stale key would
+// otherwise keep the daemon from ever starting.
+func TestGetCliArgsDropsKeysTheEnforcerDoesNotAccept(t *testing.T) {
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+
+	m.Config.SetSetting("serve-json-rpc-addr", "127.0.0.1:8123")
+	m.Config.SetSetting("wallet-full-scan", "true")
+	m.Config.SetSetting("signet-miner-coinbase-recipient", "tb1qexample")
+	m.Config.SetSetting("serve-rpc-addr", "127.0.0.1:8122")
+
+	args := m.GetCliArgs()
+
+	rejectArgPrefix(t, args, "--serve-json-rpc-addr")
+	rejectArgPrefix(t, args, "--wallet-full-scan")
+	rejectArgPrefix(t, args, "--signet-miner-coinbase-recipient")
+	requireArg(t, args, "--serve-rpc-addr=127.0.0.1:8122")
+}
+
 // Regression for #1712 ("Enforcer startup errors due to password and cookie
 // mixups"). The enforcer dies at startup with "precisely one of rpc user and
 // cookie must be set" when --node-rpc-user / --node-rpc-pass don't reach it.
@@ -350,7 +370,7 @@ func TestEnforcerGetDefaultConfigHasVersionPrefix(t *testing.T) {
 	m, _ := newTestEnforcerManager(t)
 
 	conf := m.GetDefaultConfig()
-	prefix := "# bitwindow-enforcer-conf-version=3"
+	prefix := "# bitwindow-enforcer-conf-version=4"
 	if !strings.HasPrefix(conf, prefix) {
 		first := conf
 		if len(first) > 80 {
