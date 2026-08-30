@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
@@ -117,10 +118,10 @@ func TestOpReturnHandling(t *testing.T) {
 	assert.Equal(t, "The Known Topic", news[0].TopicName)
 }
 
-// TestPurgeChainDerivedAtOrAbove proves the reorg purge covers the two
+// TestPurgeChainDerivedAtOrAbove proves the reorg purge covers the three
 // tables the replay can't heal on its own: op_returns keeps its stale
-// height through the upsert, and a confirmed timestamp is never
-// re-examined.
+// height through the upsert, a confirmed timestamp is never
+// re-examined, and a stored file is only ever written by a download.
 func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 	t.Parallel()
 
@@ -139,6 +140,13 @@ func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 		INSERT INTO file_timestamps (filename, file_hash, txid, block_height, status, created_at, confirmed_at)
 		VALUES ('below.txt', 'hash-below', 'txid-below', 100, 'confirmed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 		       ('orphaned.txt', 'hash-orphaned', 'txid-orphaned', 200, 'confirmed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
+	require.NoError(t, err)
+
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO bitdrive_files (txid, filename, file_type, size_bytes, encrypted, timestamp, created_at, block_height)
+		VALUES ('below', 'below.txt', 'txt', 1, 0, 0, 0, 100),
+		       ('orphaned', 'orphaned.txt', 'txt', 1, 0, 0, 0, 200),
+		       ('mempool', 'mempool.txt', 'txt', 1, 0, 0, 0, NULL)`)
 	require.NoError(t, err)
 
 	require.NoError(t, parser.purgeChainDerivedAtOrAbove(ctx, 181))
@@ -165,6 +173,23 @@ func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 	assert.Equal(t, timestamps.StatusConfirming, orphaned.Status, "orphaned timestamps go back to confirming")
 	assert.Nil(t, orphaned.BlockHeight, "orphaned timestamps lose their stale height")
 	assert.Nil(t, orphaned.ConfirmedAt, "orphaned timestamps lose their stale confirmation time")
+
+	files, err := bitdrive.List(ctx, db)
+	require.NoError(t, err)
+	var fileTxids []string
+	for _, file := range files {
+		fileTxids = append(fileTxids, file.TxID)
+	}
+	slices.Sort(fileTxids)
+	assert.Equal(t, []string{"below", "mempool"}, fileTxids,
+		"a file the orphaned branch carried stops listing, confirmed-below and mempool rows survive")
+
+	// What the replay does when the new chain mines the transaction again.
+	require.NoError(t, bitdrive.MarkConfirmed(ctx, db, "mempool", 190))
+	confirmed, err := bitdrive.GetByTxID(ctx, db, "mempool")
+	require.NoError(t, err)
+	require.NotNil(t, confirmed.BlockHeight, "a replayed block confirms the file")
+	assert.EqualValues(t, 190, *confirmed.BlockHeight)
 }
 
 func pkScript(t *testing.T, data []byte) []byte {

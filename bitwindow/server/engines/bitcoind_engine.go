@@ -14,6 +14,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
@@ -551,6 +552,15 @@ func (p *Parser) opReturnForTXID(
 
 	if err := opreturns.Persist(ctx, p.db, opReturns); err != nil {
 		return err
+	}
+
+	// A file downloaded from the mempool has no height yet, and one the fork
+	// purge dropped is downloaded again. Either way the block that carries the
+	// OP_RETURN is what confirms it.
+	if height != nil && len(opReturns) > 0 {
+		if err := bitdrive.MarkConfirmed(ctx, p.db, tx.TxID(), int64(*height)); err != nil {
+			return err
+		}
 	}
 
 	return nil

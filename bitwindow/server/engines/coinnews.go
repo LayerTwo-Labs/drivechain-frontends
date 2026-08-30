@@ -262,13 +262,16 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 	return replayFrom, nil
 }
 
-// purgeChainDerivedAtOrAbove drops the block-derived op_returns and
-// file_timestamps state from blocks at or above `fromHeight`. Neither
-// heals itself on replay: the op_returns upsert keeps the old height
-// (`COALESCE(excluded.height, op_returns.height)`), and a confirmed
-// timestamp is never re-examined. Mempool OP_RETURNs have a NULL height
-// and are left alone; reset timestamps go back through the confirming
-// loop, which re-confirms them against the new chain or fails them.
+// purgeChainDerivedAtOrAbove drops the block-derived op_returns,
+// file_timestamps and bitdrive_files state from blocks at or above
+// `fromHeight`. None of them heals itself on replay: the op_returns upsert
+// keeps the old height (`COALESCE(excluded.height, op_returns.height)`), a
+// confirmed timestamp is never re-examined, and a stored file is only ever
+// written by a download. Mempool OP_RETURNs have a NULL height and are left
+// alone; reset timestamps go back through the confirming loop, which
+// re-confirms them against the new chain or fails them. A dropped file row
+// leaves its local copy on disk, and the next scan re-offers it if the new
+// chain still carries the transaction.
 func purgeChainDerivedAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) error {
 
 	if _, err := tx.ExecContext(ctx,
@@ -281,6 +284,11 @@ func purgeChainDerivedAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight ui
 		SET status = ?, block_height = NULL, confirmed_at = NULL
 		WHERE block_height >= ?`,
 		timestamps.StatusConfirming, fromHeight,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM bitdrive_files WHERE block_height >= ?`, fromHeight,
 	); err != nil {
 		return err
 	}
