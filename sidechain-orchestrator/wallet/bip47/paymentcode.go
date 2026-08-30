@@ -95,6 +95,15 @@ func (pc *PaymentCode) PubKey() (*btcec.PublicKey, error) {
 	return btcec.ParsePubKey(cp[:])
 }
 
+// AddressType reports the address form the code asks to be paid at: byte 79
+// (Reserved[12]) == 0x01 is the segwit feature, anything else the v1 default.
+func (pc *PaymentCode) AddressType() AddressType {
+	if pc.Reserved[12] == 0x01 {
+		return AddressP2WPKH
+	}
+	return AddressP2PKH
+}
+
 // AsExtendedPubKey wraps the payment-code pubkey + chaincode for non-hardened
 // child derivation. Version bytes are placeholder — they only affect xpub
 // serialization, not derivation output.

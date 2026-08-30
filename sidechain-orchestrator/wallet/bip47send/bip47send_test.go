@@ -176,6 +176,31 @@ func TestSubstituteBip47Destination_AlignsWithVectors(t *testing.T) {
 	}
 }
 
+// A recipient code carrying the segwit feature byte must be paid at P2WPKH,
+// not silently at the P2PKH address it can't watch for.
+func TestSubstituteBip47Destination_HonoursSegwitFeatureByte(t *testing.T) {
+	recipient, err := bip47.ParsePaymentCode(bobPM)
+	require.NoError(t, err)
+	recipient.Reserved[12] = 0x01
+	segwitPM := recipient.Base58()
+
+	reserver := &fakeReserver{}
+	dest := map[string]int64{segwitPM: 100_000}
+
+	r, err := SubstituteBip47Destination(aliceSeedHex, "w1", dest, &chaincfg.MainNetParams, reserver)
+	require.NoError(t, err)
+	require.True(t, r.IsBip47)
+	require.Len(t, r.Destinations, 1)
+
+	want, err := bip47.DerivePaymentAddressTyped(aliceSeedHex, recipient, 0, &chaincfg.MainNetParams, bip47.AddressP2WPKH)
+	require.NoError(t, err)
+
+	for addr := range r.Destinations {
+		assert.Equal(t, want.EncodeAddress(), addr)
+		assert.NotEqual(t, aliceToBobAddresses[0], addr)
+	}
+}
+
 func TestSubstituteBip47Destination_PassthroughForNonBip47(t *testing.T) {
 	reserver := &fakeReserver{}
 	dest := map[string]int64{

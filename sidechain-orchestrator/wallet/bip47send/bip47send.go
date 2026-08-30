@@ -275,7 +275,7 @@ func SubstituteBip47Destination(
 		return nil, fmt.Errorf("reserve next index: %w", err)
 	}
 
-	derived, err := bip47.DerivePaymentAddress(senderSeedHex, recipient, idx, net)
+	derived, err := bip47.DerivePaymentAddressTyped(senderSeedHex, recipient, idx, net, recipient.AddressType())
 	if err != nil {
 		return nil, fmt.Errorf("derive payment address: %w", err)
 	}
