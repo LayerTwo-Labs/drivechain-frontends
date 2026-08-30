@@ -41,3 +41,18 @@ schema for a deleted feature, proto field renames, frontend state shape — do n
 write compat code. Write the new correct behaviour. The user wipes and
 reinstalls.
 
+
+## Figma: one file, never a new one
+
+Every design for this project goes in the existing file:
+
+https://www.figma.com/design/Uvj2xZiMJsOt3nDaSxDGLQ/drivechain-frontends
+File key: `Uvj2xZiMJsOt3nDaSxDGLQ`
+
+Never call `create_new_file`. A new file holds none of the design system, so
+the design is worthless.
+
+Read the file before you draw. Build from the components that are already
+there — page `Components` holds dialog, button, input, avatar, and label. Use
+the `sail/*` text styles. Put a new screen on its own page, named after the
+flow.
