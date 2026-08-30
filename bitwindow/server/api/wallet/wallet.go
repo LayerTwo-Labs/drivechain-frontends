@@ -541,6 +541,10 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	switch walletType {
 	case engines.WalletTypeBitcoinCore:
 		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
