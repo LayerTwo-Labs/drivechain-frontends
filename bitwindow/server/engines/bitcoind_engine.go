@@ -624,13 +624,18 @@ func (p *Parser) handleTimestamp(
 	}
 
 	// Create discovered timestamp
+	status := timestamps.StatusConfirmed
+	if blockHeight == nil {
+		status = timestamps.StatusConfirming
+	}
+
 	now := time.Now()
 	timestamp := timestamps.FileTimestamp{
 		Filename:    "", // Unknown for discovered timestamps
 		FileHash:    fileHash,
 		TxID:        &txid,
 		BlockHeight: blockHeight,
-		Status:      timestamps.StatusConfirmed,
+		Status:      status,
 		CreatedAt:   now,
 		ConfirmedAt: confirmedAt,
 	}
