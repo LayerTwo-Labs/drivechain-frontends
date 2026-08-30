@@ -1161,3 +1161,19 @@ func newTestManager(tmpDir string) *BitcoinConfManager {
 		log:          log,
 	}
 }
+
+func TestUpdateNetworkKeepsRepeatedKeys(t *testing.T) {
+	m := newTestManager(t.TempDir())
+	m.Config = ParseBitcoinConfig("chain=signet\n[signet]\naddnode=a.example:38333\naddnode=b.example:38333\n")
+	m.Config.ConfigVersion = bitcoinConfMigrations[len(bitcoinConfMigrations)-1].Version
+	require.Equal(t, "b.example:38333", m.Config.GetSetting("addnode", "signet"))
+
+	require.NoError(t, m.UpdateNetwork(NetworkRegtest))
+
+	data, err := os.ReadFile(m.getBitWindowConfigPath())
+	require.NoError(t, err)
+	require.Contains(t, string(data), "addnode=a.example:38333\naddnode=b.example:38333\n")
+
+	m.Config.SetSetting("addnode", "c.example:38333", "signet")
+	require.NotContains(t, m.Config.Serialize(), "a.example")
+}
