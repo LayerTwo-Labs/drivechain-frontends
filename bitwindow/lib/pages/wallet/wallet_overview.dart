@@ -228,7 +228,7 @@ class _TransactionTableState extends State<TransactionTable> {
         return SailCard(
           title: 'Wallet Transaction History',
           titleTooltip:
-              'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
+            'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
           bottomPadding: false,
           widgetHeaderEnd: SailButton(
             label: 'Export CSV',
@@ -305,6 +305,7 @@ class _TransactionTableState extends State<TransactionTable> {
                         final entry = entries[row];
                         final unconfirmed = entry.confirmationTime.height == 0;
                         final replaceable = canBumpFee(entry);
+                        final opacity = unconfirmed ? 120 : 255;
 
                         // Calculate amount and determine sign
                         final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
@@ -313,33 +314,41 @@ class _TransactionTableState extends State<TransactionTable> {
 
                         return [
                           SailTableCell(
+                            opacity: opacity,
                             value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
                             alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
-                            value: '${entry.txid.substring(0, 10)}..',
+                            value: '',
+                            opacity: opacity,
                             copyValue: entry.txid,
                             alignment: Alignment.centerLeft,
+                            child: SailText.secondary12(entry.txid, overflow: TextOverflow.ellipsis),
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
                             alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: entry.note,
                             alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: unconfirmed ? 'Unconfirmed' : 'Confirmed',
                             alignment: Alignment.centerLeft,
                             textColor: unconfirmed ? context.sailTheme.colors.orange : null,
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: formattedAmount,
                             alignment: Alignment.centerLeft,
                             monospace: true,
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: replaceable ? 'Bump fee' : '',
                             width: bumpFeeColumnWidth,
                             alignment: Alignment.centerRight,
@@ -525,6 +534,9 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     filteredTransactions.sort((a, b) {
       final aTime = a.confirmationTime.timestamp.seconds;
       final bTime = b.confirmationTime.timestamp.seconds;
+      if (bTime.isZero) {
+        return -1;
+      }
       // If timestamps are equal, use txid as secondary sort
       if (aTime == bTime) {
         return b.txid.compareTo(a.txid);
