@@ -43,7 +43,13 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 		return 0, fmt.Errorf("address cannot be empty")
 	}
 
-	result, err := db.ExecContext(ctx, `
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	result, err := tx.ExecContext(ctx, `
 		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address)
 		VALUES (?, ?, ?, ?)
 	`, walletID, index, expectedAmount, address)
@@ -56,7 +62,28 @@ func Create(ctx context.Context, db *sql.DB, walletID string, index uint32, expe
 		return 0, fmt.Errorf("failed to get last insert id: %w", err)
 	}
 
+	if err := bumpIndexCounter(ctx, tx, walletID, index); err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit cheque: %w", err)
+	}
+
 	return id, nil
+}
+
+// bumpIndexCounter raises the wallet's next cheque index past index. It never lowers it.
+func bumpIndexCounter(ctx context.Context, tx *sql.Tx, walletID string, index uint32) error {
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO cheque_index_counters (wallet_id, next_index)
+		VALUES (?, ?)
+		ON CONFLICT (wallet_id) DO UPDATE
+		SET next_index = MAX(cheque_index_counters.next_index, excluded.next_index)
+	`, walletID, uint64(index)+1); err != nil {
+		return fmt.Errorf("failed to bump cheque index counter: %w", err)
+	}
+	return nil
 }
 
 // scanCheque scans a cheque row from the database
@@ -293,24 +320,22 @@ func UpdateSwept(ctx context.Context, db *sql.DB, walletID string, id int64, txi
 	return nil
 }
 
-// GetNextIndex returns the next available cheque index for a specific wallet
+// GetNextIndex returns the next unused cheque index for a specific wallet.
+// A deleted cheque does not give its index back.
 func GetNextIndex(ctx context.Context, db *sql.DB, walletID string) (uint32, error) {
-	var maxIndex sql.NullInt64
+	var nextIndex uint32
 
 	err := db.QueryRowContext(ctx, `
-		SELECT MAX(derivation_index) FROM cheques WHERE wallet_id = ?
-	`, walletID).Scan(&maxIndex)
-
-	if err != nil && err != sql.ErrNoRows {
-		return 0, fmt.Errorf("failed to get max index: %w", err)
-	}
-
-	if !maxIndex.Valid {
-		// No cheques yet for this wallet, start at 0
+		SELECT next_index FROM cheque_index_counters WHERE wallet_id = ?
+	`, walletID).Scan(&nextIndex)
+	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to get next index: %w", err)
+	}
 
-	return uint32(maxIndex.Int64) + 1, nil
+	return nextIndex, nil
 }
 
 // Delete deletes a cheque by ID for a specific wallet
@@ -351,9 +376,15 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 		return UpdateFunding(ctx, db, walletID, existing.ID, outputs, amount)
 	}
 
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	// Create new cheque as already funded
 	now := time.Now()
-	result, err := db.ExecContext(ctx, `
+	result, err := tx.ExecContext(ctx, `
 		INSERT INTO cheques (wallet_id, derivation_index, expected_amount_sats, address, actual_amount_sats, funded_at)
 		VALUES (?, ?, ?, ?, ?, ?)
 	`, walletID, index, amount, address, amount, now)
@@ -366,12 +397,20 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 		return fmt.Errorf("failed to get last insert id: %w", err)
 	}
 	for _, txid := range txids {
-		if _, err := db.ExecContext(ctx, `
+		if _, err := tx.ExecContext(ctx, `
 			INSERT OR IGNORE INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats)
 			VALUES (?, ?, 0, 0)
 		`, id, txid); err != nil {
 			return fmt.Errorf("record recovered funding output: %w", err)
 		}
+	}
+
+	if err := bumpIndexCounter(ctx, tx, walletID, index); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit recovered cheque: %w", err)
 	}
 
 	return nil
