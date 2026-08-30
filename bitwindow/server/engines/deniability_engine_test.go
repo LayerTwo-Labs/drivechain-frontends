@@ -198,4 +198,44 @@ func TestDeniabilityEngine(t *testing.T) {
 		assert.NotNil(t, denial.CancelledAt)
 		assert.Equal(t, "utxo is too small to split", *denial.CancelReason)
 	})
+
+	t.Run("unconfirmed tip is not cancelled", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		// A hop's tip is the previous hop's output, so Core only reports it at
+		// minconf 0.
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			Times(1).
+			DoAndReturn(func(_ context.Context, req *connect.Request[corepb.ListUnspentRequest]) (*connect.Response[corepb.ListUnspentResponse], error) {
+				var unspent []*corepb.UnspentOutput
+				if req.Msg.MinimumConfirmations != nil && *req.Msg.MinimumConfirmations == 0 {
+					unspent = append(unspent, &corepb.UnspentOutput{
+						Txid: "test-txid", Vout: 0, Amount: 0.01, Confirmations: 0,
+					})
+				}
+				return &connect.Response[corepb.ListUnspentResponse]{
+					Msg: &corepb.ListUnspentResponse{Unspent: unspent},
+				}, nil
+			})
+
+		utxos, denials, err := engine.CleanupDenials(ctx)
+		require.NoError(t, err)
+		assert.Len(t, utxos, 1)
+		assert.Len(t, denials, 1)
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.Nil(t, denial.CancelledAt)
+	})
 }

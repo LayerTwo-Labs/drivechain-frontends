@@ -697,7 +697,9 @@ func (e *DeniabilityEngine) listBitcoinCoreUTXOs(ctx context.Context, walletId s
 	}
 
 	resp, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
-		Wallet: coreWalletName,
+		// A hop spends the previous hop's output, which is still unconfirmed.
+		MinimumConfirmations: lo.ToPtr(uint32(0)),
+		Wallet:               coreWalletName,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("bitcoin core list unspent: %w", err)

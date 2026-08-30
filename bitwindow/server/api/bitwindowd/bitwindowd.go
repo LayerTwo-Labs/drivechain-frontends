@@ -1549,7 +1549,9 @@ func (s *Server) checkBitcoinCoreUTXO(ctx context.Context, walletID string, txid
 	}
 
 	utxos, err := s.data.ListUnspent(ctx, &corepb.ListUnspentRequest{
-		Wallet: walletName,
+		// An unconfirmed output is still one the user can start a denial on.
+		MinimumConfirmations: lo.ToPtr(uint32(0)),
+		Wallet:               walletName,
 	})
 	if err != nil {
 		return false, fmt.Errorf("list bitcoin core utxos: %w", err)
