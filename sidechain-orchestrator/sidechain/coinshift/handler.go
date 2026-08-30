@@ -2,6 +2,7 @@ package coinshift
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -250,32 +251,52 @@ func (h *Handler) OpenapiSchema(ctx context.Context, req *connect.Request[pb.Ope
 
 // --- Swap methods ---
 
-func (h *Handler) CreateSwap(ctx context.Context, req *connect.Request[pb.CreateSwapRequest]) (*connect.Response[pb.CreateSwapResponse], error) {
-	var result struct {
-		SwapID string `json:"swap_id"`
-		Txid   string `json:"txid"`
+func swapIDParam(hexID string) ([32]byte, error) {
+	var id [32]byte
+	b, err := hex.DecodeString(hexID)
+	if err != nil || len(b) != len(id) {
+		return id, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("swap_id must be 32 bytes hex, got %q", hexID))
 	}
+	copy(id[:], b)
+	return id, nil
+}
+
+func (h *Handler) CreateSwap(ctx context.Context, req *connect.Request[pb.CreateSwapRequest]) (*connect.Response[pb.CreateSwapResponse], error) {
 	params := []any{
-		req.Msg.L2AmountSats,
-		req.Msg.L1AmountSats,
-		req.Msg.L1RecipientAddress,
 		req.Msg.ParentChain,
+		req.Msg.L1RecipientAddress,
+		req.Msg.L1AmountSats,
 		req.Msg.L2Recipient,
+		req.Msg.L2AmountSats,
 		req.Msg.RequiredConfirmations,
 		req.Msg.FeeSats,
 	}
-	if err := h.proxy.Client.Call(ctx, "create_swap", params, &result); err != nil {
+	var tuple [2]json.RawMessage
+	if err := h.proxy.Client.Call(ctx, "create_swap", params, &tuple); err != nil {
 		return nil, err
 	}
+	var swapID [32]byte
+	if err := json.Unmarshal(tuple[0], &swapID); err != nil {
+		return nil, fmt.Errorf("unmarshal swap id: %w", err)
+	}
+	var txid string
+	if err := json.Unmarshal(tuple[1], &txid); err != nil {
+		return nil, fmt.Errorf("unmarshal txid: %w", err)
+	}
 	return connect.NewResponse(&pb.CreateSwapResponse{
-		SwapId: result.SwapID,
-		Txid:   result.Txid,
+		SwapId: hex.EncodeToString(swapID[:]),
+		Txid:   txid,
 	}), nil
 }
 
 func (h *Handler) ClaimSwap(ctx context.Context, req *connect.Request[pb.ClaimSwapRequest]) (*connect.Response[pb.ClaimSwapResponse], error) {
+	swapID, err := swapIDParam(req.Msg.SwapId)
+	if err != nil {
+		return nil, err
+	}
 	var txid string
-	params := []any{req.Msg.SwapId, req.Msg.L2ClaimerAddress}
+	params := []any{swapID, req.Msg.L2ClaimerAddress}
 	if err := h.proxy.Client.Call(ctx, "claim_swap", params, &txid); err != nil {
 		return nil, err
 	}
@@ -283,7 +304,11 @@ func (h *Handler) ClaimSwap(ctx context.Context, req *connect.Request[pb.ClaimSw
 }
 
 func (h *Handler) GetSwapStatus(ctx context.Context, req *connect.Request[pb.GetSwapStatusRequest]) (*connect.Response[pb.GetSwapStatusResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_swap_status", []any{req.Msg.SwapId})
+	swapID, err := swapIDParam(req.Msg.SwapId)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_swap_status", []any{swapID})
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +332,11 @@ func (h *Handler) ListSwapsByRecipient(ctx context.Context, req *connect.Request
 }
 
 func (h *Handler) UpdateSwapL1Txid(ctx context.Context, req *connect.Request[pb.UpdateSwapL1TxidRequest]) (*connect.Response[pb.UpdateSwapL1TxidResponse], error) {
-	params := []any{req.Msg.SwapId, req.Msg.L1TxidHex, req.Msg.Confirmations}
+	swapID, err := swapIDParam(req.Msg.SwapId)
+	if err != nil {
+		return nil, err
+	}
+	params := []any{swapID, req.Msg.L1TxidHex, req.Msg.Confirmations}
 	if err := h.proxy.Client.Call(ctx, "update_swap_l1_txid", params, nil); err != nil {
 		return nil, err
 	}
