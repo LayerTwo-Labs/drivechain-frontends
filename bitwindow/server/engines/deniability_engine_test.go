@@ -287,4 +287,153 @@ func TestDeniabilityEngine(t *testing.T) {
 		require.Len(t, denial.ExecutedDenials, 1)
 		assert.Equal(t, "new-txid", denial.ExecutedDenials[0].ToTxID)
 	})
+
+	t.Run("processUTXO cancels when the split is dust", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, nil))
+
+		for _, valueSats := range []uint64{10_000, 10_300} {
+			denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+			require.NoError(t, err)
+
+			err = engine.ProcessUTXO(ctx, &engines.UTXO{Txid: "test-txid", Vout: 0, ValueSats: valueSats}, denial)
+			require.NoError(t, err)
+
+			denial, err = deniability.Get(ctx, db, denial.ID)
+			require.NoError(t, err)
+			require.NotNil(t, denial.CancelledAt, "denial for %d sats was left running", valueSats)
+			assert.Equal(t, "utxo is too small to split", *denial.CancelReason)
+		}
+	})
+
+	t.Run("processUTXO cancels a target size below dust", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, nil))
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, []int64{100})
+		require.NoError(t, err)
+
+		err = engine.ProcessUTXO(ctx, &engines.UTXO{Txid: "test-txid", Vout: 0, ValueSats: 20_000}, denial)
+		require.NoError(t, err)
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		require.NotNil(t, denial.CancelledAt)
+		assert.Equal(t, "utxo is too small to split", *denial.CancelReason)
+	})
+
+	t.Run("processUTXO sends at least the dust limit", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
+				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
+			}, nil)
+		mockOrch.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			Times(1).
+			DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
+				assert.Equal(t, map[string]int64{"bc1qtest": 546}, req.Msg.Destinations)
+				return &connect.Response[orchpb.SendTransactionResponse]{
+					Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
+				}, nil
+			})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
+
+		mockBitcoind.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
+			Times(1).
+			Return(&connect.Response[corepb.GetNewAddressResponse]{
+				Msg: &corepb.GetNewAddressResponse{Address: "bc1qtest"},
+			}, nil)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{{Txid: "new-txid", Address: "bc1qtest", Vout: 0, Amount: 0.00000546}},
+				},
+			}, nil)
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		err = engine.ProcessUTXO(ctx, &engines.UTXO{Txid: "test-txid", Vout: 0, ValueSats: 10_546}, denial)
+		require.NoError(t, err)
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.Nil(t, denial.CancelledAt)
+		assert.Len(t, denial.ExecutedDenials, 1)
+	})
+
+	t.Run("processUTXO leaves change above the dust limit", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
+				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
+			}, nil)
+		mockOrch.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			Times(8).
+			DoAndReturn(func(_ context.Context, req *connect.Request[orchpb.SendTransactionRequest]) (*connect.Response[orchpb.SendTransactionResponse], error) {
+				assert.Equal(t, map[string]int64{"bc1qtest": 546}, req.Msg.Destinations)
+				return &connect.Response[orchpb.SendTransactionResponse]{
+					Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
+				}, nil
+			})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
+
+		mockBitcoind.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
+			Times(8).
+			Return(&connect.Response[corepb.GetNewAddressResponse]{
+				Msg: &corepb.GetNewAddressResponse{Address: "bc1qtest"},
+			}, nil)
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{{Txid: "new-txid", Address: "bc1qtest", Vout: 0, Amount: 0.00000546}},
+				},
+			}, nil)
+
+		for vout := range uint32(8) {
+			denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", int32(vout), 1*time.Hour, 3, nil)
+			require.NoError(t, err)
+
+			err = engine.ProcessUTXO(ctx, &engines.UTXO{Txid: "test-txid", Vout: vout, ValueSats: 11_092}, denial)
+			require.NoError(t, err)
+		}
+	})
 }
