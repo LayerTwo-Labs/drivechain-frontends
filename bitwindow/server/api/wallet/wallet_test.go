@@ -121,6 +121,25 @@ func TestService_GetNewAddress(t *testing.T) {
 	})
 }
 
+func TestService_CreateBitcoinCoreWallet(t *testing.T) {
+	t.Parallel()
+
+	// Only the orchestrator mints wallet IDs, so this must be rejected rather
+	// than reporting success with an empty one and orphaning a Core wallet.
+	database := database.Test(t)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database))
+
+	resp, err := cli.CreateBitcoinCoreWallet(context.Background(), connect.NewRequest(&walletv1.CreateBitcoinCoreWalletRequest{
+		SeedHex: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" +
+			"202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+		Name: "orphan-wallet",
+	}))
+	require.Error(t, err)
+	require.Nil(t, resp)
+	require.Equal(t, connect.CodeUnimplemented, connect.CodeOf(err))
+}
+
 func TestService_ListCheques(t *testing.T) {
 	t.Parallel()
 

@@ -99,47 +99,13 @@ type Server struct {
 }
 
 // CreateBitcoinCoreWallet implements walletv1connect.WalletServiceHandler.
-// Test endpoint to verify descriptor import to Bitcoin Core.
-func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
-	seedHex := strings.TrimSpace(c.Msg.SeedHex)
-	if seedHex == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("seed_hex required"))
-	}
-
-	coreWalletName := c.Msg.Name
-	if coreWalletName == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name required"))
-	}
-
-	// Directly import to Bitcoin Core - no wallet.json needed
-	if err := s.walletEngine.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex, 0, ""); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("create Bitcoin Core wallet failed")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create wallet: %w", err))
-	}
-
-	// Get first address for verification
-	bitcoindClient, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	addrResp, err := bitcoindClient.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-		Wallet: coreWalletName,
-	}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get new address: %w", err))
-	}
-
-	zerolog.Ctx(ctx).Info().
-		Str("core_wallet_name", coreWalletName).
-		Str("first_address", addrResp.Msg.Address).
-		Msg("Created Bitcoin Core wallet from seed")
-
-	return connect.NewResponse(&pb.CreateBitcoinCoreWalletResponse{
-		WalletId:       "", // Not used in test
-		CoreWalletName: coreWalletName,
-		FirstAddress:   addrResp.Msg.Address,
-	}), nil
+// The orchestrator owns wallet.json, so bitwindowd cannot mint a wallet ID:
+// creating the Core wallet here would leave one no other RPC can address.
+// Rejected before bitcoind is touched.
+func (s *Server) CreateBitcoinCoreWallet(_ context.Context, _ *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New(
+		"create wallets through walletmanager.v1.WalletManagerService/GenerateWallet",
+	))
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
