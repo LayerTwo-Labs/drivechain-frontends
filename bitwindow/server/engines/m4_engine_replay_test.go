@@ -2,10 +2,15 @@ package engines
 
 import (
 	"context"
+	"encoding/binary"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,6 +81,58 @@ func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
 	require.NoError(t, e.applyM4Votes(ctx, 151, msg))
 	later, _, _ := bundleState(t, ctx, e, "bundle-a")
 	require.Equal(t, first+1, later, "a new height must still score")
+}
+
+func coinbaseBlockOf(script []byte, blockTime time.Time) *wire.MsgBlock {
+	coinbase := &wire.MsgTx{
+		TxIn:  []*wire.TxIn{{}},
+		TxOut: []*wire.TxOut{{PkScript: script}},
+	}
+	return &wire.MsgBlock{
+		Header:       wire.BlockHeader{Timestamp: blockTime},
+		Transactions: []*wire.MsgTx{coinbase},
+	}
+}
+
+func opReturnScript(t *testing.T, payload []byte) []byte {
+	t.Helper()
+	script, err := txscript.NewScriptBuilder().AddOp(txscript.OP_RETURN).AddData(payload).Script()
+	require.NoError(t, err)
+	return script
+}
+
+func m3ProposalScript(t *testing.T, bundleHash [32]byte) []byte {
+	payload := binary.BigEndian.AppendUint32(nil, m4.M3CommitmentHeader)
+	payload = append(payload, 0) // sidechain slot
+	return opReturnScript(t, append(payload, bundleHash[:]...))
+}
+
+func m4UpvoteScript(t *testing.T) []byte {
+	payload := binary.BigEndian.AppendUint32(nil, m4.M4CommitmentHeader)
+	return opReturnScript(t, append(payload, 0x01, 0x00)) // version 0x01, one slot voting index 0
+}
+
+func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+
+	blockTime := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	proposal := coinbaseBlockOf(m3ProposalScript(t, [32]byte{0xab, 0xcd}), blockTime)
+	upvote := coinbaseBlockOf(m4UpvoteScript(t), blockTime.Add(10*time.Minute))
+
+	require.NoError(t, p.processBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
+		lo.T2(uint32(101), upvote),
+		lo.T2(uint32(100), proposal),
+	}))
+
+	var workScore, lastUpdated int
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT work_score, last_updated_height FROM withdrawal_bundles WHERE sidechain_slot = 0`,
+	).Scan(&workScore, &lastUpdated))
+
+	require.Equal(t, 2, workScore, "the upvote at 101 MUST score the bundle proposed at 100")
+	require.Equal(t, 101, lastUpdated, "the vote from the highest block is the last one applied")
 }
 
 // A bundle first seen in an orphaned block must not survive the reorg purge.
