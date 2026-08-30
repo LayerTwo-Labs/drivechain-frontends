@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 	"github.com/rs/zerolog"
 )
@@ -36,9 +37,10 @@ func NewBackupEngine(db *sql.DB, walletDir string) *BackupEngine {
 
 // BackupContents describes what a backup file contains.
 type BackupContents struct {
-	HasWallet       bool
-	HasMultisig     bool
-	HasTransactions bool
+	HasWallet             bool
+	HasMultisig           bool
+	HasTransactions       bool
+	HasEncryptionMetadata bool
 }
 
 // CreateBackup produces a ZIP archive containing wallet.json plus
@@ -58,6 +60,7 @@ CONTENTS
 2. multisig/multisig.json - Multisig group configurations (exported from DB)
 3. transactions.json - Transaction history (exported from DB)
 4. metadata.json - Latest known wallet balance metadata
+5. wallet_encryption.json - Password encryption parameters (only if the wallet is encrypted)
 
 All sidechain wallets are DERIVED from the master seed in wallet.json.
 Restoring this backup restores ALL your sidechain wallets automatically.
@@ -85,6 +88,16 @@ Keep this file secure. Anyone with access can control ALL your funds.
 		log.Info().Msg("backup: added wallet.json")
 	} else {
 		log.Warn().Err(err).Msg("backup: wallet.json not found")
+	}
+
+	encryptionPath := filepath.Join(e.walletDir, "wallet_encryption.json")
+	if data, err := os.ReadFile(encryptionPath); err == nil {
+		if err := addToZip(zw, "wallet_encryption.json", data); err != nil {
+			return nil, "", fmt.Errorf("write wallet_encryption.json: %w", err)
+		}
+		log.Info().Msg("backup: added wallet_encryption.json")
+	} else if !os.IsNotExist(err) {
+		return nil, "", fmt.Errorf("read wallet_encryption.json: %w", err)
 	}
 
 	metadataPath := filepath.Join(e.walletDir, "metadata.json")
@@ -150,7 +163,7 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 	log := zerolog.Ctx(ctx)
 	ext := strings.ToLower(filepath.Ext(filename))
 
-	var walletJSON, metadataJSON, multisigJSON, txJSON []byte
+	var walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON []byte
 	var err error
 
 	switch ext {
@@ -161,7 +174,7 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 			return fmt.Errorf("invalid wallet.json: %w", err)
 		}
 	case ".zip":
-		walletJSON, metadataJSON, multisigJSON, txJSON, err = extractZIP(data)
+		walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON, err = extractZIP(data)
 		if err != nil {
 			return fmt.Errorf("extract zip: %w", err)
 		}
@@ -203,6 +216,19 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		return fmt.Errorf("write wallet.json: %w", err)
 	}
 	log.Info().Msg("restore: wrote wallet.json")
+
+	encryptionPath := filepath.Join(e.walletDir, "wallet_encryption.json")
+	switch {
+	case encryptionJSON != nil:
+		if err := os.WriteFile(encryptionPath, encryptionJSON, 0600); err != nil {
+			return fmt.Errorf("write wallet_encryption.json: %w", err)
+		}
+		log.Info().Msg("restore: wrote wallet_encryption.json")
+	case validateWalletJSON(walletJSON) == nil:
+		if err := os.Remove(encryptionPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove wallet_encryption.json: %w", err)
+		}
+	}
 
 	if metadataJSON != nil {
 		metadataPath := filepath.Join(e.walletDir, "metadata.json")
@@ -505,17 +531,25 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 	}
 
 	contents := &BackupContents{}
+	var walletData []byte
 	for _, f := range r.File {
 		switch f.Name {
 		case "wallet.json":
-			walletData, err := readZipEntry(f)
+			walletData, err = readZipEntry(f)
 			if err != nil {
 				return nil, fmt.Errorf("read wallet.json in zip: %w", err)
 			}
-			if err := validateWalletJSON(walletData); err != nil {
-				return nil, fmt.Errorf("wallet.json invalid: %w", err)
-			}
 			contents.HasWallet = true
+		case "wallet_encryption.json":
+			encData, err := readZipEntry(f)
+			if err != nil {
+				return nil, fmt.Errorf("read wallet_encryption.json in zip: %w", err)
+			}
+			var meta wallet.EncryptionMetadata
+			if err := json.Unmarshal(encData, &meta); err != nil {
+				return nil, fmt.Errorf("wallet_encryption.json invalid: %w", err)
+			}
+			contents.HasEncryptionMetadata = meta.Encrypted
 		case "multisig/multisig.json", "multisig\\multisig.json":
 			msData, err := readZipEntry(f)
 			if err != nil {
@@ -541,13 +575,21 @@ func (e *BackupEngine) validateZIP(data []byte) (*BackupContents, error) {
 		return nil, fmt.Errorf("backup is missing wallet.json")
 	}
 
+	if contents.HasEncryptionMetadata {
+		if !walletfile.IsEncrypted(walletData) {
+			return nil, fmt.Errorf("wallet.json invalid: not an encrypted wallet")
+		}
+	} else if err := validateWalletJSON(walletData); err != nil {
+		return nil, fmt.Errorf("wallet.json invalid: %w", err)
+	}
+
 	return contents, nil
 }
 
-func extractZIP(data []byte) (walletJSON, metadataJSON, multisigJSON, txJSON []byte, err error) {
+func extractZIP(data []byte) (walletJSON, encryptionJSON, metadataJSON, multisigJSON, txJSON []byte, err error) {
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("invalid zip: %w", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("invalid zip: %w", err)
 	}
 
 	for _, f := range r.File {
@@ -555,6 +597,8 @@ func extractZIP(data []byte) (walletJSON, metadataJSON, multisigJSON, txJSON []b
 		switch f.Name {
 		case "wallet.json":
 			dst = &walletJSON
+		case "wallet_encryption.json":
+			dst = &encryptionJSON
 		case "metadata.json":
 			dst = &metadataJSON
 		case "multisig/multisig.json", "multisig\\multisig.json":
@@ -566,7 +610,7 @@ func extractZIP(data []byte) (walletJSON, metadataJSON, multisigJSON, txJSON []b
 		}
 		content, rerr := readZipEntry(f)
 		if rerr != nil {
-			return nil, nil, nil, nil, fmt.Errorf("read %s in zip: %w", f.Name, rerr)
+			return nil, nil, nil, nil, nil, fmt.Errorf("read %s in zip: %w", f.Name, rerr)
 		}
 		*dst = content
 	}
