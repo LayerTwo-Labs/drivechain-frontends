@@ -980,6 +980,16 @@ func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb
 			ReceivedAt:     receivedAt(u, txTimes),
 			DerivationPath: u.HDPath,
 		}
+		// A descriptor gives the exact script, so the input's weight is a
+		// calculation. A backend without one leaves the field at zero, and the
+		// caller falls back to its own estimate.
+		if u.InputWeightUnits > 0 {
+			out.InputWeightUnits = int32(u.InputWeightUnits)
+		} else if weight, err := wallet.InputWeightUnits(u.Descriptor); err == nil {
+			out.InputWeightUnits = int32(weight)
+		} else if u.Descriptor != "" {
+			h.svc.Log().Warn().Err(err).Str("descriptor", u.Descriptor).Msg("cannot size utxo input")
+		}
 		if splittable, ok := splitStatuses[fork.Outpoint(u.TxID, u.Vout)]; ok {
 			out.Splittable = lo.ToPtr(splittable)
 		}

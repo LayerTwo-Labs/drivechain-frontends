@@ -23,6 +23,14 @@ type UTXO struct {
 	// HDPath is the BIP32 path of the owning address. Not unmarshalled: Core's
 	// listunspent doesn't supply it.
 	HDPath string `json:"-"`
+	// Descriptor is the output descriptor Core reports for this coin. It gives
+	// the exact script kind, so the input's weight is a calculation, not a
+	// guess from the address text.
+	Descriptor string `json:"desc"`
+	// InputWeightUnits is what spending this coin costs, for a backend that
+	// knows its own script kind but reports no descriptor. 0 leaves the
+	// calculation to Descriptor.
+	InputWeightUnits int `json:"-"`
 }
 
 // WalletTransaction is one listtransactions entry: one row per affected
