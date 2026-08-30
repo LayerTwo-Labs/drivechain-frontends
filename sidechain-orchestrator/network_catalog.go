@@ -146,15 +146,16 @@ func (o *Orchestrator) ConfirmPendingECashNetwork(ctx context.Context) error {
 		}
 	} else {
 		// Off eCash no Core answers, so nothing rewinds and the blocks stay.
-		// The network this install runs, not the document's first row: a user on
-		// a retained entry holds that chain.
-		o.mu.RLock()
-		served := o.Catalog
-		o.mu.RUnlock()
-		if !o.ecashChangeHasASharedBlock(o.RunningECashID(served), target) {
+		// The network whose blocks are on disk, not the document's first row: a
+		// user on a retained entry holds that chain.
+		if !o.ecashChangeHasASharedBlock(o.ecashChainOnDisk(), target) {
 			o.restoreECashPick(previousPick)
 			return fmt.Errorf("no fork height says where the two eCash chains part")
 		}
+		// Those blocks are the outgoing network's, and the pick alone leaves
+		// them outranking the confirmed network's. Journalled, so the first Core
+		// that runs on it drops them.
+		o.journalOwedRewind(target)
 	}
 	o.log.Info().
 		Str("current", config.ECashNetworkID()).
@@ -236,6 +237,11 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 	if id == "" {
 		o.log.Warn().Msg("network catalog carries no eCash network, eCash downloads will not resolve")
 	}
+
+	// A pick that reached the settings file and nothing else left the blocks on
+	// the network the record names. Journalled before the record below is moved
+	// onto the pick, because that record is the only thing that still says so.
+	o.journalOwedRewind(id)
 
 	// Logged, not returned: a start moves no chain, and the conf sentinel the
 	// swap writes still names the network this install runs.

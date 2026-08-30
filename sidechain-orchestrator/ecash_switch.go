@@ -112,6 +112,11 @@ func (o *Orchestrator) RetargetECashEnforcerConf(previousID string) {
 // follows writes bitcoin.conf and starts binaries, and both read the id from
 // here, so a stale one boots the network the user just left.
 func (o *Orchestrator) AdoptECashID(id string) {
+	// The chain is cold here, so nothing can drop what the retired fork added.
+	// Journalled instead: left on disk with no record, those blocks outrank the
+	// new network's and Core follows the chain the user just left.
+	o.journalOwedRewind(id)
+
 	// Logged, not returned: the swap that follows writes the conf sentinel, and
 	// that sentinel names the network this install runs.
 	if err := o.recordECashChain(id); err != nil {
@@ -135,6 +140,47 @@ func (o *Orchestrator) AdoptECashID(id string) {
 	if o.BitcoinConf != nil {
 		o.BitcoinConf.ECashID = id
 	}
+}
+
+// ecashChainOnDisk names the eCash network the blocks on disk belong to. A
+// cold pick moves the records and not the chain, so a drop already owed names
+// them; otherwise the chain record does.
+func (o *Orchestrator) ecashChainOnDisk() string {
+	if o.Settings == nil {
+		return ""
+	}
+	if _, _, owed := o.Settings.PendingRewind(); owed != "" {
+		return owed
+	}
+	return o.Settings.ECashChainID()
+}
+
+// journalOwedRewind records the drop a pick made from another network cannot
+// make, so the first Core that runs on the picked network makes it. Every write
+// is logged, not returned, like the chain record the callers make next.
+func (o *Orchestrator) journalOwedRewind(id string) {
+	if o.Settings == nil || id == "" {
+		return
+	}
+	from := o.ecashChainOnDisk()
+	if from == id {
+		// The pick comes back to the network that wrote the blocks, so nothing
+		// above the fork is another network's to drop.
+		if err := o.Settings.SetPendingRewind(0, "", ""); err != nil {
+			o.log.Warn().Err(err).Msg("could not clear the rewind the eCash pick no longer owes")
+		}
+		return
+	}
+	height, ok := o.sharedECashHeight(from, id)
+	if !ok {
+		return
+	}
+	if err := o.Settings.SetPendingRewind(height, id, from); err != nil {
+		o.log.Warn().Err(err).Msg("could not record the rewind the eCash pick owes")
+		return
+	}
+	o.log.Info().Str("network", id).Uint32("rewind_height", height).
+		Msg("the chain is cold, so the eCash rewind waits for the next start")
 }
 
 // resumeECashSwitch finishes a switch that moved the chain but stopped before
@@ -245,6 +291,12 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	// A tail an earlier switch left lands first. Its records still name the fork
 	// that switch moved from, and every path below can consume the note.
 	if err := o.drainECashTail(); err != nil {
+		return err
+	}
+
+	// A drop a cold pick journalled lands first: it is owed on the network this
+	// install already runs, and it stands whether or not the switch below does.
+	if err := o.applyPendingRewind(ctx); err != nil {
 		return err
 	}
 
@@ -409,6 +461,63 @@ func (o *Orchestrator) ApplyPendingEnforcerWipe() error {
 	}
 	if err := o.Settings.SetPendingEnforcerWipe(""); err != nil {
 		return fmt.Errorf("clear the journalled enforcer cleanup: %w", err)
+	}
+	return nil
+}
+
+// ApplyPendingRewind makes the drop a cold pick journalled, once a Core answers
+// on the network that pick named. Call it from the L1 boot: it is the first
+// moment anything can rewind a chain the pick could only record.
+func (o *Orchestrator) ApplyPendingRewind(ctx context.Context) error {
+	o.swapNetworkMu.Lock()
+	defer o.swapNetworkMu.Unlock()
+	return o.applyPendingRewind(ctx)
+}
+
+// applyPendingRewind is ApplyPendingRewind's body. The record stays until the
+// drop lands, so a start with no Core leaves the work for the next one.
+//
+// Call it with swapNetworkMu held.
+func (o *Orchestrator) applyPendingRewind(ctx context.Context) error {
+	if o.Settings == nil {
+		return nil
+	}
+	height, recorded, _ := o.Settings.PendingRewind()
+	if recorded == "" {
+		return nil
+	}
+	// Off eCash the Core that answers follows another network, and a drop there
+	// costs the user the chain they are on. The record waits for the start that
+	// brings the picked network up.
+	if config.NetworkFromString(o.Network) != config.NetworkECash {
+		return nil
+	}
+	o.mu.RLock()
+	running := o.ecashID
+	o.mu.RUnlock()
+
+	// The record goes in before the pick lands, so a request that failed after
+	// it leaves one for a move that never happened.
+	if running != recorded {
+		o.log.Info().
+			Str("recorded_for", recorded).
+			Str("running", running).
+			Msg("the eCash selection never moved, dropping the owed rewind")
+		return o.Settings.SetPendingRewind(0, "", "")
+	}
+
+	if _, err := o.rewindBelowTheFork(ctx, height); err != nil {
+		if errors.Is(err, errNoLiveCore) {
+			// Still owed. The blocks below the fork are shared either way, so
+			// the chain stays as it is until a Core answers.
+			o.log.Warn().Uint32("rewind_height", height).
+				Msg("no live bitcoin core, so the owed rewind waits")
+			return nil
+		}
+		return fmt.Errorf("rewind to block %d: %w", height, err)
+	}
+	if err := o.Settings.SetPendingRewind(0, "", ""); err != nil {
+		return fmt.Errorf("clear the journalled rewind: %w", err)
 	}
 	return nil
 }

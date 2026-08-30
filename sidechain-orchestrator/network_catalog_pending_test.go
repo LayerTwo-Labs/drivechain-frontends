@@ -240,6 +240,42 @@ func TestConfirmWorksFromAnotherNetwork(t *testing.T) {
 	require.Equal(t, string(config.NetworkMainnet), o.Network, "the active network must be left alone")
 }
 
+// The blocks the retired fork added survive that confirm, and with no record
+// they outrank the confirmed network's: the start that follows serves the chain
+// the user just left.
+func TestConfirmFromAnotherNetworkJournalsTheOwedRewind(t *testing.T) {
+	o := ecashOnPendingNetwork(t)
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+
+	require.NoError(t, o.ConfirmPendingECashNetwork(context.Background()))
+
+	height, forID, fromID := o.Settings.PendingRewind()
+	require.Equal(t, "drynet3", forID, "the drop is owed on the confirmed network")
+	require.Equal(t, "drynet2", fromID, "the blocks above it are drynet2's")
+	require.NotZero(t, height, "the last block the two networks share")
+}
+
+// A pick that reached the settings file and nothing else is adopted by the next
+// start. That start is the last moment anything still knows which network wrote
+// the blocks, because it moves the record onto the pick.
+func TestStartJournalsTheRewindAPinnedPickOwes(t *testing.T) {
+	o := ecashOnPendingNetwork(t)
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
+	_, err := o.Settings.SetECashNetworkID("drynet3")
+	require.NoError(t, err)
+	require.Equal(t, "drynet2", o.Settings.ECashChainID())
+
+	cat := catalogWithECashRows(t, "drynet3", "drynet2")
+	require.Equal(t, "drynet3", o.RunningECashID(cat), "the start adopts the pinned pick")
+	o.adoptCatalog(cat, "drynet3")
+
+	height, forID, fromID := o.Settings.PendingRewind()
+	require.Equal(t, "drynet3", forID)
+	require.Equal(t, "drynet2", fromID)
+	require.NotZero(t, height)
+	require.Equal(t, "drynet3", o.Settings.ECashChainID(), "the record moves onto the pick")
+}
+
 // The user's own bitcoin.conf names the generation, so only they can change it.
 // Reporting success would clear the prompt and strand them on the retired chain.
 func TestConfirmRefusedForAUserManagedConf(t *testing.T) {

@@ -919,6 +919,13 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
+			// A pick made from another network could only journal the rewind it
+			// owes. Here, because this is the first Core that can make it, and
+			// it goes before the enforcer validates the retired fork's blocks.
+			if err := o.ApplyPendingRewind(ctx); err != nil {
+				o.log.Error().Err(err).Msg("could not drop the eCash fork the network pick left behind")
+			}
+
 			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
 
 			// Wait for enforcer's gRPC port to actually accept dials before

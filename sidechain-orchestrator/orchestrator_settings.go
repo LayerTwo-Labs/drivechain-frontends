@@ -37,6 +37,13 @@ type OrchestratorSettings struct {
 	// switch left behind. The enforcer keeps one chain per network, not per
 	// fork, so it has to go before the enforcer runs on the new one.
 	PendingEnforcerWipe string `json:"pending_enforcer_wipe,omitempty"`
+	// PendingRewindHeight, PendingRewindFor and PendingRewindFrom are a rewind a
+	// pick made from another network could not run: no Core answers off eCash,
+	// so it waits for the boot that brings one up. From names the network whose
+	// blocks sit above that height.
+	PendingRewindHeight uint32 `json:"pending_rewind_height,omitempty"`
+	PendingRewindFor    string `json:"pending_rewind_for,omitempty"`
+	PendingRewindFrom   string `json:"pending_rewind_from,omitempty"`
 	// ElectrumServerURL overrides the network's default Esplora endpoint for
 	// electrum wallets. Empty means "use the network default".
 	ElectrumServerURL string `json:"electrum_server_url"`
@@ -317,6 +324,35 @@ func (s *SettingsStore) SetPendingEnforcerWipe(id string) error {
 	}
 	next := s.current
 	next.PendingEnforcerWipe = id
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
+}
+
+// PendingRewind returns the height a pick still owes a rewind to, the eCash
+// network it was picked for and the one whose blocks sit above that height. An
+// empty forID means nothing is owed.
+func (s *SettingsStore) PendingRewind() (height uint32, forID, fromID string) {
+	g := s.Get()
+	return g.PendingRewindHeight, g.PendingRewindFor, g.PendingRewindFrom
+}
+
+// SetPendingRewind persists a rewind no live Core could run. An empty forID
+// clears it.
+func (s *SettingsStore) SetPendingRewind(height uint32, forID, fromID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.current.PendingRewindHeight == height &&
+		s.current.PendingRewindFor == forID &&
+		s.current.PendingRewindFrom == fromID {
+		return nil
+	}
+	next := s.current
+	next.PendingRewindHeight = height
+	next.PendingRewindFor = forID
+	next.PendingRewindFrom = fromID
 	if err := SaveSettings(s.bitwindowDir, next); err != nil {
 		return err
 	}
