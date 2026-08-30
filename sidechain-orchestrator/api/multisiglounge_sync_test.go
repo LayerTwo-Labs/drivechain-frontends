@@ -384,6 +384,19 @@ func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
 		{"spend with change to a group address", spendRows, false, 50_000_000, "payee"},
 		{"deposit", depositRows, true, 100_000_000, "grp"},
 	}
+
+	// ensureWatchWallet now always rebuilds the group's descriptors to detect a
+	// same-id policy change, so RestoreHistory needs a group that carries a real
+	// policy; the row-netting under test does not depend on it. listdescriptors
+	// reports the group's own current descriptors so the watch wallet reads as
+	// already up to date and restore proceeds straight to reading history.
+	group := loungeSyncTestGroup(t)
+	group.Id = "restore"
+	group.WatchWalletName = "ms_test"
+	recvDesc, changeDesc, err := wallet.BuildMultisigLoungeDescriptorsTyped(
+		groupDataToLoungeGroup(group), groupScriptType(group))
+	require.NoError(t, err)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := NewMultisigLoungeHandler()
@@ -400,17 +413,18 @@ func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
 				case "getrawtransaction":
 					return json.RawMessage(raw), nil
 				case "listdescriptors":
-					// The watch wallet already covers the indices it hands out.
-					return json.RawMessage(`{"descriptors":[
-						{"desc":"wsh(x)","active":true,"internal":false,"range":[0,999],"next":0},
-						{"desc":"wsh(y)","active":true,"internal":true,"range":[0,999],"next":0}
-					]}`), nil
+					// The watch wallet already tracks the group's current
+					// descriptors and covers the indices it hands out.
+					return json.RawMessage(fmt.Sprintf(`{"descriptors":[
+						{"desc":%q,"active":true,"internal":false,"range":[0,999],"next":0},
+						{"desc":%q,"active":true,"internal":true,"range":[0,999],"next":0}
+					]}`, recvDesc, changeDesc)), nil
 				}
 				return nil, fmt.Errorf("unexpected method %s", method)
 			})
 
 			resp, err := h.RestoreHistory(context.Background(), connect.NewRequest(&pb.RestoreHistoryRequest{
-				Group: &pb.GroupData{Id: "restore", WatchWalletName: "ms_test"},
+				Group: group,
 			}))
 			require.NoError(t, err)
 			require.Len(t, resp.Msg.Transactions, 1)
