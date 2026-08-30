@@ -367,6 +367,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           constraints: const BoxConstraints(maxWidth: 520),
           child: SailCard(
             child: SailColumn(
+              mainAxisSize: MainAxisSize.min,
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

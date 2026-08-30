@@ -279,6 +279,7 @@ Future<void> showBidDialog(BuildContext context, DutchAuctionEntry auction, Dutc
           title: 'Place Bid',
           subtitle: 'Auction: ${auction.id.substring(0, 10)}...',
           child: SailColumn(
+            mainAxisSize: MainAxisSize.min,
             spacing: SailStyleValues.padding16,
             children: [
               SailTextField(

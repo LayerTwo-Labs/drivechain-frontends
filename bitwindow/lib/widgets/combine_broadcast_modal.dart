@@ -181,6 +181,7 @@ class _CombineBroadcastModalState extends State<CombineBroadcastModal> {
                 ),
               )
             : SailColumn(
+                mainAxisSize: MainAxisSize.min,
                 spacing: SailStyleValues.padding16,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

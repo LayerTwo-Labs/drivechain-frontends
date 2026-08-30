@@ -1273,6 +1273,7 @@ class MultisigLoungeViewModel extends BaseViewModel {
           subtitle: 'ID: ${transaction.id}',
           child: SingleChildScrollView(
             child: SailColumn(
+              mainAxisSize: MainAxisSize.min,
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

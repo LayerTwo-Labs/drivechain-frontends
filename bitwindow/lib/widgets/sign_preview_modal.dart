@@ -57,6 +57,7 @@ class _SignPreviewModalState extends State<SignPreviewModal> {
         withCloseButton: true,
         child: SingleChildScrollView(
           child: SailColumn(
+            mainAxisSize: MainAxisSize.min,
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

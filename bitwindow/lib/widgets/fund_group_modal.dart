@@ -25,6 +25,7 @@ class FundGroupModal extends StatelessWidget {
                 title: 'Fund ${viewModel.selectedGroup!.name}',
                 subtitle: 'Send Bitcoin to this address to fund the multisig group',
                 child: SailColumn(
+                  mainAxisSize: MainAxisSize.min,
                   spacing: SailStyleValues.padding16,
                   children: [
                     SailTextField(
@@ -54,6 +55,7 @@ class FundGroupModal extends StatelessWidget {
             error: viewModel.modalError,
             child: SingleChildScrollView(
               child: SailColumn(
+                mainAxisSize: MainAxisSize.min,
                 spacing: SailStyleValues.padding16,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

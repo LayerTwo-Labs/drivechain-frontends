@@ -789,6 +789,7 @@ class _ImportPsbtDialogState extends State<_ImportPsbtDialog> {
         title: 'Import a signature',
         subtitle: 'Paste the base64 PSBT a cosigner signed elsewhere',
         child: SailColumn(
+          mainAxisSize: MainAxisSize.min,
           spacing: SailStyleValues.padding16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
