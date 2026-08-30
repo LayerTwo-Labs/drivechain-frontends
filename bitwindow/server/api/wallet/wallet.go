@@ -1477,6 +1477,12 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
+	// A zero-amount cheque is satisfied by any funding, which then locks the row
+	// against deletion.
+	if c.Msg.ExpectedAmountSats == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("expected_amount_sats must be greater than zero"))
+	}
+
 	// Get next index for this wallet
 	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletId)
 	if err != nil {

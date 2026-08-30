@@ -122,6 +122,28 @@ func TestService_GetNewAddress(t *testing.T) {
 	})
 }
 
+// A cheque expecting zero sats is satisfied by any funding that arrives, so the
+// row reads as funded and refuses deletion. It must never be created.
+func TestService_CreateChequeRejectsZeroAmount(t *testing.T) {
+	t.Parallel()
+
+	db := database.Test(t)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db))
+
+	_, err := cli.CreateCheque(context.Background(), connect.NewRequest(&walletv1.CreateChequeRequest{
+		WalletId:           testWalletID,
+		ExpectedAmountSats: 0,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	// No row was persisted, and no derivation index was burned.
+	list, err := cheques.List(context.Background(), db, testWalletID)
+	require.NoError(t, err)
+	require.Empty(t, list)
+}
+
 func TestService_ListCheques(t *testing.T) {
 	t.Parallel()
 
