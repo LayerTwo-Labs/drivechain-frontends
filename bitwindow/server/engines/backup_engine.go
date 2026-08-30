@@ -188,20 +188,13 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		return fmt.Errorf("backup does not contain wallet.json")
 	}
 
-	// Import into the DB before touching the wallet files, so a backup that
-	// fails to import leaves the current wallet in place.
-	if multisigJSON != nil {
-		if err := e.multisigStore.ImportFromJSON(ctx, multisigJSON); err != nil {
+	// A zip holds the wallet's whole multisig state, so it replaces rather than
+	// merges. It runs first, so a failed import leaves the current wallet in place.
+	if ext == ".zip" {
+		if err := e.multisigStore.ReplaceFromBackup(ctx, multisigJSON, txJSON); err != nil {
 			return fmt.Errorf("import multisig data: %w", err)
 		}
-		log.Info().Msg("restore: imported multisig data")
-	}
-
-	if txJSON != nil {
-		if err := e.multisigStore.ImportTransactionsFromJSON(ctx, txJSON); err != nil {
-			return fmt.Errorf("import transactions: %w", err)
-		}
-		log.Info().Msg("restore: imported transactions")
+		log.Info().Msg("restore: replaced multisig data")
 	}
 
 	// Restore wallet.json
