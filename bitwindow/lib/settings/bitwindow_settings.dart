@@ -3,7 +3,7 @@ import 'package:sail_ui/sail_ui.dart';
 
 class BitwindowSettingsValue extends SettingValue<Settings> {
   @override
-  String get key => 'bitwindow_settings';
+  String get key => 'bitwindow_homepage_settings';
 
   BitwindowSettingsValue({super.newValue});
 
