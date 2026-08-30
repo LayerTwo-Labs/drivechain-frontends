@@ -613,9 +613,10 @@ func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinar
 		}
 	case ResetBinaryEnforcer:
 		o.prepareEnforcerArgs(&opts)
-		o.startEnforcerWhenReady(ctx, opts, nil)
-		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(cfg), enforcerStartupPatterns)
-		startErr = waitForConnectedOrExit(ctx, mon, o.process.Get("enforcer"))
+		if startErr = o.startEnforcerWhenReady(ctx, opts, nil); startErr == nil {
+			mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(cfg), enforcerStartupPatterns)
+			startErr = waitForConnectedOrExit(ctx, mon, o.process.Get("enforcer"))
+		}
 	case ResetBinaryBitwindowd:
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)
 	default:

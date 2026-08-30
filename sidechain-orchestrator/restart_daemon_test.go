@@ -153,7 +153,7 @@ func TestStartEnforcerWhenReady_AlreadyInPM_NoPhantomStart(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	o.startEnforcerWhenReady(ctx, StartOpts{}, nil)
+	_ = o.startEnforcerWhenReady(ctx, StartOpts{}, nil)
 
 	// Adopted PID survives — the guard never spawned a new process and
 	// never tried to mutate pm.processes.

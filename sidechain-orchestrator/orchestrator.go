@@ -918,7 +918,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
-			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			// The boot goes on to the target either way: an enforcer that did
+			// not start already surfaces on its own card, and on the wait below.
+			_ = o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
 
 			// Wait for enforcer's gRPC port to actually accept dials before
 			// launching the sidechain target. startEnforcerWhenReady returns
@@ -1279,7 +1281,10 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 		case "enforcer":
 			o.prepareEnforcerArgs(&opts)
-			o.startEnforcerWhenReady(ctx, opts, nil)
+			if err := o.startEnforcerWhenReady(ctx, opts, nil); err != nil {
+				ch <- StartupProgress{Error: err}
+				return
+			}
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 
 		default:
@@ -1301,7 +1306,9 @@ func (o *Orchestrator) exitedFunc(name string) func() (int, bool) {
 // startEnforcerWhenReady waits for wallet + IBD completion, then starts the enforcer.
 // If prefetched is non-nil, the enforcer binary is already being downloaded
 // in parallel and we wait on its completion instead of starting a new download.
-func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) {
+// It returns the reason it gave up, so a caller that already deleted state on
+// the promise of a restart is not told the enforcer came back.
+func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpts, prefetched <-chan error) error {
 	// A switch that could not finish its enforcer cleanup journalled it. Here,
 	// because a leftover validator chain serves the retired generation.
 	if err := o.ApplyPendingEnforcerWipe(); err != nil {
@@ -1309,7 +1316,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		mon := o.getOrCreateMonitor("enforcer", NewHealthChecker(o.configs["enforcer"]), enforcerStartupPatterns)
 		mon.SetConnectionError(err.Error())
 		mon.SetInitializing(false)
-		return
+		return fmt.Errorf("clear the enforcer chain a switch left behind: %w", err)
 	}
 
 	// 1. Wait for wallet to exist — enforcer needs the L1 seed.
@@ -1319,7 +1326,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		for !o.WalletSvc.HasWallet() {
 			select {
 			case <-ctx.Done():
-				return
+				return ctx.Err()
 			case <-sub:
 			}
 		}
@@ -1358,7 +1365,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			}
 			select {
 			case <-ctx.Done():
-				return
+				return ctx.Err()
 			case <-time.After(5 * time.Second):
 			}
 		}
@@ -1380,7 +1387,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			pid := o.discoverPid(enforcerCfg)
 			o.process.AdoptProcess(enforcerCfg, pid)
 		}
-		return
+		return nil
 	}
 
 	// The enforcer runs with no wallet, so it takes no seed. Every arg a
@@ -1403,7 +1410,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			o.log.Error().Err(err).Msg("refusing to start the enforcer with no coinbase recipient")
 			enforcerMon.SetConnectionError(fmt.Sprintf("cannot start the enforcer without a payout address: %v", err))
 			enforcerMon.SetInitializing(false)
-			return
+			return fmt.Errorf("cannot start the enforcer without a payout address: %w", err)
 		}
 		opts.EnforcerArgs = append(opts.EnforcerArgs, fmt.Sprintf("--coinbase-recipient=%s", recipient))
 		o.log.Info().Str("address", recipient).Msg("the block reward pays to the starter wallet")
@@ -1425,7 +1432,7 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 			enforcerMon.SetConnectionError(err.Error())
 			enforcerMon.SetInitializing(false)
 			o.log.Error().Err(err).Str("zmq_addr", zmqAddr).Msg("refusing to start enforcer: bitcoind ZMQ socket unreachable")
-			return
+			return err
 		}
 	}
 
@@ -1443,20 +1450,20 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		if err := <-prefetched; err != nil {
 			enforcerMon.SetInitializing(false)
 			o.log.Error().Err(err).Msg("enforcer prefetch download failed")
-			return
+			return fmt.Errorf("download the enforcer: %w", err)
 		}
 	} else {
 		downloadCh, err := o.download.Download(ctx, enforcerCfg, o.Network, false)
 		if err != nil {
 			enforcerMon.SetInitializing(false)
 			o.log.Error().Err(err).Msg("failed to download enforcer")
-			return
+			return fmt.Errorf("download the enforcer: %w", err)
 		}
 		for progress := range downloadCh {
 			if progress.Error != nil {
 				enforcerMon.SetInitializing(false)
 				o.log.Error().Err(progress.Error).Msg("enforcer download error")
-				return
+				return fmt.Errorf("download the enforcer: %w", progress.Error)
 			}
 		}
 	}
@@ -1472,10 +1479,10 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 		if err := waitForConnectedOrExit(ctx, enforcerMon, o.process.Get("enforcer")); err != nil {
 			enforcerMon.SetInitializing(false)
 			o.log.Error().Err(err).Msg("failed to wait for enforcer")
-			return
+			return fmt.Errorf("wait for the enforcer: %w", err)
 		}
 		o.log.Info().Msg("enforcer connection recovered")
-		return
+		return nil
 	}
 
 	// Log the literal argv at the actual spawn site: the auto-built-args log in
@@ -1487,10 +1494,11 @@ func (o *Orchestrator) startEnforcerWhenReady(ctx context.Context, opts StartOpt
 	if _, err := o.process.Start(ctx, enforcerCfg, opts.EnforcerArgs, enforcerEnv()); err != nil {
 		enforcerMon.SetInitializing(false)
 		o.log.Error().Err(err).Msg("failed to start enforcer")
-		return
+		return fmt.Errorf("start the enforcer: %w", err)
 	}
 
 	o.log.Info().Msg("enforcer started")
+	return nil
 }
 
 // enforcerEnv returns the environment overlay applied when launching the
