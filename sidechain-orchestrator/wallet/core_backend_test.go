@@ -328,7 +328,18 @@ func TestCoreBackendEnsureTransientBackoff(t *testing.T) {
 func TestCoreBackendForgetUnloadsWallet(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
-	fake.handle("unloadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	// Forget unloads the wallet and moves its directory aside, so the stateful
+	// fake must drop it on both counts. Left "loaded"/"on disk", the successor
+	// Ensure would find it and adopt it instead of provisioning from scratch.
+	fake.handle("unloadwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		_ = json.Unmarshal(c.Params[0], &name)
+		fake.mu.Lock()
+		defer fake.mu.Unlock()
+		delete(fake.loaded, name)
+		delete(fake.onDisk, name)
+		return map[string]any{}, ""
+	})
 	ctx := context.Background()
 
 	name, err := backend.Ensure(ctx, coreID)
