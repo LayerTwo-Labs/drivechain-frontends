@@ -1151,6 +1151,8 @@ func (s *Service) UnlockWallet(password string) error {
 	}
 
 	s.log.Info().Int("wallet_count", len(s.wallets)).Str("active_id", s.activeWalletID).Msg("wallet unlocked successfully")
+	// Nothing here writes the wallet file, so the watcher won't notify for us.
+	s.notifyChanged()
 	return nil
 }
 
@@ -1165,6 +1167,9 @@ func (s *Service) LockWallet() {
 	s.CleanupStarterFiles()
 
 	s.log.Info().Msg("wallet locked, starter files cleaned up")
+	// Nothing here writes the wallet file, so the watcher won't notify for us.
+	// Push the cleared state to every WatchWalletData subscriber.
+	s.notifyChanged()
 }
 
 // --- Encrypt/Decrypt ---

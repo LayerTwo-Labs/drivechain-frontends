@@ -1,8 +1,10 @@
 package wallet
 
 import (
+	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -137,6 +139,59 @@ func TestChangePassword_UnlockedWithNoWallets_AdoptsNewKey(t *testing.T) {
 	require.NoError(t, svc.UnlockWallet("new pass"), "wallet must be decryptable with the new password")
 	require.Len(t, svc.ListWallets(), 1)
 	require.Equal(t, "Replacement", svc.ListWallets()[0].Name)
+}
+
+// Locking must wake WatchWalletData subscribers, else every open stream keeps
+// serving the unlocked wallet list until some other event happens to fire.
+func TestLockWallet_NotifiesSubscribers(t *testing.T) {
+	svc, _, _ := generateAndEncrypt(t, "correct horse")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	changed := svc.Subscribe(ctx)
+
+	// Let the file watcher settle after the encrypt write, then drain, so the
+	// notification below can only come from LockWallet.
+	time.Sleep(300 * time.Millisecond)
+	select {
+	case <-changed:
+	default:
+	}
+
+	svc.LockWallet()
+	require.False(t, svc.IsUnlocked())
+
+	select {
+	case <-changed:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("LockWallet did not notify subscribers")
+	}
+	require.Empty(t, svc.ListWallets(), "subscribers must see an empty wallet list")
+}
+
+// Unlocking repopulates the wallets in memory without touching the wallet file,
+// so it must notify too.
+func TestUnlockWallet_NotifiesSubscribers(t *testing.T) {
+	svc, _, _ := generateAndEncrypt(t, "correct horse")
+	svc.LockWallet()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	changed := svc.Subscribe(ctx)
+
+	time.Sleep(300 * time.Millisecond)
+	select {
+	case <-changed:
+	default:
+	}
+
+	require.NoError(t, svc.UnlockWallet("correct horse"))
+
+	select {
+	case <-changed:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("UnlockWallet did not notify subscribers")
+	}
 }
 
 // An unencrypted wallet is unaffected by the guard.
