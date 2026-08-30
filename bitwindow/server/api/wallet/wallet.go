@@ -770,6 +770,10 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	walletId := c.Msg.WalletId
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
@@ -818,6 +822,12 @@ func (s *Server) createWalletSidechainDeposit(
 	depositAddress string,
 	amount, fee btcutil.Amount,
 ) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	// Re-check with the broadcast one call away: the address and amount
+	// validation above leaves room for a lock.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	txid, err := s.walletEngine.CreateDeposit(ctx, &orchpb.CreateDepositRequest{
 		Slot:        int32(slot),
 		WalletId:    walletId,
@@ -1426,6 +1436,16 @@ func (s *Server) IsWalletUnlocked(ctx context.Context, c *connect.Request[emptyp
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
+// requireUnlocked rejects a fund-moving call while the wallet is locked. A
+// handler checks it on entry and again just before it broadcasts, because a
+// lock can land in between.
+func (s *Server) requireUnlocked() error {
+	if !s.walletEngine.IsUnlocked() {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+	return nil
+}
+
 // CreateCheque implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateChequeRequest]) (*connect.Response[pb.CreateChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
@@ -1708,6 +1728,12 @@ func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
 
+	// The sweep key comes from the caller, so this gate only holds the sweep to
+	// the lock state the operator sees — it is not what keeps the seed safe.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
@@ -1754,6 +1780,12 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	txHex, err := s.serializeTx(signedTx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
+	}
+
+	// Re-check with the broadcast one call away: the UTXO query, build and sign
+	// above leave room for a lock.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
 	}
 
 	txid, err := s.chequeChain.Broadcast(ctx, txHex)
@@ -2281,6 +2313,10 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 	log := zerolog.Ctx(ctx)
 	txid := c.Msg.Txid
 
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	if txid == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid required"))
 	}
@@ -2294,6 +2330,12 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 	listResp, err := s.data.ListWallets(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("list wallets: %w", err)
+	}
+
+	// Re-check with the broadcast one call away: the wallet listing above
+	// leaves room for a lock.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
 	}
 
 	// Try each wallet until one successfully bumps the fee

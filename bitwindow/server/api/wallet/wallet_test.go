@@ -15,6 +15,9 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -459,4 +462,88 @@ func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
 	require.Len(t, resp.Msg.Deposits, 1)
 	require.Equal(t, "deadbeef", resp.Msg.Deposits[0].Txid)
 	require.Equal(t, int64(50_000), resp.Msg.Deposits[0].Amount)
+}
+
+// TestFundMovingCallsRejectALockedWallet pins the lock gate on the handlers
+// that end in a broadcast: a locked wallet must refuse them, and the spend must
+// never reach the node.
+func TestFundMovingCallsRejectALockedWallet(t *testing.T) {
+	t.Parallel()
+
+	// lockedClient stands up an API server and locks the wallet. The mocks
+	// allow only the background reads, so any spend a handler still attempts
+	// fails the test as an unexpected call.
+	lockedClient := func(t *testing.T) walletv1connect.WalletServiceClient {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		db := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db,
+			apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
+
+		// The fixture wallet is unencrypted, so it starts unlocked.
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		return cli
+	}
+
+	requireLocked := func(t *testing.T, err error) {
+		t.Helper()
+
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.Contains(t, err.Error(), "wallet is locked")
+	}
+
+	t.Run("create sidechain deposit", func(t *testing.T) {
+		t.Parallel()
+
+		cli := lockedClient(t)
+
+		_, err := cli.CreateSidechainDeposit(context.Background(), connect.NewRequest(&walletv1.CreateSidechainDepositRequest{
+			WalletId:    testWalletID,
+			Destination: "s9_tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+			Amount:      0.1,
+			Fee:         0.0001,
+		}))
+		requireLocked(t, err)
+	})
+
+	t.Run("bump fee", func(t *testing.T) {
+		t.Parallel()
+
+		cli := lockedClient(t)
+
+		_, err := cli.BumpFee(context.Background(), connect.NewRequest(&walletv1.BumpFeeRequest{
+			Txid: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+		}))
+		requireLocked(t, err)
+	})
+
+	t.Run("sweep cheque", func(t *testing.T) {
+		t.Parallel()
+
+		cli := lockedClient(t)
+
+		key, err := btcec.NewPrivateKey()
+		require.NoError(t, err)
+		wif, err := btcutil.NewWIF(key, &chaincfg.SigNetParams, true)
+		require.NoError(t, err)
+
+		_, err = cli.SweepCheque(context.Background(), connect.NewRequest(&walletv1.SweepChequeRequest{
+			WalletId:           testWalletID,
+			PrivateKeyWif:      wif.String(),
+			DestinationAddress: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
+			FeeSatPerVbyte:     2,
+		}))
+		requireLocked(t, err)
+	})
 }
