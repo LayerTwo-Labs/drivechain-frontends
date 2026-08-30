@@ -368,6 +368,31 @@ func (c *CoreRPCClient) CountActiveDescriptors(ctx context.Context, walletName s
 	return n, nil
 }
 
+// ActiveDescriptorTimestamps returns the birthday of each active descriptor, in
+// unix seconds.
+func (c *CoreRPCClient) ActiveDescriptorTimestamps(ctx context.Context, walletName string) ([]int64, error) {
+	result, err := c.call(ctx, walletName, "listdescriptors")
+	if err != nil {
+		return nil, err
+	}
+	var res struct {
+		Descriptors []struct {
+			Active    bool  `json:"active"`
+			Timestamp int64 `json:"timestamp"`
+		} `json:"descriptors"`
+	}
+	if err := json.Unmarshal(result, &res); err != nil {
+		return nil, fmt.Errorf("decode listdescriptors: %w", err)
+	}
+	var stamps []int64
+	for _, d := range res.Descriptors {
+		if d.Active {
+			stamps = append(stamps, d.Timestamp)
+		}
+	}
+	return stamps, nil
+}
+
 func (c *CoreRPCClient) ListTransactionsRange(ctx context.Context, walletName string, count, skip int) ([]WalletTransaction, error) {
 	if count <= 0 {
 		count = 100

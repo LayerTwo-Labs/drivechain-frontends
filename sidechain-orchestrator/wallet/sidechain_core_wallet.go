@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"slices"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
@@ -25,9 +26,27 @@ func EnsureCoreWalletFromMnemonic(
 	if err != nil {
 		return err
 	}
-	imports, err := d.coreImports(net, "now")
+	imports, err := d.coreImports(net, int64(0))
 	if err != nil {
 		return err
 	}
-	return createAndImport(ctx, rpc, log, walletName, false, imports)
+	if err := createAndImport(ctx, rpc, log, walletName, false, true, imports); err != nil {
+		return err
+	}
+
+	// A starter imported at "now" misses every coin sent to it before, so it
+	// rescans from genesis one time. Core stores a genesis import as birthday 1.
+	stamps, err := rpc.ActiveDescriptorTimestamps(ctx, walletName)
+	if err != nil {
+		return fmt.Errorf("list descriptors: %w", err)
+	}
+	if !slices.ContainsFunc(stamps, func(ts int64) bool { return ts > 1 }) {
+		return nil
+	}
+	log.Info().Str("wallet", walletName).Msg("rescanning the sidechain starter from genesis")
+	results, err := rpc.ImportDescriptorsAndWait(ctx, walletName, imports)
+	if err != nil {
+		return fmt.Errorf("import descriptors: %w", err)
+	}
+	return importResultsErr(results)
 }
