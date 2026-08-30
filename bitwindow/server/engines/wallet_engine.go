@@ -488,6 +488,15 @@ func (e *WalletEngine) IsWatchOnly(ctx context.Context, walletId string) (bool, 
 // Bitcoin Core Wallet Management
 // ============================================================================
 
+// coreWalletName derives the bitcoind wallet name for a wallet id. An id
+// shorter than the 8-character prefix is rejected instead of sliced.
+func coreWalletName(prefix, walletId string) (string, error) {
+	if len(walletId) < 8 {
+		return "", fmt.Errorf("wallet id %q is too short to name a Bitcoin Core wallet", walletId)
+	}
+	return fmt.Sprintf("%s_%s", prefix, walletId[:8]), nil
+}
+
 // EnsureBitcoinCoreWallet ensures a Bitcoin Core wallet exists for the given walletId
 // Creates it from the seed if it doesn't exist (lazy loading).
 //
@@ -556,7 +565,10 @@ func (e *WalletEngine) ensureBitcoinCoreWalletLocked(ctx context.Context, wallet
 	}
 
 	// Generate wallet name from wallet ID
-	walletName := fmt.Sprintf("wallet_%s", walletId[:8])
+	walletName, err := coreWalletName("wallet", walletId)
+	if err != nil {
+		return "", err
+	}
 
 	// Get bitcoind client
 	bitcoindClient, err := e.bitcoindConnector(ctx)
@@ -999,7 +1011,10 @@ func (e *WalletEngine) EnsureWatchOnlyWallet(ctx context.Context, walletId strin
 	}
 
 	// Generate wallet name from wallet ID
-	walletName := fmt.Sprintf("wallet_%s", walletId[:8])
+	walletName, err := coreWalletName("wallet", walletId)
+	if err != nil {
+		return "", err
+	}
 
 	// Get bitcoind client
 	bitcoindClient, err := e.bitcoindConnector(ctx)
@@ -1279,7 +1294,15 @@ func (e *WalletEngine) ensureBitcoinCoreWallets(ctx context.Context, wallets []W
 
 	// Check each wallet
 	for _, wallet := range coreWallets {
-		walletName := fmt.Sprintf("wallet_%s", wallet.ID[:8])
+		// One unnameable wallet must not stop the others from syncing.
+		walletName, err := coreWalletName("wallet", wallet.ID)
+		if err != nil {
+			log.Error().
+				Err(err).
+				Str("wallet_id", wallet.ID).
+				Msg("wallet sync: skipping wallet")
+			continue
+		}
 		walletExists := lo.Contains(listResp.Msg.Wallets, walletName)
 
 		if !walletExists {
@@ -1480,7 +1503,10 @@ func (e *WalletEngine) legacyWatchOnlyWallet(ctx context.Context, walletId strin
 }
 
 func (e *WalletEngine) probeLegacyWatchOnlyWallet(ctx context.Context, walletId string) (string, error) {
-	name := fmt.Sprintf("watch_%s", walletId[:8])
+	name, err := coreWalletName("watch", walletId)
+	if err != nil {
+		return "", err
+	}
 
 	// A failure here is not proof that the legacy wallet is absent. To read it
 	// that way lets the orchestrator create wallet_<prefix> beside a populated

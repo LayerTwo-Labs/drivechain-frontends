@@ -33,7 +33,7 @@ func TestValidateBackup_JSON_NewFormat(t *testing.T) {
 	e := &BackupEngine{}
 	wallet := map[string]interface{}{
 		"wallets": []map[string]interface{}{
-			{"master": "seed", "l1": "key"},
+			{"id": "deadbeefcafebabe", "master": "seed", "l1": "key"},
 		},
 	}
 	data, _ := json.Marshal(wallet)
@@ -142,6 +142,51 @@ func TestRestoreBackup_JSON(t *testing.T) {
 	_ = json.Unmarshal(content, &restored)
 	if restored["master"] != "seed" {
 		t.Fatal("wallet.json content mismatch")
+	}
+}
+
+// A wallet entry whose id is too short to name a Bitcoin Core wallet must be
+// rejected before it replaces the wallet on disk.
+func TestRestoreBackup_ShortWalletID(t *testing.T) {
+	wallet := map[string]interface{}{
+		"wallets": []map[string]interface{}{
+			{"id": "deadbeefcafebabe", "master": "seed", "l1": "key"},
+			{"id": "", "master": "seed", "l1": "key"},
+		},
+	}
+	data, _ := json.Marshal(wallet)
+
+	cases := []struct {
+		name     string
+		data     []byte
+		filename string
+	}{
+		{"json", data, "wallet.json"},
+		{"zip", zipWith(t, "wallet.json", data), "backup.zip"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			walletPath := filepath.Join(tmpDir, "wallet.json")
+			existing := []byte(`{"master":"my real seed","l1":"my real key"}`)
+			if err := os.WriteFile(walletPath, existing, 0600); err != nil {
+				t.Fatal(err)
+			}
+
+			e := &BackupEngine{walletDir: tmpDir}
+			if err := e.RestoreBackup(testCtx(), tc.data, tc.filename); err == nil {
+				t.Fatal("expected error for a wallet entry with a short id")
+			}
+
+			after, err := os.ReadFile(walletPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(after, existing) {
+				t.Fatal("the existing wallet must be untouched when restore fails")
+			}
+		})
 	}
 }
 
