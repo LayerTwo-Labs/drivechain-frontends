@@ -40,12 +40,37 @@ func loadEnforcerWallet(t *testing.T, network config.Network, passphrase string)
 	return svc
 }
 
-// The seed makes the wallet; the path only says where to look first. On a
-// network whose coin type is 1 the enforcer's account is the standard one, so a
-// companion would be an exact duplicate of the wallet beside it.
-func TestNoCompanionWhereTheEnforcerAccountIsStandard(t *testing.T) {
+// The migration runs once, so a coin-type-1 network writes the companion too.
+func TestCompanionEvenWhereTheEnforcerAccountIsStandard(t *testing.T) {
 	svc := loadEnforcerWallet(t, config.NetworkSignet, "")
-	assert.Len(t, svc.GetAllWallets(), 1, "the wallet already looks where the coins are")
+	require.Len(t, svc.GetAllWallets(), 2)
+}
+
+func TestCompanionOnTestnetWithoutPanic(t *testing.T) {
+	svc := loadEnforcerWallet(t, config.NetworkTestnet, "")
+	require.Len(t, svc.GetAllWallets(), 2)
+}
+
+// A first boot on signet must still leave the enforcer account for a later mainnet boot.
+func TestTheEnforcerAccountOutlivesTheBootNetwork(t *testing.T) {
+	first := loadEnforcerWallet(t, config.NetworkSignet, "")
+	dir := first.bitwindowDir
+	first.Close()
+
+	later := NewService(dir, zerolog.Nop())
+	later.SetNetwork(string(config.NetworkMainnet))
+	require.NoError(t, later.Init())
+	t.Cleanup(func() { later.Close() })
+
+	wallets := later.GetAllWallets()
+	var found *WalletData
+	for i := range wallets {
+		if wallets[i].ImportedFromEnforcer {
+			found = &wallets[i]
+		}
+	}
+	require.NotNil(t, found, "the enforcer's account must outlive the boot network")
+	assert.Equal(t, EnforcerAccountPath, found.DerivationPath)
 }
 
 // On mainnet the enforcer's coin type 1 is not the standard account, so its
@@ -90,4 +115,45 @@ func TestMigratedWalletsRescanFromGenesis(t *testing.T) {
 		assert.True(t, w.Imported, "%s must rescan, not start at the tip", w.Name)
 		assert.Equal(t, int64(0), importTimestamp(&w), "%s must import from genesis", w.Name)
 	}
+}
+
+// Each migrated wallet gets its own companion: one with no passphrase must not
+// hide the enforcer coins of a later wallet that has one.
+func TestCompanionForEachMigratedWallet(t *testing.T) {
+	const plain = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+	const guarded = "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong"
+	wallet := func(id, mnemonic, passphrase string) map[string]any {
+		return map[string]any{
+			"id":          id,
+			"name":        id,
+			"wallet_type": "enforcer",
+			"master": map[string]any{
+				"mnemonic": mnemonic,
+				"seed_hex": hex.EncodeToString(MnemonicToSeed(mnemonic, passphrase)),
+			},
+		}
+	}
+	dir := t.TempDir()
+	body, err := json.Marshal(map[string]any{
+		"wallets":          []map[string]any{wallet("FIRST", plain, ""), wallet("SECOND", guarded, "a passphrase")},
+		"active_wallet_id": "FIRST",
+	})
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), body, 0o600))
+
+	svc := NewService(dir, zerolog.Nop())
+	svc.SetNetwork(string(config.NetworkSignet))
+	require.NoError(t, svc.Init())
+	t.Cleanup(func() { svc.Close() })
+
+	companions := map[string]string{}
+	for _, w := range svc.GetAllWallets() {
+		if w.ImportedFromEnforcer {
+			companions[w.Master.Mnemonic] = w.Master.SeedHex
+		}
+	}
+	assert.Equal(t, map[string]string{
+		plain:   hex.EncodeToString(MnemonicToSeed(plain, "")),
+		guarded: hex.EncodeToString(MnemonicToSeed(guarded, "")),
+	}, companions)
 }
