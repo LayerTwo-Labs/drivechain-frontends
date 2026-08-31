@@ -476,9 +476,14 @@ class _TransactionTableState extends State<TransactionTable> {
                         copyValue: '${entry.txid}:${entry.vout}',
                       ),
                       SailTableCell(
-                        value: DateTime.fromMillisecondsSinceEpoch(
-                          entry.blocktime * 1000,
-                        ).toLocal().toString(),
+                        // A chain that records no time for a coin reads as
+                        // zero. Rendering that as 1970 names a date it never
+                        // had.
+                        value: entry.blocktime == 0
+                            ? '-'
+                            : DateTime.fromMillisecondsSinceEpoch(
+                                entry.blocktime * 1000,
+                              ).toLocal().toString(),
                       ),
                     ];
                   },
