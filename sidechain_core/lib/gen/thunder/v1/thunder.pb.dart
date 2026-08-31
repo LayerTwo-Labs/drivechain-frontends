@@ -2137,6 +2137,235 @@ class CallRawResponse extends $pb.GeneratedMessage {
   void clearResultJson() => clearField(1);
 }
 
+class ListWalletTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListWalletTransactionsRequest() => create();
+  ListWalletTransactionsRequest._() : super();
+  factory ListWalletTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListWalletTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWalletTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'thunder.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListWalletTransactionsRequest clone() => ListWalletTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListWalletTransactionsRequest copyWith(void Function(ListWalletTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListWalletTransactionsRequest)) as ListWalletTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListWalletTransactionsRequest create() => ListWalletTransactionsRequest._();
+  ListWalletTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListWalletTransactionsRequest> createRepeated() => $pb.PbList<ListWalletTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListWalletTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListWalletTransactionsRequest>(create);
+  static ListWalletTransactionsRequest? _defaultInstance;
+}
+
+class ListWalletTransactionsResponse extends $pb.GeneratedMessage {
+  factory ListWalletTransactionsResponse({
+    $core.Iterable<SidechainWalletTransaction>? transactions,
+    $core.int? tipHeight,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    if (tipHeight != null) {
+      $result.tipHeight = tipHeight;
+    }
+    return $result;
+  }
+  ListWalletTransactionsResponse._() : super();
+  factory ListWalletTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListWalletTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListWalletTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'thunder.v1'), createEmptyInstance: create)
+    ..pc<SidechainWalletTransaction>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: SidechainWalletTransaction.create)
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'tipHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListWalletTransactionsResponse clone() => ListWalletTransactionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListWalletTransactionsResponse copyWith(void Function(ListWalletTransactionsResponse) updates) => super.copyWith((message) => updates(message as ListWalletTransactionsResponse)) as ListWalletTransactionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListWalletTransactionsResponse create() => ListWalletTransactionsResponse._();
+  ListWalletTransactionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListWalletTransactionsResponse> createRepeated() => $pb.PbList<ListWalletTransactionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListWalletTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListWalletTransactionsResponse>(create);
+  static ListWalletTransactionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<SidechainWalletTransaction> get transactions => $_getList(0);
+
+  /// The height of the chain tip the transactions were read at. A caller counts
+  /// confirmations from it without a node of its own.
+  @$pb.TagNumber(2)
+  $core.int get tipHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set tipHeight($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTipHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTipHeight() => clearField(2);
+}
+
+class SidechainWalletTransaction extends $pb.GeneratedMessage {
+  factory SidechainWalletTransaction({
+    $core.String? txid,
+    $fixnum.Int64? valueSats,
+    $fixnum.Int64? feeSats,
+    $core.int? blockHeight,
+    $fixnum.Int64? blockTime,
+    $core.bool? confirmed,
+    $core.int? vout,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (blockHeight != null) {
+      $result.blockHeight = blockHeight;
+    }
+    if (blockTime != null) {
+      $result.blockTime = blockTime;
+    }
+    if (confirmed != null) {
+      $result.confirmed = confirmed;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    return $result;
+  }
+  SidechainWalletTransaction._() : super();
+  factory SidechainWalletTransaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SidechainWalletTransaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SidechainWalletTransaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'thunder.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..aInt64(2, _omitFieldNames ? '' : 'valueSats')
+    ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
+    ..aInt64(5, _omitFieldNames ? '' : 'blockTime')
+    ..aOB(6, _omitFieldNames ? '' : 'confirmed')
+    ..a<$core.int>(7, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SidechainWalletTransaction clone() => SidechainWalletTransaction()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SidechainWalletTransaction copyWith(void Function(SidechainWalletTransaction) updates) => super.copyWith((message) => updates(message as SidechainWalletTransaction)) as SidechainWalletTransaction;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SidechainWalletTransaction create() => SidechainWalletTransaction._();
+  SidechainWalletTransaction createEmptyInstance() => create();
+  static $pb.PbList<SidechainWalletTransaction> createRepeated() => $pb.PbList<SidechainWalletTransaction>();
+  @$core.pragma('dart2js:noInline')
+  static SidechainWalletTransaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SidechainWalletTransaction>(create);
+  static SidechainWalletTransaction? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  /// What the wallet gained, or lost when negative.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get valueSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set valueSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasValueSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValueSats() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSats() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get blockHeight => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set blockHeight($core.int v) { $_setUnsignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasBlockHeight() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBlockHeight() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get blockTime => $_getI64(4);
+  @$pb.TagNumber(5)
+  set blockTime($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBlockTime() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBlockTime() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get confirmed => $_getBF(5);
+  @$pb.TagNumber(6)
+  set confirmed($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasConfirmed() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearConfirmed() => clearField(6);
+
+  /// The first output this wallet owns. A row the wallet only spends from
+  /// carries zero, because it owns no output there.
+  @$pb.TagNumber(7)
+  $core.int get vout => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set vout($core.int v) { $_setUnsignedInt32(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasVout() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearVout() => clearField(7);
+}
+
 class ThunderServiceApi {
   $pb.RpcClient _client;
   ThunderServiceApi(this._client);
@@ -2209,6 +2438,9 @@ class ThunderServiceApi {
   ;
   $async.Future<CallRawResponse> callRaw($pb.ClientContext? ctx, CallRawRequest request) =>
     _client.invoke<CallRawResponse>(ctx, 'ThunderService', 'CallRaw', request, CallRawResponse())
+  ;
+  $async.Future<ListWalletTransactionsResponse> listWalletTransactions($pb.ClientContext? ctx, ListWalletTransactionsRequest request) =>
+    _client.invoke<ListWalletTransactionsResponse>(ctx, 'ThunderService', 'ListWalletTransactions', request, ListWalletTransactionsResponse())
   ;
 }
 

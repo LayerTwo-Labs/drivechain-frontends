@@ -71,6 +71,10 @@ service ThunderService {
 
   // Raw JSON-RPC passthrough for debug console.
   rpc CallRaw(CallRawRequest) returns (CallRawResponse);
+
+  // Lists the wallet transaction history through the Esplora index. The node
+  // itself keeps no address history.
+  rpc ListWalletTransactions(ListWalletTransactionsRequest) returns (ListWalletTransactionsResponse);
 }
 
 // GetBalance
@@ -278,4 +282,26 @@ message CallRawRequest {
 
 message CallRawResponse {
   string result_json = 1;
+}
+
+message ListWalletTransactionsRequest {}
+
+message ListWalletTransactionsResponse {
+  repeated SidechainWalletTransaction transactions = 1;
+  // The height of the chain tip the transactions were read at. A caller counts
+  // confirmations from it without a node of its own.
+  uint32 tip_height = 2;
+}
+
+message SidechainWalletTransaction {
+  string txid = 1;
+  // What the wallet gained, or lost when negative.
+  int64 value_sats = 2;
+  int64 fee_sats = 3;
+  uint32 block_height = 4;
+  int64 block_time = 5;
+  bool confirmed = 6;
+  // The first output this wallet owns. A row the wallet only spends from
+  // carries zero, because it owns no output there.
+  uint32 vout = 7;
 }
