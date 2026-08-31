@@ -12,6 +12,47 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// SidechainConfByName finds the manager for a binary name. The chains config
+// writes a display name like "Thunder", and the specs are keyed "thunder".
+func SidechainConfByName(confs map[string]*SidechainConfManager, name string) *SidechainConfManager {
+	lower := strings.ToLower(name)
+	for key, scm := range confs {
+		if strings.ToLower(key) == lower || strings.ToLower(scm.Spec.Name) == lower {
+			return scm
+		}
+	}
+	return nil
+}
+
+// confNetworkKey is the network key inside a sidechain conf file. Its value
+// names a port group, so it never becomes a CLI flag on its own.
+const confNetworkKey = "network"
+
+// CusfNetworkName gives the network name a CUSF sidechain daemon accepts for
+// the mainchain network n, on the eCash generation ecashID. It returns "" when
+// the daemon has no such network, and the caller then passes no flag.
+//
+// eCash carries a generation the daemon does not model: only alphanet has a
+// name in the daemon's own enum. A generation such as drynet4 runs a build
+// with its own magic, so a name from another generation stops it from syncing.
+func CusfNetworkName(n Network, ecashID string) string {
+	switch n {
+	case NetworkRegtest:
+		return "regtest"
+	case NetworkForknet:
+		return "forknet"
+	case NetworkECash:
+		if ecashID == "alphanet" {
+			return "alphanet"
+		}
+		return ""
+	case NetworkSignet:
+		return "signet"
+	default:
+		return ""
+	}
+}
+
 // SidechainConfSpec defines how a sidechain's configuration should be managed.
 type SidechainConfSpec struct {
 	// Name is the sidechain name (e.g. "thunder", "bitassets").
@@ -20,8 +61,12 @@ type SidechainConfSpec struct {
 	ConfigFilename string
 	// BasePort is the signet RPC port (e.g. 6009 for thunder).
 	BasePort int
-	// SkippedCliKeys are config keys that should not be converted to CLI args.
-	SkippedCliKeys []string
+	// CliArgKeys are the conf keys the launch path passes on the command
+	// line, in order. An empty list passes nothing. Name a key only after you
+	// read the daemon's own CLI: a flag it does not know stops it on the first
+	// boot, and a port it does not share with BinaryConfig.Port hides it from
+	// the health check.
+	CliArgKeys []string
 	// PortStyle determines which config keys are used for network ports.
 	// "grpc" = rpc-addr, net-addr, mainchain-grpc-url (thunder, zside, photon, etc.)
 	// "zmq"  = rpc-port, net-addr, zmq-addr (bitassets, bitnames)
@@ -181,31 +226,28 @@ func (m *SidechainConfManager) getNetworkPorts(network string) map[string]string
 	}
 }
 
-// GetCliArgs converts current config to CLI args.
+// GetCliArgs converts the named config keys to CLI args, and adds the network
+// the daemon runs on.
 func (m *SidechainConfManager) GetCliArgs() []string {
 	var args []string
-	if m.Config == nil {
+	if m.Config == nil || len(m.Spec.CliArgKeys) == 0 {
 		return args
 	}
 
-	skipped := make(map[string]bool)
-	for _, k := range m.Spec.SkippedCliKeys {
-		skipped[k] = true
-	}
-
-	for key, value := range m.Config.Settings {
-		if skipped[key] {
+	for _, key := range m.Spec.CliArgKeys {
+		switch value := m.Config.GetSetting(key); value {
+		case "", "false":
 			continue
-		}
-		switch value {
 		case "true":
 			args = append(args, fmt.Sprintf("--%s", key))
-		case "false":
-			continue
 		default:
-			if value != "" {
-				args = append(args, fmt.Sprintf("--%s=%s", key, value))
-			}
+			args = append(args, fmt.Sprintf("--%s=%s", key, value))
+		}
+	}
+
+	if m.bitcoinConf != nil {
+		if name := CusfNetworkName(m.bitcoinConf.Network, ECashNetworkID()); name != "" {
+			args = append(args, fmt.Sprintf("--%s=%s", confNetworkKey, name))
 		}
 	}
 
@@ -391,7 +433,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Thunder",
 		ConfigFilename: "thunder.conf",
 		BasePort:       6009,
-		SkippedCliKeys: []string{"network"},
+		CliArgKeys:     []string{"net-addr", "mainchain-grpc-url"},
 		PortStyle:      "grpc",
 		DirKey:         "thunder",
 	},
@@ -399,7 +441,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "BitAssets",
 		ConfigFilename: "bitassets.conf",
 		BasePort:       6004,
-		SkippedCliKeys: nil,
 		PortStyle:      "zmq",
 		DirKey:         "bitassets",
 	},
@@ -407,7 +448,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "BitNames",
 		ConfigFilename: "bitnames.conf",
 		BasePort:       6002,
-		SkippedCliKeys: nil,
 		PortStyle:      "zmq",
 		DirKey:         "bitnames",
 	},
@@ -415,7 +455,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "ZSide",
 		ConfigFilename: "zside.conf",
 		BasePort:       6098,
-		SkippedCliKeys: []string{"network"},
 		PortStyle:      "grpc",
 		DirKey:         "zside",
 	},
@@ -423,7 +462,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Photon",
 		ConfigFilename: "photon.conf",
 		BasePort:       6099,
-		SkippedCliKeys: []string{"network"},
 		PortStyle:      "grpc",
 		DirKey:         "photon",
 	},
@@ -431,7 +469,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Truthcoin",
 		ConfigFilename: "truthcoin.conf",
 		BasePort:       6013,
-		SkippedCliKeys: []string{"network"},
 		PortStyle:      "grpc",
 		DirKey:         "truthcoin",
 	},
@@ -439,7 +476,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "CoinShift",
 		ConfigFilename: "coinshift.conf",
 		BasePort:       6255,
-		SkippedCliKeys: []string{"network"},
 		PortStyle:      "grpc",
 		DirKey:         "coinshift",
 	},
@@ -447,7 +483,6 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Liquid Signet",
 		ConfigFilename: "liquid-signet.conf",
 		BasePort:       29443,
-		SkippedCliKeys: []string{"network"},
 		PortStyle:      "grpc",
 		DirKey:         "liquid-signet",
 	},

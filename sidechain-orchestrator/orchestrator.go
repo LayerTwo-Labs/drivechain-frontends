@@ -925,6 +925,12 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		// the helper. No-op in the steady state.
 		o.awaitDrainForBoot(ctx)
 
+		o.prepareCoreArgs(&opts)
+		o.prepareEnforcerArgs(&opts)
+		o.injectSidechainStarter(config, &opts)
+		o.prepareSidechainArgs(config, &opts)
+		o.injectHeadlessForForcedBackend(config, &opts)
+
 		if opts.Immediate {
 			o.startTargetOnly(ctx, config, opts, ch, nil)
 			return
@@ -942,11 +948,6 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		if config.Name != "enforcer" {
 			targetPrefetch = o.prefetchBinary(ctx, config, opts.ForceBackend)
 		}
-
-		o.prepareCoreArgs(&opts)
-		o.prepareEnforcerArgs(&opts)
-		o.injectSidechainStarter(config, &opts)
-		o.injectHeadlessForForcedBackend(config, &opts)
 
 		// Electrum: skip the local L1 boot entirely and start the target alone.
 		if !skipLocalL1 {
@@ -1054,6 +1055,52 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	return wallet.EnsureCoreWalletFromMnemonic(
 		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, o.NetParams.Resolve(),
 	)
+}
+
+// prepareSidechainArgs appends a sidechain's own config as CLI flags.
+//
+// The daemon reads its own datadir, never the conf the orchestrator writes, so
+// without this it starts on its default ports and never listens for a peer.
+// A flag already on the command line wins, because an earlier step set it for
+// a reason.
+func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) {
+	if cfg.ChainLayer != 2 || cfg.IsBitcoinCore {
+		return
+	}
+	scm := config.SidechainConfByName(o.SidechainConfs, cfg.Name)
+	if scm == nil || len(scm.Spec.CliArgKeys) == 0 {
+		return
+	}
+	// A network swap reloads BitcoinConf alone, so the conf still holds the
+	// ports of the network the node just left.
+	if err := scm.SyncNetworkFromBitcoinConf(); err != nil {
+		o.log.Warn().Err(err).Str("binary", cfg.Name).
+			Msg("could not sync the sidechain conf to the network")
+	}
+	var added []string
+	for _, arg := range scm.GetCliArgs() {
+		if hasCLIFlag(opts.TargetArgs, arg) {
+			continue
+		}
+		opts.TargetArgs = append(opts.TargetArgs, arg)
+		added = append(added, arg)
+	}
+	if len(added) > 0 {
+		o.log.Info().Str("binary", cfg.Name).Strs("args", added).
+			Msg("auto-built sidechain args from config")
+	}
+}
+
+// hasCLIFlag reports whether args already carries the flag name that arg sets.
+func hasCLIFlag(args []string, arg string) bool {
+	name, _, _ := strings.Cut(arg, "=")
+	for _, have := range args {
+		haveName, _, _ := strings.Cut(have, "=")
+		if haveName == name {
+			return true
+		}
+	}
+	return false
 }
 
 // injectHeadlessForForcedBackend appends --headless to opts.TargetArgs when a
@@ -1286,6 +1333,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 		default:
 			o.injectSidechainStarter(config, &opts)
+			o.prepareSidechainArgs(config, &opts)
 			o.injectHeadlessForForcedBackend(config, &opts)
 			// startTargetOnly emits its own "done" event.
 			o.startTargetOnly(ctx, config, opts, ch, nil)
