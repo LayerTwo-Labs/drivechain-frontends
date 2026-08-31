@@ -537,6 +537,51 @@ const CallRawResponse$json = {
 final $typed_data.Uint8List callRawResponseDescriptor = $convert.base64Decode(
     'Cg9DYWxsUmF3UmVzcG9uc2USHwoLcmVzdWx0X2pzb24YASABKAlSCnJlc3VsdEpzb24=');
 
+@$core.Deprecated('Use listWalletTransactionsRequestDescriptor instead')
+const ListWalletTransactionsRequest$json = {
+  '1': 'ListWalletTransactionsRequest',
+};
+
+/// Descriptor for `ListWalletTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listWalletTransactionsRequestDescriptor = $convert.base64Decode(
+    'Ch1MaXN0V2FsbGV0VHJhbnNhY3Rpb25zUmVxdWVzdA==');
+
+@$core.Deprecated('Use listWalletTransactionsResponseDescriptor instead')
+const ListWalletTransactionsResponse$json = {
+  '1': 'ListWalletTransactionsResponse',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.thunder.v1.SidechainWalletTransaction', '10': 'transactions'},
+    {'1': 'tip_height', '3': 2, '4': 1, '5': 13, '10': 'tipHeight'},
+  ],
+};
+
+/// Descriptor for `ListWalletTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listWalletTransactionsResponseDescriptor = $convert.base64Decode(
+    'Ch5MaXN0V2FsbGV0VHJhbnNhY3Rpb25zUmVzcG9uc2USSgoMdHJhbnNhY3Rpb25zGAEgAygLMi'
+    'YudGh1bmRlci52MS5TaWRlY2hhaW5XYWxsZXRUcmFuc2FjdGlvblIMdHJhbnNhY3Rpb25zEh0K'
+    'CnRpcF9oZWlnaHQYAiABKA1SCXRpcEhlaWdodA==');
+
+@$core.Deprecated('Use sidechainWalletTransactionDescriptor instead')
+const SidechainWalletTransaction$json = {
+  '1': 'SidechainWalletTransaction',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'value_sats', '3': 2, '4': 1, '5': 3, '10': 'valueSats'},
+    {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
+    {'1': 'block_height', '3': 4, '4': 1, '5': 13, '10': 'blockHeight'},
+    {'1': 'block_time', '3': 5, '4': 1, '5': 3, '10': 'blockTime'},
+    {'1': 'confirmed', '3': 6, '4': 1, '5': 8, '10': 'confirmed'},
+    {'1': 'vout', '3': 7, '4': 1, '5': 13, '10': 'vout'},
+  ],
+};
+
+/// Descriptor for `SidechainWalletTransaction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sidechainWalletTransactionDescriptor = $convert.base64Decode(
+    'ChpTaWRlY2hhaW5XYWxsZXRUcmFuc2FjdGlvbhISCgR0eGlkGAEgASgJUgR0eGlkEh0KCnZhbH'
+    'VlX3NhdHMYAiABKANSCXZhbHVlU2F0cxIZCghmZWVfc2F0cxgDIAEoA1IHZmVlU2F0cxIhCgxi'
+    'bG9ja19oZWlnaHQYBCABKA1SC2Jsb2NrSGVpZ2h0Eh0KCmJsb2NrX3RpbWUYBSABKANSCWJsb2'
+    'NrVGltZRIcCgljb25maXJtZWQYBiABKAhSCWNvbmZpcm1lZBISCgR2b3V0GAcgASgNUgR2b3V0');
+
 const $core.Map<$core.String, $core.dynamic> ThunderServiceBase$json = {
   '1': 'ThunderService',
   '2': [
@@ -563,6 +608,7 @@ const $core.Map<$core.String, $core.dynamic> ThunderServiceBase$json = {
     {'1': 'GenerateMnemonic', '2': '.thunder.v1.GenerateMnemonicRequest', '3': '.thunder.v1.GenerateMnemonicResponse'},
     {'1': 'SetSeedFromMnemonic', '2': '.thunder.v1.SetSeedFromMnemonicRequest', '3': '.thunder.v1.SetSeedFromMnemonicResponse'},
     {'1': 'CallRaw', '2': '.thunder.v1.CallRawRequest', '3': '.thunder.v1.CallRawResponse'},
+    {'1': 'ListWalletTransactions', '2': '.thunder.v1.ListWalletTransactionsRequest', '3': '.thunder.v1.ListWalletTransactionsResponse'},
   ],
 };
 
@@ -614,6 +660,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ThunderSer
   '.thunder.v1.SetSeedFromMnemonicResponse': SetSeedFromMnemonicResponse$json,
   '.thunder.v1.CallRawRequest': CallRawRequest$json,
   '.thunder.v1.CallRawResponse': CallRawResponse$json,
+  '.thunder.v1.ListWalletTransactionsRequest': ListWalletTransactionsRequest$json,
+  '.thunder.v1.ListWalletTransactionsResponse': ListWalletTransactionsResponse$json,
+  '.thunder.v1.SidechainWalletTransaction': SidechainWalletTransaction$json,
 };
 
 /// Descriptor for `ThunderService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -655,5 +704,7 @@ final $typed_data.Uint8List thunderServiceDescriptor = $convert.base64Decode(
     'ci52MS5HZW5lcmF0ZU1uZW1vbmljUmVzcG9uc2USZgoTU2V0U2VlZEZyb21NbmVtb25pYxImLn'
     'RodW5kZXIudjEuU2V0U2VlZEZyb21NbmVtb25pY1JlcXVlc3QaJy50aHVuZGVyLnYxLlNldFNl'
     'ZWRGcm9tTW5lbW9uaWNSZXNwb25zZRJCCgdDYWxsUmF3EhoudGh1bmRlci52MS5DYWxsUmF3Um'
-    'VxdWVzdBobLnRodW5kZXIudjEuQ2FsbFJhd1Jlc3BvbnNl');
+    'VxdWVzdBobLnRodW5kZXIudjEuQ2FsbFJhd1Jlc3BvbnNlEm8KFkxpc3RXYWxsZXRUcmFuc2Fj'
+    'dGlvbnMSKS50aHVuZGVyLnYxLkxpc3RXYWxsZXRUcmFuc2FjdGlvbnNSZXF1ZXN0GioudGh1bm'
+    'Rlci52MS5MaXN0V2FsbGV0VHJhbnNhY3Rpb25zUmVzcG9uc2U=');
 

@@ -96,6 +96,9 @@ const (
 	ThunderServiceSetSeedFromMnemonicProcedure = "/thunder.v1.ThunderService/SetSeedFromMnemonic"
 	// ThunderServiceCallRawProcedure is the fully-qualified name of the ThunderService's CallRaw RPC.
 	ThunderServiceCallRawProcedure = "/thunder.v1.ThunderService/CallRaw"
+	// ThunderServiceListWalletTransactionsProcedure is the fully-qualified name of the ThunderService's
+	// ListWalletTransactions RPC.
+	ThunderServiceListWalletTransactionsProcedure = "/thunder.v1.ThunderService/ListWalletTransactions"
 )
 
 // ThunderServiceClient is a client for the thunder.v1.ThunderService service.
@@ -146,6 +149,9 @@ type ThunderServiceClient interface {
 	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
 	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
+	// Lists the wallet transaction history through the Esplora index. The node
+	// itself keeps no address history.
+	ListWalletTransactions(context.Context, *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error)
 }
 
 // NewThunderServiceClient constructs a client for the thunder.v1.ThunderService service. By
@@ -297,6 +303,12 @@ func NewThunderServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(thunderServiceMethods.ByName("CallRaw")),
 			connect.WithClientOptions(opts...),
 		),
+		listWalletTransactions: connect.NewClient[v1.ListWalletTransactionsRequest, v1.ListWalletTransactionsResponse](
+			httpClient,
+			baseURL+ThunderServiceListWalletTransactionsProcedure,
+			connect.WithSchema(thunderServiceMethods.ByName("ListWalletTransactions")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -325,6 +337,7 @@ type thunderServiceClient struct {
 	generateMnemonic                      *connect.Client[v1.GenerateMnemonicRequest, v1.GenerateMnemonicResponse]
 	setSeedFromMnemonic                   *connect.Client[v1.SetSeedFromMnemonicRequest, v1.SetSeedFromMnemonicResponse]
 	callRaw                               *connect.Client[v1.CallRawRequest, v1.CallRawResponse]
+	listWalletTransactions                *connect.Client[v1.ListWalletTransactionsRequest, v1.ListWalletTransactionsResponse]
 }
 
 // GetBalance calls thunder.v1.ThunderService.GetBalance.
@@ -443,6 +456,11 @@ func (c *thunderServiceClient) CallRaw(ctx context.Context, req *connect.Request
 	return c.callRaw.CallUnary(ctx, req)
 }
 
+// ListWalletTransactions calls thunder.v1.ThunderService.ListWalletTransactions.
+func (c *thunderServiceClient) ListWalletTransactions(ctx context.Context, req *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error) {
+	return c.listWalletTransactions.CallUnary(ctx, req)
+}
+
 // ThunderServiceHandler is an implementation of the thunder.v1.ThunderService service.
 type ThunderServiceHandler interface {
 	// Get wallet balance (total and available).
@@ -491,6 +509,9 @@ type ThunderServiceHandler interface {
 	SetSeedFromMnemonic(context.Context, *connect.Request[v1.SetSeedFromMnemonicRequest]) (*connect.Response[v1.SetSeedFromMnemonicResponse], error)
 	// Raw JSON-RPC passthrough for debug console.
 	CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error)
+	// Lists the wallet transaction history through the Esplora index. The node
+	// itself keeps no address history.
+	ListWalletTransactions(context.Context, *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error)
 }
 
 // NewThunderServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -638,6 +659,12 @@ func NewThunderServiceHandler(svc ThunderServiceHandler, opts ...connect.Handler
 		connect.WithSchema(thunderServiceMethods.ByName("CallRaw")),
 		connect.WithHandlerOptions(opts...),
 	)
+	thunderServiceListWalletTransactionsHandler := connect.NewUnaryHandler(
+		ThunderServiceListWalletTransactionsProcedure,
+		svc.ListWalletTransactions,
+		connect.WithSchema(thunderServiceMethods.ByName("ListWalletTransactions")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/thunder.v1.ThunderService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ThunderServiceGetBalanceProcedure:
@@ -686,6 +713,8 @@ func NewThunderServiceHandler(svc ThunderServiceHandler, opts ...connect.Handler
 			thunderServiceSetSeedFromMnemonicHandler.ServeHTTP(w, r)
 		case ThunderServiceCallRawProcedure:
 			thunderServiceCallRawHandler.ServeHTTP(w, r)
+		case ThunderServiceListWalletTransactionsProcedure:
+			thunderServiceListWalletTransactionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -785,4 +814,8 @@ func (UnimplementedThunderServiceHandler) SetSeedFromMnemonic(context.Context, *
 
 func (UnimplementedThunderServiceHandler) CallRaw(context.Context, *connect.Request[v1.CallRawRequest]) (*connect.Response[v1.CallRawResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.CallRaw is not implemented"))
+}
+
+func (UnimplementedThunderServiceHandler) ListWalletTransactions(context.Context, *connect.Request[v1.ListWalletTransactionsRequest]) (*connect.Response[v1.ListWalletTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.ListWalletTransactions is not implemented"))
 }

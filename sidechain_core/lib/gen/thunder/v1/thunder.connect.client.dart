@@ -421,4 +421,23 @@ extension type ThunderServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Lists the wallet transaction history through the Esplora index. The node
+  /// itself keeps no address history.
+  Future<thunderv1thunder.ListWalletTransactionsResponse> listWalletTransactions(
+    thunderv1thunder.ListWalletTransactionsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ThunderService.listWalletTransactions,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

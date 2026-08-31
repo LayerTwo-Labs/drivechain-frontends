@@ -1983,6 +1983,191 @@ func (x *CallRawResponse) GetResultJson() string {
 	return ""
 }
 
+type ListWalletTransactionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWalletTransactionsRequest) Reset() {
+	*x = ListWalletTransactionsRequest{}
+	mi := &file_thunder_v1_thunder_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWalletTransactionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWalletTransactionsRequest) ProtoMessage() {}
+
+func (x *ListWalletTransactionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_thunder_v1_thunder_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWalletTransactionsRequest.ProtoReflect.Descriptor instead.
+func (*ListWalletTransactionsRequest) Descriptor() ([]byte, []int) {
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{46}
+}
+
+type ListWalletTransactionsResponse struct {
+	state        protoimpl.MessageState        `protogen:"open.v1"`
+	Transactions []*SidechainWalletTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	// The height of the chain tip the transactions were read at. A caller counts
+	// confirmations from it without a node of its own.
+	TipHeight     uint32 `protobuf:"varint,2,opt,name=tip_height,json=tipHeight,proto3" json:"tip_height,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWalletTransactionsResponse) Reset() {
+	*x = ListWalletTransactionsResponse{}
+	mi := &file_thunder_v1_thunder_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWalletTransactionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWalletTransactionsResponse) ProtoMessage() {}
+
+func (x *ListWalletTransactionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_thunder_v1_thunder_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWalletTransactionsResponse.ProtoReflect.Descriptor instead.
+func (*ListWalletTransactionsResponse) Descriptor() ([]byte, []int) {
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *ListWalletTransactionsResponse) GetTransactions() []*SidechainWalletTransaction {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
+func (x *ListWalletTransactionsResponse) GetTipHeight() uint32 {
+	if x != nil {
+		return x.TipHeight
+	}
+	return 0
+}
+
+type SidechainWalletTransaction struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Txid  string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	// What the wallet gained, or lost when negative.
+	ValueSats   int64  `protobuf:"varint,2,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
+	FeeSats     int64  `protobuf:"varint,3,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	BlockHeight uint32 `protobuf:"varint,4,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	BlockTime   int64  `protobuf:"varint,5,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+	Confirmed   bool   `protobuf:"varint,6,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	// The first output this wallet owns. A row the wallet only spends from
+	// carries zero, because it owns no output there.
+	Vout          uint32 `protobuf:"varint,7,opt,name=vout,proto3" json:"vout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SidechainWalletTransaction) Reset() {
+	*x = SidechainWalletTransaction{}
+	mi := &file_thunder_v1_thunder_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SidechainWalletTransaction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SidechainWalletTransaction) ProtoMessage() {}
+
+func (x *SidechainWalletTransaction) ProtoReflect() protoreflect.Message {
+	mi := &file_thunder_v1_thunder_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SidechainWalletTransaction.ProtoReflect.Descriptor instead.
+func (*SidechainWalletTransaction) Descriptor() ([]byte, []int) {
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *SidechainWalletTransaction) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *SidechainWalletTransaction) GetValueSats() int64 {
+	if x != nil {
+		return x.ValueSats
+	}
+	return 0
+}
+
+func (x *SidechainWalletTransaction) GetFeeSats() int64 {
+	if x != nil {
+		return x.FeeSats
+	}
+	return 0
+}
+
+func (x *SidechainWalletTransaction) GetBlockHeight() uint32 {
+	if x != nil {
+		return x.BlockHeight
+	}
+	return 0
+}
+
+func (x *SidechainWalletTransaction) GetBlockTime() int64 {
+	if x != nil {
+		return x.BlockTime
+	}
+	return 0
+}
+
+func (x *SidechainWalletTransaction) GetConfirmed() bool {
+	if x != nil {
+		return x.Confirmed
+	}
+	return false
+}
+
+func (x *SidechainWalletTransaction) GetVout() uint32 {
+	if x != nil {
+		return x.Vout
+	}
+	return 0
+}
+
 var File_thunder_v1_thunder_proto protoreflect.FileDescriptor
 
 const file_thunder_v1_thunder_proto_rawDesc = "" +
@@ -2086,7 +2271,22 @@ const file_thunder_v1_thunder_proto_rawDesc = "" +
 	"paramsJson\"2\n" +
 	"\x0fCallRawResponse\x12\x1f\n" +
 	"\vresult_json\x18\x01 \x01(\tR\n" +
-	"resultJson2\xa8\x10\n" +
+	"resultJson\"\x1f\n" +
+	"\x1dListWalletTransactionsRequest\"\x8b\x01\n" +
+	"\x1eListWalletTransactionsResponse\x12J\n" +
+	"\ftransactions\x18\x01 \x03(\v2&.thunder.v1.SidechainWalletTransactionR\ftransactions\x12\x1d\n" +
+	"\n" +
+	"tip_height\x18\x02 \x01(\rR\ttipHeight\"\xde\x01\n" +
+	"\x1aSidechainWalletTransaction\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x1d\n" +
+	"\n" +
+	"value_sats\x18\x02 \x01(\x03R\tvalueSats\x12\x19\n" +
+	"\bfee_sats\x18\x03 \x01(\x03R\afeeSats\x12!\n" +
+	"\fblock_height\x18\x04 \x01(\rR\vblockHeight\x12\x1d\n" +
+	"\n" +
+	"block_time\x18\x05 \x01(\x03R\tblockTime\x12\x1c\n" +
+	"\tconfirmed\x18\x06 \x01(\bR\tconfirmed\x12\x12\n" +
+	"\x04vout\x18\a \x01(\rR\x04vout2\x99\x11\n" +
 	"\x0eThunderService\x12K\n" +
 	"\n" +
 	"GetBalance\x12\x1d.thunder.v1.GetBalanceRequest\x1a\x1e.thunder.v1.GetBalanceResponse\x12T\n" +
@@ -2111,7 +2311,8 @@ const file_thunder_v1_thunder_proto_rawDesc = "" +
 	"%GetLatestFailedWithdrawalBundleHeight\x128.thunder.v1.GetLatestFailedWithdrawalBundleHeightRequest\x1a9.thunder.v1.GetLatestFailedWithdrawalBundleHeightResponse\x12]\n" +
 	"\x10GenerateMnemonic\x12#.thunder.v1.GenerateMnemonicRequest\x1a$.thunder.v1.GenerateMnemonicResponse\x12f\n" +
 	"\x13SetSeedFromMnemonic\x12&.thunder.v1.SetSeedFromMnemonicRequest\x1a'.thunder.v1.SetSeedFromMnemonicResponse\x12B\n" +
-	"\aCallRaw\x12\x1a.thunder.v1.CallRawRequest\x1a\x1b.thunder.v1.CallRawResponseB\xba\x01\n" +
+	"\aCallRaw\x12\x1a.thunder.v1.CallRawRequest\x1a\x1b.thunder.v1.CallRawResponse\x12o\n" +
+	"\x16ListWalletTransactions\x12).thunder.v1.ListWalletTransactionsRequest\x1a*.thunder.v1.ListWalletTransactionsResponseB\xba\x01\n" +
 	"\x0ecom.thunder.v1B\fThunderProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1;thunderv1\xa2\x02\x03TXX\xaa\x02\n" +
 	"Thunder.V1\xca\x02\n" +
 	"Thunder\\V1\xe2\x02\x16Thunder\\V1\\GPBMetadata\xea\x02\vThunder::V1b\x06proto3"
@@ -2128,7 +2329,7 @@ func file_thunder_v1_thunder_proto_rawDescGZIP() []byte {
 	return file_thunder_v1_thunder_proto_rawDescData
 }
 
-var file_thunder_v1_thunder_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_thunder_v1_thunder_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
 var file_thunder_v1_thunder_proto_goTypes = []any{
 	(*GetBalanceRequest)(nil),                             // 0: thunder.v1.GetBalanceRequest
 	(*GetBalanceResponse)(nil),                            // 1: thunder.v1.GetBalanceResponse
@@ -2176,59 +2377,65 @@ var file_thunder_v1_thunder_proto_goTypes = []any{
 	(*SetSeedFromMnemonicResponse)(nil),                   // 43: thunder.v1.SetSeedFromMnemonicResponse
 	(*CallRawRequest)(nil),                                // 44: thunder.v1.CallRawRequest
 	(*CallRawResponse)(nil),                               // 45: thunder.v1.CallRawResponse
+	(*ListWalletTransactionsRequest)(nil),                 // 46: thunder.v1.ListWalletTransactionsRequest
+	(*ListWalletTransactionsResponse)(nil),                // 47: thunder.v1.ListWalletTransactionsResponse
+	(*SidechainWalletTransaction)(nil),                    // 48: thunder.v1.SidechainWalletTransaction
 }
 var file_thunder_v1_thunder_proto_depIdxs = []int32{
-	0,  // 0: thunder.v1.ThunderService.GetBalance:input_type -> thunder.v1.GetBalanceRequest
-	2,  // 1: thunder.v1.ThunderService.GetBlockCount:input_type -> thunder.v1.GetBlockCountRequest
-	4,  // 2: thunder.v1.ThunderService.Stop:input_type -> thunder.v1.StopRequest
-	6,  // 3: thunder.v1.ThunderService.GetNewAddress:input_type -> thunder.v1.GetNewAddressRequest
-	8,  // 4: thunder.v1.ThunderService.Withdraw:input_type -> thunder.v1.WithdrawRequest
-	10, // 5: thunder.v1.ThunderService.Transfer:input_type -> thunder.v1.TransferRequest
-	12, // 6: thunder.v1.ThunderService.GetSidechainWealth:input_type -> thunder.v1.GetSidechainWealthRequest
-	14, // 7: thunder.v1.ThunderService.CreateDeposit:input_type -> thunder.v1.CreateDepositRequest
-	16, // 8: thunder.v1.ThunderService.GetPendingWithdrawalBundle:input_type -> thunder.v1.GetPendingWithdrawalBundleRequest
-	18, // 9: thunder.v1.ThunderService.ConnectPeer:input_type -> thunder.v1.ConnectPeerRequest
-	20, // 10: thunder.v1.ThunderService.ListPeers:input_type -> thunder.v1.ListPeersRequest
-	22, // 11: thunder.v1.ThunderService.Mine:input_type -> thunder.v1.MineRequest
-	24, // 12: thunder.v1.ThunderService.GetBlock:input_type -> thunder.v1.GetBlockRequest
-	26, // 13: thunder.v1.ThunderService.GetBestMainchainBlockHash:input_type -> thunder.v1.GetBestMainchainBlockHashRequest
-	28, // 14: thunder.v1.ThunderService.GetBestSidechainBlockHash:input_type -> thunder.v1.GetBestSidechainBlockHashRequest
-	30, // 15: thunder.v1.ThunderService.GetBmmInclusions:input_type -> thunder.v1.GetBmmInclusionsRequest
-	32, // 16: thunder.v1.ThunderService.GetWalletUtxos:input_type -> thunder.v1.GetWalletUtxosRequest
-	34, // 17: thunder.v1.ThunderService.ListUtxos:input_type -> thunder.v1.ListUtxosRequest
-	36, // 18: thunder.v1.ThunderService.RemoveFromMempool:input_type -> thunder.v1.RemoveFromMempoolRequest
-	38, // 19: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:input_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightRequest
-	40, // 20: thunder.v1.ThunderService.GenerateMnemonic:input_type -> thunder.v1.GenerateMnemonicRequest
-	42, // 21: thunder.v1.ThunderService.SetSeedFromMnemonic:input_type -> thunder.v1.SetSeedFromMnemonicRequest
-	44, // 22: thunder.v1.ThunderService.CallRaw:input_type -> thunder.v1.CallRawRequest
-	1,  // 23: thunder.v1.ThunderService.GetBalance:output_type -> thunder.v1.GetBalanceResponse
-	3,  // 24: thunder.v1.ThunderService.GetBlockCount:output_type -> thunder.v1.GetBlockCountResponse
-	5,  // 25: thunder.v1.ThunderService.Stop:output_type -> thunder.v1.StopResponse
-	7,  // 26: thunder.v1.ThunderService.GetNewAddress:output_type -> thunder.v1.GetNewAddressResponse
-	9,  // 27: thunder.v1.ThunderService.Withdraw:output_type -> thunder.v1.WithdrawResponse
-	11, // 28: thunder.v1.ThunderService.Transfer:output_type -> thunder.v1.TransferResponse
-	13, // 29: thunder.v1.ThunderService.GetSidechainWealth:output_type -> thunder.v1.GetSidechainWealthResponse
-	15, // 30: thunder.v1.ThunderService.CreateDeposit:output_type -> thunder.v1.CreateDepositResponse
-	17, // 31: thunder.v1.ThunderService.GetPendingWithdrawalBundle:output_type -> thunder.v1.GetPendingWithdrawalBundleResponse
-	19, // 32: thunder.v1.ThunderService.ConnectPeer:output_type -> thunder.v1.ConnectPeerResponse
-	21, // 33: thunder.v1.ThunderService.ListPeers:output_type -> thunder.v1.ListPeersResponse
-	23, // 34: thunder.v1.ThunderService.Mine:output_type -> thunder.v1.MineResponse
-	25, // 35: thunder.v1.ThunderService.GetBlock:output_type -> thunder.v1.GetBlockResponse
-	27, // 36: thunder.v1.ThunderService.GetBestMainchainBlockHash:output_type -> thunder.v1.GetBestMainchainBlockHashResponse
-	29, // 37: thunder.v1.ThunderService.GetBestSidechainBlockHash:output_type -> thunder.v1.GetBestSidechainBlockHashResponse
-	31, // 38: thunder.v1.ThunderService.GetBmmInclusions:output_type -> thunder.v1.GetBmmInclusionsResponse
-	33, // 39: thunder.v1.ThunderService.GetWalletUtxos:output_type -> thunder.v1.GetWalletUtxosResponse
-	35, // 40: thunder.v1.ThunderService.ListUtxos:output_type -> thunder.v1.ListUtxosResponse
-	37, // 41: thunder.v1.ThunderService.RemoveFromMempool:output_type -> thunder.v1.RemoveFromMempoolResponse
-	39, // 42: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:output_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightResponse
-	41, // 43: thunder.v1.ThunderService.GenerateMnemonic:output_type -> thunder.v1.GenerateMnemonicResponse
-	43, // 44: thunder.v1.ThunderService.SetSeedFromMnemonic:output_type -> thunder.v1.SetSeedFromMnemonicResponse
-	45, // 45: thunder.v1.ThunderService.CallRaw:output_type -> thunder.v1.CallRawResponse
-	23, // [23:46] is the sub-list for method output_type
-	0,  // [0:23] is the sub-list for method input_type
-	0,  // [0:0] is the sub-list for extension type_name
-	0,  // [0:0] is the sub-list for extension extendee
-	0,  // [0:0] is the sub-list for field type_name
+	48, // 0: thunder.v1.ListWalletTransactionsResponse.transactions:type_name -> thunder.v1.SidechainWalletTransaction
+	0,  // 1: thunder.v1.ThunderService.GetBalance:input_type -> thunder.v1.GetBalanceRequest
+	2,  // 2: thunder.v1.ThunderService.GetBlockCount:input_type -> thunder.v1.GetBlockCountRequest
+	4,  // 3: thunder.v1.ThunderService.Stop:input_type -> thunder.v1.StopRequest
+	6,  // 4: thunder.v1.ThunderService.GetNewAddress:input_type -> thunder.v1.GetNewAddressRequest
+	8,  // 5: thunder.v1.ThunderService.Withdraw:input_type -> thunder.v1.WithdrawRequest
+	10, // 6: thunder.v1.ThunderService.Transfer:input_type -> thunder.v1.TransferRequest
+	12, // 7: thunder.v1.ThunderService.GetSidechainWealth:input_type -> thunder.v1.GetSidechainWealthRequest
+	14, // 8: thunder.v1.ThunderService.CreateDeposit:input_type -> thunder.v1.CreateDepositRequest
+	16, // 9: thunder.v1.ThunderService.GetPendingWithdrawalBundle:input_type -> thunder.v1.GetPendingWithdrawalBundleRequest
+	18, // 10: thunder.v1.ThunderService.ConnectPeer:input_type -> thunder.v1.ConnectPeerRequest
+	20, // 11: thunder.v1.ThunderService.ListPeers:input_type -> thunder.v1.ListPeersRequest
+	22, // 12: thunder.v1.ThunderService.Mine:input_type -> thunder.v1.MineRequest
+	24, // 13: thunder.v1.ThunderService.GetBlock:input_type -> thunder.v1.GetBlockRequest
+	26, // 14: thunder.v1.ThunderService.GetBestMainchainBlockHash:input_type -> thunder.v1.GetBestMainchainBlockHashRequest
+	28, // 15: thunder.v1.ThunderService.GetBestSidechainBlockHash:input_type -> thunder.v1.GetBestSidechainBlockHashRequest
+	30, // 16: thunder.v1.ThunderService.GetBmmInclusions:input_type -> thunder.v1.GetBmmInclusionsRequest
+	32, // 17: thunder.v1.ThunderService.GetWalletUtxos:input_type -> thunder.v1.GetWalletUtxosRequest
+	34, // 18: thunder.v1.ThunderService.ListUtxos:input_type -> thunder.v1.ListUtxosRequest
+	36, // 19: thunder.v1.ThunderService.RemoveFromMempool:input_type -> thunder.v1.RemoveFromMempoolRequest
+	38, // 20: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:input_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightRequest
+	40, // 21: thunder.v1.ThunderService.GenerateMnemonic:input_type -> thunder.v1.GenerateMnemonicRequest
+	42, // 22: thunder.v1.ThunderService.SetSeedFromMnemonic:input_type -> thunder.v1.SetSeedFromMnemonicRequest
+	44, // 23: thunder.v1.ThunderService.CallRaw:input_type -> thunder.v1.CallRawRequest
+	46, // 24: thunder.v1.ThunderService.ListWalletTransactions:input_type -> thunder.v1.ListWalletTransactionsRequest
+	1,  // 25: thunder.v1.ThunderService.GetBalance:output_type -> thunder.v1.GetBalanceResponse
+	3,  // 26: thunder.v1.ThunderService.GetBlockCount:output_type -> thunder.v1.GetBlockCountResponse
+	5,  // 27: thunder.v1.ThunderService.Stop:output_type -> thunder.v1.StopResponse
+	7,  // 28: thunder.v1.ThunderService.GetNewAddress:output_type -> thunder.v1.GetNewAddressResponse
+	9,  // 29: thunder.v1.ThunderService.Withdraw:output_type -> thunder.v1.WithdrawResponse
+	11, // 30: thunder.v1.ThunderService.Transfer:output_type -> thunder.v1.TransferResponse
+	13, // 31: thunder.v1.ThunderService.GetSidechainWealth:output_type -> thunder.v1.GetSidechainWealthResponse
+	15, // 32: thunder.v1.ThunderService.CreateDeposit:output_type -> thunder.v1.CreateDepositResponse
+	17, // 33: thunder.v1.ThunderService.GetPendingWithdrawalBundle:output_type -> thunder.v1.GetPendingWithdrawalBundleResponse
+	19, // 34: thunder.v1.ThunderService.ConnectPeer:output_type -> thunder.v1.ConnectPeerResponse
+	21, // 35: thunder.v1.ThunderService.ListPeers:output_type -> thunder.v1.ListPeersResponse
+	23, // 36: thunder.v1.ThunderService.Mine:output_type -> thunder.v1.MineResponse
+	25, // 37: thunder.v1.ThunderService.GetBlock:output_type -> thunder.v1.GetBlockResponse
+	27, // 38: thunder.v1.ThunderService.GetBestMainchainBlockHash:output_type -> thunder.v1.GetBestMainchainBlockHashResponse
+	29, // 39: thunder.v1.ThunderService.GetBestSidechainBlockHash:output_type -> thunder.v1.GetBestSidechainBlockHashResponse
+	31, // 40: thunder.v1.ThunderService.GetBmmInclusions:output_type -> thunder.v1.GetBmmInclusionsResponse
+	33, // 41: thunder.v1.ThunderService.GetWalletUtxos:output_type -> thunder.v1.GetWalletUtxosResponse
+	35, // 42: thunder.v1.ThunderService.ListUtxos:output_type -> thunder.v1.ListUtxosResponse
+	37, // 43: thunder.v1.ThunderService.RemoveFromMempool:output_type -> thunder.v1.RemoveFromMempoolResponse
+	39, // 44: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:output_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightResponse
+	41, // 45: thunder.v1.ThunderService.GenerateMnemonic:output_type -> thunder.v1.GenerateMnemonicResponse
+	43, // 46: thunder.v1.ThunderService.SetSeedFromMnemonic:output_type -> thunder.v1.SetSeedFromMnemonicResponse
+	45, // 47: thunder.v1.ThunderService.CallRaw:output_type -> thunder.v1.CallRawResponse
+	47, // 48: thunder.v1.ThunderService.ListWalletTransactions:output_type -> thunder.v1.ListWalletTransactionsResponse
+	25, // [25:49] is the sub-list for method output_type
+	1,  // [1:25] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_thunder_v1_thunder_proto_init() }
@@ -2242,7 +2449,7 @@ func file_thunder_v1_thunder_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_thunder_v1_thunder_proto_rawDesc), len(file_thunder_v1_thunder_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   46,
+			NumMessages:   49,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
