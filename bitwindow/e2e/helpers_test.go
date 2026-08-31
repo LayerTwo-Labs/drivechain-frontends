@@ -45,6 +45,11 @@ const (
 	// comes out on both boots iff the wallet state was persisted.
 	testWalletMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 	testWalletName     = "bitwindow-e2e-test"
+
+	// bootDeadline bounds a cold CI build and the launch that follows it, not
+	// how fast a daemon starts. A macOS runner takes over eight minutes to
+	// build the Go daemons and the Flutter app from nothing.
+	bootDeadline = 15 * time.Minute
 )
 
 // flutterAppProcessName returns the basename of the Flutter desktop app
