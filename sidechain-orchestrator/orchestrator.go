@@ -3470,32 +3470,36 @@ func connectJSONPost(ctx context.Context, client *http.Client, url string, out i
 	return nil
 }
 
-// GetMainchainBalance proxies getbalance + getunconfirmedbalance from bitcoind.
+// GetMainchainBalance proxies getbalances from bitcoind.
 func (o *Orchestrator) GetMainchainBalance(ctx context.Context) (*MainchainBalance, error) {
 	client, err := o.CoreStatusClient()
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := client.call(ctx, "getbalance")
+	result, err := client.call(ctx, "getbalances")
 	if err != nil {
-		return nil, fmt.Errorf("getbalance: %w", err)
-	}
-	var confirmed float64
-	if err := json.Unmarshal(result, &confirmed); err != nil {
-		return nil, fmt.Errorf("decode getbalance: %w", err)
+		return nil, fmt.Errorf("getbalances: %w", err)
 	}
 
-	result, err = client.call(ctx, "getunconfirmedbalance")
-	if err != nil {
-		return nil, fmt.Errorf("getunconfirmedbalance: %w", err)
+	return parseMainchainBalance(result)
+}
+
+func parseMainchainBalance(raw json.RawMessage) (*MainchainBalance, error) {
+	var balances struct {
+		Mine struct {
+			Trusted          float64 `json:"trusted"`
+			UntrustedPending float64 `json:"untrusted_pending"`
+		} `json:"mine"`
 	}
-	var unconfirmed float64
-	if err := json.Unmarshal(result, &unconfirmed); err != nil {
-		return nil, fmt.Errorf("decode getunconfirmedbalance: %w", err)
+	if err := json.Unmarshal(raw, &balances); err != nil {
+		return nil, fmt.Errorf("decode getbalances: %w", err)
 	}
 
-	return &MainchainBalance{Confirmed: confirmed, Unconfirmed: unconfirmed}, nil
+	return &MainchainBalance{
+		Confirmed:   balances.Mine.Trusted,
+		Unconfirmed: balances.Mine.UntrustedPending,
+	}, nil
 }
 
 // CoreStatusClient builds a CoreStatusClient from the current config.
