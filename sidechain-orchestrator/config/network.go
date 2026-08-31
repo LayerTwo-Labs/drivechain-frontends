@@ -250,6 +250,21 @@ func EsploraURLsForNetwork(n Network) []string {
 // ThunderEsploraURLForNetwork returns the thunder address index for a network,
 // or an empty string when none is hosted. A thunder node keeps no address
 // history of its own, so a wallet reads it here instead.
+// DrivechainIndexURLForNetwork names the index that reads the sidechain escrow
+// for a network.
+//
+// The escrow belongs to the mainchain, not to any one sidechain, so it does not
+// sit under a chain path. A network with no index answers empty, and a light
+// install there reads no sidechains.
+func DrivechainIndexURLForNetwork(n Network) string {
+	switch n {
+	case NetworkECash:
+		return "https://seed.alpha.ecash.eu.com/drivechain"
+	default:
+		return ""
+	}
+}
+
 func ThunderEsploraURLForNetwork(n Network) string {
 	switch n {
 	case NetworkECash:

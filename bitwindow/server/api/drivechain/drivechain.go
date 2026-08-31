@@ -13,6 +13,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/drivechain/v1/drivechainv1connect"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
+	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	commonpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	validatorpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -90,6 +91,12 @@ type Server struct {
 func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[pb.ListSidechainProposalsRequest]) (*connect.Response[pb.ListSidechainProposalsResponse], error) {
 	log := zerolog.Ctx(ctx)
 
+	// A proposal is escrow state. With no enforcer there are none to show, and
+	// an error here would empty the sidechain list beside it.
+	if s.readsNoEscrow(ctx) {
+		return connect.NewResponse(&pb.ListSidechainProposalsResponse{}), nil
+	}
+
 	// Get current block hash to check cache validity
 	chainTipResp, err := s.data.ChainTip(ctx, &validatorpb.GetChainTipRequest{})
 	if err != nil {
@@ -158,6 +165,17 @@ func (s *Server) ListSidechainProposals(ctx context.Context, c *connect.Request[
 // Uses caching to avoid repeated enforcer calls for GetCtip on every sidechain.
 func (s *Server) ListSidechains(ctx context.Context, _ *connect.Request[pb.ListSidechainsRequest]) (*connect.Response[pb.ListSidechainsResponse], error) {
 	log := zerolog.Ctx(ctx)
+
+	// A light install runs no enforcer, and a hosted index reads one on its
+	// behalf. Every sidechain here comes from the chain, never from a list this
+	// build carries.
+	if s.readsNoEscrow(ctx) {
+		chains, err := s.escrowFromIndex(ctx)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeUnavailable, err)
+		}
+		return connect.NewResponse(&pb.ListSidechainsResponse{Sidechains: chains}), nil
+	}
 
 	// Get current block hash to check cache validity
 	chainTipResp, err := s.data.ChainTip(ctx, &validatorpb.GetChainTipRequest{})
@@ -341,6 +359,11 @@ func (s *Server) ListWithdrawals(
 	c *connect.Request[pb.ListWithdrawalsRequest],
 ) (*connect.Response[pb.ListWithdrawalsResponse], error) {
 	log := zerolog.Ctx(ctx)
+
+	// A withdrawal is escrow state, and no enforcer holds it here.
+	if s.readsNoEscrow(ctx) {
+		return connect.NewResponse(&pb.ListWithdrawalsResponse{}), nil
+	}
 
 	sidechainId := c.Msg.SidechainId
 
@@ -618,4 +641,30 @@ func (s *Server) ListRecentActions(
 	_ *connect.Request[pb.ListRecentActionsRequest],
 ) (*connect.Response[pb.ListRecentActionsResponse], error) {
 	return connect.NewResponse(&pb.ListRecentActionsResponse{}), nil
+}
+
+// readsNoEscrow is true when no enforcer answers, so no BIP300 state exists to
+// read. Every drivechain read answers what it can rather than failing, or one
+// unreadable call empties the whole page.
+func (s *Server) readsNoEscrow(ctx context.Context) bool {
+	return s.walletEngine != nil && !s.walletEngine.NodeMode().RunsLocalNode(ctx)
+}
+
+// escrowFromIndex reads the sidechain escrow through a hosted index. A network
+// with no index has no source, and says so rather than inventing a list.
+func (s *Server) escrowFromIndex(ctx context.Context) ([]*pb.ListSidechainsResponse_Sidechain, error) {
+	network, known := orchconfig.LookupNetwork(string(s.conf.BitcoinCoreNetwork))
+	if !known {
+		return nil, fmt.Errorf("the network %q is not known", s.conf.BitcoinCoreNetwork)
+	}
+	url := orchconfig.DrivechainIndexURLForNetwork(network)
+	if url == "" {
+		return nil, fmt.Errorf("light mode reads the sidechains from a hosted index, and %s has none",
+			network)
+	}
+	chains, err := newEscrowIndex(url).Sidechains(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("read the sidechains from %s: %w", url, err)
+	}
+	return chains, nil
 }
