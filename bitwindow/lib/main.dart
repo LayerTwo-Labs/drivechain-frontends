@@ -54,19 +54,12 @@ import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
+/// The accent the app wears on a network. It is the colour that network
+/// carries, so the picker and the app agree on what marks a chain.
+///
+/// A network with no colour of its own wears grey.
 Color getNetworkAccentColor(BitcoinNetwork network) {
-  switch (network) {
-    case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-      return const Color.fromARGB(255, 255, 153, 0); // Orange (current)
-    case BitcoinNetwork.BITCOIN_NETWORK_TESTNET:
-      return const Color.fromARGB(255, 34, 139, 34); // Green
-    case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
-      return const Color.fromARGB(255, 65, 105, 225); // Blue
-    case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
-      return const Color.fromARGB(255, 220, 20, 60); // Red
-    default:
-      return const Color.fromARGB(255, 128, 128, 128); // Gray
-  }
+  return network.toColor() ?? SailColorScheme.greyMiddle;
 }
 
 void main(List<String> args) async {
