@@ -367,7 +367,15 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                 value: _confProvider.currentNetworkOptionId,
                 enabled: !_confProvider.hasPrivateBitcoinConf,
                 items: _confProvider.networkOptions
-                    .map((o) => SailDropdownItem<String>(value: o.id, label: o.displayName))
+                    .map(
+                      (o) => SailDropdownItem<String>(
+                        value: o.id,
+                        child: _NetworkOptionLabel(
+                          name: o.displayName,
+                          color: _confProvider.networkFromOption(o).toColor(),
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: (String? id) async {
                   if (id != null && !_confProvider.hasPrivateBitcoinConf) {
@@ -626,4 +634,31 @@ Future<void> swapNetworkWithDatadirPrompt(
       ),
     ),
   );
+}
+
+/// One network in the picker, marked with the colour that network carries.
+/// A network with no colour of its own shows the name alone.
+class _NetworkOptionLabel extends StatelessWidget {
+  final String name;
+  final Color? color;
+
+  const _NetworkOptionLabel({required this.name, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (color != null) ...[
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+        ],
+        SailText.primary13(name),
+      ],
+    );
+  }
 }
