@@ -227,8 +227,7 @@ class _TransactionTableState extends State<TransactionTable> {
       builder: (BuildContext context, BoxConstraints constraints) {
         return SailCard(
           title: 'Wallet Transaction History',
-          titleTooltip:
-              'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
+          titleTooltip: 'This transaction list contains all your wallet transactions. Sends, receives, and sidechain-interaction transactions.',
           bottomPadding: false,
           widgetHeaderEnd: SailButton(
             label: 'Export CSV',
@@ -247,14 +246,7 @@ class _TransactionTableState extends State<TransactionTable> {
                 padding: const EdgeInsets.symmetric(
                   vertical: SailStyleValues.padding16,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    widget.searchWidget,
-                    const SizedBox(height: SailStyleValues.padding12),
-                    DateRangeFilterWidget(model: widget.model),
-                  ],
-                ),
+                child: widget.searchWidget,
               ),
               SizedBox(
                 height: 300,
@@ -268,32 +260,30 @@ class _TransactionTableState extends State<TransactionTable> {
                       headerBuilder: (context) => [
                         SailTableHeaderCell(
                           name: 'Date',
-                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('date'),
+                          filterWidget: SailTooltip(
+                            message: 'Filter by date range',
+                            child: DateFilter(model: widget.model),
+                          ),
                         ),
                         SailTableHeaderCell(
                           name: 'TXID',
-                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('txid'),
                         ),
                         SailTableHeaderCell(
                           name: 'Address',
-                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('address'),
                         ),
                         SailTableHeaderCell(
                           name: 'Note',
-                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('note'),
                         ),
                         SailTableHeaderCell(
                           name: 'Status',
-                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('status'),
                         ),
                         SailTableHeaderCell(
                           name: 'Amount',
-                          alignment: Alignment.centerLeft,
                           onSort: () => onSort('amount'),
                         ),
                         const SailTableHeaderCell(
@@ -314,29 +304,23 @@ class _TransactionTableState extends State<TransactionTable> {
                         return [
                           SailTableCell(
                             value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
-                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: '${entry.txid.substring(0, 10)}..',
                             copyValue: entry.txid,
-                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
-                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: entry.note,
-                            alignment: Alignment.centerLeft,
                           ),
                           SailTableCell(
                             value: unconfirmed ? 'Unconfirmed' : 'Confirmed',
-                            alignment: Alignment.centerLeft,
                             textColor: unconfirmed ? context.sailTheme.colors.orange : null,
                           ),
                           SailTableCell(
                             value: formattedAmount,
-                            alignment: Alignment.centerLeft,
                             monospace: true,
                           ),
                           SailTableCell(
@@ -875,6 +859,42 @@ class DateRangeFilterWidget extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class DateFilter extends StatelessWidget {
+  final OverviewViewModel model;
+
+  const DateFilter({
+    super.key,
+    required this.model,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        if (model.dateRange != null) {
+          model.setDateRange(null);
+          return;
+        }
+        final pickedRange = await showSailDateRangePicker(
+          context: context,
+          firstDate: DateTime(2009, 1, 3),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          initialRange: model.dateRange,
+        );
+
+        if (pickedRange != null) {
+          model.setDateRange(pickedRange);
+        }
+      },
+      child: SailSVG.icon(
+        width: 16,
+        model.dateRange == null ? SailSVGAsset.filter : SailSVGAsset.filterX,
+        color: model.dateRange == null ? context.sailTheme.colors.textSecondary : context.sailTheme.colors.orange,
       ),
     );
   }
