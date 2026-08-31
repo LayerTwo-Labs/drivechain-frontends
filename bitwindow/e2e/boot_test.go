@@ -15,9 +15,6 @@ import (
 func TestJustRunBootsDaemons(t *testing.T) {
 	skipIfNoDisplay(t)
 
-	// 9 minutes: Windows CI runners are slow to build + launch the Flutter app,
-	// and bitwindowd was intermittently not appearing within 6m.
-	const bootDeadline = 9 * time.Minute
 	const pollInterval = 2 * time.Second
 	const rpcDeadline = 90 * time.Second // cold macOS/Windows CI runners are slow to make drivechaind RPC-ready
 

@@ -20,7 +20,6 @@ import (
 func TestJustRunRestart(t *testing.T) {
 	skipIfNoDisplay(t)
 
-	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
 	const rpcDeadline = 90 * time.Second     // cold macOS/Windows CI runners are slow to make drivechaind RPC-ready
 	const shutdownDeadline = 3 * time.Minute // drivechaind finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s

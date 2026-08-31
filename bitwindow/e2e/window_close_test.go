@@ -20,7 +20,6 @@ import (
 func TestWindowCloseShutsDownDaemons(t *testing.T) {
 	skipIfNoDisplay(t)
 
-	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
 	// 5m: onWindowClose acks fast but drivechaind finishes a graceful bitcoind
 	// drain in the background before exiting (see RootPage.onWindowClose). On a
