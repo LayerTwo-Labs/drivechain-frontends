@@ -288,9 +288,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
       );
     }
 
-    final error = viewModel.sidechainsUnavailable
-        ? 'Sidechains need full mode. Switch it on in Settings.'
-        : viewModel.error('sidechain');
+    final error = viewModel.error('sidechain');
 
     return SailCard(
       title: 'Sidechains',
@@ -826,6 +824,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   /// Sidechains need the local enforcer, which only full mode runs. The wallet
   /// backend does not decide this — light mode with any wallet cannot serve them.
+  /// True when no enforcer runs, so no BIP300 state is readable here. The
+  /// sidechain list itself still reads, because a hosted index answers it.
   bool get sidechainsUnavailable => !NodeModeProvider.runsLocalBackends;
 
   String? _depositWalletId;
@@ -1629,7 +1629,7 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
     final isDisabled = viewModel.sidechainsUnavailable;
 
     return SailCard(
-      error: isDisabled ? 'Sidechains need full mode. Switch it on in Settings.' : null,
+      error: isDisabled ? 'Withdrawals come from the enforcer, which light mode does not run.' : null,
       bottomPadding: false,
       child: const RecentWithdrawalsTable(),
     );

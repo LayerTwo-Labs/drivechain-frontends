@@ -39,7 +39,6 @@ func TestForceKillingAppReapsDaemons(t *testing.T) {
 // waitForBoot returns the app pids once both daemons and the app are up.
 func waitForBoot(t *testing.T) []int {
 	t.Helper()
-	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
 
 	waitUntil(t, bootDeadline, bootPoll, "bitwindowd did not start", func() bool {

@@ -42,50 +42,28 @@ func TestStartWithL1NeedsBackendsInFullMode(t *testing.T) {
 	require.Equal(t, NodeModeFull, o.NodeMode())
 }
 
-// In electrum mode a grpc-style sidechain has no local enforcer, so it must be
-// rewired to the hosted orchestrator's mainchain rather than dial localhost.
-func TestPointSidechainAtRemoteMainchainInjectsURL(t *testing.T) {
-	o := newTestOrchestrator(t) // signet
+// A light install runs no enforcer, and no hosted one exists to read the
+// mainchain from. A sidechain binary therefore cannot start, and the boot must
+// say so rather than launch a daemon that can never sync.
+func TestStartWithL1RefusesASidechainInLightMode(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
 	o.SidechainConfs = map[string]*config.SidechainConfManager{
 		"thunder": {Spec: config.SidechainConfSpec{PortStyle: "grpc"}},
 	}
-	cfg := BinaryConfig{Name: "thunder", DisplayName: "Thunder", ChainLayer: 2}
 
-	opts := StartOpts{}
-	ch := make(chan StartupProgress, 4)
-	require.True(t, o.pointSidechainAtRemoteMainchain(cfg, &opts, ch))
-	require.Contains(t, opts.TargetArgs, "--mainchain-grpc-url=https://orchestrator.signet.drivechain.info")
-}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-// A network with no hosted orchestrator can't back an electrum sidechain, so
-// the boot must fail cleanly instead of launching a doomed daemon.
-func TestPointSidechainAtRemoteMainchainFailsWithoutRemote(t *testing.T) {
-	o := newTestOrchestrator(t)
-	o.Network = string(config.NetworkRegtest)
-	o.SidechainConfs = map[string]*config.SidechainConfManager{
-		"thunder": {Spec: config.SidechainConfSpec{PortStyle: "grpc"}},
+	ch, err := o.StartWithL1(ctx, "thunder", StartOpts{})
+	require.NoError(t, err)
+
+	var failed bool
+	for p := range ch {
+		if p.Error != nil {
+			failed = true
+		}
 	}
-	cfg := BinaryConfig{Name: "thunder", DisplayName: "Thunder", ChainLayer: 2}
-
-	opts := StartOpts{}
-	ch := make(chan StartupProgress, 4)
-	require.False(t, o.pointSidechainAtRemoteMainchain(cfg, &opts, ch))
-	require.Empty(t, opts.TargetArgs)
-	require.Error(t, (<-ch).Error)
-}
-
-// zmq-style sidechains carry no mainchain-grpc-url and can't reach a remote
-// enforcer, so electrum mode must reject them rather than start them to fail.
-func TestPointSidechainAtRemoteMainchainRejectsZMQ(t *testing.T) {
-	o := newTestOrchestrator(t)
-	o.SidechainConfs = map[string]*config.SidechainConfManager{
-		"bitnames": {Spec: config.SidechainConfSpec{PortStyle: "zmq"}},
-	}
-	cfg := BinaryConfig{Name: "bitnames", DisplayName: "BitNames", ChainLayer: 2}
-
-	opts := StartOpts{}
-	ch := make(chan StartupProgress, 4)
-	require.False(t, o.pointSidechainAtRemoteMainchain(cfg, &opts, ch))
-	require.Empty(t, opts.TargetArgs)
-	require.Error(t, (<-ch).Error)
+	require.True(t, failed, "a sidechain must not start with no mainchain to read")
+	require.False(t, o.process.IsRunning("thunder"))
 }

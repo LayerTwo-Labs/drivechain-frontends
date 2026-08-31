@@ -182,6 +182,7 @@ class _SailTableState extends State<SailTable> {
                     isSorted: _sortColumnIndex == i,
                     isAscending: _sortAscending,
                     onSort: () => _handleSort(i),
+                    filterWidget: cell.filterWidget,
                   ),
                 ),
               ),
@@ -754,6 +755,7 @@ class SailTableHeaderCell extends StatelessWidget {
     this.onSort,
     this.isSorted = false,
     this.isAscending = true,
+    this.filterWidget,
     super.key,
   });
 
@@ -763,6 +765,7 @@ class SailTableHeaderCell extends StatelessWidget {
   final VoidCallback? onSort;
   final bool isSorted;
   final bool isAscending;
+  final Widget? filterWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -776,24 +779,29 @@ class SailTableHeaderCell extends StatelessWidget {
         padding: padding,
         alignment: alignment,
         child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Flexible(
-              child: SailText.primary12(
-                name,
-                overflow: TextOverflow.ellipsis,
-                color: theme.colors.inactiveNavText,
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: SailText.primary12(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      color: theme.colors.inactiveNavText,
+                    ),
+                  ),
+                  if (isSorted) ...[
+                    const SizedBox(width: 4),
+                    SailSVG.fromAsset(
+                      isAscending ? SailSVGAsset.arrowUp : SailSVGAsset.arrowDown,
+                      height: 10,
+                      color: theme.colors.inactiveNavText,
+                    ),
+                  ],
+                ],
               ),
             ),
-            if (isSorted) ...[
-              const SizedBox(width: 4),
-              SailSVG.fromAsset(
-                isAscending ? SailSVGAsset.arrowUp : SailSVGAsset.arrowDown,
-                height: 10,
-                color: theme.colors.inactiveNavText,
-              ),
-            ],
+            ?filterWidget,
           ],
         ),
       ),

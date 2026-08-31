@@ -148,7 +148,11 @@ type Orchestrator struct {
 	SidechainConfs map[string]*config.SidechainConfManager
 	WalletSvc      *wallet.Service   // for seed injection into sidechain/enforcer args
 	NetParams      wallet.ParamsFunc // chain params of the active network
-	Settings       *SettingsStore
+
+	// reachable names the chains that answer with no local daemon.
+	reachableMu sync.RWMutex
+	reachable   func(binaryName string) bool
+	Settings    *SettingsStore
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
 	// InitForkEngine once Core RPC is up.
@@ -751,7 +755,30 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	}
 	o.monitorsMu.Unlock()
 
+	// A chain a light install reads through an index answers with no daemon of
+	// its own. The frontend asks nothing of a chain it reads as unreachable.
+	if !status.Connected && o.reachableWithoutNode(name) {
+		status.Connected = true
+		status.Healthy = true
+		status.StartupError = ""
+		status.ConnectionError = ""
+	}
+
 	return status
+}
+
+// SetReachableWithoutNode names the chains that answer with no local daemon.
+// A light install reads a hosted index instead of running the binary.
+func (o *Orchestrator) SetReachableWithoutNode(reachable func(binaryName string) bool) {
+	o.reachableMu.Lock()
+	o.reachable = reachable
+	o.reachableMu.Unlock()
+}
+
+func (o *Orchestrator) reachableWithoutNode(name string) bool {
+	o.reachableMu.RLock()
+	defer o.reachableMu.RUnlock()
+	return o.reachable != nil && o.reachable(name)
 }
 
 // ListAll returns the status of every configured binary,
@@ -876,10 +903,12 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			return
 		}
 
-		// A sidechain under an electrum wallet has no local enforcer at :50051,
-		// so rewire it to the hosted orchestrator's mainchain service (or fail
-		// cleanly if none exists) before any start path below launches it.
-		if skipLocalL1 && !o.pointSidechainAtRemoteMainchain(config, &opts, ch) {
+		// A sidechain under a light install has no enforcer to read the
+		// mainchain from, so it cannot start. A light wallet reads its chain
+		// from an index instead, and runs no sidechain binary at all.
+		if skipLocalL1 {
+			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+			failBoot(mon, ch, "start "+config.Name, errNoMainchainForSidechain)
 			return
 		}
 
@@ -1021,38 +1050,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 }
 
 var errNoMainchainForSidechain = errors.New("this sidechain needs a local enforcer, so it runs in full mode only")
-
-// pointSidechainAtRemoteMainchain rewires a ChainLayer-2 target to a hosted
-// orchestrator's CUSF mainchain service when the active wallet is electrum,
-// which runs no local enforcer. The --mainchain-grpc-url CLI flag overrides the
-// localhost:50051 value persisted in the sidechain's conf; without it the
-// daemon dials a dead port and exits with an opaque "tcp connect error".
-// Returns false — boot already failed on ch — when the sidechain has no remote
-// mainchain to reach, so we never launch a daemon that cannot work.
-func (o *Orchestrator) pointSidechainAtRemoteMainchain(cfg BinaryConfig, opts *StartOpts, ch chan<- StartupProgress) bool {
-	fail := func() bool {
-		mon := o.getOrCreateMonitor(cfg.Name, NewHealthChecker(cfg), nil)
-		failBoot(mon, ch, "start "+cfg.Name, errNoMainchainForSidechain)
-		return false
-	}
-
-	// zmq-style sidechains (bitnames, bitassets) carry no mainchain-grpc-url and
-	// have no way to reach a remote enforcer.
-	scm := o.SidechainConfs[cfg.Name]
-	if scm == nil || scm.Spec.PortStyle != "grpc" {
-		return fail()
-	}
-
-	remote := config.RemoteOrchestratorURLForNetwork(config.Network(o.Network))
-	if remote == "" {
-		return fail()
-	}
-
-	opts.TargetArgs = append(opts.TargetArgs, "--mainchain-grpc-url="+remote)
-	o.log.Info().Str("binary", cfg.Name).Str("mainchain-grpc-url", remote).
-		Msg("electrum wallet active — pointing sidechain at remote mainchain")
-	return true
-}
 
 // injectHeadlessForForcedBackend appends --headless to opts.TargetArgs when a
 // sidechain frontend asked us to launch the real Rust backend (ForceBackend).
@@ -3367,12 +3364,8 @@ const explorerCacheTTL = 30 * time.Second
 type explorerHeightsConnection struct{ o *Orchestrator }
 
 func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64, error) {
-	// Only networks with hosted infrastructure have a public explorer. ECash
-	// lives on drivechain.dev under a per-generation host and publishes no tip
-	// endpoint at all, so building a drivechain.info URL for it just dials a
-	// name that has never existed, once per poll.
 	network := config.NetworkFromString(c.o.Network)
-	if config.RemoteOrchestratorURLForNetwork(network) == "" {
+	if !config.PublicExplorerNetwork(network) {
 		return nil, fmt.Errorf("no public explorer for %s", network)
 	}
 	// Readable names match the explorer URL slug directly.
@@ -3470,32 +3463,36 @@ func connectJSONPost(ctx context.Context, client *http.Client, url string, out i
 	return nil
 }
 
-// GetMainchainBalance proxies getbalance + getunconfirmedbalance from bitcoind.
+// GetMainchainBalance proxies getbalances from bitcoind.
 func (o *Orchestrator) GetMainchainBalance(ctx context.Context) (*MainchainBalance, error) {
 	client, err := o.CoreStatusClient()
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := client.call(ctx, "getbalance")
+	result, err := client.call(ctx, "getbalances")
 	if err != nil {
-		return nil, fmt.Errorf("getbalance: %w", err)
-	}
-	var confirmed float64
-	if err := json.Unmarshal(result, &confirmed); err != nil {
-		return nil, fmt.Errorf("decode getbalance: %w", err)
+		return nil, fmt.Errorf("getbalances: %w", err)
 	}
 
-	result, err = client.call(ctx, "getunconfirmedbalance")
-	if err != nil {
-		return nil, fmt.Errorf("getunconfirmedbalance: %w", err)
+	return parseMainchainBalance(result)
+}
+
+func parseMainchainBalance(raw json.RawMessage) (*MainchainBalance, error) {
+	var balances struct {
+		Mine struct {
+			Trusted          float64 `json:"trusted"`
+			UntrustedPending float64 `json:"untrusted_pending"`
+		} `json:"mine"`
 	}
-	var unconfirmed float64
-	if err := json.Unmarshal(result, &unconfirmed); err != nil {
-		return nil, fmt.Errorf("decode getunconfirmedbalance: %w", err)
+	if err := json.Unmarshal(raw, &balances); err != nil {
+		return nil, fmt.Errorf("decode getbalances: %w", err)
 	}
 
-	return &MainchainBalance{Confirmed: confirmed, Unconfirmed: unconfirmed}, nil
+	return &MainchainBalance{
+		Confirmed:   balances.Mine.Trusted,
+		Unconfirmed: balances.Mine.UntrustedPending,
+	}, nil
 }
 
 // CoreStatusClient builds a CoreStatusClient from the current config.

@@ -51,14 +51,12 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1/walletpsbtv1connect"
 
-	orchconfig "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchctlpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchctlrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
-	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -469,79 +467,10 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 	}
 }
 
-// buildDataSource wires the read-only DataSource. When the network has a hosted
-// orchestrator, the getters route per call to it for electrum wallets and to
-// the local clients otherwise; without a hosted instance they're always local.
-func (s *Server) buildDataSource(conf config.Config) datasource.DataSource {
-	// A runtime without a network has no remote orchestrator either, which is
-	// the state a test server starts in.
-	var remoteURL string
-	if n, known := orchconfig.LookupNetwork(string(conf.BitcoinCoreNetwork)); known {
-		remoteURL = orchconfig.RemoteOrchestratorURLForNetwork(n)
-	}
-	if remoteURL == "" || s.svcs.OrchestratorAddr == "" {
-		return datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get)
-	}
-
-	probe := newElectrumProbe(s.svcs.OrchestratorAddr, s.svcs.BitwindowDir)
-	// Short timeout: when the hosted orchestrator is down, polled reads must
-	// fail fast and surface as an error rather than freezing the UI for 30s.
-	hc := &http.Client{Timeout: 8 * time.Second}
-	return datasource.NewLocal(
-		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
-			if probe.isElectrum(ctx) {
-				return corerpc.NewBitcoinServiceClient(hc, remoteURL), nil
-			}
-			return s.Bitcoind.Get(ctx)
-		},
-		func(ctx context.Context) (validatorrpc.ValidatorServiceClient, error) {
-			if probe.isElectrum(ctx) {
-				return validatorrpc.NewValidatorServiceClient(hc, remoteURL), nil
-			}
-			return s.Enforcer.Get(ctx)
-		},
-	)
-}
-
-// electrumProbe reports whether the active wallet is electrum, caching the
-// answer briefly so per-call data-source routing doesn't hammer the
-// orchestrator. Safe for concurrent use; keeps the last-known value on error.
-type electrumProbe struct {
-	client orchrpc.WalletManagerServiceClient
-	mu     sync.Mutex
-	cached bool
-	at     time.Time
-}
-
-func newElectrumProbe(orchestratorAddr, cookieDir string) *electrumProbe {
-	return &electrumProbe{
-		client: orchrpc.NewWalletManagerServiceClient(
-			http.DefaultClient,
-			orchestratorAddr,
-			connect.WithInterceptors(localauth.Interceptor(cookieDir)),
-		),
-	}
-}
-
-func (p *electrumProbe) isElectrum(ctx context.Context) bool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if !p.at.IsZero() && time.Since(p.at) < 3*time.Second {
-		return p.cached
-	}
-	resp, err := p.client.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
-	if err != nil {
-		return p.cached
-	}
-	p.cached = false
-	for _, w := range resp.Msg.Wallets {
-		if w.Id == resp.Msg.ActiveWalletId {
-			p.cached = w.WalletType == orchpb.WalletType_WALLET_TYPE_ELECTRUM
-			break
-		}
-	}
-	p.at = time.Now()
-	return p.cached
+// buildDataSource wires the read-only DataSource. Chain and drivechain reads
+// come from the local Bitcoin Core and the local enforcer.
+func (s *Server) buildDataSource(config.Config) datasource.DataSource {
+	return datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get)
 }
 
 func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {

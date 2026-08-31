@@ -193,4 +193,13 @@ abstract final class ThunderService {
     thunderv1thunder.CallRawRequest.new,
     thunderv1thunder.CallRawResponse.new,
   );
+
+  /// Lists the wallet transaction history through the Esplora index. The node
+  /// itself keeps no address history.
+  static const listWalletTransactions = connect.Spec(
+    '/$name/ListWalletTransactions',
+    connect.StreamType.unary,
+    thunderv1thunder.ListWalletTransactionsRequest.new,
+    thunderv1thunder.ListWalletTransactionsResponse.new,
+  );
 }

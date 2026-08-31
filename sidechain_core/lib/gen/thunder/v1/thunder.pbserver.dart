@@ -44,6 +44,7 @@ abstract class ThunderServiceBase extends $pb.GeneratedService {
   $async.Future<$13.GenerateMnemonicResponse> generateMnemonic($pb.ServerContext ctx, $13.GenerateMnemonicRequest request);
   $async.Future<$13.SetSeedFromMnemonicResponse> setSeedFromMnemonic($pb.ServerContext ctx, $13.SetSeedFromMnemonicRequest request);
   $async.Future<$13.CallRawResponse> callRaw($pb.ServerContext ctx, $13.CallRawRequest request);
+  $async.Future<$13.ListWalletTransactionsResponse> listWalletTransactions($pb.ServerContext ctx, $13.ListWalletTransactionsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -70,6 +71,7 @@ abstract class ThunderServiceBase extends $pb.GeneratedService {
       case 'GenerateMnemonic': return $13.GenerateMnemonicRequest();
       case 'SetSeedFromMnemonic': return $13.SetSeedFromMnemonicRequest();
       case 'CallRaw': return $13.CallRawRequest();
+      case 'ListWalletTransactions': return $13.ListWalletTransactionsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -99,6 +101,7 @@ abstract class ThunderServiceBase extends $pb.GeneratedService {
       case 'GenerateMnemonic': return this.generateMnemonic(ctx, request as $13.GenerateMnemonicRequest);
       case 'SetSeedFromMnemonic': return this.setSeedFromMnemonic(ctx, request as $13.SetSeedFromMnemonicRequest);
       case 'CallRaw': return this.callRaw(ctx, request as $13.CallRawRequest);
+      case 'ListWalletTransactions': return this.listWalletTransactions(ctx, request as $13.ListWalletTransactionsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

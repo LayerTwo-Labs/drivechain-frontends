@@ -247,6 +247,33 @@ func EsploraURLsForNetwork(n Network) []string {
 	}
 }
 
+// ThunderEsploraURLForNetwork returns the thunder address index for a network,
+// or an empty string when none is hosted. A thunder node keeps no address
+// history of its own, so a wallet reads it here instead.
+// DrivechainIndexURLForNetwork names the index that reads the sidechain escrow
+// for a network.
+//
+// The escrow belongs to the mainchain, not to any one sidechain, so it does not
+// sit under a chain path. A network with no index answers empty, and a light
+// install there reads no sidechains.
+func DrivechainIndexURLForNetwork(n Network) string {
+	switch n {
+	case NetworkECash:
+		return "https://seed.alpha.ecash.eu.com/drivechain"
+	default:
+		return ""
+	}
+}
+
+func ThunderEsploraURLForNetwork(n Network) string {
+	switch n {
+	case NetworkECash:
+		return "https://seed.alpha.ecash.eu.com/thunder"
+	default:
+		return ""
+	}
+}
+
 // SplitCheckEsploraURLs returns the public BTC-mainnet esplora servers the
 // split engine reads, primary first.
 func SplitCheckEsploraURLs() []string {
@@ -323,44 +350,20 @@ func splitElectrumURL(raw string) (string, uint16) {
 	return u.Scheme + "://" + u.Hostname(), uint16(port)
 }
 
-// RemoteOrchestratorURLForNetwork returns the URL of a hosted, read-only
-// orchestrator for a given network. Electrum wallets run no local Core or
-// enforcer, so they read chain/BIP300 state from this remote instance while
-// signing and broadcasting locally. Mirrors node.<network>.drivechain.info.
-// Networks without a hosted instance return "".
-func RemoteOrchestratorURLForNetwork(n Network) string {
-	switch n {
-	case NetworkSignet:
-		return "https://orchestrator.signet.drivechain.info"
-	case NetworkForknet:
-		return "https://orchestrator.forknet.drivechain.info"
-	default:
-		return ""
-	}
+// PublicExplorerNetwork reports whether drivechain.info hosts a chain-tip
+// explorer for a network. eCash lives on drivechain.dev under a per-generation
+// host and publishes no tip endpoint, so a poll there dials a name that never
+// existed.
+func PublicExplorerNetwork(n Network) bool {
+	return n == NetworkSignet || n == NetworkForknet
 }
 
 // ElectrumWalletSupportedForNetwork reports whether a network can run electrum
 // wallets. The wallet signs and broadcasts over Esplora, so an Esplora backend
-// is all it needs. Drivechain reads (sidechains/BIP300) additionally require a
-// hosted orchestrator (RemoteOrchestratorURLForNetwork) and are gated
-// separately; mainnet has Esplora but no orchestrator, so it runs wallet-only.
+// is all it needs. Drivechain reads (sidechains, BIP300) come from a local
+// enforcer, and a network with no local stack answers none of them.
 func ElectrumWalletSupportedForNetwork(n Network) bool {
 	return EsploraURLForNetwork(n) != ""
-}
-
-// RemoteBitwindowURLForNetwork returns the URL of a hosted, read-only
-// bitwindowd for a given network. Companion to
-// RemoteOrchestratorURLForNetwork for the bitwindow-side read RPCs (news,
-// explorer, address book, stats). Networks without a hosted instance return "".
-func RemoteBitwindowURLForNetwork(n Network) string {
-	switch n {
-	case NetworkSignet:
-		return "https://bitwindow.signet.drivechain.info"
-	case NetworkForknet:
-		return "https://bitwindow.forknet.drivechain.info"
-	default:
-		return ""
-	}
 }
 
 // CoreSection returns the Bitcoin Core config section name for this network.

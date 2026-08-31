@@ -143,7 +143,56 @@ class ThunderLive extends ThunderRPC {
   }
 
   @override
-  Future<List<CoreTransaction>> listTransactions() async => [];
+  Future<List<CoreTransaction>> listTransactions() async {
+    final resp = await _client.listWalletTransactions(pb.ListWalletTransactionsRequest());
+    // The tip travels with the history. Light mode runs no node to ask.
+    return resp.transactions.map((tx) => _toCoreTransaction(tx, resp.tipHeight)).toList();
+  }
+
+  CoreTransaction _toCoreTransaction(pb.SidechainWalletTransaction tx, int tip) {
+    final sats = tx.valueSats.toInt();
+    final height = tx.blockHeight;
+    // Full mode reads the node, which records no height for a coin. A
+    // confirmed entry with no height counts as one confirmation, not as the
+    // whole chain.
+    final confirmations = !tx.confirmed ? 0 : (height > 0 && tip >= height ? tip - height + 1 : 1);
+    // A chain records no time for some coins, and a mempool entry has none
+    // yet. Such an entry keeps zero rather than a time that moves on every
+    // refresh, and the table shows that it has no date.
+    final blockTime = tx.blockTime.toInt();
+    final time = blockTime > 0 ? DateTime.fromMillisecondsSinceEpoch(blockTime * 1000) : DateTime.now();
+    return CoreTransaction(
+      address: '',
+      category: sats < 0 ? 'send' : 'receive',
+      // The table converts this to BTC itself, so it holds satoshis.
+      amount: sats.toDouble(),
+      label: '',
+      vout: tx.vout,
+      fee: satoshiToBTC(tx.feeSats.toInt()),
+      confirmations: confirmations,
+      trusted: tx.confirmed,
+      blockhash: '',
+      blockindex: 0,
+      blocktime: blockTime,
+      txid: tx.txid,
+      time: time,
+      timereceived: time,
+      comment: '',
+      bip125Replaceable: 'no',
+      abandoned: false,
+      // Two CoreTransactions compare on raw alone. A txid alone would make a
+      // confirmed entry equal its own pending form, and the table would then
+      // keep the stale row.
+      raw: jsonEncode({
+        'txid': tx.txid,
+        'value_sats': sats,
+        'confirmations': confirmations,
+        'confirmed': tx.confirmed,
+        'block_height': height,
+        'block_time': blockTime,
+      }),
+    );
+  }
 
   @override
   Future<String> withdraw(String address, int amountSats, int sidechainFeeSats, int mainchainFeeSats) async {

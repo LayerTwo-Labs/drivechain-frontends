@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -285,6 +286,26 @@ extension NetworkExtensions on BitcoinNetwork {
       case BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED || BitcoinNetwork.BITCOIN_NETWORK_UNKNOWN:
       default:
         return 'Unknown';
+    }
+  }
+
+  /// The colour that marks this network, so a user reads at a glance which
+  /// chain the app runs against.
+  ///
+  /// A network with no colour of its own answers null, and a caller then
+  /// renders it in the plain text colour.
+  Color? toColor() {
+    switch (this) {
+      case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
+        return SailColorScheme.orange;
+      case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
+        return SailColorScheme.red;
+      case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
+        return SailColorScheme.blue;
+      case BitcoinNetwork.BITCOIN_NETWORK_REGTEST:
+        return SailColorScheme.greyMiddle;
+      default:
+        return null;
     }
   }
 }

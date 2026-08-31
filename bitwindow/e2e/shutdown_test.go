@@ -16,7 +16,6 @@ import (
 func TestJustRunShutsDownDaemons(t *testing.T) {
 	skipIfNoDisplay(t)
 
-	const bootDeadline = 9 * time.Minute
 	const bootPoll = 2 * time.Second
 	const shutdownDeadline = 3 * time.Minute // drivechaind finishes a ~90s graceful bitcoind drain; slow macOS runners exceed 90s
 	const shutdownPoll = 500 * time.Millisecond
