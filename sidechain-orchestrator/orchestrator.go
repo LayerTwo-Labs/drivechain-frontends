@@ -910,6 +910,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		o.prepareCoreArgs(&opts)
 		o.prepareEnforcerArgs(&opts)
 		o.injectSidechainStarter(config, &opts)
+		o.prepareSidechainArgs(config, &opts)
 		o.injectHeadlessForForcedBackend(config, &opts)
 
 		// Electrum: skip the local L1 boot entirely and start the target alone.
@@ -1052,6 +1053,46 @@ func (o *Orchestrator) pointSidechainAtRemoteMainchain(cfg BinaryConfig, opts *S
 	o.log.Info().Str("binary", cfg.Name).Str("mainchain-grpc-url", remote).
 		Msg("electrum wallet active — pointing sidechain at remote mainchain")
 	return true
+}
+
+// prepareSidechainArgs appends a sidechain's own config as CLI flags.
+//
+// The daemon reads its own datadir, never the conf the orchestrator writes, so
+// without this it starts on its default ports and never listens for a peer.
+// A flag already on the command line wins, because an earlier step set it for
+// a reason.
+func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) {
+	if cfg.ChainLayer != 2 || cfg.IsBitcoinCore {
+		return
+	}
+	scm := o.SidechainConfs[cfg.Name]
+	if scm == nil {
+		return
+	}
+	var added []string
+	for _, arg := range scm.GetCliArgs() {
+		if hasCLIFlag(opts.TargetArgs, arg) {
+			continue
+		}
+		opts.TargetArgs = append(opts.TargetArgs, arg)
+		added = append(added, arg)
+	}
+	if len(added) > 0 {
+		o.log.Info().Str("binary", cfg.Name).Strs("args", added).
+			Msg("auto-built sidechain args from config")
+	}
+}
+
+// hasCLIFlag reports whether args already carries the flag name that arg sets.
+func hasCLIFlag(args []string, arg string) bool {
+	name, _, _ := strings.Cut(arg, "=")
+	for _, have := range args {
+		haveName, _, _ := strings.Cut(have, "=")
+		if haveName == name {
+			return true
+		}
+	}
+	return false
 }
 
 // injectHeadlessForForcedBackend appends --headless to opts.TargetArgs when a
@@ -1284,6 +1325,7 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 		default:
 			o.injectSidechainStarter(config, &opts)
+			o.prepareSidechainArgs(config, &opts)
 			o.injectHeadlessForForcedBackend(config, &opts)
 			// startTargetOnly emits its own "done" event.
 			o.startTargetOnly(ctx, config, opts, ch, nil)

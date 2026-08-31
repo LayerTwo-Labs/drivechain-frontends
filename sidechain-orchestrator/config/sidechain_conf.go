@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -193,10 +194,17 @@ func (m *SidechainConfManager) GetCliArgs() []string {
 		skipped[k] = true
 	}
 
-	for key, value := range m.Config.Settings {
+	keys := make([]string, 0, len(m.Config.Settings))
+	for key := range m.Config.Settings {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
 		if skipped[key] {
 			continue
 		}
+		value := m.Config.Settings[key]
 		switch value {
 		case "true":
 			args = append(args, fmt.Sprintf("--%s", key))
