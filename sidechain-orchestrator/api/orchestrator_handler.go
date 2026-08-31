@@ -33,10 +33,22 @@ var _ rpc.OrchestratorServiceHandler = new(Handler)
 // Handler implements the OrchestratorService gRPC handler.
 type Handler struct {
 	orch *orchestrator.Orchestrator
+	// thunderBalance answers the thunder balance whatever wallet mode runs.
+	// Light mode starts no thunder node, so nothing may dial one here.
+	thunderBalance SidechainBalanceFunc
 }
+
+// SidechainBalanceFunc reads one sidechain balance, in sats.
+type SidechainBalanceFunc func(ctx context.Context) (total, available int64, err error)
 
 func NewHandler(orch *orchestrator.Orchestrator) *Handler {
 	return &Handler{orch: orch}
+}
+
+// SetThunderBalance names the reader that answers the thunder balance. It is
+// the same wallet the thunder RPCs use, so both modes agree.
+func (h *Handler) SetThunderBalance(read SidechainBalanceFunc) {
+	h.thunderBalance = read
 }
 
 func (h *Handler) ListBinaries(ctx context.Context, req *connect.Request[pb.ListBinariesRequest]) (*connect.Response[pb.ListBinariesResponse], error) {
@@ -652,6 +664,14 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, port int) (confirmedSats, pendingSats int64, err error) {
 	switch binary {
 	case pb.BinaryType_BINARY_TYPE_THUNDER:
+		if h.thunderBalance != nil {
+			total, available, err := h.thunderBalance(ctx)
+			if err != nil {
+				return 0, 0, err
+			}
+			confirmed, pending := balanceFromTotalAvailable(total, available)
+			return confirmed, pending, nil
+		}
 		resp, err := thunder.NewClient("localhost", port).Balance(ctx)
 		if err != nil {
 			return 0, 0, err

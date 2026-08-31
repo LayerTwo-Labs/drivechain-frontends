@@ -247,6 +247,18 @@ func EsploraURLsForNetwork(n Network) []string {
 	}
 }
 
+// ThunderEsploraURLForNetwork returns the thunder address index for a network,
+// or an empty string when none is hosted. A thunder node keeps no address
+// history of its own, so a wallet reads it here instead.
+func ThunderEsploraURLForNetwork(n Network) string {
+	switch n {
+	case NetworkECash:
+		return "https://seed.alpha.ecash.eu.com/thunder"
+	default:
+		return ""
+	}
+}
+
 // SplitCheckEsploraURLs returns the public BTC-mainnet esplora servers the
 // split engine reads, primary first.
 func SplitCheckEsploraURLs() []string {

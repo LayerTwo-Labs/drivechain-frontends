@@ -18,6 +18,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/rs/zerolog"
+	bip39 "github.com/tyler-smith/go-bip39"
 	"github.com/urfave/cli/v2"
 
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
@@ -110,6 +111,11 @@ func main() {
 				Usage:   "write a per-session cookie token to <bitwindow-dir>/.auth.cookie and require it on every RPC (bitcoind-style local auth)",
 				Value:   true,
 				EnvVars: []string{"ORCHESTRATOR_LOCAL_AUTH"},
+			},
+			&cli.StringFlag{
+				Name:    "thunder-esplora-url",
+				Usage:   "address of a thunder esplora index, which serves the wallet transaction history the node itself does not keep (default: the hosted index for the network)",
+				EnvVars: []string{"ORCHESTRATOR_THUNDER_ESPLORA_URL"},
 			},
 			&cli.StringSliceFlag{
 				Name:    "binary",
@@ -584,9 +590,48 @@ func run(cctx *cli.Context) error {
 		proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
 		switch name {
 		case "thunder":
-			h := thundersvc.NewHandler(proxy)
-			path, handler := thunderrpc.NewThunderServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			// Light mode runs no local node, so the history comes from the
+			// hosted index. Full mode reads its own node instead, which keeps
+			// the wallet addresses off a third party. A flag overrides both.
+			//
+			// This resolves per request, because a network swap and a wallet
+			// mode change both move the answer while the process runs.
+			indexOverride := cctx.String("thunder-esplora-url")
+			thunderCfg, thunderName := cfg, name
+			thunderMode := func() thundersvc.Mode {
+				// One read of the network decides both answers, so a swap
+				// between them cannot send one network's addresses to another
+				// network's index.
+				network := config.Network(orch.CurrentNetwork())
+				light := orchestrator.NodeModeForNetwork(
+					orchestrator.ReadNodeMode(orch.BitwindowDir), network,
+				) == orchestrator.NodeModeLight
+
+				url := indexOverride
+				if url == "" && light {
+					url = config.ThunderEsploraURLForNetwork(network)
+				}
+				return thundersvc.NewMode(light, url, orch.NetParams.Resolve())
+			}
+			// A light install runs no thunder binary, so the frontend must
+			// still read the chain as reachable, or it asks nothing of it.
+			orch.SetReachableWithoutNode(func(binaryName string) bool {
+				return binaryName == thunderName && !thunderMode().LocalNode
+			})
+			h := thundersvc.NewHandlerWithSeed(proxy, thunderMode, func() ([]byte, error) {
+				mnemonic, err := orch.WalletSvc.GetOrDeriveSidechainStarter(
+					thunderCfg.Slot, thunderCfg.DisplayName,
+				)
+				if err != nil {
+					return nil, err
+				}
+				return bip39.NewSeed(mnemonic, ""), nil
+			})
+			path, thunderHandler := thunderrpc.NewThunderServiceHandler(h, connect.WithInterceptors(authIC))
+			mux.Handle(path, thunderHandler)
+			// The sidechain balance the frontend reads must come from the same
+			// wallet, because light mode starts no thunder node to dial.
+			handler.SetThunderBalance(h.WalletBalance)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitnames":
 			h := bitnamessvc.NewHandler(proxy)
