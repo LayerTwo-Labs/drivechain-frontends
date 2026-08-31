@@ -903,10 +903,12 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			return
 		}
 
-		// A sidechain under an electrum wallet has no local enforcer at :50051,
-		// so rewire it to the hosted orchestrator's mainchain service (or fail
-		// cleanly if none exists) before any start path below launches it.
-		if skipLocalL1 && !o.pointSidechainAtRemoteMainchain(config, &opts, ch) {
+		// A sidechain under a light install has no enforcer to read the
+		// mainchain from, so it cannot start. A light wallet reads its chain
+		// from an index instead, and runs no sidechain binary at all.
+		if skipLocalL1 {
+			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+			failBoot(mon, ch, "start "+config.Name, errNoMainchainForSidechain)
 			return
 		}
 
@@ -1048,38 +1050,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 }
 
 var errNoMainchainForSidechain = errors.New("this sidechain needs a local enforcer, so it runs in full mode only")
-
-// pointSidechainAtRemoteMainchain rewires a ChainLayer-2 target to a hosted
-// orchestrator's CUSF mainchain service when the active wallet is electrum,
-// which runs no local enforcer. The --mainchain-grpc-url CLI flag overrides the
-// localhost:50051 value persisted in the sidechain's conf; without it the
-// daemon dials a dead port and exits with an opaque "tcp connect error".
-// Returns false — boot already failed on ch — when the sidechain has no remote
-// mainchain to reach, so we never launch a daemon that cannot work.
-func (o *Orchestrator) pointSidechainAtRemoteMainchain(cfg BinaryConfig, opts *StartOpts, ch chan<- StartupProgress) bool {
-	fail := func() bool {
-		mon := o.getOrCreateMonitor(cfg.Name, NewHealthChecker(cfg), nil)
-		failBoot(mon, ch, "start "+cfg.Name, errNoMainchainForSidechain)
-		return false
-	}
-
-	// zmq-style sidechains (bitnames, bitassets) carry no mainchain-grpc-url and
-	// have no way to reach a remote enforcer.
-	scm := o.SidechainConfs[cfg.Name]
-	if scm == nil || scm.Spec.PortStyle != "grpc" {
-		return fail()
-	}
-
-	remote := config.RemoteOrchestratorURLForNetwork(config.Network(o.Network))
-	if remote == "" {
-		return fail()
-	}
-
-	opts.TargetArgs = append(opts.TargetArgs, "--mainchain-grpc-url="+remote)
-	o.log.Info().Str("binary", cfg.Name).Str("mainchain-grpc-url", remote).
-		Msg("electrum wallet active — pointing sidechain at remote mainchain")
-	return true
-}
 
 // injectHeadlessForForcedBackend appends --headless to opts.TargetArgs when a
 // sidechain frontend asked us to launch the real Rust backend (ForceBackend).
@@ -3394,12 +3364,8 @@ const explorerCacheTTL = 30 * time.Second
 type explorerHeightsConnection struct{ o *Orchestrator }
 
 func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64, error) {
-	// Only networks with hosted infrastructure have a public explorer. ECash
-	// lives on drivechain.dev under a per-generation host and publishes no tip
-	// endpoint at all, so building a drivechain.info URL for it just dials a
-	// name that has never existed, once per poll.
 	network := config.NetworkFromString(c.o.Network)
-	if config.RemoteOrchestratorURLForNetwork(network) == "" {
+	if !config.PublicExplorerNetwork(network) {
 		return nil, fmt.Errorf("no public explorer for %s", network)
 	}
 	// Readable names match the explorer URL slug directly.

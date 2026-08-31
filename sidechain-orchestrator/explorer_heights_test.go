@@ -25,7 +25,7 @@ func TestExplorerHeightsSkipsNetworksWithoutHostedInfra(t *testing.T) {
 	}
 
 	// Signet does have one, so it must not be skipped.
-	if config.RemoteOrchestratorURLForNetwork(config.NetworkSignet) == "" {
-		t.Error("signet is expected to have hosted infrastructure")
+	if !config.PublicExplorerNetwork(config.NetworkSignet) {
+		t.Error("signet is expected to have a public explorer")
 	}
 }
