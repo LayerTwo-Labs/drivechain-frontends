@@ -1061,6 +1061,40 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	)
 }
 
+// NextBlockFeeRate asks Core what a transaction pays per vByte to enter the
+// next block. It is the floor a BMM bid opens at, because a miner leaves a
+// cheaper bid in the mempool and the engine raises only against a competitor.
+func (o *Orchestrator) NextBlockFeeRate(ctx context.Context) (float64, error) {
+	if o.BitcoinConf == nil {
+		return 0, fmt.Errorf("no bitcoin config")
+	}
+	user, password, err := o.BitcoinConf.GetRPCCredentials()
+	if err != nil {
+		return 0, fmt.Errorf("core rpc credentials: %w", err)
+	}
+	rpc := wallet.NewCoreRPCClient(wallet.StaticCoreEndpoint(
+		o.BitcoinConf.GetRPCHost(), o.BitcoinConf.GetRPCPort(), user, password,
+	))
+	estimate, estimateErr := rpc.EstimateSmartFee(ctx, 1)
+	relay, relayErr := rpc.MempoolMinFeeRate(ctx)
+	if estimateErr != nil && relayErr != nil {
+		return 0, estimateErr
+	}
+	return highestFeeRate(estimate, relay), nil
+}
+
+// highestFeeRate picks the rate a bid pays, so a node with a raised
+// minrelaytxfee never opens below what it relays.
+func highestFeeRate(rates ...float64) float64 {
+	highest := 0.0
+	for _, rate := range rates {
+		if rate > highest {
+			highest = rate
+		}
+	}
+	return highest
+}
+
 var errSidechainNetworkUnknown = errors.New("this sidechain has no network of its own for the mainchain the node runs, so it cannot start")
 
 // prepareSidechainArgs appends a sidechain's own config as CLI flags.
