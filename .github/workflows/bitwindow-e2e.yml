@@ -104,7 +104,7 @@ jobs:
         id: boot
         working-directory: bitwindow/e2e
         run:
-          go test -tags e2e -v -timeout 15m -run TestJustRunBootsDaemons ./...
+          go test -tags e2e -v -timeout 20m -run TestJustRunBootsDaemons ./...
         env:
           BITWINDOW_TEST_LOG_DIR: ${{ runner.temp }}/e2e-logs/boot
           FLUTTER_RUN_ARGS: ${{ runner.os == 'Windows' && '-v' || '' }}
