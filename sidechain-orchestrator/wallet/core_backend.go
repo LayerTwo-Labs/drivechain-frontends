@@ -153,7 +153,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	// failure here shouldn't break wallet loading — the backend will retry
 	// next time Ensure runs.
 	if targetWallet.WalletType == WalletTypeBitcoinCore && !targetWallet.IsWatchOnly() {
-		if perr := p.ensureBip47NotificationDescriptor(ctx, walletName, targetWallet.Master.SeedHex); perr != nil {
+		if perr := p.ensureBip47NotificationDescriptor(ctx, walletID, walletName, targetWallet.Master.SeedHex); perr != nil {
 			p.log.Warn().Err(perr).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
 			p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
 		}
@@ -1074,18 +1074,32 @@ func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error)
 // ============================================================================
 
 // ensureBip47NotificationDescriptor imports the wallet's BIP47 notification
-// P2PKH key (m/47'/0'/0'/0) into Core if not already present. Uses
-// timestamp=0 so the first import rescans the chain from genesis and picks
-// up historic notification txs; subsequent imports are no-ops because Core
-// recognizes the descriptor as already known.
-func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, walletName, seedHex string) error {
+// P2PKH key (m/47'/0'/0'/0) into Core. The import rescans from genesis, which
+// takes hours, so it runs one time for each network.
+//
+// Two signals gate it, and both are necessary. The wallet file names the
+// networks whose import landed, because Core keeps a descriptor whose rescan
+// failed and reports that address as its own with the history unread. Core
+// answers for the datadir in use, because a network switch and a restored
+// wallet file both leave the record standing over a Core wallet that lacks
+// the key.
+func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, walletID, walletName, seedHex string) error {
 	net := p.net()
 	if net == nil {
 		return nil
 	}
-	notifPriv, _, err := bip47.DeriveOwnNotificationKey(seedHex, net)
+	notifPriv, notifAddr, err := bip47.DeriveOwnNotificationKey(seedHex, net)
 	if err != nil {
 		return fmt.Errorf("derive notification key: %w", err)
+	}
+	if w := p.svc.GetWalletByID(walletID); w != nil && w.Bip47NotificationImported[net.Name] {
+		info, err := p.rpc.GetAddressInfo(ctx, walletName, notifAddr.EncodeAddress())
+		if err != nil {
+			return fmt.Errorf("read the notification address: %w", err)
+		}
+		if info.IsMine {
+			return nil
+		}
 	}
 	wif, err := btcutil.NewWIF(notifPriv, net, true)
 	if err != nil {
@@ -1110,7 +1124,7 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 		}
 		return fmt.Errorf("bip47 descriptor %d import failed: %s", i, msg)
 	}
-	return nil
+	return p.svc.MarkBip47NotificationImported(walletID, net.Name)
 }
 
 // importTimestamp is what Core rescans from. A restored seed can have history
@@ -1137,7 +1151,7 @@ func (p *CoreBackend) retryBip47NotificationDescriptor(ctx context.Context, wall
 		delete(p.bip47NotifRetry, walletID)
 		return
 	}
-	if err := p.ensureBip47NotificationDescriptor(ctx, walletName, w.Master.SeedHex); err != nil {
+	if err := p.ensureBip47NotificationDescriptor(ctx, walletID, walletName, w.Master.SeedHex); err != nil {
 		p.log.Warn().Err(err).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
 		p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
 		return

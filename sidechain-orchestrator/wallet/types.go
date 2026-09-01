@@ -58,6 +58,10 @@ type WalletData struct {
 	// descriptors with a rescan from genesis; a freshly generated seed scans
 	// from the tip.
 	Imported bool `json:"imported,omitempty"`
+	// Bip47NotificationImported names the networks whose Core wallet took the
+	// BIP47 notification key. Each network has its own bitcoind datadir, and
+	// the import rescans from genesis, so it runs one time for each.
+	Bip47NotificationImported map[string]bool `json:"bip47_notification_imported,omitempty"`
 	// Multisig, when set, makes this an m-of-n multisig wallet. Cosigners that
 	// carry a mnemonic or xprv are held on disk and can sign; the rest are
 	// watch-only legs.
