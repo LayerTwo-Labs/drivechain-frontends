@@ -597,7 +597,7 @@ func run(cctx *cli.Context) error {
 			// This resolves per request, because a network swap and a wallet
 			// mode change both move the answer while the process runs.
 			indexOverride := cctx.String("thunder-esplora-url")
-			thunderCfg, thunderName := cfg, name
+			thunderCfg := cfg
 			thunderMode := func() thundersvc.Mode {
 				// One read of the network decides both answers, so a swap
 				// between them cannot send one network's addresses to another
@@ -613,11 +613,6 @@ func run(cctx *cli.Context) error {
 				}
 				return thundersvc.NewMode(light, url, orch.NetParams.Resolve())
 			}
-			// A light install runs no thunder binary, so the frontend must
-			// still read the chain as reachable, or it asks nothing of it.
-			orch.SetReachableWithoutNode(func(binaryName string) bool {
-				return binaryName == thunderName && !thunderMode().LocalNode
-			})
 			h := thundersvc.NewHandlerWithSeed(proxy, thunderMode, func() ([]byte, error) {
 				mnemonic, err := orch.WalletSvc.GetOrDeriveSidechainStarter(
 					thunderCfg.Slot, thunderCfg.DisplayName,

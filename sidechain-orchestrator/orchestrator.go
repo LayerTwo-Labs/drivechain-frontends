@@ -149,10 +149,7 @@ type Orchestrator struct {
 	WalletSvc      *wallet.Service   // for seed injection into sidechain/enforcer args
 	NetParams      wallet.ParamsFunc // chain params of the active network
 
-	// reachable names the chains that answer with no local daemon.
-	reachableMu sync.RWMutex
-	reachable   func(binaryName string) bool
-	Settings    *SettingsStore
+	Settings *SettingsStore
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
 	// InitForkEngine once Core RPC is up.
@@ -755,30 +752,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	}
 	o.monitorsMu.Unlock()
 
-	// A chain a light install reads through an index answers with no daemon of
-	// its own. The frontend asks nothing of a chain it reads as unreachable.
-	if !status.Connected && o.reachableWithoutNode(name) {
-		status.Connected = true
-		status.Healthy = true
-		status.StartupError = ""
-		status.ConnectionError = ""
-	}
-
 	return status
-}
-
-// SetReachableWithoutNode names the chains that answer with no local daemon.
-// A light install reads a hosted index instead of running the binary.
-func (o *Orchestrator) SetReachableWithoutNode(reachable func(binaryName string) bool) {
-	o.reachableMu.Lock()
-	o.reachable = reachable
-	o.reachableMu.Unlock()
-}
-
-func (o *Orchestrator) reachableWithoutNode(name string) bool {
-	o.reachableMu.RLock()
-	defer o.reachableMu.RUnlock()
-	return o.reachable != nil && o.reachable(name)
 }
 
 // ListAll returns the status of every configured binary,
