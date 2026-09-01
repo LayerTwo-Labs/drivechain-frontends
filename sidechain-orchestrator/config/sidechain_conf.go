@@ -28,9 +28,14 @@ func SidechainConfByName(confs map[string]*SidechainConfManager, name string) *S
 // names a port group, so it never becomes a CLI flag on its own.
 const confNetworkKey = "network"
 
+// CliNetworkFlag is the flag a CUSF sidechain daemon reads for its network.
+// The launch path stops a daemon that gets no such flag, because the daemon
+// then picks its own default network.
+const CliNetworkFlag = "--" + confNetworkKey
+
 // CusfNetworkName gives the network name a CUSF sidechain daemon accepts for
 // the mainchain network n, on the eCash generation ecashID. It returns "" when
-// the daemon has no such network, and the caller then passes no flag.
+// the daemon has no such network, and the launch path then stops the daemon.
 //
 // eCash carries a generation the daemon does not model: only alphanet has a
 // name in the daemon's own enum. A generation such as drynet4 runs a build
@@ -82,8 +87,10 @@ type SidechainConfManager struct {
 	ConfigPath string
 	Spec       SidechainConfSpec
 
-	bitcoinConf *BitcoinConfManager
-	log         zerolog.Logger
+	// BitcoinConf is the mainchain conf the sidechain network follows.
+	BitcoinConf *BitcoinConfManager
+
+	log zerolog.Logger
 
 	watcher   *fsnotify.Watcher
 	watchDone chan struct{}
@@ -93,7 +100,7 @@ type SidechainConfManager struct {
 func NewSidechainConfManager(spec SidechainConfSpec, bitcoinConf *BitcoinConfManager, log zerolog.Logger) (*SidechainConfManager, error) {
 	m := &SidechainConfManager{
 		Spec:        spec,
-		bitcoinConf: bitcoinConf,
+		BitcoinConf: bitcoinConf,
 		log:         log.With().Str("component", spec.Name+"-conf").Logger(),
 	}
 	if err := m.LoadConfig(); err != nil {
@@ -245,8 +252,8 @@ func (m *SidechainConfManager) GetCliArgs() []string {
 		}
 	}
 
-	if m.bitcoinConf != nil {
-		if name := CusfNetworkName(m.bitcoinConf.Network, ECashNetworkID()); name != "" {
+	if m.BitcoinConf != nil {
+		if name := CusfNetworkName(m.BitcoinConf.Network, ECashNetworkID()); name != "" {
 			args = append(args, fmt.Sprintf("--%s=%s", confNetworkKey, name))
 		}
 	}
@@ -284,7 +291,7 @@ func (m *SidechainConfManager) WriteConfig(content string) error {
 
 // SyncNetworkFromBitcoinConf syncs network setting from Bitcoin config.
 func (m *SidechainConfManager) SyncNetworkFromBitcoinConf() error {
-	if m.Config == nil || m.bitcoinConf == nil {
+	if m.Config == nil || m.BitcoinConf == nil {
 		return nil
 	}
 
@@ -303,10 +310,10 @@ func (m *SidechainConfManager) SyncNetworkFromBitcoinConf() error {
 }
 
 func (m *SidechainConfManager) resolveNetwork() string {
-	if m.bitcoinConf == nil {
+	if m.BitcoinConf == nil {
 		return "signet"
 	}
-	switch m.bitcoinConf.Network {
+	switch m.BitcoinConf.Network {
 	case NetworkRegtest:
 		return "regtest"
 	case NetworkForknet, NetworkECash:

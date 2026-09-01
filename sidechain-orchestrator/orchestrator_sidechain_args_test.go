@@ -1,7 +1,9 @@
 package orchestrator
 
 import (
+	"errors"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -12,18 +14,41 @@ import (
 
 func thunderOrchestrator(t *testing.T, settings map[string]string) *Orchestrator {
 	t.Helper()
+	return thunderOrchestratorOn(t, config.NetworkSignet, settings)
+}
+
+// useTempHome points every conf path at a temp directory. A conf sync writes
+// the file it reads, so without this a test overwrites the user's own conf.
+func useTempHome(t *testing.T) {
+	t.Helper()
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir("") })
+}
+
+func thunderOrchestratorOn(t *testing.T, network config.Network, settings map[string]string) *Orchestrator {
+	t.Helper()
+	useTempHome(t)
 	spec, ok := config.KnownSidechainSpecs["thunder"]
 	if !ok {
 		t.Fatal("thunder is missing from the known sidechain specs")
 	}
 	return &Orchestrator{
-		log: zerolog.Nop(),
+		log:     zerolog.Nop(),
+		Network: string(network),
 		SidechainConfs: map[string]*config.SidechainConfManager{
 			"thunder": {
-				Spec:   spec,
-				Config: &config.GenericAppConfig{Settings: settings},
+				Spec:        spec,
+				Config:      &config.GenericAppConfig{Settings: settings},
+				BitcoinConf: &config.BitcoinConfManager{Network: network},
 			},
 		},
+	}
+}
+
+func prepareArgs(t *testing.T, orch *Orchestrator, cfg BinaryConfig, opts *StartOpts) {
+	t.Helper()
+	if err := orch.prepareSidechainArgs(cfg, opts); err != nil {
+		t.Fatalf("prepareSidechainArgs(%s): %v", cfg.Name, err)
 	}
 }
 
@@ -40,11 +65,12 @@ func TestPrepareSidechainArgsPassesTheConf(t *testing.T) {
 	})
 
 	var opts StartOpts
-	orch.prepareSidechainArgs(BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
+	prepareArgs(t, orch, BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
 
 	want := []string{
 		"--net-addr=0.0.0.0:4009",
 		"--mainchain-grpc-url=http://localhost:50051",
+		"--network=signet",
 	}
 	if len(opts.TargetArgs) != len(want) {
 		t.Fatalf("args = %v, want %v", opts.TargetArgs, want)
@@ -65,7 +91,7 @@ func TestPrepareSidechainArgsKeepsAnExistingFlag(t *testing.T) {
 	})
 
 	opts := StartOpts{TargetArgs: []string{"--mainchain-grpc-url=https://remote.example/grpc"}}
-	orch.prepareSidechainArgs(BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
+	prepareArgs(t, orch, BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
 
 	var seen int
 	for _, arg := range opts.TargetArgs {
@@ -91,7 +117,7 @@ func TestPrepareSidechainArgsSkipsCoreAndLayerOne(t *testing.T) {
 		{Name: "thunder", ChainLayer: 1},
 	} {
 		var opts StartOpts
-		orch.prepareSidechainArgs(cfg, &opts)
+		prepareArgs(t, orch, cfg, &opts)
 		if len(opts.TargetArgs) != 0 {
 			t.Errorf("%+v got args %v, want none", cfg, opts.TargetArgs)
 		}
@@ -116,7 +142,7 @@ func TestPrepareSidechainArgsFindsTheConfByDisplayName(t *testing.T) {
 	orch := thunderOrchestrator(t, map[string]string{"net-addr": "0.0.0.0:4009"})
 
 	var opts StartOpts
-	orch.prepareSidechainArgs(BinaryConfig{Name: "Thunder", ChainLayer: 2}, &opts)
+	prepareArgs(t, orch, BinaryConfig{Name: "Thunder", ChainLayer: 2}, &opts)
 
 	if len(opts.TargetArgs) == 0 {
 		t.Fatal("Thunder got no args; the conf lookup missed the display name")
@@ -127,6 +153,7 @@ func TestPrepareSidechainArgsFindsTheConfByDisplayName(t *testing.T) {
 // generic zmq template writes rpc-port and no mainchain field, so passing it
 // would give the daemon an argv it cannot read.
 func TestPrepareSidechainArgsLeavesTheZmqChainsAlone(t *testing.T) {
+	useTempHome(t)
 	for _, name := range []string{"bitnames", "bitassets"} {
 		spec, ok := config.KnownSidechainSpecs[name]
 		if !ok {
@@ -146,7 +173,7 @@ func TestPrepareSidechainArgsLeavesTheZmqChainsAlone(t *testing.T) {
 			},
 		}
 		var opts StartOpts
-		orch.prepareSidechainArgs(BinaryConfig{Name: spec.Name, ChainLayer: 2}, &opts)
+		prepareArgs(t, orch, BinaryConfig{Name: spec.Name, ChainLayer: 2}, &opts)
 		if len(opts.TargetArgs) != 0 {
 			t.Errorf("%s got args %v, want none", name, opts.TargetArgs)
 		}
@@ -185,5 +212,89 @@ func TestResetRestartPreparesSidechainArgs(t *testing.T) {
 	}
 	if start := strings.Index(body[prepare:], "o.startTargetOnly("); start < 0 {
 		t.Error("the reset path prepares args after it starts the target")
+	}
+}
+
+// Thunder has no mainnet. Nothing names a network there, and with no flag the
+// daemon takes its own default and syncs a chain the mainchain never carries.
+// The launch path stops it instead.
+func TestPrepareSidechainArgsStopsWithNoNetworkFlag(t *testing.T) {
+	for _, network := range []config.Network{config.NetworkMainnet, config.NetworkTestnet} {
+		orch := thunderOrchestratorOn(t, network, map[string]string{
+			"net-addr": "0.0.0.0:4009",
+			"network":  "signet",
+		})
+
+		var opts StartOpts
+		err := orch.prepareSidechainArgs(BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
+		if !errors.Is(err, errSidechainNetworkUnknown) {
+			t.Errorf("thunder on %s: err = %v, want errSidechainNetworkUnknown", network, err)
+		}
+		if len(opts.TargetArgs) != 0 {
+			t.Errorf("thunder on %s got args %v, want none", network, opts.TargetArgs)
+		}
+	}
+}
+
+// A call with no ForceBackend opens the sidechain's own app, and the app then
+// asks for the daemon. A stop here would leave the user with no window at all.
+func TestPrepareSidechainArgsLetsTheFrontendOpen(t *testing.T) {
+	orch := thunderOrchestratorOn(t, config.NetworkMainnet, map[string]string{
+		"net-addr": "0.0.0.0:4009",
+		"network":  "signet",
+	})
+	orch.process = NewProcessManager(t.TempDir(), nil, zerolog.Nop())
+	orch.process.SidechainVariant = func(BinaryConfig) (sidechainVariantSpec, bool) {
+		return sidechainVariantSpec{BinaryName: "thunder"}, true
+	}
+	cfg := BinaryConfig{Name: "thunder", ChainLayer: 2}
+
+	var opts StartOpts
+	prepareArgs(t, orch, cfg, &opts)
+
+	// The app asks for the daemon with ForceBackend, and that call stops.
+	var backend StartOpts
+	backend.ForceBackend = true
+	if err := orch.prepareSidechainArgs(cfg, &backend); !errors.Is(err, errSidechainNetworkUnknown) {
+		t.Errorf("the backend call gave err = %v, want errSidechainNetworkUnknown", err)
+	}
+}
+
+// An earlier step can name the network itself. That flag reaches the daemon, so
+// the launch path lets the daemon start.
+func TestPrepareSidechainArgsAcceptsAnEarlierNetworkFlag(t *testing.T) {
+	orch := thunderOrchestratorOn(t, config.NetworkMainnet, map[string]string{
+		"net-addr": "0.0.0.0:4009",
+		"network":  "signet",
+	})
+
+	opts := StartOpts{TargetArgs: []string{"--network=forknet"}}
+	prepareArgs(t, orch, BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
+
+	if !hasCLIFlag(opts.TargetArgs, "--net-addr") {
+		t.Errorf("args = %v, want the conf keys", opts.TargetArgs)
+	}
+}
+
+// Every network the daemon knows must reach it as a flag. A silent fall back to
+// the daemon's default runs the sidechain on a chain the mainchain does not
+// carry, and no health check reports that.
+func TestPrepareSidechainArgsPassesEveryKnownNetwork(t *testing.T) {
+	for network, want := range map[config.Network]string{
+		config.NetworkSignet:  "--network=signet",
+		config.NetworkRegtest: "--network=regtest",
+		config.NetworkForknet: "--network=forknet",
+	} {
+		orch := thunderOrchestratorOn(t, network, map[string]string{
+			"net-addr": "0.0.0.0:4009",
+			"network":  "signet",
+		})
+
+		var opts StartOpts
+		prepareArgs(t, orch, BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
+
+		if !slices.Contains(opts.TargetArgs, want) {
+			t.Errorf("thunder on %s: args = %v, want %s", network, opts.TargetArgs, want)
+		}
 	}
 }

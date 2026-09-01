@@ -928,7 +928,11 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		o.prepareCoreArgs(&opts)
 		o.prepareEnforcerArgs(&opts)
 		o.injectSidechainStarter(config, &opts)
-		o.prepareSidechainArgs(config, &opts)
+		if err := o.prepareSidechainArgs(config, &opts); err != nil {
+			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+			failBoot(mon, ch, "start "+config.Name, err)
+			return
+		}
 		o.injectHeadlessForForcedBackend(config, &opts)
 
 		if opts.Immediate {
@@ -1057,19 +1061,25 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	)
 }
 
+var errSidechainNetworkUnknown = errors.New("this sidechain has no network of its own for the mainchain the node runs, so it cannot start")
+
 // prepareSidechainArgs appends a sidechain's own config as CLI flags.
 //
 // The daemon reads its own datadir, never the conf the orchestrator writes, so
 // without this it starts on its default ports and never listens for a peer.
 // A flag already on the command line wins, because an earlier step set it for
 // a reason.
-func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) {
+//
+// It fails when no step gives the daemon a network flag. The daemon then takes
+// its own default network and syncs a different chain than the mainchain, and
+// no later step can detect that.
+func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) error {
 	if cfg.ChainLayer != 2 || cfg.IsBitcoinCore {
-		return
+		return nil
 	}
 	scm := config.SidechainConfByName(o.SidechainConfs, cfg.Name)
 	if scm == nil || len(scm.Spec.CliArgKeys) == 0 {
-		return
+		return nil
 	}
 	// A network swap reloads BitcoinConf alone, so the conf still holds the
 	// ports of the network the node just left.
@@ -1077,8 +1087,15 @@ func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) {
 		o.log.Warn().Err(err).Str("binary", cfg.Name).
 			Msg("could not sync the sidechain conf to the network")
 	}
+	args := scm.GetCliArgs()
+	// This call opens the sidechain's own app, which asks for the daemon
+	// itself. The daemon meets the check on that second call.
+	if !hasCLIFlag(args, config.CliNetworkFlag) && !hasCLIFlag(opts.TargetArgs, config.CliNetworkFlag) &&
+		!o.opensSidechainWindow(cfg, *opts) {
+		return fmt.Errorf("%s on %s: %w", cfg.Name, o.CurrentNetwork(), errSidechainNetworkUnknown)
+	}
 	var added []string
-	for _, arg := range scm.GetCliArgs() {
+	for _, arg := range args {
 		if hasCLIFlag(opts.TargetArgs, arg) {
 			continue
 		}
@@ -1089,6 +1106,7 @@ func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) {
 		o.log.Info().Str("binary", cfg.Name).Strs("args", added).
 			Msg("auto-built sidechain args from config")
 	}
+	return nil
 }
 
 // hasCLIFlag reports whether args already carries the flag name that arg sets.
@@ -1333,7 +1351,11 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 		default:
 			o.injectSidechainStarter(config, &opts)
-			o.prepareSidechainArgs(config, &opts)
+			if err := o.prepareSidechainArgs(config, &opts); err != nil {
+				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+				failBoot(mon, ch, "start "+config.Name, err)
+				return
+			}
 			o.injectHeadlessForForcedBackend(config, &opts)
 			// startTargetOnly emits its own "done" event.
 			o.startTargetOnly(ctx, config, opts, ch, nil)
@@ -1718,7 +1740,7 @@ func shutdownList(running []string, keepWindows bool) []string {
 // window. A backend call asks for the daemon instead, and a chain with no app
 // bundle has no window to open.
 func (o *Orchestrator) opensSidechainWindow(config BinaryConfig, opts StartOpts) bool {
-	if opts.ForceBackend || config.ChainLayer != 2 || o.process.SidechainVariant == nil {
+	if opts.ForceBackend || config.ChainLayer != 2 || o.process == nil || o.process.SidechainVariant == nil {
 		return false
 	}
 	_, ok := o.process.SidechainVariant(config)

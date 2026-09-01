@@ -18,7 +18,7 @@ func sidechainConfFor(t *testing.T, name string, network Network, settings map[s
 	return &SidechainConfManager{
 		Spec:        spec,
 		Config:      &GenericAppConfig{Settings: settings},
-		bitcoinConf: &BitcoinConfManager{Network: network, log: zerolog.Nop()},
+		BitcoinConf: &BitcoinConfManager{Network: network, log: zerolog.Nop()},
 		log:         zerolog.Nop(),
 	}
 }
@@ -186,7 +186,7 @@ func TestSyncNetworkRealignsThePortsAfterASwap(t *testing.T) {
 	})
 	m.ConfigPath = filepath.Join(t.TempDir(), "thunder.conf")
 
-	m.bitcoinConf.Network = NetworkRegtest
+	m.BitcoinConf.Network = NetworkRegtest
 	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
 		t.Fatal(err)
 	}
