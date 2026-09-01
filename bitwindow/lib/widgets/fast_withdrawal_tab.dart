@@ -34,13 +34,6 @@ class FastWithdrawalForm extends StatelessWidget {
       );
     }
 
-    if (!NodeModeProvider.runsLocalBackends) {
-      return SailCard(
-        error: 'Fast withdrawals need full mode, which runs a local node',
-        child: SizedBox(),
-      );
-    }
-
     switch (provider.stage) {
       case FastWithdrawalStage.idle:
       case FastWithdrawalStage.requesting:

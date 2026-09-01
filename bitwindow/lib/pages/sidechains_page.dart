@@ -119,6 +119,17 @@ L1Gate resolveL1Gate({
   return synced ? L1Gate.ready : L1Gate.syncing;
 }
 
+/// A deposit is an L1 send to the chain's deposit address, so it needs no
+/// sidechain daemon. Full mode still waits for one, because it deposits through
+/// the daemon it runs.
+@visibleForTesting
+bool resolveCanDeposit({
+  required bool walletNeedsBackends,
+  required bool sidechainRunning,
+}) {
+  return !walletNeedsBackends || sidechainRunning;
+}
+
 /// Stands in for the whole tab while the L1 stack is missing, and doubles as the
 /// place to start it — the same daemons the bottom nav reports on.
 class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
@@ -490,7 +501,7 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
     int slot,
     SidechainOverview sidechain,
   ) {
-    final isDisabled = !viewModel.isSidechainRunning(slot);
+    final isDisabled = !viewModel.canDeposit(slot);
     final button = SailButton(
       label: 'Deposit',
       variant: ButtonVariant.primary,
@@ -642,13 +653,13 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
     int slot,
     SidechainOverview sidechain,
   ) {
-    final tooltipMessage = !viewModel.isSidechainRunning(slot) ? 'Start the sidechain before depositing' : null;
+    final tooltipMessage = viewModel.canDeposit(slot) ? null : 'Start the sidechain before depositing';
 
     final button = SailButton(
       label: 'Deposit',
       variant: ButtonVariant.primary,
       insideTable: true,
-      disabled: !viewModel.isSidechainRunning(slot),
+      disabled: !viewModel.canDeposit(slot),
       onPressed: () => showDepositModal(context, slot, sidechain.info.title),
     );
 
@@ -894,6 +905,11 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     final last = mismatched.removeLast();
     return '${mismatched.join(', ')} and $last';
   }
+
+  bool canDeposit(int slot) => resolveCanDeposit(
+    walletNeedsBackends: NodeModeProvider.runsLocalBackends,
+    sidechainRunning: isSidechainRunning(slot),
+  );
 
   bool isSidechainRunning(int slot) {
     final sidechain = sidechainForSlot(slot);
@@ -1613,7 +1629,7 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
     final isDisabled = viewModel.sidechainManagementUnavailable;
 
     return SailCard(
-      error: isDisabled ? 'Withdrawals come from the enforcer, which light mode does not run.' : null,
+      error: isDisabled ? 'Bundle history comes from the enforcer, so light mode lists none.' : null,
       bottomPadding: false,
       child: const RecentWithdrawalsTable(),
     );
