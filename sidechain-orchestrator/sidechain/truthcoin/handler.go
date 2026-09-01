@@ -3,6 +3,7 @@ package truthcoin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -255,7 +256,7 @@ func (h *Handler) GetWalletAddresses(ctx context.Context, req *connect.Request[p
 }
 
 func (h *Handler) MyUtxos(ctx context.Context, req *connect.Request[pb.MyUtxosRequest]) (*connect.Response[pb.MyUtxosResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "my_utxos", nil)
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_wallet_utxos", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -360,9 +361,21 @@ func (h *Handler) MarketPositions(ctx context.Context, req *connect.Request[pb.M
 }
 
 // --- Slots ---
+// The node exposes slots as "decision" methods.
+
+// claimDecisions issues a decision_claim for one batch of decisions.
+func (h *Handler) claimDecisions(ctx context.Context, claim map[string]any) (string, error) {
+	var result struct {
+		Txid string `json:"txid"`
+	}
+	if err := h.proxy.Client.Call(ctx, "decision_claim", []any{claim}, &result); err != nil {
+		return "", err
+	}
+	return result.Txid, nil
+}
 
 func (h *Handler) SlotStatus(ctx context.Context, req *connect.Request[pb.SlotStatusRequest]) (*connect.Response[pb.SlotStatusResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "slot_status", nil)
+	raw, err := h.proxy.Client.CallRaw(ctx, "decision_status", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -370,8 +383,14 @@ func (h *Handler) SlotStatus(ctx context.Context, req *connect.Request[pb.SlotSt
 }
 
 func (h *Handler) SlotList(ctx context.Context, req *connect.Request[pb.SlotListRequest]) (*connect.Response[pb.SlotListResponse], error) {
-	params := []any{req.Msg.Period, req.Msg.Status}
-	raw, err := h.proxy.Client.CallRaw(ctx, "slot_list", params)
+	filter := map[string]any{}
+	if req.Msg.Period != nil {
+		filter["period"] = req.Msg.GetPeriod()
+	}
+	if req.Msg.Status != nil {
+		filter["status"] = req.Msg.GetStatus()
+	}
+	raw, err := h.proxy.Client.CallRaw(ctx, "decision_list", []any{filter})
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +398,7 @@ func (h *Handler) SlotList(ctx context.Context, req *connect.Request[pb.SlotList
 }
 
 func (h *Handler) SlotGet(ctx context.Context, req *connect.Request[pb.SlotGetRequest]) (*connect.Response[pb.SlotGetResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "slot_get", req.Msg.SlotId)
+	raw, err := h.proxy.Client.CallRaw(ctx, "decision_get", []any{req.Msg.SlotId})
 	if err != nil {
 		return nil, err
 	}
@@ -387,33 +406,43 @@ func (h *Handler) SlotGet(ctx context.Context, req *connect.Request[pb.SlotGetRe
 }
 
 func (h *Handler) SlotClaim(ctx context.Context, req *connect.Request[pb.SlotClaimRequest]) (*connect.Response[pb.SlotClaimResponse], error) {
-	var txid string
-	params := []any{
-		req.Msg.FeeSats,
-		req.Msg.PeriodIndex,
-		req.Msg.SlotIndex,
-		req.Msg.Question,
-		req.Msg.IsStandard,
-		req.Msg.IsScaled,
-		req.Msg.Min,
-		req.Msg.Max,
+	claim := map[string]any{
+		"decision_type": "binary",
+		"decisions": []any{map[string]any{
+			"period_index": req.Msg.PeriodIndex,
+			"header":       req.Msg.Question,
+		}},
+		"tx_fee_sats": req.Msg.FeeSats,
 	}
-	if err := h.proxy.Client.Call(ctx, "slot_claim", params, &txid); err != nil {
+	if req.Msg.GetIsScaled() {
+		claim["decision_type"] = "scaled"
+		if req.Msg.Min != nil {
+			claim["min"] = req.Msg.GetMin()
+		}
+		if req.Msg.Max != nil {
+			claim["max"] = req.Msg.GetMax()
+		}
+	}
+	txid, err := h.claimDecisions(ctx, claim)
+	if err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.SlotClaimResponse{Txid: txid}), nil
 }
 
 func (h *Handler) SlotClaimCategory(ctx context.Context, req *connect.Request[pb.SlotClaimCategoryRequest]) (*connect.Response[pb.SlotClaimCategoryResponse], error) {
-	var slots any
+	decisions := []any{}
 	if req.Msg.SlotsJson != "" {
-		if err := json.Unmarshal([]byte(req.Msg.SlotsJson), &slots); err != nil {
+		if err := json.Unmarshal([]byte(req.Msg.SlotsJson), &decisions); err != nil {
 			return nil, fmt.Errorf("unmarshal slots: %w", err)
 		}
 	}
-	var txid string
-	params := []any{slots, req.Msg.IsStandard, req.Msg.FeeSats}
-	if err := h.proxy.Client.Call(ctx, "slot_claim_category", params, &txid); err != nil {
+	txid, err := h.claimDecisions(ctx, map[string]any{
+		"decision_type": "category",
+		"decisions":     decisions,
+		"tx_fee_sats":   req.Msg.FeeSats,
+	})
+	if err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.SlotClaimCategoryResponse{Txid: txid}), nil
@@ -422,12 +451,8 @@ func (h *Handler) SlotClaimCategory(ctx context.Context, req *connect.Request[pb
 // --- Voting ---
 
 func (h *Handler) VoteRegister(ctx context.Context, req *connect.Request[pb.VoteRegisterRequest]) (*connect.Response[pb.VoteRegisterResponse], error) {
-	var txid string
-	params := []any{req.Msg.FeeSats, req.Msg.ReputationBondSats}
-	if err := h.proxy.Client.Call(ctx, "vote_register", params, &txid); err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&pb.VoteRegisterResponse{Txid: txid}), nil
+	return nil, connect.NewError(connect.CodeUnimplemented,
+		errors.New("truthcoin has no voter registration RPC: voting identity is derived from the wallet automatically"))
 }
 
 func (h *Handler) VoteVoter(ctx context.Context, req *connect.Request[pb.VoteVoterRequest]) (*connect.Response[pb.VoteVoterResponse], error) {
@@ -483,7 +508,7 @@ func (h *Handler) VotePeriod(ctx context.Context, req *connect.Request[pb.VotePe
 func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.VotecoinTransferRequest]) (*connect.Response[pb.VotecoinTransferResponse], error) {
 	var txid string
 	params := []any{req.Msg.Dest, req.Msg.Amount, req.Msg.FeeSats, req.Msg.Memo}
-	if err := h.proxy.Client.Call(ctx, "votecoin_transfer", params, &txid); err != nil {
+	if err := h.proxy.Client.Call(ctx, "transfer_votecoin", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.VotecoinTransferResponse{Txid: txid}), nil

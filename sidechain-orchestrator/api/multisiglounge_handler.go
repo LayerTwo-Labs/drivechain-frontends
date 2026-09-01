@@ -335,6 +335,40 @@ func groupDataToLoungeGroup(g *pb.GroupData) wallet.MultisigLoungeGroup {
 	}
 }
 
+// groupScriptType reads the group's multisig script type ("wsh", "sh-wsh",
+// "sh", or "tr") back out of its declared receive descriptor, so every
+// descriptor the orchestrator rebuilds matches the one the group published. A
+// legacy group that declares no descriptor gets "", the native-P2WSH default.
+func groupScriptType(g *pb.GroupData) string {
+	desc := g.GetDescriptorReceive()
+	if desc == "" {
+		return ""
+	}
+	_, _, scriptType, _, err := wallet.ParseMultisigDescriptor(desc)
+	if err != nil {
+		return ""
+	}
+	return scriptType
+}
+
+// multisigChangeType maps a group's multisig script type to the Core
+// walletcreatefundedpsbt change_type, so change pays an address the watch
+// wallet's own descriptors cover. Empty when the group declares no type.
+func multisigChangeType(scriptType string) string {
+	switch scriptType {
+	case "sh":
+		return "legacy"
+	case "sh-wsh":
+		return "p2sh-segwit"
+	case "wsh":
+		return "bech32"
+	case "tr":
+		return "bech32m"
+	default:
+		return ""
+	}
+}
+
 // coreCall invokes a bitcoind JSON-RPC method with positional params, wallet-less
 // (matching the Dart multisig path), and unmarshals the result into out.
 func (h *MultisigLoungeHandler) coreCall(ctx context.Context, method string, params []interface{}, out interface{}) error {
@@ -415,7 +449,7 @@ func (h *MultisigLoungeHandler) SignTransaction(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet owns none of the group's keys; cannot sign"))
 	}
 
-	receiveDesc, changeDesc, err := wallet.BuildMultisigSigningDescriptors(loungeGroup, signWithXprv)
+	receiveDesc, changeDesc, err := wallet.BuildMultisigSigningDescriptorsTyped(loungeGroup, signWithXprv, groupScriptType(group))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build signing descriptors: %w", err))
 	}
@@ -532,23 +566,44 @@ func watchRangeEnd(next int) int {
 	return ((next+multisigWatchRangeLookahead)/multisigWatchRangeChunk+1)*multisigWatchRangeChunk - 1
 }
 
-// watchDescriptorRange reports the imported range end covering both of the
-// wallet's active descriptors (-1 when either is missing) and the highest next
-// index Core will hand out from them.
-func (h *MultisigLoungeHandler) watchDescriptorRange(ctx context.Context, name string) (int, int, error) {
+// watchDescriptorState is what the watch wallet currently tracks: the imported
+// range end covering both active descriptors (-1 when either is missing), the
+// highest next index Core will hand out, and the descriptors themselves.
+type watchDescriptorState struct {
+	end     int
+	next    int
+	receive string
+	change  string
+}
+
+// normalizeDescriptor puts a descriptor in a comparable form: checksum dropped,
+// lower-cased, hardened steps written "h". Core may echo a descriptor in another
+// spelling than it was imported with, and a raw compare would then re-import it.
+func normalizeDescriptor(desc string) string {
+	if i := strings.LastIndex(desc, "#"); i >= 0 {
+		desc = desc[:i]
+	}
+	return strings.ReplaceAll(strings.ToLower(desc), "'", "h")
+}
+
+// watchDescriptorRange reports the wallet's active descriptor state, with the
+// descriptors normalized for comparison against freshly built ones.
+func (h *MultisigLoungeHandler) watchDescriptorRange(ctx context.Context, name string) (watchDescriptorState, error) {
 	var res struct {
 		Descriptors []struct {
-			Active   bool  `json:"active"`
-			Internal bool  `json:"internal"`
-			Range    []int `json:"range"`
-			Next     int   `json:"next"`
+			Desc     string `json:"desc"`
+			Active   bool   `json:"active"`
+			Internal bool   `json:"internal"`
+			Range    []int  `json:"range"`
+			Next     int    `json:"next"`
 		} `json:"descriptors"`
 	}
+	state := watchDescriptorState{end: -1}
 	if err := h.coreCallWallet(ctx, name, "listdescriptors", nil, &res); err != nil {
-		return 0, 0, fmt.Errorf("listdescriptors: %w", err)
+		return state, fmt.Errorf("listdescriptors: %w", err)
 	}
 
-	end, next := -1, 0
+	end := -1
 	var haveReceive, haveChange bool
 	for _, d := range res.Descriptors {
 		if !d.Active || len(d.Range) != 2 {
@@ -556,27 +611,29 @@ func (h *MultisigLoungeHandler) watchDescriptorRange(ctx context.Context, name s
 		}
 		if d.Internal {
 			haveChange = true
+			state.change = normalizeDescriptor(d.Desc)
 		} else {
 			haveReceive = true
+			state.receive = normalizeDescriptor(d.Desc)
 		}
 		if end < 0 || d.Range[1] < end {
 			end = d.Range[1]
 		}
-		if d.Next > next {
-			next = d.Next
+		if d.Next > state.next {
+			state.next = d.Next
 		}
 	}
-	if !haveReceive || !haveChange {
-		return -1, next, nil
+	if haveReceive && haveChange {
+		state.end = end
 	}
-	return end, next, nil
+	return state, nil
 }
 
 // ensureWatchWallet makes sure the group's watch-only descriptor wallet exists,
 // has the Phase-1 receive/change descriptors imported, and that their range
 // still covers the addresses the wallet is about to hand out. Idempotent: an
 // already-existing wallet is loaded, not recreated, and the descriptors are only
-// re-imported when the imported range falls short.
+// re-imported when the imported range falls short or the policy changed.
 func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.GroupData) (string, error) {
 	name := watchWalletName(g)
 
@@ -612,23 +669,32 @@ func (h *MultisigLoungeHandler) ensureWatchWallet(ctx context.Context, g *pb.Gro
 
 	// The imported range is a hard cap: an address past its end is derivable but
 	// invisible to the wallet, so keep it ahead of the next index Core hands out.
-	haveEnd, next, err := h.watchDescriptorRange(ctx, name)
+	state, err := h.watchDescriptorRange(ctx, name)
 	if err != nil {
 		return "", err
 	}
-	wantEnd := watchRangeEnd(next)
-	if haveEnd >= wantEnd {
-		return name, nil
-	}
+	wantEnd := watchRangeEnd(state.next)
 
-	receive, change, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(g))
+	receive, change, err := wallet.BuildMultisigLoungeDescriptorsTyped(groupDataToLoungeGroup(g), groupScriptType(g))
 	if err != nil {
 		return "", fmt.Errorf("build descriptors: %w", err)
+	}
+
+	// An edited group keeps its id, so the wallet is reused: what it tracks can be
+	// a retired policy, which must be replaced rather than served.
+	samePolicy := state.receive == normalizeDescriptor(receive) && state.change == normalizeDescriptor(change)
+	if state.end >= wantEnd && samePolicy {
+		return name, nil
 	}
 
 	// The widened indices were never handed out, so they carry no history and
 	// need no rescan. Keep "now", as the first import always used.
 	var timestamp interface{} = "now"
+	if state.end >= 0 && !samePolicy {
+		// A new policy's addresses can already hold deposits, and no deposit can
+		// predate the group; 0 (unset creation time) rescans from genesis.
+		timestamp = g.GetCreated() / 1000
+	}
 
 	descs := []map[string]interface{}{
 		{"desc": receive, "active": true, "internal": false, "timestamp": timestamp, "range": []int{0, wantEnd}},
@@ -868,6 +934,11 @@ func (h *MultisigLoungeHandler) CreateSpendPsbt(
 	options := map[string]interface{}{
 		"includeWatching": true,
 		"changePosition":  1,
+	}
+	// The watch wallet holds only the group's own change descriptor, so Core must
+	// be told which output type that is or it cannot produce a change address.
+	if ct := multisigChangeType(groupScriptType(group)); ct != "" {
+		options["change_type"] = ct
 	}
 	if rate := req.Msg.GetFeeRateSatVb(); rate > 0 {
 		options["fee_rate"] = rate

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -365,35 +367,35 @@ const (
 
 // invalidateblock bars the block and every descendant. Barring the last shared
 // block would bar the incoming chain too, and Core could never move past it.
-func TestDropForkAboveBarsTheFirstDivergentBlock(t *testing.T) {
+func TestResolveForkAboveNamesTheFirstDivergentBlock(t *testing.T) {
 	core := &fakeCore{
 		tips:   []int64{979000},
 		hashes: map[int64]string{979000: tipBlock, 961631: sharedBlock, 961632: forkBlock},
 	}
 
-	got, err := dropForkAbove(context.Background(), core.start(t), 961631, "")
+	got, err := resolveForkAbove(context.Background(), core.start(t), 961631, "")
 	require.NoError(t, err)
 	require.Equal(t, forkBlock, got, "the block above the fork is the one that goes")
-	require.Equal(t, []string{"invalidateblock"}, marks(core))
-	require.Equal(t, forkBlock, markParams(core)[0], "the shared block must survive")
+	require.NotEqual(t, sharedBlock, got, "the shared block must survive")
+	require.Empty(t, marks(core), "the bar waits for the caller to record the block")
 }
 
 // reconsiderblock revalidates the branch it clears, and a branch with more work
 // becomes the active chain. A read after it would name the incoming fork and
 // bar the very chain this switch moves to.
-func TestDropForkAboveReadsTheBlockBeforeClearingTheOldMark(t *testing.T) {
+func TestResolveForkAboveReadsTheBlockBeforeClearingTheOldMark(t *testing.T) {
 	core := &fakeCore{
 		tips:   []int64{979000},
 		hashes: map[int64]string{979000: tipBlock, 961632: forkBlock},
 	}
 
-	got, err := dropForkAbove(context.Background(), core.start(t), 961631, staleMark)
+	got, err := resolveForkAbove(context.Background(), core.start(t), 961631, staleMark)
 	require.NoError(t, err)
 	require.Equal(t, forkBlock, got)
 	require.Less(t, lastIndexOf(core.methods, "getblockhash"), indexOf(core.methods, "reconsiderblock"),
 		"the read has to come first")
-	require.Equal(t, []string{"reconsiderblock", "invalidateblock"}, marks(core))
-	require.Equal(t, []string{staleMark, forkBlock}, markParams(core))
+	require.Equal(t, []string{"reconsiderblock"}, marks(core))
+	require.Equal(t, []string{staleMark}, markParams(core))
 }
 
 // The chains part at no published height, so the blocks on disk belong to a
@@ -562,6 +564,30 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 	require.Nil(t, o.pendingSwap, "a tail that lands leaves nothing pending")
 }
 
+// The record goes in before the bar, so a kill between the two can only leave a
+// record whose bar never landed — which clears as a no-op. The other order
+// leaves a bar no record names, and the next switch bars its own branch too,
+// parking Core under the fork with neither to follow.
+func TestRewindBelowTheForkRecordsTheDropBeforeItBars(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+
+	core := &fakeCore{tips: []int64{979000}, hashes: map[int64]string{979000: tipBlock, 961632: forkBlock}}
+	attachFakeCore(t, o, core)
+	o.process.AdoptProcess(o.configs["bitcoind"], 1)
+	// A file where the settings directory belongs, so the record cannot land.
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
+	o.Settings.bitwindowDir = blocked
+
+	_, err := o.rewindBelowTheFork(context.Background(), 961631)
+
+	require.Error(t, err)
+	require.Empty(t, marks(core), "no block may be barred until the record is on disk")
+}
+
 // The conf goes before Core stops, so a failure there can still put the drop
 // back. Once Core is down nothing can, and the retry would clear the chain the
 // rewind saved.
@@ -591,35 +617,89 @@ func TestApplyECashSwitchTakesTheRewindBackWhenTheConfWillNotWrite(t *testing.T)
 	require.Equal(t, "drynet4", o.ecashID)
 }
 
+// blockOnLog breaks the world once, the first time a log line starts with
+// prefix. It is the only seam a test has between two steps of one call.
+type blockOnLog struct {
+	prefix string
+	block  func()
+	fired  bool
+}
+
+func (h *blockOnLog) Run(_ *zerolog.Event, _ zerolog.Level, msg string) {
+	if h.fired || !strings.HasPrefix(msg, h.prefix) {
+		return
+	}
+	h.fired = true
+	h.block()
+}
+
+// The enforcer cleanup is journalled after the rewind is recorded, so a fault
+// that only shows up there aborts with the retired branch still barred. Core
+// then follows neither chain: the branch on disk is invalidated and the
+// incoming fork was never fetched.
+func TestApplyECashSwitchTakesTheRewindBackWhenTheJournalWillNotWrite(t *testing.T) {
+	o := newTestOrchestrator(t)
+	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
+	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkECash))
+	o.adoptCatalog(ecashCatalog(), "drynet4")
+
+	core := &fakeCore{tips: []int64{979000}, hashes: map[int64]string{979000: tipBlock, 961632: forkBlock}}
+	attachFakeCore(t, o, core)
+	o.process.AdoptProcess(o.configs["bitcoind"], 1)
+	o.stopBinary = func(_ context.Context, name string, _ bool, _ ...StopOptions) error {
+		o.process.Remove(name)
+		return nil
+	}
+
+	// A file where the settings directory belongs, so every write refuses. It
+	// goes in on the line the rewind logs once it has recorded its drop, the
+	// only seam between that record and the journal write below it.
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(blocked, nil, 0o644))
+	hook := &blockOnLog{
+		prefix: "dropped the retired eCash chain",
+		block:  func() { o.Settings.bitwindowDir = blocked },
+	}
+	o.log = o.log.Hook(hook)
+
+	err := o.ApplyECashSwitch(context.Background(), "alphanet")
+	require.Error(t, err)
+
+	require.True(t, hook.fired, "the rewind has to land before the journal write refuses")
+	require.Equal(t, []string{"invalidateblock", "reconsiderblock"}, marks(core),
+		"a journal that will not write must leave the chain as it was")
+	require.Equal(t, []string{forkBlock, forkBlock}, markParams(core))
+	require.Equal(t, "drynet4", o.ecashID, "the old network stays selected")
+	require.Equal(t, "drynet4", o.installedECashNetwork(), "the conf keeps naming the old network")
+}
+
 // Barring the outgoing branch while the incoming one is still barred parks Core
 // under the fork with no chain to follow. A failure to clear the old mark has
 // to stop the switch.
-func TestDropForkAboveStopsWhenTheOldMarkWillNotClear(t *testing.T) {
+func TestResolveForkAboveStopsWhenTheOldMarkWillNotClear(t *testing.T) {
 	core := &fakeCore{
 		tips:         []int64{979000},
 		hashes:       map[int64]string{979000: tipBlock, 961632: forkBlock},
 		reconsiderNo: true,
 	}
 
-	_, err := dropForkAbove(context.Background(), core.start(t), 961631, staleMark)
-	require.Error(t, err)
-	require.NotContains(t, core.methods, "invalidateblock",
+	_, err := resolveForkAbove(context.Background(), core.start(t), 961631, staleMark)
+	require.Error(t, err,
 		"nothing may be barred while the target branch is still barred")
 }
 
 // A hash from an earlier switch names a chain a wiped datadir no longer holds.
 // Core reports that as block-not-found, which must not stop the switch.
-func TestDropForkAboveIgnoresAnUnknownOldMark(t *testing.T) {
+func TestResolveForkAboveIgnoresAnUnknownOldMark(t *testing.T) {
 	core := &fakeCore{
 		tips:              []int64{979000},
 		hashes:            map[int64]string{979000: tipBlock, 961632: forkBlock},
 		reconsiderUnknown: true,
 	}
 
-	got, err := dropForkAbove(context.Background(), core.start(t), 961631, staleMark)
+	got, err := resolveForkAbove(context.Background(), core.start(t), 961631, staleMark)
 	require.NoError(t, err)
-	require.Equal(t, forkBlock, got)
-	require.Contains(t, core.methods, "invalidateblock")
+	require.Equal(t, forkBlock, got, "the switch goes on and the block still has to go")
 }
 
 // marks lists the calls that change what Core follows, dropping the reads that
@@ -666,13 +746,13 @@ func lastIndexOf(list []string, want string) int {
 
 // A node still syncing below the fork holds no block either network disagrees
 // on. Asking for one fails the switch until the chain catches up.
-func TestDropForkAboveSkipsAChainBelowTheFork(t *testing.T) {
+func TestResolveForkAboveSkipsAChainBelowTheFork(t *testing.T) {
 	core := &fakeCore{
 		tips:   []int64{900000},
 		hashes: map[int64]string{900000: tipBlock},
 	}
 
-	got, err := dropForkAbove(context.Background(), core.start(t), 961631, "")
+	got, err := resolveForkAbove(context.Background(), core.start(t), 961631, "")
 	require.NoError(t, err)
 	require.Empty(t, got, "nothing was dropped, so nothing is named")
 	require.Empty(t, marks(core), "a chain below the fork needs no mark")
@@ -680,13 +760,13 @@ func TestDropForkAboveSkipsAChainBelowTheFork(t *testing.T) {
 
 // A move back to a fork an earlier switch barred has to lift that bar even when
 // the chain sits below the fork. Leaving it parks Core there for good.
-func TestDropForkAboveClearsTheOldMarkBelowTheFork(t *testing.T) {
+func TestResolveForkAboveClearsTheOldMarkBelowTheFork(t *testing.T) {
 	core := &fakeCore{
 		tips:   []int64{900000},
 		hashes: map[int64]string{900000: tipBlock},
 	}
 
-	got, err := dropForkAbove(context.Background(), core.start(t), 961631, staleMark)
+	got, err := resolveForkAbove(context.Background(), core.start(t), 961631, staleMark)
 	require.NoError(t, err)
 	require.Empty(t, got, "nothing was dropped, so nothing is named")
 	require.Equal(t, []string{"reconsiderblock"}, marks(core), "the old bar still has to lift")

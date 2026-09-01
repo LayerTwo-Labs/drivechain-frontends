@@ -106,7 +106,7 @@ func (e *SplitEngine) Run(ctx context.Context) error {
 }
 
 func (e *SplitEngine) tick(ctx context.Context) {
-	if !config.IsEcashFork(config.NetworkFromString(e.network())) {
+	if !config.SharesBitcoinHistory(config.NetworkFromString(e.network())) {
 		return
 	}
 	st, err := e.fork.ForkState(ctx)

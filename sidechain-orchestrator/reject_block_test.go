@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeCore answers the RPCs a reject makes. tips is read one entry per
@@ -302,5 +303,66 @@ func TestAcceptBlockRefusesAnEmptyHash(t *testing.T) {
 	}
 	if len(core.methods) != 0 {
 		t.Errorf("rpc calls = %v, want none for a blank hash", core.methods)
+	}
+}
+
+// A boot stream that ends without an error says the start path ran, not that
+// the enforcer came back. Reporting a rebuild there leaves the user with an
+// enforcer that is both stopped and wiped, and no error to say so.
+func TestAwaitEnforcerBootReportsADaemonThatNeverCameBack(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	bootCh := make(chan StartupProgress, 1)
+	bootCh <- StartupProgress{Stage: "done", Message: "enforcer started", Done: true}
+	close(bootCh)
+
+	err := o.awaitEnforcerBoot(bootCh, time.Second)
+	if err == nil {
+		t.Fatal("awaitEnforcerBoot reported a restart while the enforcer sat stopped")
+	}
+	if !strings.Contains(err.Error(), "not running") {
+		t.Errorf("err = %v, want the stopped enforcer named", err)
+	}
+}
+
+func TestAwaitEnforcerBootAcceptsALiveEnforcer(t *testing.T) {
+	o := newTestOrchestrator(t)
+	enforcerCfg, err := o.getConfig("enforcer")
+	if err != nil {
+		t.Fatalf("getConfig: %v", err)
+	}
+	o.process.AdoptProcess(enforcerCfg, 1234)
+
+	bootCh := make(chan StartupProgress, 1)
+	bootCh <- StartupProgress{Stage: "done", Done: true}
+	close(bootCh)
+
+	if err := o.awaitEnforcerBoot(bootCh, time.Second); err != nil {
+		t.Fatalf("awaitEnforcerBoot: %v", err)
+	}
+}
+
+func TestAwaitEnforcerBootReturnsTheBootFailure(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	bootCh := make(chan StartupProgress, 1)
+	bootCh <- StartupProgress{Error: fmt.Errorf("cannot start the enforcer without a payout address")}
+	close(bootCh)
+
+	err := o.awaitEnforcerBoot(bootCh, time.Second)
+	if err == nil {
+		t.Fatal("awaitEnforcerBoot swallowed the boot failure")
+	}
+	if !strings.Contains(err.Error(), "payout address") {
+		t.Errorf("err = %v, want the boot failure", err)
+	}
+}
+
+// A restart that never finishes must not hold the reject lock for good.
+func TestAwaitEnforcerBootGivesUpOnAStalledRestart(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	if err := o.awaitEnforcerBoot(make(chan StartupProgress), 20*time.Millisecond); err == nil {
+		t.Fatal("awaitEnforcerBoot waited out a restart that never finished")
 	}
 }

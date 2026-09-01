@@ -1,7 +1,7 @@
 // Package bitassets provides a JSON-RPC client for the Bitassets sidechain.
 package bitassets
 
-// BalanceResponse is the reply from the "balance" RPC.
+// BalanceResponse is the reply from the "bitcoin_balance" RPC.
 type BalanceResponse struct {
 	TotalSats     int64 `json:"total_sats"`
 	AvailableSats int64 `json:"available_sats"`

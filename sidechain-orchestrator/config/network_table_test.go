@@ -55,6 +55,34 @@ func TestChainMainNetworksHaveDistinctDatadirGroups(t *testing.T) {
 	}
 }
 
+// Forknet runs the eCash fork flow but has its own genesis, so it shares no
+// outpoint with Bitcoin. Collapsing the two predicates sends its txids to the
+// public BTC explorers.
+func TestSharesBitcoinHistory(t *testing.T) {
+	cases := []struct {
+		n      Network
+		fork   bool
+		shares bool
+	}{
+		{NetworkMainnet, false, false},
+		{NetworkForknet, true, false},
+		{NetworkECash, true, true},
+		{NetworkSignet, false, false},
+		{NetworkTestnet, false, false},
+		{NetworkRegtest, false, false},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.n), func(t *testing.T) {
+			if got := IsEcashFork(tc.n); got != tc.fork {
+				t.Errorf("IsEcashFork = %v, want %v", got, tc.fork)
+			}
+			if got := SharesBitcoinHistory(tc.n); got != tc.shares {
+				t.Errorf("SharesBitcoinHistory = %v, want %v", got, tc.shares)
+			}
+		})
+	}
+}
+
 // Launch scripts and ORCHESTRATOR_NETWORK still carry the name the slot went
 // out with. Falling through to signet would boot a network nobody asked for.
 func TestLookupNetworkAcceptsTheLegacyECashName(t *testing.T) {

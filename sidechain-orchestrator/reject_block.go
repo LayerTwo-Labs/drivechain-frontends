@@ -185,7 +185,7 @@ func (o *Orchestrator) reconcileEnforcer(ctx context.Context, client *CoreStatus
 		}
 	}
 
-	if err := o.rebuildEnforcerChain(ctx); err != nil {
+	if err := o.rebuildEnforcerChain(ctx, wait); err != nil {
 		return enforcerReconciliation{Checked: true, Height: height, Err: err.Error()}
 	}
 	return enforcerReconciliation{Checked: true, Height: height, Rebuilt: true}
@@ -310,8 +310,9 @@ func (o *Orchestrator) awaitEnforcerRollback(ctx context.Context, client *CoreSt
 
 // rebuildEnforcerChain deletes the enforcer's validator chain and starts it
 // again. It re-reads every block from the local Core, so this costs no network
-// download.
-func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
+// download. It returns only once the restart is over: the chain is already
+// gone, so a rebuild reported over a stopped enforcer hides a wiped one.
+func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context, wait time.Duration) error {
 	if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
 		return fmt.Errorf("stop the enforcer: %w", err)
 	}
@@ -329,14 +330,45 @@ func (o *Orchestrator) rebuildEnforcerChain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("start the enforcer: %w", err)
 	}
-	go func() {
-		for p := range bootCh {
-			if p.Error != nil {
-				o.log.Error().Err(p.Error).Msg("enforcer restart after the reject failed")
-			}
-		}
-	}()
+	if err := o.awaitEnforcerBoot(bootCh, wait); err != nil {
+		o.log.Error().Err(err).Msg("enforcer restart after the reject failed")
+		return fmt.Errorf("the enforcer chain was cleared but the enforcer did not come back: %w", err)
+	}
 	return nil
+}
+
+// awaitEnforcerBoot waits for a restart to finish and reports what it left
+// behind. A boot stream that ends without an error says the start path ran, so
+// a live process is the only trustworthy evidence that the restart took.
+func (o *Orchestrator) awaitEnforcerBoot(bootCh <-chan StartupProgress, wait time.Duration) error {
+	if err := drainEnforcerBoot(bootCh, wait); err != nil {
+		return err
+	}
+	if !o.enforcerReachable() {
+		return fmt.Errorf("the enforcer is not running")
+	}
+	return nil
+}
+
+// drainEnforcerBoot reads a boot stream to its end and returns the first
+// failure it carries. A stream that neither fails nor ends within wait is a
+// failure of its own: the caller holds the reject lock while it waits.
+func drainEnforcerBoot(bootCh <-chan StartupProgress, wait time.Duration) error {
+	timeout := time.NewTimer(wait)
+	defer timeout.Stop()
+	for {
+		select {
+		case p, ok := <-bootCh:
+			if !ok {
+				return nil
+			}
+			if p.Error != nil {
+				return p.Error
+			}
+		case <-timeout.C:
+			return fmt.Errorf("the restart did not finish within %s", wait)
+		}
+	}
 }
 
 // normalizeBlockHash puts a hash in the form Core answers with. Core takes

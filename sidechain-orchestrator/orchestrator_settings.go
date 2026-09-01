@@ -344,7 +344,8 @@ func (s *SettingsStore) SetRewoundBlockHash(hash string) error {
 	return nil
 }
 
-// CommitRewind records the block a drop barred, so a later switch can lift it.
+// CommitRewind records the block a drop is about to bar, so a later switch can
+// lift it. It runs before the bar: a bar no record names can never be lifted.
 func (s *SettingsStore) CommitRewind(hash string) error {
 	return s.SetRewoundBlockHash(hash)
 }

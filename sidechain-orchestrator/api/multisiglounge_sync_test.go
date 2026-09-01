@@ -231,6 +231,49 @@ func TestSyncGroupBalanceE2E(t *testing.T) {
 	require.Equal(t, msAddr, resp.Msg.Utxos[0].Address)
 }
 
+// TestSyncGroupPolicyChangeReimports proves a same-id policy edit (2-of-3 to
+// 3-of-3) re-imports the watch wallet's descriptors instead of silently serving
+// the retired policy: a deposit made to the new policy before the re-import —
+// so only a rescan can find it — must show up in SyncGroup.
+func TestSyncGroupPolicyChangeReimports(t *testing.T) {
+	rt := newLoungeRegtest(t)
+	h := newSyncHandler(rt)
+	group := loungeSyncTestGroup(t)
+	ctx := context.Background()
+
+	// First sync imports the 2-of-3 descriptors with a range that stays ample.
+	_, err := h.SyncGroup(ctx, connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	require.NoError(t, err)
+
+	rt.rpcInto(t, "", "createwallet", `["fund"]`, nil)
+	var fundAddr string
+	rt.rpcInto(t, "fund", "getnewaddress", "", &fundAddr)
+	rt.rpcInto(t, "", "generatetoaddress", fmt.Sprintf(`[101,%q]`, fundAddr), nil)
+
+	// Same id, same keys, new threshold: what editing a group produces.
+	group.M = 3
+	receive, _, err := wallet.BuildMultisigLoungeDescriptors(groupDataToLoungeGroup(group))
+	require.NoError(t, err)
+	var addrs []string
+	rt.rpcInto(t, "", "deriveaddresses", fmt.Sprintf(`[%q,[0,0]]`, receive), &addrs)
+	require.Len(t, addrs, 1)
+
+	rt.rpcInto(t, "fund", "sendtoaddress", fmt.Sprintf(`[%q,"1.0"]`, addrs[0]), nil)
+	rt.rpcInto(t, "", "generatetoaddress", fmt.Sprintf(`[1,%q]`, fundAddr), nil)
+
+	resp, err := h.SyncGroup(ctx, connect.NewRequest(&pb.SyncGroupRequest{Group: group}))
+	require.NoError(t, err)
+	require.Equal(t, int64(100_000_000), resp.Msg.ConfirmedSats, "the 3-of-3 deposit must be visible")
+	require.Len(t, resp.Msg.Utxos, 1)
+	require.Equal(t, addrs[0], resp.Msg.Utxos[0].Address)
+
+	// The wallet now tracks the new policy, and reports it in the spelling the
+	// next sync compares against — so it does not re-import (and rescan) again.
+	state, err := h.watchDescriptorRange(ctx, watchWalletName(group))
+	require.NoError(t, err)
+	require.Equal(t, normalizeDescriptor(receive), state.receive)
+}
+
 func TestRestoreHistoryE2E(t *testing.T) {
 	rt := newLoungeRegtest(t)
 	h := newSyncHandler(rt)
@@ -341,6 +384,19 @@ func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
 		{"spend with change to a group address", spendRows, false, 50_000_000, "payee"},
 		{"deposit", depositRows, true, 100_000_000, "grp"},
 	}
+
+	// ensureWatchWallet now always rebuilds the group's descriptors to detect a
+	// same-id policy change, so RestoreHistory needs a group that carries a real
+	// policy; the row-netting under test does not depend on it. listdescriptors
+	// reports the group's own current descriptors so the watch wallet reads as
+	// already up to date and restore proceeds straight to reading history.
+	group := loungeSyncTestGroup(t)
+	group.Id = "restore"
+	group.WatchWalletName = "ms_test"
+	recvDesc, changeDesc, err := wallet.BuildMultisigLoungeDescriptorsTyped(
+		groupDataToLoungeGroup(group), groupScriptType(group))
+	require.NoError(t, err)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := NewMultisigLoungeHandler()
@@ -357,17 +413,18 @@ func TestRestoreHistoryNetsRowsPerTxid(t *testing.T) {
 				case "getrawtransaction":
 					return json.RawMessage(raw), nil
 				case "listdescriptors":
-					// The watch wallet already covers the indices it hands out.
-					return json.RawMessage(`{"descriptors":[
-						{"desc":"wsh(x)","active":true,"internal":false,"range":[0,999],"next":0},
-						{"desc":"wsh(y)","active":true,"internal":true,"range":[0,999],"next":0}
-					]}`), nil
+					// The watch wallet already tracks the group's current
+					// descriptors and covers the indices it hands out.
+					return json.RawMessage(fmt.Sprintf(`{"descriptors":[
+						{"desc":%q,"active":true,"internal":false,"range":[0,999],"next":0},
+						{"desc":%q,"active":true,"internal":true,"range":[0,999],"next":0}
+					]}`, recvDesc, changeDesc)), nil
 				}
 				return nil, fmt.Errorf("unexpected method %s", method)
 			})
 
 			resp, err := h.RestoreHistory(context.Background(), connect.NewRequest(&pb.RestoreHistoryRequest{
-				Group: &pb.GroupData{Id: "restore", WatchWalletName: "ms_test"},
+				Group: group,
 			}))
 			require.NoError(t, err)
 			require.Len(t, resp.Msg.Transactions, 1)
@@ -513,4 +570,70 @@ func TestCreateSpendPsbtE2E(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.Len(t, cab.Msg.Txid, 64, "the CreateSpendPsbt output must sign+combine+broadcast end to end")
+}
+
+// TestGroupScriptType pins the script type read back out of a group's declared
+// receive descriptor; a group that declares none stays on the wsh default.
+func TestGroupScriptType(t *testing.T) {
+	base := loungeSyncTestGroup(t)
+	for _, scriptType := range []string{"wsh", "sh-wsh", "sh", "tr"} {
+		t.Run(scriptType, func(t *testing.T) {
+			receive, _, err := wallet.BuildMultisigLoungeDescriptorsTyped(groupDataToLoungeGroup(base), scriptType)
+			require.NoError(t, err)
+			require.Equal(t, scriptType, groupScriptType(&pb.GroupData{DescriptorReceive: receive}))
+		})
+	}
+	require.Equal(t, "", groupScriptType(&pb.GroupData{}), "a legacy group declares no descriptor")
+	require.Equal(t, "", groupScriptType(&pb.GroupData{DescriptorReceive: "not a descriptor"}))
+}
+
+// TestWatchWalletUsesDeclaredScriptType pins the non-wsh path: a group whose
+// declared descriptors are sh(wsh(sortedmulti)) must import THOSE descriptors
+// into its watch wallet, and fund its change from the same script type.
+func TestWatchWalletUsesDeclaredScriptType(t *testing.T) {
+	group := loungeSyncTestGroup(t)
+	receive, change, err := wallet.BuildMultisigLoungeDescriptorsTyped(groupDataToLoungeGroup(group), "sh-wsh")
+	require.NoError(t, err)
+	group.DescriptorReceive = receive
+	group.DescriptorChange = change
+
+	var imported []map[string]interface{}
+	var fundOptions map[string]interface{}
+	unmarshalParam := func(paramsJSON string, i int, out interface{}) {
+		var params []json.RawMessage
+		require.NoError(t, json.Unmarshal([]byte(paramsJSON), &params))
+		require.NoError(t, json.Unmarshal(params[i], out))
+	}
+
+	h := NewMultisigLoungeHandler()
+	h.SetCoreCaller(func(_ context.Context, method, paramsJSON, _ string) (json.RawMessage, error) {
+		switch method {
+		case "listwallets":
+			return json.RawMessage(`[]`), nil
+		case "loadwallet":
+			return nil, fmt.Errorf("wallet not found")
+		case "createwallet":
+			return json.RawMessage(`{}`), nil
+		case "listdescriptors":
+			return json.RawMessage(`{"descriptors":[]}`), nil
+		case "importdescriptors":
+			unmarshalParam(paramsJSON, 0, &imported)
+			return json.RawMessage(`[{"success":true},{"success":true}]`), nil
+		case "walletcreatefundedpsbt":
+			unmarshalParam(paramsJSON, 3, &fundOptions)
+			return json.RawMessage(`{"psbt":"cHNidP8BAAA=","fee":0.0001}`), nil
+		}
+		return nil, fmt.Errorf("unexpected method %s", method)
+	})
+
+	_, err = h.CreateSpendPsbt(context.Background(), connect.NewRequest(&pb.CreateSpendPsbtRequest{
+		Group:        group,
+		Destinations: []*pb.SpendDestination{{Address: "bcrt1qdest", Sats: 50_000}},
+	}))
+	require.NoError(t, err)
+
+	require.Len(t, imported, 2)
+	require.Equal(t, receive, imported[0]["desc"], "the watch wallet must import the group's declared receive descriptor")
+	require.Equal(t, change, imported[1]["desc"], "the watch wallet must import the group's declared change descriptor")
+	require.Equal(t, "p2sh-segwit", fundOptions["change_type"], "change must pay the group's own script type")
 }

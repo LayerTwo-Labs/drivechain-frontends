@@ -110,9 +110,10 @@ func unmarshal[T any](c *Client, ctx context.Context, method string, params inte
 // Wallet / Balance
 // ---------------------------------------------------------------------------
 
-// Balance returns the node wallet balance.
+// Balance returns the node wallet balance. BitAssets names the RPC
+// "bitcoin_balance" rather than "balance".
 func (c *Client) Balance(ctx context.Context) (*BalanceResponse, error) {
-	r, err := unmarshal[BalanceResponse](c, ctx, "balance", nil)
+	r, err := unmarshal[BalanceResponse](c, ctx, "bitcoin_balance", nil)
 	if err != nil {
 		return nil, err
 	}

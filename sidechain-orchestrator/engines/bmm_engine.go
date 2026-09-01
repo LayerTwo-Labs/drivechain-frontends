@@ -141,6 +141,20 @@ func (e *BmmEngine) Stop(sidechain pb.BinaryType) {
 	e.notify()
 }
 
+// ResetForNetwork drops automation and per-chain round state, and repoints the
+// store, so a network swap cannot leave the engine bidding on a chain the user
+// never armed it for.
+func (e *BmmEngine) ResetForNetwork(networkDir string) {
+	e.store.Rebind(networkDir)
+	e.mu.Lock()
+	e.targets = make(map[pb.BinaryType]bmmTarget)
+	e.current = make(map[pb.BinaryType]*bmmstate.Round)
+	e.unconnected = make(map[pb.BinaryType][]*bmmstate.Round)
+	e.mu.Unlock()
+	e.log.Info().Msg("bmm automation cleared for network swap")
+	e.notify()
+}
+
 // Running reports whether the engine bids for sidechain, with the wallet it
 // spends from and its bid bounds.
 func (e *BmmEngine) Running(sidechain pb.BinaryType) (bool, string, int64, int64) {
@@ -173,7 +187,23 @@ func cloneRound(r *bmmstate.Round) bmmstate.Round {
 
 // History returns a sidechain's settled rounds, newest first.
 func (e *BmmEngine) History(sidechain pb.BinaryType) ([]bmmstate.Round, error) {
-	return e.store.List(int32(sidechain))
+	rounds, err := e.store.List(int32(sidechain))
+	if err != nil {
+		return nil, err
+	}
+	// The round in play is on disk as well, so a restart can resume its bid, but
+	// it belongs in Current rather than in history.
+	current := e.Current(sidechain)
+	if current == nil {
+		return rounds, nil
+	}
+	out := rounds[:0]
+	for _, r := range rounds {
+		if r.PrevMainHash != current.PrevMainHash {
+			out = append(out, r)
+		}
+	}
+	return out, nil
 }
 
 // Round returns one round by its mainchain tip, current or settled.
@@ -375,6 +405,13 @@ func (e *BmmEngine) markTip(sidechain pb.BinaryType, tip string) bool {
 func (e *BmmEngine) openRound(
 	ctx context.Context, sidechain pb.BinaryType, tip string, height int32, target bmmTarget,
 ) {
+	// A round resumed from disk already holds a live bid for this tip; opening a
+	// second one would bid against it and overwrite it.
+	if e.adoptOpenRound(sidechain, tip) {
+		e.notify()
+		return
+	}
+
 	round := &bmmstate.Round{
 		Sidechain:      int32(sidechain),
 		PrevMainHash:   tip,
@@ -392,11 +429,44 @@ func (e *BmmEngine) openRound(
 		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 			e.log.Info().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid refused, retrying next tick")
 			e.retryTip(sidechain, tip)
-		} else {
-			e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid failed")
+			e.notify()
+			return
 		}
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid failed")
 	}
-	e.notify()
+	e.saveOpen(round)
+}
+
+// adoptOpenRound takes a round resumed from disk back as the round in play, so a
+// restart mid-round carries on the bid it already broadcast.
+func (e *BmmEngine) adoptOpenRound(sidechain pb.BinaryType, tip string) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	pending := e.unconnected[sidechain]
+	for i, round := range pending {
+		if round.PrevMainHash != tip || liveBid(round) == nil {
+			continue
+		}
+		e.unconnected[sidechain] = append(pending[:i:i], pending[i+1:]...)
+		e.current[sidechain] = round
+		return true
+	}
+	return false
+}
+
+// saveOpen records a round still in play, so a restart can resume a bid already
+// broadcast. The engine keeps mutating it, so it is copied under the lock.
+func (e *BmmEngine) saveOpen(round *bmmstate.Round) {
+	e.mu.Lock()
+	snapshot := cloneRound(round)
+	e.mu.Unlock()
+	// A round that never got a bid out has nothing to resume, and writing it
+	// down would leave it open on disk for good.
+	if liveBid(&snapshot) == nil {
+		return
+	}
+	e.save(&snapshot)
 }
 
 // retryTip unwinds a round whose opening bid was refused on a precondition, so
@@ -428,7 +498,7 @@ func (e *BmmEngine) snapshotOthers(ctx context.Context, sidechain pb.BinaryType,
 		return nil
 	}
 
-	ours := e.ourTxids(sidechain)
+	ours := e.ourTxids(sidechain, tip)
 	out := make([]bmmstate.Bid, 0, len(resp.Msg.Bids))
 	for _, b := range resp.Msg.Bids {
 		if ours[b.Txid] {
@@ -449,11 +519,19 @@ func (e *BmmEngine) snapshotOthers(ctx context.Context, sidechain pb.BinaryType,
 	return out
 }
 
-func (e *BmmEngine) ourTxids(sidechain pb.BinaryType) map[string]bool {
+func (e *BmmEngine) ourTxids(sidechain pb.BinaryType, tip string) map[string]bool {
+	out := make(map[string]bool)
+	// An M8 broadcast before a restart is still in the mempool, and raising
+	// against our own bid would spend for nothing.
+	if stored, err := e.store.Get(int32(sidechain), tip); err == nil && stored != nil {
+		for _, b := range stored.OurBids {
+			out[b.Txid] = true
+		}
+	}
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	out := make(map[string]bool)
 	if round, ok := e.current[sidechain]; ok {
 		for _, b := range round.OurBids {
 			out[b.Txid] = true
@@ -575,7 +653,7 @@ func (e *BmmEngine) maybeRaise(ctx context.Context, sidechain pb.BinaryType, tar
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
 			Int64("to_sats", next).Msg("raising bmm bid failed, keeping the live bid")
 	}
-	e.notify()
+	e.saveOpen(round)
 }
 
 func liveBid(round *bmmstate.Round) *bmmstate.Bid {
@@ -727,6 +805,12 @@ func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType, 
 
 	var stillPending []*bmmstate.Round
 	for _, round := range pending {
+		// A round resumed on the tip it bid on is undecided rather than overdue:
+		// the block that decides it is not mined yet, so waiting costs nothing.
+		if round.Result == ResultOpen && round.PrevMainHash == tip {
+			stillPending = append(stillPending, round)
+			continue
+		}
 		if e.retryRound(ctx, sidechain, round, tip, tipHeight) {
 			continue
 		}

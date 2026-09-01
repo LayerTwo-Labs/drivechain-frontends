@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +43,7 @@ func clientFromServer(srv *httptest.Server) *Client {
 
 func TestBalance(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{
-		"balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
+		"bitcoin_balance": BalanceResponse{TotalSats: 100_000, AvailableSats: 80_000},
 	})
 	defer srv.Close()
 
@@ -100,6 +102,72 @@ func TestRPCError(t *testing.T) {
 	_, err := c.GetBlockCount(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not ready")
+}
+
+// TestClientMethodsInSchema drives every Client method against a recording
+// server and asserts each wire method is a path in the schema snapshot.
+func TestClientMethodsInSchema(t *testing.T) {
+	var mu sync.Mutex
+	var methods []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req rpcRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("decode request: %v", err)
+			return
+		}
+		mu.Lock()
+		methods = append(methods, req.Method)
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"result":null}`))
+	}))
+	defer srv.Close()
+
+	c := clientFromServer(srv)
+	ctx := context.Background()
+	calls := []func(){
+		func() { _, _ = c.Balance(ctx) },
+		func() { _, _ = c.GetNewAddress(ctx) },
+		func() { _, _ = c.GetWalletAddresses(ctx) },
+		func() { _, _ = c.GetWalletUTXOs(ctx) },
+		func() { _, _ = c.ListUTXOs(ctx) },
+		func() { _, _ = c.MyUTXOs(ctx) },
+		func() { _, _ = c.Transfer(ctx, "addr", 1, 2, nil) },
+		func() { _, _ = c.CreateDeposit(ctx, "addr", 1, 2) },
+		func() { _, _ = c.Withdraw(ctx, "addr", 1, 2, 3) },
+		func() { _, _ = c.SidechainWealthSats(ctx) },
+		func() { _, _ = c.GetBlockCount(ctx) },
+		func() { _, _ = c.GetBlock(ctx, "hash") },
+		func() { _, _ = c.GetBMMInclusions(ctx, "hash") },
+		func() { _, _ = c.GetBestMainchainBlockHash(ctx) },
+		func() { _, _ = c.GetBestSidechainBlockHash(ctx) },
+		func() { _, _ = c.LatestFailedWithdrawalBundleHeight(ctx) },
+		func() { _, _ = c.PendingWithdrawalBundle(ctx) },
+		func() { _ = c.ConnectPeer(ctx, "1.2.3.4:8333") },
+		func() { _, _ = c.ListPeers(ctx) },
+		func() { _, _ = c.GenerateMnemonic(ctx) },
+		func() { _ = c.SetSeedFromMnemonic(ctx, "mnemonic") },
+		func() { _, _ = c.Mine(ctx, 1) },
+		func() { _, _ = c.OpenAPISchema(ctx) },
+		func() { _ = c.Stop(ctx) },
+	}
+	for _, call := range calls {
+		call()
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	require.Len(t, methods, len(calls))
+
+	raw, err := os.ReadFile("testdata/openapi_schema.json")
+	require.NoError(t, err)
+	var schema struct {
+		Paths map[string]json.RawMessage `json:"paths"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &schema))
+
+	for _, method := range methods {
+		assert.Contains(t, schema.Paths, method, "method not exposed by the bitassets node")
+	}
 }
 
 func TestNullableResults(t *testing.T) {
