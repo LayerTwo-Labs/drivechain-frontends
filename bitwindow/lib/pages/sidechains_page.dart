@@ -318,7 +318,7 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
             Center(
               child: SailButton(
                 label: 'Add / Remove',
-                onPressed: viewModel.sidechainsUnavailable
+                onPressed: viewModel.sidechainManagementUnavailable
                     ? null
                     : () => showSidechainActivationManagementModal(context),
               ),
@@ -412,16 +412,14 @@ class OnlyFilledTable extends ViewModelWidget<SidechainsViewModel> {
                             label: '',
                             icon: SailSVGAsset.settings,
                             insideTable: true,
-                            onPressed: viewModel.sidechainsUnavailable
-                                ? null
-                                : () async {
-                                    await showThemedDialog(
-                                      context: context,
-                                      builder: (context) => ChainSettingsModal(
-                                        connection: viewModel.rpcForSlot(slot)!,
-                                      ),
-                                    );
-                                  },
+                            onPressed: () async {
+                              await showThemedDialog(
+                                context: context,
+                                builder: (context) => ChainSettingsModal(
+                                  connection: viewModel.rpcForSlot(slot)!,
+                                ),
+                              );
+                            },
                           ),
                           if (updateAvailable)
                             Positioned(
@@ -576,14 +574,12 @@ class FullTable extends ViewModelWidget<SidechainsViewModel> {
                       label: '',
                       icon: SailSVGAsset.settings,
                       insideTable: true,
-                      onPressed: viewModel.sidechainsUnavailable
-                          ? null
-                          : () async {
-                              await showThemedDialog(
-                                context: context,
-                                builder: (context) => ChainSettingsModal(connection: viewModel.rpcForSlot(slot)!),
-                              );
-                            },
+                      onPressed: () async {
+                        await showThemedDialog(
+                          context: context,
+                          builder: (context) => ChainSettingsModal(connection: viewModel.rpcForSlot(slot)!),
+                        );
+                      },
                     ),
                     if (updateAvailable)
                       Positioned(
@@ -822,11 +818,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
 
-  /// Sidechains need the local enforcer, which only full mode runs. The wallet
-  /// backend does not decide this — light mode with any wallet cannot serve them.
-  /// True when no enforcer runs, so no BIP300 state is readable here. The
-  /// sidechain list itself still reads, because a hosted index answers it.
-  bool get sidechainsUnavailable => !NodeModeProvider.runsLocalBackends;
+  /// True when no local enforcer runs, so nothing can add, remove or withdraw.
+  /// Reading chains, chain settings and deposits all work without one.
+  bool get sidechainManagementUnavailable => !NodeModeProvider.runsLocalBackends;
 
   String? _depositWalletId;
 
@@ -946,16 +940,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
     if (sidechain == null) {
       return null;
-    }
-
-    if (sidechainsUnavailable) {
-      return SailButton(
-        key: ValueKey('disabled_slot_${sidechain.slot}_${sidechain.name}'),
-        label: 'Disabled',
-        variant: ButtonVariant.outline,
-        onPressed: null,
-        insideTable: true,
-      );
     }
 
     final isRunning = _binaryProvider.isConnected(sidechain);
@@ -1626,7 +1610,7 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    final isDisabled = viewModel.sidechainsUnavailable;
+    final isDisabled = viewModel.sidechainManagementUnavailable;
 
     return SailCard(
       error: isDisabled ? 'Withdrawals come from the enforcer, which light mode does not run.' : null,
