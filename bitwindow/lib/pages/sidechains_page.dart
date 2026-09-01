@@ -119,15 +119,19 @@ L1Gate resolveL1Gate({
   return synced ? L1Gate.ready : L1Gate.syncing;
 }
 
-/// A deposit is an L1 send to the chain's deposit address, so it needs no
-/// sidechain daemon. Full mode still waits for one, because it deposits through
+/// A deposit asks the chain for an address. A light install runs no daemon, so
+/// only a chain that answers through an index can give one. Full mode waits for
 /// the daemon it runs.
 @visibleForTesting
 bool resolveCanDeposit({
   required bool walletNeedsBackends,
   required bool sidechainRunning,
+  required bool servesLightWallet,
 }) {
-  return !walletNeedsBackends || sidechainRunning;
+  if (walletNeedsBackends) {
+    return sidechainRunning;
+  }
+  return servesLightWallet;
 }
 
 /// Stands in for the whole tab while the L1 stack is missing, and doubles as the
@@ -909,26 +913,27 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool canDeposit(int slot) => resolveCanDeposit(
     walletNeedsBackends: NodeModeProvider.runsLocalBackends,
     sidechainRunning: isSidechainRunning(slot),
+    servesLightWallet: _sidechainRPC(slot)?.servesLightWallet ?? false,
   );
 
-  bool isSidechainRunning(int slot) {
+  bool isSidechainRunning(int slot) => _sidechainRPC(slot)?.connected ?? false;
+
+  /// The RPC connection for a slot, or null when this build has none.
+  RPCConnection? _sidechainRPC(int slot) {
     final sidechain = sidechainForSlot(slot);
     if (sidechain == null) {
-      return false;
+      return null;
     }
 
     return switch (sidechain) {
-      var b when b is Thunder => (GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>().connected : false),
-      var b when b is BitNames => (GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>().connected : false),
-      var b when b is BitAssets =>
-        (GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>().connected : false),
-      var b when b is ZSide => (GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>().connected : false),
-      var b when b is Truthcoin =>
-        (GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>().connected : false),
-      var b when b is Photon => (GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>().connected : false),
-      var b when b is CoinShift =>
-        (GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>().connected : false),
-      _ => false,
+      var b when b is Thunder => (GetIt.I.isRegistered<ThunderRPC>() ? GetIt.I.get<ThunderRPC>() : null),
+      var b when b is BitNames => (GetIt.I.isRegistered<BitnamesRPC>() ? GetIt.I.get<BitnamesRPC>() : null),
+      var b when b is BitAssets => (GetIt.I.isRegistered<BitAssetsRPC>() ? GetIt.I.get<BitAssetsRPC>() : null),
+      var b when b is ZSide => (GetIt.I.isRegistered<ZSideRPC>() ? GetIt.I.get<ZSideRPC>() : null),
+      var b when b is Truthcoin => (GetIt.I.isRegistered<TruthcoinRPC>() ? GetIt.I.get<TruthcoinRPC>() : null),
+      var b when b is Photon => (GetIt.I.isRegistered<PhotonRPC>() ? GetIt.I.get<PhotonRPC>() : null),
+      var b when b is CoinShift => (GetIt.I.isRegistered<CoinShiftRPC>() ? GetIt.I.get<CoinShiftRPC>() : null),
+      _ => null,
     };
   }
 
@@ -958,7 +963,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
       return null;
     }
 
-    final isRunning = _binaryProvider.isConnected(sidechain);
+    final isRunning = _binaryProvider.isSidechainUp(sidechain);
     final isInitializing = _binaryProvider.isInitializing(sidechain);
     final stopping = _binaryProvider.isStopping(sidechain);
     final progress = _downloadProgressFor(sidechain);
@@ -1814,7 +1819,13 @@ class _DepositModalState extends State<DepositModal> {
       _ => null,
     };
 
-    if (rpc != null && rpc.connected) {
+    // The same rule the deposit button reads.
+    if (rpc != null &&
+        resolveCanDeposit(
+          walletNeedsBackends: NodeModeProvider.runsLocalBackends,
+          sidechainRunning: rpc.connected,
+          servesLightWallet: rpc.servesLightWallet,
+        )) {
       return rpc;
     }
     return null;
