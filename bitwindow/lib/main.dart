@@ -232,8 +232,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<PhotonRPC>(PhotonLive());
   GetIt.I.registerSingleton<TruthcoinRPC>(TruthcoinLive());
 
-  GetIt.I.registerLazySingleton<NodeModeProvider>(() => NodeModeProvider());
-  NetworkScopedRegistry.enrolLazy<NodeModeProvider>();
+  registerNodeMode();
 
   final walletReader = WalletReaderProvider(applicationDir);
   GetIt.I.registerLazySingleton<WalletReaderProvider>(() => walletReader);
@@ -819,14 +818,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
     await GetIt.I.get<WalletReaderProvider>().init();
   }
 
-  // The node mode decides the boot. Light mode reads the chain from a remote
-  // server, so it starts no local daemon. An unset mode starts nothing either:
-  // the mode gate asks the user first, and the boot follows their answer.
-  final nodeMode = GetIt.I.get<NodeModeProvider>();
-  if (orchestratorReady) {
-    await nodeMode.load();
-  }
-  final needsBitcoinBackends = NodeModeProvider.runsLocalBackends;
+  final boot = await readBackendBoot(orchestratorReady: orchestratorReady);
 
   // 4. Stream binary logs and start watching state.
   _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND, log);
@@ -844,7 +836,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
   //    starting the fresh stack — caller-side glue not needed. Download
   //    bytes come via SyncProvider's polled GetSyncStatus; connection state
   //    via BackendStateProvider's polled ListBinaries.
-  if (orchestratorReady && needsBitcoinBackends) {
+  if (orchestratorReady && boot.startsLocalBackends) {
     unawaited(() async {
       try {
         await orchestrator.startWithL1('enforcer');
@@ -852,10 +844,8 @@ Future<void> bootBitwindowBackend(Logger log) async {
         log.w('STARTUP: L1 stack dispatch failed (non-fatal): $e');
       }
     }());
-  } else if (orchestratorReady && nodeMode.needsChoice) {
-    log.i('STARTUP: no node mode picked yet; the mode gate asks before any boot');
   } else if (orchestratorReady) {
-    log.i('STARTUP: light mode; skipping L1 stack boot');
+    log.i('STARTUP: ${boot.reason}');
   }
 
   log.i('STARTUP: BitWindow backend boot task initialized');

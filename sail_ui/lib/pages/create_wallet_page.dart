@@ -91,6 +91,9 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
     super.initState();
 
     _currentScreen = widget.initialScreen;
+    // The mode arrives after the orchestrator answers, which can land after
+    // this page mounts. Without this the backend cards stay on the first read.
+    _nodeMode?.addListener(setstate);
     _passphraseController.addListener(setstate);
     _mnemonicController.addListener(_clearErrorOnInput);
     _passphraseController.addListener(_clearErrorOnInput);
@@ -108,6 +111,7 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
 
   @override
   void dispose() {
+    _nodeMode?.removeListener(setstate);
     _passphraseController.removeListener(setstate);
     _mnemonicController.removeListener(_clearErrorOnInput);
     _passphraseController.removeListener(_clearErrorOnInput);
@@ -638,12 +642,13 @@ class _SailCreateWalletPageState extends State<SailCreateWalletPage> {
         : const <String>[],
   );
 
+  /// Null in a test that registers no provider.
+  NodeModeProvider? get _nodeMode => GetIt.I.isRegistered<NodeModeProvider>() ? GetIt.I.get<NodeModeProvider>() : null;
+
   /// Light mode runs no local node, so Bitcoin Core has nothing to talk to.
   /// That leaves one backend, and a choice of one is no choice — the cards
   /// disappear with it.
   ///
-  /// A sidechain app opens this page with no node mode of its own, so it keeps
-  /// every backend.
   List<InitialWalletProvider> get _availableProviders =>
       NodeModeProvider.runsLocalBackends ? InitialWalletProvider.values : [InitialWalletProvider.electrum];
 

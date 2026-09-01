@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sidechain_core/classes/rpc_connection.dart';
+import 'package:sidechain_core/config/backend_boot.dart';
 import 'package:sidechain_core/config/binaries.dart';
 import 'package:sidechain_core/providers/backend_state_provider.dart';
 import 'package:sidechain_core/providers/binaries/binary_provider.dart';
@@ -106,6 +107,12 @@ Future<void> bootBackendManagedSidechain({
       // Leave clearing the flag to BackendStateProvider — it owns the
       // authoritative connection state once the listBinaries poll is up.
     }
+
+    // drivechaind answers, so the saved mode is readable. Every surface that
+    // asks what this install runs reads the provider this fills.
+    registerNodeMode();
+    final boot = await readBackendBoot(orchestratorReady: true);
+    log.i('bootBackendManagedSidechain: ${boot.reason}');
 
     _streamBinaryLogs(orchestrator, targetBinaryName, binary);
     _streamBinaryLogs(orchestrator, 'bitcoind', BinaryType.BINARY_TYPE_BITCOIND);
