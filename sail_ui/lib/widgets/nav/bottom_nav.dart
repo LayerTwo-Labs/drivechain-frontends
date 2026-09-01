@@ -120,7 +120,11 @@ class BottomNav extends StatelessWidget {
             Expanded(child: Container()),
             Builder(
               builder: (context) => MiningStatus(
-                onTap: () => displayConnectionStatusDialog(context, additionalConnection, onlyShowAdditional),
+                onTap: () => displayConnectionStatusDialog(
+                  context,
+                  additionalConnection,
+                  onlyShowAdditional,
+                ),
               ),
             ),
             const ElectrumScanStatus(),
@@ -239,121 +243,125 @@ class BottomNav extends StatelessWidget {
             initializing: additional.initializingBinary,
           );
 
-          return SailColumn(
-            spacing: SailStyleValues.padding20,
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailColumn(
-                spacing: SailStyleValues.padding12,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Everything else runs under drivechaind, and a hot start
-                  // adopts one this process never spawned. So it carries no
-                  // start or stop control.
-                  if (model.drivechaind case final orchestrator?)
-                    DaemonConnectionCard(
-                      connection: orchestrator,
-                      syncInfo: null,
-                      infoMessage: null,
-                      navigateToLogs: model.navigateToLogs,
-                    ),
-                  if (showMainchain &&
-                      (!model.mainchain.connected ||
-                          !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
-                          (model.syncProvider.mainchainSyncInfo?.offNetwork ?? false) ||
-                          !onlyShowAdditional))
-                    DaemonConnectionCard(
-                      connection: model.mainchain,
-                      syncInfo: model.syncProvider.mainchainSyncInfo,
-                      restartDaemon: () => binaryProvider.restart(
-                        binaryProvider.binaries.firstWhere(
-                          (b) => b.name == BitcoinCore().name,
-                        ),
-                      ),
-                      stopDaemon: () => binaryProvider.stop(
-                        binaryProvider.binaries.firstWhere(
-                          (b) => b.name == BitcoinCore().name,
-                        ),
-                      ),
-                      infoMessage: offNetworkMessage(model.syncProvider.mainchainSyncInfo),
-                      navigateToLogs: model.navigateToLogs,
-                      onOpenConfConfigurator: onOpenConfConfigurator,
-                    ),
-                  if (showEnforcer &&
-                      (!model.enforcer.connected ||
-                          !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
-                          !onlyShowAdditional))
-                    DaemonConnectionCard(
-                      connection: model.enforcer,
-                      syncInfo: model.syncProvider.enforcerSyncInfo,
-                      infoMessage: model.mainchain.initializingBinary
-                          ? 'Waiting for mainchain to finish initializing'
-                          : model.syncProvider.inHeaderSync
-                          ? 'Waiting for L1 to sync headers...'
-                          : null,
-                      restartDaemon: () => binaryProvider.restart(
-                        binaryProvider.binaries.firstWhere(
-                          (b) => b.name == Enforcer().name,
-                        ),
-                      ),
-                      stopDaemon: () => binaryProvider.stop(
-                        binaryProvider.binaries.firstWhere(
-                          (b) => b.name == Enforcer().name,
-                        ),
-                      ),
-                      navigateToLogs: model.navigateToLogs,
-                      onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
-                    ),
-                  if (showAdditional)
-                    Builder(
-                      builder: (context) {
-                        // Only sidechains (chainLayer == 2) actually need Core
-                        // header sync — their RPC reports 0/0 until headers
-                        // arrive, which reads as "broken" in the UI. Layer-1
-                        // companions like bitwindowd have their own
-                        // independent connection state and must show it
-                        // unconditionally; gating their card on Core's IBD
-                        // hid the bitwindowd backend status entirely behind
-                        // a misleading "Waiting for Bitcoin Core header sync"
-                        // message even when bitwindowd was healthy.
-                        final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
-                        final bool coreReady =
-                            !isSidechain ||
-                            (model.mainchain.connected &&
-                                !model.mainchain.initializingBinary &&
-                                model.mainchain.startupError == null &&
-                                !model.syncProvider.inHeaderSync);
-                        final infoMessage = isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null;
-                        return DaemonConnectionCard(
-                          connection: additionalConnection.rpc,
-                          syncInfo: coreReady ? model.additionalSyncInfo : null,
-                          infoMessage: infoMessage,
-                          restartDaemon: () => binaryProvider.restart(
-                            binaryProvider.binaries.firstWhere(
-                              (b) => b.name == additionalConnection.rpc.binary.name,
-                            ),
+          return SingleChildScrollView(
+            child: SailColumn(
+              spacing: SailStyleValues.padding20,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailColumn(
+                  spacing: SailStyleValues.padding12,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (showMainchain &&
+                        (!model.mainchain.connected ||
+                            !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
+                            (model.syncProvider.mainchainSyncInfo?.offNetwork ?? false) ||
+                            !onlyShowAdditional))
+                      DaemonConnectionCard(
+                        connection: model.mainchain,
+                        syncInfo: model.syncProvider.mainchainSyncInfo,
+                        restartDaemon: () => binaryProvider.restart(
+                          binaryProvider.binaries.firstWhere(
+                            (b) => b.name == BitcoinCore().name,
                           ),
-                          stopDaemon: () => binaryProvider.stop(
-                            binaryProvider.binaries.firstWhere(
-                              (b) => b.name == additionalConnection.rpc.binary.name,
-                            ),
+                        ),
+                        stopDaemon: () => binaryProvider.stop(
+                          binaryProvider.binaries.firstWhere(
+                            (b) => b.name == BitcoinCore().name,
                           ),
-                          navigateToLogs: model.navigateToLogs,
-                          onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
-                        );
-                      },
-                    ),
-                  if (ecashMiningProvider() case final mining?)
-                    MiningStatusCard(
-                      mining: mining,
-                      onOpenSettings: onOpenMiningSettings,
-                      onViewLogs: onViewMiningLogs,
-                    ),
-                ],
-              ),
-            ],
+                        ),
+                        infoMessage: offNetworkMessage(
+                          model.syncProvider.mainchainSyncInfo,
+                        ),
+                        navigateToLogs: model.navigateToLogs,
+                        onOpenConfConfigurator: onOpenConfConfigurator,
+                      ),
+                    if (showEnforcer &&
+                        (!model.enforcer.connected ||
+                            !(model.syncProvider.enforcerSyncInfo?.allSyncsComplete ?? false) ||
+                            !onlyShowAdditional))
+                      DaemonConnectionCard(
+                        connection: model.enforcer,
+                        syncInfo: model.syncProvider.enforcerSyncInfo,
+                        infoMessage: model.mainchain.initializingBinary
+                            ? 'Waiting for mainchain to finish initializing'
+                            : model.syncProvider.inHeaderSync
+                            ? 'Waiting for L1 to sync headers...'
+                            : null,
+                        restartDaemon: () => binaryProvider.restart(
+                          binaryProvider.binaries.firstWhere(
+                            (b) => b.name == Enforcer().name,
+                          ),
+                        ),
+                        stopDaemon: () => binaryProvider.stop(
+                          binaryProvider.binaries.firstWhere(
+                            (b) => b.name == Enforcer().name,
+                          ),
+                        ),
+                        navigateToLogs: model.navigateToLogs,
+                        onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
+                      ),
+                    if (showAdditional)
+                      Builder(
+                        builder: (context) {
+                          // Only sidechains (chainLayer == 2) actually need Core
+                          // header sync — their RPC reports 0/0 until headers
+                          // arrive, which reads as "broken" in the UI. Layer-1
+                          // companions like bitwindowd have their own
+                          // independent connection state and must show it
+                          // unconditionally; gating their card on Core's IBD
+                          // hid the bitwindowd backend status entirely behind
+                          // a misleading "Waiting for Bitcoin Core header sync"
+                          // message even when bitwindowd was healthy.
+                          final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
+                          final bool coreReady =
+                              !isSidechain ||
+                              (model.mainchain.connected &&
+                                  !model.mainchain.initializingBinary &&
+                                  model.mainchain.startupError == null &&
+                                  !model.syncProvider.inHeaderSync);
+                          final infoMessage = isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null;
+                          return DaemonConnectionCard(
+                            connection: additionalConnection.rpc,
+                            syncInfo: coreReady ? model.additionalSyncInfo : null,
+                            infoMessage: infoMessage,
+                            restartDaemon: () => binaryProvider.restart(
+                              binaryProvider.binaries.firstWhere(
+                                (b) => b.name == additionalConnection.rpc.binary.name,
+                              ),
+                            ),
+                            stopDaemon: () => binaryProvider.stop(
+                              binaryProvider.binaries.firstWhere(
+                                (b) => b.name == additionalConnection.rpc.binary.name,
+                              ),
+                            ),
+                            navigateToLogs: model.navigateToLogs,
+                            onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
+                          );
+                        },
+                      ),
+                    if (ecashMiningProvider() case final mining?)
+                      MiningStatusCard(
+                        mining: mining,
+                        onOpenSettings: onOpenMiningSettings,
+                        onViewLogs: onViewMiningLogs,
+                      ),
+                    // Everything else runs under drivechaind, and a hot start
+                    // adopts one this process never spawned. So it carries no
+                    // start or stop control.
+                    if (model.drivechaind case final orchestrator?)
+                      DaemonConnectionCard(
+                        connection: orchestrator,
+                        syncInfo: null,
+                        infoMessage: null,
+                        navigateToLogs: model.navigateToLogs,
+                      ),
+                  ],
+                ),
+              ],
+            ),
           );
         }),
       ),
@@ -636,7 +644,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   ///  3. startupError       -> show it verbatim (orchestrator warmup message)
   ///  4. initializingBinary -> show latest startup log line, or "Initializing [name]…"
   ///  5. else (!connected)  -> "Waiting for [name]"
-  String? _statusLineFor({required RPCConnection rpc, required String binaryLabel}) {
+  String? _statusLineFor({
+    required RPCConnection rpc,
+    required String binaryLabel,
+  }) {
     if (rpc.connectionError != null) {
       return rpc.connectionError;
     }
@@ -671,7 +682,9 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
     // Electrum wallets run no L1 daemons, so there are no block-sync bars to
     // show — the chain source reports the only height they have.
     if (!viewModel.needsBackends) {
-      final blocks = chainSourceBlocks(viewModel.syncProvider.chainSourceSyncInfo);
+      final blocks = chainSourceBlocks(
+        viewModel.syncProvider.chainSourceSyncInfo,
+      );
       if (blocks == null) {
         return const SizedBox.shrink();
       }
@@ -846,9 +859,7 @@ class BalanceDisplay extends StatelessWidget {
                         width: SailStyleValues.iconSizeSecondary,
                         height: SailStyleValues.iconSizeSecondary,
                       ),
-                      SailText.secondary12(
-                        formatBitcoin(pendingBalance),
-                      ),
+                      SailText.secondary12(formatBitcoin(pendingBalance)),
                     ],
                   ),
                 ),
@@ -1089,7 +1100,11 @@ class _MiningStatusState extends State<MiningStatus> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SailSVG.icon(SailSVGAsset.pickaxe, width: 13, color: theme.colors.orange),
+                  SailSVG.icon(
+                    SailSVGAsset.pickaxe,
+                    width: 13,
+                    color: theme.colors.orange,
+                  ),
                   const SizedBox(width: SailStyleValues.padding08),
                   SailText.secondary12('Mining at ${mining.formattedHashRate}'),
                 ],
@@ -1132,14 +1147,24 @@ class _BalanceRefreshButtonState extends State<_BalanceRefreshButton> {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding04),
+      padding: const EdgeInsets.symmetric(
+        horizontal: SailStyleValues.padding04,
+      ),
       child: _busy
-          ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+          ? const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           : SailTappable(
               onTap: _refresh,
               child: Tooltip(
                 message: 'Refresh balance',
-                child: SailSVG.icon(SailSVGAsset.iconRestart, width: 14, color: theme.colors.textSecondary),
+                child: SailSVG.icon(
+                  SailSVGAsset.iconRestart,
+                  width: 14,
+                  color: theme.colors.textSecondary,
+                ),
               ),
             ),
     );
