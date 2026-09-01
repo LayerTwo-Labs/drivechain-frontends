@@ -1550,7 +1550,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
                       showSailToast(context, 'Error accessing clipboard');
                     }
                   },
-                  icon: SailSVGAsset.iconCopy,
+                  icon: SailSVGAsset.clipboardPaste,
                 ),
                 SailTooltip(
                   message: viewModel.formatError ?? 'Format as deposit address',
