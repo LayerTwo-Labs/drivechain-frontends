@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' show InputBorder, InputDecoration, TextField, Tooltip;
+import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout, kDoubleTapTouchSlop, kPrimaryButton;
 import 'package:flutter/widgets.dart';
 import 'package:sail_ui/sail_ui.dart';
 
@@ -52,6 +53,13 @@ class _SailEditableTextState extends State<SailEditableText> {
     });
   }
 
+  Duration? _lastTapTime;
+  Offset? _lastTapPosition;
+
+  int? _pressPointer;
+  Offset? _pressPosition;
+  bool _pressDragged = false;
+
   @override
   void didUpdateWidget(SailEditableText old) {
     super.didUpdateWidget(old);
@@ -67,10 +75,88 @@ class _SailEditableTextState extends State<SailEditableText> {
     super.dispose();
   }
 
+  /// An enclosing SelectionArea installs a pan recognizer above this widget.
+  /// That recognizer wins the gesture arena, so a double-tap recognizer here
+  /// never fires. A Listener reads raw pointer events whoever wins the arena,
+  /// so the two clicks are counted here instead.
+  void _onPointerDown(PointerDownEvent event) {
+    if (event.buttons != kPrimaryButton) {
+      return;
+    }
+    _pressPointer = event.pointer;
+    _pressPosition = event.position;
+    _pressDragged = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    final from = _pressPosition;
+    if (event.pointer != _pressPointer || _pressDragged || from == null) {
+      return;
+    }
+    if ((event.position - from).distance > kDoubleTapTouchSlop) {
+      _pressDragged = true;
+    }
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (event.pointer == _pressPointer) {
+      _forgetPress();
+    }
+  }
+
+  /// A press counts as a click only when it ends where it started. A press that
+  /// drags selects text, and a canceled press never reaches the user at all.
+  /// Two clicks close in time and in place open the rename.
+  void _onPointerUp(PointerUpEvent event) {
+    if (event.pointer != _pressPointer) {
+      return;
+    }
+    final dragged = _pressDragged;
+    _forgetPress();
+    if (dragged) {
+      _lastTapTime = null;
+      _lastTapPosition = null;
+      return;
+    }
+
+    final previousTime = _lastTapTime;
+    final previousPosition = _lastTapPosition;
+    _lastTapTime = event.timeStamp;
+    _lastTapPosition = event.position;
+
+    if (previousTime == null || previousPosition == null) {
+      return;
+    }
+    if (event.timeStamp - previousTime > kDoubleTapTimeout) {
+      return;
+    }
+    if ((event.position - previousPosition).distance > kDoubleTapSlop) {
+      return;
+    }
+
+    _lastTapTime = null;
+    _lastTapPosition = null;
+    _startEditing();
+  }
+
+  void _forgetPress() {
+    _pressPointer = null;
+    _pressPosition = null;
+    _pressDragged = false;
+  }
+
   void _startEditing() {
     setState(() => _editing = true);
-    _focus.requestFocus();
-    _controller.selection = TextSelection(baseOffset: 0, extentOffset: _controller.text.length);
+    // A SelectionArea above this takes focus when its own recognizer wins, which
+    // happens after this click. Commit-on-focus-loss would then close edit mode
+    // again, so the field claims focus once the frame settles.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_editing) {
+        return;
+      }
+      _focus.requestFocus();
+      _controller.selection = TextSelection(baseOffset: 0, extentOffset: _controller.text.length);
+    });
   }
 
   // An empty name would leave the row with nothing to click, so it reverts.
@@ -136,13 +222,18 @@ class _SailEditableTextState extends State<SailEditableText> {
     if (widget.editOnDoubleTap) {
       idle = GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onDoubleTap: _startEditing,
         onSecondaryTapDown: (details) => _showMenu(context, details.globalPosition),
         child: idle,
       );
-      // An enclosing SailCard puts a SelectionArea over this, whose
-      // double-click-to-select wins the gesture arena unless the subtree opts out.
       idle = SelectionContainer.disabled(child: idle);
+      idle = Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
+        child: idle,
+      );
     }
 
     final content = _editing ? field : idle;
