@@ -298,3 +298,21 @@ func TestPrepareSidechainArgsPassesEveryKnownNetwork(t *testing.T) {
 		}
 	}
 }
+
+// NewSidechainConfManager can fail, and the constructor then leaves thunder out
+// of the map. A start with no conf gives the daemon no flags at all.
+func TestPrepareSidechainArgsStopsWithNoConfManager(t *testing.T) {
+	orch := thunderOrchestratorOn(t, config.NetworkSignet, map[string]string{
+		"net-addr": "0.0.0.0:4009",
+	})
+	orch.SidechainConfs = map[string]*config.SidechainConfManager{}
+
+	var opts StartOpts
+	err := orch.prepareSidechainArgs(BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
+	if !errors.Is(err, errSidechainNetworkUnknown) {
+		t.Errorf("err = %v, want errSidechainNetworkUnknown", err)
+	}
+	if len(opts.TargetArgs) != 0 {
+		t.Errorf("args = %v, want none", opts.TargetArgs)
+	}
+}
