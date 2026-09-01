@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -416,69 +415,6 @@ func (h *BMMHandler) ListBids(
 	sort.Slice(bids, func(i, j int) bool { return bids[i].BidSats > bids[j].BidSats })
 
 	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
-}
-
-// AttackBid bids on a slot with a commitment to no real block and never
-// connects it, stalling an honest producer. Rejected on mainnet.
-func (h *BMMHandler) AttackBid(
-	ctx context.Context, req *connect.Request[bmmpb.AttackBidRequest],
-) (*connect.Response[bmmpb.AttackBidResponse], error) {
-	if req.Msg.BidSats <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("bid_sats must be positive"))
-	}
-	if h.orch != nil && h.orch.CurrentNetwork() == "mainnet" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("attack bids are disabled on mainnet"))
-	}
-	if err := h.requireEnforcerSynced(ctx); err != nil {
-		return nil, err
-	}
-
-	cfg, proxy, err := h.sidechainTarget(req.Msg.Sidechain)
-	if err != nil {
-		return nil, err
-	}
-
-	template, err := proxy.GetBlockTemplate(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get block template: %w", err))
-	}
-	var block struct {
-		Header struct {
-			PrevMainHash string `json:"prev_main_hash"`
-		} `json:"header"`
-	}
-	if err := json.Unmarshal(template.Block, &block); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode block header: %w", err))
-	}
-
-	fakeHash := make([]byte, 32)
-	if _, err := rand.Read(fakeHash); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("random commitment: %w", err))
-	}
-	criticalHash := hex.EncodeToString(fakeHash)
-
-	script, err := orchestrator.M8BmmRequestScript(uint8(cfg.Slot), criticalHash, block.Header.PrevMainHash)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build bmm request: %w", err))
-	}
-
-	send, err := h.wallet.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
-		WalletId: req.Msg.WalletId,
-		RawOutputs: []*wpb.RawOutput{{
-			ValueSats: 0,
-			ScriptHex: hex.EncodeToString(script),
-		}},
-		FixedFeeSats: req.Msg.BidSats,
-		Replaceable:  true,
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	return connect.NewResponse(&bmmpb.AttackBidResponse{
-		CriticalHash: criticalHash,
-		BmmTxid:      send.Msg.Txid,
-	}), nil
 }
 
 // Commitment reports the sidechain block a mainchain block committed to, which

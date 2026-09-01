@@ -283,36 +283,6 @@ class BMMProvider extends ChangeNotifier {
     }
   }
 
-  int attackBidsSent = 0;
-  int attackSatsSpent = 0;
-  String? attackTxid;
-
-  /// Broadcast an M8 committing to no real block, stalling the honest producer
-  /// if a miner takes it. Rejected on mainnet by the backend.
-  Future<void> attackBid() async {
-    final walletId = fundingWalletId;
-    if (walletId == null) {
-      error = noFundingWallet;
-      notifyListeners();
-      return;
-    }
-    try {
-      final res = await _bmm.attackBid(
-        sidechain: sidechainRPC.binaryType,
-        walletId: walletId,
-        bidSats: minBidSats,
-      );
-      attackBidsSent++;
-      attackSatsSpent += minBidSats;
-      attackTxid = res.bmmTxid;
-      error = null;
-      unawaited(refreshFundingBalance());
-    } catch (e) {
-      error = e.toString();
-    }
-    notifyListeners();
-  }
-
   /// Every bid seen for one round, for "see all bids for block".
   Future<bmmpb.Round> roundBids(String prevMainHash) {
     return _bmm.roundBids(sidechain: sidechainRPC.binaryType, prevMainHash: prevMainHash);

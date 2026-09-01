@@ -83,12 +83,6 @@ class _Controls extends StatelessWidget {
           disabled: blocked,
           onPressed: () async => _showManualBidDialog(context, viewModel),
         ),
-        SailButton(
-          label: 'Attack',
-          variant: ButtonVariant.secondary,
-          disabled: blocked,
-          onPressed: () async => viewModel.bmmProvider.attackBid(),
-        ),
         if (viewModel.bidBlockedReason case final reason?) SailText.secondary13(reason),
         Expanded(child: Container()),
         SailText.primary13('Min bid:'),
@@ -234,13 +228,6 @@ class _CurrentSlot extends StatelessWidget {
               ),
               _Figure(label: 'Profit if won', value: viewModel.formatSats(viewModel.profitIfWon)),
               _Figure(label: 'Sidechain block ready', value: viewModel.currentCriticalHash),
-              if (viewModel.bmmProvider.attackBidsSent > 0)
-                _Figure(
-                  label: 'Attack cost',
-                  value:
-                      '${viewModel.bmmProvider.attackBidsSent} fake, '
-                      '${viewModel.bmmProvider.attackSatsSpent} sats',
-                ),
             ],
           ),
         ],

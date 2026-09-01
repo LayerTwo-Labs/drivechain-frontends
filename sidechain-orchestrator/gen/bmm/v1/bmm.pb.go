@@ -1178,122 +1178,6 @@ func (x *ListBidsResponse) GetBids() []*Bid {
 	return nil
 }
 
-type AttackBidRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Sidechain v1.BinaryType          `protobuf:"varint,1,opt,name=sidechain,proto3,enum=orchestrator.v1.BinaryType" json:"sidechain,omitempty"`
-	// Wallet that funds the bid. Empty uses the active wallet.
-	WalletId string `protobuf:"bytes,2,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
-	// Bid, paid as the M8's fee so that a miner collects it.
-	BidSats       int64 `protobuf:"varint,3,opt,name=bid_sats,json=bidSats,proto3" json:"bid_sats,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AttackBidRequest) Reset() {
-	*x = AttackBidRequest{}
-	mi := &file_bmm_v1_bmm_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AttackBidRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AttackBidRequest) ProtoMessage() {}
-
-func (x *AttackBidRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_bmm_v1_bmm_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AttackBidRequest.ProtoReflect.Descriptor instead.
-func (*AttackBidRequest) Descriptor() ([]byte, []int) {
-	return file_bmm_v1_bmm_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *AttackBidRequest) GetSidechain() v1.BinaryType {
-	if x != nil {
-		return x.Sidechain
-	}
-	return v1.BinaryType(0)
-}
-
-func (x *AttackBidRequest) GetWalletId() string {
-	if x != nil {
-		return x.WalletId
-	}
-	return ""
-}
-
-func (x *AttackBidRequest) GetBidSats() int64 {
-	if x != nil {
-		return x.BidSats
-	}
-	return 0
-}
-
-type AttackBidResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Random hash committed to. No block exists for it, so it never connects.
-	CriticalHash string `protobuf:"bytes,1,opt,name=critical_hash,json=criticalHash,proto3" json:"critical_hash,omitempty"`
-	// The M8 transaction that was broadcast.
-	BmmTxid       string `protobuf:"bytes,2,opt,name=bmm_txid,json=bmmTxid,proto3" json:"bmm_txid,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AttackBidResponse) Reset() {
-	*x = AttackBidResponse{}
-	mi := &file_bmm_v1_bmm_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AttackBidResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AttackBidResponse) ProtoMessage() {}
-
-func (x *AttackBidResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_bmm_v1_bmm_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AttackBidResponse.ProtoReflect.Descriptor instead.
-func (*AttackBidResponse) Descriptor() ([]byte, []int) {
-	return file_bmm_v1_bmm_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *AttackBidResponse) GetCriticalHash() string {
-	if x != nil {
-		return x.CriticalHash
-	}
-	return ""
-}
-
-func (x *AttackBidResponse) GetBmmTxid() string {
-	if x != nil {
-		return x.BmmTxid
-	}
-	return ""
-}
-
 var File_bmm_v1_bmm_proto protoreflect.FileDescriptor
 
 const file_bmm_v1_bmm_proto_rawDesc = "" +
@@ -1385,14 +1269,7 @@ const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\x0fListBidsRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\"3\n" +
 	"\x10ListBidsResponse\x12\x1f\n" +
-	"\x04bids\x18\x01 \x03(\v2\v.bmm.v1.BidR\x04bids\"\x85\x01\n" +
-	"\x10AttackBidRequest\x129\n" +
-	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12\x1b\n" +
-	"\twallet_id\x18\x02 \x01(\tR\bwalletId\x12\x19\n" +
-	"\bbid_sats\x18\x03 \x01(\x03R\abidSats\"S\n" +
-	"\x11AttackBidResponse\x12#\n" +
-	"\rcritical_hash\x18\x01 \x01(\tR\fcriticalHash\x12\x19\n" +
-	"\bbmm_txid\x18\x02 \x01(\tR\abmmTxid2\xcb\x04\n" +
+	"\x04bids\x18\x01 \x03(\v2\v.bmm.v1.BidR\x04bids2\x89\x04\n" +
 	"\n" +
 	"BMMService\x124\n" +
 	"\x05Start\x12\x14.bmm.v1.StartRequest\x1a\x15.bmm.v1.StartResponse\x121\n" +
@@ -1403,8 +1280,7 @@ const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\tCreateBid\x12\x18.bmm.v1.CreateBidRequest\x1a\x19.bmm.v1.CreateBidResponse\x12C\n" +
 	"\n" +
 	"ConnectBid\x12\x19.bmm.v1.ConnectBidRequest\x1a\x1a.bmm.v1.ConnectBidResponse\x12=\n" +
-	"\bListBids\x12\x17.bmm.v1.ListBidsRequest\x1a\x18.bmm.v1.ListBidsResponse\x12@\n" +
-	"\tAttackBid\x12\x18.bmm.v1.AttackBidRequest\x1a\x19.bmm.v1.AttackBidResponseB\x9a\x01\n" +
+	"\bListBids\x12\x17.bmm.v1.ListBidsRequest\x1a\x18.bmm.v1.ListBidsResponseB\x9a\x01\n" +
 	"\n" +
 	"com.bmm.v1B\bBmmProtoP\x01ZIgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1;bmmv1\xa2\x02\x03BXX\xaa\x02\x06Bmm.V1\xca\x02\x06Bmm\\V1\xe2\x02\x12Bmm\\V1\\GPBMetadata\xea\x02\aBmm::V1b\x06proto3"
 
@@ -1420,7 +1296,7 @@ func file_bmm_v1_bmm_proto_rawDescGZIP() []byte {
 	return file_bmm_v1_bmm_proto_rawDescData
 }
 
-var file_bmm_v1_bmm_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_bmm_v1_bmm_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_bmm_v1_bmm_proto_goTypes = []any{
 	(*StartRequest)(nil),         // 0: bmm.v1.StartRequest
 	(*StartResponse)(nil),        // 1: bmm.v1.StartResponse
@@ -1440,49 +1316,44 @@ var file_bmm_v1_bmm_proto_goTypes = []any{
 	(*ConnectBidResponse)(nil),   // 15: bmm.v1.ConnectBidResponse
 	(*ListBidsRequest)(nil),      // 16: bmm.v1.ListBidsRequest
 	(*ListBidsResponse)(nil),     // 17: bmm.v1.ListBidsResponse
-	(*AttackBidRequest)(nil),     // 18: bmm.v1.AttackBidRequest
-	(*AttackBidResponse)(nil),    // 19: bmm.v1.AttackBidResponse
-	(v1.BinaryType)(0),           // 20: orchestrator.v1.BinaryType
+	(v1.BinaryType)(0),           // 18: orchestrator.v1.BinaryType
 }
 var file_bmm_v1_bmm_proto_depIdxs = []int32{
-	20, // 0: bmm.v1.StartRequest.sidechain:type_name -> orchestrator.v1.BinaryType
-	20, // 1: bmm.v1.StopRequest.sidechain:type_name -> orchestrator.v1.BinaryType
-	20, // 2: bmm.v1.ClearHistoryRequest.sidechain:type_name -> orchestrator.v1.BinaryType
-	20, // 3: bmm.v1.WatchRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 0: bmm.v1.StartRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 1: bmm.v1.StopRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 2: bmm.v1.ClearHistoryRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 3: bmm.v1.WatchRequest.sidechain:type_name -> orchestrator.v1.BinaryType
 	8,  // 4: bmm.v1.WatchResponse.current:type_name -> bmm.v1.Round
 	8,  // 5: bmm.v1.WatchResponse.history:type_name -> bmm.v1.Round
 	9,  // 6: bmm.v1.Round.our_bids:type_name -> bmm.v1.Bid
 	9,  // 7: bmm.v1.Round.other_bids:type_name -> bmm.v1.Bid
-	20, // 8: bmm.v1.GetRoundBidsRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 8: bmm.v1.GetRoundBidsRequest.sidechain:type_name -> orchestrator.v1.BinaryType
 	8,  // 9: bmm.v1.GetRoundBidsResponse.round:type_name -> bmm.v1.Round
-	20, // 10: bmm.v1.CreateBidRequest.sidechain:type_name -> orchestrator.v1.BinaryType
-	20, // 11: bmm.v1.ConnectBidRequest.sidechain:type_name -> orchestrator.v1.BinaryType
-	20, // 12: bmm.v1.ListBidsRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 10: bmm.v1.CreateBidRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 11: bmm.v1.ConnectBidRequest.sidechain:type_name -> orchestrator.v1.BinaryType
+	18, // 12: bmm.v1.ListBidsRequest.sidechain:type_name -> orchestrator.v1.BinaryType
 	9,  // 13: bmm.v1.ListBidsResponse.bids:type_name -> bmm.v1.Bid
-	20, // 14: bmm.v1.AttackBidRequest.sidechain:type_name -> orchestrator.v1.BinaryType
-	0,  // 15: bmm.v1.BMMService.Start:input_type -> bmm.v1.StartRequest
-	2,  // 16: bmm.v1.BMMService.Stop:input_type -> bmm.v1.StopRequest
-	4,  // 17: bmm.v1.BMMService.ClearHistory:input_type -> bmm.v1.ClearHistoryRequest
-	6,  // 18: bmm.v1.BMMService.Watch:input_type -> bmm.v1.WatchRequest
-	10, // 19: bmm.v1.BMMService.GetRoundBids:input_type -> bmm.v1.GetRoundBidsRequest
-	12, // 20: bmm.v1.BMMService.CreateBid:input_type -> bmm.v1.CreateBidRequest
-	14, // 21: bmm.v1.BMMService.ConnectBid:input_type -> bmm.v1.ConnectBidRequest
-	16, // 22: bmm.v1.BMMService.ListBids:input_type -> bmm.v1.ListBidsRequest
-	18, // 23: bmm.v1.BMMService.AttackBid:input_type -> bmm.v1.AttackBidRequest
-	1,  // 24: bmm.v1.BMMService.Start:output_type -> bmm.v1.StartResponse
-	3,  // 25: bmm.v1.BMMService.Stop:output_type -> bmm.v1.StopResponse
-	5,  // 26: bmm.v1.BMMService.ClearHistory:output_type -> bmm.v1.ClearHistoryResponse
-	7,  // 27: bmm.v1.BMMService.Watch:output_type -> bmm.v1.WatchResponse
-	11, // 28: bmm.v1.BMMService.GetRoundBids:output_type -> bmm.v1.GetRoundBidsResponse
-	13, // 29: bmm.v1.BMMService.CreateBid:output_type -> bmm.v1.CreateBidResponse
-	15, // 30: bmm.v1.BMMService.ConnectBid:output_type -> bmm.v1.ConnectBidResponse
-	17, // 31: bmm.v1.BMMService.ListBids:output_type -> bmm.v1.ListBidsResponse
-	19, // 32: bmm.v1.BMMService.AttackBid:output_type -> bmm.v1.AttackBidResponse
-	24, // [24:33] is the sub-list for method output_type
-	15, // [15:24] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	0,  // 14: bmm.v1.BMMService.Start:input_type -> bmm.v1.StartRequest
+	2,  // 15: bmm.v1.BMMService.Stop:input_type -> bmm.v1.StopRequest
+	4,  // 16: bmm.v1.BMMService.ClearHistory:input_type -> bmm.v1.ClearHistoryRequest
+	6,  // 17: bmm.v1.BMMService.Watch:input_type -> bmm.v1.WatchRequest
+	10, // 18: bmm.v1.BMMService.GetRoundBids:input_type -> bmm.v1.GetRoundBidsRequest
+	12, // 19: bmm.v1.BMMService.CreateBid:input_type -> bmm.v1.CreateBidRequest
+	14, // 20: bmm.v1.BMMService.ConnectBid:input_type -> bmm.v1.ConnectBidRequest
+	16, // 21: bmm.v1.BMMService.ListBids:input_type -> bmm.v1.ListBidsRequest
+	1,  // 22: bmm.v1.BMMService.Start:output_type -> bmm.v1.StartResponse
+	3,  // 23: bmm.v1.BMMService.Stop:output_type -> bmm.v1.StopResponse
+	5,  // 24: bmm.v1.BMMService.ClearHistory:output_type -> bmm.v1.ClearHistoryResponse
+	7,  // 25: bmm.v1.BMMService.Watch:output_type -> bmm.v1.WatchResponse
+	11, // 26: bmm.v1.BMMService.GetRoundBids:output_type -> bmm.v1.GetRoundBidsResponse
+	13, // 27: bmm.v1.BMMService.CreateBid:output_type -> bmm.v1.CreateBidResponse
+	15, // 28: bmm.v1.BMMService.ConnectBid:output_type -> bmm.v1.ConnectBidResponse
+	17, // 29: bmm.v1.BMMService.ListBids:output_type -> bmm.v1.ListBidsResponse
+	22, // [22:30] is the sub-list for method output_type
+	14, // [14:22] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_bmm_v1_bmm_proto_init() }
@@ -1496,7 +1367,7 @@ func file_bmm_v1_bmm_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_bmm_v1_bmm_proto_rawDesc), len(file_bmm_v1_bmm_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

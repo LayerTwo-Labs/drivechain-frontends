@@ -162,24 +162,4 @@ extension type BMMServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
-
-  /// AttackBid bids on a slot with a commitment to no real block, then never
-  /// connects it, so an honest block loses the slot for that mainchain block.
-  /// A teaching tool for the BMM stall attack; rejected on mainnet.
-  Future<bmmv1bmm.AttackBidResponse> attackBid(
-    bmmv1bmm.AttackBidRequest input, {
-    connect.Headers? headers,
-    connect.AbortSignal? signal,
-    Function(connect.Headers)? onHeader,
-    Function(connect.Headers)? onTrailer,
-  }) {
-    return connect.Client(_transport).unary(
-      specs.BMMService.attackBid,
-      input,
-      signal: signal,
-      headers: headers,
-      onHeader: onHeader,
-      onTrailer: onTrailer,
-    );
-  }
 }
