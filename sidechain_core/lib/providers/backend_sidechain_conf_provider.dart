@@ -24,6 +24,7 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
 
   late SidechainConfServiceClient _client;
   Timer? _pollTimer;
+  String _network = 'signet';
 
   BackendSidechainConfProvider._({
     required this.sidechainName,
@@ -94,6 +95,9 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
       if (resp.configContent.isNotEmpty) {
         currentConfig = GenericAppConfig.parse(resp.configContent, appName: appName);
       }
+      if (resp.network.isNotEmpty) {
+        _network = resp.network;
+      }
 
       notifyListeners();
     } catch (e) {
@@ -104,6 +108,10 @@ class BackendSidechainConfProvider extends GenericSidechainConfProvider {
       }
     }
   }
+
+  /// The orchestrator owns the network, and it answers with the one it runs.
+  @override
+  String get network => _network;
 
   @override
   String get appName => _appNameValue;

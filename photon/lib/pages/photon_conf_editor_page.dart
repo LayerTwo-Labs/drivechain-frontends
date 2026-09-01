@@ -241,12 +241,10 @@ class _ConfiguratorPanel extends StatelessWidget {
           SailText.primary15('Settings', bold: true),
           const SailSpacing(SailStyleValues.padding12),
 
-          // Network
-          _DropdownSetting(
+          // The mainchain owns the network, so this row only reports it.
+          _DerivedSetting(
             label: 'Network',
-            currentValue: config.getSetting('network') ?? 'signet',
-            options: const ['signet', 'regtest'],
-            onChanged: (value) => viewModel.updateSetting('network', value),
+            value: GetIt.I.get<GenericSidechainConfProvider>().network,
           ),
 
           // Headless
@@ -488,6 +486,28 @@ class _TextSettingFieldState extends State<_TextSettingField> {
     return SailTextField(
       controller: _controller,
       hintText: widget.hintText,
+    );
+  }
+}
+
+class _DerivedSetting extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _DerivedSetting({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.secondary12(label),
+          const SailSpacing(SailStyleValues.padding04),
+          SailText.primary13(value),
+        ],
+      ),
     );
   }
 }

@@ -76,32 +76,62 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
     }
   }
 
-  /// Sync network setting from BitcoinConfProvider
+  /// The network the sidechain follows. It comes from the mainchain conf, never
+  /// from the sidechain file, so the two can never disagree.
+  ///
+  /// Sidechains run on signet, regtest, forknet and eCash. Real mainnet has no
+  /// drivechain yet, and forknet and eCash share the mainnet port group.
+  String get network {
+    final mainchain = GetIt.I.get<BitcoinConfProvider>().network;
+    return switch (mainchain) {
+      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
+      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
+      BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_ECASH => 'mainnet',
+      _ => 'signet',
+    };
+  }
+
+  /// Point the generated endpoints at the network the mainchain runs. The file
+  /// holds no network key, so a stale one from an older build goes away here.
   Future<void> syncNetworkFromBitcoinConf() async {
     if (currentConfig == null) {
       return;
     }
 
-    final bitcoinConfProvider = GetIt.I.get<BitcoinConfProvider>();
-    final network = bitcoinConfProvider.network;
-
-    // Sidechains support signet, regtest, forknet and eCash (drivechain testnets)
-    // Real mainnet not supported - drivechain not activated there yet
-    final sidechainNetwork = switch (network) {
-      BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
-      BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_ECASH => 'mainnet',
-      _ => 'signet', // fallback for unsupported networks (mainnet, testnet)
-    };
-
-    final currentNetwork = currentConfig!.getSetting('network');
-    if (currentNetwork != sidechainNetwork) {
-      currentConfig!.setSetting('network', sidechainNetwork);
-      applyNetworkSettings(sidechainNetwork);
-
-      notifyListeners();
-      await _saveConfig();
+    var changed = false;
+    if (currentConfig!.getSetting('network') != null) {
+      currentConfig!.removeSetting('network');
+      changed = true;
     }
+    for (final entry in getNetworkPorts(network).entries) {
+      final current = currentConfig!.getSetting(entry.key);
+      if (current == entry.value || !_isGeneratedEndpoint(entry.key, current)) {
+        continue;
+      }
+      currentConfig!.setSetting(entry.key, entry.value);
+      changed = true;
+    }
+    if (!changed) {
+      return;
+    }
+
+    notifyListeners();
+    await _saveConfig();
+  }
+
+  /// Reports whether value is the value this key takes on one of the networks.
+  /// Such a value came from an earlier sync, so a network change may replace
+  /// it. Anything else came from the user, and the sync keeps it.
+  bool _isGeneratedEndpoint(String key, String? value) {
+    if (value == null || value.isEmpty) {
+      return true;
+    }
+    for (final network in ['signet', 'regtest', 'mainnet']) {
+      if (getNetworkPorts(network)[key] == value) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
