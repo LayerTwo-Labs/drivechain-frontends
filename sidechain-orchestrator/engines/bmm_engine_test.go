@@ -3,6 +3,7 @@ package engines
 import (
 	"context"
 	"errors"
+	"math"
 	"sync"
 	"testing"
 
@@ -37,6 +38,7 @@ type fakeBackend struct {
 	lastBidSats       int64
 	lastExpectTip     string
 	lastWalletID      string
+	lastFeeRate       float64
 }
 
 func (f *fakeBackend) CreateBid(
@@ -51,12 +53,18 @@ func (f *fakeBackend) CreateBid(
 	f.lastReplace = req.Msg.ReplaceTxid
 	f.lastBidSats = req.Msg.BidSats
 	bid := req.Msg.BidSats
+	// A rate-sized bid costs whatever the wallet builds. The real handler
+	// reads that back off the chain, so the fake reports it too.
+	if bid == 0 && req.Msg.FeeRateSatVb > 0 {
+		bid = int64(math.Ceil(req.Msg.FeeRateSatVb * fakeBidVsize))
+	}
 	if req.Msg.CapToBlockWorth && f.feesSats > 0 && bid > f.feesSats {
 		bid = f.feesSats
 	}
 	f.lastBidSats = bid
 	f.lastExpectTip = req.Msg.ExpectPrevMainHash
 	f.lastWalletID = req.Msg.WalletId
+	f.lastFeeRate = req.Msg.FeeRateSatVb
 	return connect.NewResponse(&bmmpb.CreateBidResponse{
 		CriticalHash: "critical",
 		BmmTxid:      "txid-" + string(rune('0'+f.bids)),
@@ -109,6 +117,33 @@ func (f *fakeBackend) BlockAfter(_ context.Context, _, _ string) (string, error)
 	return f.blockAfter, f.blockAfterErr
 }
 
+// fakeFee stands in for Core's next block estimate.
+type fakeFee struct {
+	mu   sync.Mutex
+	rate float64
+	err  error
+}
+
+func (f *fakeFee) NextBlockFeeRate(context.Context) (float64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.rate, f.err
+}
+
+func (f *fakeFee) set(rate float64) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.rate = rate
+}
+
+// fakeBidVsize is the size the fake wallet builds a bid at, so a rate turns
+// into an amount the assertions below can name.
+const fakeBidVsize = 200
+
+// newFakeFee reports a rate every engine test opens at. At fakeBidVsize it
+// costs 10 000 sats, which is the opening bid the assertions expect.
+func newFakeFee() *fakeFee { return &fakeFee{rate: 50} }
+
 type fakeTip struct {
 	mu     sync.Mutex
 	hash   string
@@ -140,7 +175,7 @@ func newEngine(t *testing.T) (*BmmEngine, *fakeBackend, *fakeTip, *bmmstate.Stor
 	backend := &fakeBackend{feesSats: 12500}
 	tip := &fakeTip{hash: "block-1", height: 100}
 	store := bmmstate.NewStore(t.TempDir(), 0)
-	return NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, store), backend, tip, store
+	return NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store), backend, tip, store
 }
 
 // Stopped is the default: the engine must not spend a satoshi until asked.
@@ -150,14 +185,14 @@ func TestBmmEngineIdleUntilStarted(t *testing.T) {
 	engine.tick(context.Background())
 
 	assert.Zero(t, backend.bids)
-	running, _, _, _ := engine.Running(testSidechain)
+	running, _, _ := engine.Running(testSidechain)
 	assert.False(t, running)
 }
 
 // Only a new tip opens a round, so a repeated tip must not bid again.
 func TestBmmEngineOpensOneRoundPerTip(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 20_000))
+	require.NoError(t, engine.Start(testSidechain, "", 20_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -174,12 +209,12 @@ func TestBmmEngineBidsForASidechainStartedMidBlock(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	ctx := context.Background()
 
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 20_000))
+	require.NoError(t, engine.Start(testSidechain, "", 20_000))
 	engine.tick(ctx)
 	require.Equal(t, 1, backend.bids)
 
 	const other = pb.BinaryType_BINARY_TYPE_BITNAMES
-	require.NoError(t, engine.Start(other, "", 10_000, 20_000))
+	require.NoError(t, engine.Start(other, "", 20_000))
 	engine.tick(ctx)
 
 	assert.Equal(t, 2, backend.bids, "the newly started sidechain bids on the current tip")
@@ -191,7 +226,7 @@ func TestBmmEngineBidsForASidechainStartedMidBlock(t *testing.T) {
 func TestBmmEngineKeepsCompetitorsAfterTheRoundCloses(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
 	backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 9000}}
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -210,7 +245,7 @@ func TestBmmEngineKeepsCompetitorsAfterTheRoundCloses(t *testing.T) {
 
 func TestBmmEngineSettlesAWonRound(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -233,7 +268,7 @@ func TestBmmEngineSettlesAWonRound(t *testing.T) {
 func TestBmmEngineSettlesALostRound(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
 	backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 30_000}}
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -255,7 +290,7 @@ func TestBmmEngineSettlesALostRound(t *testing.T) {
 func TestBmmEngineRaisesWhenOutbid(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.feesSats = 50_000
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 30_000))
+	require.NoError(t, engine.Start(testSidechain, "", 30_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -279,7 +314,7 @@ func TestBmmEngineRaisesWhenOutbid(t *testing.T) {
 func TestBmmEngineBidsFromTheNamedWallet(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.feesSats = 50_000
-	require.NoError(t, engine.Start(testSidechain, "wallet-b", 10_000, 30_000))
+	require.NoError(t, engine.Start(testSidechain, "wallet-b", 30_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -291,7 +326,7 @@ func TestBmmEngineBidsFromTheNamedWallet(t *testing.T) {
 	require.Equal(t, 2, backend.bids)
 	assert.Equal(t, "wallet-b", backend.lastWalletID, "a raise spends from the same wallet")
 
-	running, walletID, _, _ := engine.Running(testSidechain)
+	running, walletID, _ := engine.Running(testSidechain)
 	assert.True(t, running)
 	assert.Equal(t, "wallet-b", walletID)
 }
@@ -301,12 +336,12 @@ func TestBmmEngineBidsFromTheNamedWallet(t *testing.T) {
 func TestBmmEngineRaisesFromTheWalletThatFundedTheBid(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.feesSats = 50_000
-	require.NoError(t, engine.Start(testSidechain, "wallet-b", 10_000, 30_000))
+	require.NoError(t, engine.Start(testSidechain, "wallet-b", 30_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
 
-	require.NoError(t, engine.Start(testSidechain, "wallet-c", 10_000, 30_000))
+	require.NoError(t, engine.Start(testSidechain, "wallet-c", 30_000))
 	backend.others = []*bmmpb.Bid{{Txid: "rival", BidSats: 12_000}}
 	engine.tick(ctx)
 
@@ -318,7 +353,7 @@ func TestBmmEngineRaisesFromTheWalletThatFundedTheBid(t *testing.T) {
 func TestBmmEngineNeverRaisesAboveMax(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.feesSats = 90_000
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 12_000))
+	require.NoError(t, engine.Start(testSidechain, "", 12_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -333,7 +368,7 @@ func TestBmmEngineNeverRaisesAboveMax(t *testing.T) {
 func TestBmmEngineNeverRaisesAboveBlockWorth(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.feesSats = 12_500
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 100_000))
+	require.NoError(t, engine.Start(testSidechain, "", 100_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -347,7 +382,7 @@ func TestBmmEngineNeverRaisesAboveBlockWorth(t *testing.T) {
 func TestBmmEngineRecordsAFailedBid(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.bidErr = errors.New("no block template")
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	engine.tick(context.Background())
 
@@ -359,7 +394,7 @@ func TestBmmEngineRecordsAFailedBid(t *testing.T) {
 
 func TestBmmEngineStopEndsBidding(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -370,21 +405,56 @@ func TestBmmEngineStopEndsBidding(t *testing.T) {
 	engine.tick(ctx)
 
 	assert.Equal(t, 1, backend.bids, "no bids after stop")
-	running, _, _, _ := engine.Running(testSidechain)
+	running, _, _ := engine.Running(testSidechain)
 	assert.False(t, running)
 }
 
 func TestBmmEngineRejectsBadBounds(t *testing.T) {
 	engine, _, _, _ := newEngine(t)
-	require.Error(t, engine.Start(testSidechain, "", 0, 10_000))
-	require.Error(t, engine.Start(testSidechain, "", 10_000, 9_000), "max below min")
+	require.Error(t, engine.Start(testSidechain, "", 0), "a ceiling of zero bids nothing")
+	require.Error(t, engine.Start(testSidechain, "", -1), "a negative ceiling is not a bid")
+}
+
+// Core names the rate, so a caller that wants a cheaper bid cannot have one.
+func TestBmmEngineOpensAtTheNextBlockRate(t *testing.T) {
+	engine, _, _, _ := newEngine(t)
+
+	engine.fee.(*fakeFee).set(37.5)
+	assert.InDelta(t, 37.5, engine.NextBlockRate(t.Context()), 0.001)
+}
+
+// Core answers nothing on a fresh node, and a bid still has to pay something.
+func TestBmmEngineOpensAtTheRelayMinimumWithoutAnEstimate(t *testing.T) {
+	engine, _, _, _ := newEngine(t)
+
+	engine.fee.(*fakeFee).set(0)
+	assert.InDelta(t, relayMinimumRate, engine.NextBlockRate(t.Context()), 0.001)
+
+	engine.fee.(*fakeFee).set(0.2)
+	assert.InDelta(t, relayMinimumRate, engine.NextBlockRate(t.Context()), 0.001,
+		"a rate under the relay minimum never relays")
+}
+
+// The wallet sizes the opening bid, so the engine names a rate and no amount.
+// A fixed amount underpays the rate when the wallet builds a larger bid.
+func TestBmmEngineOpensByRateNotByAmount(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	engine.fee.(*fakeFee).set(42)
+	require.NoError(t, engine.Start(testSidechain, "", 100_000))
+	tip.set("main-1")
+
+	engine.tick(context.Background())
+
+	backend.mu.Lock()
+	defer backend.mu.Unlock()
+	assert.InDelta(t, 42, backend.lastFeeRate, 0.001)
 }
 
 // The sidechain never saw the block it just won, so it cannot look up which
 // mainchain block carried the commitment. We must name that block.
 func TestBmmEngineNamesTheMainBlockOnConnect(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -402,7 +472,7 @@ func TestBmmEngineNamesTheMainBlockOnConnect(t *testing.T) {
 // connect on that block, not on the tip.
 func TestBmmEngineWinsARoundTheTipOutran(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -425,7 +495,7 @@ func TestBmmEngineWinsARoundTheTipOutran(t *testing.T) {
 // written down, so a restart can still resume it.
 func TestBmmEngineHoldsAnUndecidableRound(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -446,7 +516,7 @@ func TestBmmEngineHoldsAnUndecidableRound(t *testing.T) {
 // the bid, not connected blind on whatever the tip is by then.
 func TestBmmEngineDecidesAParkedRoundOnRetry(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -471,7 +541,7 @@ func TestBmmEngineDecidesAParkedRoundOnRetry(t *testing.T) {
 // must never be written down as a loss.
 func TestBmmEngineNeverCallsAnUndecidableRoundLost(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -492,7 +562,7 @@ func TestBmmEngineNeverCallsAnUndecidableRoundLost(t *testing.T) {
 // History is on disk, so a restart keeps what past rounds cost and earned.
 func TestBmmEngineHistorySurvivesRestart(t *testing.T) {
 	engine, backend, tip, store := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -501,19 +571,19 @@ func TestBmmEngineHistorySurvivesRestart(t *testing.T) {
 	tip.set("block-2")
 	engine.tick(ctx)
 
-	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, store)
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
 	history, err := restarted.History(testSidechain)
 	require.NoError(t, err)
 	require.NotEmpty(t, history)
 	assert.Equal(t, ResultWon, history[len(history)-1].Result)
 
-	running, _, _, _ := restarted.Running(testSidechain)
+	running, _, _ := restarted.Running(testSidechain)
 	assert.False(t, running, "a restart must never resume spending on its own")
 }
 
 func TestBmmEngineClearHistory(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -538,7 +608,7 @@ func mustHistory(t *testing.T, engine *BmmEngine) []bmmstate.Round {
 // the connect back up rather than forfeit it.
 func TestBmmEngineResumesAWonBlockThatNeverConnected(t *testing.T) {
 	engine, backend, tip, store := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -553,7 +623,7 @@ func TestBmmEngineResumesAWonBlockThatNeverConnected(t *testing.T) {
 	require.NotEmpty(t, history)
 	require.Equal(t, ResultWon, history[len(history)-1].Result)
 
-	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, store)
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
 	restarted.resumeUnconnected()
 
 	backend.connected = true
@@ -565,7 +635,7 @@ func TestBmmEngineResumesAWonBlockThatNeverConnected(t *testing.T) {
 
 func TestBmmEngineRecordsBlockHeights(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -589,7 +659,7 @@ func TestBmmEngineIgnoresBidsFromAnotherRound(t *testing.T) {
 	backend.others = []*bmmpb.Bid{
 		{Txid: "stale", CriticalHash: "stale-h", BidSats: 80_000, PrevMainHash: "block-0"},
 	}
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 50_000))
+	require.NoError(t, engine.Start(testSidechain, "", 50_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -603,7 +673,7 @@ func TestBmmEngineIgnoresBidsFromAnotherRound(t *testing.T) {
 // not caught up cannot spend on an already-dead round.
 func TestBmmEngineNamesTheTipItExpects(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	engine.tick(context.Background())
 
@@ -614,7 +684,7 @@ func TestBmmEngineNamesTheTipItExpects(t *testing.T) {
 func TestBmmEngineCapsTheOpeningBidToBlockWorth(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.feesSats = 8_000
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	engine.tick(context.Background())
 
@@ -625,7 +695,7 @@ func TestBmmEngineCapsTheOpeningBidToBlockWorth(t *testing.T) {
 // Stop ends bidding, but a bid already broadcast still has to settle.
 func TestBmmEngineSettlesAfterStop(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -645,14 +715,14 @@ func TestBmmEngineSettlesAfterStop(t *testing.T) {
 // Restarting must not re-open a round already in play and double-bid it.
 func TestBmmEngineRestartDoesNotDoubleBidTheSameRound(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
 	require.Equal(t, 1, backend.bids)
 
 	engine.Stop(testSidechain)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 	engine.tick(ctx)
 
 	assert.Equal(t, 1, backend.bids, "same tip, still one bid")
@@ -662,7 +732,7 @@ func TestBmmEngineRestartDoesNotDoubleBidTheSameRound(t *testing.T) {
 // stop us connecting a block we may already have paid for.
 func TestBmmEngineKeepsRoundPendingWhenTheCommitmentCannotBeRead(t *testing.T) {
 	engine, backend, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -690,7 +760,7 @@ func TestBmmEngineKeepsRoundPendingWhenTheCommitmentCannotBeRead(t *testing.T) {
 func TestBmmEngineCurrentIsADeepCopy(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.others = []*bmmpb.Bid{{Txid: "rival", BidSats: 5_000, PrevMainHash: "block-1"}}
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	engine.tick(context.Background())
 
@@ -705,7 +775,7 @@ func TestBmmEngineCurrentIsADeepCopy(t *testing.T) {
 // the bid we already broadcast can still win.
 func TestBmmEngineDoesNotSettleAnOpenRoundOnStop(t *testing.T) {
 	engine, _, tip, _ := newEngine(t)
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -727,7 +797,7 @@ func TestBmmEngineDoesNotSettleAnOpenRoundOnStop(t *testing.T) {
 func TestBmmEngineRetriesAfterAPreconditionRefusal(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.bidErr = connect.NewError(connect.CodeFailedPrecondition, errors.New("enforcer is still syncing"))
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)
@@ -747,7 +817,7 @@ func TestBmmEngineRetriesAfterAPreconditionRefusal(t *testing.T) {
 func TestBmmEngineDoesNotRetryOtherFailures(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
 	backend.bidErr = errors.New("no block template")
-	require.NoError(t, engine.Start(testSidechain, "", 10_000, 10_000))
+	require.NoError(t, engine.Start(testSidechain, "", 10_000))
 
 	ctx := context.Background()
 	engine.tick(ctx)

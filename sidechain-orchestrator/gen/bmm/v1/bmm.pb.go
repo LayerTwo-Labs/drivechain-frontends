@@ -25,8 +25,6 @@ const (
 type StartRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Sidechain v1.BinaryType          `protobuf:"varint,1,opt,name=sidechain,proto3,enum=orchestrator.v1.BinaryType" json:"sidechain,omitempty"`
-	// Opening bid for each round, paid as the M8's fee.
-	MinBidSats int64 `protobuf:"varint,2,opt,name=min_bid_sats,json=minBidSats,proto3" json:"min_bid_sats,omitempty"`
 	// Ceiling for raises. A bid is never raised above this, nor above what the
 	// block is worth, since either loses money.
 	MaxBidSats int64 `protobuf:"varint,3,opt,name=max_bid_sats,json=maxBidSats,proto3" json:"max_bid_sats,omitempty"`
@@ -71,13 +69,6 @@ func (x *StartRequest) GetSidechain() v1.BinaryType {
 		return x.Sidechain
 	}
 	return v1.BinaryType(0)
-}
-
-func (x *StartRequest) GetMinBidSats() int64 {
-	if x != nil {
-		return x.MinBidSats
-	}
-	return 0
 }
 
 func (x *StartRequest) GetMaxBidSats() int64 {
@@ -337,16 +328,19 @@ func (x *WatchRequest) GetSidechain() v1.BinaryType {
 type WatchResponse struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	Running    bool                   `protobuf:"varint,1,opt,name=running,proto3" json:"running,omitempty"`
-	MinBidSats int64                  `protobuf:"varint,2,opt,name=min_bid_sats,json=minBidSats,proto3" json:"min_bid_sats,omitempty"`
 	MaxBidSats int64                  `protobuf:"varint,3,opt,name=max_bid_sats,json=maxBidSats,proto3" json:"max_bid_sats,omitempty"`
 	// The round being bid on now, absent when no tip has been seen yet.
 	Current *Round `protobuf:"bytes,4,opt,name=current,proto3" json:"current,omitempty"`
 	// Finished rounds, newest first.
 	History []*Round `protobuf:"bytes,5,rep,name=history,proto3" json:"history,omitempty"`
 	// Wallet that funds the bids. Empty means the active wallet.
-	WalletId      string `protobuf:"bytes,6,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	WalletId string `protobuf:"bytes,6,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	// Rate a bid pays to enter the next mainchain block, in sats per vByte, from
+	// Core's own estimate. The engine opens every bid here and never lower. The
+	// amount depends on the size the wallet builds, so this reports the rate.
+	NextBlockFeeRateSatVb float64 `protobuf:"fixed64,7,opt,name=next_block_fee_rate_sat_vb,json=nextBlockFeeRateSatVb,proto3" json:"next_block_fee_rate_sat_vb,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *WatchResponse) Reset() {
@@ -386,13 +380,6 @@ func (x *WatchResponse) GetRunning() bool {
 	return false
 }
 
-func (x *WatchResponse) GetMinBidSats() int64 {
-	if x != nil {
-		return x.MinBidSats
-	}
-	return 0
-}
-
 func (x *WatchResponse) GetMaxBidSats() int64 {
 	if x != nil {
 		return x.MaxBidSats
@@ -419,6 +406,13 @@ func (x *WatchResponse) GetWalletId() string {
 		return x.WalletId
 	}
 	return ""
+}
+
+func (x *WatchResponse) GetNextBlockFeeRateSatVb() float64 {
+	if x != nil {
+		return x.NextBlockFeeRateSatVb
+	}
+	return 0
 }
 
 // Round is one mainchain tip and the contest for the sidechain block after it.
@@ -797,8 +791,14 @@ type CreateBidRequest struct {
 	ExpectPrevMainHash string `protobuf:"bytes,5,opt,name=expect_prev_main_hash,json=expectPrevMainHash,proto3" json:"expect_prev_main_hash,omitempty"`
 	// Lower the bid to what the block collects in fees. Above that it loses money.
 	CapToBlockWorth bool `protobuf:"varint,6,opt,name=cap_to_block_worth,json=capToBlockWorth,proto3" json:"cap_to_block_worth,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Size the bid at this rate rather than at a fixed amount, so a wallet that
+	// needs more inputs still pays the rate. The answer reports what it cost.
+	// Ignored when bid_sats is set.
+	FeeRateSatVb float64 `protobuf:"fixed64,7,opt,name=fee_rate_sat_vb,json=feeRateSatVb,proto3" json:"fee_rate_sat_vb,omitempty"`
+	// Highest the bid may go, in sats. Zero sets no ceiling.
+	MaxBidSats    int64 `protobuf:"varint,8,opt,name=max_bid_sats,json=maxBidSats,proto3" json:"max_bid_sats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateBidRequest) Reset() {
@@ -871,6 +871,20 @@ func (x *CreateBidRequest) GetCapToBlockWorth() bool {
 		return x.CapToBlockWorth
 	}
 	return false
+}
+
+func (x *CreateBidRequest) GetFeeRateSatVb() float64 {
+	if x != nil {
+		return x.FeeRateSatVb
+	}
+	return 0
+}
+
+func (x *CreateBidRequest) GetMaxBidSats() int64 {
+	if x != nil {
+		return x.MaxBidSats
+	}
+	return 0
 }
 
 type CreateBidResponse struct {
@@ -1182,14 +1196,12 @@ var File_bmm_v1_bmm_proto protoreflect.FileDescriptor
 
 const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\n" +
-	"\x10bmm/v1/bmm.proto\x12\x06bmm.v1\x1a\"orchestrator/v1/orchestrator.proto\"\xaa\x01\n" +
+	"\x10bmm/v1/bmm.proto\x12\x06bmm.v1\x1a\"orchestrator/v1/orchestrator.proto\"\x8e\x01\n" +
 	"\fStartRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12 \n" +
-	"\fmin_bid_sats\x18\x02 \x01(\x03R\n" +
-	"minBidSats\x12 \n" +
 	"\fmax_bid_sats\x18\x03 \x01(\x03R\n" +
 	"maxBidSats\x12\x1b\n" +
-	"\twallet_id\x18\x04 \x01(\tR\bwalletId\"\x0f\n" +
+	"\twallet_id\x18\x04 \x01(\tR\bwalletIdJ\x04\b\x02\x10\x03\"\x0f\n" +
 	"\rStartResponse\"H\n" +
 	"\vStopRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\"\x0e\n" +
@@ -1198,16 +1210,15 @@ const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\"\x16\n" +
 	"\x14ClearHistoryResponse\"I\n" +
 	"\fWatchRequest\x129\n" +
-	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\"\xdc\x01\n" +
+	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\"\xfb\x01\n" +
 	"\rWatchResponse\x12\x18\n" +
 	"\arunning\x18\x01 \x01(\bR\arunning\x12 \n" +
-	"\fmin_bid_sats\x18\x02 \x01(\x03R\n" +
-	"minBidSats\x12 \n" +
 	"\fmax_bid_sats\x18\x03 \x01(\x03R\n" +
 	"maxBidSats\x12'\n" +
 	"\acurrent\x18\x04 \x01(\v2\r.bmm.v1.RoundR\acurrent\x12'\n" +
 	"\ahistory\x18\x05 \x03(\v2\r.bmm.v1.RoundR\ahistory\x12\x1b\n" +
-	"\twallet_id\x18\x06 \x01(\tR\bwalletId\"\xaa\x04\n" +
+	"\twallet_id\x18\x06 \x01(\tR\bwalletId\x129\n" +
+	"\x1anext_block_fee_rate_sat_vb\x18\a \x01(\x01R\x15nextBlockFeeRateSatVbJ\x04\b\x02\x10\x03\"\xaa\x04\n" +
 	"\x05Round\x12$\n" +
 	"\x0eprev_main_hash\x18\x01 \x01(\tR\fprevMainHash\x12(\n" +
 	"\x10prev_main_height\x18\x02 \x01(\x05R\x0eprevMainHeight\x12\x16\n" +
@@ -1241,14 +1252,17 @@ const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12$\n" +
 	"\x0eprev_main_hash\x18\x02 \x01(\tR\fprevMainHash\";\n" +
 	"\x14GetRoundBidsResponse\x12#\n" +
-	"\x05round\x18\x01 \x01(\v2\r.bmm.v1.RoundR\x05round\"\x88\x02\n" +
+	"\x05round\x18\x01 \x01(\v2\r.bmm.v1.RoundR\x05round\"\xd1\x02\n" +
 	"\x10CreateBidRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12\x1b\n" +
 	"\twallet_id\x18\x02 \x01(\tR\bwalletId\x12\x19\n" +
 	"\bbid_sats\x18\x03 \x01(\x03R\abidSats\x12!\n" +
 	"\freplace_txid\x18\x04 \x01(\tR\vreplaceTxid\x121\n" +
 	"\x15expect_prev_main_hash\x18\x05 \x01(\tR\x12expectPrevMainHash\x12+\n" +
-	"\x12cap_to_block_worth\x18\x06 \x01(\bR\x0fcapToBlockWorth\"\xd0\x01\n" +
+	"\x12cap_to_block_worth\x18\x06 \x01(\bR\x0fcapToBlockWorth\x12%\n" +
+	"\x0ffee_rate_sat_vb\x18\a \x01(\x01R\ffeeRateSatVb\x12 \n" +
+	"\fmax_bid_sats\x18\b \x01(\x03R\n" +
+	"maxBidSats\"\xd0\x01\n" +
 	"\x11CreateBidResponse\x12#\n" +
 	"\rcritical_hash\x18\x01 \x01(\tR\fcriticalHash\x12\x19\n" +
 	"\bbmm_txid\x18\x02 \x01(\tR\abmmTxid\x12\x1b\n" +

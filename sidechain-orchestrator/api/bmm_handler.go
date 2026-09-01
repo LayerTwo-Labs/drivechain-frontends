@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog"
 	"math"
 	"path/filepath"
 	"sort"
@@ -96,7 +97,7 @@ func (h *BMMHandler) Start(
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
 	}
-	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId, req.Msg.MinBidSats, req.Msg.MaxBidSats); err != nil {
+	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId, req.Msg.MaxBidSats); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return connect.NewResponse(&bmmpb.StartResponse{}), nil
@@ -136,7 +137,7 @@ func (h *BMMHandler) Watch(
 	changed := h.engine.Subscribe(ctx)
 
 	send := func() error {
-		state, err := h.state(req.Msg.Sidechain)
+		state, err := h.state(ctx, req.Msg.Sidechain)
 		if err != nil {
 			return err
 		}
@@ -166,8 +167,8 @@ func (h *BMMHandler) Watch(
 	}
 }
 
-func (h *BMMHandler) state(sidechain pb.BinaryType) (*bmmpb.WatchResponse, error) {
-	running, walletID, minBid, maxBid := h.engine.Running(sidechain)
+func (h *BMMHandler) state(ctx context.Context, sidechain pb.BinaryType) (*bmmpb.WatchResponse, error) {
+	running, walletID, maxBid := h.engine.Running(sidechain)
 
 	history, err := h.engine.History(sidechain)
 	if err != nil {
@@ -175,11 +176,11 @@ func (h *BMMHandler) state(sidechain pb.BinaryType) (*bmmpb.WatchResponse, error
 	}
 
 	out := &bmmpb.WatchResponse{
-		Running:    running,
-		WalletId:   walletID,
-		MinBidSats: minBid,
-		MaxBidSats: maxBid,
-		History:    lo.Map(history, func(r bmmstate.Round, _ int) *bmmpb.Round { return roundToProto(r) }),
+		Running:               running,
+		WalletId:              walletID,
+		MaxBidSats:            maxBid,
+		NextBlockFeeRateSatVb: h.engine.NextBlockRate(ctx),
+		History:               lo.Map(history, func(r bmmstate.Round, _ int) *bmmpb.Round { return roundToProto(r) }),
 	}
 	if current := h.engine.Current(sidechain); current != nil {
 		out.Current = roundToProto(*current)
@@ -246,8 +247,9 @@ func bidToProto(b bmmstate.Bid) *bmmpb.Bid {
 func (h *BMMHandler) CreateBid(
 	ctx context.Context, req *connect.Request[bmmpb.CreateBidRequest],
 ) (*connect.Response[bmmpb.CreateBidResponse], error) {
-	if req.Msg.BidSats <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("bid_sats must be positive"))
+	if req.Msg.BidSats <= 0 && req.Msg.FeeRateSatVb <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("name a bid: bid_sats or fee_rate_sat_vb"))
 	}
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
@@ -279,9 +281,14 @@ func (h *BMMHandler) CreateBid(
 	}
 
 	bidSats := req.Msg.BidSats
-	if req.Msg.CapToBlockWorth && template.FeesSats > 0 && bidSats > template.FeesSats {
-		bidSats = template.FeesSats
-	}
+
+	bidSats, byRate := bidSizing(bidInput{
+		bidSats:         bidSats,
+		rateSatVb:       req.Msg.FeeRateSatVb,
+		blockWorthSats:  template.FeesSats,
+		maxBidSats:      req.Msg.MaxBidSats,
+		capToBlockWorth: req.Msg.CapToBlockWorth,
+	})
 
 	script, err := orchestrator.M8BmmRequestScript(
 		uint8(cfg.Slot), template.CriticalHash, block.Header.PrevMainHash,
@@ -302,18 +309,43 @@ func (h *BMMHandler) CreateBid(
 
 	// The M8's OP_RETURN must be output 0 with no value, so the bid only
 	// reaches a miner as the fee.
-	send, err := h.wallet.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
+	//
+	// A rate lets the wallet size the fee itself. A wallet that needs several
+	// inputs, or signs a multisig descriptor, builds a larger transaction than
+	// any fixed amount assumes, and would then pay under the rate it asked for.
+	sendReq := &wpb.SendTransactionRequest{
 		WalletId: req.Msg.WalletId,
 		RawOutputs: []*wpb.RawOutput{{
 			ValueSats: 0,
 			ScriptHex: hex.EncodeToString(script),
 		}},
-		FixedFeeSats:   bidSats,
 		RequiredInputs: requiredInputs,
 		Replaceable:    true,
-	}))
+	}
+	if byRate {
+		sendReq.FeeRateSatPerVbyte = int64(math.Ceil(req.Msg.FeeRateSatVb))
+	} else {
+		sendReq.FixedFeeSats = bidSats
+	}
+
+	send, err := h.wallet.SendTransaction(ctx, connect.NewRequest(sendReq))
 	if err != nil {
 		return nil, err
+	}
+
+	// The wallet decided the amount, so the chain is the only place that knows
+	// what the bid cost. The fee is spent by now, so a lookup that misses —
+	// an electrum broadcast the local node has not seen, or a block that
+	// already took it — reports the rate's nominal cost rather than losing
+	// the bid.
+	if byRate {
+		if paid, err := h.bidFeeSats(ctx, send.Msg.Txid); err == nil {
+			bidSats = paid
+		} else {
+			bidSats = int64(math.Ceil(req.Msg.FeeRateSatVb * nominalBidVsize))
+			zerolog.Ctx(ctx).Warn().Err(err).Str("txid", send.Msg.Txid).
+				Msg("could not read what the bid paid, reporting the rate's nominal cost")
+		}
 	}
 
 	return connect.NewResponse(&bmmpb.CreateBidResponse{
@@ -415,6 +447,24 @@ func (h *BMMHandler) ListBids(
 	sort.Slice(bids, func(i, j int) bool { return bids[i].BidSats > bids[j].BidSats })
 
 	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
+}
+
+// bidFeeSats reads what a broadcast bid paid, from the mempool entry Core
+// keeps for it.
+func (h *BMMHandler) bidFeeSats(ctx context.Context, txid string) (int64, error) {
+	raw, err := h.coreCall(ctx, "getmempoolentry", fmt.Sprintf("[%q]", txid))
+	if err != nil {
+		return 0, err
+	}
+	var entry struct {
+		Fees struct {
+			Base float64 `json:"base"`
+		} `json:"fees"`
+	}
+	if err := json.Unmarshal(raw, &entry); err != nil {
+		return 0, fmt.Errorf("decode the mempool entry: %w", err)
+	}
+	return int64(math.Round(entry.Fees.Base * 1e8)), nil
 }
 
 // Commitment reports the sidechain block a mainchain block committed to, which

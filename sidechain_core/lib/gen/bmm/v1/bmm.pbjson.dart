@@ -18,18 +18,19 @@ const StartRequest$json = {
   '1': 'StartRequest',
   '2': [
     {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
-    {'1': 'min_bid_sats', '3': 2, '4': 1, '5': 3, '10': 'minBidSats'},
     {'1': 'max_bid_sats', '3': 3, '4': 1, '5': 3, '10': 'maxBidSats'},
     {'1': 'wallet_id', '3': 4, '4': 1, '5': 9, '10': 'walletId'},
+  ],
+  '9': [
+    {'1': 2, '2': 3},
   ],
 };
 
 /// Descriptor for `StartRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List startRequestDescriptor = $convert.base64Decode(
     'CgxTdGFydFJlcXVlc3QSOQoJc2lkZWNoYWluGAEgASgOMhsub3JjaGVzdHJhdG9yLnYxLkJpbm'
-    'FyeVR5cGVSCXNpZGVjaGFpbhIgCgxtaW5fYmlkX3NhdHMYAiABKANSCm1pbkJpZFNhdHMSIAoM'
-    'bWF4X2JpZF9zYXRzGAMgASgDUgptYXhCaWRTYXRzEhsKCXdhbGxldF9pZBgEIAEoCVIId2FsbG'
-    'V0SWQ=');
+    'FyeVR5cGVSCXNpZGVjaGFpbhIgCgxtYXhfYmlkX3NhdHMYAyABKANSCm1heEJpZFNhdHMSGwoJ'
+    'd2FsbGV0X2lkGAQgASgJUgh3YWxsZXRJZEoECAIQAw==');
 
 @$core.Deprecated('Use startResponseDescriptor instead')
 const StartResponse$json = {
@@ -102,20 +103,24 @@ const WatchResponse$json = {
   '1': 'WatchResponse',
   '2': [
     {'1': 'running', '3': 1, '4': 1, '5': 8, '10': 'running'},
-    {'1': 'min_bid_sats', '3': 2, '4': 1, '5': 3, '10': 'minBidSats'},
     {'1': 'max_bid_sats', '3': 3, '4': 1, '5': 3, '10': 'maxBidSats'},
     {'1': 'current', '3': 4, '4': 1, '5': 11, '6': '.bmm.v1.Round', '10': 'current'},
     {'1': 'history', '3': 5, '4': 3, '5': 11, '6': '.bmm.v1.Round', '10': 'history'},
     {'1': 'wallet_id', '3': 6, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'next_block_fee_rate_sat_vb', '3': 7, '4': 1, '5': 1, '10': 'nextBlockFeeRateSatVb'},
+  ],
+  '9': [
+    {'1': 2, '2': 3},
   ],
 };
 
 /// Descriptor for `WatchResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List watchResponseDescriptor = $convert.base64Decode(
-    'Cg1XYXRjaFJlc3BvbnNlEhgKB3J1bm5pbmcYASABKAhSB3J1bm5pbmcSIAoMbWluX2JpZF9zYX'
-    'RzGAIgASgDUgptaW5CaWRTYXRzEiAKDG1heF9iaWRfc2F0cxgDIAEoA1IKbWF4QmlkU2F0cxIn'
-    'CgdjdXJyZW50GAQgASgLMg0uYm1tLnYxLlJvdW5kUgdjdXJyZW50EicKB2hpc3RvcnkYBSADKA'
-    'syDS5ibW0udjEuUm91bmRSB2hpc3RvcnkSGwoJd2FsbGV0X2lkGAYgASgJUgh3YWxsZXRJZA==');
+    'Cg1XYXRjaFJlc3BvbnNlEhgKB3J1bm5pbmcYASABKAhSB3J1bm5pbmcSIAoMbWF4X2JpZF9zYX'
+    'RzGAMgASgDUgptYXhCaWRTYXRzEicKB2N1cnJlbnQYBCABKAsyDS5ibW0udjEuUm91bmRSB2N1'
+    'cnJlbnQSJwoHaGlzdG9yeRgFIAMoCzINLmJtbS52MS5Sb3VuZFIHaGlzdG9yeRIbCgl3YWxsZX'
+    'RfaWQYBiABKAlSCHdhbGxldElkEjkKGm5leHRfYmxvY2tfZmVlX3JhdGVfc2F0X3ZiGAcgASgB'
+    'UhVuZXh0QmxvY2tGZWVSYXRlU2F0VmJKBAgCEAM=');
 
 @$core.Deprecated('Use roundDescriptor instead')
 const Round$json = {
@@ -212,6 +217,8 @@ const CreateBidRequest$json = {
     {'1': 'replace_txid', '3': 4, '4': 1, '5': 9, '10': 'replaceTxid'},
     {'1': 'expect_prev_main_hash', '3': 5, '4': 1, '5': 9, '10': 'expectPrevMainHash'},
     {'1': 'cap_to_block_worth', '3': 6, '4': 1, '5': 8, '10': 'capToBlockWorth'},
+    {'1': 'fee_rate_sat_vb', '3': 7, '4': 1, '5': 1, '10': 'feeRateSatVb'},
+    {'1': 'max_bid_sats', '3': 8, '4': 1, '5': 3, '10': 'maxBidSats'},
   ],
 };
 
@@ -221,7 +228,9 @@ final $typed_data.Uint8List createBidRequestDescriptor = $convert.base64Decode(
     '5CaW5hcnlUeXBlUglzaWRlY2hhaW4SGwoJd2FsbGV0X2lkGAIgASgJUgh3YWxsZXRJZBIZCghi'
     'aWRfc2F0cxgDIAEoA1IHYmlkU2F0cxIhCgxyZXBsYWNlX3R4aWQYBCABKAlSC3JlcGxhY2VUeG'
     'lkEjEKFWV4cGVjdF9wcmV2X21haW5faGFzaBgFIAEoCVISZXhwZWN0UHJldk1haW5IYXNoEisK'
-    'EmNhcF90b19ibG9ja193b3J0aBgGIAEoCFIPY2FwVG9CbG9ja1dvcnRo');
+    'EmNhcF90b19ibG9ja193b3J0aBgGIAEoCFIPY2FwVG9CbG9ja1dvcnRoEiUKD2ZlZV9yYXRlX3'
+    'NhdF92YhgHIAEoAVIMZmVlUmF0ZVNhdFZiEiAKDG1heF9iaWRfc2F0cxgIIAEoA1IKbWF4Qmlk'
+    'U2F0cw==');
 
 @$core.Deprecated('Use createBidResponseDescriptor instead')
 const CreateBidResponse$json = {

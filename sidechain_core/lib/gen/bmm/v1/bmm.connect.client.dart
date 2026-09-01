@@ -16,7 +16,8 @@ import "bmm.connect.spec.dart" as specs;
 extension type BMMServiceClient (connect.Transport _transport) {
   /// Start bids on every new mainchain tip and connects the blocks miners take,
   /// until Stop. Bids are funded by the wallet the request names, and are
-  /// raised toward max_bid_sats when a competitor outbids us.
+  /// opened at Core's next block fee and raised toward max_bid_sats when a
+  /// competitor outbids us.
   Future<bmmv1bmm.StartResponse> start(
     bmmv1bmm.StartRequest input, {
     connect.Headers? headers,

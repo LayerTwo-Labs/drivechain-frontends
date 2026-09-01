@@ -14,7 +14,8 @@ import "orchestrator/v1/orchestrator.proto";
 service BMMService {
   // Start bids on every new mainchain tip and connects the blocks miners take,
   // until Stop. Bids are funded by the wallet the request names, and are
-  // raised toward max_bid_sats when a competitor outbids us.
+  // opened at Core's next block fee and raised toward max_bid_sats when a
+  // competitor outbids us.
   rpc Start(StartRequest) returns (StartResponse);
   rpc Stop(StopRequest) returns (StopResponse);
   rpc ClearHistory(ClearHistoryRequest) returns (ClearHistoryResponse);
@@ -40,8 +41,9 @@ service BMMService {
 
 message StartRequest {
   orchestrator.v1.BinaryType sidechain = 1;
-  // Opening bid for each round, paid as the M8's fee.
-  int64 min_bid_sats = 2;
+  // The opening bid comes from Core's next block estimate, so the caller
+  // sets no floor of its own.
+  reserved 2;
   // Ceiling for raises. A bid is never raised above this, nor above what the
   // block is worth, since either loses money.
   int64 max_bid_sats = 3;
@@ -69,7 +71,7 @@ message WatchRequest {
 
 message WatchResponse {
   bool running = 1;
-  int64 min_bid_sats = 2;
+  reserved 2;
   int64 max_bid_sats = 3;
   // The round being bid on now, absent when no tip has been seen yet.
   Round current = 4;
@@ -77,6 +79,10 @@ message WatchResponse {
   repeated Round history = 5;
   // Wallet that funds the bids. Empty means the active wallet.
   string wallet_id = 6;
+  // Rate a bid pays to enter the next mainchain block, in sats per vByte, from
+  // Core's own estimate. The engine opens every bid here and never lower. The
+  // amount depends on the size the wallet builds, so this reports the rate.
+  double next_block_fee_rate_sat_vb = 7;
 }
 
 // Round is one mainchain tip and the contest for the sidechain block after it.
@@ -147,6 +153,12 @@ message CreateBidRequest {
   string expect_prev_main_hash = 5;
   // Lower the bid to what the block collects in fees. Above that it loses money.
   bool cap_to_block_worth = 6;
+  // Size the bid at this rate rather than at a fixed amount, so a wallet that
+  // needs more inputs still pays the rate. The answer reports what it cost.
+  // Ignored when bid_sats is set.
+  double fee_rate_sat_vb = 7;
+  // Highest the bid may go, in sats. Zero sets no ceiling.
+  int64 max_bid_sats = 8;
 }
 
 message CreateBidResponse {

@@ -17,7 +17,22 @@ class BMMProvider extends ChangeNotifier {
   StreamSupervisor<bmmpb.WatchResponse>? _supervisor;
 
   bool running = false;
-  double minBidAmount = 0.000001;
+
+  /// Rate a bid pays to enter the next mainchain block, in sats per vByte,
+  /// from Core's own estimate. The engine opens every bid here, and nobody can
+  /// set it lower. The wallet decides the amount from the size it builds.
+  double nextBlockFeeRateSatVb = 0;
+
+  /// A bid a node relays, in sats. Core answers no estimate on a fresh node,
+  /// and a manual bid of zero is not a bid.
+  static const int relayMinimumBidSats = 188;
+
+  /// A starting amount for a manual bid, from the rate and a plain bid's size.
+  int get suggestedBidSats {
+    final sats = (nextBlockFeeRateSatVb * 188).ceil();
+    return sats > relayMinimumBidSats ? sats : relayMinimumBidSats;
+  }
+
   double maxBidAmount = 0.0002;
 
   String? _selectedWalletId;
@@ -56,7 +71,6 @@ class BMMProvider extends ChangeNotifier {
 
   String? _resolvedWalletId;
 
-  int get minBidSats => btcToSatoshi(minBidAmount);
   int get maxBidSats => btcToSatoshi(maxBidAmount);
 
   /// True while an edited bound is waiting to be pushed. The bid fields read this
@@ -167,15 +181,6 @@ class BMMProvider extends ChangeNotifier {
   int get lostCount => history.where((r) => r.result == 'lost').length;
   int get totalProfitSats => history.where((r) => r.hasProfit).fold(0, (sum, r) => sum + r.profitSats.toInt());
 
-  void setMinBidAmount(double value) {
-    if (value == minBidAmount) {
-      return;
-    }
-    minBidAmount = value;
-    _scheduleBoundsPush();
-    notifyListeners();
-  }
-
   void setMaxBidAmount(double value) {
     if (value == maxBidAmount) {
       return;
@@ -219,10 +224,8 @@ class BMMProvider extends ChangeNotifier {
       unawaited(refreshFundingBalance());
     }
     history = state.history;
+    nextBlockFeeRateSatVb = state.nextBlockFeeRateSatVb;
     final edited = boundsPushPending;
-    if (!edited && state.minBidSats > 0) {
-      minBidAmount = satoshiToBTC(state.minBidSats.toInt());
-    }
     if (!edited && state.maxBidSats > 0) {
       maxBidAmount = satoshiToBTC(state.maxBidSats.toInt());
     }
@@ -245,7 +248,6 @@ class BMMProvider extends ChangeNotifier {
       await _bmm.start(
         sidechain: sidechainRPC.binaryType,
         walletId: walletId,
-        minBidSats: minBidSats,
         maxBidSats: maxBidSats,
       );
       error = null;
