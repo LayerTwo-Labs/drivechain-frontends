@@ -24,6 +24,18 @@ func SidechainConfByName(confs map[string]*SidechainConfManager, name string) *S
 	return nil
 }
 
+// SidechainSpecByName finds the spec for a binary name, by the same rule as
+// SidechainConfByName.
+func SidechainSpecByName(name string) (SidechainConfSpec, bool) {
+	lower := strings.ToLower(name)
+	for key, spec := range KnownSidechainSpecs {
+		if strings.ToLower(key) == lower || strings.ToLower(spec.Name) == lower {
+			return spec, true
+		}
+	}
+	return SidechainConfSpec{}, false
+}
+
 // legacyNetworkKey is a network key that older conf files carry. The network is
 // always downstream of the mainchain conf, so the file holds none of its own,
 // and SyncNetworkFromBitcoinConf drops the key it finds.

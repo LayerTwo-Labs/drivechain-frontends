@@ -1077,17 +1077,23 @@ func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) e
 	if cfg.ChainLayer != 2 || cfg.IsBitcoinCore {
 		return nil
 	}
-	scm := config.SidechainConfByName(o.SidechainConfs, cfg.Name)
-	if scm == nil || len(scm.Spec.CliArgKeys) == 0 {
+	spec, known := config.SidechainSpecByName(cfg.Name)
+	if !known || len(spec.CliArgKeys) == 0 {
 		return nil
 	}
-	// A network swap reloads BitcoinConf alone, so the conf still holds the
-	// ports of the network the node just left.
-	if err := scm.SyncNetworkFromBitcoinConf(); err != nil {
-		o.log.Warn().Err(err).Str("binary", cfg.Name).
-			Msg("could not sync the sidechain conf to the network")
+
+	// A conf manager that failed to load leaves no args, and the check below
+	// then stops the daemon. A start with no flags picks the daemon default.
+	var args []string
+	if scm := config.SidechainConfByName(o.SidechainConfs, cfg.Name); scm != nil {
+		// A network swap reloads BitcoinConf alone, so the conf still holds the
+		// ports of the network the node just left.
+		if err := scm.SyncNetworkFromBitcoinConf(); err != nil {
+			o.log.Warn().Err(err).Str("binary", cfg.Name).
+				Msg("could not sync the sidechain conf to the network")
+		}
+		args = scm.GetCliArgs()
 	}
-	args := scm.GetCliArgs()
 	// This call opens the sidechain's own app, which asks for the daemon
 	// itself. The daemon meets the check on that second call.
 	if !hasCLIFlag(args, config.CliNetworkFlag) && !hasCLIFlag(opts.TargetArgs, config.CliNetworkFlag) &&
