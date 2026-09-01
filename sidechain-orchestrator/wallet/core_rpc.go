@@ -538,6 +538,31 @@ func (c *CoreRPCClient) EstimateSmartFee(ctx context.Context, confTarget int) (f
 	return resp.FeeRate * 1e8 / 1000, nil
 }
 
+// MempoolMinFeeRate returns the lowest fee rate in sat/vB the node relays. It
+// reads both the dynamic mempool floor and the configured minrelaytxfee, and
+// answers with the higher of the two.
+func (c *CoreRPCClient) MempoolMinFeeRate(ctx context.Context) (float64, error) {
+	result, err := c.call(ctx, "", "getmempoolinfo")
+	if err != nil {
+		return 0, err
+	}
+	var resp struct {
+		MempoolMinFee float64 `json:"mempoolminfee"`
+		MinRelayTxFee float64 `json:"minrelaytxfee"`
+	}
+	if err := json.Unmarshal(result, &resp); err != nil {
+		return 0, fmt.Errorf("decode getmempoolinfo: %w", err)
+	}
+	rate := resp.MempoolMinFee
+	if resp.MinRelayTxFee > rate {
+		rate = resp.MinRelayTxFee
+	}
+	if rate <= 0 {
+		return 0, fmt.Errorf("getmempoolinfo reports no relay floor")
+	}
+	return rate * 1e8 / 1000, nil
+}
+
 // GetBlockchainInfo returns blockchain info (used for health checks and sync).
 func (c *CoreRPCClient) GetBlockchainInfo(ctx context.Context) (json.RawMessage, error) {
 	return c.call(ctx, "", "getblockchaininfo")
