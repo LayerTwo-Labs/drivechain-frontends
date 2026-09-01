@@ -1938,80 +1938,84 @@ class _DepositModalState extends State<DepositModal> {
           subtitle: 'Slot ${widget.slot}',
           error: fetchError,
           withCloseButton: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  Expanded(
-                    child: SailTextField(
-                      label: 'Deposit Address',
-                      loading: LoadingDetails(
-                        enabled: isFetchingAddress,
-                        description: 'Fetching deposit address from ${widget.sidechainName}...',
+          // The card sits inside a fixed share of the window, so a short
+          // window cuts the tail of this form off.
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    Expanded(
+                      child: SailTextField(
+                        label: 'Deposit Address',
+                        loading: LoadingDetails(
+                          enabled: isFetchingAddress,
+                          description: 'Fetching deposit address from ${widget.sidechainName}...',
+                        ),
+                        controller: TextEditingController(text: depositAddress ?? ''),
+                        hintText: 's${widget.slot}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
+                        readOnly: true,
+                        suffixWidget: depositAddress != null ? CopyButton(text: depositAddress!) : null,
                       ),
-                      controller: TextEditingController(text: depositAddress ?? ''),
-                      hintText: 's${widget.slot}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
-                      readOnly: true,
-                      suffixWidget: depositAddress != null ? CopyButton(text: depositAddress!) : null,
                     ),
-                  ),
-                  SailTooltip(
-                    message: 'Generate new address',
-                    child: SailButton(
-                      variant: ButtonVariant.icon,
-                      icon: SailSVGAsset.iconRestart,
-                      onPressed: isFetchingAddress ? null : _fetchDepositAddress,
+                    SailTooltip(
+                      message: 'Generate new address',
+                      child: SailButton(
+                        variant: ButtonVariant.icon,
+                        icon: SailSVGAsset.iconRestart,
+                        onPressed: isFetchingAddress ? null : _fetchDepositAddress,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SailSpacing(SailStyleValues.padding16),
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: NumericField(
-                      label: 'Deposit Amount',
-                      controller: amountController,
-                      hintText: '0.00',
+                  ],
+                ),
+                const SailSpacing(SailStyleValues.padding16),
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: NumericField(
+                        label: 'Deposit Amount',
+                        controller: amountController,
+                        hintText: '0.00',
+                      ),
                     ),
-                  ),
-                  UnitDropdown(value: Unit.BTC, onChanged: (_) {}, enabled: false),
-                  Expanded(
-                    flex: 2,
-                    child: FromWalletField(
-                      selectedWalletId: fromWalletId,
-                      onChanged: (walletId) => setState(() => selectedWalletId = walletId),
+                    UnitDropdown(value: Unit.BTC, onChanged: (_) {}, enabled: false),
+                    Expanded(
+                      flex: 2,
+                      child: FromWalletField(
+                        selectedWalletId: fromWalletId,
+                        onChanged: (walletId) => setState(() => selectedWalletId = walletId),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SailSpacing(SailStyleValues.padding08),
-              DepositFeeFields(estimate: depositFee, onTargetChanged: _setFeeTarget),
-              const SailSpacing(SailStyleValues.padding08),
-              _LeavesWalletRow(amount: amountController.text, fee: feeController.text),
-              const SailSpacing(SailStyleValues.padding08),
-              SailText.secondary13(
-                '${widget.sidechainName} may deduct its own fee, so the credited amount can be lower.',
-                color: context.sailTheme.colors.textTertiary,
-              ),
-              const SailSpacing(SailStyleValues.padding20),
-              SailButton(
-                label: 'Deposit',
-                loading: isLoading,
-                disabled:
-                    depositAddress == null ||
-                    fromWalletId == null ||
-                    amountController.text.isEmpty ||
-                    feeController.text.isEmpty,
-                onPressed: _deposit,
-              ),
-            ],
+                  ],
+                ),
+                const SailSpacing(SailStyleValues.padding08),
+                DepositFeeFields(estimate: depositFee, onTargetChanged: _setFeeTarget),
+                const SailSpacing(SailStyleValues.padding08),
+                _LeavesWalletRow(amount: amountController.text, fee: feeController.text),
+                const SailSpacing(SailStyleValues.padding08),
+                SailText.secondary13(
+                  '${widget.sidechainName} may deduct its own fee, so the credited amount can be lower.',
+                  color: context.sailTheme.colors.textTertiary,
+                ),
+                const SailSpacing(SailStyleValues.padding20),
+                SailButton(
+                  label: 'Deposit',
+                  loading: isLoading,
+                  disabled:
+                      depositAddress == null ||
+                      fromWalletId == null ||
+                      amountController.text.isEmpty ||
+                      feeController.text.isEmpty,
+                  onPressed: _deposit,
+                ),
+              ],
+            ),
           ),
         ),
       ),
