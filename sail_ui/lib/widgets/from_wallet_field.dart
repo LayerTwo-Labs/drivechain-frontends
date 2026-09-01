@@ -116,6 +116,16 @@ class _WalletPickerState extends State<WalletPicker> {
                       (wallet) => SailDropdownItem<String>(
                         value: wallet.id,
                         label: wallet.name,
+                        // The closed button names the wallet alone. A balance
+                        // there wraps over three lines and crowds the field.
+                        triggerChild: SailRow(
+                          spacing: SailStyleValues.padding08,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            WalletBlobAvatar(gradient: wallet.gradient, size: 20),
+                            Flexible(child: SailText.primary13(wallet.name)),
+                          ],
+                        ),
                         child: ConstrainedBox(
                           constraints: BoxConstraints(maxWidth: rowWidth),
                           child: SailRow(
