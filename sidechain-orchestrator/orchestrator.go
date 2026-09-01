@@ -3514,6 +3514,8 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		if slot.Error != "" {
 			continue
 		}
+		// Only an index knows the chain's tip. The node's own height would
+		// read as fully synced while it still downloads.
 		if h, ok := heights[name]; ok {
 			slot.Headers = h
 		}
@@ -3560,9 +3562,40 @@ type explorerHeightsConnection struct{ o *Orchestrator }
 
 func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64, error) {
 	network := config.NetworkFromString(c.o.Network)
-	if !config.PublicExplorerNetwork(network) {
-		return nil, fmt.Errorf("no public explorer for %s", network)
+	heights := make(map[string]int64)
+
+	if config.PublicExplorerNetwork(network) {
+		if err := c.fetchPublicExplorer(ctx, network, heights); err != nil {
+			return nil, err
+		}
 	}
+	// A network the public explorer does not serve still hosts a per-chain
+	// address index, and a light install reads its chain from that index.
+	for name, cfg := range c.o.Configs() {
+		if cfg.ChainLayer != 2 {
+			continue
+		}
+		if _, ok := heights[name]; ok {
+			continue
+		}
+		height, err := c.o.sidechainIndexHeight(ctx, name, network)
+		if err != nil {
+			c.o.log.Debug().Err(err).Str("chain", name).Msg("sidechain index tip failed")
+			continue
+		}
+		heights[name] = height
+	}
+
+	if len(heights) == 0 {
+		return nil, fmt.Errorf("no chain tip for %s", network)
+	}
+	return heights, nil
+}
+
+// fetchPublicExplorer adds the tips the drivechain.info explorer reports.
+func (c *explorerHeightsConnection) fetchPublicExplorer(
+	ctx context.Context, network config.Network, heights map[string]int64,
+) error {
 	// Readable names match the explorer URL slug directly.
 	url := fmt.Sprintf("https://node.%s.drivechain.info/api/explorer.v1.ExplorerService/GetChainTips", network.ReadableName())
 
@@ -3577,10 +3610,9 @@ func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64
 		Height interface{} `json:"height"`
 	}
 	if err := connectJSONPost(rpcCtx, c.o.explorerHTTP(), url, &resp); err != nil {
-		return nil, err
+		return err
 	}
 
-	heights := make(map[string]int64, len(resp))
 	for name, entry := range resp {
 		switch v := entry.Height.(type) {
 		case string:
@@ -3591,7 +3623,7 @@ func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64
 			heights[name] = int64(v)
 		}
 	}
-	return heights, nil
+	return nil
 }
 
 // explorerHeightsCached returns the single CachedConnection backing every
@@ -3621,6 +3653,34 @@ func (o *Orchestrator) fetchExplorerHeights(ctx context.Context) map[string]int6
 		o.log.Debug().Err(err).Msg("explorer GetChainTips failed; keeping cached heights")
 	}
 	return heights
+}
+
+// sidechainIndexHeight reads the tip the hosted address index reports for one
+// sidechain.
+func (o *Orchestrator) sidechainIndexHeight(ctx context.Context, chain string, network config.Network) (int64, error) {
+	base := config.SidechainEsploraURLForNetwork(chain, network)
+	if base == "" {
+		return 0, fmt.Errorf("no index for %s on %s", chain, network)
+	}
+	rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(rpcCtx, http.MethodGet, base+"/blocks/tip/height", nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := o.explorerHTTP().Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close() //nolint:errcheck // cleanup
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("index answered %s", resp.Status)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 32))
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseInt(strings.TrimSpace(string(body)), 10, 64)
 }
 
 // connectJSONPost issues a Connect-JSON unary call (POST with empty {} body)
