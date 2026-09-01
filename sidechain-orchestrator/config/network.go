@@ -265,6 +265,17 @@ func DrivechainIndexURLForNetwork(n Network) string {
 	}
 }
 
+// SidechainEsploraURLForNetwork returns the address index hosted for one
+// sidechain on a network, or an empty string when none is hosted.
+func SidechainEsploraURLForNetwork(chain string, n Network) string {
+	switch chain {
+	case "thunder":
+		return ThunderEsploraURLForNetwork(n)
+	default:
+		return ""
+	}
+}
+
 func ThunderEsploraURLForNetwork(n Network) string {
 	switch n {
 	case NetworkECash:
