@@ -1,9 +1,25 @@
 package api
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // nominalBidVsize is the size of a one input bid, in vBytes.
 const nominalBidVsize = 188
+
+// checkBidInput reports why a bid names no usable amount. A rate arrives as a
+// double over the wire, so it can carry NaN or an infinity, and both pass a
+// plain comparison.
+func checkBidInput(bidSats int64, rateSatVb float64) error {
+	if math.IsNaN(rateSatVb) || math.IsInf(rateSatVb, 0) {
+		return fmt.Errorf("fee_rate_sat_vb must be a number")
+	}
+	if bidSats <= 0 && rateSatVb <= 0 {
+		return fmt.Errorf("name a bid: bid_sats or fee_rate_sat_vb")
+	}
+	return nil
+}
 
 type bidInput struct {
 	bidSats         int64

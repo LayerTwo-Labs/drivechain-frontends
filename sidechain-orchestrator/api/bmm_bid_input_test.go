@@ -5,6 +5,36 @@ import (
 	"testing"
 )
 
+func TestCheckBidInput(t *testing.T) {
+	tests := []struct {
+		name    string
+		bidSats int64
+		rate    float64
+		wantErr bool
+	}{
+		{name: "an exact bid", bidSats: 5_000},
+		{name: "a rate", rate: 2.5},
+		{name: "neither", wantErr: true},
+		{name: "a negative rate", rate: -1, wantErr: true},
+		{name: "not a number", rate: math.NaN(), wantErr: true},
+		{name: "an infinity", rate: math.Inf(1), wantErr: true},
+		{name: "a negative infinity", rate: math.Inf(-1), wantErr: true},
+		{name: "an exact bid beside a bad rate", bidSats: 5_000, rate: math.NaN(), wantErr: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := checkBidInput(test.bidSats, test.rate)
+			if test.wantErr && err == nil {
+				t.Fatalf("checkBidInput(%d, %v) allowed the bid", test.bidSats, test.rate)
+			}
+			if !test.wantErr && err != nil {
+				t.Fatalf("checkBidInput(%d, %v) refused the bid: %v", test.bidSats, test.rate, err)
+			}
+		})
+	}
+}
+
 func TestBidSizing(t *testing.T) {
 	tests := []struct {
 		name       string

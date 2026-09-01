@@ -247,9 +247,8 @@ func bidToProto(b bmmstate.Bid) *bmmpb.Bid {
 func (h *BMMHandler) CreateBid(
 	ctx context.Context, req *connect.Request[bmmpb.CreateBidRequest],
 ) (*connect.Response[bmmpb.CreateBidResponse], error) {
-	if req.Msg.BidSats <= 0 && req.Msg.FeeRateSatVb <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("name a bid: bid_sats or fee_rate_sat_vb"))
+	if err := checkBidInput(req.Msg.BidSats, req.Msg.FeeRateSatVb); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
@@ -333,19 +332,20 @@ func (h *BMMHandler) CreateBid(
 		return nil, err
 	}
 
-	// The wallet decided the amount, so the chain is the only place that knows
-	// what the bid cost. The fee is spent by now, so a lookup that misses —
-	// an electrum broadcast the local node has not seen, or a block that
-	// already took it — reports the rate's nominal cost rather than losing
-	// the bid.
-	if byRate {
-		if paid, err := h.bidFeeSats(ctx, send.Msg.Txid); err == nil {
-			bidSats = paid
-		} else {
+	// The chain is the only place that knows what the bid cost. A rate lets
+	// the wallet size the fee, and a fixed fee still grows when coin selection
+	// leaves change below the dust threshold and pays the remainder instead.
+	// The fee is spent by now, so a lookup that misses — an electrum broadcast
+	// the local node has not seen, or a block that already took it — reports
+	// the asking price rather than losing the bid.
+	if paid, err := h.bidFeeSats(ctx, send.Msg.Txid); err == nil {
+		bidSats = paid
+	} else {
+		if byRate {
 			bidSats = int64(math.Ceil(req.Msg.FeeRateSatVb * nominalBidVsize))
-			zerolog.Ctx(ctx).Warn().Err(err).Str("txid", send.Msg.Txid).
-				Msg("could not read what the bid paid, reporting the rate's nominal cost")
 		}
+		zerolog.Ctx(ctx).Warn().Err(err).Str("txid", send.Msg.Txid).
+			Msg("could not read what the bid paid, reporting what it asked for")
 	}
 
 	return connect.NewResponse(&bmmpb.CreateBidResponse{
