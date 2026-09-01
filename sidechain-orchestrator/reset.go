@@ -620,7 +620,10 @@ func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinar
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)
 	default:
 		o.injectSidechainStarter(cfg, &opts)
-		o.prepareSidechainArgs(cfg, &opts)
+		if err := o.prepareSidechainArgs(cfg, &opts); err != nil {
+			startErr = err
+			break
+		}
 		o.injectHeadlessForForcedBackend(cfg, &opts)
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)
 	}
