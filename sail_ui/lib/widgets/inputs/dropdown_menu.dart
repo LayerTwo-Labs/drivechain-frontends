@@ -82,7 +82,7 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
         (element) => element.value == widget.value,
       );
       if (currentIndex >= 0) {
-        currentDisplay = widget.items[currentIndex];
+        currentDisplay = widget.items[currentIndex].trigger;
       } else {
         currentDisplay = widget.hint != null
             ? SailText.primary12(widget.hint!, color: terminal ? theme.colors.textHint : Colors.white)
@@ -224,19 +224,39 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
 class SailDropdownItem<T> extends StatelessWidget {
   final String? label;
   final Widget? child;
+
+  /// What the closed button shows for this item. A row that carries more than
+  /// a name, such as a balance, uses this to keep the closed button short.
+  /// Without it the closed button shows the same widget as the open list.
+  final Widget? triggerChild;
   final dynamic value;
   final bool monospace;
+
+  /// Renders this item as the closed button rather than as a list row.
+  final bool asTrigger;
 
   const SailDropdownItem({
     super.key,
     required this.value,
     this.label,
     this.child,
+    this.triggerChild,
     this.monospace = false,
+    this.asTrigger = false,
   }) : assert(
          label != null || child != null,
          'Either label or child must be provided',
        );
+
+  /// A copy of this item that renders as the closed button.
+  SailDropdownItem<T> get trigger => SailDropdownItem<T>(
+    value: value,
+    label: label,
+    triggerChild: triggerChild,
+    monospace: monospace,
+    asTrigger: true,
+    child: child,
+  );
 
   String get displayLabel => label ?? '';
 
@@ -246,7 +266,7 @@ class SailDropdownItem<T> extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child:
-            child ??
+            (asTrigger ? triggerChild ?? child : child) ??
             Text(
               displayLabel,
               style: SailStyleValues.thirteen.copyWith(
