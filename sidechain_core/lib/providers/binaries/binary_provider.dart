@@ -279,7 +279,7 @@ class BinaryProvider extends ChangeNotifier {
 
     // An open window pins the app bundle just as a daemon pins its binary, so
     // the update stops and reopens it too.
-    final wasRunning = isSidechainUp(binary);
+    final wasRunning = holdsItsFiles(binary);
 
     log.i('BinaryProvider: starting update for $name');
 
@@ -510,9 +510,21 @@ class BinaryProvider extends ChangeNotifier {
     return _rpcFor(binary)?.connected ?? false;
   }
 
-  /// True when a chain is up. A light install runs no daemon, so its own open
-  /// window is what up means there.
+  /// True when a chain is up, which is what the start and stop button reads.
+  ///
+  /// A light install runs no daemon of its own, so its window is the only
+  /// thing it can stop. A full install answers for the daemon, because a
+  /// window says nothing about the daemon behind it.
   bool isSidechainUp(Binary binary) {
+    if (!NodeModeProvider.runsLocalBackends) {
+      return _rpcFor(binary)?.windowOpen ?? false;
+    }
+    return isConnected(binary);
+  }
+
+  /// True when a running process holds this chain's files open. An update
+  /// stops it first, whether that is the daemon or the app window.
+  bool holdsItsFiles(Binary binary) {
     return isConnected(binary) || (_rpcFor(binary)?.windowOpen ?? false);
   }
 
