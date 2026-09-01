@@ -980,6 +980,36 @@ func (s *Service) SetWalletHardwareDevice(walletID, deviceType, fingerprint stri
 	return fmt.Errorf("wallet %s not found", walletID)
 }
 
+// MarkBip47NotificationImported records that this network's Core wallet took
+// the wallet's BIP47 notification key, so no later start imports it again.
+func (s *Service) MarkBip47NotificationImported(walletID, network string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.locked() {
+		return fmt.Errorf("wallet is locked")
+	}
+	for i := range s.wallets {
+		if s.wallets[i].ID != walletID {
+			continue
+		}
+		if s.wallets[i].Bip47NotificationImported[network] {
+			return nil
+		}
+		if s.wallets[i].Bip47NotificationImported == nil {
+			s.wallets[i].Bip47NotificationImported = map[string]bool{}
+		}
+		s.wallets[i].Bip47NotificationImported[network] = true
+		if err := s.saveWalletFile(); err != nil {
+			// A marker that reaches no disk still stops the next import, and
+			// the import after a restart then rescans from genesis again.
+			delete(s.wallets[i].Bip47NotificationImported, network)
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("wallet %s not found", walletID)
+}
+
 // UpdateWallet updates or adds a wallet and saves to file.
 // Dart: WalletReaderProvider.updateWallet (L570-591)
 func (s *Service) UpdateWallet(wallet WalletData) error {

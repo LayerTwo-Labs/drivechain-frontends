@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -235,6 +236,139 @@ func TestCoreBackendEnsureTransientBackoff(t *testing.T) {
 
 // A failed BIP47 notification import doesn't break wallet loading, but the
 // wallet must not be cached as fully provisioned: later calls retry it.
+// notificationImports counts the imports of the BIP47 notification key, which
+// is the only single descriptor import that carries a bare pkh().
+func notificationImports(t *testing.T, fake *fakeBitcoind) int {
+	t.Helper()
+	n := 0
+	for _, call := range fake.callsFor("importdescriptors") {
+		var descs []ImportDescriptor
+		require.NoError(t, json.Unmarshal(call.Params[0], &descs))
+		if len(descs) == 1 && strings.HasPrefix(descs[0].Desc, "pkh(") {
+			n++
+		}
+	}
+	return n
+}
+
+// The notification import rescans from genesis, which costs hours. A landed
+// import is what stops the next one, and the wallet file records it.
+func TestCoreBackendImportsBip47NotificationKeyOnce(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	ctx := context.Background()
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.Equal(t, 1, notificationImports(t, fake))
+	require.True(t, backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
+
+	_, err = backend.walletName(ctx, coreID)
+	require.NoError(t, err)
+	_, err = backend.walletName(ctx, coreID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, notificationImports(t, fake))
+}
+
+// A network switch points Core at another datadir, where the new wallet holds
+// no notification key. The record in wallet.json must not speak for it.
+func TestCoreBackendImportsBip47NotificationKeyPerNetwork(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	core, err := svc.GenerateWallet("Core", "", "", testSlots)
+	require.NoError(t, err)
+
+	fake := newFakeBitcoind(t)
+	fake.stubEnsureFlow()
+	params := &chaincfg.RegressionNetParams
+	backend := NewCoreBackend(
+		svc, fake.client(t),
+		ParamsFunc(func() *chaincfg.Params { return params }),
+		zerolog.New(zerolog.NewTestWriter(t)),
+	)
+	ctx := context.Background()
+
+	_, err = backend.Ensure(ctx, core.ID)
+	require.NoError(t, err)
+	require.Equal(t, 1, notificationImports(t, fake))
+	require.True(t, svc.GetWalletByID(core.ID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
+
+	params = &chaincfg.SigNetParams
+	backend.ResetNetworkState()
+	_, err = backend.Ensure(ctx, core.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 2, notificationImports(t, fake))
+	assert.True(t, svc.GetWalletByID(core.ID).Bip47NotificationImported[chaincfg.SigNetParams.Name])
+}
+
+// A wallet file restored onto a fresh Core datadir names an import that this
+// Core never took, so Core has the last word.
+func TestCoreBackendImportsBip47NotificationKeyCoreLacksIt(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	ctx := context.Background()
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.Equal(t, 1, notificationImports(t, fake))
+
+	// A fresh Core datadir: the wallet exists, and owns none of its addresses.
+	fake.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
+		var address string
+		_ = json.Unmarshal(c.Params[0], &address)
+		return map[string]any{"address": address, "hdkeypath": "m/84'/1'/0'/0/0", "ismine": false}, ""
+	})
+	backend.ResetNetworkState()
+	_, err = backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Equal(t, 2, notificationImports(t, fake))
+}
+
+// Core keeps the descriptor when the import's rescan fails, so it answers
+// ismine for an address whose history it never read. Only a repeat import
+// reads that history, so the failed import must not count as landed.
+func TestCoreBackendRetriesBip47ImportCoreAlreadyOwns(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	var mu sync.Mutex
+	failNotif := true
+	fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		mu.Lock()
+		fail := failNotif && len(descs) == 1 && strings.HasPrefix(descs[0].Desc, "pkh(")
+		mu.Unlock()
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": !fail}
+			if fail {
+				results[i]["error"] = map[string]any{"code": -1, "message": "rescan timed out"}
+			}
+		}
+		return results, ""
+	})
+	ctx := context.Background()
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.Equal(t, 1, notificationImports(t, fake))
+	require.False(t, backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
+
+	mu.Lock()
+	failNotif = false
+	mu.Unlock()
+	backend.mu.Lock()
+	backend.bip47NotifRetry[coreID] = time.Time{} // backoff elapsed
+	backend.mu.Unlock()
+
+	_, err = backend.walletName(ctx, coreID)
+	require.NoError(t, err)
+	assert.Equal(t, 2, notificationImports(t, fake))
+	assert.True(t, backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
+}
+
 func TestCoreBackendRetriesFailedBip47NotificationImport(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
@@ -1593,4 +1727,21 @@ func TestCoreBackendPreviewBumpFeeAddsInputsForTheChangePath(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.False(t, preview.AddsInputs)
+}
+
+// A marker that reaches no disk still stops the next import, and the import
+// after a restart then rescans from genesis again.
+func TestMarkBip47NotificationImportedRollsBackOnSaveFailure(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.GenerateWallet("Core", "", "", testSlots)
+	require.NoError(t, err)
+
+	// A directory at the wallet file's path fails the write on every platform.
+	path := svc.walletFilePath()
+	require.NoError(t, os.Remove(path))
+	require.NoError(t, os.Mkdir(path, 0o755))
+
+	err = svc.MarkBip47NotificationImported(w.ID, chaincfg.RegressionNetParams.Name)
+	require.Error(t, err)
+	assert.False(t, svc.GetWalletByID(w.ID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
 }
