@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -53,13 +54,11 @@ func TestCusfNetworkNameWithholdsAnUnknownECashGeneration(t *testing.T) {
 	}
 }
 
-// The conf on an eCash box says network=mainnet, because that value picks the
-// +20000 port group. Thunder has no mainnet, so passing that value stops the
-// daemon at once. The flag must carry the daemon's own name instead.
+// An eCash box runs the +20000 port group, which the old conf called
+// "mainnet". Thunder has no mainnet, so the flag carries the daemon's own name.
 func TestGetCliArgsGivesThunderTheDaemonNetworkName(t *testing.T) {
 	m := sidechainConfFor(t, "thunder", NetworkECash, map[string]string{
 		"net-addr": "0.0.0.0:24009",
-		"network":  "mainnet",
 	})
 
 	args := m.GetCliArgs()
@@ -77,12 +76,10 @@ func TestGetCliArgsGivesThunderTheDaemonNetworkName(t *testing.T) {
 	}
 }
 
-// A signet box keeps the signet name, and the port group value never doubles
-// as the flag.
+// A signet box passes the signet name exactly one time.
 func TestGetCliArgsPassesNetworkOnce(t *testing.T) {
 	m := sidechainConfFor(t, "thunder", NetworkSignet, map[string]string{
 		"net-addr": "0.0.0.0:4009",
-		"network":  "signet",
 	})
 
 	var seen int
@@ -134,7 +131,6 @@ func TestGetCliArgsWithholdsNetworkFromUnprovedChains(t *testing.T) {
 	for _, name := range []string{"bitnames", "bitassets", "zside", "photon", "truthcoin", "coinshift", "liquid-signet"} {
 		m := sidechainConfFor(t, name, NetworkECash, map[string]string{
 			"net-addr": "0.0.0.0:24009",
-			"network":  "mainnet",
 		})
 		for _, arg := range m.GetCliArgs() {
 			if len(arg) >= 10 && arg[:10] == "--network=" {
@@ -200,5 +196,126 @@ func TestSyncNetworkRealignsThePortsAfterASwap(t *testing.T) {
 	}
 	if slices.Contains(args, "--net-addr=0.0.0.0:4009") {
 		t.Errorf("args = %v, still carry the signet port", args)
+	}
+}
+
+// The network is always downstream of the mainchain conf. A network key in the
+// sidechain file is a second source, and a user edit there would fight it.
+func TestDefaultConfigHoldsNoNetworkKey(t *testing.T) {
+	for name := range KnownSidechainSpecs {
+		m := sidechainConfFor(t, name, NetworkSignet, map[string]string{})
+		for _, line := range strings.Split(m.GetDefaultConfig(), "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), legacyNetworkKey+"=") {
+				t.Errorf("%s default config carries %q", name, line)
+			}
+		}
+	}
+}
+
+// An install from an older build carries the key. The sync drops it, so the UI
+// never shows a value the launch path ignores.
+func TestSyncDropsTheLegacyNetworkKey(t *testing.T) {
+	SetHomeDir(t.TempDir())
+	t.Cleanup(func() { SetHomeDir("") })
+
+	m := sidechainConfFor(t, "thunder", NetworkSignet, map[string]string{
+		"net-addr": "0.0.0.0:4009",
+		"rpc-addr": "127.0.0.1:6009",
+		"network":  "mainnet",
+	})
+
+	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	if got := m.Config.GetSetting(legacyNetworkKey); got != "" {
+		t.Errorf("the conf kept network=%q", got)
+	}
+}
+
+// A network switch reloads the mainchain conf alone. The ports carry the
+// offset, so the sync moves them to the network the mainchain now runs.
+func TestSyncMovesThePortsToTheMainchainNetwork(t *testing.T) {
+	SetHomeDir(t.TempDir())
+	t.Cleanup(func() { SetHomeDir("") })
+
+	m := sidechainConfFor(t, "thunder", NetworkRegtest, map[string]string{
+		"net-addr": "0.0.0.0:4009",
+		"rpc-addr": "127.0.0.1:6009",
+	})
+
+	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	if got := m.Config.GetSetting("net-addr"); got != "0.0.0.0:14009" {
+		t.Errorf("net-addr = %q, want the regtest port", got)
+	}
+}
+
+// The mainchain conf owns the network. Nothing reads a value out of the
+// sidechain file, so the two can never disagree.
+func TestGetNetworkReadsTheMainchainConf(t *testing.T) {
+	for network, want := range map[Network]string{
+		NetworkSignet:  "signet",
+		NetworkRegtest: "regtest",
+		NetworkECash:   "mainnet",
+		NetworkForknet: "mainnet",
+	} {
+		m := sidechainConfFor(t, "thunder", network, map[string]string{"network": "nonsense"})
+		if got := m.GetNetwork(); got != want {
+			t.Errorf("GetNetwork on %s = %q, want %q", network, got, want)
+		}
+	}
+}
+
+// prepareSidechainArgs syncs before every start. A user who points thunder at a
+// remote enforcer would lose that URL on the next start.
+func TestSyncKeepsACustomEndpoint(t *testing.T) {
+	SetHomeDir(t.TempDir())
+	t.Cleanup(func() { SetHomeDir("") })
+
+	m := sidechainConfFor(t, "thunder", NetworkSignet, map[string]string{
+		"net-addr":           "0.0.0.0:9999",
+		"rpc-addr":           "127.0.0.1:6009",
+		"mainchain-grpc-url": "https://remote.example/grpc",
+	})
+
+	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	for key, want := range map[string]string{
+		"net-addr":           "0.0.0.0:9999",
+		"mainchain-grpc-url": "https://remote.example/grpc",
+	} {
+		if got := m.Config.GetSetting(key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
+		}
+	}
+	if _, err := os.Stat(m.getConfigPath()); !os.IsNotExist(err) {
+		t.Error("the sync saved the file, but it changed nothing")
+	}
+}
+
+// A port from another network came from an earlier sync, so a network change
+// replaces it.
+func TestSyncReplacesAnotherNetworksPort(t *testing.T) {
+	SetHomeDir(t.TempDir())
+	t.Cleanup(func() { SetHomeDir("") })
+
+	m := sidechainConfFor(t, "thunder", NetworkSignet, map[string]string{
+		"net-addr":           "0.0.0.0:24009",
+		"rpc-addr":           "127.0.0.1:26009",
+		"mainchain-grpc-url": "http://localhost:50051",
+	})
+
+	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	for key, want := range map[string]string{
+		"net-addr": "0.0.0.0:4009",
+		"rpc-addr": "127.0.0.1:6009",
+	} {
+		if got := m.Config.GetSetting(key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
+		}
 	}
 }
