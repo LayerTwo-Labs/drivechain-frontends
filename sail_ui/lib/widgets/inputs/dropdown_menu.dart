@@ -135,7 +135,9 @@ class _SailDropdownButtonState<T> extends State<SailDropdownButton<T>> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  currentDisplay,
+                  // The selection shrinks rather than overflowing, so a long
+                  // label stays inside the field.
+                  Flexible(child: currentDisplay),
                   SailSVG.fromAsset(
                     _open ? SailSVGAsset.chevronUp : SailSVGAsset.chevronDown,
                     color: terminal
