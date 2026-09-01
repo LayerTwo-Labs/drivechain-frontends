@@ -85,10 +85,10 @@ class _Controls extends StatelessWidget {
         ),
         if (viewModel.bidBlockedReason case final reason?) SailText.secondary13(reason),
         Expanded(child: Container()),
-        SailText.primary13('Min bid:'),
+        SailText.primary13('Next block:'),
         SizedBox(
           width: 130,
-          child: SailTextField(controller: viewModel.minBidController, hintText: '0.00000100'),
+          child: SailText.secondary13(viewModel.nextBlockFloorLabel),
         ),
         SailText.primary13('Max bid:'),
         SizedBox(
@@ -100,7 +100,7 @@ class _Controls extends StatelessWidget {
   }
 
   void _showManualBidDialog(BuildContext context, BMMViewModel viewModel) {
-    final controller = TextEditingController(text: viewModel.bmmProvider.minBidSats.toString());
+    final controller = TextEditingController(text: viewModel.bmmProvider.suggestedBidSats.toString());
     final worth = viewModel.blockWorthSats;
 
     showThemedDialog(
@@ -401,13 +401,10 @@ class BMMViewModel extends BaseViewModel {
   final BitcoinConfProvider _conf = GetIt.I.get<BitcoinConfProvider>();
   final SyncProvider _sync = GetIt.I.get<SyncProvider>();
 
-  final TextEditingController minBidController = TextEditingController();
   final TextEditingController maxBidController = TextEditingController();
 
   BMMViewModel() {
-    minBidController.text = bmmProvider.minBidAmount.toStringAsFixed(8);
     maxBidController.text = bmmProvider.maxBidAmount.toStringAsFixed(8);
-    minBidController.addListener(_onMinBound);
     maxBidController.addListener(_onMaxBound);
     bmmProvider.addListener(_onProviderChanged);
     _sync.addListener(_onSyncChanged);
@@ -476,13 +473,13 @@ class BMMViewModel extends BaseViewModel {
     return 'Waiting for a miner to commit to ${shorten(live.criticalHash)}';
   }
 
-  // One listener per field: editing one bound must not push the other, whose box
-  // may still show a value the watch stream has since moved on from.
-  void _onMinBound() {
-    final min = double.tryParse(minBidController.text.trim());
-    if (min != null) {
-      bmmProvider.setMinBidAmount(min);
+  /// What a bid pays to enter the next mainchain block, as Core sees it.
+  String get nextBlockFloorLabel {
+    final rate = bmmProvider.nextBlockFeeRateSatVb;
+    if (rate <= 0) {
+      return 'no estimate';
     }
+    return '${rate.toStringAsFixed(2)} sat/vB';
   }
 
   void _onMaxBound() {
@@ -502,7 +499,6 @@ class BMMViewModel extends BaseViewModel {
     // Mirror bounds the backend reports, except while an edit is waiting to be
     // pushed — that value is the user's, mid-typing.
     if (!bmmProvider.boundsPushPending) {
-      _mirrorBound(minBidController, bmmProvider.minBidAmount);
       _mirrorBound(maxBidController, bmmProvider.maxBidAmount);
     }
     notifyListeners();
@@ -672,7 +668,6 @@ class BMMViewModel extends BaseViewModel {
   void dispose() {
     bmmProvider.removeListener(_onProviderChanged);
     _sync.removeListener(_onSyncChanged);
-    minBidController.dispose();
     maxBidController.dispose();
     super.dispose();
   }

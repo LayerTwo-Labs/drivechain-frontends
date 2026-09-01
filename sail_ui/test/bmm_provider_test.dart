@@ -16,7 +16,6 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
   int startCalls = 0;
   int stopCalls = 0;
   int manualBids = 0;
-  int? lastMinBid;
   int? lastMaxBid;
   String? lastWalletId;
   Object? throwOnStart;
@@ -29,7 +28,6 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
   @override
   Future<void> start({
     required BinaryType sidechain,
-    required int minBidSats,
     required int maxBidSats,
     String? walletId,
   }) async {
@@ -37,7 +35,6 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
       throw throwOnStart!;
     }
     startCalls++;
-    lastMinBid = minBidSats;
     lastMaxBid = maxBidSats;
     lastWalletId = walletId;
   }
@@ -128,15 +125,14 @@ void main() {
     bmm = _FakeBmmRPC();
   });
 
-  test('start passes the bid bounds the user set', () async {
+  // Core names the floor, so the user sets only the ceiling.
+  test('start passes the ceiling the user set', () async {
     final provider = newProvider();
-    provider.setMinBidAmount(0.0001);
     provider.setMaxBidAmount(0.0005);
 
     await provider.startBidding();
 
     expect(bmm.startCalls, 1);
-    expect(bmm.lastMinBid, 10000);
     expect(bmm.lastMaxBid, 50000);
   });
 

@@ -62,8 +62,17 @@ type MainchainTip interface {
 	ChainTip(context.Context) (hash string, height int32, err error)
 }
 
+// NextBlockFee reports what Core expects a transaction to pay per vByte to
+// enter the next block.
+type NextBlockFee interface {
+	NextBlockFeeRate(ctx context.Context) (satsPerVByte float64, err error)
+}
+
+// relayMinimumRate is the last resort rate, in sats per vByte, for when Core
+// reports neither an estimate nor a relay floor.
+const relayMinimumRate = 1.0
+
 type bmmTarget struct {
-	minBidSats int64
 	maxBidSats int64
 	// walletID funds every bid. Empty spends from the active wallet.
 	walletID string
@@ -78,6 +87,7 @@ type BmmEngine struct {
 	log     zerolog.Logger
 	backend BmmBackend
 	tip     MainchainTip
+	fee     NextBlockFee
 	store   *bmmstate.Store
 
 	mu      sync.Mutex
@@ -91,11 +101,12 @@ type BmmEngine struct {
 	wake chan struct{}
 }
 
-func NewBmmEngine(log zerolog.Logger, backend BmmBackend, tip MainchainTip, store *bmmstate.Store) *BmmEngine {
+func NewBmmEngine(log zerolog.Logger, backend BmmBackend, tip MainchainTip, fee NextBlockFee, store *bmmstate.Store) *BmmEngine {
 	return &BmmEngine{
 		log:         log.With().Str("component", "bmm").Logger(),
 		backend:     backend,
 		tip:         tip,
+		fee:         fee,
 		store:       store,
 		targets:     make(map[pb.BinaryType]bmmTarget),
 		current:     make(map[pb.BinaryType]*bmmstate.Round),
@@ -107,16 +118,13 @@ func NewBmmEngine(log zerolog.Logger, backend BmmBackend, tip MainchainTip, stor
 
 // Start bids for sidechain on every new mainchain tip until Stop, raising
 // toward maxBidSats when outbid. walletID funds every bid.
-func (e *BmmEngine) Start(sidechain pb.BinaryType, walletID string, minBidSats, maxBidSats int64) error {
-	if minBidSats <= 0 {
-		return fmt.Errorf("min_bid_sats must be positive")
-	}
-	if maxBidSats < minBidSats {
-		return fmt.Errorf("max_bid_sats must be at least min_bid_sats")
+func (e *BmmEngine) Start(sidechain pb.BinaryType, walletID string, maxBidSats int64) error {
+	if maxBidSats <= 0 {
+		return fmt.Errorf("max_bid_sats must be positive")
 	}
 
 	e.mu.Lock()
-	target := bmmTarget{minBidSats: minBidSats, maxBidSats: maxBidSats, walletID: walletID}
+	target := bmmTarget{maxBidSats: maxBidSats, walletID: walletID}
 	if existing, ok := e.targets[sidechain]; ok {
 		target.lastTip = existing.lastTip
 	} else if round, ok := e.current[sidechain]; ok {
@@ -126,7 +134,7 @@ func (e *BmmEngine) Start(sidechain pb.BinaryType, walletID string, minBidSats, 
 	e.mu.Unlock()
 
 	e.log.Info().Stringer("sidechain", sidechain).
-		Int64("min_bid_sats", minBidSats).Int64("max_bid_sats", maxBidSats).Msg("bmm started")
+		Int64("max_bid_sats", maxBidSats).Msg("bmm started")
 	e.notify()
 	e.poke()
 	return nil
@@ -142,12 +150,12 @@ func (e *BmmEngine) Stop(sidechain pb.BinaryType) {
 }
 
 // Running reports whether the engine bids for sidechain, with the wallet it
-// spends from and its bid bounds.
-func (e *BmmEngine) Running(sidechain pb.BinaryType) (bool, string, int64, int64) {
+// spends from and its bid ceiling.
+func (e *BmmEngine) Running(sidechain pb.BinaryType) (bool, string, int64) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	t, ok := e.targets[sidechain]
-	return ok, t.walletID, t.minBidSats, t.maxBidSats
+	return ok, t.walletID, t.maxBidSats
 }
 
 // Current returns the round being bid on, or nil.
@@ -388,7 +396,7 @@ func (e *BmmEngine) openRound(
 	e.current[sidechain] = round
 	e.mu.Unlock()
 
-	if err := e.placeBid(ctx, sidechain, round, target.walletID, target.minBidSats, ""); err != nil {
+	if err := e.placeBid(ctx, sidechain, round, target.walletID, 0, e.NextBlockRate(ctx), target.maxBidSats, ""); err != nil {
 		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 			e.log.Info().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid refused, retrying next tick")
 			e.retryTip(sidechain, tip)
@@ -464,14 +472,19 @@ func (e *BmmEngine) ourTxids(sidechain pb.BinaryType) map[string]bool {
 
 // placeBid broadcasts an M8 and records it. replaceTxid raises an earlier bid,
 // which evicts that one from the mempool.
+// placeBid bids an exact amount, or at a rate when bidSats is zero. A raise
+// names an amount, because it has to beat a competitor's. An opening bid names
+// a rate, and the wallet sizes it.
 func (e *BmmEngine) placeBid(
 	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round,
-	walletID string, bidSats int64, replaceTxid string,
+	walletID string, bidSats int64, feeRateSatVb float64, maxBidSats int64, replaceTxid string,
 ) error {
 	resp, err := e.backend.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{
 		Sidechain:          sidechain,
 		WalletId:           walletID,
 		BidSats:            bidSats,
+		FeeRateSatVb:       feeRateSatVb,
+		MaxBidSats:         maxBidSats,
 		ReplaceTxid:        replaceTxid,
 		ExpectPrevMainHash: round.PrevMainHash,
 		CapToBlockWorth:    true,
@@ -517,6 +530,27 @@ func (e *BmmEngine) placeBid(
 	e.log.Info().Stringer("sidechain", sidechain).Str("txid", resp.Msg.BmmTxid).
 		Int64("bid_sats", bidSats).Int64("block_worth_sats", resp.Msg.FeesSats).Msg("bmm bid broadcast")
 	return nil
+}
+
+// NextBlockRate is the fee rate a bid pays to enter the next mainchain block,
+// in sats per vByte. Core reports it, and the relay minimum stands in when
+// Core answers nothing.
+//
+// A miner leaves a cheaper bid in the mempool, and the engine raises only
+// against a competitor, so an opening bid under this rate never gets mined.
+func (e *BmmEngine) NextBlockRate(ctx context.Context) float64 {
+	if e.fee == nil {
+		return relayMinimumRate
+	}
+	rate, err := e.fee.NextBlockFeeRate(ctx)
+	if err != nil {
+		e.log.Debug().Err(err).Msg("core reports no fee rate, opening at the relay minimum")
+		return relayMinimumRate
+	}
+	if rate < relayMinimumRate {
+		return relayMinimumRate
+	}
+	return rate
 }
 
 // maybeRaise replaces our live bid when a competitor has overtaken it, never
@@ -571,7 +605,7 @@ func (e *BmmEngine) maybeRaise(ctx context.Context, sidechain pb.BinaryType, tar
 		Int64("from_sats", live.BidSats).Int64("to_sats", next).Msg("raising bmm bid")
 	// The live bid stands when a raise is refused, so the round carries on at
 	// its current price rather than being unwound.
-	if err := e.placeBid(ctx, sidechain, round, walletID, next, live.Txid); err != nil {
+	if err := e.placeBid(ctx, sidechain, round, walletID, next, 0, target.maxBidSats, live.Txid); err != nil {
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
 			Int64("to_sats", next).Msg("raising bmm bid failed, keeping the live bid")
 	}

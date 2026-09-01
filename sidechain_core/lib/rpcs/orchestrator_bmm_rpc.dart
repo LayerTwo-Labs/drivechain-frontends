@@ -22,7 +22,6 @@ class OrchestratorBmmRPC {
   /// when a competitor outbids us.
   Future<void> start({
     required BinaryType sidechain,
-    required int minBidSats,
     required int maxBidSats,
     String? walletId,
   }) async {
@@ -30,7 +29,6 @@ class OrchestratorBmmRPC {
       bmmpb.StartRequest(
         sidechain: sidechain,
         walletId: walletId ?? '',
-        minBidSats: Int64(minBidSats),
         maxBidSats: Int64(maxBidSats),
       ),
     );

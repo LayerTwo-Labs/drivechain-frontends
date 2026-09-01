@@ -20,16 +20,12 @@ import '../../orchestrator/v1/orchestrator.pbenum.dart' as $3;
 class StartRequest extends $pb.GeneratedMessage {
   factory StartRequest({
     $3.BinaryType? sidechain,
-    $fixnum.Int64? minBidSats,
     $fixnum.Int64? maxBidSats,
     $core.String? walletId,
   }) {
     final $result = create();
     if (sidechain != null) {
       $result.sidechain = sidechain;
-    }
-    if (minBidSats != null) {
-      $result.minBidSats = minBidSats;
     }
     if (maxBidSats != null) {
       $result.maxBidSats = maxBidSats;
@@ -45,7 +41,6 @@ class StartRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
     ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
-    ..aInt64(2, _omitFieldNames ? '' : 'minBidSats')
     ..aInt64(3, _omitFieldNames ? '' : 'maxBidSats')
     ..aOS(4, _omitFieldNames ? '' : 'walletId')
     ..hasRequiredFields = false
@@ -81,34 +76,24 @@ class StartRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearSidechain() => clearField(1);
 
-  /// Opening bid for each round, paid as the M8's fee.
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get minBidSats => $_getI64(1);
-  @$pb.TagNumber(2)
-  set minBidSats($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasMinBidSats() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearMinBidSats() => clearField(2);
-
   /// Ceiling for raises. A bid is never raised above this, nor above what the
   /// block is worth, since either loses money.
   @$pb.TagNumber(3)
-  $fixnum.Int64 get maxBidSats => $_getI64(2);
+  $fixnum.Int64 get maxBidSats => $_getI64(1);
   @$pb.TagNumber(3)
-  set maxBidSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  set maxBidSats($fixnum.Int64 v) { $_setInt64(1, v); }
   @$pb.TagNumber(3)
-  $core.bool hasMaxBidSats() => $_has(2);
+  $core.bool hasMaxBidSats() => $_has(1);
   @$pb.TagNumber(3)
   void clearMaxBidSats() => clearField(3);
 
   /// Wallet that funds every bid. Empty uses the active wallet.
   @$pb.TagNumber(4)
-  $core.String get walletId => $_getSZ(3);
+  $core.String get walletId => $_getSZ(2);
   @$pb.TagNumber(4)
-  set walletId($core.String v) { $_setString(3, v); }
+  set walletId($core.String v) { $_setString(2, v); }
   @$pb.TagNumber(4)
-  $core.bool hasWalletId() => $_has(3);
+  $core.bool hasWalletId() => $_has(2);
   @$pb.TagNumber(4)
   void clearWalletId() => clearField(4);
 }
@@ -362,18 +347,15 @@ class WatchRequest extends $pb.GeneratedMessage {
 class WatchResponse extends $pb.GeneratedMessage {
   factory WatchResponse({
     $core.bool? running,
-    $fixnum.Int64? minBidSats,
     $fixnum.Int64? maxBidSats,
     Round? current,
     $core.Iterable<Round>? history,
     $core.String? walletId,
+    $core.double? nextBlockFeeRateSatVb,
   }) {
     final $result = create();
     if (running != null) {
       $result.running = running;
-    }
-    if (minBidSats != null) {
-      $result.minBidSats = minBidSats;
     }
     if (maxBidSats != null) {
       $result.maxBidSats = maxBidSats;
@@ -387,6 +369,9 @@ class WatchResponse extends $pb.GeneratedMessage {
     if (walletId != null) {
       $result.walletId = walletId;
     }
+    if (nextBlockFeeRateSatVb != null) {
+      $result.nextBlockFeeRateSatVb = nextBlockFeeRateSatVb;
+    }
     return $result;
   }
   WatchResponse._() : super();
@@ -395,11 +380,11 @@ class WatchResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'WatchResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'running')
-    ..aInt64(2, _omitFieldNames ? '' : 'minBidSats')
     ..aInt64(3, _omitFieldNames ? '' : 'maxBidSats')
     ..aOM<Round>(4, _omitFieldNames ? '' : 'current', subBuilder: Round.create)
     ..pc<Round>(5, _omitFieldNames ? '' : 'history', $pb.PbFieldType.PM, subBuilder: Round.create)
     ..aOS(6, _omitFieldNames ? '' : 'walletId')
+    ..a<$core.double>(7, _omitFieldNames ? '' : 'nextBlockFeeRateSatVb', $pb.PbFieldType.OD)
     ..hasRequiredFields = false
   ;
 
@@ -433,49 +418,52 @@ class WatchResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearRunning() => clearField(1);
 
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get minBidSats => $_getI64(1);
-  @$pb.TagNumber(2)
-  set minBidSats($fixnum.Int64 v) { $_setInt64(1, v); }
-  @$pb.TagNumber(2)
-  $core.bool hasMinBidSats() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearMinBidSats() => clearField(2);
-
   @$pb.TagNumber(3)
-  $fixnum.Int64 get maxBidSats => $_getI64(2);
+  $fixnum.Int64 get maxBidSats => $_getI64(1);
   @$pb.TagNumber(3)
-  set maxBidSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  set maxBidSats($fixnum.Int64 v) { $_setInt64(1, v); }
   @$pb.TagNumber(3)
-  $core.bool hasMaxBidSats() => $_has(2);
+  $core.bool hasMaxBidSats() => $_has(1);
   @$pb.TagNumber(3)
   void clearMaxBidSats() => clearField(3);
 
   /// The round being bid on now, absent when no tip has been seen yet.
   @$pb.TagNumber(4)
-  Round get current => $_getN(3);
+  Round get current => $_getN(2);
   @$pb.TagNumber(4)
   set current(Round v) { setField(4, v); }
   @$pb.TagNumber(4)
-  $core.bool hasCurrent() => $_has(3);
+  $core.bool hasCurrent() => $_has(2);
   @$pb.TagNumber(4)
   void clearCurrent() => clearField(4);
   @$pb.TagNumber(4)
-  Round ensureCurrent() => $_ensure(3);
+  Round ensureCurrent() => $_ensure(2);
 
   /// Finished rounds, newest first.
   @$pb.TagNumber(5)
-  $core.List<Round> get history => $_getList(4);
+  $core.List<Round> get history => $_getList(3);
 
   /// Wallet that funds the bids. Empty means the active wallet.
   @$pb.TagNumber(6)
-  $core.String get walletId => $_getSZ(5);
+  $core.String get walletId => $_getSZ(4);
   @$pb.TagNumber(6)
-  set walletId($core.String v) { $_setString(5, v); }
+  set walletId($core.String v) { $_setString(4, v); }
   @$pb.TagNumber(6)
-  $core.bool hasWalletId() => $_has(5);
+  $core.bool hasWalletId() => $_has(4);
   @$pb.TagNumber(6)
   void clearWalletId() => clearField(6);
+
+  /// Rate a bid pays to enter the next mainchain block, in sats per vByte, from
+  /// Core's own estimate. The engine opens every bid here and never lower. The
+  /// amount depends on the size the wallet builds, so this reports the rate.
+  @$pb.TagNumber(7)
+  $core.double get nextBlockFeeRateSatVb => $_getN(5);
+  @$pb.TagNumber(7)
+  set nextBlockFeeRateSatVb($core.double v) { $_setDouble(5, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasNextBlockFeeRateSatVb() => $_has(5);
+  @$pb.TagNumber(7)
+  void clearNextBlockFeeRateSatVb() => clearField(7);
 }
 
 /// Round is one mainchain tip and the contest for the sidechain block after it.
@@ -987,6 +975,8 @@ class CreateBidRequest extends $pb.GeneratedMessage {
     $core.String? replaceTxid,
     $core.String? expectPrevMainHash,
     $core.bool? capToBlockWorth,
+    $core.double? feeRateSatVb,
+    $fixnum.Int64? maxBidSats,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -1007,6 +997,12 @@ class CreateBidRequest extends $pb.GeneratedMessage {
     if (capToBlockWorth != null) {
       $result.capToBlockWorth = capToBlockWorth;
     }
+    if (feeRateSatVb != null) {
+      $result.feeRateSatVb = feeRateSatVb;
+    }
+    if (maxBidSats != null) {
+      $result.maxBidSats = maxBidSats;
+    }
     return $result;
   }
   CreateBidRequest._() : super();
@@ -1020,6 +1016,8 @@ class CreateBidRequest extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'replaceTxid')
     ..aOS(5, _omitFieldNames ? '' : 'expectPrevMainHash')
     ..aOB(6, _omitFieldNames ? '' : 'capToBlockWorth')
+    ..a<$core.double>(7, _omitFieldNames ? '' : 'feeRateSatVb', $pb.PbFieldType.OD)
+    ..aInt64(8, _omitFieldNames ? '' : 'maxBidSats')
     ..hasRequiredFields = false
   ;
 
@@ -1104,6 +1102,28 @@ class CreateBidRequest extends $pb.GeneratedMessage {
   $core.bool hasCapToBlockWorth() => $_has(5);
   @$pb.TagNumber(6)
   void clearCapToBlockWorth() => clearField(6);
+
+  /// Size the bid at this rate rather than at a fixed amount, so a wallet that
+  /// needs more inputs still pays the rate. The answer reports what it cost.
+  /// Ignored when bid_sats is set.
+  @$pb.TagNumber(7)
+  $core.double get feeRateSatVb => $_getN(6);
+  @$pb.TagNumber(7)
+  set feeRateSatVb($core.double v) { $_setDouble(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasFeeRateSatVb() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearFeeRateSatVb() => clearField(7);
+
+  /// Highest the bid may go, in sats. Zero sets no ceiling.
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get maxBidSats => $_getI64(7);
+  @$pb.TagNumber(8)
+  set maxBidSats($fixnum.Int64 v) { $_setInt64(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasMaxBidSats() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearMaxBidSats() => clearField(8);
 }
 
 class CreateBidResponse extends $pb.GeneratedMessage {

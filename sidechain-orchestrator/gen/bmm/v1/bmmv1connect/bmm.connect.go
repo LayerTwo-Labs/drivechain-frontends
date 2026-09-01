@@ -55,7 +55,8 @@ const (
 type BMMServiceClient interface {
 	// Start bids on every new mainchain tip and connects the blocks miners take,
 	// until Stop. Bids are funded by the wallet the request names, and are
-	// raised toward max_bid_sats when a competitor outbids us.
+	// opened at Core's next block fee and raised toward max_bid_sats when a
+	// competitor outbids us.
 	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
 	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
 	ClearHistory(context.Context, *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error)
@@ -194,7 +195,8 @@ func (c *bMMServiceClient) ListBids(ctx context.Context, req *connect.Request[v1
 type BMMServiceHandler interface {
 	// Start bids on every new mainchain tip and connects the blocks miners take,
 	// until Stop. Bids are funded by the wallet the request names, and are
-	// raised toward max_bid_sats when a competitor outbids us.
+	// opened at Core's next block fee and raised toward max_bid_sats when a
+	// competitor outbids us.
 	Start(context.Context, *connect.Request[v1.StartRequest]) (*connect.Response[v1.StartResponse], error)
 	Stop(context.Context, *connect.Request[v1.StopRequest]) (*connect.Response[v1.StopResponse], error)
 	ClearHistory(context.Context, *connect.Request[v1.ClearHistoryRequest]) (*connect.Response[v1.ClearHistoryResponse], error)

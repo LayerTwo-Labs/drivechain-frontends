@@ -18,7 +18,8 @@ abstract final class BMMService {
 
   /// Start bids on every new mainchain tip and connects the blocks miners take,
   /// until Stop. Bids are funded by the wallet the request names, and are
-  /// raised toward max_bid_sats when a competitor outbids us.
+  /// opened at Core's next block fee and raised toward max_bid_sats when a
+  /// competitor outbids us.
   static const start = connect.Spec(
     '/$name/Start',
     connect.StreamType.unary,

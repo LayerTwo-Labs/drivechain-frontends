@@ -140,7 +140,6 @@ var bmmStartCommand = &cli.Command{
 	Usage:     "Bid on every mainchain block until stopped",
 	ArgsUsage: "<sidechain>",
 	Flags: []cli.Flag{
-		&cli.Int64Flag{Name: "min-bid", Value: 1000, Usage: "lowest sats to bid"},
 		&cli.Int64Flag{Name: "max-bid", Value: 100000, Usage: "highest sats to bid"},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -153,7 +152,6 @@ var bmmStartCommand = &cli.Command{
 		}
 		if _, err := newBMMClient(cctx).Start(cctx.Context, connect.NewRequest(&bmmpb.StartRequest{
 			Sidechain:  sidechain,
-			MinBidSats: cctx.Int64("min-bid"),
 			MaxBidSats: cctx.Int64("max-bid"),
 		})); err != nil {
 			return err

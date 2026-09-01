@@ -506,7 +506,7 @@ func run(cctx *cli.Context) error {
 	// connects the blocks miners take, with no frontend attached.
 	bmmHandler := api.NewBMMHandler(orch, walletHandler)
 	bmmStore := bmmstate.NewStore(walletSvc.NetworkDir(), 0)
-	bmmEngine := engines.NewBmmEngine(log, bmmHandler, orch, bmmStore)
+	bmmEngine := engines.NewBmmEngine(log, bmmHandler, orch, orch, bmmStore)
 	bmmHandler.SetEngine(bmmEngine)
 	walletEngine.OnNetworkReset(func(dir string) { bmmStore.Rebind(dir) })
 	go func() {
