@@ -40,6 +40,10 @@ class BackendStateProvider extends ChangeNotifier {
   /// RPCConnection maps to that binary.
   bool orchestratorReachable = true;
 
+  /// True once a poll reaches the orchestrator. A boot that fails before the
+  /// watch starts leaves this false, so nothing reads as healthy on no answer.
+  bool orchestratorAnswered = false;
+
   Timer? _pollTimer;
   bool _polling = false;
   int _consecutiveFailures = 0;
@@ -71,6 +75,7 @@ class BackendStateProvider extends ChangeNotifier {
       final resp = await _orchestrator.listBinaries(forceBackend: Binary.isSidechainApp);
       _consecutiveFailures = 0;
       orchestratorReachable = true;
+      orchestratorAnswered = true;
       _apply(resp.binaries);
     } catch (e) {
       // A blip keeps the last frame on screen, but an orchestrator that stays
@@ -144,6 +149,8 @@ class BackendStateProvider extends ChangeNotifier {
 
     // Check if anything actually changed to avoid unnecessary rebuilds
     if (rpc.connected == status.connected &&
+        rpc.windowOpen == status.windowOpen &&
+        rpc.servesLightWallet == status.servesLightWallet &&
         rpc.stoppingBinary == status.stopping &&
         rpc.initializingBinary == status.initializing &&
         rpc.connectModeOnly == status.connectModeOnly &&
@@ -153,6 +160,8 @@ class BackendStateProvider extends ChangeNotifier {
     }
 
     rpc.connected = status.connected;
+    rpc.windowOpen = status.windowOpen;
+    rpc.servesLightWallet = status.servesLightWallet;
     rpc.stoppingBinary = status.stopping;
     rpc.initializingBinary = status.initializing;
     rpc.connectModeOnly = status.connectModeOnly;

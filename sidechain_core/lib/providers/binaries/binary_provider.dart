@@ -277,7 +277,9 @@ class BinaryProvider extends ChangeNotifier {
       return;
     }
 
-    final wasRunning = isConnected(binary);
+    // An open window pins the app bundle just as a daemon pins its binary, so
+    // the update stops and reopens it too.
+    final wasRunning = isSidechainUp(binary);
 
     log.i('BinaryProvider: starting update for $name');
 
@@ -506,6 +508,12 @@ class BinaryProvider extends ChangeNotifier {
       return _processManager.isRunning(binary);
     }
     return _rpcFor(binary)?.connected ?? false;
+  }
+
+  /// True when a chain is up. A light install runs no daemon, so its own open
+  /// window is what up means there.
+  bool isSidechainUp(Binary binary) {
+    return isConnected(binary) || (_rpcFor(binary)?.windowOpen ?? false);
   }
 
   bool isInitializing(Binary binary) {

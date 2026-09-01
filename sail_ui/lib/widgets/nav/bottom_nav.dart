@@ -232,6 +232,12 @@ class BottomNav extends StatelessWidget {
             connected: model.enforcer.connected,
             initializing: model.enforcer.initializingBinary,
           );
+          final additional = additionalConnection.rpc;
+          final showAdditional = showDaemonCard(
+            walletNeedsBackends: model.needsAdditional,
+            connected: additional.connected,
+            initializing: additional.initializingBinary,
+          );
 
           return SailColumn(
             spacing: SailStyleValues.padding20,
@@ -243,6 +249,16 @@ class BottomNav extends StatelessWidget {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Everything else runs under drivechaind, and a hot start
+                  // adopts one this process never spawned. So it carries no
+                  // start or stop control.
+                  if (model.drivechaind case final orchestrator?)
+                    DaemonConnectionCard(
+                      connection: orchestrator,
+                      syncInfo: null,
+                      infoMessage: null,
+                      navigateToLogs: model.navigateToLogs,
+                    ),
                   if (showMainchain &&
                       (!model.mainchain.connected ||
                           !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
@@ -290,44 +306,45 @@ class BottomNav extends StatelessWidget {
                       navigateToLogs: model.navigateToLogs,
                       onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
                     ),
-                  Builder(
-                    builder: (context) {
-                      // Only sidechains (chainLayer == 2) actually need Core
-                      // header sync — their RPC reports 0/0 until headers
-                      // arrive, which reads as "broken" in the UI. Layer-1
-                      // companions like bitwindowd have their own
-                      // independent connection state and must show it
-                      // unconditionally; gating their card on Core's IBD
-                      // hid the bitwindowd backend status entirely behind
-                      // a misleading "Waiting for Bitcoin Core header sync"
-                      // message even when bitwindowd was healthy.
-                      final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
-                      final bool coreReady =
-                          !isSidechain ||
-                          (model.mainchain.connected &&
-                              !model.mainchain.initializingBinary &&
-                              model.mainchain.startupError == null &&
-                              !model.syncProvider.inHeaderSync);
-                      final infoMessage = isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null;
-                      return DaemonConnectionCard(
-                        connection: additionalConnection.rpc,
-                        syncInfo: coreReady ? model.additionalSyncInfo : null,
-                        infoMessage: infoMessage,
-                        restartDaemon: () => binaryProvider.restart(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == additionalConnection.rpc.binary.name,
+                  if (showAdditional)
+                    Builder(
+                      builder: (context) {
+                        // Only sidechains (chainLayer == 2) actually need Core
+                        // header sync — their RPC reports 0/0 until headers
+                        // arrive, which reads as "broken" in the UI. Layer-1
+                        // companions like bitwindowd have their own
+                        // independent connection state and must show it
+                        // unconditionally; gating their card on Core's IBD
+                        // hid the bitwindowd backend status entirely behind
+                        // a misleading "Waiting for Bitcoin Core header sync"
+                        // message even when bitwindowd was healthy.
+                        final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
+                        final bool coreReady =
+                            !isSidechain ||
+                            (model.mainchain.connected &&
+                                !model.mainchain.initializingBinary &&
+                                model.mainchain.startupError == null &&
+                                !model.syncProvider.inHeaderSync);
+                        final infoMessage = isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null;
+                        return DaemonConnectionCard(
+                          connection: additionalConnection.rpc,
+                          syncInfo: coreReady ? model.additionalSyncInfo : null,
+                          infoMessage: infoMessage,
+                          restartDaemon: () => binaryProvider.restart(
+                            binaryProvider.binaries.firstWhere(
+                              (b) => b.name == additionalConnection.rpc.binary.name,
+                            ),
                           ),
-                        ),
-                        stopDaemon: () => binaryProvider.stop(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == additionalConnection.rpc.binary.name,
+                          stopDaemon: () => binaryProvider.stop(
+                            binaryProvider.binaries.firstWhere(
+                              (b) => b.name == additionalConnection.rpc.binary.name,
+                            ),
                           ),
-                        ),
-                        navigateToLogs: model.navigateToLogs,
-                        onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
-                      );
-                    },
-                  ),
+                          navigateToLogs: model.navigateToLogs,
+                          onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
+                        );
+                      },
+                    ),
                   if (ecashMiningProvider() case final mining?)
                     MiningStatusCard(
                       mining: mining,
@@ -406,6 +423,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   final bool mainchainInfo;
   final Function(String, String, BinaryType) navigateToLogs;
 
+  /// The orchestrator's own daemon. In light mode it is the only one running,
+  /// so a modal without it would be empty.
+  late final DrivechaindState? drivechaind = GetIt.I.isRegistered<BackendStateProvider>() ? DrivechaindState() : null;
+
   BottomNavViewModel({
     required this.additionalConnection,
     required this.mainchainInfo,
@@ -418,6 +439,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     additionalConnection.rpc.addListener(_onChange);
     syncProvider.addListener(_onChange);
     downloadProvider?.addListener(_onChange);
+    drivechaind?.addListener(_onChange);
   }
 
   /// Resolves the SyncInfo for the additional daemon card. SyncProvider
@@ -455,9 +477,23 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   // wallet is loaded yet.
   bool get needsBackends => !GetIt.I.isRegistered<WalletReaderProvider>() || NodeModeProvider.runsLocalBackends;
 
+  /// A sidechain daemon needs the enforcer, so light mode runs none, and its
+  /// silence must not hold the whole status back. Only a chain that answers
+  /// through an index earns that: one that cannot still reports its fault. A
+  /// layer-1 companion such as bitwindowd runs either way.
+  bool get needsAdditional {
+    final rpc = additionalConnection.rpc;
+    if (rpc.binary.chainLayer != 2 || needsBackends) {
+      return true;
+    }
+    return !rpc.servesLightWallet || rpc.connectionError != null;
+  }
+
   // Connection status
   bool get allConnected =>
-      (!needsBackends || (mainchain.connected && enforcer.connected)) && additionalConnection.connected;
+      (!needsBackends || (mainchain.connected && enforcer.connected)) &&
+      (!needsAdditional || additionalConnection.connected) &&
+      (drivechaind?.connected ?? true);
   bool get initializingAny =>
       mainchain.initializingBinary || enforcer.initializingBinary || additionalConnection.initializingBinary;
   bool get downloadingAny => downloadProvider?.hasActiveDownloads ?? false;
@@ -473,7 +509,8 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     // `connected` is the authoritative "healthy" signal — stale startupError /
     // initializingBinary on an already-connected daemon are ignored.
     if ((needsBackends && (mainchain.connectionError != null || enforcer.connectionError != null)) ||
-        additionalConnection.connectionError != null) {
+        (needsAdditional && additionalConnection.connectionError != null) ||
+        drivechaind?.connectionError != null) {
       return SailColorScheme.red;
     }
 
@@ -537,6 +574,11 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return 'Downloading ${defaultBinaryFor(first.binary).name}...';
     }
 
+    // Everything else answers through drivechaind, so its silence comes first.
+    if (drivechaind case final orchestrator? when orchestrator.connectionError != null) {
+      return orchestrator.connectionError!;
+    }
+
     // Precedence per service: connectionError (hard fail) > startupError (warmup message,
     // primary signal during boot per orchestrator design) > initializingBinary > !connected.
     // Bitcoin Core first because nothing else can make progress without it.
@@ -558,12 +600,14 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       }
     }
 
-    final additionalLine = _statusLineFor(
-      rpc: additionalConnection.rpc,
-      binaryLabel: additionalConnection.name,
-    );
-    if (additionalLine != null) {
-      return additionalLine;
+    if (needsAdditional) {
+      final additionalLine = _statusLineFor(
+        rpc: additionalConnection.rpc,
+        binaryLabel: additionalConnection.name,
+      );
+      if (additionalLine != null) {
+        return additionalLine;
+      }
     }
 
     if (needsBackends && !(syncProvider.mainchainSyncInfo?.isSynced ?? false)) {
@@ -614,6 +658,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     enforcer.removeListener(_onChange);
     additionalConnection.rpc.removeListener(_onChange);
     syncProvider.removeListener(_onChange);
+    drivechaind?.dispose();
     super.dispose();
   }
 }

@@ -74,6 +74,14 @@ void main() {
     expect(NodeModeProvider.runsLocalBackends, isFalse);
   });
 
+  // A boot that never reaches the orchestrator must not read as connected, or
+  // the Drivechain card claims health that nothing proved.
+  test('the orchestrator reads as unanswered until a poll lands', () {
+    final backend = BackendStateProvider(orchestrator);
+    expect(backend.orchestratorAnswered, isFalse);
+    expect(backend.orchestratorReachable, isTrue);
+  });
+
   test('full mode starts the local backends', () async {
     orchestrator.wallet.mode = wmpb.NodeMode.NODE_MODE_FULL;
     final boot = await readBackendBoot(orchestratorReady: true);
