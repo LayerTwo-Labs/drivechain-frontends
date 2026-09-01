@@ -38,7 +38,10 @@ class SyncInfo {
   final int verifiedGoal;
 
   double get progress => progressGoal == 0 ? 0 : progressCurrent / progressGoal;
-  bool get isSynced => progressGoal > 0 && progressCurrent == progressGoal;
+
+  /// A node that passed the tip its index reports holds everything anyone
+  /// knows of, so an index one block behind must not read as unsynced.
+  bool get isSynced => progressGoal > 0 && progressCurrent >= progressGoal;
 
   /// True when every height this daemon reports reached the goal. A snapshot
   /// node hits the tip in blocks hours before it verifies the rest, so a card
