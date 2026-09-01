@@ -193,7 +193,6 @@ void main() {
 
     await provider.startBidding();
     await provider.bidManually(10000);
-    await provider.attackBid();
 
     expect(bmm.startCalls, 0);
     expect(bmm.manualBids, 0);

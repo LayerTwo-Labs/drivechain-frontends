@@ -84,14 +84,4 @@ abstract final class BMMService {
     bmmv1bmm.ListBidsRequest.new,
     bmmv1bmm.ListBidsResponse.new,
   );
-
-  /// AttackBid bids on a slot with a commitment to no real block, then never
-  /// connects it, so an honest block loses the slot for that mainchain block.
-  /// A teaching tool for the BMM stall attack; rejected on mainnet.
-  static const attackBid = connect.Spec(
-    '/$name/AttackBid',
-    connect.StreamType.unary,
-    bmmv1bmm.AttackBidRequest.new,
-    bmmv1bmm.AttackBidResponse.new,
-  );
 }

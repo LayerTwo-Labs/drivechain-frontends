@@ -77,20 +77,4 @@ class OrchestratorBmmRPC {
       ),
     );
   }
-
-  /// Bids on a slot with a commitment to no real block. Demonstrates the BMM
-  /// stall attack; the backend rejects it on mainnet.
-  Future<bmmpb.AttackBidResponse> attackBid({
-    required BinaryType sidechain,
-    required int bidSats,
-    String? walletId,
-  }) {
-    return _unaryClient.attackBid(
-      bmmpb.AttackBidRequest(
-        sidechain: sidechain,
-        walletId: walletId ?? '',
-        bidSats: Int64(bidSats),
-      ),
-    );
-  }
 }

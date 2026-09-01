@@ -300,36 +300,6 @@ const ListBidsResponse$json = {
 final $typed_data.Uint8List listBidsResponseDescriptor = $convert.base64Decode(
     'ChBMaXN0Qmlkc1Jlc3BvbnNlEh8KBGJpZHMYASADKAsyCy5ibW0udjEuQmlkUgRiaWRz');
 
-@$core.Deprecated('Use attackBidRequestDescriptor instead')
-const AttackBidRequest$json = {
-  '1': 'AttackBidRequest',
-  '2': [
-    {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
-    {'1': 'wallet_id', '3': 2, '4': 1, '5': 9, '10': 'walletId'},
-    {'1': 'bid_sats', '3': 3, '4': 1, '5': 3, '10': 'bidSats'},
-  ],
-};
-
-/// Descriptor for `AttackBidRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List attackBidRequestDescriptor = $convert.base64Decode(
-    'ChBBdHRhY2tCaWRSZXF1ZXN0EjkKCXNpZGVjaGFpbhgBIAEoDjIbLm9yY2hlc3RyYXRvci52MS'
-    '5CaW5hcnlUeXBlUglzaWRlY2hhaW4SGwoJd2FsbGV0X2lkGAIgASgJUgh3YWxsZXRJZBIZCghi'
-    'aWRfc2F0cxgDIAEoA1IHYmlkU2F0cw==');
-
-@$core.Deprecated('Use attackBidResponseDescriptor instead')
-const AttackBidResponse$json = {
-  '1': 'AttackBidResponse',
-  '2': [
-    {'1': 'critical_hash', '3': 1, '4': 1, '5': 9, '10': 'criticalHash'},
-    {'1': 'bmm_txid', '3': 2, '4': 1, '5': 9, '10': 'bmmTxid'},
-  ],
-};
-
-/// Descriptor for `AttackBidResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List attackBidResponseDescriptor = $convert.base64Decode(
-    'ChFBdHRhY2tCaWRSZXNwb25zZRIjCg1jcml0aWNhbF9oYXNoGAEgASgJUgxjcml0aWNhbEhhc2'
-    'gSGQoIYm1tX3R4aWQYAiABKAlSB2JtbVR4aWQ=');
-
 const $core.Map<$core.String, $core.dynamic> BMMServiceBase$json = {
   '1': 'BMMService',
   '2': [
@@ -341,7 +311,6 @@ const $core.Map<$core.String, $core.dynamic> BMMServiceBase$json = {
     {'1': 'CreateBid', '2': '.bmm.v1.CreateBidRequest', '3': '.bmm.v1.CreateBidResponse'},
     {'1': 'ConnectBid', '2': '.bmm.v1.ConnectBidRequest', '3': '.bmm.v1.ConnectBidResponse'},
     {'1': 'ListBids', '2': '.bmm.v1.ListBidsRequest', '3': '.bmm.v1.ListBidsResponse'},
-    {'1': 'AttackBid', '2': '.bmm.v1.AttackBidRequest', '3': '.bmm.v1.AttackBidResponse'},
   ],
 };
 
@@ -365,8 +334,6 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BMMService
   '.bmm.v1.ConnectBidResponse': ConnectBidResponse$json,
   '.bmm.v1.ListBidsRequest': ListBidsRequest$json,
   '.bmm.v1.ListBidsResponse': ListBidsResponse$json,
-  '.bmm.v1.AttackBidRequest': AttackBidRequest$json,
-  '.bmm.v1.AttackBidResponse': AttackBidResponse$json,
 };
 
 /// Descriptor for `BMMService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -380,6 +347,5 @@ final $typed_data.Uint8List bMMServiceDescriptor = $convert.base64Decode(
     'QmlkEhguYm1tLnYxLkNyZWF0ZUJpZFJlcXVlc3QaGS5ibW0udjEuQ3JlYXRlQmlkUmVzcG9uc2'
     'USQwoKQ29ubmVjdEJpZBIZLmJtbS52MS5Db25uZWN0QmlkUmVxdWVzdBoaLmJtbS52MS5Db25u'
     'ZWN0QmlkUmVzcG9uc2USPQoITGlzdEJpZHMSFy5ibW0udjEuTGlzdEJpZHNSZXF1ZXN0GhguYm'
-    '1tLnYxLkxpc3RCaWRzUmVzcG9uc2USQAoJQXR0YWNrQmlkEhguYm1tLnYxLkF0dGFja0JpZFJl'
-    'cXVlc3QaGS5ibW0udjEuQXR0YWNrQmlkUmVzcG9uc2U=');
+    '1tLnYxLkxpc3RCaWRzUmVzcG9uc2U=');
 

@@ -36,11 +36,6 @@ service BMMService {
   // ListBids reads the competing bids for the slot out of the mainchain
   // mempool, highest bid first.
   rpc ListBids(ListBidsRequest) returns (ListBidsResponse);
-
-  // AttackBid bids on a slot with a commitment to no real block, then never
-  // connects it, so an honest block loses the slot for that mainchain block.
-  // A teaching tool for the BMM stall attack; rejected on mainnet.
-  rpc AttackBid(AttackBidRequest) returns (AttackBidResponse);
 }
 
 message StartRequest {
@@ -194,19 +189,4 @@ message ListBidsRequest {
 message ListBidsResponse {
   // Highest bid first.
   repeated Bid bids = 1;
-}
-
-message AttackBidRequest {
-  orchestrator.v1.BinaryType sidechain = 1;
-  // Wallet that funds the bid. Empty uses the active wallet.
-  string wallet_id = 2;
-  // Bid, paid as the M8's fee so that a miner collects it.
-  int64 bid_sats = 3;
-}
-
-message AttackBidResponse {
-  // Random hash committed to. No block exists for it, so it never connects.
-  string critical_hash = 1;
-  // The M8 transaction that was broadcast.
-  string bmm_txid = 2;
 }
