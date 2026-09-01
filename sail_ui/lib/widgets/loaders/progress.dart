@@ -26,14 +26,18 @@ class ProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = SailTheme.of(context);
     final numberFormat = NumberFormat.decimalPattern('fr_FR');
-    final progress = (goal <= 0 ? 0 : current / goal).toDouble();
+    // A chain whose tip nobody reports has no percentage. Zero would read as
+    // no progress on a chain that holds every block it knows of.
+    final unknownGoal = goal <= 0;
+    final progress = (unknownGoal ? 0 : current / goal).toDouble();
 
-    var textInsideBar = '${numberFormat.format(current)} / ${numberFormat.format(goal)}';
+    var textInsideBar = '${numberFormat.format(current)} / ${unknownGoal ? '?' : numberFormat.format(goal)}';
     if (justPercent) {
       // A chain 4 blocks short of the tip rounds to 100.00% and reads as done.
-      final percent = progress * 100;
+      // A node past the tip its index reports is done, not more than done.
+      final percent = min(progress * 100, 100.0);
       final shown = current < goal ? min(percent, 99.99) : percent;
-      textInsideBar = '${shown.toStringAsFixed(2)}%';
+      textInsideBar = unknownGoal ? 'unknown' : '${shown.toStringAsFixed(2)}%';
     } else if (hideProgressInside) {
       textInsideBar = '';
     }
@@ -114,7 +118,7 @@ class ProgressBar extends StatelessWidget {
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 50, maxWidth: 50),
               child: SailText.primary12(
-                '${((progress) * 100).toStringAsFixed(2)}%',
+                unknownGoal ? 'unknown' : '${min(progress * 100, 100.0).toStringAsFixed(2)}%',
                 textAlign: TextAlign.left,
               ),
             ),
