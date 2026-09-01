@@ -42,12 +42,14 @@ func TestStartWithL1NeedsBackendsInFullMode(t *testing.T) {
 	require.Equal(t, NodeModeFull, o.NodeMode())
 }
 
-// A light install runs no enforcer, and no hosted one exists to read the
-// mainchain from. A sidechain binary therefore cannot start, and the boot must
-// say so rather than launch a daemon that can never sync.
-func TestStartWithL1RefusesASidechainInLightMode(t *testing.T) {
+// A light install runs no enforcer, so a sidechain daemon has no mainchain to
+// read. The boot skips the daemon and reports done, because a light wallet
+// reads the chain from an index instead. ForceBackend is what a sidechain app
+// sends when it boots its own daemon.
+func TestStartWithL1StartsNoSidechainDaemonInLightMode(t *testing.T) {
 	o := newTestOrchestrator(t)
 	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
+	o.RegisterLightWallet("thunder", func() bool { return true })
 	o.SidechainConfs = map[string]*config.SidechainConfManager{
 		"thunder": {Spec: config.SidechainConfSpec{PortStyle: "grpc"}},
 	}
@@ -55,15 +57,43 @@ func TestStartWithL1RefusesASidechainInLightMode(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	ch, err := o.StartWithL1(ctx, "thunder", StartOpts{})
+	ch, err := o.StartWithL1(ctx, "thunder", StartOpts{ForceBackend: true})
+	require.NoError(t, err)
+
+	var stages []string
+	for p := range ch {
+		require.NoError(t, p.Error)
+		stages = append(stages, p.Stage)
+	}
+
+	require.Equal(t, []string{"skipped-l1"}, stages)
+	require.False(t, o.process.IsRunning("thunder"))
+	require.False(t, o.process.IsRunning("thunder-gui"))
+}
+
+// A chain with no light backend is a plain proxy to a daemon that light mode
+// never starts. A standalone app must read the refusal, not a false success.
+func TestStartWithL1RefusesAChainThatReadsNoIndex(t *testing.T) {
+	o := newTestOrchestrator(t)
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
+	o.SidechainConfs = map[string]*config.SidechainConfManager{
+		"bitnames": {Spec: config.SidechainConfSpec{PortStyle: "grpc"}},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ch, err := o.StartWithL1(ctx, "bitnames", StartOpts{ForceBackend: true})
 	require.NoError(t, err)
 
 	var failed bool
 	for p := range ch {
 		if p.Error != nil {
 			failed = true
+			require.Contains(t, p.Error.Error(), "full mode only")
 		}
 	}
-	require.True(t, failed, "a sidechain must not start with no mainchain to read")
-	require.False(t, o.process.IsRunning("thunder"))
+
+	require.True(t, failed, "a chain that reads no index must refuse")
+	require.False(t, o.process.IsRunning("bitnames"))
 }

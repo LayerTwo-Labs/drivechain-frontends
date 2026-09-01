@@ -196,6 +196,12 @@ message BinaryStatusMsg {
   int64 remote_timestamp_unix = 25;
   // Modification time of the binary on disk, 0 when not downloaded.
   int64 downloaded_timestamp_unix = 26;
+  // The chain's own app window is open. It runs under its own process slot, so
+  // a light install has a window with no daemon under it.
+  bool window_open = 27;
+  // The chain answers with no local daemon, through a remote index. Only a
+  // chain with a light backend can serve a wallet in light mode.
+  bool serves_light_wallet = 28;
 }
 
 message StartupLogEntryMsg {

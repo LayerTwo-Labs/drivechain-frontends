@@ -39,32 +39,38 @@ import (
 
 // BinaryStatus represents the current state of a managed binary.
 type BinaryStatus struct {
-	Name            string
-	DisplayName     string
-	Running         bool
-	Healthy         bool
-	Pid             int
-	Uptime          time.Duration
-	ChainLayer      int
-	Port            int
-	Error           string
-	Connected       bool   // from ConnectionMonitor
-	StartupError    string // warmup message (e.g. "Loading block index...")
-	ConnectionError string // real connection error
-	Stopping        bool   // binary is being stopped
-	Initializing    bool   // binary is starting up / restarting
-	ConnectModeOnly bool   // willfully stopped, only watching for external restart
-	Downloadable    bool   // binary has download URLs configured
-	Description     string // short description of the binary
-	Downloaded      bool   // binary file exists on disk
-	BinaryPath      string // absolute path to the launchable binary (variant-aware), empty when not downloaded
-	PortInUse       bool   // port is reachable (something is listening)
-	Version         string // configured version string
-	RepoURL         string // source code repository URL
-	StartupLogs     []StartupLogLine
-	UpdateAvailable bool      // a newer build is published than the one on disk
-	RemoteTimestamp time.Time // Last-Modified of the published download
-	LocalTimestamp  time.Time // mtime of the binary on disk
+	Name        string
+	DisplayName string
+	Running     bool
+	// WindowOpen says the chain's own app window runs. It uses its own process
+	// slot, so a light install has a window with no daemon under it.
+	WindowOpen bool
+	// ServesLightWallet says the chain answers through a remote index, so it
+	// works with no local daemon.
+	ServesLightWallet bool
+	Healthy           bool
+	Pid               int
+	Uptime            time.Duration
+	ChainLayer        int
+	Port              int
+	Error             string
+	Connected         bool   // from ConnectionMonitor
+	StartupError      string // warmup message (e.g. "Loading block index...")
+	ConnectionError   string // real connection error
+	Stopping          bool   // binary is being stopped
+	Initializing      bool   // binary is starting up / restarting
+	ConnectModeOnly   bool   // willfully stopped, only watching for external restart
+	Downloadable      bool   // binary has download URLs configured
+	Description       string // short description of the binary
+	Downloaded        bool   // binary file exists on disk
+	BinaryPath        string // absolute path to the launchable binary (variant-aware), empty when not downloaded
+	PortInUse         bool   // port is reachable (something is listening)
+	Version           string // configured version string
+	RepoURL           string // source code repository URL
+	StartupLogs       []StartupLogLine
+	UpdateAvailable   bool      // a newer build is published than the one on disk
+	RemoteTimestamp   time.Time // Last-Modified of the published download
+	LocalTimestamp    time.Time // mtime of the binary on disk
 }
 
 // StartupProgress reports progress during StartWithL1. Download fields
@@ -150,6 +156,11 @@ type Orchestrator struct {
 	NetParams      wallet.ParamsFunc // chain params of the active network
 
 	Settings *SettingsStore
+
+	// lightWallets answers, per chain, whether it reads a remote index right
+	// now. The service that wires a chain's light backend registers it.
+	lightMu      sync.RWMutex
+	lightWallets map[string]func() bool
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
 	// InitForkEngine once Core RPC is up.
@@ -729,6 +740,11 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 		status.Uptime = time.Since(proc.Started)
 	}
 
+	if config.ChainLayer == 2 {
+		status.WindowOpen = o.process.IsRunning(sidechainGUIProcessName(config.Name))
+		status.ServesLightWallet = o.servesLightWallet(config.Name)
+	}
+
 	// Quick port probe if not already known to be running.
 	if config.Port > 0 && !status.Running {
 		conn, err := net.DialTimeout("tcp", config.RPCAddr(), 200*time.Millisecond)
@@ -865,11 +881,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	go func() {
 		defer close(ch)
 
-		// Light mode reads the chain from a remote server, so the local L1 stack
-		// never boots. An L1 target (bitcoind/enforcer) is then a no-op; a
-		// sidechain target (ChainLayer 2) still starts, just without L1 under
-		// it, since the caller asked for that binary. The node mode is the only
-		// gate here, so no frontend can force the local stack up.
+		// Light mode reads the chain from a remote index, so no local daemon
+		// boots. The node mode is the only gate here, so no frontend can force
+		// the local stack up.
 		skipLocalL1 := o.NodeMode() == NodeModeLight
 		if skipLocalL1 && config.ChainLayer != 2 {
 			o.log.Info().Str("target", target).Msg("light mode; skipping the local Bitcoin backends")
@@ -877,12 +891,31 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			return
 		}
 
-		// A sidechain under a light install has no enforcer to read the
-		// mainchain from, so it cannot start. A light wallet reads its chain
-		// from an index instead, and runs no sidechain binary at all.
+		// A sidechain daemon under a light install has no enforcer to read the
+		// mainchain from, so it never starts. Its window still opens, because a
+		// light wallet reads the chain from an index and needs no daemon.
 		if skipLocalL1 {
-			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
-			failBoot(mon, ch, "start "+config.Name, errNoMainchainForSidechain)
+			// A chain that reads no index has neither a daemon nor a wallet
+			// here, so both a window and a backend call must say so.
+			if !o.servesLightWallet(config.Name) {
+				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+				failBoot(mon, ch, "start "+config.Name, fmt.Errorf(
+					"%s reads no remote index, so it runs in full mode only", config.DisplayName))
+				return
+			}
+
+			if o.opensSidechainWindow(config, opts) {
+				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+				mon.SetInitializing(true)
+				if err := o.awaitBinaryOnDisk(ctx, config, opts, ch, nil); err != nil {
+					failBoot(mon, ch, "download "+config.Name, err)
+					return
+				}
+				o.openSidechainWindow(ctx, config, mon, ch)
+				return
+			}
+			o.log.Info().Str("target", target).Msg("light mode; the sidechain reads a remote index and starts no daemon")
+			ch <- StartupProgress{Stage: "skipped-l1", Message: "light mode — " + config.DisplayName + " reads a remote index", Done: true}
 			return
 		}
 
@@ -1022,8 +1055,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, o.NetParams.Resolve(),
 	)
 }
-
-var errNoMainchainForSidechain = errors.New("this sidechain needs a local enforcer, so it runs in full mode only")
 
 // injectHeadlessForForcedBackend appends --headless to opts.TargetArgs when a
 // sidechain frontend asked us to launch the real Rust backend (ForceBackend).
@@ -1500,10 +1531,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	// A call that opens the frontend must reach the launch below even when the
 	// backend already answers: a backend that outlived its window would
 	// otherwise stop Start from opening the window again.
-	opensFrontend := false
-	if !opts.ForceBackend && config.ChainLayer == 2 && o.process.SidechainVariant != nil {
-		_, opensFrontend = o.process.SidechainVariant(config)
-	}
+	opensFrontend := o.opensSidechainWindow(config, opts)
 
 	if targetMon.Connected() {
 		// Adopt first, whichever way this call goes. An unadopted daemon would
@@ -1527,59 +1555,14 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	// explicitly.
 	targetMon.SetInitializing(true)
 
-	if prefetched != nil {
-		// Download was kicked off in parallel with bitcoind IBD.
-		ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("waiting for %s download...", config.DisplayName)}
-		if err := <-prefetched; err != nil {
-			failBoot(targetMon, ch, "download "+config.Name, err)
-			return
-		}
-	} else {
-		ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
-
-		downloadCh, err := o.download.DownloadWithOptions(ctx, config, o.Network, false, DownloadOptions{ForceBackend: opts.ForceBackend})
-		if err != nil {
-			failBoot(targetMon, ch, "download "+config.Name, err)
-			return
-		}
-		if err := forwardDownload(downloadCh, ch, "downloading-"+config.Name); err != nil {
-			failBoot(targetMon, ch, "download "+config.Name, err)
-			return
-		}
+	if err := o.awaitBinaryOnDisk(ctx, config, opts, ch, prefetched); err != nil {
+		failBoot(targetMon, ch, "download "+config.Name, err)
+		return
 	}
 
-	// Launch the sidechain's own Flutter app as a managed GUI companion and stop
-	// here. It uses a separate process slot, so the app's
-	// StartWithL1(ForceBackend=true) callback can still start the real backend
-	// daemon under config.Name while BitWindow's Stop(config.Name) closes the
-	// GUI. It runs after the download above, because the bundle has to be on
-	// disk before it can open.
 	if opensFrontend {
-		if sv, ok := o.process.SidechainVariant(config); ok {
-			guiName := sidechainGUIProcessName(config.Name)
-			if !o.process.IsRunning(guiName) {
-				binPath := TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
-				o.log.Info().Str("binary", config.Name).Str("gui", guiName).Msg("launching test sidechain GUI")
-				_, err := o.process.StartWithOptions(
-					ctx,
-					config,
-					nil,
-					nil,
-					ProcessStartOptions{
-						ProcessName: guiName,
-						PidName:     guiName,
-						WorkDir:     filepath.Dir(binPath),
-					},
-				)
-				if err != nil {
-					failBoot(targetMon, ch, "open "+config.Name, err)
-					return
-				}
-			}
-			targetMon.SetInitializing(false)
-			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s opened", config.DisplayName), Done: true}
-			return
-		}
+		o.openSidechainWindow(ctx, config, targetMon, ch)
+		return
 	}
 
 	// If already running (e.g. enforcer started as a dep), just wait for connection.
@@ -1636,8 +1619,124 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 }
 
+// RegisterLightWallet records how to ask whether a chain reads a remote index.
+// The handler that wires the chain's light backend is the only thing that
+// knows, and the answer moves with the network, so it stays a question.
+func (o *Orchestrator) RegisterLightWallet(name string, readsIndex func() bool) {
+	o.lightMu.Lock()
+	defer o.lightMu.Unlock()
+	if o.lightWallets == nil {
+		o.lightWallets = map[string]func() bool{}
+	}
+	o.lightWallets[name] = readsIndex
+}
+
+// servesLightWallet reports whether a chain reads its chain with no daemon.
+func (o *Orchestrator) servesLightWallet(name string) bool {
+	o.lightMu.RLock()
+	readsIndex := o.lightWallets[name]
+	o.lightMu.RUnlock()
+	return readsIndex != nil && readsIndex()
+}
+
 func sidechainGUIProcessName(name string) string {
 	return name + "-gui"
+}
+
+// isSidechainWindow reports whether a process slot holds a chain's own app
+// window rather than a daemon.
+func isSidechainWindow(processName string) bool {
+	return strings.HasSuffix(processName, "-gui")
+}
+
+// shutdownList picks the process slots one shutdown stops. A window belongs to
+// the user, so an owner that exits leaves the windows it opened. Every other
+// caller, the stop-all command included, stops them too.
+func shutdownList(running []string, keepWindows bool) []string {
+	if !keepWindows {
+		return running
+	}
+	daemons := make([]string, 0, len(running))
+	for _, name := range running {
+		if isSidechainWindow(name) {
+			continue
+		}
+		daemons = append(daemons, name)
+	}
+	return daemons
+}
+
+// opensSidechainWindow reports whether this call opens the chain's own app
+// window. A backend call asks for the daemon instead, and a chain with no app
+// bundle has no window to open.
+func (o *Orchestrator) opensSidechainWindow(config BinaryConfig, opts StartOpts) bool {
+	if opts.ForceBackend || config.ChainLayer != 2 || o.process.SidechainVariant == nil {
+		return false
+	}
+	_, ok := o.process.SidechainVariant(config)
+	return ok
+}
+
+// openSidechainWindow launches the chain's own app under its own process slot,
+// so Stop closes the window without touching the daemon. The bundle must
+// already sit on disk.
+func (o *Orchestrator) openSidechainWindow(
+	ctx context.Context,
+	config BinaryConfig,
+	mon *ConnectionMonitor,
+	ch chan<- StartupProgress,
+) {
+	sv, ok := o.process.SidechainVariant(config)
+	if !ok {
+		failBoot(mon, ch, "open "+config.Name, fmt.Errorf("%s ships no app bundle", config.Name))
+		return
+	}
+
+	guiName := sidechainGUIProcessName(config.Name)
+	if !o.process.IsRunning(guiName) {
+		binPath := TestSidechainBinaryPath(o.DataDir, sv.BinaryName)
+		o.log.Info().Str("binary", config.Name).Str("gui", guiName).Msg("opening the sidechain window")
+		_, err := o.process.StartWithOptions(
+			ctx,
+			config,
+			nil,
+			nil,
+			ProcessStartOptions{
+				ProcessName: guiName,
+				PidName:     guiName,
+				WorkDir:     filepath.Dir(binPath),
+			},
+		)
+		if err != nil {
+			failBoot(mon, ch, "open "+config.Name, err)
+			return
+		}
+	}
+
+	mon.SetInitializing(false)
+	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s opened", config.DisplayName), Done: true}
+}
+
+// awaitBinaryOnDisk waits for the binary this call needs. A prefetch that
+// already runs is awaited; otherwise the download starts here.
+func (o *Orchestrator) awaitBinaryOnDisk(
+	ctx context.Context,
+	config BinaryConfig,
+	opts StartOpts,
+	ch chan<- StartupProgress,
+	prefetched <-chan error,
+) error {
+	if prefetched != nil {
+		ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("waiting for %s download...", config.DisplayName)}
+		return <-prefetched
+	}
+
+	ch <- StartupProgress{Stage: "downloading-" + config.Name, Message: fmt.Sprintf("downloading %s...", config.DisplayName)}
+	downloadCh, err := o.download.DownloadWithOptions(ctx, config, o.Network, false, DownloadOptions{ForceBackend: opts.ForceBackend})
+	if err != nil {
+		return err
+	}
+	return forwardDownload(downloadCh, ch, "downloading-"+config.Name)
 }
 
 // waitForConnectedOrExit blocks until the monitor reports connected, the
@@ -1696,11 +1795,23 @@ func forwardDownload(downloadCh <-chan DownloadProgress, startupCh chan<- Startu
 	return nil
 }
 
+// ShutdownOptions tunes what a shutdown stops.
+type ShutdownOptions struct {
+	// KeepWindows leaves a chain's own app window open. The owner that opened
+	// it exits, and the user keeps the window.
+	KeepWindows bool
+}
+
 // ShutdownAll stops all running binaries in reverse dependency order.
-func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool) (<-chan ShutdownProgress, error) {
+func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool, options ...ShutdownOptions) (<-chan ShutdownProgress, error) {
+	var opts ShutdownOptions
+	if len(options) > 0 {
+		opts = options[0]
+	}
+
 	o.shutdownGen.Add(1)
 	o.drainsActive.Add(1)
-	running := o.process.ListRunning()
+	running := shutdownList(o.process.ListRunning(), opts.KeepWindows)
 	ch := make(chan ShutdownProgress, len(running)+1)
 
 	go func() {

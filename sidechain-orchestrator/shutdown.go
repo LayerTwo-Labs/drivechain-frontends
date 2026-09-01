@@ -61,7 +61,7 @@ func (o *Orchestrator) BeginShutdown() bool {
 // alive depending on whether CancelShutdownExit flipped the bit while we were
 // draining. In-flight binary stops always run to completion.
 func (o *Orchestrator) runShutdown(idleCh chan struct{}) {
-	progressCh, err := o.ShutdownAll(context.Background(), false)
+	progressCh, err := o.ShutdownAll(context.Background(), false, ShutdownOptions{KeepWindows: true})
 	if err != nil {
 		o.log.Error().Err(err).Msg("shutdown: ShutdownAll start failed")
 	} else {
