@@ -397,8 +397,14 @@ type BinaryStatusMsg struct {
 	RemoteTimestampUnix int64 `protobuf:"varint,25,opt,name=remote_timestamp_unix,json=remoteTimestampUnix,proto3" json:"remote_timestamp_unix,omitempty"`
 	// Modification time of the binary on disk, 0 when not downloaded.
 	DownloadedTimestampUnix int64 `protobuf:"varint,26,opt,name=downloaded_timestamp_unix,json=downloadedTimestampUnix,proto3" json:"downloaded_timestamp_unix,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// The chain's own app window is open. It runs under its own process slot, so
+	// a light install has a window with no daemon under it.
+	WindowOpen bool `protobuf:"varint,27,opt,name=window_open,json=windowOpen,proto3" json:"window_open,omitempty"`
+	// The chain answers with no local daemon, through a remote index. Only a
+	// chain with a light backend can serve a wallet in light mode.
+	ServesLightWallet bool `protobuf:"varint,28,opt,name=serves_light_wallet,json=servesLightWallet,proto3" json:"serves_light_wallet,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *BinaryStatusMsg) Reset() {
@@ -611,6 +617,20 @@ func (x *BinaryStatusMsg) GetDownloadedTimestampUnix() int64 {
 		return x.DownloadedTimestampUnix
 	}
 	return 0
+}
+
+func (x *BinaryStatusMsg) GetWindowOpen() bool {
+	if x != nil {
+		return x.WindowOpen
+	}
+	return false
+}
+
+func (x *BinaryStatusMsg) GetServesLightWallet() bool {
+	if x != nil {
+		return x.ServesLightWallet
+	}
+	return false
 }
 
 type StartupLogEntryMsg struct {
@@ -4892,7 +4912,7 @@ var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\n" +
-	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\x99\a\n" +
+	"\"orchestrator/v1/orchestrator.proto\x12\x0forchestrator.v1\"\xea\a\n" +
 	"\x0fBinaryStatusMsg\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x18\n" +
@@ -4924,7 +4944,10 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"binaryPath\x12)\n" +
 	"\x10update_available\x18\x18 \x01(\bR\x0fupdateAvailable\x122\n" +
 	"\x15remote_timestamp_unix\x18\x19 \x01(\x03R\x13remoteTimestampUnix\x12:\n" +
-	"\x19downloaded_timestamp_unix\x18\x1a \x01(\x03R\x17downloadedTimestampUnix\"U\n" +
+	"\x19downloaded_timestamp_unix\x18\x1a \x01(\x03R\x17downloadedTimestampUnix\x12\x1f\n" +
+	"\vwindow_open\x18\x1b \x01(\bR\n" +
+	"windowOpen\x12.\n" +
+	"\x13serves_light_wallet\x18\x1c \x01(\bR\x11servesLightWallet\"U\n" +
 	"\x12StartupLogEntryMsg\x12%\n" +
 	"\x0etimestamp_unix\x18\x01 \x01(\x03R\rtimestampUnix\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\":\n" +

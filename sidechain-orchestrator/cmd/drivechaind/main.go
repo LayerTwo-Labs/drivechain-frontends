@@ -613,6 +613,9 @@ func run(cctx *cli.Context) error {
 				}
 				return thundersvc.NewMode(light, url, orch.NetParams.Resolve())
 			}
+			// The mode carries both halves: light mode, and an index to read.
+			// A network with no index for this chain reads its local node.
+			orch.RegisterLightWallet(name, func() bool { return !thunderMode().LocalNode })
 			h := thundersvc.NewHandlerWithSeed(proxy, thunderMode, func() ([]byte, error) {
 				mnemonic, err := orch.WalletSvc.GetOrDeriveSidechainStarter(
 					thunderCfg.Slot, thunderCfg.DisplayName,
