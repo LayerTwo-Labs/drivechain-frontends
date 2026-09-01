@@ -13,8 +13,9 @@ import 'package:sidechain_core/sidechain_core.dart';
 /// once per second and writes the snapshot onto each RPCConnection.
 /// This class is primarily a state container + data provider for
 /// balance/blockchain queries.
-abstract class RPCConnection extends ChangeNotifier {
+abstract class RPCConnection extends ChangeNotifier implements DaemonState {
   Logger get log => GetIt.I.get<Logger>();
+  @override
   Binary get binary => GetIt.I.get<BinaryProvider>().binaries.firstWhere(
     (b) => b.type == binaryType,
   );
@@ -43,11 +44,24 @@ abstract class RPCConnection extends ChangeNotifier {
   // Connection state — written by BackendStateProvider, read by UI
   // =========================================================================
 
+  @override
   bool connected = false;
+
+  /// The chain's own app window runs. It uses its own process slot, so a light
+  /// install has a window with no daemon under it.
+  bool windowOpen = false;
+
+  /// The chain answers through a remote index, so it works with no local
+  /// daemon. False for a chain that only proxies to its own daemon.
+  bool servesLightWallet = false;
+  @override
   bool initializingBinary = false;
+  @override
   bool stoppingBinary = false;
   bool connectModeOnly = false;
+  @override
   String? connectionError;
+  @override
   String? startupError;
 
   /// Override to react to connection state changes.

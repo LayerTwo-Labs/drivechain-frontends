@@ -47,6 +47,8 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $core.bool? updateAvailable,
     $fixnum.Int64? remoteTimestampUnix,
     $fixnum.Int64? downloadedTimestampUnix,
+    $core.bool? windowOpen,
+    $core.bool? servesLightWallet,
   }) {
     final $result = create();
     if (name != null) {
@@ -127,6 +129,12 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (downloadedTimestampUnix != null) {
       $result.downloadedTimestampUnix = downloadedTimestampUnix;
     }
+    if (windowOpen != null) {
+      $result.windowOpen = windowOpen;
+    }
+    if (servesLightWallet != null) {
+      $result.servesLightWallet = servesLightWallet;
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -160,6 +168,8 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aOB(24, _omitFieldNames ? '' : 'updateAvailable')
     ..aInt64(25, _omitFieldNames ? '' : 'remoteTimestampUnix')
     ..aInt64(26, _omitFieldNames ? '' : 'downloadedTimestampUnix')
+    ..aOB(27, _omitFieldNames ? '' : 'windowOpen')
+    ..aOB(28, _omitFieldNames ? '' : 'servesLightWallet')
     ..hasRequiredFields = false
   ;
 
@@ -419,6 +429,28 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasDownloadedTimestampUnix() => $_has(25);
   @$pb.TagNumber(26)
   void clearDownloadedTimestampUnix() => clearField(26);
+
+  /// The chain's own app window is open. It runs under its own process slot, so
+  /// a light install has a window with no daemon under it.
+  @$pb.TagNumber(27)
+  $core.bool get windowOpen => $_getBF(26);
+  @$pb.TagNumber(27)
+  set windowOpen($core.bool v) { $_setBool(26, v); }
+  @$pb.TagNumber(27)
+  $core.bool hasWindowOpen() => $_has(26);
+  @$pb.TagNumber(27)
+  void clearWindowOpen() => clearField(27);
+
+  /// The chain answers with no local daemon, through a remote index. Only a
+  /// chain with a light backend can serve a wallet in light mode.
+  @$pb.TagNumber(28)
+  $core.bool get servesLightWallet => $_getBF(27);
+  @$pb.TagNumber(28)
+  set servesLightWallet($core.bool v) { $_setBool(27, v); }
+  @$pb.TagNumber(28)
+  $core.bool hasServesLightWallet() => $_has(27);
+  @$pb.TagNumber(28)
+  void clearServesLightWallet() => clearField(28);
 }
 
 class StartupLogEntryMsg extends $pb.GeneratedMessage {

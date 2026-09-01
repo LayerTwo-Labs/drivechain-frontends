@@ -157,6 +157,8 @@ const BinaryStatusMsg$json = {
     {'1': 'update_available', '3': 24, '4': 1, '5': 8, '10': 'updateAvailable'},
     {'1': 'remote_timestamp_unix', '3': 25, '4': 1, '5': 3, '10': 'remoteTimestampUnix'},
     {'1': 'downloaded_timestamp_unix', '3': 26, '4': 1, '5': 3, '10': 'downloadedTimestampUnix'},
+    {'1': 'window_open', '3': 27, '4': 1, '5': 8, '10': 'windowOpen'},
+    {'1': 'serves_light_wallet', '3': 28, '4': 1, '5': 8, '10': 'servesLightWallet'},
   ],
 };
 
@@ -178,7 +180,9 @@ final $typed_data.Uint8List binaryStatusMsgDescriptor = $convert.base64Decode(
     'tzdGFydHVwTG9ncxIfCgtiaW5hcnlfcGF0aBgXIAEoCVIKYmluYXJ5UGF0aBIpChB1cGRhdGVf'
     'YXZhaWxhYmxlGBggASgIUg91cGRhdGVBdmFpbGFibGUSMgoVcmVtb3RlX3RpbWVzdGFtcF91bm'
     'l4GBkgASgDUhNyZW1vdGVUaW1lc3RhbXBVbml4EjoKGWRvd25sb2FkZWRfdGltZXN0YW1wX3Vu'
-    'aXgYGiABKANSF2Rvd25sb2FkZWRUaW1lc3RhbXBVbml4');
+    'aXgYGiABKANSF2Rvd25sb2FkZWRUaW1lc3RhbXBVbml4Eh8KC3dpbmRvd19vcGVuGBsgASgIUg'
+    'p3aW5kb3dPcGVuEi4KE3NlcnZlc19saWdodF93YWxsZXQYHCABKAhSEXNlcnZlc0xpZ2h0V2Fs'
+    'bGV0');
 
 @$core.Deprecated('Use startupLogEntryMsgDescriptor instead')
 const StartupLogEntryMsg$json = {

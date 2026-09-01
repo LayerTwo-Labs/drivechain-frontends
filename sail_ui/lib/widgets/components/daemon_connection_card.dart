@@ -11,10 +11,13 @@ class DaemonConnectionCard extends StatelessWidget {
   LogProvider get _logProvider => GetIt.I.get<LogProvider>();
 
   final void Function(String name, String logPath, BinaryType type)? navigateToLogs;
-  final RPCConnection connection;
+  final DaemonState connection;
   final SyncInfo? syncInfo;
-  final Future<void> Function() restartDaemon;
-  final Future<void> Function() stopDaemon;
+
+  /// Null for a daemon this process does not own, which then offers no
+  /// start or stop control.
+  final Future<void> Function()? restartDaemon;
+  final Future<void> Function()? stopDaemon;
   final Future<void> Function()? deleteFunction;
   final VoidCallback? onOpenConfConfigurator;
 
@@ -25,8 +28,8 @@ class DaemonConnectionCard extends StatelessWidget {
     required this.connection,
     required this.syncInfo,
     required this.infoMessage,
-    required this.restartDaemon,
-    required this.stopDaemon,
+    this.restartDaemon,
+    this.stopDaemon,
     this.deleteFunction,
     this.navigateToLogs,
     this.onOpenConfConfigurator,
@@ -104,27 +107,31 @@ class DaemonConnectionCard extends StatelessWidget {
                   );
                 },
               ),
-              _StartStopButton(
-                binaryName: connection.binary.name,
-                isInitializing: connection.initializingBinary || isDownloading,
-                isConnected: connection.connected,
-                isStopping: connection.stoppingBinary,
-                onStart: restartDaemon,
-                onStop: stopDaemon,
-              ),
-              SailButton(
-                variant: ButtonVariant.icon,
-                onPressed: () async {
-                  await showDialog(
-                    context: context,
-                    builder: (context) => ChainSettingsModal(
-                      connection: connection,
-                      onOpenConfConfigurator: onOpenConfConfigurator,
-                    ),
-                  );
-                },
-                icon: SailSVGAsset.tabSettings,
-              ),
+              if (restartDaemon case final start?)
+                if (stopDaemon case final stop?)
+                  _StartStopButton(
+                    binaryName: connection.binary.name,
+                    isInitializing: connection.initializingBinary || isDownloading,
+                    isConnected: connection.connected,
+                    isStopping: connection.stoppingBinary,
+                    onStart: start,
+                    onStop: stop,
+                  ),
+              // Only a chain has settings to open. The orchestrator has none.
+              if (connection case final RPCConnection chain)
+                SailButton(
+                  variant: ButtonVariant.icon,
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (context) => ChainSettingsModal(
+                        connection: chain,
+                        onOpenConfConfigurator: onOpenConfConfigurator,
+                      ),
+                    );
+                  },
+                  icon: SailSVGAsset.tabSettings,
+                ),
               if (deleteFunction != null)
                 SailButton(
                   variant: ButtonVariant.icon,
