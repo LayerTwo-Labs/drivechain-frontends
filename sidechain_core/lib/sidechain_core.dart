@@ -134,6 +134,7 @@ export 'models/enforcer_config_options.dart';
 export 'models/notification_item.dart';
 export 'classes/rpc_config.dart';
 export 'classes/rpc_connection.dart';
+export 'config/backend_boot.dart';
 export 'config/binaries.dart';
 export 'config/chains_config_provider.dart';
 export 'config/sidechains.dart';

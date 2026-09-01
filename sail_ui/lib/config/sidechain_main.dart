@@ -172,6 +172,10 @@ Future<void> initSidechainDependencies({
     );
   }
 
+  // The node mode decides which daemons this install runs. bitwindow registers
+  // the same provider, so both read one answer.
+  registerNodeMode();
+
   // Binary lifecycle is managed by the backend (e.g. drivechaind).
   // State flows through BackendStateProvider.startWatching() → 1s
   // listBinaries poll → RPCConnection.

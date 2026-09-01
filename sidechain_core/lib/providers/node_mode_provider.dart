@@ -30,14 +30,18 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
   /// predicate every backend-dependent surface reads, so none of them can drift
   /// from the mode the user picked.
   ///
-  /// A sidechain app runs full mode by definition: it has its own backends and
-  /// registers no node mode, so it reads true. An unpicked mode reads false —
-  /// nothing boots until the user chooses.
+  /// bitwindow shows a mode gate, so an unpicked mode boots nothing until the
+  /// user answers. A sidechain app shows no gate, so it keeps the backends it
+  /// always had, which is what the orchestrator starts for an unset mode.
   static bool get runsLocalBackends {
     if (!GetIt.I.isRegistered<NodeModeProvider>()) {
       return true;
     }
-    return GetIt.I.get<NodeModeProvider>().isFull;
+    final provider = GetIt.I.get<NodeModeProvider>();
+    if (provider.needsChoice) {
+      return Binary.isSidechainApp;
+    }
+    return provider.isFull;
   }
 
   Future<void> load() async {
