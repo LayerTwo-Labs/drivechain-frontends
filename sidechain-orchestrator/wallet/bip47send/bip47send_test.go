@@ -176,6 +176,27 @@ func TestSubstituteBip47Destination_AlignsWithVectors(t *testing.T) {
 	}
 }
 
+// TestSubstituteBip47Destination_ReservedByteAliasGetsNoCounter pins that a
+// re-encoding of Bob's code with a reserved byte set never opens a second
+// send-index row: it derives the same addresses as the canonical code, so its
+// own counter would hand out addresses already paid to.
+func TestSubstituteBip47Destination_ReservedByteAliasGetsNoCounter(t *testing.T) {
+	bob, err := bip47.ParsePaymentCode(bobPM)
+	require.NoError(t, err)
+	bob.Reserved[12] = 0x01
+	alias := bob.Base58()
+
+	reserver := &fakeReserver{}
+	r, err := SubstituteBip47Destination(aliceSeedHex, "w1", map[string]int64{bobPM: 100_000}, &chaincfg.MainNetParams, reserver)
+	require.NoError(t, err)
+	require.True(t, r.IsBip47)
+
+	r2, err := SubstituteBip47Destination(aliceSeedHex, "w1", map[string]int64{alias: 100_000}, &chaincfg.MainNetParams, reserver)
+	require.NoError(t, err)
+	assert.False(t, r2.IsBip47, "a non-canonical encoding must not read as a payment code")
+	assert.Len(t, reserver.counters, 1, "the alias must not get a counter of its own")
+}
+
 func TestSubstituteBip47Destination_PassthroughForNonBip47(t *testing.T) {
 	reserver := &fakeReserver{}
 	dest := map[string]int64{

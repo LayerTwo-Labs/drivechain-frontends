@@ -67,6 +67,9 @@ func (h *WalletHandler) CreateDeposit(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	// Read the network before the broadcast: a swap racing it would file the
+	// record under the chain we swapped to.
+	network := h.svc.Network()
 	send, err := h.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
 		WalletId:       req.Msg.WalletId,
 		RawOutputs:     []*wpb.RawOutput{{ValueSats: treasurySats, ScriptHex: treasuryHex}},
@@ -81,6 +84,7 @@ func (h *WalletHandler) CreateDeposit(
 	// An M5 is an ordinary transaction on the wire, so nothing later can tell
 	// it apart from a normal send. Record it while we still know.
 	if err := h.svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+		Network:     network,
 		Txid:        send.Msg.Txid,
 		WalletID:    walletID,
 		Slot:        uint32(slot),

@@ -72,6 +72,14 @@ type Bip47Backend interface {
 	EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error
 }
 
+// ForgetBackend is a Backend holding per-wallet state of its own — Core keeps
+// the wallet loaded and serving keys — that a delete has to drop.
+type ForgetBackend interface {
+	Backend
+	// Forget releases the backend state walletID held. Idempotent.
+	Forget(ctx context.Context, walletID string) error
+}
+
 // DepositBackend is a backend that builds the BIP300 M5 itself, so the caller
 // hands it the slot and the destination instead of a raw treasury output.
 type DepositBackend interface {

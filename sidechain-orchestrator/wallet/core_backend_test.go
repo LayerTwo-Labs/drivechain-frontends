@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +35,8 @@ type fakeBitcoind struct {
 	mu       sync.Mutex
 	calls    []bitcoindCall
 	handlers map[string]func(c bitcoindCall) (any, string)
+	loaded   map[string]bool // wallets listwallets reports
+	onDisk   map[string]bool // wallets that exist, loaded or not
 }
 
 type bitcoindCall struct {
@@ -43,7 +47,11 @@ type bitcoindCall struct {
 
 func newFakeBitcoind(t *testing.T) *fakeBitcoind {
 	t.Helper()
-	f := &fakeBitcoind{handlers: map[string]func(bitcoindCall) (any, string){}}
+	f := &fakeBitcoind{
+		handlers: map[string]func(bitcoindCall) (any, string){},
+		loaded:   map[string]bool{},
+		onDisk:   map[string]bool{},
+	}
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Method string            `json:"method"`
@@ -111,9 +119,38 @@ func (f *fakeBitcoind) client(t *testing.T) *CoreRPCClient {
 }
 
 // stubEnsureFlow installs the happy-path handlers for lazy wallet creation.
+// listwallets reports what createwallet/loadwallet actually loaded, and
+// createwallet refuses a wallet that already exists — as bitcoind does.
 func (f *fakeBitcoind) stubEnsureFlow() {
-	f.handle("listwallets", func(bitcoindCall) (any, string) { return []string{}, "" })
-	f.handle("createwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	f.handle("listwallets", func(bitcoindCall) (any, string) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		names := make([]string, 0, len(f.loaded))
+		for name := range f.loaded {
+			names = append(names, name)
+		}
+		return names, ""
+	})
+	f.handle("createwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		_ = json.Unmarshal(c.Params[0], &name)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.onDisk[name] {
+			return nil, "Database already exists."
+		}
+		f.onDisk[name] = true
+		f.loaded[name] = true
+		return map[string]any{}, ""
+	})
+	f.handle("loadwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		_ = json.Unmarshal(c.Params[0], &name)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		f.loaded[name] = true
+		return map[string]any{}, ""
+	})
 	f.handle("importdescriptors", func(c bitcoindCall) (any, string) {
 		var descs []ImportDescriptor
 		_ = json.Unmarshal(c.Params[0], &descs)
@@ -129,6 +166,14 @@ func (f *fakeBitcoind) stubEnsureFlow() {
 		_ = json.Unmarshal(c.Params[0], &address)
 		return map[string]any{"address": address, "hdkeypath": "m/84'/1'/0'/0/0", "ismine": true}, ""
 	})
+}
+
+// restart unloads every wallet, as a bitcoind restart does: the wallet files
+// stay on disk, but only a load_on_startup wallet comes back by itself.
+func (f *fakeBitcoind) restart() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.loaded = map[string]bool{}
 }
 
 // newCoreBackendFixture wires a real Service (enforcer + bitcoinCore
@@ -159,6 +204,13 @@ func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
 	creates := fake.callsFor("createwallet")
 	require.Len(t, creates, 1)
 	assert.Equal(t, name, mustString(t, creates[0].Params[0]))
+	// createwallet "name" disable_private_keys blank "passphrase" avoid_reuse
+	// descriptors load_on_startup — the last one is what makes Core reload the
+	// wallet by itself after a restart.
+	require.Len(t, creates[0].Params, 7)
+	var loadOnStartup bool
+	require.NoError(t, json.Unmarshal(creates[0].Params[6], &loadOnStartup))
+	assert.True(t, loadOnStartup, "createwallet must set load_on_startup")
 
 	imports := fake.callsFor("importdescriptors")
 	require.Len(t, imports, 2, "BIP84 pair + BIP47 notification descriptor")
@@ -191,11 +243,49 @@ func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
 	assert.Contains(t, notif[0].Desc, "#", "descriptor carries a checksum")
 	assert.Equal(t, float64(0), asFloat(t, notif[0].Timestamp), "rescan from genesis")
 
-	// Second Ensure hits the cache — no further RPC traffic.
-	before := len(fake.callsFor("listwallets"))
+	// Second Ensure hits the cache — the wallet is neither re-created nor
+	// re-imported.
 	_, err = backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
-	assert.Equal(t, before, len(fake.callsFor("listwallets")))
+	assert.Len(t, fake.callsFor("createwallet"), 1)
+	assert.Len(t, fake.callsFor("importdescriptors"), 2)
+}
+
+// A bitcoind restart unloads every wallet the orchestrator created. The cached
+// wallet name outlives it, so the backend must notice the wallet is gone and
+// load it back instead of serving a name Core answers -18 for.
+func TestCoreBackendReloadsWalletAfterBitcoindRestart(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("getbalance", func(c bitcoindCall) (any, string) {
+		fake.mu.Lock()
+		defer fake.mu.Unlock()
+		if !fake.loaded[c.Wallet] {
+			return nil, "Requested wallet does not exist or is not loaded"
+		}
+		return 1.25, ""
+	})
+	fake.handle("getunconfirmedbalance", func(bitcoindCall) (any, string) { return 0.5, "" })
+	ctx := context.Background()
+
+	name, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.Len(t, fake.callsFor("createwallet"), 1)
+
+	fake.restart()
+
+	confirmed, unconfirmed, err := backend.Balance(ctx, coreID)
+	require.NoError(t, err)
+	assert.Equal(t, 1.25, confirmed)
+	assert.Equal(t, 0.5, unconfirmed)
+
+	// The wallet already exists on disk, so it is loaded back, not re-created.
+	loads := fake.callsFor("loadwallet")
+	require.Len(t, loads, 1)
+	assert.Equal(t, name, mustString(t, loads[0].Params[0]))
+	var loadOnStartup bool
+	require.NoError(t, json.Unmarshal(loads[0].Params[1], &loadOnStartup))
+	assert.True(t, loadOnStartup, "loadwallet must set load_on_startup")
 }
 
 // A backend constructed without chain params (unrecognized network) must
@@ -231,6 +321,139 @@ func TestCoreBackendEnsureTransientBackoff(t *testing.T) {
 	_, err = backend.Ensure(ctx, coreID)
 	require.ErrorContains(t, err, "Verifying blocks")
 	assert.Len(t, fake.callsFor("listwallets"), 1)
+}
+
+// A deleted wallet's Core wallet must not stay loaded: it keeps serving keys
+// the user deleted, and a same-prefix successor would reuse its descriptors.
+func TestCoreBackendForgetUnloadsWallet(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	// Forget unloads the wallet and moves its directory aside, so the stateful
+	// fake must drop it on both counts. Left "loaded"/"on disk", the successor
+	// Ensure would find it and adopt it instead of provisioning from scratch.
+	fake.handle("unloadwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		_ = json.Unmarshal(c.Params[0], &name)
+		fake.mu.Lock()
+		defer fake.mu.Unlock()
+		delete(fake.loaded, name)
+		delete(fake.onDisk, name)
+		return map[string]any{}, ""
+	})
+	ctx := context.Background()
+
+	name, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+
+	require.NoError(t, backend.Forget(ctx, coreID))
+	unloads := fake.callsFor("unloadwallet")
+	require.Len(t, unloads, 1)
+	assert.Equal(t, name, mustString(t, unloads[0].Params[0]))
+
+	// The cached name is gone with it, so the next Ensure provisions from
+	// scratch instead of handing back a wallet Core no longer has.
+	creates := len(fake.callsFor("createwallet"))
+	_, err = backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Len(t, fake.callsFor("createwallet"), creates+1)
+}
+
+// Unloading alone isn't enough: the wallet's directory has to move aside too.
+// Core refuses to create a wallet over an existing directory, and
+// createAndImport's fallback would load the deleted wallet and import a
+// same-named successor's descriptors into it.
+func TestCoreBackendForgetBacksUpWalletDir(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	coreDir := t.TempDir()
+	backend.svc.CoreDataDir = coreDir
+	walletsDir := filepath.Join(coreDir, "regtest", "wallets")
+
+	fake.stubEnsureFlow()
+	// bitcoind creates the wallet's directory, and refuses a name whose
+	// directory is already there.
+	fake.handle("createwallet", func(c bitcoindCall) (any, string) {
+		var name string
+		if err := json.Unmarshal(c.Params[0], &name); err != nil {
+			return nil, err.Error()
+		}
+		dir := filepath.Join(walletsDir, name)
+		if _, err := os.Stat(dir); err == nil {
+			return nil, "Failed to create database path '" + dir + "'. Database already exists."
+		}
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, err.Error()
+		}
+		if err := os.WriteFile(filepath.Join(dir, "wallet.dat"), []byte(name), 0o600); err != nil {
+			return nil, err.Error()
+		}
+		return map[string]any{}, ""
+	})
+	fake.handle("loadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	fake.handle("unloadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	ctx := context.Background()
+
+	name, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.DirExists(t, filepath.Join(walletsDir, name))
+
+	require.NoError(t, backend.Forget(ctx, coreID))
+	assert.NoDirExists(t, filepath.Join(walletsDir, name))
+	backup := findBackup(t, filepath.Join(coreDir, "wallet_backups"), name)
+	require.NotEmpty(t, backup, "wallet dir moved to backup, never removed")
+	assert.FileExists(t, filepath.Join(backup, "wallet.dat"))
+
+	// A same-named successor now gets a Core wallet of its own: createwallet
+	// succeeds and imports into it, and Core is never asked to load the
+	// deleted wallet's file.
+	imports := len(fake.callsFor("importdescriptors"))
+	_, err = backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	assert.Len(t, fake.callsFor("createwallet"), 2)
+	assert.Empty(t, fake.callsFor("loadwallet"))
+	assert.Greater(t, len(fake.callsFor("importdescriptors")), imports)
+}
+
+// Core rejects unloadwallet for a wallet it never loaded — one left behind by
+// an earlier run. That's not a failure for the delete path, and the wallet's
+// directory still has to move aside.
+func TestCoreBackendForgetIgnoresUnloadedWallet(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	coreDir := t.TempDir()
+	backend.svc.CoreDataDir = coreDir
+	name := "wallet_" + coreID[:8]
+	dir := filepath.Join(coreDir, "regtest", "wallets", name)
+	require.NoError(t, os.MkdirAll(dir, 0o700))
+	fake.handle("unloadwallet", func(bitcoindCall) (any, string) {
+		return nil, "Requested wallet does not exist or is not loaded"
+	})
+
+	require.NoError(t, backend.Forget(context.Background(), coreID))
+	require.Len(t, fake.callsFor("unloadwallet"), 1)
+	assert.NoDirExists(t, dir)
+	assert.NotEmpty(t, findBackup(t, filepath.Join(coreDir, "wallet_backups"), name))
+}
+
+// The delete path reaches Core through the engine, which can no longer resolve
+// the wallet's type — the wallet is already out of wallet.json.
+func TestWalletEngineForgetWalletAfterDelete(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("unloadwallet", func(bitcoindCall) (any, string) { return map[string]any{}, "" })
+	ctx := context.Background()
+
+	svc := backend.svc
+	log := zerolog.New(zerolog.NewTestWriter(t))
+	router := NewBackendRouter(svc, backend, nil)
+	engine := NewWalletEngine(svc, router, StaticParams(&chaincfg.RegressionNetParams), log)
+
+	name, err := engine.Backend().Ensure(ctx, coreID)
+	require.NoError(t, err)
+	require.NoError(t, svc.DeleteWallet(coreID))
+
+	require.NoError(t, engine.ForgetWallet(ctx, coreID))
+	unloads := fake.callsFor("unloadwallet")
+	require.Len(t, unloads, 1)
+	assert.Equal(t, name, mustString(t, unloads[0].Params[0]))
 }
 
 // A failed BIP47 notification import doesn't break wallet loading, but the
@@ -606,10 +829,11 @@ func TestCoreBackendCreateCpfp(t *testing.T) {
 		targetRate  = int64(20)
 	)
 	childAddr := p2wpkhAddr(t, fixedKey(0x77), &chaincfg.RegressionNetParams)
+	parentAddr := p2wpkhAddr(t, fixedKey(0x78), &chaincfg.RegressionNetParams)
 
 	fake.handle("listunspent", func(bitcoindCall) (any, string) {
 		return []map[string]any{
-			{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0},
+			{"txid": parentTxid, "vout": 0, "address": parentAddr, "amount": 0.002, "spendable": true, "confirmations": 0},
 		}, ""
 	})
 	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
@@ -658,6 +882,75 @@ func TestCoreBackendCreateCpfp(t *testing.T) {
 	assert.Positive(t, outputSats)
 }
 
+// TestCoreBackendCreateCpfpBip47Parent proves the child's input is sized from the
+// parent outpoint's own script: a BIP47 payment window is a pkh() import, so a
+// native-segwit wallet still spends a 148 vB legacy input. Sizing it as the
+// wallet's P2WPKH pays for a 110 vB child and leaves the package below target.
+func TestCoreBackendCreateCpfpBip47Parent(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	net := &chaincfg.RegressionNetParams
+	require.Equal(t, ScriptNativeSegwit, backend.walletScriptKind(coreID))
+
+	const (
+		parentTxid  = "66666666666666666666666666666666666666666666666666666666666666dd"
+		parentValue = int64(200_000)
+		parentVsize = int64(150)
+		parentFee   = int64(150)
+		targetRate  = int64(20)
+	)
+	childAddr := p2wpkhAddr(t, fixedKey(0x77), net)
+	// The parent pays a BIP47 payment address: pkh(), not one of the wallet's
+	// own wpkh() descriptors.
+	parentAddr := p2pkhAddr(t, fixedKey(0x47), net)
+
+	fake.handle("listunspent", func(bitcoindCall) (any, string) {
+		return []map[string]any{
+			{"txid": parentTxid, "vout": 0, "address": parentAddr, "amount": 0.002, "spendable": true, "confirmations": 0},
+		}, ""
+	})
+	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
+		return map[string]any{"vsize": parentVsize, "fees": map[string]any{"base": float64(parentFee) / 1e8}}, ""
+	})
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) {
+		return []map[string]any{{"address": childAddr, "amount": 0.0, "txids": []string{}}}, ""
+	})
+	var builtOutputs []map[string]any
+	fake.handle("createrawtransaction", func(c bitcoindCall) (any, string) {
+		require.NoError(t, json.Unmarshal(c.Params[1], &builtOutputs))
+		return "deadbeefcpfp47", ""
+	})
+	fake.handle("signrawtransactionwithwallet", func(c bitcoindCall) (any, string) {
+		return map[string]any{"hex": mustString(t, c.Params[0]), "complete": true}, ""
+	})
+	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "child-bip47", "" })
+
+	childTxid, err := backend.CreateCpfp(context.Background(), coreID, CpfpRequest{
+		ParentTxID: parentTxid,
+		ParentVout: 0,
+		TargetRate: targetRate,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "child-bip47", childTxid)
+
+	// Legacy input, native-segwit output: 190 vB, not the wallet-kind 110 vB.
+	childVsize := int64(11 + inputVsize(ScriptLegacy) + outputVsizeForKind(ScriptNativeSegwit))
+	require.Equal(t, int64(190), childVsize)
+	childFee, outputSats, err := cpfpChildPlan(targetRate, parentVsize, parentFee, childVsize, parentValue)
+	require.NoError(t, err)
+	require.Len(t, builtOutputs, 1, "self-send: single output")
+	assert.InDelta(t, btcutil.Amount(outputSats).ToBTC(), builtOutputs[0][childAddr], 1e-12)
+
+	// The package clears the requested rate at the child's real size.
+	assert.GreaterOrEqual(t, float64(parentFee+childFee)/float64(parentVsize+childVsize), float64(targetRate))
+
+	// The wallet-kind sizing pays for a 110 vB child, which underpays the package.
+	walletSized := int64(11 + inputVsize(ScriptNativeSegwit) + outputVsizeForKind(ScriptNativeSegwit))
+	underFee, _, err := cpfpChildPlan(targetRate, parentVsize, parentFee, walletSized, parentValue)
+	require.NoError(t, err)
+	assert.Less(t, float64(parentFee+underFee)/float64(parentVsize+childVsize), float64(targetRate))
+}
+
 // TestCoreBackendCreateCpfpTaproot proves CPFP works for a taproot-only (BIP86)
 // Core wallet: the child must be sized as P2TR and a bech32m address requested,
 // not the hardcoded native-segwit child that would break a tr()-only wallet.
@@ -690,10 +983,11 @@ func TestCoreBackendCreateCpfpTaproot(t *testing.T) {
 	// A P2TR (bech32m) child address — regtest HRP "bcrt" + "1p".
 	taprootAddr := p2trAddr(t, fixedKey(0x88), &chaincfg.RegressionNetParams)
 	require.True(t, strings.HasPrefix(taprootAddr, "bcrt1p"), "child address must be bech32m taproot")
+	parentAddr := p2trAddr(t, fixedKey(0x89), &chaincfg.RegressionNetParams)
 
 	fake.handle("listunspent", func(bitcoindCall) (any, string) {
 		return []map[string]any{
-			{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0},
+			{"txid": parentTxid, "vout": 0, "address": parentAddr, "amount": 0.002, "spendable": true, "confirmations": 0},
 		}, ""
 	})
 	fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
@@ -785,7 +1079,7 @@ func TestCoreBackendCpfpBase58Kinds(t *testing.T) {
 				targetRate  = int64(20)
 			)
 			fake.handle("listunspent", func(bitcoindCall) (any, string) {
-				return []map[string]any{{"txid": parentTxid, "vout": 0, "amount": 0.002, "spendable": true, "confirmations": 0}}, ""
+				return []map[string]any{{"txid": parentTxid, "vout": 0, "address": childAddr, "amount": 0.002, "spendable": true, "confirmations": 0}}, ""
 			})
 			fake.handle("getmempoolentry", func(bitcoindCall) (any, string) {
 				return map[string]any{"vsize": parentVsize, "fees": map[string]any{"base": float64(parentFee) / 1e8}}, ""
@@ -990,6 +1284,35 @@ func TestCoreBackendNextReceiveAddressTaproot(t *testing.T) {
 	addr, err = nextAddr(backend, ctx, coreID, ScriptTaproot)
 	require.NoError(t, err)
 	assert.Equal(t, mintedTaproot, addr)
+	assert.Equal(t, "bech32m", mintedType)
+}
+
+// A watch-only wallet's default receive kind comes from the descriptor it
+// imported: Core has no bech32 descriptor to serve for a tr() import.
+func TestCoreBackendNextReceiveAddressWatchOnlyTaproot(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	svc := newTestService(t)
+	require.NoError(t, svc.CreateWatchOnlyWallet("WO Taproot", "tr("+watchOnlyTestTpub+"/0/*)", `{"background_svg":""}`))
+	woID := svc.ActiveWalletID()
+
+	fake := newFakeBitcoind(t)
+	backend := NewCoreBackend(svc, fake.client(t), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+	require.Equal(t, ScriptTaproot, backend.walletScriptKind(woID))
+	fake.stubEnsureFlow()
+
+	minted := p2trAddr(t, fixedKey(0x41), net)
+	fake.handle("listreceivedbyaddress", func(bitcoindCall) (any, string) { return []map[string]any{}, "" })
+	var mintedType string
+	fake.handle("getnewaddress", func(c bitcoindCall) (any, string) {
+		if len(c.Params) > 1 {
+			mintedType = mustString(t, c.Params[1])
+		}
+		return minted, ""
+	})
+
+	addr, err := nextAddr(backend, context.Background(), woID, ScriptUnknown)
+	require.NoError(t, err)
+	assert.Equal(t, minted, addr)
 	assert.Equal(t, "bech32m", mintedType)
 }
 
@@ -1285,6 +1608,43 @@ func TestCoreBackendImportsEveryKindTheWalletAdvertises(t *testing.T) {
 	require.Len(t, singleSig, 4, "the taproot pair and the segwit pair")
 	assert.Contains(t, singleSig[0].Desc, "tr([")
 	assert.Contains(t, singleSig[2].Desc, "wpkh([")
+}
+
+// Core rejects a range on an un-ranged descriptor and refuses to make one
+// active, so a fixed watch-only descriptor must be imported with neither.
+func TestCoreBackendWatchOnlyRangeFollowsTheDescriptor(t *testing.T) {
+	const xpub = "xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz"
+	tests := []struct {
+		name       string
+		descriptor string
+		wantActive bool
+		wantRange  []int
+	}{
+		{"fixed", "addr(" + p2wpkhAddr(t, fixedKey(0x42), &chaincfg.RegressionNetParams) + ")", false, nil},
+		{"ranged", "wpkh(" + xpub + "/0/*)", true, []int{0, 1000}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := newTestService(t)
+			require.NoError(t, svc.CreateWatchOnlyWallet("Watch", tt.descriptor, `{"background_svg":""}`))
+
+			fake := newFakeBitcoind(t)
+			fake.stubEnsureFlow()
+			backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+
+			_, err := backend.Ensure(context.Background(), svc.ActiveWalletID())
+			require.NoError(t, err)
+
+			imports := fake.callsFor("importdescriptors")
+			require.Len(t, imports, 1, "watch-only wallets import no bip47 notification key")
+			var descs []ImportDescriptor
+			require.NoError(t, json.Unmarshal(imports[0].Params[0], &descs))
+			require.Len(t, descs, 1)
+			assert.Contains(t, descs[0].Desc, "#", "descriptor carries a checksum")
+			assert.Equal(t, tt.wantActive, descs[0].Active)
+			assert.Equal(t, tt.wantRange, descs[0].Range)
+		})
+	}
 }
 
 // coreBumpFeeFixture stubs an unconfirmed wallet transaction that pays a

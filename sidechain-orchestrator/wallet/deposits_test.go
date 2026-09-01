@@ -57,6 +57,30 @@ func TestRecordSidechainDepositIsIdempotent(t *testing.T) {
 	assert.Len(t, got, 1)
 }
 
+// A network swap between the broadcast and the insert must not move the row to
+// the chain we swapped to, where the deposit never happened.
+func TestRecordSidechainDepositKeepsBroadcastNetwork(t *testing.T) {
+	ctx := context.Background()
+	svc := NewService(t.TempDir(), zerolog.Nop())
+	svc.SetNetwork("regtest")
+	require.NoError(t, svc.Init())
+	defer svc.Close()
+
+	require.NoError(t, svc.RecordSidechainDeposit(ctx, SidechainDeposit{
+		Network: "signet", Txid: "aaa", WalletID: "w1", Slot: 9, Destination: "addr", AmountSats: 50_000,
+	}))
+
+	none, err := svc.SidechainDeposits(ctx, 9, "")
+	require.NoError(t, err)
+	assert.Empty(t, none, "regtest never saw this deposit")
+
+	require.NoError(t, svc.RebindNetwork("signet"))
+	got, err := svc.SidechainDeposits(ctx, 9, "")
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "aaa", got[0].Txid)
+}
+
 // The table records a wallet id per row, so a caller naming one must not see
 // another wallet's deposits.
 func TestSidechainDepositsFilterByWallet(t *testing.T) {

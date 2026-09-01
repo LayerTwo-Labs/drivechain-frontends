@@ -381,6 +381,13 @@ func (c *ElectrumClient) setTip(height int) {
 	c.tipMu.Unlock()
 }
 
+// clearTip expires the cached tip so the next TipHeight goes to the server.
+func (c *ElectrumClient) clearTip() {
+	c.tipMu.Lock()
+	c.tipFetched = time.Time{}
+	c.tipMu.Unlock()
+}
+
 func (c *ElectrumClient) startKeepalive() {
 	go func() {
 		t := time.NewTicker(60 * time.Second)
@@ -730,6 +737,9 @@ func (c *ElectrumClient) BaseURLs() []string {
 	return []string{c.serverURL}
 }
 
+// SetBaseURLs re-points the client at another Electrum server. The tip cache is
+// dropped so the next read probes the new server instead of answering from the
+// old one's tip.
 func (c *ElectrumClient) SetBaseURLs(urls []string) {
 	if len(urls) == 0 {
 		return
@@ -738,6 +748,7 @@ func (c *ElectrumClient) SetBaseURLs(urls []string) {
 	c.serverURL = urls[0]
 	c.urlMu.Unlock()
 	c.resetConn()
+	c.clearTip()
 }
 
 func (c *ElectrumClient) ProxyConfig() (bool, string) {
@@ -768,6 +779,7 @@ func (c *ElectrumClient) SetProxy(enabled bool, proxyAddr string) error {
 	c.proxyAddr = proxyAddr
 	c.urlMu.Unlock()
 	c.resetConn()
+	c.clearTip()
 	return nil
 }
 

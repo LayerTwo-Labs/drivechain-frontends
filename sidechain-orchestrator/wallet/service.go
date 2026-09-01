@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 	"github.com/btcsuite/btcd/chaincfg"
 
@@ -906,6 +905,20 @@ func (s *Service) CreateElectrumMultisig(
 	return &wallet, nil
 }
 
+// watchOnlyScriptType is the address kind a watch-only descriptor holds, so
+// receive and change ask Core for a family it imported. Empty keeps the
+// native-segwit default for a form Core serves but this parser does not model.
+func watchOnlyScriptType(descriptor string) string {
+	d, err := ParseDescriptor(descriptor)
+	if err != nil {
+		return ""
+	}
+	if _, ok := coreAddressType(d.Kind); !ok {
+		return ""
+	}
+	return d.Kind.String()
+}
+
 // CreateWatchOnlyWallet creates a watch-only wallet from an xpub or descriptor.
 // Dart: WalletWriterProvider.createWatchOnlyWallet (L156-214)
 func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON string) error {
@@ -924,8 +937,10 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 	isDescriptor := strings.Contains(xpubOrDescriptor, "(") && strings.Contains(xpubOrDescriptor, ")")
 
 	watchOnly := map[string]string{}
+	scriptType := ""
 	if isDescriptor {
 		watchOnly["descriptor"] = xpubOrDescriptor
+		scriptType = watchOnlyScriptType(xpubOrDescriptor)
 	} else {
 		watchOnly["xpub"] = xpubOrDescriptor
 	}
@@ -942,6 +957,7 @@ func (s *Service) CreateWatchOnlyWallet(name, xpubOrDescriptor, gradientJSON str
 		CreatedAt:  time.Now(),
 		WalletType: WalletTypeBitcoinCore,
 		WatchOnly:  json.RawMessage(watchOnlyJSON),
+		ScriptType: scriptType,
 	}
 
 	s.wallets = append(s.wallets, wallet)
@@ -1123,10 +1139,22 @@ func (s *Service) UnlockWallet(password string) error {
 	}
 
 	s.log.Debug().Int("encrypted_data_len", len(data)).Msg("attempting decryption")
-	_, err = Decrypt(string(data), key)
-	if err != nil {
-		s.log.Warn().Msg("unlock failed: incorrect password (decryption failed)")
-		return fmt.Errorf("incorrect password")
+	if _, decErr := Decrypt(string(data), key); decErr != nil {
+		// The wallet may hold ciphertext from an interrupted ChangePassword,
+		// described by the staged salt rather than by the live metadata.
+		stagedKey, err := s.promoteStagedMetadataLocked(password, data)
+		if err != nil {
+			return err
+		}
+		if stagedKey == nil {
+			s.log.Warn().Msg("unlock failed: incorrect password (decryption failed)")
+			return fmt.Errorf("incorrect password")
+		}
+		key = stagedKey
+	} else {
+		// The live metadata opens the wallet, so any staged salt belongs to a
+		// password change that never reached the wallet file.
+		s.removeStagedMetadataLocked()
 	}
 
 	s.encryptionKey = key
@@ -1139,6 +1167,8 @@ func (s *Service) UnlockWallet(password string) error {
 	}
 
 	s.log.Info().Int("wallet_count", len(s.wallets)).Str("active_id", s.activeWalletID).Msg("wallet unlocked successfully")
+	// Nothing here writes the wallet file, so the watcher won't notify for us.
+	s.notifyChanged()
 	return nil
 }
 
@@ -1153,6 +1183,9 @@ func (s *Service) LockWallet() {
 	s.CleanupStarterFiles()
 
 	s.log.Info().Msg("wallet locked, starter files cleaned up")
+	// Nothing here writes the wallet file, so the watcher won't notify for us.
+	// Push the cleared state to every WatchWalletData subscriber.
+	s.notifyChanged()
 }
 
 // --- Encrypt/Decrypt ---
@@ -1277,11 +1310,6 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		return fmt.Errorf("encrypt: %w", err)
 	}
 
-	s.setWalletDigestLocked(data)
-	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
-		return fmt.Errorf("write wallet: %w", err)
-	}
-
 	newMeta := EncryptionMetadata{
 		Salt:       base64.StdEncoding.EncodeToString(newSalt),
 		Iterations: DefaultIterations,
@@ -1289,8 +1317,36 @@ func (s *Service) ChangePassword(oldPassword, newPassword string) error {
 		Version:    "1.0",
 	}
 	metaBytes, _ := newMeta.Marshal()
-	if err := os.WriteFile(s.metadataFilePath(), metaBytes, 0600); err != nil {
+
+	// Stage the new salt before the wallet write. The wallet file and the
+	// metadata cannot change in one step, and a crash in between would otherwise
+	// leave new-key ciphertext described by the old salt, which no password
+	// unlocks. UnlockWallet finishes the change from the staging file.
+	if err := atomicWrite(s.stagedMetadataFilePath(), metaBytes); err != nil {
+		return fmt.Errorf("stage metadata: %w", err)
+	}
+
+	// Backup
+	walletPath := s.walletFilePath()
+	backupPath := fmt.Sprintf("%s.backup_before_password_change_%d", walletPath, time.Now().UnixMilli())
+	if err := os.WriteFile(backupPath, data, 0600); err != nil {
+		return fmt.Errorf("backup wallet: %w", err)
+	}
+	s.log.Debug().Str("backup_path", backupPath).Msg("wallet backed up before password change")
+
+	s.setWalletDigestLocked(data)
+	if err := s.writeWalletFileLocked([]byte(encrypted)); err != nil {
+		return fmt.Errorf("write wallet: %w", err)
+	}
+
+	if err := os.Rename(s.stagedMetadataFilePath(), s.metadataFilePath()); err != nil {
 		return fmt.Errorf("write metadata: %w", err)
+	}
+
+	// The change committed, so the old ciphertext is one more copy of the seed
+	// the old password opens.
+	if err := os.Remove(backupPath); err != nil {
+		s.log.Warn().Err(err).Str("backup_path", backupPath).Msg("could not remove the wallet backup taken before the password change; delete it manually")
 	}
 
 	// Adopt the new key only if we already held one. While locked there is no
@@ -1666,6 +1722,12 @@ func (s *Service) metadataFilePath() string {
 	return filepath.Join(s.bitwindowDir, "wallet_encryption.json")
 }
 
+// stagedMetadataFilePath holds the new salt ChangePassword writes before it
+// rewrites the wallet, until the rename that commits it.
+func (s *Service) stagedMetadataFilePath() string {
+	return s.metadataFilePath() + ".new"
+}
+
 func (s *Service) starterDir() string {
 	return filepath.Join(os.TempDir(), fmt.Sprintf("bitwindow_starters_%d", os.Getpid()))
 }
@@ -1704,6 +1766,45 @@ func (s *Service) dropStaleEncryptionMetadata(walletData []byte) (bool, error) {
 	s.unlockedPass = ""
 	s.log.Warn().Msg("wallet file is plaintext but metadata claimed encrypted; dropped stale encryption metadata")
 	return true, nil
+}
+
+// promoteStagedMetadataLocked finishes a ChangePassword that died between the
+// wallet write and the rename that commits the new salt, leaving a wallet only
+// the staged salt opens. Returns the key that salt derives from password, or nil
+// when there is no staging file or it does not decrypt walletData — a stale
+// staging file from a change that never reached the wallet write. Must be called
+// with mu held.
+func (s *Service) promoteStagedMetadataLocked(password string, walletData []byte) ([]byte, error) {
+	staged, err := os.ReadFile(s.stagedMetadataFilePath())
+	if err != nil {
+		return nil, nil
+	}
+	meta, err := UnmarshalEncryptionMetadata(staged)
+	if err != nil || !meta.Encrypted {
+		return nil, nil
+	}
+	salt, err := base64.StdEncoding.DecodeString(meta.Salt)
+	if err != nil {
+		return nil, nil
+	}
+	key := DeriveKey(password, salt, meta.Iterations)
+	if _, err := Decrypt(string(walletData), key); err != nil {
+		return nil, nil
+	}
+	if err := os.Rename(s.stagedMetadataFilePath(), s.metadataFilePath()); err != nil {
+		s.log.Error().Err(err).Str("path", s.stagedMetadataFilePath()).Msg("could not promote the staged encryption metadata")
+		return nil, fmt.Errorf("promote staged encryption metadata: %w", err)
+	}
+	s.log.Warn().Msg("wallet held ciphertext from an interrupted password change; finished it from the staged metadata")
+	return key, nil
+}
+
+// removeStagedMetadataLocked drops a staging file left by a password change that
+// never reached the wallet write. Must be called with mu held.
+func (s *Service) removeStagedMetadataLocked() {
+	if err := os.Remove(s.stagedMetadataFilePath()); err != nil && !os.IsNotExist(err) {
+		s.log.Warn().Err(err).Str("path", s.stagedMetadataFilePath()).Msg("could not remove stale staged encryption metadata")
+	}
 }
 
 // isPlaintextWalletFile reports whether data is an unencrypted wallet file.
@@ -1809,6 +1910,24 @@ func (s *Service) loadWalletFile() error {
 		}
 		migrated = true
 	}
+	// Backfill script_type on watch-only wallets imported before the descriptor's
+	// kind was recorded: a tr() wallet otherwise asks Core for bech32, which it
+	// imported no descriptor for.
+	for i := range s.wallets {
+		if s.wallets[i].ScriptType != "" {
+			continue
+		}
+		desc := s.wallets[i].watchOnlyField("descriptor")
+		if desc == "" {
+			continue
+		}
+		kind := watchOnlyScriptType(desc)
+		if kind == "" || kind == ScriptNativeSegwit.String() {
+			continue
+		}
+		s.wallets[i].ScriptType = kind
+		migrated = true
+	}
 	enforcerMigrated, err := s.migrateEnforcerWallets()
 	if err != nil {
 		return err
@@ -1888,10 +2007,11 @@ func (s *Service) migrateEnforcerWallets() (bool, error) {
 // enforcerLegacyWallet builds the wallet the enforcer daemon actually ran: the
 // bare mnemonic with no BIP39 passphrase, on the account it hardcoded.
 //
-// The seed is what makes a wallet, and the path only says where to look first.
-// So this returns nil when both already match what the wallet derives — on a
-// network whose coin type is 1, the enforcer's account is the standard one, and
-// a companion would be an exact duplicate.
+// The companion is written on every network. The migration runs once, on
+// whichever network happened to boot first, and wallet.json outlives that boot
+// — skipping it where the coin type is already 1 leaves a later mainnet boot
+// with nothing looking at the enforcer's coins. There the duplicate view of the
+// same account is only cosmetic; the missing wallet is not.
 func (s *Service) enforcerLegacyWallet(w *WalletData, target WalletType) (*WalletData, error) {
 	if w.Master.Mnemonic == "" {
 		return nil, nil
@@ -1903,9 +2023,6 @@ func (s *Service) enforcerLegacyWallet(w *WalletData, target WalletType) (*Walle
 	}
 
 	seed := MnemonicToSeed(w.Master.Mnemonic, "")
-	if hex.EncodeToString(seed) == w.Master.SeedHex && s.derivesEnforcerAccount(w) {
-		return nil, nil
-	}
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
 		return nil, fmt.Errorf("rebuild the enforcer master key: %w", err)
@@ -2069,25 +2186,6 @@ func (s *Service) StarterWalletID() string {
 		return w.ID
 	}
 	return ""
-}
-
-// derivesEnforcerAccount reports whether the wallet already looks at the
-// account the enforcer hardcoded. True on a network whose coin type is 1.
-func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
-	// Forknet and ecash run on mainnet params, so a string compare against
-	// mainnet reads their coin type as 1 and skips the companion they need.
-	net, err := bip47send.NetworkParams(s.network)
-	if err != nil {
-		// Testnet params here read the coin type as 1, which is the answer this
-		// function exists to avoid. The daemon refuses an unknown network at
-		// startup, so this cannot happen.
-		panic(fmt.Sprintf("unknown network %q: %v", s.network, err))
-	}
-	ap, err := accountPathFor(w, walletReceiveKind(w), net)
-	if err != nil {
-		return false
-	}
-	return ap.String() == EnforcerAccountPath
 }
 
 // CoinbaseRecipient is an address the block reward can pay to, derived from the

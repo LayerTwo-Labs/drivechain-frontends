@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -61,8 +63,9 @@ type CoreBackend struct {
 }
 
 var (
-	_ Backend      = (*CoreBackend)(nil)
-	_ Bip47Backend = (*CoreBackend)(nil)
+	_ Backend       = (*CoreBackend)(nil)
+	_ Bip47Backend  = (*CoreBackend)(nil)
+	_ ForgetBackend = (*CoreBackend)(nil)
 )
 
 // NewCoreBackend creates the Bitcoin Core wallet backend.
@@ -100,8 +103,13 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 
 	// Check cache
 	if name, ok := p.coreWallets[walletID]; ok {
-		p.retryBip47NotificationDescriptor(ctx, walletID, name)
-		return name, nil
+		if p.coreWalletLoaded(ctx, name) {
+			p.retryBip47NotificationDescriptor(ctx, walletID, name)
+			return name, nil
+		}
+		// bitcoind restarted and dropped the wallet; re-create it below, which
+		// falls through to loadwallet for one that is only unloaded.
+		delete(p.coreWallets, walletID)
 	}
 
 	// Short-circuit while a recent attempt is still in the bitcoind-warming-up
@@ -166,6 +174,70 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	return walletName, nil
 }
 
+// Forget drops a deleted wallet's Core state: the cached name goes, Core
+// unloads the wallet, and its directory moves under
+// <coreDataDir>/wallet_backups/. Leaving the directory in place would make a
+// later wallet of the same name reuse it — createAndImport falls back to
+// loadwallet on "already exists" — so the deleted wallet's descriptors, keys
+// included, would serve the new wallet. Backed up rather than removed: the
+// keys are not reconstructible.
+func (p *CoreBackend) Forget(ctx context.Context, walletID string) error {
+	p.mu.Lock()
+	name, cached := p.coreWallets[walletID]
+	delete(p.coreWallets, walletID)
+	delete(p.bip47NotifRetry, walletID)
+	p.mu.Unlock()
+
+	if !cached {
+		// Core can still hold the wallet from an earlier run of this process.
+		if len(walletID) < 8 {
+			return nil
+		}
+		name = fmt.Sprintf("wallet_%s", walletID[:8])
+	}
+
+	// A wallet Core never loaded has nothing to unload, but its directory is
+	// still there to move. Any other failure leaves the wallet open in Core,
+	// where renaming its directory out from under it would corrupt it.
+	if err := p.rpc.UnloadWallet(ctx, name); err != nil && !strings.Contains(err.Error(), "not loaded") {
+		return fmt.Errorf("unload wallet: %w", err)
+	}
+
+	if dir := p.coreWalletDir(name); dir != "" {
+		backupRoot := filepath.Join(p.svc.CoreDataDir, "wallet_backups", time.Now().UTC().Format("20060102-150405"))
+		if _, err := p.svc.moveToBackupRoot(dir, backupRoot); err != nil {
+			return fmt.Errorf("back up wallet dir: %w", err)
+		}
+	}
+
+	p.log.Info().Str("wallet", name).Msg("unloaded deleted Bitcoin Core wallet")
+	return nil
+}
+
+// coreWalletDir locates a Core wallet's directory under the Core datadir:
+// Core keeps wallets in <datadir>/[<chain>/]wallets/<name>, older nodes flat
+// alongside. Empty when no directory of that name is there.
+func (p *CoreBackend) coreWalletDir(name string) string {
+	if p.svc.CoreDataDir == "" {
+		return ""
+	}
+	var chain string
+	if net := p.net(); net != nil && net.Name != chaincfg.MainNetParams.Name {
+		chain = net.Name
+	}
+	for _, dir := range []string{
+		filepath.Join(p.svc.CoreDataDir, chain, "wallets", name),
+		filepath.Join(p.svc.CoreDataDir, chain, name),
+		filepath.Join(p.svc.CoreDataDir, "wallets", name),
+		filepath.Join(p.svc.CoreDataDir, name),
+	} {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
+		}
+	}
+	return ""
+}
+
 // EnsureAll syncs all bitcoinCore wallets (full and watch-only) to Bitcoin Core.
 func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 	wallets := p.svc.GetAllWallets()
@@ -185,16 +257,20 @@ func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 	return synced, nil
 }
 
+// coreWalletLoaded reports whether Core still holds the wallet. A bitcoind
+// restart unloads it, so a cached name is no proof. A failing listwallets
+// answers "loaded", so an unreachable node doesn't cost the cache entry.
+// Caller holds p.mu.
+func (p *CoreBackend) coreWalletLoaded(ctx context.Context, name string) bool {
+	loaded, err := p.rpc.ListWallets(ctx)
+	if err != nil {
+		return true
+	}
+	return lo.Contains(loaded, name)
+}
+
 // walletName returns the Core wallet name for a wallet ID, ensuring it exists.
 func (p *CoreBackend) walletName(ctx context.Context, walletID string) (string, error) {
-	p.mu.Lock()
-	if name, ok := p.coreWallets[walletID]; ok {
-		p.retryBip47NotificationDescriptor(ctx, walletID, name)
-		p.mu.Unlock()
-		return name, nil
-	}
-	p.mu.Unlock()
-
 	return p.Ensure(ctx, walletID)
 }
 
@@ -1018,13 +1094,14 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 			fmt.Errorf("target rate %d sat/vB does not exceed parent rate %d sat/vB", req.TargetRate, parentFee/parentVsize))
 	}
 
-	// Size the child for the wallet's own script kind: a taproot (BIP86) wallet
-	// imports only tr() descriptors, so its child is P2TR — using native-segwit
-	// sizing mis-estimates the fee. Default wallets resolve to native segwit.
+	// The child's output takes the wallet's own kind (a tr()-only wallet's child
+	// is P2TR); its input is sized from the parent's own script, which for a
+	// BIP47 payment window is a pkh() import twice as wide as the wallet's.
 	childKind := p.walletScriptKind(walletID)
+	parentKind := addressKind(parent.Address, p.net())
 
 	parentValueSats := int64(math.Round(parent.Amount * 1e8))
-	childVsize := int64(11 + inputVsize(childKind) + outputVsizeForKind(childKind))
+	childVsize := int64(11 + inputVsize(parentKind) + outputVsizeForKind(childKind))
 	_, outputSats, err := cpfpChildPlan(req.TargetRate, parentVsize, parentFee, childVsize, parentValueSats)
 	if err != nil {
 		return "", connect.NewError(connect.CodeInvalidArgument, err)
@@ -1284,12 +1361,14 @@ func (p *CoreBackend) createWatchOnlyWallet(ctx context.Context, walletName stri
 				return fmt.Errorf("add checksum: %w", err)
 			}
 		}
-		descriptors = append(descriptors, ImportDescriptor{
-			Desc:      desc,
-			Active:    true,
-			Timestamp: "now",
-			Range:     []int{0, 1000},
-		})
+		// Core rejects a range on an un-ranged descriptor, and only a ranged
+		// descriptor may be active, so a fixed one imports as neither.
+		imp := ImportDescriptor{Desc: desc, Timestamp: "now"}
+		if strings.Contains(desc, "*") {
+			imp.Active = true
+			imp.Range = []int{0, 1000}
+		}
+		descriptors = append(descriptors, imp)
 	} else if watchOnly.Xpub != "" {
 		descriptors = append(descriptors,
 			ImportDescriptor{
