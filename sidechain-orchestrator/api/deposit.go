@@ -17,6 +17,7 @@ import (
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/drivechainindex"
 )
 
 // CreateDeposit builds a BIP300 M5: it spends the sidechain's current treasury
@@ -148,7 +149,7 @@ func (h *WalletHandler) indexCtip(
 			fmt.Errorf("this network serves no escrow index, so a deposit needs full mode"))
 	}
 
-	ctip, err := readIndexCtip(ctx, url, slot)
+	ctip, err := drivechainindex.ReadCtip(ctx, url, slot)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get ctip: %w", err))
 	}

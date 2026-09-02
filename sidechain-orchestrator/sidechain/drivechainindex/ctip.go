@@ -1,4 +1,6 @@
-package api
+// Package drivechainindex reads the sidechain escrow from a hosted index. A
+// light install runs no enforcer, so the index reads the escrow for it.
+package drivechainindex
 
 import (
 	"context"
@@ -10,23 +12,23 @@ import (
 	"time"
 )
 
-// ctipReadTimeout bounds one read of the hosted index. A deposit waits on this,
+// readTimeout bounds one read of the hosted index. A deposit waits on this,
 // so it stays short.
-const ctipReadTimeout = 8 * time.Second
+const readTimeout = 8 * time.Second
 
-// indexCtip is a sidechain's treasury outpoint, as the hosted index reports it.
-type indexCtip struct {
+// Ctip is a sidechain's treasury outpoint, as the hosted index reports it.
+type Ctip struct {
 	Txid  string
 	Vout  uint32
 	Value uint64
 }
 
-// readIndexCtip reads a slot's treasury outpoint from a hosted Esplora index.
+// ReadCtip reads a slot's treasury outpoint from a hosted Esplora index.
 // baseURL already carries the escrow path, so only the slot is appended.
 //
 // A light install runs no enforcer, and the index reads the escrow on its
 // behalf. The treasury it reports is the outpoint an M5 deposit spends.
-func readIndexCtip(ctx context.Context, baseURL string, slot uint32) (*indexCtip, error) {
+func ReadCtip(ctx context.Context, baseURL string, slot uint32) (*Ctip, error) {
 	base := strings.TrimRight(baseURL, "/")
 	url := fmt.Sprintf("%s/sidechain/%d", base, slot)
 
@@ -35,7 +37,7 @@ func readIndexCtip(ctx context.Context, baseURL string, slot uint32) (*indexCtip
 		return nil, fmt.Errorf("build the treasury request: %w", err)
 	}
 
-	client := &http.Client{Timeout: ctipReadTimeout}
+	client := &http.Client{Timeout: readTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("read the treasury from %s: %w", base, err)
@@ -68,7 +70,7 @@ func readIndexCtip(ctx context.Context, baseURL string, slot uint32) (*indexCtip
 		return nil, nil
 	}
 
-	return &indexCtip{
+	return &Ctip{
 		Txid:  row.Treasury.Txid,
 		Vout:  row.Treasury.Vout,
 		Value: row.Treasury.ValueSats,

@@ -1,4 +1,4 @@
-package api
+package drivechainindex
 
 import (
 	"context"
@@ -15,7 +15,7 @@ func TestReadIndexCtipReadsTheTreasury(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	ctip, err := readIndexCtip(context.Background(), srv.URL+"/drivechain", 9)
+	ctip, err := ReadCtip(context.Background(), srv.URL+"/drivechain", 9)
 	if err != nil {
 		t.Fatalf("read the treasury: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestReadIndexCtipAllowsAnEmptyTreasury(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	ctip, err := readIndexCtip(context.Background(), srv.URL, 13)
+	ctip, err := ReadCtip(context.Background(), srv.URL, 13)
 	if err != nil {
 		t.Fatalf("read the treasury: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestReadIndexCtipReportsABadAnswer(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if _, err := readIndexCtip(context.Background(), srv.URL, 9); err == nil {
+	if _, err := ReadCtip(context.Background(), srv.URL, 9); err == nil {
 		t.Error("a 404 must report an error, not an empty treasury")
 	}
 }
