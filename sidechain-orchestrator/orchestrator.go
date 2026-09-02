@@ -3510,18 +3510,36 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	// which made progress = blocks/blocks = 1.0 and rendered every running
 	// sidechain as fully synced even mid-IBD — a far worse failure mode
 	// than a stuck-at-zero progress bar.
-	for name, slot := range out.Sidechains {
-		if slot.Error != "" {
-			continue
-		}
-		// Only an index knows the chain's tip. The node's own height would
-		// read as fully synced while it still downloads.
-		if h, ok := heights[name]; ok {
-			slot.Headers = h
-		}
-	}
+	applyIndexHeights(out.Sidechains, heights, o.NodeMode() == NodeModeLight)
 
 	return out, nil
+}
+
+// applyIndexHeights fills the sidechain slots from the hosted index.
+//
+// Only an index knows the chain's tip. The node's own height would read as
+// fully synced while it still downloads.
+//
+// A light install runs no sidechain daemon, so every slot carries "not
+// running" and the index height is the only one there is. Without this the
+// window falls back to the mainchain height, which names the wrong chain.
+func applyIndexHeights(
+	sidechains map[string]*ChainSyncResult, heights map[string]int64, light bool,
+) {
+	for name, slot := range sidechains {
+		h, ok := heights[name]
+		if !ok {
+			continue
+		}
+		if slot.Error == "" {
+			slot.Headers = h
+			continue
+		}
+		if light {
+			slot.Error = ""
+			slot.Blocks, slot.Headers = h, h
+		}
+	}
 }
 
 // invalidateSyncConnectionCacheForTest forces the named CachedConnection's
