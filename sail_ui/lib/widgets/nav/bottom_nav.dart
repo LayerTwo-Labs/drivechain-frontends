@@ -54,6 +54,17 @@ String? chainSourceBlocks(SyncInfo? syncInfo) {
   return '${formatWithThousandSpacers(height)} blocks';
 }
 
+/// The chain a window counts blocks on when it runs no local daemon. BitWindow
+/// watches the mainchain; a sidechain window watches its own chain, and the L1
+/// height there names the wrong chain.
+SyncInfo? lightModeSyncInfo({
+  required bool mainchainInfo,
+  required SyncInfo? chainSource,
+  required SyncInfo? sidechain,
+}) {
+  return mainchainInfo ? chainSource : sidechain;
+}
+
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final List<Widget> balanceEndWidgets;
@@ -680,10 +691,15 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
     // Electrum wallets run no L1 daemons, so there are no block-sync bars to
-    // show — the chain source reports the only height they have.
+    // show — the chain source reports the only height they have. A sidechain
+    // window reads its own chain, and the L1 height would name the wrong one.
     if (!viewModel.needsBackends) {
       final blocks = chainSourceBlocks(
-        viewModel.syncProvider.chainSourceSyncInfo,
+        lightModeSyncInfo(
+          mainchainInfo: viewModel.mainchainInfo,
+          chainSource: viewModel.syncProvider.chainSourceSyncInfo,
+          sidechain: viewModel.additionalSyncInfo,
+        ),
       );
       if (blocks == null) {
         return const SizedBox.shrink();

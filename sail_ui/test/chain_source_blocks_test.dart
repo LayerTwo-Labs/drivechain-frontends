@@ -20,4 +20,35 @@ void main() {
     expect(chainSourceBlocks(_at(0)), isNull);
     expect(chainSourceBlocks(null), isNull);
   });
+
+  // Thunder's window counted mainchain blocks, because the L1 chain source was
+  // the only height a light install held.
+  test('a sidechain window counts its own chain', () {
+    final info = lightModeSyncInfo(
+      mainchainInfo: false,
+      chainSource: _at(996740),
+      sidechain: _at(20),
+    );
+    expect(chainSourceBlocks(info), '20 blocks');
+  });
+
+  test('bitwindow counts the mainchain', () {
+    final info = lightModeSyncInfo(
+      mainchainInfo: true,
+      chainSource: _at(996740),
+      sidechain: _at(20),
+    );
+    expect(chainSourceBlocks(info), '996 740 blocks');
+  });
+
+  // A sidechain with no index reports no height, and the nav draws nothing
+  // rather than the mainchain count.
+  test('a sidechain with no height draws nothing', () {
+    final info = lightModeSyncInfo(
+      mainchainInfo: false,
+      chainSource: _at(996740),
+      sidechain: null,
+    );
+    expect(chainSourceBlocks(info), isNull);
+  });
 }
