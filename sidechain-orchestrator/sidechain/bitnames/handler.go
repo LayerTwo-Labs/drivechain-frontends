@@ -62,15 +62,16 @@ func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.Get
 }
 
 func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.WithdrawRequest]) (*connect.Response[pb.WithdrawResponse], error) {
-	txid, err := h.proxy.Withdraw(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats)
-	if err != nil {
+	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats}
+	var txid string
+	if err := h.proxy.Client.Call(ctx, "create_withdrawal", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.WithdrawResponse{Txid: txid}), nil
 }
 
 func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
-	// BitNames transfer accepts [dest, value, fee, memo]
+	// create_transfer takes a 4th memo parameter here.
 	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
 	if req.Msg.Memo != nil {
 		params = append(params, *req.Msg.Memo)
@@ -78,7 +79,7 @@ func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.Transfer
 		params = append(params, nil)
 	}
 	var txid string
-	if err := h.proxy.Client.Call(ctx, "transfer", params, &txid); err != nil {
+	if err := h.proxy.Client.Call(ctx, "create_transfer", params, &txid); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.TransferResponse{Txid: txid}), nil
@@ -142,7 +143,7 @@ func (h *Handler) CallRaw(ctx context.Context, req *connect.Request[pb.CallRawRe
 
 func (h *Handler) GetSidechainWealth(ctx context.Context, req *connect.Request[pb.GetSidechainWealthRequest]) (*connect.Response[pb.GetSidechainWealthResponse], error) {
 	var sats int64
-	if err := h.proxy.Client.Call(ctx, "sidechain_wealth_sats", nil, &sats); err != nil {
+	if err := h.proxy.Client.Call(ctx, "sidechain_wealth", nil, &sats); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetSidechainWealthResponse{Sats: sats}), nil

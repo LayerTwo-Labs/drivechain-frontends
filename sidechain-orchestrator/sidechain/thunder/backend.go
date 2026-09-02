@@ -50,13 +50,23 @@ func (b *nodeBackend) UTXOs(ctx context.Context) (json.RawMessage, error) {
 func (b *nodeBackend) Transfer(
 	ctx context.Context, address string, amountSats, feeSats int64,
 ) (string, error) {
-	return b.proxy.Transfer(ctx, address, amountSats, feeSats)
+	var txid string
+	params := []any{address, amountSats, feeSats}
+	if err := b.proxy.Client.Call(ctx, "create_transfer", params, &txid); err != nil {
+		return "", err
+	}
+	return txid, nil
 }
 
 func (b *nodeBackend) Withdraw(
 	ctx context.Context, address string, amountSats, sideFeeSats, mainFeeSats int64,
 ) (string, error) {
-	return b.proxy.Withdraw(ctx, address, amountSats, sideFeeSats, mainFeeSats)
+	var txid string
+	params := []any{address, amountSats, sideFeeSats, mainFeeSats}
+	if err := b.proxy.Client.Call(ctx, "create_withdrawal", params, &txid); err != nil {
+		return "", err
+	}
+	return txid, nil
 }
 
 var _ WalletBackend = (*nodeBackend)(nil)

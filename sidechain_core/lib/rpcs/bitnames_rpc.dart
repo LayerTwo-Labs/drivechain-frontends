@@ -636,6 +636,8 @@ final bitnamesRPCMethods = [
   'bitnames',
   'connect_peer',
   'create_deposit',
+  'create_transfer',
+  'create_withdrawal',
   'decrypt_msg',
   'encrypt_msg',
   'format_deposit_address',
@@ -666,9 +668,7 @@ final bitnamesRPCMethods = [
   'sign_arbitrary_msg',
   'sign_arbitrary_msg_as_addr',
   'stop',
-  'transfer',
   'verify_signature',
-  'withdraw',
 ];
 
 // Models for Bitnames RPC responses

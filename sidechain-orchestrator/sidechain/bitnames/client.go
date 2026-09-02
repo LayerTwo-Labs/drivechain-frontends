@@ -147,7 +147,7 @@ func (c *Client) MyUTXOs(ctx context.Context) (json.RawMessage, error) {
 // Transfer sends funds.
 func (c *Client) Transfer(ctx context.Context, dest string, valueSats, feeSats int64, memo *string) (string, error) {
 	params := []interface{}{dest, valueSats, feeSats, memo}
-	return unmarshal[string](c, ctx, "transfer", params)
+	return unmarshal[string](c, ctx, "create_transfer", params)
 }
 
 // CreateDeposit creates a deposit transaction.
@@ -157,12 +157,12 @@ func (c *Client) CreateDeposit(ctx context.Context, address string, valueSats, f
 
 // Withdraw initiates a withdrawal to the mainchain.
 func (c *Client) Withdraw(ctx context.Context, mainchainAddr string, amountSats, sidechainFeeSats, mainchainFeeSats int64) (string, error) {
-	return unmarshal[string](c, ctx, "withdraw", []interface{}{mainchainAddr, amountSats, sidechainFeeSats, mainchainFeeSats})
+	return unmarshal[string](c, ctx, "create_withdrawal", []interface{}{mainchainAddr, amountSats, sidechainFeeSats, mainchainFeeSats})
 }
 
 // SidechainWealthSats returns the total sidechain wealth in satoshis.
 func (c *Client) SidechainWealthSats(ctx context.Context) (int64, error) {
-	return unmarshal[int64](c, ctx, "sidechain_wealth_sats", nil)
+	return unmarshal[int64](c, ctx, "sidechain_wealth", nil)
 }
 
 // ---------------------------------------------------------------------------

@@ -919,7 +919,7 @@ final bitAssetsRPCMethods = [
   'remove_from_mempool',
   'reserve_bitasset',
   'set_seed_from_mnemonic',
-  'sidechain_wealth_sats',
+  'sidechain_wealth',
   'sign_arbitrary_msg',
   'sign_arbitrary_msg_as_addr',
   'stop',

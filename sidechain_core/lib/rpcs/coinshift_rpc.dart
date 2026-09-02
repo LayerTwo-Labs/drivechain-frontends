@@ -678,7 +678,7 @@ final coinShiftRPCMethods = [
   'reconstruct_swaps',
   'remove_from_mempool',
   'set_seed_from_mnemonic',
-  'sidechain_wealth_sats',
+  'sidechain_wealth',
   'stop',
   'transfer',
   'update_swap_l1_txid',

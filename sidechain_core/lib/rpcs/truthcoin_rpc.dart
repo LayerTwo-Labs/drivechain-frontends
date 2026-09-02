@@ -947,7 +947,7 @@ final truthcoinRPCMethods = [
   'refresh_wallet',
   'remove_from_mempool',
   'set_seed_from_mnemonic',
-  'sidechain_wealth_sats',
+  'sidechain_wealth',
   'sign_arbitrary_msg',
   'sign_arbitrary_msg_as_addr',
   'slot_claim',

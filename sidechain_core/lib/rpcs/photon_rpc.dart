@@ -309,6 +309,8 @@ final photonRPCMethods = [
   'balance',
   'connect_peer',
   'create_deposit',
+  'create_transfer',
+  'create_withdrawal',
   'forget_peer',
   'format_deposit_address',
   'generate_mnemonic',
@@ -328,8 +330,6 @@ final photonRPCMethods = [
   'openapi_schema',
   'remove_from_mempool',
   'set_seed_from_mnemonic',
-  'sidechain_wealth_sats',
+  'sidechain_wealth',
   'stop',
-  'transfer',
-  'withdraw',
 ];

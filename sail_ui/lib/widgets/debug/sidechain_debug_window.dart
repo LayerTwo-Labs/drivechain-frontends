@@ -148,22 +148,13 @@ class _SidechainInfoTabState extends State<SidechainInfoTab> {
   }
 
   Future<double?> _getSidechainWealth() async {
-    // Different sidechains have different methods for getting wealth
     try {
-      final result = await widget.rpc.callRAW('sidechain_wealth_sats');
+      final result = await widget.rpc.callRAW('sidechain_wealth');
       if (result is int) {
         return satoshiToBTC(result);
       }
     } catch (e) {
-      // Try alternative method name
-      try {
-        final result = await widget.rpc.callRAW('sidechain_wealth');
-        if (result is int) {
-          return satoshiToBTC(result);
-        }
-      } catch (e) {
-        // Not available
-      }
+      return null;
     }
     return null;
   }
