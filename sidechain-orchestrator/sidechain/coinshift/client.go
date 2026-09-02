@@ -162,7 +162,7 @@ func (c *Client) Withdraw(ctx context.Context, mainchainAddr string, amountSats,
 
 // SidechainWealthSats returns the total sidechain wealth in satoshis.
 func (c *Client) SidechainWealthSats(ctx context.Context) (int64, error) {
-	return unmarshal[int64](c, ctx, "sidechain_wealth_sats", nil)
+	return unmarshal[int64](c, ctx, "sidechain_wealth", nil)
 }
 
 // ---------------------------------------------------------------------------

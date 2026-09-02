@@ -157,7 +157,7 @@ func (h *Handler) CallRaw(ctx context.Context, req *connect.Request[pb.CallRawRe
 
 func (h *Handler) GetSidechainWealth(ctx context.Context, req *connect.Request[pb.GetSidechainWealthRequest]) (*connect.Response[pb.GetSidechainWealthResponse], error) {
 	var sats int64
-	if err := h.proxy.Client.Call(ctx, "sidechain_wealth_sats", nil, &sats); err != nil {
+	if err := h.proxy.Client.Call(ctx, "sidechain_wealth", nil, &sats); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetSidechainWealthResponse{Sats: sats}), nil

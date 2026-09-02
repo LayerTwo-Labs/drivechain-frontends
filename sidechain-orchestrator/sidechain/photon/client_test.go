@@ -125,3 +125,26 @@ func TestNullableResults(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, height)
 }
+
+// The node takes three arguments here. A fourth one gets invalid params.
+func TestClientTransferSendsThreeArguments(t *testing.T) {
+	var method string
+	var params []any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		method, params = req.Method, req.Params
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"txid1"}`))
+	}))
+	defer server.Close()
+
+	txid, err := clientFromServer(server).Transfer(
+		context.Background(), "sidechain-address", 50_000_000, 1000)
+	require.NoError(t, err)
+	assert.Equal(t, "txid1", txid)
+	assert.Equal(t, "create_transfer", method)
+	assert.Len(t, params, 3)
+}
