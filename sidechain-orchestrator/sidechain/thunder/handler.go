@@ -11,10 +11,19 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1"
 	svc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/drivechainindex"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
 )
 
 var _ svc.ThunderServiceHandler = (*Handler)(nil)
+
+// Light mode runs no node, and the index it reads serves neither of these.
+var (
+	errNoChainWideUTXOs = errors.New(
+		"light mode reads an index that lists no chain-wide utxo set")
+	errNoEscrowIndex = errors.New(
+		"this network serves no escrow index, so light mode reads no wealth")
+)
 
 // Handler implements ThunderServiceHandler by proxying to the thunder binary's JSON-RPC.
 // Common methods delegate to the embedded JSONRPCProxy; Thunder-specific methods are
@@ -101,6 +110,14 @@ func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBal
 }
 
 func (h *Handler) GetBlockCount(ctx context.Context, req *connect.Request[pb.GetBlockCountRequest]) (*connect.Response[pb.GetBlockCountResponse], error) {
+	if mode := h.mode(); !mode.LocalNode {
+		tip, err := h.sources.History(mode).TipHeight(ctx)
+		if err != nil {
+			return nil, err
+		}
+		// Genesis sits at height 0, so a tip of N counts N+1 blocks.
+		return connect.NewResponse(&pb.GetBlockCountResponse{Count: int64(tip) + 1}), nil
+	}
 	count, err := h.proxy.GetBlockCount(ctx)
 	if err != nil {
 		return nil, err
@@ -181,6 +198,9 @@ func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.Ge
 }
 
 func (h *Handler) ListUtxos(ctx context.Context, req *connect.Request[pb.ListUtxosRequest]) (*connect.Response[pb.ListUtxosResponse], error) {
+	if mode := h.mode(); !mode.LocalNode {
+		return nil, connect.NewError(connect.CodeUnimplemented, errNoChainWideUTXOs)
+	}
 	raw, err := h.proxy.ListUtxos(ctx)
 	if err != nil {
 		return nil, err
@@ -213,11 +233,35 @@ func (h *Handler) CallRaw(ctx context.Context, req *connect.Request[pb.CallRawRe
 // --- Thunder-specific methods ---
 
 func (h *Handler) GetSidechainWealth(ctx context.Context, req *connect.Request[pb.GetSidechainWealthRequest]) (*connect.Response[pb.GetSidechainWealthResponse], error) {
+	if mode := h.mode(); !mode.LocalNode {
+		sats, err := escrowWealth(ctx, mode.Escrow)
+		if err != nil {
+			return nil, err
+		}
+		return connect.NewResponse(&pb.GetSidechainWealthResponse{Sats: sats}), nil
+	}
 	var sats int64
 	if err := h.proxy.Client.Call(ctx, "sidechain_wealth_sats", nil, &sats); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetSidechainWealthResponse{Sats: sats}), nil
+}
+
+// escrowWealth reads what the sidechain holds from the hosted escrow index.
+// Every deposited coin sits in that treasury, so its value is the wealth.
+func escrowWealth(ctx context.Context, escrow Escrow) (int64, error) {
+	if escrow.URL == "" {
+		return 0, connect.NewError(connect.CodeUnimplemented, errNoEscrowIndex)
+	}
+	ctip, err := drivechainindex.ReadCtip(ctx, escrow.URL, escrow.Slot)
+	if err != nil {
+		return 0, connect.NewError(connect.CodeUnavailable, err)
+	}
+	// A slot that took no deposit yet holds no treasury, and so holds nothing.
+	if ctip == nil {
+		return 0, nil
+	}
+	return int64(ctip.Value), nil
 }
 
 func (h *Handler) CreateDeposit(ctx context.Context, req *connect.Request[pb.CreateDepositRequest]) (*connect.Response[pb.CreateDepositResponse], error) {

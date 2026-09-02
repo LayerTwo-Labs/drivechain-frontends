@@ -40,7 +40,7 @@ func TestNewModePicksTheRightWallet(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			mode := NewMode(test.light, test.indexURL, nil)
+			mode := NewMode(test.light, test.indexURL, Escrow{}, nil)
 			if mode.LocalNode != test.localNode {
 				t.Errorf("LocalNode = %v, want %v", mode.LocalNode, test.localNode)
 			}

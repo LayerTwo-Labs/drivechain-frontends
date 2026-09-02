@@ -163,3 +163,105 @@ func addressStats(address string, funded bool) string {
 		"mempool_stats":{"funded_txo_count":0,"funded_txo_sum":0,
 			"spent_txo_count":0,"spent_txo_sum":0,"tx_count":0}}`
 }
+
+// Light mode runs no node, so the block count comes from the index. The index
+// reports a tip, and the count is one above it.
+func TestLightModeCountsBlocksFromTheIndex(t *testing.T) {
+	index := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/blocks/tip/height" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte(`20`))
+	}))
+	defer index.Close()
+
+	// Port 1 accepts nothing, which is what a stopped node looks like.
+	h := NewHandlerWithSeed(sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() Mode { return Mode{IndexURL: index.URL} }, nil)
+
+	resp, err := h.GetBlockCount(context.Background(),
+		connect.NewRequest(&pb.GetBlockCountRequest{}))
+	if err != nil {
+		t.Fatalf("get block count: %v", err)
+	}
+	if resp.Msg.Count != 21 {
+		t.Errorf("count = %d, want 21", resp.Msg.Count)
+	}
+}
+
+// Every deposited coin sits in the escrow, so a light install reads the wealth
+// from the hosted escrow index rather than from a node.
+func TestLightModeReadsWealthFromTheEscrow(t *testing.T) {
+	var asked string
+	escrow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = r.URL.Path
+		_, _ = w.Write([]byte(`{"slot":9,"treasury":{"txid":"aa","vout":0,
+			"value_sats":10603007000}}`))
+	}))
+	defer escrow.Close()
+
+	h := NewHandlerWithSeed(sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() Mode {
+			return Mode{IndexURL: "https://index.example", Escrow: Escrow{URL: escrow.URL, Slot: 9}}
+		}, nil)
+
+	resp, err := h.GetSidechainWealth(context.Background(),
+		connect.NewRequest(&pb.GetSidechainWealthRequest{}))
+	if err != nil {
+		t.Fatalf("get sidechain wealth: %v", err)
+	}
+	if resp.Msg.Sats != 10603007000 {
+		t.Errorf("sats = %d, want 10603007000", resp.Msg.Sats)
+	}
+	if asked != "/sidechain/9" {
+		t.Errorf("asked for %q, want /sidechain/9", asked)
+	}
+}
+
+// A slot that took no deposit yet holds no treasury, and so holds nothing.
+func TestLightModeReadsAnEmptyEscrow(t *testing.T) {
+	escrow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"slot":9}`))
+	}))
+	defer escrow.Close()
+
+	h := NewHandlerWithSeed(sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() Mode {
+			return Mode{IndexURL: "https://index.example", Escrow: Escrow{URL: escrow.URL, Slot: 9}}
+		}, nil)
+
+	resp, err := h.GetSidechainWealth(context.Background(),
+		connect.NewRequest(&pb.GetSidechainWealthRequest{}))
+	if err != nil {
+		t.Fatalf("get sidechain wealth: %v", err)
+	}
+	if resp.Msg.Sats != 0 {
+		t.Errorf("sats = %d, want 0", resp.Msg.Sats)
+	}
+}
+
+// The index lists no chain-wide utxo set, so light mode says so rather than
+// dialling a node that does not run.
+func TestLightModeRefusesChainWideUTXOs(t *testing.T) {
+	h := NewHandlerWithSeed(sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() Mode { return Mode{IndexURL: "https://index.example"} }, nil)
+
+	_, err := h.ListUtxos(context.Background(),
+		connect.NewRequest(&pb.ListUtxosRequest{}))
+	if connect.CodeOf(err) != connect.CodeUnimplemented {
+		t.Fatalf("code = %v, want unimplemented (err %v)", connect.CodeOf(err), err)
+	}
+}
+
+// A network with no escrow index cannot answer the wealth, and says so.
+func TestLightModeWithNoEscrowIndex(t *testing.T) {
+	h := NewHandlerWithSeed(sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() Mode { return Mode{IndexURL: "https://index.example"} }, nil)
+
+	_, err := h.GetSidechainWealth(context.Background(),
+		connect.NewRequest(&pb.GetSidechainWealthRequest{}))
+	if connect.CodeOf(err) != connect.CodeUnimplemented {
+		t.Fatalf("code = %v, want unimplemented (err %v)", connect.CodeOf(err), err)
+	}
+}

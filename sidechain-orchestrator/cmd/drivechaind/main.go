@@ -611,7 +611,11 @@ func run(cctx *cli.Context) error {
 				if url == "" && light {
 					url = config.ThunderEsploraURLForNetwork(network)
 				}
-				return thundersvc.NewMode(light, url, orch.NetParams.Resolve())
+				escrow := thundersvc.Escrow{
+					URL:  config.DrivechainIndexURLForNetwork(network),
+					Slot: uint32(thunderCfg.Slot),
+				}
+				return thundersvc.NewMode(light, url, escrow, orch.NetParams.Resolve())
 			}
 			// The mode carries both halves: light mode, and an index to read.
 			// A network with no index for this chain reads its local node.

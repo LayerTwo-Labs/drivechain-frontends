@@ -37,10 +37,21 @@ type LightKeys interface {
 	Keyring() (*thunderwallet.MemoryKeyring, error)
 }
 
+// Escrow names the hosted index that reads a sidechain's treasury, and the
+// slot to read there. A light install runs no enforcer, so the escrow value
+// comes from here rather than from a node.
+type Escrow struct {
+	URL  string
+	Slot uint32
+}
+
 // Mode is how one request reads the chain.
 type Mode struct {
 	// IndexURL names the Esplora index to read. An empty URL reads the node.
 	IndexURL string
+	// Escrow names where the sidechain's treasury is read, for a mode that
+	// runs no node.
+	Escrow Escrow
 	// LocalNode says whether a thunder node runs on this host. Light mode runs
 	// none, so the wallet derives its own addresses.
 	LocalNode bool
@@ -56,9 +67,10 @@ type Mode struct {
 // index cannot serve light mode, so the node answers everything there. A full
 // install that names an index keeps its node, and reads only history through
 // the index.
-func NewMode(light bool, indexURL string, params *chaincfg.Params) Mode {
+func NewMode(light bool, indexURL string, escrow Escrow, params *chaincfg.Params) Mode {
 	return Mode{
 		IndexURL:  indexURL,
+		Escrow:    escrow,
 		LocalNode: !light || indexURL == "",
 		Params:    params,
 	}
