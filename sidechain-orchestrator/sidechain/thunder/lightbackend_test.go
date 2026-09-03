@@ -54,6 +54,28 @@ func (f *fakeIndex) fund(address, txid string, valueSats int64) {
 	f.funded[address] = true
 }
 
+// fundPending gives one address a coin no block carries yet.
+func (f *fakeIndex) fundPending(address, txid string, valueSats int64) {
+	f.fundPendingAt(address, txid, 0, valueSats)
+}
+
+func (f *fakeIndex) fundPendingAt(address, txid string, vout, valueSats int64) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.utxos[address] = `[{"txid":"` + txid + `","vout":` + itoa(vout) + `,"value":` +
+		itoa(valueSats) + `,"outpoint_kind":"regular","content_type":"value",
+		"status":{"confirmed":false,"block_height":null,"block_time":null}}]`
+	f.funded[address] = true
+}
+
+// spend takes one address back to holding nothing, the way the index answers
+// once a transaction takes the coin.
+func (f *fakeIndex) spend(address string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.utxos[address] = "[]"
+}
+
 func (f *fakeIndex) submitted() []json.RawMessage {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -412,5 +434,145 @@ func TestLightChangeAvoidsTheReceiveAddressAfterARestart(t *testing.T) {
 			t.Errorf("change landed on the receive address %q after a restart",
 				output.Address)
 		}
+	}
+}
+
+// A payment the chain has not mined yet must show at once. It counts in the
+// total and not in what the wallet can spend.
+func TestLightBalanceCountsAPendingCoin(t *testing.T) {
+	index := newFakeIndex(t)
+	h, addresses := lightHandler(t, index)
+	index.fund(addresses[0].String(), strings.Repeat("aa", 32), 7000)
+	index.fundPending(addresses[1].String(), strings.Repeat("bb", 32), 2500)
+
+	resp, err := h.GetBalance(context.Background(),
+		connect.NewRequest(&pb.GetBalanceRequest{}))
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if resp.Msg.TotalSats != 9500 {
+		t.Errorf("total = %d, want 9500", resp.Msg.TotalSats)
+	}
+	if resp.Msg.AvailableSats != 7000 {
+		t.Errorf("available = %d, want the 7000 the chain carries", resp.Msg.AvailableSats)
+	}
+}
+
+// The UTXO list carries a pending coin too, so the wallet shows the money
+// before a block arrives.
+func TestLightUTXOsCarryAPendingCoin(t *testing.T) {
+	index := newFakeIndex(t)
+	h, addresses := lightHandler(t, index)
+	index.fund(addresses[0].String(), strings.Repeat("aa", 32), 4200)
+	index.fundPending(addresses[1].String(), strings.Repeat("bb", 32), 800)
+
+	resp, err := h.GetWalletUtxos(context.Background(),
+		connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+	if err != nil {
+		t.Fatalf("utxos: %v", err)
+	}
+	var rows []struct {
+		Output struct {
+			Content struct {
+				Value uint64 `json:"Value"`
+			} `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal([]byte(resp.Msg.UtxosJson), &rows); err != nil {
+		t.Fatalf("read the utxo json %s: %v", resp.Msg.UtxosJson, err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("got %d utxos, want both coins", len(rows))
+	}
+	var sum uint64
+	for _, row := range rows {
+		sum += row.Output.Content.Value
+	}
+	if sum != 5000 {
+		t.Errorf("the coins hold %d sats, want 5000", sum)
+	}
+}
+
+// The wallet holds its own change until the index catches up, and the index
+// then reports the same coin. Counting it in both places doubles the balance.
+func TestLightBalanceCountsItsOwnChangeOneTime(t *testing.T) {
+	index := newFakeIndex(t)
+	h, addresses := lightHandler(t, index)
+	index.fund(addresses[0].String(), strings.Repeat("aa", 32), 10000)
+
+	// The payment leaves the wallet, so the change is all that comes back.
+	if _, err := h.Transfer(context.Background(), connect.NewRequest(&pb.TransferRequest{
+		Address:    "3nRfgx4Lbhxas4P2J2CpCQ98Srsr",
+		AmountSats: 4000,
+		FeeSats:    500,
+	})); err != nil {
+		t.Fatalf("transfer: %v", err)
+	}
+
+	// The index catches up: the coin the wallet spent is gone, and the change
+	// it made reads as unconfirmed. The wallet still holds that change too.
+	index.spend(addresses[0].String())
+	index.fundPendingAt(addresses[2].String(), strings.Repeat("ab", 32), 1, 5500)
+
+	resp, err := h.GetBalance(context.Background(),
+		connect.NewRequest(&pb.GetBalanceRequest{}))
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if resp.Msg.TotalSats != 5500 {
+		t.Errorf("total = %d, want the change one time: 5500", resp.Msg.TotalSats)
+	}
+	// No block carries the change, so the wallet waits for it.
+	if resp.Msg.AvailableSats != 0 {
+		t.Errorf("available = %d, want 0", resp.Msg.AvailableSats)
+	}
+}
+
+// The index lags a broadcast by one pass: it still offers the coin the wallet
+// spent, and it does not name the change yet. A balance must show neither the
+// spent coin nor a gap where the change is.
+func TestLightBalanceFollowsABroadcastTheIndexHasNotRead(t *testing.T) {
+	index := newFakeIndex(t)
+	h, addresses := lightHandler(t, index)
+	index.fund(addresses[0].String(), strings.Repeat("aa", 32), 10000)
+
+	if _, err := h.Transfer(context.Background(), connect.NewRequest(&pb.TransferRequest{
+		Address:    "3nRfgx4Lbhxas4P2J2CpCQ98Srsr",
+		AmountSats: 4000,
+		FeeSats:    500,
+	})); err != nil {
+		t.Fatalf("transfer: %v", err)
+	}
+
+	resp, err := h.GetBalance(context.Background(),
+		connect.NewRequest(&pb.GetBalanceRequest{}))
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if resp.Msg.TotalSats != 5500 {
+		t.Errorf("total = %d, want the 5500 change", resp.Msg.TotalSats)
+	}
+	if resp.Msg.AvailableSats != 0 {
+		t.Errorf("available = %d, want 0: the wallet spent its only mined coin",
+			resp.Msg.AvailableSats)
+	}
+
+	utxos, err := h.GetWalletUtxos(context.Background(),
+		connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+	if err != nil {
+		t.Fatalf("utxos: %v", err)
+	}
+	var rows []struct {
+		Output struct {
+			Content struct {
+				Value uint64 `json:"Value"`
+			} `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal([]byte(utxos.Msg.UtxosJson), &rows); err != nil {
+		t.Fatalf("read the utxo json %s: %v", utxos.Msg.UtxosJson, err)
+	}
+	if len(rows) != 1 || rows[0].Output.Content.Value != 5500 {
+		t.Errorf("utxos = %+v, want the change alone", rows)
 	}
 }

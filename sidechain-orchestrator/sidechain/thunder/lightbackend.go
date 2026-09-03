@@ -16,6 +16,9 @@ import (
 type lightBackend struct {
 	keys  *tw.MemoryKeyring
 	known AddressSource
+	// index reads both halves of the wallet, and coins holds what a broadcast
+	// changed until the index catches up.
+	index *tw.IndexCoins
 	coins *tw.ReservedCoins
 
 	client *sidechainesplora.Client
@@ -30,10 +33,12 @@ func newLightBackend(
 ) *lightBackend {
 	// The index lags what the wallet spends, so a second send must not pick a
 	// coin the first one already used.
-	coins := tw.NewReservedCoins(tw.NewIndexCoins(client))
+	index := tw.NewIndexCoins(client)
+	coins := tw.NewReservedCoins(index)
 	return &lightBackend{
 		keys:   keys,
 		known:  known,
+		index:  index,
 		coins:  coins,
 		client: client,
 		wallet: tw.New(coins, keys, tw.NewIndexBroadcast(client.BaseURL())),
@@ -62,22 +67,41 @@ func (b *lightBackend) addresses(ctx context.Context) ([]tw.Address, error) {
 	return out, nil
 }
 
-// Balance sums the coins the index holds for this wallet. The index carries
-// confirmed coins, so the whole balance is spendable.
+// Balance sums the coins the index holds for this wallet. A coin no block
+// carries yet counts in the total and not in what the wallet can spend, so a
+// payment shows the moment the index sees it.
 func (b *lightBackend) Balance(ctx context.Context) (int64, int64, error) {
-	addresses, err := b.addresses(ctx)
+	spendable, pending, err := b.walletCoins(ctx)
 	if err != nil {
 		return 0, 0, err
 	}
-	coins, err := b.coins.Coins(ctx, addresses)
-	if err != nil {
-		return 0, 0, err
+	var available int64
+	for _, coin := range spendable {
+		available += int64(coin.ValueSats)
 	}
-	var total int64
-	for _, coin := range coins {
+	total := available
+	for _, coin := range pending {
 		total += int64(coin.ValueSats)
 	}
-	return total, total, nil
+	return total, available, nil
+}
+
+// walletCoins reads both halves of the wallet: what a block carries, and what
+// the wallet waits for. One read of each address fills both.
+//
+// The index lags a broadcast by one pass, so the reserved coins correct it: a
+// coin the wallet spent leaves, and the change it made joins the second half.
+func (b *lightBackend) walletCoins(ctx context.Context) (spendable, pending []tw.Coin, err error) {
+	addresses, err := b.addresses(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	confirmed, waiting, err := b.index.Split(ctx, addresses)
+	if err != nil {
+		return nil, nil, err
+	}
+	spendable, pending = b.coins.Adjust(addresses, confirmed, waiting)
+	return spendable, pending, nil
 }
 
 // NewAddress hands out the first address that never received a coin. Asking
@@ -91,16 +115,14 @@ func (b *lightBackend) NewAddress(ctx context.Context) (string, error) {
 	return address.String(), nil
 }
 
+// UTXOs lists every coin the wallet holds, including the ones no block carries
+// yet.
 func (b *lightBackend) UTXOs(ctx context.Context) (json.RawMessage, error) {
-	addresses, err := b.addresses(ctx)
+	spendable, pending, err := b.walletCoins(ctx)
 	if err != nil {
 		return nil, err
 	}
-	coins, err := b.coins.Coins(ctx, addresses)
-	if err != nil {
-		return nil, err
-	}
-	return tw.MarshalUTXOs(coins)
+	return tw.MarshalUTXOs(append(spendable, pending...))
 }
 
 func (b *lightBackend) Transfer(

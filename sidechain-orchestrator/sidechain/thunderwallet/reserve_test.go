@@ -164,3 +164,65 @@ func (b *recordingBroadcaster) Broadcast(
 	out[0] = byte(len(b.sent))
 	return out, nil
 }
+
+// The index lags a broadcast by one pass. A wallet read must still drop the
+// coin the wallet spent, and must still carry the change it made.
+func TestReservedCoinsAdjustsBothHalves(t *testing.T) {
+	var mine Address
+	mine[0] = 0x11
+
+	spent := coinAt(0, 5000)
+	spent.Address = mine
+	change := coinAt(1, 4000)
+	change.Address = mine
+
+	source := NewReservedCoins(&listCoins{})
+	source.Reserve([]OutPoint{spent.OutPoint}, []Coin{change})
+
+	confirmed, pending := source.Adjust([]Address{mine}, []Coin{spent}, nil)
+	if len(confirmed) != 0 {
+		t.Errorf("the spent coin is still spendable: %+v", confirmed)
+	}
+	if len(pending) != 1 || pending[0].OutPoint != change.OutPoint {
+		t.Fatalf("pending = %+v, want the change alone", pending)
+	}
+}
+
+// The index reads the change one pass later. The wallet holds it too, and
+// counting it twice doubles a balance.
+func TestReservedCoinsAdjustsTheChangeOneTime(t *testing.T) {
+	var mine Address
+	mine[0] = 0x11
+
+	change := coinAt(1, 4000)
+	change.Address = mine
+
+	source := NewReservedCoins(&listCoins{})
+	source.Reserve(nil, []Coin{change})
+
+	confirmed, pending := source.Adjust([]Address{mine}, nil, []Coin{change})
+	if len(confirmed) != 0 {
+		t.Errorf("confirmed = %+v, want nothing a block carries", confirmed)
+	}
+	if len(pending) != 1 {
+		t.Errorf("pending holds %d coins, want the change one time", len(pending))
+	}
+}
+
+// Change for another wallet's address belongs to that wallet, not this one.
+func TestReservedCoinsAdjustsOnlyTheAddressesItReads(t *testing.T) {
+	var mine, theirs Address
+	mine[0] = 0x11
+	theirs[0] = 0x22
+
+	payment := coinAt(0, 7000)
+	payment.Address = theirs
+
+	source := NewReservedCoins(&listCoins{})
+	source.Reserve(nil, []Coin{payment})
+
+	confirmed, pending := source.Adjust([]Address{mine}, nil, nil)
+	if len(confirmed) != 0 || len(pending) != 0 {
+		t.Errorf("read %+v and %+v, want nothing", confirmed, pending)
+	}
+}
