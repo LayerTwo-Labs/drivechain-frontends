@@ -772,6 +772,15 @@ func (s *Store) SaveGroupAtomic(ctx context.Context, p SaveGroupAtomicParams) er
 	}
 	defer tx.Rollback() //nolint:errcheck
 
+	// Group IDs are client-supplied (and derived from a hash of the group's
+	// xpubs), so they can collide across groups. The upsert plus the child-table
+	// replaces below would hand the existing row to the caller and wipe the
+	// original group's keys, addresses, UTXOs and PSBTs. Refuse a save for an
+	// existing id whose key set is a different one.
+	if err := checkGroupKeysOn(ctx, tx, p.Group.ID, p.Keys); err != nil {
+		return err
+	}
+
 	if err := saveGroupOn(ctx, tx, p.Group); err != nil {
 		return fmt.Errorf("save group: %w", err)
 	}
@@ -817,6 +826,42 @@ func (s *Store) SaveGroupAtomic(ctx context.Context, p SaveGroupAtomicParams) er
 	}
 
 	return tx.Commit()
+}
+
+// checkGroupKeysOn errors when groupID already has keys stored and their xpub
+// set differs from the incoming one. A stored group with no keys yet, or a set
+// that only differs in owner/path/PSBT data, is accepted.
+func checkGroupKeysOn(ctx context.Context, e execer, groupID string, keys []Key) error {
+	stored, err := listKeysForGroupOn(ctx, e, groupID)
+	if err != nil {
+		return fmt.Errorf("list existing keys: %w", err)
+	}
+	if len(stored) == 0 {
+		return nil
+	}
+
+	storedXpubs := make(map[string]struct{}, len(stored))
+	for _, k := range stored {
+		storedXpubs[k.Xpub] = struct{}{}
+	}
+	incomingXpubs := make(map[string]struct{}, len(keys))
+	for _, k := range keys {
+		incomingXpubs[k.Xpub] = struct{}{}
+	}
+
+	same := len(storedXpubs) == len(incomingXpubs)
+	if same {
+		for xpub := range incomingXpubs {
+			if _, ok := storedXpubs[xpub]; !ok {
+				same = false
+				break
+			}
+		}
+	}
+	if !same {
+		return fmt.Errorf("group %s already exists with a different key set, refusing to overwrite it", groupID)
+	}
+	return nil
 }
 
 // SaveTransactionAtomicParams contains all data for an atomic transaction save.

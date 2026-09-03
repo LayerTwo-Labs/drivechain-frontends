@@ -540,6 +540,10 @@ func commentToProto(c cnstore.Comment, _ int) *miscv1.Comment {
 
 // TimestampFile implements miscv1connect.MiscServiceHandler.
 func (s *Server) TimestampFile(ctx context.Context, req *connect.Request[miscv1.TimestampFileRequest]) (*connect.Response[miscv1.TimestampFileResponse], error) {
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	if req.Msg.Filename == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename must be set"))
 	}
