@@ -127,7 +127,7 @@ class CheckDetailViewModel extends BaseViewModel {
 
     if (!_check!.hasPrivateKeyWif() || _check!.privateKeyWif.isEmpty) {
       if (context.mounted) {
-        showSailToast(context, 'Private key not available - wallet may be locked');
+        showSailToast(context, 'Private key not available - funding is unconfirmed, or wallet is locked');
       }
       return;
     }

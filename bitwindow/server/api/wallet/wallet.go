@@ -142,9 +142,23 @@ func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request
 	}), nil
 }
 
+// requireUnlocked rejects an operation that spends or derives keys while the
+// wallet is locked.
+func (s *Server) requireUnlocked() error {
+	if !s.walletEngine.IsUnlocked() {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+	return nil
+}
+
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
 func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	walletId := c.Msg.WalletId
+
+	// Spending needs an unlocked wallet.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
 
 	if len(c.Msg.Destinations) == 0 {
 		err := errors.New("must provide a destination")
@@ -189,6 +203,11 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	destinations := make(map[string]float64)
 	for addr, sats := range c.Msg.Destinations {
 		destinations[addr] = float64(sats) / 1e8
+	}
+
+	// Re-check as late as possible: a lock can land while we resolve the wallet.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
 	}
 
 	// If requiredInputs is specified, use raw transaction flow
@@ -262,6 +281,17 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	// Deriving an address needs the seed, so the wallet has to be unlocked.
+	// A watch-only wallet has no seed, and serves addresses from its imported
+	// descriptor.
+	watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
+	if err != nil {
+		return nil, err
+	}
+	if !watchOnly && !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	addressType := c.Msg.AddressType
 	if addressType == pb.AddressType_ADDRESS_TYPE_UNSPECIFIED {
 		addressType = pb.AddressType_ADDRESS_TYPE_SEGWIT
@@ -310,10 +340,6 @@ func (s *Server) GetNewAddress(ctx context.Context, c *connect.Request[pb.GetNew
 		// Watch-only Core wallets import a descriptor; full wallets use the
 		// seed-derived wallet. Both serve addresses from Bitcoin Core.
 		ensure := s.walletEngine.GetBitcoinCoreWalletName
-		watchOnly, err := s.walletEngine.IsWatchOnly(ctx, walletId)
-		if err != nil {
-			return nil, err
-		}
 		if watchOnly {
 			ensure = s.walletEngine.EnsureWatchOnlyWallet
 		}
@@ -819,8 +845,9 @@ func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[
 	} else if slot == nil {
 		slot = &c.Msg.Slot
 	}
-	if *slot > 255 {
-		return nil, fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot)
+	if *slot < 0 || *slot > 255 {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("invalid sidechain slot %d: must be 0-255", *slot))
 	}
 
 	amount, err := btcutil.NewAmount(c.Msg.Amount)
@@ -1476,6 +1503,12 @@ func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateC
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
+	// A zero-amount cheque is satisfied by any funding, which then locks the row
+	// against deletion.
+	if c.Msg.ExpectedAmountSats == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("expected_amount_sats must be greater than zero"))
+	}
+
 	// Get next index for this wallet
 	nextIndex, err := cheques.GetNextIndex(ctx, s.database, walletId)
 	if err != nil {
@@ -1594,6 +1627,10 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 	}), nil
 }
 
+// A funding output must be this deep to count: an unconfirmed payment can still
+// be double spent, and funding is what releases the bearer private key.
+const chequeMinConfirmations = 1
+
 // CheckChequeFunding implements walletv1connect.WalletServiceHandler.
 func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.CheckChequeFundingRequest]) (*connect.Response[pb.CheckChequeFundingResponse], error) {
 	log := zerolog.Ctx(ctx)
@@ -1626,11 +1663,15 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		Msg("CheckChequeFunding: UTXOs found")
 
 	if len(utxos) > 0 {
-		var amountSats uint64
+		// Only confirmed value counts, but every txid is recorded so a cheque
+		// with a payment in flight still reads as partially funded.
+		var confirmedSats uint64
 		var txids []string
 		var minConfirmations uint32 = math.MaxUint32
 		for _, utxo := range utxos {
-			amountSats += uint64(utxo.ValueSats)
+			if utxo.Confirmations >= chequeMinConfirmations {
+				confirmedSats += uint64(utxo.ValueSats)
+			}
 			txids = append(txids, utxo.TxID)
 			if confs := uint32(utxo.Confirmations); confs < minConfirmations {
 				minConfirmations = confs
@@ -1638,7 +1679,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		}
 
 		// Always update — handles new fundings arriving after first one
-		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, amountSats); err != nil {
+		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, confirmedSats); err != nil {
 			log.Error().Err(err).Msg("failed to update cheque funding")
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
 		}
@@ -1646,9 +1687,10 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 		log.Info().
 			Int64("id", c.Msg.Id).
 			Str("address", cheque.Address).
-			Uint64("amount_sats", amountSats).
+			Uint64("confirmed_sats", confirmedSats).
+			Uint32("min_confirmations", minConfirmations).
 			Int("utxo_count", len(txids)).
-			Msg("cheque funded")
+			Msg("cheque funding checked")
 
 		// Re-fetch to get updated funded_at timestamp
 		cheque, err = cheques.Get(ctx, s.database, walletId, c.Msg.Id)
@@ -1658,7 +1700,7 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 
 		resp := &pb.CheckChequeFundingResponse{
 			Funded:           cheque.IsFunded(),
-			ActualAmountSats: amountSats,
+			ActualAmountSats: confirmedSats,
 			FundedTxids:      txids,
 			MinConfirmations: minConfirmations,
 		}
@@ -1795,10 +1837,18 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast transaction: %w", err))
 	}
 
-	// Try to find and mark the cheque as swept in database if it exists
-	cheque, err := cheques.GetByAddress(ctx, s.database, walletId, addressStr)
+	// Try to find and mark the cheque as swept in database if it exists. The
+	// sweep spends the WIF's coins whatever wallet asked, so the row is looked
+	// up and updated by its own owner, not the requesting wallet.
+	cheque, err := cheques.GetByAddressAnyWallet(ctx, s.database, addressStr)
 	if err == nil && cheque.SweptTxid == nil {
-		if err := cheques.UpdateSwept(ctx, s.database, walletId, cheque.ID, txid); err != nil {
+		if cheque.WalletID != walletId {
+			log.Warn().
+				Str("cheque_wallet_id", cheque.WalletID).
+				Str("request_wallet_id", walletId).
+				Msg("swept a cheque owned by another wallet")
+		}
+		if err := cheques.UpdateSwept(ctx, s.database, cheque.WalletID, cheque.ID, txid); err != nil {
 			log.Warn().Err(err).Msg("failed to mark cheque as swept in database")
 		}
 	}
@@ -2417,6 +2467,12 @@ func (s *Server) SelectCoins(ctx context.Context, c *connect.Request[pb.SelectCo
 
 // CreateBackup implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateBackup(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[pb.CreateBackupResponse], error) {
+	// The archive carries wallet.json plus the multisig and transaction
+	// exports, so it needs an unlocked wallet.
+	if s.backupEngine.HasCurrentWallet() && !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	data, filename, err := s.backupEngine.CreateBackup(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("create backup: %w", err)
@@ -2435,6 +2491,13 @@ func (s *Server) RestoreBackup(ctx context.Context, c *connect.Request[pb.Restor
 	}
 	if c.Msg.Filename == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+	}
+
+	// Restoring overwrites the current wallet.json, so an existing encrypted
+	// wallet has to be unlocked first. First launch has no wallet to protect,
+	// and an unencrypted wallet has no unlock to wait for.
+	if s.backupEngine.HasCurrentWallet() && wallet.IsWalletEncrypted(s.walletDir) && !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
 	if err := s.backupEngine.RestoreBackup(ctx, c.Msg.BackupData, c.Msg.Filename); err != nil {
