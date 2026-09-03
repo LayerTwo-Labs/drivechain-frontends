@@ -329,6 +329,7 @@ func TestSyncKeepsACustomEndpoint(t *testing.T) {
 		"net-addr":           "0.0.0.0:9999",
 		"rpc-addr":           "127.0.0.1:36009",
 		"mainchain-grpc-url": "https://remote.example/grpc",
+		"config-version":     "1",
 	})
 
 	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
