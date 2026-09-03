@@ -24,6 +24,10 @@ const (
 	// bmmConnectAttempts bounds how long a won block is retried, at one attempt
 	// per tick. The fee is already paid, so it is worth waiting minutes.
 	bmmConnectAttempts = 150
+	// bmmConnectHorizon is how far behind the tip a won block can sit and still
+	// connect. Its header names one mainchain block, so the sidechain refuses a
+	// tip older than this and no number of attempts changes that.
+	bmmConnectHorizon = 10
 )
 
 // Round result values.
@@ -864,6 +868,9 @@ func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType, 
 
 	var stillPending []*bmmstate.Round
 	for _, round := range pending {
+		if e.abandonBehindTip(sidechain, round, tipHeight) {
+			continue
+		}
 		if e.retryRound(ctx, sidechain, round, tip, tipHeight) {
 			continue
 		}
@@ -883,6 +890,33 @@ func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType, 
 	e.mu.Lock()
 	e.unconnected[sidechain] = append(e.unconnected[sidechain], stillPending...)
 	e.mu.Unlock()
+}
+
+// abandonBehindTip gives up on a won block the chain has left too far behind.
+//
+// Every attempt submits the block through the sidechain's network task. A block
+// that can never connect therefore takes that task away from the peers it
+// serves, and the node stops answering them. Clearing the live bid also keeps a
+// restart from resuming the round, which would otherwise hand it a fresh
+// attempt budget every time.
+// retryConnects owns the round by the time it calls this, so the fields below
+// take no lock. save must not run under one: it notifies, and that locks.
+func (e *BmmEngine) abandonBehindTip(
+	sidechain pb.BinaryType, round *bmmstate.Round, tipHeight int32,
+) bool {
+	if round.IncludedInHeight <= 0 || tipHeight-round.IncludedInHeight <= bmmConnectHorizon {
+		return false
+	}
+	e.log.Warn().Stringer("sidechain", sidechain).
+		Str("round", round.PrevMainHash).
+		Int32("included_height", round.IncludedInHeight).
+		Int32("tip_height", tipHeight).
+		Msg("abandoning a won block the chain left behind")
+	if live := liveBid(round); live != nil {
+		live.State = BidMissed
+	}
+	e.save(round)
+	return true
 }
 
 // retryRound settles a round still waiting: one whose deciding block was never

@@ -964,3 +964,65 @@ func TestBmmEngineReplacesAStrandedBidAfterRestart(t *testing.T) {
 		"the oldest stranded bid is the root of the chain, so replacing it evicts them all")
 	assert.Equal(t, "core-wallet", backend.lastWalletID)
 }
+
+// A won block the chain left far behind can never connect, because its header
+// names one mainchain block. Retrying it submits through the sidechain's
+// network task, which then stops answering its peers.
+func TestBmmEngineAbandonsAWonBlockBehindTheTip(t *testing.T) {
+	engine, backend, _, store := newEngine(t)
+
+	round := &bmmstate.Round{
+		Sidechain:        int32(testSidechain),
+		PrevMainHash:     "old-round",
+		PrevMainHeight:   996693,
+		IncludedInHeight: 996694,
+		Result:           ResultWon,
+		OurBids: []bmmstate.Bid{{
+			Txid: "won-txid", CriticalHash: "critical", IsOurs: true, State: BidLive,
+		}},
+	}
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	// The tip has moved 79 blocks past the block that decided the round.
+	engine.retryConnects(context.Background(), testSidechain, "tip", 996773)
+
+	assert.Zero(t, backend.connects, "a block this far behind must not be submitted")
+
+	engine.mu.Lock()
+	left := len(engine.unconnected[testSidechain])
+	engine.mu.Unlock()
+	assert.Zero(t, left, "the round leaves the retry list")
+
+	// A restart must not resume it, or it gets a fresh attempt budget and the
+	// node starves again.
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, &fakeTip{}, newFakeFee(), store)
+	restarted.mu.Lock()
+	resumed := len(restarted.unconnected[testSidechain])
+	restarted.mu.Unlock()
+	assert.Zero(t, resumed, "a restart leaves the abandoned round alone")
+}
+
+// A won block within the horizon is still worth retrying: the fee is paid.
+func TestBmmEngineKeepsRetryingARecentWonBlock(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+
+	round := &bmmstate.Round{
+		Sidechain:        int32(testSidechain),
+		PrevMainHash:     "recent-round",
+		PrevMainHeight:   996770,
+		IncludedInHeight: 996771,
+		Result:           ResultWon,
+		OurBids: []bmmstate.Bid{{
+			Txid: "won-txid", CriticalHash: "critical", IsOurs: true, State: BidLive,
+		}},
+	}
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	engine.retryConnects(context.Background(), testSidechain, "tip", 996773)
+
+	assert.Positive(t, backend.connects, "a recent won block is still submitted")
+}
