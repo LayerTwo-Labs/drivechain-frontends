@@ -1,10 +1,10 @@
-// Package feerate reads what the next block pays, from a mempool.space style
-// explorer.
+// Package feerate answers what a transaction pays to enter the next block.
 package feerate
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +13,46 @@ import (
 
 // timeout bounds one read. A bid waits on this answer, so it stays short.
 const timeout = 5 * time.Second
+
+// FeeEstimator answers what a transaction pays per vByte to enter the next
+// block.
+type FeeEstimator interface {
+	EstimateFee(ctx context.Context) (satsPerVByte float64, err error)
+}
+
+// Func adapts a plain function to a FeeEstimator.
+type Func func(ctx context.Context) (float64, error)
+
+// EstimateFee calls the function.
+func (f Func) EstimateFee(ctx context.Context) (float64, error) { return f(ctx) }
+
+// Fallback asks each source in order and takes the first rate it gets. A
+// caller lists the sources it trusts most first.
+type Fallback struct {
+	sources []FeeEstimator
+}
+
+// NewFallback reads the sources in the order given.
+func NewFallback(sources ...FeeEstimator) *Fallback {
+	return &Fallback{sources: sources}
+}
+
+// EstimateFee answers with the first rate a source reports. It names every
+// failure when no source answers, so a caller sees why.
+func (f *Fallback) EstimateFee(ctx context.Context) (float64, error) {
+	if len(f.sources) == 0 {
+		return 0, errors.New("no fee source")
+	}
+	var failures []error
+	for _, source := range f.sources {
+		rate, err := source.EstimateFee(ctx)
+		if err == nil {
+			return rate, nil
+		}
+		failures = append(failures, err)
+	}
+	return 0, errors.Join(failures...)
+}
 
 // Explorer reads the recommended rates of one mempool.space style server.
 type Explorer struct {
@@ -40,9 +80,10 @@ type recommended struct {
 	MinimumFee  float64 `json:"minimumFee"`
 }
 
-// NextBlockFeeRate is what a transaction pays per vByte to enter the next
-// block.
-func (e *Explorer) NextBlockFeeRate(ctx context.Context) (float64, error) {
+// EstimateFee is what a transaction pays per vByte to enter the next block.
+// The explorer reads the blocks a miner made, so it answers the market rather
+// than the mempool a node happens to hold.
+func (e *Explorer) EstimateFee(ctx context.Context) (float64, error) {
 	url := e.baseURL + "/api/v1/fees/recommended"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -66,3 +107,9 @@ func (e *Explorer) NextBlockFeeRate(ctx context.Context) (float64, error) {
 	}
 	return rates.FastestFee, nil
 }
+
+var (
+	_ FeeEstimator = (*Explorer)(nil)
+	_ FeeEstimator = (*Fallback)(nil)
+	_ FeeEstimator = Func(nil)
+)

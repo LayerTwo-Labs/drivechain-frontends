@@ -124,7 +124,7 @@ type fakeFee struct {
 	err  error
 }
 
-func (f *fakeFee) NextBlockFeeRate(context.Context) (float64, error) {
+func (f *fakeFee) EstimateFee(context.Context) (float64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.rate, f.err
