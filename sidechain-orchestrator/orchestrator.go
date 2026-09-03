@@ -27,6 +27,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/feerate"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -1061,10 +1062,27 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	)
 }
 
-// NextBlockFeeRate asks Core what a transaction pays per vByte to enter the
-// next block. It is the floor a BMM bid opens at, because a miner leaves a
-// cheaper bid in the mempool and the engine raises only against a competitor.
+// NextBlockFeeRate is what a transaction pays per vByte to enter the next
+// block. It is the floor a BMM bid opens at, because a miner leaves a cheaper
+// bid in the mempool and the engine raises only against a competitor.
+//
+// A network with an explorer answers from the blocks it reads. Core's own
+// estimator reads the mempool it holds, and a chain whose mempool carries
+// transactions no miner takes pushes that estimate far over the market.
 func (o *Orchestrator) NextBlockFeeRate(ctx context.Context) (float64, error) {
+	if url := config.FeeExplorerURLForNetwork(config.Network(o.CurrentNetwork())); url != "" {
+		rate, err := feerate.NewExplorer(url).NextBlockFeeRate(ctx)
+		if err == nil {
+			return rate, nil
+		}
+		o.log.Debug().Err(err).Str("explorer", url).
+			Msg("the explorer reports no fee rate, asking core")
+	}
+	return o.coreFeeRate(ctx)
+}
+
+// coreFeeRate asks Core itself, for a network with no explorer.
+func (o *Orchestrator) coreFeeRate(ctx context.Context) (float64, error) {
 	if o.BitcoinConf == nil {
 		return 0, fmt.Errorf("no bitcoin config")
 	}

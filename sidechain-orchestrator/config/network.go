@@ -239,6 +239,21 @@ func EsploraURLsForNetwork(n Network) []string {
 	}
 }
 
+// FeeExplorerURLForNetwork names a mempool.space style explorer that reports
+// what the next blocks pay, or an empty string when a network hosts none.
+//
+// Core's own estimator reads the mempool it holds, and a chain whose mempool
+// carries transactions no miner takes pushes that estimate far over what the
+// blocks really pay. The explorer reads the blocks, so it answers the market.
+func FeeExplorerURLForNetwork(n Network) string {
+	switch n {
+	case NetworkECash:
+		return "https://explorer.alpha.ecash.ninja"
+	default:
+		return ""
+	}
+}
+
 // ThunderEsploraURLForNetwork returns the thunder address index for a network,
 // or an empty string when none is hosted. A thunder node keeps no address
 // history of its own, so a wallet reads it here instead.
