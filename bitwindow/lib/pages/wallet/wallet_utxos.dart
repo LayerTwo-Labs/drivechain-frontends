@@ -453,17 +453,24 @@ class _UTXOTableState extends State<UTXOTable> {
 
               return [
                 SailTableCell(
+                  width: 14,
                   value: '',
                   child: isFrozen
-                      ? SailSVG.fromAsset(SailSVGAsset.snowflake, width: 14, color: theme.colors.info)
+                      ? SailSVG.icon(
+                          SailSVGAsset.snowflake,
+                          width: 14,
+                          color: theme.colors.info,
+                          alignment: Alignment.center,
+                        )
                       : const SizedBox(width: 14),
                 ),
                 SailTableCell(
                   value: utxo.hasReceivedAt() ? formatDate(utxo.receivedAt.toDateTime().toLocal()) : '—',
                 ),
                 SailTableCell(
-                  value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
+                  value: '',
                   copyValue: utxo.output,
+                  child: UTXO.toView(utxo),
                 ),
                 SailTableCell(
                   value: utxo.address,

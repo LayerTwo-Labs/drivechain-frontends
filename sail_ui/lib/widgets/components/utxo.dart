@@ -1,5 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter/widgets.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
+import 'package:sail_ui/widgets/core/sail_text.dart';
+
 class UTXO {
   final String txid;
   final int vout;
@@ -79,4 +83,14 @@ class UTXO {
     'time': time,
     'raw': raw,
   };
+
+  static Widget toView(UnspentOutput utxo) {
+    final oPoint = utxo.output.split(':');
+    return Row(
+      children: [
+        Expanded(child: SailText.secondary12(oPoint[0], overflow: TextOverflow.ellipsis)),
+        Text(':${oPoint[1]}'),
+      ],
+    );
+  }
 }
