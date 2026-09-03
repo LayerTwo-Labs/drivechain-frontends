@@ -317,7 +317,7 @@ func (h *BMMHandler) CreateBid(
 	var requiredInputs []*wpb.UnspentOutput
 	if req.Msg.ReplaceTxid != "" {
 		var roots []string
-		requiredInputs, roots, err = h.bidInputs(ctx, cfg.Slot, req.Msg.ReplaceTxid)
+		requiredInputs, roots, err = h.bidInputs(ctx, req.Msg.ReplaceTxid)
 		if err != nil {
 			return nil, err
 		}
@@ -614,29 +614,66 @@ func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryC
 //
 // A transaction the mempool no longer holds needs no floor at all.
 func (h *BMMHandler) replacementFloorSats(ctx context.Context, roots []string) (int64, error) {
+	// One chain can carry two roots, and a bid over both of them belongs to
+	// each root's descendants. So each transaction counts one time, by txid.
+	counted := make(map[string]bool)
 	var total int64
-	for _, txid := range roots {
-		raw, err := h.coreCall(ctx, "getmempoolentry", fmt.Sprintf("[%q]", txid))
-		if err != nil {
-			continue
+	for _, root := range roots {
+		for _, txid := range append([]string{root}, h.mempoolDescendants(ctx, root)...) {
+			if counted[txid] {
+				continue
+			}
+			counted[txid] = true
+			fee, ok, err := h.modifiedFeeSats(ctx, txid)
+			if err != nil {
+				return 0, err
+			}
+			if ok {
+				total += fee
+			}
 		}
-		var entry struct {
-			Fees struct {
-				Descendant float64 `json:"descendant"`
-			} `json:"fees"`
-		}
-		if err := json.Unmarshal(raw, &entry); err != nil {
-			return 0, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("decode mempool entry %s: %w", txid, err))
-		}
-		total += int64(math.Round(entry.Fees.Descendant * 1e8))
 	}
 	// A node that deprioritised the chain reports a fee far below zero, and a
-	// replacement then beats it at any price.
+	// replacement then beats it at any price. Core compares the same modified
+	// fees, so this is the number its own rule reads.
 	if total <= 0 {
 		return 0, nil
 	}
 	return total + replacementBumpSats, nil
+}
+
+// mempoolDescendants names every transaction the mempool holds over one
+// transaction. A read that fails names none, and the floor then counts the
+// transactions it does know.
+func (h *BMMHandler) mempoolDescendants(ctx context.Context, txid string) []string {
+	raw, err := h.coreCall(ctx, "getmempooldescendants", fmt.Sprintf("[%q]", txid))
+	if err != nil {
+		return nil
+	}
+	var txids []string
+	if err := json.Unmarshal(raw, &txids); err != nil {
+		return nil
+	}
+	return txids
+}
+
+// modifiedFeeSats reads what one mempool transaction pays after the deltas a
+// node applied. It reports false for a transaction the mempool no longer holds.
+func (h *BMMHandler) modifiedFeeSats(ctx context.Context, txid string) (int64, bool, error) {
+	raw, err := h.coreCall(ctx, "getmempoolentry", fmt.Sprintf("[%q]", txid))
+	if err != nil {
+		return 0, false, nil
+	}
+	var entry struct {
+		Fees struct {
+			Modified float64 `json:"modified"`
+		} `json:"fees"`
+	}
+	if err := json.Unmarshal(raw, &entry); err != nil {
+		return 0, false, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("decode mempool entry %s: %w", txid, err))
+	}
+	return int64(math.Round(entry.Fees.Modified * 1e8)), true, nil
 }
 
 // maxBidChain bounds the walk down a chain of stranded bids. A wallet that
@@ -651,7 +688,7 @@ const maxBidChain = 50
 // down while a parent is another bid for this slot, and it returns the coins a
 // block already carries. Spending those evicts the whole chain at one time.
 func (h *BMMHandler) bidInputs(
-	ctx context.Context, slot int, txid string,
+	ctx context.Context, txid string,
 ) (inputs []*wpb.UnspentOutput, roots []string, err error) {
 	var (
 		seen     = make(map[string]bool)
@@ -674,7 +711,7 @@ func (h *BMMHandler) bidInputs(
 				continue
 			}
 			seen[key] = true
-			if h.pendingBid(ctx, slot, in.Txid) {
+			if h.pendingBid(ctx, in.Txid) {
 				if err := walk(in.Txid, depth+1); err != nil {
 					return err
 				}
@@ -727,10 +764,15 @@ func (h *BMMHandler) txInputs(ctx context.Context, txid string) ([]*wpb.UnspentO
 	}), nil
 }
 
-// pendingBid says whether one transaction is an unconfirmed bid for this slot.
-// A read that fails stops the walk, because a coin the node cannot name is one
-// the replacement keeps.
-func (h *BMMHandler) pendingBid(ctx context.Context, slot int, txid string) bool {
+// pendingBid says whether one transaction is an unconfirmed BMM request. The
+// slot does not matter: one wallet funds the bids of every slot, so a bid for
+// another slot can sit between two of ours, and stopping there would leave the
+// stranded bid under it in place. A replacement evicts that other bid, and its
+// own engine bids again on the next tip.
+//
+// Everything else stops the walk. A read that fails stops it too, because a
+// coin the node cannot name is one the replacement keeps.
+func (h *BMMHandler) pendingBid(ctx context.Context, txid string) bool {
 	raw, err := h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
 	if err != nil {
 		return false
@@ -750,8 +792,7 @@ func (h *BMMHandler) pendingBid(ctx context.Context, slot int, txid string) bool
 	if err != nil {
 		return false
 	}
-	request := orchestrator.ParseM8BmmRequestScript(script)
-	return request != nil && int(request.Slot) == slot
+	return orchestrator.ParseM8BmmRequestScript(script) != nil
 }
 
 func (h *BMMHandler) coreCall(ctx context.Context, method, paramsJSON string) (json.RawMessage, error) {
