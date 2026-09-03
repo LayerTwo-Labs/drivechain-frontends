@@ -1075,21 +1075,50 @@ func (o *Orchestrator) EstimateFee(ctx context.Context) (float64, error) {
 		sources = append(sources, feerate.NewExplorer(url))
 	}
 	sources = append(sources, feerate.Func(o.coreFeeRate))
-	return feerate.NewFallback(sources...).EstimateFee(ctx)
+
+	rate, err := feerate.NewFallback(sources...).EstimateFee(ctx)
+	if err != nil {
+		return 0, err
+	}
+	// The node refuses a transaction under what it relays, so an explorer that
+	// reads another node's market never takes the bid below this floor.
+	floor, floorErr := o.relayFloorRate(ctx)
+	if floorErr != nil {
+		o.log.Debug().Err(floorErr).Msg("core reports no relay floor")
+		return rate, nil
+	}
+	return highestFeeRate(rate, floor), nil
+}
+
+// relayFloorRate is the least a transaction pays for this node to relay it.
+func (o *Orchestrator) relayFloorRate(ctx context.Context) (float64, error) {
+	rpc, err := o.coreRPC()
+	if err != nil {
+		return 0, err
+	}
+	return rpc.MempoolMinFeeRate(ctx)
+}
+
+// coreRPC dials the node this install runs.
+func (o *Orchestrator) coreRPC() (*wallet.CoreRPCClient, error) {
+	if o.BitcoinConf == nil {
+		return nil, fmt.Errorf("no bitcoin config")
+	}
+	user, password, err := o.BitcoinConf.GetRPCCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("core rpc credentials: %w", err)
+	}
+	return wallet.NewCoreRPCClient(wallet.StaticCoreEndpoint(
+		o.BitcoinConf.GetRPCHost(), o.BitcoinConf.GetRPCPort(), user, password,
+	)), nil
 }
 
 // coreFeeRate asks Core itself.
 func (o *Orchestrator) coreFeeRate(ctx context.Context) (float64, error) {
-	if o.BitcoinConf == nil {
-		return 0, fmt.Errorf("no bitcoin config")
-	}
-	user, password, err := o.BitcoinConf.GetRPCCredentials()
+	rpc, err := o.coreRPC()
 	if err != nil {
-		return 0, fmt.Errorf("core rpc credentials: %w", err)
+		return 0, err
 	}
-	rpc := wallet.NewCoreRPCClient(wallet.StaticCoreEndpoint(
-		o.BitcoinConf.GetRPCHost(), o.BitcoinConf.GetRPCPort(), user, password,
-	))
 	estimate, estimateErr := rpc.EstimateSmartFee(ctx, 1)
 	relay, relayErr := rpc.MempoolMinFeeRate(ctx)
 	if estimateErr != nil && relayErr != nil {
