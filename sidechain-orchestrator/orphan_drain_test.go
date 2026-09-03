@@ -7,12 +7,18 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+// sleeperExit names the channel that closes when one sleeper exits, by pid. A
+// dead child stays a zombie until its parent reaps it, and a signal 0 to a
+// zombie still succeeds, so a poll alone reads a dead process as alive.
+var sleeperExit sync.Map
 
 // startSleeper runs a real child this test can watch die. A PID from exec is a
 // live process, so the drain has something it must actually signal.
@@ -21,11 +27,17 @@ func startSleeper(t *testing.T) int {
 	cmd := exec.Command("sleep", "300")
 	require.NoError(t, cmd.Start())
 	pid := cmd.Process.Pid
+
+	exited := make(chan struct{})
+	sleeperExit.Store(pid, exited)
+	go func() {
+		_, _ = cmd.Process.Wait()
+		close(exited)
+	}()
 	t.Cleanup(func() {
 		_ = cmd.Process.Kill()
-		_, _ = cmd.Process.Wait()
+		sleeperExit.Delete(pid)
 	})
-	go func() { _, _ = cmd.Process.Wait() }()
 	return pid
 }
 
@@ -38,6 +50,15 @@ func alive(t *testing.T, pid int) bool {
 
 func waitGone(t *testing.T, pid int, timeout time.Duration) bool {
 	t.Helper()
+	if value, ok := sleeperExit.Load(pid); ok {
+		select {
+		case <-value.(chan struct{}):
+			return true
+		case <-time.After(timeout):
+			return false
+		}
+	}
+
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		if !alive(t, pid) {

@@ -1062,26 +1062,23 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	)
 }
 
-// NextBlockFeeRate is what a transaction pays per vByte to enter the next
-// block. It is the floor a BMM bid opens at, because a miner leaves a cheaper
-// bid in the mempool and the engine raises only against a competitor.
+// EstimateFee is what a transaction pays per vByte to enter the next block. It
+// is the floor a BMM bid opens at, because a miner leaves a cheaper bid in the
+// mempool and the engine raises only against a competitor.
 //
-// A network with an explorer answers from the blocks it reads. Core's own
-// estimator reads the mempool it holds, and a chain whose mempool carries
-// transactions no miner takes pushes that estimate far over the market.
-func (o *Orchestrator) NextBlockFeeRate(ctx context.Context) (float64, error) {
+// The explorer of the network answers first, because it reads the blocks a
+// miner made. Core reads the mempool it holds, and a chain whose mempool
+// carries transactions no miner takes pushes that estimate far over the market.
+func (o *Orchestrator) EstimateFee(ctx context.Context) (float64, error) {
+	sources := make([]feerate.FeeEstimator, 0, 2)
 	if url := config.FeeExplorerURLForNetwork(config.Network(o.CurrentNetwork())); url != "" {
-		rate, err := feerate.NewExplorer(url).NextBlockFeeRate(ctx)
-		if err == nil {
-			return rate, nil
-		}
-		o.log.Debug().Err(err).Str("explorer", url).
-			Msg("the explorer reports no fee rate, asking core")
+		sources = append(sources, feerate.NewExplorer(url))
 	}
-	return o.coreFeeRate(ctx)
+	sources = append(sources, feerate.Func(o.coreFeeRate))
+	return feerate.NewFallback(sources...).EstimateFee(ctx)
 }
 
-// coreFeeRate asks Core itself, for a network with no explorer.
+// coreFeeRate asks Core itself.
 func (o *Orchestrator) coreFeeRate(ctx context.Context) (float64, error) {
 	if o.BitcoinConf == nil {
 		return 0, fmt.Errorf("no bitcoin config")

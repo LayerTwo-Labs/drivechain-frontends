@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/feerate"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 )
@@ -66,12 +67,6 @@ type MainchainTip interface {
 	ChainTip(context.Context) (hash string, height int32, err error)
 }
 
-// NextBlockFee reports what Core expects a transaction to pay per vByte to
-// enter the next block.
-type NextBlockFee interface {
-	NextBlockFeeRate(ctx context.Context) (satsPerVByte float64, err error)
-}
-
 // relayMinimumRate is the last resort rate, in sats per vByte, for when Core
 // reports neither an estimate nor a relay floor.
 const relayMinimumRate = 1.0
@@ -95,7 +90,7 @@ type BmmEngine struct {
 	log     zerolog.Logger
 	backend BmmBackend
 	tip     MainchainTip
-	fee     NextBlockFee
+	fee     feerate.FeeEstimator
 	store   *bmmstate.Store
 
 	mu      sync.Mutex
@@ -109,7 +104,10 @@ type BmmEngine struct {
 	wake chan struct{}
 }
 
-func NewBmmEngine(log zerolog.Logger, backend BmmBackend, tip MainchainTip, fee NextBlockFee, store *bmmstate.Store) *BmmEngine {
+func NewBmmEngine(
+	log zerolog.Logger, backend BmmBackend, tip MainchainTip,
+	fee feerate.FeeEstimator, store *bmmstate.Store,
+) *BmmEngine {
 	return &BmmEngine{
 		log:         log.With().Str("component", "bmm").Logger(),
 		backend:     backend,
@@ -662,7 +660,7 @@ func (e *BmmEngine) NextBlockRate(ctx context.Context) float64 {
 	if e.fee == nil {
 		return relayMinimumRate
 	}
-	rate, err := e.fee.NextBlockFeeRate(ctx)
+	rate, err := e.fee.EstimateFee(ctx)
 	if err != nil {
 		e.log.Debug().Err(err).Msg("core reports no fee rate, opening at the relay minimum")
 		return relayMinimumRate
