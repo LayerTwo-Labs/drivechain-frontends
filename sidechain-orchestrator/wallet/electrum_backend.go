@@ -939,7 +939,14 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		required[key] = true
 		u, ok := findUTXO(pool, ri.TxID, ri.Vout)
 		if !ok {
-			return nil, nil, nil, fmt.Errorf("required input %s not found among wallet UTXOs", key)
+			// A replacement pins the inputs of the transaction it replaces, and
+			// that unconfirmed transaction already spends them, so the UTXO scan
+			// does not carry them. Read the output back off the chain.
+			var err error
+			u, err = p.pinnedInputUTXO(ctx, scan, ri)
+			if err != nil {
+				return nil, nil, nil, err
+			}
 		}
 		selected = append(selected, u)
 		selectedSats += u.amountSats
@@ -2738,6 +2745,33 @@ func (p *ElectrumBackend) spendableUTXOs(scan *electrumScan) []electrumUTXO {
 			}
 		})
 	})
+}
+
+// pinnedInputUTXO resolves an input the UTXO scan does not carry, which is what
+// a replacement's pinned inputs look like once the transaction it replaces
+// spends them. The wallet has to own the output, because it signs for it.
+func (p *ElectrumBackend) pinnedInputUTXO(
+	ctx context.Context, scan *electrumScan, ri RequiredInput,
+) (electrumUTXO, error) {
+	key := fmt.Sprintf("%s:%d", ri.TxID, ri.Vout)
+	tx, err := p.client.Tx(ctx, ri.TxID)
+	if err != nil {
+		return electrumUTXO{}, fmt.Errorf("required input %s is not a wallet UTXO: %w", key, err)
+	}
+	if ri.Vout < 0 || ri.Vout >= len(tx.Vout) {
+		return electrumUTXO{}, fmt.Errorf("required input %s is not a wallet UTXO", key)
+	}
+	out := tx.Vout[ri.Vout]
+	if !scan.owns(out.ScriptPubKeyAddress) {
+		return electrumUTXO{}, fmt.Errorf("required input %s belongs to another wallet", key)
+	}
+	return electrumUTXO{
+		txid:       ri.TxID,
+		vout:       ri.Vout,
+		address:    out.ScriptPubKeyAddress,
+		amountSats: out.Value,
+		confirmed:  tx.Status.Confirmed,
+	}, nil
 }
 
 func findUTXO(pool []electrumUTXO, txid string, vout int) (electrumUTXO, bool) {
