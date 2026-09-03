@@ -3036,12 +3036,17 @@ func TestReplacedChainWalksDescendants(t *testing.T) {
 	assert.Equal(t, bid1, root, "the root is the transaction spending the pinned input")
 
 	got := map[string]bool{}
+	total := int64(0)
 	for _, u := range evicted {
 		got[u.txid] = true
+		total += u.amountSats
 	}
-	assert.True(t, got[bid1], "the replaced transaction's outputs leave the cache")
-	assert.True(t, got[bid2], "its unconfirmed descendant goes with it")
+	// bid1's change is not a live coin: bid2 already spends it. Counting it
+	// would drop the balance by its value a second time.
+	assert.False(t, got[bid1], "an output the chain already spent stays out of the delta")
+	assert.True(t, got[bid2], "the chain's unspent tip leaves the cache")
 	assert.False(t, got[other], "an unrelated transaction stays")
+	assert.Equal(t, int64(198_000), total, "the delta is the chain's live coin, counted once")
 }
 
 // An ordinary send pins nothing that is already spent, so it must not be
