@@ -102,7 +102,8 @@ func (h *BMMHandler) Start(
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
 	}
-	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId, req.Msg.MaxBidSats); err != nil {
+	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId,
+		req.Msg.MaxBidSats, req.Msg.CapToBlockWorth); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return connect.NewResponse(&bmmpb.StartResponse{}), nil
