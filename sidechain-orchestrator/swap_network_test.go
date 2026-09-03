@@ -46,7 +46,7 @@ func TestSwapNetwork_CrossGroupPreservesDatadirs(t *testing.T) {
 	require.Equal(t, "/tmp/group-ecash", o.BitcoinConf.Config.GetGroupDatadir(config.DatadirGroupECash))
 }
 
-// Regression: mainnet, forknet and eCash all run on chain=main, so Core
+// Regression: mainnet and eCash both run on chain=main, so Core
 // writes blocks/ and chainstate/ to the root of the datadir for each of them.
 // A user who picks the same folder for every group used to have bitcoind boot
 // one chain on top of another's chainstate and reindex over it. The per-group
@@ -56,7 +56,7 @@ func TestSwapNetwork_SamePickedPathKeepsChainsApart(t *testing.T) {
 	require.NotNil(t, o.BitcoinConf)
 
 	const picked = "/tmp/one-and-only-datadir"
-	for _, g := range []config.DatadirGroup{config.DatadirGroupDefault, config.DatadirGroupForknet, config.DatadirGroupECash} {
+	for _, g := range []config.DatadirGroup{config.DatadirGroupDefault, config.DatadirGroupECash} {
 		o.BitcoinConf.Config.SetGroupDatadir(g, config.GroupDatadirForPick(g, picked))
 	}
 	o.BitcoinConf.Config.SetSetting("datadir", picked)
@@ -69,13 +69,11 @@ func TestSwapNetwork_SamePickedPathKeepsChainsApart(t *testing.T) {
 	}
 
 	mainnetDir := resolve(config.NetworkMainnet)
-	forknetDir := resolve(config.NetworkForknet)
 	ecashDir := resolve(config.NetworkECash)
 
 	require.Equal(t, picked, mainnetDir)
-	require.Equal(t, filepath.Join(picked, "forknet"), forknetDir)
 	require.Equal(t, filepath.Join(picked, "ecash"), ecashDir)
-	require.Len(t, map[string]bool{mainnetDir: true, forknetDir: true, ecashDir: true}, 3,
+	require.Len(t, map[string]bool{mainnetDir: true, ecashDir: true}, 2,
 		"no two chain=main networks may share bitcoind's datadir")
 
 	// Swapping back must restore mainnet's root, not leave it under a subdir.

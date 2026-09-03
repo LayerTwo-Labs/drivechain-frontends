@@ -15,7 +15,6 @@ func TestReplayProtect(t *testing.T) {
 		{network: "ecash", want: true},
 		{network: "ecash", allowReplay: true},
 		{network: "mainnet"},
-		{network: "forknet"},
 		{network: "signet"},
 		{network: "regtest"},
 		{network: ""},

@@ -15,7 +15,6 @@ type Network string
 
 const (
 	NetworkMainnet Network = "mainnet"
-	NetworkForknet Network = "forknet"
 	NetworkECash   Network = "ecash"
 	NetworkRegtest Network = "regtest"
 	NetworkSignet  Network = "signet"
@@ -62,7 +61,7 @@ type Config struct {
 	// baseDatadir / baseLogPath capture the un-finalized values on the
 	// first Finalize so subsequent calls (network swap via Recycle) can
 	// recompute network-scoped paths from the original base instead of
-	// stacking another suffix (".../signet/forknet/forknet/...").
+	// stacking another suffix (".../signet/signet/...").
 	baseDatadir string `no-flag:"true"`
 	baseLogPath string `no-flag:"true"`
 }
@@ -130,11 +129,11 @@ func (c *Config) Finalize(network Network) error {
 }
 
 // IsFullChainNetwork reports whether the network has full mainnet-scale
-// block volume (mainnet / forknet / eCash). Callers gate IBD-only RPC throttling
+// block volume (mainnet / eCash). Callers gate IBD-only RPC throttling
 // on this — signet / testnet / regtest blocks are small or empty so
 // running scans through their IBD doesn't move the needle on Core load.
 func IsFullChainNetwork(n Network) bool {
-	return n == NetworkMainnet || n == NetworkForknet || n == NetworkECash
+	return n == NetworkMainnet || n == NetworkECash
 }
 
 // IsMineableNetwork reports whether users may CPU-mine blocks locally. Only

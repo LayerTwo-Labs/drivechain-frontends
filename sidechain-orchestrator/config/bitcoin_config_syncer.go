@@ -23,6 +23,26 @@ type BitcoinConfMigration struct {
 	// SkipIfSet leaves a key that the config already carries alone, so a
 	// migration that only backfills a default never overwrites a user's value.
 	SkipIfSet bool
+	// Only limits the migration to a config it matches. A nil predicate runs
+	// the migration on every config below its version.
+	Only func(*BitcoinConfig) bool
+	// Remove lists the keys the migration drops, by section.
+	Remove map[string][]string
+}
+
+// isForknetConfig reports whether a config carries the signature the retired
+// forknet network wrote, which is the rule NetworkFromConfig read before the
+// network went away: a drivechain node on mainnet params that is not eCash.
+func isForknetConfig(config *BitcoinConfig) bool {
+	switch strings.ToLower(config.GetSetting("chain")) {
+	case "main", "mainnet":
+	default:
+		return false
+	}
+	if IsECashUAComment(config.GetEffectiveSetting("uacomment", "main")) {
+		return false
+	}
+	return config.GetEffectiveSetting("drivechain", "main") == "1"
 }
 
 var bitcoinConfMigrations = []BitcoinConfMigration{
@@ -81,7 +101,7 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 		// The mainnet template also dropped zmqpubsequence. Without it the
 		// enforcer dies at boot with "ZMQ address for mempool sync is not
 		// reachable" and the L1 stack never comes up. Backfill globally
-		// (the line is harmless on signet/forknet, where the same value is
+		// (the line is harmless on signet, where the same value is
 		// already in the default template).
 		Version: 6,
 		Changes: map[string]map[string]string{
@@ -92,7 +112,7 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 	},
 	{
 		// Mainnet now runs the enforcer too, so it should get the same
-		// throughput knobs as the signet/forknet defaults. Without these
+		// throughput knobs as the signet defaults. Without these
 		// the enforcer's burst of RPC calls during sync can starve other
 		// callers on a 4-thread default RPC pool.
 		Version: 7,
@@ -106,11 +126,11 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 	{
 		// bitwindowd's ZMQ engine requires pubrawtx (and the others) to
 		// stream tx/block notifications. Previously these only lived in
-		// forknet's [main] section, which left signet/testnet/mainnet
+		// the [main] section, which left signet/testnet/mainnet
 		// users with "unable to acquire ZMQ engine" loops and a
 		// degraded daemon link. Move them globally — Bitcoin Core happily
 		// accepts the same zmqpub* lines on every network, and the
-		// per-forknet copies were just duplication.
+		// per-network copies were just duplication.
 		Version: 8,
 		Changes: map[string]map[string]string{
 			"": {
@@ -160,10 +180,24 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 			},
 		},
 	},
+	{
+		// Forknet is retired, and its conf says chain=main, so an unmigrated
+		// install would read as mainnet over a fork's chain directory.
+		Version: 12,
+		Only:    isForknetConfig,
+		Changes: map[string]map[string]string{
+			"": {
+				"chain": "signet",
+			},
+		},
+		Remove: map[string][]string{
+			"": {"datadir"},
+		},
+	},
 }
 
 // BitcoinConfMigrationsVersion is the highest migration version.
-var BitcoinConfMigrationsVersion = 11
+var BitcoinConfMigrationsVersion = 12
 
 // RunBitcoinConfMigrations applies pending migrations to a BitcoinConfig.
 // Returns whether any migration was applied, plus the networks whose chain
@@ -177,6 +211,11 @@ func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 		if m.Version <= config.ConfigVersion {
 			continue
 		}
+		if m.Only != nil && !m.Only(config) {
+			config.ConfigVersion = m.Version
+			migrated = true
+			continue
+		}
 		changed := false
 		for section, settings := range m.Changes {
 			for key, value := range settings {
@@ -187,6 +226,15 @@ func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 					changed = true
 				}
 				config.SetSetting(key, value, section)
+			}
+		}
+		for section, keys := range m.Remove {
+			for _, key := range keys {
+				if config.GetSetting(key, section) == "" {
+					continue
+				}
+				config.RemoveSetting(key, section)
+				changed = true
 			}
 		}
 		if changed {
@@ -241,7 +289,7 @@ func (m *BitcoinConfManager) tryLoadPrivateConfig() bool {
 // user-set keys (notably datadir) whenever the backup happened to lack
 // them. Master's [main] is now the single source of truth and survives
 // network swaps as-is. Bitcoin Core ignores [main] when chain != main, so
-// stale forknet keys leaking into master while on signet are harmless.
+// stale [main] keys leaking into master while on signet are harmless.
 func (m *BitcoinConfManager) handleNetworkChangeIfNeeded(oldNetwork Network, isFirst bool) {
 	networkChanged := !isFirst && oldNetwork != m.Network
 	if !networkChanged {
@@ -450,7 +498,7 @@ func (m *BitcoinConfManager) CopyConfigDownstream() error {
 // group's slot — the active datadir is untouched.
 //
 // forNetwork must be a known Network value; the group resolution depends on
-// it (forknet vs default).
+// it (ecash vs default).
 func (m *BitcoinConfManager) UpdateDataDir(dataDir string, forNetwork Network) error {
 	if m.HasPrivateConf {
 		return fmt.Errorf("your own bitcoin.conf sets the data directory, so it has to be changed there")
@@ -492,14 +540,14 @@ func (m *BitcoinConfManager) materializeDatadirForGroup(g DatadirGroup) {
 // needsExplicitDatadir reports whether n must have a user-chosen path.
 func needsExplicitDatadir(n Network) bool {
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkECash:
+	case NetworkMainnet, NetworkECash:
 		return true
 	}
 	return false
 }
 
 // HasDatadirForNetwork reports whether a datadir is configured for n's group.
-// Mainnet/forknet/ecash require an explicit user-chosen path because the platform
+// Mainnet and ecash require an explicit user-chosen path because the platform
 // default sits inside ~/Library/Application Support and isn't suitable for
 // full chain data; signet/testnet/regtest accept the default (Bitcoin Core
 // auto-partitions them under chain subdirs).
@@ -531,17 +579,16 @@ func (m *BitcoinConfManager) RefreshMainSectionDefaults() error {
 }
 
 // applyMainSectionDefaults ensures master's [main] section matches what the
-// active network expects. Forknet and eCash want drivechain=1 + the alternate ports;
+// active network expects. eCash wants drivechain=1 + the alternate ports;
 // real mainnet/the default group want those keys absent. signet/test/regtest
 // don't read [main], so this is a no-op for them.
 func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 	if m.Config == nil {
 		return
 	}
-	// Keys that identify a specific chain=main network (forknet vs eCash vs
-	// real mainnet). Strip them first so a swap never leaves a sibling's port
-	// or peer behind — forknet and eCash use different ports, and only
-	// eCash sets addnode/uacomment.
+	// Keys that identify a specific chain=main network (eCash vs real
+	// mainnet). Strip them first so a swap never leaves a sibling's port or
+	// peer behind — only eCash sets addnode/uacomment.
 	mainVariantKeys := []string{
 		"port", "rpcport", "rpcbind", "rpcallowip", "addnode", "uacomment",
 		"assumevalid", "minimumchainwork", "listenonion", "drivechain", "fallbackfee",
@@ -552,16 +599,6 @@ func (m *BitcoinConfManager) applyMainSectionDefaults(n Network) {
 
 	var defaults []struct{ k, v string }
 	switch n {
-	case NetworkForknet:
-		defaults = []struct{ k, v string }{
-			{"port", "8300"},
-			{"rpcport", "18301"},
-			{"assumevalid", "0000000000000000000000000000000000000000000000000000000000000000"},
-			{"minimumchainwork", "0x00"},
-			{"listenonion", "0"},
-			{"drivechain", "1"},
-			{"fallbackfee", "0.00021"},
-		}
 	case NetworkECash:
 		defaults = []struct{ k, v string }{
 			{"port", "8301"},

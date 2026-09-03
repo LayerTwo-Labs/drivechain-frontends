@@ -30,8 +30,8 @@ func TestCatalogEntryForNetwork(t *testing.T) {
 	if !ok || got.AssumeUTXO.Height != newestHeight {
 		t.Errorf("eCash -> %+v (ok=%v), want the newest generation", got, ok)
 	}
-	if _, ok := catalogEntryForNetwork(cat, config.NetworkForknet); ok {
-		t.Error("forknet has no catalog entry, want not found")
+	if _, ok := catalogEntryForNetwork(cat, config.NetworkRegtest); ok {
+		t.Error("regtest has no catalog entry, want not found")
 	}
 }
 

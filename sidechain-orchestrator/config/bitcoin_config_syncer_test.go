@@ -135,8 +135,8 @@ func TestWipeChainDataPreservesWallets(t *testing.T) {
 	}
 }
 
-// Regression: a migration armed for forknet, applied while the user is sitting
-// on mainnet, must not touch mainnet's chain. CoreSectionForNetwork(forknet) is
+// Regression: a migration armed for eCash, applied while the user is sitting
+// on mainnet, must not touch mainnet's chain. CoreSectionForNetwork(ecash) is
 // "main", so resolving the datadir from the live `datadir=` line handed the
 // wipe mainnet's directory and deleted its blocks/ and chainstate/.
 func TestWipeStaleChainDataNeverTouchesAnotherNetworksDatadir(t *testing.T) {
@@ -157,70 +157,71 @@ func TestWipeStaleChainDataNeverTouchesAnotherNetworksDatadir(t *testing.T) {
 	m.Config.SetSetting("datadir", mainnetDir)
 	m.Config.SetGroupDatadir(DatadirGroupDefault, mainnetDir)
 
-	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkForknet}))
+	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkECash}))
 
 	// The wipe is asynchronous; give a buggy one time to land.
 	require.Never(t, func() bool {
 		_, err := os.Stat(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
 		return os.IsNotExist(err)
-	}, 500*time.Millisecond, 50*time.Millisecond, "mainnet chain data must survive a forknet-targeted wipe")
+	}, 500*time.Millisecond, 50*time.Millisecond, "mainnet chain data must survive an eCash-targeted wipe")
 
 	_, err := os.Stat(filepath.Join(mainnetDir, "chainstate", "CURRENT"))
-	require.NoError(t, err, "mainnet chainstate must survive a forknet-targeted wipe")
+	require.NoError(t, err, "mainnet chainstate must survive an eCash-targeted wipe")
 }
 
-// With a forknet slot recorded, the wipe resolves to that path — not the live
-// mainnet one — and does delete forknet's chain.
+// With an eCash slot recorded, the wipe resolves to that path — not the live
+// mainnet one — and does delete eCash's chain.
 func TestWipeStaleChainDataUsesTargetNetworkSlot(t *testing.T) {
 	tmpDir := t.TempDir()
 	mainnetDir := filepath.Join(tmpDir, "mainnet-chain")
-	forknetDir := filepath.Join(tmpDir, "forknet-chain", "forknet")
+	ecashDir := filepath.Join(tmpDir, "ecash-chain", "ecash")
 	seed := func(path string) {
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
 	}
 	seed(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
-	seed(filepath.Join(forknetDir, "blocks", "blk00000.dat"))
+	seed(filepath.Join(ecashDir, "blocks", "blk00000.dat"))
 
 	m := newTestManager(tmpDir)
 	m.Network = NetworkMainnet
 	m.Config.SetSetting("chain", "main")
 	m.Config.SetSetting("datadir", mainnetDir)
 	m.Config.SetGroupDatadir(DatadirGroupDefault, mainnetDir)
-	m.Config.SetGroupDatadir(DatadirGroupForknet, forknetDir)
+	m.Config.SetGroupDatadir(DatadirGroupECash, ecashDir)
 
-	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkForknet}))
+	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkECash}))
 
 	require.Eventually(t, func() bool {
-		_, err := os.Stat(filepath.Join(forknetDir, "blocks"))
+		_, err := os.Stat(filepath.Join(ecashDir, "blocks"))
 		return os.IsNotExist(err)
-	}, 5*time.Second, 20*time.Millisecond, "forknet chain data should be wiped")
+	}, 5*time.Second, 20*time.Millisecond, "eCash chain data should be wiped")
 
 	_, err := os.Stat(filepath.Join(mainnetDir, "blocks", "blk00000.dat"))
 	require.NoError(t, err, "mainnet chain data must be untouched")
 }
 
 // On the boot that runs migrations m.Network is still the CLI/build seed, so
-// trusting it pointed a signet wipe at the live forknet datadir.
+// trusting it pointed a signet wipe at the live eCash datadir.
 func TestWipeStaleChainDataResolvesActiveGroupFromConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("USERPROFILE", tmpDir)
-	forknetDir := filepath.Join(tmpDir, "forknet-chain")
+	ecashDir := filepath.Join(tmpDir, "ecash-chain")
 	signetDir := filepath.Join(tmpDir, "signet-slot")
 	seed := func(path string) {
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 		require.NoError(t, os.WriteFile(path, []byte("stub"), 0o644))
 	}
-	seed(filepath.Join(forknetDir, "blocks", "blk00000.dat"))
+	seed(filepath.Join(ecashDir, "blocks", "blk00000.dat"))
 	seed(filepath.Join(signetDir, "signet", "blocks", "blk00000.dat"))
 
 	m := newTestManager(tmpDir)
 	m.Network = NetworkSignet
 	m.Config.SetSetting("chain", "main")
 	m.Config.SetSetting("drivechain", "1", "main")
-	m.Config.SetSetting("datadir", forknetDir)
-	m.Config.SetGroupDatadir(DatadirGroupForknet, forknetDir)
+	m.Config.SetSetting("uacomment", ECashUAComment("alphanet"), "main")
+	m.Config.SetSetting("datadir", ecashDir)
+	m.Config.SetGroupDatadir(DatadirGroupECash, ecashDir)
 	m.Config.SetGroupDatadir(DatadirGroupDefault, signetDir)
 
 	require.NoError(t, m.wipeStaleChainData(m.Config, []Network{NetworkSignet}))
@@ -230,8 +231,8 @@ func TestWipeStaleChainDataResolvesActiveGroupFromConfig(t *testing.T) {
 		return os.IsNotExist(err)
 	}, 5*time.Second, 20*time.Millisecond, "signet's recorded slot should be wiped")
 
-	_, err := os.Stat(filepath.Join(forknetDir, "blocks", "blk00000.dat"))
-	require.NoError(t, err, "the live forknet datadir must be untouched")
+	_, err := os.Stat(filepath.Join(ecashDir, "blocks", "blk00000.dat"))
+	require.NoError(t, err, "the live eCash datadir must be untouched")
 }
 
 // For the active group the live datadir= is what bitcoind is running on. A
@@ -443,21 +444,11 @@ func TestGetDefaultConfigECashHasPeerAndFallbackfee(t *testing.T) {
 	}
 }
 
-func TestGetDefaultConfigForknetKeepsFallbackfee(t *testing.T) {
-	m := &BitcoinConfManager{Network: NetworkForknet}
-	conf := m.GetDefaultConfig()
-	for _, want := range []string{"drivechain=1", "fallbackfee=0.00021", "rpcport=18301"} {
-		if !strings.Contains(conf, want) {
-			t.Errorf("forknet default config must include %q, got:\n%s", want, conf)
-		}
-	}
-}
-
-// Forknet and eCash run on mainnet params, so a swap must write chain=main.
+// eCash runs on mainnet params, so a swap must write chain=main.
 // Writing anything else boots the wrong network while [main] still carries the
 // fork's ports and drivechain=1.
 func TestUpdateNetworkWritesChainMainForForks(t *testing.T) {
-	for _, n := range []Network{NetworkMainnet, NetworkForknet, NetworkECash} {
+	for _, n := range []Network{NetworkMainnet, NetworkECash} {
 		t.Run(string(n), func(t *testing.T) {
 			m := newTestManager(t.TempDir())
 			m.Config = NewBitcoinConfig()
@@ -524,13 +515,13 @@ func TestECashWithoutPublishedPeerWritesNoAddnode(t *testing.T) {
 	}
 }
 
-// The forknet and eCash configs both say chain=main + drivechain=1; only the
-// uacomment sentinel tells them apart. Round-trip each generated config back
-// through the detector to prove they don't collide.
-func TestNetworkFromConfigDistinguishesECashFromForknet(t *testing.T) {
-	forknet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkForknet}).GetDefaultConfig())
-	if got := NetworkFromConfig(forknet, NetworkSignet); got != NetworkForknet {
-		t.Errorf("forknet config detected as %q, want forknet", got)
+// The mainnet and eCash configs both say chain=main; only the uacomment
+// sentinel tells them apart. Round-trip each generated config back through the
+// detector to prove they don't collide.
+func TestNetworkFromConfigDistinguishesECashFromMainnet(t *testing.T) {
+	mainnet := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkMainnet}).GetDefaultConfig())
+	if got := NetworkFromConfig(mainnet, NetworkSignet); got != NetworkMainnet {
+		t.Errorf("mainnet config detected as %q, want mainnet", got)
 	}
 	ecash := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkECash}).GetDefaultConfig())
 	if got := NetworkFromConfig(ecash, NetworkSignet); got != NetworkECash {
@@ -540,7 +531,7 @@ func TestNetworkFromConfigDistinguishesECashFromForknet(t *testing.T) {
 
 // The sentinel carries the free-form catalog id, so detection must match on
 // the prefix: a later eCash conf has to stay eCash rather than falling
-// through to forknet, which would silently drop the eCash datadir slot.
+// through to mainnet, which would silently drop the eCash datadir slot.
 func TestNetworkFromConfigDetectsFutureECashGeneration(t *testing.T) {
 	conf := ParseBitcoinConfig((&BitcoinConfManager{Network: NetworkECash}).GetDefaultConfig())
 	conf.SetSetting("uacomment", "ecash-betanet", "main")
@@ -552,7 +543,7 @@ func TestNetworkFromConfigDetectsFutureECashGeneration(t *testing.T) {
 // ECash's config says chain=main + drivechain=1. Round-trip the generated
 // config back through the detector to prove it is not read as mainnet.
 // A conf the drynet series wrote still names an eCash chain. Reading it as
-// forknet would boot an upgraded install onto the wrong network in silence.
+// mainnet would boot an upgraded install onto the wrong network in silence.
 // The eCash datadir slot went out as "drynet". Dropping it makes an upgraded
 // install ask for a directory it already holds a chain in.
 func TestParseReadsTheLegacyECashDatadirSlot(t *testing.T) {
@@ -695,15 +686,6 @@ func TestHasDatadirForNetwork(t *testing.T) {
 		t.Error("eCash should be true when eCash slot is set")
 	}
 
-	// Forknet has its own slot, independent of eCash's.
-	if m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("forknet should ignore eCash-group datadir")
-	}
-	m.Config.SetGroupDatadir(DatadirGroupForknet, "/forknet/path")
-	if !m.HasDatadirForNetwork(NetworkForknet) {
-		t.Error("forknet should be true when forknet slot is set")
-	}
-
 	// Section-scoped datadir is ignored — Bitcoin Core only honours the
 	// top-level value.
 	m3 := newTestManager(tmpDir)
@@ -825,6 +807,7 @@ func TestUpdateDataDirInactiveGroupLeavesActiveAlone(t *testing.T) {
 	m.Network = NetworkECash
 	m.Config.SetSetting("chain", "main")
 	m.Config.SetSetting("drivechain", "1", "main")
+	m.Config.SetSetting("uacomment", ECashUAComment("alphanet"), "main")
 	m.Config.SetSetting("datadir", "/ecash/live")
 	m.Config.SetGroupDatadir(DatadirGroupECash, "/ecash/live")
 
@@ -1111,18 +1094,17 @@ func TestDatadirGroupForNetwork(t *testing.T) {
 }
 
 func TestGroupDatadirForPick(t *testing.T) {
-	require.Equal(t, "/x/forknet", GroupDatadirForPick(DatadirGroupForknet, "/x"))
 	require.Equal(t, "/x/ecash", GroupDatadirForPick(DatadirGroupECash, "/x"))
-	require.Equal(t, "/x/forknet", GroupDatadirForPick(DatadirGroupForknet, "/x/"), "trailing slash")
+	require.Equal(t, "/x/ecash", GroupDatadirForPick(DatadirGroupECash, "/x/"), "trailing slash")
 	require.Equal(t, "/x", GroupDatadirForPick(DatadirGroupDefault, "/x"), "default group untouched")
-	require.Equal(t, "", GroupDatadirForPick(DatadirGroupForknet, ""))
+	require.Equal(t, "", GroupDatadirForPick(DatadirGroupECash, ""))
 
 	// A directory that merely looks normalized still gets its own component,
-	// so picking /data/forknet for both mainnet and forknet cannot collide.
-	require.Equal(t, "/data/forknet/forknet", GroupDatadirForPick(DatadirGroupForknet, "/data/forknet"))
+	// so picking /data/ecash for both mainnet and eCash cannot collide.
+	require.Equal(t, "/data/ecash/ecash", GroupDatadirForPick(DatadirGroupECash, "/data/ecash"))
 	require.NotEqual(t,
-		GroupDatadirForPick(DatadirGroupDefault, "/data/forknet"),
-		GroupDatadirForPick(DatadirGroupForknet, "/data/forknet"),
+		GroupDatadirForPick(DatadirGroupDefault, "/data/ecash"),
+		GroupDatadirForPick(DatadirGroupECash, "/data/ecash"),
 	)
 }
 
@@ -1131,41 +1113,36 @@ func TestGroupDatadirForPick(t *testing.T) {
 // wallets at the old path.
 func TestParsePreservesExistingSlotPaths(t *testing.T) {
 	c := ParseBitcoinConfig(`# bitwindow-datadir-default=/mnt/main
-# bitwindow-datadir-forknet=/mnt/fork-chain
 # bitwindow-datadir-ecash=/mnt/dry-chain
 
 chain=main
 `)
 	require.Equal(t, "/mnt/main", c.GetGroupDatadir(DatadirGroupDefault))
-	require.Equal(t, "/mnt/fork-chain", c.GetGroupDatadir(DatadirGroupForknet))
 	require.Equal(t, "/mnt/dry-chain", c.GetGroupDatadir(DatadirGroupECash))
 
 	require.Equal(t, c.Serialize(), ParseBitcoinConfig(c.Serialize()).Serialize(), "round-trip must be stable")
 }
 
 // The whole point of the suffix: even when the user points both groups at the
-// same folder, forknet and mainnet resolve to different bitcoind datadirs.
-func TestSameSlotPathStillSeparatesForknetFromMainnet(t *testing.T) {
+// same folder, eCash and mainnet resolve to different bitcoind datadirs.
+func TestSameSlotPathStillSeparatesECashFromMainnet(t *testing.T) {
 	const picked = "/Volumes/BTC"
 	c := NewBitcoinConfig()
-	for _, g := range []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupECash} {
+	for _, g := range []DatadirGroup{DatadirGroupDefault, DatadirGroupECash} {
 		c.SetGroupDatadir(g, GroupDatadirForPick(g, picked))
 	}
 
 	mainnet := c.GetGroupDatadir(DatadirGroupDefault)
-	forknet := c.GetGroupDatadir(DatadirGroupForknet)
 	ecash := c.GetGroupDatadir(DatadirGroupECash)
 
 	require.Equal(t, picked, mainnet)
-	require.Equal(t, "/Volumes/BTC/forknet", forknet)
 	require.Equal(t, "/Volumes/BTC/ecash", ecash)
 
 	resolved := map[string]bool{
 		BitcoinCoreDirs.DatadirNetwork(NetworkMainnet, mainnet): true,
-		BitcoinCoreDirs.DatadirNetwork(NetworkForknet, forknet): true,
 		BitcoinCoreDirs.DatadirNetwork(NetworkECash, ecash):     true,
 	}
-	require.Len(t, resolved, 3, "no two chain=main networks may share bitcoind's datadir")
+	require.Len(t, resolved, 2, "no two chain=main networks may share bitcoind's datadir")
 }
 
 // ---------------------------------------------------------------------------

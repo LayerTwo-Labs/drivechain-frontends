@@ -278,23 +278,10 @@ func (m *BitcoinConfManager) GetDefaultConfig() string {
 
 	// Per-network [main] section overrides. Mainnet has no [main] overrides;
 	// signet/testnet/regtest options live in their own sections below.
-	// Forknet and eCash use [main] because their chain= is "main" (they are
-	// drivechain testnets on mainnet params).
+	// eCash uses [main] because its chain= is "main" (it is a drivechain
+	// testnet on mainnet params).
 	var mainSection string
 	switch m.Network {
-	case NetworkForknet:
-		// Forknet runs as chain=main, so fallbackfee belongs here (not in the
-		// common block) — Core rejects it on real mainnet but accepts it here.
-		mainSection = `# Forknet-specific settings (drivechain testnet on mainnet params)
-[main]
-port=8300
-rpcport=18301
-assumevalid=0000000000000000000000000000000000000000000000000000000000000000
-minimumchainwork=0x00
-listenonion=0
-drivechain=1
-fallbackfee=0.00021
-`
 	case NetworkECash:
 		// ECash runs chain=main, so fallbackfee belongs here (not in the
 		// common block). It has no DNS seeds, so it needs an explicit peer.
@@ -381,7 +368,7 @@ func (m *BitcoinConfManager) SaveConfig() error {
 }
 
 // UpdateNetwork writes the new network to the config file. On a cross-group
-// swap (default ↔ forknet) it first snapshots the live `datadir=` value into
+// swap (default ↔ ecash) it first snapshots the live `datadir=` value into
 // the leaving group's slot, then materializes the entering group's slot into
 // `datadir=`. Within a group, datadir is left untouched (Bitcoin Core's chain
 // subdirs partition the four default networks under the same folder).
@@ -408,7 +395,7 @@ func (m *BitcoinConfManager) UpdateNetwork(n Network) error {
 
 	chainValue := "signet"
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkECash:
+	case NetworkMainnet, NetworkECash:
 		chainValue = "main"
 	case NetworkTestnet:
 		chainValue = "test"
@@ -536,7 +523,7 @@ func (m *BitcoinConfManager) getConfigFileInfo() configFileInfo {
 
 	// Always check for bitcoin.conf first - user config takes priority
 	bitcoinConfPath := filepath.Join(confDir, "bitcoin.conf")
-	if _, err := os.Stat(bitcoinConfPath); err == nil {
+	if _, err := os.Stat(bitcoinConfPath); err == nil && !m.namesRetiredNetwork(bitcoinConfPath) {
 		return configFileInfo{hasPrivateConf: true, path: bitcoinConfPath}
 	}
 
@@ -545,6 +532,21 @@ func (m *BitcoinConfManager) getConfigFileInfo() configFileInfo {
 		hasPrivateConf: false,
 		path:           filepath.Join(m.BitwindowDir, bitwindowBitcoinConfFilename),
 	}
+}
+
+// namesRetiredNetwork reports whether a private conf names forknet, which the
+// app retired. A node that reads it runs a fork's chain under a mainnet name,
+// so the managed conf serves instead and the user's file stays as it is.
+func (m *BitcoinConfManager) namesRetiredNetwork(path string) bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+	if !isForknetConfig(ParseBitcoinConfig(string(data))) {
+		return false
+	}
+	m.log.Warn().Str("path", path).Msg("ignored a private conf for the retired forknet network")
+	return true
 }
 
 func (m *BitcoinConfManager) getBitWindowConfigPath() string {

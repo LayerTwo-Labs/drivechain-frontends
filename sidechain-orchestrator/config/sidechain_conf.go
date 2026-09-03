@@ -58,8 +58,6 @@ func CusfNetworkName(n Network, ecashID string) string {
 	switch n {
 	case NetworkRegtest:
 		return "regtest"
-	case NetworkForknet:
-		return "forknet"
 	case NetworkECash:
 		if ecashID == "alphanet" {
 			return "alphanet"

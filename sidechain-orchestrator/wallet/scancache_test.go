@@ -30,7 +30,7 @@ func scanWithAddress(walletID, address string, sats int64) *persistedScan {
 	}
 }
 
-// Mainnet, forknet and eCash derive identical addresses, so a scan reachable
+// Mainnet and eCash derive identical addresses, so a scan reachable
 // from another network would report the previous chain's balance and UTXOs.
 func TestNetworkScopedScanIsolation(t *testing.T) {
 	dir := t.TempDir()

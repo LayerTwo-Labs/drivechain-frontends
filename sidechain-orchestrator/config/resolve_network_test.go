@@ -77,7 +77,7 @@ func TestResolveNetworkDoesNotWrite(t *testing.T) {
 	assert.Len(t, entriesAfter, len(entriesBefore), "a file was created")
 }
 
-// eCash and forknet are both chain=main to Core; only the uacomment sentinel
+// eCash and mainnet are both chain=main to Core; only the uacomment sentinel
 // tells them apart. Same NetworkFromConfig the orchestrator uses.
 func TestResolveNetworkReadsTheECashSentinel(t *testing.T) {
 	for _, tt := range []struct {
@@ -96,13 +96,8 @@ func TestResolveNetworkReadsTheECashSentinel(t *testing.T) {
 			want: NetworkECash,
 		},
 		{
-			name: "drivechain without the sentinel is forknet",
+			name: "no sentinel is plain mainnet",
 			conf: "chain=main\n[main]\ndrivechain=1\nuacomment=BitWindow-0.2\n",
-			want: NetworkForknet,
-		},
-		{
-			name: "no drivechain is plain mainnet",
-			conf: "chain=main\n[main]\nuacomment=BitWindow-0.2\n",
 			want: NetworkMainnet,
 		},
 	} {
@@ -127,7 +122,7 @@ func TestResolveNetworkReadsTheECashID(t *testing.T) {
 	}{
 		{"alphanet", "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-alphanet\n", "alphanet"},
 		{"betanet", "chain=main\n[main]\ndrivechain=1\nuacomment=ecash-betanet\n", "betanet"},
-		{"forknet carries none", "chain=main\n[main]\ndrivechain=1\nuacomment=BitWindow-0.2\n", ""},
+		{"mainnet carries none", "chain=main\n[main]\ndrivechain=1\nuacomment=BitWindow-0.2\n", ""},
 		{"signet carries none", "signet=1\n", ""},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

@@ -202,7 +202,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 
 func isKnownNetwork(n config.Network) bool {
 	switch n {
-	case config.NetworkMainnet, config.NetworkForknet, config.NetworkECash, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
+	case config.NetworkMainnet, config.NetworkECash, config.NetworkSignet, config.NetworkTestnet, config.NetworkRegtest:
 		return true
 	}
 	return false
@@ -986,7 +986,7 @@ func (s *Server) ListRecentTransactions(ctx context.Context, c *connect.Request[
 		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
 
-	// While Core is in IBD on a populated chain (mainnet / forknet / eCash), the
+	// While Core is in IBD on a populated chain (mainnet / eCash), the
 	// historical block walk below is the single biggest source of cs_main
 	// pressure on this whole codebase: it issues a per-tx
 	// GetRawTransaction for every tx in up to 100 recent blocks. During

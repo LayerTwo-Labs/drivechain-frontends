@@ -24,7 +24,7 @@ func TestScanFloorIsZeroUnderASyncTarget(t *testing.T) {
 
 func TestScanFloorStartsOneWindowBack(t *testing.T) {
 	for _, network := range []config.Network{
-		config.NetworkMainnet, config.NetworkForknet, config.NetworkECash,
+		config.NetworkMainnet, config.NetworkECash,
 	} {
 		t.Run(string(network), func(t *testing.T) {
 			assert.Equal(t, 900000-recentScanWindow, parserOn(network).scanFloor(900000))

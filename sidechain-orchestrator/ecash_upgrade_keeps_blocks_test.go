@@ -190,7 +190,7 @@ func TestAColdPickRecordsTheEnforcerCleanup(t *testing.T) {
 		"the enforcer chain must be cleared before the new generation runs")
 }
 
-// eCash shares validator/bitcoin with mainnet and forknet. Off eCash the
+// eCash shares validator/bitcoin with mainnet. Off eCash the
 // cleanup has to wait, or it deletes the chain the active network is using.
 func TestTheEnforcerCleanupWaitsUntilECashIsActive(t *testing.T) {
 	home := t.TempDir()

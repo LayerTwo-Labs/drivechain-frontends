@@ -868,7 +868,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	if err := o.refuseWhileParked(); err != nil {
 		return nil, err
 	}
-	// Mainnet, forknet and eCash keep their chain outside the platform default,
+	// Mainnet and eCash keep their chain outside the platform default,
 	// so booting before the user picks a directory syncs a second copy over
 	// whatever they already run. The node mode gate above and this one are the
 	// only gates here, so no frontend can force the local stack up.

@@ -38,8 +38,7 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 	}
 
 	network := h.conf.Network
-	networkSupportsSidechains := network == config.NetworkForknet ||
-		network == config.NetworkECash ||
+	networkSupportsSidechains := network == config.NetworkECash ||
 		network == config.NetworkSignet ||
 		network == config.NetworkRegtest
 
@@ -51,11 +50,10 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		rpcUser, rpcPassword = "", ""
 	}
 
-	var configContent, defaultDatadir, forknetDatadir, ecashDatadir string
+	var configContent, defaultDatadir, ecashDatadir string
 	if h.conf.Config != nil {
 		configContent = h.conf.Config.Serialize()
 		defaultDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupDefault)
-		forknetDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupForknet)
 		ecashDatadir = h.conf.Config.GetGroupDatadir(config.DatadirGroupECash)
 		// If the active group has a live datadir but no slot recorded yet
 		// (fresh install or hand-edited conf), surface the live value as
@@ -64,9 +62,6 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		if liveDatadir := h.conf.Config.GetSetting("datadir"); liveDatadir != "" {
 			if activeGroup == config.DatadirGroupDefault && defaultDatadir == "" {
 				defaultDatadir = liveDatadir
-			}
-			if activeGroup == config.DatadirGroupForknet && forknetDatadir == "" {
-				forknetDatadir = liveDatadir
 			}
 			if activeGroup == config.DatadirGroupECash && ecashDatadir == "" {
 				ecashDatadir = liveDatadir
@@ -86,7 +81,6 @@ func (h *BitcoinConfHandler) GetBitcoinConfig(ctx context.Context, req *connect.
 		RpcUser:                   rpcUser,
 		RpcPassword:               rpcPassword,
 		DefaultDatadir:            defaultDatadir,
-		ForknetDatadir:            forknetDatadir,
 		EcashDatadir:              ecashDatadir,
 		EcashNetworkId:            config.ECashNetworkID(),
 		EcashEsploraUrl:           config.EsploraURLForNetwork(config.NetworkECash),

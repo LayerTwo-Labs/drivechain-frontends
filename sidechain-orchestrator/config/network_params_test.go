@@ -11,7 +11,7 @@ import (
 // support is a narrower question, and a network without BIP47 sends still runs.
 func TestChainParamsForEveryNetwork(t *testing.T) {
 	for _, n := range []Network{
-		NetworkMainnet, NetworkForknet, NetworkECash,
+		NetworkMainnet, NetworkECash,
 		NetworkTestnet, NetworkSignet, NetworkRegtest,
 	} {
 		require.NotNil(t, ChainParamsFor(n), "network %q", n)

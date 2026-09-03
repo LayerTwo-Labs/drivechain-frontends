@@ -113,7 +113,7 @@ func (b BinaryDirConfig) DatadirNetwork(network Network, bitcoinOverride string)
 	}
 	switch b.layoutKey() {
 	case "bitcoind":
-		if network == NetworkMainnet || network == NetworkForknet || network == NetworkECash {
+		if network == NetworkMainnet || network == NetworkECash {
 			return baseDir
 		}
 		return filepath.Join(baseDir, network.CoreChainDir())
@@ -807,8 +807,6 @@ func (n Network) ReadableName() string {
 	switch n {
 	case NetworkMainnet:
 		return "mainnet"
-	case NetworkForknet:
-		return "forknet"
 	case NetworkECash:
 		return "ecash"
 	case NetworkSignet:
@@ -828,7 +826,7 @@ func (n Network) ReadableName() string {
 // share one name.
 func EnforcerNetworkName(n Network) string {
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkECash:
+	case NetworkMainnet, NetworkECash:
 		return "bitcoin"
 	default:
 		return n.ReadableName()

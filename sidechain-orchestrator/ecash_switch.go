@@ -373,7 +373,7 @@ func (o *Orchestrator) ApplyPendingEnforcerWipe() error {
 	if recorded == "" {
 		return nil
 	}
-	// eCash shares validator/bitcoin with mainnet and forknet, so off eCash
+	// eCash shares validator/bitcoin with mainnet, so off eCash
 	// this would delete the active network's chain — possibly under a daemon
 	// that holds it open. The record waits for the swap that brings eCash back.
 	if config.NetworkFromString(o.Network) != config.NetworkECash {

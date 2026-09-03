@@ -43,7 +43,6 @@ func TestPlanNetworkChangeDatadirFollowsNodeMode(t *testing.T) {
 		{name: "mainnet full with datadir", network: "mainnet", mode: NodeModeFull, datadir: "set", needsLocal: true},
 		{name: "eCash light", network: "ecash", mode: NodeModeLight},
 		{name: "eCash full", network: "ecash", mode: NodeModeFull, mustSelectDatadir: true, needsLocal: true},
-		{name: "forknet full", network: "forknet", mode: NodeModeFull, mustSelectDatadir: true, needsLocal: true},
 		// Regtest serves no Esplora, so light mode narrows to full there.
 		{name: "regtest light narrows to full", network: "regtest", mode: NodeModeLight, needsLocal: true},
 		{name: "regtest full", network: "regtest", mode: NodeModeFull, needsLocal: true},
@@ -100,7 +99,6 @@ func TestPlanNetworkChangeLightModeNeedsChainSource(t *testing.T) {
 	}{
 		{network: "mainnet", mode: NodeModeLight},
 		{network: "signet", mode: NodeModeLight},
-		{network: "forknet", mode: NodeModeLight},
 		{network: "regtest", mode: NodeModeFull},
 	} {
 		t.Run(tc.network+" "+string(tc.mode), func(t *testing.T) {

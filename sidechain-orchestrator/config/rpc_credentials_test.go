@@ -116,7 +116,6 @@ func TestGetRPCCookiePathPerNetwork(t *testing.T) {
 	datadir := t.TempDir()
 	for network, want := range map[Network]string{
 		NetworkMainnet: ".cookie",
-		NetworkForknet: ".cookie",
 		NetworkECash:   ".cookie",
 		NetworkSignet:  filepath.Join("signet", ".cookie"),
 		NetworkRegtest: filepath.Join("regtest", ".cookie"),
