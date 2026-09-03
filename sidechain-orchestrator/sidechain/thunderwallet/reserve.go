@@ -61,17 +61,7 @@ func (r *ReservedCoins) Coins(ctx context.Context, addresses []Address) ([]Coin,
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	now := time.Now()
-	for key, at := range r.spent {
-		if now.Sub(at) > reserveHold {
-			delete(r.spent, key)
-		}
-	}
-	for key, pending := range r.change {
-		if now.Sub(pending.at) > reserveHold {
-			delete(r.change, key)
-		}
-	}
+	r.forget(time.Now())
 
 	wanted := make(map[Address]bool, len(addresses))
 	for _, address := range addresses {
@@ -99,6 +89,65 @@ func (r *ReservedCoins) Coins(ctx context.Context, addresses []Address) ([]Coin,
 		out = append(out, pending.coin)
 	}
 	return out, nil
+}
+
+// Adjust applies what a broadcast changed to the two halves of a wallet read:
+// the coins a block carries, and the coins it does not.
+//
+// A coin the wallet spent leaves both halves, because the index offers it until
+// it syncs. The change the index has not read yet joins the second half, where
+// a wallet shows it and does not spend it.
+func (r *ReservedCoins) Adjust(
+	addresses []Address, confirmed, pending []Coin,
+) (spendable, waiting []Coin) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.forget(time.Now())
+
+	wanted := make(map[Address]bool, len(addresses))
+	for _, address := range addresses {
+		wanted[address] = true
+	}
+
+	held := make(map[OutPoint]bool, len(confirmed)+len(pending))
+	keep := func(coins []Coin) []Coin {
+		out := make([]Coin, 0, len(coins))
+		for _, coin := range coins {
+			if _, spent := r.spent[coin.OutPoint]; spent {
+				continue
+			}
+			held[coin.OutPoint] = true
+			out = append(out, coin)
+		}
+		return out
+	}
+	spendable = keep(confirmed)
+	waiting = keep(pending)
+
+	for key, change := range r.change {
+		if held[key] || !wanted[change.coin.Address] {
+			continue
+		}
+		if _, spent := r.spent[key]; spent {
+			continue
+		}
+		waiting = append(waiting, change.coin)
+	}
+	return spendable, waiting
+}
+
+// forget drops every hold that outlived reserveHold. The caller holds the lock.
+func (r *ReservedCoins) forget(now time.Time) {
+	for key, at := range r.spent {
+		if now.Sub(at) > reserveHold {
+			delete(r.spent, key)
+		}
+	}
+	for key, pending := range r.change {
+		if now.Sub(pending.at) > reserveHold {
+			delete(r.change, key)
+		}
+	}
 }
 
 var (
