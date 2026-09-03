@@ -173,8 +173,39 @@ func saveGroupOn(ctx context.Context, e execer, g Group) error {
 }
 
 func (s *Store) DeleteGroup(ctx context.Context, id string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM multisig_groups WHERE id = ?`, id)
-	return err
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if err := deleteGroupChildrenOn(ctx, tx, id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM multisig_groups WHERE id = ?`, id); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// deleteGroupChildrenOn removes every row belonging to the group. The database is
+// opened without foreign_keys=ON, so the declared ON DELETE CASCADE never runs.
+func deleteGroupChildrenOn(ctx context.Context, e execer, groupID string) error {
+	for _, query := range []string{
+		`DELETE FROM multisig_tx_inputs WHERE transaction_id IN (SELECT id FROM multisig_transactions WHERE group_id = ?)`,
+		`DELETE FROM multisig_tx_key_psbts WHERE transaction_id IN (SELECT id FROM multisig_transactions WHERE group_id = ?)`,
+		`DELETE FROM multisig_transactions WHERE group_id = ?`,
+		`DELETE FROM multisig_group_transactions WHERE group_id = ?`,
+		`DELETE FROM multisig_utxo_details WHERE group_id = ?`,
+		`DELETE FROM multisig_addresses WHERE group_id = ?`,
+		`DELETE FROM multisig_key_psbts WHERE key_id IN (SELECT id FROM multisig_keys WHERE group_id = ?)`,
+		`DELETE FROM multisig_keys WHERE group_id = ?`,
+	} {
+		if _, err := e.ExecContext(ctx, query, groupID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ─── Keys ──────────────────────────────────────────────────────────
@@ -771,6 +802,18 @@ func (s *Store) SaveGroupAtomic(ctx context.Context, p SaveGroupAtomicParams) er
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck
+
+	// An id not yet in the table is a new or imported group: drop anything an
+	// earlier group of the same id left behind, so it doesn't inherit its spends.
+	var exists int
+	switch err := tx.QueryRowContext(ctx, `SELECT 1 FROM multisig_groups WHERE id = ?`, p.Group.ID).Scan(&exists); {
+	case err == sql.ErrNoRows:
+		if err := deleteGroupChildrenOn(ctx, tx, p.Group.ID); err != nil {
+			return fmt.Errorf("clear stale group data: %w", err)
+		}
+	case err != nil:
+		return fmt.Errorf("lookup group: %w", err)
+	}
 
 	if err := saveGroupOn(ctx, tx, p.Group); err != nil {
 		return fmt.Errorf("save group: %w", err)

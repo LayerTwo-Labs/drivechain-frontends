@@ -236,7 +236,8 @@ func TestSaveFile_SameSecondNoCollision(t *testing.T) {
 			size_bytes INTEGER NOT NULL,
 			encrypted INTEGER NOT NULL DEFAULT 0,
 			timestamp INTEGER NOT NULL,
-			created_at INTEGER NOT NULL
+			created_at INTEGER NOT NULL,
+			block_height INTEGER
 		)
 	`); err != nil {
 		t.Fatalf("create table: %v", err)

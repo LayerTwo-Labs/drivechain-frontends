@@ -189,9 +189,19 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		log.Info().Msg("restore: imported transactions")
 	}
 
-	// Restore wallet.json
+	// Restore wallet.json. A restore replaces the resident wallet, so it reads
+	// the file it replaces first and may drop the wallets that file holds.
 	walletPath := filepath.Join(e.walletDir, walletfile.Name)
-	if err := walletfile.Write(walletPath, walletJSON, walletfile.Options{}); err != nil {
+	opts := walletfile.Options{AllowDrop: true}
+	switch current, err := os.ReadFile(walletPath); {
+	case err == nil:
+		opts.Expected, opts.ExpectedKnown = walletfile.DigestOf(current), true
+	case os.IsNotExist(err):
+		opts.Expected, opts.ExpectedKnown = walletfile.DigestOf(nil), true
+	default:
+		return fmt.Errorf("read the wallet file before the restore: %w", err)
+	}
+	if err := walletfile.Write(walletPath, walletJSON, opts); err != nil {
 		return fmt.Errorf("write wallet.json: %w", err)
 	}
 	log.Info().Msg("restore: wrote wallet.json")

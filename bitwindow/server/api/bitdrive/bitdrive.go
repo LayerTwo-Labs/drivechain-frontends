@@ -248,6 +248,14 @@ func (s *Server) DownloadPendingFiles(ctx context.Context, req *connect.Request[
 			continue
 		}
 
+		// Stamp the block the OP_RETURN was mined in, so a fork purge can drop
+		// the file if that block goes away. Mempool OP_RETURNs have no height.
+		if opReturn.Height != nil {
+			if err := bitdrive.MarkConfirmed(ctx, s.database, pending.Txid, int64(*opReturn.Height)); err != nil {
+				log.Warn().Err(err).Str("txid", pending.Txid).Msg("failed to mark file confirmed")
+			}
+		}
+
 		downloadedCount++
 	}
 

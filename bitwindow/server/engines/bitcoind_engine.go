@@ -8,12 +8,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	logpool "github.com/LayerTwo-Labs/sidesail/bitwindow/server/logpool"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/blocks"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
@@ -460,6 +462,18 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 			return fmt.Errorf("process blocks: %w", err)
 		}
 
+		if err := p.checkBatchAncestry(ctx, results); err != nil {
+			if !errors.Is(err, errChainMoved) {
+				return fmt.Errorf("check batch ancestry: %w", err)
+			}
+
+			zerolog.Ctx(ctx).Warn().Err(err).
+				Uint32("batch_start", batchStart).
+				Uint32("batch_end", batchEnd).
+				Msg("bitcoind_engine/parser: the chain moved while the batch was fetched, retrying next tick")
+			return nil
+		}
+
 		if err := p.processBlocks(ctx, results); err != nil {
 			return fmt.Errorf("process blocks: %w", err)
 		}
@@ -471,6 +485,57 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 
 	zerolog.Ctx(ctx).Trace().
 		Msgf("bitcoind_engine/parser: finished processing blocks")
+
+	return nil
+}
+
+// errChainMoved marks a batch that spans more than one chain, as opposed to a
+// failure to check it.
+var errChainMoved = errors.New("the batch is not one chain")
+
+// checkBatchAncestry reports whether a fetched batch is one chain: every block
+// links to the one below it, and the lowest links to what we already processed.
+// A mixed batch is reported as errChainMoved; anything else is a failed check.
+//
+// The batch fans out one getblockhash + getblock per height, so Core switching
+// branches part way through hands back blocks from two chains. processBlocks
+// would commit that mix as canonical, and forkPoint's tip-only fast path never
+// revisits an interior height. Abandoning the batch costs one tick.
+func (p *Parser) checkBatchAncestry(ctx context.Context, coreBlocks []lo.Tuple2[uint32, *wire.MsgBlock]) error {
+	sorted := append([]lo.Tuple2[uint32, *wire.MsgBlock]{}, coreBlocks...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].A < sorted[j].A })
+
+	for i, t := range sorted {
+		height, block := t.Unpack()
+
+		var parent chainhash.Hash
+		switch {
+		case i > 0:
+			if prev := sorted[i-1].A; prev != height-1 {
+				return fmt.Errorf("%w: block %d does not follow %d", errChainMoved, height, prev)
+			}
+			parent = sorted[i-1].B.Header.BlockHash()
+
+		case height == 0:
+			continue // genesis has no parent
+
+		default:
+			stored, err := blocks.GetProcessedBlock(ctx, p.db, height-1)
+			if errors.Is(err, sql.ErrNoRows) {
+				// Nothing processed below the batch — the scan floor skips
+				// ahead, and a replay starts at the fork. No anchor to check.
+				continue
+			}
+			if err != nil {
+				return fmt.Errorf("get processed block %d: %w", height-1, err)
+			}
+			parent = stored.Hash
+		}
+
+		if block.Header.PrevBlock != parent {
+			return fmt.Errorf("%w: block %d links to %s, not %s", errChainMoved, height, block.Header.PrevBlock, parent)
+		}
+	}
 
 	return nil
 }
@@ -551,6 +616,15 @@ func (p *Parser) opReturnForTXID(
 
 	if err := opreturns.Persist(ctx, p.db, opReturns); err != nil {
 		return err
+	}
+
+	// A file downloaded from the mempool has no height yet, and one the fork
+	// purge dropped is downloaded again. Either way the block that carries the
+	// OP_RETURN is what confirms it.
+	if height != nil && len(opReturns) > 0 {
+		if err := bitdrive.MarkConfirmed(ctx, p.db, tx.TxID(), int64(*height)); err != nil {
+			return err
+		}
 	}
 
 	return nil

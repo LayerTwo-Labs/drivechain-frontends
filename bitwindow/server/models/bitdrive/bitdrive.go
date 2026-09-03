@@ -19,6 +19,9 @@ type File struct {
 	Encrypted bool
 	Timestamp uint32
 	CreatedAt time.Time
+
+	// Block the file's OP_RETURN was mined in. Nil while it is unconfirmed.
+	BlockHeight *int64
 }
 
 func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
@@ -62,7 +65,7 @@ func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
 
 func List(ctx context.Context, db *sql.DB) ([]File, error) {
 	query := sq.
-		Select("id", "txid", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
+		Select("id", "txid", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at", "block_height").
 		From("bitdrive_files").
 		OrderBy("created_at DESC")
 
@@ -78,6 +81,7 @@ func List(ctx context.Context, db *sql.DB) ([]File, error) {
 		var file File
 		var encrypted int64
 		var createdAt int64
+		var blockHeight sql.NullInt64
 
 		err := rows.Scan(
 			&file.ID,
@@ -88,6 +92,7 @@ func List(ctx context.Context, db *sql.DB) ([]File, error) {
 			&encrypted,
 			&file.Timestamp,
 			&createdAt,
+			&blockHeight,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan bitdrive file: %w", err)
@@ -95,6 +100,9 @@ func List(ctx context.Context, db *sql.DB) ([]File, error) {
 
 		file.Encrypted = encrypted == 1
 		file.CreatedAt = time.Unix(createdAt, 0)
+		if blockHeight.Valid {
+			file.BlockHeight = &blockHeight.Int64
+		}
 		files = append(files, file)
 	}
 
@@ -109,9 +117,10 @@ func GetByID(ctx context.Context, db *sql.DB, id int64) (*File, error) {
 	var file File
 	var encrypted int64
 	var createdAt int64
+	var blockHeight sql.NullInt64
 
 	err := db.QueryRowContext(ctx, `
-		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at
+		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at, block_height
 		FROM bitdrive_files
 		WHERE id = ?
 	`, id).Scan(
@@ -123,6 +132,7 @@ func GetByID(ctx context.Context, db *sql.DB, id int64) (*File, error) {
 		&encrypted,
 		&file.Timestamp,
 		&createdAt,
+		&blockHeight,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -133,6 +143,9 @@ func GetByID(ctx context.Context, db *sql.DB, id int64) (*File, error) {
 
 	file.Encrypted = encrypted == 1
 	file.CreatedAt = time.Unix(createdAt, 0)
+	if blockHeight.Valid {
+		file.BlockHeight = &blockHeight.Int64
+	}
 	return &file, nil
 }
 
@@ -140,9 +153,10 @@ func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*File, error) {
 	var file File
 	var encrypted int64
 	var createdAt int64
+	var blockHeight sql.NullInt64
 
 	err := db.QueryRowContext(ctx, `
-		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at
+		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at, block_height
 		FROM bitdrive_files
 		WHERE txid = ?
 	`, txid).Scan(
@@ -154,6 +168,7 @@ func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*File, error) {
 		&encrypted,
 		&file.Timestamp,
 		&createdAt,
+		&blockHeight,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -164,7 +179,26 @@ func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*File, error) {
 
 	file.Encrypted = encrypted == 1
 	file.CreatedAt = time.Unix(createdAt, 0)
+	if blockHeight.Valid {
+		file.BlockHeight = &blockHeight.Int64
+	}
 	return &file, nil
+}
+
+// MarkConfirmed stamps the block a stored file's OP_RETURN was mined in, so the
+// fork purge can tell the file apart from one an orphaned branch carried. A
+// txid with no stored file is a no-op.
+func MarkConfirmed(ctx context.Context, db *sql.DB, txid string, height int64) error {
+	_, err := db.ExecContext(ctx, `
+		UPDATE bitdrive_files
+		SET block_height = ?
+		WHERE txid = ?
+	`, height, txid)
+	if err != nil {
+		return fmt.Errorf("mark bitdrive file confirmed: %w", err)
+	}
+
+	return nil
 }
 
 func Delete(ctx context.Context, db *sql.DB, id int64) error {

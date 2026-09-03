@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/bitdrive"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
@@ -23,6 +24,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -117,10 +119,10 @@ func TestOpReturnHandling(t *testing.T) {
 	assert.Equal(t, "The Known Topic", news[0].TopicName)
 }
 
-// TestPurgeChainDerivedAtOrAbove proves the reorg purge covers the two
+// TestPurgeChainDerivedAtOrAbove proves the reorg purge covers the three
 // tables the replay can't heal on its own: op_returns keeps its stale
-// height through the upsert, and a confirmed timestamp is never
-// re-examined.
+// height through the upsert, a confirmed timestamp is never
+// re-examined, and a stored file is only ever written by a download.
 func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 	t.Parallel()
 
@@ -139,6 +141,13 @@ func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 		INSERT INTO file_timestamps (filename, file_hash, txid, block_height, status, created_at, confirmed_at)
 		VALUES ('below.txt', 'hash-below', 'txid-below', 100, 'confirmed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 		       ('orphaned.txt', 'hash-orphaned', 'txid-orphaned', 200, 'confirmed', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`)
+	require.NoError(t, err)
+
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO bitdrive_files (txid, filename, file_type, size_bytes, encrypted, timestamp, created_at, block_height)
+		VALUES ('below', 'below.txt', 'txt', 1, 0, 0, 0, 100),
+		       ('orphaned', 'orphaned.txt', 'txt', 1, 0, 0, 0, 200),
+		       ('mempool', 'mempool.txt', 'txt', 1, 0, 0, 0, NULL)`)
 	require.NoError(t, err)
 
 	require.NoError(t, parser.purgeChainDerivedAtOrAbove(ctx, 181))
@@ -165,6 +174,23 @@ func TestPurgeChainDerivedAtOrAbove(t *testing.T) {
 	assert.Equal(t, timestamps.StatusConfirming, orphaned.Status, "orphaned timestamps go back to confirming")
 	assert.Nil(t, orphaned.BlockHeight, "orphaned timestamps lose their stale height")
 	assert.Nil(t, orphaned.ConfirmedAt, "orphaned timestamps lose their stale confirmation time")
+
+	files, err := bitdrive.List(ctx, db)
+	require.NoError(t, err)
+	var fileTxids []string
+	for _, file := range files {
+		fileTxids = append(fileTxids, file.TxID)
+	}
+	slices.Sort(fileTxids)
+	assert.Equal(t, []string{"below", "mempool"}, fileTxids,
+		"a file the orphaned branch carried stops listing, confirmed-below and mempool rows survive")
+
+	// What the replay does when the new chain mines the transaction again.
+	require.NoError(t, bitdrive.MarkConfirmed(ctx, db, "mempool", 190))
+	confirmed, err := bitdrive.GetByTxID(ctx, db, "mempool")
+	require.NoError(t, err)
+	require.NotNil(t, confirmed.BlockHeight, "a replayed block confirms the file")
+	assert.EqualValues(t, 190, *confirmed.BlockHeight)
 }
 
 func pkScript(t *testing.T, data []byte) []byte {
@@ -330,4 +356,66 @@ func TestOpReturnHandling_WhitespaceHeadlineLooksBlank(t *testing.T) {
 	news, err := opreturns.ListCoinNews(ctx, db)
 	require.NoError(t, err)
 	assert.Empty(t, news, "whitespace-only headlines must not surface as canonical stories")
+}
+
+// blockRun builds n linked blocks from height, each descending from the last.
+// Distinct nonces give two runs off the same parent distinct hashes.
+func blockRun(parent chainhash.Hash, height uint32, n int, nonce uint32) []lo.Tuple2[uint32, *wire.MsgBlock] {
+	var run []lo.Tuple2[uint32, *wire.MsgBlock]
+	for i := 0; i < n; i++ {
+		block := &wire.MsgBlock{Header: wire.BlockHeader{PrevBlock: parent, Nonce: nonce}}
+		run = append(run, lo.T2(height+uint32(i), block))
+		parent = block.Header.BlockHash()
+	}
+	return run
+}
+
+// A batch that mixes two branches must never commit: forkPoint's tip-only fast
+// path never revisits an interior height, so the orphans stay marked processed.
+func TestCheckBatchAncestryRejectsAMixedBatch(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	parser := &Parser{db: database.Test(t)}
+
+	anchor := chainhash.Hash{0xaa}
+	branchA := blockRun(anchor, 100, 6, 1)
+	branchB := blockRun(anchor, 100, 6, 2)
+
+	// Core switched branches halfway through the fan-out.
+	mixed := append(append([]lo.Tuple2[uint32, *wire.MsgBlock]{}, branchA[:3]...), branchB[3:]...)
+	require.ErrorIs(t, parser.checkBatchAncestry(ctx, mixed), errChainMoved)
+
+	require.NoError(t, parser.checkBatchAncestry(ctx, branchA), "one branch commits")
+}
+
+// The lowest block in a batch has to descend from what we already processed.
+func TestCheckBatchAncestryChecksTheStoredAnchor(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	parser := &Parser{db: database.Test(t)}
+
+	anchor := chainhash.Hash{0xaa}
+	_, err := parser.db.ExecContext(ctx, `
+		INSERT INTO processed_blocks (height, block_hash, txids, block_time)
+		VALUES (?, ?, '[]', 0)`, 99, anchor.String())
+	require.NoError(t, err)
+
+	require.NoError(t, parser.checkBatchAncestry(ctx, blockRun(anchor, 100, 3, 1)))
+	require.ErrorIs(t, parser.checkBatchAncestry(ctx, blockRun(chainhash.Hash{0xbb}, 100, 3, 1)), errChainMoved,
+		"a batch built on another branch is rejected")
+}
+
+// A database that cannot answer must fail the tick, not quietly skip the anchor.
+func TestCheckBatchAncestryFailsOnADatabaseError(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	parser := &Parser{db: database.Test(t)}
+	require.NoError(t, parser.db.Close())
+
+	err := parser.checkBatchAncestry(ctx, blockRun(chainhash.Hash{0xaa}, 100, 3, 1))
+	require.Error(t, err)
+	require.NotErrorIs(t, err, errChainMoved)
 }

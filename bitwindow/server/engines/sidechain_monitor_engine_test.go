@@ -55,6 +55,49 @@ func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
 	assert.Equal(t, "thunder1test456", pending[0].ServerAddress)
 }
 
+func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal_Invalid(t *testing.T) {
+	ctx := context.Background()
+
+	valid := PendingFastWithdrawal{
+		Hash:           "test-hash-123456789abcdef",
+		Sidechain:      "thunder",
+		ServerAddress:  "thunder1test456",
+		ExpectedAmount: 105000,
+		ServerURL:      "https://fw1.drivechain.info",
+		CreatedAt:      time.Now(),
+	}
+
+	tests := []struct {
+		name   string
+		mutate func(*PendingFastWithdrawal)
+	}{
+		{"malformed hash", func(w *PendingFastWithdrawal) { w.Hash = "test-hash-1234567!9abcdef" }},
+		{"short hash", func(w *PendingFastWithdrawal) { w.Hash = "short" }},
+		{"missing server address", func(w *PendingFastWithdrawal) { w.ServerAddress = "" }},
+		{"non-positive amount", func(w *PendingFastWithdrawal) { w.ExpectedAmount = 0 }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			engine := NewSidechainMonitorEngine(
+				nil, nil, nil, nil, nil, nil,
+				nil,
+			)
+
+			withdrawal := valid
+			tt.mutate(&withdrawal)
+
+			require.Error(t, engine.RegisterPendingFastWithdrawal(ctx, withdrawal))
+
+			// Nothing entered the map, so the poll interval stays relaxed
+			pending, err := engine.GetPendingFastWithdrawals(ctx)
+			require.NoError(t, err)
+			assert.Len(t, pending, 0)
+			assert.Equal(t, 30*time.Second, engine.getPollInterval())
+		})
+	}
+}
+
 func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {
 	ctx := zerolog.New(zerolog.NewTestWriter(t)).WithContext(context.Background())
 
@@ -195,4 +238,33 @@ func TestSidechainMonitorEngine_CleanupOldWithdrawals(t *testing.T) {
 	// Old withdrawal should be removed, new one should remain
 	assert.NotContains(t, engine.detectedWithdrawals, "old-txid")
 	assert.Contains(t, engine.detectedWithdrawals, "new-txid")
+}
+
+func TestSidechainMonitorEngine_CleanupOldPendingFastWithdrawals(t *testing.T) {
+	engine := NewSidechainMonitorEngine(
+		nil, nil, nil, nil, nil, nil,
+		nil,
+	)
+
+	// Three stuck withdrawals, older than the 24 hour cutoff
+	stale := time.Now().Add(-25 * time.Hour)
+	for _, hash := range []string{"stale-hash-1234567890ab", "stale-hash-2234567890ab", "stale-hash-3234567890ab"} {
+		engine.pendingFastWithdrawals[hash] = PendingFastWithdrawal{
+			Hash:      hash,
+			CreatedAt: stale,
+		}
+	}
+	engine.pendingFastWithdrawals["fresh-hash-1234567890ab"] = PendingFastWithdrawal{
+		Hash:      "fresh-hash-1234567890ab",
+		CreatedAt: time.Now(),
+	}
+
+	// They pin the poll interval at its floor until evicted
+	assert.Equal(t, 2*time.Second, engine.getPollInterval())
+
+	engine.cleanupOldWithdrawals()
+
+	assert.Len(t, engine.pendingFastWithdrawals, 1)
+	assert.Contains(t, engine.pendingFastWithdrawals, "fresh-hash-1234567890ab")
+	assert.Equal(t, 5*time.Second, engine.getPollInterval())
 }
