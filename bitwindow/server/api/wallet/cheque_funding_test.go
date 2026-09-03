@@ -12,9 +12,13 @@ import (
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
+	bitcoindv1alpha "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const testWalletID = "test-wallet-id-1234"
@@ -295,6 +299,45 @@ func TestCheckChequeFunding_PollAfterSend(t *testing.T) {
 	require.Equal(t, []string{fundingTxid}, persisted.FundedTxids)
 }
 
+// A locked wallet must not report funding, nor persist it.
+func TestCheckChequeFunding_WalletLocked(t *testing.T) {
+	t.Parallel()
+	db := database.Test(t)
+
+	chequeAddr := "tb1qlockedtestaddr000000000000000000000000"
+
+	cli := walletv1connect.NewWalletServiceClient(
+		apitests.API(t, db, apitests.WithOrchestrator(&fakeOrchestrator{
+			address: chequeAddr,
+			utxos: []*orchpb.AddressUnspentOutput{
+				{
+					Txid:          "10ck000010ck000010ck000010ck000010ck000010ck000010ck000010ck0000",
+					Vout:          0,
+					ValueSats:     100_000_000,
+					Confirmations: 1,
+				},
+			},
+		})),
+	)
+
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, chequeAddr)
+	require.NoError(t, err)
+
+	_, err = cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	_, err = cli.CheckChequeFunding(context.Background(), connect.NewRequest(&walletv1.CheckChequeFundingRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+	cheque, err := cheques.Get(context.Background(), db, testWalletID, chequeID)
+	require.NoError(t, err)
+	require.Nil(t, cheque.FundedAt)
+	require.Empty(t, cheque.FundedTxids)
+}
+
 // With no orchestrator wired — regtest, or any dev setup without an electrum
 // endpoint — cheques must fall back to Bitcoin Core's watch-only wallet.
 func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
@@ -314,4 +357,45 @@ func TestCheckChequeFunding_NeedsElectrum(t *testing.T) {
 		Id:       chequeID,
 	}))
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+}
+
+// Core's bumpfee evicts the sweep transaction, so a cheque swept by the old
+// txid has to end up pointing at the replacement.
+func TestBumpFee_RepointsSweptCheque(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	db := database.Test(t)
+
+	oldTxid := "1111000011110000111100001111000011110000111100001111000011110000"
+	newTxid := "2222000022220000222200002222000022220000222200002222000022220000"
+
+	// BumpFee walks the loaded wallets, so Core has to report one.
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	mockBitcoind.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+			Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{"test_wallet"}},
+		}, nil).
+		AnyTimes()
+	mockBitcoind.EXPECT().
+		BumpFee(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.BumpFeeResponse]{
+			Msg: &bitcoindv1alpha.BumpFeeResponse{Txid: newTxid, OriginalFee: 0.0001, NewFee: 0.0002},
+		}, nil)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qbumpfeetestaddr0000000000000000000000000")
+	require.NoError(t, err)
+	require.NoError(t, cheques.UpdateSwept(context.Background(), db, testWalletID, chequeID, oldTxid))
+
+	resp, err := cli.BumpFee(context.Background(), connect.NewRequest(&walletv1.BumpFeeRequest{Txid: oldTxid}))
+	require.NoError(t, err)
+	require.Equal(t, newTxid, resp.Msg.Txid)
+
+	persisted, err := cheques.Get(context.Background(), db, testWalletID, chequeID)
+	require.NoError(t, err)
+	require.NotNil(t, persisted.SweptTxid)
+	require.Equal(t, newTxid, *persisted.SweptTxid, "the cheque must follow the replacement")
 }

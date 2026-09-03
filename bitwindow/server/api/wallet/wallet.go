@@ -203,6 +203,19 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}), nil
 	}
 
+	// Core's send RPC has no absolute fee field, only a rate, so an exact fee
+	// has to go through the raw transaction path.
+	if c.Msg.FixedFeeSats > 0 {
+		txid, err := engines.SendCoreWithFixedFee(ctx, bitcoind, coreWalletName, c.Msg.Destinations, c.Msg.FixedFeeSats)
+		if err != nil {
+			return nil, err
+		}
+		log.Info().Msgf("send tx: broadcast transaction with fixed fee (Bitcoin Core): %s", txid)
+		return connect.NewResponse(&pb.SendTransactionResponse{
+			Txid: txid,
+		}), nil
+	}
+
 	sendReq := &corepb.SendRequest{
 		Destinations: destinations,
 		Wallet:       coreWalletName,
@@ -539,6 +552,10 @@ func (s *Server) GetBalance(ctx context.Context, c *connect.Request[pb.GetBalanc
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
 	switch walletType {
@@ -1170,7 +1187,7 @@ func (s *Server) listUnspentBitcoinCore(ctx context.Context, walletId string, ge
 		return nil, fmt.Errorf("bitcoin Core list unspent: %w", err)
 	}
 
-	denials, err := deniability.List(ctx, s.database)
+	denials, err := deniability.List(ctx, s.database, deniability.WithWalletID(walletId))
 	if err != nil {
 		return nil, fmt.Errorf("bitcoin core: could not list denials: %w", err)
 	}
@@ -1277,6 +1294,11 @@ func (s *Server) denialToProtoCore(txid string, vout int32, d deniability.Denial
 func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb.ListReceiveAddressesRequest]) (*connect.Response[pb.ListReceiveAddressesResponse], error) {
 	walletId := c.Msg.WalletId
 
+	// Addresses and their balances are wallet state, so the wallet has to be unlocked
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	// Bitcoin Core version
 	coreWalletName, err := s.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
 	if err != nil {
@@ -1343,6 +1365,11 @@ func (s *Server) ListReceiveAddresses(ctx context.Context, c *connect.Request[pb
 // GetStats implements walletv1connect.WalletServiceHandler.
 func (s *Server) GetStats(ctx context.Context, c *connect.Request[pb.GetStatsRequest]) (*connect.Response[pb.GetStatsResponse], error) {
 	walletId := c.Msg.WalletId
+
+	// The stats aggregate wallet history, so the wallet has to be unlocked
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
 
 	// Bitcoin Core version
 	// Get UTXOs
@@ -1521,6 +1548,10 @@ func (s *Server) GetCheque(ctx context.Context, c *connect.Request[pb.GetChequeR
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -1579,6 +1610,10 @@ func (s *Server) ListCheques(ctx context.Context, c *connect.Request[pb.ListCheq
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	chequeList, err := cheques.List(ctx, s.database, walletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list cheques: %w", err))
@@ -1604,6 +1639,10 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
 	cheque, err := cheques.Get(ctx, s.database, walletId, c.Msg.Id)
@@ -1840,6 +1879,10 @@ func (s *Server) DeleteCheque(ctx context.Context, c *connect.Request[pb.DeleteC
 	_, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
 		return nil, fmt.Errorf("get wallet type: %w", err)
+	}
+
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
 	}
 
 	// Check if cheque exists
@@ -2137,6 +2180,10 @@ func (s *Server) GetUTXODistribution(ctx context.Context, c *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get wallet type: %w", err))
 	}
 
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	// Simple label getter since we don't need labels for distribution
 	getLabel := func(addr string) string { return "" }
 
@@ -2353,6 +2400,15 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 		Float64("original_fee", bumpResp.Msg.OriginalFee).
 		Float64("new_fee", bumpResp.Msg.NewFee).
 		Msg("RBF transaction broadcast via Core bumpfee")
+
+	// The replacement evicts the old txid, so a cheque swept by it must follow.
+	rebound, err := cheques.ReplaceSweptTxid(ctx, s.database, txid, bumpResp.Msg.Txid)
+	if err != nil {
+		// The bump already broadcast, so don't fail the call over bookkeeping.
+		log.Warn().Err(err).Msg("failed to point swept cheques at the replacement txid")
+	} else if rebound > 0 {
+		log.Info().Int64("cheques", rebound).Msg("pointed swept cheques at the replacement txid")
+	}
 
 	return connect.NewResponse(&pb.BumpFeeResponse{
 		Txid:        bumpResp.Msg.Txid,

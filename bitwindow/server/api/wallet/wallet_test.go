@@ -150,6 +150,38 @@ func TestService_ListCheques(t *testing.T) {
 		require.NoError(t, err)
 		require.Empty(t, resp.Msg.Cheques)
 	})
+
+	// Cheque rows are wallet-derived data: addresses and amounts must not be
+	// readable once the wallet is locked.
+	t.Run("locked wallet returns failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.ListCheques(context.Background(), connect.NewRequest(&walletv1.ListChequesRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
 }
 
 func TestService_GetCheque(t *testing.T) {
@@ -183,6 +215,42 @@ func TestService_GetCheque(t *testing.T) {
 		// A non-existent cheque must surface as NotFound, not a leaked
 		// "no rows" internal error.
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	})
+
+	t.Run("locked wallet cannot read a cheque", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		db := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		mockBitcoind.EXPECT().
+			ListWallets(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+				Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+			}, nil).AnyTimes()
+		mockBitcoind.EXPECT().
+			CreateWallet(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+				Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
+			}, nil).AnyTimes()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qlockedcheque00000000000000000000000000000")
+		require.NoError(t, err)
+
+		_, err = cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		// A cheque address is derived from the seed, so a locked wallet must
+		// not hand it out.
+		_, err = cli.GetCheque(context.Background(), connect.NewRequest(&walletv1.GetChequeRequest{
+			WalletId: testWalletID,
+			Id:       chequeID,
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 }
 
@@ -320,6 +388,46 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 	})
 }
 
+// A locked wallet must not be able to drop a cheque row: the row is the only
+// record of the derivation index that address belongs to.
+func TestService_DeleteChequeRequiresUnlockedWallet(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	db := database.Test(t)
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	mockBitcoind.EXPECT().
+		ListWallets(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.ListWalletsResponse]{
+			Msg: &bitcoindv1alpha.ListWalletsResponse{Wallets: []string{}},
+		}, nil).AnyTimes()
+	mockBitcoind.EXPECT().
+		CreateWallet(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[bitcoindv1alpha.CreateWalletResponse]{
+			Msg: &bitcoindv1alpha.CreateWalletResponse{Name: "test_wallet"},
+		}, nil).AnyTimes()
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db, apitests.WithBitcoind(mockBitcoind)))
+
+	// Unfunded and unswept, so only the lock can stop the delete.
+	chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qlockeddelete00000000000000000000000000000")
+	require.NoError(t, err)
+
+	_, err = cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
+		WalletId: testWalletID,
+		Id:       chequeID,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+	_, err = cheques.Get(context.Background(), db, testWalletID, chequeID)
+	require.NoError(t, err)
+}
+
 func TestService_IsWalletUnlocked(t *testing.T) {
 	t.Parallel()
 
@@ -378,6 +486,52 @@ func TestService_LockWallet(t *testing.T) {
 	})
 }
 
+func TestService_ListReceiveAddresses(t *testing.T) {
+	t.Parallel()
+
+	t.Run("locked wallet returns no addresses", func(t *testing.T) {
+		t.Parallel()
+
+		database := database.Test(t)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.ListReceiveAddresses(context.Background(), connect.NewRequest(&walletv1.ListReceiveAddressesRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+}
+
+func TestService_GetStats(t *testing.T) {
+	t.Parallel()
+
+	t.Run("locked wallet returns failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.GetStats(context.Background(), connect.NewRequest(&walletv1.GetStatsRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	})
+}
+
 func TestService_UnlockWallet(t *testing.T) {
 	t.Parallel()
 
@@ -407,6 +561,32 @@ func TestService_UnlockWallet(t *testing.T) {
 		}))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "not encrypted")
+	})
+}
+
+// The distribution buckets carry outpoints, so a locked wallet must not answer.
+func TestService_GetUTXODistribution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("locked wallet returns failed precondition", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.GetUTXODistribution(context.Background(), connect.NewRequest(&walletv1.GetUTXODistributionRequest{
+			WalletId: testWalletID,
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
 }
 
