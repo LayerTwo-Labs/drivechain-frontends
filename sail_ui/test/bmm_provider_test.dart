@@ -18,6 +18,7 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
   int manualBids = 0;
   int? lastMaxBid;
   String? lastWalletId;
+  bool? lastCapToBlockWorth;
   Object? throwOnStart;
 
   void emit(bmmpb.WatchResponse state) => _controller.add(state);
@@ -30,6 +31,7 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
     required BinaryType sidechain,
     required int maxBidSats,
     String? walletId,
+    bool capToBlockWorth = false,
   }) async {
     if (throwOnStart != null) {
       throw throwOnStart!;
@@ -37,6 +39,7 @@ class _FakeBmmRPC implements OrchestratorBmmRPC {
     startCalls++;
     lastMaxBid = maxBidSats;
     lastWalletId = walletId;
+    lastCapToBlockWorth = capToBlockWorth;
   }
 
   @override

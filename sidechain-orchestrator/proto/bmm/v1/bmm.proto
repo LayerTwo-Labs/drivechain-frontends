@@ -44,11 +44,14 @@ message StartRequest {
   // The opening bid comes from Core's next block estimate, so the caller
   // sets no floor of its own.
   reserved 2;
-  // Ceiling for raises. A bid is never raised above this, nor above what the
-  // block is worth, since either loses money.
+  // Ceiling for raises. A bid never goes above this.
   int64 max_bid_sats = 3;
   // Wallet that funds every bid. Empty uses the active wallet.
   string wallet_id = 4;
+  // Hold every bid at or under what the block collects in fees. A chain whose
+  // blocks carry few fees then bids almost nothing, and every competitor wins,
+  // so this is off unless the operator asks for it.
+  bool cap_to_block_worth = 5;
 }
 
 message StartResponse {}

@@ -20,16 +20,21 @@ class OrchestratorBmmRPC {
 
   /// Bid on every new mainchain tip until [stop], raising toward [maxBidSats]
   /// when a competitor outbids us.
+  ///
+  /// [capToBlockWorth] holds every bid at or under what the block collects in
+  /// fees. A chain with cheap blocks then loses every round, so it is off.
   Future<void> start({
     required BinaryType sidechain,
     required int maxBidSats,
     String? walletId,
+    bool capToBlockWorth = false,
   }) async {
     await _unaryClient.start(
       bmmpb.StartRequest(
         sidechain: sidechain,
         walletId: walletId ?? '',
         maxBidSats: Int64(maxBidSats),
+        capToBlockWorth: capToBlockWorth,
       ),
     );
   }

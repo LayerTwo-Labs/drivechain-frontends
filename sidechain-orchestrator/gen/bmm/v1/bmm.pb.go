@@ -25,13 +25,16 @@ const (
 type StartRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Sidechain v1.BinaryType          `protobuf:"varint,1,opt,name=sidechain,proto3,enum=orchestrator.v1.BinaryType" json:"sidechain,omitempty"`
-	// Ceiling for raises. A bid is never raised above this, nor above what the
-	// block is worth, since either loses money.
+	// Ceiling for raises. A bid never goes above this.
 	MaxBidSats int64 `protobuf:"varint,3,opt,name=max_bid_sats,json=maxBidSats,proto3" json:"max_bid_sats,omitempty"`
 	// Wallet that funds every bid. Empty uses the active wallet.
-	WalletId      string `protobuf:"bytes,4,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	WalletId string `protobuf:"bytes,4,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	// Hold every bid at or under what the block collects in fees. A chain whose
+	// blocks carry few fees then bids almost nothing, and every competitor wins,
+	// so this is off unless the operator asks for it.
+	CapToBlockWorth bool `protobuf:"varint,5,opt,name=cap_to_block_worth,json=capToBlockWorth,proto3" json:"cap_to_block_worth,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *StartRequest) Reset() {
@@ -83,6 +86,13 @@ func (x *StartRequest) GetWalletId() string {
 		return x.WalletId
 	}
 	return ""
+}
+
+func (x *StartRequest) GetCapToBlockWorth() bool {
+	if x != nil {
+		return x.CapToBlockWorth
+	}
+	return false
 }
 
 type StartResponse struct {
@@ -1196,12 +1206,13 @@ var File_bmm_v1_bmm_proto protoreflect.FileDescriptor
 
 const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\n" +
-	"\x10bmm/v1/bmm.proto\x12\x06bmm.v1\x1a\"orchestrator/v1/orchestrator.proto\"\x8e\x01\n" +
+	"\x10bmm/v1/bmm.proto\x12\x06bmm.v1\x1a\"orchestrator/v1/orchestrator.proto\"\xbb\x01\n" +
 	"\fStartRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12 \n" +
 	"\fmax_bid_sats\x18\x03 \x01(\x03R\n" +
 	"maxBidSats\x12\x1b\n" +
-	"\twallet_id\x18\x04 \x01(\tR\bwalletIdJ\x04\b\x02\x10\x03\"\x0f\n" +
+	"\twallet_id\x18\x04 \x01(\tR\bwalletId\x12+\n" +
+	"\x12cap_to_block_worth\x18\x05 \x01(\bR\x0fcapToBlockWorthJ\x04\b\x02\x10\x03\"\x0f\n" +
 	"\rStartResponse\"H\n" +
 	"\vStopRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\"\x0e\n" +

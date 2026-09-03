@@ -20,6 +20,7 @@ const StartRequest$json = {
     {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
     {'1': 'max_bid_sats', '3': 3, '4': 1, '5': 3, '10': 'maxBidSats'},
     {'1': 'wallet_id', '3': 4, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'cap_to_block_worth', '3': 5, '4': 1, '5': 8, '10': 'capToBlockWorth'},
   ],
   '9': [
     {'1': 2, '2': 3},
@@ -30,7 +31,8 @@ const StartRequest$json = {
 final $typed_data.Uint8List startRequestDescriptor = $convert.base64Decode(
     'CgxTdGFydFJlcXVlc3QSOQoJc2lkZWNoYWluGAEgASgOMhsub3JjaGVzdHJhdG9yLnYxLkJpbm'
     'FyeVR5cGVSCXNpZGVjaGFpbhIgCgxtYXhfYmlkX3NhdHMYAyABKANSCm1heEJpZFNhdHMSGwoJ'
-    'd2FsbGV0X2lkGAQgASgJUgh3YWxsZXRJZEoECAIQAw==');
+    'd2FsbGV0X2lkGAQgASgJUgh3YWxsZXRJZBIrChJjYXBfdG9fYmxvY2tfd29ydGgYBSABKAhSD2'
+    'NhcFRvQmxvY2tXb3J0aEoECAIQAw==');
 
 @$core.Deprecated('Use startResponseDescriptor instead')
 const StartResponse$json = {

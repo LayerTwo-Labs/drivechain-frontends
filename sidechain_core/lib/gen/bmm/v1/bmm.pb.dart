@@ -22,6 +22,7 @@ class StartRequest extends $pb.GeneratedMessage {
     $3.BinaryType? sidechain,
     $fixnum.Int64? maxBidSats,
     $core.String? walletId,
+    $core.bool? capToBlockWorth,
   }) {
     final $result = create();
     if (sidechain != null) {
@@ -33,6 +34,9 @@ class StartRequest extends $pb.GeneratedMessage {
     if (walletId != null) {
       $result.walletId = walletId;
     }
+    if (capToBlockWorth != null) {
+      $result.capToBlockWorth = capToBlockWorth;
+    }
     return $result;
   }
   StartRequest._() : super();
@@ -43,6 +47,7 @@ class StartRequest extends $pb.GeneratedMessage {
     ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
     ..aInt64(3, _omitFieldNames ? '' : 'maxBidSats')
     ..aOS(4, _omitFieldNames ? '' : 'walletId')
+    ..aOB(5, _omitFieldNames ? '' : 'capToBlockWorth')
     ..hasRequiredFields = false
   ;
 
@@ -76,8 +81,7 @@ class StartRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearSidechain() => clearField(1);
 
-  /// Ceiling for raises. A bid is never raised above this, nor above what the
-  /// block is worth, since either loses money.
+  /// Ceiling for raises. A bid never goes above this.
   @$pb.TagNumber(3)
   $fixnum.Int64 get maxBidSats => $_getI64(1);
   @$pb.TagNumber(3)
@@ -96,6 +100,18 @@ class StartRequest extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(2);
   @$pb.TagNumber(4)
   void clearWalletId() => clearField(4);
+
+  /// Hold every bid at or under what the block collects in fees. A chain whose
+  /// blocks carry few fees then bids almost nothing, and every competitor wins,
+  /// so this is off unless the operator asks for it.
+  @$pb.TagNumber(5)
+  $core.bool get capToBlockWorth => $_getBF(3);
+  @$pb.TagNumber(5)
+  set capToBlockWorth($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasCapToBlockWorth() => $_has(3);
+  @$pb.TagNumber(5)
+  void clearCapToBlockWorth() => clearField(5);
 }
 
 class StartResponse extends $pb.GeneratedMessage {
