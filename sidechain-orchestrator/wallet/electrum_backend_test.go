@@ -2881,3 +2881,76 @@ func TestElectrumBumpFeeWritesOneHistoryRowPerAddress(t *testing.T) {
 		}
 	}
 }
+
+// A replacement pins the inputs of the transaction it replaces. That
+// unconfirmed transaction already spends them, so the UTXO scan does not carry
+// them and coin selection has to read the output back off the chain.
+func TestElectrumSendSpendsAPinnedInputTheScanDropped(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const pinned = "2222222222222222222222222222222222222222222222222222222222222222"
+
+	// The wallet holds one confirmed coin, which a replaced transaction spends.
+	// The scan therefore reports no UTXOs at all.
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = nil
+	fake.txByID[pinned] = EsploraTx{
+		TxID:   pinned,
+		Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 200_000}},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	txid, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+		RequiredInputs:   []RequiredInput{{TxID: pinned, Vout: 0}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "broadcasttxid", txid)
+	require.Len(t, fake.broadcast, 1)
+
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	require.Len(t, tx.TxIn, 1)
+	assert.Equal(t, pinned, tx.TxIn[0].PreviousOutPoint.Hash.String(),
+		"the replacement respends the pinned input")
+	assert.NotEmpty(t, tx.TxIn[0].Witness, "the wallet signs the pinned input")
+}
+
+// A pinned input the wallet does not own cannot be signed, so selection must
+// refuse it rather than build a transaction that can never be broadcast.
+func TestElectrumSendRefusesAForeignPinnedInput(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const pinned = "3333333333333333333333333333333333333333333333333333333333333333"
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = nil
+	fake.txByID[pinned] = EsploraTx{
+		TxID:   pinned,
+		Vout:   []EsploraVout{{ScriptPubKeyAddress: "tb1qsomeoneelseaddressxxxxxxxxxxxxxxxxxxxxx", Value: 200_000}},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+		RequiredInputs:   []RequiredInput{{TxID: pinned, Vout: 0}},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "belongs to another wallet")
+	assert.Empty(t, fake.broadcast)
+}
