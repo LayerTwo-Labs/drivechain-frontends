@@ -58,8 +58,8 @@ func prepareArgs(t *testing.T, orch *Orchestrator, cfg BinaryConfig, opts *Start
 func TestPrepareSidechainArgsPassesTheConf(t *testing.T) {
 	orch := thunderOrchestrator(t, map[string]string{
 		"headless":           "true",
-		"net-addr":           "0.0.0.0:4009",
-		"rpc-addr":           "127.0.0.1:6009",
+		"net-addr":           "0.0.0.0:34009",
+		"rpc-addr":           "127.0.0.1:36009",
 		"mainchain-grpc-url": "http://localhost:50051",
 		"network":            "signet",
 	})
@@ -68,7 +68,7 @@ func TestPrepareSidechainArgsPassesTheConf(t *testing.T) {
 	prepareArgs(t, orch, BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
 
 	want := []string{
-		"--net-addr=0.0.0.0:4009",
+		"--net-addr=0.0.0.0:34009",
 		"--mainchain-grpc-url=http://localhost:50051",
 		"--network=signet",
 	}
