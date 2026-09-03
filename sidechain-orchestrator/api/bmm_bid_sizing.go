@@ -46,3 +46,24 @@ func bidSizing(in bidInput) (sats int64, byRate bool) {
 	}
 	return sats, sats <= 0 && in.rateSatVb > 0
 }
+
+// replacementBumpSats is the margin a replacement adds over the fees it evicts.
+// A replacement that only matches them fails the incremental relay rule.
+const replacementBumpSats = 1000
+
+// replacementBid raises a sized bid so it clears every fee it has to evict.
+// The mempool counts the replaced transaction and its descendants together, so
+// a long chain of stranded bids costs the sum of all of them.
+//
+// It reports false when that floor is over the ceiling the operator set,
+// because a bid under the floor never enters the mempool and only burns a
+// round.
+func replacementBid(sizedSats, floorSats, maxBidSats int64) (sats int64, ok bool) {
+	if maxBidSats > 0 && floorSats > maxBidSats {
+		return 0, false
+	}
+	if floorSats > sizedSats {
+		return floorSats, true
+	}
+	return sizedSats, true
+}
