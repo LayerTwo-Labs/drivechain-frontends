@@ -841,6 +841,41 @@ class SendPageViewModel extends BaseViewModel {
     }
   }
 
+  /// The inputs this send pins, so the backend funds from them alone.
+  List<UnspentOutput> get _sendInputs => unfrozenInputs(
+    selected: selectedUtxos,
+    allUtxos: allUtxos,
+    frozenOutpoints: frozenOutpoints,
+    targetSats: _sendTotalSats,
+    formatSats: (sats) => formatBitcoinWithUnit(satoshiToBTC(sats), currentUnit),
+  );
+
+  /// The inputs a send must name to keep a frozen coin out of it: the backend
+  /// knows nothing of bitwindow's freezes, so it funds from every coin unless
+  /// the send picks its own. A coin the user picked stays in, frozen or not.
+  /// Throws [InsufficientFundsException] when the unfrozen coins fall short.
+  static List<UnspentOutput> unfrozenInputs({
+    required List<UnspentOutput> selected,
+    required List<UnspentOutput> allUtxos,
+    required Set<String> frozenOutpoints,
+    required int targetSats,
+    required String Function(int) formatSats,
+  }) {
+    if (!allUtxos.any((u) => frozenOutpoints.contains(u.output))) {
+      return selected;
+    }
+    return CoinSelector.select(
+      allUtxos: allUtxos,
+      frozenOutpoints: frozenOutpoints,
+      // The fee is fixed and already inside the target, so the selector adds
+      // none of its own — the same target the backend fills to.
+      targetSats: targetSats,
+      feeSatsPerVbyte: 0,
+      formatSats: formatSats,
+      requiredUtxos: selected,
+    ).inputs;
+  }
+
   Future<void> sendTransaction(BuildContext context) async {
     final plan = await askReplayProtect(context);
     if (plan == null || !context.mounted) {
@@ -903,7 +938,7 @@ class SendPageViewModel extends BaseViewModel {
         destinations: destinations,
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
-        requiredInputs: selectedUtxos,
+        requiredInputs: _sendInputs,
         allowReplay: allowReplay,
       )).txid;
       if (plan.risky && allowReplay) {
@@ -1010,7 +1045,7 @@ class SendPageViewModel extends BaseViewModel {
         destinations: destinations,
         fixedFeeSats: feeSats,
         subtractFeeFromAmount: _subtractFeeFromAmount,
-        requiredInputs: selectedUtxos,
+        requiredInputs: _sendInputs,
         allowReplay: allowReplay,
       );
     } catch (error) {
