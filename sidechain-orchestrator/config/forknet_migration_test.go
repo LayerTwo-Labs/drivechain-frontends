@@ -122,3 +122,22 @@ func TestPrivateECashConfIsAdopted(t *testing.T) {
 	require.True(t, m.HasPrivateConf)
 	require.Equal(t, private, m.GetConfFilePath())
 }
+
+// A forknet install that once ran signet recorded a directory for the default
+// group. Signet must land back in it, rather than start an empty node in the
+// platform default and sync the chain again.
+func TestMigrationGivesBackTheSavedDefaultDatadir(t *testing.T) {
+	config := ParseBitcoinConfig(`# bitwindow-bitcoin-conf-version=11
+# bitwindow-datadir-default=/chosen/path
+chain=main
+datadir=/vol/forknet-chain
+
+[main]
+drivechain=1
+`)
+
+	RunBitcoinConfMigrations(config)
+
+	require.Equal(t, NetworkSignet, NetworkFromConfig(config, NetworkSignet))
+	require.Equal(t, "/chosen/path", config.GetSetting("datadir"))
+}
