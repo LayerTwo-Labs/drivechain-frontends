@@ -947,10 +947,19 @@ func createSidechainCommands() []*cli.Command {
 		createGenericSidechainCommand("bitnames", newBitnamesClient),
 		createGenericSidechainCommand("coinshift", newCoinshiftClient),
 		createGenericSidechainCommand("photon", newPhotonClient),
-		createGenericSidechainCommand("thunder", newThunderClient),
+		thunderCommand(),
 		createGenericSidechainCommand("truthcoin", newTruthcoinClient),
 		createGenericSidechainCommand("zside", newZsideClient),
 	}
+}
+
+// thunderCommand adds the reads only thunder answers today: an address to
+// receive on, and the transactions that touched the wallet.
+func thunderCommand() *cli.Command {
+	cmd := createGenericSidechainCommand("thunder", newThunderClient)
+	cmd.Subcommands = append(cmd.Subcommands,
+		thunderAddressCommand, thunderTransactionsCommand)
+	return cmd
 }
 
 // SidechainClient interface for all sidechain RPC clients
