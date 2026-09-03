@@ -1770,7 +1770,7 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		return
 	}
 
-	o.dialThunderSeed(ctx, config)
+	go o.dialThunderSeed(ctx, config)
 
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
 }
@@ -1779,8 +1779,10 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 // so a node that starts reaches nobody without this one.
 const alphanetThunderSeed = "204.168.254.113:4009"
 
-// dialThunderSeed asks thunder to connect to the alphanet seed. The chain
-// answers its RPC by this point.
+// enforcerSyncPoll is how often the seed dial re-reads the sync status.
+const enforcerSyncPoll = 5 * time.Second
+
+// dialThunderSeed asks thunder to connect to the alphanet seed.
 //
 // A refused address leaves the chain running: the node keeps the address and
 // retries it on its own.
@@ -1788,12 +1790,63 @@ func (o *Orchestrator) dialThunderSeed(ctx context.Context, config BinaryConfig)
 	if config.Name != "thunder" || o.Network != "ecash" {
 		return
 	}
-	proxy := sidechain.NewJSONRPCProxy(config.RPCHost(), config.Port)
-	if err := proxy.Client.Call(ctx, "connect_peer", []any{alphanetThunderSeed}, nil); err != nil {
-		o.log.Warn().Err(err).Str("peer", alphanetThunderSeed).Msg("could not reach the alphanet seed")
+	gen := o.shutdownGen.Load()
+	dialCtx := seedDialContext(ctx)
+	dialSeedWhenSynced(dialCtx, o.log, config, enforcerSyncPoll,
+		func() bool {
+			status, err := o.GetSyncStatus(dialCtx)
+			return err == nil && enforcerAtTip(status.Enforcer)
+		},
+		func() bool { return o.shutdownGen.Load() != gen },
+	)
+}
+
+// seedDialContext detaches the dial from the call that started the chain. A
+// data reset cancels each item's context as soon as the binary answers, and the
+// enforcer reaches its tip after that. The next drain ends the wait instead.
+func seedDialContext(ctx context.Context) context.Context {
+	return context.WithoutCancel(ctx)
+}
+
+// dialSeedWhenSynced holds the dial until synced answers true. Thunder asks its
+// enforcer for the mainchain ancestors of the peer's tip on the first exchange.
+// A peer that gets no answer stays connected and asks for nothing more.
+func dialSeedWhenSynced(
+	ctx context.Context, log zerolog.Logger, config BinaryConfig, every time.Duration, synced, giveUp func() bool,
+) {
+	if !waitUntil(ctx, every, synced, giveUp) {
+		log.Warn().Str("peer", alphanetThunderSeed).Msg("the enforcer never reached the tip, so nothing dialled the alphanet seed")
 		return
 	}
-	o.log.Info().Str("peer", alphanetThunderSeed).Msg("dialled the alphanet seed")
+	proxy := sidechain.NewJSONRPCProxy(config.RPCHost(), config.Port)
+	if err := proxy.Client.Call(ctx, "connect_peer", []any{alphanetThunderSeed}, nil); err != nil {
+		log.Warn().Err(err).Str("peer", alphanetThunderSeed).Msg("could not reach the alphanet seed")
+		return
+	}
+	log.Info().Str("peer", alphanetThunderSeed).Msg("dialled the alphanet seed")
+}
+
+// waitUntil calls ready every interval until it answers true. It stops when ctx
+// ends, or when giveUp answers true.
+func waitUntil(ctx context.Context, every time.Duration, ready, giveUp func() bool) bool {
+	for {
+		if giveUp() {
+			return false
+		}
+		if ready() {
+			return true
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(every):
+		}
+	}
+}
+
+// enforcerAtTip reports whether the enforcer holds every block it knows about.
+func enforcerAtTip(r *ChainSyncResult) bool {
+	return r != nil && r.Error == "" && r.Headers > 0 && r.Blocks == r.Headers
 }
 
 // RegisterLightWallet records how to ask whether a chain reads a remote index.
