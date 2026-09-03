@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47send"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/walletfile"
 	"github.com/btcsuite/btcd/chaincfg"
 
@@ -2106,14 +2105,12 @@ func (s *Service) StarterWalletID() string {
 func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
 	// eCash runs on mainnet params, so a string compare against
 	// mainnet reads their coin type as 1 and skips the companion they need.
-	net, err := bip47send.NetworkParams(s.network)
-	if err != nil {
-		// Testnet params here read the coin type as 1, which is the answer this
-		// function exists to avoid. The daemon refuses an unknown network at
-		// startup, so this cannot happen.
-		panic(fmt.Sprintf("unknown network %q: %v", s.network, err))
+	n, known := config.LookupNetwork(s.network)
+	if !known {
+		// The daemon refuses an unknown network at startup, so this cannot happen.
+		panic(fmt.Sprintf("unknown network %q", s.network))
 	}
-	ap, err := accountPathFor(w, walletReceiveKind(w), net)
+	ap, err := accountPathFor(w, walletReceiveKind(w), config.ChainParamsFor(n))
 	if err != nil {
 		return false
 	}

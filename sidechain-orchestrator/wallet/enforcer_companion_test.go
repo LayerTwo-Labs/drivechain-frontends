@@ -48,6 +48,14 @@ func TestNoCompanionWhereTheEnforcerAccountIsStandard(t *testing.T) {
 	assert.Len(t, svc.GetAllWallets(), 1, "the wallet already looks where the coins are")
 }
 
+// Testnet's coin type is also 1, so the enforcer's account is standard there
+// too. Reading the network off a map of the networks BIP47 sends support
+// instead panicked the daemon before it ever finished starting.
+func TestNoCompanionOnTestnet(t *testing.T) {
+	svc := loadEnforcerWallet(t, config.NetworkTestnet, "")
+	assert.Len(t, svc.GetAllWallets(), 1, "the wallet already looks where the coins are")
+}
+
 // On mainnet the enforcer's coin type 1 is not the standard account, so its
 // coins live in a tree the wallet would never scan.
 func TestCompanionOnMainnetWhereTheAccountDiffers(t *testing.T) {

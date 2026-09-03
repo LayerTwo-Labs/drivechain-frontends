@@ -209,8 +209,8 @@ type SubstituteResult struct {
 	// by a derived per-payment address. Identity to the input when no BIP47
 	// code is present.
 	Destinations map[string]int64
-	// RecipientCode is the BIP47 code of the recipient, or "" when no BIP47
-	// destination was found.
+	// RecipientCode is the recipient's canonical BIP47 code, or "" when no
+	// BIP47 destination was found.
 	RecipientCode string
 	// Recipient is the parsed payment code, nil when no BIP47 destination.
 	Recipient *bip47.PaymentCode
@@ -270,7 +270,11 @@ func SubstituteBip47Destination(
 		return nil, ErrSelfSend
 	}
 
-	idx, err := reserver.ReserveNextIndex(walletID, bip47Addr)
+	// Key persistent state on the code's canonical encoding, not on whatever
+	// string the caller passed, so one recipient always gets one counter.
+	recipientCode := recipient.Base58()
+
+	idx, err := reserver.ReserveNextIndex(walletID, recipientCode)
 	if err != nil {
 		return nil, fmt.Errorf("reserve next index: %w", err)
 	}
@@ -282,7 +286,7 @@ func SubstituteBip47Destination(
 
 	return &SubstituteResult{
 		Destinations:  map[string]int64{derived.EncodeAddress(): bip47Sats},
-		RecipientCode: bip47Addr,
+		RecipientCode: recipientCode,
 		Recipient:     recipient,
 		Index:         idx,
 		IsBip47:       true,
