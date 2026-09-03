@@ -56,7 +56,7 @@ abstract final class BitcoinConfService {
   );
 
   /// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
-  /// name (signet, mainnet, forknet, ecash, regtest).
+  /// name (signet, mainnet, ecash, regtest).
   static const setBitcoinConfigNetwork = connect.Spec(
     '/$name/SetBitcoinConfigNetwork',
     connect.StreamType.unary,

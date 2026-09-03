@@ -20,7 +20,6 @@ void main() {
   });
 
   test('a network with no colour of its own answers none', () {
-    expect(BitcoinNetwork.BITCOIN_NETWORK_FORKNET.toColor(), isNull);
     expect(BitcoinNetwork.BITCOIN_NETWORK_TESTNET.toColor(), isNull);
     expect(BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED.toColor(), isNull);
   });

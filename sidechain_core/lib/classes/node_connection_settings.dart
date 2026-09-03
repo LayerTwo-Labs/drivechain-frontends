@@ -43,7 +43,6 @@ class CoreConnectionSettings extends ChangeNotifier {
     // Use correct default port based on network
     final defaultPort = switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332,
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301,
       BitcoinNetwork.BITCOIN_NETWORK_ECASH => 18302,
       BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
@@ -152,12 +151,10 @@ CoreConnectionSettings readMainchainConf({BitcoinConfProvider? provider}) {
     final datadir = confProvider.detectedDataDir?.isNotEmpty == true
         ? confProvider.detectedDataDir!
         : BitcoinCore().rootDirNetwork(network);
-    // mainnet, forknet and eCash use root datadir, other networks use subdirs
+    // mainnet and eCash use root datadir, other networks use subdirs
     final networkDir = filePath([
       datadir,
-      (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-              network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-              network == BitcoinNetwork.BITCOIN_NETWORK_ECASH)
+      (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_ECASH)
           ? ''
           : network.toReadableNet(),
     ]);

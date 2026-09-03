@@ -63,9 +63,8 @@ class _NetworkPrefixes {
 
 _NetworkPrefixes _prefixesFor(BitcoinNetwork network) {
   return switch (network) {
-    // Forknet and eCash run on mainnet params.
+    // eCash runs on mainnet params.
     BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-    BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
     BitcoinNetwork.BITCOIN_NETWORK_ECASH => const _NetworkPrefixes(0x00, 0x05, 0x80, 'bc'),
     BitcoinNetwork.BITCOIN_NETWORK_REGTEST => const _NetworkPrefixes(0x6F, 0xC4, 0xEF, 'bcrt'),
     _ => const _NetworkPrefixes(0x6F, 0xC4, 0xEF, 'tb'),
