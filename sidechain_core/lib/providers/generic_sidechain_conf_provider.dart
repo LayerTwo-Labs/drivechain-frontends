@@ -42,6 +42,9 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
     }
   }
 
+  /// Keys the launch path records in the file but never passes to a daemon.
+  static const metadataKeys = ['config-version'];
+
   /// Override this to filter out keys that shouldn't be passed as CLI args
   List<String> get skippedCliKeys => [];
 
@@ -79,14 +82,14 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
   /// The network the sidechain follows. It comes from the mainchain conf, never
   /// from the sidechain file, so the two can never disagree.
   ///
-  /// Sidechains run on signet, regtest, forknet and eCash. Real mainnet has no
-  /// drivechain yet, and forknet and eCash share the mainnet port group.
+  /// Sidechains run on signet, regtest and eCash. Real mainnet has no
+  /// drivechain yet, and eCash uses the mainnet port group.
   String get network {
     final mainchain = GetIt.I.get<BitcoinConfProvider>().network;
     return switch (mainchain) {
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',
       BitcoinNetwork.BITCOIN_NETWORK_REGTEST => 'regtest',
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET || BitcoinNetwork.BITCOIN_NETWORK_ECASH => 'mainnet',
+      BitcoinNetwork.BITCOIN_NETWORK_ECASH => 'mainnet',
       _ => 'signet',
     };
   }
@@ -219,7 +222,7 @@ abstract class GenericSidechainConfProvider extends ChangeNotifier {
       final value = entry.value;
 
       // Skip keys that shouldn't be passed as CLI args
-      if (skippedCliKeys.contains(key)) {
+      if (skippedCliKeys.contains(key) || metadataKeys.contains(key)) {
         continue;
       }
 
