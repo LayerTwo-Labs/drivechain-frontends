@@ -2829,6 +2829,20 @@ func replacedChain(scan *electrumScan, required []RequiredInput) (string, []elec
 		})
 	}
 
+	// An output that another evicted transaction already spends is not a live
+	// coin. Counting it would drop the balance by its value a second time, so
+	// only the outputs the chain never spent belong in the delta.
+	spentInside := map[string]bool{}
+	forEachUnconfirmed(scan, func(tx EsploraTx) bool {
+		if !dead[tx.TxID] {
+			return false
+		}
+		for _, vin := range tx.Vin {
+			spentInside[fmt.Sprintf("%s:%d", vin.TxID, vin.Vout)] = true
+		}
+		return false
+	})
+
 	var evicted []electrumUTXO
 	seen := map[string]bool{}
 	forEachUnconfirmed(scan, func(tx EsploraTx) bool {
@@ -2837,7 +2851,7 @@ func replacedChain(scan *electrumScan, required []RequiredInput) (string, []elec
 		}
 		for i, out := range tx.Vout {
 			key := fmt.Sprintf("%s:%d", tx.TxID, i)
-			if seen[key] || !scan.owns(out.ScriptPubKeyAddress) {
+			if seen[key] || spentInside[key] || !scan.owns(out.ScriptPubKeyAddress) {
 				continue
 			}
 			seen[key] = true
