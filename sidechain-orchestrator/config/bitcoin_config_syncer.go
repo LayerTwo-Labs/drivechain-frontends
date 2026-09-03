@@ -23,16 +23,30 @@ type BitcoinConfMigration struct {
 	// SkipIfSet leaves a key that the config already carries alone, so a
 	// migration that only backfills a default never overwrites a user's value.
 	SkipIfSet bool
-	// Only limits the migration to a config it matches. A nil predicate runs
-	// the migration on every config below its version.
-	Only func(*BitcoinConfig) bool
-	// Remove lists the keys the migration drops, by section.
-	Remove map[string][]string
+	// Apply runs a migration that needs more than a key/value write. It
+	// reports whether it changed the config.
+	Apply func(*BitcoinConfig) bool
 }
 
 // isForknetConfig reports whether a config carries the signature the retired
 // forknet network wrote, which is the rule NetworkFromConfig read before the
 // network went away: a drivechain node on mainnet params that is not eCash.
+// moveForknetToSignet points a retired forknet install at signet, and gives it
+// back the directory the default group recorded. A forknet datadir belongs to
+// no network the app still runs.
+func moveForknetToSignet(config *BitcoinConfig) bool {
+	if !isForknetConfig(config) {
+		return false
+	}
+	config.SetSetting("chain", "signet")
+	if saved := config.GetGroupDatadir(DatadirGroupDefault); saved != "" {
+		config.SetSetting("datadir", saved)
+	} else {
+		config.RemoveSetting("datadir")
+	}
+	return true
+}
+
 func isForknetConfig(config *BitcoinConfig) bool {
 	switch strings.ToLower(config.GetSetting("chain")) {
 	case "main", "mainnet":
@@ -184,15 +198,7 @@ var bitcoinConfMigrations = []BitcoinConfMigration{
 		// Forknet is retired, and its conf says chain=main, so an unmigrated
 		// install would read as mainnet over a fork's chain directory.
 		Version: 12,
-		Only:    isForknetConfig,
-		Changes: map[string]map[string]string{
-			"": {
-				"chain": "signet",
-			},
-		},
-		Remove: map[string][]string{
-			"": {"datadir"},
-		},
+		Apply:   moveForknetToSignet,
 	},
 }
 
@@ -211,12 +217,10 @@ func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 		if m.Version <= config.ConfigVersion {
 			continue
 		}
-		if m.Only != nil && !m.Only(config) {
-			config.ConfigVersion = m.Version
-			migrated = true
-			continue
-		}
 		changed := false
+		if m.Apply != nil {
+			changed = m.Apply(config)
+		}
 		for section, settings := range m.Changes {
 			for key, value := range settings {
 				if m.SkipIfSet && config.GetSetting(key, section) != "" {
@@ -226,15 +230,6 @@ func RunBitcoinConfMigrations(config *BitcoinConfig) (bool, []Network) {
 					changed = true
 				}
 				config.SetSetting(key, value, section)
-			}
-		}
-		for section, keys := range m.Remove {
-			for _, key := range keys {
-				if config.GetSetting(key, section) == "" {
-					continue
-				}
-				config.RemoveSetting(key, section)
-				changed = true
 			}
 		}
 		if changed {
