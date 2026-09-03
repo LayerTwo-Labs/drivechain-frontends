@@ -96,3 +96,54 @@ func TestBidSizing(t *testing.T) {
 		})
 	}
 }
+
+// A replacement has to beat the fees of the transaction it evicts and every
+// descendant, so a chain of stranded bids costs the sum of all of them.
+func TestReplacementBid(t *testing.T) {
+	tests := []struct {
+		name        string
+		sized       int64
+		floor       int64
+		maxBid      int64
+		wantSats    int64
+		wantAllowed bool
+	}{
+		{
+			name:  "the sized bid already clears the floor",
+			sized: 80_000, floor: 53_000, maxBid: 100_000,
+			wantSats: 80_000, wantAllowed: true,
+		},
+		{
+			name:  "a 52 bid chain costs more than the rate alone",
+			sized: 10_000, floor: 53_000, maxBid: 100_000,
+			wantSats: 53_000, wantAllowed: true,
+		},
+		{
+			name:  "the floor is over the ceiling, so the round is refused",
+			sized: 10_000, floor: 150_000, maxBid: 100_000,
+			wantSats: 0, wantAllowed: false,
+		},
+		{
+			name:  "no ceiling lets the floor stand",
+			sized: 10_000, floor: 150_000, maxBid: 0,
+			wantSats: 150_000, wantAllowed: true,
+		},
+		{
+			name:  "nothing to evict leaves the sized bid alone",
+			sized: 10_000, floor: 0, maxBid: 100_000,
+			wantSats: 10_000, wantAllowed: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sats, ok := replacementBid(tt.sized, tt.floor, tt.maxBid)
+			if ok != tt.wantAllowed {
+				t.Fatalf("allowed = %v, want %v", ok, tt.wantAllowed)
+			}
+			if sats != tt.wantSats {
+				t.Errorf("sats = %d, want %d", sats, tt.wantSats)
+			}
+		})
+	}
+}

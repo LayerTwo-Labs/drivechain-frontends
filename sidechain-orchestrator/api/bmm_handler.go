@@ -304,6 +304,19 @@ func (h *BMMHandler) CreateBid(
 		if err != nil {
 			return nil, err
 		}
+		floorSats, err := h.replacementFloorSats(ctx, req.Msg.ReplaceTxid)
+		if err != nil {
+			return nil, err
+		}
+		raised, ok := replacementBid(bidSats, floorSats, req.Msg.MaxBidSats)
+		if !ok {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+				"replacing %s costs %d sats, over the %d sat ceiling",
+				req.Msg.ReplaceTxid, floorSats, req.Msg.MaxBidSats))
+		}
+		if raised != bidSats {
+			bidSats, byRate = raised, false
+		}
 	}
 
 	// The M8's OP_RETURN must be output 0 with no value, so the bid only
@@ -573,6 +586,29 @@ func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryC
 		)
 	}
 	return cfg, nil
+}
+
+// replacementFloorSats is the least a replacement can pay and still evict the
+// transaction it replaces. The mempool counts that transaction and every
+// descendant, and a replacement has to beat their total, so a long chain of
+// stranded bids costs the sum of all of them.
+//
+// A transaction the mempool no longer holds needs no floor at all.
+func (h *BMMHandler) replacementFloorSats(ctx context.Context, txid string) (int64, error) {
+	raw, err := h.coreCall(ctx, "getmempoolentry", fmt.Sprintf("[%q]", txid))
+	if err != nil {
+		return 0, nil
+	}
+	var entry struct {
+		Fees struct {
+			Descendant float64 `json:"descendant"`
+		} `json:"fees"`
+	}
+	if err := json.Unmarshal(raw, &entry); err != nil {
+		return 0, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("decode mempool entry %s: %w", txid, err))
+	}
+	return int64(math.Round(entry.Fees.Descendant*1e8)) + replacementBumpSats, nil
 }
 
 func (h *BMMHandler) bidInputs(ctx context.Context, txid string) ([]*wpb.UnspentOutput, error) {
