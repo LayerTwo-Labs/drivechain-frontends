@@ -38,11 +38,16 @@ type BMMHandler struct {
 	orch   *orchestrator.Orchestrator
 	wallet *WalletHandler
 	engine *engines.BmmEngine
+	// core reads bitcoind. A test supplies its own through SetCoreCaller.
+	core CoreRawCaller
 }
 
 func NewBMMHandler(orch *orchestrator.Orchestrator, wallet *WalletHandler) *BMMHandler {
 	return &BMMHandler{orch: orch, wallet: wallet}
 }
+
+// SetCoreCaller replaces the bitcoind seam.
+func (h *BMMHandler) SetCoreCaller(c CoreRawCaller) { h.core = c }
 
 // SetEngine wires the background bidder, which calls back into this handler.
 func (h *BMMHandler) SetEngine(engine *engines.BmmEngine) {
@@ -310,11 +315,14 @@ func (h *BMMHandler) CreateBid(
 	// bidding against it: only one M8 per slot can be accepted.
 	var requiredInputs []*wpb.UnspentOutput
 	if req.Msg.ReplaceTxid != "" {
-		requiredInputs, err = h.bidInputs(ctx, req.Msg.ReplaceTxid)
+		var roots []string
+		requiredInputs, roots, err = h.bidInputs(ctx, cfg.Slot, req.Msg.ReplaceTxid)
 		if err != nil {
 			return nil, err
 		}
-		floorSats, err := h.replacementFloorSats(ctx, req.Msg.ReplaceTxid)
+		// The replacement evicts every bid over those coins, so it pays more
+		// than all of them together.
+		floorSats, err := h.replacementFloorSats(ctx, roots)
 		if err != nil {
 			return nil, err
 		}
@@ -604,24 +612,96 @@ func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryC
 // stranded bids costs the sum of all of them.
 //
 // A transaction the mempool no longer holds needs no floor at all.
-func (h *BMMHandler) replacementFloorSats(ctx context.Context, txid string) (int64, error) {
-	raw, err := h.coreCall(ctx, "getmempoolentry", fmt.Sprintf("[%q]", txid))
-	if err != nil {
+func (h *BMMHandler) replacementFloorSats(ctx context.Context, roots []string) (int64, error) {
+	var total int64
+	for _, txid := range roots {
+		raw, err := h.coreCall(ctx, "getmempoolentry", fmt.Sprintf("[%q]", txid))
+		if err != nil {
+			continue
+		}
+		var entry struct {
+			Fees struct {
+				Descendant float64 `json:"descendant"`
+			} `json:"fees"`
+		}
+		if err := json.Unmarshal(raw, &entry); err != nil {
+			return 0, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("decode mempool entry %s: %w", txid, err))
+		}
+		total += int64(math.Round(entry.Fees.Descendant * 1e8))
+	}
+	// A node that deprioritised the chain reports a fee far below zero, and a
+	// replacement then beats it at any price.
+	if total <= 0 {
 		return 0, nil
 	}
-	var entry struct {
-		Fees struct {
-			Descendant float64 `json:"descendant"`
-		} `json:"fees"`
-	}
-	if err := json.Unmarshal(raw, &entry); err != nil {
-		return 0, connect.NewError(connect.CodeInternal,
-			fmt.Errorf("decode mempool entry %s: %w", txid, err))
-	}
-	return int64(math.Round(entry.Fees.Descendant*1e8)) + replacementBumpSats, nil
+	return total + replacementBumpSats, nil
 }
 
-func (h *BMMHandler) bidInputs(ctx context.Context, txid string) ([]*wpb.UnspentOutput, error) {
+// maxBidChain bounds the walk down a chain of stranded bids. A wallet that
+// stacks more than this names a loop, not a chain.
+const maxBidChain = 50
+
+// bidInputs names the coins a replacement respends to evict a stranded bid.
+//
+// A new bid takes the change of the bid before it, so one stranded bid can
+// carry a whole chain of stranded bids under it. Respending the top one leaves
+// the rest, and every one of them holds the chain unminable. So the walk goes
+// down while a parent is another bid for this slot, and it returns the coins a
+// block already carries. Spending those evicts the whole chain at one time.
+func (h *BMMHandler) bidInputs(
+	ctx context.Context, slot int, txid string,
+) (inputs []*wpb.UnspentOutput, roots []string, err error) {
+	var (
+		seen     = make(map[string]bool)
+		rootSeen = make(map[string]bool)
+	)
+
+	var walk func(txid string, depth int) error
+	walk = func(txid string, depth int) error {
+		if depth > maxBidChain {
+			return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+				"bid %s sits over more than %d unconfirmed bids", txid, maxBidChain))
+		}
+		spends, err := h.txInputs(ctx, txid)
+		if err != nil {
+			return err
+		}
+		for _, in := range spends {
+			key := fmt.Sprintf("%s:%d", in.Txid, in.Vout)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			if h.pendingBid(ctx, slot, in.Txid) {
+				if err := walk(in.Txid, depth+1); err != nil {
+					return err
+				}
+				continue
+			}
+			inputs = append(inputs, in)
+			// This bid holds a coin under the chain, so the mempool counts
+			// every bid above it as its descendant.
+			if !rootSeen[txid] {
+				rootSeen[txid] = true
+				roots = append(roots, txid)
+			}
+		}
+		return nil
+	}
+
+	if err := walk(txid, 0); err != nil {
+		return nil, nil, err
+	}
+	if len(inputs) == 0 {
+		return nil, nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("bid %s has no inputs to reuse", txid))
+	}
+	return inputs, roots, nil
+}
+
+// txInputs names the outpoints one transaction spends.
+func (h *BMMHandler) txInputs(ctx context.Context, txid string) ([]*wpb.UnspentOutput, error) {
 	raw, err := h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("read bid %s: %w", txid, err))
@@ -646,7 +726,37 @@ func (h *BMMHandler) bidInputs(ctx context.Context, txid string) ([]*wpb.Unspent
 	}), nil
 }
 
+// pendingBid says whether one transaction is an unconfirmed bid for this slot.
+// A read that fails stops the walk, because a coin the node cannot name is one
+// the replacement keeps.
+func (h *BMMHandler) pendingBid(ctx context.Context, slot int, txid string) bool {
+	raw, err := h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
+	if err != nil {
+		return false
+	}
+	var tx struct {
+		Confirmations int `json:"confirmations"`
+		Vout          []struct {
+			ScriptPubKey struct {
+				Hex string `json:"hex"`
+			} `json:"scriptPubKey"`
+		} `json:"vout"`
+	}
+	if err := json.Unmarshal(raw, &tx); err != nil || tx.Confirmations > 0 || len(tx.Vout) == 0 {
+		return false
+	}
+	script, err := hex.DecodeString(tx.Vout[0].ScriptPubKey.Hex)
+	if err != nil {
+		return false
+	}
+	request := orchestrator.ParseM8BmmRequestScript(script)
+	return request != nil && int(request.Slot) == slot
+}
+
 func (h *BMMHandler) coreCall(ctx context.Context, method, paramsJSON string) (json.RawMessage, error) {
+	if h.core != nil {
+		return h.core(ctx, method, paramsJSON, "")
+	}
 	handler := NewHandler(h.orch)
 	return handler.RawCoreCall(ctx, method, paramsJSON, "")
 }
