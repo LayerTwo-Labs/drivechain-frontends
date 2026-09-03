@@ -392,19 +392,122 @@ func (e *BmmEngine) openRound(
 	}
 	round.OtherBids = e.snapshotOthers(ctx, sidechain, tip)
 
+	// Replacing a stranded bid respends its inputs, so only the wallet that
+	// funded it can sign them.
+	walletID := target.walletID
+	replaceTxid := ""
+	if stranded, ok := e.strandedBid(ctx, sidechain, tip); ok {
+		replaceTxid = stranded.Txid
+		if stranded.WalletID != "" {
+			walletID = stranded.WalletID
+		}
+		e.log.Info().Stringer("sidechain", sidechain).Str("txid", replaceTxid).
+			Msg("replacing a stranded bmm bid")
+	}
+
 	e.mu.Lock()
 	e.current[sidechain] = round
 	e.mu.Unlock()
 
-	if err := e.placeBid(ctx, sidechain, round, target.walletID, 0, e.NextBlockRate(ctx), target.maxBidSats, ""); err != nil {
+	if err := e.placeBid(ctx, sidechain, round, walletID, 0, e.NextBlockRate(ctx), target.maxBidSats, replaceTxid); err != nil {
 		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 			e.log.Info().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid refused, retrying next tick")
 			e.retryTip(sidechain, tip)
 		} else {
 			e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid failed")
 		}
+	} else if replaceTxid != "" {
+		e.markStrandedReplaced(sidechain, replaceTxid, e.lastBidTxid(sidechain))
 	}
 	e.notify()
+}
+
+// strandedBid names our oldest bid still in the mempool on a parent the chain
+// has left behind. An M8 names one parent, so a miner can never include such a
+// bid, and every later bid that spends its change inherits that. The opening
+// bid replaces it instead, which respends its confirmed inputs and evicts it
+// together with every bid chained to it.
+//
+// One replacement per round is sufficient: a bid that funds itself elsewhere
+// leaves its own chain, and the next round finds and replaces that one too.
+func (e *BmmEngine) strandedBid(
+	ctx context.Context, sidechain pb.BinaryType, tip string,
+) (bmmstate.Bid, bool) {
+	resp, err := e.backend.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: sidechain}))
+	if err != nil {
+		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read mempool bids")
+		return bmmstate.Bid{}, false
+	}
+	inMempool := make(map[string]bool, len(resp.Msg.Bids))
+	for _, b := range resp.Msg.Bids {
+		inMempool[b.Txid] = true
+	}
+	if len(inMempool) == 0 {
+		return bmmstate.Bid{}, false
+	}
+
+	rounds, err := e.store.List(int32(sidechain))
+	if err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("read stored rounds")
+		return bmmstate.Bid{}, false
+	}
+
+	var (
+		oldest bmmstate.Bid
+		height int32
+		found  bool
+	)
+	for _, round := range rounds {
+		if round.PrevMainHash == tip {
+			continue
+		}
+		for _, bid := range round.OurBids {
+			if bid.Txid == "" || !inMempool[bid.Txid] {
+				continue
+			}
+			if !found || round.PrevMainHeight < height {
+				oldest, height, found = bid, round.PrevMainHeight, true
+			}
+		}
+	}
+	return oldest, found
+}
+
+// lastBidTxid names the bid the current round just placed.
+func (e *BmmEngine) lastBidTxid(sidechain pb.BinaryType) string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	round, ok := e.current[sidechain]
+	if !ok || round == nil || len(round.OurBids) == 0 {
+		return ""
+	}
+	return round.OurBids[len(round.OurBids)-1].Txid
+}
+
+// markStrandedReplaced records, on the round that owns it, that a later round
+// took the stranded bid's inputs.
+func (e *BmmEngine) markStrandedReplaced(sidechain pb.BinaryType, txid, byTxid string) {
+	rounds, err := e.store.List(int32(sidechain))
+	if err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("read stored rounds")
+		return
+	}
+	for i := range rounds {
+		round := rounds[i]
+		changed := false
+		for j := range round.OurBids {
+			if round.OurBids[j].Txid == txid {
+				round.OurBids[j].State = BidReplaced
+				round.OurBids[j].ReplacedByTxid = byTxid
+				changed = true
+			}
+		}
+		if changed {
+			e.save(&round)
+			return
+		}
+	}
 }
 
 // retryTip unwinds a round whose opening bid was refused on a precondition, so

@@ -830,3 +830,137 @@ func TestBmmEngineDoesNotRetryOtherFailures(t *testing.T) {
 	engine.tick(ctx)
 	assert.Zero(t, backend.bids, "same tip, already handled")
 }
+
+// A bid stranded on an old parent can never be mined, and a later bid that
+// spends its change inherits that. The next opening bid must replace it.
+func TestBmmEngineReplacesAStrandedBid(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 20_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+	require.Empty(t, backend.lastReplace, "the first bid has nothing to replace")
+
+	// The first bid stays in the mempool while the chain moves past its parent.
+	backend.mu.Lock()
+	backend.others = []*bmmpb.Bid{{Txid: "txid-1", PrevMainHash: "block-1"}}
+	backend.mu.Unlock()
+
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Equal(t, 2, backend.bids)
+	assert.Equal(t, "txid-1", backend.lastReplace, "the opening bid respends the stranded bid")
+}
+
+// Replacing needs the wallet that funded the stranded bid, because only it can
+// sign those inputs. This holds for a core wallet and an electrum wallet alike.
+func TestBmmEngineReplacesWithTheFundingWallet(t *testing.T) {
+	for _, walletID := range []string{"core-wallet", "electrum-wallet"} {
+		t.Run(walletID, func(t *testing.T) {
+			engine, backend, tip, _ := newEngine(t)
+			require.NoError(t, engine.Start(testSidechain, walletID, 20_000))
+
+			ctx := context.Background()
+			engine.tick(ctx)
+			require.Equal(t, walletID, backend.lastWalletID)
+
+			backend.mu.Lock()
+			backend.others = []*bmmpb.Bid{{Txid: "txid-1", PrevMainHash: "block-1"}}
+			backend.mu.Unlock()
+
+			tip.set("block-2")
+			engine.tick(ctx)
+
+			assert.Equal(t, "txid-1", backend.lastReplace)
+			assert.Equal(t, walletID, backend.lastWalletID, "the funding wallet signs the replacement")
+		})
+	}
+}
+
+// A bid the miner took leaves the mempool, so the next round must open freely
+// rather than respend inputs that are already gone.
+func TestBmmEngineOpensFreelyWhenNoBidIsStranded(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 20_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	// The mempool holds none of our bids.
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Equal(t, 2, backend.bids)
+	assert.Empty(t, backend.lastReplace)
+}
+
+// The store must say what happened to a stranded bid, so the history does not
+// leave it looking live.
+func TestBmmEngineRecordsAStrandedBidAsReplaced(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 20_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.mu.Lock()
+	backend.others = []*bmmpb.Bid{{Txid: "txid-1", PrevMainHash: "block-1"}}
+	backend.mu.Unlock()
+
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	rounds, err := store.List(int32(testSidechain))
+	require.NoError(t, err)
+
+	var found bool
+	for _, round := range rounds {
+		for _, bid := range round.OurBids {
+			if bid.Txid == "txid-1" {
+				found = true
+				assert.Equal(t, BidReplaced, bid.State)
+				assert.Equal(t, "txid-2", bid.ReplacedByTxid)
+			}
+		}
+	}
+	assert.True(t, found, "the stranded bid stays in the history")
+}
+
+// The deploy case: a new build inherits a mempool full of stranded bids and no
+// round in memory. It must still find the oldest one on disk and replace it,
+// which evicts every bid chained to it.
+func TestBmmEngineReplacesAStrandedBidAfterRestart(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "core-wallet", 20_000))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	tip.set("block-2")
+	engine.tick(ctx)
+	tip.set("block-3")
+	engine.tick(ctx)
+	require.Equal(t, 3, backend.bids)
+
+	// Every bid is still in the mempool, each one chained to the one before.
+	backend.mu.Lock()
+	backend.others = []*bmmpb.Bid{
+		{Txid: "txid-1", PrevMainHash: "block-1"},
+		{Txid: "txid-2", PrevMainHash: "block-2"},
+		{Txid: "txid-3", PrevMainHash: "block-3"},
+	}
+	backend.lastReplace = ""
+	backend.mu.Unlock()
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	require.NoError(t, restarted.Start(testSidechain, "core-wallet", 20_000))
+
+	tip.set("block-4")
+	restarted.tick(ctx)
+
+	assert.Equal(t, "txid-1", backend.lastReplace,
+		"the oldest stranded bid is the root of the chain, so replacing it evicts them all")
+	assert.Equal(t, "core-wallet", backend.lastWalletID)
+}
