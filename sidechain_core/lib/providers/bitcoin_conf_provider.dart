@@ -33,7 +33,6 @@ class BitcoinConfProvider extends ChangeNotifier {
   String? configPath;
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
   String? defaultDatadir;
-  String? forknetDatadir;
   String? ecashDatadir;
 
   /// Live eCash network id ("alphanet"), from the orchestrator.
@@ -56,13 +55,9 @@ class BitcoinConfProvider extends ChangeNotifier {
   String? get detectedDataDir => dataDirFor(network);
 
   /// Returns the datadir recorded for [n]'s datadir group, or null if
-  /// none is configured. Forknet and eCash each have their own group;
-  /// everything else shares the default group (Bitcoin Core auto-partitions
-  /// via chain subdirs).
+  /// none is configured. eCash has its own group; everything else shares the
+  /// default group (Bitcoin Core auto-partitions via chain subdirs).
   String? dataDirFor(BitcoinNetwork n) {
-    if (n == BitcoinNetwork.BITCOIN_NETWORK_FORKNET) {
-      return forknetDatadir;
-    }
     if (n == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
       return ecashDatadir;
     }
@@ -70,8 +65,7 @@ class BitcoinConfProvider extends ChangeNotifier {
   }
 
   bool get networkSupportsSidechains {
-    return network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_ECASH ||
+    return network == BitcoinNetwork.BITCOIN_NETWORK_ECASH ||
         network == BitcoinNetwork.BITCOIN_NETWORK_SIGNET ||
         network == BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
   }
@@ -82,12 +76,10 @@ class BitcoinConfProvider extends ChangeNotifier {
   bool get drivechainFeaturesAvailable => networkSupportsSidechains;
 
   /// Whether the running network derives keys under Bitcoin mainnet
-  /// parameters. Forknet and eCash fork mainnet, so they share its coin type
-  /// and address prefixes; the orchestrator maps all three to MainNetParams.
+  /// parameters. eCash forks mainnet, so it shares its coin type and address
+  /// prefixes; the orchestrator maps both to MainNetParams.
   bool get usesMainnetParams {
-    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-        network == BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+    return network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_ECASH;
   }
 
   int rpcPort = 38332;
@@ -145,7 +137,6 @@ class BitcoinConfProvider extends ChangeNotifier {
       hasPrivateBitcoinConf = resp.hasPrivateConf;
       configPath = resp.configPath.isEmpty ? null : resp.configPath;
       defaultDatadir = resp.defaultDatadir.isEmpty ? null : resp.defaultDatadir;
-      forknetDatadir = resp.forknetDatadir.isEmpty ? null : resp.forknetDatadir;
       ecashDatadir = resp.ecashDatadir.isEmpty ? null : resp.ecashDatadir;
       ecashNetworkId = resp.ecashNetworkId;
       ecashEsploraUrl = resp.ecashEsploraUrl;
@@ -283,8 +274,8 @@ class BitcoinConfProvider extends ChangeNotifier {
     if (networks.isEmpty) {
       return [active];
     }
-    // The catalog lists no forknet and no testnet, and an install can run
-    // either. A dropdown whose value is missing from its items asserts.
+    // The catalog lists no testnet, and an install can run it. A dropdown
+    // whose value is missing from its items asserts.
     if (networks.any((o) => o.isCurrent)) {
       return networks;
     }
@@ -415,7 +406,6 @@ class BitcoinConfProvider extends ChangeNotifier {
   static BitcoinNetwork _parseNetwork(String network) {
     return switch (network.toLowerCase()) {
       'mainnet' || 'main' => BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
-      'forknet' => BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
       'ecash' => BitcoinNetwork.BITCOIN_NETWORK_ECASH,
       'testnet' || 'test' => BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
       'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
@@ -427,7 +417,6 @@ class BitcoinConfProvider extends ChangeNotifier {
   static String _networkToString(BitcoinNetwork network) {
     return switch (network) {
       BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 'mainnet',
-      BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 'forknet',
       BitcoinNetwork.BITCOIN_NETWORK_ECASH => 'ecash',
       BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 'testnet',
       BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 'signet',

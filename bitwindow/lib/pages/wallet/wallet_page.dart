@@ -348,10 +348,9 @@ class _GetCoinsButtonState extends State<GetCoinsButton> {
   @override
   Widget build(BuildContext context) {
     final network = GetIt.I.get<BitcoinConfProvider>().network;
-    // Only show on forknet and signet. eCash runs no faucet — its difficulty
+    // Only show on signet. eCash runs no faucet — its difficulty
     // is reset low enough that coins come from mining instead.
-    if (_transactionProvider.address.isEmpty ||
-        (network != BitcoinNetwork.BITCOIN_NETWORK_FORKNET && network != BitcoinNetwork.BITCOIN_NETWORK_SIGNET)) {
+    if (_transactionProvider.address.isEmpty || network != BitcoinNetwork.BITCOIN_NETWORK_SIGNET) {
       return const SizedBox.shrink();
     }
 

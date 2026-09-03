@@ -222,7 +222,7 @@ class EnforcerConfigOptions {
       category: 'Wallet',
       description: 'Esplora API URL',
       tooltip:
-          'URL of the Esplora server to use for the wallet. Network defaults: Signet: https://explorer.signet.drivechain.info/api, Mainnet: https://esplora.mainnet.drivechain.info, Forknet: https://explorer.forknet.drivechain.info/api, eCash: whatever the published network catalog lists. Regtest has no default — the enforcer runs with wallet-sync-source=disabled instead.',
+          'URL of the Esplora server to use for the wallet. Network defaults: Signet: https://explorer.signet.drivechain.info/api, Mainnet: https://esplora.mainnet.drivechain.info, eCash: whatever the published network catalog lists. Regtest has no default — the enforcer runs with wallet-sync-source=disabled instead.',
       inputType: EnforcerConfigInputType.url,
       isUseful: true,
     ),

@@ -33,7 +33,7 @@ export default async function InfoPage() {
   const binaries = l1Binaries(net);
   const sidechains = sidechainPeers(net);
   const { blockbook, mining_pool, fast_withdrawal } = net.services;
-  const isForknet = net.family === "ecash";
+  const isECash = net.family === "ecash";
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl space-y-6">
@@ -41,7 +41,7 @@ export default async function InfoPage() {
         <h1 className="text-2xl font-bold">Connect to {networkName(net)}</h1>
         <p className="text-muted-foreground mt-2">
           {net.description}. The native currency is {net.currency.name} ({net.currency.ticker}).
-          {isForknet &&
+          {isECash &&
             " It runs real BIP300/301 rules, and PoW difficulty is set very low, so it is possible to mine this chain at home."}
         </p>
       </div>
@@ -159,7 +159,7 @@ export default async function InfoPage() {
         </Card>
       )}
 
-      {isForknet && (
+      {isECash && (
         <Card>
           <CardHeader>
             <CardTitle>Run a node</CardTitle>
@@ -208,7 +208,7 @@ export default async function InfoPage() {
         </Card>
       )}
 
-      {isForknet && snapshot && (
+      {isECash && snapshot && (
         <Card>
           <CardHeader>
             <CardTitle>Fast bootstrap (UTXO snapshot)</CardTitle>
@@ -241,7 +241,7 @@ bitcoin-cli -datadir=./${net.id} -rpcclienttimeout=0 \\
         </Card>
       )}
 
-      {isForknet && mining_pool.stratum && (
+      {isECash && mining_pool.stratum && (
         <Card>
           <CardHeader>
             <CardTitle>Mining</CardTitle>

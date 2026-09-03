@@ -142,8 +142,6 @@ class EnforcerConfProvider extends ChangeNotifier {
         return 'https://explorer.signet.drivechain.info/api';
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         return 'https://esplora.mainnet.drivechain.info';
-      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        return 'https://explorer.forknet.drivechain.info/api';
       case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
         return ecashEsploraUrl();
       default:

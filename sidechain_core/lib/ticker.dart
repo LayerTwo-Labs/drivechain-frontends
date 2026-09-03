@@ -1,8 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/sidechain_core.dart';
 
-/// Currency naming for the active network. Forknet and eCash are eCash, every
-/// other network is Bitcoin.
+/// Currency naming for the active network. eCash is eCash, every other
+/// network is Bitcoin.
 class Ticker {
   const Ticker._(this.symbol, this.subunit, this.subunitSingular, this.subunitLabel);
 
@@ -36,7 +36,6 @@ Ticker get activeTicker {
 
 Ticker tickerForNetwork(BitcoinNetwork network) {
   switch (network) {
-    case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
     case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
       return Ticker.ecash;
     default:

@@ -57,12 +57,14 @@ const GetBitcoinConfigResponse$json = {
     {'1': 'rpc_user', '3': 9, '4': 1, '5': 9, '10': 'rpcUser'},
     {'1': 'rpc_password', '3': 10, '4': 1, '5': 9, '10': 'rpcPassword'},
     {'1': 'default_datadir', '3': 11, '4': 1, '5': 9, '10': 'defaultDatadir'},
-    {'1': 'forknet_datadir', '3': 12, '4': 1, '5': 9, '10': 'forknetDatadir'},
     {'1': 'ecash_datadir', '3': 13, '4': 1, '5': 9, '10': 'ecashDatadir'},
     {'1': 'ecash_network_id', '3': 14, '4': 1, '5': 9, '10': 'ecashNetworkId'},
     {'1': 'must_select_datadir', '3': 15, '4': 1, '5': 8, '10': 'mustSelectDatadir'},
     {'1': 'ecash_esplora_url', '3': 16, '4': 1, '5': 9, '10': 'ecashEsploraUrl'},
     {'1': 'ecash_explorer_host', '3': 17, '4': 1, '5': 9, '10': 'ecashExplorerHost'},
+  ],
+  '9': [
+    {'1': 12, '2': 13},
   ],
 };
 
@@ -75,12 +77,11 @@ final $typed_data.Uint8List getBitcoinConfigResponseDescriptor = $convert.base64
     'Ug1jb25maWdDb250ZW50Ej4KG25ldHdvcmtfc3VwcG9ydHNfc2lkZWNoYWlucxgHIAEoCFIZbm'
     'V0d29ya1N1cHBvcnRzU2lkZWNoYWlucxIgCgxpc19kZW1vX21vZGUYCCABKAhSCmlzRGVtb01v'
     'ZGUSGQoIcnBjX3VzZXIYCSABKAlSB3JwY1VzZXISIQoMcnBjX3Bhc3N3b3JkGAogASgJUgtycG'
-    'NQYXNzd29yZBInCg9kZWZhdWx0X2RhdGFkaXIYCyABKAlSDmRlZmF1bHREYXRhZGlyEicKD2Zv'
-    'cmtuZXRfZGF0YWRpchgMIAEoCVIOZm9ya25ldERhdGFkaXISIwoNZWNhc2hfZGF0YWRpchgNIA'
-    'EoCVIMZWNhc2hEYXRhZGlyEigKEGVjYXNoX25ldHdvcmtfaWQYDiABKAlSDmVjYXNoTmV0d29y'
-    'a0lkEi4KE211c3Rfc2VsZWN0X2RhdGFkaXIYDyABKAhSEW11c3RTZWxlY3REYXRhZGlyEioKEW'
-    'VjYXNoX2VzcGxvcmFfdXJsGBAgASgJUg9lY2FzaEVzcGxvcmFVcmwSLgoTZWNhc2hfZXhwbG9y'
-    'ZXJfaG9zdBgRIAEoCVIRZWNhc2hFeHBsb3Jlckhvc3Q=');
+    'NQYXNzd29yZBInCg9kZWZhdWx0X2RhdGFkaXIYCyABKAlSDmRlZmF1bHREYXRhZGlyEiMKDWVj'
+    'YXNoX2RhdGFkaXIYDSABKAlSDGVjYXNoRGF0YWRpchIoChBlY2FzaF9uZXR3b3JrX2lkGA4gAS'
+    'gJUg5lY2FzaE5ldHdvcmtJZBIuChNtdXN0X3NlbGVjdF9kYXRhZGlyGA8gASgIUhFtdXN0U2Vs'
+    'ZWN0RGF0YWRpchIqChFlY2FzaF9lc3Bsb3JhX3VybBgQIAEoCVIPZWNhc2hFc3Bsb3JhVXJsEi'
+    '4KE2VjYXNoX2V4cGxvcmVyX2hvc3QYESABKAlSEWVjYXNoRXhwbG9yZXJIb3N0SgQIDBAN');
 
 @$core.Deprecated('Use listNetworksRequestDescriptor instead')
 const ListNetworksRequest$json = {

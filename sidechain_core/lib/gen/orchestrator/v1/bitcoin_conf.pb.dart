@@ -63,7 +63,6 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     $core.String? rpcUser,
     $core.String? rpcPassword,
     $core.String? defaultDatadir,
-    $core.String? forknetDatadir,
     $core.String? ecashDatadir,
     $core.String? ecashNetworkId,
     $core.bool? mustSelectDatadir,
@@ -104,9 +103,6 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     if (defaultDatadir != null) {
       $result.defaultDatadir = defaultDatadir;
     }
-    if (forknetDatadir != null) {
-      $result.forknetDatadir = forknetDatadir;
-    }
     if (ecashDatadir != null) {
       $result.ecashDatadir = ecashDatadir;
     }
@@ -140,7 +136,6 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
     ..aOS(9, _omitFieldNames ? '' : 'rpcUser')
     ..aOS(10, _omitFieldNames ? '' : 'rpcPassword')
     ..aOS(11, _omitFieldNames ? '' : 'defaultDatadir')
-    ..aOS(12, _omitFieldNames ? '' : 'forknetDatadir')
     ..aOS(13, _omitFieldNames ? '' : 'ecashDatadir')
     ..aOS(14, _omitFieldNames ? '' : 'ecashNetworkId')
     ..aOB(15, _omitFieldNames ? '' : 'mustSelectDatadir')
@@ -275,64 +270,55 @@ class GetBitcoinConfigResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   void clearDefaultDatadir() => clearField(11);
 
-  @$pb.TagNumber(12)
-  $core.String get forknetDatadir => $_getSZ(11);
-  @$pb.TagNumber(12)
-  set forknetDatadir($core.String v) { $_setString(11, v); }
-  @$pb.TagNumber(12)
-  $core.bool hasForknetDatadir() => $_has(11);
-  @$pb.TagNumber(12)
-  void clearForknetDatadir() => clearField(12);
-
   @$pb.TagNumber(13)
-  $core.String get ecashDatadir => $_getSZ(12);
+  $core.String get ecashDatadir => $_getSZ(11);
   @$pb.TagNumber(13)
-  set ecashDatadir($core.String v) { $_setString(12, v); }
+  set ecashDatadir($core.String v) { $_setString(11, v); }
   @$pb.TagNumber(13)
-  $core.bool hasEcashDatadir() => $_has(12);
+  $core.bool hasEcashDatadir() => $_has(11);
   @$pb.TagNumber(13)
   void clearEcashDatadir() => clearField(13);
 
   /// Live eCash network id ("alphanet").
   @$pb.TagNumber(14)
-  $core.String get ecashNetworkId => $_getSZ(13);
+  $core.String get ecashNetworkId => $_getSZ(12);
   @$pb.TagNumber(14)
-  set ecashNetworkId($core.String v) { $_setString(13, v); }
+  set ecashNetworkId($core.String v) { $_setString(12, v); }
   @$pb.TagNumber(14)
-  $core.bool hasEcashNetworkId() => $_has(13);
+  $core.bool hasEcashNetworkId() => $_has(12);
   @$pb.TagNumber(14)
   void clearEcashNetworkId() => clearField(14);
 
   /// True when the current network and wallet backend need a datadir the user
   /// has not chosen yet. Drives the boot-time prompt.
   @$pb.TagNumber(15)
-  $core.bool get mustSelectDatadir => $_getBF(14);
+  $core.bool get mustSelectDatadir => $_getBF(13);
   @$pb.TagNumber(15)
-  set mustSelectDatadir($core.bool v) { $_setBool(14, v); }
+  set mustSelectDatadir($core.bool v) { $_setBool(13, v); }
   @$pb.TagNumber(15)
-  $core.bool hasMustSelectDatadir() => $_has(14);
+  $core.bool hasMustSelectDatadir() => $_has(13);
   @$pb.TagNumber(15)
   void clearMustSelectDatadir() => clearField(15);
 
   /// Esplora base URL the catalog publishes for the live eCash network, empty
   /// when it publishes none.
   @$pb.TagNumber(16)
-  $core.String get ecashEsploraUrl => $_getSZ(15);
+  $core.String get ecashEsploraUrl => $_getSZ(14);
   @$pb.TagNumber(16)
-  set ecashEsploraUrl($core.String v) { $_setString(15, v); }
+  set ecashEsploraUrl($core.String v) { $_setString(14, v); }
   @$pb.TagNumber(16)
-  $core.bool hasEcashEsploraUrl() => $_has(15);
+  $core.bool hasEcashEsploraUrl() => $_has(14);
   @$pb.TagNumber(16)
   void clearEcashEsploraUrl() => clearField(16);
 
   /// Explorer host the catalog publishes for the live eCash network, empty
   /// when it publishes none.
   @$pb.TagNumber(17)
-  $core.String get ecashExplorerHost => $_getSZ(16);
+  $core.String get ecashExplorerHost => $_getSZ(15);
   @$pb.TagNumber(17)
-  set ecashExplorerHost($core.String v) { $_setString(16, v); }
+  set ecashExplorerHost($core.String v) { $_setString(15, v); }
   @$pb.TagNumber(17)
-  $core.bool hasEcashExplorerHost() => $_has(16);
+  $core.bool hasEcashExplorerHost() => $_has(15);
   @$pb.TagNumber(17)
   void clearEcashExplorerHost() => clearField(17);
 }
@@ -445,7 +431,7 @@ class NetworkOption extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearDisplayName() => clearField(2);
 
-  /// Slot this row runs in: mainnet | signet | forknet | ecash | regtest.
+  /// Slot this row runs in: mainnet | signet | ecash | regtest.
   @$pb.TagNumber(3)
   $core.String get network => $_getSZ(2);
   @$pb.TagNumber(3)

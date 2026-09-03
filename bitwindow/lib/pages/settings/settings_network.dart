@@ -348,7 +348,6 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
     final theme = SailTheme.of(context);
     final showDataDir =
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-        _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
         _confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH ||
         _confProvider.detectedDataDir != null;
     final canEditDataDir = !_confProvider.hasPrivateBitcoinConf;

@@ -358,7 +358,6 @@ class BitcoinCore extends Binary {
                    ...allNetworksUrl(
                      'https://bitcoincore.org/bin/bitcoin-core-30.2/',
                    ),
-                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: 'https://releases.drivechain.info/',
                  },
                  binary: 'bitcoind',
                  files: {
@@ -367,18 +366,6 @@ class BitcoinCore extends Binary {
                      OS.macos: 'bitcoin-30.2-x86_64-apple-darwin.tar.gz',
                      OS.windows: 'bitcoin-30.2-win64.zip',
                    }),
-                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
-                     OS.linux: 'L1-drivechain-forknet-x86_64-unknown-linux-gnu.zip',
-                     OS.macos: 'L1-drivechain-forknet-x86_64-apple-darwin.zip',
-                     OS.windows: 'L1-drivechain-forknet-x86_64-w64-msvc.zip',
-                   },
-                 },
-                 extractSubfolder: {
-                   BitcoinNetwork.BITCOIN_NETWORK_FORKNET: {
-                     OS.linux: 'forknet',
-                     OS.macos: 'forknet',
-                     OS.windows: 'forknet',
-                   },
                  },
                ),
                remoteTimestamp: null,
@@ -1193,9 +1180,7 @@ extension BinaryPaths on Binary {
       // the CUSF sidechains do not have.
       case BinaryType.BINARY_TYPE_BITCOIND:
       case BinaryType.BINARY_TYPE_BBC:
-        if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
+        if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
           return baseDir;
         }
         return path.join(baseDir, network.toReadableNet());
@@ -1635,7 +1620,6 @@ BitcoinNetwork _networkFromJsonKey(String key) {
     'regtest' => BitcoinNetwork.BITCOIN_NETWORK_REGTEST,
     'signet' => BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
     'testnet' => BitcoinNetwork.BITCOIN_NETWORK_TESTNET,
-    'forknet' => BitcoinNetwork.BITCOIN_NETWORK_FORKNET,
     'ecash' => BitcoinNetwork.BITCOIN_NETWORK_ECASH,
     _ => BitcoinNetwork.BITCOIN_NETWORK_UNSPECIFIED, // 'default' key handled separately
   };

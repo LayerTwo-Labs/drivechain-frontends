@@ -2693,7 +2693,7 @@ class UpdateNetworkRequest extends $pb.GeneratedMessage {
   static UpdateNetworkRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateNetworkRequest>(create);
   static UpdateNetworkRequest? _defaultInstance;
 
-  /// Target network: signet, mainnet, forknet, ecash, testnet, regtest.
+  /// Target network: signet, mainnet, ecash, testnet, regtest.
   @$pb.TagNumber(1)
   $core.String get network => $_getSZ(0);
   @$pb.TagNumber(1)

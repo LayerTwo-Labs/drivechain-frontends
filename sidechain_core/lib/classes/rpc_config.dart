@@ -38,12 +38,10 @@ CoreConnectionSettings readRPCConfig(
   final log = GetIt.I.get<Logger>();
 
   final conf = File(filePath([datadir, confFile]));
-  // mainnet, forknet and eCash use root datadir, other networks use subdirs
+  // mainnet and eCash use root datadir, other networks use subdirs
   final networkDir = filePath([
     datadir,
-    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_FORKNET ||
-            network == BitcoinNetwork.BITCOIN_NETWORK_ECASH)
+    (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_ECASH)
         ? ''
         : network.toReadableNet(),
   ]);
@@ -53,7 +51,6 @@ CoreConnectionSettings readRPCConfig(
   // Use correct default port based on network
   final defaultPort = switch (network) {
     BitcoinNetwork.BITCOIN_NETWORK_MAINNET => 8332, // real Bitcoin mainnet
-    BitcoinNetwork.BITCOIN_NETWORK_FORKNET => 18301, // forknet
     BitcoinNetwork.BITCOIN_NETWORK_ECASH => 18302, // eCash
     BitcoinNetwork.BITCOIN_NETWORK_TESTNET => 18332,
     BitcoinNetwork.BITCOIN_NETWORK_SIGNET => 38332,
@@ -210,8 +207,6 @@ extension NetworkExtensions on BitcoinNetwork {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         return 'mainnet';
-      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        return 'forknet';
       case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
         return 'ecash';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
@@ -227,12 +222,11 @@ extension NetworkExtensions on BitcoinNetwork {
   }
 
   /// Get the config section name for this network
-  /// Note: mainnet, forknet and eCash all use 'main' since the forks run on
-  /// mainnet params and are not valid Bitcoin Core section names
+  /// Note: mainnet and eCash both use 'main' since eCash runs on mainnet
+  /// params and is not a valid Bitcoin Core section name
   String toCoreNetwork() {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
       case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
         return 'main';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
@@ -248,11 +242,10 @@ extension NetworkExtensions on BitcoinNetwork {
   }
 
   /// Get the Bitcoin Core section name for Bitcoin Core settings (rpcport, etc.)
-  /// Mainnet, forknet and eCash all use 'main' for Bitcoin Core compatibility
+  /// Mainnet and eCash both use 'main' for Bitcoin Core compatibility
   String toCoreNetworkForBitcoinSettings() {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
-      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
       case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
         return 'main';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:
@@ -273,8 +266,6 @@ extension NetworkExtensions on BitcoinNetwork {
     switch (this) {
       case BitcoinNetwork.BITCOIN_NETWORK_MAINNET:
         return 'BTC Mainnet';
-      case BitcoinNetwork.BITCOIN_NETWORK_FORKNET:
-        return 'L2L-Forknet';
       case BitcoinNetwork.BITCOIN_NETWORK_ECASH:
         return 'eCash';
       case BitcoinNetwork.BITCOIN_NETWORK_SIGNET:

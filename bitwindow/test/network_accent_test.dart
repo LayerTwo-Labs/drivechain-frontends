@@ -21,6 +21,5 @@ void main() {
 
   test('a network with no colour of its own wears grey', () {
     expect(getNetworkAccentColor(BitcoinNetwork.BITCOIN_NETWORK_TESTNET), SailColorScheme.greyMiddle);
-    expect(getNetworkAccentColor(BitcoinNetwork.BITCOIN_NETWORK_FORKNET), SailColorScheme.greyMiddle);
   });
 }
