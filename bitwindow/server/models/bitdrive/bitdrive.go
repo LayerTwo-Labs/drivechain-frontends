@@ -13,6 +13,7 @@ import (
 type File struct {
 	ID        int64
 	TxID      string
+	Vout      int32
 	Filename  string
 	FileType  string
 	SizeBytes int64
@@ -29,9 +30,10 @@ func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
 
 	builder := sq.
 		Insert("bitdrive_files").
-		Columns("txid", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
+		Columns("txid", "vout", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
 		Values(
 			file.TxID,
+			file.Vout,
 			file.Filename,
 			file.FileType,
 			file.SizeBytes,
@@ -54,6 +56,7 @@ func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
 	zerolog.Ctx(ctx).Info().
 		Int64("id", id).
 		Str("txid", file.TxID).
+		Int32("vout", file.Vout).
 		Str("filename", file.Filename).
 		Msg("created bitdrive file record")
 
@@ -62,7 +65,7 @@ func Create(ctx context.Context, db *sql.DB, file File) (int64, error) {
 
 func List(ctx context.Context, db *sql.DB) ([]File, error) {
 	query := sq.
-		Select("id", "txid", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
+		Select("id", "txid", "vout", "filename", "file_type", "size_bytes", "encrypted", "timestamp", "created_at").
 		From("bitdrive_files").
 		OrderBy("created_at DESC")
 
@@ -82,6 +85,7 @@ func List(ctx context.Context, db *sql.DB) ([]File, error) {
 		err := rows.Scan(
 			&file.ID,
 			&file.TxID,
+			&file.Vout,
 			&file.Filename,
 			&file.FileType,
 			&file.SizeBytes,
@@ -111,12 +115,13 @@ func GetByID(ctx context.Context, db *sql.DB, id int64) (*File, error) {
 	var createdAt int64
 
 	err := db.QueryRowContext(ctx, `
-		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at
+		SELECT id, txid, vout, filename, file_type, size_bytes, encrypted, timestamp, created_at
 		FROM bitdrive_files
 		WHERE id = ?
 	`, id).Scan(
 		&file.ID,
 		&file.TxID,
+		&file.Vout,
 		&file.Filename,
 		&file.FileType,
 		&file.SizeBytes,
@@ -136,18 +141,22 @@ func GetByID(ctx context.Context, db *sql.DB, id int64) (*File, error) {
 	return &file, nil
 }
 
+// GetByTxID returns the lowest-vout file of a transaction, which can hold one
+// BitDrive payload per output.
 func GetByTxID(ctx context.Context, db *sql.DB, txid string) (*File, error) {
 	var file File
 	var encrypted int64
 	var createdAt int64
 
 	err := db.QueryRowContext(ctx, `
-		SELECT id, txid, filename, file_type, size_bytes, encrypted, timestamp, created_at
+		SELECT id, txid, vout, filename, file_type, size_bytes, encrypted, timestamp, created_at
 		FROM bitdrive_files
 		WHERE txid = ?
+		ORDER BY vout
 	`, txid).Scan(
 		&file.ID,
 		&file.TxID,
+		&file.Vout,
 		&file.Filename,
 		&file.FileType,
 		&file.SizeBytes,
@@ -183,11 +192,11 @@ func Delete(ctx context.Context, db *sql.DB, id int64) error {
 	return nil
 }
 
-func Exists(ctx context.Context, db *sql.DB, txid string) (bool, error) {
+func Exists(ctx context.Context, db *sql.DB, txid string, vout int32) (bool, error) {
 	var count int
 	err := db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM bitdrive_files WHERE txid = ?
-	`, txid).Scan(&count)
+		SELECT COUNT(*) FROM bitdrive_files WHERE txid = ? AND vout = ?
+	`, txid, vout).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("check bitdrive file exists: %w", err)
 	}

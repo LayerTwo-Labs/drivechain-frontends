@@ -69,15 +69,26 @@ func SendCoreWithRequiredInputs(
 	// 2 sat/vB, matching the cheque-sweep path). Output/input vbyte sizes
 	// mirror the P2WPKH estimate used in buildSweepTx.
 	var feeSats uint64
+	var hasChange bool
 	if fixedFeeSats > 0 {
 		feeSats = fixedFeeSats
+		hasChange = totalInSats >= totalOutSats+feeSats &&
+			totalInSats-totalOutSats-feeSats >= dustLimit
 	} else {
 		rate := feeSatPerVbyte
 		if rate == 0 {
 			rate = 2
 		}
-		estVbytes := uint64(len(inputs)*68 + (len(destinationsSats)+1)*31 + 11)
+		estVbytes := uint64(len(inputs)*68 + len(destinationsSats)*31 + 11)
 		feeSats = estVbytes * rate
+
+		// Only pay for a change output when the remainder is big enough to
+		// still be above dust after paying for the extra 31 vB.
+		if totalInSats >= totalOutSats+feeSats &&
+			totalInSats-totalOutSats-feeSats >= dustLimit+31*rate {
+			feeSats = (estVbytes + 31) * rate
+			hasChange = true
+		}
 	}
 
 	if totalInSats < totalOutSats+feeSats {
@@ -90,7 +101,7 @@ func SendCoreWithRequiredInputs(
 	}
 
 	changeSats := totalInSats - totalOutSats - feeSats
-	if changeSats >= dustLimit {
+	if hasChange {
 		changeResp, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
 			Wallet: walletName,
 		}))

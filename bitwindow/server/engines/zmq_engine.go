@@ -129,11 +129,11 @@ func (e *ZMQ) broadcastTransactions(ctx context.Context) {
 
 // decodeTransaction decodes a raw transaction from bytes
 func decodeTransaction(rawTx []byte) (*wire.MsgTx, error) {
-	var tx wire.MsgTx
-	if err := tx.Deserialize(bytes.NewReader(rawTx)); err != nil {
+	tx, err := readForknetTx(bytes.NewReader(rawTx))
+	if err != nil {
 		return nil, fmt.Errorf("deserialize transaction: %w", err)
 	}
-	return &tx, nil
+	return tx, nil
 }
 
 // HashMsg is a subscription event coming from a "hash"-type ZMQ message.

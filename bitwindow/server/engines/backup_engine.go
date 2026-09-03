@@ -165,6 +165,11 @@ func (e *BackupEngine) RestoreBackup(ctx context.Context, data []byte, filename 
 		if err != nil {
 			return fmt.Errorf("extract zip: %w", err)
 		}
+		if walletJSON != nil {
+			if err := validateWalletJSON(walletJSON); err != nil {
+				return fmt.Errorf("invalid wallet.json: %w", err)
+			}
+		}
 	default:
 		return fmt.Errorf("unsupported file type %q", ext)
 	}
@@ -468,15 +473,28 @@ func validateWalletJSON(data []byte) error {
 		if !ok || len(walletsList) == 0 {
 			return fmt.Errorf("wallets array is empty")
 		}
-		first, ok := walletsList[0].(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("invalid wallet entry")
-		}
-		if _, ok := first["master"]; !ok {
-			return fmt.Errorf("wallet entry missing master")
-		}
-		if _, ok := first["l1"]; !ok {
-			return fmt.Errorf("wallet entry missing l1")
+		// Every entry, not just the first: one malformed entry is enough to
+		// break the wallet sync that reads this file back.
+		for i, entry := range walletsList {
+			w, ok := entry.(map[string]interface{})
+			if !ok {
+				return fmt.Errorf("invalid wallet entry %d", i)
+			}
+			if _, ok := w["master"]; !ok {
+				return fmt.Errorf("wallet entry %d missing master", i)
+			}
+			if _, ok := w["l1"]; !ok {
+				return fmt.Errorf("wallet entry %d missing l1", i)
+			}
+			// Core wallet names take the first 8 characters of the id.
+			if id, ok := w["id"].(string); !ok || len(id) < 8 {
+				return fmt.Errorf("wallet entry %d has a missing or too-short id", i)
+			}
+			if walletType, ok := w["wallet_type"]; ok {
+				if _, ok := walletType.(string); !ok {
+					return fmt.Errorf("wallet entry %d has a non-string wallet_type", i)
+				}
+			}
 		}
 	}
 
