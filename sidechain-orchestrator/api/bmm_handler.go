@@ -220,13 +220,23 @@ func roundToProto(r bmmstate.Round) *bmmpb.Round {
 		OtherBids:          lo.Map(r.OtherBids, func(b bmmstate.Bid, _ int) *bmmpb.Bid { return bidToProto(b) }),
 	}
 
-	// Profit is only real once the block connects: a bid no miner took is
-	// never paid, so it neither costs nor earns anything.
+	// A bid no miner took is never paid, so it neither costs nor earns. A won
+	// bid is paid, and the block pays its fees back only once it connects.
 	if r.Result == engines.ResultWon {
 		out.HasProfit = true
-		out.ProfitSats = r.BlockWorthSats - r.WinnerBidSats
+		out.ProfitSats = -r.WinnerBidSats
+		if wonBlockConnected(r) {
+			out.ProfitSats = r.BlockWorthSats - r.WinnerBidSats
+		}
 	}
 	return out
+}
+
+// wonBlockConnected reports whether the won block reached the sidechain.
+func wonBlockConnected(r bmmstate.Round) bool {
+	return lo.ContainsBy(r.OurBids, func(b bmmstate.Bid) bool {
+		return b.State == engines.BidConnected
+	})
 }
 
 func bidToProto(b bmmstate.Bid) *bmmpb.Bid {
