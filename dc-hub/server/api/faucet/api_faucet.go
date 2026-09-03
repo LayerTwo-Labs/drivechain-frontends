@@ -42,9 +42,10 @@ type Server struct {
 }
 
 const (
-	MaxCoinsPer5Min    = 100
-	MaxCoinsPerRequest = 5
-	ResetInterval      = 5 * time.Minute
+	MaxCoinsPer5Min           = 100
+	MaxCoinsPerAddressPer5Min = 10
+	MaxCoinsPerRequest        = 5
+	ResetInterval             = 5 * time.Minute
 )
 
 // resetIfWindowElapsed clears the dispensation counters and starts a new
@@ -109,9 +110,16 @@ func (s *Server) DispenseCoins(ctx context.Context, c *connect.Request[pb.Dispen
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	if s.totalDispensed > MaxCoinsPer5Min {
+	if s.totalDispensed+amount.ToBTC() > MaxCoinsPer5Min {
 		return nil, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf(
 			"the faucet has hit its dispensation limit, try again in %s",
+			formatDuration(time.Until(s.windowEnds)),
+		))
+	}
+
+	if s.dispensed[c.Msg.Destination]+amount.ToBTC() > MaxCoinsPerAddressPer5Min {
+		return nil, connect.NewError(connect.CodeResourceExhausted, fmt.Errorf(
+			"this address has hit its dispensation limit, try again in %s",
 			formatDuration(time.Until(s.windowEnds)),
 		))
 	}

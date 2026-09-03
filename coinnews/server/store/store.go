@@ -77,8 +77,49 @@ type IndexEnv struct {
 	Payload []byte // the raw OP_RETURN bytes Msg was decoded from
 }
 
+// ItemRef is an indexed Item's canonical scan position (spec §4.2):
+// (block_height, tx_index, vout_index).
+type ItemRef struct {
+	BlockHeight uint32
+	TxIndex     uint32
+	VoutIndex   uint32
+}
+
+// Before reports whether a is strictly earlier than b in canonical scan
+// order. This is the spec's only notion of "earlier" (spec §4.2).
+func (a ItemRef) Before(b ItemRef) bool {
+	if a.BlockHeight != b.BlockHeight {
+		return a.BlockHeight < b.BlockHeight
+	}
+	if a.TxIndex != b.TxIndex {
+		return a.TxIndex < b.TxIndex
+	}
+	return a.VoutIndex < b.VoutIndex
+}
+
+// ResolveItem looks up an ItemID in the index (items_by_id, spec §4.1)
+// and returns its scan position plus whether it is present. References
+// to absent ItemIDs are unresolvable and the referring Message MUST be
+// dropped (spec §4.1, §7, §8).
+func ResolveItem(ctx context.Context, db *sql.DB, id codec.ItemID) (ItemRef, bool, error) {
+	var ref ItemRef
+	err := db.QueryRowContext(ctx,
+		`SELECT block_height, tx_index, vout_index FROM cn_items WHERE item_id = ?`,
+		id[:],
+	).Scan(&ref.BlockHeight, &ref.TxIndex, &ref.VoutIndex)
+	switch err {
+	case nil:
+		return ref, true, nil
+	case sql.ErrNoRows:
+		return ItemRef{}, false, nil
+	default:
+		return ItemRef{}, false, fmt.Errorf("coinnews: resolve item: %w", err)
+	}
+}
+
 // Index dispatches one decoded CoinNews Message into the right table(s).
-// Caller MUST have already verified Comment and Vote signatures.
+// Caller MUST have already verified Comment and Vote signatures, and the
+// resolvability of any parent/target/head reference (spec §4.1).
 func Index(ctx context.Context, db *sql.DB, env IndexEnv) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
