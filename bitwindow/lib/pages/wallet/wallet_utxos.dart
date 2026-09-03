@@ -587,8 +587,11 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
     var utxos = _txProvider.utxos.where((utxo) {
       if (dateFilter != null) {
+        final start = DateTime(dateFilter!.start.year, dateFilter!.start.month, dateFilter!.start.day);
+        final end = DateTime(dateFilter!.end.year, dateFilter!.end.month, dateFilter!.end.day, 23, 59, 59);
+
         final receivedAt = utxo.receivedAt.toDateTime();
-        if (receivedAt.isBefore(dateFilter!.start) || receivedAt.isAfter(dateFilter!.end)) {
+        if (receivedAt.isBefore(start) || receivedAt.isAfter(end)) {
           return false;
         }
       }
