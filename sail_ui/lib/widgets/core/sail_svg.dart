@@ -1611,11 +1611,7 @@ class SailSVG {
           alignment: alignment,
           child: SailSVG.fromAsset(
             asset,
-            color:
-                color ??
-                (coloredAssets.contains(asset)
-                    ? null
-                    : (isHighlighted ? colors.primary : colors.icon)),
+            color: color ?? (coloredAssets.contains(asset) ? null : (isHighlighted ? colors.primary : colors.icon)),
             width: width ?? SailStyleValues.iconSizePrimary,
             height: height ?? SailStyleValues.iconSizePrimary,
           ),
@@ -1637,9 +1633,7 @@ class SailSVG {
         asset.toAssetPath(),
         package: 'sail_ui',
         width: width,
-        colorFilter: color != null
-            ? ColorFilter.mode(color, BlendMode.srcIn)
-            : null,
+        colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
         height: height,
       ),
     );
