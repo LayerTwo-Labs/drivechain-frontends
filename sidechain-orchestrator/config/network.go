@@ -17,7 +17,6 @@ type Network string
 
 const (
 	NetworkMainnet Network = "mainnet"
-	NetworkForknet Network = "forknet"
 	NetworkECash   Network = "ecash"
 	NetworkSignet  Network = "signet"
 	NetworkRegtest Network = "regtest"
@@ -29,27 +28,26 @@ const (
 // so the daemon and the control CLI cannot target different networks. Variant
 // builds override it at link time:
 //
-//	go build -ldflags "-X <this package>.DefaultNetwork=forknet"
+//	go build -ldflags "-X <this package>.DefaultNetwork=signet"
 var DefaultNetwork = string(NetworkECash)
 
 // AllNetworks lists every network the app can run.
 func AllNetworks() []Network {
 	return []Network{
-		NetworkMainnet, NetworkForknet, NetworkECash,
+		NetworkMainnet, NetworkECash,
 		NetworkSignet, NetworkRegtest, NetworkTestnet,
 	}
 }
 
 // DatadirGroup partitions networks by which folder bitcoind writes to.
-// Forknet and eCash both run on chain=main and write to the root of datadir,
-// colliding with mainnet and each other — so each needs its own group. The four
-// "default" networks share one datadir because Bitcoin Core auto-partitions them
-// via chain subdirectories (signet/, testnet3/, regtest/, blocks/ for mainnet).
+// eCash runs on chain=main and writes to the root of datadir, where it collides
+// with mainnet, so it takes its own group. The four "default" networks share one
+// datadir because Bitcoin Core auto-partitions them via chain subdirectories
+// (signet/, testnet3/, regtest/, blocks/ for mainnet).
 type DatadirGroup string
 
 const (
 	DatadirGroupDefault DatadirGroup = "default"
-	DatadirGroupForknet DatadirGroup = "forknet"
 	DatadirGroupECash   DatadirGroup = "ecash"
 )
 
@@ -193,8 +191,6 @@ func ECashExplorerHost() string {
 // DatadirGroupForNetwork returns the datadir group a network belongs to.
 func DatadirGroupForNetwork(n Network) DatadirGroup {
 	switch n {
-	case NetworkForknet:
-		return DatadirGroupForknet
 	case NetworkECash:
 		return DatadirGroupECash
 	default:
@@ -207,8 +203,6 @@ func RPCPortForNetwork(n Network) int {
 	switch n {
 	case NetworkMainnet:
 		return 8332
-	case NetworkForknet:
-		return 18301
 	case NetworkECash:
 		return 18302
 	case NetworkTestnet:
@@ -235,8 +229,6 @@ func EsploraURLsForNetwork(n Network) []string {
 		// drivechain's own Esplora server. Its routes sit at the root, so the
 		// base URL carries no /api suffix (the other networks' do).
 		return []string{"https://esplora.mainnet.drivechain.info"}
-	case NetworkForknet:
-		return []string{"https://explorer.forknet.drivechain.info/api"}
 	case NetworkECash:
 		if backend := ECashEndpoints().BackendURL("esplora"); backend != "" {
 			return []string{backend}
@@ -294,7 +286,7 @@ func SplitCheckEsploraURLs() []string {
 // IsEcashFork reports whether the network is a fork of BTC mainnet, so its
 // pre-fork outpoints also exist on BTC.
 func IsEcashFork(n Network) bool {
-	return n == NetworkForknet || n == NetworkECash
+	return n == NetworkECash
 }
 
 // WalletChainSourceURLsForNetwork returns the endpoints the electrum wallet
@@ -366,7 +358,7 @@ func splitElectrumURL(raw string) (string, uint16) {
 // host and publishes no tip endpoint, so a poll there dials a name that never
 // existed.
 func PublicExplorerNetwork(n Network) bool {
-	return n == NetworkSignet || n == NetworkForknet
+	return n == NetworkSignet
 }
 
 // ElectrumWalletSupportedForNetwork reports whether a network can run electrum
@@ -383,10 +375,10 @@ func (n Network) CoreSection() string {
 }
 
 // CoreSectionForNetwork returns the Bitcoin Core config section name for a network.
-// Mainnet, forknet and eCash all use "main" since the forks run on mainnet params.
+// Mainnet and eCash both use "main" since eCash runs on mainnet params.
 func CoreSectionForNetwork(n Network) string {
 	switch n {
-	case NetworkMainnet, NetworkForknet, NetworkECash:
+	case NetworkMainnet, NetworkECash:
 		return "main"
 	case NetworkTestnet:
 		return "test"
@@ -417,7 +409,7 @@ func ECashUAComment(id string) string {
 // IsECashUAComment reports whether a uacomment marks an eCash install. A bare
 // "drynet<N>" is what builds before the free-form ids wrote. It is read, never
 // written: a conf that carries it still names an eCash chain, and reading it as
-// forknet would boot the wrong network behind the user's back.
+// mainnet would boot the wrong network behind the user's back.
 func IsECashUAComment(uacomment string) bool {
 	return strings.HasPrefix(uacomment, ecashUACommentPrefix) ||
 		strings.HasPrefix(uacomment, legacyECashUAComment)
@@ -442,9 +434,9 @@ func NetworkForCatalogEntry(id, family string) (Network, bool) {
 	return LookupNetwork(id)
 }
 
-// NetworkFromConfig detects the network from a parsed BitcoinConfig.
-// Handles forknet/ecash detection (chain=main + drivechain=1 in [main]).
-// fallback is returned when the config carries no chain=/testnet=/signet=/
+// NetworkFromConfig detects the network from a parsed BitcoinConfig. eCash runs
+// on chain=main, and the uacomment sentinel it writes into [main] tells it apart
+// from mainnet. fallback is returned when the config carries no chain=/testnet=/signet=/
 // regtest= selector at all — signet for our own managed conf, but the network
 // the file was found under for a user's private bitcoin.conf.
 func NetworkFromConfig(conf *BitcoinConfig, fallback Network) Network {
@@ -452,13 +444,8 @@ func NetworkFromConfig(conf *BitcoinConfig, fallback Network) Network {
 	if chainSetting != "" {
 		switch strings.ToLower(chainSetting) {
 		case "main", "mainnet":
-			if conf.GetEffectiveSetting("drivechain", "main") == "1" {
-				// forknet and eCash both run chain=main + drivechain=1, told
-				// apart by the uacomment sentinel eCash writes into [main].
-				if IsECashUAComment(conf.GetEffectiveSetting("uacomment", "main")) {
-					return NetworkECash
-				}
-				return NetworkForknet
+			if IsECashUAComment(conf.GetEffectiveSetting("uacomment", "main")) {
+				return NetworkECash
 			}
 			return NetworkMainnet
 		case "test", "testnet":
@@ -504,8 +491,6 @@ func LookupNetwork(s string) (Network, bool) {
 	switch strings.ToLower(s) {
 	case "mainnet", "main", "bitcoin":
 		return NetworkMainnet, true
-	case "forknet":
-		return NetworkForknet, true
 	// "drynet" is what launch scripts and ORCHESTRATOR_NETWORK carried before
 	// the rename. It is read, never written: falling through to signet would
 	// boot a different network than the caller asked for.
@@ -527,8 +512,8 @@ func LookupNetwork(s string) (Network, bool) {
 // error, and a guess here is a wrong address.
 func ChainParamsFor(n Network) *chaincfg.Params {
 	switch n {
-	// Forknet and eCash run on mainnet params: same encoding, same coin type.
-	case NetworkMainnet, NetworkForknet, NetworkECash:
+	// eCash runs on mainnet params: same encoding, same coin type.
+	case NetworkMainnet, NetworkECash:
 		return &chaincfg.MainNetParams
 	case NetworkTestnet:
 		return &chaincfg.TestNet3Params

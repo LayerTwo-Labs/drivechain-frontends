@@ -100,7 +100,7 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 	}
 	require.NotEmpty(t, core.Variants, "embedded config must declare core variants")
 
-	for _, id := range []string{"core", "patched", "knots", "forknet", "ecash"} {
+	for _, id := range []string{"core", "patched", "knots", "ecash"} {
 		v, ok := core.Variants[id]
 		require.True(t, ok, "missing variant %s", id)
 		assert.NotEmpty(t, v.Subfolder)
@@ -109,9 +109,8 @@ func TestParseConfigJSON_BitcoincoreVariants(t *testing.T) {
 		assert.NotEmpty(t, v.AvailableNetworks)
 	}
 
-	assert.True(t, core.Variants["forknet"].AvailableOn("forknet"))
 	assert.True(t, core.Variants["ecash"].AvailableOn("ecash"))
-	assert.False(t, core.Variants["ecash"].AvailableOn("forknet"))
+	assert.False(t, core.Variants["ecash"].AvailableOn("signet"))
 	assert.False(t, core.Variants["patched"].AvailableOn("ecash"))
 	assert.True(t, core.Variants["patched"].AvailableOn("mainnet"))
 	assert.True(t, core.Variants["core"].AvailableOn("mainnet"))
@@ -211,13 +210,12 @@ func TestOrchestrator_ListCoreVariants(t *testing.T) {
 		network string
 		want    []string
 	}{
-		// core/patched/knots are available on every chain except forknet and
-		// eCash, which each have a dedicated build as their sole option.
+		// core/patched/knots are available on every chain except eCash, which
+		// has a dedicated build as its sole option.
 		{"mainnet", []string{"core", "knots", "patched"}},
 		{"signet", []string{"core", "knots", "patched"}},
 		{"testnet", []string{"core", "knots", "patched"}},
 		{"regtest", []string{"core", "knots", "patched"}},
-		{"forknet", []string{"forknet"}},
 		{"ecash", []string{"ecash"}},
 	}
 	for _, tc := range cases {

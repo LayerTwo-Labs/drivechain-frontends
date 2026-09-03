@@ -5,7 +5,7 @@ import "testing"
 // Regtest and testnet have no Esplora server, so light mode cannot read a chain
 // for them. Offering it there gives the user a wallet that never syncs.
 func TestSupportsLightMode(t *testing.T) {
-	for _, n := range []Network{NetworkMainnet, NetworkSignet, NetworkForknet} {
+	for _, n := range []Network{NetworkMainnet, NetworkSignet, NetworkECash} {
 		if !SupportsLightMode(n) {
 			t.Errorf("%s serves esplora, so light mode must work", n)
 		}

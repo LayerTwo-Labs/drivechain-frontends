@@ -79,7 +79,7 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:    "network",
-				Usage:   "bitcoin network (mainnet, testnet, signet, regtest, forknet, ecash)",
+				Usage:   "bitcoin network (mainnet, testnet, signet, regtest, ecash)",
 				Value:   config.DefaultNetwork,
 				EnvVars: []string{"ORCHESTRATOR_NETWORK"},
 			},

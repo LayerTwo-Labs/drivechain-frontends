@@ -12,7 +12,6 @@ func TestNetworkTable(t *testing.T) {
 		group   DatadirGroup
 	}{
 		{NetworkMainnet, "main", 8332, DatadirGroupDefault},
-		{NetworkForknet, "main", 18301, DatadirGroupForknet},
 		{NetworkECash, "main", 18302, DatadirGroupECash},
 		{NetworkSignet, "signet", 38332, DatadirGroupDefault},
 		{NetworkTestnet, "test", 18332, DatadirGroupDefault},
@@ -46,7 +45,7 @@ func TestNetworkTable(t *testing.T) {
 // all to the root of the datadir and would otherwise mix three chains.
 func TestChainMainNetworksHaveDistinctDatadirGroups(t *testing.T) {
 	groups := map[DatadirGroup]Network{}
-	for _, n := range []Network{NetworkMainnet, NetworkForknet, NetworkECash} {
+	for _, n := range []Network{NetworkMainnet, NetworkECash} {
 		g := DatadirGroupForNetwork(n)
 		if prev, dup := groups[g]; dup {
 			t.Errorf("%s and %s share datadir group %q; their chain data would collide", prev, n, g)

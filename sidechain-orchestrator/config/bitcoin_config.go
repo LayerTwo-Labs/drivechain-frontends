@@ -13,7 +13,6 @@ const bitcoinConfVersionCommentPrefix = "# bitwindow-bitcoin-conf-version="
 // to remember the inactive datadir-group's path. Format on disk:
 //
 //	# bitwindow-datadir-default=/path/for/default/group
-//	# bitwindow-datadir-forknet=/path/for/forknet
 //	# bitwindow-datadir-ecash=/path/for/ecash
 //
 // bitcoind ignores comment lines, so these are invisible to it but
@@ -34,7 +33,7 @@ type BitcoinConfig struct {
 	ConfigVersion   int
 	// DatadirSlots holds the per-group datadir snapshots read from / written
 	// to # bitwindow-datadir-<group>= comment lines. Keyed by DatadirGroup
-	// value ("default", "forknet"). Empty string = unset/cleared.
+	// value ("default", "ecash"). Empty string = unset/cleared.
 	DatadirSlots map[DatadirGroup]string
 }
 
@@ -89,7 +88,7 @@ func ParseBitcoinConfig(content string) *BitcoinConfig {
 					group = DatadirGroupECash
 				}
 				path := strings.TrimSpace(rest[eq+1:])
-				if group == DatadirGroupDefault || group == DatadirGroupForknet || group == DatadirGroupECash {
+				if group == DatadirGroupDefault || group == DatadirGroupECash {
 					config.DatadirSlots[group] = path
 				}
 			}
@@ -144,7 +143,7 @@ func (c *BitcoinConfig) Serialize() string {
 	// byte-stable. Always emit both groups when either has a value, to keep
 	// hand-editing predictable.
 	if len(c.DatadirSlots) > 0 {
-		groupOrder := []DatadirGroup{DatadirGroupDefault, DatadirGroupForknet, DatadirGroupECash}
+		groupOrder := []DatadirGroup{DatadirGroupDefault, DatadirGroupECash}
 		anyEmitted := false
 		for _, g := range groupOrder {
 			if v, ok := c.DatadirSlots[g]; ok && v != "" {

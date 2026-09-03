@@ -160,7 +160,7 @@ func (c Catalog) ForNetwork(network string) (Network, bool) {
 		return c.CurrentECash()
 	case "mainnet":
 		return c.ByID("bitcoin")
-	case "signet", "forknet":
+	case "signet":
 		return c.ByID(network)
 	default:
 		return Network{}, false

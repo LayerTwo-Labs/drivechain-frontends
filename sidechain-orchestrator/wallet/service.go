@@ -2104,7 +2104,7 @@ func (s *Service) StarterWalletID() string {
 // derivesEnforcerAccount reports whether the wallet already looks at the
 // account the enforcer hardcoded. True on a network whose coin type is 1.
 func (s *Service) derivesEnforcerAccount(w *WalletData) bool {
-	// Forknet and ecash run on mainnet params, so a string compare against
+	// eCash runs on mainnet params, so a string compare against
 	// mainnet reads their coin type as 1 and skips the companion they need.
 	net, err := bip47send.NetworkParams(s.network)
 	if err != nil {

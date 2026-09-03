@@ -207,7 +207,7 @@ func TestSubstituteBip47Destination_RejectsSelfSend(t *testing.T) {
 }
 
 func TestNetworkParams(t *testing.T) {
-	for _, net := range []string{"mainnet", "signet", "regtest", "forknet", "ecash"} {
+	for _, net := range []string{"mainnet", "signet", "regtest", "ecash"} {
 		t.Run(net, func(t *testing.T) {
 			p, err := NetworkParams(net)
 			require.NoError(t, err)
@@ -215,13 +215,13 @@ func TestNetworkParams(t *testing.T) {
 		})
 	}
 
-	// Forknet and eCash are mainnet forks: same params, same key derivation.
+	// eCash is a mainnet fork: same params, same key derivation.
 	mainnet, err := NetworkParams("mainnet")
 	require.NoError(t, err)
 
-	forknet, err := NetworkParams("forknet")
+	ecashParams, err := NetworkParams("ecash")
 	require.NoError(t, err)
-	assert.Same(t, mainnet, forknet)
+	assert.Same(t, mainnet, ecashParams)
 
 	ecash, err := NetworkParams("ecash")
 	require.NoError(t, err)

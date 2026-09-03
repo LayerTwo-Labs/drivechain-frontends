@@ -48,22 +48,6 @@ func TestBitcoinCoreMainnetPath(t *testing.T) {
 	}
 }
 
-func TestBitcoinCoreForknetPath(t *testing.T) {
-	p := BitcoinCoreDirs.RootDirNetwork(NetworkForknet)
-	var want string
-	switch runtime.GOOS {
-	case "darwin":
-		want = filepath.Join(home(), "Library", "Application Support", "Ecash")
-	case "windows":
-		want = filepath.Join(home(), "AppData", "Roaming", "Ecash")
-	default:
-		want = filepath.Join(home(), ".ecash")
-	}
-	if p != want {
-		t.Errorf("BitcoinCore forknet path = %q, want %q", p, want)
-	}
-}
-
 func TestBitcoinCoreECashPath(t *testing.T) {
 	p := BitcoinCoreDirs.RootDirNetwork(NetworkECash)
 	var want string

@@ -62,11 +62,11 @@ func TestCompanionWhenAPassphraseChangesTheSeed(t *testing.T) {
 	require.Len(t, svc.GetAllWallets(), 2)
 }
 
-// Forknet and ecash run on mainnet params, so their coin type is 0. The
+// eCash runs on mainnet params, so its coin type is 0. The
 // enforcer still held coin type 1 there, and both networks serve an Esplora,
 // so a user reaches them in light mode with real coins.
 func TestCompanionOnNetworksThatRunMainnetParams(t *testing.T) {
-	for _, network := range []config.Network{config.NetworkForknet, config.NetworkECash} {
+	for _, network := range []config.Network{config.NetworkECash} {
 		t.Run(string(network), func(t *testing.T) {
 			svc := loadEnforcerWallet(t, network, "")
 			require.Len(t, svc.GetAllWallets(), 2)

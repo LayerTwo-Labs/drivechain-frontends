@@ -141,8 +141,9 @@ enum BitcoinNetwork {
   BITCOIN_NETWORK_REGTEST = 3;
   BITCOIN_NETWORK_SIGNET = 4;
   BITCOIN_NETWORK_TESTNET = 5;
-  BITCOIN_NETWORK_FORKNET = 6;
   BITCOIN_NETWORK_ECASH = 7;
+
+  reserved 6; // forknet
 }
 
 enum AddressType {
@@ -348,7 +349,7 @@ message ProcessBandwidth {
 }
 
 message UpdateNetworkRequest {
-  // Target network: signet, mainnet, forknet, ecash, testnet, regtest.
+  // Target network: signet, mainnet, ecash, testnet, regtest.
   string network = 1;
   // The user's answer to must_select_datadir, when they were asked.
   string data_dir = 2;

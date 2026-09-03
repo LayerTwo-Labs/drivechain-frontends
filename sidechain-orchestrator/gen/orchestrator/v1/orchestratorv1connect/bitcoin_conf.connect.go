@@ -77,7 +77,7 @@ type BitcoinConfServiceClient interface {
 	// rather than a resync. Side-effect free.
 	PlanECashSwitch(context.Context, *connect.Request[v1.PlanECashSwitchRequest]) (*connect.Response[v1.PlanECashSwitchResponse], error)
 	// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
-	// name (signet, mainnet, forknet, ecash, regtest).
+	// name (signet, mainnet, ecash, regtest).
 	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
 	// Set the Bitcoin Core datadir for a specific network.
 	SetBitcoinConfigDataDir(context.Context, *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error)
@@ -217,7 +217,7 @@ type BitcoinConfServiceHandler interface {
 	// rather than a resync. Side-effect free.
 	PlanECashSwitch(context.Context, *connect.Request[v1.PlanECashSwitchRequest]) (*connect.Response[v1.PlanECashSwitchResponse], error)
 	// Set the Bitcoin Core network. Takes a catalog id ("alphanet") or a slot
-	// name (signet, mainnet, forknet, ecash, regtest).
+	// name (signet, mainnet, ecash, regtest).
 	SetBitcoinConfigNetwork(context.Context, *connect.Request[v1.SetBitcoinConfigNetworkRequest]) (*connect.Response[v1.SetBitcoinConfigNetworkResponse], error)
 	// Set the Bitcoin Core datadir for a specific network.
 	SetBitcoinConfigDataDir(context.Context, *connect.Request[v1.SetBitcoinConfigDataDirRequest]) (*connect.Response[v1.SetBitcoinConfigDataDirResponse], error)

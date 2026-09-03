@@ -24,7 +24,7 @@ func ForkHeightFor(network string) int {
 	switch network {
 	case "regtest":
 		return 400
-	default: // mainnet, forknet, testnet, ...
+	default: // mainnet, testnet, ...
 		return 100_000
 	}
 }
@@ -33,7 +33,7 @@ func ForkHeightFor(network string) int {
 // package so the engine imports nothing app-specific (no import cycle, easy to
 // fake in tests).
 type Tip struct {
-	// Network is the drivechain network, not Core's chain: eCash and forknet
+	// Network is the drivechain network, not Core's chain: eCash and mainnet
 	// are both chain=main, so Core cannot tell them apart.
 	Network string
 	Blocks  int

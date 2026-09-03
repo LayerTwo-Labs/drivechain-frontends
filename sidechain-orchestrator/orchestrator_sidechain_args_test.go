@@ -268,7 +268,7 @@ func TestPrepareSidechainArgsAcceptsAnEarlierNetworkFlag(t *testing.T) {
 		"network":  "signet",
 	})
 
-	opts := StartOpts{TargetArgs: []string{"--network=forknet"}}
+	opts := StartOpts{TargetArgs: []string{"--network=regtest"}}
 	prepareArgs(t, orch, BinaryConfig{Name: "thunder", ChainLayer: 2}, &opts)
 
 	if !hasCLIFlag(opts.TargetArgs, "--net-addr") {
@@ -283,7 +283,6 @@ func TestPrepareSidechainArgsPassesEveryKnownNetwork(t *testing.T) {
 	for network, want := range map[config.Network]string{
 		config.NetworkSignet:  "--network=signet",
 		config.NetworkRegtest: "--network=regtest",
-		config.NetworkForknet: "--network=forknet",
 	} {
 		orch := thunderOrchestratorOn(t, network, map[string]string{
 			"net-addr": "0.0.0.0:4009",

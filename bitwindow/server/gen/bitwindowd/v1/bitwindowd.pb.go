@@ -81,7 +81,6 @@ const (
 	BitcoinNetwork_BITCOIN_NETWORK_REGTEST     BitcoinNetwork = 3
 	BitcoinNetwork_BITCOIN_NETWORK_SIGNET      BitcoinNetwork = 4
 	BitcoinNetwork_BITCOIN_NETWORK_TESTNET     BitcoinNetwork = 5
-	BitcoinNetwork_BITCOIN_NETWORK_FORKNET     BitcoinNetwork = 6
 	BitcoinNetwork_BITCOIN_NETWORK_ECASH       BitcoinNetwork = 7
 )
 
@@ -94,7 +93,6 @@ var (
 		3: "BITCOIN_NETWORK_REGTEST",
 		4: "BITCOIN_NETWORK_SIGNET",
 		5: "BITCOIN_NETWORK_TESTNET",
-		6: "BITCOIN_NETWORK_FORKNET",
 		7: "BITCOIN_NETWORK_ECASH",
 	}
 	BitcoinNetwork_value = map[string]int32{
@@ -104,7 +102,6 @@ var (
 		"BITCOIN_NETWORK_REGTEST":     3,
 		"BITCOIN_NETWORK_SIGNET":      4,
 		"BITCOIN_NETWORK_TESTNET":     5,
-		"BITCOIN_NETWORK_FORKNET":     6,
 		"BITCOIN_NETWORK_ECASH":       7,
 	}
 )
@@ -2155,7 +2152,7 @@ func (x *ProcessBandwidth) GetConnectionCount() int32 {
 
 type UpdateNetworkRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Target network: signet, mainnet, forknet, ecash, testnet, regtest.
+	// Target network: signet, mainnet, ecash, testnet, regtest.
 	Network string `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
 	// The user's answer to must_select_datadir, when they were asked.
 	DataDir string `protobuf:"bytes,2,opt,name=data_dir,json=dataDir,proto3" json:"data_dir,omitempty"`
@@ -2435,16 +2432,15 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\tDirection\x12\x19\n" +
 	"\x15DIRECTION_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eDIRECTION_SEND\x10\x01\x12\x15\n" +
-	"\x11DIRECTION_RECEIVE\x10\x02*\xf9\x01\n" +
+	"\x11DIRECTION_RECEIVE\x10\x02*\xe2\x01\n" +
 	"\x0eBitcoinNetwork\x12\x1f\n" +
 	"\x1bBITCOIN_NETWORK_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17BITCOIN_NETWORK_UNKNOWN\x10\x01\x12\x1b\n" +
 	"\x17BITCOIN_NETWORK_MAINNET\x10\x02\x12\x1b\n" +
 	"\x17BITCOIN_NETWORK_REGTEST\x10\x03\x12\x1a\n" +
 	"\x16BITCOIN_NETWORK_SIGNET\x10\x04\x12\x1b\n" +
-	"\x17BITCOIN_NETWORK_TESTNET\x10\x05\x12\x1b\n" +
-	"\x17BITCOIN_NETWORK_FORKNET\x10\x06\x12\x19\n" +
-	"\x15BITCOIN_NETWORK_ECASH\x10\a*\xac\x01\n" +
+	"\x17BITCOIN_NETWORK_TESTNET\x10\x05\x12\x19\n" +
+	"\x15BITCOIN_NETWORK_ECASH\x10\a\"\x04\b\x06\x10\x06*\xac\x01\n" +
 	"\vAddressType\x12\x1c\n" +
 	"\x18ADDRESS_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ADDRESS_TYPE_UNKNOWN\x10\x01\x12\x1b\n" +
