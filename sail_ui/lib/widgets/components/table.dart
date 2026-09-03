@@ -703,6 +703,7 @@ class SailTableCell extends StatelessWidget {
     this.selectedIconTheme,
     this.textColor,
     this.backgroundColor,
+    this.opacity = 255,
     this.monospace = false,
     this.italic = false,
     super.key,
@@ -719,22 +720,25 @@ class SailTableCell extends StatelessWidget {
   final SailSVGAsset? selectedIconTheme;
   final Color? textColor;
   final Color? backgroundColor;
+  final int opacity;
   final bool monospace;
   final bool italic;
+
   @override
   Widget build(BuildContext context) {
     var tableRow = context.findAncestorWidgetOfExactType<_TableRow>();
     assert(tableRow != null, 'Table cell needs to be a child of SailTable');
+    var theme = SailTheme.of(context);
 
     return Container(
       alignment: alignment,
       padding: padding,
-      color: backgroundColor,
+      color: backgroundColor?.withAlpha(opacity),
       child:
           child ??
           SailText.primary13(
             value,
-            color: textColor,
+            color: (textColor ?? theme.colors.text).withAlpha(opacity),
             monospace: monospace,
             italic: italic,
             overflow: null,
