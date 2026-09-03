@@ -374,7 +374,7 @@ class _HistoricBids extends StatelessWidget {
                   SailTableCell(
                     value: round.hasProfit ? round.profitSats.toString() : '—',
                     monospace: true,
-                    textColor: round.hasProfit ? theme.colors.success : null,
+                    textColor: profitColor(round, theme.colors),
                   ),
                   SailTableCell(value: viewModel.winnerOf(round), monospace: true),
                   SailTableCell(value: '${round.ourBids.length + round.otherBids.length}'),
@@ -394,6 +394,15 @@ class _HistoricBids extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A round the chain left behind pays no fees back, so it returns the bid as a
+/// loss.
+Color? profitColor(bmmpb.Round round, SailColor colors) {
+  if (!round.hasProfit) {
+    return null;
+  }
+  return round.profitSats < 0 ? colors.error : colors.success;
 }
 
 class BMMViewModel extends BaseViewModel {
