@@ -269,6 +269,11 @@ func purgeM4AtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) (uin
 // timestamp is never re-examined. Mempool OP_RETURNs have a NULL height
 // and are left alone; reset timestamps go back through the confirming
 // loop, which re-confirms them against the new chain or fails them.
+//
+// The confirmation notifications those blocks produced go too: they are
+// recorded for good, so without this the re-confirmation on the new chain is
+// swallowed as a duplicate. Events not tied to a block have a NULL height and
+// are left alone.
 func purgeChainDerivedAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight uint32) error {
 
 	if _, err := tx.ExecContext(ctx,
@@ -281,6 +286,11 @@ func purgeChainDerivedAtOrAboveTx(ctx context.Context, tx *sql.Tx, fromHeight ui
 		SET status = ?, block_height = NULL, confirmed_at = NULL
 		WHERE block_height >= ?`,
 		timestamps.StatusConfirming, fromHeight,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM notified_events WHERE height >= ?`, fromHeight,
 	); err != nil {
 		return err
 	}

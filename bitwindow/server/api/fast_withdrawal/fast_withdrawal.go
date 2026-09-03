@@ -113,6 +113,10 @@ func (s *Server) InitiateFastWithdrawal(
 func (s *Server) initiateSidechainWithdrawal(ctx context.Context, sidechain string, amount int64, destination string) (string, error) {
 	log := zerolog.Ctx(ctx)
 
+	if amount <= 0 || amount > engines.MaxFastWithdrawalSats {
+		return "", fmt.Errorf("withdrawal amount out of range: %d", amount)
+	}
+
 	// Call external fast withdrawal server (like fw1.drivechain.info)
 	withdrawalRequest := map[string]interface{}{
 		"withdrawal_destination": destination,
@@ -172,6 +176,10 @@ func (s *Server) initiateSidechainWithdrawal(ctx context.Context, sidechain stri
 	serverFeeSatsFloat, ok := data["server_fee_sats"].(float64)
 	if !ok {
 		return "", fmt.Errorf("invalid response format: missing server_fee_sats")
+	}
+	// Rejects NaN and anything that would push the expected amount past the supply cap.
+	if !(serverFeeSatsFloat >= 0 && serverFeeSatsFloat <= float64(engines.MaxFastWithdrawalSats-amount)) {
+		return "", fmt.Errorf("invalid response format: server_fee_sats out of range: %v", serverFeeSatsFloat)
 	}
 	serverFeeSats := int64(serverFeeSatsFloat)
 
