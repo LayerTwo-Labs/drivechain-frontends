@@ -99,47 +99,13 @@ type Server struct {
 }
 
 // CreateBitcoinCoreWallet implements walletv1connect.WalletServiceHandler.
-// Test endpoint to verify descriptor import to Bitcoin Core.
-func (s *Server) CreateBitcoinCoreWallet(ctx context.Context, c *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
-	seedHex := strings.TrimSpace(c.Msg.SeedHex)
-	if seedHex == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("seed_hex required"))
-	}
-
-	coreWalletName := c.Msg.Name
-	if coreWalletName == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name required"))
-	}
-
-	// Directly import to Bitcoin Core - no wallet.json needed
-	if err := s.walletEngine.CreateBitcoinCoreWalletFromSeed(ctx, coreWalletName, seedHex, 0, ""); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("create Bitcoin Core wallet failed")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create wallet: %w", err))
-	}
-
-	// Get first address for verification
-	bitcoindClient, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	addrResp, err := bitcoindClient.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-		Wallet: coreWalletName,
-	}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get new address: %w", err))
-	}
-
-	zerolog.Ctx(ctx).Info().
-		Str("core_wallet_name", coreWalletName).
-		Str("first_address", addrResp.Msg.Address).
-		Msg("Created Bitcoin Core wallet from seed")
-
-	return connect.NewResponse(&pb.CreateBitcoinCoreWalletResponse{
-		WalletId:       "", // Not used in test
-		CoreWalletName: coreWalletName,
-		FirstAddress:   addrResp.Msg.Address,
-	}), nil
+// The orchestrator owns wallet.json, so bitwindowd cannot mint a wallet ID:
+// creating the Core wallet here would leave one no other RPC can address.
+// Rejected before bitcoind is touched.
+func (s *Server) CreateBitcoinCoreWallet(_ context.Context, _ *connect.Request[pb.CreateBitcoinCoreWalletRequest]) (*connect.Response[pb.CreateBitcoinCoreWalletResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New(
+		"create wallets through walletmanager.v1.WalletManagerService/GenerateWallet",
+	))
 }
 
 // SendTransaction implements drivechainv1connect.DrivechainServiceHandler.
@@ -607,6 +573,11 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("get wallet type: %w", err)
 	}
 
+	// History is wallet data, so a locked wallet must not hand it out.
+	if !s.walletEngine.IsUnlocked() {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+
 	if walletType == engines.WalletTypeElectrum {
 		entries, err := s.walletEngine.GetElectrumTransactions(ctx, walletId)
 		if err != nil {
@@ -804,6 +775,10 @@ func (s *Server) ListSidechainDeposits(ctx context.Context, c *connect.Request[p
 
 // CreateSidechainDeposit implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateSidechainDeposit(ctx context.Context, c *connect.Request[pb.CreateSidechainDepositRequest]) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	walletId := c.Msg.WalletId
 	walletType, err := s.walletEngine.GetWalletBackendType(ctx, walletId)
 	if err != nil {
@@ -852,6 +827,12 @@ func (s *Server) createWalletSidechainDeposit(
 	depositAddress string,
 	amount, fee btcutil.Amount,
 ) (*connect.Response[pb.CreateSidechainDepositResponse], error) {
+	// Re-check with the broadcast one call away: the address and amount
+	// validation above leaves room for a lock.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	txid, err := s.walletEngine.CreateDeposit(ctx, &orchpb.CreateDepositRequest{
 		Slot:        int32(slot),
 		WalletId:    walletId,
@@ -1460,6 +1441,16 @@ func (s *Server) IsWalletUnlocked(ctx context.Context, c *connect.Request[emptyp
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
+// requireUnlocked rejects a fund-moving call while the wallet is locked. A
+// handler checks it on entry and again just before it broadcasts, because a
+// lock can land in between.
+func (s *Server) requireUnlocked() error {
+	if !s.walletEngine.IsUnlocked() {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New("wallet is locked"))
+	}
+	return nil
+}
+
 // CreateCheque implements walletv1connect.WalletServiceHandler.
 func (s *Server) CreateCheque(ctx context.Context, c *connect.Request[pb.CreateChequeRequest]) (*connect.Response[pb.CreateChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
@@ -1742,6 +1733,12 @@ func sweepAddressKindToPb(kind engines.SweepAddressKind) pb.SweepAddressKind {
 func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChequeRequest]) (*connect.Response[pb.SweepChequeResponse], error) {
 	log := zerolog.Ctx(ctx)
 
+	// The sweep key comes from the caller, so this gate only holds the sweep to
+	// the lock state the operator sees — it is not what keeps the seed safe.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	walletId := c.Msg.WalletId
 
 	// Wallet ID validation only - cheques work the same for all wallet types
@@ -1788,6 +1785,12 @@ func (s *Server) SweepCheque(ctx context.Context, c *connect.Request[pb.SweepChe
 	txHex, err := s.serializeTx(signedTx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("serialize transaction: %w", err))
+	}
+
+	// Re-check with the broadcast one call away: the UTXO query, build and sign
+	// above leave room for a lock.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
 	}
 
 	txid, err := s.chequeChain.Broadcast(ctx, txHex)
@@ -2315,6 +2318,10 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 	log := zerolog.Ctx(ctx)
 	txid := c.Msg.Txid
 
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
+	}
+
 	if txid == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid required"))
 	}
@@ -2328,6 +2335,12 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 	listResp, err := s.data.ListWallets(ctx, &emptypb.Empty{})
 	if err != nil {
 		return nil, fmt.Errorf("list wallets: %w", err)
+	}
+
+	// Re-check with the broadcast one call away: the wallet listing above
+	// leaves room for a lock.
+	if err := s.requireUnlocked(); err != nil {
+		return nil, err
 	}
 
 	// Try each wallet until one successfully bumps the fee
@@ -2353,6 +2366,15 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 		Float64("original_fee", bumpResp.Msg.OriginalFee).
 		Float64("new_fee", bumpResp.Msg.NewFee).
 		Msg("RBF transaction broadcast via Core bumpfee")
+
+	// The replacement evicts the old txid, so a cheque swept by it must follow.
+	rebound, err := cheques.ReplaceSweptTxid(ctx, s.database, txid, bumpResp.Msg.Txid)
+	if err != nil {
+		// The bump already broadcast, so don't fail the call over bookkeeping.
+		log.Warn().Err(err).Msg("failed to point swept cheques at the replacement txid")
+	} else if rebound > 0 {
+		log.Info().Int64("cheques", rebound).Msg("pointed swept cheques at the replacement txid")
+	}
 
 	return connect.NewResponse(&pb.BumpFeeResponse{
 		Txid:        bumpResp.Msg.Txid,
