@@ -1726,7 +1726,30 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		return
 	}
 
+	o.dialThunderSeed(ctx, config)
+
 	ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+}
+
+// alphanetThunderSeed answers on alphanet. Both seeds thunder names are down,
+// so a node that starts reaches nobody without this one.
+const alphanetThunderSeed = "204.168.254.113:4009"
+
+// dialThunderSeed asks thunder to connect to the alphanet seed. The chain
+// answers its RPC by this point.
+//
+// A refused address leaves the chain running: the node keeps the address and
+// retries it on its own.
+func (o *Orchestrator) dialThunderSeed(ctx context.Context, config BinaryConfig) {
+	if config.Name != "thunder" || o.Network != "ecash" {
+		return
+	}
+	proxy := sidechain.NewJSONRPCProxy(config.RPCHost(), config.Port)
+	if err := proxy.Client.Call(ctx, "connect_peer", []any{alphanetThunderSeed}, nil); err != nil {
+		o.log.Warn().Err(err).Str("peer", alphanetThunderSeed).Msg("could not reach the alphanet seed")
+		return
+	}
+	o.log.Info().Str("peer", alphanetThunderSeed).Msg("dialled the alphanet seed")
 }
 
 // RegisterLightWallet records how to ask whether a chain reads a remote index.
