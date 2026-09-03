@@ -460,7 +460,6 @@ class _UTXOTableState extends State<UTXOTable> {
                           SailSVGAsset.snowflake,
                           width: 14,
                           color: theme.colors.info,
-                          alignment: Alignment.center,
                         )
                       : const SizedBox(width: 14),
                 ),
