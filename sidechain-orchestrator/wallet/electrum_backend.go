@@ -1038,6 +1038,14 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		return nil, nil, nil, fmt.Errorf("insufficient funds: short %d sats", -changeSats)
 	}
 	effect := &spendEffect{spent: selected}
+	// Pinned inputs that a mempool transaction already spends make this a
+	// replacement: the cache counts those inputs spent, so only the outputs
+	// move, and the transactions it evicts leave the cache with it.
+	if txid, evicted, ok := replacedChain(scan, req.RequiredInputs); ok {
+		effect.replaces = true
+		effect.replacedTxID = txid
+		effect.evicted = evicted
+	}
 	if changeSats >= changeDust {
 		changeAddr, err := p.nextUnusedAddrFromScan(walletID, scan, w.scriptKind(), true)
 		if err != nil {
@@ -2772,6 +2780,94 @@ func (p *ElectrumBackend) pinnedInputUTXO(
 		amountSats: out.Value,
 		confirmed:  tx.Status.Confirmed,
 	}, nil
+}
+
+// replacedChain names the unconfirmed transaction that already spends a pinned
+// input, and every wallet output that dies with it. That transaction is the one
+// a replacement pushes out of the mempool, and the unconfirmed transactions
+// built on its change go with it.
+//
+// It finds nothing when the pinned inputs are still unspent, which is an
+// ordinary send rather than a replacement.
+func replacedChain(scan *electrumScan, required []RequiredInput) (string, []electrumUTXO, bool) {
+	pinned := make(map[string]bool, len(required))
+	for _, ri := range required {
+		pinned[fmt.Sprintf("%s:%d", ri.TxID, ri.Vout)] = true
+	}
+
+	root := ""
+	forEachUnconfirmed(scan, func(tx EsploraTx) bool {
+		for _, vin := range tx.Vin {
+			if pinned[fmt.Sprintf("%s:%d", vin.TxID, vin.Vout)] {
+				root = tx.TxID
+				return true
+			}
+		}
+		return false
+	})
+	if root == "" {
+		return "", nil, false
+	}
+
+	// Every unconfirmed transaction that descends from the root dies with it,
+	// so the cache has to drop their outputs too.
+	dead := map[string]bool{root: true}
+	for grew := true; grew; {
+		grew = false
+		forEachUnconfirmed(scan, func(tx EsploraTx) bool {
+			if dead[tx.TxID] {
+				return false
+			}
+			for _, vin := range tx.Vin {
+				if dead[vin.TxID] {
+					dead[tx.TxID] = true
+					grew = true
+					return false
+				}
+			}
+			return false
+		})
+	}
+
+	var evicted []electrumUTXO
+	seen := map[string]bool{}
+	forEachUnconfirmed(scan, func(tx EsploraTx) bool {
+		if !dead[tx.TxID] {
+			return false
+		}
+		for i, out := range tx.Vout {
+			key := fmt.Sprintf("%s:%d", tx.TxID, i)
+			if seen[key] || !scan.owns(out.ScriptPubKeyAddress) {
+				continue
+			}
+			seen[key] = true
+			evicted = append(evicted, electrumUTXO{
+				txid:       tx.TxID,
+				vout:       i,
+				address:    out.ScriptPubKeyAddress,
+				amountSats: out.Value,
+			})
+		}
+		return false
+	})
+	return root, evicted, true
+}
+
+// forEachUnconfirmed visits every unconfirmed transaction the scan holds, once
+// per transaction. It stops early when visit reports true.
+func forEachUnconfirmed(scan *electrumScan, visit func(EsploraTx) bool) {
+	seen := map[string]bool{}
+	for _, a := range scan.addrs {
+		for _, tx := range a.txs {
+			if tx.Status.Confirmed || seen[tx.TxID] {
+				continue
+			}
+			seen[tx.TxID] = true
+			if visit(tx) {
+				return
+			}
+		}
+	}
 }
 
 func findUTXO(pool []electrumUTXO, txid string, vout int) (electrumUTXO, bool) {

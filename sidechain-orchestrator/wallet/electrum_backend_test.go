@@ -2954,3 +2954,104 @@ func TestElectrumSendRefusesAForeignPinnedInput(t *testing.T) {
 	assert.Contains(t, err.Error(), "belongs to another wallet")
 	assert.Empty(t, fake.broadcast)
 }
+
+// A replacement evicts the transaction it replaces and every unconfirmed
+// transaction built on its change, so the cache must drop all of their outputs
+// rather than count the pinned input spent a second time.
+func TestElectrumReplacementEvictsTheWholeChain(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const (
+		funding = "4444444444444444444444444444444444444444444444444444444444444444"
+		bid1    = "5555555555555555555555555555555555555555555555555555555555555555"
+		bid2    = "6666666666666666666666666666666666666666666666666666666666666666"
+	)
+
+	// funding:0 is confirmed. bid1 spends it, bid2 spends bid1's change, and
+	// neither is mined. The scan therefore offers no spendable UTXO.
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = nil
+	fake.txByID[funding] = EsploraTx{
+		TxID:   funding,
+		Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 200_000}},
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
+	}
+	fake.txs[addr] = []EsploraTx{
+		{
+			TxID:   bid1,
+			Vin:    []EsploraVin{{TxID: funding, Vout: 0}},
+			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 199_000}},
+			Status: EsploraStatus{Confirmed: false},
+		},
+		{
+			TxID:   bid2,
+			Vin:    []EsploraVin{{TxID: bid1, Vout: 0}},
+			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 198_000}},
+			Status: EsploraStatus{Confirmed: false},
+		},
+	}
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err := p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+		RequiredInputs:   []RequiredInput{{TxID: funding, Vout: 0}},
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+}
+
+// replacedChain must find the root and walk the whole unconfirmed chain built
+// on it, so no evicted output is left looking spendable.
+func TestReplacedChainWalksDescendants(t *testing.T) {
+	const (
+		funding = "aa"
+		bid1    = "bb"
+		bid2    = "cc"
+		other   = "dd"
+	)
+	addr := "myaddr"
+	scan := &electrumScan{
+		byAddr: map[string]scannedAddr{addr: {address: addr}},
+		addrs: []scannedAddr{{
+			address: addr,
+			txs: []EsploraTx{
+				{TxID: bid1, Vin: []EsploraVin{{TxID: funding, Vout: 0}},
+					Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 199_000}}},
+				{TxID: bid2, Vin: []EsploraVin{{TxID: bid1, Vout: 0}},
+					Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 198_000}}},
+				// Unrelated, so it must survive.
+				{TxID: other, Vin: []EsploraVin{{TxID: "ee", Vout: 3}},
+					Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 5_000}}},
+			},
+		}},
+	}
+
+	root, evicted, ok := replacedChain(scan, []RequiredInput{{TxID: funding, Vout: 0}})
+	require.True(t, ok)
+	assert.Equal(t, bid1, root, "the root is the transaction spending the pinned input")
+
+	got := map[string]bool{}
+	for _, u := range evicted {
+		got[u.txid] = true
+	}
+	assert.True(t, got[bid1], "the replaced transaction's outputs leave the cache")
+	assert.True(t, got[bid2], "its unconfirmed descendant goes with it")
+	assert.False(t, got[other], "an unrelated transaction stays")
+}
+
+// An ordinary send pins nothing that is already spent, so it must not be
+// mistaken for a replacement.
+func TestReplacedChainIgnoresAnOrdinarySend(t *testing.T) {
+	addr := "myaddr"
+	scan := &electrumScan{
+		byAddr: map[string]scannedAddr{addr: {address: addr}},
+		addrs:  []scannedAddr{{address: addr}},
+	}
+	_, _, ok := replacedChain(scan, []RequiredInput{{TxID: "aa", Vout: 0}})
+	assert.False(t, ok)
+}
