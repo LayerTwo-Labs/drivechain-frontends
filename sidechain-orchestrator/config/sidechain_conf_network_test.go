@@ -140,16 +140,69 @@ func TestGetCliArgsWithholdsNetworkFromUnprovedChains(t *testing.T) {
 	}
 }
 
-// The eCash and forknet boxes both keep the +20000 port group. The daemon name
-// changes; the ports do not.
-func TestNetworkFlagLeavesThePortGroupAlone(t *testing.T) {
-	for _, network := range []Network{NetworkECash, NetworkForknet} {
-		m := sidechainConfFor(t, "thunder", network, nil)
-		if got := m.resolveNetwork(); got != "mainnet" {
-			t.Errorf("resolveNetwork() on %q = %q, want mainnet", network, got)
+// Every network reads its own port group, and the live chain reads the base
+// port a daemon listens on with no arguments.
+func TestEachNetworkReadsItsOwnPortGroup(t *testing.T) {
+	for _, test := range []struct {
+		network Network
+		group   string
+		rpcAddr string
+		netAddr string
+	}{
+		{NetworkECash, "ecash", "127.0.0.1:6009", "0.0.0.0:4009"},
+		{NetworkRegtest, "regtest", "127.0.0.1:16009", "0.0.0.0:14009"},
+		{NetworkSignet, "signet", "127.0.0.1:36009", "0.0.0.0:34009"},
+	} {
+		m := sidechainConfFor(t, "thunder", test.network, nil)
+		if got := m.resolveNetwork(); got != test.group {
+			t.Errorf("resolveNetwork() on %q = %q, want %q", test.network, got, test.group)
 		}
-		if got := m.getNetworkPorts("mainnet")["net-addr"]; got != "0.0.0.0:24009" {
-			t.Errorf("net-addr on %q = %q, want 0.0.0.0:24009", network, got)
+		ports := m.getNetworkPorts(test.group)
+		if got := ports["net-addr"]; got != test.netAddr {
+			t.Errorf("net-addr on %q = %q, want %q", test.network, got, test.netAddr)
+		}
+		if got := ports["rpc-addr"]; got != test.rpcAddr {
+			t.Errorf("rpc-addr on %q = %q, want %q", test.network, got, test.rpcAddr)
+		}
+	}
+}
+
+// The offsets copy the ones Bitcoin Core gives its own chains, so a reader who
+// knows 8332 and 18332 can guess these.
+func TestPortOffsetsFollowBitcoinCore(t *testing.T) {
+	for group, want := range map[string]int{
+		"ecash":   0,
+		"regtest": 10000,
+		"signet":  30000,
+	} {
+		if got := networkPortOffset(group); got != want {
+			t.Errorf("networkPortOffset(%q) = %d, want %d", group, got, want)
+		}
+	}
+}
+
+// A node made before the live chain took the base port holds the retired
+// +20000 value. The next sync moves it, so the node answers where its peers
+// look for it.
+func TestSyncMovesTheLiveChainOffTheRetiredPort(t *testing.T) {
+	SetHomeDir(t.TempDir())
+	t.Cleanup(func() { SetHomeDir("") })
+
+	m := sidechainConfFor(t, "thunder", NetworkECash, map[string]string{
+		"net-addr":           "0.0.0.0:24009",
+		"rpc-addr":           "127.0.0.1:26009",
+		"mainchain-grpc-url": "http://localhost:50051",
+	})
+
+	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	for key, want := range map[string]string{
+		"net-addr": "0.0.0.0:4009",
+		"rpc-addr": "127.0.0.1:6009",
+	} {
+		if got := m.Config.GetSetting(key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
 		}
 	}
 }
@@ -257,8 +310,7 @@ func TestGetNetworkReadsTheMainchainConf(t *testing.T) {
 	for network, want := range map[Network]string{
 		NetworkSignet:  "signet",
 		NetworkRegtest: "regtest",
-		NetworkECash:   "mainnet",
-		NetworkForknet: "mainnet",
+		NetworkECash:   "ecash",
 	} {
 		m := sidechainConfFor(t, "thunder", network, map[string]string{"network": "nonsense"})
 		if got := m.GetNetwork(); got != want {
@@ -275,7 +327,7 @@ func TestSyncKeepsACustomEndpoint(t *testing.T) {
 
 	m := sidechainConfFor(t, "thunder", NetworkSignet, map[string]string{
 		"net-addr":           "0.0.0.0:9999",
-		"rpc-addr":           "127.0.0.1:6009",
+		"rpc-addr":           "127.0.0.1:36009",
 		"mainchain-grpc-url": "https://remote.example/grpc",
 	})
 
@@ -311,8 +363,8 @@ func TestSyncReplacesAnotherNetworksPort(t *testing.T) {
 		t.Fatalf("sync: %v", err)
 	}
 	for key, want := range map[string]string{
-		"net-addr": "0.0.0.0:4009",
-		"rpc-addr": "127.0.0.1:6009",
+		"net-addr": "0.0.0.0:34009",
+		"rpc-addr": "127.0.0.1:36009",
 	} {
 		if got := m.Config.GetSetting(key); got != want {
 			t.Errorf("%s = %q, want %q", key, got, want)

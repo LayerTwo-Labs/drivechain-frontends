@@ -206,18 +206,32 @@ mainchain-grpc-url=%s
 	}
 }
 
+// networkPortOffset returns what a network adds to a sidechain's base port,
+// following the offsets Bitcoin Core gives its own chains: mainnet 8332,
+// testnet3 18332, signet 38332.
+//
+// The live chain answers at the base port. That is the port a daemon listens
+// on with no arguments, and the port its seed peers name, so a node started by
+// hand and a node started by the launcher reach each other.
+func networkPortOffset(network string) int {
+	switch network {
+	case "regtest":
+		return 10000
+	case "signet":
+		return 30000
+	default: // eCash, the live chain
+		return 0
+	}
+}
+
+// portGroups names every group getNetworkPorts answers with. A value from any
+// of them came from an earlier sync, never from the user.
+var portGroups = []string{"ecash", "regtest", "signet"}
+
 // getNetworkPorts returns port mappings for the given network, derived from BasePort.
 func (m *SidechainConfManager) getNetworkPorts(network string) map[string]string {
 	base := m.Spec.BasePort
-	var offset int
-	switch network {
-	case "regtest":
-		offset = 10000
-	case "mainnet":
-		offset = 20000
-	default: // signet
-		offset = 0
-	}
+	offset := networkPortOffset(network)
 
 	rpcPort := base + offset
 	netPort := base - 2000 + offset
@@ -326,12 +340,16 @@ func (m *SidechainConfManager) isGeneratedEndpoint(key, value string) bool {
 	if value == "" {
 		return true
 	}
-	for _, network := range []string{"signet", "regtest", "mainnet"} {
+	for _, network := range portGroups {
 		if m.getNetworkPorts(network)[key] == value {
 			return true
 		}
 	}
-	return false
+	// A config written before the live chain took the base port names the old
+	// +20000 group, and a sync has to read that as its own too.
+	retired := m.Spec.BasePort + 20000
+	return value == fmt.Sprintf("127.0.0.1:%d", retired) ||
+		value == fmt.Sprintf("0.0.0.0:%d", retired-2000)
 }
 
 func (m *SidechainConfManager) resolveNetwork() string {
@@ -341,8 +359,8 @@ func (m *SidechainConfManager) resolveNetwork() string {
 	switch m.BitcoinConf.Network {
 	case NetworkRegtest:
 		return "regtest"
-	case NetworkForknet, NetworkECash:
-		return "mainnet"
+	case NetworkECash:
+		return "ecash"
 	default:
 		return "signet"
 	}
