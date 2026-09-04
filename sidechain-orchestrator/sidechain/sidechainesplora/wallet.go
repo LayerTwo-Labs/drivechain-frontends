@@ -103,7 +103,7 @@ func (w *Wallet) History(ctx context.Context, addresses []string) ([]Entry, erro
 	}
 
 	for _, address := range addresses {
-		txs, err := w.addressTxs(ctx, address)
+		txs, err := w.AddressHistory(ctx, address)
 		if err != nil {
 			return nil, err
 		}
@@ -145,11 +145,11 @@ func (w *Wallet) History(ctx context.Context, addresses []string) ([]Entry, erro
 	return out, nil
 }
 
-// addressTxs walks every page of one address history.
+// AddressHistory walks every page of one address history, newest first.
 //
 // Only a mined transaction paginates. The chain route refuses a mempool txid,
 // so the cursor is the oldest mined transaction of a page, never the last row.
-func (w *Wallet) addressTxs(ctx context.Context, address string) ([]Tx, error) {
+func (w *Wallet) AddressHistory(ctx context.Context, address string) ([]Tx, error) {
 	var out []Tx
 	lastSeen := ""
 	for range maxHistoryPages {

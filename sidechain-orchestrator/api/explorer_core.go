@@ -99,6 +99,14 @@ func coreBlockByHash(ctx context.Context, src source, hash string) (*pb.Block, [
 	return out, activity, nil
 }
 
+// nodeTxEnvelope is what get_transaction returns on thunder and photon: the
+// transaction, and the block that carries it. Every other CUSF chain returns
+// the transaction alone.
+type nodeTxEnvelope struct {
+	BlockHash *string          `json:"block_hash"`
+	Tx        *json.RawMessage `json:"tx"`
+}
+
 // nodeTx is a transaction as a sidechain node writes it. A node holds no
 // previous outputs, so an input names only the coin it spends.
 type nodeTx struct {
@@ -131,13 +139,24 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 			src.name, txid))
 	}
 
+	// Unwrap the envelope when the node sends one, so both layouts read.
+	body := raw
+	var envelope nodeTxEnvelope
+	if err := json.Unmarshal(raw, &envelope); err == nil && envelope.Tx != nil {
+		body = *envelope.Tx
+	}
+
 	var tx nodeTx
-	if err := json.Unmarshal(raw, &tx); err != nil {
+	if err := json.Unmarshal(body, &tx); err != nil {
 		return nil, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("read transaction %s: %w", txid, err))
 	}
 
 	out := &pb.Transaction{Txid: txid, Kind: pb.Kind_KIND_TRANSFER}
+	if envelope.BlockHash != nil {
+		out.Confirmed = true
+		out.BlockHash = *envelope.BlockHash
+	}
 	for _, in := range tx.Inputs {
 		switch {
 		case in.Deposit != nil:
