@@ -4,10 +4,13 @@ import (
 	"time"
 
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/samber/lo"
+	"strconv"
+	"strings"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -38,6 +41,11 @@ func (h *WalletHandler) CreateDeposit(
 	}
 	slot := uint8(req.Msg.Slot)
 
+	destination, err := depositDestination(slot, req.Msg.Destination)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
 	treasuryHex := hex.EncodeToString(orchestrator.M5TreasuryScript(slot))
 	ctip, err := h.sidechainCtip(ctx, uint32(slot))
 	if err != nil {
@@ -60,7 +68,7 @@ func (h *WalletHandler) CreateDeposit(
 
 	treasurySats := oldTreasurySats + req.Msg.AmountSats
 
-	h.svc.Log().Info().Uint8("slot", slot).Str("destination", req.Msg.Destination).
+	h.svc.Log().Info().Uint8("slot", slot).Str("destination", destination).
 		Int64("amount_sats", req.Msg.AmountSats).Int64("fee_sats", req.Msg.FeeSats).
 		Int64("old_treasury_sats", oldTreasurySats).Int64("new_treasury_sats", treasurySats).
 		Int("external_inputs", len(externalInputs)).Msg("building the deposit")
@@ -77,7 +85,7 @@ func (h *WalletHandler) CreateDeposit(
 	send, err := h.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
 		WalletId:       req.Msg.WalletId,
 		RawOutputs:     []*wpb.RawOutput{{ValueSats: treasurySats, ScriptHex: treasuryHex}},
-		OpReturnHex:    hex.EncodeToString([]byte(req.Msg.Destination)),
+		OpReturnHex:    hex.EncodeToString([]byte(destination)),
 		ExternalInputs: externalInputs,
 		FixedFeeSats:   req.Msg.FeeSats,
 	}))
@@ -94,7 +102,7 @@ func (h *WalletHandler) CreateDeposit(
 		Txid:        send.Msg.Txid,
 		WalletID:    walletID,
 		Slot:        uint32(slot),
-		Destination: req.Msg.Destination,
+		Destination: destination,
 		AmountSats:  req.Msg.AmountSats,
 		FeeSats:     req.Msg.FeeSats,
 	}); err != nil {
@@ -107,6 +115,38 @@ func (h *WalletHandler) CreateDeposit(
 		Txid:         send.Msg.Txid,
 		TreasurySats: treasurySats,
 	}), nil
+}
+
+// depositDestination unwraps the s<slot>_<address>_<checksum> deposit form to
+// the bare address. The OP_RETURN must carry the bare address: the sidechain
+// cannot parse the wrapped form and credits the coins to an unspendable address.
+func depositDestination(slot uint8, destination string) (string, error) {
+	if !strings.Contains(destination, "_") {
+		return destination, nil
+	}
+	parts := strings.Split(destination, "_")
+	if len(parts) > 3 || !strings.HasPrefix(parts[0], "s") {
+		return "", fmt.Errorf("destination must be an address, s<slot>_<address>, or s<slot>_<address>_<checksum>")
+	}
+	prefixSlot, err := strconv.ParseUint(parts[0][1:], 10, 8)
+	if err != nil {
+		return "", fmt.Errorf("destination slot must be a number 0-255: %w", err)
+	}
+	if uint8(prefixSlot) != slot {
+		return "", fmt.Errorf("destination is for slot %d, the request is for slot %d", prefixSlot, slot)
+	}
+	address := parts[1]
+	if address == "" {
+		return "", fmt.Errorf("destination holds no address")
+	}
+	if len(parts) == 3 {
+		sum := sha256.Sum256(fmt.Appendf(nil, "s%d_%s_", slot, address))
+		want := hex.EncodeToString(sum[:3])
+		if strings.ToLower(parts[2]) != want {
+			return "", fmt.Errorf("destination checksum mismatch: got %s, want %s", parts[2], want)
+		}
+	}
+	return address, nil
 }
 
 // sidechainCtip reads the sidechain's current treasury outpoint, or nil when the
