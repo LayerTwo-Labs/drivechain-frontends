@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
+import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// ChainExplorerTab is the explorer landing page: the newest blocks, what
 /// happened last, and what the treasury holds.
@@ -132,6 +135,7 @@ class _BlockStrip extends StatelessWidget {
           _BlockCard(
             label: 'Next',
             mainchain: null,
+            mainchainHash: '',
             color: colors.success,
             lines: [
               '${overview.mempool.txCount} in the mempool',
@@ -161,6 +165,7 @@ class _BlockStrip extends StatelessWidget {
 class _BlockCard extends StatelessWidget {
   final String label;
   final String? mainchain;
+  final String mainchainHash;
   final Color color;
   final List<String> lines;
   final VoidCallback? onTap;
@@ -168,6 +173,7 @@ class _BlockCard extends StatelessWidget {
   const _BlockCard({
     required this.label,
     required this.mainchain,
+    this.mainchainHash = '',
     required this.color,
     required this.lines,
     this.onTap,
@@ -183,14 +189,7 @@ class _BlockCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SailText.primary13(label, bold: true, color: colors.info),
-          SailRow(
-            spacing: 4,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SailSVG.fromAsset(SailSVGAsset.link2, width: 12, color: colors.info),
-              SailText.primary12(mainchain ?? '—', color: mainchain == null ? colors.textTertiary : colors.info),
-            ],
-          ),
+          _MainchainLink(label: mainchain, hash: mainchainHash),
           GestureDetector(
             onTap: onTap,
             child: Container(
@@ -210,6 +209,44 @@ class _BlockCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// _MainchainLink names the mainchain block a header points at, and opens it
+/// in the mainchain explorer.
+class _MainchainLink extends StatelessWidget {
+  final String? label;
+  final String hash;
+
+  const _MainchainLink({required this.label, required this.hash});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SailTheme.of(context).colors;
+    final row = SailRow(
+      spacing: 4,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SailSVG.fromAsset(
+          SailSVGAsset.link2,
+          width: 12,
+          color: label == null ? colors.textTertiary : colors.info,
+        ),
+        SailText.primary12(label ?? '—', color: label == null ? colors.textTertiary : colors.info),
+      ],
+    );
+    if (hash.isEmpty) {
+      return row;
+    }
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => launchUrl(
+          Uri.parse(mempoolBlockUrl(hash, GetIt.I.get<BitcoinConfProvider>().network)),
+        ),
+        child: row,
       ),
     );
   }

@@ -11,6 +11,7 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
@@ -117,6 +118,7 @@ func (h *ExplorerHandler) GetOverview(
 	if out.GetTreasury() == nil {
 		out.Treasury = h.enforcerTreasury(ctx, src.slot)
 	}
+	h.resolveMainchainHeights(ctx, out.GetBlocks())
 	return connect.NewResponse(out), nil
 }
 
@@ -251,6 +253,33 @@ func (h *ExplorerHandler) enforcerTreasury(ctx context.Context, slot uint32) *pb
 	return out
 }
 
+// resolveMainchainHeights names the mainchain block each header points at. A
+// hash alone tells a reader nothing, and only the enforcer holds the height.
+func (h *ExplorerHandler) resolveMainchainHeights(ctx context.Context, blocks []*pb.Block) {
+	validator, err := h.orch.EnforcerValidator()
+	if err != nil {
+		return
+	}
+	for _, block := range blocks {
+		if block.GetMainchainHeight() != 0 || block.GetMainchainHash() == "" {
+			continue
+		}
+		resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(
+			&enforcerpb.GetBlockHeaderInfoRequest{
+				BlockHash: &commonv1.ReverseHex{
+					Hex: wrapperspb.String(block.GetMainchainHash()),
+				},
+			}))
+		if err != nil {
+			return
+		}
+		for _, info := range resp.Msg.GetHeaderInfos() {
+			block.MainchainHeight = info.GetHeight()
+			break
+		}
+	}
+}
+
 // GetBlock reads one block and what it carried.
 func (h *ExplorerHandler) GetBlock(
 	ctx context.Context, req *connect.Request[pb.GetBlockRequest],
@@ -314,6 +343,7 @@ func (h *ExplorerHandler) GetBlock(
 	if err != nil {
 		return nil, err
 	}
+	h.resolveMainchainHeights(ctx, []*pb.Block{block})
 	return connect.NewResponse(&pb.GetBlockResponse{Block: block, Activity: activity}), nil
 }
 
@@ -536,13 +566,13 @@ type nodeHeaderJSON struct {
 		PrevMainHash string  `json:"prev_main_hash"`
 	} `json:"header"`
 	Body struct {
-		Transactions []json.RawMessage `json:"transactions"`
+		Transactions []nodeBodyTx `json:"transactions"`
 	} `json:"body"`
 
-	MerkleRoot   string            `json:"merkle_root"`
-	PrevSideHash *string           `json:"prev_side_hash"`
-	PrevMainHash string            `json:"prev_main_hash"`
-	Transactions []json.RawMessage `json:"transactions"`
+	MerkleRoot   string       `json:"merkle_root"`
+	PrevSideHash *string      `json:"prev_side_hash"`
+	PrevMainHash string       `json:"prev_main_hash"`
+	Transactions []nodeBodyTx `json:"transactions"`
 	// Height is set on the flat layout only, and it saves a walk.
 	Height *uint32 `json:"height"`
 }
@@ -570,7 +600,36 @@ func (b nodeHeaderJSON) prevMainHash() string {
 	return b.PrevMainHash
 }
 
-func (b nodeHeaderJSON) transactions() []json.RawMessage {
+// nodeBodyTx is one transaction in a block body. A node writes no fee, so
+// only the outputs read back.
+type nodeBodyTx struct {
+	Outputs []struct {
+		Address string          `json:"address"`
+		Content json.RawMessage `json:"content"`
+	} `json:"outputs"`
+}
+
+// paidOut is what one transaction paid out, in sats.
+func (t nodeBodyTx) paidOut() int64 {
+	var total int64
+	for _, out := range t.Outputs {
+		// A withdrawal reads first. A plain decode of {"Value":n} also
+		// succeeds on a withdrawal, and it then reads zero.
+		if w, ok := readWithdrawal(out.Content); ok {
+			total += w.GetValueSats() + w.GetMainFeeSats()
+			continue
+		}
+		var value struct {
+			Value int64 `json:"Value"`
+		}
+		if err := json.Unmarshal(out.Content, &value); err == nil {
+			total += value.Value
+		}
+	}
+	return total
+}
+
+func (b nodeHeaderJSON) transactions() []nodeBodyTx {
 	if len(b.Header.MerkleRoot) > 0 || len(b.Body.Transactions) > 0 {
 		return b.Body.Transactions
 	}
@@ -638,16 +697,24 @@ func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb
 		return out, nil, nil
 	}
 
+	// The block index names the txids in body order, so a transaction pairs
+	// with the body entry at the same place.
+	body := block.transactions()
 	activity := make([]*pb.Activity, 0, len(index.Txs)+len(index.Deposits))
-	for _, tx := range index.Txs {
+	for i, tx := range index.Txs {
 		out.SizeBytes += int64(tx.Size)
-		activity = append(activity, &pb.Activity{
+		row := &pb.Activity{
 			Kind:        pb.Kind_KIND_TRANSFER,
 			Id:          tx.Txid,
 			SizeBytes:   int64(tx.Size),
 			Confirmed:   true,
 			BlockHeight: height,
-		})
+		}
+		if i < len(body) {
+			row.ValueSats = body[i].paidOut()
+			out.ValueSats += row.ValueSats
+		}
+		activity = append(activity, row)
 	}
 	for _, deposit := range index.Deposits {
 		activity = append(activity, &pb.Activity{
@@ -684,6 +751,7 @@ func newBlock(row sidechainesplora.Block) *pb.Block {
 		MainchainHash: row.MainchainHash,
 		TxCount:       uint32(row.TxCount),
 		FeesSats:      row.Fees,
+		FeesKnown:     true,
 		SizeBytes:     int64(row.Size),
 	}
 	if row.PreviousHash != nil {

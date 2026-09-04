@@ -18,3 +18,7 @@ String mempoolAddressUrl(String address, BitcoinNetwork network) {
 String mempoolTxUrl(String txid, BitcoinNetwork network) {
   return 'https://${_explorerHost(network)}/tx/$txid';
 }
+
+String mempoolBlockUrl(String hash, BitcoinNetwork network) {
+  return 'https://${_explorerHost(network)}/block/$hash';
+}

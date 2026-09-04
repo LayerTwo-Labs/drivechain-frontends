@@ -43,6 +43,8 @@ const Block$json = {
     {'1': 'tx_count', '3': 8, '4': 1, '5': 13, '10': 'txCount'},
     {'1': 'fees_sats', '3': 9, '4': 1, '5': 3, '10': 'feesSats'},
     {'1': 'size_bytes', '3': 10, '4': 1, '5': 3, '10': 'sizeBytes'},
+    {'1': 'fees_known', '3': 11, '4': 1, '5': 8, '10': 'feesKnown'},
+    {'1': 'value_sats', '3': 12, '4': 1, '5': 3, '10': 'valueSats'},
   ],
 };
 
@@ -53,7 +55,8 @@ final $typed_data.Uint8List blockDescriptor = $convert.base64Decode(
     'b3QSJQoObWFpbmNoYWluX2hhc2gYBSABKAlSDW1haW5jaGFpbkhhc2gSKQoQbWFpbmNoYWluX2'
     'hlaWdodBgGIAEoDVIPbWFpbmNoYWluSGVpZ2h0Eh0KCmJsb2NrX3RpbWUYByABKANSCWJsb2Nr'
     'VGltZRIZCgh0eF9jb3VudBgIIAEoDVIHdHhDb3VudBIbCglmZWVzX3NhdHMYCSABKANSCGZlZX'
-    'NTYXRzEh0KCnNpemVfYnl0ZXMYCiABKANSCXNpemVCeXRlcw==');
+    'NTYXRzEh0KCnNpemVfYnl0ZXMYCiABKANSCXNpemVCeXRlcxIdCgpmZWVzX2tub3duGAsgASgI'
+    'UglmZWVzS25vd24SHQoKdmFsdWVfc2F0cxgMIAEoA1IJdmFsdWVTYXRz');
 
 @$core.Deprecated('Use activityDescriptor instead')
 const Activity$json = {
