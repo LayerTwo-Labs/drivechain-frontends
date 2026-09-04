@@ -21,6 +21,19 @@ abstract class Sidechain extends Binary {
 
   int get slot;
 
+  /// The key the orchestrator files this chain under. It differs from the
+  /// display name: `Big Block Covenant` files under `bbc`.
+  String get registryKey {
+    switch (name) {
+      case 'Big Block Covenant':
+        return 'bbc';
+      case 'Liquid Signet':
+        return 'liquid-signet';
+      default:
+        return name.toLowerCase();
+    }
+  }
+
   static Sidechain? fromString(String input) {
     switch (input.toLowerCase()) {
       case 'zside':

@@ -1,23 +1,32 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
 )
 
 // A bundle pays its highest mainchain fee first, and each withdrawal costs the
 // same weight, so the cumulative weight rises by a fixed step.
 func TestParseBundleOrdersByMainchainFeeAndCountsWeight(t *testing.T) {
+	// The payouts sit in spend_utxos, as [outpoint, output] pairs. The tx
+	// beside them is the mainchain transaction, and it carries no content.
 	raw := json.RawMessage(`{
 		"height_created": 812401,
-		"tx": {"outputs": [
-			{"content": {"Withdrawal": {"value": 500000, "main_fee": 900, "main_address": "bc1qlow"}}},
-			{"content": {"Value": 40000}},
-			{"content": {"Withdrawal": {"value": 100000, "main_fee": 1200, "main_address": "bc1qhigh"}}}
-		]}
+		"spend_utxos": [
+			[{"Regular": {"txid": "aa", "vout": 0}},
+			 {"address": "s1", "content": {"Withdrawal": {"value": 500000, "main_fee": 900, "main_address": "bc1qlow"}}}],
+			[{"Regular": {"txid": "bb", "vout": 0}},
+			 {"address": "s2", "content": {"Value": 40000}}],
+			[{"Regular": {"txid": "cc", "vout": 0}},
+			 {"address": "s3", "content": {"Withdrawal": {"value": 100000, "main_fee": 1200, "main_address": "bc1qhigh"}}}]
+		],
+		"tx": {"vout": [{"value": 0.005}]}
 	}`)
 
 	bundle := parseBundle(raw)
@@ -59,9 +68,11 @@ func TestParseBundleOrdersByMainchainFeeAndCountsWeight(t *testing.T) {
 // A chain with no bundle still answers, and the answer says so.
 func TestParseBundleWithNoBundle(t *testing.T) {
 	for name, raw := range map[string]json.RawMessage{
-		"null":   json.RawMessage("null"),
-		"empty":  nil,
-		"broken": json.RawMessage(`{"tx":{"outputs":[{"content":{"Value":1}}]}}`),
+		"null":  json.RawMessage("null"),
+		"empty": nil,
+		"no payouts": json.RawMessage(
+			`{"spend_utxos":[[{"Regular":{"txid":"aa","vout":0}},{"content":{"Value":1}}]]}`),
+		"tx only": json.RawMessage(`{"tx":{"vout":[{"value":0.005}]}}`),
 	} {
 		t.Run(name, func(t *testing.T) {
 			bundle := parseBundle(raw)
@@ -142,4 +153,102 @@ func TestDepositTxidDropsTheVout(t *testing.T) {
 	if got := depositTxid("nocolon"); got != "nocolon" {
 		t.Errorf("a bare id reads as %q, want it unchanged", got)
 	}
+}
+
+// A Core derived sidechain speaks Core's own method names. A block read must
+// not send get_block_hash to it.
+func TestCoreBlockReadsCoreShapes(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{
+		"getblockhash": `"0000ab"`,
+		"getblock": `{"hash":"0000ab","height":7,"merkleroot":"mm",
+		              "previousblockhash":"0000aa","time":1700000000,
+		              "size":285,"tx":["t1","t2"]}`,
+	}}
+	src := source{name: "bbc", node: node, core: true}
+
+	block, activity, err := coreBlockAtHeight(context.Background(), src, 7)
+	if err != nil {
+		t.Fatalf("read the block: %v", err)
+	}
+	if block.GetHeight() != 7 || block.GetHash() != "0000ab" {
+		t.Errorf("the block reads %+v, want height 7 at 0000ab", block)
+	}
+	if block.GetTxCount() != 2 || len(activity) != 2 {
+		t.Errorf("the block counts %d transactions and lists %d",
+			block.GetTxCount(), len(activity))
+	}
+	if block.GetBlockTime() != 1700000000 {
+		t.Errorf("block time = %d, want the time Core reports", block.GetBlockTime())
+	}
+	for _, method := range node.called {
+		if method == "get_block_hash" || method == "get_block" {
+			t.Errorf("a Core node was asked %q, which it does not serve", method)
+		}
+	}
+}
+
+// A sidechain node reads a block by hash and never by height, so the walk
+// follows prev_side_hash from the tip.
+func TestNodeWalksBackByThePreviousHash(t *testing.T) {
+	node := &recordingNode{
+		count: 3,
+		answers: map[string]string{
+			"get_best_sidechain_block_hash": `"cc"`,
+		},
+		byHash: map[string]string{
+			"cc": `{"header":{"merkle_root":"m3","prev_side_hash":"bb","prev_main_hash":"x3"},"body":{"transactions":[]}}`,
+			"bb": `{"header":{"merkle_root":"m2","prev_side_hash":"aa","prev_main_hash":"x2"},"body":{"transactions":[]}}`,
+			"aa": `{"header":{"merkle_root":"m1","prev_main_hash":"x1"},"body":{"transactions":[]}}`,
+		},
+	}
+	src := source{name: "thunder", node: node}
+
+	hash, err := nodeHashAtHeight(context.Background(), src, 0)
+	if err != nil {
+		t.Fatalf("walk to height 0: %v", err)
+	}
+	if hash != "aa" {
+		t.Errorf("height 0 hashes to %q, want aa", hash)
+	}
+	for _, method := range node.called {
+		if method == "get_block_hash" {
+			t.Error("the walk asked for get_block_hash, which no node serves")
+		}
+	}
+}
+
+// recordingNode answers a fixed set of RPCs and records what it was asked.
+type recordingNode struct {
+	sidechain.SidechainRPCProxy
+	count   int64
+	answers map[string]string
+	byHash  map[string]string
+	called  []string
+}
+
+func (n *recordingNode) GetBlockCount(context.Context) (int64, error) {
+	return n.count, nil
+}
+
+func (n *recordingNode) CallRaw(_ context.Context, method string, params any) (json.RawMessage, error) {
+	n.called = append(n.called, method)
+	if method == "get_block" || method == "get_block_index" {
+		list, ok := params.([]string)
+		if !ok || len(list) != 1 {
+			return nil, fmt.Errorf("%s takes a list of one hash, got %#v", method, params)
+		}
+		body, ok := n.byHash[list[0]]
+		if !ok {
+			return nil, fmt.Errorf("no block %q", list[0])
+		}
+		if method == "get_block_index" {
+			return nil, fmt.Errorf("this node serves no block index")
+		}
+		return json.RawMessage(body), nil
+	}
+	body, ok := n.answers[method]
+	if !ok {
+		return nil, fmt.Errorf("no answer for %q", method)
+	}
+	return json.RawMessage(body), nil
 }

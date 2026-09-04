@@ -22,14 +22,17 @@ type contentWithdrawal struct {
 }
 
 // nodeBundle is the pending withdrawal bundle as a node writes it.
+//
+// The payouts sit in spend_utxos, as [outpoint, output] pairs. The tx beside
+// them is the mainchain transaction, and its outputs carry no content.
 type nodeBundle struct {
-	HeightCreated uint32 `json:"height_created"`
-	Tx            struct {
-		Outputs []struct {
-			Content json.RawMessage `json:"content"`
-		} `json:"outputs"`
-	} `json:"tx"`
-	SpendUtxos json.RawMessage `json:"spend_utxos"`
+	HeightCreated uint32            `json:"height_created"`
+	SpendUtxos    []json.RawMessage `json:"spend_utxos"`
+}
+
+// spentOutput reads the output half of one spend_utxos pair.
+type spentOutput struct {
+	Content json.RawMessage `json:"content"`
 }
 
 // parseBundle reads the node's own bundle JSON into the explorer shape. A
@@ -44,7 +47,15 @@ func parseBundle(raw json.RawMessage) *pb.WithdrawalBundle {
 		return out
 	}
 
-	for _, output := range bundle.Tx.Outputs {
+	for _, pair := range bundle.SpendUtxos {
+		var spent []json.RawMessage
+		if err := json.Unmarshal(pair, &spent); err != nil || len(spent) != 2 {
+			continue
+		}
+		var output spentOutput
+		if err := json.Unmarshal(spent[1], &output); err != nil {
+			continue
+		}
 		w, ok := readWithdrawal(output.Content)
 		if !ok {
 			continue
