@@ -182,6 +182,31 @@ class SailText {
     );
   }
 
+  static Widget primary14(
+    String label, {
+    TextAlign? textAlign,
+    bool bold = false,
+    Color? color,
+    int? maxLines,
+    TextOverflow? overflow,
+  }) {
+    return Builder(
+      builder: (context) {
+        final theme = SailTheme.of(context);
+        return _Text(
+          label: label,
+          style: SailStyleValues.fourteen.copyWith(
+            color: color ?? theme.colors.text,
+            fontWeight: bold ? SailStyleValues.boldWeight : null,
+          ),
+          maxLines: maxLines,
+          overflow: overflow,
+          textAlign: textAlign,
+        );
+      },
+    );
+  }
+
   static Widget primary13(
     String label, {
     TextAlign? textAlign,

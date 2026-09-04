@@ -131,21 +131,21 @@ class CardHeader extends StatelessWidget {
     final theme = SailTheme.of(context);
 
     return SailColumn(
-      spacing: 12,
+      spacing: SailStyleValues.padding04,
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (titleTooltip != null)
           Tooltip(
             message: titleTooltip,
-            child: SailText.primary15(title, bold: true),
+            child: SailText.primary16(title, bold: true),
           )
         else
-          SailText.primary15(title, bold: true),
+          SailText.primary16(title, bold: true),
         if (error != null || subtitle != null)
-          SailText.primary12(
+          SailText.primary13(
             error ?? subtitle!,
-            color: error != null ? SailColorScheme.red : theme.colors.inactiveNavText,
+            color: error != null ? SailColorScheme.red : theme.colors.textSecondary,
             overflow: TextOverflow.visible,
           ),
       ],

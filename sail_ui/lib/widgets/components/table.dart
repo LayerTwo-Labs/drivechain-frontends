@@ -31,6 +31,7 @@ class SailTable extends StatefulWidget {
     this.onSort,
     required this.getRowId,
     this.rowBackgroundColor,
+    this.headerBackgroundColor,
     this.emptyPlaceholder,
     super.key,
   });
@@ -57,6 +58,7 @@ class SailTable extends StatefulWidget {
   final Function(int columnIndex, bool ascending)? onSort;
   final String Function(int index) getRowId;
   final Color? Function(int index)? rowBackgroundColor;
+  final Color? headerBackgroundColor;
 
   /// Widget to display when the table has no rows.
   /// If null and rowCount is 0, the table will show an empty area.
@@ -298,11 +300,12 @@ class _SailTableState extends State<SailTable> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
+                        color: widget.headerBackgroundColor,
                         border: Border(
                           bottom: BorderSide(color: theme.colors.divider),
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding10),
                       child: Row(children: headerCells),
                     ),
                     if (!widget.shrinkWrap) Expanded(child: rowsContent),
@@ -698,7 +701,7 @@ class SailTableCell extends StatelessWidget {
     this.child,
     this.width,
     this.alignment = Alignment.centerLeft,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8),
+    this.padding = const EdgeInsets.symmetric(horizontal: SailStyleValues.padding12),
     this.plainIconTheme,
     this.selectedIconTheme,
     this.textColor,
@@ -747,7 +750,7 @@ class SailTableHeaderCell extends StatelessWidget {
   const SailTableHeaderCell({
     required this.name,
     this.alignment = Alignment.centerLeft,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8),
+    this.padding = const EdgeInsets.symmetric(horizontal: SailStyleValues.padding12),
     this.onSort,
     this.isSorted = false,
     this.isAscending = true,
@@ -780,10 +783,11 @@ class SailTableHeaderCell extends StatelessWidget {
               child: Row(
                 children: [
                   Flexible(
-                    child: SailText.primary12(
+                    child: SailText.primary13(
                       name,
+                      bold: true,
                       overflow: TextOverflow.ellipsis,
-                      color: theme.colors.inactiveNavText,
+                      color: theme.colors.textSecondary,
                     ),
                   ),
                   if (isSorted) ...[
