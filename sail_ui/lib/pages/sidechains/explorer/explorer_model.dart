@@ -23,12 +23,20 @@ class ExplorerModel extends BaseViewModel {
 
   Timer? _timer;
 
+  /// _reading holds one read at a time. A slow answer must not land on top of
+  /// a newer one.
+  bool _reading = false;
+
   ExplorerModel() {
     unawaited(refresh());
     _timer = Timer.periodic(explorerRefreshInterval, (_) => refresh());
   }
 
   Future<void> refresh() async {
+    if (_reading) {
+      return;
+    }
+    _reading = true;
     try {
       final next = await _orchestrator.explorer.getOverview(chain);
       if (overview?.writeToJson() != next.writeToJson()) {
@@ -42,6 +50,8 @@ class ExplorerModel extends BaseViewModel {
     } catch (e) {
       readError = e.toString();
       notifyListeners();
+    } finally {
+      _reading = false;
     }
   }
 
@@ -76,12 +86,20 @@ class WithdrawalsModel extends BaseViewModel {
 
   Timer? _timer;
 
+  /// _reading holds one read at a time. A slow answer must not land on top of
+  /// a newer one.
+  bool _reading = false;
+
   WithdrawalsModel() {
     unawaited(refresh());
     _timer = Timer.periodic(explorerRefreshInterval, (_) => refresh());
   }
 
   Future<void> refresh() async {
+    if (_reading) {
+      return;
+    }
+    _reading = true;
     try {
       final next = await _orchestrator.explorer.getWithdrawals(chain);
       if (state?.writeToJson() != next.writeToJson()) {
@@ -95,6 +113,8 @@ class WithdrawalsModel extends BaseViewModel {
     } catch (e) {
       readError = e.toString();
       notifyListeners();
+    } finally {
+      _reading = false;
     }
   }
 

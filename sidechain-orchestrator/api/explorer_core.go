@@ -98,3 +98,76 @@ func coreBlockByHash(ctx context.Context, src source, hash string) (*pb.Block, [
 	}
 	return out, activity, nil
 }
+
+// nodeTx is a transaction as a sidechain node writes it. A node holds no
+// previous outputs, so an input names only the coin it spends.
+type nodeTx struct {
+	Inputs []struct {
+		Regular *struct {
+			Txid string `json:"txid"`
+			Vout uint32 `json:"vout"`
+		} `json:"Regular"`
+		Deposit *struct {
+			Txid string `json:"txid"`
+			Vout uint32 `json:"vout"`
+		} `json:"Deposit"`
+	} `json:"inputs"`
+	Outputs []struct {
+		Address string          `json:"address"`
+		Content json.RawMessage `json:"content"`
+	} `json:"outputs"`
+}
+
+// nodeTransaction reads one transaction from a node. A node keeps no
+// transaction index, so it answers only for what it still holds.
+func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transaction, error) {
+	raw, err := src.node.CallRaw(ctx, "get_transaction", []string{txid})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf(
+			"%s holds no transaction %s. A node keeps no transaction index, so an index reads the history",
+			src.name, txid))
+	}
+
+	var tx nodeTx
+	if err := json.Unmarshal(raw, &tx); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read transaction %s: %w", txid, err))
+	}
+
+	out := &pb.Transaction{Txid: txid, Kind: pb.Kind_KIND_TRANSFER}
+	for _, in := range tx.Inputs {
+		switch {
+		case in.Deposit != nil:
+			out.Inputs = append(out.Inputs, &pb.Coin{
+				Txid: in.Deposit.Txid, Vout: in.Deposit.Vout, OutpointKind: "deposit",
+			})
+			out.Kind = pb.Kind_KIND_DEPOSIT
+		case in.Regular != nil:
+			out.Inputs = append(out.Inputs, &pb.Coin{
+				Txid: in.Regular.Txid, Vout: in.Regular.Vout, OutpointKind: "regular",
+			})
+		}
+	}
+	for _, o := range tx.Outputs {
+		coin := &pb.Coin{Address: o.Address, ContentType: "value"}
+		if w, ok := readWithdrawal(o.Content); ok {
+			coin.ContentType = "withdrawal"
+			coin.ValueSats = w.GetValueSats()
+			coin.MainAddress = w.GetMainAddress()
+			coin.MainFeeSats = w.GetMainFeeSats()
+			out.Kind = pb.Kind_KIND_WITHDRAWAL
+		} else {
+			var value struct {
+				Value int64 `json:"Value"`
+			}
+			if err := json.Unmarshal(o.Content, &value); err == nil {
+				coin.ValueSats = value.Value
+			}
+		}
+		out.Outputs = append(out.Outputs, coin)
+	}
+	return out, nil
+}
