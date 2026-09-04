@@ -101,16 +101,16 @@ class _BundleTable extends StatelessWidget {
         child: SailTable(
           getRowId: (index) => '${rows[index].mainAddress}:$index',
           headerBuilder: (context) => const [
-            SailTableHeaderCell(name: 'Amount (sats)'),
-            SailTableHeaderCell(name: 'Mainchain fee (sats)'),
+            SailTableHeaderCell(name: 'Amount'),
+            SailTableHeaderCell(name: 'Mainchain fee'),
             SailTableHeaderCell(name: 'Destination address'),
             SailTableHeaderCell(name: 'Bundle weight'),
           ],
           rowBuilder: (context, index, selected) {
             final row = rows[index];
             return [
-              SailTableCell(value: '${row.valueSats}'),
-              SailTableCell(value: '${row.mainFeeSats}'),
+              SailTableCell(value: explorerAmount(context, row.valueSats.toInt())),
+              SailTableCell(value: explorerAmount(context, row.mainFeeSats.toInt())),
               SailTableCell(value: row.mainAddress, monospace: true),
               SailTableCell(value: '${row.cumulativeWeight} / ${bundle.maxWeight}'),
             ];

@@ -80,6 +80,8 @@ message Activity {
 // Coin is one input or one output.
 message Coin {
   string address = 1;
+  // value_sats is the payout. A withdrawal costs this and main_fee_sats
+  // together.
   int64 value_sats = 2;
   // outpoint_kind reads "regular", "coinbase" or "deposit".
   string outpoint_kind = 3;

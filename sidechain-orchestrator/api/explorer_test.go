@@ -121,6 +121,11 @@ func TestTransactionNamesTheWithdrawalPayout(t *testing.T) {
 	if got := out.GetOutputs()[0].GetMainFeeSats(); got != 1200 {
 		t.Errorf("mainchain fee = %d, want 1200", got)
 	}
+	// The index stores 51200, the cost of the coin. The payout alone is
+	// 50000, and the view adds the fee back for a total.
+	if got := out.GetOutputs()[0].GetValueSats(); got != 50000 {
+		t.Errorf("payout = %d, want 50000", got)
+	}
 	if got := out.GetBlockHeight(); got != 44 {
 		t.Errorf("block height = %d, want 44", got)
 	}
