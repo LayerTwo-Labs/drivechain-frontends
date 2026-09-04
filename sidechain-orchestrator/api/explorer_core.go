@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"connectrpc.com/connect"
 
@@ -119,6 +120,10 @@ type nodeTx struct {
 			Txid string `json:"txid"`
 			Vout uint32 `json:"vout"`
 		} `json:"Deposit"`
+		Coinbase *struct {
+			MerkleRoot string `json:"merkle_root"`
+			Vout       uint32 `json:"vout"`
+		} `json:"Coinbase"`
 	} `json:"inputs"`
 	Outputs []struct {
 		Address string          `json:"address"`
@@ -165,6 +170,9 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 	if envelope.BlockHash != nil {
 		out.Confirmed = true
 		out.BlockHash = *envelope.BlockHash
+		if height, err := nodeHeightOfHash(ctx, src, *envelope.BlockHash); err == nil {
+			out.BlockHeight = height
+		}
 	} else if info, ok := nodeTransactionInfo(ctx, src, txid); ok {
 		out.Confirmed = info.Confirmations != nil && *info.Confirmations > 0
 		out.FeeSats = info.FeeSats
@@ -180,6 +188,10 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 			out.Inputs = append(out.Inputs, &pb.Coin{
 				Txid: in.Regular.Txid, Vout: in.Regular.Vout, OutpointKind: "regular",
 			})
+		case in.Coinbase != nil:
+			out.Inputs = append(out.Inputs, &pb.Coin{
+				Txid: in.Coinbase.MerkleRoot, Vout: in.Coinbase.Vout, OutpointKind: "coinbase",
+			})
 		}
 	}
 	for _, o := range tx.Outputs {
@@ -191,12 +203,7 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 			coin.MainFeeSats = w.GetMainFeeSats()
 			out.Kind = pb.Kind_KIND_WITHDRAWAL
 		} else {
-			var value struct {
-				Value int64 `json:"Value"`
-			}
-			if err := json.Unmarshal(o.Content, &value); err == nil {
-				coin.ValueSats = value.Value
-			}
+			coin.ValueSats = contentValue(o.Content)
 		}
 		out.Outputs = append(out.Outputs, coin)
 	}
@@ -221,7 +228,16 @@ func nodeTransactionInfo(ctx context.Context, src source, txid string) (nodeTxIn
 func coreTransaction(ctx context.Context, src source, txid string) (*pb.Transaction, error) {
 	raw, err := src.node.CallRaw(ctx, "getrawtransaction", []any{txid, true})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		// Core reads a mined transaction only from the block that carries
+		// it, unless the node runs -txindex. So find that block first.
+		hash, blockErr := coreBlockOf(ctx, src, txid)
+		if blockErr != nil {
+			return nil, blockErr
+		}
+		raw, err = src.node.CallRaw(ctx, "getrawtransaction", []any{txid, true, hash})
+		if err != nil {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
 	}
 	var tx struct {
 		Txid          string `json:"txid"`
@@ -256,10 +272,15 @@ func coreTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 	for _, in := range tx.Vin {
 		out.Inputs = append(out.Inputs, &pb.Coin{Txid: in.Txid, Vout: in.Vout, OutpointKind: "regular"})
 	}
+	if tx.BlockHash != "" {
+		if block, _, err := coreBlockByHash(ctx, src, tx.BlockHash); err == nil {
+			out.BlockHeight = block.GetHeight()
+		}
+	}
 	for _, o := range tx.Vout {
 		out.Outputs = append(out.Outputs, &pb.Coin{
 			Address:     o.ScriptPubKey.Address,
-			ValueSats:   int64(o.Value * 1e8),
+			ValueSats:   int64(math.Round(o.Value * 1e8)),
 			ContentType: "value",
 		})
 	}
@@ -358,11 +379,28 @@ func coinFromContent(address string, content json.RawMessage, tx *pb.Transaction
 		tx.Kind = pb.Kind_KIND_WITHDRAWAL
 		return coin
 	}
-	var value struct {
-		Value int64 `json:"Value"`
-	}
-	if err := json.Unmarshal(content, &value); err == nil {
-		coin.ValueSats = value.Value
-	}
+	coin.ValueSats = contentValue(content)
 	return coin
+}
+
+// coreBlockOf finds the block that carries one transaction. A Core node
+// without -txindex names a transaction only inside its block, so the search
+// walks back from the tip.
+func coreBlockOf(ctx context.Context, src source, txid string) (string, error) {
+	count, err := src.node.GetBlockCount(ctx)
+	if err != nil {
+		return "", connect.NewError(connect.CodeUnavailable, err)
+	}
+	for height := count; height >= 0 && count-height < searchBlockDepth; height-- {
+		block, activity, err := coreBlockAtHeight(ctx, src, uint32(height))
+		if err != nil {
+			return "", err
+		}
+		for _, row := range activity {
+			if row.GetId() == txid {
+				return block.GetHash(), nil
+			}
+		}
+	}
+	return "", notFoundTransaction(src, txid)
 }

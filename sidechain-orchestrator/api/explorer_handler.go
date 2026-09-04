@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -423,18 +424,24 @@ func (h *ExplorerHandler) GetAddress(
 	if address == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name an address"))
 	}
-	if src.index == nil {
+	// No node holds an address index, so an address always reads the hosted
+	// one, whether the app runs a full node or a light client.
+	index := src.index
+	if index == nil {
+		index = h.addressIndex(src.name)
+	}
+	if index == nil {
 		return nil, connect.NewError(connect.CodeUnimplemented,
 			fmt.Errorf("%s has no index, and a node keeps no address history", src.name))
 	}
 
-	stats, err := src.index.AddressStats(ctx, address)
+	stats, err := index.AddressStats(ctx, address)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	// The first page already carries the unconfirmed rows, so a separate
 	// mempool read would list every one of them twice.
-	history, err := sidechainesplora.NewWallet(src.index).AddressHistory(ctx, address)
+	history, err := sidechainesplora.NewWallet(index).AddressHistory(ctx, address)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
@@ -453,16 +460,40 @@ func (h *ExplorerHandler) GetAddress(
 	}
 
 	// A deposit creates a coin with no sidechain transaction, so the history
-	// route never carries one. Bo's address view marks deposits, so they come
+	// route never carries one. The address view marks deposits, so they come
 	// from their own route.
-	deposits, err := src.index.AddressDeposits(ctx, address)
+	deposits, err := index.AddressDeposits(ctx, address)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	for _, deposit := range deposits {
 		out.Transactions = append(out.Transactions, depositTransaction(address, deposit))
+		out.TxCount++
 	}
+	sortNewestFirst(out.Transactions)
 	return connect.NewResponse(out), nil
+}
+
+// sortNewestFirst orders an address history the way the view reads it: the
+// unconfirmed rows first, then the newest block.
+func sortNewestFirst(rows []*pb.Transaction) {
+	sort.SliceStable(rows, func(i, j int) bool {
+		a, b := rows[i], rows[j]
+		if a.GetConfirmed() != b.GetConfirmed() {
+			return !a.GetConfirmed()
+		}
+		return a.GetBlockHeight() > b.GetBlockHeight()
+	})
+}
+
+// addressIndex resolves the hosted index for one chain, whatever mode the
+// node runs in.
+func (h *ExplorerHandler) addressIndex(chain string) *sidechainesplora.Client {
+	url := config.SidechainEsploraURLForNetwork(chain, config.NetworkFromString(h.orch.CurrentNetwork()))
+	if url == "" {
+		return nil
+	}
+	return sidechainesplora.New(url)
 }
 
 // depositTransaction reads one mainchain deposit as a row the address view can
@@ -619,12 +650,7 @@ func (t nodeBodyTx) paidOut() int64 {
 			total += w.GetValueSats() + w.GetMainFeeSats()
 			continue
 		}
-		var value struct {
-			Value int64 `json:"Value"`
-		}
-		if err := json.Unmarshal(out.Content, &value); err == nil {
-			total += value.Value
-		}
+		total += contentValue(out.Content)
 	}
 	return total
 }
@@ -655,6 +681,10 @@ func nodeHeader(ctx context.Context, src source, hash string) (nodeHeaderJSON, e
 	raw, err := src.node.CallRaw(ctx, "get_block", []string{hash})
 	if err != nil {
 		return nodeHeaderJSON{}, connect.NewError(connect.CodeUnavailable, err)
+	}
+	if len(raw) == 0 || string(raw) == "null" {
+		return nodeHeaderJSON{}, connect.NewError(connect.CodeNotFound,
+			fmt.Errorf("no block on %s hashes to %s", src.name, hash))
 	}
 	var block nodeHeaderJSON
 	if err := json.Unmarshal(raw, &block); err != nil {
@@ -690,11 +720,11 @@ func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb
 	// it still answers the header, and the block then lists no transactions.
 	rawIndex, err := src.node.CallRaw(ctx, "get_block_index", []string{hash})
 	if err != nil {
-		return out, nil, nil
+		return blockValueFromBody(out, block), nil, nil
 	}
 	var index nodeBlockIndex
 	if err := json.Unmarshal(rawIndex, &index); err != nil {
-		return out, nil, nil
+		return blockValueFromBody(out, block), nil, nil
 	}
 
 	// The block index names the txids in body order, so a transaction pairs
@@ -725,6 +755,16 @@ func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb
 		})
 	}
 	return out, activity, nil
+}
+
+// blockValueFromBody sums what a block paid out. Only get_block_index names
+// the txids, so a chain without it lists no transactions, and the value still
+// reads back.
+func blockValueFromBody(out *pb.Block, block nodeHeaderJSON) *pb.Block {
+	for _, tx := range block.transactions() {
+		out.ValueSats += tx.paidOut()
+	}
+	return out
 }
 
 // depositTxid reads the mainchain txid out of a "txid:vout" outpoint.
