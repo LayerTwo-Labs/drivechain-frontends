@@ -54,7 +54,9 @@ class _BundleSummary extends StatelessWidget {
     }
     return SailCard(
       title: 'The bundle now',
-      subtitle: '${bundle.withdrawals.length} withdrawals, pending since height ${bundle.heightCreated}',
+      subtitle: bundle.heightCreated != 0
+          ? '${bundle.withdrawals.length} withdrawals, pending since height ${bundle.heightCreated}'
+          : '${bundle.withdrawals.length} withdrawals pending',
       child: SailRow(
         spacing: SailStyleValues.padding16,
         crossAxisAlignment: CrossAxisAlignment.start,

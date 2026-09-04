@@ -6,6 +6,13 @@ import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// What the explorer is looking at.
+/// _paidOut is what a transaction pays out. A withdrawal takes the mainchain
+/// fee as well as the payout.
+int _paidOut(pb.Transaction transaction) => transaction.outputs.fold<int>(
+  0,
+  (sum, o) => sum + o.valueSats.toInt() + (o.contentType == 'withdrawal' ? o.mainFeeSats.toInt() : 0),
+);
+
 enum ExplorerTargetKind { block, transaction, address, search }
 
 /// ExplorerTarget names one thing to read. A search resolves to whichever of
@@ -185,18 +192,21 @@ class _BlockView extends StatelessWidget {
                 child: SailColumn(
                   spacing: SailStyleValues.padding08,
                   children: [
-                    _LinkRow(
-                      label: 'Mainchain block',
-                      value: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : shortenId(block.mainchainHash),
-                      onTap: () async => launchUrl(
-                        Uri.parse(
-                          mempoolBlockUrl(
-                            block.mainchainHash,
-                            GetIt.I.get<BitcoinConfProvider>().network,
+                    if (block.mainchainHash.isEmpty)
+                      const _Row(label: 'Mainchain block', value: 'Unknown')
+                    else
+                      _LinkRow(
+                        label: 'Mainchain block',
+                        value: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : shortenId(block.mainchainHash),
+                        onTap: () async => launchUrl(
+                          Uri.parse(
+                            mempoolBlockUrl(
+                              block.mainchainHash,
+                              GetIt.I.get<BitcoinConfProvider>().network,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     if (block.prevHash.isNotEmpty)
                       _LinkRow(
                         label: 'Previous block',
@@ -260,10 +270,7 @@ class _TransactionView extends StatelessWidget {
                     _Row(label: 'Fee', value: explorerAmount(context, transaction.feeSats.toInt())),
                     _Row(
                       label: 'Total value',
-                      value: explorerAmount(
-                        context,
-                        transaction.outputs.fold<int>(0, (sum, o) => sum + o.valueSats.toInt()),
-                      ),
+                      value: explorerAmount(context, _paidOut(transaction)),
                     ),
                   ],
                 ),
