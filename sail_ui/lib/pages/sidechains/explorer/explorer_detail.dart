@@ -160,8 +160,12 @@ class _BlockView extends StatelessWidget {
                   spacing: SailStyleValues.padding08,
                   children: [
                     _Row(label: 'Transactions', value: '${block.txCount}'),
+                    _Row(label: 'Value', value: block.valueSats == 0 ? '—' : '${block.valueSats} sats'),
                     _Row(label: 'Size', value: '${block.sizeBytes} bytes'),
-                    _Row(label: 'Fees', value: '${block.feesSats} sats'),
+                    _Row(
+                      label: 'Fees',
+                      value: block.feesKnown ? '${block.feesSats} sats' : 'Unknown without an index',
+                    ),
                     _Row(label: 'Merkle root', value: shortenId(block.merkleRoot)),
                   ],
                 ),

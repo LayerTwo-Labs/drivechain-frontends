@@ -518,3 +518,50 @@ func TestActivityKeepsTheUnconfirmedRowsFirst(t *testing.T) {
 		t.Errorf("the second row reads %+v, want block 48", rows[1])
 	}
 }
+
+// A node holds no previous outputs, so it never knows what a block collected
+// in fees.
+func TestNodeBlockNeverClaimsToKnowItsFees(t *testing.T) {
+	body := `{"header":{"merkle_root":"mm","prev_main_hash":"xx"},"body":{"transactions":[]}}`
+	node := &recordingNode{byHash: map[string]string{"aa": body}}
+	src := source{name: "thunder", node: node}
+
+	block, _, err := nodeBlock(context.Background(), src, "aa", 48)
+	if err != nil {
+		t.Fatalf("read the block: %v", err)
+	}
+	if block.GetFeesKnown() {
+		t.Error("a node block claims to know its fees")
+	}
+}
+
+// A transaction pays out its plain outputs, and a withdrawal costs both its
+// payout and its mainchain fee.
+func TestBodyTransactionSumsWhatItPaidOut(t *testing.T) {
+	var tx nodeBodyTx
+	raw := `{"outputs":[
+		{"address":"s1","content":{"Value":50000000}},
+		{"address":"s2","content":{"Value":9000}},
+		{"address":"s3","content":{"Withdrawal":{"value":50000,"main_fee":1200,"main_address":"bc1q"}}}
+	]}`
+	if err := json.Unmarshal([]byte(raw), &tx); err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	const want = 50000000 + 9000 + 50000 + 1200
+	if got := tx.paidOut(); got != want {
+		t.Errorf("the transaction paid out %d, want %d", got, want)
+	}
+}
+
+// An indexed block knows its fees, so the page shows them rather than a blank.
+func TestIndexedBlockKnowsItsFees(t *testing.T) {
+	out := newBlock(sidechainesplora.Block{
+		ID: "bb", Height: 48, MerkleRoot: "mm", Fees: 2000, TxCount: 2, Size: 32,
+	})
+	if !out.GetFeesKnown() {
+		t.Error("an indexed block reads as not knowing its fees")
+	}
+	if out.GetFeesSats() != 2000 {
+		t.Errorf("fees = %d, want 2000", out.GetFeesSats())
+	}
+}

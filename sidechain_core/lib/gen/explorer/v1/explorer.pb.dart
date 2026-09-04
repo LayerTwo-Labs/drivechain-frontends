@@ -32,6 +32,8 @@ class Block extends $pb.GeneratedMessage {
     $core.int? txCount,
     $fixnum.Int64? feesSats,
     $fixnum.Int64? sizeBytes,
+    $core.bool? feesKnown,
+    $fixnum.Int64? valueSats,
   }) {
     final $result = create();
     if (height != null) {
@@ -64,6 +66,12 @@ class Block extends $pb.GeneratedMessage {
     if (sizeBytes != null) {
       $result.sizeBytes = sizeBytes;
     }
+    if (feesKnown != null) {
+      $result.feesKnown = feesKnown;
+    }
+    if (valueSats != null) {
+      $result.valueSats = valueSats;
+    }
     return $result;
   }
   Block._() : super();
@@ -81,6 +89,8 @@ class Block extends $pb.GeneratedMessage {
     ..a<$core.int>(8, _omitFieldNames ? '' : 'txCount', $pb.PbFieldType.OU3)
     ..aInt64(9, _omitFieldNames ? '' : 'feesSats')
     ..aInt64(10, _omitFieldNames ? '' : 'sizeBytes')
+    ..aOB(11, _omitFieldNames ? '' : 'feesKnown')
+    ..aInt64(12, _omitFieldNames ? '' : 'valueSats')
     ..hasRequiredFields = false
   ;
 
@@ -199,6 +209,27 @@ class Block extends $pb.GeneratedMessage {
   $core.bool hasSizeBytes() => $_has(9);
   @$pb.TagNumber(10)
   void clearSizeBytes() => clearField(10);
+
+  /// fees_known is false when the source cannot compute the fees. A node holds
+  /// no previous outputs, so it never knows what a mined block collected.
+  @$pb.TagNumber(11)
+  $core.bool get feesKnown => $_getBF(10);
+  @$pb.TagNumber(11)
+  set feesKnown($core.bool v) { $_setBool(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasFeesKnown() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearFeesKnown() => clearField(11);
+
+  /// value_sats is what the block's transactions paid out together.
+  @$pb.TagNumber(12)
+  $fixnum.Int64 get valueSats => $_getI64(11);
+  @$pb.TagNumber(12)
+  set valueSats($fixnum.Int64 v) { $_setInt64(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasValueSats() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearValueSats() => clearField(12);
 }
 
 /// Activity is one thing that happened on the chain.

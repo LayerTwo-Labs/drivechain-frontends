@@ -89,10 +89,15 @@ type Block struct {
 	MainchainHeight uint32 `protobuf:"varint,6,opt,name=mainchain_height,json=mainchainHeight,proto3" json:"mainchain_height,omitempty"`
 	// block_time comes from the mainchain block, because a sidechain header
 	// carries no clock. It is zero when no source resolved it.
-	BlockTime     int64  `protobuf:"varint,7,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
-	TxCount       uint32 `protobuf:"varint,8,opt,name=tx_count,json=txCount,proto3" json:"tx_count,omitempty"`
-	FeesSats      int64  `protobuf:"varint,9,opt,name=fees_sats,json=feesSats,proto3" json:"fees_sats,omitempty"`
-	SizeBytes     int64  `protobuf:"varint,10,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	BlockTime int64  `protobuf:"varint,7,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+	TxCount   uint32 `protobuf:"varint,8,opt,name=tx_count,json=txCount,proto3" json:"tx_count,omitempty"`
+	FeesSats  int64  `protobuf:"varint,9,opt,name=fees_sats,json=feesSats,proto3" json:"fees_sats,omitempty"`
+	SizeBytes int64  `protobuf:"varint,10,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// fees_known is false when the source cannot compute the fees. A node holds
+	// no previous outputs, so it never knows what a mined block collected.
+	FeesKnown bool `protobuf:"varint,11,opt,name=fees_known,json=feesKnown,proto3" json:"fees_known,omitempty"`
+	// value_sats is what the block's transactions paid out together.
+	ValueSats     int64 `protobuf:"varint,12,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -193,6 +198,20 @@ func (x *Block) GetFeesSats() int64 {
 func (x *Block) GetSizeBytes() int64 {
 	if x != nil {
 		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *Block) GetFeesKnown() bool {
+	if x != nil {
+		return x.FeesKnown
+	}
+	return false
+}
+
+func (x *Block) GetValueSats() int64 {
+	if x != nil {
+		return x.ValueSats
 	}
 	return 0
 }
@@ -1435,7 +1454,7 @@ var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 
 const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\n" +
-	"\x1aexplorer/v1/explorer.proto\x12\vexplorer.v1\"\xb9\x02\n" +
+	"\x1aexplorer/v1/explorer.proto\x12\vexplorer.v1\"\xf7\x02\n" +
 	"\x05Block\x12\x16\n" +
 	"\x06height\x18\x01 \x01(\rR\x06height\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x1b\n" +
@@ -1450,7 +1469,11 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\tfees_sats\x18\t \x01(\x03R\bfeesSats\x12\x1d\n" +
 	"\n" +
 	"size_bytes\x18\n" +
-	" \x01(\x03R\tsizeBytes\"\xfa\x01\n" +
+	" \x01(\x03R\tsizeBytes\x12\x1d\n" +
+	"\n" +
+	"fees_known\x18\v \x01(\bR\tfeesKnown\x12\x1d\n" +
+	"\n" +
+	"value_sats\x18\f \x01(\x03R\tvalueSats\"\xfa\x01\n" +
 	"\bActivity\x12%\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x11.explorer.v1.KindR\x04kind\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +

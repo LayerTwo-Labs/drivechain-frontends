@@ -53,6 +53,11 @@ message Block {
   uint32 tx_count = 8;
   int64 fees_sats = 9;
   int64 size_bytes = 10;
+  // fees_known is false when the source cannot compute the fees. A node holds
+  // no previous outputs, so it never knows what a mined block collected.
+  bool fees_known = 11;
+  // value_sats is what the block's transactions paid out together.
+  int64 value_sats = 12;
 }
 
 // Activity is one thing that happened on the chain.
