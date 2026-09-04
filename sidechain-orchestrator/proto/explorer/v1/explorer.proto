@@ -1,0 +1,204 @@
+syntax = "proto3";
+
+package explorer.v1;
+
+// ExplorerService serves a block explorer for one sidechain.
+//
+// A light client runs no node, so it reads a hosted index. A full node answers
+// from its own chain, and a node keeps no address history, so the address call
+// needs an index either way.
+service ExplorerService {
+  // GetOverview answers the explorer landing page: the newest blocks, what
+  // happened last, and what the treasury holds.
+  rpc GetOverview(GetOverviewRequest) returns (GetOverviewResponse);
+
+  // GetBlock reads one block and what it carried. The request names either a
+  // hash or a height.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
+
+  // GetTransaction reads one transaction, with the coins on both sides.
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+
+  // GetAddress reads what an address holds and what it did. It needs an index,
+  // because no sidechain node keeps an address history.
+  rpc GetAddress(GetAddressRequest) returns (GetAddressResponse);
+
+  // GetWithdrawals reads the bundle the chain proposes to the mainchain.
+  rpc GetWithdrawals(GetWithdrawalsRequest) returns (GetWithdrawalsResponse);
+}
+
+// Kind names what a row is. A deposit never appears in a block body, so a feed
+// of transactions alone misses it.
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_TRANSFER = 1;
+  KIND_WITHDRAWAL = 2;
+  KIND_DEPOSIT = 3;
+}
+
+// Block is one sidechain block.
+message Block {
+  uint32 height = 1;
+  string hash = 2;
+  string prev_hash = 3;
+  string merkle_root = 4;
+  // mainchain_hash is the mainchain block this header merge mined against.
+  string mainchain_hash = 5;
+  // mainchain_height is the height of that block. It is zero when no enforcer
+  // resolved it.
+  uint32 mainchain_height = 6;
+  // block_time comes from the mainchain block, because a sidechain header
+  // carries no clock. It is zero when no source resolved it.
+  int64 block_time = 7;
+  uint32 tx_count = 8;
+  int64 fees_sats = 9;
+  int64 size_bytes = 10;
+}
+
+// Activity is one thing that happened on the chain.
+message Activity {
+  Kind kind = 1;
+  // id is the txid. A deposit carries its mainchain txid.
+  string id = 2;
+  int64 value_sats = 3;
+  int64 fee_sats = 4;
+  int64 size_bytes = 5;
+  bool confirmed = 6;
+  uint32 block_height = 7;
+  int64 block_time = 8;
+}
+
+// Coin is one input or one output.
+message Coin {
+  string address = 1;
+  int64 value_sats = 2;
+  // outpoint_kind reads "regular", "coinbase" or "deposit".
+  string outpoint_kind = 3;
+  // content_type reads "value" or "withdrawal".
+  string content_type = 4;
+  // main_address and main_fee_sats are set on a withdrawal output only.
+  string main_address = 5;
+  int64 main_fee_sats = 6;
+  // txid and vout name the coin this input spent.
+  string txid = 7;
+  uint32 vout = 8;
+}
+
+// Transaction is one transaction and the coins on both sides.
+message Transaction {
+  string txid = 1;
+  Kind kind = 2;
+  int64 fee_sats = 3;
+  int64 size_bytes = 4;
+  bool confirmed = 5;
+  uint32 block_height = 6;
+  string block_hash = 7;
+  int64 block_time = 8;
+  repeated Coin inputs = 9;
+  repeated Coin outputs = 10;
+}
+
+// Treasury is what the mainchain escrow holds for this slot.
+message Treasury {
+  uint32 slot = 1;
+  int64 balance_sats = 2;
+  string ctip_txid = 3;
+  uint32 ctip_vout = 4;
+  uint32 activation_height = 5;
+}
+
+// Mempool counts what waits for the next block.
+message Mempool {
+  uint32 tx_count = 1;
+  int64 fees_sats = 2;
+  int64 size_bytes = 3;
+}
+
+message GetOverviewRequest {
+  // chain is the sidechain name, as the chain registry writes it.
+  string chain = 1;
+}
+
+message GetOverviewResponse {
+  // blocks are newest first.
+  repeated Block blocks = 1;
+  // recent is newest first, and the unconfirmed rows come before the rest.
+  repeated Activity recent = 2;
+  Mempool mempool = 3;
+  Treasury treasury = 4;
+  WithdrawalBundle pending_bundle = 5;
+  uint32 tip_height = 6;
+  // source reads "index" or "node", so a reader knows what answered.
+  string source = 7;
+}
+
+message GetBlockRequest {
+  string chain = 1;
+  // Name one of these. A hash wins when both arrive.
+  string hash = 2;
+  uint32 height = 3;
+}
+
+message GetBlockResponse {
+  Block block = 1;
+  repeated Activity activity = 2;
+}
+
+message GetTransactionRequest {
+  string chain = 1;
+  string txid = 2;
+}
+
+message GetTransactionResponse {
+  Transaction transaction = 1;
+}
+
+message GetAddressRequest {
+  string chain = 1;
+  string address = 2;
+}
+
+message GetAddressResponse {
+  string address = 1;
+  int64 confirmed_balance_sats = 2;
+  int64 unconfirmed_balance_sats = 3;
+  int64 total_received_sats = 4;
+  uint32 confirmed_coin_count = 5;
+  uint32 unconfirmed_coin_count = 6;
+  uint32 tx_count = 7;
+  // transactions are newest first, unconfirmed first.
+  repeated Transaction transactions = 8;
+}
+
+// Withdrawal is one payout inside a bundle.
+message Withdrawal {
+  string main_address = 1;
+  int64 value_sats = 2;
+  int64 main_fee_sats = 3;
+  // cumulative_weight counts this withdrawal and every one before it in the
+  // bundle, against max_weight.
+  uint32 cumulative_weight = 4;
+}
+
+// WithdrawalBundle is the bundle a chain proposes to the mainchain.
+message WithdrawalBundle {
+  bool present = 1;
+  string m6id = 2;
+  uint32 height_created = 3;
+  int64 total_value_sats = 4;
+  int64 total_main_fees_sats = 5;
+  uint32 total_weight = 6;
+  uint32 max_weight = 7;
+  repeated Withdrawal withdrawals = 8;
+}
+
+message GetWithdrawalsRequest {
+  string chain = 1;
+}
+
+message GetWithdrawalsResponse {
+  WithdrawalBundle bundle = 1;
+  // last_failed_height is the sidechain height of the last bundle the
+  // mainchain rejected. It is zero when none ever failed.
+  uint32 last_failed_height = 2;
+}

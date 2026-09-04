@@ -9,6 +9,8 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
     AutoRoute(page: ParentChainRoute.page),
+    AutoRoute(page: ExplorerRoute.page),
+    AutoRoute(page: BmmRoute.page),
     AutoRoute(page: LogRoute.page),
     AutoRoute(page: ShutDownRoute.page),
     AutoRoute(page: UnlockWalletRoute.page),

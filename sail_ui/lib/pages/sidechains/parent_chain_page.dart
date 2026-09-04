@@ -6,10 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/pages/router.dart';
-import 'package:sail_ui/pages/sidechains/withdrawal_explorer_tab.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
-import 'package:sail_ui/pages/sidechains/bmm_tab.dart';
 
 @RoutePage()
 class ParentChainPage extends StatelessWidget {
@@ -23,16 +21,7 @@ class ParentChainPage extends StatelessWidget {
       child: ViewModelBuilder.reactive(
         viewModelBuilder: () => ParentChainTabViewModel(),
         builder: ((context, model, child) {
-          final List<TabItem> allTabs = [
-            const SingleTabItem(label: 'Transfer', child: TransferTab()),
-            const SingleTabItem(
-              label: 'Withdrawal Explorer',
-              child: WithdrawalExplorerTab(),
-            ),
-            const SingleTabItem(label: 'BMM', child: BMMTab()),
-          ];
-
-          return InlineTabBar(tabs: allTabs, initialIndex: 0);
+          return const TransferTab();
         }),
       ),
     );

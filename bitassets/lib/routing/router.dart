@@ -58,6 +58,12 @@ class AppRouter extends RootStackRouter {
           page: ParentChainRoute.page,
         ),
         AutoRoute(
+          page: ExplorerRoute.page,
+        ),
+        AutoRoute(
+          page: BmmRoute.page,
+        ),
+        AutoRoute(
           page: BitAssetsHomepageRoute.page,
           initial: true,
         ),

@@ -95,6 +95,10 @@ type Vout struct {
 	ScriptPubKeyAddress string `json:"scriptpubkey_address"`
 	Value               int64  `json:"value"`
 	OutpointKind        string `json:"outpoint_kind"`
+	// ContentType reads "value" or "withdrawal", and Content carries the
+	// chain-specific payload a withdrawal names.
+	ContentType string          `json:"content_type"`
+	Content     json.RawMessage `json:"content"`
 }
 
 // Vin is one input of a transaction.

@@ -23,6 +23,12 @@ enum Tabs {
   // parent chain routes
   ParentChainPeg,
 
+  // block explorer route
+  Explorer,
+
+  // blind merged mining route
+  Bmm,
+
   // truthcoin configurable homepage
   TruthcoinHomepage,
 
@@ -435,6 +441,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
               routes: [
                 // parent chain routes
                 ParentChainRoute(),
+                ExplorerRoute(),
+                BmmRoute(),
                 // truthcoin configurable homepage
                 TruthcoinHomepageRoute(),
                 // prediction markets
@@ -459,6 +467,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Window
                             label: 'Parent Chain',
                             onTap: () {
                               tabsRouter.setActiveIndex(Tabs.ParentChainPeg.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'Explorer',
+                            optionalKey: Tabs.Explorer.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Explorer.index);
+                            },
+                          ),
+                          TopNavRoute(
+                            label: 'BMM',
+                            optionalKey: Tabs.Bmm.index,
+                            onTap: () {
+                              tabsRouter.setActiveIndex(Tabs.Bmm.index);
                             },
                           ),
                           TopNavRoute(
