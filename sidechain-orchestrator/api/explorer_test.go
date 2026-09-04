@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"testing"
 
+	"connectrpc.com/connect"
+
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
@@ -251,4 +253,74 @@ func (n *recordingNode) CallRaw(_ context.Context, method string, params any) (j
 		return nil, fmt.Errorf("no answer for %q", method)
 	}
 	return json.RawMessage(body), nil
+}
+
+// A node block names no height, so a block opened by hash must resolve one.
+// Every overview card opens by hash alone.
+func TestNodeBlockOpenedByHashKeepsItsHeight(t *testing.T) {
+	node := &recordingNode{
+		count: 3,
+		answers: map[string]string{
+			"get_best_sidechain_block_hash": `"cc"`,
+		},
+		byHash: map[string]string{
+			"cc": `{"header":{"merkle_root":"m3","prev_side_hash":"bb","prev_main_hash":"x3"},"body":{"transactions":[]}}`,
+			"bb": `{"header":{"merkle_root":"m2","prev_side_hash":"aa","prev_main_hash":"x2"},"body":{"transactions":[]}}`,
+			"aa": `{"header":{"merkle_root":"m1","prev_main_hash":"x1"},"body":{"transactions":[]}}`,
+		},
+	}
+	src := source{name: "thunder", node: node}
+
+	for hash, want := range map[string]uint32{"cc": 2, "bb": 1, "aa": 0} {
+		height, err := nodeHeightOfHash(context.Background(), src, hash)
+		if err != nil {
+			t.Fatalf("resolve the height of %s: %v", hash, err)
+		}
+		if height != want {
+			t.Errorf("%s sits at height %d, want %d", hash, height, want)
+		}
+	}
+}
+
+// A node keeps no transaction index. It says so rather than answering an
+// empty transaction.
+func TestNodeTransactionSaysWhenItHoldsNone(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{"get_transaction": `null`}}
+	src := source{name: "thunder", node: node}
+
+	if _, err := nodeTransaction(context.Background(), src, "abc"); err == nil {
+		t.Fatal("a missing transaction reads as found")
+	} else if connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("a missing transaction answers %s, want NotFound", connect.CodeOf(err))
+	}
+}
+
+// A node transaction names its outputs, and a withdrawal names its payout.
+func TestNodeTransactionReadsAWithdrawal(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{
+		"get_transaction": `{
+			"inputs":[{"Regular":{"txid":"prev","vout":0}}],
+			"outputs":[
+				{"address":"s1","content":{"Value":40000}},
+				{"address":"s2","content":{"Withdrawal":{"value":50000,"main_fee":1200,"main_address":"bc1qout"}}}
+			]}`,
+	}}
+	src := source{name: "thunder", node: node}
+
+	out, err := nodeTransaction(context.Background(), src, "abc")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if out.GetKind() != pb.Kind_KIND_WITHDRAWAL {
+		t.Errorf("kind = %s, want a withdrawal", out.GetKind())
+	}
+	if len(out.GetInputs()) != 1 || out.GetInputs()[0].GetTxid() != "prev" {
+		t.Errorf("the inputs read %+v, want the coin it spends", out.GetInputs())
+	}
+	if got := out.GetOutputs()[0].GetValueSats(); got != 40000 {
+		t.Errorf("the plain output is worth %d, want 40000", got)
+	}
+	if got := out.GetOutputs()[1].GetMainAddress(); got != "bc1qout" {
+		t.Errorf("the payout goes to %q, want bc1qout", got)
+	}
 }

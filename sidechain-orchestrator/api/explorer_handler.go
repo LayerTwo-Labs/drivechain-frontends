@@ -7,9 +7,11 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
@@ -87,10 +89,7 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	// A full node answers from its own chain. Only a light client reads the
 	// hosted index, so the two never disagree about the tip. This is the same
 	// answer the wallet resolves, and it moves with a network swap.
-	light := orchestrator.NodeModeForNetwork(
-		orchestrator.ReadNodeMode(h.orch.BitwindowDir), network,
-	) == orchestrator.NodeModeLight
-	if light {
+	if h.orch.NodeMode() == orchestrator.NodeModeLight {
 		if url := config.SidechainEsploraURLForNetwork(chain, network); url != "" {
 			out.index = sidechainesplora.New(url)
 			return out, nil
@@ -122,6 +121,9 @@ func (h *ExplorerHandler) GetOverview(
 	out, err := build(ctx, src)
 	if err != nil {
 		return nil, err
+	}
+	if out.GetTreasury() == nil {
+		out.Treasury = h.enforcerTreasury(ctx, src.slot)
 	}
 	return connect.NewResponse(out), nil
 }
@@ -216,6 +218,43 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 	return out, nil
 }
 
+// enforcerTreasury reads what the mainchain escrow holds for one slot. A node
+// mode install reads its own enforcer. An install with none answers nil, and
+// the page then shows no treasury rather than an empty one.
+func (h *ExplorerHandler) enforcerTreasury(ctx context.Context, slot uint32) *pb.Treasury {
+	validator, err := h.orch.EnforcerValidator()
+	if err != nil {
+		return nil
+	}
+	chains, err := validator.GetSidechains(ctx, connect.NewRequest(&enforcerpb.GetSidechainsRequest{}))
+	if err != nil {
+		return nil
+	}
+	var out *pb.Treasury
+	for _, c := range chains.Msg.GetSidechains() {
+		if c.GetSidechainNumber().GetValue() != slot {
+			continue
+		}
+		out = &pb.Treasury{Slot: slot, ActivationHeight: c.GetActivationHeight().GetValue()}
+	}
+	if out == nil {
+		return nil
+	}
+
+	ctip, err := validator.GetCtip(ctx, connect.NewRequest(&enforcerpb.GetCtipRequest{
+		SidechainNumber: wrapperspb.UInt32(slot),
+	}))
+	if err != nil {
+		return out
+	}
+	if c := ctip.Msg.GetCtip(); c != nil {
+		out.BalanceSats = int64(c.GetValue())
+		out.CtipTxid = c.GetTxid().GetHex().GetValue()
+		out.CtipVout = c.GetVout()
+	}
+	return out
+}
+
 // GetBlock reads one block and what it carried.
 func (h *ExplorerHandler) GetBlock(
 	ctx context.Context, req *connect.Request[pb.GetBlockRequest],
@@ -261,13 +300,21 @@ func (h *ExplorerHandler) GetBlock(
 		return connect.NewResponse(&pb.GetBlockResponse{Block: block, Activity: activity}), nil
 	}
 
+	height := req.Msg.GetHeight()
 	if hash == "" {
-		hash, err = nodeHashAtHeight(ctx, src, req.Msg.GetHeight())
+		hash, err = nodeHashAtHeight(ctx, src, height)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// A node block names no height, so a block opened by hash carries
+		// none. Walking from the tip finds it.
+		height, err = nodeHeightOfHash(ctx, src, hash)
 		if err != nil {
 			return nil, err
 		}
 	}
-	block, activity, err := nodeBlock(ctx, src, hash, req.Msg.GetHeight())
+	block, activity, err := nodeBlock(ctx, src, hash, height)
 	if err != nil {
 		return nil, err
 	}
@@ -287,14 +334,50 @@ func (h *ExplorerHandler) GetTransaction(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name a txid"))
 	}
 	if src.index == nil {
-		return nil, connect.NewError(connect.CodeUnimplemented,
-			fmt.Errorf("%s has no index, and a node reads no transaction by id", src.name))
+		out, err := nodeTransaction(ctx, src, txid)
+		if err != nil {
+			return nil, err
+		}
+		return connect.NewResponse(&pb.GetTransactionResponse{Transaction: out}), nil
 	}
 	tx, err := src.index.Tx(ctx, txid)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	return connect.NewResponse(&pb.GetTransactionResponse{Transaction: newTransaction(tx)}), nil
+}
+
+// nodeHeightOfHash walks down from the tip to the height of one hash.
+func nodeHeightOfHash(ctx context.Context, src source, hash string) (uint32, error) {
+	count, err := src.node.GetBlockCount(ctx)
+	if err != nil {
+		return 0, connect.NewError(connect.CodeUnavailable, err)
+	}
+	raw, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
+	if err != nil {
+		return 0, connect.NewError(connect.CodeUnavailable, err)
+	}
+	var at string
+	if err := json.Unmarshal(raw, &at); err != nil {
+		return 0, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read the tip hash: %w", err))
+	}
+
+	for height := count - 1; height >= 0; height-- {
+		if at == hash {
+			return uint32(height), nil
+		}
+		header, err := nodeHeader(ctx, src, at)
+		if err != nil {
+			return 0, err
+		}
+		if header.Header.PrevSideHash == nil {
+			break
+		}
+		at = *header.Header.PrevSideHash
+	}
+	return 0, connect.NewError(connect.CodeNotFound,
+		fmt.Errorf("no block on %s hashes to %s", src.name, hash))
 }
 
 // GetAddress reads what an address holds and what it did.

@@ -91,7 +91,15 @@ class _Overview extends StatelessWidget {
         SailRow(
           spacing: SailStyleValues.padding16,
           children: [
-            Expanded(child: _TreasuryCard(treasury: overview.treasury)),
+            Expanded(
+              child: overview.hasTreasury()
+                  ? _TreasuryCard(treasury: overview.treasury)
+                  : SailCard(
+                      title: 'Treasury',
+                      subtitle: 'This install reads no mainchain escrow',
+                      child: const SizedBox(height: 24),
+                    ),
+            ),
             Expanded(child: _PendingWithdrawalsCard(bundle: overview.pendingBundle)),
           ],
         ),
