@@ -111,3 +111,21 @@ func TestApplyLockTimeHexRejectsBadInput(t *testing.T) {
 		}
 	}
 }
+
+func TestProtectedNeedsANonFinalInput(t *testing.T) {
+	if Protected(ReplayLockTime, []uint32{wire.MaxTxInSequenceNum}) {
+		t.Fatal("a tx with every input final counts as protected")
+	}
+	if !Protected(ReplayLockTime, []uint32{wire.MaxTxInSequenceNum, nonFinalSequence}) {
+		t.Fatal("one non-final input does not count as protected")
+	}
+}
+
+func TestProtectedNeedsTheMagicLocktime(t *testing.T) {
+	if Protected(0, []uint32{nonFinalSequence}) {
+		t.Fatal("a plain locktime counts as protected")
+	}
+	if Protected(ReplayLockTime, nil) {
+		t.Fatal("a tx without inputs counts as protected")
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
@@ -103,8 +104,76 @@ func postFork(outpoints ...string) *fakeCoins {
 	return c
 }
 
+// fakeLocalChain answers locktimes per txid; an unlisted txid errors. Inputs
+// are non-final unless finalSeqs names the txid.
+type fakeLocalChain struct {
+	locktime  map[string]int32
+	finalSeqs map[string]bool
+}
+
+func (f *fakeLocalChain) GetRawTransaction(_ context.Context, txid string) (*wallet.RawTransaction, error) {
+	lt, ok := f.locktime[txid]
+	if !ok {
+		return nil, errors.New("no such tx")
+	}
+	seq := int64(wire.MaxTxInSequenceNum - 1)
+	if f.finalSeqs[txid] {
+		seq = int64(wire.MaxTxInSequenceNum)
+	}
+	return &wallet.RawTransaction{TxID: txid, Locktime: lt, Vin: []wallet.RawTxIn{{Sequence: seq}}}, nil
+}
+
 func newTestSplitEngine(st *fork.ForkState, coins *fakeCoins, btc *fakeOutspend, store *fakeSplitStore, network string) *SplitEngine {
-	return NewSplitEngine(zerolog.Nop(), &fakeForkState{st: st}, coins, btc, store, func() string { return network })
+	return NewSplitEngine(zerolog.Nop(), &fakeForkState{st: st}, coins, btc, nil, store, func() string { return network })
+}
+
+func TestSplitEngineTrustsTheMagicLocktime(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), postFork("aa:0"), btc, store, "ecash")
+	e.local = &fakeLocalChain{locktime: map[string]int32{"aa": 499999999}}
+
+	e.tick(context.Background())
+
+	require.Equal(t, 0, btc.calls["aa:0"])
+	require.Equal(t, map[string]bool{"aa:0": false}, store.statuses)
+}
+
+func TestSplitEngineIgnoresAVoidMagicLocktime(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
+	// Every input is final, so Bitcoin ignores the locktime and a replay can land.
+	e.local = &fakeLocalChain{locktime: map[string]int32{"aa": 499999999}, finalSeqs: map[string]bool{"aa": true}}
+
+	e.tick(context.Background())
+
+	require.Equal(t, 1, btc.calls["aa:0"])
+	require.Equal(t, map[string]bool{"aa:0": true}, store.statuses)
+}
+
+func TestSplitEnginePlainLocktimeStillAsksBitcoin(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
+	e.local = &fakeLocalChain{locktime: map[string]int32{"aa": 0}}
+
+	e.tick(context.Background())
+
+	require.Equal(t, 1, btc.calls["aa:0"])
+	require.Equal(t, map[string]bool{"aa:0": true}, store.statuses)
+}
+
+func TestSplitEngineFallsBackWhenLocalReadFails(t *testing.T) {
+	btc := newFakeOutspend()
+	store := &fakeSplitStore{statuses: map[string]bool{}}
+	e := newTestSplitEngine(forkStateWith(), preFork("aa:0"), btc, store, "ecash")
+	e.local = &fakeLocalChain{locktime: map[string]int32{}}
+
+	e.tick(context.Background())
+
+	require.Equal(t, 1, btc.calls["aa:0"])
+	require.Equal(t, map[string]bool{"aa:0": true}, store.statuses)
 }
 
 func TestSplitEngineChecksEachOutpointOnce(t *testing.T) {
