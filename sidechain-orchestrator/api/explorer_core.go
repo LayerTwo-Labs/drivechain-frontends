@@ -126,9 +126,18 @@ type nodeTx struct {
 	} `json:"outputs"`
 }
 
+// nodeTxInfo is what get_transaction_info returns. The chains that send a
+// bare transaction carry the confirmation and the fee here.
+type nodeTxInfo struct {
+	Confirmations *uint32 `json:"confirmations"`
+	FeeSats       int64   `json:"fee_sats"`
+}
+
 // nodeTransaction reads one transaction from a node. A node keeps no
 // transaction index, so it answers only for what it still holds.
 func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transaction, error) {
+	// The node reads its params as a list. A bare string answers
+	// "Invalid params", whatever the schema declares.
 	raw, err := src.node.CallRaw(ctx, "get_transaction", []string{txid})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
@@ -156,6 +165,9 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 	if envelope.BlockHash != nil {
 		out.Confirmed = true
 		out.BlockHash = *envelope.BlockHash
+	} else if info, ok := nodeTransactionInfo(ctx, src, txid); ok {
+		out.Confirmed = info.Confirmations != nil && *info.Confirmations > 0
+		out.FeeSats = info.FeeSats
 	}
 	for _, in := range tx.Inputs {
 		switch {
@@ -187,6 +199,69 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 			}
 		}
 		out.Outputs = append(out.Outputs, coin)
+	}
+	return out, nil
+}
+
+// nodeTransactionInfo reads the confirmation and the fee a bare transaction
+// does not carry. A node without the method answers false.
+func nodeTransactionInfo(ctx context.Context, src source, txid string) (nodeTxInfo, bool) {
+	raw, err := src.node.CallRaw(ctx, "get_transaction_info", []string{txid})
+	if err != nil || len(raw) == 0 || string(raw) == "null" {
+		return nodeTxInfo{}, false
+	}
+	var info nodeTxInfo
+	if err := json.Unmarshal(raw, &info); err != nil {
+		return nodeTxInfo{}, false
+	}
+	return info, true
+}
+
+// coreTransaction reads one transaction from a Core derived node.
+func coreTransaction(ctx context.Context, src source, txid string) (*pb.Transaction, error) {
+	raw, err := src.node.CallRaw(ctx, "getrawtransaction", []any{txid, true})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	var tx struct {
+		Txid          string `json:"txid"`
+		BlockHash     string `json:"blockhash"`
+		Time          int64  `json:"time"`
+		Confirmations int64  `json:"confirmations"`
+		Size          int64  `json:"size"`
+		Vin           []struct {
+			Txid string `json:"txid"`
+			Vout uint32 `json:"vout"`
+		} `json:"vin"`
+		Vout []struct {
+			Value        float64 `json:"value"`
+			ScriptPubKey struct {
+				Address string `json:"address"`
+			} `json:"scriptPubKey"`
+		} `json:"vout"`
+	}
+	if err := json.Unmarshal(raw, &tx); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read transaction %s: %w", txid, err))
+	}
+
+	out := &pb.Transaction{
+		Txid:      txid,
+		Kind:      pb.Kind_KIND_TRANSFER,
+		SizeBytes: tx.Size,
+		Confirmed: tx.Confirmations > 0,
+		BlockHash: tx.BlockHash,
+		BlockTime: tx.Time,
+	}
+	for _, in := range tx.Vin {
+		out.Inputs = append(out.Inputs, &pb.Coin{Txid: in.Txid, Vout: in.Vout, OutpointKind: "regular"})
+	}
+	for _, o := range tx.Vout {
+		out.Outputs = append(out.Outputs, &pb.Coin{
+			Address:     o.ScriptPubKey.Address,
+			ValueSats:   int64(o.Value * 1e8),
+			ContentType: "value",
+		})
 	}
 	return out, nil
 }

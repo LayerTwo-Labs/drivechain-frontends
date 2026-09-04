@@ -246,7 +246,13 @@ class _RecentActivity extends StatelessWidget {
           },
           rowCount: rows.length,
           drawGrid: false,
-          onDoubleTap: (rowId) => onOpen(ExplorerTarget.transaction(rowId)),
+          onDoubleTap: (rowId) {
+            final row = rows.firstWhere((r) => r.id == rowId);
+            if (row.kind == pb.Kind.KIND_DEPOSIT) {
+              return;
+            }
+            onOpen(ExplorerTarget.transaction(rowId));
+          },
           emptyPlaceholder: 'No transactions yet',
         ),
       ),
