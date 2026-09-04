@@ -42,6 +42,8 @@ class _ChainExplorerTabState extends State<ChainExplorerTab> {
     return ViewModelBuilder<ExplorerModel>.reactive(
       viewModelBuilder: () => ExplorerModel(),
       builder: (context, model, child) {
+        // The page is taller than a short window, so it scrolls. The search
+        // stays put above it.
         return SailColumn(
           spacing: SailStyleValues.padding16,
           children: [
@@ -50,15 +52,18 @@ class _ChainExplorerTabState extends State<ChainExplorerTab> {
               hintText: 'Search a block height, a block hash, a transaction or an address',
               onSubmitted: _submit,
             ),
-            if (_target != null)
-              ExplorerDetail(
-                model: model,
-                target: _target!,
-                onClose: () => setState(() => _target = null),
-                onOpen: _open,
-              )
-            else
-              _Overview(model: model, onOpen: _open),
+            Expanded(
+              child: SingleChildScrollView(
+                child: _target != null
+                    ? ExplorerDetail(
+                        model: model,
+                        target: _target!,
+                        onClose: () => setState(() => _target = null),
+                        onOpen: _open,
+                      )
+                    : _Overview(model: model, onOpen: _open),
+              ),
+            ),
           ],
         );
       },
