@@ -15,8 +15,8 @@ class ExplorerModel extends BaseViewModel {
   final SidechainRPC _sidechain = GetIt.I.get<SidechainRPC>();
   final OrchestratorRPC _orchestrator = GetIt.I.get<OrchestratorRPC>();
 
-  /// chain is the name the orchestrator keys its configs on.
-  String get chain => _sidechain.chain.name.toLowerCase();
+  /// chain is the key the orchestrator files this chain under.
+  String get chain => _sidechain.chain.registryKey;
 
   pb.GetOverviewResponse? overview;
   String? readError;
@@ -69,7 +69,7 @@ class WithdrawalsModel extends BaseViewModel {
   final SidechainRPC _sidechain = GetIt.I.get<SidechainRPC>();
   final OrchestratorRPC _orchestrator = GetIt.I.get<OrchestratorRPC>();
 
-  String get chain => _sidechain.chain.name.toLowerCase();
+  String get chain => _sidechain.chain.registryKey;
 
   pb.GetWithdrawalsResponse? state;
   String? readError;

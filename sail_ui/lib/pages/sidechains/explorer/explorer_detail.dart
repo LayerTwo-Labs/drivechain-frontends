@@ -44,6 +44,10 @@ class _ExplorerDetailState extends State<ExplorerDetail> {
   Object? _result;
   String? _error;
 
+  /// _generation counts the loads. A reader who opens a second thing before
+  /// the first arrives must not see the first land on top of it.
+  int _generation = 0;
+
   @override
   void initState() {
     super.initState();
@@ -59,17 +63,18 @@ class _ExplorerDetailState extends State<ExplorerDetail> {
   }
 
   Future<void> _load() async {
+    final generation = ++_generation;
     setState(() {
       _result = null;
       _error = null;
     });
     try {
       final result = await _read();
-      if (mounted) {
+      if (mounted && generation == _generation) {
         setState(() => _result = result);
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && generation == _generation) {
         setState(() => _error = e.toString());
       }
     }

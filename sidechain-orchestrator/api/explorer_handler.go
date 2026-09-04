@@ -21,6 +21,14 @@ const blockListSize = 6
 // activityListSize is how many rows the overview carries.
 const activityListSize = 12
 
+// addressPageSize is how many confirmed rows one index page carries. A shorter
+// page is the last one.
+const addressPageSize = 25
+
+// addressHistoryLimit bounds how deep the explorer reads one address. A busy
+// address then costs a bounded number of calls.
+const addressHistoryLimit = 100
+
 // Bundle weights, as the chain sizes a withdrawal bundle.
 const (
 	maxWithdrawalBundleWeight  = 50000
@@ -49,6 +57,9 @@ type source struct {
 	slot  uint32
 	index *sidechainesplora.Client
 	node  sidechain.SidechainRPCProxy
+	// core is true for a chain built on Bitcoin Core. Such a node speaks
+	// Core's own method names, not the CUSF ones this file reads.
+	core bool
 }
 
 // sourceFor picks the index when one is hosted, and the local node otherwise.
@@ -69,13 +80,21 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	}
 	network := config.NetworkFromString(h.orch.CurrentNetwork())
 
-	out := source{name: chain}
+	out := source{name: chain, core: cfg.IsBitcoinCore}
 	if cfg.Slot >= 0 && cfg.Slot <= 255 {
 		out.slot = uint32(cfg.Slot)
 	}
-	if url := config.SidechainEsploraURLForNetwork(chain, network); url != "" {
-		out.index = sidechainesplora.New(url)
-		return out, nil
+	// A full node answers from its own chain. Only a light client reads the
+	// hosted index, so the two never disagree about the tip. This is the same
+	// answer the wallet resolves, and it moves with a network swap.
+	light := orchestrator.NodeModeForNetwork(
+		orchestrator.ReadNodeMode(h.orch.BitwindowDir), network,
+	) == orchestrator.NodeModeLight
+	if light {
+		if url := config.SidechainEsploraURLForNetwork(chain, network); url != "" {
+			out.index = sidechainesplora.New(url)
+			return out, nil
+		}
 	}
 	node, err := sidechainProxy(cfg, network)
 	if err != nil {
@@ -94,8 +113,11 @@ func (h *ExplorerHandler) GetOverview(
 		return nil, err
 	}
 	build := nodeOverview
-	if src.index != nil {
+	switch {
+	case src.index != nil:
 		build = indexOverview
+	case src.core:
+		build = coreOverview
 	}
 	out, err := build(ctx, src)
 	if err != nil {
@@ -158,8 +180,18 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 	tip := uint32(count - 1)
 	out.TipHeight = tip
 
-	for height := int64(tip); height >= 0 && len(out.Blocks) < blockListSize; height-- {
-		block, activity, err := nodeBlockAtHeight(ctx, src, uint32(height))
+	hash, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	var next string
+	if err := json.Unmarshal(hash, &next); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read the tip hash: %w", err))
+	}
+
+	for height := int64(tip); height >= 0 && next != "" && len(out.Blocks) < blockListSize; height-- {
+		block, activity, err := nodeBlock(ctx, src, next, uint32(height))
 		if err != nil {
 			return nil, err
 		}
@@ -170,6 +202,7 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 			}
 			out.Recent = append(out.Recent, row)
 		}
+		next = block.GetPrevHash()
 	}
 
 	// The template is what the node would mine next, so it counts the
@@ -214,14 +247,27 @@ func (h *ExplorerHandler) GetBlock(
 		}), nil
 	}
 
-	height := req.Msg.GetHeight()
-	if hash != "" {
-		height, err = nodeHeightOfBlock(ctx, src, hash)
+	if src.core {
+		var block *pb.Block
+		var activity []*pb.Activity
+		if hash != "" {
+			block, activity, err = coreBlockByHash(ctx, src, hash)
+		} else {
+			block, activity, err = coreBlockAtHeight(ctx, src, req.Msg.GetHeight())
+		}
+		if err != nil {
+			return nil, err
+		}
+		return connect.NewResponse(&pb.GetBlockResponse{Block: block, Activity: activity}), nil
+	}
+
+	if hash == "" {
+		hash, err = nodeHashAtHeight(ctx, src, req.Msg.GetHeight())
 		if err != nil {
 			return nil, err
 		}
 	}
-	block, activity, err := nodeBlockAtHeight(ctx, src, height)
+	block, activity, err := nodeBlock(ctx, src, hash, req.Msg.GetHeight())
 	if err != nil {
 		return nil, err
 	}
@@ -272,13 +318,11 @@ func (h *ExplorerHandler) GetAddress(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	pending, err := src.index.AddressMempoolTxs(ctx, address)
+	// The first page already carries the unconfirmed rows, so a separate
+	// mempool read would list every one of them twice.
+	history, err := addressHistory(ctx, src, address)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
-	}
-	confirmed, err := src.index.AddressTxs(ctx, address, "")
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, err
 	}
 
 	out := &pb.GetAddressResponse{
@@ -290,10 +334,29 @@ func (h *ExplorerHandler) GetAddress(
 		UnconfirmedCoinCount:   uint32(stats.MempoolStats.FundedTxoCount),
 		TxCount:                uint32(stats.ChainStats.TxCount + stats.MempoolStats.TxCount),
 	}
-	for _, tx := range append(pending, confirmed...) {
+	for _, tx := range history {
 		out.Transactions = append(out.Transactions, newTransaction(tx))
 	}
 	return connect.NewResponse(out), nil
+}
+
+// addressHistory walks the address pages, newest first. The index pages at 25
+// confirmed rows, and a page shorter than that is the last one.
+func addressHistory(ctx context.Context, src source, address string) ([]sidechainesplora.Tx, error) {
+	var out []sidechainesplora.Tx
+	var lastSeen string
+	for len(out) < addressHistoryLimit {
+		page, err := src.index.AddressTxs(ctx, address, lastSeen)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeUnavailable, err)
+		}
+		out = append(out, page...)
+		if len(page) < addressPageSize {
+			break
+		}
+		lastSeen = page[len(page)-1].Txid
+	}
+	return out, nil
 }
 
 // GetWithdrawals reads the bundle the chain proposes to the mainchain.
@@ -329,41 +392,43 @@ func (h *ExplorerHandler) GetWithdrawals(
 	return connect.NewResponse(out), nil
 }
 
-// nodeHeightOfBlock walks down from the tip to find the height of one hash. A
-// node reads a block by hash but never reports its height.
-func nodeHeightOfBlock(ctx context.Context, src source, hash string) (uint32, error) {
+// nodeHashAtHeight walks down from the tip to the hash at one height. No
+// sidechain node reads a block by height, so the walk follows prev_side_hash.
+func nodeHashAtHeight(ctx context.Context, src source, height uint32) (string, error) {
 	count, err := src.node.GetBlockCount(ctx)
 	if err != nil {
-		return 0, connect.NewError(connect.CodeUnavailable, err)
+		return "", connect.NewError(connect.CodeUnavailable, err)
 	}
-	for height := count - 1; height >= 0; height-- {
-		at, err := nodeBlockHash(ctx, src, uint32(height))
-		if err != nil {
-			return 0, err
-		}
-		if at == hash {
-			return uint32(height), nil
-		}
+	if count <= 0 || height > uint32(count-1) {
+		return "", connect.NewError(connect.CodeNotFound,
+			fmt.Errorf("%s holds no block at height %d", src.name, height))
 	}
-	return 0, connect.NewError(connect.CodeNotFound,
-		fmt.Errorf("no block on %s hashes to %s", src.name, hash))
-}
 
-func nodeBlockHash(ctx context.Context, src source, height uint32) (string, error) {
-	raw, err := src.node.CallRaw(ctx, "get_block_hash", []uint32{height})
+	raw, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
 	if err != nil {
 		return "", connect.NewError(connect.CodeUnavailable, err)
 	}
 	var hash string
 	if err := json.Unmarshal(raw, &hash); err != nil {
 		return "", connect.NewError(connect.CodeInternal,
-			fmt.Errorf("read the hash at height %d: %w", height, err))
+			fmt.Errorf("read the tip hash: %w", err))
+	}
+
+	for at := uint32(count - 1); at > height; at-- {
+		header, err := nodeHeader(ctx, src, hash)
+		if err != nil {
+			return "", err
+		}
+		if header.Header.PrevSideHash == nil {
+			break
+		}
+		hash = *header.Header.PrevSideHash
 	}
 	return hash, nil
 }
 
-// nodeBlock is the header shape a sidechain node returns.
-type nodeBlock struct {
+// nodeHeaderJSON is the header shape a sidechain node returns.
+type nodeHeaderJSON struct {
 	Header struct {
 		MerkleRoot   string  `json:"merkle_root"`
 		PrevSideHash *string `json:"prev_side_hash"`
@@ -386,21 +451,28 @@ type nodeBlockIndex struct {
 	} `json:"deposits"`
 }
 
-// nodeBlockAtHeight reads one block from the node, with the rows it carried.
-// A node computes no fees, so every fee reads zero.
-func nodeBlockAtHeight(ctx context.Context, src source, height uint32) (*pb.Block, []*pb.Activity, error) {
-	hash, err := nodeBlockHash(ctx, src, height)
-	if err != nil {
-		return nil, nil, err
-	}
+// nodeHeader reads one block header from the node.
+func nodeHeader(ctx context.Context, src source, hash string) (nodeHeaderJSON, error) {
+	// The node reads its params as a list. A bare string answers
+	// "Invalid params", whatever the older handlers pass.
 	raw, err := src.node.CallRaw(ctx, "get_block", []string{hash})
 	if err != nil {
-		return nil, nil, connect.NewError(connect.CodeUnavailable, err)
+		return nodeHeaderJSON{}, connect.NewError(connect.CodeUnavailable, err)
 	}
-	var block nodeBlock
+	var block nodeHeaderJSON
 	if err := json.Unmarshal(raw, &block); err != nil {
-		return nil, nil, connect.NewError(connect.CodeInternal,
+		return nodeHeaderJSON{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("read block %s: %w", hash, err))
+	}
+	return block, nil
+}
+
+// nodeBlock reads one block from the node, with the rows it carried. A node
+// computes no fees, so every fee reads zero.
+func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb.Block, []*pb.Activity, error) {
+	block, err := nodeHeader(ctx, src, hash)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	out := &pb.Block{
@@ -414,6 +486,8 @@ func nodeBlockAtHeight(ctx context.Context, src source, height uint32) (*pb.Bloc
 		out.PrevHash = *block.Header.PrevSideHash
 	}
 
+	// get_block_index names the txids a body does not carry. A node without
+	// it still answers the header, and the block then lists no transactions.
 	rawIndex, err := src.node.CallRaw(ctx, "get_block_index", []string{hash})
 	if err != nil {
 		return out, nil, nil

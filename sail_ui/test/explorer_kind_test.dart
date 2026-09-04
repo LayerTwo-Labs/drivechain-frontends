@@ -11,6 +11,23 @@ void main() {
       expect(kindLabel(pb.Kind.KIND_UNSPECIFIED), 'Transfer');
     });
 
+    test('files every chain under the key the orchestrator uses', () {
+      // A display name is not a key: Big Block Covenant files under bbc.
+      expect(Bbc().registryKey, 'bbc');
+      expect(LiquidSignet().registryKey, 'liquid-signet');
+      expect(Thunder().registryKey, 'thunder');
+      expect(ZSide().registryKey, 'zside');
+      expect(CoinShift().registryKey, 'coinshift');
+      expect(BitAssets().registryKey, 'bitassets');
+      for (final chain in Sidechain.all) {
+        expect(
+          Sidechain.fromString(chain.registryKey),
+          isNotNull,
+          reason: '${chain.name} files under ${chain.registryKey}',
+        );
+      }
+    });
+
     test('shortens a long id and leaves a short one alone', () {
       const txid = '48b4eed66e27c813e1d0f78746c2706da309b673b42a18d03fe50ab3524aecae';
       expect(shortenId(txid), '48b4eed6…524aecae');
