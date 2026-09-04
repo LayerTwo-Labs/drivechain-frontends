@@ -24,6 +24,20 @@ const ReplayLockTime uint32 = 499999999
 // nLockTime take effect.
 const nonFinalSequence uint32 = wire.MaxTxInSequenceNum - 1
 
+// Protected reports whether the stamp binds: the magic locktime plus at least
+// one non-final input. With every input final, Bitcoin ignores nLockTime.
+func Protected(locktime uint32, sequences []uint32) bool {
+	if locktime != ReplayLockTime {
+		return false
+	}
+	for _, s := range sequences {
+		if s != wire.MaxTxInSequenceNum {
+			return true
+		}
+	}
+	return false
+}
+
 // ApplyLockTime stamps the replay locktime and makes every final input
 // non-final so the locktime is actually enforced. Call it before signing.
 func ApplyLockTime(tx *wire.MsgTx) {

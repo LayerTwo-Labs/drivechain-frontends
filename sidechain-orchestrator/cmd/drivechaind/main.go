@@ -371,6 +371,7 @@ func run(cctx *cli.Context) error {
 	// Chain wallet provider — CoreBackend today; electrum/btcd providers
 	// slot in behind the same wallet.Backend interface.
 	var chainBackend wallet.Backend
+	var localChain wallet.ChainSource
 	if orch.BitcoinConf != nil {
 		// Port and credentials both move with the network.
 		coreEndpoint := func() wallet.CoreEndpoint {
@@ -387,7 +388,9 @@ func run(cctx *cli.Context) error {
 			return endpoint
 		}
 		coreRPC := wallet.NewCoreRPCClient(coreEndpoint)
-		chainBackend = wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
+		coreBackend := wallet.NewCoreBackend(walletSvc, coreRPC, netParams, log)
+		chainBackend = coreBackend
+		localChain = coreBackend.Chain()
 		log.Info().Int("rpc_port", coreEndpoint().Port).Msg("core wallet provider initialized")
 	}
 
@@ -466,7 +469,7 @@ func run(cctx *cli.Context) error {
 		if electrumBackend != nil {
 			electrumBackend.OnProxyChange(splitClient.SetProxy)
 		}
-		splitEngine := engines.NewSplitEngine(log, orch, orch, splitClient, walletSvc, currentNetwork)
+		splitEngine := engines.NewSplitEngine(log, orch, orch, splitClient, localChain, walletSvc, currentNetwork)
 		walletEngine.OnNetworkReset(splitEngine.ResetForNetwork)
 		go func() {
 			if err := splitEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {

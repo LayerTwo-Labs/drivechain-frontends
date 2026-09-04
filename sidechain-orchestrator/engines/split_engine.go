@@ -10,6 +10,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
@@ -40,6 +41,12 @@ type OutspendSource interface {
 	Outspend(ctx context.Context, txid string, vout int) (wallet.EsploraOutspend, bool, error)
 }
 
+// LocalChainSource reads a transaction from this chain. wallet.ChainSource
+// satisfies it; nil disables the local locktime check.
+type LocalChainSource interface {
+	GetRawTransaction(ctx context.Context, txid string) (*wallet.RawTransaction, error)
+}
+
 // SplitStore persists the per-outpoint split status.
 type SplitStore interface {
 	SplitStatuses(ctx context.Context) (map[string]bool, error)
@@ -55,6 +62,7 @@ type SplitEngine struct {
 	fork    ForkStateSource
 	coins   UnspentSource
 	btc     OutspendSource
+	local   LocalChainSource
 	store   SplitStore
 	network func() string
 	now     func() time.Time
@@ -66,12 +74,13 @@ type SplitEngine struct {
 	wake chan struct{}
 }
 
-func NewSplitEngine(log zerolog.Logger, forkState ForkStateSource, coins UnspentSource, btc OutspendSource, store SplitStore, network func() string) *SplitEngine {
+func NewSplitEngine(log zerolog.Logger, forkState ForkStateSource, coins UnspentSource, btc OutspendSource, local LocalChainSource, store SplitStore, network func() string) *SplitEngine {
 	return &SplitEngine{
 		log:     log.With().Str("component", "split-engine").Logger(),
 		fork:    forkState,
 		coins:   coins,
 		btc:     btc,
+		local:   local,
 		store:   store,
 		network: network,
 		now:     time.Now,
@@ -137,6 +146,17 @@ func (e *SplitEngine) tick(ctx context.Context) {
 		if _, done := cached[u.Outpoint]; done {
 			continue
 		}
+		// A funding transaction whose magic locktime binds is non-final on
+		// stock Bitcoin forever, so the coin is this chain's alone. No BTC lookup.
+		if e.protectedLocally(ctx, u.Outpoint) {
+			delete(e.absent, u.Outpoint)
+			if err := e.store.SaveSplitStatus(ctx, u.Outpoint, false); err != nil {
+				e.log.Warn().Err(err).Str("outpoint", u.Outpoint).Msg("split: pass stopped")
+				return
+			}
+			e.log.Info().Str("outpoint", u.Outpoint).Msg("split: coin carries the replay locktime")
+			continue
+		}
 		if !dueForRecheck(e.absent[u.Outpoint], e.now()) {
 			continue
 		}
@@ -163,6 +183,27 @@ func (e *SplitEngine) tick(ctx context.Context) {
 		}
 		e.log.Info().Str("outpoint", u.Outpoint).Bool("splittable", status == btcUnspent).Msg("split: outpoint checked")
 	}
+}
+
+// protectedLocally reports whether the coin's funding transaction carries the
+// magic locktime. A local read failure falls back to the BTC lookup.
+func (e *SplitEngine) protectedLocally(ctx context.Context, outpoint string) bool {
+	if e.local == nil {
+		return false
+	}
+	txid, _, ok := parseOutpoint(outpoint)
+	if !ok {
+		return false
+	}
+	raw, err := e.local.GetRawTransaction(ctx, txid)
+	if err != nil || raw == nil {
+		return false
+	}
+	seqs := make([]uint32, 0, len(raw.Vin))
+	for _, in := range raw.Vin {
+		seqs = append(seqs, uint32(in.Sequence))
+	}
+	return replay.Protected(uint32(raw.Locktime), seqs)
 }
 
 // keepLiveAbsences drops the records of coins the wallet no longer holds, so a
