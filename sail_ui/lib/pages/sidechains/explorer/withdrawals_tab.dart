@@ -22,12 +22,14 @@ class WithdrawalsTab extends StatelessWidget {
             child: const SizedBox(height: 40),
           );
         }
-        return SailColumn(
-          spacing: SailStyleValues.padding16,
-          children: [
-            _BundleSummary(state: state),
-            _BundleTable(bundle: state.bundle),
-          ],
+        return SingleChildScrollView(
+          child: SailColumn(
+            spacing: SailStyleValues.padding16,
+            children: [
+              _BundleSummary(state: state),
+              _BundleTable(bundle: state.bundle),
+            ],
+          ),
         );
       },
     );
