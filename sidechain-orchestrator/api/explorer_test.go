@@ -462,3 +462,59 @@ func TestDepositReadsAsAnAddressRow(t *testing.T) {
 		t.Errorf("block height = %d, want 34", out.GetBlockHeight())
 	}
 }
+
+// A transaction that waits for a block reads back with no block, so the page
+// can mark it unconfirmed rather than losing it.
+func TestUnconfirmedTransactionKeepsItsCoins(t *testing.T) {
+	tx := sidechainesplora.Tx{
+		Txid: "pending",
+		Fee:  1000,
+		Size: 16,
+		Vin: []sidechainesplora.Vin{{
+			Txid: "prev", Vout: 0,
+			Prevout: &sidechainesplora.Vout{
+				ScriptPubKeyAddress: "s1", Value: 500000, ContentType: "value",
+			},
+		}},
+		Vout: []sidechainesplora.Vout{{
+			ScriptPubKeyAddress: "s2", Value: 499000, ContentType: "value",
+		}},
+		Status: sidechainesplora.Status{Confirmed: false},
+	}
+
+	out := newTransaction(tx)
+	if out.GetConfirmed() {
+		t.Error("a transaction in the mempool reads as confirmed")
+	}
+	if out.GetBlockHeight() != 0 || out.GetBlockHash() != "" {
+		t.Errorf("an unconfirmed transaction names block %d %q, want none",
+			out.GetBlockHeight(), out.GetBlockHash())
+	}
+	if len(out.GetInputs()) != 1 || len(out.GetOutputs()) != 1 {
+		t.Fatalf("the transaction reads %d in and %d out, want 1 and 1",
+			len(out.GetInputs()), len(out.GetOutputs()))
+	}
+	if out.GetFeeSats() != 1000 || out.GetSizeBytes() != 16 {
+		t.Errorf("fee = %d and size = %d, want 1000 and 16",
+			out.GetFeeSats(), out.GetSizeBytes())
+	}
+}
+
+// The overview puts the unconfirmed rows first, and each one reads without a
+// block.
+func TestActivityKeepsTheUnconfirmedRowsFirst(t *testing.T) {
+	rows := activityList([]sidechainesplora.Activity{
+		{Kind: sidechainesplora.KindTransfer, ID: "pending", Value: 1, Fee: 1000},
+		{Kind: sidechainesplora.KindTransfer, ID: "mined", Value: 2, Fee: 900,
+			Status: sidechainesplora.Status{Confirmed: true, BlockHeight: 48}},
+	})
+	if len(rows) != 2 {
+		t.Fatalf("the feed holds %d rows, want 2", len(rows))
+	}
+	if rows[0].GetConfirmed() || rows[0].GetBlockHeight() != 0 {
+		t.Errorf("the first row reads %+v, want an unconfirmed one", rows[0])
+	}
+	if !rows[1].GetConfirmed() || rows[1].GetBlockHeight() != 48 {
+		t.Errorf("the second row reads %+v, want block 48", rows[1])
+	}
+}
