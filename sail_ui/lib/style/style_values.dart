@@ -41,6 +41,10 @@ abstract class SailStyleValues {
     fontSize: 16,
     fontWeight: regularWeight,
   );
+  static const TextStyle fourteen = TextStyle(
+    fontSize: 14,
+    fontWeight: regularWeight,
+  );
   static const TextStyle fifteen = TextStyle(
     fontSize: 15,
     fontWeight: regularWeight,

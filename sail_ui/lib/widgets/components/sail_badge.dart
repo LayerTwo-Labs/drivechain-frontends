@@ -21,9 +21,9 @@ class SailBadge extends StatelessWidget {
       SailBadgeTone.destructive => colors.error,
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding08, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: SailStyleValues.padding10, vertical: SailStyleValues.padding04),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: colors.chip,
         borderRadius: BorderRadius.circular(4),
       ),
       child: SailText.primary12(label, color: color),
