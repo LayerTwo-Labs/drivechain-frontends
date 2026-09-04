@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:sidechain_core/gen/bmm/v1/bmm.pb.dart' as bmmpb;
+import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/gen/bmm/v1/bmm.pb.dart' as bmmpb;
 import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,6 +32,108 @@ String? bidBlockedReasonFor(SyncProvider sync) {
       '${enforcer.progressCurrent.toInt()} of ${enforcer.progressGoal.toInt()} blocks';
 }
 
+final NumberFormat _thousands = NumberFormat('#,##0', 'en_US');
+
+/// Digits in groups of three, split by a thin space that never breaks a line.
+String groupDigits(int value) => _thousands.format(value).replaceAll(',', '\u2009');
+
+/// A hash cut to its first characters, so a table cell holds it on one line.
+String shortenHash(String hash) {
+  if (hash.isEmpty) {
+    return '—';
+  }
+  return hash.length > 16 ? '${hash.substring(0, 16)}..' : hash;
+}
+
+/// A sidechain block hash in the h* form the enforcer and the miners use.
+String shortenCriticalHash(String hash) {
+  if (hash.isEmpty) {
+    return '—';
+  }
+  return hash.length > 8 ? 'h*${hash.substring(0, 8)}..' : 'h*$hash';
+}
+
+const String bidStateWaiting = 'Waiting for a miner';
+const String bidStateConnected = 'Connected';
+const String bidStateNotIncluded = 'Not included';
+const String bidStateSkipped = 'Skipped';
+
+/// One row of the historic bids table: our bid for a round, and its outcome.
+class HistoricBid {
+  final String prevMainHash;
+  final String state;
+  final int bidSats;
+  final int blockFeesSats;
+  final int? profitSats;
+  final String txid;
+  final String mainchainBlock;
+
+  const HistoricBid({
+    required this.prevMainHash,
+    required this.state,
+    required this.bidSats,
+    required this.blockFeesSats,
+    required this.profitSats,
+    required this.txid,
+    required this.mainchainBlock,
+  });
+}
+
+String historicBidState(String result) => switch (result) {
+  'won' => bidStateConnected,
+  'lost' => bidStateNotIncluded,
+  'skipped' => bidStateSkipped,
+  _ => bidStateWaiting,
+};
+
+Color? historicBidStateColor(String state, SailColor colors) => switch (state) {
+  bidStateConnected => colors.success,
+  bidStateWaiting => colors.orange,
+  _ => colors.textSecondary,
+};
+
+/// Our bids, newest first. A round we never bid on has no row.
+List<HistoricBid> historicBids(bmmpb.Round? current, List<bmmpb.Round> history) {
+  final rows = <HistoricBid>[];
+  final seen = <String>{};
+  for (final round in [?current, ...history]) {
+    final bid = round.ourBids.lastOrNull;
+    if (bid == null || !seen.add(round.prevMainHash)) {
+      continue;
+    }
+    rows.add(
+      HistoricBid(
+        prevMainHash: round.prevMainHash,
+        state: historicBidState(round.result),
+        bidSats: bid.bidSats.toInt(),
+        blockFeesSats: round.blockWorthSats.toInt(),
+        profitSats: round.hasProfit ? round.profitSats.toInt() : null,
+        txid: bid.txid,
+        // Only a bid a miner took rides in a block. A lost round names the
+        // winner's block, which was never ours.
+        mainchainBlock: round.result == 'won' ? round.includedInBlock : '',
+      ),
+    );
+  }
+  return rows;
+}
+
+String profitLabel(int? sats) {
+  if (sats == null) {
+    return '—';
+  }
+  return sats < 0 ? '-${groupDigits(-sats)}' : '+${groupDigits(sats)}';
+}
+
+/// A round the chain left behind pays no fees back, so it returns the bid as a
+/// loss.
+Color? profitColor(int? profitSats, SailColor colors) {
+  if (profitSats == null) {
+    return null;
+  }
+  return profitSats < 0 ? colors.error : colors.success;
+}
+
 class BMMTab extends StatelessWidget {
   const BMMTab({super.key});
 
@@ -41,14 +144,13 @@ class BMMTab extends StatelessWidget {
       builder: (context, viewModel, child) {
         return SailCard(
           title: 'BMM',
-          subtitle: 'One sidechain block per mainchain block — bid below what the block is worth',
+          subtitle: 'Bid on the parent chain to mine a ${viewModel.chainName} block',
           error: viewModel.bmmError,
           child: SailColumn(
             spacing: SailStyleValues.padding16,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _Controls(viewModel: viewModel),
-              _FundingWallet(viewModel: viewModel),
               _CurrentSlot(viewModel: viewModel),
               _BidsOnNextBlock(viewModel: viewModel),
               _HistoricBids(viewModel: viewModel),
@@ -60,41 +162,61 @@ class BMMTab extends StatelessWidget {
   }
 }
 
+const double _controlsGap = 44;
+
 class _Controls extends StatelessWidget {
   final BMMViewModel viewModel;
   const _Controls({required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
+    final colors = SailTheme.of(context).colors;
     // Stopping stays available while the enforcer is behind: an engine started
     // before it fell back has to be stoppable.
     final blocked = !viewModel.canBid;
-    return SailRow(
+
+    return SailColumn(
       spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailButton(
-          label: viewModel.running ? 'Stop auto-bidding' : 'Start auto-bidding',
-          disabled: blocked && !viewModel.running,
-          onPressed: () async => viewModel.running ? await viewModel.stopBidding() : await viewModel.startBidding(),
+        SailRow(
+          spacing: _controlsGap,
+          children: [
+            SailButton(
+              label: viewModel.running ? 'Stop auto-bidding' : 'Start auto-bidding',
+              disabled: blocked && !viewModel.running,
+              onPressed: () async => viewModel.running ? await viewModel.stopBidding() : await viewModel.startBidding(),
+            ),
+            _Field(
+              label: 'Wallet:',
+              width: 220,
+              child: WalletPicker(
+                selectedWalletId: viewModel.fundingWalletId,
+                onChanged: viewModel.setFundingWallet,
+              ),
+            ),
+            _Field(
+              label: 'Min bid:',
+              child: SailTextField(
+                controller: viewModel.minBidController,
+                hintText: '0.00005000',
+                readOnly: true,
+              ),
+            ),
+            _Field(
+              label: 'Max bid:',
+              child: SailTextField(controller: viewModel.maxBidController, hintText: '0.00020000'),
+            ),
+            Expanded(child: Container()),
+            SailButton(
+              label: 'Bid manually',
+              variant: ButtonVariant.secondary,
+              disabled: blocked,
+              onPressed: () async => _showManualBidDialog(context, viewModel),
+            ),
+          ],
         ),
-        SailButton(
-          label: 'Bid manually',
-          variant: ButtonVariant.secondary,
-          disabled: blocked,
-          onPressed: () async => _showManualBidDialog(context, viewModel),
-        ),
-        if (viewModel.bidBlockedReason case final reason?) SailText.secondary13(reason),
-        Expanded(child: Container()),
-        SailText.primary13('Next block:'),
-        SizedBox(
-          width: 130,
-          child: SailText.secondary13(viewModel.nextBlockFloorLabel),
-        ),
-        SailText.primary13('Max bid:'),
-        SizedBox(
-          width: 130,
-          child: SailTextField(controller: viewModel.maxBidController, hintText: '0.00020000'),
-        ),
+        if (viewModel.fundingWarning) SailText.secondary12(viewModel.fundingWarningLabel, color: colors.orange),
       ],
     );
   }
@@ -150,40 +272,21 @@ class _Controls extends StatelessWidget {
   }
 }
 
-/// The wallet every bid spends from, with what it holds.
-class _FundingWallet extends StatelessWidget {
-  final BMMViewModel viewModel;
-  const _FundingWallet({required this.viewModel});
+/// A label beside its control, as the controls row lines them up.
+class _Field extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final double width;
+
+  const _Field({required this.label, required this.child, this.width = 130});
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-
-    return SailColumn(
-      spacing: SailStyleValues.padding04,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return SailRow(
+      spacing: SailStyleValues.padding08,
       children: [
-        SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.secondary13('Funding wallet:'),
-            SizedBox(
-              width: 260,
-              child: WalletPicker(
-                selectedWalletId: viewModel.fundingWalletId,
-                onChanged: viewModel.setFundingWallet,
-              ),
-            ),
-            SailText.secondary13(
-              viewModel.fundingBalanceLabel,
-              color: viewModel.fundingWarning ? theme.colors.orange : null,
-            ),
-          ],
-        ),
-        SailText.secondary12(
-          'Bids spend from this wallet. It does not change the active wallet.',
-          color: theme.colors.textTertiary,
-        ),
+        SailText.primary13(label),
+        SizedBox(width: width, child: child),
       ],
     );
   }
@@ -196,37 +299,39 @@ class _CurrentSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
+    final colors = SailTheme.of(context).colors;
     final live = viewModel.bmmProvider.liveBid;
 
     return Container(
-      padding: const EdgeInsets.all(SailStyleValues.padding12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(SailStyleValues.padding16),
       decoration: BoxDecoration(
-        color: theme.colors.backgroundSecondary,
-        borderRadius: SailStyleValues.borderRadiusSmall,
+        color: colors.backgroundSecondary,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: SailColumn(
-        spacing: SailStyleValues.padding08,
+        spacing: SailStyleValues.padding12,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SailRow(
-            spacing: SailStyleValues.padding08,
+            spacing: SailStyleValues.padding12,
             children: [
               SailText.primary13('Current slot', bold: true),
-              SailText.secondary12(viewModel.slotStatus),
+              SailBadge(viewModel.slotStatus, tone: viewModel.slotTone),
               Expanded(child: Container()),
-              SailText.secondary12(viewModel.slotHint),
+              SailText.secondary13(viewModel.slotHint),
             ],
           ),
           SailRow(
-            spacing: SailStyleValues.padding32,
+            spacing: SailStyleValues.padding64,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Figure(label: 'Block worth', value: viewModel.formatSats(viewModel.blockWorthSats)),
+              _Figure(label: 'Block worth', value: viewModel.satsLabel(viewModel.blockWorthSats)),
               _Figure(
                 label: 'Your bid',
-                value: live == null ? '—' : viewModel.formatSats(live.bidSats.toInt()),
+                value: live == null ? '—' : viewModel.satsLabel(live.bidSats.toInt()),
               ),
-              _Figure(label: 'Profit if won', value: viewModel.formatSats(viewModel.profitIfWon)),
+              _Figure(label: 'Profit if won', value: viewModel.satsLabel(viewModel.profitIfWon)),
               _Figure(label: 'Sidechain block ready', value: viewModel.currentCriticalHash),
             ],
           ),
@@ -244,15 +349,99 @@ class _Figure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SailColumn(
-      spacing: 2,
+      spacing: SailStyleValues.padding04,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.secondary12(label),
-        SailText.primary15(value),
+        SailText.secondary13(label),
+        SailText.primary20(value, bold: true),
       ],
     );
   }
 }
+
+/// A title over its explanation, with room for one action on the right.
+class _SectionHead extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget? action;
+
+  const _SectionHead({required this.title, required this.subtitle, this.action});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailRow(
+      spacing: SailStyleValues.padding08,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SailColumn(
+            spacing: 2,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.primary14(title, bold: true),
+              SailText.secondary13(subtitle),
+            ],
+          ),
+        ),
+        ?action,
+      ],
+    );
+  }
+}
+
+/// The border every table on this page sits inside.
+class _TableFrame extends StatelessWidget {
+  final double height;
+  final Widget child;
+
+  const _TableFrame({required this.height, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SailTheme.of(context).colors;
+    return Container(
+      width: double.infinity,
+      height: height,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// A hash that opens the mainchain explorer.
+class _HashLink extends StatelessWidget {
+  final String label;
+  final String url;
+  final Color? color;
+
+  const _HashLink({required this.label, required this.url, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = color ?? SailTheme.of(context).colors.info;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => unawaited(launchUrl(Uri.parse(url))),
+        child: SailRow(
+          spacing: SailStyleValues.padding08,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Flexible(child: SailText.primary13(label, color: tone)),
+            SailSVG.icon(SailSVGAsset.externalLink, color: tone, width: 12, height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Height a bordered table takes: its header, plus one line per row.
+double tableFrameHeight(int rows) => rows == 0 ? 100 : (rows * 40) + 42;
 
 /// Every bid we can see for this round, highest first. Ours are marked rather
 /// than reordered, so the running order of the auction stays readable.
@@ -262,147 +451,169 @@ class _BidsOnNextBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
+    final colors = SailTheme.of(context).colors;
     final bids = viewModel.bmmProvider.currentBids;
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailText.primary15('Bids on next block', bold: true),
-        SailText.secondary13('Every bid we can see for this round, highest first. Yours are highlighted.'),
-        if (bids.isEmpty)
-          SailText.secondary13('No bids yet — press Start auto-bidding to bid on every new mainchain block.')
-        else
-          SizedBox(
-            height: (bids.length * 40) + 40,
-            child: SailTable(
-              getRowId: (index) => bids[index].txid.isEmpty ? 'bid-$index' : bids[index].txid,
-              headerBuilder: (context) => [
-                SailTableHeaderCell(name: 'Bid (sats)'),
-                SailTableHeaderCell(name: 'Bidder'),
-                SailTableHeaderCell(name: 'Sidechain block (h*)'),
-                SailTableHeaderCell(name: 'Mainchain txid'),
-                SailTableHeaderCell(name: 'Status'),
-              ],
-              rowBuilder: (context, row, selected) {
-                final bid = bids[row];
-                return [
-                  SailTableCell(value: bid.bidSats.toString(), monospace: true),
-                  SailTableCell(
-                    value: bid.isOurs ? 'You' : 'Other',
-                    textColor: bid.isOurs ? theme.colors.primary : null,
-                  ),
-                  SailTableCell(value: viewModel.shorten(bid.criticalHash), monospace: true),
-                  SailTableCell(value: viewModel.shorten(bid.txid), copyValue: bid.txid, monospace: true),
-                  SailTableCell(
-                    value: viewModel.bidStatus(bid, bids),
-                    copyValue: bid.error.isEmpty ? null : bid.error,
-                    textColor: viewModel.bidStatusColor(bid, bids, theme.colors),
-                  ),
-                ];
-              },
-              rowCount: bids.length,
-              rowBackgroundColor: (index) => bids[index].isOurs ? theme.colors.primary.withValues(alpha: 0.06) : null,
-              drawGrid: true,
-              onDoubleTap: viewModel.openTx,
-            ),
+        _SectionHead(
+          title: 'Bids on next block',
+          subtitle:
+              'Every bid for slot ${viewModel.slot} in the mainchain mempool, highest first. '
+              'Updates as bids arrive.',
+        ),
+        _TableFrame(
+          height: tableFrameHeight(bids.length),
+          child: SailTable(
+            getRowId: (index) => bids[index].txid.isEmpty ? 'bid-$index' : bids[index].txid,
+            emptyPlaceholder: 'No bids yet',
+            headerBackgroundColor: colors.backgroundSecondary,
+            headerBuilder: (context) => [
+              SailTableHeaderCell(name: 'Bid (sats)'),
+              SailTableHeaderCell(name: 'Bidder'),
+              SailTableHeaderCell(name: 'Sidechain block (h*)'),
+              SailTableHeaderCell(name: 'Prev mainchain block'),
+              SailTableHeaderCell(name: 'Mainchain txid'),
+              SailTableHeaderCell(name: 'Status'),
+            ],
+            rowBuilder: (context, row, selected) {
+              final bid = bids[row];
+              return [
+                SailTableCell(value: groupDigits(bid.bidSats.toInt())),
+                SailTableCell(
+                  value: bid.isOurs ? 'You' : '—',
+                  textColor: bid.isOurs ? colors.info : null,
+                ),
+                SailTableCell(value: shortenCriticalHash(bid.criticalHash)),
+                SailTableCell(value: shortenHash(bid.prevMainHash)),
+                SailTableCell(
+                  value: bid.txid,
+                  copyValue: bid.txid,
+                  child: bid.txid.isEmpty
+                      ? null
+                      : _HashLink(label: shortenHash(bid.txid), url: viewModel.txUrl(bid.txid)),
+                ),
+                _statusCell(bid, bids, colors),
+              ];
+            },
+            rowCount: bids.length,
+            rowBackgroundColor: (index) => bids[index].isOurs ? colors.info.withValues(alpha: 0.06) : null,
+            drawLastRowsBorder: false,
           ),
+        ),
       ],
+    );
+  }
+
+  SailTableCell _statusCell(bmmpb.Bid bid, List<bmmpb.Bid> bids, SailColor colors) {
+    final replacement = bid.replacedByTxid;
+    if (replacement.isNotEmpty) {
+      return SailTableCell(
+        value: replacement,
+        copyValue: replacement,
+        child: _HashLink(
+          label: 'Replaced by ${shortenHash(replacement)}',
+          url: viewModel.txUrl(replacement),
+          color: colors.orange,
+        ),
+      );
+    }
+    return SailTableCell(
+      value: viewModel.bidStatus(bid, bids),
+      copyValue: bid.error.isEmpty ? null : bid.error,
+      textColor: viewModel.bidStatusColor(bid, bids, colors),
     );
   }
 }
 
-/// One row per mainchain block, with a drilldown to the bids it drew.
+/// One row per bid we placed, newest first, with a drilldown to the round.
 class _HistoricBids extends StatelessWidget {
   final BMMViewModel viewModel;
   const _HistoricBids({required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
-    final theme = SailTheme.of(context);
-    final rounds = viewModel.bmmProvider.history;
+    final colors = SailTheme.of(context).colors;
+    final rows = viewModel.historicRows;
 
     return SailColumn(
       spacing: SailStyleValues.padding08,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SailRow(
-          spacing: SailStyleValues.padding08,
-          children: [
-            SailText.primary15('Historic bids', bold: true),
-            Expanded(child: Container()),
-            if (rounds.isNotEmpty)
-              SailButton(
-                label: 'Clear history',
-                variant: ButtonVariant.secondary,
-                onPressed: () async => viewModel.bmmProvider.clearHistory(),
-              ),
-          ],
-        ),
-        SailText.secondary13('One row per mainchain block. A bid you lost never confirmed, so it cost nothing.'),
-        if (rounds.isEmpty)
-          SailText.secondary13('No finished rounds yet.')
-        else
-          SizedBox(
-            height: (rounds.length * 40).clamp(80, 320).toDouble() + 40,
-            child: SailTable(
-              getRowId: (index) => rounds[index].prevMainHash,
-              headerBuilder: (context) => [
-                SailTableHeaderCell(name: 'MC block'),
-                SailTableHeaderCell(name: 'Result'),
-                SailTableHeaderCell(name: 'Your bid'),
-                SailTableHeaderCell(name: 'Block worth'),
-                SailTableHeaderCell(name: 'Profit'),
-                SailTableHeaderCell(name: 'Winner'),
-                SailTableHeaderCell(name: 'Bids'),
-              ],
-              rowBuilder: (context, row, selected) {
-                final round = rounds[row];
-                return [
-                  SailTableCell(
-                    value: viewModel.blockLabel(round),
-                    copyValue: round.includedInBlock,
-                    monospace: true,
-                  ),
-                  SailTableCell(
-                    value: round.result,
-                    textColor: viewModel.resultColor(round.result, theme.colors),
-                  ),
-                  SailTableCell(value: viewModel.ourBidOf(round), monospace: true),
-                  SailTableCell(value: round.blockWorthSats.toString(), monospace: true),
-                  SailTableCell(
-                    value: round.hasProfit ? round.profitSats.toString() : '—',
-                    monospace: true,
-                    textColor: profitColor(round, theme.colors),
-                  ),
-                  SailTableCell(value: viewModel.winnerOf(round), monospace: true),
-                  SailTableCell(value: '${round.ourBids.length + round.otherBids.length}'),
-                ];
-              },
-              rowCount: rounds.length,
-              drawGrid: true,
-              contextMenuItems: (rowId) => [
-                SailMenuItem(
-                  onSelected: () => viewModel.showAllBids(context, rowId),
-                  child: SailText.primary12('See all bids for block'),
+        _SectionHead(
+          title: 'Historic bids',
+          subtitle: 'What your bids came to. A bid only costs anything once a miner takes it.',
+          action: rows.isEmpty
+              ? null
+              : SailButton(
+                  label: 'Clear history',
+                  variant: ButtonVariant.secondary,
+                  small: true,
+                  onPressed: () async => viewModel.bmmProvider.clearHistory(),
                 ),
-              ],
-              onDoubleTap: (rowId) => viewModel.showAllBids(context, rowId),
-            ),
+        ),
+        _TableFrame(
+          height: tableFrameHeight(rows.length).clamp(100, 362),
+          child: SailTable(
+            getRowId: (index) => rows[index].prevMainHash,
+            emptyPlaceholder: 'No bids yet',
+            headerBackgroundColor: colors.backgroundSecondary,
+            headerBuilder: (context) => [
+              SailTableHeaderCell(name: 'State'),
+              SailTableHeaderCell(name: 'Bid (sats)'),
+              SailTableHeaderCell(name: 'Block fees (sats)'),
+              SailTableHeaderCell(name: 'Profit (sats)'),
+              SailTableHeaderCell(name: 'Mainchain txid'),
+              SailTableHeaderCell(name: 'Mainchain block'),
+            ],
+            rowBuilder: (context, row, selected) {
+              final bid = rows[row];
+              return [
+                SailTableCell(
+                  value: bid.state,
+                  textColor: historicBidStateColor(bid.state, colors),
+                ),
+                SailTableCell(value: groupDigits(bid.bidSats)),
+                SailTableCell(value: groupDigits(bid.blockFeesSats)),
+                SailTableCell(
+                  value: profitLabel(bid.profitSats),
+                  textColor: profitColor(bid.profitSats, colors),
+                ),
+                SailTableCell(
+                  value: bid.txid,
+                  copyValue: bid.txid,
+                  child: bid.txid.isEmpty
+                      ? null
+                      : _HashLink(label: shortenHash(bid.txid), url: viewModel.txUrl(bid.txid)),
+                ),
+                SailTableCell(
+                  value: bid.mainchainBlock,
+                  copyValue: bid.mainchainBlock,
+                  child: bid.mainchainBlock.isEmpty
+                      ? SailText.primary13('—', color: colors.textSecondary)
+                      : _HashLink(
+                          label: shortenHash(bid.mainchainBlock),
+                          url: viewModel.blockUrl(bid.mainchainBlock),
+                        ),
+                ),
+              ];
+            },
+            rowCount: rows.length,
+            drawLastRowsBorder: false,
+            contextMenuItems: (rowId) => [
+              SailMenuItem(
+                onSelected: () => viewModel.showAllBids(context, rowId),
+                child: SailText.primary12('See all bids for block'),
+              ),
+            ],
+            onDoubleTap: (rowId) => viewModel.showAllBids(context, rowId),
           ),
+        ),
       ],
     );
   }
-}
-
-/// A round the chain left behind pays no fees back, so it returns the bid as a
-/// loss.
-Color? profitColor(bmmpb.Round round, SailColor colors) {
-  if (!round.hasProfit) {
-    return null;
-  }
-  return round.profitSats < 0 ? colors.error : colors.success;
 }
 
 class BMMViewModel extends BaseViewModel {
@@ -411,13 +622,18 @@ class BMMViewModel extends BaseViewModel {
   final SyncProvider _sync = GetIt.I.get<SyncProvider>();
 
   final TextEditingController maxBidController = TextEditingController();
+  final TextEditingController minBidController = TextEditingController();
 
   BMMViewModel() {
     maxBidController.text = bmmProvider.maxBidAmount.toStringAsFixed(8);
     maxBidController.addListener(_onMaxBound);
+    minBidController.text = _minBidText;
     bmmProvider.addListener(_onProviderChanged);
     _sync.addListener(_onSyncChanged);
   }
+
+  String get chainName => bmmProvider.sidechainRPC.chain.name;
+  int get slot => bmmProvider.sidechainRPC.chain.slot;
 
   bool get canBid => bidBlockedReason == null;
   String? get bidBlockedReason => bidBlockedReasonFor(_sync);
@@ -432,22 +648,21 @@ class BMMViewModel extends BaseViewModel {
 
   bool get fundingWarning => fundingWalletId == null || fundingBalanceTooLow;
 
-  String get fundingBalanceLabel {
+  String get fundingWarningLabel {
     if (fundingWalletId == null) {
       return BMMProvider.noFundingWallet;
     }
-    final sats = bmmProvider.fundingBalanceSats;
-    if (sats == null) {
-      return 'Reading balance…';
-    }
-    final balance = 'Balance ${satoshiToBTC(sats).toStringAsFixed(8)} BTC';
-    if (!fundingBalanceTooLow) {
-      return balance;
-    }
-    return '$balance — under the max bid of ${bmmProvider.maxBidAmount.toStringAsFixed(8)} BTC';
+    final sats = bmmProvider.fundingBalanceSats ?? 0;
+    return 'The wallet holds ${satoshiToBTC(sats).toStringAsFixed(8)} BTC, '
+        'under the max bid of ${bmmProvider.maxBidAmount.toStringAsFixed(8)} BTC';
   }
 
+  /// The bid the engine opens at, from Core's own rate and a plain bid's size.
+  String get _minBidText => satoshiToBTC(bmmProvider.suggestedBidSats).toStringAsFixed(8);
+
   int get blockWorthSats => bmmProvider.current?.blockWorthSats.toInt() ?? 0;
+
+  List<HistoricBid> get historicRows => historicBids(bmmProvider.current, bmmProvider.history);
 
   /// What the live bid stands to make, not money already earned: profit is only
   /// real once the block connects.
@@ -461,7 +676,7 @@ class BMMViewModel extends BaseViewModel {
 
   String get currentCriticalHash {
     final live = bmmProvider.liveBid;
-    return live == null ? '—' : shorten(live.criticalHash);
+    return live == null ? '—' : shortenCriticalHash(live.criticalHash);
   }
 
   String get slotStatus {
@@ -471,6 +686,8 @@ class BMMViewModel extends BaseViewModel {
     return bmmProvider.liveBid == null ? 'Assembling' : 'Bid placed';
   }
 
+  SailBadgeTone get slotTone => bmmProvider.liveBid == null ? SailBadgeTone.neutral : SailBadgeTone.success;
+
   String get slotHint {
     final live = bmmProvider.liveBid;
     if (!running && live == null) {
@@ -479,16 +696,7 @@ class BMMViewModel extends BaseViewModel {
     if (live == null) {
       return '';
     }
-    return 'Waiting for a miner to commit to ${shorten(live.criticalHash)}';
-  }
-
-  /// What a bid pays to enter the next mainchain block, as Core sees it.
-  String get nextBlockFloorLabel {
-    final rate = bmmProvider.nextBlockFeeRateSatVb;
-    if (rate <= 0) {
-      return 'no estimate';
-    }
-    return '${rate.toStringAsFixed(2)} sat/vB';
+    return 'Waiting for a miner to commit to ${shortenCriticalHash(live.criticalHash)}';
   }
 
   void _onMaxBound() {
@@ -510,6 +718,9 @@ class BMMViewModel extends BaseViewModel {
     if (!bmmProvider.boundsPushPending) {
       _mirrorBound(maxBidController, bmmProvider.maxBidAmount);
     }
+    if (minBidController.text != _minBidText) {
+      minBidController.text = _minBidText;
+    }
     notifyListeners();
   }
 
@@ -523,50 +734,23 @@ class BMMViewModel extends BaseViewModel {
   Future<void> startBidding() => bmmProvider.startBidding();
   Future<void> stopBidding() => bmmProvider.stopBidding();
 
-  String formatSats(int sats) => sats == 0 ? '—' : '$sats sats';
+  String satsLabel(int sats) => sats == 0 ? '—' : '${groupDigits(sats)} sats';
 
-  String shorten(String hash) {
-    if (hash.isEmpty) {
-      return '—';
-    }
-    return hash.length > 12 ? '${hash.substring(0, 12)}..' : hash;
-  }
+  String txUrl(String txid) => mempoolTxUrl(txid, _conf.network);
+  String blockUrl(String hash) => mempoolBlockUrl(hash, _conf.network);
 
   /// The block that decided the round, by height when the enforcer gave us one.
   String blockLabel(bmmpb.Round round) {
     if (round.includedInHeight > 0) {
       return round.includedInHeight.toString();
     }
-    return shorten(round.includedInBlock);
+    return shortenHash(round.includedInBlock);
   }
-
-  String ourBidOf(bmmpb.Round round) {
-    if (round.ourBids.isEmpty) {
-      return '—';
-    }
-    return round.ourBids.last.bidSats.toString();
-  }
-
-  String winnerOf(bmmpb.Round round) {
-    if (round.result == 'won') {
-      return 'You';
-    }
-    if (round.winnerCriticalHash.isNotEmpty) {
-      return shorten(round.winnerCriticalHash);
-    }
-    return '—';
-  }
-
-  Color? resultColor(String result, SailColor colors) => switch (result) {
-    'won' => colors.success,
-    'lost' => colors.textSecondary,
-    _ => null,
-  };
 
   /// A replaced bid is superseded by our own raise, so it can never be mined.
   String bidStatus(bmmpb.Bid bid, List<bmmpb.Bid> bids) {
     if (bid.replacedByTxid.isNotEmpty) {
-      return 'Replaced by ${shorten(bid.replacedByTxid)}';
+      return 'Replaced by ${shortenHash(bid.replacedByTxid)}';
     }
     if (bid.state == 'failed') {
       return 'Failed';
@@ -594,7 +778,7 @@ class BMMViewModel extends BaseViewModel {
     if (txid.isEmpty || txid.startsWith('bid-')) {
       return;
     }
-    unawaited(launchUrl(Uri.parse(mempoolTxUrl(txid, _conf.network))));
+    unawaited(launchUrl(Uri.parse(txUrl(txid))));
   }
 
   Future<void> showAllBids(BuildContext context, String prevMainHash) async {
@@ -606,7 +790,7 @@ class BMMViewModel extends BaseViewModel {
     await showThemedDialog(
       context: context,
       builder: (BuildContext context) {
-        final theme = SailTheme.of(context);
+        final colors = SailTheme.of(context).colors;
         final bids = [...round.ourBids, ...round.otherBids]..sort((a, b) => b.bidSats.compareTo(a.bidSats));
 
         return AlertDialog(
@@ -621,10 +805,12 @@ class BMMViewModel extends BaseViewModel {
                   'A losing bid never confirms and leaves the mempool, so this is every bid we saw '
                   'while the block was pending — not proof that it was all of them.',
                 ),
-                SizedBox(
-                  height: (bids.length * 40) + 40,
+                _TableFrame(
+                  height: tableFrameHeight(bids.length),
                   child: SailTable(
                     getRowId: (index) => bids[index].txid.isEmpty ? 'bid-$index' : bids[index].txid,
+                    emptyPlaceholder: 'No bids yet',
+                    headerBackgroundColor: colors.backgroundSecondary,
                     headerBuilder: (context) => [
                       SailTableHeaderCell(name: 'Bid (sats)'),
                       SailTableHeaderCell(name: 'Bidder'),
@@ -635,17 +821,19 @@ class BMMViewModel extends BaseViewModel {
                     rowBuilder: (context, row, selected) {
                       final bid = bids[row];
                       return [
-                        SailTableCell(value: bid.bidSats.toString(), monospace: true),
-                        SailTableCell(value: bid.isOurs ? 'You' : 'Other'),
-                        SailTableCell(value: shorten(bid.criticalHash), monospace: true),
-                        SailTableCell(value: shorten(bid.txid), copyValue: bid.txid, monospace: true),
+                        SailTableCell(value: groupDigits(bid.bidSats.toInt())),
+                        SailTableCell(
+                          value: bid.isOurs ? 'You' : '—',
+                          textColor: bid.isOurs ? colors.info : null,
+                        ),
+                        SailTableCell(value: shortenCriticalHash(bid.criticalHash)),
+                        SailTableCell(value: shortenHash(bid.txid), copyValue: bid.txid),
                         SailTableCell(value: outcomeOf(bid, round)),
                       ];
                     },
                     rowCount: bids.length,
-                    rowBackgroundColor: (index) =>
-                        bids[index].isOurs ? theme.colors.primary.withValues(alpha: 0.06) : null,
-                    drawGrid: true,
+                    rowBackgroundColor: (index) => bids[index].isOurs ? colors.info.withValues(alpha: 0.06) : null,
+                    drawLastRowsBorder: false,
                     onDoubleTap: openTx,
                   ),
                 ),
@@ -678,6 +866,7 @@ class BMMViewModel extends BaseViewModel {
     bmmProvider.removeListener(_onProviderChanged);
     _sync.removeListener(_onSyncChanged);
     maxBidController.dispose();
+    minBidController.dispose();
     super.dispose();
   }
 }
