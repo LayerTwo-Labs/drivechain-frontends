@@ -39,6 +39,9 @@ const (
 	// ExplorerServiceGetBlockProcedure is the fully-qualified name of the ExplorerService's GetBlock
 	// RPC.
 	ExplorerServiceGetBlockProcedure = "/explorer.v1.ExplorerService/GetBlock"
+	// ExplorerServiceListBlocksProcedure is the fully-qualified name of the ExplorerService's
+	// ListBlocks RPC.
+	ExplorerServiceListBlocksProcedure = "/explorer.v1.ExplorerService/ListBlocks"
 	// ExplorerServiceGetTransactionProcedure is the fully-qualified name of the ExplorerService's
 	// GetTransaction RPC.
 	ExplorerServiceGetTransactionProcedure = "/explorer.v1.ExplorerService/GetTransaction"
@@ -58,6 +61,9 @@ type ExplorerServiceClient interface {
 	// GetBlock reads one block and what it carried. The request names either a
 	// hash or a height.
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
+	// ListBlocks reads a page of block headers, newest first, so a reader can
+	// walk back to the genesis block.
+	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// GetTransaction reads one transaction, with the coins on both sides.
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
 	// GetAddress reads what an address holds and what it did. It needs an index,
@@ -90,6 +96,12 @@ func NewExplorerServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(explorerServiceMethods.ByName("GetBlock")),
 			connect.WithClientOptions(opts...),
 		),
+		listBlocks: connect.NewClient[v1.ListBlocksRequest, v1.ListBlocksResponse](
+			httpClient,
+			baseURL+ExplorerServiceListBlocksProcedure,
+			connect.WithSchema(explorerServiceMethods.ByName("ListBlocks")),
+			connect.WithClientOptions(opts...),
+		),
 		getTransaction: connect.NewClient[v1.GetTransactionRequest, v1.GetTransactionResponse](
 			httpClient,
 			baseURL+ExplorerServiceGetTransactionProcedure,
@@ -115,6 +127,7 @@ func NewExplorerServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 type explorerServiceClient struct {
 	getOverview    *connect.Client[v1.GetOverviewRequest, v1.GetOverviewResponse]
 	getBlock       *connect.Client[v1.GetBlockRequest, v1.GetBlockResponse]
+	listBlocks     *connect.Client[v1.ListBlocksRequest, v1.ListBlocksResponse]
 	getTransaction *connect.Client[v1.GetTransactionRequest, v1.GetTransactionResponse]
 	getAddress     *connect.Client[v1.GetAddressRequest, v1.GetAddressResponse]
 	getWithdrawals *connect.Client[v1.GetWithdrawalsRequest, v1.GetWithdrawalsResponse]
@@ -128,6 +141,11 @@ func (c *explorerServiceClient) GetOverview(ctx context.Context, req *connect.Re
 // GetBlock calls explorer.v1.ExplorerService.GetBlock.
 func (c *explorerServiceClient) GetBlock(ctx context.Context, req *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
 	return c.getBlock.CallUnary(ctx, req)
+}
+
+// ListBlocks calls explorer.v1.ExplorerService.ListBlocks.
+func (c *explorerServiceClient) ListBlocks(ctx context.Context, req *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
+	return c.listBlocks.CallUnary(ctx, req)
 }
 
 // GetTransaction calls explorer.v1.ExplorerService.GetTransaction.
@@ -153,6 +171,9 @@ type ExplorerServiceHandler interface {
 	// GetBlock reads one block and what it carried. The request names either a
 	// hash or a height.
 	GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error)
+	// ListBlocks reads a page of block headers, newest first, so a reader can
+	// walk back to the genesis block.
+	ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error)
 	// GetTransaction reads one transaction, with the coins on both sides.
 	GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error)
 	// GetAddress reads what an address holds and what it did. It needs an index,
@@ -181,6 +202,12 @@ func NewExplorerServiceHandler(svc ExplorerServiceHandler, opts ...connect.Handl
 		connect.WithSchema(explorerServiceMethods.ByName("GetBlock")),
 		connect.WithHandlerOptions(opts...),
 	)
+	explorerServiceListBlocksHandler := connect.NewUnaryHandler(
+		ExplorerServiceListBlocksProcedure,
+		svc.ListBlocks,
+		connect.WithSchema(explorerServiceMethods.ByName("ListBlocks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	explorerServiceGetTransactionHandler := connect.NewUnaryHandler(
 		ExplorerServiceGetTransactionProcedure,
 		svc.GetTransaction,
@@ -205,6 +232,8 @@ func NewExplorerServiceHandler(svc ExplorerServiceHandler, opts ...connect.Handl
 			explorerServiceGetOverviewHandler.ServeHTTP(w, r)
 		case ExplorerServiceGetBlockProcedure:
 			explorerServiceGetBlockHandler.ServeHTTP(w, r)
+		case ExplorerServiceListBlocksProcedure:
+			explorerServiceListBlocksHandler.ServeHTTP(w, r)
 		case ExplorerServiceGetTransactionProcedure:
 			explorerServiceGetTransactionHandler.ServeHTTP(w, r)
 		case ExplorerServiceGetAddressProcedure:
@@ -226,6 +255,10 @@ func (UnimplementedExplorerServiceHandler) GetOverview(context.Context, *connect
 
 func (UnimplementedExplorerServiceHandler) GetBlock(context.Context, *connect.Request[v1.GetBlockRequest]) (*connect.Response[v1.GetBlockResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.GetBlock is not implemented"))
+}
+
+func (UnimplementedExplorerServiceHandler) ListBlocks(context.Context, *connect.Request[v1.ListBlocksRequest]) (*connect.Response[v1.ListBlocksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("explorer.v1.ExplorerService.ListBlocks is not implemented"))
 }
 
 func (UnimplementedExplorerServiceHandler) GetTransaction(context.Context, *connect.Request[v1.GetTransactionRequest]) (*connect.Response[v1.GetTransactionResponse], error) {

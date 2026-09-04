@@ -21,11 +21,54 @@ class ExplorerModel extends BaseViewModel {
   pb.GetOverviewResponse? overview;
   String? readError;
 
+  /// olderBlocks holds the pages a reader scrolled back to. The overview keeps
+  /// the newest blocks, and these continue below them.
+  final List<pb.Block> olderBlocks = [];
+
   Timer? _timer;
 
   /// _reading holds one read at a time. A slow answer must not land on top of
   /// a newer one.
   bool _reading = false;
+  bool _readingOlder = false;
+  bool _reachedGenesis = false;
+
+  /// blocks are the newest blocks, then every page a reader scrolled back to.
+  List<pb.Block> get blocks => [...?overview?.blocks, ...olderBlocks];
+
+  /// reachedGenesis is true when no block sits below the last page.
+  bool get reachedGenesis => _reachedGenesis;
+
+  /// loadOlderBlocks reads the page below the last block a reader can see.
+  Future<void> loadOlderBlocks() async {
+    if (_readingOlder || _reachedGenesis) {
+      return;
+    }
+    final seen = blocks;
+    if (seen.isEmpty || seen.last.height == 0) {
+      _reachedGenesis = true;
+      return;
+    }
+    _readingOlder = true;
+    try {
+      final page = await _orchestrator.explorer.listBlocks(
+        chain,
+        beforeHeight: seen.last.height - 1,
+      );
+      if (page.isEmpty) {
+        _reachedGenesis = true;
+      } else {
+        olderBlocks.addAll(page);
+        _reachedGenesis = page.last.height == 0;
+      }
+      notifyListeners();
+    } catch (e) {
+      readError = e.toString();
+      notifyListeners();
+    } finally {
+      _readingOlder = false;
+    }
+  }
 
   ExplorerModel() {
     unawaited(refresh());

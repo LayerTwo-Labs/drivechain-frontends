@@ -16,6 +16,10 @@ service ExplorerService {
   // hash or a height.
   rpc GetBlock(GetBlockRequest) returns (GetBlockResponse);
 
+  // ListBlocks reads a page of block headers, newest first, so a reader can
+  // walk back to the genesis block.
+  rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse);
+
   // GetTransaction reads one transaction, with the coins on both sides.
   rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
 
@@ -135,6 +139,19 @@ message GetOverviewResponse {
   uint32 tip_height = 6;
   // source reads "index" or "node", so a reader knows what answered.
   string source = 7;
+}
+
+message ListBlocksRequest {
+  string chain = 1;
+  // before_height starts the page at this height and reads down. Leave it
+  // empty to start at the tip.
+  uint32 before_height = 2;
+  uint32 limit = 3;
+}
+
+message ListBlocksResponse {
+  // blocks are newest first. A page shorter than the limit is the last one.
+  repeated Block blocks = 1;
 }
 
 message GetBlockRequest {

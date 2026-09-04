@@ -32,6 +32,15 @@ abstract final class ExplorerService {
     explorerv1explorer.GetBlockResponse.new,
   );
 
+  /// ListBlocks reads a page of block headers, newest first, so a reader can
+  /// walk back to the genesis block.
+  static const listBlocks = connect.Spec(
+    '/$name/ListBlocks',
+    connect.StreamType.unary,
+    explorerv1explorer.ListBlocksRequest.new,
+    explorerv1explorer.ListBlocksResponse.new,
+  );
+
   /// GetTransaction reads one transaction, with the coins on both sides.
   static const getTransaction = connect.Spec(
     '/$name/GetTransaction',

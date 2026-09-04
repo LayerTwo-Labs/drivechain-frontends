@@ -1068,6 +1068,131 @@ class GetOverviewResponse extends $pb.GeneratedMessage {
   void clearSource() => clearField(7);
 }
 
+class ListBlocksRequest extends $pb.GeneratedMessage {
+  factory ListBlocksRequest({
+    $core.String? chain,
+    $core.int? beforeHeight,
+    $core.int? limit,
+  }) {
+    final $result = create();
+    if (chain != null) {
+      $result.chain = chain;
+    }
+    if (beforeHeight != null) {
+      $result.beforeHeight = beforeHeight;
+    }
+    if (limit != null) {
+      $result.limit = limit;
+    }
+    return $result;
+  }
+  ListBlocksRequest._() : super();
+  factory ListBlocksRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListBlocksRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListBlocksRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chain')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'beforeHeight', $pb.PbFieldType.OU3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'limit', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListBlocksRequest clone() => ListBlocksRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListBlocksRequest copyWith(void Function(ListBlocksRequest) updates) => super.copyWith((message) => updates(message as ListBlocksRequest)) as ListBlocksRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListBlocksRequest create() => ListBlocksRequest._();
+  ListBlocksRequest createEmptyInstance() => create();
+  static $pb.PbList<ListBlocksRequest> createRepeated() => $pb.PbList<ListBlocksRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListBlocksRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListBlocksRequest>(create);
+  static ListBlocksRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get chain => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set chain($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasChain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChain() => clearField(1);
+
+  /// before_height starts the page at this height and reads down. Leave it
+  /// empty to start at the tip.
+  @$pb.TagNumber(2)
+  $core.int get beforeHeight => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set beforeHeight($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasBeforeHeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBeforeHeight() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get limit => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set limit($core.int v) { $_setUnsignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasLimit() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLimit() => clearField(3);
+}
+
+class ListBlocksResponse extends $pb.GeneratedMessage {
+  factory ListBlocksResponse({
+    $core.Iterable<Block>? blocks,
+  }) {
+    final $result = create();
+    if (blocks != null) {
+      $result.blocks.addAll(blocks);
+    }
+    return $result;
+  }
+  ListBlocksResponse._() : super();
+  factory ListBlocksResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListBlocksResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListBlocksResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..pc<Block>(1, _omitFieldNames ? '' : 'blocks', $pb.PbFieldType.PM, subBuilder: Block.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListBlocksResponse clone() => ListBlocksResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListBlocksResponse copyWith(void Function(ListBlocksResponse) updates) => super.copyWith((message) => updates(message as ListBlocksResponse)) as ListBlocksResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListBlocksResponse create() => ListBlocksResponse._();
+  ListBlocksResponse createEmptyInstance() => create();
+  static $pb.PbList<ListBlocksResponse> createRepeated() => $pb.PbList<ListBlocksResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListBlocksResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListBlocksResponse>(create);
+  static ListBlocksResponse? _defaultInstance;
+
+  /// blocks are newest first. A page shorter than the limit is the last one.
+  @$pb.TagNumber(1)
+  $core.List<Block> get blocks => $_getList(0);
+}
+
 class GetBlockRequest extends $pb.GeneratedMessage {
   factory GetBlockRequest({
     $core.String? chain,
@@ -1895,6 +2020,9 @@ class ExplorerServiceApi {
   ;
   $async.Future<GetBlockResponse> getBlock($pb.ClientContext? ctx, GetBlockRequest request) =>
     _client.invoke<GetBlockResponse>(ctx, 'ExplorerService', 'GetBlock', request, GetBlockResponse())
+  ;
+  $async.Future<ListBlocksResponse> listBlocks($pb.ClientContext? ctx, ListBlocksRequest request) =>
+    _client.invoke<ListBlocksResponse>(ctx, 'ExplorerService', 'ListBlocks', request, ListBlocksResponse())
   ;
   $async.Future<GetTransactionResponse> getTransaction($pb.ClientContext? ctx, GetTransactionRequest request) =>
     _client.invoke<GetTransactionResponse>(ctx, 'ExplorerService', 'GetTransaction', request, GetTransactionResponse())

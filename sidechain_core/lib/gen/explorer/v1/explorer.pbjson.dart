@@ -201,6 +201,34 @@ final $typed_data.Uint8List getOverviewResponseDescriptor = $convert.base64Decod
     '5kbGUSHQoKdGlwX2hlaWdodBgGIAEoDVIJdGlwSGVpZ2h0EhYKBnNvdXJjZRgHIAEoCVIGc291'
     'cmNl');
 
+@$core.Deprecated('Use listBlocksRequestDescriptor instead')
+const ListBlocksRequest$json = {
+  '1': 'ListBlocksRequest',
+  '2': [
+    {'1': 'chain', '3': 1, '4': 1, '5': 9, '10': 'chain'},
+    {'1': 'before_height', '3': 2, '4': 1, '5': 13, '10': 'beforeHeight'},
+    {'1': 'limit', '3': 3, '4': 1, '5': 13, '10': 'limit'},
+  ],
+};
+
+/// Descriptor for `ListBlocksRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listBlocksRequestDescriptor = $convert.base64Decode(
+    'ChFMaXN0QmxvY2tzUmVxdWVzdBIUCgVjaGFpbhgBIAEoCVIFY2hhaW4SIwoNYmVmb3JlX2hlaW'
+    'dodBgCIAEoDVIMYmVmb3JlSGVpZ2h0EhQKBWxpbWl0GAMgASgNUgVsaW1pdA==');
+
+@$core.Deprecated('Use listBlocksResponseDescriptor instead')
+const ListBlocksResponse$json = {
+  '1': 'ListBlocksResponse',
+  '2': [
+    {'1': 'blocks', '3': 1, '4': 3, '5': 11, '6': '.explorer.v1.Block', '10': 'blocks'},
+  ],
+};
+
+/// Descriptor for `ListBlocksResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listBlocksResponseDescriptor = $convert.base64Decode(
+    'ChJMaXN0QmxvY2tzUmVzcG9uc2USKgoGYmxvY2tzGAEgAygLMhIuZXhwbG9yZXIudjEuQmxvY2'
+    'tSBmJsb2Nrcw==');
+
 @$core.Deprecated('Use getBlockRequestDescriptor instead')
 const GetBlockRequest$json = {
   '1': 'GetBlockRequest',
@@ -370,6 +398,7 @@ const $core.Map<$core.String, $core.dynamic> ExplorerServiceBase$json = {
   '2': [
     {'1': 'GetOverview', '2': '.explorer.v1.GetOverviewRequest', '3': '.explorer.v1.GetOverviewResponse'},
     {'1': 'GetBlock', '2': '.explorer.v1.GetBlockRequest', '3': '.explorer.v1.GetBlockResponse'},
+    {'1': 'ListBlocks', '2': '.explorer.v1.ListBlocksRequest', '3': '.explorer.v1.ListBlocksResponse'},
     {'1': 'GetTransaction', '2': '.explorer.v1.GetTransactionRequest', '3': '.explorer.v1.GetTransactionResponse'},
     {'1': 'GetAddress', '2': '.explorer.v1.GetAddressRequest', '3': '.explorer.v1.GetAddressResponse'},
     {'1': 'GetWithdrawals', '2': '.explorer.v1.GetWithdrawalsRequest', '3': '.explorer.v1.GetWithdrawalsResponse'},
@@ -388,6 +417,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ExplorerSe
   '.explorer.v1.Withdrawal': Withdrawal$json,
   '.explorer.v1.GetBlockRequest': GetBlockRequest$json,
   '.explorer.v1.GetBlockResponse': GetBlockResponse$json,
+  '.explorer.v1.ListBlocksRequest': ListBlocksRequest$json,
+  '.explorer.v1.ListBlocksResponse': ListBlocksResponse$json,
   '.explorer.v1.GetTransactionRequest': GetTransactionRequest$json,
   '.explorer.v1.GetTransactionResponse': GetTransactionResponse$json,
   '.explorer.v1.Transaction': Transaction$json,
@@ -403,9 +434,11 @@ final $typed_data.Uint8List explorerServiceDescriptor = $convert.base64Decode(
     'Cg9FeHBsb3JlclNlcnZpY2USUAoLR2V0T3ZlcnZpZXcSHy5leHBsb3Jlci52MS5HZXRPdmVydm'
     'lld1JlcXVlc3QaIC5leHBsb3Jlci52MS5HZXRPdmVydmlld1Jlc3BvbnNlEkcKCEdldEJsb2Nr'
     'EhwuZXhwbG9yZXIudjEuR2V0QmxvY2tSZXF1ZXN0Gh0uZXhwbG9yZXIudjEuR2V0QmxvY2tSZX'
-    'Nwb25zZRJZCg5HZXRUcmFuc2FjdGlvbhIiLmV4cGxvcmVyLnYxLkdldFRyYW5zYWN0aW9uUmVx'
-    'dWVzdBojLmV4cGxvcmVyLnYxLkdldFRyYW5zYWN0aW9uUmVzcG9uc2USTQoKR2V0QWRkcmVzcx'
-    'IeLmV4cGxvcmVyLnYxLkdldEFkZHJlc3NSZXF1ZXN0Gh8uZXhwbG9yZXIudjEuR2V0QWRkcmVz'
-    'c1Jlc3BvbnNlElkKDkdldFdpdGhkcmF3YWxzEiIuZXhwbG9yZXIudjEuR2V0V2l0aGRyYXdhbH'
-    'NSZXF1ZXN0GiMuZXhwbG9yZXIudjEuR2V0V2l0aGRyYXdhbHNSZXNwb25zZQ==');
+    'Nwb25zZRJNCgpMaXN0QmxvY2tzEh4uZXhwbG9yZXIudjEuTGlzdEJsb2Nrc1JlcXVlc3QaHy5l'
+    'eHBsb3Jlci52MS5MaXN0QmxvY2tzUmVzcG9uc2USWQoOR2V0VHJhbnNhY3Rpb24SIi5leHBsb3'
+    'Jlci52MS5HZXRUcmFuc2FjdGlvblJlcXVlc3QaIy5leHBsb3Jlci52MS5HZXRUcmFuc2FjdGlv'
+    'blJlc3BvbnNlEk0KCkdldEFkZHJlc3MSHi5leHBsb3Jlci52MS5HZXRBZGRyZXNzUmVxdWVzdB'
+    'ofLmV4cGxvcmVyLnYxLkdldEFkZHJlc3NSZXNwb25zZRJZCg5HZXRXaXRoZHJhd2FscxIiLmV4'
+    'cGxvcmVyLnYxLkdldFdpdGhkcmF3YWxzUmVxdWVzdBojLmV4cGxvcmVyLnYxLkdldFdpdGhkcm'
+    'F3YWxzUmVzcG9uc2U=');
 
