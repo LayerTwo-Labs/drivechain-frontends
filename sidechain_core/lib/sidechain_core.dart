@@ -179,6 +179,7 @@ export 'rpcs/keepalive_http_client.dart';
 export 'rpcs/orchestrator_multisig_lounge_rpc.dart';
 export 'rpcs/orchestrator_rpc.dart';
 export 'rpcs/orchestrator_bmm_rpc.dart';
+export 'rpcs/orchestrator_explorer_rpc.dart';
 export 'rpcs/orchestrator_wallet_rpc.dart';
 export 'rpcs/bitcoind_connection.dart';
 export 'classes/peer_info.dart';

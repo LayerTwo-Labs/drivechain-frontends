@@ -37,6 +37,7 @@ import (
 	coinshiftrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/coinshift/v1/coinshiftv1connect"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
+	explorerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1/explorerv1connect"
 	multisigloungerpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/multisiglounge/v1/multisigloungev1connect"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	photonrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/photon/v1/photonv1connect"
@@ -517,6 +518,10 @@ func run(cctx *cli.Context) error {
 
 	bmmPath, bmmH := bmmrpc.NewBMMServiceHandler(bmmHandler, connect.WithInterceptors(authIC))
 	mux.Handle(bmmPath, bmmH)
+
+	explorerHandler := api.NewExplorerHandler(orch)
+	explorerPath, explorerH := explorerrpc.NewExplorerServiceHandler(explorerHandler, connect.WithInterceptors(authIC))
+	mux.Handle(explorerPath, explorerH)
 
 	walletPath, walletH := walletrpc.NewWalletManagerServiceHandler(walletHandler, connect.WithInterceptors(authIC))
 	mux.Handle(walletPath, walletH)
