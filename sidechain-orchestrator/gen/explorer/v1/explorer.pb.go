@@ -320,9 +320,11 @@ func (x *Activity) GetBlockTime() int64 {
 
 // Coin is one input or one output.
 type Coin struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Address   string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	ValueSats int64                  `protobuf:"varint,2,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Address string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	// value_sats is the payout. A withdrawal costs this and main_fee_sats
+	// together.
+	ValueSats int64 `protobuf:"varint,2,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
 	// outpoint_kind reads "regular", "coinbase" or "deposit".
 	OutpointKind string `protobuf:"bytes,3,opt,name=outpoint_kind,json=outpointKind,proto3" json:"outpoint_kind,omitempty"`
 	// content_type reads "value" or "withdrawal".

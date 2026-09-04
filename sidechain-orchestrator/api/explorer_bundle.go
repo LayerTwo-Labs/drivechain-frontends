@@ -167,6 +167,9 @@ func newTransaction(tx sidechainesplora.Tx) *pb.Transaction {
 		if w, ok := readWithdrawal(o.Content); ok {
 			coin.MainAddress = w.MainAddress
 			coin.MainFeeSats = w.MainFeeSats
+			// The index stores what the coin cost, which is the payout and
+			// the mainchain fee together. The two read back apart.
+			coin.ValueSats = w.ValueSats
 			out.Kind = pb.Kind_KIND_WITHDRAWAL
 		}
 		out.Outputs = append(out.Outputs, coin)

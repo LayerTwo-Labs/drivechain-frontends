@@ -467,6 +467,8 @@ class Coin extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearAddress() => clearField(1);
 
+  /// value_sats is the payout. A withdrawal costs this and main_fee_sats
+  /// together.
   @$pb.TagNumber(2)
   $fixnum.Int64 get valueSats => $_getI64(1);
   @$pb.TagNumber(2)
