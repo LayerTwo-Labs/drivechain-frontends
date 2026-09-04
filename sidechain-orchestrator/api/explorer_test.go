@@ -611,3 +611,162 @@ func TestMinedTransactionComesOutOfItsBlock(t *testing.T) {
 		t.Errorf("size = %d, want 24", out.GetSizeBytes())
 	}
 }
+
+// A multi asset chain names a plain bitcoin output BitcoinSats, and a filled
+// withdrawal BitcoinWithdrawal. Both must read the same as the plain pair.
+func TestMultiAssetOutputNamesReadTheSame(t *testing.T) {
+	if got := contentValue(json.RawMessage(`{"BitcoinSats":40000}`)); got != 40000 {
+		t.Errorf("BitcoinSats reads %d, want 40000", got)
+	}
+	if got := contentValue(json.RawMessage(`{"Value":40000}`)); got != 40000 {
+		t.Errorf("Value reads %d, want 40000", got)
+	}
+	if got := contentValue(json.RawMessage(`{"BitAsset":7}`)); got != 0 {
+		t.Errorf("a non bitcoin output reads %d, want 0", got)
+	}
+
+	raw := json.RawMessage(
+		`{"BitcoinWithdrawal":{"value_sats":100000,"main_fee_sats":1200,"main_address":"bc1q"}}`)
+	w, ok := readWithdrawal(raw)
+	if !ok {
+		t.Fatal("a filled withdrawal reads as a plain output")
+	}
+	if w.GetValueSats() != 100000 || w.GetMainFeeSats() != 1200 {
+		t.Errorf("the payout reads %d and %d, want 100000 and 1200",
+			w.GetValueSats(), w.GetMainFeeSats())
+	}
+}
+
+// A bundle on a multi asset chain pays out through BitcoinWithdrawal, and it
+// must not read as absent.
+func TestParseBundleReadsAFilledWithdrawal(t *testing.T) {
+	raw := json.RawMessage(`{
+		"spend_utxos": [
+			[{"Regular": {"txid": "aa", "vout": 0}},
+			 {"address": "s1", "content": {"BitcoinWithdrawal": {"value_sats": 500000, "main_fee_sats": 900, "main_address": "bc1q"}}}]
+		],
+		"tx": {"vout": []}
+	}`)
+	bundle := parseBundle(raw)
+	if !bundle.GetPresent() {
+		t.Fatal("a filled bundle reads as absent")
+	}
+	if got := bundle.GetTotalValueSats(); got != 500000 {
+		t.Errorf("total value = %d, want 500000", got)
+	}
+}
+
+// A transaction that spends a coinbase output must list that input. The
+// outpoint names a merkle root, not a txid.
+func TestNodeTransactionKeepsACoinbaseInput(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{
+		"get_transaction": `{"inputs":[{"Coinbase":{"merkle_root":"mr","vout":2}}],` +
+			`"outputs":[{"address":"s1","content":{"BitcoinSats":40000}}]}`,
+		"get_transaction_info": `null`,
+	}}
+	src := source{name: "bitnames", node: node}
+
+	tx, err := nodeTransaction(context.Background(), src, "abc")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if got := len(tx.GetInputs()); got != 1 {
+		t.Fatalf("the transaction holds %d inputs, want 1", got)
+	}
+	if got := tx.GetInputs()[0].GetOutpointKind(); got != "coinbase" {
+		t.Errorf("the input reads as %q, want coinbase", got)
+	}
+	if got := tx.GetOutputs()[0].GetValueSats(); got != 40000 {
+		t.Errorf("the output holds %d sats, want 40000", got)
+	}
+}
+
+// A wrapped transaction names its block. The view reads a height, so the
+// block hash must resolve to one.
+func TestWrappedTransactionResolvesItsHeight(t *testing.T) {
+	node := &recordingNode{
+		count: 2,
+		answers: map[string]string{
+			"get_best_sidechain_block_hash": `"bb"`,
+			"get_transaction":               `{"block_hash":"aa","tx":{"inputs":[],"outputs":[]}}`,
+		},
+		byHash: map[string]string{
+			"bb": `{"header":{"merkle_root":"m2","prev_side_hash":"aa","prev_main_hash":"x2"},"body":{"transactions":[]}}`,
+			"aa": `{"header":{"merkle_root":"m1","prev_main_hash":"x1"},"body":{"transactions":[]}}`,
+		},
+	}
+	src := source{name: "thunder", node: node}
+
+	tx, err := nodeTransaction(context.Background(), src, "abc")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if !tx.GetConfirmed() {
+		t.Error("a mined transaction reads as unconfirmed")
+	}
+	if got := tx.GetBlockHeight(); got != 0 {
+		t.Errorf("the transaction sits at height %d, want 0", got)
+	}
+	if got := tx.GetBlockHash(); got != "aa" {
+		t.Errorf("the transaction sits in block %q, want aa", got)
+	}
+}
+
+// An unknown hash answers null. A null block must read as NotFound, never as
+// a block at height 0.
+func TestNodeBlockRejectsANullAnswer(t *testing.T) {
+	node := &recordingNode{byHash: map[string]string{"zz": `null`}}
+	src := source{name: "thunder", node: node}
+
+	if _, err := nodeHeader(context.Background(), src, "zz"); err == nil {
+		t.Fatal("a null block reads as found")
+	} else if connect.CodeOf(err) != connect.CodeNotFound {
+		t.Errorf("a null block answers %s, want NotFound", connect.CodeOf(err))
+	}
+}
+
+// A chain without get_block_index lists no transactions, and the block still
+// reads back what it paid out.
+func TestBlockWithoutAnIndexKeepsItsValue(t *testing.T) {
+	node := &recordingNode{
+		byHash: map[string]string{
+			"aa": `{"header":{"merkle_root":"m1","prev_main_hash":"x1"},"body":{"transactions":[` +
+				`{"outputs":[{"address":"s1","content":{"BitcoinSats":40000}}]},` +
+				`{"outputs":[{"address":"s2","content":{"Value":2000}}]}]}}`,
+		},
+	}
+	src := source{name: "bitassets", node: node}
+
+	block, activity, err := nodeBlock(context.Background(), src, "aa", 7)
+	if err != nil {
+		t.Fatalf("read the block: %v", err)
+	}
+	if got := block.GetValueSats(); got != 42000 {
+		t.Errorf("the block paid out %d, want 42000", got)
+	}
+	if got := block.GetTxCount(); got != 2 {
+		t.Errorf("the block holds %d transactions, want 2", got)
+	}
+	if len(activity) != 0 {
+		t.Errorf("the block lists %d rows, and no node names their txids", len(activity))
+	}
+}
+
+// An address view reads the unconfirmed rows first, then the newest block. A
+// deposit must sort with the rest, not sit below every transaction.
+func TestAddressHistorySortsTheDepositsIn(t *testing.T) {
+	rows := []*pb.Transaction{
+		{Txid: "old", Confirmed: true, BlockHeight: 100},
+		{Txid: "new", Confirmed: true, BlockHeight: 400},
+		{Txid: "pending"},
+		{Txid: "deposit", Confirmed: true, BlockHeight: 300},
+	}
+	sortNewestFirst(rows)
+
+	want := []string{"pending", "new", "deposit", "old"}
+	for i, id := range want {
+		if rows[i].GetTxid() != id {
+			t.Errorf("row %d reads %q, want %q", i, rows[i].GetTxid(), id)
+		}
+	}
+}

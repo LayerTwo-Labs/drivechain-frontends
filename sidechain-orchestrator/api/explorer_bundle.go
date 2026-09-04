@@ -8,17 +8,22 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
 )
 
-// contentWithdrawal is a withdrawal output as a chain writes it. The two
-// spellings both appear on the wire: get_transaction writes the plain pair,
-// and the human readable form renames them.
+// withdrawalPayout is what a withdrawal pays out. The two spellings both
+// appear on the wire: get_transaction writes the plain pair, and the human
+// readable form renames them.
+type withdrawalPayout struct {
+	Value       uint64 `json:"value"`
+	MainFee     uint64 `json:"main_fee"`
+	ValueSats   uint64 `json:"value_sats"`
+	MainFeeSats uint64 `json:"main_fee_sats"`
+	MainAddress string `json:"main_address"`
+}
+
+// contentWithdrawal is a withdrawal output as a chain writes it. A plain
+// output names it Withdrawal, and a filled one names it BitcoinWithdrawal.
 type contentWithdrawal struct {
-	Withdrawal *struct {
-		Value       uint64 `json:"value"`
-		MainFee     uint64 `json:"main_fee"`
-		ValueSats   uint64 `json:"value_sats"`
-		MainFeeSats uint64 `json:"main_fee_sats"`
-		MainAddress string `json:"main_address"`
-	} `json:"Withdrawal"`
+	Withdrawal        *withdrawalPayout `json:"Withdrawal"`
+	BitcoinWithdrawal *withdrawalPayout `json:"BitcoinWithdrawal"`
 }
 
 // nodeBundle is the pending withdrawal bundle as a node writes it.
@@ -89,14 +94,40 @@ func parseBundle(raw json.RawMessage) *pb.WithdrawalBundle {
 // value is not part of the payout, so it answers false.
 func readWithdrawal(raw json.RawMessage) (*pb.Withdrawal, bool) {
 	var content contentWithdrawal
-	if err := json.Unmarshal(raw, &content); err != nil || content.Withdrawal == nil {
+	if err := json.Unmarshal(raw, &content); err != nil {
+		return nil, false
+	}
+	payout := content.Withdrawal
+	if payout == nil {
+		payout = content.BitcoinWithdrawal
+	}
+	if payout == nil {
 		return nil, false
 	}
 	return &pb.Withdrawal{
-		MainAddress: content.Withdrawal.MainAddress,
-		ValueSats:   int64(max(content.Withdrawal.Value, content.Withdrawal.ValueSats)),
-		MainFeeSats: int64(max(content.Withdrawal.MainFee, content.Withdrawal.MainFeeSats)),
+		MainAddress: payout.MainAddress,
+		ValueSats:   int64(max(payout.Value, payout.ValueSats)),
+		MainFeeSats: int64(max(payout.MainFee, payout.MainFeeSats)),
 	}, true
+}
+
+// contentValue reads the sats a plain output holds. A single asset chain
+// names it Value, and a multi asset chain names it BitcoinSats.
+func contentValue(raw json.RawMessage) int64 {
+	var content struct {
+		Value       *int64 `json:"Value"`
+		BitcoinSats *int64 `json:"BitcoinSats"`
+	}
+	if err := json.Unmarshal(raw, &content); err != nil {
+		return 0
+	}
+	switch {
+	case content.Value != nil:
+		return *content.Value
+	case content.BitcoinSats != nil:
+		return *content.BitcoinSats
+	}
+	return 0
 }
 
 // newTransaction reads one indexed transaction into the explorer shape.
