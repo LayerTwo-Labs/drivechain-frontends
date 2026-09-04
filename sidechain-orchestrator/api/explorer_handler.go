@@ -23,14 +23,6 @@ const blockListSize = 6
 // activityListSize is how many rows the overview carries.
 const activityListSize = 12
 
-// addressPageSize is how many confirmed rows one index page carries. A shorter
-// page is the last one.
-const addressPageSize = 25
-
-// addressHistoryLimit bounds how deep the explorer reads one address. A busy
-// address then costs a bounded number of calls.
-const addressHistoryLimit = 100
-
 // Bundle weights, as the chain sizes a withdrawal bundle.
 const (
 	maxWithdrawalBundleWeight  = 50000
@@ -371,10 +363,11 @@ func nodeHeightOfHash(ctx context.Context, src source, hash string) (uint32, err
 		if err != nil {
 			return 0, err
 		}
-		if header.Header.PrevSideHash == nil {
+		prev := header.prevSideHash()
+		if prev == nil {
 			break
 		}
-		at = *header.Header.PrevSideHash
+		at = *prev
 	}
 	return 0, connect.NewError(connect.CodeNotFound,
 		fmt.Errorf("no block on %s hashes to %s", src.name, hash))
@@ -403,9 +396,9 @@ func (h *ExplorerHandler) GetAddress(
 	}
 	// The first page already carries the unconfirmed rows, so a separate
 	// mempool read would list every one of them twice.
-	history, err := addressHistory(ctx, src, address)
+	history, err := sidechainesplora.NewWallet(src.index).AddressHistory(ctx, address)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 
 	out := &pb.GetAddressResponse{
@@ -421,25 +414,6 @@ func (h *ExplorerHandler) GetAddress(
 		out.Transactions = append(out.Transactions, newTransaction(tx))
 	}
 	return connect.NewResponse(out), nil
-}
-
-// addressHistory walks the address pages, newest first. The index pages at 25
-// confirmed rows, and a page shorter than that is the last one.
-func addressHistory(ctx context.Context, src source, address string) ([]sidechainesplora.Tx, error) {
-	var out []sidechainesplora.Tx
-	var lastSeen string
-	for len(out) < addressHistoryLimit {
-		page, err := src.index.AddressTxs(ctx, address, lastSeen)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
-		}
-		out = append(out, page...)
-		if len(page) < addressPageSize {
-			break
-		}
-		lastSeen = page[len(page)-1].Txid
-	}
-	return out, nil
 }
 
 // GetWithdrawals reads the bundle the chain proposes to the mainchain.
@@ -502,15 +476,20 @@ func nodeHashAtHeight(ctx context.Context, src source, height uint32) (string, e
 		if err != nil {
 			return "", err
 		}
-		if header.Header.PrevSideHash == nil {
+		prev := header.prevSideHash()
+		if prev == nil {
 			break
 		}
-		hash = *header.Header.PrevSideHash
+		hash = *prev
 	}
 	return hash, nil
 }
 
-// nodeHeaderJSON is the header shape a sidechain node returns.
+// nodeHeaderJSON is a block as a sidechain node returns it.
+//
+// Two layouts exist. Thunder and photon nest the header and the body; every
+// other CUSF chain flattens both to the top level and adds a height. A field
+// set in either place lands here.
 type nodeHeaderJSON struct {
 	Header struct {
 		MerkleRoot   string  `json:"merkle_root"`
@@ -520,6 +499,43 @@ type nodeHeaderJSON struct {
 	Body struct {
 		Transactions []json.RawMessage `json:"transactions"`
 	} `json:"body"`
+
+	MerkleRoot   string            `json:"merkle_root"`
+	PrevSideHash *string           `json:"prev_side_hash"`
+	PrevMainHash string            `json:"prev_main_hash"`
+	Transactions []json.RawMessage `json:"transactions"`
+	// Height is set on the flat layout only, and it saves a walk.
+	Height *uint32 `json:"height"`
+}
+
+// merkleRoot, prevSideHash, prevMainHash and transactions read whichever
+// layout the node sent.
+func (b nodeHeaderJSON) merkleRoot() string {
+	if b.Header.MerkleRoot != "" {
+		return b.Header.MerkleRoot
+	}
+	return b.MerkleRoot
+}
+
+func (b nodeHeaderJSON) prevSideHash() *string {
+	if b.Header.PrevSideHash != nil {
+		return b.Header.PrevSideHash
+	}
+	return b.PrevSideHash
+}
+
+func (b nodeHeaderJSON) prevMainHash() string {
+	if b.Header.PrevMainHash != "" {
+		return b.Header.PrevMainHash
+	}
+	return b.PrevMainHash
+}
+
+func (b nodeHeaderJSON) transactions() []json.RawMessage {
+	if len(b.Header.MerkleRoot) > 0 || len(b.Body.Transactions) > 0 {
+		return b.Body.Transactions
+	}
+	return b.Transactions
 }
 
 // nodeBlockIndex is what get_block_index returns: the txids and sizes a body
@@ -558,15 +574,18 @@ func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb
 		return nil, nil, err
 	}
 
+	if block.Height != nil {
+		height = *block.Height
+	}
 	out := &pb.Block{
 		Height:        height,
 		Hash:          hash,
-		MerkleRoot:    block.Header.MerkleRoot,
-		MainchainHash: block.Header.PrevMainHash,
-		TxCount:       uint32(len(block.Body.Transactions)),
+		MerkleRoot:    block.merkleRoot(),
+		MainchainHash: block.prevMainHash(),
+		TxCount:       uint32(len(block.transactions())),
 	}
-	if block.Header.PrevSideHash != nil {
-		out.PrevHash = *block.Header.PrevSideHash
+	if prev := block.prevSideHash(); prev != nil {
+		out.PrevHash = *prev
 	}
 
 	// get_block_index names the txids a body does not carry. A node without

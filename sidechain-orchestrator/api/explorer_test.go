@@ -324,3 +324,70 @@ func TestNodeTransactionReadsAWithdrawal(t *testing.T) {
 		t.Errorf("the payout goes to %q, want bc1qout", got)
 	}
 }
+
+// Two block layouts exist. Thunder nests the header and the body; bitassets,
+// bitnames and truthcoin flatten both and add a height.
+func TestNodeBlockReadsBothLayouts(t *testing.T) {
+	const nested = `{"header":{"merkle_root":"mm","prev_side_hash":"pp","prev_main_hash":"xx"},
+	                 "body":{"transactions":[{},{}]}}`
+	const flat = `{"merkle_root":"mm","prev_side_hash":"pp","prev_main_hash":"xx",
+	               "transactions":[{},{}],"height":41,"coinbase":[]}`
+
+	for name, body := range map[string]string{"nested": nested, "flat": flat} {
+		t.Run(name, func(t *testing.T) {
+			node := &recordingNode{byHash: map[string]string{"aa": body}}
+			src := source{name: "chain", node: node}
+
+			block, _, err := nodeBlock(context.Background(), src, "aa", 41)
+			if err != nil {
+				t.Fatalf("read the block: %v", err)
+			}
+			if block.GetMerkleRoot() != "mm" {
+				t.Errorf("merkle root = %q, want mm", block.GetMerkleRoot())
+			}
+			if block.GetPrevHash() != "pp" {
+				t.Errorf("previous hash = %q, want pp", block.GetPrevHash())
+			}
+			if block.GetMainchainHash() != "xx" {
+				t.Errorf("mainchain hash = %q, want xx", block.GetMainchainHash())
+			}
+			if block.GetTxCount() != 2 {
+				t.Errorf("transactions = %d, want 2", block.GetTxCount())
+			}
+			if block.GetHeight() != 41 {
+				t.Errorf("height = %d, want 41", block.GetHeight())
+			}
+		})
+	}
+}
+
+// Thunder and photon wrap the transaction with the block that carries it.
+// Every other chain returns the transaction alone.
+func TestNodeTransactionReadsBothLayouts(t *testing.T) {
+	const inner = `{"inputs":[{"Regular":{"txid":"prev","vout":0}}],
+	                "outputs":[{"address":"s1","content":{"Value":40000}}]}`
+	wrapped := `{"block_hash":"bb","tx":` + inner + `}`
+
+	for name, body := range map[string]string{"wrapped": wrapped, "bare": inner} {
+		t.Run(name, func(t *testing.T) {
+			node := &recordingNode{answers: map[string]string{"get_transaction": body}}
+			src := source{name: "chain", node: node}
+
+			out, err := nodeTransaction(context.Background(), src, "abc")
+			if err != nil {
+				t.Fatalf("read the transaction: %v", err)
+			}
+			if len(out.GetInputs()) != 1 || len(out.GetOutputs()) != 1 {
+				t.Fatalf("the transaction reads %d in and %d out, want 1 and 1",
+					len(out.GetInputs()), len(out.GetOutputs()))
+			}
+			if out.GetOutputs()[0].GetValueSats() != 40000 {
+				t.Errorf("the output is worth %d, want 40000", out.GetOutputs()[0].GetValueSats())
+			}
+			if name == "wrapped" && (!out.GetConfirmed() || out.GetBlockHash() != "bb") {
+				t.Errorf("the wrapper names block bb, and the transaction reads %v %q",
+					out.GetConfirmed(), out.GetBlockHash())
+			}
+		})
+	}
+}
