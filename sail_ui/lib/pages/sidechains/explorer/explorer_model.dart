@@ -39,6 +39,29 @@ class ExplorerModel extends BaseViewModel {
   /// reachedGenesis is true when no block sits below the last page.
   bool get reachedGenesis => _reachedGenesis;
 
+  /// _trimOlderBlocks drops every cached page that no longer continues the
+  /// newest blocks. A new block, or a reorg, breaks that boundary, and the
+  /// pages below it read again.
+  void _trimOlderBlocks(List<pb.Block> head) {
+    if (head.isEmpty) {
+      return;
+    }
+    var next = head.last.height - 1;
+    final keep = <pb.Block>[];
+    for (final block in olderBlocks) {
+      if (block.height != next) {
+        break;
+      }
+      keep.add(block);
+      next--;
+    }
+    olderBlocks
+      ..clear()
+      ..addAll(keep);
+    final last = keep.isNotEmpty ? keep.last : head.last;
+    _reachedGenesis = last.height == 0;
+  }
+
   /// loadOlderBlocks reads the page below the last block a reader can see.
   Future<void> loadOlderBlocks() async {
     if (_readingOlder || _reachedGenesis) {
@@ -84,6 +107,7 @@ class ExplorerModel extends BaseViewModel {
       final next = await _orchestrator.explorer.getOverview(chain);
       if (overview?.writeToJson() != next.writeToJson()) {
         overview = next;
+        _trimOlderBlocks(next.blocks);
         readError = null;
         notifyListeners();
       } else if (readError != null) {

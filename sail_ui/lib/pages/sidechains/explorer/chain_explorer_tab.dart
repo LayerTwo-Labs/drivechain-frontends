@@ -183,12 +183,13 @@ class _BlockStripState extends State<_BlockStrip> {
             _BlockCard(
               label: '${block.height}',
               mainchain: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : _shorten(block.mainchainHash),
+              mainchainHash: block.mainchainHash,
               color: colors.primary,
               onTap: () => onOpen(ExplorerTarget.block(hash: block.hash)),
               lines: [
                 '${block.txCount} ${block.txCount == 1 ? 'transaction' : 'transactions'}',
-                '${block.feesSats} sats',
-                '${block.sizeBytes} bytes',
+                block.feesKnown ? explorerAmount(context, block.feesSats.toInt()) : 'Fees unknown',
+                block.sizeBytes != 0 ? '${block.sizeBytes} bytes' : 'Size unknown',
               ],
             ),
         ],
@@ -371,7 +372,9 @@ class _PendingWithdrawalsCard extends StatelessWidget {
     }
     return SailCard(
       title: 'Pending withdrawals',
-      subtitle: '${bundle.withdrawals.length} withdrawals · created at height ${bundle.heightCreated}',
+      subtitle: bundle.heightCreated != 0
+          ? '${bundle.withdrawals.length} withdrawals · created at height ${bundle.heightCreated}'
+          : '${bundle.withdrawals.length} withdrawals',
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         children: [
