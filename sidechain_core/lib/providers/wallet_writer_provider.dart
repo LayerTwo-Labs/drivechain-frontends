@@ -194,12 +194,14 @@ class WalletWriterProvider extends ChangeNotifier {
     String? sourceText,
     int wordCount = 12,
     bool doNotSave = false,
+    List<int> extraEntropy = const [],
   }) async {
     final preview = await GetIt.I.get<OrchestratorRPC>().wallet.previewWalletFromEntropy(
       entropy: sourceText == null ? entropy : null,
       sourceText: sourceText,
       wordCount: wordCount,
       passphrase: passphrase,
+      extraEntropy: extraEntropy,
     );
     final walletData = <String, dynamic>{
       'entropy_hex': preview.entropyHex,

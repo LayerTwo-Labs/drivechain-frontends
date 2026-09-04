@@ -13,8 +13,8 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-import '../../google/protobuf/empty.pbjson.dart' as $16;
-import '../../google/protobuf/timestamp.pbjson.dart' as $15;
+import '../../google/protobuf/empty.pbjson.dart' as $17;
+import '../../google/protobuf/timestamp.pbjson.dart' as $16;
 
 @$core.Deprecated('Use nodeModeDescriptor instead')
 const NodeMode$json = {
@@ -2296,6 +2296,7 @@ const PreviewWalletFromEntropyRequest$json = {
     {'1': 'source_text', '3': 2, '4': 1, '5': 9, '10': 'sourceText'},
     {'1': 'word_count', '3': 3, '4': 1, '5': 13, '10': 'wordCount'},
     {'1': 'passphrase', '3': 4, '4': 1, '5': 9, '10': 'passphrase'},
+    {'1': 'extra_entropy', '3': 5, '4': 1, '5': 12, '10': 'extraEntropy'},
   ],
 };
 
@@ -2303,7 +2304,8 @@ const PreviewWalletFromEntropyRequest$json = {
 final $typed_data.Uint8List previewWalletFromEntropyRequestDescriptor = $convert.base64Decode(
     'Ch9QcmV2aWV3V2FsbGV0RnJvbUVudHJvcHlSZXF1ZXN0EhgKB2VudHJvcHkYASABKAxSB2VudH'
     'JvcHkSHwoLc291cmNlX3RleHQYAiABKAlSCnNvdXJjZVRleHQSHQoKd29yZF9jb3VudBgDIAEo'
-    'DVIJd29yZENvdW50Eh4KCnBhc3NwaHJhc2UYBCABKAlSCnBhc3NwaHJhc2U=');
+    'DVIJd29yZENvdW50Eh4KCnBhc3NwaHJhc2UYBCABKAlSCnBhc3NwaHJhc2USIwoNZXh0cmFfZW'
+    '50cm9weRgFIAEoDFIMZXh0cmFFbnRyb3B5');
 
 @$core.Deprecated('Use previewWalletFromEntropyResponseDescriptor instead')
 const PreviewWalletFromEntropyResponse$json = {
@@ -2714,7 +2716,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListWalletBackupsRequest': ListWalletBackupsRequest$json,
   '.walletmanager.v1.ListWalletBackupsResponse': ListWalletBackupsResponse$json,
   '.walletmanager.v1.WalletBackup': WalletBackup$json,
-  '.google.protobuf.Timestamp': $15.Timestamp$json,
+  '.google.protobuf.Timestamp': $16.Timestamp$json,
   '.walletmanager.v1.BackupWalletSummary': BackupWalletSummary$json,
   '.walletmanager.v1.BalanceSnapshot': BalanceSnapshot$json,
   '.walletmanager.v1.RestoreWalletBackupRequest': RestoreWalletBackupRequest$json,
@@ -2838,7 +2840,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.GetTorConfigResponse': GetTorConfigResponse$json,
   '.walletmanager.v1.SetTorConfigRequest': SetTorConfigRequest$json,
   '.walletmanager.v1.SetTorConfigResponse': SetTorConfigResponse$json,
-  '.google.protobuf.Empty': $16.Empty$json,
+  '.google.protobuf.Empty': $17.Empty$json,
   '.walletmanager.v1.WatchWalletDataResponse': WatchWalletDataResponse$json,
 };
 

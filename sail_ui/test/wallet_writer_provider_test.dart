@@ -31,6 +31,7 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
   String? generatedPassphrase;
   String? generatedScriptType;
   List<int>? previewEntropy;
+  List<int>? previewExtraEntropy;
   String? previewSourceText;
   int? previewWordCount;
 
@@ -40,9 +41,11 @@ class _FakeWalletRPC extends OrchestratorWalletRPC {
     String? sourceText,
     int wordCount = 12,
     String? passphrase,
+    List<int>? extraEntropy,
   }) async {
     previewCalls++;
     previewEntropy = entropy;
+    previewExtraEntropy = extraEntropy;
     previewSourceText = sourceText;
     previewWordCount = wordCount;
     return wmpb.PreviewWalletFromEntropyResponse(

@@ -470,6 +470,7 @@ class OrchestratorWalletRPC {
     String? sourceText,
     int wordCount = 12,
     String? passphrase,
+    List<int>? extraEntropy,
   }) {
     return _unaryClient.previewWalletFromEntropy(
       wmpb.PreviewWalletFromEntropyRequest(
@@ -477,6 +478,7 @@ class OrchestratorWalletRPC {
         sourceText: sourceText ?? '',
         wordCount: wordCount,
         passphrase: passphrase ?? '',
+        extraEntropy: extraEntropy ?? const [],
       ),
     );
   }

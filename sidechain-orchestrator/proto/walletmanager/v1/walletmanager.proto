@@ -1182,6 +1182,9 @@ message PreviewWalletFromEntropyRequest {
   // source_text the server mints fresh entropy of this size.
   uint32 word_count = 3;
   string passphrase = 4;
+  // Extra randomness, mixed into the server-minted entropy. Ignored when
+  // entropy or source_text is set.
+  bytes extra_entropy = 5;
 }
 
 message PreviewWalletFromEntropyResponse {
