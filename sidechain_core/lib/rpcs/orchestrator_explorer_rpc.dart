@@ -25,6 +25,15 @@ class OrchestratorExplorerRPC {
     );
   }
 
+  /// A page of block headers, newest first. Leave [beforeHeight] empty to
+  /// start at the tip. A page shorter than [limit] is the last one.
+  Future<List<pb.Block>> listBlocks(String chain, {int? beforeHeight, int limit = 20}) async {
+    final response = await _client.listBlocks(
+      pb.ListBlocksRequest(chain: chain, beforeHeight: beforeHeight ?? 0, limit: limit),
+    );
+    return response.blocks;
+  }
+
   /// One transaction, with the coins on both sides.
   Future<pb.Transaction> getTransaction(String chain, String txid) async {
     final response = await _client.getTransaction(

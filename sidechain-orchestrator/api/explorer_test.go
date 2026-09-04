@@ -225,6 +225,7 @@ type recordingNode struct {
 	count   int64
 	answers map[string]string
 	byHash  map[string]string
+	index   map[string]string
 	called  []string
 }
 
@@ -239,12 +240,16 @@ func (n *recordingNode) CallRaw(_ context.Context, method string, params any) (j
 		if !ok || len(list) != 1 {
 			return nil, fmt.Errorf("%s takes a list of one hash, got %#v", method, params)
 		}
+		if method == "get_block_index" {
+			body, ok := n.index[list[0]]
+			if !ok {
+				return nil, fmt.Errorf("this node serves no block index")
+			}
+			return json.RawMessage(body), nil
+		}
 		body, ok := n.byHash[list[0]]
 		if !ok {
 			return nil, fmt.Errorf("no block %q", list[0])
-		}
-		if method == "get_block_index" {
-			return nil, fmt.Errorf("this node serves no block index")
 		}
 		return json.RawMessage(body), nil
 	}
@@ -287,6 +292,7 @@ func TestNodeBlockOpenedByHashKeepsItsHeight(t *testing.T) {
 func TestNodeTransactionSaysWhenItHoldsNone(t *testing.T) {
 	node := &recordingNode{answers: map[string]string{"get_transaction": `null`}}
 	src := source{name: "thunder", node: node}
+	// The chain is empty, so the block walk finds nothing to read.
 
 	if _, err := nodeTransaction(context.Background(), src, "abc"); err == nil {
 		t.Fatal("a missing transaction reads as found")
@@ -563,5 +569,45 @@ func TestIndexedBlockKnowsItsFees(t *testing.T) {
 	}
 	if out.GetFeesSats() != 2000 {
 		t.Errorf("fees = %d, want 2000", out.GetFeesSats())
+	}
+}
+
+// A node keeps no transaction index, so a mined transaction comes back out of
+// the block that carries it.
+func TestMinedTransactionComesOutOfItsBlock(t *testing.T) {
+	const body = `{"header":{"merkle_root":"m1","prev_main_hash":"x1"},
+	               "body":{"transactions":[
+	                 {"outputs":[{"address":"s1","content":{"Value":40000}}]},
+	                 {"outputs":[{"address":"s2","content":{"Withdrawal":{"value":50000,"main_fee":1200,"main_address":"bc1qout"}}}]}
+	               ]}}`
+	node := &recordingNode{
+		count: 1,
+		answers: map[string]string{
+			"get_transaction":               `null`,
+			"get_best_sidechain_block_hash": `"aa"`,
+		},
+		byHash: map[string]string{"aa": body},
+		index: map[string]string{
+			"aa": `{"txs":[{"txid":"t1","size":16},{"txid":"t2","size":24}],"deposits":[]}`,
+		},
+	}
+	src := source{name: "thunder", node: node}
+
+	out, err := nodeTransaction(context.Background(), src, "t2")
+	if err != nil {
+		t.Fatalf("read the mined transaction: %v", err)
+	}
+	if !out.GetConfirmed() || out.GetBlockHeight() != 0 {
+		t.Errorf("the transaction reads %v at height %d, want a confirmed one at 0",
+			out.GetConfirmed(), out.GetBlockHeight())
+	}
+	if out.GetKind() != pb.Kind_KIND_WITHDRAWAL {
+		t.Errorf("kind = %s, want a withdrawal", out.GetKind())
+	}
+	if got := out.GetOutputs()[0].GetMainAddress(); got != "bc1qout" {
+		t.Errorf("the payout goes to %q, want bc1qout", got)
+	}
+	if out.GetSizeBytes() != 24 {
+		t.Errorf("size = %d, want 24", out.GetSizeBytes())
 	}
 }

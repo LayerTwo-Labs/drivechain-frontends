@@ -143,9 +143,9 @@ func nodeTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	if len(raw) == 0 || string(raw) == "null" {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf(
-			"%s holds no transaction %s. A node keeps no transaction index, so an index reads the history",
-			src.name, txid))
+		// A node answers only for what its wallet or its mempool holds. A
+		// mined transaction comes back out of the block that carries it.
+		return minedTransaction(ctx, src, txid)
 	}
 
 	// Unwrap the envelope when the node sends one, so both layouts read.
@@ -264,4 +264,105 @@ func coreTransaction(ctx context.Context, src source, txid string) (*pb.Transact
 		})
 	}
 	return out, nil
+}
+
+// searchBlockDepth bounds how far back a transaction search walks. An explorer
+// reads the recent chain, and a deeper history needs an index.
+const searchBlockDepth = 200
+
+// minedTransaction finds one transaction in the blocks a node holds. The node
+// keeps no transaction index, so the search walks back from the tip and reads
+// each block's own index.
+func minedTransaction(ctx context.Context, src source, txid string) (*pb.Transaction, error) {
+	count, err := src.node.GetBlockCount(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	if count <= 0 {
+		return nil, notFoundTransaction(src, txid)
+	}
+	raw, err := src.node.CallRaw(ctx, "get_best_sidechain_block_hash", nil)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	var hash string
+	if err := json.Unmarshal(raw, &hash); err != nil {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read the tip hash: %w", err))
+	}
+
+	for height := count - 1; height >= 0 && hash != ""; height-- {
+		if count-1-height >= searchBlockDepth {
+			break
+		}
+		block, activity, err := nodeBlock(ctx, src, hash, uint32(height))
+		if err != nil {
+			return nil, err
+		}
+		for i, row := range activity {
+			if row.GetId() != txid {
+				continue
+			}
+			return blockTransaction(ctx, src, block, uint32(i), row)
+		}
+		hash = block.GetPrevHash()
+	}
+	return nil, notFoundTransaction(src, txid)
+}
+
+// notFoundTransaction says a node holds no such transaction, and why the
+// search is bounded.
+func notFoundTransaction(src source, txid string) error {
+	return connect.NewError(connect.CodeNotFound, fmt.Errorf(
+		"%s holds no transaction %s in its newest %d blocks. A node keeps no transaction index",
+		src.name, txid, searchBlockDepth))
+}
+
+// blockTransaction reads one transaction out of the block that carries it.
+func blockTransaction(
+	ctx context.Context, src source, block *pb.Block, index uint32, row *pb.Activity,
+) (*pb.Transaction, error) {
+	out := &pb.Transaction{
+		Txid:        row.GetId(),
+		Kind:        row.GetKind(),
+		SizeBytes:   row.GetSizeBytes(),
+		Confirmed:   true,
+		BlockHeight: block.GetHeight(),
+		BlockHash:   block.GetHash(),
+		BlockTime:   block.GetBlockTime(),
+	}
+
+	header, err := nodeHeader(ctx, src, block.GetHash())
+	if err != nil {
+		return out, nil
+	}
+	body := header.transactions()
+	if int(index) >= len(body) {
+		return out, nil
+	}
+	for _, coin := range body[index].Outputs {
+		out.Outputs = append(out.Outputs, coinFromContent(coin.Address, coin.Content, out))
+	}
+	return out, nil
+}
+
+// coinFromContent reads one output payload. A withdrawal names where the money
+// goes on the mainchain, and it makes the transaction a withdrawal.
+func coinFromContent(address string, content json.RawMessage, tx *pb.Transaction) *pb.Coin {
+	coin := &pb.Coin{Address: address, ContentType: "value"}
+	if w, ok := readWithdrawal(content); ok {
+		coin.ContentType = "withdrawal"
+		coin.ValueSats = w.GetValueSats()
+		coin.MainAddress = w.GetMainAddress()
+		coin.MainFeeSats = w.GetMainFeeSats()
+		tx.Kind = pb.Kind_KIND_WITHDRAWAL
+		return coin
+	}
+	var value struct {
+		Value int64 `json:"Value"`
+	}
+	if err := json.Unmarshal(content, &value); err == nil {
+		coin.ValueSats = value.Value
+	}
+	return coin
 }

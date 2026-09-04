@@ -50,6 +50,25 @@ extension type ExplorerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// ListBlocks reads a page of block headers, newest first, so a reader can
+  /// walk back to the genesis block.
+  Future<explorerv1explorer.ListBlocksResponse> listBlocks(
+    explorerv1explorer.ListBlocksRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ExplorerService.listBlocks,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// GetTransaction reads one transaction, with the coins on both sides.
   Future<explorerv1explorer.GetTransactionResponse> getTransaction(
     explorerv1explorer.GetTransactionRequest input, {

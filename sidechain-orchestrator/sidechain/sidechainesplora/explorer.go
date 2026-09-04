@@ -78,6 +78,17 @@ func (c *Client) Blocks(ctx context.Context) ([]Block, error) {
 	return out, err
 }
 
+// BlocksBefore lists the block headers at or below one height, newest first.
+// A height of zero starts at the tip.
+func (c *Client) BlocksBefore(ctx context.Context, height uint32) ([]Block, error) {
+	if height == 0 {
+		return c.Blocks(ctx)
+	}
+	var out []Block
+	err := c.get(ctx, "/blocks/"+strconv.FormatUint(uint64(height), 10), &out)
+	return out, err
+}
+
 // Block reads one block by hash.
 func (c *Client) Block(ctx context.Context, hash string) (Block, error) {
 	var out Block

@@ -23,6 +23,7 @@ export 'explorer.pb.dart';
 abstract class ExplorerServiceBase extends $pb.GeneratedService {
   $async.Future<$6.GetOverviewResponse> getOverview($pb.ServerContext ctx, $6.GetOverviewRequest request);
   $async.Future<$6.GetBlockResponse> getBlock($pb.ServerContext ctx, $6.GetBlockRequest request);
+  $async.Future<$6.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $6.ListBlocksRequest request);
   $async.Future<$6.GetTransactionResponse> getTransaction($pb.ServerContext ctx, $6.GetTransactionRequest request);
   $async.Future<$6.GetAddressResponse> getAddress($pb.ServerContext ctx, $6.GetAddressRequest request);
   $async.Future<$6.GetWithdrawalsResponse> getWithdrawals($pb.ServerContext ctx, $6.GetWithdrawalsRequest request);
@@ -31,6 +32,7 @@ abstract class ExplorerServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetOverview': return $6.GetOverviewRequest();
       case 'GetBlock': return $6.GetBlockRequest();
+      case 'ListBlocks': return $6.ListBlocksRequest();
       case 'GetTransaction': return $6.GetTransactionRequest();
       case 'GetAddress': return $6.GetAddressRequest();
       case 'GetWithdrawals': return $6.GetWithdrawalsRequest();
@@ -42,6 +44,7 @@ abstract class ExplorerServiceBase extends $pb.GeneratedService {
     switch (methodName) {
       case 'GetOverview': return this.getOverview(ctx, request as $6.GetOverviewRequest);
       case 'GetBlock': return this.getBlock(ctx, request as $6.GetBlockRequest);
+      case 'ListBlocks': return this.listBlocks(ctx, request as $6.ListBlocksRequest);
       case 'GetTransaction': return this.getTransaction(ctx, request as $6.GetTransactionRequest);
       case 'GetAddress': return this.getAddress(ctx, request as $6.GetAddressRequest);
       case 'GetWithdrawals': return this.getWithdrawals(ctx, request as $6.GetWithdrawalsRequest);

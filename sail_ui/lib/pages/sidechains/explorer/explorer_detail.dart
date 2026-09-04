@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
+import 'package:sidechain_core/utils/explorer_url.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// What the explorer is looking at.
 enum ExplorerTargetKind { block, transaction, address, search }
@@ -115,8 +118,9 @@ class _ExplorerDetailState extends State<ExplorerDetail> {
           spacing: SailStyleValues.padding08,
           children: [
             SailButton(
-              label: 'Back',
-              variant: ButtonVariant.ghost,
+              label: 'Back to the chain',
+              variant: ButtonVariant.secondary,
+              icon: SailSVGAsset.arrowLeft,
               onPressed: () async => widget.onClose(),
             ),
           ],
@@ -160,11 +164,14 @@ class _BlockView extends StatelessWidget {
                   spacing: SailStyleValues.padding08,
                   children: [
                     _Row(label: 'Transactions', value: '${block.txCount}'),
-                    _Row(label: 'Value', value: block.valueSats == 0 ? '—' : '${block.valueSats} sats'),
-                    _Row(label: 'Size', value: '${block.sizeBytes} bytes'),
+                    _Row(label: 'Value', value: explorerAmount(context, block.valueSats.toInt())),
+                    _Row(
+                      label: 'Transaction bytes',
+                      value: block.sizeBytes == 0 ? '—' : '${block.sizeBytes}',
+                    ),
                     _Row(
                       label: 'Fees',
-                      value: block.feesKnown ? '${block.feesSats} sats' : 'Unknown without an index',
+                      value: block.feesKnown ? explorerAmount(context, block.feesSats.toInt()) : '—',
                     ),
                     _Row(label: 'Merkle root', value: shortenId(block.merkleRoot)),
                   ],
@@ -178,12 +185,24 @@ class _BlockView extends StatelessWidget {
                 child: SailColumn(
                   spacing: SailStyleValues.padding08,
                   children: [
-                    _Row(
+                    _LinkRow(
                       label: 'Mainchain block',
-                      value: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : '—',
+                      value: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : shortenId(block.mainchainHash),
+                      onTap: () async => launchUrl(
+                        Uri.parse(
+                          mempoolBlockUrl(
+                            block.mainchainHash,
+                            GetIt.I.get<BitcoinConfProvider>().network,
+                          ),
+                        ),
+                      ),
                     ),
-                    _Row(label: 'Mainchain hash', value: shortenId(block.mainchainHash)),
-                    _Row(label: 'Previous block', value: shortenId(block.prevHash)),
+                    if (block.prevHash.isNotEmpty)
+                      _LinkRow(
+                        label: 'Previous block',
+                        value: shortenId(block.prevHash),
+                        onTap: () async => onOpen(ExplorerTarget.block(hash: block.prevHash)),
+                      ),
                   ],
                 ),
               ),
@@ -238,10 +257,13 @@ class _TransactionView extends StatelessWidget {
                 child: SailColumn(
                   spacing: SailStyleValues.padding08,
                   children: [
-                    _Row(label: 'Fee', value: '${transaction.feeSats} sats'),
+                    _Row(label: 'Fee', value: explorerAmount(context, transaction.feeSats.toInt())),
                     _Row(
                       label: 'Total value',
-                      value: '${transaction.outputs.fold<int>(0, (sum, o) => sum + o.valueSats.toInt())} sats',
+                      value: explorerAmount(
+                        context,
+                        transaction.outputs.fold<int>(0, (sum, o) => sum + o.valueSats.toInt()),
+                      ),
                     ),
                   ],
                 ),
@@ -283,8 +305,8 @@ class _CoinList extends StatelessWidget {
       spacing: SailStyleValues.padding08,
       children: [
         for (final coin in coins)
-          GestureDetector(
-            onTap: coin.address.isEmpty ? null : () => onOpen(ExplorerTarget.address(coin.address)),
+          SailTappable(
+            onTap: coin.address.isEmpty ? null : () async => onOpen(ExplorerTarget.address(coin.address)),
             child: Container(
               padding: const EdgeInsets.all(SailStyleValues.padding08),
               decoration: BoxDecoration(
@@ -300,12 +322,13 @@ class _CoinList extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Flexible(child: SailText.primary13(shortenId(coin.address), color: colors.info)),
-                      SailText.primary13('${coin.valueSats} sats'),
+                      SailText.primary13(explorerAmount(context, coin.valueSats.toInt())),
                     ],
                   ),
                   if (coin.mainAddress.isNotEmpty)
                     SailText.secondary12(
-                      'Withdrawal to ${shortenId(coin.mainAddress)} · mainchain fee ${coin.mainFeeSats} sats',
+                      'Withdrawal to ${shortenId(coin.mainAddress)} · '
+                      'mainchain fee ${explorerAmount(context, coin.mainFeeSats.toInt())}',
                     )
                   else if (coin.outpointKind == 'deposit')
                     SailText.secondary12('Deposit ${shortenId(coin.txid)}'),
@@ -341,8 +364,8 @@ class _AddressView extends StatelessWidget {
                 child: SailColumn(
                   spacing: SailStyleValues.padding08,
                   children: [
-                    _Row(label: 'Total received', value: '${response.totalReceivedSats} sats'),
-                    _Row(label: 'Unconfirmed', value: '${response.unconfirmedBalanceSats} sats'),
+                    _Row(label: 'Total received', value: explorerAmount(context, response.totalReceivedSats.toInt())),
+                    _Row(label: 'Unconfirmed', value: explorerAmount(context, response.unconfirmedBalanceSats.toInt())),
                   ],
                 ),
               ),
@@ -381,8 +404,8 @@ class _AddressTransaction extends StatelessWidget {
       _ => colors.divider,
     };
     final deposit = transaction.kind == pb.Kind.KIND_DEPOSIT;
-    return GestureDetector(
-      onTap: deposit ? null : () => onOpen(ExplorerTarget.transaction(transaction.txid)),
+    return SailTappable(
+      onTap: deposit ? null : () async => onOpen(ExplorerTarget.transaction(transaction.txid)),
       child: Container(
         padding: const EdgeInsets.all(SailStyleValues.padding12),
         decoration: BoxDecoration(
@@ -403,7 +426,7 @@ class _AddressTransaction extends StatelessWidget {
               ],
             ),
             SailText.secondary12(
-              '${transaction.feeSats} sats fee · '
+              '${explorerAmount(context, transaction.feeSats.toInt())} fee · '
               '${transaction.inputs.length} in · ${transaction.outputs.length} out',
             ),
           ],
@@ -447,8 +470,8 @@ class _ActivityTable extends StatelessWidget {
             return [
               SailTableCell(value: shortenId(row.id), monospace: true),
               SailTableCell(value: '', child: kindBadge(row.kind)),
-              SailTableCell(value: '${row.valueSats} sats'),
-              SailTableCell(value: row.feeSats == 0 ? '—' : '${row.feeSats} sats'),
+              SailTableCell(value: explorerAmount(context, row.valueSats.toInt())),
+              SailTableCell(value: explorerAmount(context, row.feeSats.toInt())),
               SailTableCell(value: row.sizeBytes == 0 ? '—' : '${row.sizeBytes} bytes'),
             ];
           },
@@ -476,14 +499,49 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = SailTheme.of(context).colors;
     return SailRow(
       spacing: SailStyleValues.padding12,
       children: [
         SailText.primary24(title, bold: true),
-        Expanded(child: SailText.primary13(id, color: colors.info)),
+        Expanded(child: SailText.secondary13(id)),
+        CopyButton(text: id),
         ?trailing,
       ],
+    );
+  }
+}
+
+/// _LinkRow is a field whose value opens something.
+class _LinkRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Future<void> Function() onTap;
+
+  const _LinkRow({required this.label, required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SailTheme.of(context).colors;
+    return SailTappable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SailStyleValues.padding12,
+          vertical: SailStyleValues.padding08,
+        ),
+        decoration: BoxDecoration(
+          color: colors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: SailRow(
+          spacing: SailStyleValues.padding08,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SailText.secondary13(label),
+            Flexible(child: SailText.primary13(value, color: colors.info)),
+          ],
+        ),
+      ),
     );
   }
 }

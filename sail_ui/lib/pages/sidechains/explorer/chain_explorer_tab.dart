@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
@@ -94,7 +96,7 @@ class _Overview extends StatelessWidget {
     return SailColumn(
       spacing: SailStyleValues.padding16,
       children: [
-        _BlockStrip(overview: overview, onOpen: onOpen),
+        _BlockStrip(model: model, onOpen: onOpen),
         _RecentActivity(overview: overview, onOpen: onOpen),
         SailRow(
           spacing: SailStyleValues.padding16,
@@ -117,17 +119,50 @@ class _Overview extends StatelessWidget {
 }
 
 /// _BlockStrip shows the block the chain would mine next, then the blocks it
-/// mined, newest first.
-class _BlockStrip extends StatelessWidget {
-  final pb.GetOverviewResponse overview;
+/// mined, newest first. It reads another page whenever a reader scrolls to
+/// the end, down to the genesis block.
+class _BlockStrip extends StatefulWidget {
+  final ExplorerModel model;
   final void Function(ExplorerTarget) onOpen;
 
-  const _BlockStrip({required this.overview, required this.onOpen});
+  const _BlockStrip({required this.model, required this.onOpen});
+
+  @override
+  State<_BlockStrip> createState() => _BlockStripState();
+}
+
+class _BlockStripState extends State<_BlockStrip> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_controller.hasClients) {
+      return;
+    }
+    final remaining = _controller.position.maxScrollExtent - _controller.offset;
+    if (remaining < 400) {
+      unawaited(widget.model.loadOlderBlocks());
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = SailTheme.of(context).colors;
+    final overview = widget.model.overview!;
+    final onOpen = widget.onOpen;
     return SingleChildScrollView(
+      controller: _controller,
       scrollDirection: Axis.horizontal,
       child: SailRow(
         spacing: SailStyleValues.padding12,
@@ -139,12 +174,12 @@ class _BlockStrip extends StatelessWidget {
             color: colors.success,
             lines: [
               '${overview.mempool.txCount} in the mempool',
-              '${overview.mempool.feesSats} sats',
-              'Waits for a bid',
+              explorerAmount(context, overview.mempool.feesSats.toInt()),
+              'Not mined yet',
             ],
           ),
           Container(width: 1, height: 120, color: colors.divider),
-          for (final block in overview.blocks)
+          for (final block in widget.model.blocks)
             _BlockCard(
               label: '${block.height}',
               mainchain: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : _shorten(block.mainchainHash),
@@ -190,8 +225,8 @@ class _BlockCard extends StatelessWidget {
         children: [
           SailText.primary13(label, bold: true, color: colors.info),
           _MainchainLink(label: mainchain, hash: mainchainHash),
-          GestureDetector(
-            onTap: onTap,
+          SailTappable(
+            onTap: onTap == null ? null : () async => onTap!(),
             child: Container(
               width: 200,
               padding: const EdgeInsets.all(SailStyleValues.padding12),
@@ -240,14 +275,11 @@ class _MainchainLink extends StatelessWidget {
     if (hash.isEmpty) {
       return row;
     }
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => launchUrl(
-          Uri.parse(mempoolBlockUrl(hash, GetIt.I.get<BitcoinConfProvider>().network)),
-        ),
-        child: row,
+    return SailTappable(
+      onTap: () async => launchUrl(
+        Uri.parse(mempoolBlockUrl(hash, GetIt.I.get<BitcoinConfProvider>().network)),
       ),
+      child: row,
     );
   }
 }
@@ -281,8 +313,8 @@ class _RecentActivity extends StatelessWidget {
             return [
               SailTableCell(value: _shorten(row.id), monospace: true),
               SailTableCell(value: '', child: kindBadge(row.kind)),
-              SailTableCell(value: '${row.valueSats} sats'),
-              SailTableCell(value: row.feeSats == 0 ? '—' : '${row.feeSats} sats'),
+              SailTableCell(value: explorerAmount(context, row.valueSats.toInt())),
+              SailTableCell(value: explorerAmount(context, row.feeSats.toInt())),
               SailTableCell(value: row.confirmed ? 'Block ${row.blockHeight}' : 'Unconfirmed'),
             ];
           },
@@ -315,7 +347,7 @@ class _TreasuryCard extends StatelessWidget {
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         children: [
-          _Field(label: 'Holds', value: '${treasury.balanceSats} sats'),
+          _Field(label: 'Holds', value: explorerAmount(context, treasury.balanceSats.toInt())),
           _Field(label: 'CTIP', value: '${_shorten(treasury.ctipTxid)} : ${treasury.ctipVout}'),
         ],
       ),
@@ -343,7 +375,7 @@ class _PendingWithdrawalsCard extends StatelessWidget {
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         children: [
-          _Field(label: 'Total amount', value: '${bundle.totalValueSats} sats'),
+          _Field(label: 'Total amount', value: explorerAmount(context, bundle.totalValueSats.toInt())),
           _Field(label: 'Bundle weight', value: '${bundle.totalWeight} / ${bundle.maxWeight}'),
         ],
       ),
@@ -379,6 +411,15 @@ class _Field extends StatelessWidget {
       ),
     );
   }
+}
+
+/// explorerAmount reads an amount in the unit the user picked, and in the
+/// active network's own name for it.
+String explorerAmount(BuildContext context, int sats) {
+  if (sats == 0) {
+    return '—';
+  }
+  return BitcoinFormatting.formatSatsWithUnit(context, sats);
 }
 
 /// kindBadge marks a row as a deposit, a withdrawal or a transfer. A reader
