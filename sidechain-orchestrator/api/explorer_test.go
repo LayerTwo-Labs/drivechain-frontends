@@ -391,3 +391,74 @@ func TestNodeTransactionReadsBothLayouts(t *testing.T) {
 		})
 	}
 }
+
+// A Core derived chain reads a transaction with Core's own RPC.
+func TestCoreTransactionReadsCoreShapes(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{
+		"getrawtransaction": `{"txid":"t1","blockhash":"bb","time":1700000000,
+		                       "confirmations":6,"size":225,
+		                       "vin":[{"txid":"prev","vout":1}],
+		                       "vout":[{"value":0.0004,"scriptPubKey":{"address":"bc1qx"}}]}`,
+	}}
+	src := source{name: "bbc", node: node, core: true}
+
+	out, err := coreTransaction(context.Background(), src, "t1")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if !out.GetConfirmed() || out.GetBlockHash() != "bb" {
+		t.Errorf("the transaction reads %v %q, want a confirmed one in bb",
+			out.GetConfirmed(), out.GetBlockHash())
+	}
+	if got := out.GetOutputs()[0].GetValueSats(); got != 40000 {
+		t.Errorf("the output is worth %d sats, want 40000", got)
+	}
+	for _, method := range node.called {
+		if method == "get_transaction" {
+			t.Error("a Core node was asked get_transaction, which it does not serve")
+		}
+	}
+}
+
+// A chain that sends a bare transaction carries its confirmation and its fee
+// in get_transaction_info.
+func TestNodeTransactionReadsTheInfoForABareTransaction(t *testing.T) {
+	node := &recordingNode{answers: map[string]string{
+		"get_transaction":      `{"inputs":[],"outputs":[{"address":"s1","content":{"Value":10}}]}`,
+		"get_transaction_info": `{"confirmations":4,"fee_sats":1200}`,
+	}}
+	src := source{name: "bitassets", node: node}
+
+	out, err := nodeTransaction(context.Background(), src, "abc")
+	if err != nil {
+		t.Fatalf("read the transaction: %v", err)
+	}
+	if !out.GetConfirmed() {
+		t.Error("a mined transaction reads as unconfirmed")
+	}
+	if out.GetFeeSats() != 1200 {
+		t.Errorf("fee = %d, want 1200", out.GetFeeSats())
+	}
+}
+
+// A deposit has no sidechain transaction, so the address view builds one row
+// out of the coin the mainchain sent.
+func TestDepositReadsAsAnAddressRow(t *testing.T) {
+	out := depositTransaction("s1", sidechainesplora.UTXO{
+		Txid: "mainchaintxid", Vout: 1, Value: 123456,
+		OutpointKind: sidechainesplora.KindDeposit, ContentType: "value",
+		Status: sidechainesplora.Status{Confirmed: true, BlockHeight: 34},
+	})
+	if out.GetKind() != pb.Kind_KIND_DEPOSIT {
+		t.Errorf("kind = %s, want a deposit", out.GetKind())
+	}
+	if len(out.GetInputs()) != 0 {
+		t.Errorf("a deposit spends %d coins on this chain, want none", len(out.GetInputs()))
+	}
+	if got := out.GetOutputs()[0].GetValueSats(); got != 123456 {
+		t.Errorf("the deposit is worth %d, want 123456", got)
+	}
+	if out.GetBlockHeight() != 34 {
+		t.Errorf("block height = %d, want 34", out.GetBlockHeight())
+	}
+}

@@ -376,8 +376,9 @@ class _AddressTransaction extends StatelessWidget {
       pb.Kind.KIND_WITHDRAWAL => colors.orange,
       _ => colors.divider,
     };
+    final deposit = transaction.kind == pb.Kind.KIND_DEPOSIT;
     return GestureDetector(
-      onTap: () => onOpen(ExplorerTarget.transaction(transaction.txid)),
+      onTap: deposit ? null : () => onOpen(ExplorerTarget.transaction(transaction.txid)),
       child: Container(
         padding: const EdgeInsets.all(SailStyleValues.padding12),
         decoration: BoxDecoration(
@@ -448,7 +449,13 @@ class _ActivityTable extends StatelessWidget {
             ];
           },
           rowCount: rows.length,
-          onDoubleTap: (rowId) => onOpen(ExplorerTarget.transaction(rowId)),
+          onDoubleTap: (rowId) {
+            final row = rows.firstWhere((r) => r.id == rowId);
+            if (row.kind == pb.Kind.KIND_DEPOSIT) {
+              return;
+            }
+            onOpen(ExplorerTarget.transaction(rowId));
+          },
           emptyPlaceholder: 'Nothing in this block',
         ),
       ),

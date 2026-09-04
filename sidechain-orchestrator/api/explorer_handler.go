@@ -199,10 +199,14 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 		next = block.GetPrevHash()
 	}
 
-	// The template is what the node would mine next, so it counts the
+	// The template is what the node would mine next, so its body is the
 	// unconfirmed set.
 	if template, err := src.node.GetBlockTemplate(ctx); err == nil && template != nil {
 		out.Mempool.FeesSats = template.FeesSats
+		var body nodeHeaderJSON
+		if err := json.Unmarshal(template.Block, &body); err == nil {
+			out.Mempool.TxCount = uint32(len(body.transactions()))
+		}
 	}
 	if raw, err := src.node.GetPendingWithdrawalBundle(ctx); err == nil {
 		out.PendingBundle = parseBundle(raw)
@@ -326,7 +330,11 @@ func (h *ExplorerHandler) GetTransaction(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name a txid"))
 	}
 	if src.index == nil {
-		out, err := nodeTransaction(ctx, src, txid)
+		read := nodeTransaction
+		if src.core {
+			read = coreTransaction
+		}
+		out, err := read(ctx, src, txid)
 		if err != nil {
 			return nil, err
 		}
@@ -413,7 +421,38 @@ func (h *ExplorerHandler) GetAddress(
 	for _, tx := range history {
 		out.Transactions = append(out.Transactions, newTransaction(tx))
 	}
+
+	// A deposit creates a coin with no sidechain transaction, so the history
+	// route never carries one. Bo's address view marks deposits, so they come
+	// from their own route.
+	deposits, err := src.index.AddressDeposits(ctx, address)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	for _, deposit := range deposits {
+		out.Transactions = append(out.Transactions, depositTransaction(address, deposit))
+	}
 	return connect.NewResponse(out), nil
+}
+
+// depositTransaction reads one mainchain deposit as a row the address view can
+// show. Its txid is a mainchain txid, and it spends nothing on this chain.
+func depositTransaction(address string, deposit sidechainesplora.UTXO) *pb.Transaction {
+	return &pb.Transaction{
+		Txid:        deposit.Txid,
+		Kind:        pb.Kind_KIND_DEPOSIT,
+		Confirmed:   deposit.Status.Confirmed,
+		BlockHeight: deposit.Status.BlockHeight,
+		BlockHash:   deposit.Status.BlockHash,
+		BlockTime:   deposit.Status.BlockTime,
+		Outputs: []*pb.Coin{{
+			Address:      address,
+			ValueSats:    deposit.Value,
+			OutpointKind: sidechainesplora.KindDeposit,
+			ContentType:  deposit.ContentType,
+			Vout:         deposit.Vout,
+		}},
+	}
 }
 
 // GetWithdrawals reads the bundle the chain proposes to the mainchain.
