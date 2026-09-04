@@ -1564,6 +1564,12 @@ func (h *WalletHandler) PreviewWalletFromEntropy(
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("generate entropy: %w", err))
 		}
+		// Client-supplied extra randomness folds into the fresh entropy, so
+		// the result is never weaker than crypto/rand alone.
+		if len(req.Msg.ExtraEntropy) > 0 {
+			digest := sha256.Sum256(append(entropy, req.Msg.ExtraEntropy...))
+			entropy = digest[:strength.Bytes()]
+		}
 	}
 
 	w, err := h.svc.GenerateWalletFromEntropy(entropy, req.Msg.Passphrase, true, allSidechainSlots())

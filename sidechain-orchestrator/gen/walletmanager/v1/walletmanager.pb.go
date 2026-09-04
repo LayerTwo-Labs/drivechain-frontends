@@ -8720,8 +8720,11 @@ type PreviewWalletFromEntropyRequest struct {
 	SourceText string `protobuf:"bytes,2,opt,name=source_text,json=sourceText,proto3" json:"source_text,omitempty"`
 	// Words to produce: 12 or 24. Defaults to 12. With no entropy and no
 	// source_text the server mints fresh entropy of this size.
-	WordCount     uint32 `protobuf:"varint,3,opt,name=word_count,json=wordCount,proto3" json:"word_count,omitempty"`
-	Passphrase    string `protobuf:"bytes,4,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
+	WordCount  uint32 `protobuf:"varint,3,opt,name=word_count,json=wordCount,proto3" json:"word_count,omitempty"`
+	Passphrase string `protobuf:"bytes,4,opt,name=passphrase,proto3" json:"passphrase,omitempty"`
+	// Extra randomness, mixed into the server-minted entropy. Ignored when
+	// entropy or source_text is set.
+	ExtraEntropy  []byte `protobuf:"bytes,5,opt,name=extra_entropy,json=extraEntropy,proto3" json:"extra_entropy,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8782,6 +8785,13 @@ func (x *PreviewWalletFromEntropyRequest) GetPassphrase() string {
 		return x.Passphrase
 	}
 	return ""
+}
+
+func (x *PreviewWalletFromEntropyRequest) GetExtraEntropy() []byte {
+	if x != nil {
+		return x.ExtraEntropy
+	}
+	return nil
 }
 
 type PreviewWalletFromEntropyResponse struct {
@@ -10623,7 +10633,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"startIndex\x12\x14\n" +
 	"\x05count\x18\x03 \x01(\x05R\x05count\"7\n" +
 	"\x17DeriveAddressesResponse\x12\x1c\n" +
-	"\taddresses\x18\x01 \x03(\tR\taddresses\"\x9b\x01\n" +
+	"\taddresses\x18\x01 \x03(\tR\taddresses\"\xc0\x01\n" +
 	"\x1fPreviewWalletFromEntropyRequest\x12\x18\n" +
 	"\aentropy\x18\x01 \x01(\fR\aentropy\x12\x1f\n" +
 	"\vsource_text\x18\x02 \x01(\tR\n" +
@@ -10632,7 +10642,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"word_count\x18\x03 \x01(\rR\twordCount\x12\x1e\n" +
 	"\n" +
 	"passphrase\x18\x04 \x01(\tR\n" +
-	"passphrase\"\xb0\x02\n" +
+	"passphrase\x12#\n" +
+	"\rextra_entropy\x18\x05 \x01(\fR\fextraEntropy\"\xb0\x02\n" +
 	" PreviewWalletFromEntropyResponse\x12\x1f\n" +
 	"\ventropy_hex\x18\b \x01(\tR\n" +
 	"entropyHex\x12\x1a\n" +

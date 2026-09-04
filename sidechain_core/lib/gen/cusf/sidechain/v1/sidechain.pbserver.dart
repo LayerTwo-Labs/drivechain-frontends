@@ -15,33 +15,33 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'sidechain.pb.dart' as $7;
+import 'sidechain.pb.dart' as $5;
 import 'sidechain.pbjson.dart';
 
 export 'sidechain.pb.dart';
 
 abstract class SidechainServiceBase extends $pb.GeneratedService {
-  $async.Future<$7.GetMempoolTxsResponse> getMempoolTxs($pb.ServerContext ctx, $7.GetMempoolTxsRequest request);
-  $async.Future<$7.GetUtxosResponse> getUtxos($pb.ServerContext ctx, $7.GetUtxosRequest request);
-  $async.Future<$7.SubmitTransactionResponse> submitTransaction($pb.ServerContext ctx, $7.SubmitTransactionRequest request);
-  $async.Future<$7.SubscribeEventsResponse> subscribeEvents($pb.ServerContext ctx, $7.SubscribeEventsRequest request);
+  $async.Future<$5.GetMempoolTxsResponse> getMempoolTxs($pb.ServerContext ctx, $5.GetMempoolTxsRequest request);
+  $async.Future<$5.GetUtxosResponse> getUtxos($pb.ServerContext ctx, $5.GetUtxosRequest request);
+  $async.Future<$5.SubmitTransactionResponse> submitTransaction($pb.ServerContext ctx, $5.SubmitTransactionRequest request);
+  $async.Future<$5.SubscribeEventsResponse> subscribeEvents($pb.ServerContext ctx, $5.SubscribeEventsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetMempoolTxs': return $7.GetMempoolTxsRequest();
-      case 'GetUtxos': return $7.GetUtxosRequest();
-      case 'SubmitTransaction': return $7.SubmitTransactionRequest();
-      case 'SubscribeEvents': return $7.SubscribeEventsRequest();
+      case 'GetMempoolTxs': return $5.GetMempoolTxsRequest();
+      case 'GetUtxos': return $5.GetUtxosRequest();
+      case 'SubmitTransaction': return $5.SubmitTransactionRequest();
+      case 'SubscribeEvents': return $5.SubscribeEventsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetMempoolTxs': return this.getMempoolTxs(ctx, request as $7.GetMempoolTxsRequest);
-      case 'GetUtxos': return this.getUtxos(ctx, request as $7.GetUtxosRequest);
-      case 'SubmitTransaction': return this.submitTransaction(ctx, request as $7.SubmitTransactionRequest);
-      case 'SubscribeEvents': return this.subscribeEvents(ctx, request as $7.SubscribeEventsRequest);
+      case 'GetMempoolTxs': return this.getMempoolTxs(ctx, request as $5.GetMempoolTxsRequest);
+      case 'GetUtxos': return this.getUtxos(ctx, request as $5.GetUtxosRequest);
+      case 'SubmitTransaction': return this.submitTransaction(ctx, request as $5.SubmitTransactionRequest);
+      case 'SubscribeEvents': return this.subscribeEvents(ctx, request as $5.SubscribeEventsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
