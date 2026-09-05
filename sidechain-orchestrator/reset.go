@@ -53,6 +53,7 @@ const (
 	ResetBinaryDrivechaind
 	ResetBinaryZSided
 	ResetBinaryBbc
+	ResetBinaryFreebank
 
 	// resetBinaryCount bounds iteration over the values above.
 	resetBinaryCount
@@ -110,6 +111,8 @@ func (b ResetBinary) processName() string {
 		return "zsided"
 	case ResetBinaryBbc:
 		return "bbc"
+	case ResetBinaryFreebank:
+		return "freebank"
 	default:
 		return ""
 	}
@@ -139,6 +142,8 @@ func (b ResetBinary) dirConfig() (config.BinaryDirConfig, bool) {
 		return config.CoinShiftDirs, true
 	case ResetBinaryBbc:
 		return config.BbcDirs, true
+	case ResetBinaryFreebank:
+		return config.FreebankDirs, true
 	default:
 		return config.BinaryDirConfig{}, false
 	}
@@ -362,6 +367,7 @@ type resetPlan struct {
 
 var resetSidechainBinaries = []ResetBinary{
 	ResetBinaryBbc,
+	ResetBinaryFreebank,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,
@@ -373,6 +379,7 @@ var resetSidechainBinaries = []ResetBinary{
 
 var resetStopOrder = []ResetBinary{
 	ResetBinaryBbc,
+	ResetBinaryFreebank,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,
@@ -390,6 +397,7 @@ var resetStartOrder = []ResetBinary{
 	ResetBinaryEnforcer,
 	ResetBinaryBitwindowd,
 	ResetBinaryBbc,
+	ResetBinaryFreebank,
 	ResetBinaryThunder,
 	ResetBinaryZSide,
 	ResetBinaryBitNames,

@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"errors"
 	"os"
 	"slices"
@@ -313,5 +314,59 @@ func TestPrepareSidechainArgsStopsWithNoConfManager(t *testing.T) {
 	}
 	if len(opts.TargetArgs) != 0 {
 		t.Errorf("args = %v, want none", opts.TargetArgs)
+	}
+}
+
+func coreForkOrchestratorOn(t *testing.T, network config.Network) *Orchestrator {
+	t.Helper()
+	useTempHome(t)
+	return &Orchestrator{
+		log:         zerolog.Nop(),
+		Network:     string(network),
+		DataDir:     t.TempDir(),
+		BitcoinConf: &config.BitcoinConfManager{Network: network},
+	}
+}
+
+// Only a fork that declares pins_mainchain gets the L1 pin and transport args;
+// BBC is Core derived too and must keep booting untouched.
+func TestCoreForkArgsLeaveANonPinningForkAlone(t *testing.T) {
+	orch := coreForkOrchestratorOn(t, config.NetworkECash)
+	var opts StartOpts
+	err := orch.injectCoreForkMainchainArgs(context.Background(), BinaryConfig{Name: "bbc", DisplayName: "BBC", ChainLayer: 2, IsBitcoinCore: true}, &opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(opts.TargetArgs) != 0 {
+		t.Fatalf("non-pinning fork received args: %v", opts.TargetArgs)
+	}
+}
+
+// Regtest has no published fork height: refuse with a message rather than
+// launch a daemon that exits.
+func TestCoreForkArgsRefuseRegtest(t *testing.T) {
+	orch := coreForkOrchestratorOn(t, config.NetworkRegtest)
+	var opts StartOpts
+	err := orch.injectCoreForkMainchainArgs(context.Background(), BinaryConfig{Name: "freebank", DisplayName: "FreeBank", ChainLayer: 2, IsBitcoinCore: true, PinsMainchain: true}, &opts)
+	if err == nil || !strings.Contains(err.Error(), "fork height") {
+		t.Fatalf("expected a fork-height refusal, got %v", err)
+	}
+}
+
+// On eCash the transport and REST port are handed over before the pin is read
+// from the L1; without a reachable mainchain RPC the pin step reports why.
+func TestCoreForkArgsHandOverTransportAndRestPortOnECash(t *testing.T) {
+	config.SetForkHeight(config.NetworkECash, 963648) // what the network catalog publishes for alphanet
+	orch := coreForkOrchestratorOn(t, config.NetworkECash)
+	var opts StartOpts
+	err := orch.injectCoreForkMainchainArgs(context.Background(), BinaryConfig{Name: "freebank", DisplayName: "FreeBank", ChainLayer: 2, IsBitcoinCore: true, PinsMainchain: true}, &opts)
+	if err == nil {
+		t.Fatal("expected an error without a mainchain RPC")
+	}
+	if !slices.Contains(opts.TargetArgs, "-mainchaintransport=enforcer") {
+		t.Fatalf("transport not injected: %v", opts.TargetArgs)
+	}
+	if !slices.Contains(opts.TargetArgs, "-mainchainrest=127.0.0.1:18302") {
+		t.Fatalf("eCash REST port not injected: %v", opts.TargetArgs)
 	}
 }

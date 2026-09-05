@@ -8,6 +8,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 )
 
 // sidechainNode builds the RPC client for a sidechain. A Core derived chain
@@ -22,6 +23,9 @@ func sidechainNode(cfg orchestrator.BinaryConfig, network config.Network) (sidec
 		return nil, fmt.Errorf("no directory config for %s", cfg.Name)
 	}
 	cookie := filepath.Join(dirs.DatadirNetwork(network, ""), ".cookie")
+	if cfg.Name == "freebank" {
+		return freebank.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
+	}
 	return bbc.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
 }
 

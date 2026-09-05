@@ -58,6 +58,23 @@ func TestCoreForkAnswersOnlyWhatItDrives(t *testing.T) {
 	assert.Contains(t, err.Error(), "proposes no withdrawal bundle")
 }
 
+// FreeBank blind merge mines with its own refreshbmm ticker and settles
+// withdrawals on its own paths, so it is a Node and nothing more.
+func TestFreebankAnswersNeitherBMMNorWithdrawals(t *testing.T) {
+	cfg := orchestrator.BinaryConfig{Name: "freebank", DisplayName: "FreeBank", Port: 8342, IsBitcoinCore: true}
+	node, err := sidechainNode(cfg, config.NetworkRegtest)
+	require.NoError(t, err)
+
+	_, err = bmmNode(cfg, config.NetworkRegtest)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "FreeBank")
+	assert.Contains(t, err.Error(), "produces its own blocks")
+
+	_, err = withdrawalNode(node, cfg.DisplayName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "proposes no withdrawal bundle")
+}
+
 // A chain with no directory config names itself in the failure, rather than
 // dialling a port that belongs to something else.
 func TestCoreForkWithoutDirsFails(t *testing.T) {
