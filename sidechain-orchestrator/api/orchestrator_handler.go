@@ -559,6 +559,8 @@ func binaryTypeFromName(name string) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_BITWINDOWD
 	case "bbc":
 		return pb.BinaryType_BINARY_TYPE_BBC
+	case "freebank":
+		return pb.BinaryType_BINARY_TYPE_FREEBANK
 	case "thunder":
 		return pb.BinaryType_BINARY_TYPE_THUNDER
 	case "zside":
@@ -653,6 +655,8 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 		return "coinshift", "CoinShift", nil
 	case pb.BinaryType_BINARY_TYPE_BBC:
 		return "bbc", "Big Block Covenant", nil
+	case pb.BinaryType_BINARY_TYPE_FREEBANK:
+		return "freebank", "FreeBank", nil
 	default:
 		return "", "", fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
@@ -800,6 +804,8 @@ func resetBinaryFromType(t pb.BinaryType) orchestrator.ResetBinary {
 		return orchestrator.ResetBinaryZSided
 	case pb.BinaryType_BINARY_TYPE_BBC:
 		return orchestrator.ResetBinaryBbc
+	case pb.BinaryType_BINARY_TYPE_FREEBANK:
+		return orchestrator.ResetBinaryFreebank
 	default:
 		return orchestrator.ResetBinaryUnknown
 	}
@@ -835,6 +841,8 @@ func binaryTypeFromResetBinary(binary orchestrator.ResetBinary) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_ZSIDED
 	case orchestrator.ResetBinaryBbc:
 		return pb.BinaryType_BINARY_TYPE_BBC
+	case orchestrator.ResetBinaryFreebank:
+		return pb.BinaryType_BINARY_TYPE_FREEBANK
 	default:
 		return pb.BinaryType_BINARY_TYPE_UNSPECIFIED
 	}
