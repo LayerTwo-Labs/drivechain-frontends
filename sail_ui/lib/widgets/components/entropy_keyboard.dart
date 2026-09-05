@@ -5,12 +5,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:sail_ui/sail_ui.dart';
 
-/// The keys the board offers: every printable ASCII character.
+/// The keys the board offers: printable ASCII from ! to z, 90 characters.
 const String entropyKeyboardChars =
-    r"""!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""";
+    r"""!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz""";
 
 /// How many keys sit in one row.
-const int entropyKeyboardColumns = 12;
+const int entropyKeyboardColumns = 10;
 
 /// How often a key repeats while the pointer rests on it.
 const Duration entropyKeyRepeat = Duration(milliseconds: 50);
@@ -46,8 +46,8 @@ class SailEntropyKeyboard extends StatefulWidget {
 }
 
 class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
-  static const double _keyHeight = 24;
-  static const double _keyGap = 2;
+  static const double _maxKeySize = 44;
+  static const double _keyGap = 4;
   static const double _padding = 8;
   static const double _border = 1;
 
@@ -81,20 +81,37 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
     }
   }
 
-  double get _keysHeight => _rows * _keyHeight + (_rows - 1) * _keyGap;
+  /// The grid takes its full size when the board is wide, and it scales the
+  /// square keys down inside a narrow board.
+  double _gridWidthFor(double innerWidth) {
+    final full = entropyKeyboardColumns * _maxKeySize + (entropyKeyboardColumns - 1) * _keyGap;
+    return min(full, innerWidth);
+  }
+
+  double _keySizeFor(double gridWidth) =>
+      max(1, (gridWidth - (entropyKeyboardColumns - 1) * _keyGap) / entropyKeyboardColumns);
+
+  double _keysHeightFor(double gridWidth) {
+    final key = _keySizeFor(gridWidth);
+    return _rows * key + (_rows - 1) * _keyGap;
+  }
 
   /// keyAt reads the key under one point. It answers null outside the keys.
   String? keyAt(Offset local, Size size) {
-    final width = size.width - (_padding + _border) * 2;
-    // A visible board types only where the keys are. A hidden one has no
-    // caption to dodge, so its whole face maps to the same grid.
-    final height = widget.showKeys ? _keysHeight : size.height - (_padding + _border) * 2;
-    if (width <= 0 || height <= 0) {
-      return null;
-    }
-    final x = local.dx - _padding - _border;
+    final innerWidth = size.width - (_padding + _border) * 2;
+    var x = local.dx - _padding - _border;
     final y = local.dy - _padding - _border;
-    if (x < 0 || y < 0 || x >= width || y >= height) {
+    var width = innerWidth;
+    // A visible board centers a square grid and types only on it. A hidden
+    // one has no keys to dodge, so its whole face maps to the same grid.
+    var height = size.height - (_padding + _border) * 2;
+    if (widget.showKeys) {
+      final gridWidth = _gridWidthFor(innerWidth);
+      x -= (innerWidth - gridWidth) / 2;
+      width = gridWidth;
+      height = _keysHeightFor(gridWidth);
+    }
+    if (width <= 0 || height <= 0 || x < 0 || y < 0 || x >= width || y >= height) {
       return null;
     }
     final column = (x / (width / entropyKeyboardColumns)).floor();
@@ -176,64 +193,73 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
 
   Widget _keys(BuildContext context) {
     final theme = SailTheme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var row = 0; row < _rows; row++) ...[
-          if (row > 0) const SizedBox(height: _keyGap),
-          SizedBox(
-            height: _keyHeight,
-            child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gridWidth = _gridWidthFor(constraints.maxWidth);
+        final keySize = _keySizeFor(gridWidth);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: SizedBox(
+                width: gridWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var row = 0; row < _rows; row++) ...[
+                      if (row > 0) const SizedBox(height: _keyGap),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          for (var column = 0; column < entropyKeyboardColumns; column++)
+                            _key(theme, keySize, row * entropyKeyboardColumns + column),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
               children: [
-                for (var column = 0; column < entropyKeyboardColumns; column++)
-                  Expanded(
-                    child: _key(theme, row * entropyKeyboardColumns + column),
-                  ),
+                Expanded(child: SailText.secondary12(widget.caption)),
+                if (widget.subCaption != null) ...[
+                  const SizedBox(width: 12),
+                  SailText.secondary12(widget.subCaption!),
+                ],
+                const SizedBox(width: 12),
+                SailButton(
+                  label: 'Shuffle',
+                  icon: SailSVGAsset.shuffle,
+                  variant: ButtonVariant.secondary,
+                  small: true,
+                  disabled: !widget.enabled,
+                  onPressed: () async => _shuffle(),
+                ),
               ],
             ),
-          ),
-        ],
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Expanded(child: SailText.secondary12(widget.caption)),
-            if (widget.subCaption != null) ...[
-              const SizedBox(width: 12),
-              SailText.secondary12(widget.subCaption!),
-            ],
-            const SizedBox(width: 12),
-            SailButton(
-              label: 'Shuffle',
-              icon: SailSVGAsset.shuffle,
-              variant: ButtonVariant.secondary,
-              small: true,
-              onPressed: () async => _shuffle(),
-            ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _key(SailThemeData theme, int index) {
-    if (index >= entropyKeyboardChars.length) {
-      return const SizedBox.shrink();
-    }
+  Widget _key(SailThemeData theme, double keySize, int index) {
     final char = _layout[index];
     final hovered = char == _hovered;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _keyGap / 2),
-      child: Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: hovered ? theme.colors.orange : theme.colors.background,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: SailText.primary13(
-          char,
-          monospace: true,
-          color: hovered ? theme.colors.backgroundSecondary : null,
-        ),
+    return Container(
+      width: keySize,
+      height: keySize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: hovered ? theme.colors.orange : theme.colors.background,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: SailText.primary13(
+        char,
+        monospace: true,
+        color: hovered ? theme.colors.backgroundSecondary : null,
       ),
     );
   }
