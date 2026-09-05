@@ -671,7 +671,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 SailEntropyKeyboard(
                   onType: _type,
                   showKeys: true,
-                  caption: 'Move your mouse over the keys',
+                  caption: 'Move your mouse as randomly as you can across this grid',
                   subCaption: _typed.length == 1 ? '1 character typed' : '${_typed.length} characters typed',
                 ),
               ],

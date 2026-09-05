@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,7 @@ const Duration entropyKeyRepeat = Duration(milliseconds: 50);
 
 /// SailEntropyKeyboard turns pointer movement into text. The pointer types the
 /// key it passes over, and that key repeats while the pointer rests on it.
+/// The layout is dealt by the OS CSPRNG at open; Shuffle deals a new one.
 ///
 /// [showKeys] draws the keys. Hidden keys still type, so both modes share one
 /// sampler and one character stream.
@@ -51,6 +53,9 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
 
   Timer? _repeat;
   String? _hovered;
+  // Random.secure reads the OS CSPRNG, the Dart equal of Go crypto/rand.
+  final Random _random = Random.secure();
+  late final List<String> _layout = entropyKeyboardChars.split('')..shuffle(_random);
 
   int get _rows => (entropyKeyboardChars.length / entropyKeyboardColumns).ceil();
 
@@ -95,10 +100,18 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
     final column = (x / (width / entropyKeyboardColumns)).floor();
     final row = (y / (height / _rows)).floor();
     final index = row * entropyKeyboardColumns + column;
-    if (index < 0 || index >= entropyKeyboardChars.length) {
+    if (index < 0 || index >= _layout.length) {
       return null;
     }
-    return entropyKeyboardChars[index];
+    return _layout[index];
+  }
+
+  // The pointer sits on the button during a press, so no key is hovered.
+  void _shuffle() {
+    setState(() {
+      _layout.shuffle(_random);
+      _hovered = null;
+    });
   }
 
   void _hover(PointerHoverEvent event, Size size) {
@@ -181,7 +194,23 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
           ),
         ],
         const SizedBox(height: 6),
-        SailText.secondary12(widget.subCaption ?? widget.caption),
+        Row(
+          children: [
+            Expanded(child: SailText.secondary12(widget.caption)),
+            if (widget.subCaption != null) ...[
+              const SizedBox(width: 12),
+              SailText.secondary12(widget.subCaption!),
+            ],
+            const SizedBox(width: 12),
+            SailButton(
+              label: 'Shuffle',
+              icon: SailSVGAsset.shuffle,
+              variant: ButtonVariant.secondary,
+              small: true,
+              onPressed: () async => _shuffle(),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -190,7 +219,7 @@ class _SailEntropyKeyboardState extends State<SailEntropyKeyboard> {
     if (index >= entropyKeyboardChars.length) {
       return const SizedBox.shrink();
     }
-    final char = entropyKeyboardChars[index];
+    final char = _layout[index];
     final hovered = char == _hovered;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _keyGap / 2),
