@@ -62,6 +62,9 @@ abstract class Sidechain extends Binary {
 
       case 'bbc':
         return Bbc();
+
+      case 'freebank':
+        return FreeBank();
     }
     return null;
   }
@@ -177,6 +180,18 @@ abstract class Sidechain extends Binary {
 
       case 'Big Block Covenant':
         return Bbc(
+          name: binary.name,
+          version: binary.version,
+          description: binary.description,
+          repoUrl: binary.repoUrl,
+          directories: binary.directories,
+          metadata: binary.metadata,
+          port: binary.port,
+          chainLayer: binary.chainLayer,
+        );
+
+      case 'FreeBank':
+        return FreeBank(
           name: binary.name,
           version: binary.version,
           description: binary.description,
@@ -317,6 +332,80 @@ class Bbc extends Sidechain {
     int? chainLayer,
     DownloadInfo? downloadInfo,
   }) => Bbc(
+    name: name,
+    version: version ?? this.version,
+    description: description ?? this.description,
+    repoUrl: repoUrl ?? this.repoUrl,
+    directories: directories ?? this.directories,
+    metadata: metadata ?? this.metadata,
+    port: port ?? this.port,
+    chainLayer: chainLayer ?? this.chainLayer,
+    downloadInfo: downloadInfo ?? this.downloadInfo,
+    extraBootArgs: extraBootArgs,
+  );
+}
+
+/// Credit-creation drivechain of Scottish free-banking lineage: discount houses
+/// issue redeemable notes and discount bills of exchange. A Bitcoin Core fork,
+/// Core-derived like Bbc, so it speaks Core-style JSON-RPC rather than the CUSF
+/// interface the Rust sidechains use.
+class FreeBank extends Sidechain {
+  FreeBank({
+    super.name = 'FreeBank',
+    super.version = 'latest',
+    super.description = 'Credit-creation drivechain (Scottish free-banking lineage)',
+    super.repoUrl = 'https://github.com/mbdrivechains/freebank',
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    super.port = 8454,
+    super.chainLayer = 2,
+    super.downloadInfo = const DownloadInfo(),
+    super.extraBootArgs = const [],
+  }) : super(
+         directories: directories ?? DirectoryConfig(binary: allPlatforms('freebank'), flutterFrontend: const {}),
+         metadata:
+             metadata ??
+             MetadataConfig(
+               downloadConfig: DownloadConfig(
+                 binary: 'freebankd',
+                 baseUrls: allNetworksUrl('https://api.github.com/repos/mbdrivechains/freebank/releases/latest'),
+
+                 // The release tag moves, so match the asset by its platform.
+                 files: allNetworks({
+                   OS.linux: r'freebank-[\d.]+-x86_64-linux-gnu\.tar\.gz',
+                   OS.macos: r'freebank-[\d.]+-arm64-apple-darwin\.tar\.gz',
+                 }),
+               ),
+               remoteTimestamp: null,
+               downloadedTimestamp: null,
+               binaryPath: null,
+               updateable: true,
+             ),
+       );
+
+  @override
+  int get slot => 130;
+
+  @override
+  BinaryType get type => BinaryType.BINARY_TYPE_FREEBANK;
+
+  @override
+  Color get color => Colors.orange;
+
+  @override
+  bool get developedByLayerTwoLabs => false;
+
+  @override
+  FreeBank copyWith({
+    String? version,
+    String? description,
+    String? repoUrl,
+    DirectoryConfig? directories,
+    MetadataConfig? metadata,
+    int? port,
+    int? chainLayer,
+    DownloadInfo? downloadInfo,
+  }) => FreeBank(
     name: name,
     version: version ?? this.version,
     description: description ?? this.description,
@@ -1047,6 +1136,7 @@ List<Binary> get sidechainBinaries => [
   resolveFromConfig(BinaryType.BINARY_TYPE_ZSIDE, () => ZSide()),
   resolveFromConfig(BinaryType.BINARY_TYPE_LIQUID_SIGNET, () => LiquidSignet()),
   resolveFromConfig(BinaryType.BINARY_TYPE_BBC, () => Bbc()),
+  resolveFromConfig(BinaryType.BINARY_TYPE_FREEBANK, () => FreeBank()),
 ];
 
 Binary resolveFromConfig(BinaryType type, Binary Function() fallback) {
