@@ -11,7 +11,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -106,7 +105,6 @@ func TestDeriveAndCheckAddressesIntegration(t *testing.T) {
 
 	server := &Server{
 		database:     nil, // Not needed for address derivation
-		data:         datasource.NewLocal(bitcoindService.Get, nil),
 		bitcoind:     bitcoindService,
 		walletEngine: walletEngine,
 		walletDir:    tempDir,
