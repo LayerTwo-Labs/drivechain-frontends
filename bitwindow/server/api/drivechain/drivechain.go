@@ -2,7 +2,6 @@ package api_drivechain
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"io"
 	"sync"
@@ -50,14 +49,12 @@ type proposalsCache struct {
 func New(
 	enforcer *service.Service[validatorrpc.ValidatorServiceClient],
 	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient],
-	db *sql.DB,
 	conf config.Config,
 	walletEngine *engines.WalletEngine,
 ) *Server {
 	s := &Server{
 		enforcer:         enforcer,
 		blockProducer:    blockProducer,
-		db:               db,
 		conf:             conf,
 		walletEngine:     walletEngine,
 		withdrawalCaches: make(map[uint32]*withdrawalCache),
@@ -68,7 +65,6 @@ func New(
 type Server struct {
 	enforcer      *service.Service[validatorrpc.ValidatorServiceClient]
 	blockProducer *service.Service[validatorrpc.BlockProducerServiceClient]
-	db            *sql.DB
 	conf          config.Config
 	walletEngine  *engines.WalletEngine
 

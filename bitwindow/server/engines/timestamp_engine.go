@@ -6,8 +6,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -372,19 +370,4 @@ func (e *TimestampEngine) VerifyTimestamp(ctx context.Context, fileData []byte, 
 		Msg("file timestamp verified")
 
 	return timestamp, nil
-}
-
-func HashFile(path string) (string, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return "", fmt.Errorf("open file: %w", err)
-	}
-	defer f.Close()
-
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", fmt.Errorf("hash file: %w", err)
-	}
-
-	return hex.EncodeToString(h.Sum(nil)), nil
 }

@@ -236,12 +236,12 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
 	// to current runtime via s.current at call time.
 	{
-		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Enforcer, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
+		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
 		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.db, conf, rt.walletEngine)
+		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, conf, rt.walletEngine)
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}

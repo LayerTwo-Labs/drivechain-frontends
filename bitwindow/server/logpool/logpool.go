@@ -10,7 +10,6 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/zerolog"
-	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -212,23 +211,4 @@ func (p *Pool) Wait(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func UnwrapErr(err error) []error {
-	if err == nil {
-		return nil
-	}
-
-	// Go has this weird hangup on not having standard error interfaces
-	// available. I don't understand this.
-	type unwrapable interface {
-		Unwrap() []error
-		Error() string
-	}
-
-	if multierr, ok := lo.ErrorsAs[unwrapable](err); ok && len(multierr.Unwrap()) > 1 {
-		return multierr.Unwrap()
-	}
-
-	return []error{err}
 }
