@@ -129,3 +129,30 @@ func TestIndexOverviewLeavesAQuietChainAlone(t *testing.T) {
 		t.Error("the row reads as something other than a transfer")
 	}
 }
+
+// An index and a node answer different shapes for one block. A user who
+// switches mode must never read one shape out of the other's entry.
+func TestBlockCacheKeepsEachSourceApart(t *testing.T) {
+	hash := "b43"
+	cache := newBlockCache()
+
+	light := source{name: "thunder", origin: "thunder:index:signet", cache: cache}
+	full := source{name: "thunder", origin: "thunder:node:signet", cache: cache}
+	other := source{name: "thunder", origin: "thunder:node:ecash", cache: cache}
+
+	cache.put(light.cacheKey(hash), &pb.Block{Hash: hash, FeesSats: 900, FeesKnown: true}, nil, true)
+
+	if _, _, _, ok := cache.get(full.cacheKey(hash)); ok {
+		t.Error("the node read an index block")
+	}
+	if _, _, _, ok := cache.get(other.cacheKey(hash)); ok {
+		t.Error("one network read another network's block")
+	}
+	held, _, _, ok := cache.get(light.cacheKey(hash))
+	if !ok {
+		t.Fatal("the index holds no block of its own")
+	}
+	if !held.GetFeesKnown() || held.GetFeesSats() != 900 {
+		t.Errorf("the index block reads %d sats, known %v", held.GetFeesSats(), held.GetFeesKnown())
+	}
+}

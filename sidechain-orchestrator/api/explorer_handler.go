@@ -67,14 +67,17 @@ type source struct {
 	// core is true for a chain built on Bitcoin Core. Such a node speaks
 	// Core's own method names, not the CUSF ones this file reads.
 	core bool
-	// cache holds the blocks already read, keyed by chain and hash.
+	// cache holds the blocks already read. An index and a node answer
+	// different shapes for one block, so each keeps its own entries.
 	cache *blockCache
+	// origin names the chain, the network and what answered for them.
+	origin string
 	// resolve names the mainchain block a header points at.
 	resolve func(ctx context.Context, blocks ...*pb.Block)
 }
 
-// cacheKey names one block of one chain.
-func (s source) cacheKey(hash string) string { return s.name + ":" + hash }
+// cacheKey names one block, as one source answered for it.
+func (s source) cacheKey(hash string) string { return s.origin + ":" + hash }
 
 // sourceFor picks the index when one is hosted, and the local node otherwise.
 func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
@@ -99,6 +102,7 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 		core:    cfg.IsBitcoinCore,
 		cache:   h.blocks,
 		resolve: h.resolveMainchain,
+		origin:  chain + ":node:" + string(network),
 	}
 	if cfg.Slot >= 0 && cfg.Slot <= 255 {
 		out.slot = uint32(cfg.Slot)
@@ -109,6 +113,7 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	if h.orch.NodeMode() == orchestrator.NodeModeLight {
 		if url := config.SidechainEsploraURLForNetwork(chain, network); url != "" {
 			out.index = sidechainesplora.New(url)
+			out.origin = chain + ":index:" + string(network)
 			return out, nil
 		}
 	}
