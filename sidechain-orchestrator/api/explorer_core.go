@@ -35,12 +35,21 @@ func coreOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 	}
 	out.TipHeight = uint32(count)
 
-	for height := count; height >= 0 && len(out.Blocks) < blockListSize; height-- {
+	for walked := 0; walked < activityScanDepth; walked++ {
+		if len(out.Blocks) >= blockListSize && len(out.Recent) >= activityListSize {
+			break
+		}
+		height := count - int64(walked)
+		if height < 0 {
+			break
+		}
 		block, activity, err := coreBlockAtHeight(ctx, src, uint32(height))
 		if err != nil {
 			return nil, err
 		}
-		out.Blocks = append(out.Blocks, block)
+		if len(out.Blocks) < blockListSize {
+			out.Blocks = append(out.Blocks, block)
+		}
 		for _, row := range activity {
 			if len(out.Recent) >= activityListSize {
 				break
@@ -67,6 +76,20 @@ func coreBlockAtHeight(ctx context.Context, src source, height uint32) (*pb.Bloc
 
 // coreBlockByHash reads one block from a Core derived node by its hash.
 func coreBlockByHash(ctx context.Context, src source, hash string) (*pb.Block, []*pb.Activity, error) {
+	key := src.cacheKey(hash)
+	if block, activity, _, ok := src.cache.get(key); ok {
+		return block, activity, nil
+	}
+	block, activity, err := readCoreBlock(ctx, src, hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	out, rows := src.cache.put(key, block, activity, true)
+	return out, rows, nil
+}
+
+// readCoreBlock asks the node for one block and what it carried.
+func readCoreBlock(ctx context.Context, src source, hash string) (*pb.Block, []*pb.Activity, error) {
 	raw, err := src.node.CallRaw(ctx, "getblock", []any{hash, 1})
 	if err != nil {
 		return nil, nil, connect.NewError(connect.CodeUnavailable, err)

@@ -100,6 +100,7 @@ class _Overview extends StatelessWidget {
         _RecentActivity(overview: overview, onOpen: onOpen),
         SailRow(
           spacing: SailStyleValues.padding16,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: overview.hasTreasury()
@@ -113,6 +114,7 @@ class _Overview extends StatelessWidget {
             Expanded(child: _PendingWithdrawalsCard(bundle: overview.pendingBundle)),
           ],
         ),
+        DepositsCard(rows: overview.recent.where((r) => r.kind == pb.Kind.KIND_DEPOSIT).toList()),
       ],
     );
   }
@@ -172,10 +174,11 @@ class _BlockStripState extends State<_BlockStrip> {
             mainchain: null,
             mainchainHash: '',
             color: colors.success,
+            amount: blockAmount(context, overview.mempool.feesSats.toInt()),
             lines: [
-              '${overview.mempool.txCount} in the mempool',
-              explorerAmount(context, overview.mempool.feesSats.toInt()),
-              'Not mined yet',
+              transactionCount(overview.mempool.txCount),
+              '',
+              'Waits for a bid',
             ],
           ),
           Container(width: 1, height: 120, color: colors.divider),
@@ -186,10 +189,11 @@ class _BlockStripState extends State<_BlockStrip> {
               mainchainHash: block.mainchainHash,
               color: colors.primary,
               onTap: () => onOpen(ExplorerTarget.block(hash: block.hash)),
+              amount: blockFigure(context, block),
               lines: [
-                '${block.txCount} ${block.txCount == 1 ? 'transaction' : 'transactions'}',
-                block.feesKnown ? explorerAmount(context, block.feesSats.toInt()) : 'Fees unknown',
-                block.sizeBytes != 0 ? '${block.sizeBytes} bytes' : 'Size unknown',
+                transactionCount(block.txCount),
+                block.depositCount != 0 ? '+${blockAmount(context, block.depositValueSats.toInt())} deposited' : '',
+                explorerAge(block.blockTime.toInt()),
               ],
             ),
         ],
@@ -203,6 +207,7 @@ class _BlockCard extends StatelessWidget {
   final String? mainchain;
   final String mainchainHash;
   final Color color;
+  final String amount;
   final List<String> lines;
   final VoidCallback? onTap;
 
@@ -211,6 +216,7 @@ class _BlockCard extends StatelessWidget {
     required this.mainchain,
     this.mainchainHash = '',
     required this.color,
+    required this.amount,
     required this.lines,
     this.onTap,
   });
@@ -239,7 +245,16 @@ class _BlockCard extends StatelessWidget {
                 spacing: 4,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  for (final line in lines) SailText.primary12(line, color: colors.background),
+                  SizedBox(
+                    height: 26,
+                    child: SailText.primary20(amount, bold: true, color: colors.background),
+                  ),
+                  // An empty line holds the slot, so every card reads level.
+                  for (final line in lines)
+                    SizedBox(
+                      height: 16,
+                      child: SailText.primary12(line, color: colors.background),
+                    ),
                 ],
               ),
             ),
@@ -297,7 +312,7 @@ class _RecentActivity extends StatelessWidget {
     final unconfirmed = rows.where((r) => !r.confirmed).length;
     return SailCard(
       title: 'Recent transactions',
-      subtitle: '${rows.length} latest · $unconfirmed unconfirmed',
+      subtitle: 'Latest ${rows.length} · $unconfirmed unconfirmed',
       child: SizedBox(
         height: 360,
         child: SailTable(
@@ -316,7 +331,7 @@ class _RecentActivity extends StatelessWidget {
               SailTableCell(value: '', child: kindBadge(row.kind)),
               SailTableCell(value: explorerAmount(context, row.valueSats.toInt())),
               SailTableCell(value: explorerAmount(context, row.feeSats.toInt())),
-              SailTableCell(value: row.confirmed ? 'Block ${row.blockHeight}' : 'Unconfirmed'),
+              SailTableCell(value: _statusOf(row)),
             ];
           },
           rowCount: rows.length,
@@ -335,6 +350,62 @@ class _RecentActivity extends StatelessWidget {
   }
 }
 
+/// DepositsCard lists what the mainchain paid into the chain. A deposit never
+/// sits in a block body, so a transaction list alone misses it.
+class DepositsCard extends StatelessWidget {
+  final List<pb.Activity> rows;
+  final String subtitle;
+
+  /// compact drops the block and the age, for a card that sits beside another
+  /// one on a page that already names the block.
+  final bool compact;
+
+  const DepositsCard({super.key, required this.rows, this.subtitle = '', this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = rows.fold<int>(0, (sum, row) => sum + row.valueSats.toInt());
+    final named = rows.any((row) => row.address.isNotEmpty);
+    return SailCard(
+      title: 'Deposits',
+      subtitle: subtitle.isNotEmpty
+          ? subtitle
+          : rows.isEmpty
+          ? 'None in the newest blocks'
+          : 'Latest ${rows.length} · ${blockAmount(context, total)}',
+      child: SizedBox(
+        height: rows.isEmpty ? 80 : 40.0 * rows.length + 40,
+        child: SailTable(
+          getRowId: (index) => rows[index].id,
+          headerBuilder: (context) => [
+            const SailTableHeaderCell(name: 'Mainchain transaction'),
+            if (named) const SailTableHeaderCell(name: 'Sidechain address'),
+            const SailTableHeaderCell(name: 'Amount'),
+            if (!compact) const SailTableHeaderCell(name: 'Block'),
+            if (!compact) const SailTableHeaderCell(name: 'Age'),
+          ],
+          rowBuilder: (context, index, selected) {
+            final row = rows[index];
+            return [
+              SailTableCell(value: _shorten(row.id), monospace: true),
+              if (named) SailTableCell(value: row.address, monospace: true),
+              SailTableCell(value: blockAmount(context, row.valueSats.toInt())),
+              if (!compact) SailTableCell(value: 'Block ${row.blockHeight}'),
+              if (!compact) SailTableCell(value: explorerAge(row.blockTime.toInt())),
+            ];
+          },
+          rowCount: rows.length,
+          drawGrid: false,
+          onDoubleTap: (rowId) async => launchUrl(
+            Uri.parse(mempoolTxUrl(rowId, GetIt.I.get<BitcoinConfProvider>().network)),
+          ),
+          emptyPlaceholder: 'No deposits yet',
+        ),
+      ),
+    );
+  }
+}
+
 class _TreasuryCard extends StatelessWidget {
   final pb.Treasury treasury;
 
@@ -345,15 +416,27 @@ class _TreasuryCard extends StatelessWidget {
     return SailCard(
       title: 'Treasury',
       subtitle: 'Slot ${treasury.slot} · activated at mainchain ${treasury.activationHeight}',
+      headerValue: blockAmount(context, treasury.balanceSats.toInt()),
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         children: [
-          _Field(label: 'Holds', value: explorerAmount(context, treasury.balanceSats.toInt())),
           _Field(label: 'CTIP', value: '${_shorten(treasury.ctipTxid)} : ${treasury.ctipVout}'),
         ],
       ),
     );
   }
+}
+
+/// _statusOf names the block a row sits in, and how long ago that was.
+String _statusOf(pb.Activity row) {
+  if (!row.confirmed) {
+    return 'Unconfirmed';
+  }
+  final age = explorerAge(row.blockTime.toInt());
+  if (age.isEmpty) {
+    return 'Block ${row.blockHeight}';
+  }
+  return 'Block ${row.blockHeight} · $age';
 }
 
 class _PendingWithdrawalsCard extends StatelessWidget {
@@ -372,14 +455,16 @@ class _PendingWithdrawalsCard extends StatelessWidget {
     }
     return SailCard(
       title: 'Pending withdrawals',
-      subtitle: bundle.heightCreated != 0
-          ? '${bundle.withdrawals.length} withdrawals · created at height ${bundle.heightCreated}'
-          : '${bundle.withdrawals.length} withdrawals',
+      headerValue: blockAmount(context, bundle.totalValueSats.toInt()),
+      subtitle: '${bundle.withdrawals.length} withdrawals · bundle ${bundle.totalWeight} / ${bundle.maxWeight}',
       child: SailColumn(
         spacing: SailStyleValues.padding08,
         children: [
-          _Field(label: 'Total amount', value: explorerAmount(context, bundle.totalValueSats.toInt())),
-          _Field(label: 'Bundle weight', value: '${bundle.totalWeight} / ${bundle.maxWeight}'),
+          _Field(
+            label: 'Total mainchain fees',
+            value: explorerAmount(context, bundle.totalMainFeesSats.toInt()),
+          ),
+          _Field(label: 'Height created', value: '${bundle.heightCreated}'),
         ],
       ),
     );
@@ -423,6 +508,52 @@ String explorerAmount(BuildContext context, int sats) {
     return '—';
   }
   return BitcoinFormatting.formatSatsWithUnit(context, sats);
+}
+
+/// blockAmount reads an amount on a block card, where a zero is a figure of
+/// its own rather than a missing value.
+String blockAmount(BuildContext context, int sats) {
+  return BitcoinFormatting.formatSatsWithUnit(context, sats);
+}
+
+/// blockFigure is what a block card states in large type: what the block
+/// moved, or what it collected. A source states one or the other, never both.
+String blockFigure(BuildContext context, pb.Block block) {
+  if (block.valueKnown) {
+    return blockAmount(context, block.valueSats.toInt());
+  }
+  if (block.feesKnown) {
+    return blockAmount(context, block.feesSats.toInt());
+  }
+  return '';
+}
+
+/// transactionCount names how many transactions a block carried.
+String transactionCount(int count) {
+  return switch (count) {
+    0 => 'No transactions',
+    1 => '1 transaction',
+    _ => '$count transactions',
+  };
+}
+
+/// explorerAge reads how long ago a block arrived. A sidechain header carries
+/// no clock, so the time comes from the mainchain block it names.
+String explorerAge(int unixSeconds) {
+  if (unixSeconds <= 0) {
+    return '';
+  }
+  final age = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(unixSeconds * 1000));
+  if (age.inMinutes < 1) {
+    return 'just now';
+  }
+  if (age.inMinutes < 60) {
+    return '${age.inMinutes} ${age.inMinutes == 1 ? 'minute' : 'minutes'} ago';
+  }
+  if (age.inHours < 24) {
+    return '${age.inHours} ${age.inHours == 1 ? 'hour' : 'hours'} ago';
+  }
+  return '${age.inDays} ${age.inDays == 1 ? 'day' : 'days'} ago';
 }
 
 /// kindBadge marks a row as a deposit, a withdrawal or a transfer. A reader
