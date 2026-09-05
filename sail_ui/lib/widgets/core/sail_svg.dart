@@ -1601,33 +1601,41 @@ class SailSVG {
     double? width,
     double? height,
     Color? color,
+    Alignment alignment = Alignment.center,
   }) {
     return Builder(
       builder: (context) {
         final colors = SailTheme.of(context).colors;
 
-        return SailSVG.fromAsset(
-          asset,
-          color: color ?? (coloredAssets.contains(asset) ? null : (isHighlighted ? colors.primary : colors.icon)),
-          width: width ?? SailStyleValues.iconSizePrimary,
-          height: height ?? SailStyleValues.iconSizePrimary,
+        return Align(
+          alignment: alignment,
+          child: SailSVG.fromAsset(
+            asset,
+            color: color ?? (coloredAssets.contains(asset) ? null : (isHighlighted ? colors.primary : colors.icon)),
+            width: width ?? SailStyleValues.iconSizePrimary,
+            height: height ?? SailStyleValues.iconSizePrimary,
+          ),
         );
       },
     );
   }
 
-  static SvgPicture fromAsset(
+  static Widget fromAsset(
     SailSVGAsset asset, {
     double? height,
     double? width,
     Color? color,
+    Alignment alignment = Alignment.center,
   }) {
-    return SvgPicture.asset(
-      asset.toAssetPath(),
-      package: 'sail_ui',
-      width: width,
-      colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
-      height: height,
+    return Align(
+      alignment: alignment,
+      child: SvgPicture.asset(
+        asset.toAssetPath(),
+        package: 'sail_ui',
+        width: width,
+        colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+        height: height,
+      ),
     );
   }
 
@@ -1636,13 +1644,17 @@ class SailSVG {
     double? width,
     double? height,
     BoxFit? fit,
+    Alignment alignment = Alignment.center,
   }) {
-    return Image.asset(
-      asset.toAssetPath(),
-      package: 'sail_ui',
-      width: width,
-      height: height,
-      fit: fit ?? BoxFit.contain,
+    return Align(
+      alignment: alignment,
+      child: Image.asset(
+        asset.toAssetPath(),
+        package: 'sail_ui',
+        width: width,
+        height: height,
+        fit: fit ?? BoxFit.contain,
+      ),
     );
   }
 }

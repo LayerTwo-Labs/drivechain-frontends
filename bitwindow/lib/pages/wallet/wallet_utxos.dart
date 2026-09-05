@@ -433,7 +433,11 @@ class _UTXOTableState extends State<UTXOTable> {
             getRowId: (index) => sortedEntries[index].output,
             headerBuilder: (context) => [
               SailTableHeaderCell(name: '', onSort: () => onSort('frozen')),
-              SailTableHeaderCell(name: 'Date', onSort: () => onSort('date')),
+              SailTableHeaderCell(
+                name: 'Date',
+                onSort: () => onSort('date'),
+                filterWidget: DateFilter(onPickedRange: (dateRange) => widget.model.addFilter(dateRange)),
+              ),
               SailTableHeaderCell(name: 'Output', onSort: () => onSort('output')),
               SailTableHeaderCell(name: 'Address', onSort: () => onSort('address')),
               SailTableHeaderCell(name: 'Path', onSort: () => onSort('path')),
@@ -449,17 +453,23 @@ class _UTXOTableState extends State<UTXOTable> {
 
               return [
                 SailTableCell(
+                  width: 14,
                   value: '',
                   child: isFrozen
-                      ? SailSVG.fromAsset(SailSVGAsset.snowflake, width: 14, color: theme.colors.info)
+                      ? SailSVG.icon(
+                          SailSVGAsset.snowflake,
+                          width: 14,
+                          color: theme.colors.info,
+                        )
                       : const SizedBox(width: 14),
                 ),
                 SailTableCell(
                   value: utxo.hasReceivedAt() ? formatDate(utxo.receivedAt.toDateTime().toLocal()) : '—',
                 ),
                 SailTableCell(
-                  value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
+                  value: '',
                   copyValue: utxo.output,
+                  child: UTXO.toView(utxo),
                 ),
                 SailTableCell(
                   value: utxo.address,
@@ -546,6 +556,14 @@ class _UTXOTableState extends State<UTXOTable> {
 class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
+  String sortColumn = 'date';
+  bool sortAscending = true;
+  ({DateTime end, DateTime start})? dateFilter;
+
+  LatestUTXOsViewModel() {
+    initChangeTracker();
+    _txProvider.addListener(_onChange);
+  }
 
   List<UnspentOutput> get entries {
     if (loading) {
@@ -567,16 +585,19 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
         ),
       ];
     }
+    var utxos = _txProvider.utxos.where((utxo) {
+      if (dateFilter != null) {
+        final start = DateTime(dateFilter!.start.year, dateFilter!.start.month, dateFilter!.start.day);
+        final end = DateTime(dateFilter!.end.year, dateFilter!.end.month, dateFilter!.end.day, 23, 59, 59);
 
-    return _txProvider.utxos.toList();
-  }
-
-  String sortColumn = 'date';
-  bool sortAscending = true;
-
-  LatestUTXOsViewModel() {
-    initChangeTracker();
-    _txProvider.addListener(_onChange);
+        final receivedAt = utxo.receivedAt.toDateTime();
+        if (receivedAt.isBefore(start) || receivedAt.isAfter(end)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+    return utxos;
   }
 
   void _onChange() {
@@ -591,6 +612,11 @@ class LatestUTXOsViewModel extends BaseViewModel with ChangeTrackingMixin {
   void dispose() {
     _txProvider.removeListener(_onChange);
     super.dispose();
+  }
+
+  void addFilter(({DateTime end, DateTime start})? range) {
+    dateFilter = range;
+    notifyListeners();
   }
 }
 
