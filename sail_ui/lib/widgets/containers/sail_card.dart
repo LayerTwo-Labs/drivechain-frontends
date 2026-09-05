@@ -21,6 +21,10 @@ class SailCard extends StatelessWidget {
   final String? titleTooltip;
   final String? subtitle;
   final String? error;
+
+  /// headerValue is the one figure the card is about, in large type under the
+  /// title.
+  final String? headerValue;
   final VoidCallback? onPressed;
   final bool padding;
   final bool bottomPadding;
@@ -44,6 +48,7 @@ class SailCard extends StatelessWidget {
     this.titleTooltip,
     this.subtitle,
     this.error,
+    this.headerValue,
     this.onPressed,
     this.padding = true,
     this.bottomPadding = true,
@@ -70,7 +75,12 @@ class SailCard extends StatelessWidget {
     );
   }
 
-  Widget _build(BuildContext context, SailThemeData theme, BorderRadius radius, bool boundedHeight) {
+  Widget _build(
+    BuildContext context,
+    SailThemeData theme,
+    BorderRadius radius,
+    bool boundedHeight,
+  ) {
     return SelectionArea(
       child: SailShadow(
         shadowSize: shadowSize,
@@ -84,7 +94,10 @@ class SailCard extends StatelessWidget {
                     border: Border(
                       top: BorderSide(color: theme.colors.border, width: 1.0),
                       right: BorderSide(color: theme.colors.border, width: 1.0),
-                      bottom: BorderSide(color: theme.colors.border, width: 1.0),
+                      bottom: BorderSide(
+                        color: theme.colors.border,
+                        width: 1.0,
+                      ),
                       left: BorderSide(
                         color: selected ? theme.colors.primary : theme.colors.border,
                         width: selected ? 2.0 : 1.0,
@@ -159,6 +172,8 @@ class SailCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (theme.chrome.beveled && title != null && headerValue != null)
+                            SailText.primary22(headerValue!, bold: true),
                           if (theme.chrome.beveled && title != null && (subtitle != null || error != null))
                             SailText.primary12(
                               error ?? subtitle!,
@@ -179,6 +194,7 @@ class SailCard extends StatelessWidget {
                                       titleTooltip: titleTooltip,
                                       subtitle: subtitle,
                                       error: error,
+                                      headerValue: headerValue,
                                     ),
                                   ),
                                   SailRow(
@@ -193,7 +209,9 @@ class SailCard extends StatelessWidget {
                                             icon: SailSVGAsset.iconNewWindow,
                                             onPressed: () async {
                                               final windowProvider = GetIt.I.get<WindowProvider>();
-                                              await windowProvider.open(newWindow!);
+                                              await windowProvider.open(
+                                                newWindow!,
+                                              );
                                             },
                                           ),
                                         ),
