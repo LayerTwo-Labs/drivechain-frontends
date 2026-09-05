@@ -32,6 +32,16 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
+List<String> _drawnKeys(WidgetTester tester) {
+  return tester
+      .widgetList<Text>(
+        find.descendant(of: find.byKey(const Key('mouse-entropy-pad')), matching: find.byType(Text)),
+      )
+      .map((t) => t.data ?? '')
+      .where((s) => s.length == 1)
+      .toList();
+}
+
 Future<TestGesture> _enter(WidgetTester tester, Offset at) async {
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
   await gesture.addPointer(location: at);
@@ -67,17 +77,41 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('a shown board draws every key and highlights the one under the pointer', (tester) async {
+  testWidgets('a shown board draws every key and types the drawn key under the pointer', (tester) async {
     final typed = <String>[];
     await _pump(tester, typed, showKeys: true);
 
     for (final char in ['!', 'A', 'z', '~']) {
       expect(find.text(char), findsOneWidget, reason: 'the board draws $char');
     }
+    final drawn = _drawnKeys(tester);
+    expect(drawn.toSet(), hasLength(94));
 
     final pad = find.byKey(const Key('mouse-entropy-pad'));
     await _enter(tester, tester.getTopLeft(pad) + const Offset(14, 14));
-    expect(typed, ['!'], reason: 'the first key sits at the top left');
+    expect(typed, [drawn.first], reason: 'the pointer types the key drawn at the top left');
+  });
+
+  testWidgets('the board opens with a shuffled layout', (tester) async {
+    await _pump(tester, <String>[], showKeys: true);
+
+    final drawn = _drawnKeys(tester);
+    expect(drawn.toSet(), hasLength(94));
+    expect(drawn.join(), isNot(entropyKeyboardChars), reason: 'the shuffle moves the keys');
+  });
+
+  testWidgets('the Shuffle button deals a new layout', (tester) async {
+    final typed = <String>[];
+    await _pump(tester, typed, showKeys: true);
+    final before = _drawnKeys(tester).join();
+
+    await tester.tap(find.widgetWithText(SailButton, 'Shuffle').first);
+    await tester.pump();
+
+    final after = _drawnKeys(tester).join();
+    expect(after, isNot(before));
+    expect(after.split('').toSet(), hasLength(94));
+    expect(typed, isEmpty, reason: 'the button types nothing');
   });
 
   testWidgets('a key repeats while the pointer rests on it', (tester) async {
