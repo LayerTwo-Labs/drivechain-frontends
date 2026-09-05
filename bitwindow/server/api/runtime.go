@@ -51,7 +51,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/walletpsbt/v1/walletpsbtv1connect"
 
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
 	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
@@ -233,23 +232,16 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 	// every handler). Disabled automatically when no cookie exists.
 	stdOpts := []connect.HandlerOption{connect.WithInterceptors(logInterceptor(), localauth.Interceptor(s.svcs.BitwindowDir))}
 
-	// Read-only data source: every handler reads chain/drivechain data through
-	// this interface instead of the raw clients. The per-call getters pick local
-	// Core/enforcer clients, or — when the active wallet is electrum (no local
-	// Core or enforcer) — a hosted, read-only orchestrator. Because the choice
-	// is per call, switching wallet type re-routes without rebuilding the runtime.
-	dataSource := s.buildDataSource(conf)
-
 	// bitwindowd — UpdateNetwork captured here calls back into Server.Recycle,
 	// which builds a fresh Runtime. Method value is bound to s, late-binds
 	// to current runtime via s.current at call time.
 	{
-		bwSvc := api_bitwindowd.New(dataSource, s.onShutdown, rt.db, s.Enforcer, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
+		bwSvc := api_bitwindowd.New(s.onShutdown, rt.db, s.Enforcer, s.Bitcoind, rt.walletEngine, conf, s.Recycle)
 		path, h := bitwindowdv1connect.NewBitwindowdServiceHandler(bwSvc, stdOpts...)
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(dataSource, s.BlockProducer, rt.db, conf, rt.walletEngine)
+		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.db, conf, rt.walletEngine)
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}
@@ -269,7 +261,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 				return err
 			}
 		}
-		walletSvcImpl := api_wallet.New(ctx, rt.db, dataSource, s.Bitcoind, s.Crypto, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
+		walletSvcImpl := api_wallet.New(ctx, rt.db, s.Bitcoind, s.Crypto, rt.chequeEngine, rt.chequeChain, rt.walletEngine, rt.walletDir, restartL1)
 		path, h := walletv1connect.NewWalletServiceHandler(walletSvcImpl, stdOpts...)
 		register(path, h)
 	}
@@ -325,7 +317,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	// Enforcer bridge — single impl serves three separate services
-	enforcerSvc := api_enforcer.New(dataSource, s.Enforcer, s.Crypto, s.BlockProducer, s.Mining, rt.walletEngine)
+	enforcerSvc := api_enforcer.New(s.Enforcer, s.Crypto, s.BlockProducer, s.Mining, rt.walletEngine)
 	{
 		path, h := validatorrpc.NewValidatorServiceHandler(enforcerSvc, stdOpts...)
 		register(path, h)
@@ -465,12 +457,6 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 	if err := zmqEngine.Run(ctx); err != nil && ctx.Err() == nil {
 		log.Error().Err(err).Msg("ZMQ engine exited with error")
 	}
-}
-
-// buildDataSource wires the read-only DataSource. Chain and drivechain reads
-// come from the local Bitcoin Core and the local enforcer.
-func (s *Server) buildDataSource(config.Config) datasource.DataSource {
-	return datasource.NewLocal(s.Bitcoind.Get, s.Enforcer.Get)
 }
 
 func dialZmqEngine(ctx context.Context, conf config.Config) (*engines.ZMQ, error) {

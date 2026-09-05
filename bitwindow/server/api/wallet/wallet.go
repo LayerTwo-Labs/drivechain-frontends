@@ -27,7 +27,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/wallet"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/datasource"
 	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	cryptov1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
@@ -55,7 +54,6 @@ var _ rpc.WalletServiceHandler = new(Server)
 func New(
 	ctx context.Context,
 	database *sql.DB,
-	data datasource.DataSource,
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	crypto *service.Service[cryptorpc.CryptoServiceClient],
 	chequeEngine *engines.ChequeEngine,
@@ -67,7 +65,6 @@ func New(
 	s := &Server{
 		database:     database,
 		chequeChain:  chequeChain,
-		data:         data,
 		bitcoind:     bitcoind,
 		crypto:       crypto,
 		chequeEngine: chequeEngine,
@@ -85,7 +82,6 @@ func New(
 
 type Server struct {
 	database     *sql.DB
-	data         datasource.DataSource
 	bitcoind     *service.Service[corerpc.BitcoinServiceClient]
 	crypto       *service.Service[cryptorpc.CryptoServiceClient]
 	chequeEngine *engines.ChequeEngine
@@ -386,18 +382,23 @@ func (s *Server) deriveAndCheckAddresses(ctx context.Context, walletId string) (
 		return "", nil, fmt.Errorf("get wallet name: %w", err)
 	}
 
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return "", nil, fmt.Errorf("bitcoind: %w", err)
+	}
+
 	// Get all transactions once to avoid repeated RPC calls
-	txResp, err := s.data.ListWalletTransactions(ctx, &corepb.ListTransactionsRequest{
+	txResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
 		Wallet: walletName,
 		Count:  1000, // Check recent transactions
-	})
+	}))
 	if err != nil {
 		return "", nil, fmt.Errorf("list transactions: %w", err)
 	}
 
 	// Build a map of used addresses for fast lookup
 	usedAddresses := make(map[string]bool)
-	for _, tx := range txResp.Transactions {
+	for _, tx := range txResp.Msg.Transactions {
 		for _, detail := range tx.Details {
 			usedAddresses[detail.Address] = true
 		}
@@ -678,10 +679,15 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 		return nil, fmt.Errorf("get Bitcoin Core wallet: %w", err)
 	}
 
-	txsResp, err := s.data.ListWalletTransactions(ctx, &corepb.ListTransactionsRequest{
+	bitcoind, err := s.bitcoind.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("bitcoind: %w", err)
+	}
+
+	txsResp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
 		Wallet: coreWalletName,
 		Count:  1000, // Get last 1000 transactions
-	})
+	}))
 	if err != nil {
 		return nil, fmt.Errorf("bitcoin core list transactions: %w", err)
 	}
@@ -712,7 +718,7 @@ func (s *Server) ListTransactions(ctx context.Context, c *connect.Request[pb.Lis
 
 	// Group transactions by txid to combine amounts
 	txMap := make(map[string]*pb.WalletTransaction)
-	for _, tx := range txsResp.Transactions {
+	for _, tx := range txsResp.Msg.Transactions {
 		existing, found := txMap[tx.Txid]
 		if !found {
 			var confirmation *pb.Confirmation
@@ -2325,14 +2331,14 @@ func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeReque
 	}
 
 	// Get the list of loaded wallets to find one that owns this transaction
-	listResp, err := s.data.ListWallets(ctx, &emptypb.Empty{})
+	listResp, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
 	if err != nil {
 		return nil, fmt.Errorf("list wallets: %w", err)
 	}
 
 	// Try each wallet until one successfully bumps the fee
 	var bumpResp *connect.Response[corepb.BumpFeeResponse]
-	for _, walletName := range listResp.Wallets {
+	for _, walletName := range listResp.Msg.Wallets {
 		resp, err := bitcoind.BumpFee(ctx, connect.NewRequest(&corepb.BumpFeeRequest{
 			Wallet: walletName,
 			Txid:   txid,

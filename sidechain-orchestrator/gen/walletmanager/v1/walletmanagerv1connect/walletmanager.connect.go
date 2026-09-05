@@ -271,7 +271,7 @@ type WalletManagerServiceClient interface {
 	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest]) (*connect.ServerStreamForClient[v1.RestoreWalletBackupProgressResponse], error)
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
 	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
-	// Core or enforcer runs — chain data is served remotely via the datasource.
+	// Core or enforcer runs. The wallet reads its chain from Esplora.
 	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
 	CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error)
 	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard
@@ -1238,7 +1238,7 @@ type WalletManagerServiceHandler interface {
 	RestoreWalletBackupStream(context.Context, *connect.Request[v1.RestoreWalletBackupRequest], *connect.ServerStream[v1.RestoreWalletBackupProgressResponse]) error
 	CreateWatchOnlyWallet(context.Context, *connect.Request[v1.CreateWatchOnlyWalletRequest]) (*connect.Response[v1.CreateWatchOnlyWalletResponse], error)
 	// Create an electrum wallet: keys are generated locally, but no local Bitcoin
-	// Core or enforcer runs — chain data is served remotely via the datasource.
+	// Core or enforcer runs. The wallet reads its chain from Esplora.
 	CreateElectrumWallet(context.Context, *connect.Request[v1.CreateElectrumWalletRequest]) (*connect.Response[v1.CreateElectrumWalletResponse], error)
 	CreateMultisigWallet(context.Context, *connect.Request[v1.CreateMultisigWalletRequest]) (*connect.Response[v1.CreateMultisigWalletResponse], error)
 	// ParseMultisigConfig parses a descriptor or a wallet-config file (Coldcard

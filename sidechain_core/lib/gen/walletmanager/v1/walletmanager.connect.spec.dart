@@ -157,7 +157,7 @@ abstract final class WalletManagerService {
   );
 
   /// Create an electrum wallet: keys are generated locally, but no local Bitcoin
-  /// Core or enforcer runs — chain data is served remotely via the datasource.
+  /// Core or enforcer runs. The wallet reads its chain from Esplora.
   static const createElectrumWallet = connect.Spec(
     '/$name/CreateElectrumWallet',
     connect.StreamType.unary,
