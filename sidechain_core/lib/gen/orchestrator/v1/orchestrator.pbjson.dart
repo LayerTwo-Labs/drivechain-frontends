@@ -56,6 +56,7 @@ const BinaryType$json = {
     {'1': 'BINARY_TYPE_ZSIDED', '2': 13},
     {'1': 'BINARY_TYPE_LIQUID_SIGNET', '2': 14},
     {'1': 'BINARY_TYPE_BBC', '2': 15},
+    {'1': 'BINARY_TYPE_FREEBANK', '2': 16},
   ],
 };
 
@@ -68,7 +69,8 @@ final $typed_data.Uint8List binaryTypeDescriptor = $convert.base64Decode(
     'EhkKFUJJTkFSWV9UWVBFX1RSVVRIQ09JThAIEhYKEkJJTkFSWV9UWVBFX1BIT1RPThAJEhkKFU'
     'JJTkFSWV9UWVBFX0NPSU5TSElGVBAKEhcKE0JJTkFSWV9UWVBFX0dSUENVUkwQCxIbChdCSU5B'
     'UllfVFlQRV9EUklWRUNIQUlORBAMEhYKEkJJTkFSWV9UWVBFX1pTSURFRBANEh0KGUJJTkFSWV'
-    '9UWVBFX0xJUVVJRF9TSUdORVQQDhITCg9CSU5BUllfVFlQRV9CQkMQDw==');
+    '9UWVBFX0xJUVVJRF9TSUdORVQQDhITCg9CSU5BUllfVFlQRV9CQkMQDxIYChRCSU5BUllfVFlQ'
+    'RV9GUkVFQkFOSxAQ');
 
 @$core.Deprecated('Use deletionTypeDescriptor instead')
 const DeletionType$json = {
