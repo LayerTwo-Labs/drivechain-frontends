@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -827,6 +827,48 @@
             "macos-x86_64": "L2-S1-BBC-.+-x86_64-apple-darwin\\.zip",
             "macos-arm64": "L2-S1-BBC-.+-arm64-apple-darwin\\.zip",
             "windows-x86_64": "L2-S1-BBC-.+-x86_64-w64-msvc\\.zip"
+          }
+        }
+      },
+      "hashes": {}
+    },
+    "freebank": {
+      "type": "sidechain",
+      "slot": 130,
+      "name": "FreeBank",
+      "version": "latest",
+      "description": "Credit-creation drivechain (Scottish free-banking lineage).",
+      "repo_url": "https://github.com/mbdrivechains/freebank",
+      "port": 8454,
+      "chain_layer": 2,
+      "is_bitcoin_core": true,
+      "legacy_wallet": true,
+      "pins_mainchain": true,
+      "color": "orange",
+      "health_check": {
+        "type": "tcp"
+      },
+      "dependencies": ["bitcoind", "enforcer"],
+      "startup_log_patterns": ["Done loading"],
+      "directories": {
+        "binary": {
+          "default": {
+            "linux": ".freebank",
+            "macos": "FreeBank",
+            "windows": "FreeBank"
+          }
+        },
+        "flutter_frontend": {}
+      },
+      "download": {
+        "binary": "freebankd",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/mbdrivechains/freebank/releases/latest",
+            "linux-x86_64": "freebank-[\\d.]+-x86_64-linux-gnu\\.tar\\.gz",
+            "macos-x86_64": "",
+            "macos-arm64": "freebank-[\\d.]+-arm64-apple-darwin\\.tar\\.gz",
+            "windows-x86_64": ""
           }
         }
       },
