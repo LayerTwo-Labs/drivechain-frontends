@@ -57,6 +57,7 @@ export 'widgets/chips/action_header_chip.dart';
 export 'widgets/chips/connection_error_chip.dart';
 export 'widgets/chips/connection_success_chip.dart';
 export 'widgets/components/bullet_point.dart';
+export 'widgets/components/entropy_keyboard.dart';
 export 'widgets/components/mnemonic_grid.dart';
 export 'widgets/components/progress_step_tile.dart';
 export 'widgets/components/sail_badge.dart';
