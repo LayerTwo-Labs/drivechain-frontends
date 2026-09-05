@@ -35,6 +35,8 @@ type jsonBinaryConf struct {
 	Color       string `json:"color"`
 
 	IsBitcoinCore bool `json:"is_bitcoin_core"`
+	LegacyWallet  bool `json:"legacy_wallet"`
+	PinsMainchain bool `json:"pins_mainchain"`
 
 	HealthCheck *struct {
 		Type      string `json:"type"`
@@ -245,6 +247,7 @@ var jsonKeyToName = map[string]string{
 	"coinshift":   "coinshift",
 	"zside":       "zside",
 	"bbc":         "bbc",
+	"freebank":    "freebank",
 }
 
 func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
@@ -263,6 +266,8 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		ChainLayer:         jb.ChainLayer,
 		Slot:               jb.Slot,
 		IsBitcoinCore:      jb.IsBitcoinCore,
+		LegacyWallet:       jb.LegacyWallet,
+		PinsMainchain:      jb.PinsMainchain,
 		Dependencies:       jb.Dependencies,
 		StartupLogPatterns: jb.StartupLogPatterns,
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -567,6 +568,8 @@ func binaryTypeFromName(name string) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_BITWINDOWD
 	case "bbc":
 		return pb.BinaryType_BINARY_TYPE_BBC
+	case "freebank":
+		return pb.BinaryType_BINARY_TYPE_FREEBANK
 	case "thunder":
 		return pb.BinaryType_BINARY_TYPE_THUNDER
 	case "zside":
@@ -656,6 +659,8 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 		return "coinshift", "CoinShift", nil
 	case pb.BinaryType_BINARY_TYPE_BBC:
 		return "bbc", "Big Block Covenant", nil
+	case pb.BinaryType_BINARY_TYPE_FREEBANK:
+		return "freebank", "FreeBank", nil
 	default:
 		return "", "", fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
@@ -727,6 +732,13 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryTyp
 		}
 		confirmed, pending := balanceFromTotalAvailable(total, available)
 		return confirmed, pending, nil
+	case pb.BinaryType_BINARY_TYPE_FREEBANK:
+		total, available, err := freebank.NewClient("localhost", port, h.freebankCookiePath()).GetBalance(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		confirmed, pending := balanceFromTotalAvailable(total, available)
+		return confirmed, pending, nil
 	default:
 		return 0, 0, fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
@@ -736,6 +748,12 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryTyp
 func (h *Handler) bbcCookiePath() string {
 	network := config.NetworkFromString(h.orch.CurrentNetwork())
 	return filepath.Join(config.BbcDirs.DatadirNetwork(network, ""), ".cookie")
+}
+
+// freebankCookiePath is the .cookie the node writes into its datadir.
+func (h *Handler) freebankCookiePath() string {
+	network := config.NetworkFromString(h.orch.CurrentNetwork())
+	return filepath.Join(config.FreebankDirs.DatadirNetwork(network, ""), ".cookie")
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {
@@ -810,6 +828,8 @@ func resetBinaryFromType(t pb.BinaryType) orchestrator.ResetBinary {
 		return orchestrator.ResetBinaryZSided
 	case pb.BinaryType_BINARY_TYPE_BBC:
 		return orchestrator.ResetBinaryBbc
+	case pb.BinaryType_BINARY_TYPE_FREEBANK:
+		return orchestrator.ResetBinaryFreebank
 	default:
 		return orchestrator.ResetBinaryUnknown
 	}
@@ -845,6 +865,8 @@ func binaryTypeFromResetBinary(binary orchestrator.ResetBinary) pb.BinaryType {
 		return pb.BinaryType_BINARY_TYPE_ZSIDED
 	case orchestrator.ResetBinaryBbc:
 		return pb.BinaryType_BINARY_TYPE_BBC
+	case orchestrator.ResetBinaryFreebank:
+		return pb.BinaryType_BINARY_TYPE_FREEBANK
 	default:
 		return pb.BinaryType_BINARY_TYPE_UNSPECIFIED
 	}

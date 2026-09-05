@@ -1043,6 +1043,12 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
+	if cfg.LegacyWallet {
+		// A pre-descriptor Core fork has no createwallet/importdescriptors;
+		// it keeps the wallet it creates itself.
+		o.log.Info().Str("binary", cfg.Name).Msg("legacy wallet: skipping mnemonic-derived wallet provisioning")
+		return nil
+	}
 	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
 	if err != nil {
 		return fmt.Errorf("sidechain starter: %w", err)
@@ -1213,10 +1219,59 @@ func (o *Orchestrator) injectHeadlessForForcedBackend(config BinaryConfig, opts 
 	if !opts.ForceBackend || config.ChainLayer != 2 {
 		return
 	}
+	// --headless is a Rust-backend flag; a Core-derived daemon exits on it.
+	if config.IsBitcoinCore {
+		return
+	}
 	if slices.Contains(opts.TargetArgs, "--headless") {
 		return
 	}
 	opts.TargetArgs = append(opts.TargetArgs, "--headless")
+}
+
+// injectCoreForkMainchainArgs hands a Core-fork sidechain the L1 REST port, grpcurl path
+// and the fork-block identity pin it boots with, read from the running L1.
+func (o *Orchestrator) injectCoreForkMainchainArgs(ctx context.Context, cfg BinaryConfig, opts *StartOpts) error {
+	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || !cfg.PinsMainchain {
+		return nil
+	}
+	network := config.Network(o.Network)
+	forkHeight := config.PublishedForkHeight(network)
+	if network == config.NetworkRegtest || forkHeight <= 0 {
+		return fmt.Errorf("%s runs on eCash: the %s network has no published fork height to pin", cfg.DisplayName, o.Network)
+	}
+	if o.BitcoinConf == nil {
+		return fmt.Errorf("%s needs the mainchain REST port from bitwindow-bitcoin.conf, which failed to load", cfg.DisplayName)
+	}
+	opts.TargetArgs = append(opts.TargetArgs,
+		"-mainchaintransport=enforcer",
+		fmt.Sprintf("-mainchainrest=%s:%d", o.BitcoinConf.GetRPCHost(), o.BitcoinConf.GetRPCPort()),
+	)
+	if grpcurl := BinaryPath(o.DataDir, "grpcurl"); fileExists(grpcurl) {
+		opts.TargetArgs = append(opts.TargetArgs, "-grpcurlbin="+grpcurl)
+	} else {
+		o.log.Warn().Str("binary", cfg.Name).Str("path", grpcurl).
+			Msg("grpcurl not downloaded yet; the sidechain will look for it on PATH")
+	}
+	client, err := o.CoreStatusClient()
+	if err != nil {
+		return fmt.Errorf("%s needs the fork block hash from the mainchain, whose RPC is unavailable: %w", cfg.DisplayName, err)
+	}
+	raw, err := client.call(ctx, "getblockhash", forkHeight)
+	if err != nil {
+		return fmt.Errorf("the mainchain has not reached the %s fork height %d yet: %w", cfg.DisplayName, forkHeight, err)
+	}
+	var hash string
+	if err := json.Unmarshal(raw, &hash); err != nil {
+		return fmt.Errorf("could not decode the fork block hash for %s: %w", cfg.DisplayName, err)
+	}
+	opts.TargetArgs = append(opts.TargetArgs,
+		"-mainchainchain=main",
+		fmt.Sprintf("-mainchainblockpin=%d:%s", forkHeight, hash),
+	)
+	o.log.Info().Str("binary", cfg.Name).Int("fork_height", forkHeight).Str("fork_hash", hash).
+		Msg("injected core-fork mainchain identity pin")
+	return nil
 }
 
 // startBitcoindOnly handles the bitcoind portion of a chain boot.
@@ -1732,6 +1787,12 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 			return
 		}
 		ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
+		return
+	}
+
+	// A Core-fork sidechain boots with its L1 pin, read from the running mainchain.
+	if err := o.injectCoreForkMainchainArgs(ctx, config, &opts); err != nil {
+		failBoot(targetMon, ch, "configure "+config.Name, err)
 		return
 	}
 
@@ -4010,4 +4071,10 @@ func orderForShutdown(names []string) []string {
 		}
 	}
 	return result
+}
+
+// fileExists reports whether path names an existing file.
+func fileExists(path string) bool {
+	st, err := os.Stat(path)
+	return err == nil && !st.IsDir()
 }
