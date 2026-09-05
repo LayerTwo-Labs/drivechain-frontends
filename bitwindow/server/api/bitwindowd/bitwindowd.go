@@ -31,7 +31,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/utils/bandwidth"
-	validatorrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	wmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -54,7 +53,6 @@ var _ rpc.BitwindowdServiceHandler = new(Server)
 func New(
 	onShutdown func(ctx context.Context),
 	db *sql.DB,
-	validator *service.Service[validatorrpc.ValidatorServiceClient],
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
 	config config.Config,
@@ -63,7 +61,6 @@ func New(
 	s := &Server{
 		onShutdown:       onShutdown,
 		db:               db,
-		validator:        validator,
 		bitcoind:         bitcoind,
 		walletEngine:     walletEngine,
 		bandwidthTracker: bandwidth.NewTracker(),
@@ -77,7 +74,6 @@ func New(
 type Server struct {
 	onShutdown       func(ctx context.Context)
 	db               *sql.DB
-	validator        *service.Service[validatorrpc.ValidatorServiceClient]
 	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine     *engines.WalletEngine
 	bandwidthTracker *bandwidth.Tracker
