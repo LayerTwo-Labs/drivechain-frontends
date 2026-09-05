@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
@@ -183,5 +184,76 @@ func TestFindBidIgnoresAValueBearingM8(t *testing.T) {
 	}
 	if bid.GetTxid() != "61d66813" {
 		t.Errorf("the bid is %s, want 61d66813", bid.GetTxid())
+	}
+}
+
+// A sidechain block connects when a miner takes its M8, which is the block
+// after the one the header names. Those two can be hours apart, so the age
+// reads from the carrier.
+func TestResolveMainchainReadsTheCarrierTime(t *testing.T) {
+	const parent = "0000000000000000c75265fa0f8f610411b7f7363d737a3189f81f7b40355e06"
+	const carrier = "00000000000000009563c32a953b8a55ed4e6bc23ab4f0078d04651142442497"
+
+	var asked int
+	handler := &ExplorerHandler{mainchain: newMainchainCache()}
+	handler.SetCoreCaller(func(_ context.Context, method, params, _ string) (json.RawMessage, error) {
+		if method != "getblockheader" {
+			return nil, fmt.Errorf("no answer for %s", method)
+		}
+		asked++
+		if strings.Contains(params, parent) {
+			return json.RawMessage(fmt.Sprintf(
+				`{"height":996816,"time":1000,"nextblockhash":%q}`, carrier)), nil
+		}
+		return json.RawMessage(`{"height":996817,"time":9581}`), nil
+	})
+
+	block := &pb.Block{Hash: liveSidechainHash, MainchainHash: parent}
+	handler.resolveMainchain(context.Background(), block)
+
+	if got := block.GetMainchainHeight(); got != 996816 {
+		t.Errorf("the header names block %d, want 996816", got)
+	}
+	if got := block.GetBlockTime(); got != 9581 {
+		t.Errorf("the block connected at %d, want the carrier time 9581", got)
+	}
+
+	// A second block on the same parent answers from the cache.
+	asked = 0
+	again := &pb.Block{Hash: "bb", MainchainHash: parent}
+	handler.resolveMainchain(context.Background(), again)
+	if asked != 0 {
+		t.Errorf("the second read asked bitcoind %d times, want 0", asked)
+	}
+	if again.GetBlockTime() != 9581 {
+		t.Errorf("the cached time reads %d, want 9581", again.GetBlockTime())
+	}
+}
+
+// A parent with no block after it carries no M8 yet, so the page reads it
+// again rather than holding a time of zero.
+func TestResolveMainchainRetriesAParentWithNoCarrier(t *testing.T) {
+	const parent = "0000000000000000c75265fa0f8f610411b7f7363d737a3189f81f7b40355e06"
+
+	var asked int
+	handler := &ExplorerHandler{mainchain: newMainchainCache()}
+	handler.SetCoreCaller(func(_ context.Context, method, params, _ string) (json.RawMessage, error) {
+		asked++
+		return json.RawMessage(`{"height":996816,"time":1000}`), nil
+	})
+
+	block := &pb.Block{Hash: liveSidechainHash, MainchainHash: parent}
+	handler.resolveMainchain(context.Background(), block)
+	if block.GetMainchainHeight() != 996816 {
+		t.Errorf("the header names block %d, want 996816", block.GetMainchainHeight())
+	}
+	if block.GetBlockTime() != 0 {
+		t.Errorf("a block with no carrier states a time of %d", block.GetBlockTime())
+	}
+
+	asked = 0
+	handler.resolveMainchain(context.Background(), &pb.Block{Hash: "bb", MainchainHash: parent})
+	if asked == 0 {
+		t.Error("the page cached a parent that carries no M8 yet")
 	}
 }

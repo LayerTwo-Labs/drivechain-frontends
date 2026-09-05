@@ -48,10 +48,11 @@ func (h *ExplorerHandler) resolveBid(ctx context.Context, slot uint32, block *pb
 	if block == nil || block.GetBid() != nil || block.GetMainchainHash() == "" {
 		return
 	}
-	carrier, err := h.nextMainchainHash(ctx, block.GetMainchainHash())
-	if err != nil || carrier == "" {
+	parent, err := h.mainchainHeader(ctx, block.GetMainchainHash())
+	if err != nil || parent.NextBlockHash == "" {
 		return
 	}
+	carrier := parent.NextBlockHash
 	raw, err := h.coreCall(ctx, "getblock", fmt.Sprintf("[%q,3]", carrier))
 	if err != nil {
 		return
@@ -63,19 +64,24 @@ func (h *ExplorerHandler) resolveBid(ctx context.Context, slot uint32, block *pb
 	block.Bid = findBid(mined, uint8(slot), block.GetHash(), block.GetMainchainHash())
 }
 
-// nextMainchainHash names the block that follows one mainchain block.
-func (h *ExplorerHandler) nextMainchainHash(ctx context.Context, hash string) (string, error) {
+// mainchainHeaderJSON is what getblockheader answers.
+type mainchainHeaderJSON struct {
+	Height        uint32 `json:"height"`
+	Time          int64  `json:"time"`
+	NextBlockHash string `json:"nextblockhash"`
+}
+
+// mainchainHeader reads one mainchain block header.
+func (h *ExplorerHandler) mainchainHeader(ctx context.Context, hash string) (mainchainHeaderJSON, error) {
 	raw, err := h.coreCall(ctx, "getblockheader", fmt.Sprintf("[%q]", hash))
 	if err != nil {
-		return "", err
+		return mainchainHeaderJSON{}, err
 	}
-	var header struct {
-		NextBlockHash string `json:"nextblockhash"`
-	}
+	var header mainchainHeaderJSON
 	if err := json.Unmarshal(raw, &header); err != nil {
-		return "", fmt.Errorf("read the mainchain header %s: %w", hash, err)
+		return mainchainHeaderJSON{}, fmt.Errorf("read the mainchain header %s: %w", hash, err)
 	}
-	return header.NextBlockHash, nil
+	return header, nil
 }
 
 // findBid picks the M8 in a mainchain block that commits to one sidechain

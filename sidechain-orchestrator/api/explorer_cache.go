@@ -80,27 +80,29 @@ func copyBlock(held cachedBlock) (*pb.Block, []*pb.Activity) {
 	return proto.Clone(held.block).(*pb.Block), rows
 }
 
-// mainchainHeader is the height and the time of one mainchain block.
-type mainchainHeader struct {
-	height uint32
-	time   int64
+// mainchainAnchor is what the mainchain says about one sidechain header.
+type mainchainAnchor struct {
+	// parentHeight is the block the header names, which a bid was built on.
+	parentHeight uint32
+	// minedAt is the time of the block after that one. A miner takes the M8
+	// there, so that is when the sidechain block connected.
+	minedAt int64
 }
 
-// mainchainCache holds those, because a mainchain header never changes and
-// only the enforcer answers for it.
+// mainchainCache holds those, because a mainchain header never changes.
 type mainchainCache struct {
 	mu    sync.Mutex
-	rows  map[string]mainchainHeader
+	rows  map[string]mainchainAnchor
 	order []string
 }
 
 func newMainchainCache() *mainchainCache {
-	return &mainchainCache{rows: map[string]mainchainHeader{}}
+	return &mainchainCache{rows: map[string]mainchainAnchor{}}
 }
 
-func (c *mainchainCache) get(hash string) (mainchainHeader, bool) {
+func (c *mainchainCache) get(hash string) (mainchainAnchor, bool) {
 	if c == nil {
-		return mainchainHeader{}, false
+		return mainchainAnchor{}, false
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -108,7 +110,7 @@ func (c *mainchainCache) get(hash string) (mainchainHeader, bool) {
 	return held, ok
 }
 
-func (c *mainchainCache) put(hash string, held mainchainHeader) {
+func (c *mainchainCache) put(hash string, held mainchainAnchor) {
 	if c == nil {
 		return
 	}
@@ -124,35 +126,69 @@ func (c *mainchainCache) put(hash string, held mainchainHeader) {
 	c.rows[hash] = held
 }
 
-// mainchainHeaderFor names the mainchain block a sidechain header points at. A
-// sidechain header carries no clock, so the block time comes from there too.
-func (h *ExplorerHandler) mainchainHeaderFor(ctx context.Context, hash string) (mainchainHeader, bool) {
+// anchorFor names the mainchain block a sidechain header points at, and the
+// time the block after it connected the sidechain block. A sidechain header
+// carries no clock of its own.
+func (h *ExplorerHandler) anchorFor(ctx context.Context, hash string) (mainchainAnchor, bool) {
 	if hash == "" {
-		return mainchainHeader{}, false
+		return mainchainAnchor{}, false
 	}
 	if held, ok := h.mainchain.get(hash); ok {
 		return held, true
 	}
+	held, ok := h.anchorFromCore(ctx, hash)
+	if !ok {
+		held, ok = h.anchorFromEnforcer(ctx, hash)
+	}
+	if !ok {
+		return mainchainAnchor{}, false
+	}
+	// A parent with no block after it carries no M8 yet, so read it again.
+	if held.minedAt != 0 {
+		h.mainchain.put(hash, held)
+	}
+	return held, true
+}
+
+// anchorFromCore reads the parent and the block that followed it.
+func (h *ExplorerHandler) anchorFromCore(ctx context.Context, hash string) (mainchainAnchor, bool) {
+	parent, err := h.mainchainHeader(ctx, hash)
+	if err != nil {
+		return mainchainAnchor{}, false
+	}
+	out := mainchainAnchor{parentHeight: parent.Height}
+	if parent.NextBlockHash == "" {
+		return out, true
+	}
+	carrier, err := h.mainchainHeader(ctx, parent.NextBlockHash)
+	if err != nil {
+		return out, true
+	}
+	out.minedAt = carrier.Time
+	return out, true
+}
+
+// anchorFromEnforcer answers for an install that runs no bitcoind. It names
+// the parent's own time, which is the earliest the block can have connected.
+func (h *ExplorerHandler) anchorFromEnforcer(ctx context.Context, hash string) (mainchainAnchor, bool) {
 	validator, err := h.orch.EnforcerValidator()
 	if err != nil {
-		return mainchainHeader{}, false
+		return mainchainAnchor{}, false
 	}
 	resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(
 		&enforcerpb.GetBlockHeaderInfoRequest{
 			BlockHash: &commonv1.ReverseHex{Hex: wrapperspb.String(hash)},
 		}))
 	if err != nil {
-		return mainchainHeader{}, false
+		return mainchainAnchor{}, false
 	}
 	for _, info := range resp.Msg.GetHeaderInfos() {
-		held := mainchainHeader{height: info.GetHeight(), time: int64(info.GetTimestamp())}
-		h.mainchain.put(hash, held)
-		return held, true
+		return mainchainAnchor{parentHeight: info.GetHeight(), minedAt: int64(info.GetTimestamp())}, true
 	}
-	return mainchainHeader{}, false
+	return mainchainAnchor{}, false
 }
 
-// resolveMainchain fills in the height and the time a block header points at.
+// resolveMainchain fills in the block a header names, and when it connected.
 func (h *ExplorerHandler) resolveMainchain(ctx context.Context, blocks ...*pb.Block) {
 	for _, block := range blocks {
 		if block == nil || block.GetMainchainHash() == "" {
@@ -161,11 +197,11 @@ func (h *ExplorerHandler) resolveMainchain(ctx context.Context, blocks ...*pb.Bl
 		if block.GetMainchainHeight() != 0 && block.GetBlockTime() != 0 {
 			continue
 		}
-		held, ok := h.mainchainHeaderFor(ctx, block.GetMainchainHash())
+		held, ok := h.anchorFor(ctx, block.GetMainchainHash())
 		if !ok {
 			continue
 		}
-		block.MainchainHeight = held.height
-		block.BlockTime = held.time
+		block.MainchainHeight = held.parentHeight
+		block.BlockTime = held.minedAt
 	}
 }
