@@ -32,6 +32,10 @@ func (h *ExplorerHandler) ListBlocks(
 			return nil, connect.NewError(connect.CodeUnavailable, err)
 		}
 		out.Blocks = blockList(rows)
+		if len(out.Blocks) > limit {
+			out.Blocks = out.Blocks[:limit]
+		}
+		fillIndexBlockDeposits(ctx, src, out.Blocks)
 	} else {
 		out.Blocks, err = nodeBlocksBefore(ctx, src, req.Msg.GetBeforeHeight(), limit)
 		if err != nil {
@@ -41,7 +45,7 @@ func (h *ExplorerHandler) ListBlocks(
 	if len(out.Blocks) > limit {
 		out.Blocks = out.Blocks[:limit]
 	}
-	h.resolveMainchainHeights(ctx, out.GetBlocks())
+	h.resolveMainchain(ctx, out.GetBlocks()...)
 	return connect.NewResponse(out), nil
 }
 

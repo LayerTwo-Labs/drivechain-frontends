@@ -12,7 +12,6 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
@@ -23,7 +22,11 @@ import (
 const blockListSize = 6
 
 // activityListSize is how many rows the overview carries.
-const activityListSize = 12
+const activityListSize = 10
+
+// activityScanDepth is how far down the chain the overview walks for those
+// rows. A chain that saw nothing lately still lists what it did last.
+const activityScanDepth = 500
 
 // Bundle weights, as the chain sizes a withdrawal bundle.
 const (
@@ -38,12 +41,20 @@ const (
 // from its own chain. No sidechain node keeps an address history, so the
 // address call needs an index either way.
 type ExplorerHandler struct {
-	orch *orchestrator.Orchestrator
+	orch      *orchestrator.Orchestrator
+	blocks    *blockCache
+	mainchain *mainchainCache
+	// core reads bitcoind, for the BMM bid a block was mined by.
+	core CoreRawCaller
 }
 
 // NewExplorerHandler builds the handler.
 func NewExplorerHandler(orch *orchestrator.Orchestrator) *ExplorerHandler {
-	return &ExplorerHandler{orch: orch}
+	return &ExplorerHandler{
+		orch:      orch,
+		blocks:    newBlockCache(),
+		mainchain: newMainchainCache(),
+	}
 }
 
 // source is where one chain's explorer reads from. Exactly one of index and
@@ -56,7 +67,14 @@ type source struct {
 	// core is true for a chain built on Bitcoin Core. Such a node speaks
 	// Core's own method names, not the CUSF ones this file reads.
 	core bool
+	// cache holds the blocks already read, keyed by chain and hash.
+	cache *blockCache
+	// resolve names the mainchain block a header points at.
+	resolve func(ctx context.Context, blocks ...*pb.Block)
 }
+
+// cacheKey names one block of one chain.
+func (s source) cacheKey(hash string) string { return s.name + ":" + hash }
 
 // sourceFor picks the index when one is hosted, and the local node otherwise.
 func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
@@ -76,7 +94,12 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	}
 	network := config.NetworkFromString(h.orch.CurrentNetwork())
 
-	out := source{name: chain, core: cfg.IsBitcoinCore}
+	out := source{
+		name:    chain,
+		core:    cfg.IsBitcoinCore,
+		cache:   h.blocks,
+		resolve: h.resolveMainchain,
+	}
 	if cfg.Slot >= 0 && cfg.Slot <= 255 {
 		out.slot = uint32(cfg.Slot)
 	}
@@ -119,7 +142,7 @@ func (h *ExplorerHandler) GetOverview(
 	if out.GetTreasury() == nil {
 		out.Treasury = h.enforcerTreasury(ctx, src.slot)
 	}
-	h.resolveMainchainHeights(ctx, out.GetBlocks())
+	h.resolveMainchain(ctx, out.GetBlocks()...)
 	return connect.NewResponse(out), nil
 }
 
@@ -162,7 +185,33 @@ func indexOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, er
 	if state, err := src.index.Withdrawals(ctx); err == nil {
 		out.PendingBundle = parseBundle(state.Bundle)
 	}
+	fillIndexDeposits(ctx, src, out)
 	return out, nil
+}
+
+// fillIndexDeposits states what each block on the strip took from the
+// mainchain. An index gives no per block total, so the page reads the block's
+// own rows. A block never changes, so it costs one read ever.
+func fillIndexDeposits(ctx context.Context, src source, out *pb.GetOverviewResponse) {
+	fillIndexBlockDeposits(ctx, src, out.GetBlocks())
+}
+
+// fillIndexBlockDeposits states what each block took from the mainchain.
+func fillIndexBlockDeposits(ctx context.Context, src source, blocks []*pb.Block) {
+	for _, block := range blocks {
+		key := src.cacheKey(block.GetHash())
+		if held, _, _, ok := src.cache.get(key); ok {
+			block.DepositCount = held.GetDepositCount()
+			block.DepositValueSats = held.GetDepositValueSats()
+			continue
+		}
+		rows, err := src.index.BlockActivity(ctx, block.GetHash())
+		if err != nil {
+			continue
+		}
+		countDeposits(block, activityList(rows))
+		src.cache.put(key, block, activityList(rows), true)
+	}
 }
 
 func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, error) {
@@ -187,19 +236,59 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 			fmt.Errorf("read the tip hash: %w", err))
 	}
 
-	for height := int64(tip); height >= 0 && next != "" && len(out.Blocks) < blockListSize; height-- {
-		block, activity, err := nodeBlock(ctx, src, next, uint32(height))
+	// The walk reads far more blocks than the page keeps. Only a kept block,
+	// or one that carried a row, costs a mainchain lookup.
+	type carried struct {
+		block *pb.Block
+		rows  []*pb.Activity
+	}
+	var contributors []carried
+
+	deep := true
+	for walked := 0; walked < activityScanDepth && next != ""; walked++ {
+		if len(out.Blocks) >= blockListSize && (!deep || len(out.Recent) >= activityListSize) {
+			break
+		}
+		height := int64(tip) - int64(walked)
+		if height < 0 {
+			break
+		}
+		block, activity, named, err := walkBlock(ctx, src, next, uint32(height))
 		if err != nil {
 			return nil, err
 		}
-		out.Blocks = append(out.Blocks, block)
+		// A node that serves no block index names no row, whatever the walk
+		// reads. The strip is all such a chain can answer.
+		if !named {
+			deep = false
+		}
+		kept := len(out.Blocks) < blockListSize
+		if kept {
+			out.Blocks = append(out.Blocks, block)
+		}
+		var taken []*pb.Activity
 		for _, row := range activity {
 			if len(out.Recent) >= activityListSize {
 				break
 			}
 			out.Recent = append(out.Recent, row)
+			taken = append(taken, row)
+		}
+		if kept || len(taken) != 0 {
+			contributors = append(contributors, carried{block: block, rows: taken})
 		}
 		next = block.GetPrevHash()
+	}
+
+	if src.resolve != nil {
+		blocks := make([]*pb.Block, 0, len(contributors))
+		for _, one := range contributors {
+			blocks = append(blocks, one.block)
+		}
+		src.resolve(ctx, blocks...)
+		for _, one := range contributors {
+			stampRows(one.block, one.rows)
+		}
 	}
 
 	// The template is what the node would mine next, so its body is the
@@ -254,33 +343,6 @@ func (h *ExplorerHandler) enforcerTreasury(ctx context.Context, slot uint32) *pb
 	return out
 }
 
-// resolveMainchainHeights names the mainchain block each header points at. A
-// hash alone tells a reader nothing, and only the enforcer holds the height.
-func (h *ExplorerHandler) resolveMainchainHeights(ctx context.Context, blocks []*pb.Block) {
-	validator, err := h.orch.EnforcerValidator()
-	if err != nil {
-		return
-	}
-	for _, block := range blocks {
-		if block.GetMainchainHeight() != 0 || block.GetMainchainHash() == "" {
-			continue
-		}
-		resp, err := validator.GetBlockHeaderInfo(ctx, connect.NewRequest(
-			&enforcerpb.GetBlockHeaderInfoRequest{
-				BlockHash: &commonv1.ReverseHex{
-					Hex: wrapperspb.String(block.GetMainchainHash()),
-				},
-			}))
-		if err != nil {
-			return
-		}
-		for _, info := range resp.Msg.GetHeaderInfos() {
-			block.MainchainHeight = info.GetHeight()
-			break
-		}
-	}
-}
-
 // GetBlock reads one block and what it carried.
 func (h *ExplorerHandler) GetBlock(
 	ctx context.Context, req *connect.Request[pb.GetBlockRequest],
@@ -307,9 +369,10 @@ func (h *ExplorerHandler) GetBlock(
 		if err != nil {
 			return nil, connect.NewError(connect.CodeUnavailable, err)
 		}
-		return connect.NewResponse(&pb.GetBlockResponse{
-			Block: newBlock(block), Activity: activityList(rows),
-		}), nil
+		out := &pb.GetBlockResponse{Block: newBlock(block), Activity: activityList(rows)}
+		countDeposits(out.Block, out.Activity)
+		h.resolveBid(ctx, src.slot, out.Block)
+		return connect.NewResponse(out), nil
 	}
 
 	if src.core {
@@ -344,8 +407,25 @@ func (h *ExplorerHandler) GetBlock(
 	if err != nil {
 		return nil, err
 	}
-	h.resolveMainchainHeights(ctx, []*pb.Block{block})
+	h.resolveMainchain(ctx, block)
+	stampRows(block, activity)
+	h.resolveBid(ctx, src.slot, block)
 	return connect.NewResponse(&pb.GetBlockResponse{Block: block, Activity: activity}), nil
+}
+
+// countDeposits fills in what a block took from the mainchain, for a source
+// that lists the rows but states no total.
+func countDeposits(block *pb.Block, rows []*pb.Activity) {
+	if block == nil || block.GetDepositCount() != 0 {
+		return
+	}
+	for _, row := range rows {
+		if row.GetKind() != pb.Kind_KIND_DEPOSIT {
+			continue
+		}
+		block.DepositCount++
+		block.DepositValueSats += row.GetValueSats()
+	}
 }
 
 // GetTransaction reads one transaction.
@@ -669,9 +749,43 @@ type nodeBlockIndex struct {
 		Txid string `json:"txid"`
 		Size uint64 `json:"size"`
 	} `json:"txs"`
-	Deposits []struct {
-		Outpoint string `json:"outpoint"`
-	} `json:"deposits"`
+	Deposits []nodeDeposit `json:"deposits"`
+}
+
+// nodeDeposit is one deposit the mainchain paid into a block.
+type nodeDeposit struct {
+	Outpoint  string
+	Address   string
+	ValueSats int64
+}
+
+// UnmarshalJSON reads the pair a node writes: the mainchain outpoint, then the
+// sidechain output it created.
+func (d *nodeDeposit) UnmarshalJSON(raw []byte) error {
+	var pair []json.RawMessage
+	if err := json.Unmarshal(raw, &pair); err != nil {
+		return fmt.Errorf("read the deposit pair: %w", err)
+	}
+	if len(pair) != 2 {
+		return fmt.Errorf("a deposit holds an outpoint and an output, got %d parts", len(pair))
+	}
+	var outpoint struct {
+		Deposit string `json:"Deposit"`
+	}
+	if err := json.Unmarshal(pair[0], &outpoint); err != nil {
+		return fmt.Errorf("read the deposit outpoint: %w", err)
+	}
+	var output struct {
+		Address string          `json:"address"`
+		Content json.RawMessage `json:"content"`
+	}
+	if err := json.Unmarshal(pair[1], &output); err != nil {
+		return fmt.Errorf("read the deposit output: %w", err)
+	}
+	d.Outpoint = outpoint.Deposit
+	d.Address = output.Address
+	d.ValueSats = contentValue(output.Content)
+	return nil
 }
 
 // nodeHeader reads one block header from the node.
@@ -697,11 +811,67 @@ func nodeHeader(ctx context.Context, src source, hash string) (nodeHeaderJSON, e
 // nodeBlock reads one block from the node, with the rows it carried. A node
 // computes no fees, so every fee reads zero.
 func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb.Block, []*pb.Activity, error) {
+	block, activity, _, err := walkBlock(ctx, src, hash, height)
+	return block, activity, err
+}
+
+// walkBlock reads one block, and says whether the node named the rows. A node
+// that serves no block index names none, and no deeper walk finds any.
+func walkBlock(
+	ctx context.Context, src source, hash string, height uint32,
+) (*pb.Block, []*pb.Activity, bool, error) {
+	key := src.cacheKey(hash)
+	out, activity, ownHeight, ok := src.cache.get(key)
+	if !ok {
+		read, rows, state, err := readNodeBlock(ctx, src, hash, height)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		// A node that failed to answer the index named no row. Caching that
+		// leaves the block empty even after the node recovers.
+		if !state.complete {
+			return read, rows, false, nil
+		}
+		ownHeight = state.ownHeight
+		out, activity = src.cache.put(key, read, rows, state.ownHeight)
+	}
+	// A node that names no height takes the caller's. That one comes from the
+	// tip count, which can move between two calls, so it is never cacheable.
+	if !ownHeight {
+		out.Height = height
+		for _, row := range activity {
+			row.BlockHeight = height
+		}
+	}
+	return out, activity, true, nil
+}
+
+// stampRows gives every row the time of the block that carried it. A
+// sidechain header holds no clock, so that time comes from the mainchain.
+func stampRows(block *pb.Block, rows []*pb.Activity) {
+	for _, row := range rows {
+		row.BlockTime = block.GetBlockTime()
+	}
+}
+
+// nodeRead says what a node answered for one block.
+type nodeRead struct {
+	// complete is true when the node named the rows the block carried.
+	complete bool
+	// ownHeight is true when the node named the height itself.
+	ownHeight bool
+}
+
+// readNodeBlock asks the node for one block and what it carried.
+func readNodeBlock(
+	ctx context.Context, src source, hash string, height uint32,
+) (*pb.Block, []*pb.Activity, nodeRead, error) {
 	block, err := nodeHeader(ctx, src, hash)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nodeRead{}, err
 	}
 
+	state := nodeRead{ownHeight: block.Height != nil}
 	if block.Height != nil {
 		height = *block.Height
 	}
@@ -711,6 +881,7 @@ func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb
 		MerkleRoot:    block.merkleRoot(),
 		MainchainHash: block.prevMainHash(),
 		TxCount:       uint32(len(block.transactions())),
+		ValueKnown:    true,
 	}
 	if prev := block.prevSideHash(); prev != nil {
 		out.PrevHash = *prev
@@ -720,11 +891,12 @@ func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb
 	// it still answers the header, and the block then lists no transactions.
 	rawIndex, err := src.node.CallRaw(ctx, "get_block_index", []string{hash})
 	if err != nil {
-		return blockValueFromBody(out, block), nil, nil
+		return blockValueFromBody(out, block), nil, state, nil
 	}
 	var index nodeBlockIndex
 	if err := json.Unmarshal(rawIndex, &index); err != nil {
-		return blockValueFromBody(out, block), nil, nil
+		return nil, nil, state, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("read the block index of %s: %w", hash, err))
 	}
 
 	// The block index names the txids in body order, so a transaction pairs
@@ -747,14 +919,19 @@ func nodeBlock(ctx context.Context, src source, hash string, height uint32) (*pb
 		activity = append(activity, row)
 	}
 	for _, deposit := range index.Deposits {
+		out.DepositCount++
+		out.DepositValueSats += deposit.ValueSats
 		activity = append(activity, &pb.Activity{
 			Kind:        pb.Kind_KIND_DEPOSIT,
 			Id:          depositTxid(deposit.Outpoint),
+			Address:     deposit.Address,
+			ValueSats:   deposit.ValueSats,
 			Confirmed:   true,
 			BlockHeight: height,
 		})
 	}
-	return out, activity, nil
+	state.complete = true
+	return out, activity, state, nil
 }
 
 // blockValueFromBody sums what a block paid out. Only get_block_index names

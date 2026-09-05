@@ -62,6 +62,28 @@ message Block {
   bool fees_known = 11;
   // value_sats is what the block's transactions paid out together.
   int64 value_sats = 12;
+  // value_known is false when the source cannot compute it. A hosted index
+  // states the fees a block collected, and never the value it moved.
+  bool value_known = 20;
+  // deposit_count and deposit_value_sats name what the mainchain paid into
+  // this block. A deposit never sits in the block body.
+  uint32 deposit_count = 13;
+  int64 deposit_value_sats = 14;
+  // bid names the winning BMM bid on the mainchain: the outpoint that carried
+  // the M8, and what it paid.
+  Bid bid = 15;
+}
+
+// Bid is the M8 a miner took to mine one sidechain block.
+message Bid {
+  string txid = 1;
+  uint32 vout = 2;
+  // sats is the fee the bid paid.
+  int64 sats = 3;
+  // block_hash and block_height name the mainchain block that carried the M8.
+  // That block is the child of the block the header names.
+  string block_hash = 4;
+  uint32 block_height = 5;
 }
 
 // Activity is one thing that happened on the chain.
@@ -75,6 +97,9 @@ message Activity {
   bool confirmed = 6;
   uint32 block_height = 7;
   int64 block_time = 8;
+  // address is the sidechain address a deposit paid. It is empty on every
+  // other kind.
+  string address = 9;
 }
 
 // Coin is one input or one output.
