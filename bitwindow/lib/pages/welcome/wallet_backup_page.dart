@@ -1,7 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -50,12 +50,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   int _deriveId = 0;
   String? _error;
 
-  final List<int> _mouseSamples = [];
-  int _collectedSamples = 0;
-  final StringBuffer _pendingHex = StringBuffer();
+  /// _typed is every character the keyboard produced. Both modes read it:
+  /// paranoid mode sends it as the source text, and normal mode sends its
+  /// bytes beside the entropy the backend mints.
+  final StringBuffer _typed = StringBuffer();
   Timer? _deriveDebounce;
-  bool _mouseEntropy = true;
-  int _paranoidSamples = 0;
   static const int _sampleTarget = 256;
 
   @override
@@ -94,9 +93,10 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
       // The fresh hex replaces the whole field, so earlier samples are gone
       // and the count must say so.
       _deriveDebounce?.cancel();
-      _pendingHex.clear();
-      setState(() => _paranoidSamples = 0);
       _entropy.text = (wallet['entropy_hex'] as String?) ?? '';
+      _typed
+        ..clear()
+        ..write(_entropy.text);
       await _derive(_entropy.text);
     } catch (e) {
       if (mounted) {
@@ -117,7 +117,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         const [],
         wordCount: _wordCount,
         doNotSave: true,
-        extraEntropy: _mouseSamples,
+        extraEntropy: utf8.encode(_typed.toString()),
       );
       if (!mounted || id != _deriveId) {
         return;
@@ -168,9 +168,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
         return;
       }
       final mnemonic = (wallet['mnemonic'] as String?) ?? '';
-      // Samples that wait for the debounce keep the words hidden, so every
-      // visible word always comes from the full field text.
-      final settled = _pendingHex.isEmpty && !(_deriveDebounce?.isActive ?? false);
+      // A key that waits for the debounce keeps the words hidden, so every
+      // visible word always comes from the whole field text.
+      final settled = !(_deriveDebounce?.isActive ?? false);
       setState(() {
         _words = settled ? mnemonic.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList() : [];
         _error = mnemonic.isEmpty ? 'Failed to derive a seed from that entropy' : null;
@@ -187,67 +187,28 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     }
   }
 
-  void _collectSample(PointerHoverEvent event) {
-    final t = DateTime.now().microsecondsSinceEpoch;
-    setState(() {
-      _collectedSamples++;
-      _mouseSamples.addAll([
-        event.position.dx.round() & 0xff,
-        event.position.dy.round() & 0xff,
-        t & 0xff,
-        (t >> 8) & 0xff,
-      ]);
-      // The fold keeps memory flat; the collection itself never stops.
-      if (_mouseSamples.length >= 4096) {
-        final digest = sha256.convert(_mouseSamples).bytes;
-        _mouseSamples
-          ..clear()
-          ..addAll(digest);
-      }
-    });
-  }
-
-  // Each move appends hex to the field, so the visible text stays the only
-  // entropy source in paranoid mode. The derive waits for a pause, so a fast
-  // mouse does not flood the backend.
-  void _paranoidSample(PointerHoverEvent event) {
-    final t = DateTime.now().microsecondsSinceEpoch;
-    final byte = (event.position.dx.round() ^ event.position.dy.round() ^ t) & 0xff;
-    _pendingHex.write(byte.toRadixString(16).padLeft(2, '0'));
-    // The old words are stale from the first sample, so the clear holds the
-    // copy and create buttons shut until the derive lands. The id bump drops
-    // responses from derives that are already in flight.
-    _deriveId++;
-    setState(() {
-      _paranoidSamples++;
-      _words = [];
-    });
-    if (_pendingHex.length >= 16) {
-      _entropy.text += _pendingHex.toString();
-      _pendingHex.clear();
+  /// _type takes one character the keyboard produced. It is the only place a
+  /// sample enters, whatever mode the page runs in.
+  void _type(String char) {
+    _typed.write(char);
+    if (!_paranoid) {
+      setState(() {});
+      return;
     }
+    _entropy.text = _typed.toString();
+    // The words on screen are stale from the first key, so the clear holds
+    // the copy and create buttons shut until the derive lands. The id bump
+    // drops the answers of derives that are already in flight.
+    _deriveId++;
+    setState(() => _words = []);
     _scheduleDerive();
   }
 
   void _scheduleDerive() {
     _deriveDebounce?.cancel();
     _deriveDebounce = Timer(const Duration(milliseconds: 250), () {
-      if (_pendingHex.isNotEmpty) {
-        _entropy.text += _pendingHex.toString();
-        _pendingHex.clear();
-        setState(() {});
-      }
       unawaited(_derive(_entropy.text));
     });
-  }
-
-  void _flushPendingHex() {
-    if (_pendingHex.isEmpty) {
-      return;
-    }
-    setState(() => _entropy.text += _pendingHex.toString());
-    _pendingHex.clear();
-    _scheduleDerive();
   }
 
   Future<void> _finishCollect() async {
@@ -305,7 +266,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
   List<String> _split(String value) =>
       value.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
 
-  void _fill(List<TextEditingController> fields, int start, List<String> words) {
+  void _fill(
+    List<TextEditingController> fields,
+    int start,
+    List<String> words,
+  ) {
     for (var i = 0; i < words.length && start + i < fields.length; i++) {
       fields[start + i].text = words[i];
     }
@@ -353,7 +318,10 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
 
   void _finishImport() {
     Navigator.of(context).pop(
-      SeedBackup(_importedWords.join(' '), _wantPassphrase ? _passphrase.text : ''),
+      SeedBackup(
+        _importedWords.join(' '),
+        _wantPassphrase ? _passphrase.text : '',
+      ),
     );
   }
 
@@ -469,7 +437,11 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 Row(
                   children: [
                     if (warn) ...[
-                      SailSVG.icon(SailSVGAsset.iconWarning, width: 20, color: theme.colors.orange),
+                      SailSVG.icon(
+                        SailSVGAsset.iconWarning,
+                        width: 20,
+                        color: theme.colors.orange,
+                      ),
                       const SizedBox(width: 8),
                     ],
                     Expanded(child: SailText.primary16(title, bold: true)),
@@ -505,7 +477,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     final ambient = SailTheme.of(context);
     return SailTheme(
       data: _paranoid
-          ? SailThemeData.darkTheme(ambient.colors.primary, ambient.dense, ambient.font, ambient.style)
+          ? SailThemeData.darkTheme(
+              ambient.colors.primary,
+              ambient.dense,
+              ambient.font,
+              ambient.style,
+            )
           : ambient,
       child: Builder(builder: _scaffold),
     );
@@ -532,7 +509,10 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 40,
+                ),
                 child: Center(
                   child: SizedBox(
                     width: 900,
@@ -578,12 +558,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.primary16('Mouse Entropy', bold: true),
-              SailText.secondary13('Your movements add more randomness to your seed.'),
+              SailText.secondary13(
+                'Your movements add more randomness to your seed.',
+              ),
               const SizedBox(height: 16),
-              _capturePad(
-                context,
-                height: 320,
-                onHover: _collectSample,
+              SailEntropyKeyboard(
+                onType: _type,
                 caption: 'Move your mouse as randomly as you can inside this box',
               ),
               const SizedBox(height: 16),
@@ -591,7 +571,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 children: [
                   Expanded(child: _progressBar(context)),
                   const SizedBox(width: 12),
-                  SailText.secondary12(_collectedSamples == 1 ? '1 sample' : '$_collectedSamples samples'),
+                  SailText.secondary12(
+                    _typed.length == 1 ? '1 sample' : '${_typed.length} samples',
+                  ),
                 ],
               ),
             ],
@@ -601,44 +583,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
     );
   }
 
-  Widget _capturePad(
-    BuildContext context, {
-    required double height,
-    required void Function(PointerHoverEvent) onHover,
-    required String caption,
-    String? subCaption,
-    void Function(PointerExitEvent)? onExit,
-  }) {
-    final theme = SailTheme.of(context);
-    return MouseRegion(
-      key: const Key('mouse-entropy-pad'),
-      onHover: onHover,
-      onExit: onExit,
-      child: Container(
-        height: height,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: theme.colors.backgroundSecondary,
-          borderRadius: SailStyleValues.borderRadius,
-          border: Border.all(color: theme.colors.border),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SailText.secondary13(caption),
-            if (subCaption != null) ...[
-              const SizedBox(height: 6),
-              SailText.secondary12(subCaption),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _progressBar(BuildContext context) {
     final theme = SailTheme.of(context);
-    final fraction = (_collectedSamples / _sampleTarget).clamp(0.0, 1.0);
+    final fraction = (_typed.length / _sampleTarget).clamp(0.0, 1.0);
     return Container(
       height: 8,
       decoration: BoxDecoration(
@@ -679,8 +626,13 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SailText.primary16('Mnemonic Words (BIP39)', bold: true),
-                        SailText.secondary13('Write these down. You will re-enter them in the next step.'),
+                        SailText.primary16(
+                          'Mnemonic Words (BIP39)',
+                          bold: true,
+                        ),
+                        SailText.secondary13(
+                          'Write these down. You will re-enter them in the next step.',
+                        ),
                       ],
                     ),
                   ),
@@ -705,22 +657,23 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 const SizedBox(height: 16),
                 _entropyRow(context),
                 const SizedBox(height: 12),
-                SailCheckbox(
-                  value: _mouseEntropy,
-                  label: 'Enable mouse entropy',
-                  onChanged: (v) => setState(() => _mouseEntropy = v),
-                ),
-                if (_mouseEntropy) ...[
-                  const SizedBox(height: 12),
-                  _capturePad(
-                    context,
-                    height: 120,
-                    onHover: _paranoidSample,
-                    onExit: (_) => _flushPendingHex(),
-                    caption: 'Move your mouse as randomly as you can inside this box',
-                    subCaption: _paranoidSamples == 1 ? '1 sample added' : '$_paranoidSamples samples added',
+                // Paranoid mode always types its own entropy, so the box
+                // states that rather than offering a choice.
+                Opacity(
+                  opacity: 0.5,
+                  child: SailCheckbox(
+                    value: true,
+                    label: 'Enable mouse entropy',
+                    onChanged: (_) {},
                   ),
-                ],
+                ),
+                const SizedBox(height: 12),
+                SailEntropyKeyboard(
+                  onType: _type,
+                  showKeys: true,
+                  caption: 'Move your mouse over the keys',
+                  subCaption: _typed.length == 1 ? '1 character typed' : '${_typed.length} characters typed',
+                ),
               ],
               const SizedBox(height: 16),
               SailMnemonicGrid(words: _words),
@@ -741,16 +694,25 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
               Row(
                 children: [
                   if (_words.isNotEmpty) ...[
-                    SailSVG.icon(SailSVGAsset.iconSuccess, width: 12, color: theme.colors.success),
+                    SailSVG.icon(
+                      SailSVGAsset.iconSuccess,
+                      width: 12,
+                      color: theme.colors.success,
+                    ),
                     const SizedBox(width: 6),
-                    SailText.secondary13('Valid checksum', color: theme.colors.success),
+                    SailText.secondary13(
+                      'Valid checksum',
+                      color: theme.colors.success,
+                    ),
                   ],
                   const Spacer(),
                   SailButton(
                     label: 'Copy Mnemonic',
                     variant: ButtonVariant.secondary,
                     disabled: _words.isEmpty,
-                    onPressed: () async => Clipboard.setData(ClipboardData(text: _words.join(' '))),
+                    onPressed: () async => Clipboard.setData(
+                      ClipboardData(text: _words.join(' ')),
+                    ),
                   ),
                 ],
               ),
@@ -778,13 +740,12 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 hintText: 'Type anything: a sentence, dice rolls, hex, whatever you like',
                 size: TextFieldSize.small,
                 onChanged: (v) {
-                  setState(() {
-                    // A manual clear removes every appended sample with it.
-                    if (v.trim().isEmpty) {
-                      _paranoidSamples = 0;
-                      _pendingHex.clear();
-                    }
-                  });
+                  // The field is the buffer in paranoid mode, so a hand edit
+                  // replaces what the keyboard typed.
+                  _typed
+                    ..clear()
+                    ..write(v);
+                  setState(() {});
                   unawaited(_derive(v));
                 },
               ),
@@ -852,8 +813,13 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SailText.primary16('Mnemonic Words (BIP39)', bold: true),
-                        SailText.secondary13('Paste the whole phrase into the first box, or fill them one by one.'),
+                        SailText.primary16(
+                          'Mnemonic Words (BIP39)',
+                          bold: true,
+                        ),
+                        SailText.secondary13(
+                          'Paste the whole phrase into the first box, or fill them one by one.',
+                        ),
                       ],
                     ),
                   ),
@@ -875,10 +841,7 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              SailMnemonicGrid(
-                controllers: _imported,
-                onChanged: _spread,
-              ),
+              SailMnemonicGrid(controllers: _imported, onChanged: _spread),
               const SizedBox(height: 16),
               _optionLinks(context),
               if (_wantPassphrase) ...[
@@ -900,9 +863,16 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
                         ? Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              SailSVG.icon(SailSVGAsset.iconSuccess, width: 12, color: theme.colors.success),
+                              SailSVG.icon(
+                                SailSVGAsset.iconSuccess,
+                                width: 12,
+                                color: theme.colors.success,
+                              ),
                               const SizedBox(width: 6),
-                              SailText.secondary13('Valid checksum', color: theme.colors.success),
+                              SailText.secondary13(
+                                'Valid checksum',
+                                color: theme.colors.success,
+                              ),
                             ],
                           )
                         : SailText.secondary13(
@@ -945,7 +915,9 @@ class _WalletBackupPageState extends State<WalletBackupPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.primary16('Re-enter Mnemonic Words', bold: true),
-              SailText.secondary13('Paste the whole phrase into the first box, or type them one by one.'),
+              SailText.secondary13(
+                'Paste the whole phrase into the first box, or type them one by one.',
+              ),
               const SizedBox(height: 16),
               SailMnemonicGrid(
                 controllers: _reentered,

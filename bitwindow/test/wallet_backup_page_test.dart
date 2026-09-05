@@ -39,7 +39,10 @@ class _FakeWriter extends WalletWriterProvider {
     if (gate != null) {
       await gate!.future;
     }
-    return {'mnemonic': List.generate(wordCount, (i) => 'word${i + 1}').join(' ')};
+    return {
+      'mnemonic': List.generate(wordCount, (i) => 'word${i + 1}').join(' '),
+      'entropy_hex': 'ab' * 16,
+    };
   }
 }
 
@@ -75,6 +78,20 @@ Future<void> _tapAndSettle(WidgetTester tester, String label) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
   await tester.pump(const Duration(milliseconds: 400));
+}
+
+// Moves the pointer over the board so it types one key per move. The pointer
+// leaves at the end, so no repeat timer outlives the test.
+Future<void> _typeOnPad(WidgetTester tester, Finder pad, int keys) async {
+  final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  await gesture.addPointer(location: tester.getCenter(pad));
+  addTearDown(gesture.removePointer);
+  for (var i = 0; i < keys; i++) {
+    await gesture.moveTo(tester.getCenter(pad) + Offset(3.0 * i, 0));
+    await tester.pump();
+  }
+  await gesture.moveTo(Offset.zero);
+  await tester.pump();
 }
 
 // Generate mode opens on the collect stage; this walks past it.
@@ -118,23 +135,22 @@ void main() {
     expect(find.text('word1'), findsOneWidget);
   });
 
-  testWidgets('Continue forwards the mouse samples as extra entropy', (tester) async {
+  testWidgets('Continue forwards the typed keys as extra entropy', (tester) async {
     await _pumpPage(tester);
 
     final pad = find.byKey(const Key('mouse-entropy-pad'));
     expect(pad, findsOneWidget);
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await gesture.addPointer(location: tester.getCenter(pad));
-    addTearDown(gesture.removePointer);
-    for (var i = 0; i < 5; i++) {
-      await gesture.moveTo(tester.getCenter(pad) + Offset(3.0 * i, 2.0 * i));
-      await tester.pump();
-    }
+    await _typeOnPad(tester, pad, 5);
 
     await _toBackup(tester);
 
     expect(writer.lastEntropy, isEmpty, reason: 'the backend mints the base entropy');
-    expect(writer.lastExtraEntropy, hasLength(20), reason: 'five samples of four bytes each');
+    expect(writer.lastExtraEntropy, hasLength(5), reason: 'one key for each move');
+    expect(
+      String.fromCharCodes(writer.lastExtraEntropy!).split('').every(entropyKeyboardChars.contains),
+      isTrue,
+      reason: 'the board types its own keys, in either mode',
+    );
   });
 
   testWidgets('enabling paranoid mode wipes the seed and turns the screen dark', (tester) async {
@@ -287,7 +303,7 @@ void main() {
     expect(_createWalletButton(tester).disabled, isFalse);
   });
 
-  testWidgets('paranoid pad appends hex to the entropy field', (tester) async {
+  testWidgets('the keyboard types its keys into the entropy field', (tester) async {
     await _pumpPage(tester);
     await _toBackup(tester);
     await _tapAndSettle(tester, 'Paranoid mode');
@@ -297,21 +313,17 @@ void main() {
     final pad = find.byKey(const Key('mouse-entropy-pad'));
     expect(pad, findsOneWidget);
 
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await gesture.addPointer(location: tester.getCenter(pad));
-    addTearDown(gesture.removePointer);
-    for (var i = 0; i < 8; i++) {
-      await gesture.moveTo(tester.getCenter(pad) + Offset(3.0 * i, 0));
-      await tester.pump();
-    }
+    await _typeOnPad(tester, pad, 8);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
-    expect(find.text('16 characters'), findsOneWidget);
+    expect(find.text('8 characters'), findsOneWidget);
+    expect(find.text('8 characters typed'), findsOneWidget);
+    expect(writer.lastSourceText, hasLength(8), reason: 'the field is what the backend hashes');
     expect(find.text('word1'), findsOneWidget);
   });
 
-  testWidgets('leaving the pad flushes the pending samples', (tester) async {
+  testWidgets('a key repeats while the pointer rests, and stops when it leaves', (tester) async {
     await _pumpPage(tester);
     await _toBackup(tester);
     await _tapAndSettle(tester, 'Paranoid mode');
@@ -321,48 +333,43 @@ void main() {
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer(location: tester.getCenter(pad));
     addTearDown(gesture.removePointer);
-    for (var i = 0; i < 3; i++) {
-      await gesture.moveTo(tester.getCenter(pad) + Offset(3.0 * i, 0));
-      await tester.pump();
-    }
+    await gesture.moveTo(tester.getCenter(pad));
+    await tester.pump();
+    expect(find.text('1 character typed'), findsOneWidget);
+
+    // The pointer rests on one key, and the key repeats.
+    await tester.pump(entropyKeyRepeat * 4);
+    expect(find.text('5 characters typed'), findsOneWidget);
+
     await gesture.moveTo(Offset.zero);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(entropyKeyRepeat * 4);
+    expect(find.text('5 characters typed'), findsOneWidget, reason: 'the repeat stops outside the board');
 
-    expect(find.text('6 characters'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
   });
 
-  testWidgets('typing during pending samples keeps the words hidden', (tester) async {
+  testWidgets('a key keeps the words hidden until the derive settles', (tester) async {
     await _pumpPage(tester);
     await _toBackup(tester);
     await _tapAndSettle(tester, 'Paranoid mode');
     await _tapAndSettle(tester, 'Yes, enable');
 
     final pad = find.byKey(const Key('mouse-entropy-pad'));
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await gesture.addPointer(location: tester.getCenter(pad));
-    addTearDown(gesture.removePointer);
-    for (var i = 0; i < 3; i++) {
-      await gesture.moveTo(tester.getCenter(pad) + Offset(3.0 * i, 0));
-      await tester.pump();
-    }
-
-    // The keystroke derives at once, but three samples still wait.
-    final field = find.widgetWithText(TextField, 'Type anything: a sentence, dice rolls, hex, whatever you like');
-    await tester.enterText(field, 'weak');
+    await _typeOnPad(tester, pad, 3);
     await tester.pump();
-    await tester.pump();
-    expect(find.text('word1'), findsNothing, reason: 'pending samples keep the words hidden');
+    expect(find.text('word1'), findsNothing, reason: 'a key that waits keeps the words hidden');
     expect(_createWalletButton(tester).disabled, isTrue);
 
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
-    expect(writer.lastSourceText, hasLength(10), reason: 'weak plus six hex characters');
+    expect(writer.lastSourceText, hasLength(3), reason: 'three keys, and the field is the buffer');
     expect(find.text('word1'), findsOneWidget);
   });
 
-  testWidgets('a sample invalidates an in-flight derive', (tester) async {
+  testWidgets('a key invalidates an in-flight derive', (tester) async {
     await _pumpPage(tester);
     await _toBackup(tester);
     await _tapAndSettle(tester, 'Paranoid mode');
@@ -374,11 +381,7 @@ void main() {
     await tester.pump();
 
     final pad = find.byKey(const Key('mouse-entropy-pad'));
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await gesture.addPointer(location: tester.getCenter(pad));
-    addTearDown(gesture.removePointer);
-    await gesture.moveTo(tester.getCenter(pad) + const Offset(3, 0));
-    await tester.pump();
+    await _typeOnPad(tester, pad, 1);
 
     writer.gate!.complete();
     writer.gate = null;
@@ -392,38 +395,33 @@ void main() {
     expect(find.text('word1'), findsOneWidget);
   });
 
-  testWidgets('Generate Random resets the sample count', (tester) async {
+  testWidgets('Generate Random replaces every key the board typed', (tester) async {
     await _pumpPage(tester);
     await _toBackup(tester);
     await _tapAndSettle(tester, 'Paranoid mode');
     await _tapAndSettle(tester, 'Yes, enable');
 
     final pad = find.byKey(const Key('mouse-entropy-pad'));
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await gesture.addPointer(location: tester.getCenter(pad));
-    addTearDown(gesture.removePointer);
-    for (var i = 0; i < 3; i++) {
-      await gesture.moveTo(tester.getCenter(pad) + Offset(3.0 * i, 0));
-      await tester.pump();
-    }
-    expect(find.text('3 samples added'), findsOneWidget);
+    await _typeOnPad(tester, pad, 3);
+    expect(find.text('3 characters typed'), findsOneWidget);
 
     await _tapAndSettle(tester, 'Generate Random');
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('0 samples added'), findsOneWidget);
+    expect(find.text('3 characters typed'), findsNothing);
+    expect(find.text('32 characters typed'), findsOneWidget, reason: 'the fresh hex is the whole buffer');
   });
 
-  testWidgets('unchecking mouse entropy hides the pad', (tester) async {
+  testWidgets('paranoid mode keeps the keyboard, and the checkbox never turns it off', (tester) async {
     await _pumpPage(tester);
     await _toBackup(tester);
     await _tapAndSettle(tester, 'Paranoid mode');
     await _tapAndSettle(tester, 'Yes, enable');
 
-    await tester.tap(find.text('Enable mouse entropy'));
+    await tester.tap(find.text('Enable mouse entropy'), warnIfMissed: false);
     await tester.pump();
 
-    expect(find.byKey(const Key('mouse-entropy-pad')), findsNothing);
+    expect(find.byKey(const Key('mouse-entropy-pad')), findsOneWidget);
   });
 
   group('import mode', () {
