@@ -52,13 +52,15 @@ func (c *blockCache) get(key string) (*pb.Block, []*pb.Activity, bool, bool) {
 	return block, rows, held.ownHeight, true
 }
 
-// put stores a copy and answers another one.
+// put stores a copy and answers another one. A caller keeps writing to the
+// block it gave, so the cache never holds that one.
 func (c *blockCache) put(
 	key string, block *pb.Block, activity []*pb.Activity, ownHeight bool,
 ) (*pb.Block, []*pb.Activity) {
 	if c == nil {
 		return block, activity
 	}
+	held, rows := copyBlock(cachedBlock{block: block, activity: activity})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if _, ok := c.rows[key]; !ok {
@@ -68,7 +70,7 @@ func (c *blockCache) put(
 			c.order = c.order[1:]
 		}
 	}
-	c.rows[key] = cachedBlock{block: block, activity: activity, ownHeight: ownHeight}
+	c.rows[key] = cachedBlock{block: held, activity: rows, ownHeight: ownHeight}
 	return copyBlock(c.rows[key])
 }
 

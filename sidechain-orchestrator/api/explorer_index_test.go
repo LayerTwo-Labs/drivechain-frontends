@@ -156,3 +156,29 @@ func TestBlockCacheKeepsEachSourceApart(t *testing.T) {
 		t.Errorf("the index block reads %d sats, known %v", held.GetFeesSats(), held.GetFeesKnown())
 	}
 }
+
+// A caller keeps writing to the block it gave the cache. The cache holds its
+// own copy, so a later write never reaches the next reader.
+func TestBlockCacheHoldsNoCallerPointer(t *testing.T) {
+	cache := newBlockCache()
+	mine := &pb.Block{Hash: "aa", Height: 3}
+	rows := []*pb.Activity{{Id: "d1"}}
+	cache.put("thunder:index:signet:aa", mine, rows, true)
+
+	// The overview stamps the mainchain fields after the cache read.
+	mine.MainchainHeight = 996816
+	mine.BlockTime = 9581
+	rows[0].BlockTime = 9581
+
+	held, heldRows, _, ok := cache.get("thunder:index:signet:aa")
+	if !ok {
+		t.Fatal("the cache holds no block")
+	}
+	if held.GetMainchainHeight() != 0 || held.GetBlockTime() != 0 {
+		t.Errorf("the cached block took a later write: %d / %d",
+			held.GetMainchainHeight(), held.GetBlockTime())
+	}
+	if heldRows[0].GetBlockTime() != 0 {
+		t.Errorf("the cached row took a later write: %d", heldRows[0].GetBlockTime())
+	}
+}
