@@ -258,3 +258,59 @@ func TestNetCreditSubtractsASpentDeposit(t *testing.T) {
 	got := NetCreditFor(txs, map[string]bool{"mine": true}, map[string]int64{"maintxid:0": 500})
 	assert.Equal(t, int64(-100), got)
 }
+
+// A coin an unconfirmed transaction spends is no longer spendable. Listing it
+// beside the change shows the same money twice.
+func TestWithMempoolUTXOsDropsWhatTheMempoolSpends(t *testing.T) {
+	node := &fakeNode{
+		addresses: `["mine"]`,
+		mempool: `[{"txid":"spend","size":100,"tx":{
+		    "inputs":[{"Regular":{"txid":"old","vout":0}}],
+		    "outputs":[{"address":"mine","content":{"Value":9000}}]}}]`,
+	}
+	confirmed := json.RawMessage(`[
+	  {"outpoint":{"Regular":{"txid":"old","vout":0}},"output":{"address":"mine","content":{"Value":10000}}},
+	  {"outpoint":{"Regular":{"txid":"keep","vout":1}},"output":{"address":"mine","content":{"Value":2000}}}
+	]`)
+
+	var rows []map[string]any
+	require.NoError(t, json.Unmarshal(WithMempoolUTXOs(context.Background(), node, confirmed), &rows))
+
+	keys := make([]string, 0, len(rows))
+	for _, row := range rows {
+		key, ok := outpointKey(mustJSON(t, row))
+		require.True(t, ok)
+		keys = append(keys, key)
+	}
+	assert.ElementsMatch(t, []string{"keep:1", "spend:0"}, keys,
+		"the spent coin goes, the untouched one stays, and the change arrives")
+}
+
+// A child spends its parent's output, so neither the parent's coin nor a
+// second copy may stand in the listing.
+func TestWithMempoolUTXOsDropsAParentOutputAChildSpends(t *testing.T) {
+	node := &fakeNode{
+		addresses: `["mine"]`,
+		mempool: `[
+		  {"txid":"parent","size":10,"tx":{"inputs":[],
+		     "outputs":[{"address":"mine","content":{"Value":10000}}]}},
+		  {"txid":"child","size":10,"tx":{"inputs":[{"Regular":{"txid":"parent","vout":0}}],
+		     "outputs":[{"address":"mine","content":{"Value":9000}}]}}
+		]`,
+	}
+
+	var rows []map[string]any
+	require.NoError(t, json.Unmarshal(
+		WithMempoolUTXOs(context.Background(), node, json.RawMessage(`[]`)), &rows))
+	require.Len(t, rows, 1)
+	key, ok := outpointKey(mustJSON(t, rows[0]))
+	require.True(t, ok)
+	assert.Equal(t, "child:0", key)
+}
+
+func mustJSON(t *testing.T, v any) json.RawMessage {
+	t.Helper()
+	raw, err := json.Marshal(v)
+	require.NoError(t, err)
+	return raw
+}

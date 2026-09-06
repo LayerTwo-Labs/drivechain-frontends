@@ -1120,3 +1120,40 @@ func TestBmmEngineResumesWithoutBiddingTwiceOnTheSameTip(t *testing.T) {
 	restarted.tick(ctx)
 	assert.Equal(t, 2, backend.bids, "a new tip is a new round")
 }
+
+// A raise carries its own critical hash. A restart that reloads the old one
+// reads the block it paid for as lost.
+func TestBmmEngineSavesARaise(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	backend.feesSats = 50_000
+	require.NoError(t, engine.Start(testSidechain, "", 30_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 12_000}}
+	engine.tick(ctx)
+	require.Equal(t, 2, backend.bids, "outbid, so we raise")
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	round := roundOn(t, restarted, "block-1")
+	live := liveBid(&round)
+	require.NotNil(t, live, "the raise reaches the disk with its own bid")
+	assert.Equal(t, "txid-2", live.Txid, "the stored bid is the replacement, not the first one")
+}
+
+// The round in play has no deciding block yet. Retrying it every tick spends
+// the whole budget before the tip moves, and the engine forgets a paid block.
+func TestBmmEngineResumesTheLiveRoundAsCurrent(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
+	engine.tick(context.Background())
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	restarted.resumeTargets()
+	restarted.resumeUnconnected()
+
+	current := restarted.Current(testSidechain)
+	require.NotNil(t, current, "the round in play comes back as current")
+	assert.Equal(t, "block-1", current.PrevMainHash)
+	assert.Empty(t, restarted.unconnected[testSidechain], "it never enters the retry queue")
+}

@@ -178,8 +178,11 @@ func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.Ge
 		return nil, err
 	}
 	// A coin the mempool holds is not in the node's listing, so a payment on
-	// its way reads as no coin at all until the next block.
-	raw = sidechain.WithMempoolUTXOs(ctx, h.proxy, raw)
+	// its way reads as no coin at all until the next block. A light client
+	// runs no node, and the index already answers its unconfirmed coins.
+	if h.mode().LocalNode {
+		raw = sidechain.WithMempoolUTXOs(ctx, h.proxy, raw)
+	}
 	return connect.NewResponse(&pb.GetWalletUtxosResponse{UtxosJson: string(raw)}), nil
 }
 

@@ -122,7 +122,7 @@ func (b *lightBackend) UTXOs(ctx context.Context) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tw.MarshalUTXOs(append(spendable, pending...))
+	return tw.MarshalUTXOsWithPending(spendable, pending)
 }
 
 func (b *lightBackend) Transfer(

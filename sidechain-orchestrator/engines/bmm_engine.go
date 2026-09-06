@@ -356,6 +356,7 @@ func (e *BmmEngine) resumeUnconnected() {
 		e.log.Warn().Err(err).Msg("read stored rounds")
 		return
 	}
+	openTips := e.openRoundTips()
 
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -371,6 +372,15 @@ func (e *BmmEngine) resumeUnconnected() {
 			continue
 		}
 		sidechain := pb.BinaryType(round.Sidechain)
+		// The round still in play has no deciding block yet. Retrying it every
+		// two seconds spends its whole budget before the tip even moves, and
+		// the engine then forgets a block it paid for.
+		if round.Result == ResultOpen && openTips[sidechain] == round.PrevMainHash {
+			e.current[sidechain] = &round
+			e.log.Info().Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
+				Msg("resuming the round still in play")
+			continue
+		}
 		e.unconnected[sidechain] = append(e.unconnected[sidechain], &round)
 		e.log.Info().Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
 			Msg("resuming a won block that never connected")
@@ -810,8 +820,12 @@ func (e *BmmEngine) maybeRaise(ctx context.Context, sidechain pb.BinaryType, tar
 		target.maxBidSats, live.Txid, target.capToBlockWorth); err != nil {
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
 			Int64("to_sats", next).Msg("raising bmm bid failed, keeping the live bid")
+		e.notify()
+		return
 	}
-	e.notify()
+	// The replacement carries its own critical hash. A restart that reloads
+	// the old one reads the block it paid for as lost.
+	e.save(round)
 }
 
 func liveBid(round *bmmstate.Round) *bmmstate.Bid {
