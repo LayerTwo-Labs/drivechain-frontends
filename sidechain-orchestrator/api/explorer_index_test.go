@@ -2,10 +2,14 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"connectrpc.com/connect"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
@@ -180,5 +184,119 @@ func TestBlockCacheHoldsNoCallerPointer(t *testing.T) {
 	}
 	if heldRows[0].GetBlockTime() != 0 {
 		t.Errorf("the cached row took a later write: %d", heldRows[0].GetBlockTime())
+	}
+}
+
+// A hosted index states its mainchain height and its timestamp as optional.
+// The block page reads both back from the mainchain, as every other path does.
+func TestGetBlockResolvesTheMainchainForAnIndex(t *testing.T) {
+	const parent = "0000000000000000c75265fa0f8f610411b7f7363d737a3189f81f7b40355e06"
+	const carrier = "00000000000000009563c32a953b8a55ed4e6bc23ab4f0078d04651142442497"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/block/b43":
+			// The index names the parent, and states no height or time.
+			_, _ = w.Write([]byte(`{"id":"b43","height":43,"tx_count":1,"fees":900,
+				"mainchain_blockhash":"` + parent + `"}`))
+		case "/block/b43/activity":
+			_, _ = w.Write([]byte(`[
+				{"kind":"deposit","id":"d1","value":12300,"status":{"confirmed":true,"block_height":43}}
+			]`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	handler := &ExplorerHandler{blocks: newBlockCache(), mainchain: newMainchainCache()}
+	handler.sources = func(string) (source, error) {
+		return source{name: "thunder", index: sidechainesplora.New(server.URL), cache: newBlockCache()}, nil
+	}
+	handler.SetCoreCaller(func(_ context.Context, method, params, _ string) (json.RawMessage, error) {
+		if method != "getblockheader" {
+			return nil, fmt.Errorf("no answer for %s", method)
+		}
+		if strings.Contains(params, parent) {
+			return json.RawMessage(`{"height":996816,"time":1000,"nextblockhash":"` + carrier + `"}`), nil
+		}
+		return json.RawMessage(`{"height":996817,"time":9581}`), nil
+	})
+
+	resp, err := handler.GetBlock(context.Background(), connect.NewRequest(&pb.GetBlockRequest{
+		Chain: "thunder", Hash: "b43",
+	}))
+	if err != nil {
+		t.Fatalf("read the block: %v", err)
+	}
+	out := resp.Msg
+
+	if got := out.GetBlock().GetMainchainHeight(); got != 996816 {
+		t.Errorf("the parent row names block %d, want 996816", got)
+	}
+	if got := out.GetBlock().GetBlockTime(); got != 9581 {
+		t.Errorf("the block connected at %d, want the carrier time 9581", got)
+	}
+	if got := out.GetActivity()[0].GetBlockTime(); got != 9581 {
+		t.Errorf("the row carries a time of %d, want 9581", got)
+	}
+	if got := out.GetBlock().GetDepositCount(); got != 1 {
+		t.Errorf("the block took %d deposits, want 1", got)
+	}
+}
+
+// An index row carries its own time. A block with none of its own leaves that
+// row alone, rather than writing a zero over it.
+func TestStampRowsKeepsATimeTheRowAlreadyHas(t *testing.T) {
+	rows := []*pb.Activity{{Id: "d1", BlockTime: 9581}, {Id: "d2"}}
+
+	stampRows(&pb.Block{Hash: "b43"}, rows)
+	if rows[0].GetBlockTime() != 9581 {
+		t.Errorf("the row lost its time, and reads %d", rows[0].GetBlockTime())
+	}
+
+	stampRows(&pb.Block{Hash: "b43", BlockTime: 1000}, rows)
+	if rows[0].GetBlockTime() != 1000 || rows[1].GetBlockTime() != 1000 {
+		t.Errorf("the rows read %d and %d, want 1000",
+			rows[0].GetBlockTime(), rows[1].GetBlockTime())
+	}
+}
+
+// A handler built as a plain value still answers. Every call reads its source
+// through sourceOf, which falls back when no test replaced the seam.
+func TestHandlerWithNoSeamAnswersAnError(t *testing.T) {
+	handler := &ExplorerHandler{}
+	_, err := handler.GetOverview(context.Background(), connect.NewRequest(&pb.GetOverviewRequest{
+		Chain: "thunder",
+	}))
+	if err == nil {
+		t.Fatal("a handler with no orchestrator answered a page")
+	}
+	if got := connect.CodeOf(err); got != connect.CodeFailedPrecondition {
+		t.Errorf("the error reads %s, want failed precondition", got)
+	}
+}
+
+// A source can state one field and leave the other empty. The lookup fills
+// only what is missing, and a lookup that answered nothing writes nothing.
+func TestResolveMainchainFillsOnlyTheEmptyFields(t *testing.T) {
+	const parent = "0000000000000000c75265fa0f8f610411b7f7363d737a3189f81f7b40355e06"
+
+	handler := &ExplorerHandler{mainchain: newMainchainCache()}
+	handler.SetCoreCaller(func(_ context.Context, method, params, _ string) (json.RawMessage, error) {
+		// The parent reads back, and its carrier does not.
+		return json.RawMessage(`{"height":996816,"time":1000}`), nil
+	})
+
+	// The index stated the time and left the height empty.
+	block := &pb.Block{Hash: "b43", MainchainHash: parent, BlockTime: 9581}
+	handler.resolveMainchain(context.Background(), block)
+
+	if got := block.GetBlockTime(); got != 9581 {
+		t.Errorf("the block lost its own time, and reads %d", got)
+	}
+	if got := block.GetMainchainHeight(); got != 996816 {
+		t.Errorf("the block names height %d, want 996816", got)
 	}
 }

@@ -203,7 +203,13 @@ func (h *ExplorerHandler) resolveMainchain(ctx context.Context, blocks ...*pb.Bl
 		if !ok {
 			continue
 		}
-		block.MainchainHeight = held.parentHeight
-		block.BlockTime = held.minedAt
+		// A source that stated a field of its own keeps it, and a lookup that
+		// answered nothing writes nothing.
+		if block.GetMainchainHeight() == 0 && held.parentHeight != 0 {
+			block.MainchainHeight = held.parentHeight
+		}
+		if block.GetBlockTime() == 0 && held.minedAt != 0 {
+			block.BlockTime = held.minedAt
+		}
 	}
 }

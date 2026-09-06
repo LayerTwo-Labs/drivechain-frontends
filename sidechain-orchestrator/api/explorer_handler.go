@@ -46,15 +46,27 @@ type ExplorerHandler struct {
 	mainchain *mainchainCache
 	// core reads bitcoind, for the BMM bid a block was mined by.
 	core CoreRawCaller
+	// sources names where one chain reads from. A test replaces it.
+	sources func(chain string) (source, error)
+}
+
+// sourceOf reads where one chain answers from.
+func (h *ExplorerHandler) sourceOf(chain string) (source, error) {
+	if h.sources != nil {
+		return h.sources(chain)
+	}
+	return h.sourceFor(chain)
 }
 
 // NewExplorerHandler builds the handler.
 func NewExplorerHandler(orch *orchestrator.Orchestrator) *ExplorerHandler {
-	return &ExplorerHandler{
+	h := &ExplorerHandler{
 		orch:      orch,
 		blocks:    newBlockCache(),
 		mainchain: newMainchainCache(),
 	}
+	h.sources = h.sourceFor
+	return h
 }
 
 // source is where one chain's explorer reads from. Exactly one of index and
@@ -129,7 +141,7 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 func (h *ExplorerHandler) GetOverview(
 	ctx context.Context, req *connect.Request[pb.GetOverviewRequest],
 ) (*connect.Response[pb.GetOverviewResponse], error) {
-	src, err := h.sourceFor(req.Msg.GetChain())
+	src, err := h.sourceOf(req.Msg.GetChain())
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +364,7 @@ func (h *ExplorerHandler) enforcerTreasury(ctx context.Context, slot uint32) *pb
 func (h *ExplorerHandler) GetBlock(
 	ctx context.Context, req *connect.Request[pb.GetBlockRequest],
 ) (*connect.Response[pb.GetBlockResponse], error) {
-	src, err := h.sourceFor(req.Msg.GetChain())
+	src, err := h.sourceOf(req.Msg.GetChain())
 	if err != nil {
 		return nil, err
 	}
@@ -376,6 +388,8 @@ func (h *ExplorerHandler) GetBlock(
 		}
 		out := &pb.GetBlockResponse{Block: newBlock(block), Activity: activityList(rows)}
 		countDeposits(out.Block, out.Activity)
+		h.resolveMainchain(ctx, out.Block)
+		stampRows(out.Block, out.Activity)
 		h.resolveBid(ctx, src.slot, out.Block)
 		return connect.NewResponse(out), nil
 	}
@@ -437,7 +451,7 @@ func countDeposits(block *pb.Block, rows []*pb.Activity) {
 func (h *ExplorerHandler) GetTransaction(
 	ctx context.Context, req *connect.Request[pb.GetTransactionRequest],
 ) (*connect.Response[pb.GetTransactionResponse], error) {
-	src, err := h.sourceFor(req.Msg.GetChain())
+	src, err := h.sourceOf(req.Msg.GetChain())
 	if err != nil {
 		return nil, err
 	}
@@ -501,7 +515,7 @@ func nodeHeightOfHash(ctx context.Context, src source, hash string) (uint32, err
 func (h *ExplorerHandler) GetAddress(
 	ctx context.Context, req *connect.Request[pb.GetAddressRequest],
 ) (*connect.Response[pb.GetAddressResponse], error) {
-	src, err := h.sourceFor(req.Msg.GetChain())
+	src, err := h.sourceOf(req.Msg.GetChain())
 	if err != nil {
 		return nil, err
 	}
@@ -605,7 +619,7 @@ func depositTransaction(address string, deposit sidechainesplora.UTXO) *pb.Trans
 func (h *ExplorerHandler) GetWithdrawals(
 	ctx context.Context, req *connect.Request[pb.GetWithdrawalsRequest],
 ) (*connect.Response[pb.GetWithdrawalsResponse], error) {
-	src, err := h.sourceFor(req.Msg.GetChain())
+	src, err := h.sourceOf(req.Msg.GetChain())
 	if err != nil {
 		return nil, err
 	}
@@ -852,8 +866,12 @@ func walkBlock(
 }
 
 // stampRows gives every row the time of the block that carried it. A
-// sidechain header holds no clock, so that time comes from the mainchain.
+// sidechain header holds no clock, so that time comes from the mainchain. A
+// block with no time of its own leaves a row that carries one alone.
 func stampRows(block *pb.Block, rows []*pb.Activity) {
+	if block.GetBlockTime() == 0 {
+		return
+	}
 	for _, row := range rows {
 		row.BlockTime = block.GetBlockTime()
 	}

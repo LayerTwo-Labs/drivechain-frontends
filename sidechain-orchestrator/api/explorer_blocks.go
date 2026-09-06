@@ -16,7 +16,7 @@ const blockPageLimit = 20
 func (h *ExplorerHandler) ListBlocks(
 	ctx context.Context, req *connect.Request[pb.ListBlocksRequest],
 ) (*connect.Response[pb.ListBlocksResponse], error) {
-	src, err := h.sourceFor(req.Msg.GetChain())
+	src, err := h.sourceOf(req.Msg.GetChain())
 	if err != nil {
 		return nil, err
 	}
