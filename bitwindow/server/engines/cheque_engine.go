@@ -2,11 +2,13 @@ package engines
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"sync/atomic"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -21,20 +23,22 @@ type ChequeRecovery struct {
 	Index   uint32
 	Address string
 	Amount  uint64
-	Txid    string
+	Txids   []string
 }
 
 // ChequeEngine derives cheque keys from the wallet seed, and reads their
 // addresses off the chain.
 type ChequeEngine struct {
+	db           *sql.DB
 	walletEngine *WalletEngine
 	chainParams  *chaincfg.Params
 	chain        ChequeChain
 }
 
 // NewChequeEngine creates a new cheque engine
-func NewChequeEngine(walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain) *ChequeEngine {
+func NewChequeEngine(db *sql.DB, walletEngine *WalletEngine, chainParams *chaincfg.Params, chain ChequeChain) *ChequeEngine {
 	return &ChequeEngine{
+		db:           db,
 		walletEngine: walletEngine,
 		chainParams:  chainParams,
 		chain:        chain,
@@ -172,17 +176,17 @@ func (e *ChequeEngine) ScanForFunds(ctx context.Context, walletId string, count 
 		}
 
 		var amountSats uint64
-		var txid string
+		var txids []string
 		for _, utxo := range utxos {
 			amountSats += uint64(utxo.ValueSats)
-			txid = utxo.TxID
+			txids = append(txids, utxo.TxID)
 		}
 
 		recoveries = append(recoveries, ChequeRecovery{
 			Index:   i,
 			Address: address,
 			Amount:  amountSats,
-			Txid:    txid,
+			Txids:   txids,
 		})
 
 		log.Info().
@@ -254,12 +258,26 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 			continue
 		}
 
+		// Write what the scan found back to the DB, otherwise a cheque that
+		// only exists on chain never shows up in the UI.
+		for _, recovery := range recoveries {
+			if err := cheques.CreateOrUpdateFromRecovery(
+				ctx, e.db, wallet.ID, recovery.Index, recovery.Address, recovery.Txids, recovery.Amount,
+			); err != nil {
+				log.Warn().Err(err).
+					Str("wallet_id", wallet.ID).
+					Uint32("index", recovery.Index).
+					Msg("failed to persist recovered cheque")
+				continue
+			}
+			totalRecoveries++
+		}
+
 		if len(recoveries) > 0 {
 			log.Info().
 				Str("wallet_id", wallet.ID).
 				Int("count", len(recoveries)).
 				Msg("found funded cheques during recovery scan")
-			totalRecoveries += len(recoveries)
 		}
 	}
 

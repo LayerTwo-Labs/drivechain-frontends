@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 
 	"connectrpc.com/connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
@@ -16,6 +17,51 @@ import (
 type CoreOutpoint struct {
 	Txid string
 	Vout uint32
+}
+
+// SendCoreWithFixedFee creates and broadcasts a Bitcoin Core transaction paying
+// exactly fixedFeeSats. Core's send RPC takes a fee rate and no absolute fee, so
+// the inputs are picked here (largest first) and spent through the raw
+// transaction path, which pays the fee as given.
+func SendCoreWithFixedFee(
+	ctx context.Context,
+	bitcoind corerpc.BitcoinServiceClient,
+	walletName string,
+	destinationsSats map[string]uint64,
+	fixedFeeSats uint64,
+) (string, error) {
+	unspent, err := bitcoind.ListUnspent(ctx, connect.NewRequest(&corepb.ListUnspentRequest{
+		Wallet: walletName,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("list unspent: %w", err)
+	}
+
+	neededSats := fixedFeeSats
+	for _, sats := range destinationsSats {
+		neededSats += sats
+	}
+
+	candidates := unspent.Msg.Unspent
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Amount > candidates[j].Amount
+	})
+
+	var totalInSats uint64
+	selected := make([]CoreOutpoint, 0, len(candidates))
+	for _, u := range candidates {
+		if totalInSats >= neededSats {
+			break
+		}
+		selected = append(selected, CoreOutpoint{Txid: u.Txid, Vout: u.Vout})
+		totalInSats += uint64(math.Round(u.Amount * 1e8))
+	}
+
+	if totalInSats < neededSats {
+		return "", fmt.Errorf("wallet UTXOs (%d sats) insufficient for outputs + fee (%d sats)", totalInSats, neededSats)
+	}
+
+	return SendCoreWithRequiredInputs(ctx, bitcoind, walletName, selected, destinationsSats, 0, fixedFeeSats)
 }
 
 // SendCoreWithRequiredInputs creates and broadcasts a Bitcoin Core transaction

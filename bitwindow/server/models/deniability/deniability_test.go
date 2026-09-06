@@ -7,6 +7,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -101,6 +102,29 @@ func TestDeniability(t *testing.T) {
 		require.Equal(t, int32(1), denials[1].TipVout)
 		require.Equal(t, 2*time.Hour, denials[1].DelayDuration)
 		require.Equal(t, int32(4), denials[1].NumHops)
+	})
+
+	t.Run("List with wallet ID", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+
+		_, err := Create(ctx, db, "wallet-a", "txid-a", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+		_, err = Create(ctx, db, "wallet-b", "txid-b", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		// A denial from before wallet_id existed.
+		_, err = db.ExecContext(ctx, `
+			INSERT INTO denials (wallet_id, initial_txid, initial_vout, delay_duration, num_hops, created_at)
+			VALUES (NULL, 'txid-legacy', 0, ?, 3, ?)
+		`, 1*time.Hour, time.Now())
+		require.NoError(t, err)
+
+		denials, err := List(ctx, db, WithWalletID("wallet-b"))
+		require.NoError(t, err)
+
+		tips := lo.Map(denials, func(d Denial, _ int) string { return d.TipTXID })
+		require.ElementsMatch(t, []string{"txid-b", "txid-legacy"}, tips)
 	})
 
 	t.Run("Cancel", func(t *testing.T) {

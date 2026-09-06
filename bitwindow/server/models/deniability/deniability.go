@@ -125,6 +125,7 @@ func selectDenialQuery() string {
 
 type config struct {
 	excludeCancelled bool
+	walletID         *string
 }
 
 type Option func(c *config)
@@ -132,6 +133,14 @@ type Option func(c *config)
 func WithExcludeCancelled() Option {
 	return func(c *config) {
 		c.excludeCancelled = true
+	}
+}
+
+// WithWalletID limits the results to one wallet's denials, plus the ones from
+// before wallet_id existed.
+func WithWalletID(id string) Option {
+	return func(c *config) {
+		c.walletID = &id
 	}
 }
 
@@ -170,12 +179,23 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 	conf := newConfig(opts)
 
 	query := selectDenialQuery()
+	var where []string
+	var args []any
 	if conf.excludeCancelled {
-		query += ` WHERE d.cancelled_at IS NULL`
+		where = append(where, `d.cancelled_at IS NULL`)
+	}
+	if conf.walletID != nil {
+		// A denial from before wallet_id existed names no wallet, so it belongs
+		// to whichever wallet asks. Same as the engine treats it.
+		where = append(where, `(d.wallet_id = ? OR d.wallet_id IS NULL OR d.wallet_id = '')`)
+		args = append(args, *conf.walletID)
+	}
+	if len(where) > 0 {
+		query += ` WHERE ` + strings.Join(where, ` AND `)
 	}
 	query += ` ORDER BY d.updated_at ASC`
 
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("could not query deniabilities: %w", err)
 	}

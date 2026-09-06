@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/stretchr/testify/require"
@@ -38,7 +40,7 @@ func testChequeEngine(t *testing.T, chain ChequeChain) *ChequeEngine {
 		dir,
 		&chaincfg.SigNetParams,
 	)
-	return NewChequeEngine(walletEngine, &chaincfg.SigNetParams, chain)
+	return NewChequeEngine(database.Test(t), walletEngine, &chaincfg.SigNetParams, chain)
 }
 
 func TestScanForFundsReportsFundedIndex(t *testing.T) {
@@ -55,7 +57,38 @@ func TestScanForFundsReportsFundedIndex(t *testing.T) {
 	require.Equal(t, uint32(3), recoveries[0].Index)
 	require.Equal(t, address, recoveries[0].Address)
 	require.Equal(t, uint64(100_000), recoveries[0].Amount)
+	require.Equal(t, []string{testUTXOs()[0].TxID}, recoveries[0].Txids)
 	require.Len(t, chain.queried, 20, "the scan reads every index up to the count")
+}
+
+// A cheque that only exists on chain must come back into the DB under the
+// scanning wallet, and must not be duplicated by a second scan.
+func TestRecoverChequesOnUnlockPersistsFundedCheques(t *testing.T) {
+	chain := &fakeChain{funded: map[string][]ChequeUTXO{}}
+	engine := testChequeEngine(t, chain)
+	ctx := context.Background()
+
+	address, err := engine.DeriveChequeAddress(chequeWalletID, 0)
+	require.NoError(t, err)
+	chain.funded[address] = testUTXOs()
+
+	// The unencrypted fixture auto-unlocks; without it the recovery blocks.
+	require.True(t, engine.walletEngine.IsUnlocked())
+
+	engine.recoverChequesOnUnlock(ctx)
+	engine.recoverChequesOnUnlock(ctx)
+
+	list, err := cheques.List(ctx, engine.db, chequeWalletID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	require.Equal(t, uint32(0), list[0].DerivationIndex)
+	require.Equal(t, address, list[0].Address)
+	require.Equal(t, []string{testUTXOs()[0].TxID}, list[0].FundedTxids)
+	require.True(t, list[0].IsFunded())
+
+	next, err := cheques.GetNextIndex(ctx, engine.db, chequeWalletID)
+	require.NoError(t, err)
+	require.Equal(t, uint32(1), next)
 }
 
 // A chain read that fails means the electrum backend is down, so the scan must
