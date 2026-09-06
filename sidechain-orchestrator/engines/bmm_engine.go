@@ -243,12 +243,10 @@ func (e *BmmEngine) Round(sidechain pb.BinaryType, prevMainHash string) (*bmmsta
 
 // ClearHistory drops the settled rounds for a sidechain.
 func (e *BmmEngine) ClearHistory(sidechain pb.BinaryType) error {
-	if err := e.store.Clear(int32(sidechain)); err != nil {
-		return err
-	}
 	// The round in play is not history. Clearing it would leave a restart
 	// with no tip to resume, and the next tick would bid a second time on
-	// the parent a bid already covers.
+	// the parent a bid already covers. It rides the same store write, so a
+	// failure never leaves the disk cleared with the live round gone.
 	e.mu.Lock()
 	var live *bmmstate.Round
 	if round, ok := e.current[sidechain]; ok {
@@ -259,10 +257,8 @@ func (e *BmmEngine) ClearHistory(sidechain pb.BinaryType) error {
 		live = &copied
 	}
 	e.mu.Unlock()
-	if live != nil {
-		if err := e.store.Save(*live); err != nil {
-			return fmt.Errorf("keep the round in play: %w", err)
-		}
+	if err := e.store.Clear(int32(sidechain), live); err != nil {
+		return err
 	}
 	e.notify()
 	return nil

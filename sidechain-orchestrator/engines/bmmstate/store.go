@@ -196,8 +196,9 @@ func (s *Store) Get(sidechain int32, prevMainHash string) (*Round, error) {
 	return nil, nil
 }
 
-// Clear drops a sidechain's rounds.
-func (s *Store) Clear(sidechain int32) error {
+// Clear drops a sidechain's rounds. A non-nil keep survives, stored in the
+// same write, so a failure never leaves the disk without it.
+func (s *Store) Clear(sidechain int32, keep *Round) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.ensureLoadedLocked(); err != nil {
@@ -205,6 +206,9 @@ func (s *Store) Clear(sidechain int32) error {
 	}
 
 	kept := make([]Round, 0, len(s.rounds))
+	if keep != nil {
+		kept = append(kept, clone(*keep))
+	}
 	for _, r := range s.rounds {
 		if r.Sidechain != sidechain {
 			kept = append(kept, r)
