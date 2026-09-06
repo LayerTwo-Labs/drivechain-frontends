@@ -11,6 +11,9 @@ type MempoolOutput struct {
 	Address   string
 	Vout      uint32
 	ValueSats int64
+	// Withdrawal is true when the money leaves for the mainchain. The output
+	// still names a change address, and the wallet never spends it again.
+	Withdrawal bool
 }
 
 // MempoolInput is one coin an unconfirmed transaction spends, named the way a
@@ -71,7 +74,7 @@ func DeltaFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64)
 			continue
 		}
 		for _, out := range tx.Outputs {
-			if owned[out.Address] {
+			if owned[out.Address] && !out.Withdrawal {
 				coins[fmt.Sprintf("%s:%d", tx.Txid, out.Vout)] = out.ValueSats
 			}
 		}
@@ -80,7 +83,9 @@ func DeltaFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64)
 	var delta MempoolDelta
 	for _, tx := range txs {
 		for _, out := range tx.Outputs {
-			if owned[out.Address] {
+			// A withdrawal output carries a change address, and the money
+			// still leaves the chain. Crediting it reads the payment back.
+			if owned[out.Address] && !out.Withdrawal {
 				delta.CreditSats += out.ValueSats
 			}
 		}
@@ -97,7 +102,8 @@ func OwnedOutputs(txs []MempoolTx, owned map[string]bool) []MempoolTx {
 	for _, tx := range txs {
 		kept := make([]MempoolOutput, 0, len(tx.Outputs))
 		for _, o := range tx.Outputs {
-			if owned[o.Address] {
+			// A withdrawal is money on its way out, never a coin to spend.
+			if owned[o.Address] && !o.Withdrawal {
 				kept = append(kept, o)
 			}
 		}
@@ -144,12 +150,25 @@ func (b mempoolBody) outputs() []MempoolOutput {
 	out := make([]MempoolOutput, 0, len(b.Outputs))
 	for i, o := range b.Outputs {
 		out = append(out, MempoolOutput{
-			Address:   o.Address,
-			Vout:      uint32(i),
-			ValueSats: OutputValueSats(o.Content),
+			Address:    o.Address,
+			Vout:       uint32(i),
+			ValueSats:  OutputValueSats(o.Content),
+			Withdrawal: IsWithdrawal(o.Content),
 		})
 	}
 	return out
+}
+
+// IsWithdrawal is true when an output sends its money to the mainchain.
+func IsWithdrawal(content json.RawMessage) bool {
+	var out struct {
+		Withdrawal        *withdrawalAmounts `json:"Withdrawal"`
+		BitcoinWithdrawal *withdrawalAmounts `json:"BitcoinWithdrawal"`
+	}
+	if err := json.Unmarshal(content, &out); err != nil {
+		return false
+	}
+	return out.Withdrawal != nil || out.BitcoinWithdrawal != nil
 }
 
 // OutputValueSats reads the sats an output holds. A single asset chain names
