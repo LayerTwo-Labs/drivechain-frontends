@@ -318,3 +318,46 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 	require.NoError(t, err)
 	return raw
 }
+
+// A withdrawal output carries a change address, and the money still leaves the
+// chain. Crediting it reads the payment back into the wallet.
+func TestDeltaDoesNotCreditAWithdrawal(t *testing.T) {
+	node := &fakeNode{
+		addresses: `["mine"]`,
+		mempool: `[{"txid":"w","size":100,"tx":{
+		    "inputs":[{"Regular":{"txid":"old","vout":0}}],
+		    "outputs":[
+		      {"address":"mine","content":{"Withdrawal":{"value":5000,"main_fee":100,"main_address":"bc1q"}}},
+		      {"address":"mine","content":{"Value":4900}}
+		    ]}}]`,
+	}
+
+	txs, err := Mempool(context.Background(), node)
+	require.NoError(t, err)
+	require.True(t, txs[0].Outputs[0].Withdrawal)
+	require.False(t, txs[0].Outputs[1].Withdrawal)
+
+	delta := DeltaFor(txs, map[string]bool{"mine": true}, map[string]int64{"old:0": 10000})
+	assert.Equal(t, int64(4900), delta.CreditSats, "only the change comes back")
+	assert.Equal(t, int64(10000), delta.DebitSats)
+}
+
+// A withdrawal is money on its way out, never a coin the wallet can spend.
+func TestWithMempoolUTXOsSkipsAWithdrawalOutput(t *testing.T) {
+	node := &fakeNode{
+		addresses: `["mine"]`,
+		mempool: `[{"txid":"w","size":100,"tx":{"inputs":[],
+		    "outputs":[
+		      {"address":"mine","content":{"Withdrawal":{"value":5000,"main_fee":100,"main_address":"bc1q"}}},
+		      {"address":"mine","content":{"Value":4900}}
+		    ]}}]`,
+	}
+
+	var rows []map[string]any
+	require.NoError(t, json.Unmarshal(
+		WithMempoolUTXOs(context.Background(), node, json.RawMessage(`[]`)), &rows))
+	require.Len(t, rows, 1)
+	key, ok := outpointKey(mustJSON(t, rows[0]))
+	require.True(t, ok)
+	assert.Equal(t, "w:1", key, "the change is a coin, the withdrawal is not")
+}

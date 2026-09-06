@@ -137,8 +137,9 @@ func (e *BmmEngine) Start(
 		walletID:        walletID,
 		capToBlockWorth: capToBlockWorth,
 	}
-	if existing, ok := e.targets[sidechain]; ok {
-		target.lastTip = existing.lastTip
+	previous, running := e.targets[sidechain]
+	if running {
+		target.lastTip = previous.lastTip
 	} else if round, ok := e.current[sidechain]; ok {
 		target.lastTip = round.PrevMainHash
 	}
@@ -154,8 +155,14 @@ func (e *BmmEngine) Start(
 		MaxBidSats:      maxBidSats,
 		CapToBlockWorth: capToBlockWorth,
 	}); err != nil {
+		// A second Start only changes the wallet or the ceiling. Deleting the
+		// target would stop bidding over a failure that changed nothing.
 		e.mu.Lock()
-		delete(e.targets, sidechain)
+		if running {
+			e.targets[sidechain] = previous
+		} else {
+			delete(e.targets, sidechain)
+		}
 		e.mu.Unlock()
 		return fmt.Errorf("store the bmm target: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -1183,4 +1184,23 @@ func TestBmmEngineKeepsTheLiveRoundThroughClearHistory(t *testing.T) {
 	restarted.resumeTargets()
 	restarted.tick(ctx)
 	assert.Equal(t, 2, backend.bids, "the same tip is the same round")
+}
+
+// A second Start only changes the wallet or the ceiling. A failed write must
+// not stop the bidding the operator already asked for.
+func TestBmmEngineKeepsBiddingWhenAnUpdateCannotBeSaved(t *testing.T) {
+	engine, backend, _, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "first", 10_000, false))
+
+	// A directory that does not exist makes every later write fail.
+	store.Rebind(filepath.Join(t.TempDir(), "gone"))
+	require.Error(t, engine.Start(testSidechain, "second", 20_000, false))
+
+	running, wallet, maxBid := engine.Running(testSidechain)
+	assert.True(t, running, "an update that cannot be saved leaves the old target bidding")
+	assert.Equal(t, "first", wallet)
+	assert.Equal(t, int64(10_000), maxBid)
+
+	engine.tick(context.Background())
+	assert.Positive(t, backend.bids)
 }
