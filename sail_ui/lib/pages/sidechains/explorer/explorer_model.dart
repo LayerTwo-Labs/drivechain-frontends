@@ -9,6 +9,14 @@ import 'package:stacked/stacked.dart';
 /// mainchain block, so this only has to beat a reader's patience.
 const explorerRefreshInterval = Duration(seconds: 3);
 
+/// How often a quiet chain still redraws. Every page reads relative times, and
+/// those follow the clock rather than the chain.
+const explorerAgeInterval = Duration(minutes: 1);
+
+/// ageRefreshDue is true when the page must redraw to keep its relative times
+/// true, whatever the chain did.
+bool ageRefreshDue(DateTime last, DateTime now) => now.difference(last) >= explorerAgeInterval;
+
 /// ExplorerModel reads the chain through the orchestrator. A light client
 /// answers from a hosted index, a full node from its own chain.
 class ExplorerModel extends BaseViewModel {
@@ -32,6 +40,8 @@ class ExplorerModel extends BaseViewModel {
   bool _reading = false;
   bool _readingOlder = false;
   bool _reachedGenesis = false;
+
+  DateTime _lastDraw = DateTime.now();
 
   /// blocks are the newest blocks, then every page a reader scrolled back to.
   List<pb.Block> get blocks => [...?overview?.blocks, ...olderBlocks];
@@ -109,10 +119,12 @@ class ExplorerModel extends BaseViewModel {
         overview = next;
         _trimOlderBlocks(next.blocks);
         readError = null;
-        notifyListeners();
+        _draw();
       } else if (readError != null) {
         readError = null;
-        notifyListeners();
+        _draw();
+      } else if (ageRefreshDue(_lastDraw, DateTime.now())) {
+        _draw();
       }
     } catch (e) {
       readError = e.toString();
@@ -120,6 +132,11 @@ class ExplorerModel extends BaseViewModel {
     } finally {
       _reading = false;
     }
+  }
+
+  void _draw() {
+    _lastDraw = DateTime.now();
+    notifyListeners();
   }
 
   Future<pb.GetBlockResponse> block({String? hash, int? height}) {

@@ -156,6 +156,8 @@ class _BlockView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final block = response.block;
+    final deposits = response.activity.where((r) => r.kind == pb.Kind.KIND_DEPOSIT).toList();
+    final transactions = response.activity.where((r) => r.kind != pb.Kind.KIND_DEPOSIT).toList();
     return SailColumn(
       spacing: SailStyleValues.padding16,
       children: [
@@ -167,65 +169,106 @@ class _BlockView extends StatelessWidget {
             Expanded(
               child: SailCard(
                 title: 'Details',
+                subtitle: explorerAge(block.blockTime.toInt()),
                 child: SailColumn(
                   spacing: SailStyleValues.padding08,
                   children: [
                     _Row(label: 'Transactions', value: '${block.txCount}'),
+                    _Row(label: 'Deposits', value: '${block.depositCount}'),
                     _Row(label: 'Value', value: explorerAmount(context, block.valueSats.toInt())),
+                    if (block.depositCount != 0)
+                      _Row(
+                        label: 'Deposited',
+                        value: explorerAmount(context, block.depositValueSats.toInt()),
+                      ),
                     _Row(
                       label: 'Transaction bytes',
                       value: block.sizeBytes == 0 ? '—' : '${block.sizeBytes}',
                     ),
-                    _Row(
-                      label: 'Fees',
-                      value: block.feesKnown ? explorerAmount(context, block.feesSats.toInt()) : '—',
-                    ),
+                    if (block.feesKnown) _Row(label: 'Fees', value: explorerAmount(context, block.feesSats.toInt())),
                     _Row(label: 'Merkle root', value: shortenId(block.merkleRoot)),
                   ],
                 ),
               ),
             ),
             Expanded(
-              child: SailCard(
-                title: 'Blind merge mine',
-                subtitle: 'The mainchain block that carried the bid',
-                child: SailColumn(
-                  spacing: SailStyleValues.padding08,
-                  children: [
-                    if (block.mainchainHash.isEmpty)
-                      const _Row(label: 'Mainchain block', value: 'Unknown')
-                    else
-                      _LinkRow(
-                        label: 'Mainchain block',
-                        value: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : shortenId(block.mainchainHash),
-                        onTap: () async => launchUrl(
-                          Uri.parse(
-                            mempoolBlockUrl(
-                              block.mainchainHash,
-                              GetIt.I.get<BitcoinConfProvider>().network,
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (block.prevHash.isNotEmpty)
-                      _LinkRow(
-                        label: 'Previous block',
-                        value: shortenId(block.prevHash),
-                        onTap: () async => onOpen(ExplorerTarget.block(hash: block.prevHash)),
-                      ),
-                  ],
-                ),
+              child: _BlindMergeMineCard(block: block, onOpen: onOpen),
+            ),
+          ],
+        ),
+        SailRow(
+          spacing: SailStyleValues.padding16,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _ActivityTable(
+                title: 'Transactions',
+                subtitle: '${block.txCount} in this block',
+                rows: transactions,
+                onOpen: onOpen,
+              ),
+            ),
+            Expanded(
+              child: DepositsCard(
+                rows: deposits,
+                subtitle: '${block.depositCount} in this block',
+                compact: true,
               ),
             ),
           ],
         ),
-        _ActivityTable(
-          title: 'Transactions',
-          subtitle: '${response.activity.length} in this block',
-          rows: response.activity,
-          onOpen: onOpen,
-        ),
       ],
+    );
+  }
+}
+
+/// _BlindMergeMineCard names the M8 a miner took to mine this block: what it
+/// paid, and the mainchain outpoint that carried it.
+class _BlindMergeMineCard extends StatelessWidget {
+  final pb.Block block;
+  final void Function(ExplorerTarget) onOpen;
+
+  const _BlindMergeMineCard({required this.block, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final network = GetIt.I.get<BitcoinConfProvider>().network;
+    final bid = block.hasBid() ? block.bid : null;
+    return SailCard(
+      title: 'Blind merge mine',
+      headerValue: bid != null ? explorerAmount(context, bid.sats.toInt()) : null,
+      subtitle: bid != null ? 'Winning bid' : 'This install reads no bid for the block',
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        children: [
+          if (bid != null)
+            _LinkRow(
+              label: 'Bid block',
+              value: '${bid.blockHeight}',
+              onTap: () async => launchUrl(Uri.parse(mempoolBlockUrl(bid.blockHash, network))),
+            ),
+          if (bid != null)
+            _LinkRow(
+              label: 'Bid outpoint',
+              value: '${shortenId(bid.txid)} : ${bid.vout}',
+              onTap: () async => launchUrl(Uri.parse(mempoolTxUrl(bid.txid, network))),
+            ),
+          if (block.mainchainHash.isEmpty)
+            const _Row(label: 'Parent block', value: 'Unknown')
+          else
+            _LinkRow(
+              label: 'Parent block',
+              value: block.mainchainHeight != 0 ? '${block.mainchainHeight}' : shortenId(block.mainchainHash),
+              onTap: () async => launchUrl(Uri.parse(mempoolBlockUrl(block.mainchainHash, network))),
+            ),
+          if (block.prevHash.isNotEmpty)
+            _LinkRow(
+              label: 'Previous block',
+              value: shortenId(block.prevHash),
+              onTap: () async => onOpen(ExplorerTarget.block(hash: block.prevHash)),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -469,8 +512,6 @@ class _ActivityTable extends StatelessWidget {
             SailTableHeaderCell(name: 'Transaction'),
             SailTableHeaderCell(name: 'Kind'),
             SailTableHeaderCell(name: 'Value'),
-            SailTableHeaderCell(name: 'Fee'),
-            SailTableHeaderCell(name: 'Size'),
           ],
           rowBuilder: (context, index, selected) {
             final row = rows[index];
@@ -478,8 +519,6 @@ class _ActivityTable extends StatelessWidget {
               SailTableCell(value: shortenId(row.id), monospace: true),
               SailTableCell(value: '', child: kindBadge(row.kind)),
               SailTableCell(value: explorerAmount(context, row.valueSats.toInt())),
-              SailTableCell(value: explorerAmount(context, row.feeSats.toInt())),
-              SailTableCell(value: row.sizeBytes == 0 ? '—' : '${row.sizeBytes} bytes'),
             ];
           },
           rowCount: rows.length,
