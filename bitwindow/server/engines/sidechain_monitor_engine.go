@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
@@ -70,6 +71,10 @@ type PendingFastWithdrawal struct {
 	ServerURL      string    `json:"server_url"`      // Fast withdrawal server URL
 	CreatedAt      time.Time `json:"created_at"`
 }
+
+// MaxFastWithdrawalSats is the total bitcoin supply in sats. Any expected
+// amount above it comes from a bogus or hostile server response.
+const MaxFastWithdrawalSats = 21_000_000 * 100_000_000
 
 // NewSidechainMonitorEngine creates a new sidechain monitoring engine
 func NewSidechainMonitorEngine(
@@ -178,6 +183,11 @@ func (e *SidechainMonitorEngine) GetWithdrawalByTxid(ctx context.Context, txid s
 
 // RegisterPendingFastWithdrawal adds a pending fast withdrawal to monitor for
 func (e *SidechainMonitorEngine) RegisterPendingFastWithdrawal(ctx context.Context, withdrawal PendingFastWithdrawal) error {
+	if withdrawal.ExpectedAmount <= 0 || withdrawal.ExpectedAmount > MaxFastWithdrawalSats {
+		return connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("expected amount out of range: %d", withdrawal.ExpectedAmount))
+	}
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -702,6 +712,14 @@ func (e *SidechainMonitorEngine) findTransactionToAddressViaUTXOs(
 ) string {
 	log := zerolog.Ctx(ctx)
 
+	// A non-positive expectation can never be satisfied by a payment.
+	if expectedAmount <= 0 {
+		return ""
+	}
+
+	// Allow 5% tolerance for fees, computed without overflowing int64.
+	minAmount := expectedAmount - expectedAmount/20
+
 	// Get all UTXOs to check for transactions to our target address
 	utxosRaw, err := getUTXOs()
 	if err != nil {
@@ -728,7 +746,7 @@ func (e *SidechainMonitorEngine) findTransactionToAddressViaUTXOs(
 			// Check amount (UTXOs typically store in sats)
 			if amountFloat, ok := utxo["amount"].(float64); ok {
 				amount := int64(amountFloat)
-				if amount >= expectedAmount*95/100 { // Allow 5% tolerance for fees
+				if amount >= minAmount {
 					// Found matching transaction, extract txid
 					if txid, ok := utxo["txid"].(string); ok {
 						log.Info().

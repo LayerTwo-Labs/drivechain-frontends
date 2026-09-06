@@ -632,14 +632,20 @@ func (p *Parser) handleTimestamp(
 		return nil
 	}
 
-	// Create discovered timestamp
+	// Create discovered timestamp. A mempool-only discovery has no block yet,
+	// so it starts out confirming and checkConfirmations settles it.
+	status := timestamps.StatusConfirmed
+	if blockHeight == nil {
+		status = timestamps.StatusConfirming
+	}
+
 	now := time.Now()
 	timestamp := timestamps.FileTimestamp{
 		Filename:    "", // Unknown for discovered timestamps
 		FileHash:    fileHash,
 		TxID:        &txid,
 		BlockHeight: blockHeight,
-		Status:      timestamps.StatusConfirmed,
+		Status:      status,
 		CreatedAt:   now,
 		ConfirmedAt: confirmedAt,
 	}

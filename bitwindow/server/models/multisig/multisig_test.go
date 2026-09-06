@@ -17,10 +17,11 @@ func setupTestDB(t *testing.T) *sql.DB {
 	db, err := sql.Open("sqlite3", ":memory:?_foreign_keys=on")
 	require.NoError(t, err)
 
-	// Replicate the schema from migrations 031 + 032.
+	// Replicate the schema from migrations 031 + 032 + 047.
 	for _, ddl := range []string{
 		`CREATE TABLE multisig_groups (
 			id TEXT PRIMARY KEY,
+			wallet_id TEXT,
 			name TEXT NOT NULL,
 			n INTEGER NOT NULL,
 			m INTEGER NOT NULL,
@@ -177,6 +178,118 @@ func TestSaveGroupUpsert(t *testing.T) {
 	require.Len(t, groups, 1)
 	assert.Equal(t, "Updated Name", groups[0].Name)
 	assert.Equal(t, 1.5, groups[0].Balance)
+}
+
+func TestListGroupsForWallet(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	legacy := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, legacy))
+
+	a := sampleGroup()
+	a.ID, a.WalletID = "grp-a", "wallet-a"
+	require.NoError(t, store.SaveGroup(ctx, a))
+
+	b := sampleGroup()
+	b.ID, b.WalletID = "grp-b", "wallet-b"
+	require.NoError(t, store.SaveGroup(ctx, b))
+
+	groups, err := store.ListGroupsForWallet(ctx, "wallet-a")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{legacy.ID, "grp-a"}, groupIDs(groups))
+
+	groups, err = store.ListGroupsForWallet(ctx, "wallet-b")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{legacy.ID, "grp-b"}, groupIDs(groups))
+
+	// ListGroups stays global — the backup export takes every group.
+	all, err := store.ListGroups(ctx)
+	require.NoError(t, err)
+	assert.Len(t, all, 3)
+}
+
+func TestSaveGroupKeepsOwningWallet(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	g.WalletID = "wallet-a"
+	require.NoError(t, store.SaveGroup(ctx, g))
+
+	// A save under another wallet updates the group, but not its owner.
+	g.WalletID = "wallet-b"
+	g.Name = "Updated Name"
+	require.NoError(t, store.SaveGroup(ctx, g))
+
+	groups, err := store.ListGroupsForWallet(ctx, "wallet-a")
+	require.NoError(t, err)
+	require.Len(t, groups, 1)
+	assert.Equal(t, "Updated Name", groups[0].Name)
+	assert.Equal(t, "wallet-a", groups[0].WalletID)
+
+	groups, err = store.ListGroupsForWallet(ctx, "wallet-b")
+	require.NoError(t, err)
+	assert.Empty(t, groups)
+}
+
+func TestGroupVisibleTo(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	legacy := sampleGroup()
+	require.NoError(t, store.SaveGroup(ctx, legacy))
+
+	owned := sampleGroup()
+	owned.ID, owned.WalletID = "grp-a", "wallet-a"
+	require.NoError(t, store.SaveGroup(ctx, owned))
+
+	for _, tc := range []struct {
+		groupID string
+		visible bool
+	}{
+		{legacy.ID, true},  // no owner: visible to every wallet
+		{"grp-a", false},   // owned by wallet-a
+		{"grp-gone", true}, // unknown: wallet-b is about to create it
+	} {
+		visible, err := store.GroupVisibleTo(ctx, tc.groupID, "wallet-b")
+		require.NoError(t, err)
+		assert.Equal(t, tc.visible, visible, tc.groupID)
+	}
+}
+
+func TestListTransactionsForWallet(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	a := sampleGroup()
+	a.ID, a.WalletID = "grp-a", "wallet-a"
+	require.NoError(t, store.SaveGroup(ctx, a))
+
+	b := sampleGroup()
+	b.ID, b.WalletID = "grp-b", "wallet-b"
+	require.NoError(t, store.SaveGroup(ctx, b))
+
+	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-a", GroupID: "grp-a", Created: 1700000500}))
+	require.NoError(t, store.SaveTransaction(ctx, multisig.Transaction{ID: "tx-b", GroupID: "grp-b", Created: 1700000600}))
+
+	txns, err := store.ListTransactionsForWallet(ctx, "wallet-a")
+	require.NoError(t, err)
+	require.Len(t, txns, 1)
+	assert.Equal(t, "tx-a", txns[0].ID)
+
+	// ListTransactions stays global — the backup export takes every one.
+	all, err := store.ListTransactions(ctx, "")
+	require.NoError(t, err)
+	assert.Len(t, all, 2)
+}
+
+func groupIDs(groups []multisig.Group) []string {
+	ids := make([]string, 0, len(groups))
+	for _, g := range groups {
+		ids = append(ids, g.ID)
+	}
+	return ids
 }
 
 func TestDeleteGroupCascades(t *testing.T) {

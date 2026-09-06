@@ -3,11 +3,13 @@ package engines
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	notificationv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/notification/v1"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -53,6 +55,69 @@ func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal(t *testing.T) {
 	assert.Equal(t, "test-hash-123456789abcdef", pending[0].Hash)
 	assert.Equal(t, "thunder", pending[0].Sidechain)
 	assert.Equal(t, "thunder1test456", pending[0].ServerAddress)
+}
+
+func TestSidechainMonitorEngine_RegisterPendingFastWithdrawal_RejectsBadAmount(t *testing.T) {
+	ctx := context.Background()
+
+	engine := NewSidechainMonitorEngine(
+		nil, nil, nil, nil, nil, nil,
+		nil,
+	)
+
+	for _, amount := range []int64{0, -1, MaxFastWithdrawalSats + 1, math.MaxInt64} {
+		err := engine.RegisterPendingFastWithdrawal(ctx, PendingFastWithdrawal{
+			Hash:           "test-hash-123456789abcdef",
+			Sidechain:      "thunder",
+			ServerAddress:  "thunder1test456",
+			ExpectedAmount: amount,
+			ServerURL:      "https://fw1.drivechain.info",
+			CreatedAt:      time.Now(),
+		})
+		require.Error(t, err)
+		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	}
+
+	pending, err := engine.GetPendingFastWithdrawals(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, pending)
+}
+
+func TestSidechainMonitorEngine_FindTransactionToAddressViaUTXOs_Tolerance(t *testing.T) {
+	ctx := zerolog.New(zerolog.NewTestWriter(t)).WithContext(context.Background())
+
+	engine := NewSidechainMonitorEngine(
+		nil, nil, nil, nil, nil, nil,
+		nil,
+	)
+
+	utxosOf := func(amount int64) func() (json.RawMessage, error) {
+		return func() (json.RawMessage, error) {
+			return json.Marshal([]map[string]interface{}{{
+				"address": "thunder1test456",
+				"amount":  amount,
+				"txid":    "utxo-txid-123456789abcdef",
+			}})
+		}
+	}
+
+	// An expected amount whose *95 wraps int64 must not match a 1 sat UTXO.
+	txid := engine.findTransactionToAddressViaUTXOs(
+		ctx, utxosOf(1), "thunder1test456", math.MaxInt64/50, "Thunder",
+	)
+	assert.Empty(t, txid)
+
+	// A non-positive expectation never matches.
+	txid = engine.findTransactionToAddressViaUTXOs(
+		ctx, utxosOf(100_000), "thunder1test456", 0, "Thunder",
+	)
+	assert.Empty(t, txid)
+
+	// Control: 96% of the expected amount is still inside the 5% tolerance.
+	txid = engine.findTransactionToAddressViaUTXOs(
+		ctx, utxosOf(96_000), "thunder1test456", 100_000, "Thunder",
+	)
+	assert.Equal(t, "utxo-txid-123456789abcdef", txid)
 }
 
 func TestSidechainMonitorEngine_CompleteWithdrawal(t *testing.T) {

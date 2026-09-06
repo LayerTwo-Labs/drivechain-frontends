@@ -160,7 +160,7 @@ func (e *NotificationEngine) checkTimestampConfirmations(ctx context.Context) er
 			e.broadcast(ctx, event)
 
 			// Mark as notified
-			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTimestamp, eventID); err != nil {
+			if err := notifications.MarkNotifiedAt(ctx, e.db, notifications.EventTypeTimestamp, eventID, blockHeight); err != nil {
 				log.Warn().Err(err).Int64("id", ts.ID).Msg("mark timestamp notified")
 			}
 
@@ -213,6 +213,13 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 		return err
 	}
 
+	// The tip turns a confirmation count into the height that confirmed the
+	// transaction, which is what a fork purge matches on.
+	chainInfo, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{}))
+	if err != nil {
+		return err
+	}
+
 	// Check transactions for each wallet
 	for _, walletName := range walletsResp.Msg.Wallets {
 		resp, err := bitcoind.ListTransactions(ctx, connect.NewRequest(&corepb.ListTransactionsRequest{
@@ -227,7 +234,7 @@ func (e *NotificationEngine) checkWalletTransactions(ctx context.Context) error 
 			continue
 		}
 
-		e.processWalletTransactions(ctx, walletName, resp.Msg.Transactions)
+		e.processWalletTransactions(ctx, walletName, chainInfo.Msg.Blocks, resp.Msg.Transactions)
 	}
 
 	return nil
@@ -274,7 +281,17 @@ func aggregateByTxid(transactions []*corepb.GetTransactionResponse) []walletTx {
 	return aggregated
 }
 
-func (e *NotificationEngine) processWalletTransactions(ctx context.Context, walletName string, transactions []*corepb.GetTransactionResponse) {
+// confirmingHeight is the height of the block that gave a transaction its first
+// confirmation, or nil when the tip doesn't place it.
+func confirmingHeight(tipHeight, confirmations uint32) *int64 {
+	if tipHeight == 0 || confirmations == 0 || confirmations > tipHeight {
+		return nil
+	}
+	height := int64(tipHeight - confirmations + 1)
+	return &height
+}
+
+func (e *NotificationEngine) processWalletTransactions(ctx context.Context, walletName string, tipHeight uint32, transactions []*corepb.GetTransactionResponse) {
 	log := zerolog.Ctx(ctx)
 	for _, tx := range aggregateByTxid(transactions) {
 		txid := tx.txid
@@ -312,7 +329,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 				}
 			}
 			if !confNotified && confirmations >= 1 {
-				if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
+				if err := notifications.MarkNotifiedAt(ctx, e.db, notifications.EventTypeTransactionConf, confEventID, confirmingHeight(tipHeight, confirmations)); err != nil {
 					log.Warn().Err(err).Str("txid", txid).Msg("mark backlog transaction confirmation notified")
 				}
 			}
@@ -384,7 +401,7 @@ func (e *NotificationEngine) processWalletTransactions(ctx context.Context, wall
 				},
 			}
 			e.broadcast(ctx, event)
-			if err := notifications.MarkNotified(ctx, e.db, notifications.EventTypeTransactionConf, confEventID); err != nil {
+			if err := notifications.MarkNotifiedAt(ctx, e.db, notifications.EventTypeTransactionConf, confEventID, confirmingHeight(tipHeight, confirmations)); err != nil {
 				log.Warn().Err(err).Str("txid", txid).Msg("mark transaction confirmation notified")
 			}
 			log.Info().

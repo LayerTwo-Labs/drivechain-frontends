@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	pb "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/multisig/v1/multisigv1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/multisig"
@@ -17,17 +18,44 @@ import (
 
 var _ rpc.MultisigServiceHandler = new(Server)
 
-type Server struct {
-	store *multisig.Store
+// walletReader resolves the wallet that scopes the caller's multisig data.
+type walletReader interface {
+	GetActiveWallet(ctx context.Context) (*engines.WalletInfo, error)
 }
 
-func New(db *sql.DB) *Server {
-	return &Server{store: multisig.NewStore(db)}
+type Server struct {
+	store        *multisig.Store
+	walletEngine walletReader
+}
+
+func New(db *sql.DB, walletEngine walletReader) *Server {
+	return &Server{store: multisig.NewStore(db), walletEngine: walletEngine}
 }
 
 // Store exposes the underlying store for migration use.
 func (s *Server) Store() *multisig.Store {
 	return s.store
+}
+
+func (s *Server) activeWalletID(ctx context.Context) (string, error) {
+	active, err := s.walletEngine.GetActiveWallet(ctx)
+	if err != nil {
+		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get active wallet: %w", err))
+	}
+	return active.ID, nil
+}
+
+// requireGroupVisible rejects a group owned by another wallet. Groups saved
+// before wallet scoping existed carry no owner and stay visible to all.
+func (s *Server) requireGroupVisible(ctx context.Context, groupID, walletID string) error {
+	visible, err := s.store.GroupVisibleTo(ctx, groupID, walletID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("group wallet: %w", err))
+	}
+	if !visible {
+		return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("group %s belongs to another wallet", groupID))
+	}
+	return nil
 }
 
 // ─── Groups ────────────────────────────────────────────────────────
@@ -36,7 +64,12 @@ func (s *Server) ListGroups(
 	ctx context.Context,
 	req *connect.Request[emptypb.Empty],
 ) (*connect.Response[pb.ListGroupsResponse], error) {
-	groups, err := s.store.ListGroups(ctx)
+	walletID, err := s.activeWalletID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	groups, err := s.store.ListGroupsForWallet(ctx, walletID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list groups: %w", err))
 	}
@@ -65,8 +98,17 @@ func (s *Server) SaveGroup(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("group id is required"))
 	}
 
+	walletID, err := s.activeWalletID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireGroupVisible(ctx, pg.Id, walletID); err != nil {
+		return nil, err
+	}
+
 	g := multisig.Group{
 		ID:                pg.Id,
+		WalletID:          walletID,
 		Name:              pg.Name,
 		N:                 int(pg.N),
 		M:                 int(pg.M),
@@ -171,6 +213,14 @@ func (s *Server) DeleteGroup(
 	ctx context.Context,
 	req *connect.Request[pb.DeleteGroupRequest],
 ) (*connect.Response[emptypb.Empty], error) {
+	walletID, err := s.activeWalletID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireGroupVisible(ctx, req.Msg.GroupId, walletID); err != nil {
+		return nil, err
+	}
+
 	if err := s.store.DeleteGroup(ctx, req.Msg.GroupId); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("delete group: %w", err))
 	}
@@ -183,7 +233,20 @@ func (s *Server) ListTransactions(
 	ctx context.Context,
 	req *connect.Request[pb.ListTransactionsRequest],
 ) (*connect.Response[pb.ListTransactionsResponse], error) {
-	txns, err := s.store.ListTransactions(ctx, req.Msg.GroupId)
+	walletID, err := s.activeWalletID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var txns []multisig.Transaction
+	if req.Msg.GroupId == "" {
+		txns, err = s.store.ListTransactionsForWallet(ctx, walletID)
+	} else {
+		if err := s.requireGroupVisible(ctx, req.Msg.GroupId, walletID); err != nil {
+			return nil, err
+		}
+		txns, err = s.store.ListTransactions(ctx, req.Msg.GroupId)
+	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list transactions: %w", err))
 	}
@@ -204,12 +267,20 @@ func (s *Server) GetTransaction(
 	ctx context.Context,
 	req *connect.Request[pb.GetTransactionRequest],
 ) (*connect.Response[pb.MultisigTransaction], error) {
+	walletID, err := s.activeWalletID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	t, err := s.store.GetTransaction(ctx, req.Msg.TransactionId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	if t == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found: %s", req.Msg.TransactionId))
+	}
+	if err := s.requireGroupVisible(ctx, t.GroupID, walletID); err != nil {
+		return nil, err
 	}
 
 	pbTx, err := s.txToProto(ctx, *t)
@@ -224,12 +295,20 @@ func (s *Server) GetTransactionByTxid(
 	ctx context.Context,
 	req *connect.Request[pb.GetTransactionByTxidRequest],
 ) (*connect.Response[pb.MultisigTransaction], error) {
+	walletID, err := s.activeWalletID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	t, err := s.store.GetTransactionByTxid(ctx, req.Msg.Txid)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	if t == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("transaction not found for txid: %s", req.Msg.Txid))
+	}
+	if err := s.requireGroupVisible(ctx, t.GroupID, walletID); err != nil {
+		return nil, err
 	}
 
 	pbTx, err := s.txToProto(ctx, *t)
@@ -247,6 +326,14 @@ func (s *Server) SaveTransaction(
 	pt := req.Msg.Transaction
 	if pt == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("transaction is required"))
+	}
+
+	walletID, err := s.activeWalletID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireGroupVisible(ctx, pt.GroupId, walletID); err != nil {
+		return nil, err
 	}
 
 	t := multisig.Transaction{

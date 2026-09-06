@@ -348,13 +348,24 @@ func (e *M4Engine) persistM3Message(ctx context.Context, msg *m4.M3Message) erro
 		return fmt.Errorf("insert M3 message: %w", err)
 	}
 
-	// Create withdrawal bundle if it doesn't exist
+	// Create withdrawal bundle if it doesn't exist. A bundle that already
+	// failed or expired may be proposed again, which starts its life over —
+	// the clock, the score and the status all reset to the new proposal. A
+	// pending or approved bundle keeps what it has.
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO withdrawal_bundles (
 			sidechain_slot, bundle_hash, work_score, blocks_left,
 			first_seen_height, last_updated_height, status
 		) VALUES (?, ?, 1, ?, ?, ?, 'pending')
-		ON CONFLICT(sidechain_slot, bundle_hash) DO NOTHING
+		ON CONFLICT(sidechain_slot, bundle_hash) DO UPDATE SET
+			status = 'pending',
+			work_score = 1,
+			blocks_left = excluded.blocks_left,
+			first_seen_height = excluded.first_seen_height,
+			last_updated_height = excluded.last_updated_height,
+			status_stamped = 0,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE withdrawal_bundles.status IN ('failed', 'expired')
 	`, msg.SidechainSlot, msg.BundleHash, m4.WithdrawalMaxAge, msg.BlockHeight, msg.BlockHeight)
 	if err != nil {
 		return fmt.Errorf("insert withdrawal bundle: %w", err)

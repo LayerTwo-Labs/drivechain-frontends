@@ -76,6 +76,12 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 			continue
 		}
 
+		// A denial that just failed backs off, so a failure that persists does
+		// not re-issue the same send on every tick.
+		if denial.RetryAfter != nil && now.Before(*denial.RetryAfter) {
+			continue
+		}
+
 		logger.Info().
 			Int64("denial_id", denial.ID).
 			Time("next_execution", *denial.NextExecution).
@@ -89,6 +95,13 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 				Int64("denial_id", denial.ID).
 				Dur("duration", time.Since(execStart)).
 				Msg("deniability: could not execute denial")
+
+			if ferr := e.recordDenialFailure(ctx, denial, err); ferr != nil {
+				logger.Error().
+					Err(ferr).
+					Int64("denial_id", denial.ID).
+					Msg("deniability: could not record failed denial")
+			}
 			continue
 		}
 		logger.Info().
@@ -98,6 +111,26 @@ func (e *DeniabilityEngine) checkDenials(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// maxDenialFailures is how many executions may fail in a row before the denial
+// is given up on, so the user gets a reason instead of a retry that never ends.
+const maxDenialFailures = 10
+
+// recordDenialFailure backs the denial off, and cancels it once it has failed
+// maxDenialFailures times in a row.
+func (e *DeniabilityEngine) recordDenialFailure(ctx context.Context, denial deniability.Denial, cause error) error {
+	attempts, err := deniability.RecordFailure(ctx, e.db, denial)
+	if err != nil {
+		return fmt.Errorf("record failure: %w", err)
+	}
+
+	if attempts < maxDenialFailures {
+		return nil
+	}
+
+	return deniability.Cancel(ctx, e.db, denial.ID,
+		fmt.Sprintf("cancelled after %d failed attempts: %s", attempts, cause))
 }
 
 // UTXO is one spendable output. Bitcoin Core and electrum report different
