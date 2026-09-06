@@ -18,6 +18,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
@@ -619,6 +620,9 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
+	// A node counts a coin once a block carries it, so a payment on its way
+	// reads as nothing at all until the next block.
+	pendingSats += h.mempoolCredit(ctx, cfg)
 
 	if h.orch.WalletSvc != nil {
 		_ = h.orch.WalletSvc.SyncBalance(
@@ -736,6 +740,44 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryTyp
 func (h *Handler) bbcCookiePath() string {
 	network := config.NetworkFromString(h.orch.CurrentNetwork())
 	return filepath.Join(config.BbcDirs.DatadirNetwork(network, ""), ".cookie")
+}
+
+// mempoolCredit is what the sidechain mempool pays this wallet, in sats. A
+// chain that answers neither its mempool nor its addresses adds nothing.
+func (h *Handler) mempoolCredit(ctx context.Context, cfg orchestrator.BinaryConfig) int64 {
+	if cfg.IsBitcoinCore {
+		return 0
+	}
+	node, err := sidechainProxy(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
+	if err != nil {
+		return 0
+	}
+	owned, err := walletAddresses(ctx, node)
+	if err != nil || len(owned) == 0 {
+		return 0
+	}
+	txs, err := sidechain.Mempool(ctx, node)
+	if err != nil {
+		return 0
+	}
+	return sidechain.CreditFor(txs, owned)
+}
+
+// walletAddresses reads the addresses a node's own wallet holds.
+func walletAddresses(ctx context.Context, node sidechain.SidechainRPCProxy) (map[string]bool, error) {
+	raw, err := node.CallRaw(ctx, "get_wallet_addresses", nil)
+	if err != nil {
+		return nil, fmt.Errorf("read the wallet addresses: %w", err)
+	}
+	var list []string
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return nil, fmt.Errorf("read the wallet addresses: %w", err)
+	}
+	owned := make(map[string]bool, len(list))
+	for _, address := range list {
+		owned[address] = true
+	}
+	return owned, nil
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {

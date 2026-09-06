@@ -1133,7 +1133,13 @@ class _BalanceRefreshButtonState extends State<_BalanceRefreshButton> {
     }
     setState(() => _busy = true);
     try {
-      await GetIt.I.get<OrchestratorRPC>().wallet.rescanWallet();
+      // A sidechain app has no mainchain wallet to rescan, and its coins come
+      // from its own node.
+      if (GetIt.I.isRegistered<SidechainTransactionsProvider>()) {
+        await GetIt.I.get<SidechainTransactionsProvider>().fetch();
+      } else {
+        await GetIt.I.get<OrchestratorRPC>().wallet.rescanWallet();
+      }
       await GetIt.I.get<BalanceProvider>().fetch();
     } catch (_) {
     } finally {

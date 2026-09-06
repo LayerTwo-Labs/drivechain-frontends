@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -366,11 +366,11 @@
         "binary": "thunder",
         "files": {
           "default": {
-            "base_url": "https://releases.drivechain.info/",
-            "linux-x86_64": "L2-S9-Thunder-latest-x86_64-unknown-linux-gnu.zip",
-            "macos-x86_64": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
-            "macos-arm64": "L2-S9-Thunder-latest-x86_64-apple-darwin.zip",
-            "windows-x86_64": "L2-S9-Thunder-latest-x86_64-pc-windows-gnu.zip"
+            "base_url": "https://api.github.com/repos/octobocto/thunder-rust/releases/latest",
+            "linux-x86_64": "thunder-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu",
+            "macos-x86_64": "thunder-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin",
+            "macos-arm64": "thunder-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin",
+            "windows-x86_64": "thunder-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.exe"
           }
         }
       },
