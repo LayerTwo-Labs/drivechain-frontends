@@ -70,10 +70,12 @@ class CheckDetailViewModel extends BaseViewModel {
   }
 
   Future<void> fundWithWallet(BuildContext context) async {
-    if (_check == null) {
+    // A second tap while the send is in flight would pay the cheque twice.
+    if (_check == null || isBusy) {
       return;
     }
 
+    setBusy(true);
     try {
       final walletId = _walletReader.activeWalletId;
       if (walletId == null) {
@@ -109,10 +111,26 @@ class CheckDetailViewModel extends BaseViewModel {
         context,
         'Failed to fund check: $e',
       );
+    } finally {
+      setBusy(false);
     }
   }
 
   Future<void> sweepCheck(BuildContext context) async {
+    // A second tap while the sweep is in flight would broadcast it twice.
+    if (isBusy) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await _sweepCheck(context);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  Future<void> _sweepCheck(BuildContext context) async {
     if (_check == null || _check!.fundedTxids.isEmpty) {
       return;
     }
@@ -166,7 +184,7 @@ class CheckDetailViewModel extends BaseViewModel {
             return;
           }
           if (_walletReader.isWalletUnlocked) {
-            await sweepCheck(context);
+            await _sweepCheck(context);
           }
         } else {
           showSailToast(context, 'Backend wallet not initialized. Please restart the app.');
@@ -443,7 +461,7 @@ class CheckDetailPage extends StatelessWidget {
                                   ],
                                 ),
                                 child: SailTappable(
-                                  onTap: () async => model.fundWithWallet(context),
+                                  onTap: model.isBusy ? null : () async => model.fundWithWallet(context),
                                   borderRadius: BorderRadius.circular(8),
                                   child: Center(
                                     child: SailText.primary15(
@@ -479,7 +497,7 @@ class CheckDetailPage extends StatelessWidget {
                                   ],
                                 ),
                                 child: SailTappable(
-                                  onTap: () async => model.sweepCheck(context),
+                                  onTap: model.isBusy ? null : () async => model.sweepCheck(context),
                                   borderRadius: BorderRadius.circular(8),
                                   child: Center(
                                     child: SailText.primary15(

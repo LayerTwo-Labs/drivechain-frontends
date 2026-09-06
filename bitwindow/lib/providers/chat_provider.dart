@@ -376,8 +376,8 @@ class ChatProvider extends ChangeNotifier {
       return;
     }
 
-    // Get an address for sending to this contact
-    final address = await bitnamesRPC.getNewAddress();
+    // The contact's own address, never one of ours
+    final address = await bitnamesRPC.resolveOwnerAddress(entry.hash);
 
     final contact = ChatContact(
       id: entry.hash,
@@ -503,21 +503,28 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Encrypt the message with recipient's pubkey
+      // 1. Re-resolve the destination, the BitName UTXO moves when it is updated
+      final dest = await bitnamesRPC.resolveOwnerAddress(_selectedContact!.id);
+      if (dest == null) {
+        _error = 'No address found for ${_selectedContact!.displayName}, cannot send';
+        return null;
+      }
+
+      // 2. Encrypt the message with recipient's pubkey
       final ciphertext = await bitnamesRPC.encryptMsg(
         msg: content,
         encryptionPubkey: _selectedContact!.encryptionPubkey,
       );
 
-      // 2. Send as transfer with memo
+      // 3. Send as transfer with memo
       final txid = await bitnamesRPC.transfer(
-        dest: _selectedContact!.address,
+        dest: dest,
         value: _selectedContact!.paymailFeeSats ?? 1000,
         fee: 100,
         memo: ciphertext,
       );
 
-      // 3. Add to local message list
+      // 4. Add to local message list
       final message = ChatMessage(
         id: txid,
         content: content,
@@ -530,10 +537,11 @@ class ChatProvider extends ChangeNotifier {
       );
       _messages.add(message);
 
-      // 4. Update contact's last message
+      // 5. Update contact's last message and cache the address we just resolved
       final contactIndex = _contacts.indexWhere((c) => c.id == _selectedContact!.id);
       if (contactIndex >= 0) {
         _contacts[contactIndex] = _contacts[contactIndex].copyWith(
+          address: dest,
           lastMessage: content,
           lastMessageTime: DateTime.now(),
         );
@@ -575,11 +583,12 @@ class ChatProvider extends ChangeNotifier {
         return null;
       }
 
-      // Get an address for this identity
-      final address = await bitnamesRPC.getNewAddress();
+      // Contacts are keyed by hash so their address can be re-resolved
+      final hash = searchBitNameByPlaintext(nameOrHash)?.hash ?? nameOrHash;
+      final address = await bitnamesRPC.resolveOwnerAddress(hash);
 
       return ChatContact(
-        id: nameOrHash,
+        id: hash,
         name: nameOrHash,
         plaintextName: nameOrHash,
         encryptionPubkey: data.encryptionPubkey!,

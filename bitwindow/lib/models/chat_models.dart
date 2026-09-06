@@ -76,7 +76,9 @@ class ChatContact {
   final String name;
   final String? plaintextName;
   final String encryptionPubkey;
-  final String address;
+
+  /// Address holding the contact's BitName. Null when it could not be resolved.
+  final String? address;
   final int? paymailFeeSats;
   final String? lastMessage;
   final DateTime? lastMessageTime;
@@ -87,7 +89,7 @@ class ChatContact {
     required this.name,
     this.plaintextName,
     required this.encryptionPubkey,
-    required this.address,
+    this.address,
     this.paymailFeeSats,
     this.lastMessage,
     this.lastMessageTime,
@@ -101,7 +103,7 @@ class ChatContact {
     name: json['name'] ?? '',
     plaintextName: json['plaintext_name'],
     encryptionPubkey: json['encryption_pubkey'] ?? '',
-    address: json['address'] ?? '',
+    address: json['address'],
     paymailFeeSats: json['paymail_fee_sats'],
     lastMessage: json['last_message'],
     lastMessageTime: json['last_message_time'] != null
