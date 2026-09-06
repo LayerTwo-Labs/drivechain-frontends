@@ -99,12 +99,16 @@ func (h *BMMHandler) Start(
 	if _, err := h.sidechainConfig(req.Msg.Sidechain); err != nil {
 		return nil, err
 	}
+	if req.Msg.MaxBidSats <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("max_bid_sats must be positive"))
+	}
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
 	}
+	// Past validation, an engine failure is a storage one, not a client one.
 	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId,
 		req.Msg.MaxBidSats, req.Msg.CapToBlockWorth); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&bmmpb.StartResponse{}), nil
 }
