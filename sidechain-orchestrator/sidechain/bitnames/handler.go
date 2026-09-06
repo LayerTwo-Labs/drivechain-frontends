@@ -25,7 +25,7 @@ func NewHandler(proxy *sidechain.JSONRPCProxy) *Handler {
 	return &Handler{proxy: proxy}
 }
 
-// --- Common SidechainRPCProxy methods ---
+// --- Common Node methods ---
 
 func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
 	total, available, err := h.proxy.GetBalance(ctx)

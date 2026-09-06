@@ -75,7 +75,7 @@ type source struct {
 	name  string
 	slot  uint32
 	index *sidechainesplora.Client
-	node  sidechain.SidechainRPCProxy
+	node  sidechain.Node
 	// core is true for a chain built on Bitcoin Core. Such a node speaks
 	// Core's own method names, not the CUSF ones this file reads.
 	core bool
@@ -129,7 +129,7 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 			return out, nil
 		}
 	}
-	node, err := sidechainProxy(cfg, network)
+	node, err := sidechainNode(cfg, network)
 	if err != nil {
 		return source{}, connect.NewError(connect.CodeUnavailable, err)
 	}
@@ -308,8 +308,10 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 		}
 	}
 
-	if template, err := src.node.GetBlockTemplate(ctx); err == nil && template != nil {
-		out.Mempool.FeesSats = template.FeesSats
+	if bmm, ok := src.node.(sidechain.BMMNode); ok {
+		if template, err := bmm.GetBlockTemplate(ctx); err == nil && template != nil {
+			out.Mempool.FeesSats = template.FeesSats
+		}
 	}
 	// The unconfirmed rows lead the mined ones, the way an explorer reads.
 	if pool, err := sidechain.Mempool(ctx, src.node); err == nil {
@@ -319,8 +321,10 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 			out.Recent = out.Recent[:activityListSize]
 		}
 	}
-	if raw, err := src.node.GetPendingWithdrawalBundle(ctx); err == nil {
-		out.PendingBundle = parseBundle(raw)
+	if bundles, ok := src.node.(sidechain.WithdrawalNode); ok {
+		if raw, err := bundles.GetPendingWithdrawalBundle(ctx); err == nil {
+			out.PendingBundle = parseBundle(raw)
+		}
 	}
 	return out, nil
 }
@@ -638,12 +642,16 @@ func (h *ExplorerHandler) GetWithdrawals(
 		return connect.NewResponse(out), nil
 	}
 
-	raw, err := src.node.GetPendingWithdrawalBundle(ctx)
+	bundles, err := withdrawalNode(src.node, src.name)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, err)
+	}
+	raw, err := bundles.GetPendingWithdrawalBundle(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	out.Bundle = parseBundle(raw)
-	height, err := src.node.GetLatestFailedWithdrawalBundleHeight(ctx)
+	height, err := bundles.GetLatestFailedWithdrawalBundleHeight(ctx)
 	if err == nil && height >= 0 {
 		out.LastFailedHeight = uint32(height)
 	}

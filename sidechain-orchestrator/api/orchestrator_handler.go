@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,14 +18,6 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1/orchestratorv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
 var _ rpc.OrchestratorServiceHandler = new(Handler)
@@ -616,7 +607,7 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("sidechain %s is not configured", name))
 	}
 
-	confirmedSats, pendingSats, err := h.fetchSidechainBalance(ctx, req.Msg.Sidechain, cfg.Port)
+	confirmedSats, pendingSats, err := h.fetchSidechainBalance(ctx, req.Msg.Sidechain, cfg)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
@@ -667,81 +658,27 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 	}
 }
 
-func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, port int) (confirmedSats, pendingSats int64, err error) {
-	switch binary {
-	case pb.BinaryType_BINARY_TYPE_THUNDER:
-		if h.thunderBalance != nil {
-			total, available, err := h.thunderBalance(ctx)
-			if err != nil {
-				return 0, 0, err
-			}
-			confirmed, pending := balanceFromTotalAvailable(total, available)
-			return confirmed, pending, nil
-		}
-		resp, err := thunder.NewClient("localhost", port).Balance(ctx)
-		if err != nil {
-			return 0, 0, err
-		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
-		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_ZSIDE:
-		resp, err := zside.NewClient("localhost", port).Balance(ctx)
-		if err != nil {
-			return 0, 0, err
-		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
-		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_BITNAMES:
-		resp, err := bitnames.NewClient("localhost", port).Balance(ctx)
-		if err != nil {
-			return 0, 0, err
-		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
-		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_BITASSETS:
-		resp, err := bitassets.NewClient("localhost", port).Balance(ctx)
-		if err != nil {
-			return 0, 0, err
-		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
-		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_TRUTHCOIN:
-		resp, err := truthcoin.NewClient("localhost", port).Balance(ctx)
-		if err != nil {
-			return 0, 0, err
-		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
-		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_PHOTON:
-		resp, err := photon.NewClient("localhost", port).Balance(ctx)
-		if err != nil {
-			return 0, 0, err
-		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
-		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_COINSHIFT:
-		resp, err := coinshift.NewClient("localhost", port).Balance(ctx)
-		if err != nil {
-			return 0, 0, err
-		}
-		confirmed, pending := balanceFromTotalAvailable(resp.TotalSats, resp.AvailableSats)
-		return confirmed, pending, nil
-	case pb.BinaryType_BINARY_TYPE_BBC:
-		total, available, err := bbc.NewClient("localhost", port, h.bbcCookiePath()).GetBalance(ctx)
+func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, cfg orchestrator.BinaryConfig) (confirmedSats, pendingSats int64, err error) {
+	// A thunder light wallet reads an index, not a local node.
+	if binary == pb.BinaryType_BINARY_TYPE_THUNDER && h.thunderBalance != nil {
+		total, available, err := h.thunderBalance(ctx)
 		if err != nil {
 			return 0, 0, err
 		}
 		confirmed, pending := balanceFromTotalAvailable(total, available)
 		return confirmed, pending, nil
-	default:
-		return 0, 0, fmt.Errorf("unsupported sidechain binary type: %s", binary)
 	}
-}
 
-// bbcCookiePath is the .cookie the node writes into its datadir.
-func (h *Handler) bbcCookiePath() string {
-	network := config.NetworkFromString(h.orch.CurrentNetwork())
-	return filepath.Join(config.BbcDirs.DatadirNetwork(network, ""), ".cookie")
+	node, err := sidechainNode(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
+	if err != nil {
+		return 0, 0, err
+	}
+	total, available, err := node.GetBalance(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	confirmed, pending := balanceFromTotalAvailable(total, available)
+	return confirmed, pending, nil
 }
 
 // mempoolDelta is what the sidechain mempool does to this wallet. A chain that
@@ -752,7 +689,7 @@ func (h *Handler) mempoolDelta(ctx context.Context, cfg orchestrator.BinaryConfi
 	if cfg.IsBitcoinCore || h.orch.NodeMode() == orchestrator.NodeModeLight {
 		return sidechain.MempoolDelta{}
 	}
-	node, err := sidechainProxy(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
+	node, err := sidechainNode(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
 	if err != nil {
 		return sidechain.MempoolDelta{}
 	}

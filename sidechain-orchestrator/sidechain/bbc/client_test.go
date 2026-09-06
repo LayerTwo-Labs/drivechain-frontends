@@ -11,6 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
 type recordedRequest struct {
@@ -124,10 +126,16 @@ func TestUnauthenticatedResponseReportsHTTPStatus(t *testing.T) {
 	assert.Contains(t, err.Error(), "401")
 }
 
-func TestWithdrawalsFailLoudly(t *testing.T) {
-	client := clientFor(t, httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})), "")
-	_, err := client.Withdraw(context.Background(), "bc1qexample", 1, 1, 1)
-	require.ErrorIs(t, err, errWithdrawalsUnwired)
+// The BMM engine drives Bbc blocks, but Bbc settles withdrawals elsewhere. The
+// explorer reads that from the type rather than from a stub error.
+func TestBbcDrivesBmmButProposesNoBundle(t *testing.T) {
+	var node sidechain.Node = NewClient("127.0.0.1", 1, "")
+
+	_, drivesBMM := node.(sidechain.BMMNode)
+	assert.True(t, drivesBMM)
+
+	_, proposesBundles := node.(sidechain.WithdrawalNode)
+	assert.False(t, proposesBundles, "bbc withdrawals are not wired into consensus")
 }
 
 // Regtest answers estimatesmartfee with errors and no rate; a zero rate builds

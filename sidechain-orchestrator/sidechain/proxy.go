@@ -14,37 +14,52 @@ type BlockTemplate struct {
 	FeesSats     int64           `json:"fees_sats"`
 }
 
-// SidechainRPCProxy defines the common operations shared by all sidechain binaries.
-// Each sidechain handler embeds a proxy implementation and adds sidechain-specific methods.
-type SidechainRPCProxy interface {
-	// Wallet
+// Node is every operation the orchestrator asks of a sidechain, whatever the
+// chain is built on. A new sidechain satisfies this and nothing more.
+type Node interface {
+	// GetBalance reports the wallet total and the part of it that is spendable.
 	GetBalance(ctx context.Context) (totalSats, availableSats int64, err error)
+
+	// GetNewAddress returns a fresh address on the sidechain.
 	GetNewAddress(ctx context.Context) (string, error)
-	GetWalletUtxos(ctx context.Context) (json.RawMessage, error)
 
-	// Chain
+	// GetBlockCount returns the height of the chain tip.
 	GetBlockCount(ctx context.Context) (int64, error)
-	ListUtxos(ctx context.Context) (json.RawMessage, error)
 
-	// Transfers
-	Transfer(ctx context.Context, address string, amountSats, feeSats int64) (txid string, err error)
-	Withdraw(ctx context.Context, address string, amountSats, sideFeeSats, mainFeeSats int64) (txid string, err error)
-
-	// Mining
-	Mine(ctx context.Context, feeSats int64) (json.RawMessage, error)
-	GetBlockTemplate(ctx context.Context) (*BlockTemplate, error)
-	ConnectBlock(ctx context.Context, block json.RawMessage, mainBlockHash string) (bool, error)
-	GetBmmInclusions(ctx context.Context, criticalHash string) ([]string, error)
-
-	// Withdrawal bundles
-	GetPendingWithdrawalBundle(ctx context.Context) (json.RawMessage, error)
-	GetLatestFailedWithdrawalBundleHeight(ctx context.Context) (int64, error)
-
-	// Lifecycle
+	// Stop asks the node to shut down.
 	Stop(ctx context.Context) error
 
-	// Raw passthrough for debug console
+	// CallRaw sends one JSON-RPC call and returns the undecoded result.
 	CallRaw(ctx context.Context, method string, params any) (json.RawMessage, error)
+}
+
+// BMMNode is a sidechain whose blocks the orchestrator's BMM engine produces.
+// A chain that mines its own blocks is a Node and not a BMMNode.
+type BMMNode interface {
+	Node
+
+	// GetBlockTemplate returns the block the node builds next.
+	GetBlockTemplate(ctx context.Context) (*BlockTemplate, error)
+
+	// ConnectBlock hands a won block back to the node, with the mainchain block
+	// that carried the bid.
+	ConnectBlock(ctx context.Context, block json.RawMessage, mainBlockHash string) (bool, error)
+
+	// GetBmmInclusions returns the mainchain blocks that carry a critical hash.
+	GetBmmInclusions(ctx context.Context, criticalHash string) ([]string, error)
+}
+
+// WithdrawalNode is a sidechain that proposes withdrawal bundles. A chain that
+// settles withdrawals elsewhere is a Node and not a WithdrawalNode.
+type WithdrawalNode interface {
+	Node
+
+	// GetPendingWithdrawalBundle returns the bundle the node proposes, if any.
+	GetPendingWithdrawalBundle(ctx context.Context) (json.RawMessage, error)
+
+	// GetLatestFailedWithdrawalBundleHeight returns the height of the last
+	// bundle the mainchain refused.
+	GetLatestFailedWithdrawalBundleHeight(ctx context.Context) (int64, error)
 }
 
 // CoreWalletName is the wallet a Bitcoin Core derived sidechain loads. Core

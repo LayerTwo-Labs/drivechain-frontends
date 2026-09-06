@@ -38,7 +38,7 @@ type MempoolTx struct {
 // list_mempool answers it whole, with a txid per transaction. A node without
 // that method answers the block template instead, which holds the same
 // transactions and no txid.
-func Mempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, error) {
+func Mempool(ctx context.Context, node Node) ([]MempoolTx, error) {
 	if txs, ok := listMempool(ctx, node); ok {
 		return txs, nil
 	}
@@ -226,7 +226,7 @@ func (w withdrawalAmounts) total() int64 {
 
 // listMempool reads the node's own mempool listing. It answers false on a
 // node that serves no such method.
-func listMempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, bool) {
+func listMempool(ctx context.Context, node Node) ([]MempoolTx, bool) {
 	raw, err := node.CallRaw(ctx, "list_mempool", nil)
 	if err != nil || len(raw) == 0 || string(raw) == "null" {
 		return nil, false
@@ -252,9 +252,14 @@ func listMempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, bool
 }
 
 // templateMempool reads the block the node would mine next. Its body is the
-// set the node holds, and it names no txid.
-func templateMempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, error) {
-	template, err := node.GetBlockTemplate(ctx)
+// set the node holds, and it names no txid. A chain the BMM engine does not
+// drive builds no template, so it answers nothing here.
+func templateMempool(ctx context.Context, node Node) ([]MempoolTx, error) {
+	bmm, ok := node.(BMMNode)
+	if !ok {
+		return nil, nil
+	}
+	template, err := bmm.GetBlockTemplate(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("read the block template: %w", err)
 	}
@@ -286,7 +291,7 @@ func templateMempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, 
 //
 // Only a node that names its mempool txids contributes rows: a coin with no
 // outpoint is not a coin. The balance counts those payments regardless.
-func WithMempoolUTXOs(ctx context.Context, node SidechainRPCProxy, confirmed json.RawMessage) json.RawMessage {
+func WithMempoolUTXOs(ctx context.Context, node Node, confirmed json.RawMessage) json.RawMessage {
 	owned, err := WalletAddresses(ctx, node)
 	if err != nil || len(owned) == 0 {
 		return confirmed
@@ -392,7 +397,7 @@ func mempoolUTXORows(txs []MempoolTx) []json.RawMessage {
 }
 
 // WalletAddresses reads the addresses a node's own wallet holds.
-func WalletAddresses(ctx context.Context, node SidechainRPCProxy) (map[string]bool, error) {
+func WalletAddresses(ctx context.Context, node Node) (map[string]bool, error) {
 	raw, err := node.CallRaw(ctx, "get_wallet_addresses", nil)
 	if err != nil {
 		return nil, fmt.Errorf("read the wallet addresses: %w", err)
@@ -411,8 +416,8 @@ func WalletAddresses(ctx context.Context, node SidechainRPCProxy) (map[string]bo
 // OurCoins maps each coin a node's wallet holds to what it holds, keyed
 // "txid:vout". A caller reads it to know what an unconfirmed transaction
 // spends of ours.
-func OurCoins(ctx context.Context, node SidechainRPCProxy) (map[string]int64, error) {
-	raw, err := node.GetWalletUtxos(ctx)
+func OurCoins(ctx context.Context, node Node) (map[string]int64, error) {
+	raw, err := node.CallRaw(ctx, "get_wallet_utxos", nil)
 	if err != nil {
 		return nil, fmt.Errorf("read the wallet coins: %w", err)
 	}

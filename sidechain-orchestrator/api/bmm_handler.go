@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog"
 	"math"
-	"path/filepath"
 	"sort"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"connectrpc.com/connect"
 	"github.com/samber/lo"
@@ -25,7 +25,6 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 )
 
 // bmmAncestorWalk bounds the walk back from the tip when looking for the block
@@ -560,31 +559,16 @@ func (h *BMMHandler) BlockAfter(ctx context.Context, prevMainHash, tipHash strin
 
 func (h *BMMHandler) sidechainTarget(
 	binary pb.BinaryType,
-) (orchestrator.BinaryConfig, sidechain.SidechainRPCProxy, error) {
+) (orchestrator.BinaryConfig, sidechain.BMMNode, error) {
 	cfg, err := h.sidechainConfig(binary)
 	if err != nil {
 		return orchestrator.BinaryConfig{}, nil, err
 	}
-	proxy, err := sidechainProxy(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
+	node, err := bmmNode(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
 	if err != nil {
 		return orchestrator.BinaryConfig{}, nil, connect.NewError(connect.CodeUnavailable, err)
 	}
-	return cfg, proxy, nil
-}
-
-// sidechainProxy returns the RPC client for a sidechain. A Core derived chain
-// speaks Core's JSON-RPC authenticated by the cookie its node writes on start;
-// the CUSF chains speak a bare JSON-RPC with no credentials.
-func sidechainProxy(cfg orchestrator.BinaryConfig, network config.Network) (sidechain.SidechainRPCProxy, error) {
-	if !cfg.IsBitcoinCore {
-		return sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port), nil
-	}
-	dirs, ok := config.DirConfigByName(cfg.Name)
-	if !ok {
-		return nil, fmt.Errorf("no directory config for %s", cfg.Name)
-	}
-	cookie := filepath.Join(dirs.DatadirNetwork(network, ""), ".cookie")
-	return bbc.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
+	return cfg, node, nil
 }
 
 // sidechainConfig resolves a sidechain binary to its config, with the slot it
