@@ -13,15 +13,28 @@ import (
 // fakeNode answers the two feeds a mempool read can use.
 type fakeNode struct {
 	SidechainRPCProxy
-	mempool  string
-	template string
-	called   []string
+	mempool   string
+	template  string
+	addresses string
+	utxos     string
+	called    []string
+}
+
+func (n *fakeNode) GetWalletUtxos(_ context.Context) (json.RawMessage, error) {
+	n.called = append(n.called, "get_wallet_utxos")
+	if n.utxos == "" {
+		return json.RawMessage("[]"), nil
+	}
+	return json.RawMessage(n.utxos), nil
 }
 
 func (n *fakeNode) CallRaw(_ context.Context, method string, _ any) (json.RawMessage, error) {
 	n.called = append(n.called, method)
 	if method == "list_mempool" && n.mempool != "" {
 		return json.RawMessage(n.mempool), nil
+	}
+	if method == "get_wallet_addresses" && n.addresses != "" {
+		return json.RawMessage(n.addresses), nil
 	}
 	return nil, fmt.Errorf("this node serves no %s", method)
 }
@@ -76,15 +89,40 @@ func TestMempoolIsEmptyWhenNeitherFeedAnswers(t *testing.T) {
 	assert.Empty(t, txs)
 }
 
-func TestCreditCountsOnlyOurAddresses(t *testing.T) {
+func TestNetCreditCountsOnlyOurAddresses(t *testing.T) {
 	txs := []MempoolTx{{Outputs: []MempoolOutput{
 		{Address: "mine", ValueSats: 10000},
 		{Address: "theirs", ValueSats: 500},
 		{Address: "mine", ValueSats: 250},
 	}}}
+	mine := map[string]bool{"mine": true}
 
-	assert.Equal(t, int64(10250), CreditFor(txs, map[string]bool{"mine": true}))
-	assert.Zero(t, CreditFor(txs, nil), "a wallet with no address is owed nothing")
+	assert.Equal(t, int64(10250), NetCreditFor(txs, mine, nil))
+	assert.Zero(t, NetCreditFor(txs, nil, nil), "a wallet with no address is owed nothing")
+}
+
+// A transfer of ours pays change back. Counting the change alone reads the
+// spent coin twice, because the node still lists it as confirmed.
+func TestNetCreditSubtractsWhatWeSpend(t *testing.T) {
+	txs := []MempoolTx{{
+		Inputs:  []MempoolInput{{Txid: "old", Vout: 0}},
+		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 9000}, {Address: "theirs", ValueSats: 900}},
+	}}
+	ourCoins := map[string]int64{"old:0": 10000}
+
+	got := NetCreditFor(txs, map[string]bool{"mine": true}, ourCoins)
+	assert.Equal(t, int64(-1000), got, "we part with the payment and the fee")
+}
+
+// A payment from a stranger spends no coin of ours, so nothing subtracts.
+func TestNetCreditIgnoresAStrangersInputs(t *testing.T) {
+	txs := []MempoolTx{{
+		Inputs:  []MempoolInput{{Txid: "theirs", Vout: 3}},
+		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 10000}},
+	}}
+
+	got := NetCreditFor(txs, map[string]bool{"mine": true}, map[string]int64{"old:0": 10000})
+	assert.Equal(t, int64(10000), got)
 }
 
 func TestOwnedOutputsDropsTheRestOfTheTransaction(t *testing.T) {
@@ -115,4 +153,76 @@ func TestOutputValueReadsEveryShape(t *testing.T) {
 	} {
 		assert.Equal(t, want, OutputValueSats(json.RawMessage(name)), "reading %s", name)
 	}
+}
+
+// The node lists only mined coins, so a payment on its way reads as no coin
+// at all until the next block.
+func TestWithMempoolUTXOsAppendsTheUnconfirmedCoins(t *testing.T) {
+	node := &fakeNode{
+		mempool:   listMempoolAnswer,
+		addresses: `["mine"]`,
+	}
+	confirmed := json.RawMessage(`[{"outpoint":{"Regular":{"txid":"old","vout":0}},` +
+		`"output":{"address":"mine","content":{"Value":2000}}}]`)
+
+	merged := WithMempoolUTXOs(context.Background(), node, confirmed)
+	var rows []map[string]any
+	require.NoError(t, json.Unmarshal(merged, &rows))
+	require.Len(t, rows, 2, "the mined coin keeps its place, and the new one follows")
+
+	assert.Nil(t, rows[0]["confirmed"], "a mined coin carries no flag")
+	assert.Equal(t, false, rows[1]["confirmed"])
+
+	outpoint := rows[1]["outpoint"].(map[string]any)["Regular"].(map[string]any)
+	assert.Equal(t, "aa", outpoint["txid"])
+	output := rows[1]["output"].(map[string]any)
+	assert.Equal(t, "mine", output["address"])
+	assert.Equal(t, float64(10000), output["content"].(map[string]any)["Value"])
+}
+
+// A coin with no outpoint is not a coin. The balance still counts it.
+func TestWithMempoolUTXOsSkipsATemplateWithNoTxid(t *testing.T) {
+	node := &fakeNode{template: templateAnswer, addresses: `["mine"]`}
+	confirmed := json.RawMessage(`[]`)
+
+	merged := WithMempoolUTXOs(context.Background(), node, confirmed)
+	assert.JSONEq(t, `[]`, string(merged))
+}
+
+func TestWithMempoolUTXOsKeepsTheListingWhenTheWalletHasNoAddress(t *testing.T) {
+	node := &fakeNode{mempool: listMempoolAnswer}
+	confirmed := json.RawMessage(`[{"outpoint":{"Regular":{"txid":"old","vout":0}}}]`)
+
+	assert.JSONEq(t, string(confirmed), string(WithMempoolUTXOs(context.Background(), node, confirmed)))
+}
+
+// Only a regular input names a coin this wallet can hold. A deposit and a
+// coinbase come from elsewhere, and subtracting them would read low.
+func TestSpendsReadsRegularInputsOnly(t *testing.T) {
+	node := &fakeNode{mempool: `[
+	  {"txid":"aa","size":10,"tx":{
+	     "inputs":[
+	       {"Regular":{"txid":"old","vout":2}},
+	       {"Deposit":"maintxid:0"},
+	       {"Coinbase":{"merkle_root":"mr","vout":0}}
+	     ],
+	     "outputs":[{"address":"mine","content":{"Value":10}}]}}
+	]`}
+
+	txs, err := Mempool(context.Background(), node)
+	require.NoError(t, err)
+	require.Len(t, txs[0].Inputs, 1)
+	assert.Equal(t, MempoolInput{Txid: "old", Vout: 2}, txs[0].Inputs[0])
+}
+
+func TestOurCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
+	node := &fakeNode{utxos: `[
+	  {"outpoint":{"Regular":{"txid":"aa","vout":1}},"output":{"content":{"Value":2000}}},
+	  {"outpoint":{"Deposit":"maintxid:0"},"output":{"content":{"Value":500}}}
+	]`}
+
+	coins, err := OurCoins(context.Background(), node)
+	require.NoError(t, err)
+	require.Len(t, coins, 1, "a deposit outpoint names no coin a transaction spends by txid")
+	assert.Equal(t, int64(2000), coins["aa:1"])
 }

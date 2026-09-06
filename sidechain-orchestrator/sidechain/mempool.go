@@ -13,6 +13,12 @@ type MempoolOutput struct {
 	ValueSats int64
 }
 
+// MempoolInput is one coin an unconfirmed transaction spends.
+type MempoolInput struct {
+	Txid string
+	Vout uint32
+}
+
 // MempoolTx is one transaction the sidechain holds but has not mined.
 //
 // Txid and SizeBytes are empty on a node that serves no list_mempool: the
@@ -20,6 +26,7 @@ type MempoolOutput struct {
 type MempoolTx struct {
 	Txid      string
 	SizeBytes int64
+	Inputs    []MempoolInput
 	Outputs   []MempoolOutput
 }
 
@@ -35,14 +42,22 @@ func Mempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, error) {
 	return templateMempool(ctx, node)
 }
 
-// CreditFor is what these transactions pay the given addresses, in sats.
-func CreditFor(txs []MempoolTx, owned map[string]bool) int64 {
+// NetCreditFor is what the mempool adds to this wallet, in sats: the outputs
+// it pays us, less the coins of ours it spends.
+//
+// ourCoins maps "txid:vout" to what that coin holds. Without the subtraction a
+// transfer that pays change back counts the change on top of the coin it
+// spends, and the wallet reads the same money twice.
+func NetCreditFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64) int64 {
 	var total int64
 	for _, tx := range txs {
 		for _, out := range tx.Outputs {
 			if owned[out.Address] {
 				total += out.ValueSats
 			}
+		}
+		for _, in := range tx.Inputs {
+			total -= ourCoins[fmt.Sprintf("%s:%d", in.Txid, in.Vout)]
 		}
 	}
 	return total
@@ -68,10 +83,29 @@ func OwnedOutputs(txs []MempoolTx, owned map[string]bool) []MempoolTx {
 
 // mempoolBody is the transaction shape both feeds share.
 type mempoolBody struct {
+	Inputs []struct {
+		Regular *struct {
+			Txid string `json:"txid"`
+			Vout uint32 `json:"vout"`
+		} `json:"Regular"`
+	} `json:"inputs"`
 	Outputs []struct {
 		Address string          `json:"address"`
 		Content json.RawMessage `json:"content"`
 	} `json:"outputs"`
+}
+
+// spends are the coins this transaction takes. Only a regular input names a
+// coin this wallet can hold; a deposit and a coinbase come from elsewhere.
+func (b mempoolBody) spends() []MempoolInput {
+	out := make([]MempoolInput, 0, len(b.Inputs))
+	for _, in := range b.Inputs {
+		if in.Regular == nil {
+			continue
+		}
+		out = append(out, MempoolInput{Txid: in.Regular.Txid, Vout: in.Regular.Vout})
+	}
+	return out
 }
 
 func (b mempoolBody) outputs() []MempoolOutput {
@@ -149,6 +183,7 @@ func listMempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, bool
 		out = append(out, MempoolTx{
 			Txid:      row.Txid,
 			SizeBytes: row.Size,
+			Inputs:    row.Tx.spends(),
 			Outputs:   row.Tx.outputs(),
 		})
 	}
@@ -180,7 +215,7 @@ func templateMempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, 
 	}
 	out := make([]MempoolTx, 0, len(body))
 	for _, tx := range body {
-		out = append(out, MempoolTx{Outputs: tx.outputs()})
+		out = append(out, MempoolTx{Inputs: tx.spends(), Outputs: tx.outputs()})
 	}
 	return out, nil
 }
@@ -260,4 +295,37 @@ func WalletAddresses(ctx context.Context, node SidechainRPCProxy) (map[string]bo
 		owned[address] = true
 	}
 	return owned, nil
+}
+
+// OurCoins maps each coin a node's wallet holds to what it holds, keyed
+// "txid:vout". A caller reads it to know what an unconfirmed transaction
+// spends of ours.
+func OurCoins(ctx context.Context, node SidechainRPCProxy) (map[string]int64, error) {
+	raw, err := node.GetWalletUtxos(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("read the wallet coins: %w", err)
+	}
+	var rows []struct {
+		Outpoint struct {
+			Regular *struct {
+				Txid string `json:"txid"`
+				Vout uint32 `json:"vout"`
+			} `json:"Regular"`
+		} `json:"outpoint"`
+		Output struct {
+			Content json.RawMessage `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		return nil, fmt.Errorf("read the wallet coins: %w", err)
+	}
+	coins := make(map[string]int64, len(rows))
+	for _, row := range rows {
+		if row.Outpoint.Regular == nil {
+			continue
+		}
+		key := fmt.Sprintf("%s:%d", row.Outpoint.Regular.Txid, row.Outpoint.Regular.Vout)
+		coins[key] = OutputValueSats(row.Output.Content)
+	}
+	return coins, nil
 }

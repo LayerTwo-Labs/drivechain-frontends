@@ -412,6 +412,98 @@
         }
       }
     },
+    "get_block_hash": {
+      "post": {
+        "description": "Get the block hash at the specified height in the current chain,\nif it exists",
+        "operationId": "get_block_hash",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_index": {
+      "post": {
+        "description": "Get the transaction ids, sizes and encodings of a block, with the\nmainchain deposits and withdrawal bundle spends it applied",
+        "operationId": "get_block_index",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Everything about a block that its body does not carry",
+                  "required": [
+                    "txs",
+                    "deposits",
+                    "bundle_spends"
+                  ],
+                  "properties": {
+                    "bundle_spends": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexSpend"
+                      },
+                      "description": "Outputs that a withdrawal bundle removed"
+                    },
+                    "deposits": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexDeposit"
+                      },
+                      "description": "Outputs that mainchain deposits created"
+                    },
+                    "txs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexTx"
+                      },
+                      "description": "Transactions in body order"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "get_block_template": {
       "post": {
         "description": "Assemble a block to blind merge mine, without requesting BMM for it.\nThe caller requests BMM for `critical_hash` itself, then passes the\nblock back to `connect_block`.",
@@ -762,6 +854,48 @@
                       "minimum": 0
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "list_mempool": {
+      "post": {
+        "description": "List the transactions the mempool holds, in no particular order.",
+        "operationId": "list_mempool",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One transaction the mempool holds",
+                    "required": [
+                      "txid",
+                      "size",
+                      "tx"
+                    ],
+                    "properties": {
+                      "size": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "description": "Canonical size in bytes",
+                        "minimum": 0
+                      },
+                      "tx": {
+                        "$ref": "#/components/schemas/Transaction"
+                      },
+                      "txid": {
+                        "$ref": "#/components/schemas/Txid",
+                        "description": "Blake3 over the canonical encoding"
+                      }
+                    }
+                  }
                 }
               }
             }

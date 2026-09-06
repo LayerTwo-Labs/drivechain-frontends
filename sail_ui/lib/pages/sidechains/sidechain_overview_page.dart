@@ -733,6 +733,10 @@ class _UTXOTableState extends State<UTXOTable> {
           aValue = a.valueSats;
           bValue = b.valueSats;
           break;
+        case 'status':
+          aValue = a.confirmed ? 1 : 0;
+          bValue = b.confirmed ? 1 : 0;
+          break;
         case 'type':
           aValue = a.type;
           bValue = b.type;
@@ -776,6 +780,10 @@ class _UTXOTableState extends State<UTXOTable> {
                     name: 'Amount',
                     onSort: () => onSort('value'),
                   ),
+                  SailTableHeaderCell(
+                    name: 'Status',
+                    onSort: () => onSort('status'),
+                  ),
                 ],
                 rowBuilder: (context, row, selected) {
                   final utxo = widget.entries[row];
@@ -791,6 +799,10 @@ class _UTXOTableState extends State<UTXOTable> {
                     ),
                     SailTableCell(value: utxo.address, monospace: true),
                     SailTableCell(value: formattedAmount, monospace: true),
+                    SailTableCell(
+                      value: utxo.confirmed ? 'Confirmed' : 'Unconfirmed',
+                      textColor: utxo.confirmed ? null : SailTheme.of(context).colors.orange,
+                    ),
                   ];
                 },
                 rowCount: widget.entries.length,
@@ -801,10 +813,11 @@ class _UTXOTableState extends State<UTXOTable> {
                   'output',
                   'address',
                   'value',
+                  'status',
                 ].indexOf(sortColumn),
                 sortAscending: sortAscending,
                 onSort: (columnIndex, ascending) {
-                  onSort(['type', 'output', 'address', 'value'][columnIndex]);
+                  onSort(['type', 'output', 'address', 'value', 'status'][columnIndex]);
                 },
               ),
             ),
