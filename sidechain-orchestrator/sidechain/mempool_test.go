@@ -12,20 +12,12 @@ import (
 
 // fakeNode answers the two feeds a mempool read can use.
 type fakeNode struct {
-	SidechainRPCProxy
+	BMMNode
 	mempool   string
 	template  string
 	addresses string
 	utxos     string
 	called    []string
-}
-
-func (n *fakeNode) GetWalletUtxos(_ context.Context) (json.RawMessage, error) {
-	n.called = append(n.called, "get_wallet_utxos")
-	if n.utxos == "" {
-		return json.RawMessage("[]"), nil
-	}
-	return json.RawMessage(n.utxos), nil
 }
 
 func (n *fakeNode) CallRaw(_ context.Context, method string, _ any) (json.RawMessage, error) {
@@ -35,6 +27,12 @@ func (n *fakeNode) CallRaw(_ context.Context, method string, _ any) (json.RawMes
 	}
 	if method == "get_wallet_addresses" && n.addresses != "" {
 		return json.RawMessage(n.addresses), nil
+	}
+	if method == "get_wallet_utxos" {
+		if n.utxos == "" {
+			return json.RawMessage("[]"), nil
+		}
+		return json.RawMessage(n.utxos), nil
 	}
 	return nil, fmt.Errorf("this node serves no %s", method)
 }

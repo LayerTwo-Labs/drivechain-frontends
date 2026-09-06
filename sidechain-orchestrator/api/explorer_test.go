@@ -226,7 +226,7 @@ func TestNodeWalksBackByThePreviousHash(t *testing.T) {
 
 // recordingNode answers a fixed set of RPCs and records what it was asked.
 type recordingNode struct {
-	sidechain.SidechainRPCProxy
+	sidechain.BMMNode
 	count   int64
 	answers map[string]string
 	byHash  map[string]string
@@ -246,6 +246,10 @@ func (n *recordingNode) GetBlockTemplate(context.Context) (*sidechain.BlockTempl
 
 func (n *recordingNode) GetPendingWithdrawalBundle(context.Context) (json.RawMessage, error) {
 	return nil, fmt.Errorf("this node proposes no bundle")
+}
+
+func (n *recordingNode) GetLatestFailedWithdrawalBundleHeight(context.Context) (int64, error) {
+	return 0, fmt.Errorf("this node proposes no bundle")
 }
 
 func (n *recordingNode) CallRaw(_ context.Context, method string, params any) (json.RawMessage, error) {

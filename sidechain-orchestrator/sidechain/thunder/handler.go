@@ -83,7 +83,7 @@ func (h *Handler) backend(ctx context.Context) (WalletBackend, error) {
 	return backend, nil
 }
 
-// --- Common SidechainRPCProxy methods ---
+// --- Common Node methods ---
 
 func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
 	backend, err := h.backend(ctx)

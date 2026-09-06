@@ -1,7 +1,8 @@
-// Package bbc is the RPC client for the Bbc sidechain, a
-// Bitcoin Core fork carrying the covenant opcodes. It speaks Core's JSON-RPC
-// with cookie auth, unlike the CUSF sidechains, and adds the blind-merge-mining
-// methods the BMM engine drives.
+// Package bbc is the RPC client for the Bbc sidechain, a Bitcoin Core fork
+// carrying the covenant opcodes. It speaks Core's JSON-RPC with cookie auth,
+// unlike the CUSF sidechains, and adds the blind-merge-mining methods the BMM
+// engine drives. Bbc settles withdrawals elsewhere, so it is no
+// sidechain.WithdrawalNode.
 package bbc
 
 import (
@@ -18,7 +19,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
-var _ sidechain.SidechainRPCProxy = (*Client)(nil)
+var _ sidechain.BMMNode = (*Client)(nil)
 
 // Client talks to an Bbc node.
 type Client struct {
@@ -161,14 +162,6 @@ func (c *Client) GetNewAddress(ctx context.Context) (string, error) {
 	return unmarshalWallet[string](c, ctx, "getnewaddress", nil)
 }
 
-func (c *Client) GetWalletUtxos(ctx context.Context) (json.RawMessage, error) {
-	return c.walletCall(ctx, "listunspent", nil)
-}
-
-func (c *Client) ListUtxos(ctx context.Context) (json.RawMessage, error) {
-	return c.walletCall(ctx, "listunspent", nil)
-}
-
 // ListUnspent returns the wallet's UTXOs.
 func (c *Client) ListUnspent(ctx context.Context) ([]Unspent, error) {
 	return unmarshalWallet[[]Unspent](c, ctx, "listunspent", nil)
@@ -184,12 +177,6 @@ func (c *Client) SendToAddress(ctx context.Context, address string, amountSats i
 	amountBTC := float64(amountSats) / 1e8
 	return unmarshalWallet[string](c, ctx, "sendtoaddress",
 		[]any{address, amountBTC, "", "", subtractFeeFromAmount})
-}
-
-// Transfer sends amountSats to address. Core sets the fee from its own
-// estimator, so feeSats is ignored rather than applied as something it is not.
-func (c *Client) Transfer(ctx context.Context, address string, amountSats, _ int64) (string, error) {
-	return c.SendToAddress(ctx, address, amountSats, false)
 }
 
 // FallbackFeeRate is what a chain with no fee history estimates at, in BTC/kvB.
@@ -280,31 +267,6 @@ func (c *Client) GetBmmCommitment(ctx context.Context, mainchainBlockHash string
 	}
 	return commitment, nil
 }
-
-// Mine is how the CUSF chains produce a block on demand. Bbc blocks are
-// blind merge mined, which needs a mainchain transaction this node cannot make.
-func (c *Client) Mine(context.Context, int64) (json.RawMessage, error) {
-	return nil, fmt.Errorf("bbc blocks are blind merge mined: use the BMM service")
-}
-
-// ---------------------------------------------------------------------------
-// Withdrawals — not yet wired into consensus. Reporting "none" would be
-// indistinguishable from a working chain with nothing pending.
-// ---------------------------------------------------------------------------
-
-func (c *Client) Withdraw(context.Context, string, int64, int64, int64) (string, error) {
-	return "", errWithdrawalsUnwired
-}
-
-func (c *Client) GetPendingWithdrawalBundle(context.Context) (json.RawMessage, error) {
-	return nil, errWithdrawalsUnwired
-}
-
-func (c *Client) GetLatestFailedWithdrawalBundleHeight(context.Context) (int64, error) {
-	return 0, errWithdrawalsUnwired
-}
-
-var errWithdrawalsUnwired = fmt.Errorf("bbc withdrawals are not wired into consensus yet")
 
 // ---------------------------------------------------------------------------
 // Lifecycle

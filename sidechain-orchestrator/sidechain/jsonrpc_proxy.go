@@ -8,14 +8,18 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 )
 
-// JSONRPCProxy implements SidechainRPCProxy by forwarding calls to a sidechain
-// binary's JSON-RPC endpoint. All sidechains share the same JSON-RPC protocol,
-// so this single implementation works for thunder, bitassets, bitnames, etc.
+// JSONRPCProxy forwards calls to a CUSF sidechain binary's JSON-RPC endpoint.
+// Those chains share one JSON-RPC protocol, so this single implementation works
+// for thunder, bitassets, bitnames and the rest.
 type JSONRPCProxy struct {
 	Client *rpc.Client
 }
 
-var _ SidechainRPCProxy = (*JSONRPCProxy)(nil)
+var (
+	_ Node           = (*JSONRPCProxy)(nil)
+	_ BMMNode        = (*JSONRPCProxy)(nil)
+	_ WithdrawalNode = (*JSONRPCProxy)(nil)
+)
 
 // NewJSONRPCProxy creates a proxy targeting the given host:port.
 func NewJSONRPCProxy(host string, port int) *JSONRPCProxy {
