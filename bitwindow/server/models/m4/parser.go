@@ -7,31 +7,49 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 )
 
+// opReturnPayload returns the single data push of an OP_RETURN script, so the
+// commitment is read past the push opcode rather than at a fixed offset.
+func opReturnPayload(script []byte) ([]byte, error) {
+	if len(script) == 0 || script[0] != txscript.OP_RETURN {
+		return nil, fmt.Errorf("not an OP_RETURN")
+	}
+
+	pushes, err := txscript.PushedData(script)
+	if err != nil {
+		return nil, fmt.Errorf("parse script: %w", err)
+	}
+	if len(pushes) != 1 {
+		return nil, fmt.Errorf("expected a single data push, got %d", len(pushes))
+	}
+
+	return pushes[0], nil
+}
+
 // ParseM4Bytes parses raw M4 bytes from a coinbase OP_RETURN
-// Format: OP_RETURN | 0xD77D1776 (4 bytes) | Version (1 byte) | Upvote Vector (n bytes)
+// Format: OP_RETURN | push( 0xD77D1776 (4 bytes) | Version (1 byte) | Upvote Vector (n bytes) )
 func ParseM4Bytes(opReturnScript []byte) (*M4Message, error) {
-	// Must have at least: OP_RETURN(1) + Header(4) + Version(1)
-	if len(opReturnScript) < 6 {
-		return nil, fmt.Errorf("M4: script too short: %d bytes", len(opReturnScript))
+	payload, err := opReturnPayload(opReturnScript)
+	if err != nil {
+		return nil, fmt.Errorf("M4: %w", err)
 	}
 
-	// Check OP_RETURN
-	if opReturnScript[0] != txscript.OP_RETURN {
-		return nil, fmt.Errorf("M4: not an OP_RETURN: %x", opReturnScript[0])
+	// Must have at least: Header(4) + Version(1)
+	if len(payload) < 5 {
+		return nil, fmt.Errorf("M4: script too short: %d bytes", len(payload))
 	}
 
-	// Check M4 commitment header (0xD77D1776) - little endian
-	header := binary.LittleEndian.Uint32(opReturnScript[1:5])
+	// Check M4 commitment header (0xD77D1776) - the tag is those bytes in order
+	header := binary.BigEndian.Uint32(payload[0:4])
 	if header != M4CommitmentHeader {
 		return nil, fmt.Errorf("M4: invalid header: %x (expected %x)", header, M4CommitmentHeader)
 	}
 
-	version := opReturnScript[5]
-	upvoteVector := opReturnScript[6:]
+	version := payload[4]
+	upvoteVector := payload[5:]
 
 	msg := &M4Message{
 		Version:  version,
-		RawBytes: opReturnScript[5:], // Version + upvote vector
+		RawBytes: payload[4:], // Version + upvote vector
 	}
 
 	// Parse votes based on version
@@ -152,48 +170,46 @@ func EncodeVotePreferences(prefs []VotePreference) []byte {
 
 // IsM4Commitment checks if the script is an M4 commitment
 func IsM4Commitment(script []byte) bool {
-	if len(script) < 6 {
+	payload, err := opReturnPayload(script)
+	if err != nil || len(payload) < 5 {
 		return false
 	}
-	if script[0] != txscript.OP_RETURN {
-		return false
-	}
-	header := binary.LittleEndian.Uint32(script[1:5])
-	return header == M4CommitmentHeader
+	return binary.BigEndian.Uint32(payload[0:4]) == M4CommitmentHeader
 }
 
+// m3PayloadLen is the pushed M3 payload: Header(4) + Slot(1) + Bundle Hash(32)
+const m3PayloadLen = 37
+
 // ParseM3Bytes parses raw M3 bytes from a coinbase OP_RETURN
-// Format: OP_RETURN | 0xD45AA943 (4 bytes) | Bundle Hash (32 bytes) | Sidechain Slot (1 byte)
-// Total: 38 bytes
+// Format: OP_RETURN | push( 0xD45AA943 (4 bytes) | Sidechain Slot (1 byte) | Bundle Hash (32 bytes) )
 func ParseM3Bytes(opReturnScript []byte) (*M3Message, error) {
-	// Must have exactly: OP_RETURN(1) + Header(4) + Hash(32) + Slot(1) = 38 bytes
-	if len(opReturnScript) != 38 {
-		return nil, fmt.Errorf("M3: invalid length: %d bytes (expected 38)", len(opReturnScript))
+	payload, err := opReturnPayload(opReturnScript)
+	if err != nil {
+		return nil, fmt.Errorf("M3: %w", err)
 	}
 
-	// Check OP_RETURN
-	if opReturnScript[0] != txscript.OP_RETURN {
-		return nil, fmt.Errorf("M3: not an OP_RETURN: %x", opReturnScript[0])
+	if len(payload) != m3PayloadLen {
+		return nil, fmt.Errorf("M3: invalid length: %d bytes (expected %d)", len(payload), m3PayloadLen)
 	}
 
-	// Check M3 commitment header (0xD45AA943) - little endian
-	header := binary.LittleEndian.Uint32(opReturnScript[1:5])
+	// Check M3 commitment header (0xD45AA943) - the tag is those bytes in order
+	header := binary.BigEndian.Uint32(payload[0:4])
 	if header != M3CommitmentHeader {
 		return nil, fmt.Errorf("M3: invalid header: %x (expected %x)", header, M3CommitmentHeader)
 	}
 
+	// Extract sidechain slot (1 byte)
+	sidechainSlot := payload[4]
+
 	// Extract bundle hash (32 bytes, reversed for display)
 	bundleHashBytes := make([]byte, 32)
-	copy(bundleHashBytes, opReturnScript[5:37])
+	copy(bundleHashBytes, payload[5:m3PayloadLen])
 
 	// Reverse for hex display (Bitcoin uses reverse byte order for hashes)
 	for i := 0; i < 16; i++ {
 		bundleHashBytes[i], bundleHashBytes[31-i] = bundleHashBytes[31-i], bundleHashBytes[i]
 	}
 	bundleHash := fmt.Sprintf("%x", bundleHashBytes)
-
-	// Extract sidechain slot (1 byte)
-	sidechainSlot := opReturnScript[37]
 
 	msg := &M3Message{
 		SidechainSlot: sidechainSlot,
@@ -205,12 +221,9 @@ func ParseM3Bytes(opReturnScript []byte) (*M3Message, error) {
 
 // IsM3Commitment checks if the script is an M3 commitment
 func IsM3Commitment(script []byte) bool {
-	if len(script) != 38 {
+	payload, err := opReturnPayload(script)
+	if err != nil || len(payload) != m3PayloadLen {
 		return false
 	}
-	if script[0] != txscript.OP_RETURN {
-		return false
-	}
-	header := binary.LittleEndian.Uint32(script[1:5])
-	return header == M3CommitmentHeader
+	return binary.BigEndian.Uint32(payload[0:4]) == M3CommitmentHeader
 }

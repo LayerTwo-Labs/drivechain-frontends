@@ -11,8 +11,12 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/m4/v1/m4v1connect"
 	m4models "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	mainchainv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestService_GetVotePreferences(t *testing.T) {
@@ -259,6 +263,48 @@ func TestService_GenerateM4Bytes(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.Hex)
 		assert.Contains(t, resp.Msg.Interpretation, "Not required")
+	})
+
+	t.Run("abstains for active sidechains without a bundle", func(t *testing.T) {
+		t.Parallel()
+
+		db := database.Test(t)
+		ctx := context.Background()
+
+		_, err := db.ExecContext(ctx, `
+			INSERT INTO withdrawal_bundles (sidechain_slot, bundle_hash, work_score, blocks_left,
+				first_seen_height, last_updated_height, status)
+			VALUES (0, 'bundle-a', 1, 26300, 100, 100, 'pending')`)
+		require.NoError(t, err)
+
+		// Both sidechains are active, only slot 0 has a pending bundle.
+		mockValidator := mocks.NewMockValidatorServiceClient(gomock.NewController(t))
+		mockValidator.EXPECT().
+			GetSidechains(gomock.Any(), gomock.Any()).
+			Return(&connect.Response[mainchainv1.GetSidechainsResponse]{
+				Msg: &mainchainv1.GetSidechainsResponse{
+					Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{
+						{SidechainNumber: wrapperspb.UInt32(0)},
+						{SidechainNumber: wrapperspb.UInt32(1)},
+					},
+				},
+			}, nil).
+			AnyTimes()
+
+		cli := m4v1connect.NewM4ServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+
+		bundleHash := "bundle-a"
+		_, err = cli.SetVotePreference(ctx, connect.NewRequest(&m4pb.SetVotePreferenceRequest{
+			SidechainSlot: 0,
+			VoteType:      "upvote",
+			BundleHash:    &bundleHash,
+		}))
+		require.NoError(t, err)
+
+		resp, err := cli.GenerateM4Bytes(ctx, connect.NewRequest(&m4pb.GenerateM4BytesRequest{}))
+		require.NoError(t, err)
+		// Version, upvote of bundle #0 on slot 0, abstain on slot 1.
+		assert.Equal(t, "020000ffff", resp.Msg.Hex)
 	})
 }
 
