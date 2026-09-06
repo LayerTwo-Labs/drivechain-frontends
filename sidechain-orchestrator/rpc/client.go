@@ -7,18 +7,26 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+	"time"
 )
 
 // Client is a minimal JSON-RPC 2.0 HTTP client.
 type Client struct {
 	url    string
+	http   *http.Client
 	nextID atomic.Int64
 }
+
+// callTimeout bounds one RPC. A node that accepts the connection and then
+// answers nothing would otherwise hold the caller's goroutine for as long as
+// the node runs.
+const callTimeout = 30 * time.Second
 
 // New creates a JSON-RPC client targeting the given host and port.
 func New(host string, port int) *Client {
 	return &Client{
-		url: fmt.Sprintf("http://%s:%d", host, port),
+		url:  fmt.Sprintf("http://%s:%d", host, port),
+		http: &http.Client{Timeout: callTimeout},
 	}
 }
 
@@ -66,7 +74,7 @@ func (c *Client) Call(ctx context.Context, method string, params any, out any) e
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	httpResp, err := http.DefaultClient.Do(httpReq)
+	httpResp, err := c.http.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("http post: %w", err)
 	}
@@ -110,7 +118,7 @@ func (c *Client) CallRaw(ctx context.Context, method string, params any) (json.R
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	httpResp, err := http.DefaultClient.Do(httpReq)
+	httpResp, err := c.http.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("http post: %w", err)
 	}
