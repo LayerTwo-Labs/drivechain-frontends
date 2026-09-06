@@ -786,9 +786,9 @@ func applyMempoolDelta(confirmedSats, pendingSats int64, delta sidechain.Mempool
 		owed -= confirmedSats
 		confirmedSats = 0
 	}
-	// What the confirmed coins cannot cover comes off the pending ones, and a
-	// child spends a coin its parent made, so the credit counts first.
-	return confirmedSats, max(pendingSats+delta.CreditSats-owed, 0)
+	// A chained debit spends a coin the mempool made, so it nets against the
+	// credit and never touches the confirmed count.
+	return confirmedSats, max(pendingSats+delta.CreditSats-delta.ChainedDebitSats-owed, 0)
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {

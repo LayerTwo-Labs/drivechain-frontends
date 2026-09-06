@@ -44,8 +44,14 @@ func TestApplyMempoolDeltaSplitsTheCreditFromTheDebit(t *testing.T) {
 			// A child spends a coin its parent made, so both count gross.
 			name:      "a chained spend takes its debit from the new credit",
 			confirmed: 0, pending: 0,
-			delta:         sidechain.MempoolDelta{CreditSats: 19_000, DebitSats: 10_000},
+			delta:         sidechain.MempoolDelta{CreditSats: 19_000, ChainedDebitSats: 10_000},
 			wantConfirmed: 0, wantPending: 9000,
+		},
+		{
+			name:      "a chained spend leaves the confirmed coins alone",
+			confirmed: 20_000, pending: 0,
+			delta:         sidechain.MempoolDelta{CreditSats: 19_000, ChainedDebitSats: 10_000},
+			wantConfirmed: 20_000, wantPending: 9000,
 		},
 		{
 			name:      "no mempool means no change",
