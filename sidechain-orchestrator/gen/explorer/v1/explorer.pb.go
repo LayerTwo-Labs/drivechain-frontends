@@ -97,7 +97,17 @@ type Block struct {
 	// no previous outputs, so it never knows what a mined block collected.
 	FeesKnown bool `protobuf:"varint,11,opt,name=fees_known,json=feesKnown,proto3" json:"fees_known,omitempty"`
 	// value_sats is what the block's transactions paid out together.
-	ValueSats     int64 `protobuf:"varint,12,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
+	ValueSats int64 `protobuf:"varint,12,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
+	// value_known is false when the source cannot compute it. A hosted index
+	// states the fees a block collected, and never the value it moved.
+	ValueKnown bool `protobuf:"varint,20,opt,name=value_known,json=valueKnown,proto3" json:"value_known,omitempty"`
+	// deposit_count and deposit_value_sats name what the mainchain paid into
+	// this block. A deposit never sits in the block body.
+	DepositCount     uint32 `protobuf:"varint,13,opt,name=deposit_count,json=depositCount,proto3" json:"deposit_count,omitempty"`
+	DepositValueSats int64  `protobuf:"varint,14,opt,name=deposit_value_sats,json=depositValueSats,proto3" json:"deposit_value_sats,omitempty"`
+	// bid names the winning BMM bid on the mainchain: the outpoint that carried
+	// the M8, and what it paid.
+	Bid           *Bid `protobuf:"bytes,15,opt,name=bid,proto3" json:"bid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -216,25 +226,136 @@ func (x *Block) GetValueSats() int64 {
 	return 0
 }
 
+func (x *Block) GetValueKnown() bool {
+	if x != nil {
+		return x.ValueKnown
+	}
+	return false
+}
+
+func (x *Block) GetDepositCount() uint32 {
+	if x != nil {
+		return x.DepositCount
+	}
+	return 0
+}
+
+func (x *Block) GetDepositValueSats() int64 {
+	if x != nil {
+		return x.DepositValueSats
+	}
+	return 0
+}
+
+func (x *Block) GetBid() *Bid {
+	if x != nil {
+		return x.Bid
+	}
+	return nil
+}
+
+// Bid is the M8 a miner took to mine one sidechain block.
+type Bid struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Txid  string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	Vout  uint32                 `protobuf:"varint,2,opt,name=vout,proto3" json:"vout,omitempty"`
+	// sats is the fee the bid paid.
+	Sats int64 `protobuf:"varint,3,opt,name=sats,proto3" json:"sats,omitempty"`
+	// block_hash and block_height name the mainchain block that carried the M8.
+	// That block is the child of the block the header names.
+	BlockHash     string `protobuf:"bytes,4,opt,name=block_hash,json=blockHash,proto3" json:"block_hash,omitempty"`
+	BlockHeight   uint32 `protobuf:"varint,5,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Bid) Reset() {
+	*x = Bid{}
+	mi := &file_explorer_v1_explorer_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Bid) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Bid) ProtoMessage() {}
+
+func (x *Bid) ProtoReflect() protoreflect.Message {
+	mi := &file_explorer_v1_explorer_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Bid.ProtoReflect.Descriptor instead.
+func (*Bid) Descriptor() ([]byte, []int) {
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Bid) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
+func (x *Bid) GetVout() uint32 {
+	if x != nil {
+		return x.Vout
+	}
+	return 0
+}
+
+func (x *Bid) GetSats() int64 {
+	if x != nil {
+		return x.Sats
+	}
+	return 0
+}
+
+func (x *Bid) GetBlockHash() string {
+	if x != nil {
+		return x.BlockHash
+	}
+	return ""
+}
+
+func (x *Bid) GetBlockHeight() uint32 {
+	if x != nil {
+		return x.BlockHeight
+	}
+	return 0
+}
+
 // Activity is one thing that happened on the chain.
 type Activity struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Kind  Kind                   `protobuf:"varint,1,opt,name=kind,proto3,enum=explorer.v1.Kind" json:"kind,omitempty"`
 	// id is the txid. A deposit carries its mainchain txid.
-	Id            string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	ValueSats     int64  `protobuf:"varint,3,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
-	FeeSats       int64  `protobuf:"varint,4,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
-	SizeBytes     int64  `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
-	Confirmed     bool   `protobuf:"varint,6,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
-	BlockHeight   uint32 `protobuf:"varint,7,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	BlockTime     int64  `protobuf:"varint,8,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+	Id          string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	ValueSats   int64  `protobuf:"varint,3,opt,name=value_sats,json=valueSats,proto3" json:"value_sats,omitempty"`
+	FeeSats     int64  `protobuf:"varint,4,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	SizeBytes   int64  `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	Confirmed   bool   `protobuf:"varint,6,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	BlockHeight uint32 `protobuf:"varint,7,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	BlockTime   int64  `protobuf:"varint,8,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+	// address is the sidechain address a deposit paid. It is empty on every
+	// other kind.
+	Address       string `protobuf:"bytes,9,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Activity) Reset() {
 	*x = Activity{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[1]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -246,7 +367,7 @@ func (x *Activity) String() string {
 func (*Activity) ProtoMessage() {}
 
 func (x *Activity) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[1]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -259,7 +380,7 @@ func (x *Activity) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Activity.ProtoReflect.Descriptor instead.
 func (*Activity) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{1}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Activity) GetKind() Kind {
@@ -318,6 +439,13 @@ func (x *Activity) GetBlockTime() int64 {
 	return 0
 }
 
+func (x *Activity) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
 // Coin is one input or one output.
 type Coin struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
@@ -341,7 +469,7 @@ type Coin struct {
 
 func (x *Coin) Reset() {
 	*x = Coin{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[2]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -353,7 +481,7 @@ func (x *Coin) String() string {
 func (*Coin) ProtoMessage() {}
 
 func (x *Coin) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[2]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -366,7 +494,7 @@ func (x *Coin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Coin.ProtoReflect.Descriptor instead.
 func (*Coin) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{2}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Coin) GetAddress() string {
@@ -444,7 +572,7 @@ type Transaction struct {
 
 func (x *Transaction) Reset() {
 	*x = Transaction{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[3]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -456,7 +584,7 @@ func (x *Transaction) String() string {
 func (*Transaction) ProtoMessage() {}
 
 func (x *Transaction) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[3]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +597,7 @@ func (x *Transaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Transaction.ProtoReflect.Descriptor instead.
 func (*Transaction) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{3}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Transaction) GetTxid() string {
@@ -556,7 +684,7 @@ type Treasury struct {
 
 func (x *Treasury) Reset() {
 	*x = Treasury{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[4]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -568,7 +696,7 @@ func (x *Treasury) String() string {
 func (*Treasury) ProtoMessage() {}
 
 func (x *Treasury) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[4]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -581,7 +709,7 @@ func (x *Treasury) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Treasury.ProtoReflect.Descriptor instead.
 func (*Treasury) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{4}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Treasury) GetSlot() uint32 {
@@ -631,7 +759,7 @@ type Mempool struct {
 
 func (x *Mempool) Reset() {
 	*x = Mempool{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[5]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +771,7 @@ func (x *Mempool) String() string {
 func (*Mempool) ProtoMessage() {}
 
 func (x *Mempool) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[5]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +784,7 @@ func (x *Mempool) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Mempool.ProtoReflect.Descriptor instead.
 func (*Mempool) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{5}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Mempool) GetTxCount() uint32 {
@@ -690,7 +818,7 @@ type GetOverviewRequest struct {
 
 func (x *GetOverviewRequest) Reset() {
 	*x = GetOverviewRequest{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[6]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -702,7 +830,7 @@ func (x *GetOverviewRequest) String() string {
 func (*GetOverviewRequest) ProtoMessage() {}
 
 func (x *GetOverviewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[6]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -715,7 +843,7 @@ func (x *GetOverviewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOverviewRequest.ProtoReflect.Descriptor instead.
 func (*GetOverviewRequest) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{6}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetOverviewRequest) GetChain() string {
@@ -743,7 +871,7 @@ type GetOverviewResponse struct {
 
 func (x *GetOverviewResponse) Reset() {
 	*x = GetOverviewResponse{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[7]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -755,7 +883,7 @@ func (x *GetOverviewResponse) String() string {
 func (*GetOverviewResponse) ProtoMessage() {}
 
 func (x *GetOverviewResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[7]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -768,7 +896,7 @@ func (x *GetOverviewResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOverviewResponse.ProtoReflect.Descriptor instead.
 func (*GetOverviewResponse) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{7}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetOverviewResponse) GetBlocks() []*Block {
@@ -833,7 +961,7 @@ type ListBlocksRequest struct {
 
 func (x *ListBlocksRequest) Reset() {
 	*x = ListBlocksRequest{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[8]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -845,7 +973,7 @@ func (x *ListBlocksRequest) String() string {
 func (*ListBlocksRequest) ProtoMessage() {}
 
 func (x *ListBlocksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[8]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -858,7 +986,7 @@ func (x *ListBlocksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlocksRequest.ProtoReflect.Descriptor instead.
 func (*ListBlocksRequest) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{8}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListBlocksRequest) GetChain() string {
@@ -892,7 +1020,7 @@ type ListBlocksResponse struct {
 
 func (x *ListBlocksResponse) Reset() {
 	*x = ListBlocksResponse{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[9]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -904,7 +1032,7 @@ func (x *ListBlocksResponse) String() string {
 func (*ListBlocksResponse) ProtoMessage() {}
 
 func (x *ListBlocksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[9]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -917,7 +1045,7 @@ func (x *ListBlocksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlocksResponse.ProtoReflect.Descriptor instead.
 func (*ListBlocksResponse) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{9}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListBlocksResponse) GetBlocks() []*Block {
@@ -939,7 +1067,7 @@ type GetBlockRequest struct {
 
 func (x *GetBlockRequest) Reset() {
 	*x = GetBlockRequest{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[10]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -951,7 +1079,7 @@ func (x *GetBlockRequest) String() string {
 func (*GetBlockRequest) ProtoMessage() {}
 
 func (x *GetBlockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[10]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -964,7 +1092,7 @@ func (x *GetBlockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockRequest.ProtoReflect.Descriptor instead.
 func (*GetBlockRequest) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{10}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetBlockRequest) GetChain() string {
@@ -998,7 +1126,7 @@ type GetBlockResponse struct {
 
 func (x *GetBlockResponse) Reset() {
 	*x = GetBlockResponse{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[11]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1010,7 +1138,7 @@ func (x *GetBlockResponse) String() string {
 func (*GetBlockResponse) ProtoMessage() {}
 
 func (x *GetBlockResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[11]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1023,7 +1151,7 @@ func (x *GetBlockResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockResponse.ProtoReflect.Descriptor instead.
 func (*GetBlockResponse) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{11}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetBlockResponse) GetBlock() *Block {
@@ -1050,7 +1178,7 @@ type GetTransactionRequest struct {
 
 func (x *GetTransactionRequest) Reset() {
 	*x = GetTransactionRequest{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[12]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1062,7 +1190,7 @@ func (x *GetTransactionRequest) String() string {
 func (*GetTransactionRequest) ProtoMessage() {}
 
 func (x *GetTransactionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[12]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1075,7 +1203,7 @@ func (x *GetTransactionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransactionRequest.ProtoReflect.Descriptor instead.
 func (*GetTransactionRequest) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{12}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetTransactionRequest) GetChain() string {
@@ -1101,7 +1229,7 @@ type GetTransactionResponse struct {
 
 func (x *GetTransactionResponse) Reset() {
 	*x = GetTransactionResponse{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[13]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1113,7 +1241,7 @@ func (x *GetTransactionResponse) String() string {
 func (*GetTransactionResponse) ProtoMessage() {}
 
 func (x *GetTransactionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[13]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1126,7 +1254,7 @@ func (x *GetTransactionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransactionResponse.ProtoReflect.Descriptor instead.
 func (*GetTransactionResponse) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{13}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetTransactionResponse) GetTransaction() *Transaction {
@@ -1146,7 +1274,7 @@ type GetAddressRequest struct {
 
 func (x *GetAddressRequest) Reset() {
 	*x = GetAddressRequest{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[14]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1158,7 +1286,7 @@ func (x *GetAddressRequest) String() string {
 func (*GetAddressRequest) ProtoMessage() {}
 
 func (x *GetAddressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[14]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1171,7 +1299,7 @@ func (x *GetAddressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAddressRequest.ProtoReflect.Descriptor instead.
 func (*GetAddressRequest) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{14}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetAddressRequest) GetChain() string {
@@ -1205,7 +1333,7 @@ type GetAddressResponse struct {
 
 func (x *GetAddressResponse) Reset() {
 	*x = GetAddressResponse{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[15]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1217,7 +1345,7 @@ func (x *GetAddressResponse) String() string {
 func (*GetAddressResponse) ProtoMessage() {}
 
 func (x *GetAddressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[15]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1230,7 +1358,7 @@ func (x *GetAddressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAddressResponse.ProtoReflect.Descriptor instead.
 func (*GetAddressResponse) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{15}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetAddressResponse) GetAddress() string {
@@ -1304,7 +1432,7 @@ type Withdrawal struct {
 
 func (x *Withdrawal) Reset() {
 	*x = Withdrawal{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[16]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1316,7 +1444,7 @@ func (x *Withdrawal) String() string {
 func (*Withdrawal) ProtoMessage() {}
 
 func (x *Withdrawal) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[16]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1329,7 +1457,7 @@ func (x *Withdrawal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Withdrawal.ProtoReflect.Descriptor instead.
 func (*Withdrawal) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{16}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Withdrawal) GetMainAddress() string {
@@ -1377,7 +1505,7 @@ type WithdrawalBundle struct {
 
 func (x *WithdrawalBundle) Reset() {
 	*x = WithdrawalBundle{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[17]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1389,7 +1517,7 @@ func (x *WithdrawalBundle) String() string {
 func (*WithdrawalBundle) ProtoMessage() {}
 
 func (x *WithdrawalBundle) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[17]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1402,7 +1530,7 @@ func (x *WithdrawalBundle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WithdrawalBundle.ProtoReflect.Descriptor instead.
 func (*WithdrawalBundle) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{17}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *WithdrawalBundle) GetPresent() bool {
@@ -1470,7 +1598,7 @@ type GetWithdrawalsRequest struct {
 
 func (x *GetWithdrawalsRequest) Reset() {
 	*x = GetWithdrawalsRequest{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[18]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1482,7 +1610,7 @@ func (x *GetWithdrawalsRequest) String() string {
 func (*GetWithdrawalsRequest) ProtoMessage() {}
 
 func (x *GetWithdrawalsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[18]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1495,7 +1623,7 @@ func (x *GetWithdrawalsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWithdrawalsRequest.ProtoReflect.Descriptor instead.
 func (*GetWithdrawalsRequest) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{18}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetWithdrawalsRequest) GetChain() string {
@@ -1517,7 +1645,7 @@ type GetWithdrawalsResponse struct {
 
 func (x *GetWithdrawalsResponse) Reset() {
 	*x = GetWithdrawalsResponse{}
-	mi := &file_explorer_v1_explorer_proto_msgTypes[19]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1529,7 +1657,7 @@ func (x *GetWithdrawalsResponse) String() string {
 func (*GetWithdrawalsResponse) ProtoMessage() {}
 
 func (x *GetWithdrawalsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_explorer_v1_explorer_proto_msgTypes[19]
+	mi := &file_explorer_v1_explorer_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1542,7 +1670,7 @@ func (x *GetWithdrawalsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWithdrawalsResponse.ProtoReflect.Descriptor instead.
 func (*GetWithdrawalsResponse) Descriptor() ([]byte, []int) {
-	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{19}
+	return file_explorer_v1_explorer_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetWithdrawalsResponse) GetBundle() *WithdrawalBundle {
@@ -1563,7 +1691,7 @@ var File_explorer_v1_explorer_proto protoreflect.FileDescriptor
 
 const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\n" +
-	"\x1aexplorer/v1/explorer.proto\x12\vexplorer.v1\"\xf7\x02\n" +
+	"\x1aexplorer/v1/explorer.proto\x12\vexplorer.v1\"\x8f\x04\n" +
 	"\x05Block\x12\x16\n" +
 	"\x06height\x18\x01 \x01(\rR\x06height\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x1b\n" +
@@ -1582,7 +1710,19 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\n" +
 	"fees_known\x18\v \x01(\bR\tfeesKnown\x12\x1d\n" +
 	"\n" +
-	"value_sats\x18\f \x01(\x03R\tvalueSats\"\xfa\x01\n" +
+	"value_sats\x18\f \x01(\x03R\tvalueSats\x12\x1f\n" +
+	"\vvalue_known\x18\x14 \x01(\bR\n" +
+	"valueKnown\x12#\n" +
+	"\rdeposit_count\x18\r \x01(\rR\fdepositCount\x12,\n" +
+	"\x12deposit_value_sats\x18\x0e \x01(\x03R\x10depositValueSats\x12\"\n" +
+	"\x03bid\x18\x0f \x01(\v2\x10.explorer.v1.BidR\x03bid\"\x83\x01\n" +
+	"\x03Bid\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
+	"\x04vout\x18\x02 \x01(\rR\x04vout\x12\x12\n" +
+	"\x04sats\x18\x03 \x01(\x03R\x04sats\x12\x1d\n" +
+	"\n" +
+	"block_hash\x18\x04 \x01(\tR\tblockHash\x12!\n" +
+	"\fblock_height\x18\x05 \x01(\rR\vblockHeight\"\x94\x02\n" +
 	"\bActivity\x12%\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x11.explorer.v1.KindR\x04kind\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +
@@ -1594,7 +1734,8 @@ const file_explorer_v1_explorer_proto_rawDesc = "" +
 	"\tconfirmed\x18\x06 \x01(\bR\tconfirmed\x12!\n" +
 	"\fblock_height\x18\a \x01(\rR\vblockHeight\x12\x1d\n" +
 	"\n" +
-	"block_time\x18\b \x01(\x03R\tblockTime\"\xf6\x01\n" +
+	"block_time\x18\b \x01(\x03R\tblockTime\x12\x18\n" +
+	"\aaddress\x18\t \x01(\tR\aaddress\"\xf6\x01\n" +
 	"\x04Coin\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x1d\n" +
 	"\n" +
@@ -1723,64 +1864,66 @@ func file_explorer_v1_explorer_proto_rawDescGZIP() []byte {
 }
 
 var file_explorer_v1_explorer_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_explorer_v1_explorer_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_explorer_v1_explorer_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_explorer_v1_explorer_proto_goTypes = []any{
 	(Kind)(0),                      // 0: explorer.v1.Kind
 	(*Block)(nil),                  // 1: explorer.v1.Block
-	(*Activity)(nil),               // 2: explorer.v1.Activity
-	(*Coin)(nil),                   // 3: explorer.v1.Coin
-	(*Transaction)(nil),            // 4: explorer.v1.Transaction
-	(*Treasury)(nil),               // 5: explorer.v1.Treasury
-	(*Mempool)(nil),                // 6: explorer.v1.Mempool
-	(*GetOverviewRequest)(nil),     // 7: explorer.v1.GetOverviewRequest
-	(*GetOverviewResponse)(nil),    // 8: explorer.v1.GetOverviewResponse
-	(*ListBlocksRequest)(nil),      // 9: explorer.v1.ListBlocksRequest
-	(*ListBlocksResponse)(nil),     // 10: explorer.v1.ListBlocksResponse
-	(*GetBlockRequest)(nil),        // 11: explorer.v1.GetBlockRequest
-	(*GetBlockResponse)(nil),       // 12: explorer.v1.GetBlockResponse
-	(*GetTransactionRequest)(nil),  // 13: explorer.v1.GetTransactionRequest
-	(*GetTransactionResponse)(nil), // 14: explorer.v1.GetTransactionResponse
-	(*GetAddressRequest)(nil),      // 15: explorer.v1.GetAddressRequest
-	(*GetAddressResponse)(nil),     // 16: explorer.v1.GetAddressResponse
-	(*Withdrawal)(nil),             // 17: explorer.v1.Withdrawal
-	(*WithdrawalBundle)(nil),       // 18: explorer.v1.WithdrawalBundle
-	(*GetWithdrawalsRequest)(nil),  // 19: explorer.v1.GetWithdrawalsRequest
-	(*GetWithdrawalsResponse)(nil), // 20: explorer.v1.GetWithdrawalsResponse
+	(*Bid)(nil),                    // 2: explorer.v1.Bid
+	(*Activity)(nil),               // 3: explorer.v1.Activity
+	(*Coin)(nil),                   // 4: explorer.v1.Coin
+	(*Transaction)(nil),            // 5: explorer.v1.Transaction
+	(*Treasury)(nil),               // 6: explorer.v1.Treasury
+	(*Mempool)(nil),                // 7: explorer.v1.Mempool
+	(*GetOverviewRequest)(nil),     // 8: explorer.v1.GetOverviewRequest
+	(*GetOverviewResponse)(nil),    // 9: explorer.v1.GetOverviewResponse
+	(*ListBlocksRequest)(nil),      // 10: explorer.v1.ListBlocksRequest
+	(*ListBlocksResponse)(nil),     // 11: explorer.v1.ListBlocksResponse
+	(*GetBlockRequest)(nil),        // 12: explorer.v1.GetBlockRequest
+	(*GetBlockResponse)(nil),       // 13: explorer.v1.GetBlockResponse
+	(*GetTransactionRequest)(nil),  // 14: explorer.v1.GetTransactionRequest
+	(*GetTransactionResponse)(nil), // 15: explorer.v1.GetTransactionResponse
+	(*GetAddressRequest)(nil),      // 16: explorer.v1.GetAddressRequest
+	(*GetAddressResponse)(nil),     // 17: explorer.v1.GetAddressResponse
+	(*Withdrawal)(nil),             // 18: explorer.v1.Withdrawal
+	(*WithdrawalBundle)(nil),       // 19: explorer.v1.WithdrawalBundle
+	(*GetWithdrawalsRequest)(nil),  // 20: explorer.v1.GetWithdrawalsRequest
+	(*GetWithdrawalsResponse)(nil), // 21: explorer.v1.GetWithdrawalsResponse
 }
 var file_explorer_v1_explorer_proto_depIdxs = []int32{
-	0,  // 0: explorer.v1.Activity.kind:type_name -> explorer.v1.Kind
-	0,  // 1: explorer.v1.Transaction.kind:type_name -> explorer.v1.Kind
-	3,  // 2: explorer.v1.Transaction.inputs:type_name -> explorer.v1.Coin
-	3,  // 3: explorer.v1.Transaction.outputs:type_name -> explorer.v1.Coin
-	1,  // 4: explorer.v1.GetOverviewResponse.blocks:type_name -> explorer.v1.Block
-	2,  // 5: explorer.v1.GetOverviewResponse.recent:type_name -> explorer.v1.Activity
-	6,  // 6: explorer.v1.GetOverviewResponse.mempool:type_name -> explorer.v1.Mempool
-	5,  // 7: explorer.v1.GetOverviewResponse.treasury:type_name -> explorer.v1.Treasury
-	18, // 8: explorer.v1.GetOverviewResponse.pending_bundle:type_name -> explorer.v1.WithdrawalBundle
-	1,  // 9: explorer.v1.ListBlocksResponse.blocks:type_name -> explorer.v1.Block
-	1,  // 10: explorer.v1.GetBlockResponse.block:type_name -> explorer.v1.Block
-	2,  // 11: explorer.v1.GetBlockResponse.activity:type_name -> explorer.v1.Activity
-	4,  // 12: explorer.v1.GetTransactionResponse.transaction:type_name -> explorer.v1.Transaction
-	4,  // 13: explorer.v1.GetAddressResponse.transactions:type_name -> explorer.v1.Transaction
-	17, // 14: explorer.v1.WithdrawalBundle.withdrawals:type_name -> explorer.v1.Withdrawal
-	18, // 15: explorer.v1.GetWithdrawalsResponse.bundle:type_name -> explorer.v1.WithdrawalBundle
-	7,  // 16: explorer.v1.ExplorerService.GetOverview:input_type -> explorer.v1.GetOverviewRequest
-	11, // 17: explorer.v1.ExplorerService.GetBlock:input_type -> explorer.v1.GetBlockRequest
-	9,  // 18: explorer.v1.ExplorerService.ListBlocks:input_type -> explorer.v1.ListBlocksRequest
-	13, // 19: explorer.v1.ExplorerService.GetTransaction:input_type -> explorer.v1.GetTransactionRequest
-	15, // 20: explorer.v1.ExplorerService.GetAddress:input_type -> explorer.v1.GetAddressRequest
-	19, // 21: explorer.v1.ExplorerService.GetWithdrawals:input_type -> explorer.v1.GetWithdrawalsRequest
-	8,  // 22: explorer.v1.ExplorerService.GetOverview:output_type -> explorer.v1.GetOverviewResponse
-	12, // 23: explorer.v1.ExplorerService.GetBlock:output_type -> explorer.v1.GetBlockResponse
-	10, // 24: explorer.v1.ExplorerService.ListBlocks:output_type -> explorer.v1.ListBlocksResponse
-	14, // 25: explorer.v1.ExplorerService.GetTransaction:output_type -> explorer.v1.GetTransactionResponse
-	16, // 26: explorer.v1.ExplorerService.GetAddress:output_type -> explorer.v1.GetAddressResponse
-	20, // 27: explorer.v1.ExplorerService.GetWithdrawals:output_type -> explorer.v1.GetWithdrawalsResponse
-	22, // [22:28] is the sub-list for method output_type
-	16, // [16:22] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	2,  // 0: explorer.v1.Block.bid:type_name -> explorer.v1.Bid
+	0,  // 1: explorer.v1.Activity.kind:type_name -> explorer.v1.Kind
+	0,  // 2: explorer.v1.Transaction.kind:type_name -> explorer.v1.Kind
+	4,  // 3: explorer.v1.Transaction.inputs:type_name -> explorer.v1.Coin
+	4,  // 4: explorer.v1.Transaction.outputs:type_name -> explorer.v1.Coin
+	1,  // 5: explorer.v1.GetOverviewResponse.blocks:type_name -> explorer.v1.Block
+	3,  // 6: explorer.v1.GetOverviewResponse.recent:type_name -> explorer.v1.Activity
+	7,  // 7: explorer.v1.GetOverviewResponse.mempool:type_name -> explorer.v1.Mempool
+	6,  // 8: explorer.v1.GetOverviewResponse.treasury:type_name -> explorer.v1.Treasury
+	19, // 9: explorer.v1.GetOverviewResponse.pending_bundle:type_name -> explorer.v1.WithdrawalBundle
+	1,  // 10: explorer.v1.ListBlocksResponse.blocks:type_name -> explorer.v1.Block
+	1,  // 11: explorer.v1.GetBlockResponse.block:type_name -> explorer.v1.Block
+	3,  // 12: explorer.v1.GetBlockResponse.activity:type_name -> explorer.v1.Activity
+	5,  // 13: explorer.v1.GetTransactionResponse.transaction:type_name -> explorer.v1.Transaction
+	5,  // 14: explorer.v1.GetAddressResponse.transactions:type_name -> explorer.v1.Transaction
+	18, // 15: explorer.v1.WithdrawalBundle.withdrawals:type_name -> explorer.v1.Withdrawal
+	19, // 16: explorer.v1.GetWithdrawalsResponse.bundle:type_name -> explorer.v1.WithdrawalBundle
+	8,  // 17: explorer.v1.ExplorerService.GetOverview:input_type -> explorer.v1.GetOverviewRequest
+	12, // 18: explorer.v1.ExplorerService.GetBlock:input_type -> explorer.v1.GetBlockRequest
+	10, // 19: explorer.v1.ExplorerService.ListBlocks:input_type -> explorer.v1.ListBlocksRequest
+	14, // 20: explorer.v1.ExplorerService.GetTransaction:input_type -> explorer.v1.GetTransactionRequest
+	16, // 21: explorer.v1.ExplorerService.GetAddress:input_type -> explorer.v1.GetAddressRequest
+	20, // 22: explorer.v1.ExplorerService.GetWithdrawals:input_type -> explorer.v1.GetWithdrawalsRequest
+	9,  // 23: explorer.v1.ExplorerService.GetOverview:output_type -> explorer.v1.GetOverviewResponse
+	13, // 24: explorer.v1.ExplorerService.GetBlock:output_type -> explorer.v1.GetBlockResponse
+	11, // 25: explorer.v1.ExplorerService.ListBlocks:output_type -> explorer.v1.ListBlocksResponse
+	15, // 26: explorer.v1.ExplorerService.GetTransaction:output_type -> explorer.v1.GetTransactionResponse
+	17, // 27: explorer.v1.ExplorerService.GetAddress:output_type -> explorer.v1.GetAddressResponse
+	21, // 28: explorer.v1.ExplorerService.GetWithdrawals:output_type -> explorer.v1.GetWithdrawalsResponse
+	23, // [23:29] is the sub-list for method output_type
+	17, // [17:23] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_explorer_v1_explorer_proto_init() }
@@ -1794,7 +1937,7 @@ func file_explorer_v1_explorer_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_explorer_v1_explorer_proto_rawDesc), len(file_explorer_v1_explorer_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   20,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

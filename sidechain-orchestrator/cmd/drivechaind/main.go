@@ -523,6 +523,7 @@ func run(cctx *cli.Context) error {
 	mux.Handle(bmmPath, bmmH)
 
 	explorerHandler := api.NewExplorerHandler(orch)
+	explorerHandler.SetCoreCaller(handler.RawCoreCall)
 	explorerPath, explorerH := explorerrpc.NewExplorerServiceHandler(explorerHandler, connect.WithInterceptors(authIC))
 	mux.Handle(explorerPath, explorerH)
 

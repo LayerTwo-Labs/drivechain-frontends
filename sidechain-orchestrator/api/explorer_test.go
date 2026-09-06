@@ -238,6 +238,16 @@ func (n *recordingNode) GetBlockCount(context.Context) (int64, error) {
 	return n.count, nil
 }
 
+// This node mines nothing and proposes nothing, so the overview reads an empty
+// mempool and no bundle.
+func (n *recordingNode) GetBlockTemplate(context.Context) (*sidechain.BlockTemplate, error) {
+	return nil, fmt.Errorf("this node builds no template")
+}
+
+func (n *recordingNode) GetPendingWithdrawalBundle(context.Context) (json.RawMessage, error) {
+	return nil, fmt.Errorf("this node proposes no bundle")
+}
+
 func (n *recordingNode) CallRaw(_ context.Context, method string, params any) (json.RawMessage, error) {
 	n.called = append(n.called, method)
 	if method == "get_block" || method == "get_block_index" {

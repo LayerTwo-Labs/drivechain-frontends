@@ -45,6 +45,10 @@ const Block$json = {
     {'1': 'size_bytes', '3': 10, '4': 1, '5': 3, '10': 'sizeBytes'},
     {'1': 'fees_known', '3': 11, '4': 1, '5': 8, '10': 'feesKnown'},
     {'1': 'value_sats', '3': 12, '4': 1, '5': 3, '10': 'valueSats'},
+    {'1': 'value_known', '3': 20, '4': 1, '5': 8, '10': 'valueKnown'},
+    {'1': 'deposit_count', '3': 13, '4': 1, '5': 13, '10': 'depositCount'},
+    {'1': 'deposit_value_sats', '3': 14, '4': 1, '5': 3, '10': 'depositValueSats'},
+    {'1': 'bid', '3': 15, '4': 1, '5': 11, '6': '.explorer.v1.Bid', '10': 'bid'},
   ],
 };
 
@@ -56,7 +60,28 @@ final $typed_data.Uint8List blockDescriptor = $convert.base64Decode(
     'hlaWdodBgGIAEoDVIPbWFpbmNoYWluSGVpZ2h0Eh0KCmJsb2NrX3RpbWUYByABKANSCWJsb2Nr'
     'VGltZRIZCgh0eF9jb3VudBgIIAEoDVIHdHhDb3VudBIbCglmZWVzX3NhdHMYCSABKANSCGZlZX'
     'NTYXRzEh0KCnNpemVfYnl0ZXMYCiABKANSCXNpemVCeXRlcxIdCgpmZWVzX2tub3duGAsgASgI'
-    'UglmZWVzS25vd24SHQoKdmFsdWVfc2F0cxgMIAEoA1IJdmFsdWVTYXRz');
+    'UglmZWVzS25vd24SHQoKdmFsdWVfc2F0cxgMIAEoA1IJdmFsdWVTYXRzEh8KC3ZhbHVlX2tub3'
+    'duGBQgASgIUgp2YWx1ZUtub3duEiMKDWRlcG9zaXRfY291bnQYDSABKA1SDGRlcG9zaXRDb3Vu'
+    'dBIsChJkZXBvc2l0X3ZhbHVlX3NhdHMYDiABKANSEGRlcG9zaXRWYWx1ZVNhdHMSIgoDYmlkGA'
+    '8gASgLMhAuZXhwbG9yZXIudjEuQmlkUgNiaWQ=');
+
+@$core.Deprecated('Use bidDescriptor instead')
+const Bid$json = {
+  '1': 'Bid',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'vout', '3': 2, '4': 1, '5': 13, '10': 'vout'},
+    {'1': 'sats', '3': 3, '4': 1, '5': 3, '10': 'sats'},
+    {'1': 'block_hash', '3': 4, '4': 1, '5': 9, '10': 'blockHash'},
+    {'1': 'block_height', '3': 5, '4': 1, '5': 13, '10': 'blockHeight'},
+  ],
+};
+
+/// Descriptor for `Bid`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bidDescriptor = $convert.base64Decode(
+    'CgNCaWQSEgoEdHhpZBgBIAEoCVIEdHhpZBISCgR2b3V0GAIgASgNUgR2b3V0EhIKBHNhdHMYAy'
+    'ABKANSBHNhdHMSHQoKYmxvY2tfaGFzaBgEIAEoCVIJYmxvY2tIYXNoEiEKDGJsb2NrX2hlaWdo'
+    'dBgFIAEoDVILYmxvY2tIZWlnaHQ=');
 
 @$core.Deprecated('Use activityDescriptor instead')
 const Activity$json = {
@@ -70,6 +95,7 @@ const Activity$json = {
     {'1': 'confirmed', '3': 6, '4': 1, '5': 8, '10': 'confirmed'},
     {'1': 'block_height', '3': 7, '4': 1, '5': 13, '10': 'blockHeight'},
     {'1': 'block_time', '3': 8, '4': 1, '5': 3, '10': 'blockTime'},
+    {'1': 'address', '3': 9, '4': 1, '5': 9, '10': 'address'},
   ],
 };
 
@@ -79,7 +105,7 @@ final $typed_data.Uint8List activityDescriptor = $convert.base64Decode(
     'gCIAEoCVICaWQSHQoKdmFsdWVfc2F0cxgDIAEoA1IJdmFsdWVTYXRzEhkKCGZlZV9zYXRzGAQg'
     'ASgDUgdmZWVTYXRzEh0KCnNpemVfYnl0ZXMYBSABKANSCXNpemVCeXRlcxIcCgljb25maXJtZW'
     'QYBiABKAhSCWNvbmZpcm1lZBIhCgxibG9ja19oZWlnaHQYByABKA1SC2Jsb2NrSGVpZ2h0Eh0K'
-    'CmJsb2NrX3RpbWUYCCABKANSCWJsb2NrVGltZQ==');
+    'CmJsb2NrX3RpbWUYCCABKANSCWJsb2NrVGltZRIYCgdhZGRyZXNzGAkgASgJUgdhZGRyZXNz');
 
 @$core.Deprecated('Use coinDescriptor instead')
 const Coin$json = {
@@ -410,6 +436,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ExplorerSe
   '.explorer.v1.GetOverviewRequest': GetOverviewRequest$json,
   '.explorer.v1.GetOverviewResponse': GetOverviewResponse$json,
   '.explorer.v1.Block': Block$json,
+  '.explorer.v1.Bid': Bid$json,
   '.explorer.v1.Activity': Activity$json,
   '.explorer.v1.Mempool': Mempool$json,
   '.explorer.v1.Treasury': Treasury$json,
