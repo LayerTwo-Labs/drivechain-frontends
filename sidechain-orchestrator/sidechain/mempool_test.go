@@ -250,7 +250,8 @@ func TestDeltaFollowsAChainedSpend(t *testing.T) {
 
 	got := DeltaFor(txs, map[string]bool{"mine": true}, nil)
 	assert.Equal(t, int64(19000), got.CreditSats, "both outputs pay us")
-	assert.Equal(t, int64(10000), got.DebitSats, "and the child spends the parent's coin")
+	assert.Equal(t, int64(10000), got.ChainedDebitSats, "and the child spends the parent's coin")
+	assert.Zero(t, got.DebitSats, "no confirmed coin leaves")
 }
 
 // A wallet can spend a deposit, and its outpoint is a plain string.

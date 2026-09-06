@@ -52,8 +52,10 @@ func Mempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, error) {
 type MempoolDelta struct {
 	// CreditSats is what the unconfirmed outputs pay us.
 	CreditSats int64
-	// DebitSats is what those transactions spend of ours.
+	// DebitSats is what those transactions spend of our confirmed coins.
 	DebitSats int64
+	// ChainedDebitSats is what they spend of coins the mempool itself made.
+	ChainedDebitSats int64
 }
 
 // DeltaFor reads what the mempool does to this wallet.
@@ -69,17 +71,14 @@ func DeltaFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64)
 	// A child transaction spends a coin its parent made, and that coin never
 	// reached the confirmed listing. Index it here, or the child's change
 	// counts on top of a coin the wallet never held.
-	coins := make(map[string]int64, len(ourCoins))
-	for key, sats := range ourCoins {
-		coins[key] = sats
-	}
+	memCoins := make(map[string]int64)
 	for _, tx := range txs {
 		if tx.Txid == "" {
 			continue
 		}
 		for _, out := range tx.Outputs {
 			if owned[out.Address] && !out.Withdrawal {
-				coins[fmt.Sprintf("%s:%d", tx.Txid, out.Vout)] = out.ValueSats
+				memCoins[fmt.Sprintf("%s:%d", tx.Txid, out.Vout)] = out.ValueSats
 			}
 		}
 	}
@@ -97,7 +96,11 @@ func DeltaFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64)
 			}
 		}
 		for _, in := range tx.Inputs {
-			delta.DebitSats += coins[in.Key]
+			if sats, ok := ourCoins[in.Key]; ok {
+				delta.DebitSats += sats
+				continue
+			}
+			delta.ChainedDebitSats += memCoins[in.Key]
 		}
 	}
 	return delta
