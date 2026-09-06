@@ -34,6 +34,10 @@ class Block extends $pb.GeneratedMessage {
     $fixnum.Int64? sizeBytes,
     $core.bool? feesKnown,
     $fixnum.Int64? valueSats,
+    $core.int? depositCount,
+    $fixnum.Int64? depositValueSats,
+    Bid? bid,
+    $core.bool? valueKnown,
   }) {
     final $result = create();
     if (height != null) {
@@ -72,6 +76,18 @@ class Block extends $pb.GeneratedMessage {
     if (valueSats != null) {
       $result.valueSats = valueSats;
     }
+    if (depositCount != null) {
+      $result.depositCount = depositCount;
+    }
+    if (depositValueSats != null) {
+      $result.depositValueSats = depositValueSats;
+    }
+    if (bid != null) {
+      $result.bid = bid;
+    }
+    if (valueKnown != null) {
+      $result.valueKnown = valueKnown;
+    }
     return $result;
   }
   Block._() : super();
@@ -91,6 +107,10 @@ class Block extends $pb.GeneratedMessage {
     ..aInt64(10, _omitFieldNames ? '' : 'sizeBytes')
     ..aOB(11, _omitFieldNames ? '' : 'feesKnown')
     ..aInt64(12, _omitFieldNames ? '' : 'valueSats')
+    ..a<$core.int>(13, _omitFieldNames ? '' : 'depositCount', $pb.PbFieldType.OU3)
+    ..aInt64(14, _omitFieldNames ? '' : 'depositValueSats')
+    ..aOM<Bid>(15, _omitFieldNames ? '' : 'bid', subBuilder: Bid.create)
+    ..aOB(20, _omitFieldNames ? '' : 'valueKnown')
     ..hasRequiredFields = false
   ;
 
@@ -230,6 +250,160 @@ class Block extends $pb.GeneratedMessage {
   $core.bool hasValueSats() => $_has(11);
   @$pb.TagNumber(12)
   void clearValueSats() => clearField(12);
+
+  /// deposit_count and deposit_value_sats name what the mainchain paid into
+  /// this block. A deposit never sits in the block body.
+  @$pb.TagNumber(13)
+  $core.int get depositCount => $_getIZ(12);
+  @$pb.TagNumber(13)
+  set depositCount($core.int v) { $_setUnsignedInt32(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasDepositCount() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearDepositCount() => clearField(13);
+
+  @$pb.TagNumber(14)
+  $fixnum.Int64 get depositValueSats => $_getI64(13);
+  @$pb.TagNumber(14)
+  set depositValueSats($fixnum.Int64 v) { $_setInt64(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasDepositValueSats() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearDepositValueSats() => clearField(14);
+
+  /// bid names the winning BMM bid on the mainchain: the outpoint that carried
+  /// the M8, and what it paid.
+  @$pb.TagNumber(15)
+  Bid get bid => $_getN(14);
+  @$pb.TagNumber(15)
+  set bid(Bid v) { setField(15, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasBid() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearBid() => clearField(15);
+  @$pb.TagNumber(15)
+  Bid ensureBid() => $_ensure(14);
+
+  /// value_known is false when the source cannot compute it. A hosted index
+  /// states the fees a block collected, and never the value it moved.
+  @$pb.TagNumber(20)
+  $core.bool get valueKnown => $_getBF(15);
+  @$pb.TagNumber(20)
+  set valueKnown($core.bool v) { $_setBool(15, v); }
+  @$pb.TagNumber(20)
+  $core.bool hasValueKnown() => $_has(15);
+  @$pb.TagNumber(20)
+  void clearValueKnown() => clearField(20);
+}
+
+/// Bid is the M8 a miner took to mine one sidechain block.
+class Bid extends $pb.GeneratedMessage {
+  factory Bid({
+    $core.String? txid,
+    $core.int? vout,
+    $fixnum.Int64? sats,
+    $core.String? blockHash,
+    $core.int? blockHeight,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    if (sats != null) {
+      $result.sats = sats;
+    }
+    if (blockHash != null) {
+      $result.blockHash = blockHash;
+    }
+    if (blockHeight != null) {
+      $result.blockHeight = blockHeight;
+    }
+    return $result;
+  }
+  Bid._() : super();
+  factory Bid.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Bid.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Bid', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.OU3)
+    ..aInt64(3, _omitFieldNames ? '' : 'sats')
+    ..aOS(4, _omitFieldNames ? '' : 'blockHash')
+    ..a<$core.int>(5, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  Bid clone() => Bid()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  Bid copyWith(void Function(Bid) updates) => super.copyWith((message) => updates(message as Bid)) as Bid;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Bid create() => Bid._();
+  Bid createEmptyInstance() => create();
+  static $pb.PbList<Bid> createRepeated() => $pb.PbList<Bid>();
+  @$core.pragma('dart2js:noInline')
+  static Bid getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Bid>(create);
+  static Bid? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+
+  /// sats is the fee the bid paid.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get sats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set sats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSats() => clearField(3);
+
+  /// block_hash and block_height name the mainchain block that carried the M8.
+  /// That block is the child of the block the header names.
+  @$pb.TagNumber(4)
+  $core.String get blockHash => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set blockHash($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasBlockHash() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBlockHash() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get blockHeight => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set blockHeight($core.int v) { $_setUnsignedInt32(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasBlockHeight() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBlockHeight() => clearField(5);
 }
 
 /// Activity is one thing that happened on the chain.
@@ -243,6 +417,7 @@ class Activity extends $pb.GeneratedMessage {
     $core.bool? confirmed,
     $core.int? blockHeight,
     $fixnum.Int64? blockTime,
+    $core.String? address,
   }) {
     final $result = create();
     if (kind != null) {
@@ -269,6 +444,9 @@ class Activity extends $pb.GeneratedMessage {
     if (blockTime != null) {
       $result.blockTime = blockTime;
     }
+    if (address != null) {
+      $result.address = address;
+    }
     return $result;
   }
   Activity._() : super();
@@ -284,6 +462,7 @@ class Activity extends $pb.GeneratedMessage {
     ..aOB(6, _omitFieldNames ? '' : 'confirmed')
     ..a<$core.int>(7, _omitFieldNames ? '' : 'blockHeight', $pb.PbFieldType.OU3)
     ..aInt64(8, _omitFieldNames ? '' : 'blockTime')
+    ..aOS(9, _omitFieldNames ? '' : 'address')
     ..hasRequiredFields = false
   ;
 
@@ -380,6 +559,17 @@ class Activity extends $pb.GeneratedMessage {
   $core.bool hasBlockTime() => $_has(7);
   @$pb.TagNumber(8)
   void clearBlockTime() => clearField(8);
+
+  /// address is the sidechain address a deposit paid. It is empty on every
+  /// other kind.
+  @$pb.TagNumber(9)
+  $core.String get address => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set address($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasAddress() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearAddress() => clearField(9);
 }
 
 /// Coin is one input or one output.
