@@ -10,6 +10,7 @@ import (
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bbc/v1"
 	svc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bbc/v1/bbcv1connect"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/corenode"
 )
 
 var _ svc.BbcServiceHandler = (*Handler)(nil)
@@ -134,7 +135,7 @@ func (h *Handler) ListUtxos(ctx context.Context, _ *connect.Request[pb.ListUtxos
 			Txid:          u.Txid,
 			Vout:          u.Vout,
 			Address:       u.Address,
-			ValueSats:     btcToSats(u.Amount),
+			ValueSats:     corenode.BTCToSats(u.Amount),
 			Confirmations: u.Confirmations,
 		})
 	}
@@ -154,7 +155,7 @@ func (h *Handler) ListTransactions(ctx context.Context, req *connect.Request[pb.
 	for _, tx := range txs {
 		out = append(out, &pb.Transaction{
 			Txid:          tx.Txid,
-			AmountSats:    btcToSats(tx.Amount),
+			AmountSats:    corenode.BTCToSats(tx.Amount),
 			Confirmations: tx.Confirmations,
 			Time:          tx.Time,
 			Address:       tx.Address,

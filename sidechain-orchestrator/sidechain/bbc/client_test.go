@@ -3,10 +3,13 @@ package bbc
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,115 +18,71 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
-type recordedRequest struct {
-	path   string
-	user   string
-	pass   string
-	method string
-	params json.RawMessage
-}
-
-// fakeNode replies with a pre-encoded result per method and records what it was
-// asked, so a test can assert on the endpoint and credentials too.
-func fakeNode(t *testing.T, results map[string]json.RawMessage) (*httptest.Server, *[]recordedRequest) {
+// fakeNode replies with a pre-encoded result per method.
+func fakeNode(t *testing.T, results map[string]json.RawMessage) *httptest.Server {
 	t.Helper()
-	var seen []recordedRequest
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Method string          `json:"method"`
-			Params json.RawMessage `json:"params"`
+			Method string `json:"method"`
 		}
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
-		user, pass, _ := r.BasicAuth()
-		seen = append(seen, recordedRequest{path: r.URL.Path, user: user, pass: pass, method: req.Method, params: req.Params})
-
 		result, ok := results[req.Method]
 		if !ok {
 			t.Fatalf("unexpected method: %s", req.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		require.NoError(t, json.NewEncoder(w).Encode(rpcResponse{Result: result}))
+		_, _ = w.Write([]byte(`{"result":` + string(result) + `,"error":null}`))
 	}))
-	return srv, &seen
+	return srv
 }
 
-func cookieFile(t *testing.T, contents string) string {
+func clientFor(t *testing.T, srv *httptest.Server) *Client {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), ".cookie")
-	require.NoError(t, os.WriteFile(path, []byte(contents), 0o600))
-	return path
+	parsed, err := url.Parse(srv.URL)
+	require.NoError(t, err)
+	host, portText, err := net.SplitHostPort(parsed.Host)
+	require.NoError(t, err)
+	port, err := strconv.Atoi(portText)
+	require.NoError(t, err)
+
+	cookie := filepath.Join(t.TempDir(), ".cookie")
+	require.NoError(t, os.WriteFile(cookie, []byte("__cookie__:secret"), 0o600))
+	return NewClient(host, port, cookie)
 }
 
-func clientFor(t *testing.T, srv *httptest.Server, cookiePath string) *Client {
-	t.Helper()
-	return &Client{baseURL: srv.URL, cookiePath: cookiePath, http: srv.Client()}
-}
-
-func TestBalanceCountsImmatureAsPending(t *testing.T) {
-	srv, _ := fakeNode(t, map[string]json.RawMessage{
-		"getbalances": json.RawMessage(`{"mine":{"trusted":1.5,"untrusted_pending":0.25,"immature":50}}`),
+func TestSidechainInfoReportsTheMainchainLink(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{
+		"getsidechaininfo": json.RawMessage(`{"synced":true,"mainchaintip":"0000abc","lasterror":""}`),
 	})
 	defer srv.Close()
 
-	total, available, err := clientFor(t, srv, cookieFile(t, "__cookie__:secret")).GetBalance(context.Background())
+	info, err := clientFor(t, srv).GetSidechainInfo(context.Background())
 	require.NoError(t, err)
-	// A peg-in lands in the coinbase, so it is immature for a hundred blocks.
-	assert.Equal(t, int64(150_000_000), available)
-	assert.Equal(t, int64(5_175_000_000), total)
+	assert.True(t, info.Synced)
+	assert.Equal(t, "0000abc", info.MainchainTip)
 }
 
-func TestWalletCallsAreScopedToTheWallet(t *testing.T) {
-	srv, seen := fakeNode(t, map[string]json.RawMessage{
-		"getnewaddress":     json.RawMessage(`"bcrt1qexample"`),
-		"getblockcount":     json.RawMessage(`42`),
-		"getblockchaininfo": json.RawMessage(`{"chain":"regtest"}`),
+// A mainchain block that carries no commitment answers null, which is not an
+// error.
+func TestBmmCommitmentReadsNullAsNone(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{"getbmmcommitment": json.RawMessage(`null`)})
+	defer srv.Close()
+
+	commitment, err := clientFor(t, srv).GetBmmCommitment(context.Background(), "0000dead")
+	require.NoError(t, err)
+	assert.Empty(t, commitment)
+}
+
+func TestBlockTemplateCarriesTheCriticalHash(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{
+		"get_block_template": json.RawMessage(`{"critical_hash":"abc123","block":{},"fees_sats":4200}`),
 	})
 	defer srv.Close()
 
-	client := clientFor(t, srv, cookieFile(t, "__cookie__:secret"))
-	ctx := context.Background()
-	_, err := client.GetNewAddress(ctx)
+	template, err := clientFor(t, srv).GetBlockTemplate(context.Background())
 	require.NoError(t, err)
-	_, err = client.GetBlockCount(ctx)
-	require.NoError(t, err)
-
-	require.Len(t, *seen, 2)
-	assert.Equal(t, "/wallet/orchestrator", (*seen)[0].path)
-	assert.Equal(t, "/", (*seen)[1].path, "node-level RPCs must not be wallet scoped")
-}
-
-func TestCallsAuthenticateWithTheCookie(t *testing.T) {
-	srv, seen := fakeNode(t, map[string]json.RawMessage{"getblockcount": json.RawMessage(`1`)})
-	defer srv.Close()
-
-	_, err := clientFor(t, srv, cookieFile(t, "  __cookie__:s3cret\n")).GetBlockCount(context.Background())
-	require.NoError(t, err)
-	require.Len(t, *seen, 1)
-	assert.Equal(t, "__cookie__", (*seen)[0].user)
-	assert.Equal(t, "s3cret", (*seen)[0].pass)
-}
-
-// A missing cookie used to fall through as an unauthenticated call, which Core
-// answers with an empty 401 that surfaces as a decode error.
-func TestMissingCookieFailsBeforeCalling(t *testing.T) {
-	srv, seen := fakeNode(t, map[string]json.RawMessage{})
-	defer srv.Close()
-
-	_, err := clientFor(t, srv, filepath.Join(t.TempDir(), "absent")).GetBlockCount(context.Background())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "read rpc cookie")
-	assert.Empty(t, *seen, "must not reach the node without credentials")
-}
-
-func TestUnauthenticatedResponseReportsHTTPStatus(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	}))
-	defer srv.Close()
-
-	_, err := clientFor(t, srv, cookieFile(t, "user:pass")).GetBlockCount(context.Background())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "401")
+	assert.Equal(t, "abc123", template.CriticalHash)
+	assert.Equal(t, int64(4200), template.FeesSats)
 }
 
 // The BMM engine drives Bbc blocks, but Bbc settles withdrawals elsewhere. The
@@ -136,17 +95,4 @@ func TestBbcDrivesBmmButProposesNoBundle(t *testing.T) {
 
 	_, proposesBundles := node.(sidechain.WithdrawalNode)
 	assert.False(t, proposesBundles, "bbc withdrawals are not wired into consensus")
-}
-
-// Regtest answers estimatesmartfee with errors and no rate; a zero rate builds
-// an unrelayable transaction.
-func TestFeeEstimateFallsBackWithoutHistory(t *testing.T) {
-	srv, _ := fakeNode(t, map[string]json.RawMessage{
-		"estimatesmartfee": json.RawMessage(`{"errors":["Insufficient data or no feerate found"],"blocks":6}`),
-	})
-	defer srv.Close()
-
-	rate, err := clientFor(t, srv, cookieFile(t, "user:pass")).EstimateSmartFee(context.Background())
-	require.NoError(t, err)
-	assert.Equal(t, FallbackFeeRate, rate)
 }
