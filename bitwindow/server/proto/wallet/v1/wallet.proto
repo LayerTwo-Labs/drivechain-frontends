@@ -7,6 +7,8 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service WalletService {
+  // Deprecated: always returns unimplemented. Wallets are created through
+  // walletmanager.v1.WalletManagerService/GenerateWallet, which owns the IDs.
   rpc CreateBitcoinCoreWallet(CreateBitcoinCoreWalletRequest) returns (CreateBitcoinCoreWalletResponse);
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
   rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
