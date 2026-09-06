@@ -752,7 +752,7 @@ func (h *Handler) mempoolCredit(ctx context.Context, cfg orchestrator.BinaryConf
 	if err != nil {
 		return 0
 	}
-	owned, err := walletAddresses(ctx, node)
+	owned, err := sidechain.WalletAddresses(ctx, node)
 	if err != nil || len(owned) == 0 {
 		return 0
 	}
@@ -761,23 +761,6 @@ func (h *Handler) mempoolCredit(ctx context.Context, cfg orchestrator.BinaryConf
 		return 0
 	}
 	return sidechain.CreditFor(txs, owned)
-}
-
-// walletAddresses reads the addresses a node's own wallet holds.
-func walletAddresses(ctx context.Context, node sidechain.SidechainRPCProxy) (map[string]bool, error) {
-	raw, err := node.CallRaw(ctx, "get_wallet_addresses", nil)
-	if err != nil {
-		return nil, fmt.Errorf("read the wallet addresses: %w", err)
-	}
-	var list []string
-	if err := json.Unmarshal(raw, &list); err != nil {
-		return nil, fmt.Errorf("read the wallet addresses: %w", err)
-	}
-	owned := make(map[string]bool, len(list))
-	for _, address := range list {
-		owned[address] = true
-	}
-	return owned, nil
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {
