@@ -995,6 +995,10 @@ func mempoolActivity(pool []sidechain.MempoolTx) []*pb.Activity {
 		}
 		for _, o := range tx.Outputs {
 			row.ValueSats += o.ValueSats
+			// A pending withdrawal wears the same badge as a mined one.
+			if o.Withdrawal {
+				row.Kind = pb.Kind_KIND_WITHDRAWAL
+			}
 		}
 		out = append(out, row)
 	}
