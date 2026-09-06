@@ -3,7 +3,9 @@ package api_wallet_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
+	"time"
 
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	walletv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1"
 	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/addressbook"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/cheques"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
@@ -112,6 +115,13 @@ func TestService_GetNewAddress(t *testing.T) {
 
 		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch), apitests.WithBitcoind(mockBitcoind)))
 
+		// Addresses need an unlocked wallet, and the unencrypted fixture wallet
+		// auto-unlocks in the background.
+		require.Eventually(t, func() bool {
+			_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+			return err == nil
+		}, 5*time.Second, 10*time.Millisecond)
+
 		// Use the test wallet ID from apitests.createTestWalletJSON
 		resp, err := cli.GetNewAddress(context.Background(), connect.NewRequest(&walletv1.GetNewAddressRequest{
 			WalletId: "test-wallet-id-1234",
@@ -119,6 +129,61 @@ func TestService_GetNewAddress(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "bc1qtest123456789", resp.Msg.Address)
 	})
+
+	t.Run("locked wallet gets no address", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		database := database.Test(t)
+
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithOrchestrator(mockOrch)))
+
+		// The unencrypted fixture wallet auto-unlocks in the background. Wait for
+		// that, so the unlock cannot land after the lock below.
+		require.Eventually(t, func() bool {
+			_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+			return err == nil
+		}, 5*time.Second, 10*time.Millisecond)
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = cli.GetNewAddress(context.Background(), connect.NewRequest(&walletv1.GetNewAddressRequest{
+			WalletId: "test-wallet-id-1234",
+		}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		// Nothing was derived, so nothing reached the address book either.
+		entries, err := addressbook.ListByWallet(context.Background(), database, "test-wallet-id-1234")
+		require.NoError(t, err)
+		require.Empty(t, entries)
+	})
+}
+
+// A cheque expecting zero sats is satisfied by any funding that arrives, so the
+// row reads as funded and refuses deletion. It must never be created.
+func TestService_CreateChequeRejectsZeroAmount(t *testing.T) {
+	t.Parallel()
+
+	db := database.Test(t)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, db))
+
+	_, err := cli.CreateCheque(context.Background(), connect.NewRequest(&walletv1.CreateChequeRequest{
+		WalletId:           testWalletID,
+		ExpectedAmountSats: 0,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	// No row was persisted, and no derivation index was burned.
+	list, err := cheques.List(context.Background(), db, testWalletID)
+	require.NoError(t, err)
+	require.Empty(t, list)
 }
 
 func TestService_ListCheques(t *testing.T) {
@@ -378,6 +443,37 @@ func TestService_LockWallet(t *testing.T) {
 	})
 }
 
+// A send that starts after the wallet is locked must not reach bitcoind.
+func TestService_SendTransactionRequiresUnlocked(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	database := database.Test(t)
+
+	mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+	apitests.ExpectCoreWalletSetup(mockBitcoind)
+	mockBitcoind.EXPECT().Send(gomock.Any(), gomock.Any()).Times(0)
+
+	cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database, apitests.WithBitcoind(mockBitcoind)))
+
+	// The unencrypted fixture wallet auto-unlocks in the background: wait for
+	// that, otherwise the unlock can land after the lock below.
+	require.Eventually(t, func() bool {
+		_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		return err == nil
+	}, 5*time.Second, 10*time.Millisecond)
+
+	_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	_, err = cli.SendTransaction(context.Background(), connect.NewRequest(&walletv1.SendTransactionRequest{
+		WalletId:     "test-wallet-id-1234",
+		Destinations: map[string]uint64{"bcrt1qsendlocked00000000000000000000000000000000": 100_000},
+	}))
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	require.Contains(t, err.Error(), "wallet is locked")
+}
+
 func TestService_UnlockWallet(t *testing.T) {
 	t.Parallel()
 
@@ -407,6 +503,44 @@ func TestService_UnlockWallet(t *testing.T) {
 		}))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "not encrypted")
+	})
+}
+
+func TestService_CreateBackup(t *testing.T) {
+	t.Parallel()
+
+	// The unencrypted fixture wallet auto-unlocks in a startup goroutine.
+	waitUnlocked := func(t *testing.T, cli walletv1connect.WalletServiceClient) {
+		require.Eventually(t, func() bool {
+			_, err := cli.IsWalletUnlocked(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+			return err == nil
+		}, 5*time.Second, 10*time.Millisecond)
+	}
+
+	t.Run("unlocked wallet backs up", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t)))
+		waitUnlocked(t, cli)
+
+		resp, err := cli.CreateBackup(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+		require.NotEmpty(t, resp.Msg.BackupData)
+	})
+
+	t.Run("locked wallet cannot back up", func(t *testing.T) {
+		t.Parallel()
+
+		cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database.Test(t)))
+		waitUnlocked(t, cli)
+
+		_, err := cli.LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		resp, err := cli.CreateBackup(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.Error(t, err)
+		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		require.Nil(t, resp)
 	})
 }
 
@@ -440,4 +574,38 @@ func TestListSidechainDepositsReadsTheOrchestrator(t *testing.T) {
 	require.Len(t, resp.Msg.Deposits, 1)
 	require.Equal(t, "deadbeef", resp.Msg.Deposits[0].Txid)
 	require.Equal(t, int64(50_000), resp.Msg.Deposits[0].Amount)
+}
+
+// A negative slot must be rejected here, not cast to uint32 and forwarded: the
+// cast wraps, and -4294967289 lands on slot 7 — someone else's sidechain.
+func TestCreateSidechainDepositRejectsNegativeSlot(t *testing.T) {
+	t.Parallel()
+
+	for _, slot := range []int64{-1, -4294967289} {
+		t.Run(fmt.Sprint(slot), func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			database := database.Test(t)
+			mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+			apitests.ExpectCoreWalletSetup(mockBitcoind)
+
+			// No CreateDeposit expectation: the request must not reach it.
+			mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+			apitests.ExpectOrchestratorReads(mockOrch)
+
+			cli := walletv1connect.NewWalletServiceClient(apitests.API(t, database,
+				apitests.WithBitcoind(mockBitcoind), apitests.WithOrchestrator(mockOrch)))
+
+			_, err := cli.CreateSidechainDeposit(context.Background(), connect.NewRequest(&walletv1.CreateSidechainDepositRequest{
+				WalletId:    "test-wallet-id-1234",
+				Destination: "13tqn1jxdcrbDycej4bp5S5PcffYtdGNPy",
+				Slot:        slot,
+				Amount:      0.001,
+				Fee:         0.0001,
+			}))
+			require.Error(t, err)
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		})
+	}
 }
