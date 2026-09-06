@@ -11,8 +11,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 )
 
-// AddressType selects between P2PKH (BIP47 v1 default) and P2WPKH (segwit
-// feature, recipient code byte 79 == 0x01).
+// AddressType selects between P2PKH (BIP47 v1 default) and P2WPKH.
 type AddressType int
 
 const (

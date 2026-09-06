@@ -56,6 +56,17 @@ func parseFromCheckDecoded(b []byte) (*PaymentCode, error) {
 	if pc.SignByte != 0x02 && pc.SignByte != 0x03 {
 		return nil, fmt.Errorf("invalid sign byte 0x%02x", pc.SignByte)
 	}
+	// v1 fixes the features byte and bytes 67-79 at zero. Accepting anything
+	// else would let one key pair have several encodings, each deriving the
+	// same addresses off its own send-index counter.
+	if pc.Features != 0x00 {
+		return nil, fmt.Errorf("unsupported features byte 0x%02x", pc.Features)
+	}
+	for i, v := range pc.Reserved {
+		if v != 0x00 {
+			return nil, fmt.Errorf("reserved byte %d must be zero, got 0x%02x", 67+i, v)
+		}
+	}
 	if _, err := pc.PubKey(); err != nil {
 		return nil, fmt.Errorf("invalid pubkey: %w", err)
 	}

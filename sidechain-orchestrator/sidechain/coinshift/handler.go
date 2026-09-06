@@ -2,6 +2,7 @@ package coinshift
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -245,25 +246,31 @@ func (h *Handler) OpenapiSchema(ctx context.Context, req *connect.Request[pb.Ope
 // --- Swap methods ---
 
 func (h *Handler) CreateSwap(ctx context.Context, req *connect.Request[pb.CreateSwapRequest]) (*connect.Response[pb.CreateSwapResponse], error) {
-	var result struct {
-		SwapID string `json:"swap_id"`
-		Txid   string `json:"txid"`
-	}
 	params := []any{
-		req.Msg.L2AmountSats,
-		req.Msg.L1AmountSats,
-		req.Msg.L1RecipientAddress,
 		req.Msg.ParentChain,
+		req.Msg.L1RecipientAddress,
+		req.Msg.L1AmountSats,
 		req.Msg.L2Recipient,
+		req.Msg.L2AmountSats,
 		req.Msg.RequiredConfirmations,
 		req.Msg.FeeSats,
 	}
-	if err := h.proxy.Client.Call(ctx, "create_swap", params, &result); err != nil {
+	// The backend returns a (SwapId, Txid) tuple, with the swap id as 32 bytes.
+	var tuple [2]json.RawMessage
+	if err := h.proxy.Client.Call(ctx, "create_swap", params, &tuple); err != nil {
 		return nil, err
 	}
+	var swapID [32]byte
+	if err := json.Unmarshal(tuple[0], &swapID); err != nil {
+		return nil, fmt.Errorf("unmarshal swap id: %w", err)
+	}
+	var txid string
+	if err := json.Unmarshal(tuple[1], &txid); err != nil {
+		return nil, fmt.Errorf("unmarshal txid: %w", err)
+	}
 	return connect.NewResponse(&pb.CreateSwapResponse{
-		SwapId: result.SwapID,
-		Txid:   result.Txid,
+		SwapId: hex.EncodeToString(swapID[:]),
+		Txid:   txid,
 	}), nil
 }
 
