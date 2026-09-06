@@ -89,7 +89,7 @@ func TestMempoolIsEmptyWhenNeitherFeedAnswers(t *testing.T) {
 	assert.Empty(t, txs)
 }
 
-func TestNetCreditCountsOnlyOurAddresses(t *testing.T) {
+func TestDeltaCountsOnlyOurAddresses(t *testing.T) {
 	txs := []MempoolTx{{Outputs: []MempoolOutput{
 		{Address: "mine", ValueSats: 10000},
 		{Address: "theirs", ValueSats: 500},
@@ -97,32 +97,34 @@ func TestNetCreditCountsOnlyOurAddresses(t *testing.T) {
 	}}}
 	mine := map[string]bool{"mine": true}
 
-	assert.Equal(t, int64(10250), NetCreditFor(txs, mine, nil))
-	assert.Zero(t, NetCreditFor(txs, nil, nil), "a wallet with no address is owed nothing")
+	assert.Equal(t, int64(10250), DeltaFor(txs, mine, nil).CreditSats)
+	assert.Zero(t, DeltaFor(txs, nil, nil).CreditSats, "a wallet with no address is owed nothing")
 }
 
 // A transfer of ours pays change back. Counting the change alone reads the
 // spent coin twice, because the node still lists it as confirmed.
-func TestNetCreditSubtractsWhatWeSpend(t *testing.T) {
+func TestDeltaSubtractsWhatWeSpend(t *testing.T) {
 	txs := []MempoolTx{{
 		Inputs:  []MempoolInput{{Key: "old:0"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 9000}, {Address: "theirs", ValueSats: 900}},
 	}}
 	ourCoins := map[string]int64{"old:0": 10000}
 
-	got := NetCreditFor(txs, map[string]bool{"mine": true}, ourCoins)
-	assert.Equal(t, int64(-1000), got, "we part with the payment and the fee")
+	got := DeltaFor(txs, map[string]bool{"mine": true}, ourCoins)
+	assert.Equal(t, int64(9000), got.CreditSats, "the change comes back")
+	assert.Equal(t, int64(10000), got.DebitSats, "and the coin it spends goes")
 }
 
 // A payment from a stranger spends no coin of ours, so nothing subtracts.
-func TestNetCreditIgnoresAStrangersInputs(t *testing.T) {
+func TestDeltaIgnoresAStrangersInputs(t *testing.T) {
 	txs := []MempoolTx{{
 		Inputs:  []MempoolInput{{Key: "theirs:3"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 10000}},
 	}}
 
-	got := NetCreditFor(txs, map[string]bool{"mine": true}, map[string]int64{"old:0": 10000})
-	assert.Equal(t, int64(10000), got)
+	got := DeltaFor(txs, map[string]bool{"mine": true}, map[string]int64{"old:0": 10000})
+	assert.Equal(t, int64(10000), got.CreditSats)
+	assert.Zero(t, got.DebitSats, "we spend nothing of ours")
 }
 
 func TestOwnedOutputsDropsTheRestOfTheTransaction(t *testing.T) {
@@ -231,7 +233,7 @@ func TestOurCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
 // A child spends a coin its parent made, and that coin never reached the
 // confirmed listing. Without it the child's change counts on top of money the
 // wallet never held.
-func TestNetCreditFollowsAChainedSpend(t *testing.T) {
+func TestDeltaFollowsAChainedSpend(t *testing.T) {
 	txs := []MempoolTx{
 		{
 			Txid:    "parent",
@@ -244,19 +246,21 @@ func TestNetCreditFollowsAChainedSpend(t *testing.T) {
 		},
 	}
 
-	got := NetCreditFor(txs, map[string]bool{"mine": true}, nil)
-	assert.Equal(t, int64(9000), got, "the parent's coin is spent, so only the child's stands")
+	got := DeltaFor(txs, map[string]bool{"mine": true}, nil)
+	assert.Equal(t, int64(19000), got.CreditSats, "both outputs pay us")
+	assert.Equal(t, int64(10000), got.DebitSats, "and the child spends the parent's coin")
 }
 
 // A wallet can spend a deposit, and its outpoint is a plain string.
-func TestNetCreditSubtractsASpentDeposit(t *testing.T) {
+func TestDeltaSubtractsASpentDeposit(t *testing.T) {
 	txs := []MempoolTx{{
 		Inputs:  []MempoolInput{{Key: "maintxid:0"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 400}},
 	}}
 
-	got := NetCreditFor(txs, map[string]bool{"mine": true}, map[string]int64{"maintxid:0": 500})
-	assert.Equal(t, int64(-100), got)
+	got := DeltaFor(txs, map[string]bool{"mine": true}, map[string]int64{"maintxid:0": 500})
+	assert.Equal(t, int64(400), got.CreditSats)
+	assert.Equal(t, int64(500), got.DebitSats, "a deposit is a coin we can spend")
 }
 
 // A coin an unconfirmed transaction spends is no longer spendable. Listing it

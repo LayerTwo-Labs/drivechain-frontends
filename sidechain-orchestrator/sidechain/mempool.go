@@ -42,13 +42,23 @@ func Mempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, error) {
 	return templateMempool(ctx, node)
 }
 
-// NetCreditFor is what the mempool adds to this wallet, in sats: the outputs
-// it pays us, less the coins of ours it spends.
+// MempoolDelta is what the mempool does to this wallet, in sats.
 //
-// ourCoins maps "txid:vout" to what that coin holds. Without the subtraction a
+// The two halves stay apart, because they land in different places: a coin on
+// its way is pending, and a coin already spent leaves the confirmed count.
+type MempoolDelta struct {
+	// CreditSats is what the unconfirmed outputs pay us.
+	CreditSats int64
+	// DebitSats is what those transactions spend of ours.
+	DebitSats int64
+}
+
+// DeltaFor reads what the mempool does to this wallet.
+//
+// ourCoins maps "txid:vout" to what that coin holds. Without the debit a
 // transfer that pays change back counts the change on top of the coin it
 // spends, and the wallet reads the same money twice.
-func NetCreditFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64) int64 {
+func DeltaFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64) MempoolDelta {
 	// A child transaction spends a coin its parent made, and that coin never
 	// reached the confirmed listing. Index it here, or the child's change
 	// counts on top of a coin the wallet never held.
@@ -67,18 +77,18 @@ func NetCreditFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]in
 		}
 	}
 
-	var total int64
+	var delta MempoolDelta
 	for _, tx := range txs {
 		for _, out := range tx.Outputs {
 			if owned[out.Address] {
-				total += out.ValueSats
+				delta.CreditSats += out.ValueSats
 			}
 		}
 		for _, in := range tx.Inputs {
-			total -= coins[in.Key]
+			delta.DebitSats += coins[in.Key]
 		}
 	}
-	return total
+	return delta
 }
 
 // OwnedOutputs are the unconfirmed outputs paying these addresses.

@@ -798,8 +798,8 @@ func TestOverviewListsTheUnconfirmedRows(t *testing.T) {
 	}
 
 	rows := mempoolActivity(pool)
-	if len(rows) != 2 {
-		t.Fatalf("the overview lists %d rows, want 2", len(rows))
+	if len(rows) != 1 {
+		t.Fatalf("the overview lists %d rows, want 1: a row with no id opens no page", len(rows))
 	}
 	if got := rows[0].GetId(); got != "aa" {
 		t.Errorf("the first row reads %q, want aa", got)
@@ -813,7 +813,20 @@ func TestOverviewListsTheUnconfirmedRows(t *testing.T) {
 	if rows[0].GetConfirmed() {
 		t.Error("a mempool row reads as confirmed")
 	}
-	if got := rows[1].GetId(); got != "" {
-		t.Errorf("a template names no txid, and the row reads %q", got)
+}
+
+// A row with no id opens no page, and the table keys every row by that id, so
+// each one would select the others.
+func TestOverviewSkipsAMempoolRowWithNoTxid(t *testing.T) {
+	rows := mempoolActivity([]sidechain.MempoolTx{
+		{Outputs: []sidechain.MempoolOutput{{Address: "s1", ValueSats: 700}}},
+		{Txid: "aa", Outputs: []sidechain.MempoolOutput{{Address: "s2", ValueSats: 10000}}},
+	})
+
+	if len(rows) != 1 {
+		t.Fatalf("the overview lists %d rows, want 1", len(rows))
+	}
+	if got := rows[0].GetId(); got != "aa" {
+		t.Errorf("the row reads %q, want aa", got)
 	}
 }

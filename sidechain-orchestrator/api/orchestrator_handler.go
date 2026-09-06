@@ -623,7 +623,7 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	// A node counts a coin once a block carries it, so a payment on its way
 	// reads as nothing at all until the next block.
 	confirmedSats, pendingSats = applyMempoolDelta(
-		confirmedSats, pendingSats, h.mempoolCredit(ctx, cfg),
+		confirmedSats, pendingSats, h.mempoolDelta(ctx, cfg),
 	)
 
 	if h.orch.WalletSvc != nil {
@@ -744,48 +744,49 @@ func (h *Handler) bbcCookiePath() string {
 	return filepath.Join(config.BbcDirs.DatadirNetwork(network, ""), ".cookie")
 }
 
-// mempoolCredit is what the sidechain mempool adds to this wallet, in sats. A
-// chain that answers neither its mempool nor its addresses adds nothing.
-func (h *Handler) mempoolCredit(ctx context.Context, cfg orchestrator.BinaryConfig) int64 {
+// mempoolDelta is what the sidechain mempool does to this wallet. A chain that
+// answers neither its mempool nor its addresses changes nothing.
+func (h *Handler) mempoolDelta(ctx context.Context, cfg orchestrator.BinaryConfig) sidechain.MempoolDelta {
 	// A light client runs no node of its own, so a call to the port would
 	// either fail or reach a stranger's wallet.
 	if cfg.IsBitcoinCore || h.orch.NodeMode() == orchestrator.NodeModeLight {
-		return 0
+		return sidechain.MempoolDelta{}
 	}
 	node, err := sidechainProxy(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
 	if err != nil {
-		return 0
+		return sidechain.MempoolDelta{}
 	}
 	owned, err := sidechain.WalletAddresses(ctx, node)
 	if err != nil || len(owned) == 0 {
-		return 0
+		return sidechain.MempoolDelta{}
 	}
 	txs, err := sidechain.Mempool(ctx, node)
 	if err != nil {
-		return 0
+		return sidechain.MempoolDelta{}
 	}
 	ourCoins, err := sidechain.OurCoins(ctx, node)
 	if err != nil {
-		return 0
+		return sidechain.MempoolDelta{}
 	}
-	return sidechain.NetCreditFor(txs, owned, ourCoins)
+	return sidechain.DeltaFor(txs, owned, ourCoins)
 }
 
-// applyMempoolDelta moves what the mempool adds into the confirmed and pending
-// pair. The delta goes negative while a spend of ours waits, and both fields
-// leave here as a count the wallet can report.
-func applyMempoolDelta(confirmedSats, pendingSats, delta int64) (int64, int64) {
-	if delta >= 0 {
-		return confirmedSats, pendingSats + delta
+// applyMempoolDelta moves what the mempool does into the confirmed and pending
+// pair.
+//
+// A coin the mempool spends leaves the confirmed count, because the node still
+// lists it. A coin on its way joins the pending count. Both halves land where
+// they belong rather than as one net figure, and neither drops below nothing.
+func applyMempoolDelta(confirmedSats, pendingSats int64, delta sidechain.MempoolDelta) (int64, int64) {
+	owed := delta.DebitSats
+	if confirmedSats >= owed {
+		confirmedSats -= owed
+	} else {
+		owed -= confirmedSats
+		confirmedSats = 0
+		pendingSats = max(pendingSats-owed, 0)
 	}
-	// A spend takes from what is already on its way first, then from the
-	// coins a block confirmed. Neither drops below nothing.
-	owed := -delta
-	if pendingSats >= owed {
-		return confirmedSats, pendingSats - owed
-	}
-	owed -= pendingSats
-	return max(confirmedSats-owed, 0), 0
+	return confirmedSats, pendingSats + delta.CreditSats
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {
