@@ -234,6 +234,14 @@ func (e *DeniabilityEngine) ExecuteDenial(ctx context.Context, utxos []*UTXO, de
 	return nil
 }
 
+// denialDustLimit is the smallest output a split may pay, matching the limit
+// the send path applies to change.
+const denialDustLimit = 546
+
+// errDenialAmountTooSmall means the split would pay a dust output, which no
+// backend will relay. The denial cannot make progress, so it gets cancelled.
+var errDenialAmountTooSmall = errors.New("split amount is below the dust limit")
+
 func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial deniability.Denial) error {
 	logger := zerolog.Ctx(ctx).With().
 		Int64("denial_id", denial.ID).
@@ -246,14 +254,8 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 	logger.Info().Msg("processing UTXO for denial")
 
 	const fee = 10000
-	if utxo.ValueSats < fee {
-		reason := "utxo is too small to split"
-		logger.Warn().Msg("cancelling denial due to insufficient UTXO amount")
-
-		if err := deniability.Cancel(ctx, e.db, denial.ID, reason); err != nil {
-			return fmt.Errorf("cancel denial: %w", err)
-		}
-		return nil
+	if utxo.ValueSats <= fee+denialDustLimit {
+		return e.cancelTooSmall(ctx, logger, denial)
 	}
 
 	// Use the denial's stored wallet_id to determine routing
@@ -279,6 +281,9 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 
 	destinations, err := e.chooseDenialStrategy(ctx, denial, utxo, fee, walletType, walletId)
 	if err != nil {
+		if errors.Is(err, errDenialAmountTooSmall) {
+			return e.cancelTooSmall(ctx, logger, denial)
+		}
 		return fmt.Errorf("choose denial strategy: %w", err)
 	}
 
@@ -331,6 +336,16 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 		Str("to_txid", txid).
 		Msg("executed denial split")
 
+	return nil
+}
+
+// cancelTooSmall terminates a denial whose tip cannot fund a non-dust split.
+func (e *DeniabilityEngine) cancelTooSmall(ctx context.Context, logger zerolog.Logger, denial deniability.Denial) error {
+	logger.Warn().Msg("cancelling denial due to insufficient UTXO amount")
+
+	if err := deniability.Cancel(ctx, e.db, denial.ID, "utxo is too small to split"); err != nil {
+		return fmt.Errorf("cancel denial: %w", err)
+	}
 	return nil
 }
 
@@ -518,16 +533,19 @@ func (e *DeniabilityEngine) simpleSplit(
 	walletType WalletType,
 	walletId string,
 ) (map[string]uint64, error) {
-	address, err := e.getNewAddress(ctx, walletType, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get new address: %w", err)
-	}
-
 	availableAmount := utxo.ValueSats - fee
 	// Send 10-90% of the utxo to a new address. Change is indistinguishable,
 	// so we don't know
 	percentage := 10 + rand.Intn(80)
 	sendAmount := (availableAmount * uint64(percentage)) / 100
+	if sendAmount < denialDustLimit {
+		return nil, errDenialAmountTooSmall
+	}
+
+	address, err := e.getNewAddress(ctx, walletType, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get new address: %w", err)
+	}
 
 	zerolog.Ctx(ctx).Info().
 		Int64("denial_id", denial.ID).
@@ -552,17 +570,21 @@ func (e *DeniabilityEngine) targetAmountSplit(
 	walletId string,
 	targetSize int64,
 ) (map[string]uint64, error) {
-	address, err := e.getNewAddress(ctx, walletType, walletId)
-	if err != nil {
-		return nil, fmt.Errorf("get new address: %w", err)
-	}
-
 	targetAmount := uint64(targetSize)
 	availableAmount := utxo.ValueSats - fee
 
 	// Ensure target amount doesn't exceed available
 	if targetAmount > availableAmount {
 		targetAmount = availableAmount
+	}
+
+	if targetAmount < denialDustLimit {
+		return nil, errDenialAmountTooSmall
+	}
+
+	address, err := e.getNewAddress(ctx, walletType, walletId)
+	if err != nil {
+		return nil, fmt.Errorf("get new address: %w", err)
 	}
 
 	zerolog.Ctx(ctx).Info().

@@ -2,10 +2,15 @@ package engines
 
 import (
 	"context"
+	"encoding/binary"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/m4"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,6 +81,57 @@ func TestApplyM4Votes_ReplayDoesNotDoubleCount(t *testing.T) {
 	require.NoError(t, e.applyM4Votes(ctx, 151, msg))
 	later, _, _ := bundleState(t, ctx, e, "bundle-a")
 	require.Equal(t, first+1, later, "a new height must still score")
+}
+
+// coinbaseBlockOf builds a block whose coinbase carries one raw OP_RETURN.
+func coinbaseBlockOf(script []byte, blockTime time.Time) *wire.MsgBlock {
+	coinbase := &wire.MsgTx{
+		TxIn:  []*wire.TxIn{{}},
+		TxOut: []*wire.TxOut{{PkScript: script}},
+	}
+	return &wire.MsgBlock{
+		Header:       wire.BlockHeader{Timestamp: blockTime},
+		Transactions: []*wire.MsgTx{coinbase},
+	}
+}
+
+// m3ProposalScript proposes a bundle on sidechain slot 0.
+func m3ProposalScript(bundleHash [32]byte) []byte {
+	script := binary.LittleEndian.AppendUint32([]byte{txscript.OP_RETURN}, m4.M3CommitmentHeader)
+	script = append(script, bundleHash[:]...)
+	return append(script, 0) // sidechain slot
+}
+
+// m4UpvoteScript upvotes bundle index 0 on sidechain slot 0.
+func m4UpvoteScript() []byte {
+	script := binary.LittleEndian.AppendUint32([]byte{txscript.OP_RETURN}, m4.M4CommitmentHeader)
+	return append(script, 0x01, 0x00) // version 0x01, one slot voting index 0
+}
+
+// An upvote can only score a bundle the M3 below it already proposed, so a
+// batch arriving in fetch-completion order must be applied in height order.
+func TestProcessBlocks_AppliesM4InHeightOrder(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+	p := &Parser{db: db, m4Engine: NewM4Engine(db)}
+
+	blockTime := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	proposal := coinbaseBlockOf(m3ProposalScript([32]byte{0xab, 0xcd}), blockTime)
+	upvote := coinbaseBlockOf(m4UpvoteScript(), blockTime.Add(10*time.Minute))
+
+	// Hand them over in completion order, not height order.
+	require.NoError(t, p.processBlocks(ctx, []lo.Tuple2[uint32, *wire.MsgBlock]{
+		lo.T2(uint32(101), upvote),
+		lo.T2(uint32(100), proposal),
+	}))
+
+	var workScore, lastUpdated int
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT work_score, last_updated_height FROM withdrawal_bundles WHERE sidechain_slot = 0`,
+	).Scan(&workScore, &lastUpdated))
+
+	require.Equal(t, 2, workScore, "the upvote at 101 MUST score the bundle proposed at 100")
+	require.Equal(t, 101, lastUpdated, "the vote from the highest block is the last one applied")
 }
 
 // A bundle first seen in an orphaned block must not survive the reorg purge.

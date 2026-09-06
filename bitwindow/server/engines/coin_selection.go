@@ -252,10 +252,11 @@ func selectBranchAndBound(
 		currSelection[depth] = true
 		search(depth+1, currValue+effs[depth])
 		currSelection[depth] = false
-		remaining += effs[depth]
 
-		// Omit branch.
+		// Omit branch. The budget stays spent here: it is only given back when
+		// stepping back past this depth, so the bound stays tight on omissions.
 		search(depth+1, currValue)
+		remaining += effs[depth]
 		return false
 	}
 

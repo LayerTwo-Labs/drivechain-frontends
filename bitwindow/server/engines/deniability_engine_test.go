@@ -198,4 +198,130 @@ func TestDeniabilityEngine(t *testing.T) {
 		assert.NotNil(t, denial.CancelledAt)
 		assert.Equal(t, "utxo is too small to split", *denial.CancelReason)
 	})
+
+	// A tip that clears the fee but cannot fund a non-dust output has to
+	// terminate, not pay a zero-value destination and retry on every tick. No
+	// send is mocked here, so attempting one fails the test.
+	t.Run("processUTXO cancels when the split cannot clear dust", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
+
+		// 10,001 sats leaves one sat over the fee; 10,600 leaves 600, of which
+		// even the largest 90% roll is under the dust limit.
+		for _, valueSats := range []uint64{10_001, 10_600} {
+			denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+			require.NoError(t, err)
+
+			err = engine.ProcessUTXO(ctx, &engines.UTXO{
+				Txid:      "test-txid",
+				Vout:      0,
+				ValueSats: valueSats,
+			}, denial)
+			require.NoError(t, err)
+
+			denial, err = deniability.Get(ctx, db, denial.ID)
+			require.NoError(t, err)
+			require.NotNil(t, denial.CancelledAt, "denial for %d sats was left running", valueSats)
+			assert.Equal(t, "utxo is too small to split", *denial.CancelReason)
+		}
+	})
+
+	t.Run("processUTXO cancels a target size below dust", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, []int64{100})
+		require.NoError(t, err)
+
+		err = engine.ProcessUTXO(ctx, &engines.UTXO{
+			Txid:      "test-txid",
+			Vout:      0,
+			ValueSats: 20_000,
+		}, denial)
+		require.NoError(t, err)
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		require.NotNil(t, denial.CancelledAt)
+		assert.Equal(t, "utxo is too small to split", *denial.CancelReason)
+	})
+
+	// Control: a tip big enough for a non-dust split still splits.
+	t.Run("processUTXO splits a UTXO that clears dust", func(t *testing.T) {
+		t.Parallel()
+		db := database.Test(t)
+		mockBitcoind := mocks.NewMockBitcoinServiceClient(ctrl)
+		apitests.ExpectCoreWalletSetup(mockBitcoind)
+		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
+			return mockBitcoind, nil
+		})
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
+
+		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
+		require.NoError(t, err)
+
+		mockBitcoind.EXPECT().
+			GetNewAddress(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.GetNewAddressResponse]{
+				Msg: &corepb.GetNewAddressResponse{Address: "bc1qtest"},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			CreateRawTransaction(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.CreateRawTransactionResponse]{
+				Msg: &corepb.CreateRawTransactionResponse{Tx: &corepb.RawTransaction{Hex: "raw-tx-hex"}},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			SignRawTransactionWithWallet(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.SignRawTransactionWithWalletResponse]{
+				Msg: &corepb.SignRawTransactionWithWalletResponse{Hex: "signed-tx-hex", Complete: true},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			SendRawTransaction(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.SendRawTransactionResponse]{
+				Msg: &corepb.SendRawTransactionResponse{Txid: "new-txid"},
+			}, nil)
+
+		mockBitcoind.EXPECT().
+			ListUnspent(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[corepb.ListUnspentResponse]{
+				Msg: &corepb.ListUnspentResponse{
+					Unspent: []*corepb.UnspentOutput{
+						{Txid: "test-txid", Address: "bc1qsource", Vout: 0, Amount: 0.0002, Confirmations: 6},
+						{Txid: "new-txid", Address: "bc1qtest", Vout: 0, Amount: 0.0001, Confirmations: 1},
+					},
+				},
+			}, nil)
+
+		err = engine.ProcessUTXO(ctx, &engines.UTXO{
+			Txid:      "test-txid",
+			Vout:      0,
+			ValueSats: 20_000,
+		}, denial)
+		require.NoError(t, err)
+
+		denial, err = deniability.Get(ctx, db, denial.ID)
+		require.NoError(t, err)
+		assert.Nil(t, denial.CancelledAt)
+		assert.Len(t, denial.ExecutedDenials, 1)
+	})
 }

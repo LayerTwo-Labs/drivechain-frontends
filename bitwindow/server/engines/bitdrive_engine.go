@@ -517,24 +517,27 @@ func (e *BitDriveEngine) DecodeOPReturnData(ctx context.Context, opReturnMessage
 	return content, metadata, nil
 }
 
-// SaveFile saves a file to local storage and creates a database record
-func (e *BitDriveEngine) SaveFile(ctx context.Context, txid string, content []byte, metadata *ParsedMetadata) error {
+// SaveFile saves a file to local storage and creates a database record. The
+// file is keyed on the outpoint, because a transaction can carry one BitDrive
+// payload per output.
+func (e *BitDriveEngine) SaveFile(ctx context.Context, txid string, vout int32, content []byte, metadata *ParsedMetadata) error {
 	// Check if already exists
-	exists, err := bitdrive.Exists(ctx, e.db, txid)
+	exists, err := bitdrive.Exists(ctx, e.db, txid, vout)
 	if err != nil {
 		return fmt.Errorf("check exists: %w", err)
 	}
 	if exists {
 		zerolog.Ctx(ctx).Debug().
 			Str("txid", txid).
+			Int32("vout", vout).
 			Msg("bitdrive file already exists, skipping")
 		return nil
 	}
 
-	// Generate filename. The txid is included so that two distinct
-	// transactions sharing the same timestamp and file type do not collide
-	// on the same local path and overwrite each other.
-	filename := fmt.Sprintf("%d_%s.%s", metadata.Timestamp, txid, metadata.FileType)
+	// Generate filename from the outpoint, so that neither two transactions
+	// sharing a timestamp and file type nor two payloads of one transaction
+	// collide on the same local path.
+	filename := fmt.Sprintf("%d_%s_%d.%s", metadata.Timestamp, txid, vout, metadata.FileType)
 	filePath := filepath.Join(e.bitdriveDir, filename)
 
 	// Write file
@@ -545,6 +548,7 @@ func (e *BitDriveEngine) SaveFile(ctx context.Context, txid string, content []by
 	// Create database record
 	file := bitdrive.File{
 		TxID:      txid,
+		Vout:      vout,
 		Filename:  filename,
 		FileType:  metadata.FileType,
 		SizeBytes: int64(len(content)),

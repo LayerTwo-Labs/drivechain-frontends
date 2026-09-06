@@ -215,52 +215,61 @@ func TestDecodeOPReturnData_MetadataTamperRejected(t *testing.T) {
 	}
 }
 
-// TestSaveFile_SameSecondNoCollision verifies that two distinct transactions
-// sharing an identical timestamp and file type are written to distinct local
-// paths, so neither overwrites the other on disk.
-func TestSaveFile_SameSecondNoCollision(t *testing.T) {
-	ctx := context.Background()
+// newSaveFileTestEngine builds a BitDriveEngine over an in-memory bitdrive_files
+// table and an empty local directory.
+func newSaveFileTestEngine(t *testing.T) *BitDriveEngine {
+	t.Helper()
 
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	defer db.Close()
+	t.Cleanup(func() { db.Close() })
 
 	if _, err := db.Exec(`
 		CREATE TABLE bitdrive_files (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			txid TEXT NOT NULL UNIQUE,
+			txid TEXT NOT NULL,
+			vout INTEGER NOT NULL DEFAULT 0,
 			filename TEXT NOT NULL,
 			file_type TEXT NOT NULL,
 			size_bytes INTEGER NOT NULL,
 			encrypted INTEGER NOT NULL DEFAULT 0,
 			timestamp INTEGER NOT NULL,
-			created_at INTEGER NOT NULL
+			created_at INTEGER NOT NULL,
+			UNIQUE (txid, vout)
 		)
 	`); err != nil {
 		t.Fatalf("create table: %v", err)
 	}
 
-	engine := &BitDriveEngine{
+	return &BitDriveEngine{
 		db:          db,
 		bitdriveDir: t.TempDir(),
 	}
+}
+
+// TestSaveFile_SameSecondNoCollision verifies that two distinct transactions
+// sharing an identical timestamp and file type are written to distinct local
+// paths, so neither overwrites the other on disk.
+func TestSaveFile_SameSecondNoCollision(t *testing.T) {
+	ctx := context.Background()
+	engine := newSaveFileTestEngine(t)
 
 	meta := &ParsedMetadata{Timestamp: 1700000000, FileType: "txt"}
 
-	if err := engine.SaveFile(ctx, "txid-first", []byte("first file"), meta); err != nil {
+	if err := engine.SaveFile(ctx, "txid-first", 0, []byte("first file"), meta); err != nil {
 		t.Fatalf("save first file: %v", err)
 	}
-	if err := engine.SaveFile(ctx, "txid-second", []byte("second file"), meta); err != nil {
+	if err := engine.SaveFile(ctx, "txid-second", 0, []byte("second file"), meta); err != nil {
 		t.Fatalf("save second file: %v", err)
 	}
 
-	first, err := bitdrive.GetByTxID(ctx, db, "txid-first")
+	first, err := bitdrive.GetByTxID(ctx, engine.db, "txid-first")
 	if err != nil || first == nil {
 		t.Fatalf("get first record: %v", err)
 	}
-	second, err := bitdrive.GetByTxID(ctx, db, "txid-second")
+	second, err := bitdrive.GetByTxID(ctx, engine.db, "txid-second")
 	if err != nil || second == nil {
 		t.Fatalf("get second record: %v", err)
 	}
@@ -283,6 +292,47 @@ func TestSaveFile_SameSecondNoCollision(t *testing.T) {
 	}
 	if string(secondContent) != "second file" {
 		t.Fatalf("second file content wrong: got %q", secondContent)
+	}
+}
+
+// TestSaveFile_SameTxidDifferentVout verifies that both payloads of a
+// transaction carrying two BitDrive OP_RETURNs are saved. Keying on the txid
+// alone made the second one look already-downloaded and dropped it.
+func TestSaveFile_SameTxidDifferentVout(t *testing.T) {
+	ctx := context.Background()
+	engine := newSaveFileTestEngine(t)
+
+	const txid = "txid-two-outputs"
+	meta := &ParsedMetadata{Timestamp: 1700000000, FileType: "txt"}
+
+	if err := engine.SaveFile(ctx, txid, 0, []byte("first payload"), meta); err != nil {
+		t.Fatalf("save vout 0: %v", err)
+	}
+	if err := engine.SaveFile(ctx, txid, 1, []byte("second payload"), meta); err != nil {
+		t.Fatalf("save vout 1: %v", err)
+	}
+
+	files, err := bitdrive.List(ctx, engine.db)
+	if err != nil {
+		t.Fatalf("list files: %v", err)
+	}
+	if len(files) != 2 {
+		t.Fatalf("expected 2 records, got %d", len(files))
+	}
+
+	want := map[int32]string{0: "first payload", 1: "second payload"}
+	for _, file := range files {
+		content, err := engine.GetFileContent(ctx, file.Filename)
+		if err != nil {
+			t.Fatalf("read content for vout %d: %v", file.Vout, err)
+		}
+		if string(content) != want[file.Vout] {
+			t.Fatalf("vout %d: got %q, want %q", file.Vout, content, want[file.Vout])
+		}
+		delete(want, file.Vout)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing records for vouts %v", want)
 	}
 }
 
