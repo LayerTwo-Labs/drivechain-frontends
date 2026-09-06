@@ -742,10 +742,12 @@ func (h *Handler) bbcCookiePath() string {
 	return filepath.Join(config.BbcDirs.DatadirNetwork(network, ""), ".cookie")
 }
 
-// mempoolCredit is what the sidechain mempool pays this wallet, in sats. A
+// mempoolCredit is what the sidechain mempool adds to this wallet, in sats. A
 // chain that answers neither its mempool nor its addresses adds nothing.
 func (h *Handler) mempoolCredit(ctx context.Context, cfg orchestrator.BinaryConfig) int64 {
-	if cfg.IsBitcoinCore {
+	// A light client runs no node of its own, so a call to the port would
+	// either fail or reach a stranger's wallet.
+	if cfg.IsBitcoinCore || h.orch.NodeMode() == orchestrator.NodeModeLight {
 		return 0
 	}
 	node, err := sidechainProxy(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))
@@ -760,7 +762,11 @@ func (h *Handler) mempoolCredit(ctx context.Context, cfg orchestrator.BinaryConf
 	if err != nil {
 		return 0
 	}
-	return sidechain.CreditFor(txs, owned)
+	ourCoins, err := sidechain.OurCoins(ctx, node)
+	if err != nil {
+		return 0
+	}
+	return sidechain.NetCreditFor(txs, owned, ourCoins)
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {

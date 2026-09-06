@@ -17,11 +17,16 @@ class SidechainUTXO {
   final int valueSats;
   final OutpointType type;
 
+  /// confirmed is false while a block still has to carry this coin. A node
+  /// lists only mined coins, so the orchestrator adds the rest.
+  final bool confirmed;
+
   SidechainUTXO({
     required this.outpoint,
     required this.address,
     required this.valueSats,
     required this.type,
+    this.confirmed = true,
   });
 
   factory SidechainUTXO.fromJson(Map<String, dynamic> json) {
@@ -46,6 +51,7 @@ class SidechainUTXO {
       address: address,
       valueSats: valueSats,
       type: type,
+      confirmed: json['confirmed'] as bool? ?? true,
     );
   }
 
