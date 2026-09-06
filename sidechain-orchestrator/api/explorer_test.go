@@ -830,3 +830,22 @@ func TestOverviewSkipsAMempoolRowWithNoTxid(t *testing.T) {
 		t.Errorf("the row reads %q, want aa", got)
 	}
 }
+
+// A pending withdrawal wears the same badge as a mined one, so a reader sees
+// money on its way out rather than a transfer.
+func TestOverviewMarksAPendingWithdrawal(t *testing.T) {
+	rows := mempoolActivity([]sidechain.MempoolTx{
+		{Txid: "w", Outputs: []sidechain.MempoolOutput{
+			{Address: "s1", ValueSats: 5100, Withdrawal: true},
+			{Address: "s1", ValueSats: 4900},
+		}},
+		{Txid: "t", Outputs: []sidechain.MempoolOutput{{Address: "s2", ValueSats: 700}}},
+	})
+
+	if got := rows[0].GetKind(); got != pb.Kind_KIND_WITHDRAWAL {
+		t.Errorf("the row reads %s, want a withdrawal", got)
+	}
+	if got := rows[1].GetKind(); got != pb.Kind_KIND_TRANSFER {
+		t.Errorf("a plain payment reads %s, want a transfer", got)
+	}
+}
