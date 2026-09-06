@@ -134,21 +134,35 @@ func encodeContentJSON(c Content) (map[string]any, error) {
 }
 
 // MarshalUTXOs writes coins in the shape get_wallet_utxos answers with, so a
-// caller reads light mode and full mode with one parser.
+// caller reads light mode and full mode with one parser. Every coin reads as
+// confirmed.
 func MarshalUTXOs(coins []Coin) ([]byte, error) {
-	rows := make([]map[string]any, 0, len(coins))
-	for _, coin := range coins {
-		outpoint, err := encodeOutPointJSON(coin.OutPoint)
-		if err != nil {
-			return nil, fmt.Errorf("coin %s: %w", coin.OutPoint.Source, err)
+	return MarshalUTXOsWithPending(coins, nil)
+}
+
+// MarshalUTXOsWithPending writes the confirmed coins, then the ones no block
+// carries yet. A pending coin says so, or the view reads a payment on its way
+// as money already mined.
+func MarshalUTXOsWithPending(confirmed, pending []Coin) ([]byte, error) {
+	rows := make([]map[string]any, 0, len(confirmed)+len(pending))
+	for _, group := range []struct {
+		coins     []Coin
+		confirmed bool
+	}{{confirmed, true}, {pending, false}} {
+		for _, coin := range group.coins {
+			outpoint, err := encodeOutPointJSON(coin.OutPoint)
+			if err != nil {
+				return nil, fmt.Errorf("coin %s: %w", coin.OutPoint.Source, err)
+			}
+			rows = append(rows, map[string]any{
+				"outpoint": outpoint,
+				"output": map[string]any{
+					"address": coin.Address.String(),
+					"content": map[string]any{"Value": coin.ValueSats},
+				},
+				"confirmed": group.confirmed,
+			})
 		}
-		rows = append(rows, map[string]any{
-			"outpoint": outpoint,
-			"output": map[string]any{
-				"address": coin.Address.String(),
-				"content": map[string]any{"Value": coin.ValueSats},
-			},
-		})
 	}
 	return json.Marshal(rows)
 }

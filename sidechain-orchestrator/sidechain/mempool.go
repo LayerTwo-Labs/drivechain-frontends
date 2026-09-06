@@ -257,9 +257,6 @@ func WithMempoolUTXOs(ctx context.Context, node SidechainRPCProxy, confirmed jso
 		return confirmed
 	}
 	rows := mempoolUTXORows(OwnedOutputs(txs, owned))
-	if len(rows) == 0 {
-		return confirmed
-	}
 
 	var listing []json.RawMessage
 	if len(confirmed) > 0 {
@@ -267,11 +264,64 @@ func WithMempoolUTXOs(ctx context.Context, node SidechainRPCProxy, confirmed jso
 			return confirmed
 		}
 	}
-	merged, err := json.Marshal(append(listing, rows...))
+	// A coin an unconfirmed transaction spends is no longer spendable, so it
+	// leaves the listing whether a block confirmed it or another mempool
+	// transaction made it.
+	kept := dropSpent(append(listing, rows...), spentKeys(txs))
+	merged, err := json.Marshal(kept)
 	if err != nil {
 		return confirmed
 	}
 	return merged
+}
+
+// spentKeys names every coin the mempool spends.
+func spentKeys(txs []MempoolTx) map[string]bool {
+	spent := make(map[string]bool)
+	for _, tx := range txs {
+		for _, in := range tx.Inputs {
+			spent[in.Key] = true
+		}
+	}
+	return spent
+}
+
+// dropSpent removes each listed coin that the mempool already spends.
+func dropSpent(rows []json.RawMessage, spent map[string]bool) []json.RawMessage {
+	if len(spent) == 0 {
+		return rows
+	}
+	kept := make([]json.RawMessage, 0, len(rows))
+	for _, row := range rows {
+		if key, ok := outpointKey(row); ok && spent[key] {
+			continue
+		}
+		kept = append(kept, row)
+	}
+	return kept
+}
+
+// outpointKey reads the coin key out of one listed UTXO.
+func outpointKey(row json.RawMessage) (string, bool) {
+	var entry struct {
+		Outpoint struct {
+			Regular *struct {
+				Txid string `json:"txid"`
+				Vout uint32 `json:"vout"`
+			} `json:"Regular"`
+			Deposit *string `json:"Deposit"`
+		} `json:"outpoint"`
+	}
+	if err := json.Unmarshal(row, &entry); err != nil {
+		return "", false
+	}
+	switch {
+	case entry.Outpoint.Regular != nil:
+		return fmt.Sprintf("%s:%d", entry.Outpoint.Regular.Txid, entry.Outpoint.Regular.Vout), true
+	case entry.Outpoint.Deposit != nil:
+		return *entry.Outpoint.Deposit, true
+	}
+	return "", false
 }
 
 // mempoolUTXORows writes each unconfirmed output the way the node writes a
