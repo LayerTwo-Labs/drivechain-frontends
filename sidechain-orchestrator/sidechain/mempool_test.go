@@ -105,7 +105,7 @@ func TestNetCreditCountsOnlyOurAddresses(t *testing.T) {
 // spent coin twice, because the node still lists it as confirmed.
 func TestNetCreditSubtractsWhatWeSpend(t *testing.T) {
 	txs := []MempoolTx{{
-		Inputs:  []MempoolInput{{Txid: "old", Vout: 0}},
+		Inputs:  []MempoolInput{{Key: "old:0"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 9000}, {Address: "theirs", ValueSats: 900}},
 	}}
 	ourCoins := map[string]int64{"old:0": 10000}
@@ -117,7 +117,7 @@ func TestNetCreditSubtractsWhatWeSpend(t *testing.T) {
 // A payment from a stranger spends no coin of ours, so nothing subtracts.
 func TestNetCreditIgnoresAStrangersInputs(t *testing.T) {
 	txs := []MempoolTx{{
-		Inputs:  []MempoolInput{{Txid: "theirs", Vout: 3}},
+		Inputs:  []MempoolInput{{Key: "theirs:3"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 10000}},
 	}}
 
@@ -196,9 +196,9 @@ func TestWithMempoolUTXOsKeepsTheListingWhenTheWalletHasNoAddress(t *testing.T) 
 	assert.JSONEq(t, string(confirmed), string(WithMempoolUTXOs(context.Background(), node, confirmed)))
 }
 
-// Only a regular input names a coin this wallet can hold. A deposit and a
-// coinbase come from elsewhere, and subtracting them would read low.
-func TestSpendsReadsRegularInputsOnly(t *testing.T) {
+// A wallet can hold a deposit coin as well as a regular one, so both count.
+// A coinbase names no coin a wallet spends.
+func TestSpendsNamesEveryCoinAnInputTakes(t *testing.T) {
 	node := &fakeNode{mempool: `[
 	  {"txid":"aa","size":10,"tx":{
 	     "inputs":[
@@ -211,8 +211,8 @@ func TestSpendsReadsRegularInputsOnly(t *testing.T) {
 
 	txs, err := Mempool(context.Background(), node)
 	require.NoError(t, err)
-	require.Len(t, txs[0].Inputs, 1)
-	assert.Equal(t, MempoolInput{Txid: "old", Vout: 2}, txs[0].Inputs[0])
+	require.Len(t, txs[0].Inputs, 2, "a regular input and a deposit both name a coin")
+	assert.Equal(t, MempoolInput{Key: "old:2"}, txs[0].Inputs[0])
 }
 
 func TestOurCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
@@ -223,6 +223,38 @@ func TestOurCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
 
 	coins, err := OurCoins(context.Background(), node)
 	require.NoError(t, err)
-	require.Len(t, coins, 1, "a deposit outpoint names no coin a transaction spends by txid")
+	require.Len(t, coins, 2, "a deposit is a coin the wallet can spend")
 	assert.Equal(t, int64(2000), coins["aa:1"])
+	assert.Equal(t, int64(500), coins["maintxid:0"])
+}
+
+// A child spends a coin its parent made, and that coin never reached the
+// confirmed listing. Without it the child's change counts on top of money the
+// wallet never held.
+func TestNetCreditFollowsAChainedSpend(t *testing.T) {
+	txs := []MempoolTx{
+		{
+			Txid:    "parent",
+			Outputs: []MempoolOutput{{Address: "mine", Vout: 0, ValueSats: 10000}},
+		},
+		{
+			Txid:    "child",
+			Inputs:  []MempoolInput{{Key: "parent:0"}},
+			Outputs: []MempoolOutput{{Address: "mine", Vout: 0, ValueSats: 9000}},
+		},
+	}
+
+	got := NetCreditFor(txs, map[string]bool{"mine": true}, nil)
+	assert.Equal(t, int64(9000), got, "the parent's coin is spent, so only the child's stands")
+}
+
+// A wallet can spend a deposit, and its outpoint is a plain string.
+func TestNetCreditSubtractsASpentDeposit(t *testing.T) {
+	txs := []MempoolTx{{
+		Inputs:  []MempoolInput{{Key: "maintxid:0"}},
+		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 400}},
+	}}
+
+	got := NetCreditFor(txs, map[string]bool{"mine": true}, map[string]int64{"maintxid:0": 500})
+	assert.Equal(t, int64(-100), got)
 }

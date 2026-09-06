@@ -115,7 +115,9 @@ func (h *BMMHandler) Stop(
 	if h.engine == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bmm engine not wired"))
 	}
-	h.engine.Stop(req.Msg.Sidechain)
+	if err := h.engine.Stop(req.Msg.Sidechain); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	return connect.NewResponse(&bmmpb.StopResponse{}), nil
 }
 
