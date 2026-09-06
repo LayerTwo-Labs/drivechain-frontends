@@ -184,3 +184,80 @@ func templateMempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, 
 	}
 	return out, nil
 }
+
+// WithMempoolUTXOs appends the wallet's unconfirmed coins to a node's own
+// UTXO listing, in the same shape, each marked unconfirmed.
+//
+// Only a node that names its mempool txids contributes rows: a coin with no
+// outpoint is not a coin. The balance counts those payments regardless.
+func WithMempoolUTXOs(ctx context.Context, node SidechainRPCProxy, confirmed json.RawMessage) json.RawMessage {
+	owned, err := WalletAddresses(ctx, node)
+	if err != nil || len(owned) == 0 {
+		return confirmed
+	}
+	txs, err := Mempool(ctx, node)
+	if err != nil {
+		return confirmed
+	}
+	rows := mempoolUTXORows(OwnedOutputs(txs, owned))
+	if len(rows) == 0 {
+		return confirmed
+	}
+
+	var listing []json.RawMessage
+	if len(confirmed) > 0 {
+		if err := json.Unmarshal(confirmed, &listing); err != nil {
+			return confirmed
+		}
+	}
+	merged, err := json.Marshal(append(listing, rows...))
+	if err != nil {
+		return confirmed
+	}
+	return merged
+}
+
+// mempoolUTXORows writes each unconfirmed output the way the node writes a
+// confirmed one, plus the flag that says it is not mined.
+func mempoolUTXORows(txs []MempoolTx) []json.RawMessage {
+	var rows []json.RawMessage
+	for _, tx := range txs {
+		if tx.Txid == "" {
+			continue
+		}
+		for _, out := range tx.Outputs {
+			row, err := json.Marshal(map[string]any{
+				"outpoint": map[string]any{
+					"Regular": map[string]any{"txid": tx.Txid, "vout": out.Vout},
+				},
+				"output": map[string]any{
+					"address": out.Address,
+					"content": map[string]any{"Value": out.ValueSats},
+				},
+				"confirmed": false,
+			})
+			if err != nil {
+				continue
+			}
+			rows = append(rows, row)
+		}
+	}
+	return rows
+}
+
+// WalletAddresses reads the addresses a node's own wallet holds.
+func WalletAddresses(ctx context.Context, node SidechainRPCProxy) (map[string]bool, error) {
+	raw, err := node.CallRaw(ctx, "get_wallet_addresses", nil)
+	if err != nil {
+		return nil, fmt.Errorf("read the wallet addresses: %w", err)
+	}
+	var list []string
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return nil, fmt.Errorf("read the wallet addresses: %w", err)
+	}
+	owned := make(map[string]bool, len(list))
+	for _, address := range list {
+		owned[address] = true
+	}
+	return owned, nil
+}
