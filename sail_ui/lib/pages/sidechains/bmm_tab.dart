@@ -92,14 +92,18 @@ Color? historicBidStateColor(String state, SailColor colors) => switch (state) {
   _ => colors.textSecondary,
 };
 
-/// Our bids, newest first. A round we never bid on has no row.
+/// Our bids on the rounds the chain already decided, newest first. A round we
+/// never bid on has no row, and the round in play stays in the current slot.
 List<HistoricBid> historicBids(
   bmmpb.Round? current,
   List<bmmpb.Round> history,
 ) {
   final rows = <HistoricBid>[];
   final seen = <String>{};
-  for (final round in [?current, ...history]) {
+  if (current != null) {
+    seen.add(current.prevMainHash);
+  }
+  for (final round in history) {
     final bid = round.ourBids.lastOrNull;
     if (bid == null || !seen.add(round.prevMainHash)) {
       continue;

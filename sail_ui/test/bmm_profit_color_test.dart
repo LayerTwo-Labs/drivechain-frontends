@@ -69,7 +69,9 @@ void main() {
       return value;
     }
 
-    test('the live round leads the finished ones', () {
+    // The round in play sits in the current slot and in the bids table, so a
+    // reader who sees it a third time reads it as a second bid.
+    test('the live round stays out of the finished ones', () {
       final rows = historicBids(
         round(hash: 'a', result: 'open', bidSats: 22000, blockWorth: 24800, txid: 'tx-a'),
         [
@@ -85,10 +87,9 @@ void main() {
         ],
       );
 
-      expect(rows.map((r) => r.state), [bidStateWaiting, bidStateConnected]);
-      expect(rows.first.mainchainBlock, '');
-      expect(rows.last.mainchainBlock, 'blk');
-      expect(rows.last.profitSats, 2900);
+      expect(rows.map((r) => r.state), [bidStateConnected]);
+      expect(rows.single.mainchainBlock, 'blk');
+      expect(rows.single.profitSats, 2900);
     });
 
     test('a round we never bid on gets no row', () {
@@ -106,11 +107,22 @@ void main() {
       expect(rows.single.mainchainBlock, '');
     });
 
-    test('the live round appears once, even when history repeats it', () {
+    // The store saves the open round too, so the live hash must drop out of
+    // the history whichever list it arrives in.
+    test('the live round never shows, even when history repeats it', () {
       final live = round(hash: 'e', result: 'open', txid: 'tx-e');
       final rows = historicBids(live, [round(hash: 'e', result: 'open', txid: 'tx-e')]);
 
-      expect(rows, hasLength(1));
+      expect(rows, isEmpty);
+    });
+
+    test('every decided round still shows, newest first', () {
+      final rows = historicBids(round(hash: 'live', result: 'open', txid: 'tx-live'), [
+        round(hash: 'f', result: 'won', txid: 'tx-f', includedIn: 'blk-f'),
+        round(hash: 'g', result: 'lost', txid: 'tx-g'),
+      ]);
+
+      expect(rows.map((r) => r.prevMainHash), ['f', 'g']);
     });
   });
 }
