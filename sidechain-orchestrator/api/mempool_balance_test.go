@@ -1,20 +1,51 @@
 package api
 
-import "testing"
+import (
+	"testing"
 
-// A spend of ours makes the delta negative. An unsigned cast of that turns a
-// smaller balance into a near maximum one.
-func TestApplyMempoolDeltaNeverReportsLessThanNothing(t *testing.T) {
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+)
+
+// A coin the mempool spends leaves the confirmed count, and a coin on its way
+// joins the pending one. One net figure loses that split, and the view then
+// calls unconfirmed change a confirmed balance.
+func TestApplyMempoolDeltaSplitsTheCreditFromTheDebit(t *testing.T) {
 	for _, tc := range []struct {
 		name                       string
-		confirmed, pending, delta  int64
+		confirmed, pending         int64
+		delta                      sidechain.MempoolDelta
 		wantConfirmed, wantPending int64
 	}{
-		{"a payment on its way waits in pending", 5000, 0, 2000, 5000, 2000},
-		{"a spend takes from pending first", 5000, 3000, -1000, 5000, 2000},
-		{"a bigger spend then takes from the confirmed coins", 5000, 1000, -3000, 3000, 0},
-		{"a spend of everything leaves nothing", 1000, 0, -4000, 0, 0},
-		{"no mempool means no change", 5000, 250, 0, 5000, 250},
+		{
+			name:      "a payment on its way waits in pending",
+			confirmed: 5000, pending: 0,
+			delta:         sidechain.MempoolDelta{CreditSats: 2000},
+			wantConfirmed: 5000, wantPending: 2000,
+		},
+		{
+			name:      "a spend of ours moves the whole coin out of confirmed",
+			confirmed: 10_000, pending: 0,
+			delta:         sidechain.MempoolDelta{CreditSats: 9000, DebitSats: 10_000},
+			wantConfirmed: 0, wantPending: 9000,
+		},
+		{
+			name:      "an unrelated receipt stays pending beside the spend",
+			confirmed: 10_000, pending: 3000,
+			delta:         sidechain.MempoolDelta{CreditSats: 9000, DebitSats: 10_000},
+			wantConfirmed: 0, wantPending: 12_000,
+		},
+		{
+			name:      "a debit past the confirmed coins takes the rest from pending",
+			confirmed: 1000, pending: 2000,
+			delta:         sidechain.MempoolDelta{DebitSats: 2500},
+			wantConfirmed: 0, wantPending: 500,
+		},
+		{
+			name:      "no mempool means no change",
+			confirmed: 5000, pending: 250,
+			delta:         sidechain.MempoolDelta{},
+			wantConfirmed: 5000, wantPending: 250,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			confirmed, pending := applyMempoolDelta(tc.confirmed, tc.pending, tc.delta)

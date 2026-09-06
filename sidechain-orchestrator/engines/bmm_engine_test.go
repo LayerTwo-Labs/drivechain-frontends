@@ -644,7 +644,10 @@ func TestBmmEngineClearHistory(t *testing.T) {
 	require.NotEmpty(t, mustHistory(t, engine))
 
 	require.NoError(t, engine.ClearHistory(testSidechain))
-	assert.Empty(t, mustHistory(t, engine))
+	// Clearing takes the settled rounds. The round in play is not history.
+	for _, round := range mustHistory(t, engine) {
+		assert.Equal(t, ResultOpen, round.Result, "a settled round is gone")
+	}
 }
 
 func mustHistory(t *testing.T, engine *BmmEngine) []bmmstate.Round {
@@ -1156,4 +1159,28 @@ func TestBmmEngineResumesTheLiveRoundAsCurrent(t *testing.T) {
 	require.NotNil(t, current, "the round in play comes back as current")
 	assert.Equal(t, "block-1", current.PrevMainHash)
 	assert.Empty(t, restarted.unconnected[testSidechain], "it never enters the retry queue")
+}
+
+// Clear history is for history. Wiping the round in play would leave a restart
+// with no tip, and its next tick would bid a second time on the same parent.
+func TestBmmEngineKeepsTheLiveRoundThroughClearHistory(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	tip.set("block-2")
+	engine.tick(ctx)
+	require.Equal(t, 2, backend.bids)
+
+	require.NoError(t, engine.ClearHistory(testSidechain))
+
+	history := mustHistory(t, engine)
+	require.Len(t, history, 1, "only the round in play survives")
+	assert.Equal(t, "block-2", history[0].PrevMainHash)
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	restarted.resumeTargets()
+	restarted.tick(ctx)
+	assert.Equal(t, 2, backend.bids, "the same tip is the same round")
 }

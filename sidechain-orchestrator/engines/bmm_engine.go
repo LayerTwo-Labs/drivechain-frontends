@@ -231,6 +231,17 @@ func (e *BmmEngine) ClearHistory(sidechain pb.BinaryType) error {
 	if err := e.store.Clear(int32(sidechain)); err != nil {
 		return err
 	}
+	// The round in play is not history. Clearing it would leave a restart
+	// with no tip to resume, and the next tick would bid a second time on
+	// the parent a bid already covers.
+	e.mu.Lock()
+	round := e.current[sidechain]
+	e.mu.Unlock()
+	if round != nil {
+		if err := e.store.Save(*round); err != nil {
+			return fmt.Errorf("keep the round in play: %w", err)
+		}
+	}
 	e.notify()
 	return nil
 }

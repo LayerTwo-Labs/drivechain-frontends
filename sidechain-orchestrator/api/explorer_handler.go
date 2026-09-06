@@ -977,12 +977,17 @@ func depositTxid(outpoint string) string {
 	return outpoint
 }
 
-// mempoolActivity reads the unconfirmed set as rows the overview can list. A
-// node that names no txid leaves the id empty, so the row states the payment
-// without offering a page that does not exist.
+// mempoolActivity reads the unconfirmed set as rows the overview can list.
+// Only a node that names its txids contributes rows: a row with no id opens
+// no page, and the table keys every row by that id.
 func mempoolActivity(pool []sidechain.MempoolTx) []*pb.Activity {
 	out := make([]*pb.Activity, 0, len(pool))
 	for _, tx := range pool {
+		// A row with no id opens no page, and every such row shares the same
+		// table key. The mempool count still names them.
+		if tx.Txid == "" {
+			continue
+		}
 		row := &pb.Activity{
 			Kind:      pb.Kind_KIND_TRANSFER,
 			Id:        tx.Txid,
