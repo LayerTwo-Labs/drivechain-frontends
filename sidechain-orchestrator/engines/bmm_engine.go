@@ -177,14 +177,22 @@ func (e *BmmEngine) Start(
 
 // Stop ends automated bidding. Bids already broadcast still settle.
 func (e *BmmEngine) Stop(sidechain pb.BinaryType) error {
-	// The disk goes first. A stop that only clears memory comes back on the
-	// next restart, and the engine spends again after the operator stopped it.
-	if err := e.store.DeleteTarget(int32(sidechain)); err != nil {
-		return fmt.Errorf("drop the bmm target: %w", err)
-	}
+	// The target goes first, or a tick already in flight reads it and pays for
+	// another bid after Stop answers. The disk write follows, and a failure
+	// puts the target back rather than leaving the two out of step.
 	e.mu.Lock()
+	previous, running := e.targets[sidechain]
 	delete(e.targets, sidechain)
 	e.mu.Unlock()
+
+	if err := e.store.DeleteTarget(int32(sidechain)); err != nil {
+		if running {
+			e.mu.Lock()
+			e.targets[sidechain] = previous
+			e.mu.Unlock()
+		}
+		return fmt.Errorf("drop the bmm target: %w", err)
+	}
 	e.log.Info().Stringer("sidechain", sidechain).Msg("bmm stopped")
 	e.notify()
 	return nil
@@ -242,10 +250,17 @@ func (e *BmmEngine) ClearHistory(sidechain pb.BinaryType) error {
 	// with no tip to resume, and the next tick would bid a second time on
 	// the parent a bid already covers.
 	e.mu.Lock()
-	round := e.current[sidechain]
+	var live *bmmstate.Round
+	if round, ok := e.current[sidechain]; ok {
+		// A tick raises or settles this round while we read it, so the copy
+		// happens under the lock. Saving the pointer would store a round half
+		// way through a change.
+		copied := cloneRound(round)
+		live = &copied
+	}
 	e.mu.Unlock()
-	if round != nil {
-		if err := e.store.Save(*round); err != nil {
+	if live != nil {
+		if err := e.store.Save(*live); err != nil {
 			return fmt.Errorf("keep the round in play: %w", err)
 		}
 	}

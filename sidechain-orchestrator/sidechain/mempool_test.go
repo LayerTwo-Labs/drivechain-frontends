@@ -90,7 +90,7 @@ func TestMempoolIsEmptyWhenNeitherFeedAnswers(t *testing.T) {
 }
 
 func TestDeltaCountsOnlyOurAddresses(t *testing.T) {
-	txs := []MempoolTx{{Outputs: []MempoolOutput{
+	txs := []MempoolTx{{Txid: "aa", Outputs: []MempoolOutput{
 		{Address: "mine", ValueSats: 10000},
 		{Address: "theirs", ValueSats: 500},
 		{Address: "mine", ValueSats: 250},
@@ -105,6 +105,7 @@ func TestDeltaCountsOnlyOurAddresses(t *testing.T) {
 // spent coin twice, because the node still lists it as confirmed.
 func TestDeltaSubtractsWhatWeSpend(t *testing.T) {
 	txs := []MempoolTx{{
+		Txid:    "spend",
 		Inputs:  []MempoolInput{{Key: "old:0"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 9000}, {Address: "theirs", ValueSats: 900}},
 	}}
@@ -118,6 +119,7 @@ func TestDeltaSubtractsWhatWeSpend(t *testing.T) {
 // A payment from a stranger spends no coin of ours, so nothing subtracts.
 func TestDeltaIgnoresAStrangersInputs(t *testing.T) {
 	txs := []MempoolTx{{
+		Txid:    "gift",
 		Inputs:  []MempoolInput{{Key: "theirs:3"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 10000}},
 	}}
@@ -254,6 +256,7 @@ func TestDeltaFollowsAChainedSpend(t *testing.T) {
 // A wallet can spend a deposit, and its outpoint is a plain string.
 func TestDeltaSubtractsASpentDeposit(t *testing.T) {
 	txs := []MempoolTx{{
+		Txid:    "spend",
 		Inputs:  []MempoolInput{{Key: "maintxid:0"}},
 		Outputs: []MempoolOutput{{Address: "mine", ValueSats: 400}},
 	}}
@@ -360,4 +363,13 @@ func TestWithMempoolUTXOsSkipsAWithdrawalOutput(t *testing.T) {
 	key, ok := outpointKey(mustJSON(t, rows[0]))
 	require.True(t, ok)
 	assert.Equal(t, "w:1", key, "the change is a coin, the withdrawal is not")
+}
+
+// A block template names no txid, so a child's input cannot be matched against
+// its parent's output. Counting those outputs reads a chained spend twice.
+func TestDeltaIgnoresATransactionWithNoTxid(t *testing.T) {
+	txs := []MempoolTx{{Outputs: []MempoolOutput{{Address: "mine", ValueSats: 10000}}}}
+
+	assert.Zero(t, DeltaFor(txs, map[string]bool{"mine": true}, nil).CreditSats,
+		"only a node that names its txids can be reconciled")
 }

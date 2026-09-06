@@ -61,6 +61,10 @@ type MempoolDelta struct {
 // ourCoins maps "txid:vout" to what that coin holds. Without the debit a
 // transfer that pays change back counts the change on top of the coin it
 // spends, and the wallet reads the same money twice.
+//
+// A transaction with no txid takes no part. Its outputs cannot be matched
+// against what a later transaction spends, so counting them reads a chained
+// spend twice over. Only list_mempool names a txid.
 func DeltaFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64) MempoolDelta {
 	// A child transaction spends a coin its parent made, and that coin never
 	// reached the confirmed listing. Index it here, or the child's change
@@ -82,6 +86,9 @@ func DeltaFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64)
 
 	var delta MempoolDelta
 	for _, tx := range txs {
+		if tx.Txid == "" {
+			continue
+		}
 		for _, out := range tx.Outputs {
 			// A withdrawal output carries a change address, and the money
 			// still leaves the chain. Crediting it reads the payment back.

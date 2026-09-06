@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -1203,4 +1204,40 @@ func TestBmmEngineKeepsBiddingWhenAnUpdateCannotBeSaved(t *testing.T) {
 
 	engine.tick(context.Background())
 	assert.Positive(t, backend.bids)
+}
+
+// Stop answers, and a tick already in flight must not pay for another bid.
+// The target leaves memory before the disk write, so no window stays open.
+func TestBmmEngineStopsBeforeTheDiskWrite(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	require.NoError(t, engine.Stop(testSidechain))
+	running, _, _ := engine.Running(testSidechain)
+	require.False(t, running)
+
+	tip.set("block-2")
+	engine.tick(ctx)
+	assert.Equal(t, 1, backend.bids, "a stopped engine spends nothing")
+}
+
+// A failed delete leaves the target bidding rather than half stopped.
+func TestBmmEngineKeepsBiddingWhenAStopCannotBeSaved(t *testing.T) {
+	engine, _, _, store := newEngine(t)
+	dir := t.TempDir()
+	store.Rebind(dir)
+	require.NoError(t, engine.Start(testSidechain, "spender", 10_000, false))
+
+	// The target is on disk and in the store's cache. Taking the directory
+	// away makes the delete fail on its write.
+	require.NoError(t, os.RemoveAll(dir))
+	require.Error(t, engine.Stop(testSidechain))
+
+	running, wallet, _ := engine.Running(testSidechain)
+	assert.True(t, running, "the stop never reached the disk, so nothing changed")
+	assert.Equal(t, "spender", wallet)
 }
