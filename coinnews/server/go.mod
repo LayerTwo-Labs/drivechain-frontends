@@ -6,6 +6,7 @@ require (
 	connectrpc.com/connect v1.19.0
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/LayerTwo-Labs/sidesail/coinnews/codec v0.0.0
+	github.com/btcsuite/btcd/btcec/v2 v2.3.6
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
@@ -14,7 +15,6 @@ require (
 )
 
 require (
-	github.com/btcsuite/btcd/btcec/v2 v2.3.6 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect

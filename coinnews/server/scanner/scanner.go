@@ -59,9 +59,25 @@ func (s *Scanner) catchUp(ctx context.Context) error {
 		return fmt.Errorf("getblockcount: %w", err)
 	}
 
-	cursor, _, err := store.LoadCursor(ctx, s.DB)
+	cursor, cursorHash, err := store.LoadCursor(ctx, s.DB)
 	if err != nil {
 		return fmt.Errorf("load cursor: %w", err)
+	}
+	// A reorg that replaces the cursor block leaves its height alone, so only
+	// the hash says the chain moved under us.
+	if cursor > 0 && cursor <= tip {
+		same, err := s.coreHoldsBlock(ctx, cursor, cursorHash)
+		if err != nil {
+			return err
+		}
+		if !same {
+			s.Log.Warn().Uint32("height", cursor).
+				Msg("coinnews-scanner: the chain forked at the cursor, purging and replaying from there")
+			if err := store.PurgeAtOrAbove(ctx, s.DB, cursor); err != nil {
+				return fmt.Errorf("purge at or above %d: %w", cursor, err)
+			}
+			cursor--
+		}
 	}
 	if s.FromHeight > 0 && cursor+1 < s.FromHeight {
 		s.Log.Info().Uint32("cursor", cursor).Uint32("from_height", s.FromHeight).
@@ -85,6 +101,23 @@ func (s *Scanner) catchUp(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// coreHoldsBlock reports whether Core's block at height is the one we
+// recorded. A zero stored hash is nothing to compare against, so it passes.
+func (s *Scanner) coreHoldsBlock(ctx context.Context, height uint32, stored [32]byte) (bool, error) {
+	if stored == ([32]byte{}) {
+		return true, nil
+	}
+	hash, err := s.Client.GetBlockHash(ctx, height)
+	if err != nil {
+		return false, fmt.Errorf("getblockhash %d: %w", height, err)
+	}
+	canonical, err := decodeHashLE(hash)
+	if err != nil {
+		return false, err
+	}
+	return canonical == stored, nil
 }
 
 func (s *Scanner) indexHeight(ctx context.Context, height uint32) error {
@@ -126,9 +159,9 @@ func (s *Scanner) indexHeight(ctx context.Context, height uint32) error {
 }
 
 // indexPayload classifies one OP_RETURN payload and persists it.
-// Mirrors bitwindow's engine hook: signature verification gates
-// persistence, malformed and non-CoinNews payloads are dropped
-// silently.
+// Mirrors bitwindow's engine hook: signature verification and
+// reference resolvability gate persistence, malformed and
+// non-CoinNews payloads are dropped silently.
 func (s *Scanner) indexPayload(ctx context.Context, data []byte, pos store.BlockPos) error {
 	tag, msg, err := codec.DecodeMessage(data)
 	if err != nil {
@@ -139,15 +172,49 @@ func (s *Scanner) indexPayload(ctx context.Context, data []byte, pos store.Block
 			Msg("coinnews-scanner: malformed payload, dropping")
 		return nil
 	}
+	self := store.ItemRef{BlockHeight: pos.BlockHeight, TxIndex: pos.TxIndex, VoutIndex: pos.VoutIndex}
+
 	switch m := msg.(type) {
 	case *codec.Comment:
 		if err := codec.VerifyComment(m); err != nil {
 			s.Log.Debug().Err(err).Str("txid", pos.TxID).Msg("coinnews-scanner: comment sig invalid")
 			return nil
 		}
+		// §7: drop Comments whose parent is unresolvable. §4.2: the
+		// parent must be earlier than the comment in scan order.
+		parent, ok, err := store.ResolveItem(ctx, s.DB, m.Parent)
+		if err != nil {
+			return err
+		}
+		if !ok || !parent.Before(self) {
+			s.Log.Debug().Str("txid", pos.TxID).Msg("coinnews-scanner: comment parent unresolvable")
+			return nil
+		}
 	case *codec.Vote:
 		if err := codec.VerifyVote(m); err != nil {
 			s.Log.Debug().Err(err).Str("txid", pos.TxID).Msg("coinnews-scanner: vote sig invalid")
+			return nil
+		}
+		// §8: drop Votes against an unresolvable target. §4.2: a vote
+		// against a same-tx target must sit at a higher vout_index —
+		// covered by requiring the target to be strictly earlier.
+		target, ok, err := store.ResolveItem(ctx, s.DB, m.Target)
+		if err != nil {
+			return err
+		}
+		if !ok || !target.Before(self) {
+			s.Log.Debug().Str("txid", pos.TxID).Msg("coinnews-scanner: vote target unresolvable")
+			return nil
+		}
+	case *codec.Continuation:
+		// §9: continuations live in the head's tx or a later tx in the
+		// same block, after the head in scan order.
+		head, ok, err := store.ResolveItem(ctx, s.DB, m.Head)
+		if err != nil {
+			return err
+		}
+		if !ok || head.BlockHeight != pos.BlockHeight || !head.Before(self) {
+			s.Log.Debug().Str("txid", pos.TxID).Msg("coinnews-scanner: continuation head unresolvable")
 			return nil
 		}
 	}
@@ -181,7 +248,7 @@ func parsePush(b []byte) ([]byte, bool) {
 	switch {
 	case op >= 0x01 && op <= 0x4b:
 		n := int(op)
-		if len(b) < 1+n {
+		if len(b) != 1+n {
 			return nil, false
 		}
 		return b[1 : 1+n], true
@@ -190,7 +257,7 @@ func parsePush(b []byte) ([]byte, bool) {
 			return nil, false
 		}
 		n := int(b[1])
-		if len(b) < 2+n {
+		if len(b) != 2+n {
 			return nil, false
 		}
 		return b[2 : 2+n], true
@@ -199,7 +266,7 @@ func parsePush(b []byte) ([]byte, bool) {
 			return nil, false
 		}
 		n := int(b[1]) | int(b[2])<<8
-		if len(b) < 3+n {
+		if len(b) != 3+n {
 			return nil, false
 		}
 		return b[3 : 3+n], true

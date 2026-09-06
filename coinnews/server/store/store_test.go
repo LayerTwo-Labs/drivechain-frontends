@@ -151,6 +151,45 @@ func TestStore_Cursor(t *testing.T) {
 	assert.Equal(t, saved, hash)
 }
 
+// TestResolveItem: an indexed Item resolves to its canonical scan
+// position; an ItemID that was never indexed does not resolve, which
+// is what makes a referring Message droppable (spec §4.1).
+func TestResolveItem(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db, err := Open(ctx, t.TempDir()+"/coinnews.db")
+	require.NoError(t, err)
+	defer db.Close() //nolint:errcheck
+
+	p := pos(500, 3, 2)
+	require.NoError(t, Index(ctx, db, IndexEnv{
+		Pos: p, TypeTag: codec.TypeStory, Payload: testPayload,
+		Msg: &codec.Story{Topic: codec.Topic{1, 2, 3, 4}, Headline: "resolvable"},
+	}))
+
+	natural, err := HashTxIDLE(p.TxID)
+	require.NoError(t, err)
+	ref, ok, err := ResolveItem(ctx, db, codec.ComputeItemID(natural, p.VoutIndex))
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, ItemRef{BlockHeight: 500, TxIndex: 3, VoutIndex: 2}, ref)
+
+	_, ok, err = ResolveItem(ctx, db, codec.ItemID{0xff})
+	require.NoError(t, err)
+	assert.False(t, ok, "an ItemID that was never indexed MUST NOT resolve")
+}
+
+func TestItemRef_Before(t *testing.T) {
+	t.Parallel()
+	self := ItemRef{BlockHeight: 10, TxIndex: 5, VoutIndex: 1}
+	assert.True(t, ItemRef{BlockHeight: 9, TxIndex: 99, VoutIndex: 99}.Before(self))
+	assert.True(t, ItemRef{BlockHeight: 10, TxIndex: 4, VoutIndex: 99}.Before(self))
+	assert.True(t, ItemRef{BlockHeight: 10, TxIndex: 5, VoutIndex: 0}.Before(self))
+	assert.False(t, self.Before(self), "an Item is not before itself")
+	assert.False(t, ItemRef{BlockHeight: 10, TxIndex: 5, VoutIndex: 2}.Before(self))
+	assert.False(t, ItemRef{BlockHeight: 11, TxIndex: 0, VoutIndex: 0}.Before(self))
+}
+
 func TestOpReturnPayload_RoundTrip(t *testing.T) {
 	t.Parallel()
 	// Ensure the scanner/store agree on a known-good Story that we

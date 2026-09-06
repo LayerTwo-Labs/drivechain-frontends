@@ -269,6 +269,11 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	}()
 
 	binPath, pidName := pm.resolvePaths(config, opts.ForceBackend)
+	// cmd.Dir is set below, so a relative binPath would be re-resolved against
+	// the child's working directory rather than ours.
+	if abs, err := filepath.Abs(binPath); err == nil {
+		binPath = abs
+	}
 	if opts.PidName != "" {
 		pidName = opts.PidName
 	}
