@@ -1042,12 +1042,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
-	if cfg.LegacyWallet {
-		// A pre-descriptor Core fork has no createwallet/importdescriptors;
-		// it keeps the wallet it creates itself.
-		o.log.Info().Str("binary", cfg.Name).Msg("legacy wallet: skipping mnemonic-derived wallet provisioning")
-		return nil
-	}
 	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
 	if err != nil {
 		return fmt.Errorf("sidechain starter: %w", err)
@@ -1062,6 +1056,14 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		return err
 	}
 	rpc := wallet.NewCoreRPCClient(wallet.StaticCoreEndpoint(cfg.RPCHost(), cfg.Port, user, password))
+
+	if cfg.LegacyWallet {
+		// A pre-descriptor Core fork (FreeBank) has no createwallet/importdescriptors; it auto-creates
+		// its own HD wallet at startup. sethdseed re-seeds that wallet from the mnemonic so every
+		// address it derives is reproducible — folding it into the unified backup like the descriptor
+		// chains, from v0.2.12 of the fork (earlier binaries lack sethdseed; see the wallet package).
+		return wallet.EnsureLegacyCoreWalletFromMnemonic(ctx, rpc, o.log, mnemonic, o.NetParams.Resolve())
+	}
 	return wallet.EnsureCoreWalletFromMnemonic(
 		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, o.NetParams.Resolve(),
 	)
