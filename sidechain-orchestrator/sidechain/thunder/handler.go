@@ -169,9 +169,12 @@ func (h *Handler) GetPendingWithdrawalBundle(ctx context.Context, req *connect.R
 }
 
 func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.GetWalletUtxosRequest]) (*connect.Response[pb.GetWalletUtxosResponse], error) {
-	backend, err := h.backend(ctx)
+	// One mode serves the whole request. A second read can disagree after a
+	// mode change in flight, and the merge then reads a stranger's node.
+	mode := h.mode()
+	backend, err := h.sources.Backend(ctx, mode)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	raw, err := backend.UTXOs(ctx)
 	if err != nil {
@@ -180,7 +183,7 @@ func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.Ge
 	// A coin the mempool holds is not in the node's listing, so a payment on
 	// its way reads as no coin at all until the next block. A light client
 	// runs no node, and the index already answers its unconfirmed coins.
-	if h.mode().LocalNode {
+	if mode.LocalNode {
 		raw = sidechain.WithMempoolUTXOs(ctx, h.proxy, raw)
 	}
 	return connect.NewResponse(&pb.GetWalletUtxosResponse{UtxosJson: string(raw)}), nil
