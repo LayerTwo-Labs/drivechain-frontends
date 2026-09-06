@@ -118,12 +118,17 @@ class CardHeader extends StatelessWidget {
   final String? subtitle;
   final String? error;
 
+  /// headerValue is the one figure the card is about. It reads between the
+  /// title and the subtitle, in large type.
+  final String? headerValue;
+
   const CardHeader({
     super.key,
     required this.title,
     this.titleTooltip,
     this.subtitle,
     this.error,
+    this.headerValue,
   });
 
   @override
@@ -142,6 +147,7 @@ class CardHeader extends StatelessWidget {
           )
         else
           SailText.primary16(title, bold: true),
+        if (headerValue != null) SailText.primary22(headerValue!, bold: true),
         if (error != null || subtitle != null)
           SailText.primary13(
             error ?? subtitle!,
@@ -219,7 +225,12 @@ class SailModal extends StatelessWidget {
   final Color? backgroundColor;
   final BoxConstraints? constraints;
 
-  const SailModal({super.key, required this.child, this.backgroundColor, this.constraints});
+  const SailModal({
+    super.key,
+    required this.child,
+    this.backgroundColor,
+    this.constraints,
+  });
 
   @override
   Widget build(BuildContext context) {
