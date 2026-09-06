@@ -145,6 +145,17 @@ func (e *BmmEngine) Start(
 	e.targets[sidechain] = target
 	e.mu.Unlock()
 
+	// A restart must resume bidding. Without the target the engine wakes with
+	// nothing to bid for, and it says nothing about it.
+	if err := e.store.SaveTarget(bmmstate.Target{
+		Sidechain:       int32(sidechain),
+		WalletID:        walletID,
+		MaxBidSats:      maxBidSats,
+		CapToBlockWorth: capToBlockWorth,
+	}); err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("store the bmm target")
+	}
+
 	e.log.Info().Stringer("sidechain", sidechain).
 		Int64("max_bid_sats", maxBidSats).
 		Bool("cap_to_block_worth", capToBlockWorth).Msg("bmm started")
@@ -158,6 +169,9 @@ func (e *BmmEngine) Stop(sidechain pb.BinaryType) {
 	e.mu.Lock()
 	delete(e.targets, sidechain)
 	e.mu.Unlock()
+	if err := e.store.DeleteTarget(int32(sidechain)); err != nil {
+		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("drop the bmm target")
+	}
 	e.log.Info().Stringer("sidechain", sidechain).Msg("bmm stopped")
 	e.notify()
 }
@@ -256,6 +270,7 @@ func (e *BmmEngine) Run(ctx context.Context) error {
 	ticker := time.NewTicker(bmmTickInterval)
 	defer ticker.Stop()
 
+	e.resumeTargets()
 	e.resumeUnconnected()
 	e.log.Info().Dur("interval", bmmTickInterval).Msg("bmm engine started")
 
@@ -267,6 +282,32 @@ func (e *BmmEngine) Run(ctx context.Context) error {
 		case <-ticker.C:
 		case <-e.wake:
 		}
+	}
+}
+
+// resumeTargets reloads what the engine bids for, so a restart carries on
+// rather than stopping without a word.
+func (e *BmmEngine) resumeTargets() {
+	targets, err := e.store.Targets()
+	if err != nil {
+		e.log.Warn().Err(err).Msg("read stored bmm targets")
+		return
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, t := range targets {
+		if t.MaxBidSats <= 0 {
+			continue
+		}
+		sidechain := pb.BinaryType(t.Sidechain)
+		e.targets[sidechain] = bmmTarget{
+			maxBidSats:      t.MaxBidSats,
+			walletID:        t.WalletID,
+			capToBlockWorth: t.CapToBlockWorth,
+		}
+		e.log.Info().Stringer("sidechain", sidechain).
+			Int64("max_bid_sats", t.MaxBidSats).Msg("resuming bmm")
 	}
 }
 

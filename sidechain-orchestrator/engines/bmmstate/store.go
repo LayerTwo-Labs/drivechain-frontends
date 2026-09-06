@@ -13,6 +13,8 @@ import (
 
 const fileName = "bmm_rounds.json"
 
+const targetsFileName = "bmm_targets.json"
+
 // Bid is one M8 broadcast for a round.
 type Bid struct {
 	Txid           string `json:"txid"`
@@ -47,21 +49,38 @@ type Round struct {
 	BlocksWaited       int    `json:"blocks_waited,omitempty"`
 }
 
-// Store keeps rounds in a JSON file, newest first, capped at limit.
-type Store struct {
-	path  string
-	limit int
+// Target is what the engine bids for on one sidechain. It outlives the
+// process, so a restart resumes bidding rather than stopping it silently.
+type Target struct {
+	Sidechain       int32  `json:"sidechain"`
+	WalletID        string `json:"wallet_id,omitempty"`
+	MaxBidSats      int64  `json:"max_bid_sats"`
+	CapToBlockWorth bool   `json:"cap_to_block_worth,omitempty"`
+}
 
-	mu     sync.Mutex
-	loaded bool
-	rounds []Round
+// Store keeps rounds in a JSON file, newest first, capped at limit. It keeps
+// the bidding targets in a second file beside them.
+type Store struct {
+	path        string
+	targetsPath string
+	limit       int
+
+	mu            sync.Mutex
+	loaded        bool
+	rounds        []Round
+	targetsLoaded bool
+	targets       []Target
 }
 
 func NewStore(dir string, limit int) *Store {
 	if limit <= 0 {
 		limit = 500
 	}
-	return &Store{path: filepath.Join(dir, fileName), limit: limit}
+	return &Store{
+		path:        filepath.Join(dir, fileName),
+		targetsPath: filepath.Join(dir, targetsFileName),
+		limit:       limit,
+	}
 }
 
 func (s *Store) ensureLoadedLocked() error {
@@ -201,6 +220,90 @@ func (s *Store) Rebind(dir string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.path = filepath.Join(dir, fileName)
+	s.targetsPath = filepath.Join(dir, targetsFileName)
 	s.rounds = nil
 	s.loaded = false
+	s.targets = nil
+	s.targetsLoaded = false
+}
+
+func (s *Store) ensureTargetsLoadedLocked() error {
+	if s.targetsLoaded {
+		return nil
+	}
+	data, err := os.ReadFile(s.targetsPath)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		s.targetsLoaded = true
+		return nil
+	case err != nil:
+		return fmt.Errorf("read bmm targets: %w", err)
+	}
+	if err := json.Unmarshal(data, &s.targets); err != nil {
+		return fmt.Errorf("decode bmm targets: %w", err)
+	}
+	s.targetsLoaded = true
+	return nil
+}
+
+func (s *Store) flushTargetsLocked() error {
+	data, err := json.MarshalIndent(s.targets, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode bmm targets: %w", err)
+	}
+	tmp := s.targetsPath + ".tmp"
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
+		return fmt.Errorf("write bmm targets tmp: %w", err)
+	}
+	if err := os.Rename(tmp, s.targetsPath); err != nil {
+		return fmt.Errorf("rename bmm targets: %w", err)
+	}
+	return nil
+}
+
+// SaveTarget inserts or replaces the target for one sidechain.
+func (s *Store) SaveTarget(target Target) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.ensureTargetsLoadedLocked(); err != nil {
+		return err
+	}
+	for i := range s.targets {
+		if s.targets[i].Sidechain == target.Sidechain {
+			s.targets[i] = target
+			return s.flushTargetsLocked()
+		}
+	}
+	s.targets = append(s.targets, target)
+	return s.flushTargetsLocked()
+}
+
+// DeleteTarget drops one sidechain's target, so a restart does not resume it.
+func (s *Store) DeleteTarget(sidechain int32) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.ensureTargetsLoadedLocked(); err != nil {
+		return err
+	}
+	kept := make([]Target, 0, len(s.targets))
+	for _, t := range s.targets {
+		if t.Sidechain != sidechain {
+			kept = append(kept, t)
+		}
+	}
+	if len(kept) == len(s.targets) {
+		return nil
+	}
+	s.targets = kept
+	return s.flushTargetsLocked()
+}
+
+// Targets lists every sidechain the engine bids for.
+func (s *Store) Targets() ([]Target, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.ensureTargetsLoadedLocked(); err != nil {
+		return nil, err
+	}
+	return append([]Target(nil), s.targets...), nil
 }

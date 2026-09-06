@@ -595,7 +595,42 @@ func TestBmmEngineHistorySurvivesRestart(t *testing.T) {
 	assert.Equal(t, ResultWon, history[len(history)-1].Result)
 
 	running, _, _ := restarted.Running(testSidechain)
-	assert.False(t, running, "a restart must never resume spending on its own")
+	assert.False(t, running, "a fresh engine bids for nothing until it runs")
+}
+
+// The operator starts bidding once. A restart must carry on, or the chain
+// stalls until somebody notices and starts it by hand.
+func TestBmmEngineResumesItsTargetAfterRestart(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "spender", 10_000, true))
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	running, _, _ := restarted.Running(testSidechain)
+	require.False(t, running, "the target loads when the engine runs")
+
+	restarted.resumeTargets()
+	running, wallet, max := restarted.Running(testSidechain)
+	assert.True(t, running)
+	assert.Equal(t, "spender", wallet)
+	assert.Equal(t, int64(10_000), max)
+
+	restarted.tick(context.Background())
+	assert.Positive(t, backend.bids, "a resumed target bids on the next tip")
+}
+
+// Stop is a decision, so it must outlive the process too.
+func TestBmmEngineForgetsAStoppedTargetAfterRestart(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
+	engine.Stop(testSidechain)
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	restarted.resumeTargets()
+
+	running, _, _ := restarted.Running(testSidechain)
+	assert.False(t, running)
+	restarted.tick(context.Background())
+	assert.Zero(t, backend.bids, "a stopped engine spends nothing")
 }
 
 func TestBmmEngineClearHistory(t *testing.T) {
