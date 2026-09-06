@@ -13,10 +13,10 @@ type MempoolOutput struct {
 	ValueSats int64
 }
 
-// MempoolInput is one coin an unconfirmed transaction spends.
+// MempoolInput is one coin an unconfirmed transaction spends, named the way a
+// coin map keys it.
 type MempoolInput struct {
-	Txid string
-	Vout uint32
+	Key string
 }
 
 // MempoolTx is one transaction the sidechain holds but has not mined.
@@ -49,6 +49,24 @@ func Mempool(ctx context.Context, node SidechainRPCProxy) ([]MempoolTx, error) {
 // transfer that pays change back counts the change on top of the coin it
 // spends, and the wallet reads the same money twice.
 func NetCreditFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]int64) int64 {
+	// A child transaction spends a coin its parent made, and that coin never
+	// reached the confirmed listing. Index it here, or the child's change
+	// counts on top of a coin the wallet never held.
+	coins := make(map[string]int64, len(ourCoins))
+	for key, sats := range ourCoins {
+		coins[key] = sats
+	}
+	for _, tx := range txs {
+		if tx.Txid == "" {
+			continue
+		}
+		for _, out := range tx.Outputs {
+			if owned[out.Address] {
+				coins[fmt.Sprintf("%s:%d", tx.Txid, out.Vout)] = out.ValueSats
+			}
+		}
+	}
+
 	var total int64
 	for _, tx := range txs {
 		for _, out := range tx.Outputs {
@@ -57,7 +75,7 @@ func NetCreditFor(txs []MempoolTx, owned map[string]bool, ourCoins map[string]in
 			}
 		}
 		for _, in := range tx.Inputs {
-			total -= ourCoins[fmt.Sprintf("%s:%d", in.Txid, in.Vout)]
+			total -= coins[in.Key]
 		}
 	}
 	return total
@@ -88,6 +106,7 @@ type mempoolBody struct {
 			Txid string `json:"txid"`
 			Vout uint32 `json:"vout"`
 		} `json:"Regular"`
+		Deposit *string `json:"Deposit"`
 	} `json:"inputs"`
 	Outputs []struct {
 		Address string          `json:"address"`
@@ -95,15 +114,18 @@ type mempoolBody struct {
 	} `json:"outputs"`
 }
 
-// spends are the coins this transaction takes. Only a regular input names a
-// coin this wallet can hold; a deposit and a coinbase come from elsewhere.
+// spends are the coins this transaction takes, each as the key its outpoint
+// takes in a coin map. A coinbase names no coin a wallet holds.
 func (b mempoolBody) spends() []MempoolInput {
 	out := make([]MempoolInput, 0, len(b.Inputs))
 	for _, in := range b.Inputs {
-		if in.Regular == nil {
-			continue
+		switch {
+		case in.Regular != nil:
+			out = append(out, MempoolInput{Key: fmt.Sprintf("%s:%d", in.Regular.Txid, in.Regular.Vout)})
+		case in.Deposit != nil:
+			// A deposit outpoint is already the string "txid:vout".
+			out = append(out, MempoolInput{Key: *in.Deposit})
 		}
-		out = append(out, MempoolInput{Txid: in.Regular.Txid, Vout: in.Regular.Vout})
 	}
 	return out
 }
@@ -311,6 +333,7 @@ func OurCoins(ctx context.Context, node SidechainRPCProxy) (map[string]int64, er
 				Txid string `json:"txid"`
 				Vout uint32 `json:"vout"`
 			} `json:"Regular"`
+			Deposit *string `json:"Deposit"`
 		} `json:"outpoint"`
 		Output struct {
 			Content json.RawMessage `json:"content"`
@@ -321,11 +344,14 @@ func OurCoins(ctx context.Context, node SidechainRPCProxy) (map[string]int64, er
 	}
 	coins := make(map[string]int64, len(rows))
 	for _, row := range rows {
-		if row.Outpoint.Regular == nil {
-			continue
+		switch {
+		case row.Outpoint.Regular != nil:
+			key := fmt.Sprintf("%s:%d", row.Outpoint.Regular.Txid, row.Outpoint.Regular.Vout)
+			coins[key] = OutputValueSats(row.Output.Content)
+		case row.Outpoint.Deposit != nil:
+			// A deposit outpoint is already the string an input names.
+			coins[*row.Outpoint.Deposit] = OutputValueSats(row.Output.Content)
 		}
-		key := fmt.Sprintf("%s:%d", row.Outpoint.Regular.Txid, row.Outpoint.Regular.Vout)
-		coins[key] = OutputValueSats(row.Output.Content)
 	}
 	return coins, nil
 }

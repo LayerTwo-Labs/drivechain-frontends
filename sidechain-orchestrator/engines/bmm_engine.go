@@ -145,15 +145,19 @@ func (e *BmmEngine) Start(
 	e.targets[sidechain] = target
 	e.mu.Unlock()
 
-	// A restart must resume bidding. Without the target the engine wakes with
-	// nothing to bid for, and it says nothing about it.
+	// A restart must resume bidding. An unsaved target leaves the engine with
+	// nothing to bid for, and it says nothing about it, so the caller hears
+	// about the failure rather than a start that does not last.
 	if err := e.store.SaveTarget(bmmstate.Target{
 		Sidechain:       int32(sidechain),
 		WalletID:        walletID,
 		MaxBidSats:      maxBidSats,
 		CapToBlockWorth: capToBlockWorth,
 	}); err != nil {
-		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("store the bmm target")
+		e.mu.Lock()
+		delete(e.targets, sidechain)
+		e.mu.Unlock()
+		return fmt.Errorf("store the bmm target: %w", err)
 	}
 
 	e.log.Info().Stringer("sidechain", sidechain).
@@ -165,15 +169,18 @@ func (e *BmmEngine) Start(
 }
 
 // Stop ends automated bidding. Bids already broadcast still settle.
-func (e *BmmEngine) Stop(sidechain pb.BinaryType) {
+func (e *BmmEngine) Stop(sidechain pb.BinaryType) error {
+	// The disk goes first. A stop that only clears memory comes back on the
+	// next restart, and the engine spends again after the operator stopped it.
+	if err := e.store.DeleteTarget(int32(sidechain)); err != nil {
+		return fmt.Errorf("drop the bmm target: %w", err)
+	}
 	e.mu.Lock()
 	delete(e.targets, sidechain)
 	e.mu.Unlock()
-	if err := e.store.DeleteTarget(int32(sidechain)); err != nil {
-		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("drop the bmm target")
-	}
 	e.log.Info().Stringer("sidechain", sidechain).Msg("bmm stopped")
 	e.notify()
+	return nil
 }
 
 // Running reports whether the engine bids for sidechain, with the wallet it
@@ -294,6 +301,8 @@ func (e *BmmEngine) resumeTargets() {
 		return
 	}
 
+	openTips := e.openRoundTips()
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	for _, t := range targets {
@@ -301,14 +310,42 @@ func (e *BmmEngine) resumeTargets() {
 			continue
 		}
 		sidechain := pb.BinaryType(t.Sidechain)
-		e.targets[sidechain] = bmmTarget{
+		target := bmmTarget{
 			maxBidSats:      t.MaxBidSats,
 			walletID:        t.WalletID,
 			capToBlockWorth: t.CapToBlockWorth,
+			// The round in play carries a bid already. Without its tip the
+			// first tick reads the same tip as a new round, bids a second
+			// time, and then raises against its own bid.
+			lastTip: openTips[sidechain],
 		}
+		e.targets[sidechain] = target
 		e.log.Info().Stringer("sidechain", sidechain).
 			Int64("max_bid_sats", t.MaxBidSats).Msg("resuming bmm")
 	}
+}
+
+// openRoundTips names the tip each sidechain still has a live bid on.
+func (e *BmmEngine) openRoundTips() map[pb.BinaryType]string {
+	rounds, err := e.store.All()
+	if err != nil {
+		e.log.Warn().Err(err).Msg("read stored rounds")
+		return nil
+	}
+	tips := make(map[pb.BinaryType]string)
+	for i := range rounds {
+		round := rounds[i]
+		if round.Result != ResultOpen || liveBid(&round) == nil {
+			continue
+		}
+		sidechain := pb.BinaryType(round.Sidechain)
+		// The store lists the newest first, so the first hit is the round in
+		// play.
+		if _, seen := tips[sidechain]; !seen {
+			tips[sidechain] = round.PrevMainHash
+		}
+	}
+	return tips
 }
 
 // resumeUnconnected reloads blocks a miner took that were never accepted by the
@@ -471,8 +508,13 @@ func (e *BmmEngine) openRound(
 		} else {
 			e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid failed")
 		}
-	} else if replaceTxid != "" {
-		e.markStrandedReplaced(sidechain, replaceTxid, e.lastBidTxid(sidechain))
+	} else {
+		// The round reaches the disk with its bid, so a restart resumes it
+		// rather than opening a second round on the same tip.
+		e.save(round)
+		if replaceTxid != "" {
+			e.markStrandedReplaced(sidechain, replaceTxid, e.lastBidTxid(sidechain))
+		}
 	}
 	e.notify()
 }

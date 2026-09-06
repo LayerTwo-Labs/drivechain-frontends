@@ -622,7 +622,9 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	}
 	// A node counts a coin once a block carries it, so a payment on its way
 	// reads as nothing at all until the next block.
-	pendingSats += h.mempoolCredit(ctx, cfg)
+	confirmedSats, pendingSats = applyMempoolDelta(
+		confirmedSats, pendingSats, h.mempoolCredit(ctx, cfg),
+	)
 
 	if h.orch.WalletSvc != nil {
 		_ = h.orch.WalletSvc.SyncBalance(
@@ -767,6 +769,23 @@ func (h *Handler) mempoolCredit(ctx context.Context, cfg orchestrator.BinaryConf
 		return 0
 	}
 	return sidechain.NetCreditFor(txs, owned, ourCoins)
+}
+
+// applyMempoolDelta moves what the mempool adds into the confirmed and pending
+// pair. The delta goes negative while a spend of ours waits, and both fields
+// leave here as a count the wallet can report.
+func applyMempoolDelta(confirmedSats, pendingSats, delta int64) (int64, int64) {
+	if delta >= 0 {
+		return confirmedSats, pendingSats + delta
+	}
+	// A spend takes from what is already on its way first, then from the
+	// coins a block confirmed. Neither drops below nothing.
+	owed := -delta
+	if pendingSats >= owed {
+		return confirmedSats, pendingSats - owed
+	}
+	owed -= pendingSats
+	return max(confirmedSats-owed, 0), 0
 }
 
 func balanceFromTotalAvailable(totalSats, availableSats int64) (confirmedSats, pendingSats int64) {

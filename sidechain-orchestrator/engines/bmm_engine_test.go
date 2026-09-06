@@ -417,7 +417,7 @@ func TestBmmEngineStopEndsBidding(t *testing.T) {
 	engine.tick(ctx)
 	require.Equal(t, 1, backend.bids)
 
-	engine.Stop(testSidechain)
+	require.NoError(t, engine.Stop(testSidechain))
 	tip.set("block-2")
 	engine.tick(ctx)
 
@@ -548,9 +548,7 @@ func TestBmmEngineDecidesAParkedRoundOnRetry(t *testing.T) {
 	backend.connected = true
 	engine.retryConnects(ctx, testSidechain, tip.hash, tip.height)
 
-	history := mustHistory(t, engine)
-	require.NotEmpty(t, history)
-	assert.Equal(t, ResultWon, history[0].Result)
+	assert.Equal(t, ResultWon, roundOn(t, engine, "block-1").Result)
 	assert.Equal(t, "block-2", backend.lastMainBlockHash)
 }
 
@@ -622,7 +620,7 @@ func TestBmmEngineResumesItsTargetAfterRestart(t *testing.T) {
 func TestBmmEngineForgetsAStoppedTargetAfterRestart(t *testing.T) {
 	engine, backend, tip, store := newEngine(t)
 	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
-	engine.Stop(testSidechain)
+	require.NoError(t, engine.Stop(testSidechain))
 
 	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
 	restarted.resumeTargets()
@@ -765,7 +763,7 @@ func TestBmmEngineSettlesAfterStop(t *testing.T) {
 	engine.tick(ctx)
 	require.NotNil(t, engine.Current(testSidechain))
 
-	engine.Stop(testSidechain)
+	require.NoError(t, engine.Stop(testSidechain))
 	backend.commitment = "critical"
 	backend.connected = true
 	tip.set("block-2")
@@ -785,7 +783,7 @@ func TestBmmEngineRestartDoesNotDoubleBidTheSameRound(t *testing.T) {
 	engine.tick(ctx)
 	require.Equal(t, 1, backend.bids)
 
-	engine.Stop(testSidechain)
+	require.NoError(t, engine.Stop(testSidechain))
 	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
 	engine.tick(ctx)
 
@@ -815,9 +813,7 @@ func TestBmmEngineKeepsRoundPendingWhenTheCommitmentCannotBeRead(t *testing.T) {
 	backend.connected = true
 	engine.retryConnects(ctx, testSidechain, tip.hash, tip.height)
 
-	settled := mustHistory(t, engine)
-	require.NotEmpty(t, settled)
-	assert.Equal(t, ResultWon, settled[0].Result, "the retry settles it as won")
+	assert.Equal(t, ResultWon, roundOn(t, engine, "block-1").Result, "the retry settles it as won")
 }
 
 // Readers must never share the slices the engine keeps mutating.
@@ -835,6 +831,19 @@ func TestBmmEngineCurrentIsADeepCopy(t *testing.T) {
 	assert.Equal(t, BidLive, engine.Current(testSidechain).OurBids[0].State)
 }
 
+// roundOn finds the stored round for one tip. An open round is on disk beside
+// the settled ones, so a test names the round it means.
+func roundOn(t *testing.T, engine *BmmEngine, tip string) bmmstate.Round {
+	t.Helper()
+	for _, round := range mustHistory(t, engine) {
+		if round.PrevMainHash == tip {
+			return round
+		}
+	}
+	t.Fatalf("no round on %s", tip)
+	return bmmstate.Round{}
+}
+
 // Stopping does not decide a round that is still open: until the tip moves,
 // the bid we already broadcast can still win.
 func TestBmmEngineDoesNotSettleAnOpenRoundOnStop(t *testing.T) {
@@ -843,11 +852,11 @@ func TestBmmEngineDoesNotSettleAnOpenRoundOnStop(t *testing.T) {
 
 	ctx := context.Background()
 	engine.tick(ctx)
-	engine.Stop(testSidechain)
+	require.NoError(t, engine.Stop(testSidechain))
 
 	engine.tick(ctx)
 	assert.NotNil(t, engine.Current(testSidechain), "same tip, the round is still live")
-	assert.Empty(t, mustHistory(t, engine))
+	assert.Equal(t, ResultOpen, roundOn(t, engine, "block-1").Result, "stopping decides nothing")
 
 	tip.set("block-2")
 	engine.tick(ctx)
@@ -1089,4 +1098,25 @@ func TestBmmEngineKeepsRetryingARecentWonBlock(t *testing.T) {
 	engine.retryConnects(context.Background(), testSidechain, "tip", 996773)
 
 	assert.Positive(t, backend.connects, "a recent won block is still submitted")
+}
+
+// A restart before the tip moves finds the round still in play. Bidding again
+// on that tip pays twice, and the engine then raises against its own bid.
+func TestBmmEngineResumesWithoutBiddingTwiceOnTheSameTip(t *testing.T) {
+	engine, backend, tip, store := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids, "the first tick opens the round")
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
+	restarted.resumeTargets()
+	restarted.tick(ctx)
+
+	assert.Equal(t, 1, backend.bids, "the same tip is the same round")
+
+	tip.set("block-2")
+	restarted.tick(ctx)
+	assert.Equal(t, 2, backend.bids, "a new tip is a new round")
 }
