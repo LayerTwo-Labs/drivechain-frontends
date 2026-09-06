@@ -308,13 +308,15 @@ func nodeOverview(ctx context.Context, src source) (*pb.GetOverviewResponse, err
 		}
 	}
 
-	// The template is what the node would mine next, so its body is the
-	// unconfirmed set.
 	if template, err := src.node.GetBlockTemplate(ctx); err == nil && template != nil {
 		out.Mempool.FeesSats = template.FeesSats
-		var body nodeHeaderJSON
-		if err := json.Unmarshal(template.Block, &body); err == nil {
-			out.Mempool.TxCount = uint32(len(body.transactions()))
+	}
+	// The unconfirmed rows lead the mined ones, the way an explorer reads.
+	if pool, err := sidechain.Mempool(ctx, src.node); err == nil {
+		out.Mempool.TxCount = uint32(len(pool))
+		out.Recent = append(mempoolActivity(pool), out.Recent...)
+		if len(out.Recent) > activityListSize {
+			out.Recent = out.Recent[:activityListSize]
 		}
 	}
 	if raw, err := src.node.GetPendingWithdrawalBundle(ctx); err == nil {
@@ -973,6 +975,25 @@ func depositTxid(outpoint string) string {
 		return outpoint[:i]
 	}
 	return outpoint
+}
+
+// mempoolActivity reads the unconfirmed set as rows the overview can list. A
+// node that names no txid leaves the id empty, so the row states the payment
+// without offering a page that does not exist.
+func mempoolActivity(pool []sidechain.MempoolTx) []*pb.Activity {
+	out := make([]*pb.Activity, 0, len(pool))
+	for _, tx := range pool {
+		row := &pb.Activity{
+			Kind:      pb.Kind_KIND_TRANSFER,
+			Id:        tx.Txid,
+			SizeBytes: tx.SizeBytes,
+		}
+		for _, o := range tx.Outputs {
+			row.ValueSats += o.ValueSats
+		}
+		out = append(out, row)
+	}
+	return out
 }
 
 func blockList(rows []sidechainesplora.Block) []*pb.Block {

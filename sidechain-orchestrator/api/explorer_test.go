@@ -785,3 +785,35 @@ func TestAddressHistorySortsTheDepositsIn(t *testing.T) {
 		}
 	}
 }
+
+// The overview counted the unconfirmed set and listed none of it, so a reader
+// saw "1 in the mempool" above an empty table.
+func TestOverviewListsTheUnconfirmedRows(t *testing.T) {
+	pool := []sidechain.MempoolTx{
+		{Txid: "aa", SizeBytes: 240, Outputs: []sidechain.MempoolOutput{
+			{Address: "s1", ValueSats: 10000},
+			{Address: "s2", ValueSats: 250},
+		}},
+		{Outputs: []sidechain.MempoolOutput{{Address: "s3", ValueSats: 700}}},
+	}
+
+	rows := mempoolActivity(pool)
+	if len(rows) != 2 {
+		t.Fatalf("the overview lists %d rows, want 2", len(rows))
+	}
+	if got := rows[0].GetId(); got != "aa" {
+		t.Errorf("the first row reads %q, want aa", got)
+	}
+	if got := rows[0].GetValueSats(); got != 10250 {
+		t.Errorf("the row pays %d, want 10250, every output together", got)
+	}
+	if got := rows[0].GetSizeBytes(); got != 240 {
+		t.Errorf("the row is %d bytes, want 240", got)
+	}
+	if rows[0].GetConfirmed() {
+		t.Error("a mempool row reads as confirmed")
+	}
+	if got := rows[1].GetId(); got != "" {
+		t.Errorf("a template names no txid, and the row reads %q", got)
+	}
+}
