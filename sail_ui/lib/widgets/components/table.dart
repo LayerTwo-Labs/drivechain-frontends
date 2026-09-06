@@ -98,6 +98,24 @@ class _SailTableState extends State<SailTable> {
     _sortColumnIndex = widget.sortColumnIndex;
     _sortAscending = widget.sortAscending ?? true;
 
+    // A caller can add or drop a column between builds. Every width reads by
+    // column index, so the list must follow the header count.
+    final headers = widget.headerBuilder(context);
+    if (headers.length != _numColumns) {
+      _numColumns = headers.length;
+      _widths
+        ..clear()
+        ..addAll(List.filled(_numColumns!, defaultMinColumnWidth));
+      if (_currentConstraints != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _resizeColumns(_currentConstraints!.maxWidth, force: true);
+          }
+        });
+      }
+      return;
+    }
+
     // Recalculate column widths when row count changes
     if (oldWidget.rowCount != widget.rowCount) {
       if (_currentConstraints != null && mounted) {
