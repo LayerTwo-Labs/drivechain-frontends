@@ -190,7 +190,10 @@ func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
 	require.Len(t, notif, 1)
 	assert.True(t, strings.HasPrefix(notif[0].Desc, "pkh("), "bip47 notification key is P2PKH")
 	assert.Contains(t, notif[0].Desc, "#", "descriptor carries a checksum")
-	assert.Equal(t, float64(0), asFloat(t, notif[0].Timestamp), "rescan from genesis")
+	born := backend.svc.GetWalletByID(coreID)
+	require.NotNil(t, born)
+	assert.Equal(t, float64(born.CreatedAt.Unix()), asFloat(t, notif[0].Timestamp),
+		"a generated seed scans from its birthday, not genesis and not the tip")
 
 	// Second Ensure hits the cache — no further RPC traffic.
 	before := len(fake.callsFor("listwallets"))
@@ -251,8 +254,8 @@ func notificationImports(t *testing.T, fake *fakeBitcoind) int {
 	return n
 }
 
-// The notification import rescans from genesis, which costs hours. A landed
-// import is what stops the next one, and the wallet file records it.
+// A landed import is what stops the next one, and the wallet file records it.
+// A re-import of a restored seed rescans from genesis, which costs hours.
 func TestCoreBackendImportsBip47NotificationKeyOnce(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
@@ -268,6 +271,37 @@ func TestCoreBackendImportsBip47NotificationKeyOnce(t *testing.T) {
 	_, err = backend.walletName(ctx, coreID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, notificationImports(t, fake))
+}
+
+// A restored seed can hold notification history, so its notification key
+// imports at timestamp 0 and scans from genesis; a generated seed does not.
+func TestCoreBackendImportedSeedBip47NotificationScansGenesis(t *testing.T) {
+	const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	core, err := svc.GenerateWallet("Core", mnemonic, "", testSlots)
+	require.NoError(t, err)
+	require.True(t, core.Imported)
+
+	fake := newFakeBitcoind(t)
+	fake.stubEnsureFlow()
+	backend := NewCoreBackend(
+		svc, fake.client(t),
+		StaticParams(&chaincfg.RegressionNetParams),
+		zerolog.New(zerolog.NewTestWriter(t)),
+	)
+
+	_, err = backend.Ensure(context.Background(), core.ID)
+	require.NoError(t, err)
+
+	imports := fake.callsFor("importdescriptors")
+	require.Len(t, imports, 2, "BIP84 pair + BIP47 notification descriptor")
+	var notif []ImportDescriptor
+	require.NoError(t, json.Unmarshal(imports[1].Params[0], &notif))
+	require.Len(t, notif, 1)
+	require.True(t, strings.HasPrefix(notif[0].Desc, "pkh("), "bip47 notification key is P2PKH")
+	assert.Equal(t, float64(0), asFloat(t, notif[0].Timestamp), "a restored seed scans from genesis")
 }
 
 // A network switch points Core at another datadir, where the new wallet holds

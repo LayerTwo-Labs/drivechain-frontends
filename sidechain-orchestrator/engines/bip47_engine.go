@@ -122,7 +122,7 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 			// Wallet may still be warming up on the backend; retry next tick.
 			continue
 		}
-		if err := e.ensureNotificationWatched(ctx, backend, w.ID, seedHex, net); err != nil {
+		if err := e.ensureNotificationWatched(ctx, backend, w, net); err != nil {
 			e.log.Warn().Err(err).Str("wallet", w.ID).Msg("ensure notification watched failed")
 		}
 		if err := e.scanWallet(ctx, w.ID, seedHex, net); err != nil {
@@ -136,18 +136,17 @@ func (e *BIP47Engine) tick(ctx context.Context) {
 
 // ensureNotificationWatched registers a wallet's own notification key with its
 // backend once per process, so the backend scans the notification address and
-// inbound notification txs surface in ListTransactionsRange. RescanFrom 0 forces
-// a full history rescan so notifications received before first observation are
-// still found. For Core this is a no-op after the creation-time descriptor
-// import; for electrum it adds the address to the scan.
-func (e *BIP47Engine) ensureNotificationWatched(ctx context.Context, backend wallet.Bip47Backend, walletID, seedHex string, net *chaincfg.Params) error {
+// inbound notification txs surface in ListTransactionsRange. For Core this is a
+// no-op after the creation-time descriptor import; for electrum it adds the
+// address to the scan.
+func (e *BIP47Engine) ensureNotificationWatched(ctx context.Context, backend wallet.Bip47Backend, w *wallet.WalletData, net *chaincfg.Params) error {
 	e.mu.Lock()
-	already := e.notifWatched[walletID]
+	already := e.notifWatched[w.ID]
 	e.mu.Unlock()
 	if already {
 		return nil
 	}
-	notifPriv, _, err := bip47.DeriveOwnNotificationKey(seedHex, net)
+	notifPriv, _, err := bip47.DeriveOwnNotificationKey(w.Master.SeedHex, net)
 	if err != nil {
 		return fmt.Errorf("derive own notification key: %w", err)
 	}
@@ -155,11 +154,12 @@ func (e *BIP47Engine) ensureNotificationWatched(ctx context.Context, backend wal
 	if err != nil {
 		return fmt.Errorf("encode notification wif: %w", err)
 	}
-	if err := backend.EnsureNotificationWatched(ctx, walletID, wallet.WatchKey{WIF: wif.String(), RescanFrom: 0}); err != nil {
+	key := wallet.WatchKey{WIF: wif.String(), RescanFrom: wallet.Bip47RescanFrom(w)}
+	if err := backend.EnsureNotificationWatched(ctx, w.ID, key); err != nil {
 		return err
 	}
 	e.mu.Lock()
-	e.notifWatched[walletID] = true
+	e.notifWatched[w.ID] = true
 	e.mu.Unlock()
 	return nil
 }

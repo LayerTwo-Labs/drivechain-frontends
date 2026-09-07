@@ -1092,7 +1092,8 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 	if err != nil {
 		return fmt.Errorf("derive notification key: %w", err)
 	}
-	if w := p.svc.GetWalletByID(walletID); w != nil && w.Bip47NotificationImported[net.Name] {
+	w := p.svc.GetWalletByID(walletID)
+	if w != nil && w.Bip47NotificationImported[net.Name] {
 		info, err := p.rpc.GetAddressInfo(ctx, walletName, notifAddr.EncodeAddress())
 		if err != nil {
 			return fmt.Errorf("read the notification address: %w", err)
@@ -1109,7 +1110,7 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 	results, err := p.rpc.ImportDescriptors(ctx, walletName, []ImportDescriptor{{
 		Desc:      desc,
 		Active:    false,
-		Timestamp: int64(0),
+		Timestamp: Bip47RescanFrom(w),
 	}})
 	if err != nil {
 		return fmt.Errorf("import bip47 notification descriptor: %w", err)
@@ -1125,6 +1126,19 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 		return fmt.Errorf("bip47 descriptor %d import failed: %s", i, msg)
 	}
 	return p.svc.MarkBip47NotificationImported(walletID, net.Name)
+}
+
+// Bip47RescanFrom is the unix time a backend scans a wallet's own BIP47
+// notification key from. 0 means genesis. A payment code derives from the seed,
+// so a sender can notify before the backend ever watches the key. Scanning from
+// the tip would drop that notification, and every payment behind it.
+func Bip47RescanFrom(w *WalletData) int64 {
+	// A restored seed holds history of any age. A wallet whose birthday this
+	// install never recorded could have received one at any time.
+	if w == nil || w.Imported || w.CreatedAt.IsZero() {
+		return 0
+	}
+	return w.CreatedAt.Unix()
 }
 
 // importTimestamp is what Core rescans from. A restored seed can have history
