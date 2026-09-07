@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -788,30 +789,63 @@ type nodeDeposit struct {
 	ValueSats int64
 }
 
-// UnmarshalJSON reads what a node writes: the mainchain outpoint that paid,
+// UnmarshalJSON reads a deposit's two halves: the mainchain outpoint that paid,
 // and the sidechain output it created.
 func (d *nodeDeposit) UnmarshalJSON(raw []byte) error {
-	var deposit struct {
-		Outpoint struct {
-			Deposit string `json:"Deposit"`
-		} `json:"outpoint"`
-		Output struct {
-			Address string          `json:"address"`
-			Content json.RawMessage `json:"content"`
-		} `json:"output"`
+	halves, err := depositHalves(raw)
+	if err != nil {
+		return err
 	}
-	if err := json.Unmarshal(raw, &deposit); err != nil {
-		return fmt.Errorf("read the deposit: %w", err)
+	var outpoint struct {
+		Deposit string `json:"Deposit"`
+	}
+	if err := json.Unmarshal(halves[0], &outpoint); err != nil {
+		return fmt.Errorf("read the deposit outpoint: %w", err)
+	}
+	var output struct {
+		Address string          `json:"address"`
+		Content json.RawMessage `json:"content"`
+	}
+	if err := json.Unmarshal(halves[1], &output); err != nil {
+		return fmt.Errorf("read the deposit output: %w", err)
 	}
 	// A payload that decodes but names no outpoint is a shape this reader does
 	// not know. Reading it as an empty deposit hides every deposit in the block.
-	if deposit.Outpoint.Deposit == "" {
+	if outpoint.Deposit == "" {
 		return fmt.Errorf("a deposit names no mainchain outpoint")
 	}
-	d.Outpoint = deposit.Outpoint.Deposit
-	d.Address = deposit.Output.Address
-	d.ValueSats = contentValue(deposit.Output.Content)
+	d.Outpoint = outpoint.Deposit
+	d.Address = output.Address
+	d.ValueSats = contentValue(output.Content)
 	return nil
+}
+
+// depositHalves splits one deposit into its outpoint and its output. Two
+// thunder builds both report 0.17.6 and write this differently: one names the
+// halves, the other writes them as a two-element array. Both are live.
+func depositHalves(raw []byte) ([2]json.RawMessage, error) {
+	var none [2]json.RawMessage
+	if bytes.HasPrefix(bytes.TrimSpace(raw), []byte("[")) {
+		var pair []json.RawMessage
+		if err := json.Unmarshal(raw, &pair); err != nil {
+			return none, fmt.Errorf("read the deposit pair: %w", err)
+		}
+		if len(pair) != 2 {
+			return none, fmt.Errorf("a deposit holds an outpoint and an output, got %d parts", len(pair))
+		}
+		return [2]json.RawMessage{pair[0], pair[1]}, nil
+	}
+	var named struct {
+		Outpoint json.RawMessage `json:"outpoint"`
+		Output   json.RawMessage `json:"output"`
+	}
+	if err := json.Unmarshal(raw, &named); err != nil {
+		return none, fmt.Errorf("read the deposit: %w", err)
+	}
+	if len(named.Outpoint) == 0 || len(named.Output) == 0 {
+		return none, fmt.Errorf("a deposit names neither an outpoint nor an output")
+	}
+	return [2]json.RawMessage{named.Outpoint, named.Output}, nil
 }
 
 // nodeHeader reads one block header from the node.
