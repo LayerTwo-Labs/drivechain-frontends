@@ -232,7 +232,7 @@ double progressBlockWidth(int rows) =>
 
 /// Height the progress block holds for [rows] stacked bars.
 double progressBlockHeight(BuildContext context, int rows) =>
-    progressRowHeight(context) * rows + SailStyleValues.padding08 * (rows - 1);
+    progressRowHeight(context) * rows + SailStyleValues.padding12 * (rows - 1);
 
 /// Daemon status in a block that always holds the same height, so a card never
 /// resizes as errors come and go. A message taller than the block hides behind
