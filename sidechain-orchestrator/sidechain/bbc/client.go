@@ -25,6 +25,13 @@ func NewClient(host string, port int, cookiePath string) *Client {
 	return &Client{Client: corenode.New("bbc", host, port, cookiePath, corenode.Options{})}
 }
 
+// SidechainInfo is the node's view of its link to the mainchain.
+type SidechainInfo struct {
+	Synced       bool   `json:"synced"`
+	MainchainTip string `json:"mainchaintip"`
+	LastError    string `json:"lasterror"`
+}
+
 // GetSidechainInfo reports whether the node has caught up with the mainchain.
 func (c *Client) GetSidechainInfo(ctx context.Context) (*SidechainInfo, error) {
 	info, err := corenode.Decode[SidechainInfo](ctx, c.Client, "getsidechaininfo", nil)
