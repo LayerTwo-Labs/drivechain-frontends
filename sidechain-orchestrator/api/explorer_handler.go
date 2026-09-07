@@ -788,32 +788,29 @@ type nodeDeposit struct {
 	ValueSats int64
 }
 
-// UnmarshalJSON reads the pair a node writes: the mainchain outpoint, then the
-// sidechain output it created.
+// UnmarshalJSON reads what a node writes: the mainchain outpoint that paid,
+// and the sidechain output it created.
 func (d *nodeDeposit) UnmarshalJSON(raw []byte) error {
-	var pair []json.RawMessage
-	if err := json.Unmarshal(raw, &pair); err != nil {
-		return fmt.Errorf("read the deposit pair: %w", err)
+	var deposit struct {
+		Outpoint struct {
+			Deposit string `json:"Deposit"`
+		} `json:"outpoint"`
+		Output struct {
+			Address string          `json:"address"`
+			Content json.RawMessage `json:"content"`
+		} `json:"output"`
 	}
-	if len(pair) != 2 {
-		return fmt.Errorf("a deposit holds an outpoint and an output, got %d parts", len(pair))
+	if err := json.Unmarshal(raw, &deposit); err != nil {
+		return fmt.Errorf("read the deposit: %w", err)
 	}
-	var outpoint struct {
-		Deposit string `json:"Deposit"`
+	// A payload that decodes but names no outpoint is a shape this reader does
+	// not know. Reading it as an empty deposit hides every deposit in the block.
+	if deposit.Outpoint.Deposit == "" {
+		return fmt.Errorf("a deposit names no mainchain outpoint")
 	}
-	if err := json.Unmarshal(pair[0], &outpoint); err != nil {
-		return fmt.Errorf("read the deposit outpoint: %w", err)
-	}
-	var output struct {
-		Address string          `json:"address"`
-		Content json.RawMessage `json:"content"`
-	}
-	if err := json.Unmarshal(pair[1], &output); err != nil {
-		return fmt.Errorf("read the deposit output: %w", err)
-	}
-	d.Outpoint = outpoint.Deposit
-	d.Address = output.Address
-	d.ValueSats = contentValue(output.Content)
+	d.Outpoint = deposit.Outpoint.Deposit
+	d.Address = deposit.Output.Address
+	d.ValueSats = contentValue(deposit.Output.Content)
 	return nil
 }
 

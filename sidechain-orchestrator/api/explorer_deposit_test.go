@@ -9,40 +9,40 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 )
 
-// A node writes a deposit as a pair: the mainchain outpoint, then the
-// sidechain output it created. This is the shape a live thunder node sends.
-func TestBlockIndexReadsTheDepositPair(t *testing.T) {
-	raw := json.RawMessage(`{
-		"txs": [],
-		"deposits": [
-			[{"Deposit": "7215d16ed52a4f26b4ed5cbef066dd2aedc9336ad5c2069942f1e36c9973b0c4:0"},
-			 {"address": "hbpj5v1raA6qHnJKjab8Wh9NDW2", "content": {"Value": 12300}}],
-			[{"Deposit": "d9f0a85ccd0205a5fee36c6afad63a8704c5b0339f2e8b8cb8431d5d458e3e61:0"},
-			 {"address": "2fPNxpAMPdBL6KyzYt7ZuzvgPkUM", "content": {"Value": 200000000}}]
-		],
-		"bundle_spends": []
-	}`)
+// A node names a deposit's two halves: the mainchain outpoint that paid, and
+// the sidechain output it created. These bytes are one get_block_index reply,
+// copied from a thunder node on alphanet.
+func TestBlockIndexReadsADeposit(t *testing.T) {
+	raw := json.RawMessage(`{"txs":[],"deposits":[{"outpoint":{"Deposit":"cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc:0"},"output":{"address":"rQyAxKGtdbyiEM852yMtoRWfgVD","content":{"Value":54300}}}],"bundle_spends":[]}`)
 
 	var index nodeBlockIndex
 	if err := json.Unmarshal(raw, &index); err != nil {
 		t.Fatalf("read the block index: %v", err)
 	}
-	if got := len(index.Deposits); got != 2 {
-		t.Fatalf("the block holds %d deposits, want 2", got)
+	if got := len(index.Deposits); got != 1 {
+		t.Fatalf("the block holds %d deposits, want 1", got)
 	}
-	first := index.Deposits[0]
-	if first.Address != "hbpj5v1raA6qHnJKjab8Wh9NDW2" {
-		t.Errorf("the first deposit paid %s", first.Address)
+	only := index.Deposits[0]
+	if only.Address != "rQyAxKGtdbyiEM852yMtoRWfgVD" {
+		t.Errorf("the deposit paid %s", only.Address)
 	}
-	if first.ValueSats != 12300 {
-		t.Errorf("the first deposit is worth %d sats, want 12300", first.ValueSats)
+	if only.ValueSats != 54300 {
+		t.Errorf("the deposit is worth %d sats, want 54300", only.ValueSats)
 	}
-	want := "7215d16ed52a4f26b4ed5cbef066dd2aedc9336ad5c2069942f1e36c9973b0c4"
-	if got := depositTxid(first.Outpoint); got != want {
-		t.Errorf("the first outpoint names %s, want %s", got, want)
+	want := "cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc"
+	if got := depositTxid(only.Outpoint); got != want {
+		t.Errorf("the outpoint names %s, want %s", got, want)
 	}
-	if index.Deposits[1].ValueSats != 200000000 {
-		t.Errorf("the second deposit is worth %d sats", index.Deposits[1].ValueSats)
+}
+
+// The reader refuses a deposit it cannot name, rather than reading it as an
+// empty one. A block whose deposits all read empty looks like a block with no
+// deposits, which is how a shape change hides.
+func TestDepositWithNoOutpointIsRefused(t *testing.T) {
+	var d nodeDeposit
+	err := d.UnmarshalJSON([]byte(`{"output":{"address":"sc1","content":{"Value":1}}}`))
+	if err == nil {
+		t.Fatal("the read passed, and a deposit with no outpoint must fail")
 	}
 }
 
@@ -59,8 +59,8 @@ func TestNodeBlockReportsWhatWasDeposited(t *testing.T) {
 		},
 		index: map[string]string{
 			"aa": `{"txs":[],"deposits":[
-				[{"Deposit":"7215d16e:0"},{"address":"sc1","content":{"Value":12300}}],
-				[{"Deposit":"d9f0a85c:0"},{"address":"sc2","content":{"Value":200000000}}]
+				{"outpoint":{"Deposit":"7215d16e:0"},"output":{"address":"sc1","content":{"Value":12300}}},
+				{"outpoint":{"Deposit":"d9f0a85c:0"},"output":{"address":"sc2","content":{"Value":200000000}}}
 			]}`,
 		},
 	}
@@ -133,7 +133,7 @@ func TestOverviewWalksPastTheBlockWindowForRows(t *testing.T) {
 		node.index[hash] = `{"txs":[],"deposits":[]}`
 	}
 	node.index["b0"] = `{"txs":[],"deposits":[
-		[{"Deposit":"7215d16e:0"},{"address":"sc1","content":{"Value":12300}}]
+		{"outpoint":{"Deposit":"7215d16e:0"},"output":{"address":"sc1","content":{"Value":12300}}}
 	]}`
 
 	src := source{name: "thunder", node: node, cache: newBlockCache()}
@@ -226,7 +226,7 @@ func TestNodeBlockCachesNoIncompleteRead(t *testing.T) {
 	}
 
 	node.index["aa"] = `{"txs":[],"deposits":[
-		[{"Deposit":"7215d16e:0"},{"address":"sc1","content":{"Value":12300}}]
+		{"outpoint":{"Deposit":"7215d16e:0"},"output":{"address":"sc1","content":{"Value":12300}}}
 	]}`
 	_, activity, err := nodeBlock(ctx, src, "aa", 0)
 	if err != nil {
@@ -289,7 +289,7 @@ func TestOverviewResolvesOnlyTheBlocksThePageUses(t *testing.T) {
 		node.index[hash] = `{"txs":[],"deposits":[]}`
 	}
 	node.index["b0"] = `{"txs":[],"deposits":[
-		[{"Deposit":"7215d16e:0"},{"address":"sc1","content":{"Value":12300}}]
+		{"outpoint":{"Deposit":"7215d16e:0"},"output":{"address":"sc1","content":{"Value":12300}}}
 	]}`
 
 	var asked []string
@@ -328,7 +328,7 @@ func TestNodeBlockRestampsAHeightTheNodeNeverNamed(t *testing.T) {
 			"aa": `{"header":{"merkle_root":"m1","prev_main_hash":"x1"},"body":{"transactions":[]}}`,
 		},
 		index: map[string]string{"aa": `{"txs":[],"deposits":[
-			[{"Deposit":"7215d16e:0"},{"address":"sc1","content":{"Value":12300}}]
+			{"outpoint":{"Deposit":"7215d16e:0"},"output":{"address":"sc1","content":{"Value":12300}}}
 		]}`},
 	}
 	src := source{name: "thunder", node: node, cache: newBlockCache()}
