@@ -843,7 +843,6 @@
       "chain_layer": 2,
       "is_bitcoin_core": true,
       "legacy_wallet": true,
-      "pins_mainchain": true,
       "color": "orange",
       "health_check": {
         "type": "tcp"

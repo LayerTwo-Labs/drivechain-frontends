@@ -135,3 +135,12 @@ func (p *JSONRPCProxy) Stop(ctx context.Context) error {
 func (p *JSONRPCProxy) CallRaw(ctx context.Context, method string, params any) (json.RawMessage, error) {
 	return p.Client.CallRaw(ctx, method, params)
 }
+
+// Args keeps a bare Rust backend from opening a window. The frontend that asked
+// for it already draws one, so a second window shows one chain twice.
+func (p *JSONRPCProxy) Args(_ context.Context, host Host) ([]string, error) {
+	if !host.BackendOnly() {
+		return nil, nil
+	}
+	return []string{"--headless"}, nil
+}
