@@ -262,17 +262,20 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 	if err != nil {
 		return 0, 0, err
 	}
-	// confirmed = confirmed coins not being spent in the mempool; pending = the
-	// rest, derived from the true total so spending unconfirmed coins nets out.
-	var confirmedNet, mempoolFunded, mempoolSpent int64
+	// The coins the wallet holds are the balance, so this and ListUnspent
+	// answer from one set. A funded-minus-spent total from the index inflates
+	// the balance whenever the index misses a spend, and an M5 deposit pays
+	// nonstandard outputs that an index can miss.
+	var confirmed, pending int64
 	for _, a := range scan.addrs {
-		confirmedNet += a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum
-		mempoolFunded += a.stats.MempoolStats.FundedTxoSum
-		mempoolSpent += a.stats.MempoolStats.SpentTxoSum
+		for _, u := range a.utxos {
+			if u.Status.Confirmed {
+				confirmed += u.Value
+				continue
+			}
+			pending += u.Value
+		}
 	}
-	total := confirmedNet + mempoolFunded - mempoolSpent
-	confirmed := max(confirmedNet-mempoolSpent, 0)
-	pending := total - confirmed
 	return float64(confirmed) / 1e8, float64(pending) / 1e8, nil
 }
 
@@ -2655,8 +2658,18 @@ func (p *ElectrumBackend) hydrate(ctx context.Context, walletID string, a *scann
 		if prev, ok := prior.byAddr[a.address]; ok && prev.status == status {
 			a.status = prev.status
 			a.stats = prev.stats
-			a.utxos = prev.utxos
 			a.txs = prev.txs
+			// The status is the last one the index pushed, and the same index
+			// reports the coins, so it shows no spend the index missed.
+			if !prev.stats.Used() {
+				a.utxos = prev.utxos
+				return nil
+			}
+			utxos, err := p.client.AddressUTXOs(ctx, a.address)
+			if err != nil {
+				return fmt.Errorf("address utxos %s: %w", a.address, err)
+			}
+			a.utxos = utxos
 			return nil
 		}
 	}
@@ -2670,22 +2683,29 @@ func (p *ElectrumBackend) hydrate(ctx context.Context, walletID string, a *scann
 	if !stats.Used() {
 		return nil
 	}
+	// Equal totals do not prove equal coins: an index that misses an M5 spend
+	// serves the totals from before it. The history behind those totals holds,
+	// and it costs a page walk, so only the coins are read again.
+	var cachedTxs []EsploraTx
+	var haveTxs bool
 	if prior != nil {
 		if prev, ok := prior.byAddr[a.address]; ok && prev.stats == stats {
-			a.utxos = prev.utxos
-			a.txs = prev.txs
-			return nil
+			cachedTxs, haveTxs = prev.txs, true
 		}
 	}
 	utxos, err := p.client.AddressUTXOs(ctx, a.address)
 	if err != nil {
 		return fmt.Errorf("address utxos %s: %w", a.address, err)
 	}
+	a.utxos = utxos
+	if haveTxs {
+		a.txs = cachedTxs
+		return nil
+	}
 	txs, err := p.client.AddressTxs(ctx, a.address)
 	if err != nil {
 		return fmt.Errorf("address txs %s: %w", a.address, err)
 	}
-	a.utxos = utxos
 	a.txs = txs
 	return nil
 }

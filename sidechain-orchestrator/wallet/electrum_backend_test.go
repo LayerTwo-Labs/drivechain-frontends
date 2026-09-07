@@ -87,7 +87,29 @@ func (f *fakeEsplora) AddressStats(_ context.Context, address string) (EsploraAd
 func (f *fakeEsplora) AddressUTXOs(_ context.Context, address string) ([]EsploraUTXO, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.utxos[address], nil
+	if u, ok := f.utxos[address]; ok {
+		return u, nil
+	}
+	// Esplora reports the coins behind the totals it serves, so a test that
+	// sets stats alone still gets a matching coin. A mempool spend takes a
+	// confirmed coin first, then a mempool one.
+	var out []EsploraUTXO
+	s := f.stats[address]
+	chain := s.ChainStats.FundedTxoSum - s.ChainStats.SpentTxoSum
+	fromChain := min(s.MempoolStats.SpentTxoSum, chain)
+	if left := chain - fromChain; left > 0 {
+		out = append(out, EsploraUTXO{
+			TxID: "chain-" + address, Value: left,
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+		})
+	}
+	if left := s.MempoolStats.FundedTxoSum - (s.MempoolStats.SpentTxoSum - fromChain); left > 0 {
+		out = append(out, EsploraUTXO{
+			TxID: "mempool-" + address, Value: left,
+			Status: EsploraStatus{Confirmed: false},
+		})
+	}
+	return out, nil
 }
 
 func (f *fakeEsplora) AddressTxs(_ context.Context, address string) ([]EsploraTx, error) {
@@ -855,6 +877,174 @@ func TestElectrumBalanceMempoolSpendStaysNonNegative(t *testing.T) {
 	assert.InDelta(t, 0.0003, pending, 1e-9) // 30k of mempool inflow (change)
 }
 
+// An M5 deposit pays nonstandard outputs, and an index can miss that spend and
+// keep reporting the old total. The balance follows the coins, so it does not
+// count a coin the wallet no longer holds.
+func TestElectrumBalanceIgnoresAStaleTotal(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{}
+
+	confirmed, pending, err := p.Balance(context.Background(), w.ID)
+	require.NoError(t, err)
+	assert.Zero(t, confirmed, "a spent coin does not count")
+	assert.Zero(t, pending)
+
+	unspent, err := p.ListUnspent(context.Background(), w.ID)
+	require.NoError(t, err)
+	assert.Empty(t, unspent, "balance and unspent read one set")
+}
+
+// The index can serve the totals from before an M5 spend. A refresh that trusts
+// equal totals keeps the spent coin cached, so it must re-read the coins.
+func TestElectrumBalanceRefreshesCoinsWhenTotalsStayStale(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	stale := EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.stats[addr] = stale
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "aa", Vout: 0, Value: 100_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+	}}
+
+	confirmed, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 0.001, confirmed, 1e-9)
+
+	// The deposit spends the coin, and the index keeps the old totals.
+	fake.utxos[addr] = []EsploraUTXO{}
+	require.Equal(t, stale, fake.stats[addr], "the totals stay stale")
+
+	p.mu.Lock()
+	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
+	p.mu.Unlock()
+
+	confirmed, pending, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.Zero(t, confirmed, "a stale total must not keep a spent coin")
+	assert.Zero(t, pending)
+}
+
+// pushEsplora is a push-capable source whose scripthash status never changes,
+// which models an index that never reports the spend it missed.
+type pushEsplora struct {
+	ChainDataSource
+	notes     chan ElectrumNotification
+	utxoCalls int32
+}
+
+func (f *pushEsplora) SubscribeHeaders(context.Context) (int, error) { return 110, nil }
+func (f *pushEsplora) ScriptHash(address string) (string, error)     { return "sh-" + address, nil }
+func (f *pushEsplora) Subscribe(context.Context, string) (string, error) {
+	return "frozen-status", nil
+}
+func (f *pushEsplora) Notifications() <-chan ElectrumNotification { return f.notes }
+
+func (f *pushEsplora) AddressUTXOs(ctx context.Context, address string) ([]EsploraUTXO, error) {
+	atomic.AddInt32(&f.utxoCalls, 1)
+	return f.ChainDataSource.AddressUTXOs(ctx, address)
+}
+
+// A push status is the last one the index sent. If the index missed the spend
+// it never pushes, so the refresh must still read the coins.
+func TestElectrumRefreshReadsCoinsDespiteAFrozenPushStatus(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 1)
+	require.NoError(t, err)
+	addr := addrs[0]
+
+	fake := newFakeEsplora()
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "aa", Vout: 0, Value: 100_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+	}}
+	push := &pushEsplora{ChainDataSource: fake, notes: make(chan ElectrumNotification)}
+	p := NewElectrumBackend(svc, push, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	ctx := context.Background()
+
+	confirmed, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 0.001, confirmed, 1e-9)
+
+	// The deposit spends the coin. The index pushes nothing and keeps its totals.
+	fake.utxos[addr] = []EsploraUTXO{}
+
+	p.mu.Lock()
+	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
+	p.mu.Unlock()
+
+	confirmed, pending, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.Zero(t, confirmed, "a frozen push status must not keep a spent coin")
+	assert.Zero(t, pending)
+}
+
+// countingChainData counts the coin and history reads a refresh makes.
+type countingChainData struct {
+	ChainDataSource
+	utxoCalls int32
+	txCalls   int32
+}
+
+func (c *countingChainData) AddressUTXOs(ctx context.Context, address string) ([]EsploraUTXO, error) {
+	atomic.AddInt32(&c.utxoCalls, 1)
+	return c.ChainDataSource.AddressUTXOs(ctx, address)
+}
+
+func (c *countingChainData) AddressTxs(ctx context.Context, address string) ([]EsploraTx, error) {
+	atomic.AddInt32(&c.txCalls, 1)
+	return c.ChainDataSource.AddressTxs(ctx, address)
+}
+
+// A refresh re-reads the coins, because a total can hide a spend. The history
+// behind an unchanged total holds, and it costs a page walk, so it is reused.
+func TestElectrumRefreshReadsCoinsButKeepsHistory(t *testing.T) {
+	svc := newTestService(t)
+	w, err := svc.CreateElectrumWallet("Electrum", nil, nil, "", "", "", "", 0, "")
+	require.NoError(t, err)
+	addrs, err := DeriveBIP84Addresses(w.Master.SeedHex, &chaincfg.SigNetParams, 0, 1)
+	require.NoError(t, err)
+	addr := addrs[0]
+
+	fake := newFakeEsplora()
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
+	}
+	counting := &countingChainData{ChainDataSource: fake}
+	p := NewElectrumBackend(svc, counting, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	ctx := context.Background()
+
+	_, _, err = p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	firstUTXO := atomic.LoadInt32(&counting.utxoCalls)
+	firstTxs := atomic.LoadInt32(&counting.txCalls)
+	require.Positive(t, firstUTXO)
+	require.Positive(t, firstTxs)
+
+	p.mu.Lock()
+	p.scanAt[w.ID] = time.Now().Add(-time.Hour)
+	p.mu.Unlock()
+
+	_, _, err = p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.Greater(t, atomic.LoadInt32(&counting.utxoCalls), firstUTXO, "the refresh reads the coins again")
+	assert.Equal(t, firstTxs, atomic.LoadInt32(&counting.txCalls), "the refresh keeps the cached history")
+}
+
 // TestElectrumBalanceSpendingUnconfirmedReceive covers spending an unconfirmed
 // receive: mempoolSpent exceeds the confirmed balance, so pending must be the
 // net wallet total (the change), not the gross mempool inflow.
@@ -1401,6 +1591,10 @@ func TestElectrumScanPersistsAcrossRestart(t *testing.T) {
 		Address:    addr,
 		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 250_000, TxCount: 1},
 	}
+	fake.utxos[addr] = []EsploraUTXO{{
+		TxID: "aa", Vout: 0, Value: 250_000,
+		Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+	}}
 
 	confirmed, _, err := p.Balance(ctx, w.ID) // live scan → persists to disk
 	require.NoError(t, err)
@@ -2293,6 +2487,10 @@ func TestElectrumRefreshKeepsAnAddressPastTheLookahead(t *testing.T) {
 			Address:    addrs[i],
 			ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 100_000, TxCount: 1},
 		}
+		fake.utxos[addrs[i]] = []EsploraUTXO{{
+			TxID: fmt.Sprintf("aa%d", i), Vout: 0, Value: 100_000,
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+		}}
 	}
 
 	p := NewElectrumBackend(svc, fake, StaticParams(&chaincfg.SigNetParams), zerolog.New(zerolog.NewTestWriter(t)))
