@@ -9,29 +9,35 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/explorer/v1"
 )
 
-// A node names a deposit's two halves: the mainchain outpoint that paid, and
-// the sidechain output it created. These bytes are one get_block_index reply,
-// copied from a thunder node on alphanet.
-func TestBlockIndexReadsADeposit(t *testing.T) {
-	raw := json.RawMessage(`{"txs":[],"deposits":[{"outpoint":{"Deposit":"cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc:0"},"output":{"address":"rQyAxKGtdbyiEM852yMtoRWfgVD","content":{"Value":54300}}}],"bundle_spends":[]}`)
-
-	var index nodeBlockIndex
-	if err := json.Unmarshal(raw, &index); err != nil {
-		t.Fatalf("read the block index: %v", err)
-	}
-	if got := len(index.Deposits); got != 1 {
-		t.Fatalf("the block holds %d deposits, want 1", got)
-	}
-	only := index.Deposits[0]
-	if only.Address != "rQyAxKGtdbyiEM852yMtoRWfgVD" {
-		t.Errorf("the deposit paid %s", only.Address)
-	}
-	if only.ValueSats != 54300 {
-		t.Errorf("the deposit is worth %d sats, want 54300", only.ValueSats)
-	}
-	want := "cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc"
-	if got := depositTxid(only.Outpoint); got != want {
-		t.Errorf("the outpoint names %s, want %s", got, want)
+// Two thunder builds both report 0.17.6 and write a deposit differently. These
+// are the two get_block_index replies, one from a node on a laptop and one from
+// the alphanet server, for the same block.
+func TestBlockIndexReadsBothDepositShapes(t *testing.T) {
+	const (
+		named  = `{"txs":[],"deposits":[{"outpoint":{"Deposit":"cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc:0"},"output":{"address":"rQyAxKGtdbyiEM852yMtoRWfgVD","content":{"Value":54300}}}],"bundle_spends":[]}`
+		paired = `{"txs":[],"deposits":[[{"Deposit":"cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc:0"},{"address":"rQyAxKGtdbyiEM852yMtoRWfgVD","content":{"Value":54300}}]],"bundle_spends":[]}`
+	)
+	for name, raw := range map[string]string{"named fields": named, "a pair": paired} {
+		t.Run(name, func(t *testing.T) {
+			var index nodeBlockIndex
+			if err := json.Unmarshal(json.RawMessage(raw), &index); err != nil {
+				t.Fatalf("read the block index: %v", err)
+			}
+			if got := len(index.Deposits); got != 1 {
+				t.Fatalf("the block holds %d deposits, want 1", got)
+			}
+			only := index.Deposits[0]
+			if only.Address != "rQyAxKGtdbyiEM852yMtoRWfgVD" {
+				t.Errorf("the deposit paid %s", only.Address)
+			}
+			if only.ValueSats != 54300 {
+				t.Errorf("the deposit is worth %d sats, want 54300", only.ValueSats)
+			}
+			want := "cef2cf2f248f78ae41109532e9a85d775fd724506834b076e745e941e31888bc"
+			if got := depositTxid(only.Outpoint); got != want {
+				t.Errorf("the outpoint names %s, want %s", got, want)
+			}
+		})
 	}
 }
 
