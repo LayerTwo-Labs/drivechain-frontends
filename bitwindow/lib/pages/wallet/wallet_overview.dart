@@ -296,6 +296,7 @@ class _TransactionTableState extends State<TransactionTable> {
                         final entry = entries[row];
                         final unconfirmed = entry.confirmationTime.height == 0;
                         final replaceable = canBumpFee(entry);
+                        final opacity = unconfirmed ? 120 : 255;
 
                         // Calculate amount and determine sign
                         final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
@@ -304,27 +305,37 @@ class _TransactionTableState extends State<TransactionTable> {
 
                         return [
                           SailTableCell(
-                            value: formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
+                            opacity: opacity,
+                            value: unconfirmed
+                                ? ''
+                                : formatDate(entry.confirmationTime.timestamp.toDateTime().toLocal()),
                           ),
                           SailTableCell(
-                            value: '${entry.txid.substring(0, 10)}..',
+                            value: '',
+                            opacity: opacity,
                             copyValue: entry.txid,
+                            child: SailText.secondary12(entry.txid, overflow: TextOverflow.ellipsis),
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: '${entry.address}${entry.addressLabel.isNotEmpty ? ' (${entry.addressLabel})' : ''}',
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: entry.note,
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: unconfirmed ? 'Unconfirmed' : 'Confirmed',
                             textColor: unconfirmed ? context.sailTheme.colors.orange : null,
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: formattedAmount,
                             monospace: true,
                           ),
                           SailTableCell(
+                            opacity: opacity,
                             value: replaceable ? 'Bump fee' : '',
                             width: bumpFeeColumnWidth,
                             alignment: Alignment.centerRight,
@@ -510,6 +521,9 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     filteredTransactions.sort((a, b) {
       final aTime = a.confirmationTime.timestamp.seconds;
       final bTime = b.confirmationTime.timestamp.seconds;
+      if (bTime.isZero) {
+        return -1;
+      }
       // If timestamps are equal, use txid as secondary sort
       if (aTime == bTime) {
         return b.txid.compareTo(a.txid);
