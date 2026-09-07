@@ -84,3 +84,41 @@ func TestTargetsAndRoundsUseSeparateFiles(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rounds, 1)
 }
+
+// A failed write leaves the file as it was. The cache must agree, or a second
+// call finds nothing to delete and answers success while the target stands.
+func TestDeleteTargetKeepsItsCacheWhenTheWriteFails(t *testing.T) {
+	dir := t.TempDir()
+	store := NewStore(dir, 0)
+	require.NoError(t, store.SaveTarget(Target{Sidechain: 9, MaxBidSats: 1000}))
+
+	require.NoError(t, os.RemoveAll(dir))
+	require.Error(t, store.DeleteTarget(9))
+
+	targets, err := store.Targets()
+	require.NoError(t, err)
+	require.Len(t, targets, 1, "the target stands until a write lands")
+
+	require.NoError(t, os.MkdirAll(dir, 0o755))
+	require.NoError(t, store.DeleteTarget(9))
+
+	targets, err = store.Targets()
+	require.NoError(t, err)
+	assert.Empty(t, targets)
+}
+
+// The same holds when saving fails: the cache must not claim a target the
+// file never took.
+func TestSaveTargetKeepsItsCacheWhenTheWriteFails(t *testing.T) {
+	dir := t.TempDir()
+	store := NewStore(dir, 0)
+	require.NoError(t, store.SaveTarget(Target{Sidechain: 9, MaxBidSats: 1000}))
+
+	require.NoError(t, os.RemoveAll(dir))
+	require.Error(t, store.SaveTarget(Target{Sidechain: 4, MaxBidSats: 2000}))
+
+	targets, err := store.Targets()
+	require.NoError(t, err)
+	require.Len(t, targets, 1)
+	assert.Equal(t, int32(9), targets[0].Sidechain)
+}

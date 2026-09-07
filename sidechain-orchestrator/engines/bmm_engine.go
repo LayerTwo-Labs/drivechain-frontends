@@ -131,41 +131,31 @@ func (e *BmmEngine) Start(
 		return fmt.Errorf("max_bid_sats must be positive")
 	}
 
-	e.mu.Lock()
-	target := bmmTarget{
-		maxBidSats:      maxBidSats,
-		walletID:        walletID,
-		capToBlockWorth: capToBlockWorth,
-	}
-	previous, running := e.targets[sidechain]
-	if running {
-		target.lastTip = previous.lastTip
-	} else if round, ok := e.current[sidechain]; ok {
-		target.lastTip = round.PrevMainHash
-	}
-	e.targets[sidechain] = target
-	e.mu.Unlock()
-
-	// A restart must resume bidding. An unsaved target leaves the engine with
-	// nothing to bid for, and it says nothing about it, so the caller hears
-	// about the failure rather than a start that does not last.
+	// The disk goes first. A target the tick can already read would pay for a
+	// bid this call is about to refuse, and a restart must resume bidding, so
+	// an unsaved target is no start at all.
 	if err := e.store.SaveTarget(bmmstate.Target{
 		Sidechain:       int32(sidechain),
 		WalletID:        walletID,
 		MaxBidSats:      maxBidSats,
 		CapToBlockWorth: capToBlockWorth,
 	}); err != nil {
-		// A second Start only changes the wallet or the ceiling. Deleting the
-		// target would stop bidding over a failure that changed nothing.
-		e.mu.Lock()
-		if running {
-			e.targets[sidechain] = previous
-		} else {
-			delete(e.targets, sidechain)
-		}
-		e.mu.Unlock()
 		return fmt.Errorf("store the bmm target: %w", err)
 	}
+
+	e.mu.Lock()
+	target := bmmTarget{
+		maxBidSats:      maxBidSats,
+		walletID:        walletID,
+		capToBlockWorth: capToBlockWorth,
+	}
+	if existing, ok := e.targets[sidechain]; ok {
+		target.lastTip = existing.lastTip
+	} else if round, ok := e.current[sidechain]; ok {
+		target.lastTip = round.PrevMainHash
+	}
+	e.targets[sidechain] = target
+	e.mu.Unlock()
 
 	e.log.Info().Stringer("sidechain", sidechain).
 		Int64("max_bid_sats", maxBidSats).

@@ -1241,3 +1241,17 @@ func TestBmmEngineKeepsBiddingWhenAStopCannotBeSaved(t *testing.T) {
 	assert.True(t, running, "the stop never reached the disk, so nothing changed")
 	assert.Equal(t, "spender", wallet)
 }
+
+// The write goes first, so a target the tick can read is a target on disk. A
+// failed start must leave nothing bidding.
+func TestBmmEngineStartsNothingWhenTheTargetCannotBeSaved(t *testing.T) {
+	engine, backend, _, store := newEngine(t)
+	store.Rebind(filepath.Join(t.TempDir(), "gone"))
+
+	require.Error(t, engine.Start(testSidechain, "", 10_000, false))
+
+	running, _, _ := engine.Running(testSidechain)
+	assert.False(t, running, "an unsaved target never reaches the tick")
+	engine.tick(context.Background())
+	assert.Zero(t, backend.bids, "so nothing pays for a bid")
+}

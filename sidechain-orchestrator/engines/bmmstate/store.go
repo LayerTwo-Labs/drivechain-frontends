@@ -272,14 +272,26 @@ func (s *Store) SaveTarget(target Target) error {
 	if err := s.ensureTargetsLoadedLocked(); err != nil {
 		return err
 	}
+	// A failed write leaves the file as it was, so the cache goes back too.
+	// Memory that claims what the disk never took makes the next call answer
+	// success while the old state stands.
+	before := append([]Target(nil), s.targets...)
+	replaced := false
 	for i := range s.targets {
 		if s.targets[i].Sidechain == target.Sidechain {
 			s.targets[i] = target
-			return s.flushTargetsLocked()
+			replaced = true
+			break
 		}
 	}
-	s.targets = append(s.targets, target)
-	return s.flushTargetsLocked()
+	if !replaced {
+		s.targets = append(s.targets, target)
+	}
+	if err := s.flushTargetsLocked(); err != nil {
+		s.targets = before
+		return err
+	}
+	return nil
 }
 
 // DeleteTarget drops one sidechain's target, so a restart does not resume it.
@@ -298,8 +310,13 @@ func (s *Store) DeleteTarget(sidechain int32) error {
 	if len(kept) == len(s.targets) {
 		return nil
 	}
+	before := s.targets
 	s.targets = kept
-	return s.flushTargetsLocked()
+	if err := s.flushTargetsLocked(); err != nil {
+		s.targets = before
+		return err
+	}
+	return nil
 }
 
 // Targets lists every sidechain the engine bids for.
