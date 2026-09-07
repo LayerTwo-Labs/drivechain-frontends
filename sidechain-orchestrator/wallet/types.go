@@ -35,7 +35,7 @@ type WalletData struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Gradient   json.RawMessage   `json:"gradient"`
-	CreatedAt  time.Time         `json:"-"`
+	CreatedAt  time.Time         `json:"created_at,omitempty"`
 	WalletType WalletType        `json:"wallet_type"`
 	WatchOnly  json.RawMessage   `json:"watch_only,omitempty"`
 	// ScriptType is the electrum address kind (legacy/nested-segwit/
