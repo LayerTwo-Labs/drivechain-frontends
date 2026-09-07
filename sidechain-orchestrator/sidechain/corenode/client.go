@@ -267,6 +267,12 @@ func (c *Client) CallRaw(ctx context.Context, method string, params any) (json.R
 	return c.Call(ctx, method, params)
 }
 
+// Args is empty for a Core fork. --headless is a Rust backend flag, and a Core
+// daemon exits on it. A fork that boots with more overrides this.
+func (c *Client) Args(context.Context, sidechain.Host) ([]string, error) {
+	return nil, nil
+}
+
 // ---------------------------------------------------------------------------
 // Replies
 // ---------------------------------------------------------------------------

@@ -36,7 +36,6 @@ type jsonBinaryConf struct {
 
 	IsBitcoinCore bool `json:"is_bitcoin_core"`
 	LegacyWallet  bool `json:"legacy_wallet"`
-	PinsMainchain bool `json:"pins_mainchain"`
 
 	HealthCheck *struct {
 		Type      string `json:"type"`
@@ -267,7 +266,6 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 		Slot:               jb.Slot,
 		IsBitcoinCore:      jb.IsBitcoinCore,
 		LegacyWallet:       jb.LegacyWallet,
-		PinsMainchain:      jb.PinsMainchain,
 		Dependencies:       jb.Dependencies,
 		StartupLogPatterns: jb.StartupLogPatterns,
 	}

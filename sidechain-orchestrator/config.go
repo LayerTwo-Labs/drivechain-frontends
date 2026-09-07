@@ -47,7 +47,6 @@ type BinaryConfig struct {
 	DataDirMainnet map[string]string // os -> subdir (mainnet override, empty = use DataDir)
 	IsBitcoinCore  bool              // built on Bitcoin Core: Core datadir layout, Core JSON-RPC, cookie auth
 	LegacyWallet   bool              // pre-descriptor Core fork: keeps its own wallet, no mnemonic-derived provisioning
-	PinsMainchain  bool              // Core fork that verifies its L1 by fork-block pin; the orchestrator supplies the pin and transport args
 
 	// Flutter frontend directory — Dart: flutterFrontendDir() extension (L1306-1353)
 	// Per-OS subdir under the platform app support dir. Empty = no frontend.

@@ -2,31 +2,16 @@ package api
 
 import (
 	"fmt"
-	"path/filepath"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/nodes"
 )
 
-// sidechainNode builds the RPC client for a sidechain. A Core derived chain
-// speaks Core's JSON-RPC authenticated by the cookie its node writes on start;
-// the CUSF chains speak a bare JSON-RPC with no credentials.
+// sidechainNode builds the RPC client for a sidechain.
 func sidechainNode(cfg orchestrator.BinaryConfig, network config.Network) (sidechain.Node, error) {
-	if !cfg.IsBitcoinCore {
-		return sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port), nil
-	}
-	dirs, ok := config.DirConfigByName(cfg.Name)
-	if !ok {
-		return nil, fmt.Errorf("no directory config for %s", cfg.Name)
-	}
-	cookie := filepath.Join(dirs.DatadirNetwork(network, ""), ".cookie")
-	if cfg.Name == "freebank" {
-		return freebank.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
-	}
-	return bbc.NewClient(cfg.RPCHost(), cfg.Port, cookie), nil
+	return nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, network)
 }
 
 // bmmNode is the same client, for a chain whose blocks the BMM engine produces.

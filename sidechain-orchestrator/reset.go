@@ -632,7 +632,6 @@ func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinar
 			startErr = err
 			break
 		}
-		o.injectHeadlessForForcedBackend(cfg, &opts)
 		o.startTargetOnly(ctx, cfg, opts, ch, nil)
 	}
 

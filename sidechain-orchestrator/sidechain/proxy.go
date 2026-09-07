@@ -31,6 +31,10 @@ type Node interface {
 
 	// CallRaw sends one JSON-RPC call and returns the undecoded result.
 	CallRaw(ctx context.Context, method string, params any) (json.RawMessage, error)
+
+	// Args are the command line arguments this chain adds when the
+	// orchestrator starts its node.
+	Args(ctx context.Context, host Host) ([]string, error)
 }
 
 // BMMNode is a sidechain whose blocks the orchestrator's BMM engine produces.
