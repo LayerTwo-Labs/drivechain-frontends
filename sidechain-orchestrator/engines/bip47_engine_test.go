@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -47,6 +48,45 @@ func (s *stubBackend) ListTransactionsRange(ctx context.Context, walletID string
 }
 
 func (s *stubBackend) Chain() wallet.ChainSource { return s.chain }
+
+// notifBackend records the notification key the engine registers.
+type notifBackend struct {
+	wallet.Bip47Backend
+	key wallet.WatchKey
+}
+
+func (n *notifBackend) EnsureNotificationWatched(_ context.Context, _ string, k wallet.WatchKey) error {
+	n.key = k
+	return nil
+}
+
+// A scan from genesis costs hours, and the engine repeats it on every tick
+// until it lands. A generated wallet scans from its own birthday instead, which
+// still covers a notification sent before the backend watched the key.
+func TestEnsureNotificationWatchedScansFromTheWalletBirthday(t *testing.T) {
+	net := &chaincfg.RegressionNetParams
+	e := NewBIP47Engine(zerolog.Nop(), nil, nil, nil)
+	born := time.Now().Add(-72 * time.Hour)
+
+	generated := &wallet.WalletData{ID: "gen", CreatedAt: born}
+	generated.Master.SeedHex = aliceSeedHex
+	backend := &notifBackend{}
+	require.NoError(t, e.ensureNotificationWatched(context.Background(), backend, generated, net))
+	require.Equal(t, born.Unix(), backend.key.RescanFrom, "it scans from the birthday, not the tip")
+
+	restored := &wallet.WalletData{ID: "res", Imported: true, CreatedAt: born}
+	restored.Master.SeedHex = bobSeedHex
+	backend = &notifBackend{}
+	require.NoError(t, e.ensureNotificationWatched(context.Background(), backend, restored, net))
+	require.Zero(t, backend.key.RescanFrom, "a restored seed reads the whole chain")
+
+	// A wallet file written before this install recorded a birthday.
+	unknown := &wallet.WalletData{ID: "old"}
+	unknown.Master.SeedHex = aliceSeedHex
+	backend = &notifBackend{}
+	require.NoError(t, e.ensureNotificationWatched(context.Background(), backend, unknown, net))
+	require.Zero(t, backend.key.RescanFrom, "an unknown birthday reads the whole chain")
+}
 
 type stubChain struct {
 	wallet.ChainSource
