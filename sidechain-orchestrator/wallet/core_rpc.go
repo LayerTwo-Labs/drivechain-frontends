@@ -132,13 +132,25 @@ func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, par
 
 // CreateWallet creates a new Bitcoin Core wallet.
 func (c *CoreRPCClient) CreateWallet(ctx context.Context, name string, disablePrivateKeys, blank bool) error {
-	_, err := c.call(ctx, "", "createwallet", name, disablePrivateKeys, blank)
+	// load_on_startup writes the wallet into Core's settings, so Core loads it
+	// again by itself after a restart. Without it every restart drops the
+	// wallet, and the next call answers -18.
+	const (
+		passphrase    = ""
+		avoidReuse    = false
+		descriptors   = true
+		loadOnStartup = true
+	)
+	_, err := c.call(ctx, "", "createwallet",
+		name, disablePrivateKeys, blank, passphrase, avoidReuse, descriptors, loadOnStartup)
 	return err
 }
 
-// LoadWallet loads an existing Bitcoin Core wallet.
+// LoadWallet loads an existing Bitcoin Core wallet, and asks Core to load it on
+// every later start.
 func (c *CoreRPCClient) LoadWallet(ctx context.Context, name string) error {
-	_, err := c.call(ctx, "", "loadwallet", name)
+	const loadOnStartup = true
+	_, err := c.call(ctx, "", "loadwallet", name, loadOnStartup)
 	return err
 }
 

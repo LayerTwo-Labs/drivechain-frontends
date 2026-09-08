@@ -1779,3 +1779,22 @@ func TestMarkBip47NotificationImportedRollsBackOnSaveFailure(t *testing.T) {
 	require.Error(t, err)
 	assert.False(t, svc.GetWalletByID(w.ID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
 }
+
+// Core drops a wallet on restart unless its settings name it, and then the next
+// call answers -18. The create asks Core to keep it.
+func TestCoreKeepsTheWalletAcrossItsOwnRestart(t *testing.T) {
+	const loadOnStartupArg = 6 // name, disable_private_keys, blank, passphrase, avoid_reuse, descriptors, load_on_startup
+
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	_, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+
+	creates := fake.callsFor("createwallet")
+	require.Len(t, creates, 1)
+	require.Len(t, creates[0].Params, loadOnStartupArg+1, "createwallet must reach load_on_startup")
+	assert.JSONEq(t, "true", string(creates[0].Params[loadOnStartupArg]),
+		"Core forgets the wallet on restart without this")
+	assert.JSONEq(t, "true", string(creates[0].Params[5]), "descriptor wallet, stated rather than defaulted")
+}
