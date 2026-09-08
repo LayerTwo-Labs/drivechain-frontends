@@ -116,6 +116,24 @@ extension type ThunderServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Transfer to many addresses in one transaction.
+  Future<thunderv1thunder.TransferManyResponse> transferMany(
+    thunderv1thunder.TransferManyRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ThunderService.transferMany,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Get total sidechain wealth in sats.
   Future<thunderv1thunder.GetSidechainWealthResponse> getSidechainWealth(
     thunderv1thunder.GetSidechainWealthRequest input, {

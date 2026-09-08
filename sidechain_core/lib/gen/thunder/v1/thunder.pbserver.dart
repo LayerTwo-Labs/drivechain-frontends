@@ -27,6 +27,7 @@ abstract class ThunderServiceBase extends $pb.GeneratedService {
   $async.Future<$14.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $14.GetNewAddressRequest request);
   $async.Future<$14.WithdrawResponse> withdraw($pb.ServerContext ctx, $14.WithdrawRequest request);
   $async.Future<$14.TransferResponse> transfer($pb.ServerContext ctx, $14.TransferRequest request);
+  $async.Future<$14.TransferManyResponse> transferMany($pb.ServerContext ctx, $14.TransferManyRequest request);
   $async.Future<$14.GetSidechainWealthResponse> getSidechainWealth($pb.ServerContext ctx, $14.GetSidechainWealthRequest request);
   $async.Future<$14.CreateDepositResponse> createDeposit($pb.ServerContext ctx, $14.CreateDepositRequest request);
   $async.Future<$14.GetPendingWithdrawalBundleResponse> getPendingWithdrawalBundle($pb.ServerContext ctx, $14.GetPendingWithdrawalBundleRequest request);
@@ -54,6 +55,7 @@ abstract class ThunderServiceBase extends $pb.GeneratedService {
       case 'GetNewAddress': return $14.GetNewAddressRequest();
       case 'Withdraw': return $14.WithdrawRequest();
       case 'Transfer': return $14.TransferRequest();
+      case 'TransferMany': return $14.TransferManyRequest();
       case 'GetSidechainWealth': return $14.GetSidechainWealthRequest();
       case 'CreateDeposit': return $14.CreateDepositRequest();
       case 'GetPendingWithdrawalBundle': return $14.GetPendingWithdrawalBundleRequest();
@@ -84,6 +86,7 @@ abstract class ThunderServiceBase extends $pb.GeneratedService {
       case 'GetNewAddress': return this.getNewAddress(ctx, request as $14.GetNewAddressRequest);
       case 'Withdraw': return this.withdraw(ctx, request as $14.WithdrawRequest);
       case 'Transfer': return this.transfer(ctx, request as $14.TransferRequest);
+      case 'TransferMany': return this.transferMany(ctx, request as $14.TransferManyRequest);
       case 'GetSidechainWealth': return this.getSidechainWealth(ctx, request as $14.GetSidechainWealthRequest);
       case 'CreateDeposit': return this.createDeposit(ctx, request as $14.CreateDepositRequest);
       case 'GetPendingWithdrawalBundle': return this.getPendingWithdrawalBundle(ctx, request as $14.GetPendingWithdrawalBundleRequest);

@@ -152,6 +152,45 @@ const TransferResponse$json = {
 final $typed_data.Uint8List transferResponseDescriptor = $convert.base64Decode(
     'ChBUcmFuc2ZlclJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQ=');
 
+@$core.Deprecated('Use transferManyRequestDescriptor instead')
+const TransferManyRequest$json = {
+  '1': 'TransferManyRequest',
+  '2': [
+    {'1': 'destinations', '3': 1, '4': 3, '5': 11, '6': '.thunder.v1.TransferManyRequest.DestinationsEntry', '10': 'destinations'},
+    {'1': 'fee_sats', '3': 2, '4': 1, '5': 3, '10': 'feeSats'},
+  ],
+  '3': [TransferManyRequest_DestinationsEntry$json],
+};
+
+@$core.Deprecated('Use transferManyRequestDescriptor instead')
+const TransferManyRequest_DestinationsEntry$json = {
+  '1': 'DestinationsEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'value', '3': 2, '4': 1, '5': 3, '10': 'value'},
+  ],
+  '7': {'7': true},
+};
+
+/// Descriptor for `TransferManyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transferManyRequestDescriptor = $convert.base64Decode(
+    'ChNUcmFuc2Zlck1hbnlSZXF1ZXN0ElUKDGRlc3RpbmF0aW9ucxgBIAMoCzIxLnRodW5kZXIudj'
+    'EuVHJhbnNmZXJNYW55UmVxdWVzdC5EZXN0aW5hdGlvbnNFbnRyeVIMZGVzdGluYXRpb25zEhkK'
+    'CGZlZV9zYXRzGAIgASgDUgdmZWVTYXRzGj8KEURlc3RpbmF0aW9uc0VudHJ5EhAKA2tleRgBIA'
+    'EoCVIDa2V5EhQKBXZhbHVlGAIgASgDUgV2YWx1ZToCOAE=');
+
+@$core.Deprecated('Use transferManyResponseDescriptor instead')
+const TransferManyResponse$json = {
+  '1': 'TransferManyResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `TransferManyResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transferManyResponseDescriptor = $convert.base64Decode(
+    'ChRUcmFuc2Zlck1hbnlSZXNwb25zZRISCgR0eGlkGAEgASgJUgR0eGlk');
+
 @$core.Deprecated('Use getSidechainWealthRequestDescriptor instead')
 const GetSidechainWealthRequest$json = {
   '1': 'GetSidechainWealthRequest',
@@ -591,6 +630,7 @@ const $core.Map<$core.String, $core.dynamic> ThunderServiceBase$json = {
     {'1': 'GetNewAddress', '2': '.thunder.v1.GetNewAddressRequest', '3': '.thunder.v1.GetNewAddressResponse'},
     {'1': 'Withdraw', '2': '.thunder.v1.WithdrawRequest', '3': '.thunder.v1.WithdrawResponse'},
     {'1': 'Transfer', '2': '.thunder.v1.TransferRequest', '3': '.thunder.v1.TransferResponse'},
+    {'1': 'TransferMany', '2': '.thunder.v1.TransferManyRequest', '3': '.thunder.v1.TransferManyResponse'},
     {'1': 'GetSidechainWealth', '2': '.thunder.v1.GetSidechainWealthRequest', '3': '.thunder.v1.GetSidechainWealthResponse'},
     {'1': 'CreateDeposit', '2': '.thunder.v1.CreateDepositRequest', '3': '.thunder.v1.CreateDepositResponse'},
     {'1': 'GetPendingWithdrawalBundle', '2': '.thunder.v1.GetPendingWithdrawalBundleRequest', '3': '.thunder.v1.GetPendingWithdrawalBundleResponse'},
@@ -626,6 +666,9 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ThunderSer
   '.thunder.v1.WithdrawResponse': WithdrawResponse$json,
   '.thunder.v1.TransferRequest': TransferRequest$json,
   '.thunder.v1.TransferResponse': TransferResponse$json,
+  '.thunder.v1.TransferManyRequest': TransferManyRequest$json,
+  '.thunder.v1.TransferManyRequest.DestinationsEntry': TransferManyRequest_DestinationsEntry$json,
+  '.thunder.v1.TransferManyResponse': TransferManyResponse$json,
   '.thunder.v1.GetSidechainWealthRequest': GetSidechainWealthRequest$json,
   '.thunder.v1.GetSidechainWealthResponse': GetSidechainWealthResponse$json,
   '.thunder.v1.CreateDepositRequest': CreateDepositRequest$json,
@@ -675,36 +718,38 @@ final $typed_data.Uint8List thunderServiceDescriptor = $convert.base64Decode(
     'RyZXNzUmVxdWVzdBohLnRodW5kZXIudjEuR2V0TmV3QWRkcmVzc1Jlc3BvbnNlEkUKCFdpdGhk'
     'cmF3EhsudGh1bmRlci52MS5XaXRoZHJhd1JlcXVlc3QaHC50aHVuZGVyLnYxLldpdGhkcmF3Um'
     'VzcG9uc2USRQoIVHJhbnNmZXISGy50aHVuZGVyLnYxLlRyYW5zZmVyUmVxdWVzdBocLnRodW5k'
-    'ZXIudjEuVHJhbnNmZXJSZXNwb25zZRJjChJHZXRTaWRlY2hhaW5XZWFsdGgSJS50aHVuZGVyLn'
-    'YxLkdldFNpZGVjaGFpbldlYWx0aFJlcXVlc3QaJi50aHVuZGVyLnYxLkdldFNpZGVjaGFpbldl'
-    'YWx0aFJlc3BvbnNlElQKDUNyZWF0ZURlcG9zaXQSIC50aHVuZGVyLnYxLkNyZWF0ZURlcG9zaX'
-    'RSZXF1ZXN0GiEudGh1bmRlci52MS5DcmVhdGVEZXBvc2l0UmVzcG9uc2USewoaR2V0UGVuZGlu'
-    'Z1dpdGhkcmF3YWxCdW5kbGUSLS50aHVuZGVyLnYxLkdldFBlbmRpbmdXaXRoZHJhd2FsQnVuZG'
-    'xlUmVxdWVzdBouLnRodW5kZXIudjEuR2V0UGVuZGluZ1dpdGhkcmF3YWxCdW5kbGVSZXNwb25z'
-    'ZRJOCgtDb25uZWN0UGVlchIeLnRodW5kZXIudjEuQ29ubmVjdFBlZXJSZXF1ZXN0Gh8udGh1bm'
-    'Rlci52MS5Db25uZWN0UGVlclJlc3BvbnNlEkgKCUxpc3RQZWVycxIcLnRodW5kZXIudjEuTGlz'
-    'dFBlZXJzUmVxdWVzdBodLnRodW5kZXIudjEuTGlzdFBlZXJzUmVzcG9uc2USOQoETWluZRIXLn'
-    'RodW5kZXIudjEuTWluZVJlcXVlc3QaGC50aHVuZGVyLnYxLk1pbmVSZXNwb25zZRJFCghHZXRC'
-    'bG9jaxIbLnRodW5kZXIudjEuR2V0QmxvY2tSZXF1ZXN0GhwudGh1bmRlci52MS5HZXRCbG9ja1'
-    'Jlc3BvbnNlEngKGUdldEJlc3RNYWluY2hhaW5CbG9ja0hhc2gSLC50aHVuZGVyLnYxLkdldEJl'
-    'c3RNYWluY2hhaW5CbG9ja0hhc2hSZXF1ZXN0Gi0udGh1bmRlci52MS5HZXRCZXN0TWFpbmNoYW'
-    'luQmxvY2tIYXNoUmVzcG9uc2USeAoZR2V0QmVzdFNpZGVjaGFpbkJsb2NrSGFzaBIsLnRodW5k'
-    'ZXIudjEuR2V0QmVzdFNpZGVjaGFpbkJsb2NrSGFzaFJlcXVlc3QaLS50aHVuZGVyLnYxLkdldE'
-    'Jlc3RTaWRlY2hhaW5CbG9ja0hhc2hSZXNwb25zZRJdChBHZXRCbW1JbmNsdXNpb25zEiMudGh1'
-    'bmRlci52MS5HZXRCbW1JbmNsdXNpb25zUmVxdWVzdBokLnRodW5kZXIudjEuR2V0Qm1tSW5jbH'
-    'VzaW9uc1Jlc3BvbnNlElcKDkdldFdhbGxldFV0eG9zEiEudGh1bmRlci52MS5HZXRXYWxsZXRV'
-    'dHhvc1JlcXVlc3QaIi50aHVuZGVyLnYxLkdldFdhbGxldFV0eG9zUmVzcG9uc2USSAoJTGlzdF'
-    'V0eG9zEhwudGh1bmRlci52MS5MaXN0VXR4b3NSZXF1ZXN0Gh0udGh1bmRlci52MS5MaXN0VXR4'
-    'b3NSZXNwb25zZRJgChFSZW1vdmVGcm9tTWVtcG9vbBIkLnRodW5kZXIudjEuUmVtb3ZlRnJvbU'
-    '1lbXBvb2xSZXF1ZXN0GiUudGh1bmRlci52MS5SZW1vdmVGcm9tTWVtcG9vbFJlc3BvbnNlEpwB'
-    'CiVHZXRMYXRlc3RGYWlsZWRXaXRoZHJhd2FsQnVuZGxlSGVpZ2h0EjgudGh1bmRlci52MS5HZX'
-    'RMYXRlc3RGYWlsZWRXaXRoZHJhd2FsQnVuZGxlSGVpZ2h0UmVxdWVzdBo5LnRodW5kZXIudjEu'
-    'R2V0TGF0ZXN0RmFpbGVkV2l0aGRyYXdhbEJ1bmRsZUhlaWdodFJlc3BvbnNlEl0KEEdlbmVyYX'
-    'RlTW5lbW9uaWMSIy50aHVuZGVyLnYxLkdlbmVyYXRlTW5lbW9uaWNSZXF1ZXN0GiQudGh1bmRl'
-    'ci52MS5HZW5lcmF0ZU1uZW1vbmljUmVzcG9uc2USZgoTU2V0U2VlZEZyb21NbmVtb25pYxImLn'
-    'RodW5kZXIudjEuU2V0U2VlZEZyb21NbmVtb25pY1JlcXVlc3QaJy50aHVuZGVyLnYxLlNldFNl'
-    'ZWRGcm9tTW5lbW9uaWNSZXNwb25zZRJCCgdDYWxsUmF3EhoudGh1bmRlci52MS5DYWxsUmF3Um'
-    'VxdWVzdBobLnRodW5kZXIudjEuQ2FsbFJhd1Jlc3BvbnNlEm8KFkxpc3RXYWxsZXRUcmFuc2Fj'
-    'dGlvbnMSKS50aHVuZGVyLnYxLkxpc3RXYWxsZXRUcmFuc2FjdGlvbnNSZXF1ZXN0GioudGh1bm'
-    'Rlci52MS5MaXN0V2FsbGV0VHJhbnNhY3Rpb25zUmVzcG9uc2U=');
+    'ZXIudjEuVHJhbnNmZXJSZXNwb25zZRJRCgxUcmFuc2Zlck1hbnkSHy50aHVuZGVyLnYxLlRyYW'
+    '5zZmVyTWFueVJlcXVlc3QaIC50aHVuZGVyLnYxLlRyYW5zZmVyTWFueVJlc3BvbnNlEmMKEkdl'
+    'dFNpZGVjaGFpbldlYWx0aBIlLnRodW5kZXIudjEuR2V0U2lkZWNoYWluV2VhbHRoUmVxdWVzdB'
+    'omLnRodW5kZXIudjEuR2V0U2lkZWNoYWluV2VhbHRoUmVzcG9uc2USVAoNQ3JlYXRlRGVwb3Np'
+    'dBIgLnRodW5kZXIudjEuQ3JlYXRlRGVwb3NpdFJlcXVlc3QaIS50aHVuZGVyLnYxLkNyZWF0ZU'
+    'RlcG9zaXRSZXNwb25zZRJ7ChpHZXRQZW5kaW5nV2l0aGRyYXdhbEJ1bmRsZRItLnRodW5kZXIu'
+    'djEuR2V0UGVuZGluZ1dpdGhkcmF3YWxCdW5kbGVSZXF1ZXN0Gi4udGh1bmRlci52MS5HZXRQZW'
+    '5kaW5nV2l0aGRyYXdhbEJ1bmRsZVJlc3BvbnNlEk4KC0Nvbm5lY3RQZWVyEh4udGh1bmRlci52'
+    'MS5Db25uZWN0UGVlclJlcXVlc3QaHy50aHVuZGVyLnYxLkNvbm5lY3RQZWVyUmVzcG9uc2USSA'
+    'oJTGlzdFBlZXJzEhwudGh1bmRlci52MS5MaXN0UGVlcnNSZXF1ZXN0Gh0udGh1bmRlci52MS5M'
+    'aXN0UGVlcnNSZXNwb25zZRI5CgRNaW5lEhcudGh1bmRlci52MS5NaW5lUmVxdWVzdBoYLnRodW'
+    '5kZXIudjEuTWluZVJlc3BvbnNlEkUKCEdldEJsb2NrEhsudGh1bmRlci52MS5HZXRCbG9ja1Jl'
+    'cXVlc3QaHC50aHVuZGVyLnYxLkdldEJsb2NrUmVzcG9uc2USeAoZR2V0QmVzdE1haW5jaGFpbk'
+    'Jsb2NrSGFzaBIsLnRodW5kZXIudjEuR2V0QmVzdE1haW5jaGFpbkJsb2NrSGFzaFJlcXVlc3Qa'
+    'LS50aHVuZGVyLnYxLkdldEJlc3RNYWluY2hhaW5CbG9ja0hhc2hSZXNwb25zZRJ4ChlHZXRCZX'
+    'N0U2lkZWNoYWluQmxvY2tIYXNoEiwudGh1bmRlci52MS5HZXRCZXN0U2lkZWNoYWluQmxvY2tI'
+    'YXNoUmVxdWVzdBotLnRodW5kZXIudjEuR2V0QmVzdFNpZGVjaGFpbkJsb2NrSGFzaFJlc3Bvbn'
+    'NlEl0KEEdldEJtbUluY2x1c2lvbnMSIy50aHVuZGVyLnYxLkdldEJtbUluY2x1c2lvbnNSZXF1'
+    'ZXN0GiQudGh1bmRlci52MS5HZXRCbW1JbmNsdXNpb25zUmVzcG9uc2USVwoOR2V0V2FsbGV0VX'
+    'R4b3MSIS50aHVuZGVyLnYxLkdldFdhbGxldFV0eG9zUmVxdWVzdBoiLnRodW5kZXIudjEuR2V0'
+    'V2FsbGV0VXR4b3NSZXNwb25zZRJICglMaXN0VXR4b3MSHC50aHVuZGVyLnYxLkxpc3RVdHhvc1'
+    'JlcXVlc3QaHS50aHVuZGVyLnYxLkxpc3RVdHhvc1Jlc3BvbnNlEmAKEVJlbW92ZUZyb21NZW1w'
+    'b29sEiQudGh1bmRlci52MS5SZW1vdmVGcm9tTWVtcG9vbFJlcXVlc3QaJS50aHVuZGVyLnYxLl'
+    'JlbW92ZUZyb21NZW1wb29sUmVzcG9uc2USnAEKJUdldExhdGVzdEZhaWxlZFdpdGhkcmF3YWxC'
+    'dW5kbGVIZWlnaHQSOC50aHVuZGVyLnYxLkdldExhdGVzdEZhaWxlZFdpdGhkcmF3YWxCdW5kbG'
+    'VIZWlnaHRSZXF1ZXN0GjkudGh1bmRlci52MS5HZXRMYXRlc3RGYWlsZWRXaXRoZHJhd2FsQnVu'
+    'ZGxlSGVpZ2h0UmVzcG9uc2USXQoQR2VuZXJhdGVNbmVtb25pYxIjLnRodW5kZXIudjEuR2VuZX'
+    'JhdGVNbmVtb25pY1JlcXVlc3QaJC50aHVuZGVyLnYxLkdlbmVyYXRlTW5lbW9uaWNSZXNwb25z'
+    'ZRJmChNTZXRTZWVkRnJvbU1uZW1vbmljEiYudGh1bmRlci52MS5TZXRTZWVkRnJvbU1uZW1vbm'
+    'ljUmVxdWVzdBonLnRodW5kZXIudjEuU2V0U2VlZEZyb21NbmVtb25pY1Jlc3BvbnNlEkIKB0Nh'
+    'bGxSYXcSGi50aHVuZGVyLnYxLkNhbGxSYXdSZXF1ZXN0GhsudGh1bmRlci52MS5DYWxsUmF3Um'
+    'VzcG9uc2USbwoWTGlzdFdhbGxldFRyYW5zYWN0aW9ucxIpLnRodW5kZXIudjEuTGlzdFdhbGxl'
+    'dFRyYW5zYWN0aW9uc1JlcXVlc3QaKi50aHVuZGVyLnYxLkxpc3RXYWxsZXRUcmFuc2FjdGlvbn'
+    'NSZXNwb25zZQ==');
 

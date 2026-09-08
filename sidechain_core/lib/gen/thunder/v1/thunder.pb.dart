@@ -609,6 +609,115 @@ class TransferResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
 }
 
+class TransferManyRequest extends $pb.GeneratedMessage {
+  factory TransferManyRequest({
+    $core.Map<$core.String, $fixnum.Int64>? destinations,
+    $fixnum.Int64? feeSats,
+  }) {
+    final $result = create();
+    if (destinations != null) {
+      $result.destinations.addAll(destinations);
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    return $result;
+  }
+  TransferManyRequest._() : super();
+  factory TransferManyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TransferManyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransferManyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'thunder.v1'), createEmptyInstance: create)
+    ..m<$core.String, $fixnum.Int64>(1, _omitFieldNames ? '' : 'destinations', entryClassName: 'TransferManyRequest.DestinationsEntry', keyFieldType: $pb.PbFieldType.OS, valueFieldType: $pb.PbFieldType.O6, packageName: const $pb.PackageName('thunder.v1'))
+    ..aInt64(2, _omitFieldNames ? '' : 'feeSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  TransferManyRequest clone() => TransferManyRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  TransferManyRequest copyWith(void Function(TransferManyRequest) updates) => super.copyWith((message) => updates(message as TransferManyRequest)) as TransferManyRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TransferManyRequest create() => TransferManyRequest._();
+  TransferManyRequest createEmptyInstance() => create();
+  static $pb.PbList<TransferManyRequest> createRepeated() => $pb.PbList<TransferManyRequest>();
+  @$core.pragma('dart2js:noInline')
+  static TransferManyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransferManyRequest>(create);
+  static TransferManyRequest? _defaultInstance;
+
+  /// Amount in sats for each destination address.
+  @$pb.TagNumber(1)
+  $core.Map<$core.String, $fixnum.Int64> get destinations => $_getMap(0);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get feeSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set feeSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFeeSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFeeSats() => clearField(2);
+}
+
+class TransferManyResponse extends $pb.GeneratedMessage {
+  factory TransferManyResponse({
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  TransferManyResponse._() : super();
+  factory TransferManyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory TransferManyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransferManyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'thunder.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  TransferManyResponse clone() => TransferManyResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  TransferManyResponse copyWith(void Function(TransferManyResponse) updates) => super.copyWith((message) => updates(message as TransferManyResponse)) as TransferManyResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TransferManyResponse create() => TransferManyResponse._();
+  TransferManyResponse createEmptyInstance() => create();
+  static $pb.PbList<TransferManyResponse> createRepeated() => $pb.PbList<TransferManyResponse>();
+  @$core.pragma('dart2js:noInline')
+  static TransferManyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransferManyResponse>(create);
+  static TransferManyResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+}
+
 class GetSidechainWealthRequest extends $pb.GeneratedMessage {
   factory GetSidechainWealthRequest() => create();
   GetSidechainWealthRequest._() : super();
@@ -2387,6 +2496,9 @@ class ThunderServiceApi {
   ;
   $async.Future<TransferResponse> transfer($pb.ClientContext? ctx, TransferRequest request) =>
     _client.invoke<TransferResponse>(ctx, 'ThunderService', 'Transfer', request, TransferResponse())
+  ;
+  $async.Future<TransferManyResponse> transferMany($pb.ClientContext? ctx, TransferManyRequest request) =>
+    _client.invoke<TransferManyResponse>(ctx, 'ThunderService', 'TransferMany', request, TransferManyResponse())
   ;
   $async.Future<GetSidechainWealthResponse> getSidechainWealth($pb.ClientContext? ctx, GetSidechainWealthRequest request) =>
     _client.invoke<GetSidechainWealthResponse>(ctx, 'ThunderService', 'GetSidechainWealth', request, GetSidechainWealthResponse())
