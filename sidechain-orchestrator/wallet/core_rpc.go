@@ -38,6 +38,11 @@ func StaticCoreEndpoint(host string, port int, user, password string) CoreEndpoi
 type CoreRPCClient struct {
 	resolve CoreEndpointFunc
 	client  *http.Client
+
+	// OnWalletError sees every failed call that names a wallet. The backend
+	// reads it to drop a wallet Core stopped holding, which reaches all of its
+	// wallet calls rather than the few a reader remembers to change.
+	OnWalletError func(walletName string, err error)
 }
 
 // NewCoreRPCClient creates a new Bitcoin Core RPC client.
@@ -74,6 +79,14 @@ type rpcError struct {
 // call makes a JSON-RPC call to Bitcoin Core.
 // If walletName is non-empty, routes to /wallet/<name>.
 func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, params ...interface{}) (json.RawMessage, error) {
+	raw, err := c.callWallet(ctx, walletName, method, params...)
+	if err != nil && walletName != "" && c.OnWalletError != nil {
+		c.OnWalletError(walletName, err)
+	}
+	return raw, err
+}
+
+func (c *CoreRPCClient) callWallet(ctx context.Context, walletName, method string, params ...interface{}) (json.RawMessage, error) {
 	if params == nil {
 		params = []interface{}{}
 	}

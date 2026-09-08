@@ -46,6 +46,12 @@ type CoreBackend struct {
 	mu          sync.Mutex
 	coreWallets map[string]string // walletID -> Core wallet name
 
+	// staleMu guards staleWallets, and it is never held across an RPC. The
+	// error hook runs inside a call that may already hold mu, so the two locks
+	// stay apart.
+	staleMu      sync.Mutex
+	staleWallets map[string]bool // Core wallet name -> Core does not hold it
+
 	// walletID -> earliest retry of a BIP47 notification descriptor import
 	// that failed. A failure there doesn't block wallet loading, so the
 	// wallet stays cached and later Ensure calls retry the import, gated by
@@ -67,14 +73,40 @@ var (
 
 // NewCoreBackend creates the Bitcoin Core wallet backend.
 func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zerolog.Logger) *CoreBackend {
-	return &CoreBackend{
+	backend := &CoreBackend{
 		svc:             svc,
 		rpc:             rpc,
 		log:             log.With().Str("component", "core-backend").Logger(),
 		params:          params,
 		coreWallets:     make(map[string]string),
 		bip47NotifRetry: make(map[string]time.Time),
+		staleWallets:    make(map[string]bool),
 	}
+	rpc.OnWalletError = backend.markWalletStale
+	return backend
+}
+
+// markWalletStale records that Core no longer holds a wallet. Any wallet call
+// reports here, so a wallet that goes away between two calls is caught wherever
+// it surfaces rather than only on the paths that check for it.
+func (p *CoreBackend) markWalletStale(walletName string, err error) {
+	if !isWalletNotLoadedErr(err) {
+		return
+	}
+	p.staleMu.Lock()
+	defer p.staleMu.Unlock()
+	p.staleWallets[walletName] = true
+}
+
+// takeStale reports whether Core stopped holding this wallet, and clears the mark.
+func (p *CoreBackend) takeStale(walletName string) bool {
+	p.staleMu.Lock()
+	defer p.staleMu.Unlock()
+	if !p.staleWallets[walletName] {
+		return false
+	}
+	delete(p.staleWallets, walletName)
+	return true
 }
 
 // ResetNetworkState drops the wallet-name cache: a different network means a
@@ -98,9 +130,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Check cache
-	if name, ok := p.coreWallets[walletID]; ok {
-		p.retryBip47NotificationDescriptor(ctx, walletID, name)
+	if name, ok := p.cachedWalletName(ctx, walletID); ok {
 		return name, nil
 	}
 
@@ -154,6 +184,15 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 	// next time Ensure runs.
 	if targetWallet.WalletType == WalletTypeBitcoinCore && !targetWallet.IsWatchOnly() {
 		if perr := p.ensureBip47NotificationDescriptor(ctx, walletID, walletName, targetWallet.Master.SeedHex); perr != nil {
+			// This call reaches the wallet itself, so a "not loaded" answer means
+			// the load did not take. Caching the name here would point every
+			// later call at a wallet Core does not hold. A wallet that is merely
+			// busy stays cached and takes the retry path below.
+			if isWalletNotLoadedErr(perr) {
+				p.loadingUntil = time.Now().Add(walletLoadingBackoff)
+				p.loadingErr = perr
+				return "", perr
+			}
 			p.log.Warn().Err(perr).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
 			p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
 		}
@@ -188,12 +227,11 @@ func (p *CoreBackend) EnsureAll(ctx context.Context) (int, error) {
 // walletName returns the Core wallet name for a wallet ID, ensuring it exists.
 func (p *CoreBackend) walletName(ctx context.Context, walletID string) (string, error) {
 	p.mu.Lock()
-	if name, ok := p.coreWallets[walletID]; ok {
-		p.retryBip47NotificationDescriptor(ctx, walletID, name)
-		p.mu.Unlock()
+	name, ok := p.cachedWalletName(ctx, walletID)
+	p.mu.Unlock()
+	if ok {
 		return name, nil
 	}
-	p.mu.Unlock()
 
 	return p.Ensure(ctx, walletID)
 }
@@ -1155,6 +1193,28 @@ func importTimestamp(w *WalletData) any {
 // earlier import failed, so a transient failure doesn't leave an already
 // cached wallet without it forever. No-op unless an import is outstanding and
 // its backoff has elapsed. Caller holds p.mu.
+// cachedWalletName returns the cached Core wallet name, after a due BIP47 retry
+// has had its chance to drop it. Not ok means Core no longer holds the wallet,
+// and the caller loads it again rather than acting on a name nothing answers.
+// The caller holds p.mu.
+func (p *CoreBackend) cachedWalletName(ctx context.Context, walletID string) (string, bool) {
+	name, ok := p.coreWallets[walletID]
+	if !ok {
+		return "", false
+	}
+	// A wallet call already met "not loaded", so the name is dead whatever the
+	// BIP47 retry says.
+	if p.takeStale(name) {
+		delete(p.coreWallets, walletID)
+		return "", false
+	}
+	p.retryBip47NotificationDescriptor(ctx, walletID, name)
+	if _, live := p.coreWallets[walletID]; !live {
+		return "", false
+	}
+	return name, true
+}
+
 func (p *CoreBackend) retryBip47NotificationDescriptor(ctx context.Context, walletID, walletName string) {
 	retryAt, pending := p.bip47NotifRetry[walletID]
 	if !pending || time.Now().Before(retryAt) {
@@ -1166,6 +1226,13 @@ func (p *CoreBackend) retryBip47NotificationDescriptor(ctx context.Context, wall
 		return
 	}
 	if err := p.ensureBip47NotificationDescriptor(ctx, walletID, walletName, w.Master.SeedHex); err != nil {
+		// Core no longer holds the wallet this name points at, so the cached
+		// name is stale. Drop it and let the next Ensure load the wallet again.
+		if isWalletNotLoadedErr(err) {
+			delete(p.coreWallets, walletID)
+			p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
+			return
+		}
 		p.log.Warn().Err(err).Str("wallet", walletName).Msg("could not ensure bip47 notification descriptor")
 		p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
 		return
@@ -1374,6 +1441,16 @@ func createAndImport(
 	// timestamp 0, and Core restarts a genesis rescan on every re-import of it.
 	if !created {
 		active, err := rpc.CountActiveDescriptors(ctx, walletName)
+		if isWalletNotLoadedErr(err) {
+			// listwallets named it, so this path skipped the load. Core does not
+			// hold it, and only a load fixes that — a retry asks the same
+			// question and gets the same -18.
+			log.Info().Str("wallet", walletName).Msg("core lists the wallet but does not hold it; loading it")
+			if loadErr := rpc.LoadWallet(ctx, walletName); loadErr != nil && !isWalletAlreadyLoadedErr(loadErr) {
+				return fmt.Errorf("load listed wallet: %w", loadErr)
+			}
+			active, err = rpc.CountActiveDescriptors(ctx, walletName)
+		}
 		if err != nil {
 			return fmt.Errorf("list descriptors: %w", err)
 		}
