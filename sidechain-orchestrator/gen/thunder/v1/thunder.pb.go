@@ -557,6 +557,103 @@ func (x *TransferResponse) GetTxid() string {
 	return ""
 }
 
+type TransferManyRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Amount in sats for each destination address.
+	Destinations  map[string]int64 `protobuf:"bytes,1,rep,name=destinations,proto3" json:"destinations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	FeeSats       int64            `protobuf:"varint,2,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferManyRequest) Reset() {
+	*x = TransferManyRequest{}
+	mi := &file_thunder_v1_thunder_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferManyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferManyRequest) ProtoMessage() {}
+
+func (x *TransferManyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_thunder_v1_thunder_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferManyRequest.ProtoReflect.Descriptor instead.
+func (*TransferManyRequest) Descriptor() ([]byte, []int) {
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *TransferManyRequest) GetDestinations() map[string]int64 {
+	if x != nil {
+		return x.Destinations
+	}
+	return nil
+}
+
+func (x *TransferManyRequest) GetFeeSats() int64 {
+	if x != nil {
+		return x.FeeSats
+	}
+	return 0
+}
+
+type TransferManyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Txid          string                 `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferManyResponse) Reset() {
+	*x = TransferManyResponse{}
+	mi := &file_thunder_v1_thunder_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferManyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferManyResponse) ProtoMessage() {}
+
+func (x *TransferManyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_thunder_v1_thunder_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferManyResponse.ProtoReflect.Descriptor instead.
+func (*TransferManyResponse) Descriptor() ([]byte, []int) {
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *TransferManyResponse) GetTxid() string {
+	if x != nil {
+		return x.Txid
+	}
+	return ""
+}
+
 type GetSidechainWealthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -565,7 +662,7 @@ type GetSidechainWealthRequest struct {
 
 func (x *GetSidechainWealthRequest) Reset() {
 	*x = GetSidechainWealthRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[12]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -577,7 +674,7 @@ func (x *GetSidechainWealthRequest) String() string {
 func (*GetSidechainWealthRequest) ProtoMessage() {}
 
 func (x *GetSidechainWealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[12]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -590,7 +687,7 @@ func (x *GetSidechainWealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSidechainWealthRequest.ProtoReflect.Descriptor instead.
 func (*GetSidechainWealthRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{12}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{14}
 }
 
 type GetSidechainWealthResponse struct {
@@ -602,7 +699,7 @@ type GetSidechainWealthResponse struct {
 
 func (x *GetSidechainWealthResponse) Reset() {
 	*x = GetSidechainWealthResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[13]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -614,7 +711,7 @@ func (x *GetSidechainWealthResponse) String() string {
 func (*GetSidechainWealthResponse) ProtoMessage() {}
 
 func (x *GetSidechainWealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[13]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -627,7 +724,7 @@ func (x *GetSidechainWealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSidechainWealthResponse.ProtoReflect.Descriptor instead.
 func (*GetSidechainWealthResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{13}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetSidechainWealthResponse) GetSats() int64 {
@@ -648,7 +745,7 @@ type CreateDepositRequest struct {
 
 func (x *CreateDepositRequest) Reset() {
 	*x = CreateDepositRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[14]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -660,7 +757,7 @@ func (x *CreateDepositRequest) String() string {
 func (*CreateDepositRequest) ProtoMessage() {}
 
 func (x *CreateDepositRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[14]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -673,7 +770,7 @@ func (x *CreateDepositRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDepositRequest.ProtoReflect.Descriptor instead.
 func (*CreateDepositRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{14}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateDepositRequest) GetAddress() string {
@@ -706,7 +803,7 @@ type CreateDepositResponse struct {
 
 func (x *CreateDepositResponse) Reset() {
 	*x = CreateDepositResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[15]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -718,7 +815,7 @@ func (x *CreateDepositResponse) String() string {
 func (*CreateDepositResponse) ProtoMessage() {}
 
 func (x *CreateDepositResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[15]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -731,7 +828,7 @@ func (x *CreateDepositResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDepositResponse.ProtoReflect.Descriptor instead.
 func (*CreateDepositResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{15}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateDepositResponse) GetTxid() string {
@@ -749,7 +846,7 @@ type GetPendingWithdrawalBundleRequest struct {
 
 func (x *GetPendingWithdrawalBundleRequest) Reset() {
 	*x = GetPendingWithdrawalBundleRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[16]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -761,7 +858,7 @@ func (x *GetPendingWithdrawalBundleRequest) String() string {
 func (*GetPendingWithdrawalBundleRequest) ProtoMessage() {}
 
 func (x *GetPendingWithdrawalBundleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[16]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -774,7 +871,7 @@ func (x *GetPendingWithdrawalBundleRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetPendingWithdrawalBundleRequest.ProtoReflect.Descriptor instead.
 func (*GetPendingWithdrawalBundleRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{16}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{18}
 }
 
 type GetPendingWithdrawalBundleResponse struct {
@@ -787,7 +884,7 @@ type GetPendingWithdrawalBundleResponse struct {
 
 func (x *GetPendingWithdrawalBundleResponse) Reset() {
 	*x = GetPendingWithdrawalBundleResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[17]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -799,7 +896,7 @@ func (x *GetPendingWithdrawalBundleResponse) String() string {
 func (*GetPendingWithdrawalBundleResponse) ProtoMessage() {}
 
 func (x *GetPendingWithdrawalBundleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[17]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -812,7 +909,7 @@ func (x *GetPendingWithdrawalBundleResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetPendingWithdrawalBundleResponse.ProtoReflect.Descriptor instead.
 func (*GetPendingWithdrawalBundleResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{17}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetPendingWithdrawalBundleResponse) GetBundleJson() string {
@@ -831,7 +928,7 @@ type ConnectPeerRequest struct {
 
 func (x *ConnectPeerRequest) Reset() {
 	*x = ConnectPeerRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[18]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -843,7 +940,7 @@ func (x *ConnectPeerRequest) String() string {
 func (*ConnectPeerRequest) ProtoMessage() {}
 
 func (x *ConnectPeerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[18]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -856,7 +953,7 @@ func (x *ConnectPeerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectPeerRequest.ProtoReflect.Descriptor instead.
 func (*ConnectPeerRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{18}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ConnectPeerRequest) GetAddress() string {
@@ -874,7 +971,7 @@ type ConnectPeerResponse struct {
 
 func (x *ConnectPeerResponse) Reset() {
 	*x = ConnectPeerResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[19]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +983,7 @@ func (x *ConnectPeerResponse) String() string {
 func (*ConnectPeerResponse) ProtoMessage() {}
 
 func (x *ConnectPeerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[19]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +996,7 @@ func (x *ConnectPeerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectPeerResponse.ProtoReflect.Descriptor instead.
 func (*ConnectPeerResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{19}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{21}
 }
 
 type ListPeersRequest struct {
@@ -910,7 +1007,7 @@ type ListPeersRequest struct {
 
 func (x *ListPeersRequest) Reset() {
 	*x = ListPeersRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[20]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -922,7 +1019,7 @@ func (x *ListPeersRequest) String() string {
 func (*ListPeersRequest) ProtoMessage() {}
 
 func (x *ListPeersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[20]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -935,7 +1032,7 @@ func (x *ListPeersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPeersRequest.ProtoReflect.Descriptor instead.
 func (*ListPeersRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{20}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{22}
 }
 
 type ListPeersResponse struct {
@@ -947,7 +1044,7 @@ type ListPeersResponse struct {
 
 func (x *ListPeersResponse) Reset() {
 	*x = ListPeersResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[21]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +1056,7 @@ func (x *ListPeersResponse) String() string {
 func (*ListPeersResponse) ProtoMessage() {}
 
 func (x *ListPeersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[21]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +1069,7 @@ func (x *ListPeersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPeersResponse.ProtoReflect.Descriptor instead.
 func (*ListPeersResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{21}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListPeersResponse) GetPeersJson() string {
@@ -991,7 +1088,7 @@ type MineRequest struct {
 
 func (x *MineRequest) Reset() {
 	*x = MineRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[22]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1003,7 +1100,7 @@ func (x *MineRequest) String() string {
 func (*MineRequest) ProtoMessage() {}
 
 func (x *MineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[22]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1016,7 +1113,7 @@ func (x *MineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MineRequest.ProtoReflect.Descriptor instead.
 func (*MineRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{22}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *MineRequest) GetFeeSats() int64 {
@@ -1035,7 +1132,7 @@ type MineResponse struct {
 
 func (x *MineResponse) Reset() {
 	*x = MineResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[23]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1047,7 +1144,7 @@ func (x *MineResponse) String() string {
 func (*MineResponse) ProtoMessage() {}
 
 func (x *MineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[23]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1060,7 +1157,7 @@ func (x *MineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MineResponse.ProtoReflect.Descriptor instead.
 func (*MineResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{23}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *MineResponse) GetBmmResultJson() string {
@@ -1079,7 +1176,7 @@ type GetBlockRequest struct {
 
 func (x *GetBlockRequest) Reset() {
 	*x = GetBlockRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[24]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1091,7 +1188,7 @@ func (x *GetBlockRequest) String() string {
 func (*GetBlockRequest) ProtoMessage() {}
 
 func (x *GetBlockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[24]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1104,7 +1201,7 @@ func (x *GetBlockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockRequest.ProtoReflect.Descriptor instead.
 func (*GetBlockRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{24}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetBlockRequest) GetHash() string {
@@ -1123,7 +1220,7 @@ type GetBlockResponse struct {
 
 func (x *GetBlockResponse) Reset() {
 	*x = GetBlockResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[25]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1135,7 +1232,7 @@ func (x *GetBlockResponse) String() string {
 func (*GetBlockResponse) ProtoMessage() {}
 
 func (x *GetBlockResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[25]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1148,7 +1245,7 @@ func (x *GetBlockResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockResponse.ProtoReflect.Descriptor instead.
 func (*GetBlockResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{25}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetBlockResponse) GetBlockJson() string {
@@ -1166,7 +1263,7 @@ type GetBestMainchainBlockHashRequest struct {
 
 func (x *GetBestMainchainBlockHashRequest) Reset() {
 	*x = GetBestMainchainBlockHashRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[26]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1178,7 +1275,7 @@ func (x *GetBestMainchainBlockHashRequest) String() string {
 func (*GetBestMainchainBlockHashRequest) ProtoMessage() {}
 
 func (x *GetBestMainchainBlockHashRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[26]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1191,7 +1288,7 @@ func (x *GetBestMainchainBlockHashRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBestMainchainBlockHashRequest.ProtoReflect.Descriptor instead.
 func (*GetBestMainchainBlockHashRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{26}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{28}
 }
 
 type GetBestMainchainBlockHashResponse struct {
@@ -1203,7 +1300,7 @@ type GetBestMainchainBlockHashResponse struct {
 
 func (x *GetBestMainchainBlockHashResponse) Reset() {
 	*x = GetBestMainchainBlockHashResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[27]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1215,7 +1312,7 @@ func (x *GetBestMainchainBlockHashResponse) String() string {
 func (*GetBestMainchainBlockHashResponse) ProtoMessage() {}
 
 func (x *GetBestMainchainBlockHashResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[27]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1228,7 +1325,7 @@ func (x *GetBestMainchainBlockHashResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetBestMainchainBlockHashResponse.ProtoReflect.Descriptor instead.
 func (*GetBestMainchainBlockHashResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{27}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetBestMainchainBlockHashResponse) GetHash() string {
@@ -1246,7 +1343,7 @@ type GetBestSidechainBlockHashRequest struct {
 
 func (x *GetBestSidechainBlockHashRequest) Reset() {
 	*x = GetBestSidechainBlockHashRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[28]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1258,7 +1355,7 @@ func (x *GetBestSidechainBlockHashRequest) String() string {
 func (*GetBestSidechainBlockHashRequest) ProtoMessage() {}
 
 func (x *GetBestSidechainBlockHashRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[28]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1271,7 +1368,7 @@ func (x *GetBestSidechainBlockHashRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBestSidechainBlockHashRequest.ProtoReflect.Descriptor instead.
 func (*GetBestSidechainBlockHashRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{28}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{30}
 }
 
 type GetBestSidechainBlockHashResponse struct {
@@ -1283,7 +1380,7 @@ type GetBestSidechainBlockHashResponse struct {
 
 func (x *GetBestSidechainBlockHashResponse) Reset() {
 	*x = GetBestSidechainBlockHashResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[29]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1295,7 +1392,7 @@ func (x *GetBestSidechainBlockHashResponse) String() string {
 func (*GetBestSidechainBlockHashResponse) ProtoMessage() {}
 
 func (x *GetBestSidechainBlockHashResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[29]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1308,7 +1405,7 @@ func (x *GetBestSidechainBlockHashResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetBestSidechainBlockHashResponse.ProtoReflect.Descriptor instead.
 func (*GetBestSidechainBlockHashResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{29}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetBestSidechainBlockHashResponse) GetHash() string {
@@ -1327,7 +1424,7 @@ type GetBmmInclusionsRequest struct {
 
 func (x *GetBmmInclusionsRequest) Reset() {
 	*x = GetBmmInclusionsRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[30]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1339,7 +1436,7 @@ func (x *GetBmmInclusionsRequest) String() string {
 func (*GetBmmInclusionsRequest) ProtoMessage() {}
 
 func (x *GetBmmInclusionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[30]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1352,7 +1449,7 @@ func (x *GetBmmInclusionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBmmInclusionsRequest.ProtoReflect.Descriptor instead.
 func (*GetBmmInclusionsRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{30}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetBmmInclusionsRequest) GetBlockHash() string {
@@ -1371,7 +1468,7 @@ type GetBmmInclusionsResponse struct {
 
 func (x *GetBmmInclusionsResponse) Reset() {
 	*x = GetBmmInclusionsResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[31]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1383,7 +1480,7 @@ func (x *GetBmmInclusionsResponse) String() string {
 func (*GetBmmInclusionsResponse) ProtoMessage() {}
 
 func (x *GetBmmInclusionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[31]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1396,7 +1493,7 @@ func (x *GetBmmInclusionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBmmInclusionsResponse.ProtoReflect.Descriptor instead.
 func (*GetBmmInclusionsResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{31}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetBmmInclusionsResponse) GetInclusions() string {
@@ -1414,7 +1511,7 @@ type GetWalletUtxosRequest struct {
 
 func (x *GetWalletUtxosRequest) Reset() {
 	*x = GetWalletUtxosRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[32]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1426,7 +1523,7 @@ func (x *GetWalletUtxosRequest) String() string {
 func (*GetWalletUtxosRequest) ProtoMessage() {}
 
 func (x *GetWalletUtxosRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[32]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1439,7 +1536,7 @@ func (x *GetWalletUtxosRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWalletUtxosRequest.ProtoReflect.Descriptor instead.
 func (*GetWalletUtxosRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{32}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{34}
 }
 
 type GetWalletUtxosResponse struct {
@@ -1451,7 +1548,7 @@ type GetWalletUtxosResponse struct {
 
 func (x *GetWalletUtxosResponse) Reset() {
 	*x = GetWalletUtxosResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[33]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1463,7 +1560,7 @@ func (x *GetWalletUtxosResponse) String() string {
 func (*GetWalletUtxosResponse) ProtoMessage() {}
 
 func (x *GetWalletUtxosResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[33]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1476,7 +1573,7 @@ func (x *GetWalletUtxosResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWalletUtxosResponse.ProtoReflect.Descriptor instead.
 func (*GetWalletUtxosResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{33}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetWalletUtxosResponse) GetUtxosJson() string {
@@ -1494,7 +1591,7 @@ type ListUtxosRequest struct {
 
 func (x *ListUtxosRequest) Reset() {
 	*x = ListUtxosRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[34]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1506,7 +1603,7 @@ func (x *ListUtxosRequest) String() string {
 func (*ListUtxosRequest) ProtoMessage() {}
 
 func (x *ListUtxosRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[34]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1519,7 +1616,7 @@ func (x *ListUtxosRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUtxosRequest.ProtoReflect.Descriptor instead.
 func (*ListUtxosRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{34}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{36}
 }
 
 type ListUtxosResponse struct {
@@ -1531,7 +1628,7 @@ type ListUtxosResponse struct {
 
 func (x *ListUtxosResponse) Reset() {
 	*x = ListUtxosResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[35]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1543,7 +1640,7 @@ func (x *ListUtxosResponse) String() string {
 func (*ListUtxosResponse) ProtoMessage() {}
 
 func (x *ListUtxosResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[35]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1556,7 +1653,7 @@ func (x *ListUtxosResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUtxosResponse.ProtoReflect.Descriptor instead.
 func (*ListUtxosResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{35}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ListUtxosResponse) GetUtxosJson() string {
@@ -1575,7 +1672,7 @@ type RemoveFromMempoolRequest struct {
 
 func (x *RemoveFromMempoolRequest) Reset() {
 	*x = RemoveFromMempoolRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[36]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1587,7 +1684,7 @@ func (x *RemoveFromMempoolRequest) String() string {
 func (*RemoveFromMempoolRequest) ProtoMessage() {}
 
 func (x *RemoveFromMempoolRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[36]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1600,7 +1697,7 @@ func (x *RemoveFromMempoolRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveFromMempoolRequest.ProtoReflect.Descriptor instead.
 func (*RemoveFromMempoolRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{36}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *RemoveFromMempoolRequest) GetTxid() string {
@@ -1618,7 +1715,7 @@ type RemoveFromMempoolResponse struct {
 
 func (x *RemoveFromMempoolResponse) Reset() {
 	*x = RemoveFromMempoolResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[37]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1630,7 +1727,7 @@ func (x *RemoveFromMempoolResponse) String() string {
 func (*RemoveFromMempoolResponse) ProtoMessage() {}
 
 func (x *RemoveFromMempoolResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[37]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1643,7 +1740,7 @@ func (x *RemoveFromMempoolResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveFromMempoolResponse.ProtoReflect.Descriptor instead.
 func (*RemoveFromMempoolResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{37}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{39}
 }
 
 type GetLatestFailedWithdrawalBundleHeightRequest struct {
@@ -1654,7 +1751,7 @@ type GetLatestFailedWithdrawalBundleHeightRequest struct {
 
 func (x *GetLatestFailedWithdrawalBundleHeightRequest) Reset() {
 	*x = GetLatestFailedWithdrawalBundleHeightRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[38]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1666,7 +1763,7 @@ func (x *GetLatestFailedWithdrawalBundleHeightRequest) String() string {
 func (*GetLatestFailedWithdrawalBundleHeightRequest) ProtoMessage() {}
 
 func (x *GetLatestFailedWithdrawalBundleHeightRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[38]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1679,7 +1776,7 @@ func (x *GetLatestFailedWithdrawalBundleHeightRequest) ProtoReflect() protorefle
 
 // Deprecated: Use GetLatestFailedWithdrawalBundleHeightRequest.ProtoReflect.Descriptor instead.
 func (*GetLatestFailedWithdrawalBundleHeightRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{38}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{40}
 }
 
 type GetLatestFailedWithdrawalBundleHeightResponse struct {
@@ -1692,7 +1789,7 @@ type GetLatestFailedWithdrawalBundleHeightResponse struct {
 
 func (x *GetLatestFailedWithdrawalBundleHeightResponse) Reset() {
 	*x = GetLatestFailedWithdrawalBundleHeightResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[39]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1704,7 +1801,7 @@ func (x *GetLatestFailedWithdrawalBundleHeightResponse) String() string {
 func (*GetLatestFailedWithdrawalBundleHeightResponse) ProtoMessage() {}
 
 func (x *GetLatestFailedWithdrawalBundleHeightResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[39]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1717,7 +1814,7 @@ func (x *GetLatestFailedWithdrawalBundleHeightResponse) ProtoReflect() protorefl
 
 // Deprecated: Use GetLatestFailedWithdrawalBundleHeightResponse.ProtoReflect.Descriptor instead.
 func (*GetLatestFailedWithdrawalBundleHeightResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{39}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetLatestFailedWithdrawalBundleHeightResponse) GetHeight() int64 {
@@ -1735,7 +1832,7 @@ type GenerateMnemonicRequest struct {
 
 func (x *GenerateMnemonicRequest) Reset() {
 	*x = GenerateMnemonicRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[40]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1747,7 +1844,7 @@ func (x *GenerateMnemonicRequest) String() string {
 func (*GenerateMnemonicRequest) ProtoMessage() {}
 
 func (x *GenerateMnemonicRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[40]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1760,7 +1857,7 @@ func (x *GenerateMnemonicRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateMnemonicRequest.ProtoReflect.Descriptor instead.
 func (*GenerateMnemonicRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{40}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{42}
 }
 
 type GenerateMnemonicResponse struct {
@@ -1772,7 +1869,7 @@ type GenerateMnemonicResponse struct {
 
 func (x *GenerateMnemonicResponse) Reset() {
 	*x = GenerateMnemonicResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[41]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1784,7 +1881,7 @@ func (x *GenerateMnemonicResponse) String() string {
 func (*GenerateMnemonicResponse) ProtoMessage() {}
 
 func (x *GenerateMnemonicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[41]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1797,7 +1894,7 @@ func (x *GenerateMnemonicResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateMnemonicResponse.ProtoReflect.Descriptor instead.
 func (*GenerateMnemonicResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{41}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GenerateMnemonicResponse) GetMnemonic() string {
@@ -1816,7 +1913,7 @@ type SetSeedFromMnemonicRequest struct {
 
 func (x *SetSeedFromMnemonicRequest) Reset() {
 	*x = SetSeedFromMnemonicRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[42]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1828,7 +1925,7 @@ func (x *SetSeedFromMnemonicRequest) String() string {
 func (*SetSeedFromMnemonicRequest) ProtoMessage() {}
 
 func (x *SetSeedFromMnemonicRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[42]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1841,7 +1938,7 @@ func (x *SetSeedFromMnemonicRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSeedFromMnemonicRequest.ProtoReflect.Descriptor instead.
 func (*SetSeedFromMnemonicRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{42}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *SetSeedFromMnemonicRequest) GetMnemonic() string {
@@ -1859,7 +1956,7 @@ type SetSeedFromMnemonicResponse struct {
 
 func (x *SetSeedFromMnemonicResponse) Reset() {
 	*x = SetSeedFromMnemonicResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[43]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1871,7 +1968,7 @@ func (x *SetSeedFromMnemonicResponse) String() string {
 func (*SetSeedFromMnemonicResponse) ProtoMessage() {}
 
 func (x *SetSeedFromMnemonicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[43]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1884,7 +1981,7 @@ func (x *SetSeedFromMnemonicResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSeedFromMnemonicResponse.ProtoReflect.Descriptor instead.
 func (*SetSeedFromMnemonicResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{43}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{45}
 }
 
 type CallRawRequest struct {
@@ -1897,7 +1994,7 @@ type CallRawRequest struct {
 
 func (x *CallRawRequest) Reset() {
 	*x = CallRawRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[44]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1909,7 +2006,7 @@ func (x *CallRawRequest) String() string {
 func (*CallRawRequest) ProtoMessage() {}
 
 func (x *CallRawRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[44]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1922,7 +2019,7 @@ func (x *CallRawRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallRawRequest.ProtoReflect.Descriptor instead.
 func (*CallRawRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{44}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *CallRawRequest) GetMethod() string {
@@ -1948,7 +2045,7 @@ type CallRawResponse struct {
 
 func (x *CallRawResponse) Reset() {
 	*x = CallRawResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[45]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1960,7 +2057,7 @@ func (x *CallRawResponse) String() string {
 func (*CallRawResponse) ProtoMessage() {}
 
 func (x *CallRawResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[45]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1973,7 +2070,7 @@ func (x *CallRawResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallRawResponse.ProtoReflect.Descriptor instead.
 func (*CallRawResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{45}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *CallRawResponse) GetResultJson() string {
@@ -1991,7 +2088,7 @@ type ListWalletTransactionsRequest struct {
 
 func (x *ListWalletTransactionsRequest) Reset() {
 	*x = ListWalletTransactionsRequest{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[46]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2003,7 +2100,7 @@ func (x *ListWalletTransactionsRequest) String() string {
 func (*ListWalletTransactionsRequest) ProtoMessage() {}
 
 func (x *ListWalletTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[46]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2016,7 +2113,7 @@ func (x *ListWalletTransactionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWalletTransactionsRequest.ProtoReflect.Descriptor instead.
 func (*ListWalletTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{46}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{48}
 }
 
 type ListWalletTransactionsResponse struct {
@@ -2031,7 +2128,7 @@ type ListWalletTransactionsResponse struct {
 
 func (x *ListWalletTransactionsResponse) Reset() {
 	*x = ListWalletTransactionsResponse{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[47]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2043,7 +2140,7 @@ func (x *ListWalletTransactionsResponse) String() string {
 func (*ListWalletTransactionsResponse) ProtoMessage() {}
 
 func (x *ListWalletTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[47]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2056,7 +2153,7 @@ func (x *ListWalletTransactionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWalletTransactionsResponse.ProtoReflect.Descriptor instead.
 func (*ListWalletTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{47}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ListWalletTransactionsResponse) GetTransactions() []*SidechainWalletTransaction {
@@ -2091,7 +2188,7 @@ type SidechainWalletTransaction struct {
 
 func (x *SidechainWalletTransaction) Reset() {
 	*x = SidechainWalletTransaction{}
-	mi := &file_thunder_v1_thunder_proto_msgTypes[48]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2103,7 +2200,7 @@ func (x *SidechainWalletTransaction) String() string {
 func (*SidechainWalletTransaction) ProtoMessage() {}
 
 func (x *SidechainWalletTransaction) ProtoReflect() protoreflect.Message {
-	mi := &file_thunder_v1_thunder_proto_msgTypes[48]
+	mi := &file_thunder_v1_thunder_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2116,7 +2213,7 @@ func (x *SidechainWalletTransaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SidechainWalletTransaction.ProtoReflect.Descriptor instead.
 func (*SidechainWalletTransaction) Descriptor() ([]byte, []int) {
-	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{48}
+	return file_thunder_v1_thunder_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *SidechainWalletTransaction) GetTxid() string {
@@ -2201,6 +2298,14 @@ const file_thunder_v1_thunder_proto_rawDesc = "" +
 	"amountSats\x12\x19\n" +
 	"\bfee_sats\x18\x03 \x01(\x03R\afeeSats\"&\n" +
 	"\x10TransferResponse\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xc8\x01\n" +
+	"\x13TransferManyRequest\x12U\n" +
+	"\fdestinations\x18\x01 \x03(\v21.thunder.v1.TransferManyRequest.DestinationsEntryR\fdestinations\x12\x19\n" +
+	"\bfee_sats\x18\x02 \x01(\x03R\afeeSats\x1a?\n" +
+	"\x11DestinationsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"*\n" +
+	"\x14TransferManyResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\"\x1b\n" +
 	"\x19GetSidechainWealthRequest\"0\n" +
 	"\x1aGetSidechainWealthResponse\x12\x12\n" +
@@ -2286,7 +2391,7 @@ const file_thunder_v1_thunder_proto_rawDesc = "" +
 	"\n" +
 	"block_time\x18\x05 \x01(\x03R\tblockTime\x12\x1c\n" +
 	"\tconfirmed\x18\x06 \x01(\bR\tconfirmed\x12\x12\n" +
-	"\x04vout\x18\a \x01(\rR\x04vout2\x99\x11\n" +
+	"\x04vout\x18\a \x01(\rR\x04vout2\xec\x11\n" +
 	"\x0eThunderService\x12K\n" +
 	"\n" +
 	"GetBalance\x12\x1d.thunder.v1.GetBalanceRequest\x1a\x1e.thunder.v1.GetBalanceResponse\x12T\n" +
@@ -2294,7 +2399,8 @@ const file_thunder_v1_thunder_proto_rawDesc = "" +
 	"\x04Stop\x12\x17.thunder.v1.StopRequest\x1a\x18.thunder.v1.StopResponse\x12T\n" +
 	"\rGetNewAddress\x12 .thunder.v1.GetNewAddressRequest\x1a!.thunder.v1.GetNewAddressResponse\x12E\n" +
 	"\bWithdraw\x12\x1b.thunder.v1.WithdrawRequest\x1a\x1c.thunder.v1.WithdrawResponse\x12E\n" +
-	"\bTransfer\x12\x1b.thunder.v1.TransferRequest\x1a\x1c.thunder.v1.TransferResponse\x12c\n" +
+	"\bTransfer\x12\x1b.thunder.v1.TransferRequest\x1a\x1c.thunder.v1.TransferResponse\x12Q\n" +
+	"\fTransferMany\x12\x1f.thunder.v1.TransferManyRequest\x1a .thunder.v1.TransferManyResponse\x12c\n" +
 	"\x12GetSidechainWealth\x12%.thunder.v1.GetSidechainWealthRequest\x1a&.thunder.v1.GetSidechainWealthResponse\x12T\n" +
 	"\rCreateDeposit\x12 .thunder.v1.CreateDepositRequest\x1a!.thunder.v1.CreateDepositResponse\x12{\n" +
 	"\x1aGetPendingWithdrawalBundle\x12-.thunder.v1.GetPendingWithdrawalBundleRequest\x1a..thunder.v1.GetPendingWithdrawalBundleResponse\x12N\n" +
@@ -2329,7 +2435,7 @@ func file_thunder_v1_thunder_proto_rawDescGZIP() []byte {
 	return file_thunder_v1_thunder_proto_rawDescData
 }
 
-var file_thunder_v1_thunder_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
+var file_thunder_v1_thunder_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_thunder_v1_thunder_proto_goTypes = []any{
 	(*GetBalanceRequest)(nil),                             // 0: thunder.v1.GetBalanceRequest
 	(*GetBalanceResponse)(nil),                            // 1: thunder.v1.GetBalanceResponse
@@ -2343,99 +2449,105 @@ var file_thunder_v1_thunder_proto_goTypes = []any{
 	(*WithdrawResponse)(nil),                              // 9: thunder.v1.WithdrawResponse
 	(*TransferRequest)(nil),                               // 10: thunder.v1.TransferRequest
 	(*TransferResponse)(nil),                              // 11: thunder.v1.TransferResponse
-	(*GetSidechainWealthRequest)(nil),                     // 12: thunder.v1.GetSidechainWealthRequest
-	(*GetSidechainWealthResponse)(nil),                    // 13: thunder.v1.GetSidechainWealthResponse
-	(*CreateDepositRequest)(nil),                          // 14: thunder.v1.CreateDepositRequest
-	(*CreateDepositResponse)(nil),                         // 15: thunder.v1.CreateDepositResponse
-	(*GetPendingWithdrawalBundleRequest)(nil),             // 16: thunder.v1.GetPendingWithdrawalBundleRequest
-	(*GetPendingWithdrawalBundleResponse)(nil),            // 17: thunder.v1.GetPendingWithdrawalBundleResponse
-	(*ConnectPeerRequest)(nil),                            // 18: thunder.v1.ConnectPeerRequest
-	(*ConnectPeerResponse)(nil),                           // 19: thunder.v1.ConnectPeerResponse
-	(*ListPeersRequest)(nil),                              // 20: thunder.v1.ListPeersRequest
-	(*ListPeersResponse)(nil),                             // 21: thunder.v1.ListPeersResponse
-	(*MineRequest)(nil),                                   // 22: thunder.v1.MineRequest
-	(*MineResponse)(nil),                                  // 23: thunder.v1.MineResponse
-	(*GetBlockRequest)(nil),                               // 24: thunder.v1.GetBlockRequest
-	(*GetBlockResponse)(nil),                              // 25: thunder.v1.GetBlockResponse
-	(*GetBestMainchainBlockHashRequest)(nil),              // 26: thunder.v1.GetBestMainchainBlockHashRequest
-	(*GetBestMainchainBlockHashResponse)(nil),             // 27: thunder.v1.GetBestMainchainBlockHashResponse
-	(*GetBestSidechainBlockHashRequest)(nil),              // 28: thunder.v1.GetBestSidechainBlockHashRequest
-	(*GetBestSidechainBlockHashResponse)(nil),             // 29: thunder.v1.GetBestSidechainBlockHashResponse
-	(*GetBmmInclusionsRequest)(nil),                       // 30: thunder.v1.GetBmmInclusionsRequest
-	(*GetBmmInclusionsResponse)(nil),                      // 31: thunder.v1.GetBmmInclusionsResponse
-	(*GetWalletUtxosRequest)(nil),                         // 32: thunder.v1.GetWalletUtxosRequest
-	(*GetWalletUtxosResponse)(nil),                        // 33: thunder.v1.GetWalletUtxosResponse
-	(*ListUtxosRequest)(nil),                              // 34: thunder.v1.ListUtxosRequest
-	(*ListUtxosResponse)(nil),                             // 35: thunder.v1.ListUtxosResponse
-	(*RemoveFromMempoolRequest)(nil),                      // 36: thunder.v1.RemoveFromMempoolRequest
-	(*RemoveFromMempoolResponse)(nil),                     // 37: thunder.v1.RemoveFromMempoolResponse
-	(*GetLatestFailedWithdrawalBundleHeightRequest)(nil),  // 38: thunder.v1.GetLatestFailedWithdrawalBundleHeightRequest
-	(*GetLatestFailedWithdrawalBundleHeightResponse)(nil), // 39: thunder.v1.GetLatestFailedWithdrawalBundleHeightResponse
-	(*GenerateMnemonicRequest)(nil),                       // 40: thunder.v1.GenerateMnemonicRequest
-	(*GenerateMnemonicResponse)(nil),                      // 41: thunder.v1.GenerateMnemonicResponse
-	(*SetSeedFromMnemonicRequest)(nil),                    // 42: thunder.v1.SetSeedFromMnemonicRequest
-	(*SetSeedFromMnemonicResponse)(nil),                   // 43: thunder.v1.SetSeedFromMnemonicResponse
-	(*CallRawRequest)(nil),                                // 44: thunder.v1.CallRawRequest
-	(*CallRawResponse)(nil),                               // 45: thunder.v1.CallRawResponse
-	(*ListWalletTransactionsRequest)(nil),                 // 46: thunder.v1.ListWalletTransactionsRequest
-	(*ListWalletTransactionsResponse)(nil),                // 47: thunder.v1.ListWalletTransactionsResponse
-	(*SidechainWalletTransaction)(nil),                    // 48: thunder.v1.SidechainWalletTransaction
+	(*TransferManyRequest)(nil),                           // 12: thunder.v1.TransferManyRequest
+	(*TransferManyResponse)(nil),                          // 13: thunder.v1.TransferManyResponse
+	(*GetSidechainWealthRequest)(nil),                     // 14: thunder.v1.GetSidechainWealthRequest
+	(*GetSidechainWealthResponse)(nil),                    // 15: thunder.v1.GetSidechainWealthResponse
+	(*CreateDepositRequest)(nil),                          // 16: thunder.v1.CreateDepositRequest
+	(*CreateDepositResponse)(nil),                         // 17: thunder.v1.CreateDepositResponse
+	(*GetPendingWithdrawalBundleRequest)(nil),             // 18: thunder.v1.GetPendingWithdrawalBundleRequest
+	(*GetPendingWithdrawalBundleResponse)(nil),            // 19: thunder.v1.GetPendingWithdrawalBundleResponse
+	(*ConnectPeerRequest)(nil),                            // 20: thunder.v1.ConnectPeerRequest
+	(*ConnectPeerResponse)(nil),                           // 21: thunder.v1.ConnectPeerResponse
+	(*ListPeersRequest)(nil),                              // 22: thunder.v1.ListPeersRequest
+	(*ListPeersResponse)(nil),                             // 23: thunder.v1.ListPeersResponse
+	(*MineRequest)(nil),                                   // 24: thunder.v1.MineRequest
+	(*MineResponse)(nil),                                  // 25: thunder.v1.MineResponse
+	(*GetBlockRequest)(nil),                               // 26: thunder.v1.GetBlockRequest
+	(*GetBlockResponse)(nil),                              // 27: thunder.v1.GetBlockResponse
+	(*GetBestMainchainBlockHashRequest)(nil),              // 28: thunder.v1.GetBestMainchainBlockHashRequest
+	(*GetBestMainchainBlockHashResponse)(nil),             // 29: thunder.v1.GetBestMainchainBlockHashResponse
+	(*GetBestSidechainBlockHashRequest)(nil),              // 30: thunder.v1.GetBestSidechainBlockHashRequest
+	(*GetBestSidechainBlockHashResponse)(nil),             // 31: thunder.v1.GetBestSidechainBlockHashResponse
+	(*GetBmmInclusionsRequest)(nil),                       // 32: thunder.v1.GetBmmInclusionsRequest
+	(*GetBmmInclusionsResponse)(nil),                      // 33: thunder.v1.GetBmmInclusionsResponse
+	(*GetWalletUtxosRequest)(nil),                         // 34: thunder.v1.GetWalletUtxosRequest
+	(*GetWalletUtxosResponse)(nil),                        // 35: thunder.v1.GetWalletUtxosResponse
+	(*ListUtxosRequest)(nil),                              // 36: thunder.v1.ListUtxosRequest
+	(*ListUtxosResponse)(nil),                             // 37: thunder.v1.ListUtxosResponse
+	(*RemoveFromMempoolRequest)(nil),                      // 38: thunder.v1.RemoveFromMempoolRequest
+	(*RemoveFromMempoolResponse)(nil),                     // 39: thunder.v1.RemoveFromMempoolResponse
+	(*GetLatestFailedWithdrawalBundleHeightRequest)(nil),  // 40: thunder.v1.GetLatestFailedWithdrawalBundleHeightRequest
+	(*GetLatestFailedWithdrawalBundleHeightResponse)(nil), // 41: thunder.v1.GetLatestFailedWithdrawalBundleHeightResponse
+	(*GenerateMnemonicRequest)(nil),                       // 42: thunder.v1.GenerateMnemonicRequest
+	(*GenerateMnemonicResponse)(nil),                      // 43: thunder.v1.GenerateMnemonicResponse
+	(*SetSeedFromMnemonicRequest)(nil),                    // 44: thunder.v1.SetSeedFromMnemonicRequest
+	(*SetSeedFromMnemonicResponse)(nil),                   // 45: thunder.v1.SetSeedFromMnemonicResponse
+	(*CallRawRequest)(nil),                                // 46: thunder.v1.CallRawRequest
+	(*CallRawResponse)(nil),                               // 47: thunder.v1.CallRawResponse
+	(*ListWalletTransactionsRequest)(nil),                 // 48: thunder.v1.ListWalletTransactionsRequest
+	(*ListWalletTransactionsResponse)(nil),                // 49: thunder.v1.ListWalletTransactionsResponse
+	(*SidechainWalletTransaction)(nil),                    // 50: thunder.v1.SidechainWalletTransaction
+	nil,                                                   // 51: thunder.v1.TransferManyRequest.DestinationsEntry
 }
 var file_thunder_v1_thunder_proto_depIdxs = []int32{
-	48, // 0: thunder.v1.ListWalletTransactionsResponse.transactions:type_name -> thunder.v1.SidechainWalletTransaction
-	0,  // 1: thunder.v1.ThunderService.GetBalance:input_type -> thunder.v1.GetBalanceRequest
-	2,  // 2: thunder.v1.ThunderService.GetBlockCount:input_type -> thunder.v1.GetBlockCountRequest
-	4,  // 3: thunder.v1.ThunderService.Stop:input_type -> thunder.v1.StopRequest
-	6,  // 4: thunder.v1.ThunderService.GetNewAddress:input_type -> thunder.v1.GetNewAddressRequest
-	8,  // 5: thunder.v1.ThunderService.Withdraw:input_type -> thunder.v1.WithdrawRequest
-	10, // 6: thunder.v1.ThunderService.Transfer:input_type -> thunder.v1.TransferRequest
-	12, // 7: thunder.v1.ThunderService.GetSidechainWealth:input_type -> thunder.v1.GetSidechainWealthRequest
-	14, // 8: thunder.v1.ThunderService.CreateDeposit:input_type -> thunder.v1.CreateDepositRequest
-	16, // 9: thunder.v1.ThunderService.GetPendingWithdrawalBundle:input_type -> thunder.v1.GetPendingWithdrawalBundleRequest
-	18, // 10: thunder.v1.ThunderService.ConnectPeer:input_type -> thunder.v1.ConnectPeerRequest
-	20, // 11: thunder.v1.ThunderService.ListPeers:input_type -> thunder.v1.ListPeersRequest
-	22, // 12: thunder.v1.ThunderService.Mine:input_type -> thunder.v1.MineRequest
-	24, // 13: thunder.v1.ThunderService.GetBlock:input_type -> thunder.v1.GetBlockRequest
-	26, // 14: thunder.v1.ThunderService.GetBestMainchainBlockHash:input_type -> thunder.v1.GetBestMainchainBlockHashRequest
-	28, // 15: thunder.v1.ThunderService.GetBestSidechainBlockHash:input_type -> thunder.v1.GetBestSidechainBlockHashRequest
-	30, // 16: thunder.v1.ThunderService.GetBmmInclusions:input_type -> thunder.v1.GetBmmInclusionsRequest
-	32, // 17: thunder.v1.ThunderService.GetWalletUtxos:input_type -> thunder.v1.GetWalletUtxosRequest
-	34, // 18: thunder.v1.ThunderService.ListUtxos:input_type -> thunder.v1.ListUtxosRequest
-	36, // 19: thunder.v1.ThunderService.RemoveFromMempool:input_type -> thunder.v1.RemoveFromMempoolRequest
-	38, // 20: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:input_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightRequest
-	40, // 21: thunder.v1.ThunderService.GenerateMnemonic:input_type -> thunder.v1.GenerateMnemonicRequest
-	42, // 22: thunder.v1.ThunderService.SetSeedFromMnemonic:input_type -> thunder.v1.SetSeedFromMnemonicRequest
-	44, // 23: thunder.v1.ThunderService.CallRaw:input_type -> thunder.v1.CallRawRequest
-	46, // 24: thunder.v1.ThunderService.ListWalletTransactions:input_type -> thunder.v1.ListWalletTransactionsRequest
-	1,  // 25: thunder.v1.ThunderService.GetBalance:output_type -> thunder.v1.GetBalanceResponse
-	3,  // 26: thunder.v1.ThunderService.GetBlockCount:output_type -> thunder.v1.GetBlockCountResponse
-	5,  // 27: thunder.v1.ThunderService.Stop:output_type -> thunder.v1.StopResponse
-	7,  // 28: thunder.v1.ThunderService.GetNewAddress:output_type -> thunder.v1.GetNewAddressResponse
-	9,  // 29: thunder.v1.ThunderService.Withdraw:output_type -> thunder.v1.WithdrawResponse
-	11, // 30: thunder.v1.ThunderService.Transfer:output_type -> thunder.v1.TransferResponse
-	13, // 31: thunder.v1.ThunderService.GetSidechainWealth:output_type -> thunder.v1.GetSidechainWealthResponse
-	15, // 32: thunder.v1.ThunderService.CreateDeposit:output_type -> thunder.v1.CreateDepositResponse
-	17, // 33: thunder.v1.ThunderService.GetPendingWithdrawalBundle:output_type -> thunder.v1.GetPendingWithdrawalBundleResponse
-	19, // 34: thunder.v1.ThunderService.ConnectPeer:output_type -> thunder.v1.ConnectPeerResponse
-	21, // 35: thunder.v1.ThunderService.ListPeers:output_type -> thunder.v1.ListPeersResponse
-	23, // 36: thunder.v1.ThunderService.Mine:output_type -> thunder.v1.MineResponse
-	25, // 37: thunder.v1.ThunderService.GetBlock:output_type -> thunder.v1.GetBlockResponse
-	27, // 38: thunder.v1.ThunderService.GetBestMainchainBlockHash:output_type -> thunder.v1.GetBestMainchainBlockHashResponse
-	29, // 39: thunder.v1.ThunderService.GetBestSidechainBlockHash:output_type -> thunder.v1.GetBestSidechainBlockHashResponse
-	31, // 40: thunder.v1.ThunderService.GetBmmInclusions:output_type -> thunder.v1.GetBmmInclusionsResponse
-	33, // 41: thunder.v1.ThunderService.GetWalletUtxos:output_type -> thunder.v1.GetWalletUtxosResponse
-	35, // 42: thunder.v1.ThunderService.ListUtxos:output_type -> thunder.v1.ListUtxosResponse
-	37, // 43: thunder.v1.ThunderService.RemoveFromMempool:output_type -> thunder.v1.RemoveFromMempoolResponse
-	39, // 44: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:output_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightResponse
-	41, // 45: thunder.v1.ThunderService.GenerateMnemonic:output_type -> thunder.v1.GenerateMnemonicResponse
-	43, // 46: thunder.v1.ThunderService.SetSeedFromMnemonic:output_type -> thunder.v1.SetSeedFromMnemonicResponse
-	45, // 47: thunder.v1.ThunderService.CallRaw:output_type -> thunder.v1.CallRawResponse
-	47, // 48: thunder.v1.ThunderService.ListWalletTransactions:output_type -> thunder.v1.ListWalletTransactionsResponse
-	25, // [25:49] is the sub-list for method output_type
-	1,  // [1:25] is the sub-list for method input_type
-	1,  // [1:1] is the sub-list for extension type_name
-	1,  // [1:1] is the sub-list for extension extendee
-	0,  // [0:1] is the sub-list for field type_name
+	51, // 0: thunder.v1.TransferManyRequest.destinations:type_name -> thunder.v1.TransferManyRequest.DestinationsEntry
+	50, // 1: thunder.v1.ListWalletTransactionsResponse.transactions:type_name -> thunder.v1.SidechainWalletTransaction
+	0,  // 2: thunder.v1.ThunderService.GetBalance:input_type -> thunder.v1.GetBalanceRequest
+	2,  // 3: thunder.v1.ThunderService.GetBlockCount:input_type -> thunder.v1.GetBlockCountRequest
+	4,  // 4: thunder.v1.ThunderService.Stop:input_type -> thunder.v1.StopRequest
+	6,  // 5: thunder.v1.ThunderService.GetNewAddress:input_type -> thunder.v1.GetNewAddressRequest
+	8,  // 6: thunder.v1.ThunderService.Withdraw:input_type -> thunder.v1.WithdrawRequest
+	10, // 7: thunder.v1.ThunderService.Transfer:input_type -> thunder.v1.TransferRequest
+	12, // 8: thunder.v1.ThunderService.TransferMany:input_type -> thunder.v1.TransferManyRequest
+	14, // 9: thunder.v1.ThunderService.GetSidechainWealth:input_type -> thunder.v1.GetSidechainWealthRequest
+	16, // 10: thunder.v1.ThunderService.CreateDeposit:input_type -> thunder.v1.CreateDepositRequest
+	18, // 11: thunder.v1.ThunderService.GetPendingWithdrawalBundle:input_type -> thunder.v1.GetPendingWithdrawalBundleRequest
+	20, // 12: thunder.v1.ThunderService.ConnectPeer:input_type -> thunder.v1.ConnectPeerRequest
+	22, // 13: thunder.v1.ThunderService.ListPeers:input_type -> thunder.v1.ListPeersRequest
+	24, // 14: thunder.v1.ThunderService.Mine:input_type -> thunder.v1.MineRequest
+	26, // 15: thunder.v1.ThunderService.GetBlock:input_type -> thunder.v1.GetBlockRequest
+	28, // 16: thunder.v1.ThunderService.GetBestMainchainBlockHash:input_type -> thunder.v1.GetBestMainchainBlockHashRequest
+	30, // 17: thunder.v1.ThunderService.GetBestSidechainBlockHash:input_type -> thunder.v1.GetBestSidechainBlockHashRequest
+	32, // 18: thunder.v1.ThunderService.GetBmmInclusions:input_type -> thunder.v1.GetBmmInclusionsRequest
+	34, // 19: thunder.v1.ThunderService.GetWalletUtxos:input_type -> thunder.v1.GetWalletUtxosRequest
+	36, // 20: thunder.v1.ThunderService.ListUtxos:input_type -> thunder.v1.ListUtxosRequest
+	38, // 21: thunder.v1.ThunderService.RemoveFromMempool:input_type -> thunder.v1.RemoveFromMempoolRequest
+	40, // 22: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:input_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightRequest
+	42, // 23: thunder.v1.ThunderService.GenerateMnemonic:input_type -> thunder.v1.GenerateMnemonicRequest
+	44, // 24: thunder.v1.ThunderService.SetSeedFromMnemonic:input_type -> thunder.v1.SetSeedFromMnemonicRequest
+	46, // 25: thunder.v1.ThunderService.CallRaw:input_type -> thunder.v1.CallRawRequest
+	48, // 26: thunder.v1.ThunderService.ListWalletTransactions:input_type -> thunder.v1.ListWalletTransactionsRequest
+	1,  // 27: thunder.v1.ThunderService.GetBalance:output_type -> thunder.v1.GetBalanceResponse
+	3,  // 28: thunder.v1.ThunderService.GetBlockCount:output_type -> thunder.v1.GetBlockCountResponse
+	5,  // 29: thunder.v1.ThunderService.Stop:output_type -> thunder.v1.StopResponse
+	7,  // 30: thunder.v1.ThunderService.GetNewAddress:output_type -> thunder.v1.GetNewAddressResponse
+	9,  // 31: thunder.v1.ThunderService.Withdraw:output_type -> thunder.v1.WithdrawResponse
+	11, // 32: thunder.v1.ThunderService.Transfer:output_type -> thunder.v1.TransferResponse
+	13, // 33: thunder.v1.ThunderService.TransferMany:output_type -> thunder.v1.TransferManyResponse
+	15, // 34: thunder.v1.ThunderService.GetSidechainWealth:output_type -> thunder.v1.GetSidechainWealthResponse
+	17, // 35: thunder.v1.ThunderService.CreateDeposit:output_type -> thunder.v1.CreateDepositResponse
+	19, // 36: thunder.v1.ThunderService.GetPendingWithdrawalBundle:output_type -> thunder.v1.GetPendingWithdrawalBundleResponse
+	21, // 37: thunder.v1.ThunderService.ConnectPeer:output_type -> thunder.v1.ConnectPeerResponse
+	23, // 38: thunder.v1.ThunderService.ListPeers:output_type -> thunder.v1.ListPeersResponse
+	25, // 39: thunder.v1.ThunderService.Mine:output_type -> thunder.v1.MineResponse
+	27, // 40: thunder.v1.ThunderService.GetBlock:output_type -> thunder.v1.GetBlockResponse
+	29, // 41: thunder.v1.ThunderService.GetBestMainchainBlockHash:output_type -> thunder.v1.GetBestMainchainBlockHashResponse
+	31, // 42: thunder.v1.ThunderService.GetBestSidechainBlockHash:output_type -> thunder.v1.GetBestSidechainBlockHashResponse
+	33, // 43: thunder.v1.ThunderService.GetBmmInclusions:output_type -> thunder.v1.GetBmmInclusionsResponse
+	35, // 44: thunder.v1.ThunderService.GetWalletUtxos:output_type -> thunder.v1.GetWalletUtxosResponse
+	37, // 45: thunder.v1.ThunderService.ListUtxos:output_type -> thunder.v1.ListUtxosResponse
+	39, // 46: thunder.v1.ThunderService.RemoveFromMempool:output_type -> thunder.v1.RemoveFromMempoolResponse
+	41, // 47: thunder.v1.ThunderService.GetLatestFailedWithdrawalBundleHeight:output_type -> thunder.v1.GetLatestFailedWithdrawalBundleHeightResponse
+	43, // 48: thunder.v1.ThunderService.GenerateMnemonic:output_type -> thunder.v1.GenerateMnemonicResponse
+	45, // 49: thunder.v1.ThunderService.SetSeedFromMnemonic:output_type -> thunder.v1.SetSeedFromMnemonicResponse
+	47, // 50: thunder.v1.ThunderService.CallRaw:output_type -> thunder.v1.CallRawResponse
+	49, // 51: thunder.v1.ThunderService.ListWalletTransactions:output_type -> thunder.v1.ListWalletTransactionsResponse
+	27, // [27:52] is the sub-list for method output_type
+	2,  // [2:27] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_thunder_v1_thunder_proto_init() }
@@ -2449,7 +2561,7 @@ func file_thunder_v1_thunder_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_thunder_v1_thunder_proto_rawDesc), len(file_thunder_v1_thunder_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   49,
+			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

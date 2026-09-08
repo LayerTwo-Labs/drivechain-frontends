@@ -21,6 +21,9 @@ service ThunderService {
   // Transfer within sidechain.
   rpc Transfer(TransferRequest) returns (TransferResponse);
 
+  // Transfer to many addresses in one transaction.
+  rpc TransferMany(TransferManyRequest) returns (TransferManyResponse);
+
   // Get total sidechain wealth in sats.
   rpc GetSidechainWealth(GetSidechainWealthRequest) returns (GetSidechainWealthResponse);
 
@@ -130,6 +133,18 @@ message TransferRequest {
 }
 
 message TransferResponse {
+  string txid = 1;
+}
+
+// TransferMany
+
+message TransferManyRequest {
+  // Amount in sats for each destination address.
+  map<string, int64> destinations = 1;
+  int64 fee_sats = 2;
+}
+
+message TransferManyResponse {
   string txid = 1;
 }
 

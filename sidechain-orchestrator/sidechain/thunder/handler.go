@@ -152,6 +152,18 @@ func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.Transfer
 	return connect.NewResponse(&pb.TransferResponse{Txid: txid}), nil
 }
 
+func (h *Handler) TransferMany(ctx context.Context, req *connect.Request[pb.TransferManyRequest]) (*connect.Response[pb.TransferManyResponse], error) {
+	backend, err := h.backend(ctx)
+	if err != nil {
+		return nil, err
+	}
+	txid, err := backend.TransferMany(ctx, req.Msg.Destinations, req.Msg.FeeSats)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.TransferManyResponse{Txid: txid}), nil
+}
+
 func (h *Handler) Mine(ctx context.Context, req *connect.Request[pb.MineRequest]) (*connect.Response[pb.MineResponse], error) {
 	raw, err := h.proxy.Mine(ctx, req.Msg.FeeSats)
 	if err != nil {
