@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -77,6 +78,25 @@ type DownloadManager struct {
 	// suffix is also used to namespace the in-flight key and the on-disk
 	// extract dir so prod and test builds can coexist without clobbering.
 	SidechainVariant func(BinaryConfig) (sidechainVariantSpec, bool)
+
+	// releases caches the asset list of one GitHub release, keyed by API URL.
+	// ReleaseChecker probes every binary every 10 minutes; seven of them read
+	// api.github.com, and an unauthenticated caller gets 60 requests an hour
+	// per IP. Without this cache BitWindow answers HTTP 403 instead.
+	releases sync.Map
+}
+
+// githubReleaseTTL is how long a resolved GitHub release stays usable.
+const githubReleaseTTL = time.Hour
+
+type githubRelease struct {
+	assets  []githubAsset
+	fetched time.Time
+}
+
+type githubAsset struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
 }
 
 // sidechainVariantSpec is the minimal projection of BinaryConfig fields the
@@ -335,6 +355,10 @@ func (d *DownloadManager) ClearState(name string) {
 // resolveGitHubURL queries the GitHub releases API and finds the asset
 // matching the regex pattern.
 func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern string) (string, error) {
+	if assets, ok := d.cachedGitHubAssets(apiURL); ok {
+		return matchAsset(assets, pattern)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
@@ -356,26 +380,40 @@ func (d *DownloadManager) resolveGitHubURL(ctx context.Context, apiURL, pattern 
 	}
 
 	var release struct {
-		Assets []struct {
-			Name               string `json:"name"`
-			BrowserDownloadURL string `json:"browser_download_url"`
-		} `json:"assets"`
+		Assets []githubAsset `json:"assets"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
 	}
+	d.releases.Store(apiURL, githubRelease{assets: release.Assets, fetched: time.Now()})
 
+	return matchAsset(release.Assets, pattern)
+}
+
+// cachedGitHubAssets returns the asset list of a release fetched inside the
+// last githubReleaseTTL.
+func (d *DownloadManager) cachedGitHubAssets(apiURL string) ([]githubAsset, bool) {
+	value, ok := d.releases.Load(apiURL)
+	if !ok {
+		return nil, false
+	}
+	cached, ok := value.(githubRelease)
+	if !ok || time.Since(cached.fetched) > githubReleaseTTL {
+		return nil, false
+	}
+	return cached.assets, true
+}
+
+func matchAsset(assets []githubAsset, pattern string) (string, error) {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return "", fmt.Errorf("compile pattern %q: %w", pattern, err)
 	}
-
-	for _, asset := range release.Assets {
+	for _, asset := range assets {
 		if re.MatchString(asset.Name) {
 			return asset.BrowserDownloadURL, nil
 		}
 	}
-
 	return "", fmt.Errorf("no asset matching %q in release", pattern)
 }
 
