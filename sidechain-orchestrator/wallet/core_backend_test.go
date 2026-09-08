@@ -1780,21 +1780,259 @@ func TestMarkBip47NotificationImportedRollsBackOnSaveFailure(t *testing.T) {
 	assert.False(t, svc.GetWalletByID(w.ID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
 }
 
-// Core drops a wallet on restart unless its settings name it, and then the next
-// call answers -18. The create asks Core to keep it.
-func TestCoreKeepsTheWalletAcrossItsOwnRestart(t *testing.T) {
-	const loadOnStartupArg = 6 // name, disable_private_keys, blank, passphrase, avoid_reuse, descriptors, load_on_startup
+// stubEnsureFlowBip47Unloaded serves the wallet creation, then answers every
+// call that reaches the wallet itself the way Core does while it still loads it.
+func (f *fakeBitcoind) stubEnsureFlowBip47Unloaded() {
+	f.stubEnsureFlow()
+	const notLoaded = "Requested wallet does not exist or is not loaded"
+	f.handle("getaddressinfo", func(bitcoindCall) (any, string) { return nil, notLoaded })
+	f.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		// The notification import carries one descriptor; the single-sig batch
+		// carries the BIP84 and BIP86 pairs.
+		if len(descs) == 1 {
+			return nil, notLoaded
+		}
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": true}
+		}
+		return results, ""
+	})
+}
 
+// Core lists a wallet before it finishes loading it, so the BIP47 import can
+// answer "not loaded" for a wallet that just reported created. Caching the name
+// then points every later balance and history call at a wallet Core does not
+// hold, which is how one slow start turns into a permanent -18 loop.
+func TestEnsureDoesNotCacheAWalletCoreDoesNotHold(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlowBip47Unloaded()
+
+	_, err := backend.Ensure(context.Background(), coreID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not exist or is not loaded")
+
+	_, cached := backend.coreWallets[coreID]
+	assert.False(t, cached, "a wallet Core does not hold must not be cached")
+}
+
+// A wallet that goes away after it was cached leaves a name no call can use.
+// The next Ensure loads it again rather than handing the stale name back.
+func TestEnsureReloadsAfterTheCachedWalletGoesAway(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+
+	name, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+
+	// Core drops the wallet, and the pending BIP47 retry comes due.
+	fake.stubEnsureFlowBip47Unloaded()
+	backend.bip47NotifRetry[coreID] = time.Now().Add(-time.Second)
+
+	_, err = backend.Ensure(context.Background(), coreID)
+	require.Error(t, err, "the stale name must not come back as a success")
+
+	_, cached := backend.coreWallets[coreID]
+	assert.False(t, cached, "the stale entry must be dropped")
+	assert.Equal(t, "wallet_"+coreID[:8], name)
+}
+
+// Balance reads the wallet through the same cache, so a name Core stopped
+// holding must not reach getbalance. This is the path that produced the
+// repeating "balance failed: getbalance RPC error -18" on a slow Core start.
+func TestBalanceReloadsRatherThanReadAStaleWallet(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
 
 	_, err := backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
 
-	creates := fake.callsFor("createwallet")
-	require.Len(t, creates, 1)
-	require.Len(t, creates[0].Params, loadOnStartupArg+1, "createwallet must reach load_on_startup")
-	assert.JSONEq(t, "true", string(creates[0].Params[loadOnStartupArg]),
-		"Core forgets the wallet on restart without this")
-	assert.JSONEq(t, "true", string(creates[0].Params[5]), "descriptor wallet, stated rather than defaulted")
+	// Core drops the wallet, and the pending BIP47 retry comes due.
+	fake.stubEnsureFlowBip47Unloaded()
+	backend.bip47NotifRetry[coreID] = time.Now().Add(-time.Second)
+
+	_, _, err = backend.Balance(context.Background(), coreID)
+	require.Error(t, err, "a stale name must not reach getbalance")
+
+	assert.Empty(t, fake.callsFor("getbalance"), "no balance call may go to a wallet Core does not hold")
+	_, cached := backend.coreWallets[coreID]
+	assert.False(t, cached, "the stale entry must be dropped")
+}
+
+// A rescanning wallet is loaded and it keeps serving. Core refuses a new import
+// while it rescans, and that can run for hours, so refusing the wallet over it
+// would take balances away for the whole rescan. The alphanet server answers
+// exactly this during a Core start.
+func TestARescanningWalletKeepsServing(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		if len(descs) == 1 {
+			return nil, "Wallet is currently rescanning. Abort existing rescan or wait."
+		}
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": true}
+		}
+		return results, ""
+	})
+
+	name, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err, "a rescan must not take the wallet away")
+	assert.Equal(t, "wallet_"+coreID[:8], name)
+
+	cached, ok := backend.coreWallets[coreID]
+	assert.True(t, ok, "a loaded wallet stays cached through a rescan")
+	assert.Equal(t, name, cached)
+	_, pending := backend.bip47NotifRetry[coreID]
+	assert.True(t, pending, "the notification import retries once the rescan ends")
+}
+
+// Core lists a wallet it no longer holds, so this path skips the load and every
+// wallet call answers -18. A retry asks the same question, so the backend loads
+// the wallet instead.
+func TestEnsureLoadsAWalletCoreListsButDoesNotHold(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	name := "wallet_" + coreID[:8]
+	fake.stubEnsureFlow()
+
+	// listwallets names it, so the create is skipped.
+	fake.handle("listwallets", func(bitcoindCall) (any, string) { return []string{name}, "" })
+	// Core holds it only after a load.
+	held := false
+	fake.handle("loadwallet", func(bitcoindCall) (any, string) {
+		held = true
+		return map[string]any{"name": name}, ""
+	})
+	fake.handle("listdescriptors", func(bitcoindCall) (any, string) {
+		if !held {
+			return nil, "Requested wallet does not exist or is not loaded"
+		}
+		descs := make([]map[string]any, 4)
+		for i := range descs {
+			descs[i] = map[string]any{"active": true}
+		}
+		return map[string]any{"descriptors": descs}, ""
+	})
+
+	got, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+	assert.Equal(t, name, got)
+
+	loads := fake.callsFor("loadwallet")
+	require.Len(t, loads, 1, "the backend loads the wallet Core listed but did not hold")
+	assert.Equal(t, name, mustString(t, loads[0].Params[0]))
+}
+
+// Core answers "already loaded" when it holds the wallet, which is the outcome
+// a load asks for. That is a success, not a boot failure.
+func TestAnAlreadyLoadedWalletIsNotAFailure(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	name := "wallet_" + coreID[:8]
+	fake.stubEnsureFlow()
+	fake.handle("listwallets", func(bitcoindCall) (any, string) { return []string{name}, "" })
+	fake.handle("loadwallet", func(bitcoindCall) (any, string) {
+		return nil, "Wallet \"" + name + "\" is already loaded."
+	})
+	first := true
+	fake.handle("listdescriptors", func(bitcoindCall) (any, string) {
+		if first {
+			first = false
+			return nil, "Requested wallet does not exist or is not loaded"
+		}
+		descs := make([]map[string]any, 4)
+		for i := range descs {
+			descs[i] = map[string]any{"active": true}
+		}
+		return map[string]any{"descriptors": descs}, ""
+	})
+
+	_, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err, "already loaded is the outcome the load asked for")
+}
+
+// Core drops a wallet on restart unless its settings name it, and then the next
+// call answers -18. Both the create and the load ask Core to keep it.
+func TestCoreKeepsTheWalletAcrossItsOwnRestart(t *testing.T) {
+	const loadOnStartupArg = 6 // createwallet: name, disable_private_keys, blank, passphrase, avoid_reuse, descriptors, load_on_startup
+
+	t.Run("createwallet", func(t *testing.T) {
+		backend, fake, coreID := newCoreBackendFixture(t)
+		fake.stubEnsureFlow()
+
+		_, err := backend.Ensure(context.Background(), coreID)
+		require.NoError(t, err)
+
+		creates := fake.callsFor("createwallet")
+		require.Len(t, creates, 1)
+		require.Len(t, creates[0].Params, loadOnStartupArg+1, "createwallet must reach load_on_startup")
+		assert.JSONEq(t, "true", string(creates[0].Params[loadOnStartupArg]),
+			"Core forgets the wallet on restart without this")
+		assert.JSONEq(t, "true", string(creates[0].Params[5]), "descriptor wallet, stated rather than defaulted")
+	})
+
+	t.Run("loadwallet", func(t *testing.T) {
+		backend, fake, coreID := newCoreBackendFixture(t)
+		name := "wallet_" + coreID[:8]
+		fake.stubEnsureFlow()
+		fake.handle("listwallets", func(bitcoindCall) (any, string) { return []string{name}, "" })
+		held := false
+		fake.handle("loadwallet", func(bitcoindCall) (any, string) {
+			held = true
+			return map[string]any{"name": name}, ""
+		})
+		fake.handle("listdescriptors", func(bitcoindCall) (any, string) {
+			if !held {
+				return nil, "Requested wallet does not exist or is not loaded"
+			}
+			descs := make([]map[string]any, 4)
+			for i := range descs {
+				descs[i] = map[string]any{"active": true}
+			}
+			return map[string]any{"descriptors": descs}, ""
+		})
+
+		_, err := backend.Ensure(context.Background(), coreID)
+		require.NoError(t, err)
+
+		loads := fake.callsFor("loadwallet")
+		require.Len(t, loads, 1)
+		require.Len(t, loads[0].Params, 2, "loadwallet must reach load_on_startup")
+		assert.JSONEq(t, "true", string(loads[0].Params[1]))
+	})
+}
+
+// Core can unload a wallet at any time, and then no BIP47 retry is pending to
+// notice. Any wallet call that meets "not loaded" drops the cached name, so the
+// next call loads the wallet rather than repeating -18 for good.
+func TestAnyWalletCallDropsAWalletCoreUnloaded(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	name := "wallet_" + coreID[:8]
+	fake.stubEnsureFlow()
+
+	_, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+	require.Empty(t, backend.bip47NotifRetry, "the happy path leaves no retry to hang the eviction on")
+
+	// Core unloads the wallet, so the next balance read meets -18.
+	fake.handle("getbalance", func(bitcoindCall) (any, string) {
+		return nil, "Requested wallet does not exist or is not loaded"
+	})
+	_, _, err = backend.Balance(context.Background(), coreID)
+	require.Error(t, err)
+
+	// Core holds it again. The next call must load it rather than read the
+	// cached name and meet -18 for good.
+	fake.stubEnsureFlow()
+	before := len(fake.callsFor("createwallet"))
+
+	got, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+	assert.Equal(t, name, got)
+	assert.Greater(t, len(fake.callsFor("createwallet")), before,
+		"the cached name was used, and Core no longer holds that wallet")
 }
