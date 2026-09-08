@@ -21,6 +21,9 @@ import 'package:sidechain_core/models/core_transaction.dart';
 abstract class ThunderRPC extends SidechainRPC {
   ThunderRPC({required super.binaryType});
 
+  /// Pay many addresses in one transaction. Amounts are in sats.
+  Future<String> sideSendMany(Map<String, int> destinationSats);
+
   /// Get total sidechain wealth in BTC
   Future<double> getSidechainWealth();
 
@@ -223,6 +226,19 @@ class ThunderLive extends ThunderRPC {
   }
 
   @override
+  Future<String> sideSendMany(Map<String, int> destinationSats) async {
+    final resp = await _client.transferMany(
+      pb.TransferManyRequest(
+        destinations: destinationSats.map(
+          (address, sats) => MapEntry(address, Int64(sats)),
+        ),
+        feeSats: Int64(btcToSatoshi(0.00001).toInt()),
+      ),
+    );
+    return resp.txid;
+  }
+
+  @override
   Future<double> getSidechainWealth() async {
     final resp = await _client.getSidechainWealth(pb.GetSidechainWealthRequest());
     return satoshiToBTC(resp.sats.toInt());
@@ -342,6 +358,7 @@ final thunderRPCMethods = [
   'connect_peer',
   'create_deposit',
   'create_transfer',
+  'create_transfer_many',
   'create_withdrawal',
   'format_deposit_address',
   'generate_mnemonic',

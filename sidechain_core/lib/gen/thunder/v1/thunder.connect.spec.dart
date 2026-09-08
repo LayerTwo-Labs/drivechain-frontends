@@ -58,6 +58,14 @@ abstract final class ThunderService {
     thunderv1thunder.TransferResponse.new,
   );
 
+  /// Transfer to many addresses in one transaction.
+  static const transferMany = connect.Spec(
+    '/$name/TransferMany',
+    connect.StreamType.unary,
+    thunderv1thunder.TransferManyRequest.new,
+    thunderv1thunder.TransferManyResponse.new,
+  );
+
   /// Get total sidechain wealth in sats.
   static const getSidechainWealth = connect.Spec(
     '/$name/GetSidechainWealth',

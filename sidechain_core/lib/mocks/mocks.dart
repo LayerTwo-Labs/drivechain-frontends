@@ -320,6 +320,11 @@ class MockBbcRPC extends BbcRPC {
 class MockThunderRPC extends ThunderRPC {
   MockThunderRPC() : super(binaryType: BinaryType.BINARY_TYPE_THUNDER);
 
+  @override
+  Future<String> sideSendMany(Map<String, int> destinationSats) {
+    return Future.value('txid_sidechain_send_5678');
+  }
+
   bool _connected = false;
   bool _initializing = false;
   bool _stopping = false;
