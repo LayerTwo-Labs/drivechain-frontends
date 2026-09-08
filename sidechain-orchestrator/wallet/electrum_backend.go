@@ -1971,13 +1971,6 @@ func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub s
 		signWithXprv[c.Xpub] = xprv
 	}
 
-	p.log.Info().
-		Str("wallet", w.ID).
-		Int("m", ms.M).
-		Int("n", ms.N).
-		Int("with_origin", len(ms.Cosigners)-len(noOrigin)).
-		Strs("without_origin", noOrigin).
-		Msg("multisig signing descriptor")
 	if len(noOrigin) > 0 {
 		p.log.Warn().
 			Str("wallet", w.ID).
