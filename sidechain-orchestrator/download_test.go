@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -235,4 +236,74 @@ func TestStripPlatformSuffix(t *testing.T) {
 			assert.Equal(t, tt.want, StripPlatformSuffix(tt.input))
 		})
 	}
+}
+
+// ReleaseChecker probes every binary every 10 minutes, and seven of them read
+// api.github.com. An unauthenticated caller gets 60 requests an hour per IP,
+// so one release must answer many patterns from one fetch.
+func TestResolveGitHubURLCachesOneRelease(t *testing.T) {
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"assets":[
+			{"name":"photon-0.17.2-x86_64-unknown-linux-gnu.zip","browser_download_url":"https://example.invalid/linux.zip"},
+			{"name":"photon-0.17.2-aarch64-apple-darwin.zip","browser_download_url":"https://example.invalid/arm.zip"}
+		]}`))
+	}))
+	defer srv.Close()
+
+	dm, _ := newTestDownloadManager(t)
+	ctx := context.Background()
+
+	linux, err := dm.resolveGitHubURL(ctx, srv.URL, `photon-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu\.zip`)
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.invalid/linux.zip", linux)
+
+	arm, err := dm.resolveGitHubURL(ctx, srv.URL, `photon-\d+\.\d+\.\d+-aarch64-apple-darwin\.zip`)
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.invalid/arm.zip", arm)
+
+	assert.Equal(t, 1, calls, "the second pattern must read the cached release")
+}
+
+// A stale entry must not answer, or a new release never reaches the user.
+func TestResolveGitHubURLRefetchesAStaleRelease(t *testing.T) {
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"assets":[
+			{"name":"photon-0.17.2-x86_64-unknown-linux-gnu.zip","browser_download_url":"https://example.invalid/linux.zip"}
+		]}`))
+	}))
+	defer srv.Close()
+
+	dm, _ := newTestDownloadManager(t)
+	pattern := `photon-\d+\.\d+\.\d+-x86_64-unknown-linux-gnu\.zip`
+
+	_, err := dm.resolveGitHubURL(context.Background(), srv.URL, pattern)
+	require.NoError(t, err)
+
+	dm.releases.Store(srv.URL, githubRelease{
+		assets:  []githubAsset{{Name: "stale.zip"}},
+		fetched: time.Now().Add(-githubReleaseTTL - time.Minute),
+	})
+
+	_, err = dm.resolveGitHubURL(context.Background(), srv.URL, pattern)
+	require.NoError(t, err)
+	assert.Equal(t, 2, calls, "a stale release must be read again")
+}
+
+// A miss must not poison the cache into answering for a pattern no asset has.
+func TestResolveGitHubURLReportsAPatternNoAssetMatches(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"assets":[{"name":"photon-0.17.2-x86_64-unknown-linux-gnu.zip"}]}`))
+	}))
+	defer srv.Close()
+
+	dm, _ := newTestDownloadManager(t)
+	_, err := dm.resolveGitHubURL(context.Background(), srv.URL, `nothing-matches\.zip`)
+	require.Error(t, err)
 }
