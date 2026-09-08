@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sail_ui/pages/sidechains/sidechain_overview_page.dart';
 import 'package:stacked/stacked.dart';
+import 'package:thunder/widgets/send_card.dart';
 
 class ThunderWidgetCatalog {
   static final Map<String, HomepageWidgetInfo> _widgets = {
@@ -110,38 +111,9 @@ class ThunderWidgetCatalog {
       description: 'Send Thunder',
       size: WidgetSize.half,
       icon: SailSVGAsset.iconSend,
-      builder: (_) => ViewModelBuilder<OverviewTabViewModel>.reactive(
-        viewModelBuilder: () => OverviewTabViewModel(),
-        builder: (context, model, child) {
-          return SizedBox(
-            height: 300, // Fixed height for send form
-            child: SailCard(
-              title: 'Send on Sidechain',
-              error: model.sendError,
-              child: SailColumn(
-                spacing: SailStyleValues.padding16,
-                children: [
-                  SailText.secondary15('Pay to'),
-                  SailTextField(
-                    controller: model.bitcoinAddressController,
-                    hintText: 'Enter a bitcoin address',
-                  ),
-                  NumericField(
-                    label: 'Amount',
-                    controller: model.bitcoinAmountController,
-                    hintText: '0.00',
-                  ),
-                  SailButton(
-                    label: 'Send',
-                    disabled: !model.canSend,
-                    onPressed: () async => await model.executeSendOnSidechain(context),
-                    loading: model.isSending,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      builder: (_) => const SizedBox(
+        height: 340, // Fixed height for send form
+        child: ThunderSendCard(),
       ),
     ),
 
