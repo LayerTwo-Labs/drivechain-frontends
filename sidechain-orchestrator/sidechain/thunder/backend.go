@@ -20,6 +20,8 @@ type WalletBackend interface {
 	UTXOs(ctx context.Context) (json.RawMessage, error)
 	// Transfer pays one address and returns the txid.
 	Transfer(ctx context.Context, address string, amountSats, feeSats int64) (string, error)
+	// TransferMany pays every address in destinations and returns the txid.
+	TransferMany(ctx context.Context, destinations map[string]int64, feeSats int64) (string, error)
 	// Withdraw asks for coins to leave the sidechain and returns the txid.
 	Withdraw(
 		ctx context.Context, address string, amountSats, sideFeeSats, mainFeeSats int64,
@@ -53,6 +55,17 @@ func (b *nodeBackend) Transfer(
 	var txid string
 	params := []any{address, amountSats, feeSats}
 	if err := b.proxy.Client.Call(ctx, "create_transfer", params, &txid); err != nil {
+		return "", err
+	}
+	return txid, nil
+}
+
+func (b *nodeBackend) TransferMany(
+	ctx context.Context, destinations map[string]int64, feeSats int64,
+) (string, error) {
+	var txid string
+	params := []any{destinations, feeSats}
+	if err := b.proxy.Client.Call(ctx, "create_transfer_many", params, &txid); err != nil {
 		return "", err
 	}
 	return txid, nil

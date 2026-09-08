@@ -48,6 +48,9 @@ const (
 	ThunderServiceWithdrawProcedure = "/thunder.v1.ThunderService/Withdraw"
 	// ThunderServiceTransferProcedure is the fully-qualified name of the ThunderService's Transfer RPC.
 	ThunderServiceTransferProcedure = "/thunder.v1.ThunderService/Transfer"
+	// ThunderServiceTransferManyProcedure is the fully-qualified name of the ThunderService's
+	// TransferMany RPC.
+	ThunderServiceTransferManyProcedure = "/thunder.v1.ThunderService/TransferMany"
 	// ThunderServiceGetSidechainWealthProcedure is the fully-qualified name of the ThunderService's
 	// GetSidechainWealth RPC.
 	ThunderServiceGetSidechainWealthProcedure = "/thunder.v1.ThunderService/GetSidechainWealth"
@@ -115,6 +118,8 @@ type ThunderServiceClient interface {
 	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
 	// Transfer within sidechain.
 	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
+	// Transfer to many addresses in one transaction.
+	TransferMany(context.Context, *connect.Request[v1.TransferManyRequest]) (*connect.Response[v1.TransferManyResponse], error)
 	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
 	// Create a deposit transaction.
@@ -199,6 +204,12 @@ func NewThunderServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+ThunderServiceTransferProcedure,
 			connect.WithSchema(thunderServiceMethods.ByName("Transfer")),
+			connect.WithClientOptions(opts...),
+		),
+		transferMany: connect.NewClient[v1.TransferManyRequest, v1.TransferManyResponse](
+			httpClient,
+			baseURL+ThunderServiceTransferManyProcedure,
+			connect.WithSchema(thunderServiceMethods.ByName("TransferMany")),
 			connect.WithClientOptions(opts...),
 		),
 		getSidechainWealth: connect.NewClient[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse](
@@ -320,6 +331,7 @@ type thunderServiceClient struct {
 	getNewAddress                         *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
 	withdraw                              *connect.Client[v1.WithdrawRequest, v1.WithdrawResponse]
 	transfer                              *connect.Client[v1.TransferRequest, v1.TransferResponse]
+	transferMany                          *connect.Client[v1.TransferManyRequest, v1.TransferManyResponse]
 	getSidechainWealth                    *connect.Client[v1.GetSidechainWealthRequest, v1.GetSidechainWealthResponse]
 	createDeposit                         *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
 	getPendingWithdrawalBundle            *connect.Client[v1.GetPendingWithdrawalBundleRequest, v1.GetPendingWithdrawalBundleResponse]
@@ -368,6 +380,11 @@ func (c *thunderServiceClient) Withdraw(ctx context.Context, req *connect.Reques
 // Transfer calls thunder.v1.ThunderService.Transfer.
 func (c *thunderServiceClient) Transfer(ctx context.Context, req *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
 	return c.transfer.CallUnary(ctx, req)
+}
+
+// TransferMany calls thunder.v1.ThunderService.TransferMany.
+func (c *thunderServiceClient) TransferMany(ctx context.Context, req *connect.Request[v1.TransferManyRequest]) (*connect.Response[v1.TransferManyResponse], error) {
+	return c.transferMany.CallUnary(ctx, req)
 }
 
 // GetSidechainWealth calls thunder.v1.ThunderService.GetSidechainWealth.
@@ -475,6 +492,8 @@ type ThunderServiceHandler interface {
 	Withdraw(context.Context, *connect.Request[v1.WithdrawRequest]) (*connect.Response[v1.WithdrawResponse], error)
 	// Transfer within sidechain.
 	Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error)
+	// Transfer to many addresses in one transaction.
+	TransferMany(context.Context, *connect.Request[v1.TransferManyRequest]) (*connect.Response[v1.TransferManyResponse], error)
 	// Get total sidechain wealth in sats.
 	GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error)
 	// Create a deposit transaction.
@@ -555,6 +574,12 @@ func NewThunderServiceHandler(svc ThunderServiceHandler, opts ...connect.Handler
 		ThunderServiceTransferProcedure,
 		svc.Transfer,
 		connect.WithSchema(thunderServiceMethods.ByName("Transfer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	thunderServiceTransferManyHandler := connect.NewUnaryHandler(
+		ThunderServiceTransferManyProcedure,
+		svc.TransferMany,
+		connect.WithSchema(thunderServiceMethods.ByName("TransferMany")),
 		connect.WithHandlerOptions(opts...),
 	)
 	thunderServiceGetSidechainWealthHandler := connect.NewUnaryHandler(
@@ -679,6 +704,8 @@ func NewThunderServiceHandler(svc ThunderServiceHandler, opts ...connect.Handler
 			thunderServiceWithdrawHandler.ServeHTTP(w, r)
 		case ThunderServiceTransferProcedure:
 			thunderServiceTransferHandler.ServeHTTP(w, r)
+		case ThunderServiceTransferManyProcedure:
+			thunderServiceTransferManyHandler.ServeHTTP(w, r)
 		case ThunderServiceGetSidechainWealthProcedure:
 			thunderServiceGetSidechainWealthHandler.ServeHTTP(w, r)
 		case ThunderServiceCreateDepositProcedure:
@@ -746,6 +773,10 @@ func (UnimplementedThunderServiceHandler) Withdraw(context.Context, *connect.Req
 
 func (UnimplementedThunderServiceHandler) Transfer(context.Context, *connect.Request[v1.TransferRequest]) (*connect.Response[v1.TransferResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.Transfer is not implemented"))
+}
+
+func (UnimplementedThunderServiceHandler) TransferMany(context.Context, *connect.Request[v1.TransferManyRequest]) (*connect.Response[v1.TransferManyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("thunder.v1.ThunderService.TransferMany is not implemented"))
 }
 
 func (UnimplementedThunderServiceHandler) GetSidechainWealth(context.Context, *connect.Request[v1.GetSidechainWealthRequest]) (*connect.Response[v1.GetSidechainWealthResponse], error) {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/btcsuite/btcd/chaincfg"
 
@@ -147,6 +149,43 @@ func (b *lightBackend) Transfer(
 
 	txid, err := b.wallet.Send(ctx, from,
 		[]tw.Recipient{{Address: to, ValueSats: amount}}, fee, change)
+	if err != nil {
+		return "", err
+	}
+	return txid.String(), nil
+}
+
+func (b *lightBackend) TransferMany(
+	ctx context.Context, destinations map[string]int64, feeSats int64,
+) (string, error) {
+	if len(destinations) == 0 {
+		return "", fmt.Errorf("the transfer has no destination")
+	}
+	if feeSats < 0 {
+		return "", fmt.Errorf("the fee is negative")
+	}
+	recipients := make([]tw.Recipient, 0, len(destinations))
+	for _, address := range slices.Sorted(maps.Keys(destinations)) {
+		to, err := tw.ParseAddress(address)
+		if err != nil {
+			return "", fmt.Errorf("read the address %q: %w", address, err)
+		}
+		amountSats := destinations[address]
+		if amountSats <= 0 {
+			return "", fmt.Errorf("the amount for %s must be above zero", address)
+		}
+		recipients = append(recipients, tw.Recipient{Address: to, ValueSats: uint64(amountSats)})
+	}
+	from, err := b.addresses(ctx)
+	if err != nil {
+		return "", err
+	}
+	change, err := b.changeAddress(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	txid, err := b.wallet.Send(ctx, from, recipients, uint64(feeSats), change)
 	if err != nil {
 		return "", err
 	}
