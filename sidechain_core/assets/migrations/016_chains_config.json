@@ -1,0 +1,62 @@
+{
+  "version": 16,
+  "migration": "patch",
+  "binaries": {
+    "bitnames": {
+      "download": {
+        "binary": "bitnames",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/octobocto/plain-bitnames/releases/latest",
+            "linux-x86_64": "bitnames-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "bitnames-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "bitnames-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
+            "windows-x86_64": "bitnames-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.zip"
+          }
+        }
+      }
+    },
+    "bitassets": {
+      "download": {
+        "binary": "bitassets",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/octobocto/plain-bitassets/releases/latest",
+            "linux-x86_64": "bitassets-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "bitassets-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "bitassets-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
+            "windows-x86_64": "bitassets-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.zip"
+          }
+        }
+      }
+    },
+    "photon": {
+      "download": {
+        "binary": "photon",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/octobocto/photon/releases/latest",
+            "linux-x86_64": "photon-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "photon-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "photon-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
+            "windows-x86_64": "photon-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.zip"
+          }
+        }
+      }
+    },
+    "coinshift": {
+      "download": {
+        "binary": "coinshift",
+        "files": {
+          "default": {
+            "base_url": "https://api.github.com/repos/octobocto/coinshift-rs/releases/latest",
+            "linux-x86_64": "coinshift-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "coinshift-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "coinshift-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
+            "windows-x86_64": "coinshift-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.zip"
+          }
+        }
+      }
+    }
+  }
+}
