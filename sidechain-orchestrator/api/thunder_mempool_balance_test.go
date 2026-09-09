@@ -101,7 +101,7 @@ func TestThunderBalanceTracksMempoolSpendAndReceipt(t *testing.T) {
 					cfg := orchestrator.BinaryConfig{Name: "thunder", DisplayName: "Thunder", Host: host, Port: port}
 					orch := orchestrator.New(t.TempDir(), "regtest", t.TempDir(), []orchestrator.BinaryConfig{cfg}, zerolog.New(io.Discard))
 					handler := NewHandler(orch)
-					handler.SetThunderBalance(sidechain.NewJSONRPCProxy(host, port).GetBalance)
+					handler.SetSidechainBalance("thunder", sidechain.NewJSONRPCProxy(host, port).GetBalance)
 
 					response, err := handler.GetSidechainBalance(context.Background(), connect.NewRequest(&pb.GetSidechainBalanceRequest{
 						Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER,
