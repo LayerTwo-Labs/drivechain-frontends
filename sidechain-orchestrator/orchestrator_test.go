@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,9 +30,26 @@ func newTestPidManager(t *testing.T) *PidFileManager {
 	return NewPidFileManager(t.TempDir(), testLogger(t))
 }
 
+func setTestHome(t *testing.T) {
+	t.Helper()
+	previousHome := config.HomeDir()
+	userHome, err := os.UserHomeDir()
+	require.NoError(t, err)
+	if previousHome != userHome {
+		return
+	}
+	config.SetHomeDir(t.TempDir())
+	t.Cleanup(func() { config.SetHomeDir("") })
+}
+
 func newTestOrchestrator(t *testing.T) *Orchestrator {
 	t.Helper()
-	return New(t.TempDir(), "signet", t.TempDir(), AllDefaults(), testLogger(t))
+	setTestHome(t)
+	o := New(t.TempDir(), "signet", t.TempDir(), AllDefaults(), testLogger(t))
+	t.Cleanup(func() {
+		o.StopAllMonitors()
+	})
+	return o
 }
 
 func newTestProcessManager(t *testing.T) (*ProcessManager, string) {

@@ -9,6 +9,7 @@ import (
 // ListAll must not hold o.mu while Status→getConfig re-acquires it, or a
 // queued UpdateConfigs writer (config file watcher) wedges both forever.
 func TestListAllDuringConfigReload(t *testing.T) {
+	setTestHome(t)
 	cfgs := AllDefaults()
 	for i := range cfgs {
 		cfgs[i].Port = 0 // skip Status's port probe so iterations stay fast

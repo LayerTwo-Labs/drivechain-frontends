@@ -28,8 +28,13 @@ func TestStartWithL1RunsOnceTheDatadirExists(t *testing.T) {
 	require.NoError(t, o.BitcoinConf.UpdateDataDir(t.TempDir(), config.NetworkECash))
 	require.False(t, o.PlanNetworkChange(NetworkChangeRequest{}).MustSelectDatadir)
 
-	_, err := o.StartWithL1(context.Background(), "enforcer", StartOpts{})
+	ctx, cancel := context.WithCancel(context.Background())
+	ch, err := o.StartWithL1(ctx, "enforcer", StartOpts{})
+	cancel()
 	if err != nil {
 		require.NotContains(t, err.Error(), "no data directory")
+		return
+	}
+	for range ch {
 	}
 }

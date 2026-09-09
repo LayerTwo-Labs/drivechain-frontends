@@ -19,6 +19,7 @@ import (
 // BinDir resolves inside it.
 func newResetTestOrchestrator(t *testing.T) *Orchestrator {
 	t.Helper()
+	setTestHome(t)
 	dir := t.TempDir()
 	return New(dir, "signet", dir, AllDefaults(), testLogger(t))
 }

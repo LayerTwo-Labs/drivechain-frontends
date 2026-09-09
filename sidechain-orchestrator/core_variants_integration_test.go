@@ -92,6 +92,7 @@ func newVariantServer(t *testing.T, counts *requestCount) *httptest.Server {
 // fresh temp dirs unless caller supplies one (used for restart tests).
 func newIntegrationOrchestrator(t *testing.T, network, baseURL string, dataDir, bitwindowDir string) *Orchestrator {
 	t.Helper()
+	setTestHome(t)
 	if dataDir == "" {
 		dataDir = t.TempDir()
 	}
@@ -99,7 +100,11 @@ func newIntegrationOrchestrator(t *testing.T, network, baseURL string, dataDir, 
 		bitwindowDir = t.TempDir()
 	}
 	configs := []BinaryConfig{makeBitcoindCoreConfig(baseURL)}
-	return New(dataDir, network, bitwindowDir, configs, testLogger(t))
+	o := New(dataDir, network, bitwindowDir, configs, testLogger(t))
+	t.Cleanup(func() {
+		o.StopAllMonitors()
+	})
+	return o
 }
 
 func variantBinary(dataDir string, v CoreVariantSpec) string {

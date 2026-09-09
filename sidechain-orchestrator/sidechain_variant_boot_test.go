@@ -35,6 +35,7 @@ import (
 // regression where the resolver returns one path but Start exec's a
 // different one.
 func TestSidechainVariant_DownloadAndBoot(t *testing.T) {
+	setTestHome(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("real-binary launch path differs on Windows; CI runs the Linux/macOS variants")
 	}
