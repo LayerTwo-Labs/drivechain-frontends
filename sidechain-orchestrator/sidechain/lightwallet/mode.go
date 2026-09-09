@@ -89,6 +89,10 @@ func (w *Wallet) Backend() *Backend {
 	}
 	mode := w.mode()
 	if mode.LocalNode || mode.IndexURL == "" {
+		// A local node issues and funds addresses while it runs. The wallet
+		// that comes back to the index must walk its whole window again, or it
+		// reads none of what the node did.
+		w.drop()
 		return nil
 	}
 
@@ -103,4 +107,12 @@ func (w *Wallet) Backend() *Backend {
 		)
 	}
 	return w.backend
+}
+
+// drop forgets the backend, so the next light request builds a new one.
+func (w *Wallet) drop() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.backend = nil
+	w.url = ""
 }

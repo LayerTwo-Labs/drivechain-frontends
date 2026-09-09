@@ -3,6 +3,7 @@ package lightwallet
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
@@ -159,9 +160,9 @@ func TestBackendReadsPastAUsedAddress(t *testing.T) {
 	}
 }
 
-// The walk stops one gap in, or a fresh wallet would cost one request for
-// every key it could ever hold.
-func TestBackendStopsAfterTheGap(t *testing.T) {
+// A wallet holds one gap of unused addresses after its last used one, so a
+// receive page always has one to hand out.
+func TestBackendHoldsOneGapAfterTheLastUsedAddress(t *testing.T) {
 	index := newFakeIndex(t)
 	index.deposit(testAddress(t, gapLimit+1).String(), depositTxid, 7000, true)
 
@@ -169,8 +170,49 @@ func TestBackendStopsAfterTheGap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("addresses: %v", err)
 	}
-	if len(addresses) != gapLimit {
-		t.Errorf("the walk read %d addresses, want %d", len(addresses), gapLimit)
+	if want := gapLimit + 2 + gapLimit; len(addresses) != want {
+		t.Errorf("the wallet holds %d addresses, want %d", len(addresses), want)
+	}
+}
+
+// A wallet that ran a node first holds addresses the node issued and nobody
+// paid. A walk that stops at a gap loses the coins of every key after them, so
+// the balance and the listing read as empty after a switch to light mode.
+func TestBackendReadsAFundedAddressPastALongRunOfEmptyOnes(t *testing.T) {
+	index := newFakeIndex(t)
+	// The node issued the first addresses over many sessions, and one payment
+	// landed well past the gap.
+	funded := uint32(2 * gapLimit)
+	index.deposit(testAddress(t, funded).String(), depositTxid, 7000, true)
+
+	backend := testBackend(t, index)
+	total, available, err := backend.Balance(context.Background())
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if total != 7000 || available != 7000 {
+		t.Errorf("balance = %d total and %d available, want 7000 of each", total, available)
+	}
+
+	raw, err := backend.UTXOs(context.Background())
+	if err != nil {
+		t.Fatalf("utxos: %v", err)
+	}
+	var rows []json.RawMessage
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		t.Fatalf("read the listing %s: %v", raw, err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("the wallet lists %d coins, want 1", len(rows))
+	}
+
+	addresses, err := backend.Addresses(context.Background())
+	if err != nil {
+		t.Fatalf("addresses: %v", err)
+	}
+	if !slices.Contains(addresses, testAddress(t, funded).String()) {
+		t.Errorf("the wallet holds %d addresses, and the funded one is not among them",
+			len(addresses))
 	}
 }
 

@@ -1,6 +1,7 @@
 package lightwallet
 
 import (
+	"encoding/binary"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +17,9 @@ type fakeIndex struct {
 	utxos    map[string]string
 	deposits map[string]string
 	funded   map[string]bool
-	server   *httptest.Server
+	// stats counts the address reads one walk made.
+	stats  int
+	server *httptest.Server
 }
 
 func newFakeIndex(t *testing.T) *fakeIndex {
@@ -69,6 +72,7 @@ func (f *fakeIndex) serve(w http.ResponseWriter, r *http.Request) {
 	case strings.HasSuffix(path, "/deposits"):
 		f.write(w, f.deposits[strings.TrimSuffix(path, "/deposits")])
 	default:
+		f.stats++
 		count := 0
 		if f.funded[path] {
 			count = 1
@@ -79,6 +83,16 @@ func (f *fakeIndex) serve(w http.ResponseWriter, r *http.Request) {
 			"mempool_stats":{"funded_txo_count":0,"funded_txo_sum":0,
 			"spent_txo_count":0,"spent_txo_sum":0,"tx_count":0}}`)
 	}
+}
+
+// reads answers how many addresses the index saw a stats call for, and starts
+// the count again.
+func (f *fakeIndex) reads() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	count := f.stats
+	f.stats = 0
+	return count
 }
 
 func (f *fakeIndex) write(w http.ResponseWriter, body string) {
@@ -94,7 +108,8 @@ var testSeed = []byte("a light wallet seed of sixty-four bytes, which bip39 answ
 // testDerive stands in for a chain's key derivation. It answers a different
 // address per seed and per index, which is all the read path needs.
 func testDerive(seed []byte, index uint32) (Address, error) {
-	return AddressForKey(append(append([]byte{}, seed...), byte(index))), nil
+	key := binary.BigEndian.AppendUint32(append([]byte{}, seed...), index)
+	return AddressForKey(key), nil
 }
 
 func testAddress(t *testing.T, index uint32) Address {
