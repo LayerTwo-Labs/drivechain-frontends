@@ -61,10 +61,10 @@ func TestMigrationDropsTheRetiredPortOnAZmqChain(t *testing.T) {
 	SetHomeDir(t.TempDir())
 	t.Cleanup(func() { SetHomeDir("") })
 
-	m := sidechainConfFor(t, "bitnames", NetworkECash, map[string]string{
-		"rpc-port": "26002",
-		"net-addr": "0.0.0.0:24002",
-		"zmq-addr": "127.0.0.1:48002",
+	m := sidechainConfFor(t, "bitassets", NetworkECash, map[string]string{
+		"rpc-port": "26004",
+		"net-addr": "0.0.0.0:24004",
+		"zmq-addr": "127.0.0.1:48004",
 	})
 
 	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
@@ -72,9 +72,9 @@ func TestMigrationDropsTheRetiredPortOnAZmqChain(t *testing.T) {
 	}
 
 	for key, want := range map[string]string{
-		"rpc-port": "6002",
-		"net-addr": "0.0.0.0:4002",
-		"zmq-addr": "127.0.0.1:28002",
+		"rpc-port": "6004",
+		"net-addr": "0.0.0.0:4004",
+		"zmq-addr": "127.0.0.1:28004",
 	} {
 		if got := m.Config.GetSetting(key); got != want {
 			t.Errorf("%s = %q, want %q", key, got, want)
