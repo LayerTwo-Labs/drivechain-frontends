@@ -621,6 +621,14 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 	confirmedSats, pendingSats = applyMempoolDelta(
 		confirmedSats, pendingSats, h.mempoolDelta(ctx, cfg),
 	)
+	// Read the deposits last. The sidechain credits a deposit into the balance
+	// above, so a deposit that lands between the two reads counts in neither
+	// for one poll, and never in both.
+	depositSats, err := h.depositPendingSats(ctx, cfg)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	pendingSats += depositSats
 
 	if h.orch.WalletSvc != nil {
 		_ = h.orch.WalletSvc.SyncBalance(
