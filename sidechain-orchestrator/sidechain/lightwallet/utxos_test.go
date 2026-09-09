@@ -9,7 +9,7 @@ import (
 // both wallet modes.
 func TestMarshalUTXOsWritesEveryOutpointKind(t *testing.T) {
 	address := testAddress(t, 0)
-	raw, err := MarshalUTXOs(ValueKeyValue, []Coin{
+	raw, err := MarshalUTXOs(OutputShape{ValueKey: ValueKeyValue}, []Coin{
 		{OutPoint: OutPoint{Kind: KindRegular, Txid: depositTxid, Vout: 1}, Address: address, ValueSats: 10},
 		{OutPoint: OutPoint{Kind: KindCoinbase, Txid: depositTxid, Vout: 2}, Address: address, ValueSats: 20},
 		{OutPoint: OutPoint{Kind: KindDeposit, Txid: depositTxid, Vout: 3}, Address: address, ValueSats: 30},
@@ -45,7 +45,7 @@ func TestMarshalUTXOsNamesTheChainsValueKey(t *testing.T) {
 		ValueSats: 7,
 	}
 	for _, key := range []string{ValueKeyValue, ValueKeyBitcoinSats} {
-		raw, err := MarshalUTXOs(key, []Coin{coin}, nil)
+		raw, err := MarshalUTXOs(OutputShape{ValueKey: key}, []Coin{coin}, nil)
 		if err != nil {
 			t.Fatalf("marshal: %v", err)
 		}
@@ -66,11 +66,43 @@ func TestMarshalUTXOsNamesTheChainsValueKey(t *testing.T) {
 // A coin of a kind the wallet cannot write must fail the whole listing, or the
 // view would show a short balance and name no fault.
 func TestMarshalUTXOsRefusesAnUnknownKind(t *testing.T) {
-	_, err := MarshalUTXOs(ValueKeyValue, []Coin{{
+	_, err := MarshalUTXOs(OutputShape{ValueKey: ValueKeyValue}, []Coin{{
 		OutPoint: OutPoint{Kind: OutPointKind("minted"), Txid: depositTxid},
 		Address:  testAddress(t, 0),
 	}}, nil)
 	if err == nil {
 		t.Fatal("want an error, got none")
+	}
+}
+
+// A fork that writes a memo on every output writes one here too, or the light
+// listing is not the shape the node answers with.
+func TestMarshalUTXOsWritesTheMemoTheChainNames(t *testing.T) {
+	coin := Coin{
+		OutPoint:  OutPoint{Kind: KindRegular, Txid: depositTxid},
+		Address:   testAddress(t, 0),
+		ValueSats: 7,
+	}
+	for _, shape := range []OutputShape{
+		{ValueKey: ValueKeyBitcoinSats, Memo: true},
+		{ValueKey: ValueKeyValue},
+	} {
+		raw, err := MarshalUTXOs(shape, []Coin{coin}, nil)
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		var rows []struct {
+			Output map[string]json.RawMessage `json:"output"`
+		}
+		if err := json.Unmarshal(raw, &rows); err != nil {
+			t.Fatalf("read the listing: %v", err)
+		}
+		memo, held := rows[0].Output["memo"]
+		if held != shape.Memo {
+			t.Errorf("memo held = %v, want %v: %s", held, shape.Memo, raw)
+		}
+		if shape.Memo && string(memo) != "[]" {
+			t.Errorf("memo = %s, want an empty array", memo)
+		}
 	}
 }

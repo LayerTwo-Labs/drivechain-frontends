@@ -12,10 +12,18 @@ const (
 	ValueKeyBitcoinSats = "BitcoinSats"
 )
 
+// OutputShape is how one chain writes a wallet output.
+type OutputShape struct {
+	// ValueKey names the JSON key a plain coin value sits under.
+	ValueKey string
+	// Memo says whether every output of this chain carries a memo.
+	Memo bool
+}
+
 // MarshalUTXOs writes coins in the shape get_wallet_utxos answers with, so a
 // caller reads light mode and full mode with one parser. The confirmed coins
 // come first, then the ones no block carries yet.
-func MarshalUTXOs(valueKey string, confirmed, pending []Coin) ([]byte, error) {
+func MarshalUTXOs(shape OutputShape, confirmed, pending []Coin) ([]byte, error) {
 	rows := make([]map[string]any, 0, len(confirmed)+len(pending))
 	for _, group := range []struct {
 		coins    []Coin
@@ -26,12 +34,18 @@ func MarshalUTXOs(valueKey string, confirmed, pending []Coin) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("coin %s: %w", coin.OutPoint.Txid, err)
 			}
+			output := map[string]any{
+				"address": coin.Address.String(),
+				"content": map[string]any{shape.ValueKey: coin.ValueSats},
+			}
+			// The node writes a memo as an array of numbers, and a coin the
+			// index reports carries none.
+			if shape.Memo {
+				output["memo"] = []int{}
+			}
 			rows = append(rows, map[string]any{
-				"outpoint": outpoint,
-				"output": map[string]any{
-					"address": coin.Address.String(),
-					"content": map[string]any{valueKey: coin.ValueSats},
-				},
+				"outpoint":  outpoint,
+				"output":    output,
 				"confirmed": group.inABlock,
 			})
 		}
