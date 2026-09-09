@@ -15,6 +15,9 @@ type SidechainDeposit struct {
 	AmountSats  int64
 	FeeSats     int64
 	CreatedAt   time.Time
+	// CreditedAt is when the sidechain first held the coin. It is the zero
+	// time while the sidechain still knows nothing of the deposit.
+	CreditedAt time.Time
 }
 
 // RecordSidechainDeposit remembers a deposit the wallet just broadcast. An M5
@@ -44,7 +47,7 @@ func (s *Service) SidechainDeposits(ctx context.Context, slot uint32, walletID s
 		return nil, fmt.Errorf("list sidechain deposits: database not open")
 	}
 	rows, err := db.QueryContext(ctx, `
-		SELECT txid, wallet_id, slot, destination, amount_sats, fee_sats, created_at
+		SELECT txid, wallet_id, slot, destination, amount_sats, fee_sats, created_at, credited_at
 		FROM sidechain_deposits
 		WHERE network = ? AND slot = ? AND (? = '' OR wallet_id = ?)
 		ORDER BY created_at DESC`, s.Network(), slot, walletID, walletID)
@@ -56,17 +59,38 @@ func (s *Service) SidechainDeposits(ctx context.Context, slot uint32, walletID s
 	var out []SidechainDeposit
 	for rows.Next() {
 		var d SidechainDeposit
-		var createdAt int64
-		if err := rows.Scan(&d.Txid, &d.WalletID, &d.Slot, &d.Destination, &d.AmountSats, &d.FeeSats, &createdAt); err != nil {
+		var createdAt, creditedAt int64
+		if err := rows.Scan(&d.Txid, &d.WalletID, &d.Slot, &d.Destination, &d.AmountSats, &d.FeeSats, &createdAt, &creditedAt); err != nil {
 			return nil, fmt.Errorf("scan sidechain deposit: %w", err)
 		}
 		d.CreatedAt = time.Unix(createdAt, 0)
+		if creditedAt > 0 {
+			d.CreditedAt = time.Unix(creditedAt, 0)
+		}
 		out = append(out, d)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("read sidechain deposits: %w", err)
 	}
 	return out, nil
+}
+
+// MarkSidechainDepositCredited stamps the deposit the sidechain now holds a
+// coin for. The stamp never clears, so a later spend of that coin cannot read
+// the deposit back as an unconfirmed balance.
+func (s *Service) MarkSidechainDepositCredited(ctx context.Context, txid string) error {
+	db := s.db()
+	if db == nil {
+		return fmt.Errorf("credit sidechain deposit: database not open")
+	}
+	_, err := db.ExecContext(ctx, `
+		UPDATE sidechain_deposits SET credited_at = ?
+		WHERE network = ? AND txid = ? AND credited_at = 0`,
+		time.Now().Unix(), s.Network(), txid)
+	if err != nil {
+		return fmt.Errorf("credit sidechain deposit: %w", err)
+	}
+	return nil
 }
 
 // SidechainDepositTotals sums what this install deposited: all time, and since
