@@ -3154,7 +3154,7 @@ type MainchainBlockchainInfo struct {
 	Pruned               bool    `json:"pruned"`
 }
 
-// MainchainBalance holds confirmed + unconfirmed balances from bitcoind.
+// MainchainBalance holds confirmed and unconfirmed L1 balances, in BTC.
 type MainchainBalance struct {
 	Confirmed   float64
 	Unconfirmed float64
@@ -4005,36 +4005,25 @@ func connectJSONPost(ctx context.Context, client *http.Client, url string, out i
 	return nil
 }
 
-// GetMainchainBalance proxies getbalances from bitcoind.
+// GetMainchainBalance reads the active wallet's L1 balance through the wallet
+// engine, so an electrum wallet answers in light mode and a Core wallet answers
+// from bitcoind.
 func (o *Orchestrator) GetMainchainBalance(ctx context.Context) (*MainchainBalance, error) {
-	client, err := o.CoreStatusClient()
+	if o.walletEngine == nil {
+		return nil, errors.New("mainchain balance: no wallet engine is wired")
+	}
+
+	walletID, err := o.walletEngine.ResolveWalletID("")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("mainchain balance: %w", err)
 	}
 
-	result, err := client.call(ctx, "getbalances")
+	confirmed, unconfirmed, err := o.walletEngine.Backend().Balance(ctx, walletID)
 	if err != nil {
-		return nil, fmt.Errorf("getbalances: %w", err)
+		return nil, fmt.Errorf("mainchain balance for wallet %s: %w", walletID, err)
 	}
 
-	return parseMainchainBalance(result)
-}
-
-func parseMainchainBalance(raw json.RawMessage) (*MainchainBalance, error) {
-	var balances struct {
-		Mine struct {
-			Trusted          float64 `json:"trusted"`
-			UntrustedPending float64 `json:"untrusted_pending"`
-		} `json:"mine"`
-	}
-	if err := json.Unmarshal(raw, &balances); err != nil {
-		return nil, fmt.Errorf("decode getbalances: %w", err)
-	}
-
-	return &MainchainBalance{
-		Confirmed:   balances.Mine.Trusted,
-		Unconfirmed: balances.Mine.UntrustedPending,
-	}, nil
+	return &MainchainBalance{Confirmed: confirmed, Unconfirmed: unconfirmed}, nil
 }
 
 // CoreStatusClient builds a CoreStatusClient from the current config.
