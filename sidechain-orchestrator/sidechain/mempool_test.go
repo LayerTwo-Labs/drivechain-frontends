@@ -81,6 +81,40 @@ func TestMempoolFallsBackToTheTemplate(t *testing.T) {
 	assert.Equal(t, int64(7000), txs[0].Outputs[0].ValueSats)
 }
 
+func TestMempoolReadsThunderInputPairs(t *testing.T) {
+	const transaction = `{"inputs":[
+		[{"Regular":{"txid":"old","vout":2}},"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"],
+		[{"Deposit":"maintxid:0"},"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
+	],"outputs":[{"address":"mine","content":{"Value":9000}}]}`
+	for _, tc := range []struct {
+		name string
+		node *fakeNode
+		txid string
+	}{
+		{
+			name: "mempool",
+			node: &fakeNode{mempool: `[{"txid":"spend","size":240,"tx":` + transaction + `}]`},
+			txid: "spend",
+		},
+		{
+			name: "template",
+			node: &fakeNode{template: `{"body":{"transactions":[` + transaction + `]}}`},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			txs, err := Mempool(context.Background(), tc.node)
+			require.NoError(t, err)
+			require.Len(t, txs, 1)
+			assert.Equal(t, tc.txid, txs[0].Txid)
+			assert.Equal(t, []MempoolInput{{Key: "old:2"}, {Key: "maintxid:0"}}, txs[0].Inputs)
+			assert.Equal(t, []MempoolOutput{{Address: "mine", Vout: 0, ValueSats: 9000}}, txs[0].Outputs)
+			if tc.txid != "" {
+				assert.NotContains(t, tc.node.called, "get_block_template")
+			}
+		})
+	}
+}
+
 func TestMempoolIsEmptyWhenNeitherFeedAnswers(t *testing.T) {
 	txs, err := Mempool(context.Background(), &fakeNode{})
 	require.Error(t, err)
@@ -271,7 +305,7 @@ func TestWithMempoolUTXOsDropsWhatTheMempoolSpends(t *testing.T) {
 	node := &fakeNode{
 		addresses: `["mine"]`,
 		mempool: `[{"txid":"spend","size":100,"tx":{
-		    "inputs":[{"Regular":{"txid":"old","vout":0}}],
+		    "inputs":[[{"Regular":{"txid":"old","vout":0}},"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]],
 		    "outputs":[{"address":"mine","content":{"Value":9000}}]}}]`,
 	}
 	confirmed := json.RawMessage(`[
