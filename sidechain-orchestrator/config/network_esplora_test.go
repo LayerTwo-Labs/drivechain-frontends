@@ -15,8 +15,8 @@ func TestThunderEsploraURLForNetwork(t *testing.T) {
 	}
 }
 
-// A light install reads these chains from a hosted index and starts no daemon,
-// so a wrong URL leaves the wallet empty with no other sign.
+// The address explorer reads these chains from a hosted index, so a wrong URL
+// leaves the address empty with no other sign.
 func TestSidechainEsploraURLForNetwork(t *testing.T) {
 	for chain, want := range map[string]string{
 		"thunder":   "https://seed.alpha.ecash.eu.com/thunder",
@@ -36,7 +36,7 @@ func TestSidechainEsploraURLForNetwork(t *testing.T) {
 	}
 }
 
-// A chain with no hosted index must answer empty, or a light install would read
+// A chain with no hosted index must answer empty, or the explorer would read
 // another chain's coins.
 func TestSidechainEsploraURLRefusesAnUnhostedChain(t *testing.T) {
 	for _, chain := range []string{"truthcoin", "zside", "bbc", ""} {

@@ -272,7 +272,7 @@ func DrivechainIndexURLForNetwork(n Network) string {
 
 // indexedSidechains names every chain with a hosted address index. A node of
 // these chains keeps no address history of its own, so a wallet reads it here
-// instead, and a light install reads the whole chain here.
+// instead.
 var indexedSidechains = []string{
 	"thunder", "bitnames", "bitassets", "photon", "coinshift",
 }
