@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"os/signal"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -181,139 +183,256 @@ var startCommand = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		if cctx.NArg() < 1 {
-			return printUsageWithBinaries(cctx, "start")
-		}
+		return runStart(cctx, newClient(cctx))
+	},
+}
 
-		name := cctx.Args().First()
-		client := newClient(cctx)
+func runStart(cctx *cli.Context, client rpc.OrchestratorServiceClient) error {
+	if cctx.NArg() < 1 {
+		return printUsageWithBinaries(cctx, "start")
+	}
 
-		withDeps := !cctx.Bool("without-deps")
+	name := cctx.Args().First()
+	withDeps := !cctx.Bool("without-deps")
+	daemon := cctx.Bool("daemon")
 
-		// Check which binaries need downloading.
-		var needed []string
-		if withDeps {
-			needed = []string{"bitcoind", "enforcer", name}
-		} else {
-			needed = []string{name}
-		}
+	// Check which binaries need downloading.
+	var needed []string
+	if withDeps {
+		needed = []string{"bitcoind", "enforcer", name}
+	} else {
+		needed = []string{name}
+	}
 
-		autoDownload := cctx.Bool("auto-download") || os.Getenv("ORCHESTRATOR_AUTO_DOWNLOAD") != ""
-		for _, bin := range needed {
-			resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
-				Name: bin,
-			}))
-			if err != nil {
-				return err
-			}
-			s := resp.Msg.Status
-			if s.Downloaded || !s.Downloadable {
-				continue
-			}
-
-			displayName := s.DisplayName
-			if displayName == "" {
-				displayName = s.Name
-			}
-
-			if autoDownload {
-				fmt.Printf("%s is not downloaded. Downloading now...\n", displayName)
-			} else {
-				fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
-				if !confirmYes() {
-					return fmt.Errorf("cannot start %s without %s", name, bin)
-				}
-			}
-
-			if err := runDownload(cctx.Context, client, bin, false, false, false); err != nil {
-				return err
-			}
-			fmt.Println()
-		}
-
-		if withDeps {
-			// Fire-and-forget on the server side — boot proceeds in a
-			// background goroutine. Poll GetSyncStatus / ListBinaries via
-			// `drivechain-cli status` for progress.
-			if _, err := client.StartWithL1(cctx.Context, connect.NewRequest(&pb.StartWithL1Request{
-				Target:     name,
-				TargetArgs: cctx.StringSlice("args"),
-			})); err != nil {
-				return err
-			}
-			fmt.Println("L1 boot kicked off; poll status for progress")
-		} else {
-			resp, err := client.StartBinary(cctx.Context, connect.NewRequest(&pb.StartBinaryRequest{
-				Name:      name,
-				ExtraArgs: cctx.StringSlice("args"),
-			}))
-			if err != nil {
-				return err
-			}
-			fmt.Printf("started %s (PID %d)\n", name, resp.Msg.Pid)
-		}
-
-		if cctx.Bool("daemon") {
-			return nil
-		}
-
-		// Stream logs until ctrl+c, then stop everything we started.
-		fmt.Printf("\nstreaming %s logs (ctrl+c to stop)...\n\n", name)
-
-		ctx, cancel := context.WithCancel(cctx.Context)
-		defer cancel()
-
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-sigCh
-			cancel()
-		}()
-
-		logStream, err := client.StreamLogs(ctx, connect.NewRequest(&pb.StreamLogsRequest{
-			Name: name,
-			Tail: 10,
+	autoDownload := cctx.Bool("auto-download") || os.Getenv("ORCHESTRATOR_AUTO_DOWNLOAD") != ""
+	for _, bin := range needed {
+		resp, err := client.GetBinaryStatus(cctx.Context, connect.NewRequest(&pb.GetBinaryStatusRequest{
+			Name: bin,
 		}))
 		if err != nil {
 			return err
 		}
-		for logStream.Receive() {
-			msg := logStream.Msg()
-			ts := time.Unix(msg.TimestampUnix, 0).Format("15:04:05")
-			fmt.Printf("[%s] %s\n", ts, msg.Line)
+		s := resp.Msg.Status
+		if s.Downloaded || !s.Downloadable {
+			continue
 		}
 
-		// Stop the binaries we started.
-		fmt.Println("\nstopping...")
-		stopCtx, stopCancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer stopCancel()
-
-		if withDeps {
-			shutdownStream, err := client.ShutdownAll(stopCtx, connect.NewRequest(&pb.ShutdownAllRequest{}))
-			if err != nil {
-				return fmt.Errorf("shutdown: %w", err)
-			}
-			for shutdownStream.Receive() {
-				msg := shutdownStream.Msg()
-				if msg.CurrentBinary != "" {
-					fmt.Printf("  stopping %s...\n", msg.CurrentBinary)
-				}
-				if msg.Done {
-					fmt.Println("stopped")
-				}
-			}
-			return shutdownStream.Err()
+		displayName := s.DisplayName
+		if displayName == "" {
+			displayName = s.Name
 		}
 
-		_, err = client.StopBinary(stopCtx, connect.NewRequest(&pb.StopBinaryRequest{
-			Name: name,
+		if autoDownload {
+			fmt.Printf("%s is not downloaded. Downloading now...\n", displayName)
+		} else {
+			fmt.Printf("%s is not downloaded. download now? [Y/n] ", displayName)
+			if !confirmYes() {
+				return fmt.Errorf("cannot start %s without %s", name, bin)
+			}
+		}
+
+		if err := runDownload(cctx.Context, client, bin, false, false, false); err != nil {
+			return err
+		}
+		fmt.Println()
+	}
+
+	// Every binary that is alive before the boot belongs to someone else. The
+	// cleanup below stops only the ones this command adds.
+	var before binarySnapshot
+	if !daemon {
+		var err error
+		before, err = takeBinarySnapshot(cctx.Context, client)
+		if err != nil {
+			return err
+		}
+	}
+
+	if withDeps {
+		// Fire-and-forget on the server side — boot proceeds in a
+		// background goroutine. Poll GetSyncStatus / ListBinaries via
+		// `drivechain-cli status` for progress.
+		if _, err := client.StartWithL1(cctx.Context, connect.NewRequest(&pb.StartWithL1Request{
+			Target:     name,
+			TargetArgs: cctx.StringSlice("args"),
+		})); err != nil {
+			return err
+		}
+		fmt.Println("L1 boot kicked off; poll status for progress")
+	} else {
+		resp, err := client.StartBinary(cctx.Context, connect.NewRequest(&pb.StartBinaryRequest{
+			Name:      name,
+			ExtraArgs: cctx.StringSlice("args"),
 		}))
 		if err != nil {
-			return fmt.Errorf("stop %s: %w", name, err)
+			return err
 		}
-		fmt.Printf("stopped %s\n", name)
+		fmt.Printf("started %s (PID %d)\n", name, resp.Msg.Pid)
+	}
+
+	if daemon {
 		return nil
-	},
+	}
+
+	// Stream logs until ctrl+c, then stop what this command started.
+	fmt.Printf("\nstreaming %s logs (ctrl+c to stop)...\n\n", name)
+
+	ctx, cancel := context.WithCancel(cctx.Context)
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
+	logStream, err := client.StreamLogs(ctx, connect.NewRequest(&pb.StreamLogsRequest{
+		Name: name,
+		Tail: 10,
+	}))
+	if err != nil {
+		return err
+	}
+	for logStream.Receive() {
+		msg := logStream.Msg()
+		ts := time.Unix(msg.TimestampUnix, 0).Format("15:04:05")
+		fmt.Printf("[%s] %s\n", ts, msg.Line)
+	}
+
+	listCtx, listCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer listCancel()
+
+	now, err := takeBinarySnapshot(listCtx, client)
+	if err != nil {
+		return err
+	}
+
+	toStop := binariesToStop(name, withDeps, before, now)
+	if len(toStop) == 0 {
+		return nil
+	}
+
+	fmt.Println("\nstopping...")
+	var stopErrs []error
+	for _, bin := range toStop {
+		fmt.Printf("  stopping %s...\n", bin)
+		if err := stopOneBinary(client, bin); err != nil {
+			// A slow stop must not hold back the rest of the stack.
+			fmt.Printf("  stop %s: %v\n", bin, err)
+			stopErrs = append(stopErrs, fmt.Errorf("stop %s: %w", bin, err))
+		}
+	}
+	if len(stopErrs) > 0 {
+		return errors.Join(stopErrs...)
+	}
+	fmt.Println("stopped")
+	return nil
+}
+
+// stopBinaryTimeout covers one graceful stop. Bitcoin Core can take 90 seconds
+// to flush, so a shared budget would cut the stops that come after it.
+const stopBinaryTimeout = 2 * time.Minute
+
+func stopOneBinary(client rpc.OrchestratorServiceClient, name string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), stopBinaryTimeout)
+	defer cancel()
+
+	_, err := client.StopBinary(ctx, connect.NewRequest(&pb.StopBinaryRequest{Name: name}))
+	return err
+}
+
+// binarySnapshot records which binaries are alive at one moment.
+type binarySnapshot struct {
+	// daemons holds the binaries the process manager runs itself.
+	daemons map[string]bool
+	// busy holds those, plus the chains that hold an app window open, plus the
+	// ones whose port answers under another owner. A boot adopts such a
+	// process, so a daemon slot never proves ownership.
+	busy map[string]bool
+	// sidechains holds the busy layer 2 chains. Each one needs the L1 pair.
+	sidechains map[string]bool
+}
+
+func takeBinarySnapshot(ctx context.Context, client rpc.OrchestratorServiceClient) (binarySnapshot, error) {
+	resp, err := client.ListBinaries(ctx, connect.NewRequest(&pb.ListBinariesRequest{}))
+	if err != nil {
+		return binarySnapshot{}, fmt.Errorf("list binaries: %w", err)
+	}
+
+	snapshot := binarySnapshot{
+		daemons:    make(map[string]bool, len(resp.Msg.Binaries)),
+		busy:       make(map[string]bool, len(resp.Msg.Binaries)),
+		sidechains: make(map[string]bool, len(resp.Msg.Binaries)),
+	}
+	for _, s := range resp.Msg.Binaries {
+		if s.Running {
+			snapshot.daemons[s.Name] = true
+		}
+		if !s.Running && !s.WindowOpen && !s.PortInUse {
+			continue
+		}
+		snapshot.busy[s.Name] = true
+		if s.ChainLayer == 2 {
+			snapshot.sidechains[s.Name] = true
+		}
+	}
+	return snapshot, nil
+}
+
+// binariesToStop returns the binaries one start brought up, in shutdown order.
+// It holds the L1 pair up while a chain that this start did not add still
+// needs it.
+func binariesToStop(target string, withDeps bool, before, now binarySnapshot) []string {
+	candidates := []string{target}
+	if withDeps {
+		candidates = append(candidates, "enforcer", "bitcoind")
+	}
+
+	ours := make(map[string]bool, len(candidates))
+	for _, name := range candidates {
+		if before.busy[name] {
+			continue
+		}
+		// The command named the target, so a stop is right even after a crash:
+		// it also clears the restart timer that would boot the chain again.
+		if name == target || now.daemons[name] {
+			ours[name] = true
+		}
+	}
+
+	for name := range now.sidechains {
+		if !ours[name] {
+			delete(ours, "enforcer")
+			delete(ours, "bitcoind")
+			break
+		}
+	}
+
+	ordered := make([]string, 0, len(ours))
+	for name := range ours {
+		ordered = append(ordered, name)
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		if ri, rj := shutdownRank(ordered[i]), shutdownRank(ordered[j]); ri != rj {
+			return ri < rj
+		}
+		return ordered[i] < ordered[j]
+	})
+	return ordered
+}
+
+// shutdownRank ranks a binary for shutdown: layer 2 first, then the enforcer,
+// then bitcoind.
+func shutdownRank(name string) int {
+	switch name {
+	case "enforcer":
+		return 1
+	case "bitcoind":
+		return 2
+	default:
+		return 0
+	}
 }
 
 var stopCommand = &cli.Command{
