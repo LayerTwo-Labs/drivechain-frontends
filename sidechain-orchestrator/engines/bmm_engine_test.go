@@ -27,6 +27,7 @@ type fakeBackend struct {
 	bids              int
 	connects          int
 	connected         bool
+	noInclusion       bool
 	lastMainBlockHash string
 	bidErr            error
 	feesSats          int64
@@ -84,6 +85,11 @@ func (f *fakeBackend) ConnectBid(
 	defer f.mu.Unlock()
 	f.connects++
 	f.lastMainBlockHash = req.Msg.MainBlockHash
+	// The handler names no block while the sidechain reports no inclusion for
+	// the critical hash.
+	if f.noInclusion {
+		return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+	}
 	// The handler echoes the block it connected on, resolving it itself only
 	// when the caller named none.
 	main := req.Msg.MainBlockHash
@@ -668,9 +674,10 @@ func TestBmmEngineResumesAWonBlockThatNeverConnected(t *testing.T) {
 	ctx := context.Background()
 	engine.tick(ctx)
 
-	// The miner committed to our block, but the sidechain has not accepted it.
+	// The miner committed to our block, but the sidechain has not seen the
+	// inclusion yet.
 	backend.commitment = "critical"
-	backend.connected = false
+	backend.noInclusion = true
 	tip.set("block-2")
 	engine.tick(ctx)
 
@@ -681,6 +688,7 @@ func TestBmmEngineResumesAWonBlockThatNeverConnected(t *testing.T) {
 	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, tip, newFakeFee(), store)
 	restarted.resumeUnconnected()
 
+	backend.noInclusion = false
 	backend.connected = true
 	before := backend.connects
 	restarted.retryConnects(ctx, testSidechain, tip.hash, tip.height)
@@ -1085,17 +1093,9 @@ func TestBmmEngineAbandonsAWonBlockBehindTheTip(t *testing.T) {
 // A won block within the horizon is still worth retrying: the fee is paid.
 func TestBmmEngineKeepsRetryingARecentWonBlock(t *testing.T) {
 	engine, backend, _, _ := newEngine(t)
+	backend.noInclusion = true
 
-	round := &bmmstate.Round{
-		Sidechain:        int32(testSidechain),
-		PrevMainHash:     "recent-round",
-		PrevMainHeight:   996770,
-		IncludedInHeight: 996771,
-		Result:           ResultWon,
-		OurBids: []bmmstate.Bid{{
-			Txid: "won-txid", CriticalHash: "critical", IsOurs: true, State: BidLive,
-		}},
-	}
+	round := unconnectedRound("recent-round", 996770)
 	engine.mu.Lock()
 	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
 	engine.mu.Unlock()
@@ -1103,6 +1103,113 @@ func TestBmmEngineKeepsRetryingARecentWonBlock(t *testing.T) {
 	engine.retryConnects(context.Background(), testSidechain, "tip", 996773)
 
 	assert.Positive(t, backend.connects, "a recent won block is still submitted")
+	assert.Equal(t, 1, pendingCount(engine), "the round waits for the next pass")
+}
+
+// The sidechain judged the block and said no. The next attempt sends the same
+// bytes, so the round is over.
+func TestBmmEngineRetiresARefusedBlock(t *testing.T) {
+	engine, backend, _, store := newEngine(t)
+	backend.connected = false
+
+	round := unconnectedRound("refused-round", 996770)
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	ctx := context.Background()
+	engine.retryConnects(ctx, testSidechain, "tip", 996773)
+
+	assert.Equal(t, 1, backend.connects, "the refused block is offered once")
+	assert.Zero(t, pendingCount(engine), "the round leaves the retry list")
+	require.Len(t, round.OurBids, 1)
+	assert.Equal(t, BidFailed, round.OurBids[0].State)
+	assert.Equal(t, reasonRefused, round.OurBids[0].Error)
+
+	engine.retryConnects(ctx, testSidechain, "tip", 996774)
+	assert.Equal(t, 1, backend.connects, "a retired round is never offered again")
+
+	// A restart must not resume it, or the refusal starts over.
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, &fakeTip{}, newFakeFee(), store)
+	restarted.resumeUnconnected()
+	assert.Zero(t, pendingCount(restarted), "a restart leaves the retired round alone")
+}
+
+// A sidechain that has not seen the bid included names no block. The mainchain
+// block that carries it may still reach the sidechain, so the round waits.
+func TestBmmEngineRetriesABlockTheSidechainHasNotSeen(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.noInclusion = true
+
+	round := unconnectedRound("unseen-round", 996770)
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	ctx := context.Background()
+	engine.retryConnects(ctx, testSidechain, "tip", 996773)
+	engine.retryConnects(ctx, testSidechain, "tip", 996773)
+
+	assert.Equal(t, 2, backend.connects, "the block goes back to the sidechain")
+	assert.Equal(t, 1, pendingCount(engine), "the round stays on the retry list")
+	assert.Equal(t, BidLive, round.OurBids[0].State)
+
+	backend.noInclusion = false
+	backend.connected = true
+	engine.retryConnects(ctx, testSidechain, "tip", 996773)
+
+	assert.Zero(t, pendingCount(engine), "the connected round leaves the list")
+	assert.Equal(t, BidConnected, round.OurBids[0].State)
+}
+
+// A refusal shape the engine cannot name must still end. The attempt bound
+// retires the round, so it never loops without end.
+func TestBmmEngineBoundsARepeatedRefusal(t *testing.T) {
+	engine, backend, _, store := newEngine(t)
+	backend.noInclusion = true
+
+	round := unconnectedRound("bounded-round", 996770)
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	ctx := context.Background()
+	for range bmmConnectAttempts {
+		engine.retryConnects(ctx, testSidechain, "tip", 996773)
+	}
+
+	assert.Equal(t, bmmConnectAttempts, backend.connects)
+	assert.Zero(t, pendingCount(engine), "the bound takes the round off the list")
+	assert.Equal(t, BidFailed, round.OurBids[0].State)
+	assert.Equal(t, reasonNoAnswer, round.OurBids[0].Error)
+
+	engine.retryConnects(ctx, testSidechain, "tip", 996773)
+	assert.Equal(t, bmmConnectAttempts, backend.connects, "the bound holds")
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, &fakeTip{}, newFakeFee(), store)
+	restarted.resumeUnconnected()
+	assert.Zero(t, pendingCount(restarted), "a restart hands it no fresh budget")
+}
+
+// unconnectedRound is a round a miner took, waiting on the sidechain.
+func unconnectedRound(prevMainHash string, prevMainHeight int32) *bmmstate.Round {
+	return &bmmstate.Round{
+		Sidechain:        int32(testSidechain),
+		PrevMainHash:     prevMainHash,
+		PrevMainHeight:   prevMainHeight,
+		IncludedInBlock:  "main-block",
+		IncludedInHeight: prevMainHeight + 1,
+		Result:           ResultWon,
+		OurBids: []bmmstate.Bid{{
+			Txid: "won-txid", CriticalHash: "critical", IsOurs: true, State: BidLive,
+		}},
+	}
+}
+
+func pendingCount(engine *BmmEngine) int {
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
+	return len(engine.unconnected[testSidechain])
 }
 
 // A restart before the tip moves finds the round still in play. Bidding again

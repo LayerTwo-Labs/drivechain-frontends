@@ -39,6 +39,25 @@ const (
 	ResultSkipped = "skipped"
 )
 
+// roundStep is what to do with a round after one attempt on it.
+type roundStep int
+
+const (
+	// stepRetry: the sidechain has not judged the block yet, so it goes back on
+	// the retry list.
+	stepRetry roundStep = iota
+	// stepDone: the round is settled and needs no more attempts.
+	stepDone
+	// stepRetire: the sidechain judged the block and refused it. The next
+	// attempt sends the same bytes, so there must be no next attempt.
+	stepRetire
+)
+
+const (
+	reasonRefused  = "the sidechain refused the block"
+	reasonNoAnswer = "the sidechain never accepted the block"
+)
+
 // Bid state values, for our own bids.
 const (
 	BidLive      = "live"
@@ -908,10 +927,13 @@ func (e *BmmEngine) settleRound(ctx context.Context, sidechain pb.BinaryType, ne
 		round.Result = ResultWon
 		round.WinnerTxid = live.Txid
 		round.WinnerBidSats = live.BidSats
-		// The fee is already paid, so a sidechain that rejects the block now is
+		// The fee is already paid, so a block the sidechain has not judged yet is
 		// worth retrying rather than forfeiting.
-		if !e.connectWon(ctx, sidechain, round) {
+		switch e.connectWon(ctx, sidechain, round) {
+		case stepRetry:
 			e.park(sidechain, round)
+		case stepRetire:
+			e.retire(sidechain, round, reasonRefused)
 		}
 		e.save(round)
 		return
@@ -920,8 +942,11 @@ func (e *BmmEngine) settleRound(ctx context.Context, sidechain pb.BinaryType, ne
 	// The tip ran past the block that decided this round, so its commitment says
 	// nothing about our bid: settle on the deciding block instead.
 	if live != nil && newHeight > round.PrevMainHeight+1 {
-		if !e.settleOutrunRound(ctx, sidechain, round, live, newTip, newHeight) {
+		switch e.settleOutrunRound(ctx, sidechain, round, live, newTip, newHeight) {
+		case stepRetry:
 			e.park(sidechain, round)
+		case stepRetire:
+			e.retire(sidechain, round, reasonRefused)
 		}
 		return
 	}
@@ -951,14 +976,14 @@ func (e *BmmEngine) markLost(round *bmmstate.Round, live *bmmstate.Bid, commitme
 func (e *BmmEngine) settleOutrunRound(
 	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round, live *bmmstate.Bid,
 	tip string, tipHeight int32,
-) bool {
+) roundStep {
 	decider := tip
 	if tipHeight != round.PrevMainHeight+1 {
 		found, err := e.backend.BlockAfter(ctx, round.PrevMainHash, tip)
 		if err != nil || found == "" {
 			e.log.Warn().Err(err).Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
 				Msg("cannot name the block that decided this round")
-			return false
+			return stepRetry
 		}
 		decider = found
 	}
@@ -967,7 +992,7 @@ func (e *BmmEngine) settleOutrunRound(
 	if err != nil {
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Str("main_block", decider).
 			Msg("read bmm commitment of the deciding block")
-		return false
+		return stepRetry
 	}
 
 	round.IncludedInBlock = decider
@@ -976,15 +1001,15 @@ func (e *BmmEngine) settleOutrunRound(
 
 	if commitment != live.CriticalHash {
 		e.markLost(round, live, commitment)
-		return true
+		return stepDone
 	}
 
 	round.Result = ResultWon
 	round.WinnerTxid = live.Txid
 	round.WinnerBidSats = live.BidSats
-	connected := e.connectWon(ctx, sidechain, round)
+	step := e.connectWon(ctx, sidechain, round)
 	e.save(round)
-	return connected
+	return step
 }
 
 // park queues a round for the retry pass and records it, so a restart mid-wait
@@ -1013,7 +1038,11 @@ func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType, 
 		if e.abandonBehindTip(sidechain, round, tipHeight) {
 			continue
 		}
-		if e.retryRound(ctx, sidechain, round, tip, tipHeight) {
+		switch e.retryRound(ctx, sidechain, round, tip, tipHeight) {
+		case stepDone:
+			continue
+		case stepRetire:
+			e.retire(sidechain, round, reasonRefused)
 			continue
 		}
 		round.BlocksWaited++
@@ -1026,7 +1055,11 @@ func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType, 
 		if round.Result == ResultOpen {
 			e.log.Warn().Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
 				Msg("giving up on deciding this round for now")
+			continue
 		}
+		// The attempts are spent on a block the sidechain never took. A refusal
+		// shape this engine cannot name still ends here.
+		e.retire(sidechain, round, reasonNoAnswer)
 	}
 
 	e.mu.Lock()
@@ -1065,27 +1098,46 @@ func (e *BmmEngine) abandonBehindTip(
 // named has to be decided first, the rest only have to connect.
 func (e *BmmEngine) retryRound(
 	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round, tip string, tipHeight int32,
-) bool {
+) roundStep {
 	if round.Result == ResultOpen {
 		live := liveBid(round)
 		if live == nil {
-			return true
+			return stepDone
 		}
 		return e.settleOutrunRound(ctx, sidechain, round, live, tip, tipHeight)
 	}
-	if !e.connectWon(ctx, sidechain, round) {
-		return false
+	step := e.connectWon(ctx, sidechain, round)
+	if step == stepDone {
+		e.save(round)
 	}
+	return step
+}
+
+// retire ends a round the engine must not offer to the sidechain again. It
+// clears the live bid, so a restart cannot resume the round and hand it a fresh
+// attempt budget.
+func (e *BmmEngine) retire(sidechain pb.BinaryType, round *bmmstate.Round, reason string) {
+	if live := liveBid(round); live != nil {
+		live.State = BidFailed
+		live.Error = reason
+	}
+	e.log.Warn().Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
+		Str("main_block", round.IncludedInBlock).Str("reason", reason).
+		Msg("retiring a won block the sidechain will not take")
 	e.save(round)
-	return true
 }
 
 // connectWon hands the won block to the sidechain, naming the mainchain block
 // that carries the commitment — the sidechain cannot name a block it never saw.
-func (e *BmmEngine) connectWon(ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round) bool {
+//
+// An empty answer means the sidechain has not seen the inclusion yet; an answer
+// that names the block means the sidechain judged it and said no.
+func (e *BmmEngine) connectWon(
+	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round,
+) roundStep {
 	live := liveBid(round)
 	if live == nil {
-		return false
+		return stepRetry
 	}
 	resp, err := e.backend.ConnectBid(ctx, connect.NewRequest(&bmmpb.ConnectBidRequest{
 		Sidechain:     sidechain,
@@ -1096,12 +1148,17 @@ func (e *BmmEngine) connectWon(ctx context.Context, sidechain pb.BinaryType, rou
 	if err != nil {
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).
 			Str("critical_hash", live.CriticalHash).Msg("connect won block")
-		return false
+		return stepRetry
 	}
 	if !resp.Msg.Connected {
+		if resp.Msg.MainBlockHash == "" {
+			e.log.Debug().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
+				Msg("the sidechain has not seen the bid included yet")
+			return stepRetry
+		}
 		e.log.Warn().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
-			Str("main_block", round.IncludedInBlock).Msg("sidechain refused the won block")
-		return false
+			Str("main_block", resp.Msg.MainBlockHash).Msg("sidechain refused the won block")
+		return stepRetire
 	}
 	live.State = BidConnected
 	round.Result = ResultWon
@@ -1111,7 +1168,7 @@ func (e *BmmEngine) connectWon(ctx context.Context, sidechain pb.BinaryType, rou
 	if resp.Msg.MainBlockHash != "" {
 		round.IncludedInBlock = resp.Msg.MainBlockHash
 	}
-	return true
+	return stepDone
 }
 
 func (e *BmmEngine) save(round *bmmstate.Round) {
