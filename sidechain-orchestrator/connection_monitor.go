@@ -61,8 +61,7 @@ type ConnectionMonitor struct {
 	// Dart: _pingEpoch — incremented in stop() so in-flight pings are discarded
 	pingEpoch int
 
-	// Dart: _testing — prevents concurrent testConnection calls
-	testing bool
+	checkDone chan struct{}
 
 	// hasCrashError is set when SetConnectionError is called from a process exit.
 	// Prevents the connection timer from overwriting the crash error with "connection refused".
@@ -331,12 +330,16 @@ func extractStartupError(errMsg string) string {
 func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 	m.mu.Lock()
 
-	// Dart L84-86: prevent concurrent calls
-	if m.testing {
+	if m.checkDone != nil {
+		done := m.checkDone
 		m.mu.Unlock()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
 		return
 	}
-	m.testing = true
+	m.checkDone = make(chan struct{})
 	epochBefore := m.pingEpoch
 	wasConnected := m.connected
 	oldConnErr := m.connectionError
@@ -345,15 +348,10 @@ func (m *ConnectionMonitor) testConnection(ctx context.Context) {
 
 	m.mu.Unlock()
 
-	// Defensive: guarantee `testing` is reset even if Checker.Check panics
-	// or returns through any other path. The flag was previously cleared at
-	// the explicit success/early-return sites — a panic in Check left
-	// `testing` true forever, all subsequent ticks were skipped, and the
-	// monitor froze silently with no error visible to the frontend. defer
-	// ensures the next tick always gets a chance to run.
 	defer func() {
 		m.mu.Lock()
-		m.testing = false
+		close(m.checkDone)
+		m.checkDone = nil
 		m.mu.Unlock()
 	}()
 
