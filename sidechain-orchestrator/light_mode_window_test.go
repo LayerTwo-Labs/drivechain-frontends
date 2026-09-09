@@ -106,8 +106,8 @@ func TestLightWalletRegistrationGatesTheWindow(t *testing.T) {
 	if !o.servesLightWallet("thunder") {
 		t.Error("a registered chain must serve a light wallet")
 	}
-	if o.servesLightWallet("bitnames") {
-		t.Error("bitnames registers no light wallet, so it must not serve one")
+	if o.servesLightWallet("truthcoin") {
+		t.Error("truthcoin registers no light wallet, so it must not serve one")
 	}
 
 	// Only eCash carries a thunder index. A network without one reads the
