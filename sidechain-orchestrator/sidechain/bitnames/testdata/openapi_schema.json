@@ -112,27 +112,25 @@
                 "type": "object",
                 "properties": {
                   "block": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/Header"
-                      },
-                      {
+                    "type": "object",
+                    "required": [
+                      "header",
+                      "body",
+                      "height"
+                    ],
+                    "properties": {
+                      "body": {
                         "$ref": "#/components/schemas/Body"
                       },
-                      {
-                        "type": "object",
-                        "required": [
-                          "height"
-                        ],
-                        "properties": {
-                          "height": {
-                            "type": "integer",
-                            "format": "u-int32",
-                            "minimum": 0
-                          }
-                        }
+                      "header": {
+                        "$ref": "#/components/schemas/Header"
+                      },
+                      "height": {
+                        "type": "integer",
+                        "format": "u-int32",
+                        "minimum": 0
                       }
-                    ]
+                    }
                   },
                   "main_block_hash": {
                     "type": "string"
@@ -583,27 +581,25 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/Header"
-                    },
-                    {
+                  "type": "object",
+                  "required": [
+                    "header",
+                    "body",
+                    "height"
+                  ],
+                  "properties": {
+                    "body": {
                       "$ref": "#/components/schemas/Body"
                     },
-                    {
-                      "type": "object",
-                      "required": [
-                        "height"
-                      ],
-                      "properties": {
-                        "height": {
-                          "type": "integer",
-                          "format": "u-int32",
-                          "minimum": 0
-                        }
-                      }
+                    "header": {
+                      "$ref": "#/components/schemas/Header"
+                    },
+                    "height": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2497,27 +2493,25 @@
         "minimum": 0
       },
       "Block": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Header"
-          },
-          {
+        "type": "object",
+        "required": [
+          "header",
+          "body",
+          "height"
+        ],
+        "properties": {
+          "body": {
             "$ref": "#/components/schemas/Body"
           },
-          {
-            "type": "object",
-            "required": [
-              "height"
-            ],
-            "properties": {
-              "height": {
-                "type": "integer",
-                "format": "u-int32",
-                "minimum": 0
-              }
-            }
+          "header": {
+            "$ref": "#/components/schemas/Header"
+          },
+          "height": {
+            "type": "integer",
+            "format": "u-int32",
+            "minimum": 0
           }
-        ]
+        }
       },
       "BlockHash": {
         "type": "string"
