@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -254,9 +255,6 @@ func FeeExplorerURLForNetwork(n Network) string {
 	}
 }
 
-// ThunderEsploraURLForNetwork returns the thunder address index for a network,
-// or an empty string when none is hosted. A thunder node keeps no address
-// history of its own, so a wallet reads it here instead.
 // DrivechainIndexURLForNetwork names the index that reads the sidechain escrow
 // for a network.
 //
@@ -272,24 +270,25 @@ func DrivechainIndexURLForNetwork(n Network) string {
 	}
 }
 
+// indexedSidechains names every chain with a hosted address index. A node of
+// these chains keeps no address history of its own, so a wallet reads it here
+// instead, and a light install reads the whole chain here.
+var indexedSidechains = []string{
+	"thunder", "bitnames", "bitassets", "photon", "coinshift",
+}
+
 // SidechainEsploraURLForNetwork returns the address index hosted for one
 // sidechain on a network, or an empty string when none is hosted.
 func SidechainEsploraURLForNetwork(chain string, n Network) string {
-	switch chain {
-	case "thunder":
-		return ThunderEsploraURLForNetwork(n)
-	default:
+	if n != NetworkECash || !slices.Contains(indexedSidechains, chain) {
 		return ""
 	}
+	return "https://seed.alpha.ecash.eu.com/" + chain
 }
 
+// ThunderEsploraURLForNetwork returns the thunder address index for a network.
 func ThunderEsploraURLForNetwork(n Network) string {
-	switch n {
-	case NetworkECash:
-		return "https://seed.alpha.ecash.eu.com/thunder"
-	default:
-		return ""
-	}
+	return SidechainEsploraURLForNetwork("thunder", n)
 }
 
 // SplitCheckEsploraURLs returns the public BTC-mainnet esplora servers the
