@@ -91,25 +91,29 @@ func TestGetCliArgsPassesNetworkOnce(t *testing.T) {
 	}
 }
 
-// Only thunder names CLI keys. The generic template writes flags the other
-// daemons do not know, so it must never reach them.
-func TestOnlyThunderNamesCliArgKeys(t *testing.T) {
-	for name, spec := range KnownSidechainSpecs {
-		if len(spec.CliArgKeys) > 0 && name != "thunder" {
+// A chain names CLI keys only when someone read its binary. The other three
+// ship no binary on any machine here, so their flags stay unproven.
+func TestOnlyProvedChainsNameCliArgKeys(t *testing.T) {
+	for _, name := range unprovedChains {
+		if len(KnownSidechainSpecs[name].CliArgKeys) > 0 {
 			t.Errorf("%s names CLI keys, but its flags are not checked", name)
 		}
 	}
-	if len(KnownSidechainSpecs["thunder"].CliArgKeys) == 0 {
-		t.Error("thunder must name its CLI keys")
+	for name := range provedChainFlags {
+		if len(KnownSidechainSpecs[name].CliArgKeys) == 0 {
+			t.Errorf("%s must name its CLI keys", name)
+		}
 	}
 }
 
 // BinaryConfig.Port is a fixed 6009, and NewHealthChecker polls it. A conf
-// rpc-addr of 16009 or 26009 would leave the health check on a dead port.
-func TestThunderNeverPassesTheRpcPort(t *testing.T) {
-	for _, key := range KnownSidechainSpecs["thunder"].CliArgKeys {
-		if key == "rpc-addr" || key == "rpc-port" {
-			t.Errorf("thunder passes %q, which hides it from the health check", key)
+// rpc-addr of 16009 or 36009 would leave the health check on a dead port.
+func TestNoChainPassesTheRpcPort(t *testing.T) {
+	for name, spec := range KnownSidechainSpecs {
+		for _, key := range spec.CliArgKeys {
+			if key == "rpc-addr" || key == "rpc-port" {
+				t.Errorf("%s passes %q, which hides it from the health check", name, key)
+			}
 		}
 	}
 	m := sidechainConfFor(t, "thunder", NetworkECash, map[string]string{
@@ -126,7 +130,7 @@ func TestThunderNeverPassesTheRpcPort(t *testing.T) {
 // A chain with no proof takes no network flag, because a daemon stops on an
 // option it does not know.
 func TestGetCliArgsWithholdsNetworkFromUnprovedChains(t *testing.T) {
-	for _, name := range []string{"bitnames", "bitassets", "zside", "photon", "truthcoin", "coinshift", "liquid-signet"} {
+	for _, name := range unprovedChains {
 		m := sidechainConfFor(t, name, NetworkECash, map[string]string{
 			"net-addr": "0.0.0.0:24009",
 		})
