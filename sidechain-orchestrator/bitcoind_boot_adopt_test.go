@@ -161,6 +161,18 @@ func TestAdoptIfCoreOwnsDatadir_LockConflictAdopts(t *testing.T) {
 	}
 }
 
+// TestAdoptIfCoreOwnsDatadir_NamelessOwnerAdoptsNothing covers the lock
+// conflict whose owner the datadir does not name. The boot still reports
+// success, because the lock proves a live node, but it adopts no stranger:
+// a process this install cannot identify is a process it must not stop.
+func TestAdoptIfCoreOwnsDatadir_NamelessOwnerAdoptsNothing(t *testing.T) {
+	o := fakeCoreFixture(t, "#!/bin/sh\nsleep 30\n")
+	coreLookalike(t, o)
+
+	require.NoError(t, o.adoptIfCoreOwnsDatadir(o.configs["bitcoind"], errors.New(lockConflictError)))
+	require.False(t, o.process.IsRunning("bitcoind"))
+}
+
 // TestAdoptIfCoreOwnsDatadir_OtherErrorStillFails keeps the adopt narrow.
 func TestAdoptIfCoreOwnsDatadir_OtherErrorStillFails(t *testing.T) {
 	o := fakeCoreFixture(t, "#!/bin/sh\nsleep 30\n")
