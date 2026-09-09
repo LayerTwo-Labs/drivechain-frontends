@@ -414,8 +414,29 @@ func mempoolUTXORows(txs []MempoolTx) []json.RawMessage {
 	return rows
 }
 
+// AddressLister names the addresses its own wallet holds. A chain that splits
+// its addresses by kind serves no single get_wallet_addresses.
+type AddressLister interface {
+	WalletAddressList(ctx context.Context) ([]string, error)
+}
+
 // WalletAddresses reads the addresses a node's own wallet holds.
 func WalletAddresses(ctx context.Context, node Node) (map[string]bool, error) {
+	list, err := walletAddressList(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+	owned := make(map[string]bool, len(list))
+	for _, address := range list {
+		owned[address] = true
+	}
+	return owned, nil
+}
+
+func walletAddressList(ctx context.Context, node Node) ([]string, error) {
+	if lister, ok := node.(AddressLister); ok {
+		return lister.WalletAddressList(ctx)
+	}
 	raw, err := node.CallRaw(ctx, "get_wallet_addresses", nil)
 	if err != nil {
 		return nil, fmt.Errorf("read the wallet addresses: %w", err)
@@ -424,11 +445,7 @@ func WalletAddresses(ctx context.Context, node Node) (map[string]bool, error) {
 	if err := json.Unmarshal(raw, &list); err != nil {
 		return nil, fmt.Errorf("read the wallet addresses: %w", err)
 	}
-	owned := make(map[string]bool, len(list))
-	for _, address := range list {
-		owned[address] = true
-	}
-	return owned, nil
+	return list, nil
 }
 
 // OurCoins maps each coin a node's wallet holds to what it holds, keyed
