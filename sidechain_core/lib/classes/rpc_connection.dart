@@ -50,10 +50,6 @@ abstract class RPCConnection extends ChangeNotifier implements DaemonState {
   /// The chain's own app window runs. It uses its own process slot, so a light
   /// install has a window with no daemon under it.
   bool windowOpen = false;
-
-  /// The chain answers through a remote index, so it works with no local
-  /// daemon. False for a chain that only proxies to its own daemon.
-  bool servesLightWallet = false;
   @override
   bool initializingBinary = false;
   @override
