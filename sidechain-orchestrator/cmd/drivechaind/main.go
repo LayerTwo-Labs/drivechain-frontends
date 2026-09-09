@@ -54,6 +54,7 @@ import (
 	bitassetssvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitassets"
 	bitnamessvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bitnames"
 	coinshiftsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/coinshift"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/lightwallet"
 	photonsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/photon"
 	thundersvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/thunder"
 	truthcoinsvc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
@@ -594,6 +595,40 @@ func run(cctx *cli.Context) error {
 	scConfPath, scConfH := rpc.NewSidechainConfServiceHandler(sidechainConfHandler, connect.WithInterceptors(authIC))
 	mux.Handle(scConfPath, scConfH)
 
+	// lightMode says how one chain reads its wallet. A light install with a
+	// hosted index runs no daemon, and every other install reads a local node.
+	// It resolves per request, because a network swap and a wallet mode change
+	// both move the answer while the process runs.
+	lightMode := func(chain string) lightwallet.ModeFunc {
+		return func() lightwallet.Mode {
+			// One read of the network decides both answers, so a swap between
+			// them cannot send one network's addresses to another network's
+			// index.
+			network := config.Network(orch.CurrentNetwork())
+			light := orchestrator.NodeModeForNetwork(
+				orchestrator.ReadNodeMode(orch.BitwindowDir), network,
+			) == orchestrator.NodeModeLight
+			var url string
+			if light {
+				url = config.SidechainEsploraURLForNetwork(chain, network)
+			}
+			return lightwallet.NewMode(light, url)
+		}
+	}
+	// walletSeed answers the seed one chain derives its wallet keys from. Light
+	// mode runs no node to ask for the addresses, so it derives them here.
+	walletSeed := func(cfg orchestrator.BinaryConfig) lightwallet.Seed {
+		return func() ([]byte, error) {
+			mnemonic, err := orch.WalletSvc.GetOrDeriveSidechainStarter(
+				cfg.Slot, cfg.DisplayName,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return bip39.NewSeed(mnemonic, ""), nil
+		}
+	}
+
 	// Per-sidechain typed RPC services (proxy to sidechain binary JSON-RPC)
 	for name, cfg := range orch.Configs() {
 		proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
@@ -641,19 +676,37 @@ func run(cctx *cli.Context) error {
 			handler.SetSidechainBalance(name, h.WalletBalance)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitnames":
-			h := bitnamessvc.NewHandler(proxy)
-			path, handler := bitnamesrpc.NewBitnamesServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			h := bitnamessvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
+			// The mode carries both halves: light mode, and an index to read.
+			// A network with no index for this chain reads its local node.
+			orch.RegisterLightWallet(name, h.ReadsIndex)
+			// The sidechain balance the frontend reads must come from the same
+			// wallet, because light mode starts no daemon to dial.
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			path, bitnamesHandler := bitnamesrpc.NewBitnamesServiceHandler(h, connect.WithInterceptors(authIC))
+			mux.Handle(path, bitnamesHandler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitassets":
-			h := bitassetssvc.NewHandler(proxy)
-			path, handler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			h := bitassetssvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
+			// The mode carries both halves: light mode, and an index to read.
+			// A network with no index for this chain reads its local node.
+			orch.RegisterLightWallet(name, h.ReadsIndex)
+			// The sidechain balance the frontend reads must come from the same
+			// wallet, because light mode starts no daemon to dial.
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			path, bitassetsHandler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors(authIC))
+			mux.Handle(path, bitassetsHandler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "photon":
-			h := photonsvc.NewHandler(proxy)
-			path, handler := photonrpc.NewPhotonServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			h := photonsvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
+			// The mode carries both halves: light mode, and an index to read.
+			// A network with no index for this chain reads its local node.
+			orch.RegisterLightWallet(name, h.ReadsIndex)
+			// The sidechain balance the frontend reads must come from the same
+			// wallet, because light mode starts no daemon to dial.
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			path, photonHandler := photonrpc.NewPhotonServiceHandler(h, connect.WithInterceptors(authIC))
+			mux.Handle(path, photonHandler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "truthcoin":
 			h := truthcoinsvc.NewHandler(proxy)
@@ -661,9 +714,15 @@ func run(cctx *cli.Context) error {
 			mux.Handle(path, handler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "coinshift":
-			h := coinshiftsvc.NewHandler(proxy)
-			path, handler := coinshiftrpc.NewCoinShiftServiceHandler(h, connect.WithInterceptors(authIC))
-			mux.Handle(path, handler)
+			h := coinshiftsvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
+			// The mode carries both halves: light mode, and an index to read.
+			// A network with no index for this chain reads its local node.
+			orch.RegisterLightWallet(name, h.ReadsIndex)
+			// The sidechain balance the frontend reads must come from the same
+			// wallet, because light mode starts no daemon to dial.
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			path, coinshiftHandler := coinshiftrpc.NewCoinShiftServiceHandler(h, connect.WithInterceptors(authIC))
+			mux.Handle(path, coinshiftHandler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "zside":
 			h := zsidesvc.NewHandler(proxy)
