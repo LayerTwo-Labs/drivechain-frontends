@@ -676,6 +676,15 @@ func (h *WalletHandler) EstimateFee(ctx context.Context, req *connect.Request[pb
 // Core wallet management RPCs
 // ============================================================================
 
+// ResolveWalletID names the wallet an id means. An empty id means the active
+// wallet.
+func (h *WalletHandler) ResolveWalletID(walletID string) (string, error) {
+	if err := h.requireEngine(); err != nil {
+		return "", err
+	}
+	return h.engine.ResolveWalletID(walletID)
+}
+
 func (h *WalletHandler) requireEngine() error {
 	if h.engine == nil {
 		return fmt.Errorf("bitcoin Core RPC not configured")

@@ -29,6 +29,9 @@ const (
 	// connect. Its header names one mainchain block, so the sidechain refuses a
 	// tip older than this and no number of attempts changes that.
 	bmmConnectHorizon = 10
+	// bmmPrepareTries bounds the coin counts one mainchain block pays for. A
+	// count on every tick would scan the wallet 30 times a minute.
+	bmmPrepareTries = 3
 )
 
 // Round result values.
@@ -74,6 +77,7 @@ type BmmBackend interface {
 	CreateBid(context.Context, *connect.Request[bmmpb.CreateBidRequest]) (*connect.Response[bmmpb.CreateBidResponse], error)
 	ConnectBid(context.Context, *connect.Request[bmmpb.ConnectBidRequest]) (*connect.Response[bmmpb.ConnectBidResponse], error)
 	ListBids(context.Context, *connect.Request[bmmpb.ListBidsRequest]) (*connect.Response[bmmpb.ListBidsResponse], error)
+	PrepareBMM(context.Context, *connect.Request[bmmpb.PrepareBMMRequest]) (*connect.Response[bmmpb.PrepareBMMResponse], error)
 	// Commitment reports the sidechain block hash a mainchain block committed
 	// to for this sidechain, empty when it carried none.
 	Commitment(ctx context.Context, sidechain pb.BinaryType, mainBlockHash string) (string, error)
@@ -120,6 +124,11 @@ type BmmEngine struct {
 	// yet. Giving up here would forfeit a block we already paid for.
 	unconnected map[pb.BinaryType][]*bmmstate.Round
 	subs        map[chan struct{}]struct{}
+	// preparedTip is the mainchain tip the wallet was last given bid coins for.
+	// One scan per block keeps the count current without a scan every tick.
+	preparedTip string
+	// prepareTries counts the coin counts preparedTip already paid for.
+	prepareTries int
 
 	wake chan struct{}
 }
@@ -145,7 +154,7 @@ func NewBmmEngine(
 // Start bids for sidechain on every new mainchain tip until Stop, raising
 // toward maxBidSats when outbid. walletID funds every bid.
 func (e *BmmEngine) Start(
-	sidechain pb.BinaryType, walletID string, maxBidSats int64, capToBlockWorth bool,
+	ctx context.Context, sidechain pb.BinaryType, walletID string, maxBidSats int64, capToBlockWorth bool,
 ) error {
 	if maxBidSats <= 0 {
 		return fmt.Errorf("max_bid_sats must be positive")
@@ -190,9 +199,90 @@ func (e *BmmEngine) Start(
 	e.log.Info().Stringer("sidechain", sidechain).
 		Int64("max_bid_sats", maxBidSats).
 		Bool("cap_to_block_worth", capToBlockWorth).Msg("bmm started")
+	// The new sidechain bids on the tip in play, so it needs a coin of its own
+	// before the next tick rather than after the next block. The tip counts
+	// again when this one fails.
+	e.resetPrepare()
+	e.prepareCoins(ctx)
 	e.notify()
 	e.poke()
 	return nil
+}
+
+// prepareCoins asks the backend for one bid coin per sidechain, per wallet. A
+// bid over another slot's bid change dies when that slot replaces its own bid,
+// so each slot spends a coin of its own.
+func (e *BmmEngine) prepareCoins(ctx context.Context) bool {
+	e.mu.Lock()
+	targets := make([]*bmmpb.PrepareBMMTarget, 0, len(e.targets))
+	for _, target := range e.targets {
+		targets = append(targets, &bmmpb.PrepareBMMTarget{
+			WalletId:   target.walletID,
+			MaxBidSats: target.maxBidSats,
+		})
+	}
+	e.mu.Unlock()
+
+	if len(targets) == 0 {
+		return false
+	}
+	resp, err := e.backend.PrepareBMM(ctx, connect.NewRequest(&bmmpb.PrepareBMMRequest{Targets: targets}))
+	if err != nil {
+		// A wallet that cannot make the coins still bids: every round that finds
+		// no coin of its own says so on the round itself.
+		e.log.Warn().Err(err).Msg("prepare the bmm coins")
+		return false
+	}
+	ready := true
+	for _, w := range resp.Msg.Wallets {
+		if w.UsableCoins < w.WantedCoins {
+			// A split the mempool drops leaves the wallet short again, so the tip
+			// counts once more.
+			ready = false
+		}
+		if w.SplitTxid == "" {
+			continue
+		}
+		e.log.Info().Str("wallet", w.WalletId).Str("txid", w.SplitTxid).
+			Int32("usable_coins", w.UsableCoins).Int32("wanted_coins", w.WantedCoins).
+			Msg("the wallet pays one bmm coin to each sidechain")
+	}
+	return ready
+}
+
+// needsPrepare claims one coin count for this tip. It reports false once the
+// count answered, or once the tip spent its attempts on a backend that fails.
+func (e *BmmEngine) needsPrepare(tip string) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if e.preparedTip != tip {
+		e.preparedTip = tip
+		e.prepareTries = 0
+	}
+	if e.prepareTries >= bmmPrepareTries {
+		return false
+	}
+	e.prepareTries++
+	return true
+}
+
+// resetPrepare gives the tip its counts back, because the sidechains that bid
+// changed.
+func (e *BmmEngine) resetPrepare() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.prepareTries = 0
+}
+
+// prepareDone ends the counts for this tip, because one of them answered.
+func (e *BmmEngine) prepareDone(tip string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if e.preparedTip == tip {
+		e.prepareTries = bmmPrepareTries
+	}
 }
 
 // Stop ends automated bidding. Bids already broadcast still settle.
@@ -479,6 +569,13 @@ func (e *BmmEngine) tick(ctx context.Context) {
 		if round := e.Current(sidechain); round != nil && round.PrevMainHash != tip {
 			e.settleRound(ctx, sidechain, tip, height)
 		}
+	}
+
+	// The coin count can fall at any time: a coin drains, an operator starts one
+	// more sidechain, or another send spends one. One check per block keeps it
+	// current, and a check every tick would scan the wallet 30 times a minute.
+	if len(targets) > 0 && e.needsPrepare(tip) && e.prepareCoins(ctx) {
+		e.prepareDone(tip)
 	}
 
 	for sidechain, target := range targets {

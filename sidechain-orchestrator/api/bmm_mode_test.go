@@ -87,7 +87,7 @@ func TestBMMFullModeReadsCore(t *testing.T) {
 func TestBMMLightModeKeepsStopAndPaidHistory(t *testing.T) {
 	h, store := newBMMModeHandler(t)
 	sidechain := pb.BinaryType_BINARY_TYPE_THUNDER
-	require.NoError(t, h.engine.Start(sidechain, "wallet", 10000, false))
+	require.NoError(t, h.engine.Start(context.Background(), sidechain, "wallet", 10000, false))
 	round := bmmstate.Round{Sidechain: int32(sidechain), PrevMainHash: "paid", Result: engines.ResultWon, WinnerBidSats: 1000}
 	require.NoError(t, store.Save(round))
 	require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, orchestrator.NodeModeLight))
