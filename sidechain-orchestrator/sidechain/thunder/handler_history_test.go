@@ -78,8 +78,6 @@ func TestListTransactionsReadsTheIndex(t *testing.T) {
 	if got.BlockHeight != 5 || !got.Confirmed {
 		t.Errorf("status = height %d confirmed %v", got.BlockHeight, got.Confirmed)
 	}
-	// The tip travels with the history, so a light caller counts confirmations
-	// without a node of its own.
 	if resp.Msg.TipHeight != 12 {
 		t.Errorf("tip height = %d, want 12", resp.Msg.TipHeight)
 	}
