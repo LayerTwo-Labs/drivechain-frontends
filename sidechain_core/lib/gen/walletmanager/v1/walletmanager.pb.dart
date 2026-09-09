@@ -584,6 +584,7 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
   factory GetNodeModeResponse({
     NodeMode? mode,
     $core.bool? lightModeAvailable,
+    $core.bool? remoteEnforcerAvailable,
   }) {
     final $result = create();
     if (mode != null) {
@@ -591,6 +592,9 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
     }
     if (lightModeAvailable != null) {
       $result.lightModeAvailable = lightModeAvailable;
+    }
+    if (remoteEnforcerAvailable != null) {
+      $result.remoteEnforcerAvailable = remoteEnforcerAvailable;
     }
     return $result;
   }
@@ -601,6 +605,7 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetNodeModeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..e<NodeMode>(1, _omitFieldNames ? '' : 'mode', $pb.PbFieldType.OE, defaultOrMaker: NodeMode.NODE_MODE_UNSPECIFIED, valueOf: NodeMode.valueOf, enumValues: NodeMode.values)
     ..aOB(2, _omitFieldNames ? '' : 'lightModeAvailable')
+    ..aOB(3, _omitFieldNames ? '' : 'remoteEnforcerAvailable')
     ..hasRequiredFields = false
   ;
 
@@ -634,8 +639,7 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearMode() => clearField(1);
 
-  /// False when the current network serves no Esplora, so light mode cannot
-  /// read a chain. Regtest and testnet.
+  /// True when the current network has remote services for light mode.
   @$pb.TagNumber(2)
   $core.bool get lightModeAvailable => $_getBF(1);
   @$pb.TagNumber(2)
@@ -644,6 +648,16 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
   $core.bool hasLightModeAvailable() => $_has(1);
   @$pb.TagNumber(2)
   void clearLightModeAvailable() => clearField(2);
+
+  /// True when the current network has a remote validator endpoint.
+  @$pb.TagNumber(3)
+  $core.bool get remoteEnforcerAvailable => $_getBF(2);
+  @$pb.TagNumber(3)
+  set remoteEnforcerAvailable($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasRemoteEnforcerAvailable() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRemoteEnforcerAvailable() => clearField(3);
 }
 
 class SetNodeModeRequest extends $pb.GeneratedMessage {

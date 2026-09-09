@@ -172,7 +172,7 @@ func realMain(ctx context.Context, cancelCtx context.CancelFunc) error {
 	}
 
 	enforcerConnector := func(ctx context.Context) (rpc.ValidatorServiceClient, error) {
-		validator, err := dial.EnforcerValidator(ctx, conf.EnforcerHost)
+		validator, err := dial.EnforcerValidator(ctx, conf.OrchestratorAddr)
 		return validator, err
 	}
 

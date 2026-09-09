@@ -132,9 +132,10 @@ class _NodeModePageState extends State<NodeModePage> {
                   Expanded(
                     child: _ModeCard(
                       label: 'Light',
-                      description:
-                          'Reads the chain from a remote server. Ready in seconds, and uses almost no disk. '
-                          'No sidechains and no mining.',
+                      description: _nodeMode.remoteEnforcerAvailable
+                          ? 'Runs sidechain daemons on this machine with a remote enforcer. '
+                                'Your Bitcoin wallet uses Electrum. No Bitcoin Core download.'
+                          : 'Your Bitcoin wallet uses Electrum. No Bitcoin Core download.',
                       selected: _selected == wmpb.NodeMode.NODE_MODE_LIGHT,
                       onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_LIGHT),
                     ),
@@ -143,8 +144,8 @@ class _NodeModePageState extends State<NodeModePage> {
                   child: _ModeCard(
                     label: 'Full node',
                     description:
-                        'Runs Bitcoin Core and the enforcer on this machine. Gives you sidechains, mining, '
-                        'and full privacy. Takes hours to sync and hundreds of gigabytes of disk.',
+                        'Runs Bitcoin Core, the enforcer, and sidechain daemons on this machine. '
+                        'Bitcoin sync takes hours and hundreds of gigabytes of disk.',
                     selected: _selected == wmpb.NodeMode.NODE_MODE_FULL,
                     onTap: () => setState(() => _selected = wmpb.NodeMode.NODE_MODE_FULL),
                   ),
@@ -153,7 +154,9 @@ class _NodeModePageState extends State<NodeModePage> {
             ),
           ),
           if (!_nodeMode.lightModeAvailable)
-            SailText.secondary13('This network serves no remote chain server, so it runs full mode only.'),
+            SailText.secondary13(
+              'This network has no remote enforcer or Bitcoin wallet server, so it uses full mode.',
+            ),
           if (_error != null) SailText.secondary13(_error!, color: SailTheme.of(context).colors.error),
           SailButton(
             label: 'Continue',

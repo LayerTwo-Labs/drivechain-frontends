@@ -25,6 +25,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/feerate"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/fork"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
@@ -266,6 +267,10 @@ type Orchestrator struct {
 	coreStatusClientKey string
 	enforcerHTTPClient  *http.Client
 	explorerHTTPClient  *http.Client
+	remoteEnforcerMu    sync.Mutex
+	remoteEnforcer      *enforcerproxy.Remote
+	remoteNetwork       config.Network
+	remoteUpstream      string
 
 	// stopBinary is the Stop primitive used by SetCoreVariant. Production wires
 	// this to o.Stop; tests override it to inject force/graceful failures.
@@ -503,6 +508,9 @@ func (o *Orchestrator) getOrCreateMonitor(name string, checker HealthChecker, st
 		return mon
 	}
 
+	if name == "enforcer" {
+		checker = &enforcerHealthCheck{orch: o, local: checker}
+	}
 	mon := NewConnectionMonitor(name, checker, startupPatterns, o.log)
 	o.monitors[name] = mon
 	return mon
@@ -889,41 +897,22 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	go func() {
 		defer close(ch)
 
-		// Light mode reads the chain from a remote index, so no local daemon
-		// boots. The node mode is the only gate here, so no frontend can force
-		// the local stack up.
 		skipLocalL1 := o.NodeMode() == NodeModeLight
 		if skipLocalL1 && config.ChainLayer != 2 {
-			o.log.Info().Str("target", target).Msg("light mode; skipping the local Bitcoin backends")
-			ch <- StartupProgress{Stage: "skipped-l1", Message: "light mode — no local Bitcoin backends needed", Done: true}
-			return
-		}
-
-		// A sidechain daemon under a light install has no enforcer to read the
-		// mainchain from, so it never starts. Its window still opens, because a
-		// light wallet reads the chain from an index and needs no daemon.
-		if skipLocalL1 {
-			// A chain that reads no index has neither a daemon nor a wallet
-			// here, so both a window and a backend call must say so.
-			if !o.servesLightWallet(config.Name) {
-				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
-				failBoot(mon, ch, "start "+config.Name, fmt.Errorf(
-					"%s reads no remote index, so it runs in full mode only", config.DisplayName))
-				return
-			}
-
-			if o.opensSidechainWindow(config, opts) {
-				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
-				mon.SetInitializing(true)
-				if err := o.awaitBinaryOnDisk(ctx, config, opts, ch, nil); err != nil {
-					failBoot(mon, ch, "download "+config.Name, err)
+			if config.Name == "enforcer" {
+				o.awaitDrainForBoot(ctx)
+				if err := o.startRemoteEnforcer(ctx, ch); err != nil {
+					failBoot(o.getOrCreateMonitor("enforcer", NewHealthChecker(config), enforcerStartupPatterns), ch, "remote enforcer", err)
 					return
 				}
-				o.openSidechainWindow(ctx, config, mon, ch)
+				if err := o.restartRemoteOrphans(ctx, ch); err != nil {
+					ch <- StartupProgress{Stage: "remote-sidechains", Error: err}
+					return
+				}
+				ch <- StartupProgress{Stage: "done", Message: "The remote enforcer is ready", Done: true}
 				return
 			}
-			o.log.Info().Str("target", target).Msg("light mode; the sidechain reads a remote index and starts no daemon")
-			ch <- StartupProgress{Stage: "skipped-l1", Message: "light mode — " + config.DisplayName + " reads a remote index", Done: true}
+			ch <- StartupProgress{Stage: "skipped-l1", Message: "Light mode uses no local Bitcoin backends", Done: true}
 			return
 		}
 
@@ -933,8 +922,10 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		// the helper. No-op in the steady state.
 		o.awaitDrainForBoot(ctx)
 
-		o.prepareCoreArgs(&opts)
-		o.prepareEnforcerArgs(&opts)
+		if !skipLocalL1 {
+			o.prepareCoreArgs(&opts)
+			o.prepareEnforcerArgs(&opts)
+		}
 		o.injectSidechainStarter(config, &opts)
 		if err := o.prepareSidechainArgs(config, &opts); err != nil {
 			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
@@ -1166,6 +1157,9 @@ var errSidechainNetworkUnknown = errors.New("this sidechain has no network of it
 // its own default network and syncs a different chain than the mainchain, and
 // no later step can detect that.
 func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) error {
+	if cfg.ChainLayer == 2 && o.NodeMode() == NodeModeLight {
+		return o.prepareRemoteSidechainArgs(cfg, opts)
+	}
 	if cfg.ChainLayer != 2 || cfg.IsBitcoinCore {
 		return nil
 	}
@@ -1552,6 +1546,16 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 		}
 
 		opts := StartOpts{ForceBackend: forceBackend}
+		if o.NodeMode() == NodeModeLight && config.ChainLayer != 2 {
+			if name == "enforcer" {
+				if err := o.startRemoteEnforcer(ctx, ch); err != nil {
+					failBoot(o.getOrCreateMonitor(name, NewHealthChecker(config), enforcerStartupPatterns), ch, "remote enforcer", err)
+					return
+				}
+			}
+			ch <- StartupProgress{Stage: "done", Message: "Light mode uses remote Bitcoin services", Done: true}
+			return
+		}
 
 		switch name {
 		case "bitcoind":
@@ -1809,6 +1813,18 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 	}
 	targetChecker := NewHealthChecker(config, healthOpts)
 	targetMon := o.getOrCreateMonitor(config.Name, targetChecker, startupPatterns)
+	if config.ChainLayer == 2 && o.NodeMode() == NodeModeLight && !o.opensSidechainWindow(config, opts) {
+		if err := o.startRemoteEnforcer(ctx, ch); err != nil {
+			failBoot(targetMon, ch, "remote enforcer", err)
+			return
+		}
+		if o.process.IsAdopted(config.Name) && o.mayStopAdopted(config.Name) {
+			if err := o.stopForNetworkSwap(ctx, config.Name, StopOptions{ForceBackend: true}); err != nil {
+				failBoot(targetMon, ch, "restart "+config.Name, err)
+				return
+			}
+		}
+	}
 
 	// Keep the target monitor alive even if the frontend asked us to start
 	// the chain before the target RPC is reachable.
@@ -2248,6 +2264,10 @@ func (o *Orchestrator) ShutdownAll(ctx context.Context, force bool, options ...S
 			completed++
 		}
 
+		if err := o.closeRemoteEnforcer(); err != nil {
+			ch <- ShutdownProgress{TotalCount: total, CompletedCount: completed, Done: true, Error: err}
+			return
+		}
 		ch <- ShutdownProgress{
 			TotalCount:     total,
 			CompletedCount: completed,
@@ -2568,6 +2588,9 @@ func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error 
 			return err
 		}
 	}
+	if err := o.closeRemoteEnforcer(); err != nil {
+		return err
+	}
 	if enforcerWasRunning {
 		if err := o.stopForNetworkSwap(ctx, "enforcer"); err != nil {
 			return err
@@ -2647,6 +2670,11 @@ func (o *Orchestrator) finishNetworkSwap(n config.Network, restartL1 bool) error
 		}
 	}
 
+	bootTarget := "bitcoind"
+	if o.NodeMode() == NodeModeLight {
+		bootTarget = "enforcer"
+		restartL1 = config.RemoteEnforcerURLForNetwork(n) != ""
+	}
 	if !restartL1 {
 		o.pendingSwap = nil
 		return nil
@@ -2657,7 +2685,7 @@ func (o *Orchestrator) finishNetworkSwap(n config.Network, restartL1 bool) error
 	// move on. Header sync / IBD / enforcer wait would otherwise block
 	// this RPC for a minutes-long full connection. Use context.Background
 	// so a request cancellation doesn't abort the daemon launch mid-flight.
-	bootCh, err := o.StartWithL1(context.Background(), "bitcoind", StartOpts{})
+	bootCh, err := o.StartWithL1(context.Background(), bootTarget, StartOpts{})
 	if err != nil {
 		return fmt.Errorf("restart L1 stack on new network: %w", err)
 	}
@@ -2950,10 +2978,10 @@ func (o *Orchestrator) RestartL1(ctx context.Context) error {
 
 // stopForNetworkSwap stops a binary, escalating to SIGKILL on graceful
 // failure. Mirrors stopBitcoindForVariantSwap but generic over name.
-func (o *Orchestrator) stopForNetworkSwap(ctx context.Context, name string) error {
-	if err := o.stopBinary(ctx, name, false); err != nil {
+func (o *Orchestrator) stopForNetworkSwap(ctx context.Context, name string, options ...StopOptions) error {
+	if err := o.stopBinary(ctx, name, false, options...); err != nil {
 		o.log.Warn().Err(err).Str("binary", name).Msg("graceful stop failed during network swap, escalating to SIGKILL")
-		if killErr := o.stopBinary(ctx, name, true); killErr != nil {
+		if killErr := o.stopBinary(ctx, name, true, options...); killErr != nil {
 			return fmt.Errorf("stop %s for network swap: graceful failed (%v) and force kill failed: %w", name, err, killErr)
 		}
 	}
@@ -3043,11 +3071,11 @@ func (o *Orchestrator) defaultBootBitcoindForVariantSwap(ctx context.Context) <-
 
 // EnforcerValidator returns a client for the enforcer's validator service.
 func (o *Orchestrator) EnforcerValidator() (enforcerrpc.ValidatorServiceClient, error) {
-	cfg, ok := o.Configs()["enforcer"]
-	if !ok || cfg.Port == 0 {
-		return nil, fmt.Errorf("enforcer not configured")
+	endpoint, err := o.EnforcerURL()
+	if err != nil {
+		return nil, err
 	}
-	return enforcerrpc.NewValidatorServiceClient(o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC()), nil
+	return enforcerrpc.NewValidatorServiceClient(o.enforcerHTTP(), endpoint, connect.WithGRPC()), nil
 }
 
 // ChainTip returns the mainchain tip the enforcer has validated.
@@ -3417,11 +3445,10 @@ func (o *Orchestrator) chainForkCached() *CachedConnection[*ChainForkState] {
 type enforcerSyncConnection struct{ o *Orchestrator }
 
 func (c *enforcerSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, error) {
-	cfg, ok := c.o.Configs()["enforcer"]
-	if !ok || cfg.Port == 0 {
-		return nil, fmt.Errorf("enforcer not configured")
+	client, err := c.o.EnforcerValidator()
+	if err != nil {
+		return nil, err
 	}
-	client := enforcerrpc.NewValidatorServiceClient(c.o.enforcerHTTP(), cfg.RPCURL(), connect.WithGRPC())
 	rpcCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	resp, err := client.GetChainTip(rpcCtx, connect.NewRequest(&enforcerpb.GetChainTipRequest{}))
@@ -3622,6 +3649,13 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			slot: out.Enforcer,
 			conn: o.syncConnectionFor("enforcer"),
 			validate: func() string {
+				if o.NodeMode() == NodeModeLight {
+					_, err := o.EnforcerURL()
+					if err != nil {
+						return err.Error()
+					}
+					return ""
+				}
 				cfg, ok := o.Configs()["enforcer"]
 				if !ok || cfg.Port == 0 {
 					return "enforcer not configured"

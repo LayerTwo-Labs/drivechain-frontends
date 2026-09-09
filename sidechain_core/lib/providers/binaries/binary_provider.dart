@@ -510,8 +510,7 @@ class BinaryProvider extends ChangeNotifier {
     return _rpcFor(binary)?.connected ?? false;
   }
 
-  /// True when a chain is up. A light install runs no daemon, so its own open
-  /// window is what up means there.
+  /// True when the daemon connects or the app window is open.
   bool isSidechainUp(Binary binary) {
     return isConnected(binary) || (_rpcFor(binary)?.windowOpen ?? false);
   }

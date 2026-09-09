@@ -37,10 +37,7 @@ const (
 )
 
 // ExplorerHandler serves the block explorer.
-//
-// A light client runs no node, so it reads a hosted index. A full node answers
-// from its own chain. No sidechain node keeps an address history, so the
-// address call needs an index either way.
+
 type ExplorerHandler struct {
 	orch      *orchestrator.Orchestrator
 	blocks    *blockCache
@@ -92,7 +89,7 @@ type source struct {
 // cacheKey names one block, as one source answered for it.
 func (s source) cacheKey(hash string) string { return s.origin + ":" + hash }
 
-// sourceFor picks the index when one is hosted, and the local node otherwise.
+// sourceFor selects the local node.
 func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	if h.orch == nil {
 		return source{}, connect.NewError(connect.CodeFailedPrecondition,
@@ -119,16 +116,6 @@ func (h *ExplorerHandler) sourceFor(chain string) (source, error) {
 	}
 	if cfg.Slot >= 0 && cfg.Slot <= 255 {
 		out.slot = uint32(cfg.Slot)
-	}
-	// A full node answers from its own chain. Only a light client reads the
-	// hosted index, so the two never disagree about the tip. This is the same
-	// answer the wallet resolves, and it moves with a network swap.
-	if h.orch.NodeMode() == orchestrator.NodeModeLight {
-		if url := config.SidechainEsploraURLForNetwork(chain, network); url != "" {
-			out.index = sidechainesplora.New(url)
-			out.origin = chain + ":index:" + string(network)
-			return out, nil
-		}
 	}
 	node, err := sidechainNode(cfg, network)
 	if err != nil {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -84,12 +85,37 @@ type SidechainConfSpec struct {
 	// boot, and a port it does not share with BinaryConfig.Port hides it from
 	// the health check.
 	CliArgKeys []string
+	// EnforcerArg is the daemon flag for its mainchain URL or host.
+	EnforcerArg string
 	// PortStyle determines which config keys are used for network ports.
 	// "grpc" = rpc-addr, net-addr, mainchain-grpc-url (thunder, zside, photon, etc.)
 	// "zmq"  = rpc-port, net-addr, zmq-addr (bitassets, bitnames)
 	PortStyle string
 	// DirKey is the chains_config.json key for the data directory lookup.
 	DirKey string
+}
+
+// EnforcerArgs returns the daemon arguments for a mainchain endpoint.
+func (s SidechainConfSpec) EnforcerArgs(endpoint string) ([]string, error) {
+	switch s.EnforcerArg {
+	case "mainchain-grpc-url":
+		return []string{"--mainchain-grpc-url=" + endpoint}, nil
+	case "mainchain-grpc-host":
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("parse the enforcer endpoint: %w", err)
+		}
+		if u.Scheme != "http" || u.Hostname() == "" || u.Port() == "" || (u.Path != "" && u.Path != "/") {
+			return nil, fmt.Errorf("%s accepts only an HTTP enforcer endpoint with a host and port", s.Name)
+		}
+		host := u.Hostname()
+		if strings.Contains(host, ":") {
+			host = "[" + host + "]"
+		}
+		return []string{"--mainchain-grpc-host=" + host, "--mainchain-grpc-port=" + u.Port()}, nil
+	default:
+		return nil, fmt.Errorf("%s does not support a remote enforcer", s.Name)
+	}
 }
 
 // SidechainConfManager manages a sidechain's key-value config file.
@@ -538,10 +564,12 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		ConfigFilename: "thunder.conf",
 		BasePort:       6009,
 		CliArgKeys:     []string{"net-addr", "mainchain-grpc-url"},
+		EnforcerArg:    "mainchain-grpc-url",
 		PortStyle:      "grpc",
 		DirKey:         "thunder",
 	},
 	"bitassets": {
+		EnforcerArg:    "mainchain-grpc-host",
 		Name:           "BitAssets",
 		ConfigFilename: "bitassets.conf",
 		BasePort:       6004,
@@ -549,6 +577,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		DirKey:         "bitassets",
 	},
 	"bitnames": {
+		EnforcerArg:    "mainchain-grpc-host",
 		Name:           "BitNames",
 		ConfigFilename: "bitnames.conf",
 		BasePort:       6002,
@@ -563,6 +592,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		DirKey:         "zside",
 	},
 	"photon": {
+		EnforcerArg:    "mainchain-grpc-url",
 		Name:           "Photon",
 		ConfigFilename: "photon.conf",
 		BasePort:       6099,
@@ -570,6 +600,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		DirKey:         "photon",
 	},
 	"truthcoin": {
+		EnforcerArg:    "mainchain-grpc-host",
 		Name:           "Truthcoin",
 		ConfigFilename: "truthcoin.conf",
 		BasePort:       6013,
@@ -577,6 +608,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		DirKey:         "truthcoin",
 	},
 	"coinshift": {
+		EnforcerArg:    "mainchain-grpc-url",
 		Name:           "CoinShift",
 		ConfigFilename: "coinshift.conf",
 		BasePort:       6255,

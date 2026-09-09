@@ -219,6 +219,7 @@ const GetNodeModeResponse$json = {
   '2': [
     {'1': 'mode', '3': 1, '4': 1, '5': 14, '6': '.walletmanager.v1.NodeMode', '10': 'mode'},
     {'1': 'light_mode_available', '3': 2, '4': 1, '5': 8, '10': 'lightModeAvailable'},
+    {'1': 'remote_enforcer_available', '3': 3, '4': 1, '5': 8, '10': 'remoteEnforcerAvailable'},
   ],
 };
 
@@ -226,7 +227,8 @@ const GetNodeModeResponse$json = {
 final $typed_data.Uint8List getNodeModeResponseDescriptor = $convert.base64Decode(
     'ChNHZXROb2RlTW9kZVJlc3BvbnNlEi4KBG1vZGUYASABKA4yGi53YWxsZXRtYW5hZ2VyLnYxLk'
     '5vZGVNb2RlUgRtb2RlEjAKFGxpZ2h0X21vZGVfYXZhaWxhYmxlGAIgASgIUhJsaWdodE1vZGVB'
-    'dmFpbGFibGU=');
+    'dmFpbGFibGUSOgoZcmVtb3RlX2VuZm9yY2VyX2F2YWlsYWJsZRgDIAEoCFIXcmVtb3RlRW5mb3'
+    'JjZXJBdmFpbGFibGU=');
 
 @$core.Deprecated('Use setNodeModeRequestDescriptor instead')
 const SetNodeModeRequest$json = {

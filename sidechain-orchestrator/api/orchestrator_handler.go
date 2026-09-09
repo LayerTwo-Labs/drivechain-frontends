@@ -666,7 +666,6 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 }
 
 func (h *Handler) fetchSidechainBalance(ctx context.Context, cfg orchestrator.BinaryConfig) (confirmedSats, pendingSats int64, err error) {
-	// A light wallet reads an index, not a local node.
 	if read := h.sidechainBalances[cfg.Name]; read != nil {
 		total, available, err := read(ctx)
 		if err != nil {
@@ -691,9 +690,7 @@ func (h *Handler) fetchSidechainBalance(ctx context.Context, cfg orchestrator.Bi
 // mempoolDelta is what the sidechain mempool does to this wallet. A chain that
 // answers neither its mempool nor its addresses changes nothing.
 func (h *Handler) mempoolDelta(ctx context.Context, cfg orchestrator.BinaryConfig) sidechain.MempoolDelta {
-	// A light client runs no node of its own, so a call to the port would
-	// either fail or reach a stranger's wallet.
-	if cfg.IsBitcoinCore || h.orch.NodeMode() == orchestrator.NodeModeLight {
+	if cfg.IsBitcoinCore {
 		return sidechain.MempoolDelta{}
 	}
 	node, err := sidechainNode(cfg, config.NetworkFromString(h.orch.CurrentNetwork()))

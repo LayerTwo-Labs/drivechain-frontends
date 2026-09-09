@@ -8,6 +8,7 @@ import 'package:sidechain_core/sidechain_core.dart';
 class _FakeWalletRPC implements OrchestratorWalletRPC {
   wmpb.NodeMode mode = wmpb.NodeMode.NODE_MODE_FULL;
   bool lightModeAvailable = true;
+  bool remoteEnforcerAvailable = false;
   bool throwOnRead = false;
   int reads = 0;
 
@@ -17,7 +18,11 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
     if (throwOnRead) {
       throw Exception('orchestrator is restarting');
     }
-    return wmpb.GetNodeModeResponse(mode: mode, lightModeAvailable: lightModeAvailable);
+    return wmpb.GetNodeModeResponse(
+      mode: mode,
+      lightModeAvailable: lightModeAvailable,
+      remoteEnforcerAvailable: remoteEnforcerAvailable,
+    );
   }
 
   @override
@@ -80,5 +85,18 @@ void main() {
     expect(orchestrator.wallet.reads, 1);
     expect(provider.mode, wmpb.NodeMode.NODE_MODE_FULL);
     expect(NodeModeProvider.runsLocalBackends, isTrue);
+  });
+  test('a Bitcoin network without an enforcer keeps the light wallet', () async {
+    provider.mode = wmpb.NodeMode.NODE_MODE_LIGHT;
+    provider.remoteEnforcerAvailable = true;
+    orchestrator.wallet.mode = wmpb.NodeMode.NODE_MODE_LIGHT;
+    orchestrator.wallet.remoteEnforcerAvailable = false;
+
+    await NetworkScopedRegistry.clearAll();
+
+    expect(provider.isLight, isTrue);
+    expect(provider.lightModeAvailable, isTrue);
+    expect(provider.remoteEnforcerAvailable, isFalse);
+    expect(provider.usesEnforcer, isFalse);
   });
 }

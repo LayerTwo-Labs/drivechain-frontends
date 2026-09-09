@@ -16,8 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	commonv1 "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/common/v1"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
@@ -158,12 +156,6 @@ func (h *WalletHandler) sidechainCtip(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("orchestrator not wired"))
 	}
 
-	// A light install runs no enforcer. The hosted index reads the escrow on
-	// its behalf, and the treasury it reports is the outpoint an M5 spends.
-	if h.orch.NodeMode() == orchestrator.NodeModeLight {
-		return h.indexCtip(ctx, slot)
-	}
-
 	validator, err := h.orch.EnforcerValidator()
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
@@ -175,38 +167,6 @@ func (h *WalletHandler) sidechainCtip(
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get ctip: %w", err))
 	}
 	return resp.Msg.GetCtip(), nil
-}
-
-// indexCtip reads the treasury outpoint from the hosted index, for an install
-// that runs no enforcer of its own.
-func (h *WalletHandler) indexCtip(
-	ctx context.Context, slot uint32,
-) (*enforcerpb.GetCtipResponse_Ctip, error) {
-	url := config.DrivechainIndexURLForNetwork(config.Network(h.orch.CurrentNetwork()))
-	if url == "" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("this network serves no escrow index, so a deposit needs full mode"))
-	}
-
-	ctip, err := readIndexCtip(ctx, url, slot)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get ctip: %w", err))
-	}
-	if ctip == nil {
-		h.svc.Log().Info().Uint32("slot", slot).Str("index", url).
-			Msg("the index reports no treasury yet, so this deposit starts one")
-		return nil, nil
-	}
-
-	h.svc.Log().Info().Uint32("slot", slot).Str("index", url).
-		Str("txid", ctip.Txid).Uint32("vout", ctip.Vout).Uint64("value_sats", ctip.Value).
-		Msg("read the treasury from the index, with no enforcer")
-
-	return &enforcerpb.GetCtipResponse_Ctip{
-		Txid:  &commonv1.ReverseHex{Hex: wrapperspb.String(ctip.Txid)},
-		Vout:  ctip.Vout,
-		Value: ctip.Value,
-	}, nil
 }
 
 // ListSidechainDeposits reports the deposits this install made to a slot. The

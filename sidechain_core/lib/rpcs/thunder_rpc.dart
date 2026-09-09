@@ -148,7 +148,7 @@ class ThunderLive extends ThunderRPC {
   @override
   Future<List<CoreTransaction>> listTransactions() async {
     final resp = await _client.listWalletTransactions(pb.ListWalletTransactionsRequest());
-    // The tip travels with the history. Light mode runs no node to ask.
+    // The tip and history must come from the same node.
     return resp.transactions.map((tx) => _toCoreTransaction(tx, resp.tipHeight)).toList();
   }
 

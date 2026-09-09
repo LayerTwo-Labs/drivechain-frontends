@@ -3,12 +3,28 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('resolveL1Gate', () {
+    test('light mode without a remote endpoint stays unavailable despite old connection state', () {
+      expect(
+        resolveL1Gate(
+          walletNeedsBackends: false,
+          remoteEnforcerAvailable: false,
+          coreConnected: true,
+          enforcerConnected: true,
+          coming: false,
+          synced: true,
+          chainIsEmpty: false,
+        ),
+        L1Gate.unavailable,
+      );
+    });
+
     // An electrum wallet runs neither daemon, which is the case that used to
     // leave the tab showing empty tables and buttons that fail.
     test('nothing running is a stopped gate', () {
       expect(
         resolveL1Gate(
           walletNeedsBackends: true,
+          remoteEnforcerAvailable: false,
           coreConnected: false,
           enforcerConnected: false,
           coming: false,
@@ -23,6 +39,7 @@ void main() {
       expect(
         resolveL1Gate(
           walletNeedsBackends: true,
+          remoteEnforcerAvailable: false,
           coreConnected: true,
           enforcerConnected: false,
           coming: false,
@@ -38,6 +55,7 @@ void main() {
       expect(
         resolveL1Gate(
           walletNeedsBackends: true,
+          remoteEnforcerAvailable: false,
           coreConnected: false,
           enforcerConnected: false,
           coming: true,
@@ -54,6 +72,7 @@ void main() {
       expect(
         resolveL1Gate(
           walletNeedsBackends: true,
+          remoteEnforcerAvailable: false,
           coreConnected: true,
           enforcerConnected: true,
           coming: false,
@@ -68,6 +87,7 @@ void main() {
       expect(
         resolveL1Gate(
           walletNeedsBackends: true,
+          remoteEnforcerAvailable: false,
           coreConnected: true,
           enforcerConnected: true,
           coming: false,
@@ -78,17 +98,30 @@ void main() {
       );
     });
 
-    // An electrum wallet reads BIP300 state from the hosted orchestrator, and
-    // StartWithL1 is a no-op for it — gating would block a working tab behind a
-    // button that cannot do anything.
-    test('an electrum wallet is never gated on local daemons', () {
+    test('light mode waits for the remote enforcer', () {
       expect(
         resolveL1Gate(
           walletNeedsBackends: false,
+          remoteEnforcerAvailable: true,
           coreConnected: false,
           enforcerConnected: false,
           coming: false,
           synced: false,
+          chainIsEmpty: false,
+        ),
+        L1Gate.stopped,
+      );
+    });
+
+    test('light mode opens without local Core after the enforcer sync', () {
+      expect(
+        resolveL1Gate(
+          walletNeedsBackends: false,
+          remoteEnforcerAvailable: true,
+          coreConnected: false,
+          enforcerConnected: true,
+          coming: false,
+          synced: true,
           chainIsEmpty: false,
         ),
         L1Gate.ready,
@@ -102,6 +135,7 @@ void main() {
       expect(
         resolveL1Gate(
           walletNeedsBackends: true,
+          remoteEnforcerAvailable: false,
           coreConnected: true,
           enforcerConnected: true,
           coming: false,
@@ -118,6 +152,7 @@ void main() {
       expect(
         resolveL1Gate(
           walletNeedsBackends: true,
+          remoteEnforcerAvailable: false,
           coreConnected: true,
           enforcerConnected: true,
           coming: false,

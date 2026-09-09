@@ -48,6 +48,7 @@ func newTestOrchestrator(t *testing.T) *Orchestrator {
 	o := New(t.TempDir(), "signet", t.TempDir(), AllDefaults(), testLogger(t))
 	t.Cleanup(func() {
 		o.StopAllMonitors()
+		require.NoError(t, o.closeRemoteEnforcer())
 	})
 	return o
 }

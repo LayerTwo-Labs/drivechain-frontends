@@ -836,7 +836,7 @@ Future<void> bootBitwindowBackend(Logger log) async {
   //    starting the fresh stack — caller-side glue not needed. Download
   //    bytes come via SyncProvider's polled GetSyncStatus; connection state
   //    via BackendStateProvider's polled ListBinaries.
-  if (orchestratorReady && boot.startsLocalBackends) {
+  if (orchestratorReady && boot.startsBackends) {
     unawaited(() async {
       try {
         await orchestrator.startWithL1('enforcer');

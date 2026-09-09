@@ -70,6 +70,7 @@ const (
 // BmmBackend assembles, broadcasts and connects bids, and reads what a
 // mainchain block committed to. Implemented by the BMM handler.
 type BmmBackend interface {
+	BMMAvailable() bool
 	CreateBid(context.Context, *connect.Request[bmmpb.CreateBidRequest]) (*connect.Response[bmmpb.CreateBidResponse], error)
 	ConnectBid(context.Context, *connect.Request[bmmpb.ConnectBidRequest]) (*connect.Response[bmmpb.ConnectBidResponse], error)
 	ListBids(context.Context, *connect.Request[bmmpb.ListBidsRequest]) (*connect.Response[bmmpb.ListBidsResponse], error)
@@ -440,6 +441,9 @@ func (e *BmmEngine) resumeUnconnected() {
 }
 
 func (e *BmmEngine) tick(ctx context.Context) {
+	if !e.backend.BMMAvailable() {
+		return
+	}
 	e.mu.Lock()
 	targets := make(map[pb.BinaryType]bmmTarget, len(e.targets))
 	for k, v := range e.targets {
@@ -802,6 +806,9 @@ func (e *BmmEngine) placeBid(
 // A miner leaves a cheaper bid in the mempool, and the engine raises only
 // against a competitor, so an opening bid under this rate never gets mined.
 func (e *BmmEngine) NextBlockRate(ctx context.Context) float64 {
+	if !e.backend.BMMAvailable() {
+		return 0
+	}
 	if e.fee == nil {
 		return relayMinimumRate
 	}

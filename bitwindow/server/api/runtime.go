@@ -241,7 +241,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, conf, rt.walletEngine)
+		drivechainSvc := api_drivechain.New(s.Enforcer, s.BlockProducer, rt.walletEngine)
 		path, h := drivechainv1connect.NewDrivechainServiceHandler(drivechainSvc, stdOpts...)
 		register(path, h)
 	}

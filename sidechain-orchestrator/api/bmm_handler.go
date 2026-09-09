@@ -54,6 +54,18 @@ func (h *BMMHandler) SetEngine(engine *engines.BmmEngine) {
 	h.engine = engine
 }
 
+// BMMAvailable reports whether the selected node mode supports BMM.
+func (h *BMMHandler) BMMAvailable() bool {
+	return h.orch.NodeMode() != orchestrator.NodeModeLight
+}
+
+func (h *BMMHandler) requireBMMAvailable() error {
+	if !h.BMMAvailable() {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("BMM is unavailable in light mode"))
+	}
+	return nil
+}
+
 // requireEnforcerSynced rejects bidding until the enforcer has validated every
 // block Bitcoin Core knows about. A bid assembled against a trailing tip
 // commits to a prev-main-hash miners have already built past, so it can never
@@ -63,6 +75,9 @@ func (h *BMMHandler) SetEngine(engine *engines.BmmEngine) {
 // controls unlock: GetSyncStatus fills the enforcer's Headers from the
 // mainchain tip, leaving Blocks == Headers as "level with Core".
 func (h *BMMHandler) requireEnforcerSynced(ctx context.Context) error {
+	if err := h.requireBMMAvailable(); err != nil {
+		return err
+	}
 	status, err := h.orch.GetSyncStatus(ctx)
 	if err != nil {
 		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read sync status: %w", err))
@@ -468,6 +483,9 @@ func connectTarget(want string, inclusions []string) string {
 func (h *BMMHandler) ListBids(
 	ctx context.Context, req *connect.Request[bmmpb.ListBidsRequest],
 ) (*connect.Response[bmmpb.ListBidsResponse], error) {
+	if err := h.requireBMMAvailable(); err != nil {
+		return nil, err
+	}
 	cfg, err := h.sidechainConfig(req.Msg.Sidechain)
 	if err != nil {
 		return nil, err
