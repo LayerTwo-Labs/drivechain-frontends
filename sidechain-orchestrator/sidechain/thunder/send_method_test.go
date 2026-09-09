@@ -33,7 +33,11 @@ func sendMethodNode(t *testing.T, answers map[string]string) (*sidechain.JSONRPC
 		seen = append(seen, entry)
 		result, ok := answers[req.Method]
 		if !ok {
-			http.Error(w, "Method not found: "+req.Method, http.StatusBadRequest)
+			err := json.NewEncoder(w).Encode(map[string]any{
+				"jsonrpc": "2.0", "id": 1,
+				"error": map[string]any{"code": -32601, "message": "Method not found: " + req.Method},
+			})
+			assert.NoError(t, err)
 			return
 		}
 		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":` + result + `}`))

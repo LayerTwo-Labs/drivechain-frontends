@@ -16,81 +16,41 @@ import (
 
 var _ svc.ThunderServiceHandler = (*Handler)(nil)
 
-// Handler implements ThunderServiceHandler by proxying to the thunder binary's JSON-RPC.
-// Common methods delegate to the embedded JSONRPCProxy; Thunder-specific methods are
-// implemented directly using the proxy's Client.
+// Handler serves Thunder RPCs through the local node.
 type Handler struct {
-	proxy *sidechain.JSONRPCProxy
-	// sources holds both wallet modes. A request resolves the mode one time,
-	// and then reads the history and the addresses of one wallet.
-	sources *sources
-	mode    ModeFunc
+	proxy     *sidechain.JSONRPCProxy
+	backend   *nodeBackend
+	history   HistorySource
+	addresses AddressSource
 }
 
 func NewHandler(proxy *sidechain.JSONRPCProxy) *Handler {
 	return NewHandlerWithIndex(proxy, "")
 }
 
-// fullMode reads one local node and no index.
-func fullMode(indexURL string) ModeFunc {
-	return func() Mode { return Mode{IndexURL: indexURL, LocalNode: true} }
-}
-
-// NewHandlerWithIndex builds a handler that reads its wallet history from an
-// Esplora index. An empty URL reads the node instead, which keeps the wallet
-// addresses on the host.
+// NewHandlerWithIndex uses an optional Esplora URL for history and the local node for wallet RPCs.
 func NewHandlerWithIndex(proxy *sidechain.JSONRPCProxy, indexURL string) *Handler {
-	return NewHandlerWithSeed(proxy, fullMode(indexURL), nil)
-}
-
-// NewHandlerWithMode builds a handler that resolves its wallet mode on every
-// request, so a network swap or a mode change takes effect with no restart.
-// Light mode runs no node, and the seed then names the wallet addresses.
-// NewHandlerWithSeed builds a handler that also works with no node. Light mode
-// derives the wallet addresses from the seed, because the node that would
-// otherwise name them does not run.
-func NewHandlerWithSeed(
-	proxy *sidechain.JSONRPCProxy, mode ModeFunc, seed Seed,
-) *Handler {
-	var derived LightKeys
-	if seed != nil {
-		derived = newDerivedAddresses(seed, lightAddressWindow)
+	var history HistorySource = newNodeHistory(proxy)
+	if indexURL != "" {
+		history = sidechainesplora.NewWallet(sidechainesplora.New(indexURL))
 	}
 	return &Handler{
-		proxy: proxy,
-		mode:  mode,
-		sources: newSources(newNodeHistory(proxy), newNodeAddresses(proxy),
-			newNodeBackend(proxy), derived),
+		proxy:     proxy,
+		backend:   newNodeBackend(proxy),
+		history:   history,
+		addresses: newNodeAddresses(proxy),
 	}
 }
 
-// WalletBalance reads the balance whatever mode runs. Another service answers
-// the same number from here, so both agree in light mode and in full mode.
+// WalletBalance returns the local wallet balance.
 func (h *Handler) WalletBalance(ctx context.Context) (int64, int64, error) {
-	backend, err := h.backend(ctx)
-	if err != nil {
-		return 0, 0, err
-	}
-	return backend.Balance(ctx)
-}
-
-// backend picks the wallet the current mode runs.
-func (h *Handler) backend(ctx context.Context) (WalletBackend, error) {
-	backend, err := h.sources.Backend(ctx, h.mode())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
-	}
-	return backend, nil
+	return h.backend.Balance(ctx)
 }
 
 // --- Common Node methods ---
 
 func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
-	backend, err := h.backend(ctx)
-	if err != nil {
-		return nil, err
-	}
-	total, available, err := backend.Balance(ctx)
+	total, available, err := h.backend.Balance(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -116,11 +76,7 @@ func (h *Handler) Stop(ctx context.Context, req *connect.Request[pb.StopRequest]
 }
 
 func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	backend, err := h.backend(ctx)
-	if err != nil {
-		return nil, err
-	}
-	address, err := backend.NewAddress(ctx)
+	address, err := h.backend.NewAddress(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -128,11 +84,7 @@ func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.Get
 }
 
 func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.WithdrawRequest]) (*connect.Response[pb.WithdrawResponse], error) {
-	backend, err := h.backend(ctx)
-	if err != nil {
-		return nil, err
-	}
-	txid, err := backend.Withdraw(ctx, req.Msg.Address,
+	txid, err := h.backend.Withdraw(ctx, req.Msg.Address,
 		req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats)
 	if err != nil {
 		return nil, err
@@ -141,11 +93,7 @@ func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.Withdraw
 }
 
 func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
-	backend, err := h.backend(ctx)
-	if err != nil {
-		return nil, err
-	}
-	txid, err := backend.Transfer(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats)
+	txid, err := h.backend.Transfer(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats)
 	if err != nil {
 		return nil, err
 	}
@@ -153,11 +101,7 @@ func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.Transfer
 }
 
 func (h *Handler) TransferMany(ctx context.Context, req *connect.Request[pb.TransferManyRequest]) (*connect.Response[pb.TransferManyResponse], error) {
-	backend, err := h.backend(ctx)
-	if err != nil {
-		return nil, err
-	}
-	txid, err := backend.TransferMany(ctx, req.Msg.Destinations, req.Msg.FeeSats)
+	txid, err := h.backend.TransferMany(ctx, req.Msg.Destinations, req.Msg.FeeSats)
 	if err != nil {
 		return nil, err
 	}
@@ -181,20 +125,11 @@ func (h *Handler) GetPendingWithdrawalBundle(ctx context.Context, req *connect.R
 }
 
 func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.GetWalletUtxosRequest]) (*connect.Response[pb.GetWalletUtxosResponse], error) {
-	backend, err := h.backend(ctx)
+	raw, err := h.backend.UTXOs(ctx)
 	if err != nil {
 		return nil, err
 	}
-	raw, err := backend.UTXOs(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// A coin the mempool holds is not in the node's listing, so a payment on
-	// its way reads as no coin at all until the next block. A light client
-	// runs no node, and the index already answers its unconfirmed coins.
-	if h.mode().LocalNode {
-		raw = sidechain.WithMempoolUTXOs(ctx, h.proxy, raw)
-	}
+	raw = sidechain.WithMempoolUTXOs(ctx, h.proxy, raw)
 	return connect.NewResponse(&pb.GetWalletUtxosResponse{UtxosJson: string(raw)}), nil
 }
 
@@ -322,16 +257,11 @@ func (h *Handler) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[
 	return connect.NewResponse(&pb.SetSeedFromMnemonicResponse{}), nil
 }
 
-// ListTransactions reads the wallet history from the Esplora index. The node
-// keeps no address history of its own, so without an index this answers empty.
+// ListWalletTransactions returns history from the node or the explicit index URL.
 func (h *Handler) ListWalletTransactions(
 	ctx context.Context, req *connect.Request[pb.ListWalletTransactionsRequest],
 ) (*connect.Response[pb.ListWalletTransactionsResponse], error) {
-	// One read of the mode keeps the addresses, the history and the tip on one
-	// wallet, even when a network swap lands between them.
-	mode := h.mode()
-
-	addresses, err := h.sources.Addresses(mode).Addresses(ctx)
+	addresses, err := h.addresses.Addresses(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable,
 			fmt.Errorf("read wallet addresses: %w", err))
@@ -340,8 +270,7 @@ func (h *Handler) ListWalletTransactions(
 		return connect.NewResponse(&pb.ListWalletTransactionsResponse{}), nil
 	}
 
-	history := h.sources.History(mode)
-	entries, err := history.History(ctx, addresses)
+	entries, err := h.history.History(ctx, addresses)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable,
 			fmt.Errorf("read wallet history: %w", err))
@@ -349,7 +278,7 @@ func (h *Handler) ListWalletTransactions(
 
 	// An index with no blocks yet has no tip, and a wallet on a new chain
 	// still reads its own history. Every entry then counts zero confirmations.
-	tip, err := history.TipHeight(ctx)
+	tip, err := h.history.TipHeight(ctx)
 	if err != nil && !errors.Is(err, sidechainesplora.ErrEmptyIndex) {
 		return nil, connect.NewError(connect.CodeUnavailable,
 			fmt.Errorf("read the chain tip: %w", err))
