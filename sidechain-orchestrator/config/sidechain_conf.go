@@ -605,6 +605,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		DirKey:         "bitnames",
 	},
 	"zside": {
+		EnforcerArg:    "mainchain-grpc-url",
 		Name:           "ZSide",
 		ConfigFilename: "zside.conf",
 		BasePort:       6098,

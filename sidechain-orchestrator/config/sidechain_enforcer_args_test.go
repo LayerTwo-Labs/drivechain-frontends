@@ -7,7 +7,7 @@ import (
 )
 
 func TestSidechainEnforcerArgsUseTheDaemonFlags(t *testing.T) {
-	for _, name := range []string{"thunder", "photon", "coinshift"} {
+	for _, name := range []string{"thunder", "photon", "coinshift", "zside"} {
 		args, err := KnownSidechainSpecs[name].EnforcerArgs("http://127.0.0.1:32123")
 		require.NoError(t, err)
 		require.Equal(t, []string{"--mainchain-grpc-url=http://127.0.0.1:32123"}, args)
@@ -30,6 +30,6 @@ func TestSidechainEnforcerHostRejectsURLsItCannotRepresent(t *testing.T) {
 		_, err := KnownSidechainSpecs["bitnames"].EnforcerArgs(endpoint)
 		require.Error(t, err)
 	}
-	_, err := KnownSidechainSpecs["zside"].EnforcerArgs("http://127.0.0.1:50051")
+	_, err := KnownSidechainSpecs["liquid-signet"].EnforcerArgs("http://127.0.0.1:50051")
 	require.ErrorContains(t, err, "does not support a remote enforcer")
 }

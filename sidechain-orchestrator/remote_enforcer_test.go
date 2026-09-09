@@ -200,7 +200,7 @@ func TestRemoteSidechainArgsMatchEachDaemon(t *testing.T) {
 	require.NoError(t, err)
 	u, err := url.Parse(endpoint)
 	require.NoError(t, err)
-	for _, name := range []string{"thunder", "bitnames", "bitassets", "photon", "coinshift", "truthcoin"} {
+	for _, name := range []string{"thunder", "bitnames", "bitassets", "photon", "coinshift", "truthcoin", "zside"} {
 		t.Run(name, func(t *testing.T) {
 			cfg, err := o.getConfig(name)
 			require.NoError(t, err)
@@ -256,6 +256,48 @@ func TestRemoteSidechainRejectsMissingEndpoint(t *testing.T) {
 	cfg, err := o.getConfig("thunder")
 	require.NoError(t, err)
 	require.ErrorContains(t, o.prepareSidechainArgs(cfg, &opts), "no remote enforcer endpoint")
+}
+
+func TestRemoteSidechainAlphanetArgs(t *testing.T) {
+	server := remoteValidatorServer(t, 42, nil)
+	o := remoteTestOrchestrator(t, server.URL)
+	previous := config.ECashEndpoints()
+	previousID := config.ECashNetworkID()
+	entry := netcatalog.EmbeddedECash()
+	entry.Services.Enforcer.URL = server.URL
+	config.SetECashEndpoints(entry)
+	config.SetECashNetworkID(entry.ID)
+	t.Cleanup(func() {
+		config.SetECashEndpoints(previous)
+		config.SetECashNetworkID(previousID)
+	})
+	o.setNetwork("ecash")
+	endpoint, err := o.EnforcerURL()
+	require.NoError(t, err)
+	u, err := url.Parse(endpoint)
+	require.NoError(t, err)
+	for _, name := range []string{"thunder", "bitnames", "bitassets", "photon", "coinshift", "truthcoin", "zside"} {
+		t.Run(name, func(t *testing.T) {
+			cfg, err := o.getConfig(name)
+			require.NoError(t, err)
+			opts := StartOpts{ForceBackend: true, TargetArgs: []string{
+				"--network=signet", "--mainchain-grpc-url=http://localhost:50051",
+				"--mainchain-grpc-host", "localhost", "--mainchain-grpc-port", "50051",
+			}}
+			require.NoError(t, o.prepareSidechainArgs(cfg, &opts))
+			require.Contains(t, opts.TargetArgs, "--network=alphanet")
+			require.NotContains(t, strings.Join(opts.TargetArgs, " "), "localhost")
+			switch name {
+			case "bitnames", "bitassets", "truthcoin":
+				require.Contains(t, opts.TargetArgs, "--mainchain-grpc-host="+u.Hostname())
+				require.Contains(t, opts.TargetArgs, "--mainchain-grpc-port="+u.Port())
+				require.False(t, hasCLIFlag(opts.TargetArgs, "--mainchain-grpc-url"))
+			default:
+				require.Contains(t, opts.TargetArgs, "--mainchain-grpc-url="+endpoint)
+				require.False(t, hasCLIFlag(opts.TargetArgs, "--mainchain-grpc-host"))
+			}
+		})
+	}
 }
 
 func TestRemoteSidechainRejectsUnknownNetwork(t *testing.T) {

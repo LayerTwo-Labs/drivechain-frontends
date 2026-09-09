@@ -167,7 +167,7 @@ func (o *Orchestrator) prepareRemoteSidechainArgs(cfg BinaryConfig, opts *StartO
 		return fmt.Errorf("%s does not support a remote enforcer; select full mode", cfg.Name)
 	}
 	network := config.CusfNetworkName(config.Network(o.CurrentNetwork()), config.ECashNetworkID())
-	if network == "" || (spec.DirKey == "truthcoin" && network == "alphanet") {
+	if network == "" {
 		return fmt.Errorf("%s on %s: %w", cfg.Name, o.CurrentNetwork(), errSidechainNetworkUnknown)
 	}
 	endpoint, err := o.EnforcerURL()
