@@ -223,6 +223,31 @@ func TestRemoteSidechainArgsMatchEachDaemon(t *testing.T) {
 	}
 }
 
+// A light node binds the same sockets as a full one. Without the ZMQ address
+// two daemons on two networks bind one publisher, and the second one stops.
+func TestRemoteSidechainArgsPassTheBoundPorts(t *testing.T) {
+	server := remoteValidatorServer(t, 42, nil)
+	o := remoteTestOrchestrator(t, server.URL)
+	for name, want := range map[string][]string{
+		"bitnames":  {"--net-addr=0.0.0.0:34002", "--zmq-addr=127.0.0.1:58002"},
+		"bitassets": {"--net-addr=0.0.0.0:34004", "--zmq-addr=127.0.0.1:58004"},
+		"photon":    {"--net-addr=0.0.0.0:34099"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg, err := o.getConfig(name)
+			require.NoError(t, err)
+			opts := StartOpts{ForceBackend: true}
+			require.NoError(t, o.prepareSidechainArgs(cfg, &opts))
+			for _, arg := range want {
+				require.Contains(t, opts.TargetArgs, arg)
+			}
+			if name == "photon" {
+				require.False(t, hasCLIFlag(opts.TargetArgs, "--zmq-addr"))
+			}
+		})
+	}
+}
+
 func TestRemoteSidechainRejectsMissingEndpoint(t *testing.T) {
 	o := remoteTestOrchestrator(t, "")
 	_, err := o.EnforcerURL()

@@ -185,6 +185,9 @@ func (o *Orchestrator) prepareRemoteSidechainArgs(cfg BinaryConfig, opts *StartO
 		if value := scm.Config.GetSetting("net-addr"); value != "" && !hasCLIFlag(opts.TargetArgs, "--net-addr") {
 			args = append(args, "--net-addr="+value)
 		}
+		if value := scm.Config.GetSetting("zmq-addr"); spec.PortStyle == "zmq" && value != "" && !hasCLIFlag(opts.TargetArgs, "--zmq-addr") {
+			args = append(args, "--zmq-addr="+value)
+		}
 	}
 	for _, name := range []string{"--mainchain-grpc-url", "--mainchain-grpc-host", "--mainchain-grpc-port"} {
 		opts.TargetArgs = replaceCLIFlag(opts.TargetArgs, name, "")
