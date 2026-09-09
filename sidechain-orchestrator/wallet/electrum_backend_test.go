@@ -3258,3 +3258,91 @@ func TestReplacedChainIgnoresAnOrdinarySend(t *testing.T) {
 	_, _, ok := replacedChain(scan, []RequiredInput{{TxID: "aa", Vout: 0}})
 	assert.False(t, ok)
 }
+
+// A BMM bid pins the coin of its own sidechain slot. The pin only isolates the
+// slot when selection adds no other coin, because a second coin puts the bid on
+// another slot's lineage and a replacement there evicts it.
+func TestElectrumSendAddsNoCoinBesideACoveringPin(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const slotCoin = "4444444444444444444444444444444444444444444444444444444444444444"
+	const siblingCoin = "5555555555555555555555555555555555555555555555555555555555555555"
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 2, FundedTxoSum: 3_100_000, TxCount: 2},
+	}
+	fake.utxos[addr] = []EsploraUTXO{
+		{TxID: slotCoin, Vout: 0, Value: 100_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}},
+		{TxID: siblingCoin, Vout: 0, Value: 3_000_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}},
+	}
+
+	txid, err := p.Send(ctx, w.ID, SendRequest{
+		RawOutputs:     []TxOutSpec{{RawScriptHex: "6a04deadbeef", AmountSats: 0}},
+		FixedFeeSats:   10_000,
+		RequiredInputs: []RequiredInput{{TxID: slotCoin, Vout: 0}},
+		Replaceable:    true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "broadcasttxid", txid)
+	require.Len(t, fake.broadcast, 1)
+
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+
+	require.Len(t, tx.TxIn, 1, "the pinned coin covers the bid, so no other coin joins it")
+	assert.Equal(t, slotCoin, tx.TxIn[0].PreviousOutPoint.Hash.String())
+}
+
+// Each BMM slot bids from a coin of its own. A replacement on one slot then
+// respends coins the other slot never touched, so the other slot's bid stays in
+// the mempool and its round runs on.
+func TestElectrumReplacementSparesASiblingOnAnotherCoin(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const (
+		coinOfSlotOne = "1111111111111111111111111111111111111111111111111111111111111111"
+		coinOfSlotTwo = "2222222222222222222222222222222222222222222222222222222222222222"
+		bidOfSlotOne  = "3333333333333333333333333333333333333333333333333333333333333333"
+		bidOfSlotTwo  = "4444444444444444444444444444444444444444444444444444444444444444"
+	)
+
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 2, FundedTxoSum: 400_000, TxCount: 2},
+	}
+	fake.utxos[addr] = nil
+	fake.txs[addr] = []EsploraTx{
+		{
+			TxID:   bidOfSlotOne,
+			Vin:    []EsploraVin{{TxID: coinOfSlotOne, Vout: 0}},
+			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 199_000}},
+			Status: EsploraStatus{Confirmed: false},
+		},
+		{
+			TxID:   bidOfSlotTwo,
+			Vin:    []EsploraVin{{TxID: coinOfSlotTwo, Vout: 0}},
+			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 198_000}},
+			Status: EsploraStatus{Confirmed: false},
+		},
+	}
+
+	_, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	p.mu.Lock()
+	scan := p.warmScan[w.ID]
+	p.mu.Unlock()
+	require.NotNil(t, scan)
+
+	root, evicted, ok := replacedChain(scan, []RequiredInput{{TxID: coinOfSlotOne, Vout: 0}})
+
+	require.True(t, ok, "the raise replaces the bid over that coin")
+	assert.Equal(t, bidOfSlotOne, root)
+	for _, u := range evicted {
+		assert.NotEqual(t, bidOfSlotTwo, u.txid, "the other slot bids from a coin of its own")
+	}
+}

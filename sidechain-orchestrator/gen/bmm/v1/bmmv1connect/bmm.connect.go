@@ -49,6 +49,8 @@ const (
 	BMMServiceConnectBidProcedure = "/bmm.v1.BMMService/ConnectBid"
 	// BMMServiceListBidsProcedure is the fully-qualified name of the BMMService's ListBids RPC.
 	BMMServiceListBidsProcedure = "/bmm.v1.BMMService/ListBids"
+	// BMMServicePrepareBMMProcedure is the fully-qualified name of the BMMService's PrepareBMM RPC.
+	BMMServicePrepareBMMProcedure = "/bmm.v1.BMMService/PrepareBMM"
 )
 
 // BMMServiceClient is a client for the bmm.v1.BMMService service.
@@ -75,6 +77,11 @@ type BMMServiceClient interface {
 	// ListBids reads the competing bids for the slot out of the mainchain
 	// mempool, highest bid first.
 	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
+	// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
+	// and splits one large coin when the wallet holds too few. One wallet funds
+	// them all, and a bid over another slot's bid change dies when that slot
+	// replaces its own bid.
+	PrepareBMM(context.Context, *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error)
 }
 
 // NewBMMServiceClient constructs a client for the bmm.v1.BMMService service. By default, it uses
@@ -136,6 +143,12 @@ func NewBMMServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(bMMServiceMethods.ByName("ListBids")),
 			connect.WithClientOptions(opts...),
 		),
+		prepareBMM: connect.NewClient[v1.PrepareBMMRequest, v1.PrepareBMMResponse](
+			httpClient,
+			baseURL+BMMServicePrepareBMMProcedure,
+			connect.WithSchema(bMMServiceMethods.ByName("PrepareBMM")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -149,6 +162,7 @@ type bMMServiceClient struct {
 	createBid    *connect.Client[v1.CreateBidRequest, v1.CreateBidResponse]
 	connectBid   *connect.Client[v1.ConnectBidRequest, v1.ConnectBidResponse]
 	listBids     *connect.Client[v1.ListBidsRequest, v1.ListBidsResponse]
+	prepareBMM   *connect.Client[v1.PrepareBMMRequest, v1.PrepareBMMResponse]
 }
 
 // Start calls bmm.v1.BMMService.Start.
@@ -191,6 +205,11 @@ func (c *bMMServiceClient) ListBids(ctx context.Context, req *connect.Request[v1
 	return c.listBids.CallUnary(ctx, req)
 }
 
+// PrepareBMM calls bmm.v1.BMMService.PrepareBMM.
+func (c *bMMServiceClient) PrepareBMM(ctx context.Context, req *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error) {
+	return c.prepareBMM.CallUnary(ctx, req)
+}
+
 // BMMServiceHandler is an implementation of the bmm.v1.BMMService service.
 type BMMServiceHandler interface {
 	// Start bids on every new mainchain tip and connects the blocks miners take,
@@ -215,6 +234,11 @@ type BMMServiceHandler interface {
 	// ListBids reads the competing bids for the slot out of the mainchain
 	// mempool, highest bid first.
 	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
+	// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
+	// and splits one large coin when the wallet holds too few. One wallet funds
+	// them all, and a bid over another slot's bid change dies when that slot
+	// replaces its own bid.
+	PrepareBMM(context.Context, *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error)
 }
 
 // NewBMMServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -272,6 +296,12 @@ func NewBMMServiceHandler(svc BMMServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(bMMServiceMethods.ByName("ListBids")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bMMServicePrepareBMMHandler := connect.NewUnaryHandler(
+		BMMServicePrepareBMMProcedure,
+		svc.PrepareBMM,
+		connect.WithSchema(bMMServiceMethods.ByName("PrepareBMM")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/bmm.v1.BMMService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BMMServiceStartProcedure:
@@ -290,6 +320,8 @@ func NewBMMServiceHandler(svc BMMServiceHandler, opts ...connect.HandlerOption) 
 			bMMServiceConnectBidHandler.ServeHTTP(w, r)
 		case BMMServiceListBidsProcedure:
 			bMMServiceListBidsHandler.ServeHTTP(w, r)
+		case BMMServicePrepareBMMProcedure:
+			bMMServicePrepareBMMHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -329,4 +361,8 @@ func (UnimplementedBMMServiceHandler) ConnectBid(context.Context, *connect.Reque
 
 func (UnimplementedBMMServiceHandler) ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.ListBids is not implemented"))
+}
+
+func (UnimplementedBMMServiceHandler) PrepareBMM(context.Context, *connect.Request[v1.PrepareBMMRequest]) (*connect.Response[v1.PrepareBMMResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.PrepareBMM is not implemented"))
 }

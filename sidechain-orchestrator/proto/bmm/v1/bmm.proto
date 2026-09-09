@@ -37,6 +37,12 @@ service BMMService {
   // ListBids reads the competing bids for the slot out of the mainchain
   // mempool, highest bid first.
   rpc ListBids(ListBidsRequest) returns (ListBidsResponse);
+
+  // PrepareBMM gives every bidding sidechain a coin of its own to bid from,
+  // and splits one large coin when the wallet holds too few. One wallet funds
+  // them all, and a bid over another slot's bid change dies when that slot
+  // replaces its own bid.
+  rpc PrepareBMM(PrepareBMMRequest) returns (PrepareBMMResponse);
 }
 
 message StartRequest {
@@ -204,4 +210,32 @@ message ListBidsRequest {
 message ListBidsResponse {
   // Highest bid first.
   repeated Bid bids = 1;
+}
+
+message PrepareBMMRequest {
+  // The sidechains that bid now. Each one needs a coin of its own.
+  repeated PrepareBMMTarget targets = 1;
+}
+
+// PrepareBMMTarget is one sidechain that bids.
+message PrepareBMMTarget {
+  // Wallet that funds its bids. Empty uses the active wallet.
+  string wallet_id = 1;
+  // Ceiling one of its bids may pay, in sats. It sizes the coin.
+  int64 max_bid_sats = 2;
+}
+
+message PrepareBMMResponse {
+  // One entry per wallet the targets name, with aliases of one wallet joined.
+  repeated PrepareBMMWallet wallets = 1;
+}
+
+message PrepareBMMWallet {
+  string wallet_id = 1;
+  // Coins the wallet holds that a sidechain can bid many rounds from.
+  int32 usable_coins = 2;
+  // Coins the sidechains that spend this wallet need, one each.
+  int32 wanted_coins = 3;
+  // Transaction that pays the missing coins. Empty when none was necessary.
+  string split_txid = 4;
 }

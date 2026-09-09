@@ -17,8 +17,8 @@ func TestBmmEnginePausesWhenBackendIsUnavailable(t *testing.T) {
 			engine, backend, tip, store := newEngine(t)
 			fee := newFakeFee()
 			engine.fee = fee
-			require.NoError(t, engine.Start(testSidechain, "wallet", 20000, false))
 			ctx := context.Background()
+			require.NoError(t, engine.Start(ctx, testSidechain, "wallet", 20000, false))
 			engine.tick(ctx)
 			backend.commitment = "critical"
 			backend.noInclusion = true

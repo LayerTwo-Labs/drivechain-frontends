@@ -8,6 +8,7 @@ import (
 	"math"
 	"slices"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -32,18 +33,59 @@ import (
 // that decided a round the engine slept through.
 const bmmAncestorWalk = 200
 
+const (
+	// bmmSlotCoinRounds is how many rounds one slot coin funds. It sizes each
+	// output of the coin split.
+	bmmSlotCoinRounds = 20
+	// bmmSlotCoinFeeSats is what a slot coin holds over the bid itself, for the
+	// change output every bid adds. The coin split pays it as its fee.
+	bmmSlotCoinFeeSats = 10_000
+	// bmmSplitPatience is how long a split holds the next one back after the
+	// mempool stops naming it. An Electrum wallet broadcasts through Esplora,
+	// and the local node can take a moment to see the transaction.
+	bmmSplitPatience = 10 * time.Minute
+	// noSlot claims no slot, so every live bid counts as another slot's bid.
+	noSlot = -1
+)
+
+// bidWallet is the wallet surface a bid spends through.
+type bidWallet interface {
+	// ResolveWalletID names the wallet an empty id means.
+	ResolveWalletID(walletID string) (string, error)
+	ListUnspent(
+		context.Context, *connect.Request[wpb.ListUnspentRequest],
+	) (*connect.Response[wpb.ListUnspentResponse], error)
+	GetNewAddress(
+		context.Context, *connect.Request[wpb.GetNewAddressRequest],
+	) (*connect.Response[wpb.GetNewAddressResponse], error)
+	SendTransaction(
+		context.Context, *connect.Request[wpb.SendTransactionRequest],
+	) (*connect.Response[wpb.SendTransactionResponse], error)
+}
+
 // BMMHandler serves BMMService. It owns bid assembly; the engine drives it on
 // a loop so both paths build an M8 exactly one way.
 type BMMHandler struct {
 	orch   *orchestrator.Orchestrator
-	wallet *WalletHandler
+	wallet bidWallet
 	engine *engines.BmmEngine
 	// core reads bitcoind. A test supplies its own through SetCoreCaller.
 	core CoreRawCaller
+
+	splitMu sync.Mutex
+	// splits names the coin split each wallet waits for. Bitcoin Core lists no
+	// coin of an unconfirmed split, so this holds a second split back.
+	splits map[string]pendingSplit
 }
 
 func NewBMMHandler(orch *orchestrator.Orchestrator, wallet *WalletHandler) *BMMHandler {
-	return &BMMHandler{orch: orch, wallet: wallet}
+	h := &BMMHandler{orch: orch}
+	// A nil pointer in the interface answers every call, and then panics inside
+	// it. An empty field answers the wallet check below instead.
+	if wallet != nil {
+		h.wallet = wallet
+	}
+	return h
 }
 
 // SetCoreCaller replaces the bitcoind seam.
@@ -121,7 +163,7 @@ func (h *BMMHandler) Start(
 		return nil, err
 	}
 	// Past validation, an engine failure is a storage one, not a client one.
-	if err := h.engine.Start(req.Msg.Sidechain, req.Msg.WalletId,
+	if err := h.engine.Start(ctx, req.Msg.Sidechain, req.Msg.WalletId,
 		req.Msg.MaxBidSats, req.Msg.CapToBlockWorth); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -357,6 +399,12 @@ func (h *BMMHandler) CreateBid(
 		if raised != bidSats {
 			bidSats, byRate = raised, false
 		}
+	} else {
+		coin, err := h.slotCoin(ctx, req.Msg, cfg.Slot, pinSats(bidSats, byRate, req.Msg.FeeRateSatVb))
+		if err != nil {
+			return nil, err
+		}
+		requiredInputs = []*wpb.UnspentOutput{coin}
 	}
 
 	// The M8's OP_RETURN must be output 0 with no value, so the bid only
@@ -506,26 +554,10 @@ func (h *BMMHandler) ListBids(
 
 	var bids []*bmmpb.Bid
 	for txid, entry := range mempool {
-		rawTx, err := h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
-		if err != nil {
-			continue
-		}
-		var tx struct {
-			Vout []struct {
-				ScriptPubKey struct {
-					Hex string `json:"hex"`
-				} `json:"scriptPubKey"`
-			} `json:"vout"`
-		}
-		if err := json.Unmarshal(rawTx, &tx); err != nil || len(tx.Vout) == 0 {
-			continue
-		}
-		script, err := hex.DecodeString(tx.Vout[0].ScriptPubKey.Hex)
-		if err != nil {
-			continue
-		}
-		request := orchestrator.ParseM8BmmRequestScript(script)
-		if request == nil || int(request.Slot) != cfg.Slot {
+		// A transaction can leave the mempool between the two reads, and one the
+		// node cannot name is no competitor of ours.
+		request, err := h.m8Request(ctx, txid)
+		if err != nil || request == nil || int(request.Slot) != cfg.Slot {
 			continue
 		}
 		bids = append(bids, &bmmpb.Bid{
@@ -538,6 +570,391 @@ func (h *BMMHandler) ListBids(
 	sort.Slice(bids, func(i, j int) bool { return bids[i].BidSats > bids[j].BidSats })
 
 	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
+}
+
+// mempoolTxids names every transaction the mainchain mempool holds.
+func (h *BMMHandler) mempoolTxids(ctx context.Context) (map[string]bool, error) {
+	raw, err := h.coreCall(ctx, "getrawmempool", "[false]")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get raw mempool: %w", err))
+	}
+	var txids []string
+	if err := json.Unmarshal(raw, &txids); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode mempool: %w", err))
+	}
+	held := make(map[string]bool, len(txids))
+	for _, txid := range txids {
+		held[txid] = true
+	}
+	return held, nil
+}
+
+// m8Request reads the bid a transaction carries, nil when it carries none.
+func (h *BMMHandler) m8Request(ctx context.Context, txid string) (*orchestrator.BmmRequest, error) {
+	raw, err := h.coreCall(ctx, "getrawtransaction", fmt.Sprintf("[%q,true]", txid))
+	if err != nil {
+		return nil, fmt.Errorf("get raw transaction %s: %w", txid, err)
+	}
+	var tx struct {
+		Vout []struct {
+			ScriptPubKey struct {
+				Hex string `json:"hex"`
+			} `json:"scriptPubKey"`
+		} `json:"vout"`
+	}
+	if err := json.Unmarshal(raw, &tx); err != nil {
+		return nil, fmt.Errorf("decode transaction %s: %w", txid, err)
+	}
+	if len(tx.Vout) == 0 {
+		return nil, nil
+	}
+	script, err := hex.DecodeString(tx.Vout[0].ScriptPubKey.Hex)
+	if err != nil {
+		return nil, fmt.Errorf("decode the script of %s: %w", txid, err)
+	}
+	return orchestrator.ParseM8BmmRequestScript(script), nil
+}
+
+// slotCoin picks the coin an opening bid spends, and holds every slot to a coin
+// lineage of its own.
+//
+// One wallet funds all the sidechains. A bid built on another slot's bid change
+// dies the moment that slot replaces its own bid, because a replacement evicts
+// every mempool descendant of the transaction it replaces.
+func (h *BMMHandler) slotCoin(
+	ctx context.Context, req *bmmpb.CreateBidRequest, slot int, bidSats int64,
+) (*wpb.UnspentOutput, error) {
+	coins, err := h.readWalletCoins(ctx, req.WalletId, slot)
+	if err != nil {
+		return nil, err
+	}
+
+	var coin *wpb.UnspentOutput
+	for _, u := range coins.own {
+		if u.AmountSats < bidSats+bmmSlotCoinFeeSats {
+			continue
+		}
+		if coin == nil || u.AmountSats > coin.AmountSats {
+			coin = u
+		}
+	}
+	if coin == nil {
+		// PrepareBMM pays the missing coins. The engine opens the round again on
+		// the next tick, once one of them lands.
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+			"the wallet holds no coin of its own for slot %d", slot))
+	}
+	return coin, nil
+}
+
+// PrepareBMM gives every bidding sidechain a coin of its own, and splits one
+// large coin when a wallet holds too few.
+func (h *BMMHandler) PrepareBMM(
+	ctx context.Context, req *connect.Request[bmmpb.PrepareBMMRequest],
+) (*connect.Response[bmmpb.PrepareBMMResponse], error) {
+	if err := h.requireBMMAvailable(); err != nil {
+		return nil, err
+	}
+	if len(req.Msg.Targets) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("targets must name a sidechain"))
+	}
+	if h.wallet == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+	}
+
+	// Two targets can name one wallet, by its id and by the empty active id, and
+	// both then bid from the same coins.
+	type want struct {
+		sidechains int32
+		maxBidSats int64
+	}
+	wants := make(map[string]*want, len(req.Msg.Targets))
+	var order []string
+	for _, target := range req.Msg.Targets {
+		if target.MaxBidSats <= 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("max_bid_sats must be positive"))
+		}
+		walletID, err := h.wallet.ResolveWalletID(target.WalletId)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		w, ok := wants[walletID]
+		if !ok {
+			w = &want{}
+			wants[walletID] = w
+			order = append(order, walletID)
+		}
+		w.sidechains++
+		if target.MaxBidSats > w.maxBidSats {
+			w.maxBidSats = target.MaxBidSats
+		}
+	}
+
+	out := &bmmpb.PrepareBMMResponse{}
+	var failure error
+	for _, walletID := range order {
+		w := wants[walletID]
+		state, err := h.prepareWallet(ctx, walletID, w.sidechains, w.maxBidSats)
+		if err != nil {
+			// One wallet that cannot pay must not hold back the coins of the next
+			// one, which the engine counts again only on the next block.
+			if failure == nil {
+				failure = err
+			}
+			continue
+		}
+		out.Wallets = append(out.Wallets, state)
+	}
+	if failure != nil {
+		return nil, failure
+	}
+	return connect.NewResponse(out), nil
+}
+
+// prepareWallet counts the coins one wallet can bid from, and pays the missing
+// ones out of its largest coin.
+func (h *BMMHandler) prepareWallet(
+	ctx context.Context, walletID string, sidechains int32, maxBidSats int64,
+) (*bmmpb.PrepareBMMWallet, error) {
+	coins, err := h.readWalletCoins(ctx, walletID, noSlot)
+	if err != nil {
+		return nil, err
+	}
+
+	workingSats := slotCoinSats(maxBidSats)
+	// A coin a live bid created counts: that slot bids from it again, and its
+	// replacement respends the same inputs.
+	usable := lo.Filter(coins.all, func(u *wpb.UnspentOutput, _ int) bool {
+		return u.AmountSats >= workingSats
+	})
+
+	out := &bmmpb.PrepareBMMWallet{
+		WalletId:    walletID,
+		UsableCoins: int32(len(usable)),
+		WantedCoins: sidechains,
+	}
+	if int32(len(usable)) >= sidechains {
+		h.splitLanded(walletID)
+		return out, nil
+	}
+	// A split still in the mempool pays coins that a second split would spend
+	// again.
+	if h.pendingSplitTxid(walletID) != "" {
+		return out, nil
+	}
+
+	source := largestCoin(coins.free)
+	missing := int(sidechains) - len(usable)
+	// The split spends its source, so a source that counts as usable pays itself
+	// back as one more coin.
+	if source != nil && source.AmountSats >= workingSats {
+		missing++
+	}
+
+	txid, err := h.splitBMMCoins(ctx, walletID, source, missing, workingSats)
+	if err != nil {
+		return nil, err
+	}
+	h.holdSplit(walletID, txid)
+	out.SplitTxid = txid
+	return out, nil
+}
+
+// walletCoins is what one wallet holds for a bid.
+type walletCoins struct {
+	// all holds every coin the wallet can sign. A coin a live bid created still
+	// belongs to the slot that made it, and that slot bids from it again.
+	all []*wpb.UnspentOutput
+	// own holds the coins a bid for the named slot may spend.
+	own []*wpb.UnspentOutput
+	// free holds the coins no live bid created, which a split may spend.
+	free []*wpb.UnspentOutput
+	// held names every transaction the mainchain mempool holds.
+	held map[string]bool
+}
+
+// readWalletCoins sorts the coins of the wallet by the slot that may spend
+// them. A bid over another slot's bid change dies with the replacement that
+// slot broadcasts, because a replacement evicts every mempool descendant.
+//
+// A block already took a confirmed coin out of reach of a replacement, so only
+// an unconfirmed coin costs a read. An unconfirmed coin the node cannot name
+// waits: an Electrum wallet lists its own change before Core sees the bid that
+// paid it.
+func (h *BMMHandler) readWalletCoins(
+	ctx context.Context, walletID string, slot int,
+) (*walletCoins, error) {
+	if h.wallet == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+	}
+	resolved, err := h.wallet.ResolveWalletID(walletID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	unspent, err := h.wallet.ListUnspent(ctx, connect.NewRequest(&wpb.ListUnspentRequest{
+		WalletId: resolved,
+	}))
+	if err != nil {
+		return nil, err
+	}
+	held, err := h.mempoolTxids(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := &walletCoins{held: held}
+	for _, u := range unspent.Msg.Utxos {
+		if !u.Spendable {
+			continue
+		}
+		if u.Confirmations > 0 {
+			out.all = append(out.all, u)
+			out.own = append(out.own, u)
+			out.free = append(out.free, u)
+			continue
+		}
+		request, err := h.m8Request(ctx, u.Txid)
+		if err != nil {
+			zerolog.Ctx(ctx).Debug().Err(err).Str("txid", u.Txid).Msg("read the parent of a wallet coin")
+			continue
+		}
+		out.all = append(out.all, u)
+		if request == nil {
+			out.own = append(out.own, u)
+			out.free = append(out.free, u)
+			continue
+		}
+		if int(request.Slot) == slot {
+			out.own = append(out.own, u)
+		}
+	}
+	h.clearSplitWhenDone(resolved, out.all, held)
+	return out, nil
+}
+
+// splitBMMCoins pays count coins to the wallet itself, out of the source coin.
+// It spends that one coin alone, so the coins the other slots bid from stay
+// where they are.
+func (h *BMMHandler) splitBMMCoins(
+	ctx context.Context, walletID string, source *wpb.UnspentOutput, count int, coinSats int64,
+) (string, error) {
+	want := int64(count)*coinSats + bmmSlotCoinFeeSats
+	if source == nil || source.AmountSats < want {
+		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+			"no coin holds the %d sats that %d more bmm coins cost", want, count))
+	}
+
+	destinations := make(map[string]int64, count)
+	for range count {
+		addr, err := h.wallet.GetNewAddress(ctx, connect.NewRequest(&wpb.GetNewAddressRequest{
+			WalletId: walletID,
+		}))
+		if err != nil {
+			return "", err
+		}
+		destinations[addr.Msg.Address] = coinSats
+	}
+	if len(destinations) != count {
+		return "", connect.NewError(connect.CodeInternal, fmt.Errorf(
+			"the wallet named %d addresses for %d bmm coins", len(destinations), count))
+	}
+
+	send, err := h.wallet.SendTransaction(ctx, connect.NewRequest(&wpb.SendTransactionRequest{
+		WalletId:       walletID,
+		Destinations:   destinations,
+		RequiredInputs: []*wpb.UnspentOutput{source},
+		// The source pays this exact fee, or coin selection reaches for a second
+		// coin and puts the split on another slot's lineage.
+		FixedFeeSats: bmmSlotCoinFeeSats,
+	}))
+	if err != nil {
+		return "", err
+	}
+	return send.Msg.Txid, nil
+}
+
+// pendingSplit is a coin split a wallet waits for.
+type pendingSplit struct {
+	txid string
+	at   time.Time
+}
+
+// largestCoin names the coin that pays for a split, nil when the wallet holds
+// none.
+func largestCoin(coins []*wpb.UnspentOutput) *wpb.UnspentOutput {
+	var largest *wpb.UnspentOutput
+	for _, u := range coins {
+		if largest == nil || u.AmountSats > largest.AmountSats {
+			largest = u
+		}
+	}
+	return largest
+}
+
+// pinSats is what the pinned coin has to cover. A bid sized at a rate carries
+// no amount yet, and a coin under what that rate costs makes the wallet reach
+// for a coin of another slot.
+func pinSats(bidSats int64, byRate bool, rateSatVb float64) int64 {
+	if !byRate {
+		return bidSats
+	}
+	return int64(math.Ceil(rateSatVb * nominalBidVsize))
+}
+
+// slotCoinSats is the balance one slot works from: enough for many rounds at
+// the ceiling the operator set, plus the change of each bid.
+func slotCoinSats(maxBidSats int64) int64 {
+	return maxBidSats*bmmSlotCoinRounds + bmmSlotCoinFeeSats
+}
+
+// pendingSplitTxid names the split the wallet waits for, empty when it waits
+// for none.
+func (h *BMMHandler) pendingSplitTxid(walletID string) string {
+	h.splitMu.Lock()
+	defer h.splitMu.Unlock()
+	return h.splits[walletID].txid
+}
+
+func (h *BMMHandler) holdSplit(walletID, txid string) {
+	h.splitMu.Lock()
+	defer h.splitMu.Unlock()
+	if h.splits == nil {
+		h.splits = make(map[string]pendingSplit)
+	}
+	h.splits[walletID] = pendingSplit{txid: txid, at: time.Now()}
+}
+
+// clearSplitWhenDone drops the hold once the split paid a coin the wallet can
+// name. A hold the mempool stopped naming waits out the propagation gap first,
+// and then goes, or a split the node dropped holds the next one back forever.
+func (h *BMMHandler) clearSplitWhenDone(
+	walletID string, coins []*wpb.UnspentOutput, held map[string]bool,
+) {
+	h.splitMu.Lock()
+	defer h.splitMu.Unlock()
+
+	split, ok := h.splits[walletID]
+	if !ok {
+		return
+	}
+	for _, u := range coins {
+		if u.Txid == split.txid {
+			delete(h.splits, walletID)
+			return
+		}
+	}
+	if held[split.txid] || time.Since(split.at) < bmmSplitPatience {
+		return
+	}
+	delete(h.splits, walletID)
+}
+
+// splitLanded drops the hold, because a wallet with a coin for every sidechain
+// waits for nothing.
+func (h *BMMHandler) splitLanded(walletID string) {
+	h.splitMu.Lock()
+	defer h.splitMu.Unlock()
+	delete(h.splits, walletID)
 }
 
 // bidFeeSats reads what a broadcast bid paid, from the mempool entry Core
