@@ -3828,7 +3828,7 @@ func (c *explorerHeightsConnection) Fetch(ctx context.Context) (map[string]int64
 		}
 	}
 	// A network the public explorer does not serve still hosts a per-chain
-	// address index, and a light install reads its chain from that index.
+	// address index, and that index reports the chain tip.
 	for name, cfg := range c.o.Configs() {
 		if cfg.ChainLayer != 2 {
 			continue
