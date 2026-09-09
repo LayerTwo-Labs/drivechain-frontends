@@ -10,9 +10,9 @@ import (
 const testMnemonic = "abandon abandon abandon abandon abandon abandon " +
 	"abandon abandon abandon abandon abandon about"
 
-// These addresses come from the derivation the coinshift node runs, over the
-// mnemonic above. A wrong derivation writes a deposit to an address the node
-// does not know, and nothing else shows the fault.
+// A scratch coinshift node on regtest, over the BIP39 test mnemonic above,
+// answers get_new_address with these three addresses. A wrong derivation
+// writes a deposit to an address the node does not watch, and nothing shows it.
 func TestDeriveMatchesTheNode(t *testing.T) {
 	want := map[uint32]string{
 		0: "38VvRdmcQREr1UAcZma98WLFVpAp",
