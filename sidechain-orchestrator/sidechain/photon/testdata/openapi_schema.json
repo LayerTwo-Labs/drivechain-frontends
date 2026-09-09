@@ -39,6 +39,53 @@
         }
       }
     },
+    "connect_block": {
+      "post": {
+        "description": "Connect a block for which a BMM request was included in the specified\nmainchain block. Returns `true` if it was accepted as the new tip.",
+        "operationId": "connect_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "block": {
+                    "type": "object",
+                    "required": [
+                      "header",
+                      "body"
+                    ],
+                    "properties": {
+                      "body": {
+                        "$ref": "#/components/schemas/Body"
+                      },
+                      "header": {
+                        "$ref": "#/components/schemas/Header"
+                      }
+                    }
+                  },
+                  "main_block_hash": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "connect_peer": {
       "post": {
         "description": "Connect to a peer",
@@ -127,6 +174,52 @@
                     "minimum": 0
                   },
                   "value_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "create_transfer_many": {
+      "post": {
+        "description": "Create a tx that transfers funds to each address in `dests`,\nwhich maps an address to a value in sats",
+        "operationId": "create_transfer_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dests": {
+                    "type": "object",
+                    "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    }
+                  },
+                  "fee_sats": {
                     "type": "integer",
                     "format": "u-int64",
                     "minimum": 0
@@ -358,6 +451,137 @@
                       }
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_hash": {
+      "post": {
+        "description": "Get the block hash at the specified height in the current chain,\nif it exists",
+        "operationId": "get_block_hash",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_index": {
+      "post": {
+        "description": "Get the transaction ids, sizes and encodings of a block, with the\nmainchain deposits and withdrawal bundle spends it applied",
+        "operationId": "get_block_index",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Everything about a block that its body does not carry",
+                  "required": [
+                    "txs",
+                    "deposits",
+                    "bundle_spends"
+                  ],
+                  "properties": {
+                    "bundle_spends": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexSpend"
+                      },
+                      "description": "Outputs that a withdrawal bundle removed"
+                    },
+                    "deposits": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexDeposit"
+                      },
+                      "description": "Outputs that mainchain deposits created"
+                    },
+                    "txs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexTx"
+                      },
+                      "description": "Transactions in body order"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_template": {
+      "post": {
+        "description": "Assemble a block to blind merge mine, without requesting BMM for it.\nThe caller requests BMM for `critical_hash` itself, then passes the\nblock back to `connect_block`.",
+        "operationId": "get_block_template",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "critical_hash",
+                    "block",
+                    "fees_sats"
+                  ],
+                  "properties": {
+                    "block": {
+                      "$ref": "#/components/schemas/Block",
+                      "description": "Block to pass to `connect_block` once its BMM request is included in a\nmainchain block"
+                    },
+                    "critical_hash": {
+                      "$ref": "#/components/schemas/BlockHash",
+                      "description": "Block hash to commit to in a BMM request"
+                    },
+                    "fees_sats": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "description": "Fees collected by the transactions in the block, in sats",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
@@ -649,6 +873,53 @@
                       "minimum": 0
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "list_mempool": {
+      "post": {
+        "description": "List the transactions the mempool holds, in no particular order.",
+        "operationId": "list_mempool",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One transaction the mempool holds",
+                    "required": [
+                      "txid",
+                      "size",
+                      "raw",
+                      "tx"
+                    ],
+                    "properties": {
+                      "raw": {
+                        "type": "string",
+                        "description": "Borsh encoding, as hex"
+                      },
+                      "size": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "description": "Canonical size in bytes",
+                        "minimum": 0
+                      },
+                      "tx": {
+                        "$ref": "#/components/schemas/Transaction"
+                      },
+                      "txid": {
+                        "$ref": "#/components/schemas/Txid",
+                        "description": "Blake3 over the canonical encoding"
+                      }
+                    }
+                  }
                 }
               }
             }

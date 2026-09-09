@@ -320,6 +320,61 @@
         }
       }
     },
+    "connect_block": {
+      "post": {
+        "description": "Connect a block for which a BMM request was included in the specified\nmainchain block. Returns `true` if it was accepted as the new tip.",
+        "operationId": "connect_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "block": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/Header"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Body"
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "height"
+                        ],
+                        "properties": {
+                          "height": {
+                            "type": "integer",
+                            "format": "u-int32",
+                            "minimum": 0
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "main_block_hash": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "connect_peer": {
       "post": {
         "description": "Connect to a peer",
@@ -924,6 +979,137 @@
         }
       }
     },
+    "get_block_hash": {
+      "post": {
+        "description": "Get the block hash at the specified height in the current chain,\nif it exists",
+        "operationId": "get_block_hash",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_index": {
+      "post": {
+        "description": "Get the transaction ids, sizes and encodings of a block, with the\nmainchain deposits and withdrawal bundle spends it applied",
+        "operationId": "get_block_index",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Everything about a block that its body does not carry",
+                  "required": [
+                    "txs",
+                    "deposits",
+                    "bundle_spends"
+                  ],
+                  "properties": {
+                    "bundle_spends": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexSpend"
+                      },
+                      "description": "Outputs that a withdrawal bundle removed"
+                    },
+                    "deposits": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexDeposit"
+                      },
+                      "description": "Outputs that mainchain deposits created"
+                    },
+                    "txs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexTx"
+                      },
+                      "description": "Transactions in body order"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_template": {
+      "post": {
+        "description": "Assemble a block to blind merge mine, without requesting BMM for it.\nThe caller requests BMM for `critical_hash` itself, then passes the\nblock back to `connect_block`.",
+        "operationId": "get_block_template",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "critical_hash",
+                    "block",
+                    "fees_sats"
+                  ],
+                  "properties": {
+                    "block": {
+                      "$ref": "#/components/schemas/Block",
+                      "description": "Block to pass to `connect_block` once its BMM request is included in a\nmainchain block"
+                    },
+                    "critical_hash": {
+                      "$ref": "#/components/schemas/BlockHash",
+                      "description": "Block hash to commit to in a BMM request"
+                    },
+                    "fees_sats": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "description": "Fees collected by the transactions in the block, in sats",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "get_bmm_inclusions": {
       "post": {
         "description": "Get mainchain blocks that commit to a specified block hash",
@@ -1446,6 +1632,53 @@
                       "minimum": 0
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "list_mempool": {
+      "post": {
+        "description": "List the transactions the mempool holds, in no particular order.",
+        "operationId": "list_mempool",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One transaction the mempool holds",
+                    "required": [
+                      "txid",
+                      "size",
+                      "raw",
+                      "tx"
+                    ],
+                    "properties": {
+                      "raw": {
+                        "type": "string",
+                        "description": "Borsh encoding, as hex"
+                      },
+                      "size": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "description": "Canonical size in bytes",
+                        "minimum": 0
+                      },
+                      "tx": {
+                        "$ref": "#/components/schemas/Transaction"
+                      },
+                      "txid": {
+                        "$ref": "#/components/schemas/Txid",
+                        "description": "Blake3 over the canonical encoding"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -2840,8 +3073,87 @@
         "format": "u-int64",
         "minimum": 0
       },
+      "Block": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Header"
+          },
+          {
+            "$ref": "#/components/schemas/Body"
+          },
+          {
+            "type": "object",
+            "required": [
+              "height"
+            ],
+            "properties": {
+              "height": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              }
+            }
+          }
+        ]
+      },
       "BlockHash": {
         "type": "string"
+      },
+      "BlockIndexDeposit": {
+        "type": "object",
+        "description": "One output a mainchain deposit created",
+        "required": [
+          "outpoint",
+          "output"
+        ],
+        "properties": {
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          }
+        }
+      },
+      "BlockIndexSpend": {
+        "type": "object",
+        "description": "One output a withdrawal bundle removed, with the bundle that took it",
+        "required": [
+          "outpoint",
+          "m6id"
+        ],
+        "properties": {
+          "m6id": {
+            "$ref": "#/components/schemas/M6id"
+          },
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          }
+        }
+      },
+      "BlockIndexTx": {
+        "type": "object",
+        "description": "One transaction of a block, with the fields its body omits",
+        "required": [
+          "txid",
+          "size",
+          "raw"
+        ],
+        "properties": {
+          "raw": {
+            "type": "string",
+            "description": "Borsh encoding, as hex"
+          },
+          "size": {
+            "type": "integer",
+            "format": "u-int64",
+            "description": "Canonical size in bytes",
+            "minimum": 0
+          },
+          "txid": {
+            "$ref": "#/components/schemas/Txid"
+          }
+        }
       },
       "Body": {
         "type": "object",
@@ -3071,6 +3383,9 @@
             ]
           }
         }
+      },
+      "M6id": {
+        "type": "string"
       },
       "MerkleRoot": {
         "type": "string"

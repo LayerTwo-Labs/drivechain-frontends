@@ -5,6 +5,66 @@
     "version": ""
   },
   "paths": {
+    "accept_swap": {
+      "post": {
+        "description": "Reserve an open swap for a claimer, before paying on L1.\n\nThis is what entitles an address to the escrow: the reservation is\nrecorded on-chain, so every node agrees who may claim. Reserve *first*,\nthen pay on L1 — a reservation taken after the L1 payment can be\nfront-run by anyone watching.\n\n`l2_claimer_address` defaults to an address of this wallet. The\nreservation lapses after the parent chain's acceptance window if the\nswap is not claimed.",
+        "operationId": "accept_swap",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fee_sats": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "minimum": 0
+                      }
+                    ]
+                  },
+                  "l2_claimer_address": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "swap_id": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "u-int8",
+                      "minimum": 0
+                    },
+                    "description": "32-byte swap identifier"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "balance": {
       "post": {
         "description": "Get balance in sats",
@@ -120,6 +180,53 @@
         }
       }
     },
+    "connect_block": {
+      "post": {
+        "description": "Connect a block for which a BMM request was included in the specified\nmainchain block. Returns `true` if it was accepted as the new tip.",
+        "operationId": "connect_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "block": {
+                    "type": "object",
+                    "required": [
+                      "header",
+                      "body"
+                    ],
+                    "properties": {
+                      "body": {
+                        "$ref": "#/components/schemas/Body"
+                      },
+                      "header": {
+                        "$ref": "#/components/schemas/Header"
+                      }
+                    }
+                  },
+                  "main_block_hash": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "connect_peer": {
       "post": {
         "description": "Connect to a peer",
@@ -191,7 +298,7 @@
     },
     "create_swap": {
       "post": {
-        "description": "Create a swap (L2 \u2192 L1)\nIf l2_recipient is None, creates an open swap (anyone can fill it)",
+        "description": "Create a swap (L2 → L1)\nIf l2_recipient is None, creates an open swap (anyone can fill it)",
         "operationId": "create_swap",
         "requestBody": {
           "content": {
@@ -276,39 +383,6 @@
                       "type": "string"
                     }
                   }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "delete_swap": {
-      "post": {
-        "description": "Delete a swap from the database.\nOnly allowed for Pending or Cancelled swaps.",
-        "operationId": "delete_swap",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "format": "u-int8",
-                  "minimum": 0
-                },
-                "description": "32-byte swap identifier"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null
                 }
               }
             }
@@ -484,6 +558,137 @@
         }
       }
     },
+    "get_block_hash": {
+      "post": {
+        "description": "Get the block hash at the specified height in the current chain,\nif it exists",
+        "operationId": "get_block_hash",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_index": {
+      "post": {
+        "description": "Get the transaction ids, sizes and encodings of a block, with the\nmainchain deposits and withdrawal bundle spends it applied",
+        "operationId": "get_block_index",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Everything about a block that its body does not carry",
+                  "required": [
+                    "txs",
+                    "deposits",
+                    "bundle_spends"
+                  ],
+                  "properties": {
+                    "bundle_spends": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexSpend"
+                      },
+                      "description": "Outputs that a withdrawal bundle removed"
+                    },
+                    "deposits": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexDeposit"
+                      },
+                      "description": "Outputs that mainchain deposits created"
+                    },
+                    "txs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexTx"
+                      },
+                      "description": "Transactions in body order"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_template": {
+      "post": {
+        "description": "Assemble a block to blind merge mine, without requesting BMM for it.\nThe caller requests BMM for `critical_hash` itself, then passes the\nblock back to `connect_block`.",
+        "operationId": "get_block_template",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "critical_hash",
+                    "block",
+                    "fees_sats"
+                  ],
+                  "properties": {
+                    "block": {
+                      "$ref": "#/components/schemas/Block",
+                      "description": "Block to pass to `connect_block` once its BMM request is included in a\nmainchain block"
+                    },
+                    "critical_hash": {
+                      "$ref": "#/components/schemas/BlockHash",
+                      "description": "Block hash to commit to in a BMM request"
+                    },
+                    "fees_sats": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "description": "Fees collected by the transactions in the block, in sats",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "get_bmm_inclusions": {
       "post": {
         "description": "Get mainchain blocks that commit to a specified block hash",
@@ -569,6 +774,8 @@
                         "required_confirmations",
                         "state",
                         "l2_amount",
+                        "l1_recipient_address",
+                        "l1_amount",
                         "created_at_height"
                       ],
                       "properties": {
@@ -592,10 +799,7 @@
                           "$ref": "#/components/schemas/SwapId"
                         },
                         "l1_amount": {
-                          "type": [
-                            "integer",
-                            "null"
-                          ],
+                          "type": "integer",
                           "format": "u-int64",
                           "minimum": 0
                         },
@@ -607,10 +811,7 @@
                           "description": "Address of the person who sent the L1 transaction (the claimer)\nSet when L1 transaction is detected"
                         },
                         "l1_recipient_address": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": "string"
                         },
                         "l1_txid": {
                           "$ref": "#/components/schemas/SwapTxId"
@@ -795,6 +996,53 @@
         }
       }
     },
+    "list_mempool": {
+      "post": {
+        "description": "List the transactions the mempool holds, in no particular order.",
+        "operationId": "list_mempool",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One transaction the mempool holds",
+                    "required": [
+                      "txid",
+                      "size",
+                      "raw",
+                      "tx"
+                    ],
+                    "properties": {
+                      "raw": {
+                        "type": "string",
+                        "description": "Borsh encoding, as hex"
+                      },
+                      "size": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "description": "Canonical size in bytes",
+                        "minimum": 0
+                      },
+                      "tx": {
+                        "$ref": "#/components/schemas/Transaction"
+                      },
+                      "txid": {
+                        "$ref": "#/components/schemas/Txid",
+                        "description": "Blake3 over the canonical encoding"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "list_peers": {
       "post": {
         "description": "List peers",
@@ -850,6 +1098,8 @@
                       "required_confirmations",
                       "state",
                       "l2_amount",
+                      "l1_recipient_address",
+                      "l1_amount",
                       "created_at_height"
                     ],
                     "properties": {
@@ -873,10 +1123,7 @@
                         "$ref": "#/components/schemas/SwapId"
                       },
                       "l1_amount": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
+                        "type": "integer",
                         "format": "u-int64",
                         "minimum": 0
                       },
@@ -888,10 +1135,7 @@
                         "description": "Address of the person who sent the L1 transaction (the claimer)\nSet when L1 transaction is detected"
                       },
                       "l1_recipient_address": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
+                        "type": "string"
                       },
                       "l1_txid": {
                         "$ref": "#/components/schemas/SwapTxId"
@@ -1005,6 +1249,8 @@
                       "required_confirmations",
                       "state",
                       "l2_amount",
+                      "l1_recipient_address",
+                      "l1_amount",
                       "created_at_height"
                     ],
                     "properties": {
@@ -1028,10 +1274,7 @@
                         "$ref": "#/components/schemas/SwapId"
                       },
                       "l1_amount": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
+                        "type": "integer",
                         "format": "u-int64",
                         "minimum": 0
                       },
@@ -1043,10 +1286,7 @@
                         "description": "Address of the person who sent the L1 transaction (the claimer)\nSet when L1 transaction is detected"
                       },
                       "l1_recipient_address": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
+                        "type": "string"
                       },
                       "l1_txid": {
                         "$ref": "#/components/schemas/SwapTxId"
@@ -1591,6 +1831,65 @@
       "Address": {
         "type": "string"
       },
+      "BlockIndexDeposit": {
+        "type": "object",
+        "description": "One output a mainchain deposit created",
+        "required": [
+          "outpoint",
+          "output"
+        ],
+        "properties": {
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          }
+        }
+      },
+      "BlockIndexSpend": {
+        "type": "object",
+        "description": "One output a withdrawal bundle removed, with the bundle that took it",
+        "required": [
+          "outpoint",
+          "m6id"
+        ],
+        "properties": {
+          "m6id": {
+            "$ref": "#/components/schemas/M6id"
+          },
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          }
+        }
+      },
+      "BlockIndexTx": {
+        "type": "object",
+        "description": "One transaction of a block, with the fields its body omits",
+        "required": [
+          "txid",
+          "size",
+          "raw"
+        ],
+        "properties": {
+          "raw": {
+            "type": "string",
+            "description": "Borsh encoding, as hex"
+          },
+          "size": {
+            "type": "integer",
+            "format": "u-int64",
+            "description": "Canonical size in bytes",
+            "minimum": 0
+          },
+          "txid": {
+            "$ref": "#/components/schemas/Txid"
+          }
+        }
+      },
+      "M6id": {
+        "type": "string"
+      },
       "MerkleRoot": {
         "type": "string"
       },
@@ -1770,6 +2069,8 @@
           "required_confirmations",
           "state",
           "l2_amount",
+          "l1_recipient_address",
+          "l1_amount",
           "created_at_height"
         ],
         "properties": {
@@ -1793,10 +2094,7 @@
             "$ref": "#/components/schemas/SwapId"
           },
           "l1_amount": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "format": "u-int64",
             "minimum": 0
           },
@@ -1808,10 +2106,7 @@
             "description": "Address of the person who sent the L1 transaction (the claimer)\nSet when L1 transaction is detected"
           },
           "l1_recipient_address": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "l1_txid": {
             "$ref": "#/components/schemas/SwapTxId"
@@ -1950,6 +2245,111 @@
         ],
         "description": "Swap state\n\nNote: Using tuple variants instead of named fields for better bincode compatibility"
       },
+      "Transaction": {
+        "type": "object",
+        "required": [
+          "inputs",
+          "proof",
+          "outputs",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TxData",
+            "description": "Transaction data (swap operations, etc.)"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "Regular"
+                      ],
+                      "properties": {
+                        "Regular": {
+                          "type": "object",
+                          "required": [
+                            "txid",
+                            "vout"
+                          ],
+                          "properties": {
+                            "txid": {
+                              "$ref": "#/components/schemas/Txid"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Coinbase"
+                      ],
+                      "properties": {
+                        "Coinbase": {
+                          "type": "object",
+                          "required": [
+                            "merkle_root",
+                            "vout"
+                          ],
+                          "properties": {
+                            "merkle_root": {
+                              "$ref": "#/components/schemas/MerkleRoot"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Deposit"
+                      ],
+                      "properties": {
+                        "Deposit": {
+                          "$ref": "#/components/schemas/bitcoin.OutPoint"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            }
+          },
+          "proof": {
+            "$ref": "#/components/schemas/utreexo.Proof",
+            "description": "Utreexo proof for inputs"
+          }
+        }
+      },
+      "TxData": {
+        "type": "string"
+      },
       "Txid": {
         "type": "string"
       },
@@ -1961,6 +2361,9 @@
       },
       "bitcoin.Txid": {
         "type": "string"
+      },
+      "utreexo.Proof": {
+        "type": "object"
       }
     }
   }
