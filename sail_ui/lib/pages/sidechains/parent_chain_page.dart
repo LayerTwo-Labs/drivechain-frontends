@@ -107,6 +107,9 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
   String? get depositError => _addressProvider.depositError;
   String? withdrawError;
 
+  /// Names why this chain can sign no withdrawal, or null when it can.
+  String? get spendUnavailable => _rpc.spendUnavailable;
+
   double? get pegAmount => double.tryParse(bitcoinAmountController.text);
   double? get maxAmount => max(
     _balanceProvider.balance - (sidechainFee ?? 0) - (mainchainFee ?? 0),
@@ -127,6 +130,7 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     _transactionsProvider.addListener(_onChange);
     _balanceProvider.addListener(_onChange);
     _addressProvider.addListener(_onChange);
+    _rpc.addListener(_onChange);
   }
 
   void _onChange() {
@@ -134,6 +138,7 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('pendingBalance', _balanceProvider.pendingBalance);
     track('transactions', _transactionsProvider.sidechainTransactions);
     track('depositAddress', depositAddress);
+    track('spendUnavailable', spendUnavailable);
     notifyIfChanged();
   }
 
@@ -248,6 +253,7 @@ class ParentChainTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     _transactionsProvider.removeListener(_onChange);
     _balanceProvider.removeListener(_onChange);
     _addressProvider.removeListener(_onChange);
+    _rpc.removeListener(_onChange);
     super.dispose();
   }
 }
@@ -314,7 +320,7 @@ class WithdrawTab extends ViewModelWidget<ParentChainTabViewModel> {
     return SailCard(
       title: 'Withdraw to Parent Chain',
       subtitle: 'Withdraw bitcoin from the sidechain to the parent chain',
-      error: viewModel.withdrawError,
+      error: viewModel.withdrawError ?? viewModel.spendUnavailable,
       child: Column(
         children: [
           SailTextField(
@@ -412,6 +418,7 @@ class WithdrawTab extends ViewModelWidget<ParentChainTabViewModel> {
                 children: [
                   SailButton(
                     label: 'Send',
+                    disabled: viewModel.spendUnavailable != null,
                     onPressed: () => viewModel.executePegOut(context),
                     loading: viewModel.isBusy,
                   ),

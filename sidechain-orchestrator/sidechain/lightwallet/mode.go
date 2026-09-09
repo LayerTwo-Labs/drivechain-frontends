@@ -1,7 +1,10 @@
 package lightwallet
 
 import (
+	"fmt"
 	"sync"
+
+	"connectrpc.com/connect"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
 )
@@ -63,6 +66,20 @@ func NewWallet(mode ModeFunc, chain Chain) *Wallet {
 // light install starts no daemon for a chain that answers false.
 func (w *Wallet) ReadsIndex() bool {
 	return w != nil && w.Backend() != nil
+}
+
+// CanSpend reports whether the wallet can sign a spend right now. A local node
+// signs, and this package reads an index and holds no spend path.
+func (w *Wallet) CanSpend() bool {
+	return w == nil || w.Backend() == nil
+}
+
+// SpendUnsupported is the refusal a chain gives for a spend it cannot sign.
+// The code names a capability the backend lacks, so a caller never reads it as
+// a dead node.
+func SpendUnsupported(chain, action string) error {
+	return connect.NewError(connect.CodeUnimplemented, fmt.Errorf(
+		"%s reads a remote index in light mode, so it cannot %s yet", chain, action))
 }
 
 // Backend answers the light wallet, or nil when a local node answers instead.

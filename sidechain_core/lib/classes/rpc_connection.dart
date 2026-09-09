@@ -54,6 +54,10 @@ abstract class RPCConnection extends ChangeNotifier implements DaemonState {
   /// The chain answers through a remote index, so it works with no local
   /// daemon. False for a chain that only proxies to its own daemon.
   bool servesLightWallet = false;
+
+  /// The wallet can sign a spend. False for a chain that reads a remote index
+  /// and holds no spend path, so the UI must offer no send there.
+  bool walletCanSpend = true;
   @override
   bool initializingBinary = false;
   @override

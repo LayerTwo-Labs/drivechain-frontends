@@ -101,7 +101,10 @@ func TestLightWalletRegistrationGatesTheWindow(t *testing.T) {
 	}
 
 	readsIndex := true
-	o.RegisterLightWallet("thunder", func() bool { return readsIndex })
+	o.RegisterLightWallet("thunder", LightWallet{
+		ReadsIndex: func() bool { return readsIndex },
+		CanSpend:   func() bool { return true },
+	})
 
 	if !o.servesLightWallet("thunder") {
 		t.Error("a registered chain must serve a light wallet")
@@ -115,6 +118,40 @@ func TestLightWalletRegistrationGatesTheWindow(t *testing.T) {
 	readsIndex = false
 	if o.servesLightWallet("thunder") {
 		t.Error("a network with no index must not serve a light wallet")
+	}
+}
+
+// A chain that reads an index and holds no spend path must report that it can
+// sign nothing, because the frontend hides its send and withdraw there.
+func TestWalletCanSpendFollowsTheLightBackend(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	if !o.walletCanSpend("truthcoin") {
+		t.Error("a chain with a local daemon must report that it can spend")
+	}
+
+	readsIndex := true
+	o.RegisterLightWallet("bitassets", LightWallet{
+		ReadsIndex: func() bool { return readsIndex },
+		CanSpend:   func() bool { return false },
+	})
+	if o.walletCanSpend("bitassets") {
+		t.Error("a light wallet with no spend path must report that it cannot spend")
+	}
+
+	// The same chain runs a daemon on a network with no index, and that daemon
+	// signs.
+	readsIndex = false
+	if !o.walletCanSpend("bitassets") {
+		t.Error("a chain that reads no index must report that it can spend")
+	}
+
+	o.RegisterLightWallet("thunder", LightWallet{
+		ReadsIndex: func() bool { return true },
+		CanSpend:   func() bool { return true },
+	})
+	if !o.walletCanSpend("thunder") {
+		t.Error("thunder holds a light spend path, so it must report that it can spend")
 	}
 }
 

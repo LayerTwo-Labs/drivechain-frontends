@@ -133,3 +133,59 @@ func TestLightHandlerRefusesAnUnhostedNetwork(t *testing.T) {
 		t.Error("a network with no index reads one anyway")
 	}
 }
+
+// A light install can sign nothing on this chain, so a send and a withdrawal
+// must refuse with a missing capability. A dial error would tell the user the
+// node is down, and no node is meant to run here.
+func TestLightHandlerRefusesToSpend(t *testing.T) {
+	seed := bip39.NewSeed(testMnemonic, "")
+	first, err := deriveAddress(seed, 0)
+	if err != nil {
+		t.Fatalf("derive: %v", err)
+	}
+	url := testIndex(t, first.String())
+
+	h := NewLightHandler(
+		sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() lightwallet.Mode { return lightwallet.NewMode(true, url) },
+		func() ([]byte, error) { return seed, nil },
+	)
+	if h.CanSpend() {
+		t.Fatal("a light wallet with no spend path reports that it can spend")
+	}
+
+	ctx := context.Background()
+	_, err = h.Transfer(ctx, connect.NewRequest(&pb.TransferRequest{
+		Address: first.String(), AmountSats: 1000, FeeSats: 10,
+	}))
+	if connect.CodeOf(err) != connect.CodeUnimplemented {
+		t.Errorf("transfer answered %v, want a missing capability", err)
+	}
+
+	_, err = h.Withdraw(ctx, connect.NewRequest(&pb.WithdrawRequest{
+		Address: "tb1qexample", AmountSats: 1000, SideFeeSats: 10, MainFeeSats: 10,
+	}))
+	if connect.CodeOf(err) != connect.CodeUnimplemented {
+		t.Errorf("withdraw answered %v, want a missing capability", err)
+	}
+}
+
+// A full install runs a node that signs, so the guard must let the call
+// through to it.
+func TestFullHandlerSpendsThroughTheNode(t *testing.T) {
+	h := NewLightHandler(
+		sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() lightwallet.Mode { return lightwallet.NewMode(false, "https://index.example") },
+		func() ([]byte, error) { return bip39.NewSeed(testMnemonic, ""), nil },
+	)
+	if !h.CanSpend() {
+		t.Fatal("a full install reports that it cannot spend")
+	}
+
+	_, err := h.Transfer(context.Background(), connect.NewRequest(&pb.TransferRequest{
+		Address: "anything", AmountSats: 1000, FeeSats: 10,
+	}))
+	if connect.CodeOf(err) == connect.CodeUnimplemented {
+		t.Error("a full install refuses a send the node would sign")
+	}
+}

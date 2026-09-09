@@ -151,6 +151,7 @@ class BackendStateProvider extends ChangeNotifier {
     if (rpc.connected == status.connected &&
         rpc.windowOpen == status.windowOpen &&
         rpc.servesLightWallet == status.servesLightWallet &&
+        rpc.walletCanSpend == status.walletCanSpend &&
         rpc.stoppingBinary == status.stopping &&
         rpc.initializingBinary == status.initializing &&
         rpc.connectModeOnly == status.connectModeOnly &&
@@ -162,6 +163,7 @@ class BackendStateProvider extends ChangeNotifier {
     rpc.connected = status.connected;
     rpc.windowOpen = status.windowOpen;
     rpc.servesLightWallet = status.servesLightWallet;
+    rpc.walletCanSpend = status.walletCanSpend;
     rpc.stoppingBinary = status.stopping;
     rpc.initializingBinary = status.initializing;
     rpc.connectModeOnly = status.connectModeOnly;

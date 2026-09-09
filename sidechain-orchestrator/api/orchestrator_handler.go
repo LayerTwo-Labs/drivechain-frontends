@@ -1053,6 +1053,7 @@ func statusToProto(s orchestrator.BinaryStatus) *pb.BinaryStatusMsg {
 		Running:                 s.Running,
 		WindowOpen:              s.WindowOpen,
 		ServesLightWallet:       s.ServesLightWallet,
+		WalletCanSpend:          s.WalletCanSpend,
 		Healthy:                 s.Healthy,
 		Pid:                     int32(s.Pid),
 		UptimeSeconds:           int64(s.Uptime.Seconds()),

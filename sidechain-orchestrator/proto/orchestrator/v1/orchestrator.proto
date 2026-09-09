@@ -202,6 +202,9 @@ message BinaryStatusMsg {
   // The chain answers with no local daemon, through a remote index. Only a
   // chain with a light backend can serve a wallet in light mode.
   bool serves_light_wallet = 28;
+  // The wallet can sign a spend. False for a chain that reads a remote index
+  // and holds no spend path, so the frontend must offer no send there.
+  bool wallet_can_spend = 29;
 }
 
 message StartupLogEntryMsg {

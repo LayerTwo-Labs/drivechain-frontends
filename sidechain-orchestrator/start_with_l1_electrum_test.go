@@ -49,7 +49,10 @@ func TestStartWithL1NeedsBackendsInFullMode(t *testing.T) {
 func TestStartWithL1StartsNoSidechainDaemonInLightMode(t *testing.T) {
 	o := newTestOrchestrator(t)
 	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
-	o.RegisterLightWallet("thunder", func() bool { return true })
+	o.RegisterLightWallet("thunder", LightWallet{
+		ReadsIndex: func() bool { return true },
+		CanSpend:   func() bool { return true },
+	})
 	o.SidechainConfs = map[string]*config.SidechainConfManager{
 		"thunder": {Spec: config.SidechainConfSpec{PortStyle: "grpc"}},
 	}

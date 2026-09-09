@@ -103,7 +103,7 @@ class SidechainOverviewTabPage extends StatelessWidget {
                       ),
                       SailCard(
                         title: 'Send on Sidechain',
-                        error: model.sendError,
+                        error: model.sendError ?? model.spendUnavailable,
                         child: SailColumn(
                           spacing: SailStyleValues.padding16,
                           children: [
@@ -178,8 +178,14 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   bool get allConnected => _rpc.connected;
 
+  /// Names why this chain can sign no send, or null when it can.
+  String? get spendUnavailable => _rpc.spendUnavailable;
+
   /// Whether the send form is valid and ready to submit
   bool get canSend {
+    if (spendUnavailable != null) {
+      return false;
+    }
     if (!balanceInitialized) {
       return false;
     }
@@ -214,6 +220,7 @@ class OverviewTabViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('transactions', transactions);
     track('receiveAddress', receiveAddress);
     track('allConnected', allConnected);
+    track('spendUnavailable', spendUnavailable);
     track('balanceInitialized', balanceInitialized);
     notifyIfChanged();
   }

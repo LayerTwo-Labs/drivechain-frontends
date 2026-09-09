@@ -15,6 +15,10 @@ abstract class SidechainRPC extends RPCConnection {
 
   Sidechain get chain => Sidechain.fromBinary(binary);
 
+  /// Names why this chain can sign no spend, or null when it can.
+  String? get spendUnavailable =>
+      walletCanSpend ? null : '${chain.name} reads a remote index in light mode. It cannot sign a transaction yet.';
+
   Future<dynamic> callRAW(String method, [List<dynamic>? params]);
 
   Future<List<CoreTransaction>> listTransactions();

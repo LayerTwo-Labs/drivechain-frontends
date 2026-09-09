@@ -659,7 +659,11 @@ func run(cctx *cli.Context) error {
 			}
 			// The mode carries both halves: light mode, and an index to read.
 			// A network with no index for this chain reads its local node.
-			orch.RegisterLightWallet(name, func() bool { return !thunderMode().LocalNode })
+			orch.RegisterLightWallet(name, orchestrator.LightWallet{
+				ReadsIndex: func() bool { return !thunderMode().LocalNode },
+				// Thunder signs and broadcasts through the index.
+				CanSpend: func() bool { return true },
+			})
 			h := thundersvc.NewHandlerWithSeed(proxy, thunderMode, func() ([]byte, error) {
 				mnemonic, err := orch.WalletSvc.GetOrDeriveSidechainStarter(
 					thunderCfg.Slot, thunderCfg.DisplayName,
@@ -679,7 +683,9 @@ func run(cctx *cli.Context) error {
 			h := bitnamessvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
 			// The mode carries both halves: light mode, and an index to read.
 			// A network with no index for this chain reads its local node.
-			orch.RegisterLightWallet(name, h.ReadsIndex)
+			orch.RegisterLightWallet(name, orchestrator.LightWallet{
+				ReadsIndex: h.ReadsIndex, CanSpend: h.CanSpend,
+			})
 			// The sidechain balance the frontend reads must come from the same
 			// wallet, because light mode starts no daemon to dial.
 			handler.SetSidechainBalance(name, h.WalletBalance)
@@ -690,7 +696,9 @@ func run(cctx *cli.Context) error {
 			h := bitassetssvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
 			// The mode carries both halves: light mode, and an index to read.
 			// A network with no index for this chain reads its local node.
-			orch.RegisterLightWallet(name, h.ReadsIndex)
+			orch.RegisterLightWallet(name, orchestrator.LightWallet{
+				ReadsIndex: h.ReadsIndex, CanSpend: h.CanSpend,
+			})
 			// The sidechain balance the frontend reads must come from the same
 			// wallet, because light mode starts no daemon to dial.
 			handler.SetSidechainBalance(name, h.WalletBalance)
@@ -701,7 +709,9 @@ func run(cctx *cli.Context) error {
 			h := photonsvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
 			// The mode carries both halves: light mode, and an index to read.
 			// A network with no index for this chain reads its local node.
-			orch.RegisterLightWallet(name, h.ReadsIndex)
+			orch.RegisterLightWallet(name, orchestrator.LightWallet{
+				ReadsIndex: h.ReadsIndex, CanSpend: h.CanSpend,
+			})
 			// The sidechain balance the frontend reads must come from the same
 			// wallet, because light mode starts no daemon to dial.
 			handler.SetSidechainBalance(name, h.WalletBalance)
@@ -717,7 +727,9 @@ func run(cctx *cli.Context) error {
 			h := coinshiftsvc.NewLightHandler(proxy, lightMode(name), walletSeed(cfg))
 			// The mode carries both halves: light mode, and an index to read.
 			// A network with no index for this chain reads its local node.
-			orch.RegisterLightWallet(name, h.ReadsIndex)
+			orch.RegisterLightWallet(name, orchestrator.LightWallet{
+				ReadsIndex: h.ReadsIndex, CanSpend: h.CanSpend,
+			})
 			// The sidechain balance the frontend reads must come from the same
 			// wallet, because light mode starts no daemon to dial.
 			handler.SetSidechainBalance(name, h.WalletBalance)

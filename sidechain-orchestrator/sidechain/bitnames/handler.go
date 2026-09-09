@@ -66,6 +66,9 @@ func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.Get
 }
 
 func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.WithdrawRequest]) (*connect.Response[pb.WithdrawResponse], error) {
+	if err := h.refuseSpend("withdraw"); err != nil {
+		return nil, err
+	}
 	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats}
 	var txid string
 	if err := h.proxy.Client.Call(ctx, "create_withdrawal", params, &txid); err != nil {
@@ -75,6 +78,9 @@ func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.Withdraw
 }
 
 func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
+	if err := h.refuseSpend("send"); err != nil {
+		return nil, err
+	}
 	// create_transfer takes a 4th memo parameter here.
 	params := []any{req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats}
 	if req.Msg.Memo != nil {

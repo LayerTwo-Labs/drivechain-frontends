@@ -71,6 +71,9 @@ type BinaryStatus struct {
 	UpdateAvailable   bool      // a newer build is published than the one on disk
 	RemoteTimestamp   time.Time // Last-Modified of the published download
 	LocalTimestamp    time.Time // mtime of the binary on disk
+	// WalletCanSpend says the wallet can sign a spend. False for a chain that
+	// reads a remote index and holds no spend path.
+	WalletCanSpend bool
 }
 
 // StartupProgress reports progress during StartWithL1. Download fields
@@ -165,10 +168,10 @@ type Orchestrator struct {
 
 	Settings *SettingsStore
 
-	// lightWallets answers, per chain, whether it reads a remote index right
-	// now. The service that wires a chain's light backend registers it.
+	// lightWallets answers, per chain, what it can do with no local daemon.
+	// The service that wires a chain's light backend registers it.
 	lightMu      sync.RWMutex
-	lightWallets map[string]func() bool
+	lightWallets map[string]LightWallet
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
 	// InitForkEngine once Core RPC is up.
@@ -751,6 +754,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	if config.ChainLayer == 2 {
 		status.WindowOpen = o.process.IsRunning(sidechainGUIProcessName(config.Name))
 		status.ServesLightWallet = o.servesLightWallet(config.Name)
+		status.WalletCanSpend = o.walletCanSpend(config.Name)
 	}
 
 	// Quick port probe if not already known to be running.
@@ -1986,24 +1990,45 @@ func enforcerAtTip(r *ChainSyncResult) bool {
 	return r != nil && r.Error == "" && r.Headers > 0 && r.Blocks == r.Headers
 }
 
-// RegisterLightWallet records how to ask whether a chain reads a remote index.
-// The handler that wires the chain's light backend is the only thing that
-// knows, and the answer moves with the network, so it stays a question.
-func (o *Orchestrator) RegisterLightWallet(name string, readsIndex func() bool) {
+// LightWallet names what one chain can do with no local daemon. Both answers
+// move with the network, so each one stays a question.
+type LightWallet struct {
+	// ReadsIndex reports whether the chain reads a remote index right now.
+	ReadsIndex func() bool
+	// CanSpend reports whether the chain can sign a spend right now.
+	CanSpend func() bool
+}
+
+// RegisterLightWallet records what a chain can do with no local daemon. The
+// handler that wires the chain's light backend is the only thing that knows.
+func (o *Orchestrator) RegisterLightWallet(name string, wallet LightWallet) {
 	o.lightMu.Lock()
 	defer o.lightMu.Unlock()
 	if o.lightWallets == nil {
-		o.lightWallets = map[string]func() bool{}
+		o.lightWallets = map[string]LightWallet{}
 	}
-	o.lightWallets[name] = readsIndex
+	o.lightWallets[name] = wallet
 }
 
 // servesLightWallet reports whether a chain reads its chain with no daemon.
 func (o *Orchestrator) servesLightWallet(name string) bool {
 	o.lightMu.RLock()
-	readsIndex := o.lightWallets[name]
+	wallet := o.lightWallets[name]
 	o.lightMu.RUnlock()
-	return readsIndex != nil && readsIndex()
+	return wallet.ReadsIndex != nil && wallet.ReadsIndex()
+}
+
+// walletCanSpend reports whether a chain can sign a spend right now. A chain
+// that runs its own daemon signs there, so only an index-backed wallet can
+// answer no.
+func (o *Orchestrator) walletCanSpend(name string) bool {
+	o.lightMu.RLock()
+	wallet := o.lightWallets[name]
+	o.lightMu.RUnlock()
+	if wallet.ReadsIndex == nil || !wallet.ReadsIndex() {
+		return true
+	}
+	return wallet.CanSpend != nil && wallet.CanSpend()
 }
 
 func sidechainGUIProcessName(name string) string {

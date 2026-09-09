@@ -49,6 +49,7 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $fixnum.Int64? downloadedTimestampUnix,
     $core.bool? windowOpen,
     $core.bool? servesLightWallet,
+    $core.bool? walletCanSpend,
   }) {
     final $result = create();
     if (name != null) {
@@ -135,6 +136,9 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (servesLightWallet != null) {
       $result.servesLightWallet = servesLightWallet;
     }
+    if (walletCanSpend != null) {
+      $result.walletCanSpend = walletCanSpend;
+    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -170,6 +174,7 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aInt64(26, _omitFieldNames ? '' : 'downloadedTimestampUnix')
     ..aOB(27, _omitFieldNames ? '' : 'windowOpen')
     ..aOB(28, _omitFieldNames ? '' : 'servesLightWallet')
+    ..aOB(29, _omitFieldNames ? '' : 'walletCanSpend')
     ..hasRequiredFields = false
   ;
 
@@ -451,6 +456,17 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasServesLightWallet() => $_has(27);
   @$pb.TagNumber(28)
   void clearServesLightWallet() => clearField(28);
+
+  /// The wallet can sign a spend. False for a chain that reads a remote index
+  /// and holds no spend path, so the frontend must offer no send there.
+  @$pb.TagNumber(29)
+  $core.bool get walletCanSpend => $_getBF(28);
+  @$pb.TagNumber(29)
+  set walletCanSpend($core.bool v) { $_setBool(28, v); }
+  @$pb.TagNumber(29)
+  $core.bool hasWalletCanSpend() => $_has(28);
+  @$pb.TagNumber(29)
+  void clearWalletCanSpend() => clearField(29);
 }
 
 class StartupLogEntryMsg extends $pb.GeneratedMessage {

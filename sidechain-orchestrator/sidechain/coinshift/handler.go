@@ -66,6 +66,9 @@ func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.Get
 }
 
 func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.WithdrawRequest]) (*connect.Response[pb.WithdrawResponse], error) {
+	if err := h.refuseSpend("withdraw"); err != nil {
+		return nil, err
+	}
 	txid, err := h.proxy.Withdraw(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.SideFeeSats, req.Msg.MainFeeSats)
 	if err != nil {
 		return nil, err
@@ -74,6 +77,9 @@ func (h *Handler) Withdraw(ctx context.Context, req *connect.Request[pb.Withdraw
 }
 
 func (h *Handler) Transfer(ctx context.Context, req *connect.Request[pb.TransferRequest]) (*connect.Response[pb.TransferResponse], error) {
+	if err := h.refuseSpend("send"); err != nil {
+		return nil, err
+	}
 	txid, err := h.proxy.Transfer(ctx, req.Msg.Address, req.Msg.AmountSats, req.Msg.FeeSats)
 	if err != nil {
 		return nil, err

@@ -26,6 +26,17 @@ func NewLightHandler(
 // ReadsIndex reports whether this chain reads a remote index right now.
 func (h *Handler) ReadsIndex() bool { return h.light.ReadsIndex() }
 
+// CanSpend reports whether this chain can sign a spend right now.
+func (h *Handler) CanSpend() bool { return h.light.CanSpend() }
+
+// refuseSpend answers the refusal a caller must get when no node signs here.
+func (h *Handler) refuseSpend(action string) error {
+	if h.light.CanSpend() {
+		return nil
+	}
+	return lightwallet.SpendUnsupported("coinshift", action)
+}
+
 // WalletBalance reads the balance whatever mode runs. Another service answers
 // the same number from here, so both modes agree.
 func (h *Handler) WalletBalance(ctx context.Context) (total, available int64, err error) {
