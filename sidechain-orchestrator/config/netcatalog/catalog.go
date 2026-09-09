@@ -74,6 +74,9 @@ type Network struct {
 	ExplorerBlockTemplate   string `json:"explorer_block_template"`
 
 	Services struct {
+		Enforcer struct {
+			URL string `json:"url"`
+		} `json:"enforcer"`
 		Faucet struct {
 			URL             *string `json:"url"`
 			Amount          *int    `json:"amount"`

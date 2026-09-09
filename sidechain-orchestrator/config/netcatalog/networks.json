@@ -235,7 +235,10 @@
           "url": "https://pool.alpha.avonpool.xyz",
           "stratum": "stratum+tcp://pool.alpha.avonpool.xyz:3334"
         },
-        "fast_withdrawal": []
+        "fast_withdrawal": [],
+        "enforcer": {
+          "url": "https://seed.alpha.ecash.eu.com/enforcer"
+        }
       },
       "p2p": {
         "address": "seed.alpha.ecash.ninja:8533"

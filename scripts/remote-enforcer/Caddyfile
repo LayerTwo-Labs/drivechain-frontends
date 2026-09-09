@@ -1,0 +1,16 @@
+@enforcer path /enforcer /enforcer/*
+handle @enforcer {
+    uri strip_prefix /enforcer
+    @enforcer_read {
+        method GET POST
+        path_regexp enforcer_read ^/(cusf[.]mainchain[.]v1[.]ValidatorService/(GetBlockHeaderInfo|GetBlockInfo|GetBmmHStarCommitment|GetChainInfo|GetChainTip|GetCoinbasePSBT|GetCtip|GetSidechainProposals|GetSidechains|GetTwoWayPegData|GetWithdrawalBundleProposals|SubscribeEvents|SubscribeHeaderSyncProgress)|grpc[.]health[.]v1[.]Health/(Check|Watch))$
+    }
+    handle @enforcer_read {
+        reverse_proxy h2c://127.0.0.1:50051 {
+            flush_interval -1
+        }
+    }
+    handle {
+        respond 403
+    }
+}

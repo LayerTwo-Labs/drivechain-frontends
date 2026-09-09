@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync"
 
 	"golang.org/x/net/http2"
 )
@@ -28,21 +29,56 @@ func Connect(upstream string) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse enforcer upstream %q: %w", upstream, err)
 	}
+	if u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return nil, fmt.Errorf("invalid enforcer URL %q", upstream)
+	}
+	transport := &http2.Transport{}
+	if u.Scheme == "http" {
+		transport.AllowHTTP = true
+		transport.DialTLSContext = func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, network, addr)
+		}
+	}
 	return &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
 			r.SetURL(u)
+			r.Out.Header.Del("Authorization")
+			r.Out.Header.Del("Cookie")
 		},
-		// The enforcer speaks gRPC over h2c; trailers require HTTP/2 on the
-		// upstream leg.
-		Transport: &http2.Transport{
-			AllowHTTP: true,
-			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-				var d net.Dialer
-				return d.DialContext(ctx, network, addr)
-			},
-		},
+		Transport:     transport,
 		FlushInterval: -1,
 	}, nil
+}
+
+// ConnectDynamic resolves the enforcer endpoint for each request.
+func ConnectDynamic(resolve func() (string, error)) http.Handler {
+	var mu sync.Mutex
+	var current string
+	var handler http.Handler
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstream, err := resolve()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		mu.Lock()
+		if handler == nil || upstream != current {
+			next, err := Connect(upstream)
+			if err != nil {
+				mu.Unlock()
+				http.Error(w, err.Error(), http.StatusBadGateway)
+				return
+			}
+			if old, ok := handler.(*httputil.ReverseProxy); ok {
+				old.Transport.(*http2.Transport).CloseIdleConnections()
+			}
+			handler, current = next, upstream
+		}
+		next := handler
+		mu.Unlock()
+		next.ServeHTTP(w, r)
+	})
 }
 
 // JSONRPC forwards JSON-RPC requests (e.g. getblocktemplate) to the
