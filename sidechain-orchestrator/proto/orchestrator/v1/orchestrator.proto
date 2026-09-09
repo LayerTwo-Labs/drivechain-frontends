@@ -199,9 +199,8 @@ message BinaryStatusMsg {
   // The chain's own app window is open. It runs under its own process slot, so
   // a light install has a window with no daemon under it.
   bool window_open = 27;
-  // The chain answers with no local daemon, through a remote index. Only a
-  // chain with a light backend can serve a wallet in light mode.
-  bool serves_light_wallet = 28;
+  reserved 28;
+  reserved "serves_light_wallet";
 }
 
 message StartupLogEntryMsg {

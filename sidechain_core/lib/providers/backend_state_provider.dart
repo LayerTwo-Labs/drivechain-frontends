@@ -150,7 +150,6 @@ class BackendStateProvider extends ChangeNotifier {
     // Check if anything actually changed to avoid unnecessary rebuilds
     if (rpc.connected == status.connected &&
         rpc.windowOpen == status.windowOpen &&
-        rpc.servesLightWallet == status.servesLightWallet &&
         rpc.stoppingBinary == status.stopping &&
         rpc.initializingBinary == status.initializing &&
         rpc.connectModeOnly == status.connectModeOnly &&
@@ -161,7 +160,6 @@ class BackendStateProvider extends ChangeNotifier {
 
     rpc.connected = status.connected;
     rpc.windowOpen = status.windowOpen;
-    rpc.servesLightWallet = status.servesLightWallet;
     rpc.stoppingBinary = status.stopping;
     rpc.initializingBinary = status.initializing;
     rpc.connectModeOnly = status.connectModeOnly;

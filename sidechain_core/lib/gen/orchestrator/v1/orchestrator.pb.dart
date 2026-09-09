@@ -48,7 +48,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     $fixnum.Int64? remoteTimestampUnix,
     $fixnum.Int64? downloadedTimestampUnix,
     $core.bool? windowOpen,
-    $core.bool? servesLightWallet,
   }) {
     final $result = create();
     if (name != null) {
@@ -132,9 +131,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     if (windowOpen != null) {
       $result.windowOpen = windowOpen;
     }
-    if (servesLightWallet != null) {
-      $result.servesLightWallet = servesLightWallet;
-    }
     return $result;
   }
   BinaryStatusMsg._() : super();
@@ -169,7 +165,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
     ..aInt64(25, _omitFieldNames ? '' : 'remoteTimestampUnix')
     ..aInt64(26, _omitFieldNames ? '' : 'downloadedTimestampUnix')
     ..aOB(27, _omitFieldNames ? '' : 'windowOpen')
-    ..aOB(28, _omitFieldNames ? '' : 'servesLightWallet')
     ..hasRequiredFields = false
   ;
 
@@ -440,17 +435,6 @@ class BinaryStatusMsg extends $pb.GeneratedMessage {
   $core.bool hasWindowOpen() => $_has(26);
   @$pb.TagNumber(27)
   void clearWindowOpen() => clearField(27);
-
-  /// The chain answers with no local daemon, through a remote index. Only a
-  /// chain with a light backend can serve a wallet in light mode.
-  @$pb.TagNumber(28)
-  $core.bool get servesLightWallet => $_getBF(27);
-  @$pb.TagNumber(28)
-  set servesLightWallet($core.bool v) { $_setBool(27, v); }
-  @$pb.TagNumber(28)
-  $core.bool hasServesLightWallet() => $_has(27);
-  @$pb.TagNumber(28)
-  void clearServesLightWallet() => clearField(28);
 }
 
 class StartupLogEntryMsg extends $pb.GeneratedMessage {

@@ -91,33 +91,6 @@ func TestStopAllStopsTheChainWindowsToo(t *testing.T) {
 	}
 }
 
-// Only a chain with a light backend opens a window with no daemon. A window
-// with no wallet under it is worse than no window.
-func TestLightWalletRegistrationGatesTheWindow(t *testing.T) {
-	o := newTestOrchestrator(t)
-
-	if o.servesLightWallet("thunder") {
-		t.Error("no chain serves a light wallet before it registers one")
-	}
-
-	readsIndex := true
-	o.RegisterLightWallet("thunder", func() bool { return readsIndex })
-
-	if !o.servesLightWallet("thunder") {
-		t.Error("a registered chain must serve a light wallet")
-	}
-	if o.servesLightWallet("truthcoin") {
-		t.Error("truthcoin registers no light wallet, so it must not serve one")
-	}
-
-	// Only eCash carries a thunder index. A network without one reads the
-	// local node, and the answer moves with the network.
-	readsIndex = false
-	if o.servesLightWallet("thunder") {
-		t.Error("a network with no index must not serve a light wallet")
-	}
-}
-
 // The frontend reads the window through the binary status, because the GUI
 // runs under its own process slot and ListBinaries never lists that slot.
 func TestStatusReportsAnOpenWindow(t *testing.T) {

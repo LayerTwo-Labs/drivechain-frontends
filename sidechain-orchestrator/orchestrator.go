@@ -45,33 +45,30 @@ type BinaryStatus struct {
 	Running     bool
 	// WindowOpen says the chain's own app window runs. It uses its own process
 	// slot, so a light install has a window with no daemon under it.
-	WindowOpen bool
-	// ServesLightWallet says the chain answers through a remote index, so it
-	// works with no local daemon.
-	ServesLightWallet bool
-	Healthy           bool
-	Pid               int
-	Uptime            time.Duration
-	ChainLayer        int
-	Port              int
-	Error             string
-	Connected         bool   // from ConnectionMonitor
-	StartupError      string // warmup message (e.g. "Loading block index...")
-	ConnectionError   string // real connection error
-	Stopping          bool   // binary is being stopped
-	Initializing      bool   // binary is starting up / restarting
-	ConnectModeOnly   bool   // willfully stopped, only watching for external restart
-	Downloadable      bool   // binary has download URLs configured
-	Description       string // short description of the binary
-	Downloaded        bool   // binary file exists on disk
-	BinaryPath        string // absolute path to the launchable binary (variant-aware), empty when not downloaded
-	PortInUse         bool   // port is reachable (something is listening)
-	Version           string // configured version string
-	RepoURL           string // source code repository URL
-	StartupLogs       []StartupLogLine
-	UpdateAvailable   bool      // a newer build is published than the one on disk
-	RemoteTimestamp   time.Time // Last-Modified of the published download
-	LocalTimestamp    time.Time // mtime of the binary on disk
+	WindowOpen      bool
+	Healthy         bool
+	Pid             int
+	Uptime          time.Duration
+	ChainLayer      int
+	Port            int
+	Error           string
+	Connected       bool   // from ConnectionMonitor
+	StartupError    string // warmup message (e.g. "Loading block index...")
+	ConnectionError string // real connection error
+	Stopping        bool   // binary is being stopped
+	Initializing    bool   // binary is starting up / restarting
+	ConnectModeOnly bool   // willfully stopped, only watching for external restart
+	Downloadable    bool   // binary has download URLs configured
+	Description     string // short description of the binary
+	Downloaded      bool   // binary file exists on disk
+	BinaryPath      string // absolute path to the launchable binary (variant-aware), empty when not downloaded
+	PortInUse       bool   // port is reachable (something is listening)
+	Version         string // configured version string
+	RepoURL         string // source code repository URL
+	StartupLogs     []StartupLogLine
+	UpdateAvailable bool      // a newer build is published than the one on disk
+	RemoteTimestamp time.Time // Last-Modified of the published download
+	LocalTimestamp  time.Time // mtime of the binary on disk
 }
 
 // StartupProgress reports progress during StartWithL1. Download fields
@@ -165,11 +162,6 @@ type Orchestrator struct {
 	NetParams      wallet.ParamsFunc // chain params of the active network
 
 	Settings *SettingsStore
-
-	// lightWallets answers, per chain, whether it reads a remote index right
-	// now. The service that wires a chain's light backend registers it.
-	lightMu      sync.RWMutex
-	lightWallets map[string]func() bool
 
 	// forkEngine is the single source of truth for eCash fork state; wired by
 	// InitForkEngine once Core RPC is up.
@@ -758,7 +750,6 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 
 	if config.ChainLayer == 2 {
 		status.WindowOpen = o.process.IsRunning(sidechainGUIProcessName(config.Name))
-		status.ServesLightWallet = o.servesLightWallet(config.Name)
 	}
 
 	// Quick port probe if not already known to be running.
@@ -2000,26 +1991,6 @@ func waitUntil(ctx context.Context, every time.Duration, ready, giveUp func() bo
 // enforcerAtTip reports whether the enforcer holds every block it knows about.
 func enforcerAtTip(r *ChainSyncResult) bool {
 	return r != nil && r.Error == "" && r.Headers > 0 && r.Blocks == r.Headers
-}
-
-// RegisterLightWallet records how to ask whether a chain reads a remote index.
-// The handler that wires the chain's light backend is the only thing that
-// knows, and the answer moves with the network, so it stays a question.
-func (o *Orchestrator) RegisterLightWallet(name string, readsIndex func() bool) {
-	o.lightMu.Lock()
-	defer o.lightMu.Unlock()
-	if o.lightWallets == nil {
-		o.lightWallets = map[string]func() bool{}
-	}
-	o.lightWallets[name] = readsIndex
-}
-
-// servesLightWallet reports whether a chain reads its chain with no daemon.
-func (o *Orchestrator) servesLightWallet(name string) bool {
-	o.lightMu.RLock()
-	readsIndex := o.lightWallets[name]
-	o.lightMu.RUnlock()
-	return readsIndex != nil && readsIndex()
 }
 
 func sidechainGUIProcessName(name string) string {
