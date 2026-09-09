@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	connectrpc.com/connect v1.20.0
+	filippo.io/edwards25519 v1.1.1
 	github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633
 	github.com/btcsuite/btcd v0.25.0
 	github.com/btcsuite/btcd/btcec/v2 v2.5.0
@@ -12,6 +13,7 @@ require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/mattn/go-sqlite3 v1.14.45
+	github.com/mr-tron/base58 v1.3.0
 	github.com/rs/zerolog v1.35.1
 	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.11.1
@@ -21,6 +23,7 @@ require (
 	golang.org/x/crypto v0.53.0
 	golang.org/x/net v0.55.0
 	google.golang.org/protobuf v1.36.11
+	lukechampine.com/blake3 v1.4.1
 )
 
 require (
@@ -31,11 +34,9 @@ require (
 	github.com/btcsuite/btcd/wire/v2 v2.0.1 // indirect
 	github.com/kcalvinalvin/anet v0.0.0-20251112173137-d8ddc1f6dbee // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/mr-tron/base58 v1.3.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
 require (

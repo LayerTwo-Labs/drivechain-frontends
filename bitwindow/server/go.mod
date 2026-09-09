@@ -50,6 +50,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/btcsuite/btcd/address/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/btcutil/psbt v1.2.0 // indirect
 	github.com/btcsuite/btcd/btcutil/v2 v2.0.1 // indirect
