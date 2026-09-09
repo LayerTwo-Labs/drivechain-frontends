@@ -412,6 +412,8 @@ func (h *BMMHandler) ConnectBid(
 			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
 		}
 		if len(inclusions) == 0 {
+			// The empty answer names no block, which is how the caller tells a
+			// bid the sidechain has not seen from a block it refused.
 			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
 		}
 		mainBlockHash = inclusions[0]
