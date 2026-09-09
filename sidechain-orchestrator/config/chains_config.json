@@ -552,11 +552,11 @@
         "binary": "truthcoin",
         "files": {
           "default": {
-            "base_url": "https://releases.drivechain.info/",
-            "linux-x86_64": "L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip",
-            "macos-x86_64": "L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip",
-            "macos-arm64": "L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip",
-            "windows-x86_64": "L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip"
+            "base_url": "https://api.github.com/repos/octobocto/truthcoin-dc/releases/latest",
+            "linux-x86_64": "truthcoin-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "truthcoin-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "truthcoin-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
+            "windows-x86_64": "truthcoin-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.zip"
           }
         }
       },
@@ -759,10 +759,10 @@
         "binary": "thunder-orchard",
         "files": {
           "default": {
-            "base_url": "https://api.github.com/repos/iwakura-rein/thunder-orchard/releases/latest",
-            "linux-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu",
-            "macos-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin",
-            "macos-arm64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin",
+            "base_url": "https://api.github.com/repos/octobocto/thunder-orchard/releases/latest",
+            "linux-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
+            "macos-x86_64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
+            "macos-arm64": "thunder-orchard-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
             "windows-x86_64": ""
           }
         }
