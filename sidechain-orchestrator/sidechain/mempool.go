@@ -1,6 +1,7 @@
 package sidechain
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -127,17 +128,34 @@ func OwnedOutputs(txs []MempoolTx, owned map[string]bool) []MempoolTx {
 
 // mempoolBody is the transaction shape both feeds share.
 type mempoolBody struct {
-	Inputs []struct {
-		Regular *struct {
-			Txid string `json:"txid"`
-			Vout uint32 `json:"vout"`
-		} `json:"Regular"`
-		Deposit *string `json:"Deposit"`
-	} `json:"inputs"`
+	Inputs  []mempoolOutpoint `json:"inputs"`
 	Outputs []struct {
 		Address string          `json:"address"`
 		Content json.RawMessage `json:"content"`
 	} `json:"outputs"`
+}
+
+type mempoolOutpoint struct {
+	Regular *struct {
+		Txid string `json:"txid"`
+		Vout uint32 `json:"vout"`
+	} `json:"Regular"`
+	Deposit *string `json:"Deposit"`
+}
+
+func (p *mempoolOutpoint) UnmarshalJSON(raw []byte) error {
+	if bytes.HasPrefix(bytes.TrimSpace(raw), []byte("[")) {
+		var pair []json.RawMessage
+		if err := json.Unmarshal(raw, &pair); err != nil {
+			return err
+		}
+		if len(pair) != 2 {
+			return fmt.Errorf("a transaction input holds an outpoint and a hash, got %d parts", len(pair))
+		}
+		raw = pair[0]
+	}
+	type outpoint mempoolOutpoint
+	return json.Unmarshal(raw, (*outpoint)(p))
 }
 
 // spends are the coins this transaction takes, each as the key its outpoint
