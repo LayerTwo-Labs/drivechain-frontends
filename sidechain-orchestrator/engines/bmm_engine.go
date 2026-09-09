@@ -1007,6 +1007,8 @@ func (e *BmmEngine) settleOutrunRound(
 	round.Result = ResultWon
 	round.WinnerTxid = live.Txid
 	round.WinnerBidSats = live.BidSats
+	// Deciding the round spent its own attempts. The connect gets the full bound.
+	round.BlocksWaited = 0
 	step := e.connectWon(ctx, sidechain, round)
 	e.save(round)
 	return step

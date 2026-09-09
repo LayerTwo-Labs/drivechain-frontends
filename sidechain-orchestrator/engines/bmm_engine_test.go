@@ -1191,6 +1191,36 @@ func TestBmmEngineBoundsARepeatedRefusal(t *testing.T) {
 	assert.Zero(t, pendingCount(restarted), "a restart hands it no fresh budget")
 }
 
+// A round that spends its attempts before anything can decide it must still
+// get the whole bound for the connect, or one wait forfeits a paid block.
+func TestBmmEngineGivesAWonRoundAFreshBudget(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(testSidechain, "", 10_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.blockAfterErr = errors.New("enforcer down")
+	tip.jump("block-5", 4)
+	engine.tick(ctx)
+
+	for range bmmConnectAttempts - 1 {
+		engine.retryConnects(ctx, testSidechain, tip.hash, tip.height)
+	}
+
+	backend.blockAfterErr = nil
+	backend.blockAfter = "block-2"
+	backend.commitmentByBlock = map[string]string{"block-2": "critical"}
+	backend.noInclusion = true
+	engine.retryConnects(ctx, testSidechain, tip.hash, tip.height)
+
+	won := roundOn(t, engine, "block-1")
+	require.Equal(t, ResultWon, won.Result)
+	assert.Equal(t, 1, won.BlocksWaited, "the connect counts from one")
+	assert.Equal(t, BidLive, won.OurBids[0].State, "the paid bid is not forfeited")
+	assert.Equal(t, 1, pendingCount(engine), "the won round waits for the sidechain")
+}
+
 // The bound only binds if it survives a restart, so a reloaded round carries
 // the attempts it already spent.
 func TestBmmEngineKeepsTheAttemptCountAcrossARestart(t *testing.T) {
