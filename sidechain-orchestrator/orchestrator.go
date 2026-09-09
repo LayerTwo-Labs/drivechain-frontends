@@ -4102,6 +4102,11 @@ func (o *Orchestrator) findConfigByBinaryName(binaryName string) (BinaryConfig, 
 	defer o.mu.RUnlock()
 
 	for _, config := range o.configs {
+		if strings.EqualFold(config.BinaryName, binaryName) || strings.EqualFold(config.Name, binaryName) {
+			return config, true
+		}
+	}
+	for _, config := range o.configs {
 		if processNameMatches(config.BinaryName, binaryName) || processNameMatches(config.Name, binaryName) {
 			return config, true
 		}
