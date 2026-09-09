@@ -404,20 +404,35 @@ func (h *BMMHandler) ConnectBid(
 		return nil, err
 	}
 
-	inclusions, err := proxy.GetBmmInclusions(ctx, req.Msg.CriticalHash)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
-	}
-	mainBlockHash := connectTarget(req.Msg.MainBlockHash, inclusions)
+	// A sidechain reports an inclusion only for a block it already holds, and it
+	// gets ours from this very call.
+	mainBlockHash := req.Msg.MainBlockHash
 	if mainBlockHash == "" {
-		// The empty answer names no block, which is how the caller tells a bid
-		// the sidechain has not seen from a block it refused.
-		return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+		inclusions, err := bmmInclusions(ctx, proxy, req.Msg.CriticalHash)
+		if err != nil {
+			return nil, err
+		}
+		mainBlockHash = connectTarget("", inclusions)
+		if mainBlockHash == "" {
+			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+		}
 	}
 
 	connected, err := proxy.ConnectBlock(ctx, json.RawMessage(req.Msg.BlockJson), mainBlockHash)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("connect block: %w", err))
+	}
+	if !connected {
+		// A sidechain learns of an inclusion by polling, and refuses every block
+		// until it does. The empty answer names no block, which is how the caller
+		// tells that wait from a refusal it must not repeat.
+		inclusions, err := bmmInclusions(ctx, proxy, req.Msg.CriticalHash)
+		if err != nil {
+			return nil, err
+		}
+		if connectTarget(mainBlockHash, inclusions) == "" {
+			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
+		}
 	}
 	return connect.NewResponse(&bmmpb.ConnectBidResponse{
 		Connected:     connected,
@@ -425,9 +440,16 @@ func (h *BMMHandler) ConnectBid(
 	}), nil
 }
 
+func bmmInclusions(ctx context.Context, proxy sidechain.BMMNode, criticalHash string) ([]string, error) {
+	inclusions, err := proxy.GetBmmInclusions(ctx, criticalHash)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
+	}
+	return inclusions, nil
+}
+
 // connectTarget picks the mainchain block to connect the won block on, empty
-// while the sidechain lists no inclusion for it. A sidechain learns of an
-// inclusion by polling, so it holds the block the caller names only later.
+// while the sidechain lists no inclusion for it.
 func connectTarget(want string, inclusions []string) string {
 	if want == "" {
 		if len(inclusions) == 0 {
