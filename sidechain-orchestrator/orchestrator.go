@@ -120,6 +120,14 @@ func failBoot(mon *ConnectionMonitor, ch chan<- StartupProgress, prefix string, 
 	ch <- StartupProgress{Error: fmt.Errorf("%s: %w", prefix, err)}
 }
 
+// ownsDatadirAlready reports whether a bitcoind start failed because another
+// process holds the datadir. A retry can never win that lock.
+func ownsDatadirAlready(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "cannot obtain a lock on directory") ||
+		strings.Contains(msg, "already running")
+}
+
 // Orchestrator coordinates binary download, process management, and health checking.
 type Orchestrator struct {
 	DataDir string
@@ -1392,8 +1400,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 				}
 			}
 
-			_, err := o.process.Start(restartCtx, o.configs["bitcoind"], coreArgs, nil)
-			return err
+			return o.startOrAdoptCore(restartCtx, coreArgs)
 		},
 		o.exitedFunc("bitcoind"),
 	)
@@ -1425,7 +1432,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 		return true
 	}
 
-	if _, err := o.process.Start(ctx, o.configs["bitcoind"], opts.CoreArgs, nil); err != nil {
+	if err := o.startOrAdoptCore(ctx, opts.CoreArgs); err != nil {
 		failBoot(coreMon, ch, "start bitcoind", err)
 		return false
 	}
@@ -1437,6 +1444,63 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 		return false
 	}
 	return true
+}
+
+// startOrAdoptCore starts bitcoind, unless another process already runs one.
+//
+// A health ping that loses is no proof the node is gone: Core answers no RPC
+// while it rescans a wallet, and the caller cap queues the rest. So the PID
+// file decides, and a start that loses the datadir lock decides too. Both
+// answers name a live node, and a second bitcoind on one datadir cannot run.
+func (o *Orchestrator) startOrAdoptCore(ctx context.Context, args []string) error {
+	cfg := o.configs["bitcoind"]
+	if pid := o.datadirOwnerPid(cfg); pid > 0 {
+		o.adoptCore(cfg, pid, nil)
+		return nil
+	}
+	_, err := o.process.Start(ctx, cfg, args, nil)
+	return o.adoptIfCoreOwnsDatadir(cfg, err)
+}
+
+// adoptIfCoreOwnsDatadir turns a start that lost the datadir lock into a
+// success. The lock names a live owner, so a retry can never win it.
+func (o *Orchestrator) adoptIfCoreOwnsDatadir(cfg BinaryConfig, startErr error) error {
+	if startErr == nil || !ownsDatadirAlready(startErr) {
+		return startErr
+	}
+	// The lock is the proof of ownership here, so the wider lookup is safe.
+	o.adoptCore(cfg, o.discoverPid(cfg), startErr)
+	return nil
+}
+
+// datadirOwnerPid names the bitcoind that holds our datadir. Only the native
+// PID file in that directory proves ownership, and only a live process of the
+// right name owns it: a lookup by name alone finds a Core on another datadir,
+// and a PID alone can name the stranger that took a dead Core's number.
+func (o *Orchestrator) datadirOwnerPid(cfg BinaryConfig) int {
+	if o.BitcoinConf == nil {
+		return 0
+	}
+	data, err := os.ReadFile(filepath.Join(o.BitcoinConf.DataDir(), "bitcoind.pid"))
+	if err != nil {
+		return 0
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil || pid <= 0 || !o.pidManager.ValidatePid(pid, cfg.BinaryName) {
+		return 0
+	}
+	return pid
+}
+
+// adoptCore takes over the bitcoind that another process runs. cause is the
+// start error that proved it runs, or nil when the PID file did.
+func (o *Orchestrator) adoptCore(cfg BinaryConfig, pid int, cause error) {
+	if pid <= 0 || o.process.IsRunning(cfg.Name) {
+		return
+	}
+	o.process.AdoptProcess(cfg, pid)
+	o.log.Info().Str("binary", cfg.Name).Int("pid", pid).Err(cause).
+		Msg("bitcoind already runs on this datadir, adopted it")
 }
 
 // RestartDaemon stops the named binary and starts it again — single-daemon
