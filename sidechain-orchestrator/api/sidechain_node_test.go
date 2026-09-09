@@ -14,7 +14,6 @@ import (
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
-	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
@@ -96,7 +95,6 @@ func TestBalanceReadsTheNodeTheConfigNames(t *testing.T) {
 	h := &Handler{orch: &orchestrator.Orchestrator{Network: string(config.NetworkRegtest)}}
 	confirmed, pending, err := h.fetchSidechainBalance(
 		context.Background(),
-		pb.BinaryType_BINARY_TYPE_BITNAMES,
 		orchestrator.BinaryConfig{Name: "bitnames", Host: host, Port: port},
 	)
 	require.NoError(t, err)
@@ -109,13 +107,14 @@ func TestBalanceReadsTheNodeTheConfigNames(t *testing.T) {
 func TestThunderLightBalanceNeverDialsANode(t *testing.T) {
 	h := &Handler{
 		orch: &orchestrator.Orchestrator{Network: string(config.NetworkRegtest)},
-		thunderBalance: func(context.Context) (int64, int64, error) {
-			return 900, 400, nil
+		sidechainBalances: map[string]SidechainBalanceFunc{
+			"thunder": func(context.Context) (int64, int64, error) {
+				return 900, 400, nil
+			},
 		},
 	}
 	confirmed, pending, err := h.fetchSidechainBalance(
 		context.Background(),
-		pb.BinaryType_BINARY_TYPE_THUNDER,
 		// A port nothing listens on: a dial here fails the test.
 		orchestrator.BinaryConfig{Name: "thunder", Host: "127.0.0.1", Port: 1},
 	)
