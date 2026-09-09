@@ -98,4 +98,40 @@ void main() {
     expect(utxo.valueSats, 900);
     expect(utxo.confirmed, isFalse);
   });
+
+  // The node writes a BitAsset output content as the pair [asset id, amount].
+  test('a bitassets coin keeps the asset it holds', () {
+    final utxo = BitAssetsUTXO.fromJson({
+      'outpoint': {
+        'Regular': {'txid': 'dd', 'vout': 1},
+      },
+      'output': {
+        'address': 'mine',
+        'content': {
+          'BitAsset': ['c0ffee', 500],
+        },
+        'memo': <int>[],
+      },
+    });
+
+    expect(utxo.holding?.assetId, 'c0ffee');
+    expect(utxo.holding?.amount, 500);
+    expect(utxo.valueSats, 500);
+  });
+
+  test('a bitassets coin that holds bitcoin names no asset', () {
+    final utxo = BitAssetsUTXO.fromJson({
+      'outpoint': {
+        'Regular': {'txid': 'ee', 'vout': 0},
+      },
+      'output': {
+        'address': 'mine',
+        'content': {'BitcoinSats': 900},
+        'memo': <int>[],
+      },
+    });
+
+    expect(utxo.holding, isNull);
+    expect(utxo.valueSats, 900);
+  });
 }

@@ -173,3 +173,99 @@ func TestBackendStopsAfterTheGap(t *testing.T) {
 		t.Errorf("the walk read %d addresses, want %d", len(addresses), gapLimit)
 	}
 }
+
+// A withdrawal output is leaving the chain, and the treasury already pays it
+// out. Listing it inflates the wallet.
+func TestBackendDropsAWithdrawalOutput(t *testing.T) {
+	index := newFakeIndex(t)
+	index.rows(testAddress(t, 0).String(), `[
+		{"txid":"`+depositTxid+`","vout":0,"value":5000000,"outpoint_kind":"regular",
+		 "content_type":"withdrawal",
+		 "status":{"confirmed":true,"block_height":1,"block_time":1}},
+		{"txid":"`+depositTxid+`","vout":1,"value":4999000,"outpoint_kind":"regular",
+		 "content_type":"value",
+		 "status":{"confirmed":true,"block_height":1,"block_time":1}}]`)
+
+	backend := testBackend(t, index)
+	raw, err := backend.UTXOs(context.Background())
+	if err != nil {
+		t.Fatalf("utxos: %v", err)
+	}
+	var rows []json.RawMessage
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		t.Fatalf("read the listing %s: %v", raw, err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("the wallet lists %d coins, want the plain one alone", len(rows))
+	}
+
+	total, available, err := backend.Balance(context.Background())
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if total != 4999000 || available != 4999000 {
+		t.Errorf("balance = %d total and %d available, want 4999000 of each", total, available)
+	}
+}
+
+// A chain that holds more than bitcoin lists the payloads it names, and the
+// index carries the asset id and the amount. A chain that names none lists a
+// plain coin alone, because its frontend can read no other payload.
+func TestBackendListsOnlyTheHoldingsTheChainNames(t *testing.T) {
+	const asset = `{"BitAsset":["c0ffee",500]}`
+	listing := `[
+		{"txid":"` + depositTxid + `","vout":0,"value":21000,"outpoint_kind":"regular",
+		 "content_type":"value","content":{"BitcoinSats":21000},
+		 "status":{"confirmed":true,"block_height":1,"block_time":1}},
+		{"txid":"` + depositTxid + `","vout":1,"value":0,"outpoint_kind":"regular",
+		 "content_type":"bitasset","content":` + asset + `,
+		 "status":{"confirmed":true,"block_height":1,"block_time":1}}]`
+
+	for name, tc := range map[string]struct {
+		shape OutputShape
+		rows  int
+	}{
+		"a chain that holds assets": {
+			OutputShape{ValueKey: ValueKeyBitcoinSats, Holdings: []string{"bitasset"}}, 2,
+		},
+		"a chain that holds bitcoin alone": {
+			OutputShape{ValueKey: ValueKeyBitcoinSats}, 1,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			index := newFakeIndex(t)
+			index.rows(testAddress(t, 0).String(), listing)
+			backend := NewBackend(
+				sidechainesplora.New(index.server.URL), testWallet(testSeed), tc.shape)
+
+			raw, err := backend.UTXOs(context.Background())
+			if err != nil {
+				t.Fatalf("utxos: %v", err)
+			}
+			var rows []struct {
+				Output struct {
+					Content json.RawMessage `json:"content"`
+				} `json:"output"`
+			}
+			if err := json.Unmarshal(raw, &rows); err != nil {
+				t.Fatalf("read the listing %s: %v", raw, err)
+			}
+			if len(rows) != tc.rows {
+				t.Fatalf("the wallet lists %d coins, want %d", len(rows), tc.rows)
+			}
+			if tc.rows == 2 && string(rows[1].Output.Content) != asset {
+				t.Errorf("content = %s, want %s", rows[1].Output.Content, asset)
+			}
+
+			// An asset amount counts units of that asset, not satoshis.
+			total, available, err := backend.Balance(context.Background())
+			if err != nil {
+				t.Fatalf("balance: %v", err)
+			}
+			if total != 21000 || available != 21000 {
+				t.Errorf("balance = %d total and %d available, want 21000 of each",
+					total, available)
+			}
+		})
+	}
+}

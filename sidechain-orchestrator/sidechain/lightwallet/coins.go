@@ -3,6 +3,7 @@ package lightwallet
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -37,6 +38,14 @@ type Coin struct {
 	OutPoint  OutPoint
 	Address   Address
 	ValueSats uint64
+	// ContentType names what the output holds, such as "value" or "bitasset".
+	ContentType string
+	// Content is the chain-specific payload the node wrote for this output. It
+	// names the asset a bitassets output holds, so a holder reads it back.
+	Content json.RawMessage
+	// Spendable is true for a plain coin. Only a plain coin counts in the
+	// bitcoin balance.
+	Spendable bool
 }
 
 // IndexCoins reads the coins a set of addresses holds from an Esplora index.
@@ -49,9 +58,9 @@ func NewIndexCoins(client *sidechainesplora.Client) *IndexCoins {
 	return &IndexCoins{client: client}
 }
 
-// Split lists what a set of addresses holds, in two halves: the coins a block
-// carries, and the coins no block carries yet. A wallet spends the first half
-// and shows both.
+// Split lists every output a set of addresses holds, in two halves: the ones a
+// block carries, and the ones no block carries yet. The caller picks which
+// payloads its chain shows.
 func (i *IndexCoins) Split(
 	ctx context.Context, addresses []Address,
 ) (confirmed, pending []Coin, err error) {
@@ -90,11 +99,6 @@ func (i *IndexCoins) readAddress(
 		return nil, nil, fmt.Errorf("read utxos for %s: %w", address, err)
 	}
 	for _, utxo := range utxos {
-		// A withdrawal output is leaving the chain. Counting it inflates the
-		// balance, because the treasury already pays it out.
-		if !utxo.Spendable() {
-			continue
-		}
 		coin, err := newCoin(address, utxo)
 		if err != nil {
 			return nil, nil, err
@@ -117,9 +121,12 @@ func newCoin(address Address, utxo sidechainesplora.UTXO) (Coin, error) {
 		return Coin{}, fmt.Errorf("%s holds a coin worth %d sats", address, utxo.Value)
 	}
 	return Coin{
-		OutPoint:  outpoint,
-		Address:   address,
-		ValueSats: uint64(utxo.Value),
+		OutPoint:    outpoint,
+		Address:     address,
+		ValueSats:   uint64(utxo.Value),
+		ContentType: utxo.ContentType,
+		Content:     utxo.Content,
+		Spendable:   utxo.Spendable(),
 	}, nil
 }
 

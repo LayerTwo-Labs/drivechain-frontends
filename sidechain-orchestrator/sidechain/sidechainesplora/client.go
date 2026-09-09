@@ -75,10 +75,17 @@ type UTXO struct {
 	// ContentType reads "value" for a plain coin, and "withdrawal" for one
 	// that is leaving the chain. Only a plain coin is spendable.
 	ContentType string `json:"content_type"`
+	// Content is the chain-specific payload the node wrote. It names the asset
+	// a bitassets output holds, and the name a bitnames output holds.
+	Content json.RawMessage `json:"content,omitempty"`
 }
 
-// ContentValue names a plain spendable coin.
-const ContentValue = "value"
+// ContentValue names a plain spendable coin, and ContentWithdrawal one that is
+// leaving the chain.
+const (
+	ContentValue      = "value"
+	ContentWithdrawal = "withdrawal"
+)
 
 // Spendable is true for a plain coin. A withdrawal output belongs to the
 // chain's payout, and a wallet that spends it builds a transaction no node

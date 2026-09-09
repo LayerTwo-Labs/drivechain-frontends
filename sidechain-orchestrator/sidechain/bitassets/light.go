@@ -20,6 +20,7 @@ func NewLightHandler(
 		Output: lightwallet.OutputShape{
 			ValueKey: lightwallet.ValueKeyBitcoinSats,
 			Memo:     true,
+			Holdings: []string{"bitasset"},
 		},
 	})}
 }

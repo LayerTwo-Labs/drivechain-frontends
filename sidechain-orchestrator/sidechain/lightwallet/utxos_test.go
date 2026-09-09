@@ -106,3 +106,32 @@ func TestMarshalUTXOsWritesTheMemoTheChainNames(t *testing.T) {
 		}
 	}
 }
+
+// A bitassets wallet holds assets beside its bitcoin. The index carries the
+// node's own payload, and the asset id and the amount live only there.
+func TestMarshalUTXOsKeepsTheIndexPayload(t *testing.T) {
+	asset := `{"BitAsset":["c0ffee",500]}`
+	raw, err := MarshalUTXOs(
+		OutputShape{ValueKey: ValueKeyBitcoinSats, Memo: true},
+		[]Coin{{
+			OutPoint:  OutPoint{Kind: KindRegular, Txid: depositTxid, Vout: 1},
+			Address:   testAddress(t, 0),
+			Content:   json.RawMessage(asset),
+			Spendable: false,
+		}}, nil)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	var rows []struct {
+		Output struct {
+			Content json.RawMessage `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		t.Fatalf("read the listing: %v", err)
+	}
+	if got := string(rows[0].Output.Content); got != asset {
+		t.Errorf("content = %s, want %s", got, asset)
+	}
+}

@@ -18,6 +18,10 @@ type OutputShape struct {
 	ValueKey string
 	// Memo says whether every output of this chain carries a memo.
 	Memo bool
+	// Holdings names the content types this chain lists beside a plain coin,
+	// such as an asset a wallet owns. A type the frontend cannot read must
+	// stay out of the listing.
+	Holdings []string
 }
 
 // MarshalUTXOs writes coins in the shape get_wallet_utxos answers with, so a
@@ -36,7 +40,7 @@ func MarshalUTXOs(shape OutputShape, confirmed, pending []Coin) ([]byte, error) 
 			}
 			output := map[string]any{
 				"address": coin.Address.String(),
-				"content": map[string]any{shape.ValueKey: coin.ValueSats},
+				"content": outputContent(shape, coin),
 			}
 			// The node writes a memo as an array of numbers, and a coin the
 			// index reports carries none.
@@ -70,4 +74,13 @@ func encodeOutPoint(o OutPoint) (map[string]any, error) {
 	default:
 		return nil, fmt.Errorf("outpoint kind %q is not known", o.Kind)
 	}
+}
+
+// outputContent writes what the coin holds. The index carries the node's own
+// payload, and an asset id and its amount live only there.
+func outputContent(shape OutputShape, coin Coin) any {
+	if len(coin.Content) > 0 {
+		return coin.Content
+	}
+	return map[string]any{shape.ValueKey: coin.ValueSats}
 }

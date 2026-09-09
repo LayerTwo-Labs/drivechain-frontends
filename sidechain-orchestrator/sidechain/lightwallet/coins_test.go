@@ -8,9 +8,9 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/sidechainesplora"
 )
 
-// A withdrawal output is leaving the chain, and the treasury already pays it
-// out. Counting it inflates the balance.
-func TestIndexCoinsSkipsAWithdrawalOutput(t *testing.T) {
+// The index answers every output an address holds, and the wallet decides
+// which of them it shows.
+func TestIndexCoinsReadsEveryOutput(t *testing.T) {
 	index := newFakeIndex(t)
 	address := testAddress(t, 0)
 	index.rows(address.String(), `[
@@ -26,8 +26,11 @@ func TestIndexCoinsSkipsAWithdrawalOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("split: %v", err)
 	}
-	if len(confirmed) != 1 || confirmed[0].ValueSats != 4999000 {
-		t.Errorf("coins = %+v, want the plain one alone", confirmed)
+	if len(confirmed) != 2 {
+		t.Fatalf("the index answered %d coins, want 2", len(confirmed))
+	}
+	if confirmed[0].Spendable || !confirmed[1].Spendable {
+		t.Errorf("coins = %+v, want the withdrawal marked unspendable", confirmed)
 	}
 }
 

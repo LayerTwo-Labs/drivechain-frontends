@@ -189,3 +189,72 @@ func TestFullHandlerSpendsThroughTheNode(t *testing.T) {
 		t.Error("a full install refuses a send the node would sign")
 	}
 }
+
+// A holder must read the assets the wallet owns. The index carries the node's
+// own payload, and the asset id and the amount live only there. Bitcoin and an
+// asset count in separate places, so the asset must leave the balance alone.
+func TestLightHandlerKeepsTheAssetPayload(t *testing.T) {
+	seed := bip39.NewSeed(testMnemonic, "")
+	first, err := deriveAddress(seed, 0)
+	if err != nil {
+		t.Fatalf("derive: %v", err)
+	}
+
+	// The node writes a BitAsset output content as the pair [asset id, amount].
+	const asset = `{"BitAsset":["c0ffee",500]}`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/address/")
+		switch {
+		case path == first.String()+"/utxo":
+			_, _ = io.WriteString(w, `[
+				{"txid":"`+testDepositTxid+`","vout":0,"value":21000,
+				 "outpoint_kind":"deposit","content_type":"value",
+				 "content":{"BitcoinSats":21000},
+				 "status":{"confirmed":true,"block_height":1,"block_time":1}},
+				{"txid":"`+testDepositTxid+`","vout":1,"value":0,
+				 "outpoint_kind":"regular","content_type":"bitasset",
+				 "content":`+asset+`,
+				 "status":{"confirmed":true,"block_height":1,"block_time":1}}]`)
+		case strings.HasSuffix(path, "/utxo"), strings.HasSuffix(path, "/deposits"):
+			_, _ = io.WriteString(w, "[]")
+		default:
+			count := "0"
+			if path == first.String() {
+				count = "1"
+			}
+			_, _ = io.WriteString(w, `{"address":"`+path+`",
+				"chain_stats":{"funded_txo_count":`+count+`,"funded_txo_sum":0,
+				"spent_txo_count":0,"spent_txo_sum":0,"tx_count":0},
+				"mempool_stats":{"funded_txo_count":0,"funded_txo_sum":0,
+				"spent_txo_count":0,"spent_txo_sum":0,"tx_count":0}}`)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	h := NewLightHandler(
+		sidechain.NewJSONRPCProxy("127.0.0.1", 1),
+		func() lightwallet.Mode { return lightwallet.NewMode(true, server.URL) },
+		func() ([]byte, error) { return seed, nil },
+	)
+
+	ctx := context.Background()
+	utxos, err := h.GetWalletUtxos(ctx, connect.NewRequest(&pb.GetWalletUtxosRequest{}))
+	if err != nil {
+		t.Fatalf("utxos: %v", err)
+	}
+	if !strings.Contains(utxos.Msg.UtxosJson, asset) {
+		t.Errorf("utxos = %s, want the asset pair %s", utxos.Msg.UtxosJson, asset)
+	}
+	if !strings.Contains(utxos.Msg.UtxosJson, `"BitcoinSats":21000`) {
+		t.Errorf("utxos = %s, want the bitcoin coin too", utxos.Msg.UtxosJson)
+	}
+
+	balance, err := h.GetBalance(ctx, connect.NewRequest(&pb.GetBalanceRequest{}))
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if balance.Msg.TotalSats != 21000 || balance.Msg.AvailableSats != 21000 {
+		t.Errorf("balance = %d total and %d available, want 21000 of each",
+			balance.Msg.TotalSats, balance.Msg.AvailableSats)
+	}
+}

@@ -1133,14 +1133,14 @@ class BitAssetsUTXO extends SidechainUTXO {
          valueSats: _extractValueSats(output['content']),
        );
 
+  /// The asset this output holds, or null when it holds no asset.
+  BitAssetHolding? get holding => BitAssetHolding.fromContent(output['content'] as Map<String, dynamic>?);
+
   static int _extractValueSats(Map<String, dynamic> content) {
-    // Extract value based on content type
     if (content.containsKey('BitcoinSats')) {
       return content['BitcoinSats'] as int;
-    } else if (content.containsKey('BitAsset')) {
-      return content['BitAsset']['amount'] as int;
     }
-    return 0;
+    return BitAssetHolding.fromContent(content)?.amount ?? 0;
   }
 
   factory BitAssetsUTXO.fromJson(Map<String, dynamic> json) {
@@ -1151,5 +1151,28 @@ class BitAssetsUTXO extends SidechainUTXO {
       confirmed: json['confirmed'] as bool? ?? true,
       output: json['output'] as Map<String, dynamic>,
     );
+  }
+}
+
+/// One asset an output holds. The node writes a BitAsset output content as the
+/// pair [asset id, amount].
+class BitAssetHolding {
+  final String assetId;
+  final int amount;
+
+  const BitAssetHolding({required this.assetId, required this.amount});
+
+  /// Reads the pair, or answers null when the content holds no asset.
+  static BitAssetHolding? fromContent(Map<String, dynamic>? content) {
+    final pair = content?['BitAsset'];
+    if (pair is! List || pair.length != 2) {
+      return null;
+    }
+    final assetId = pair[0];
+    final amount = pair[1];
+    if (assetId is! String || amount is! int) {
+      return null;
+    }
+    return BitAssetHolding(assetId: assetId, amount: amount);
   }
 }
