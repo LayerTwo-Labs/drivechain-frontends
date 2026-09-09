@@ -34,7 +34,7 @@ dependencies:
     path: ../sail_ui
   sidechain_core:
     path: ../sidechain_core
-  logger: ^2.7.0
+  logger: ^2.8.0
   google_fonts: ^8.2.0
   auto_route: ^11.1.0
   fixnum: ^1.1.1
