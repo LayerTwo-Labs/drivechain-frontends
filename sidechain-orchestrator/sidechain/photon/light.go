@@ -15,9 +15,11 @@ func NewLightHandler(
 	proxy *sidechain.JSONRPCProxy, mode lightwallet.ModeFunc, seed lightwallet.Seed,
 ) *Handler {
 	return &Handler{proxy: proxy, light: lightwallet.NewWallet(mode, lightwallet.Chain{
-		Seed:     seed,
-		Derive:   deriveAddress,
-		ValueKey: lightwallet.ValueKeyValue,
+		Seed:   seed,
+		Derive: deriveAddress,
+		Output: lightwallet.OutputShape{
+			ValueKey: lightwallet.ValueKeyValue,
+		},
 	})}
 }
 

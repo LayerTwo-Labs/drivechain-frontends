@@ -12,8 +12,8 @@ const depositTxid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 func testBackend(t *testing.T, index *fakeIndex) *Backend {
 	t.Helper()
-	return NewBackend(
-		sidechainesplora.New(index.server.URL), testWallet(testSeed), ValueKeyValue)
+	return NewBackend(sidechainesplora.New(index.server.URL), testWallet(testSeed),
+		OutputShape{ValueKey: ValueKeyValue})
 }
 
 // A deposit is why a light install exists. It must read as one coin of the

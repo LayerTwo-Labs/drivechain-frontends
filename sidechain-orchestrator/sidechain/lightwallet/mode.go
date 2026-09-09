@@ -38,8 +38,8 @@ type Chain struct {
 	Seed Seed
 	// Derive answers the address one seed holds at one index.
 	Derive Deriver
-	// ValueKey is the JSON key this chain names a plain coin value under.
-	ValueKey string
+	// Output is how this chain writes a wallet output.
+	Output OutputShape
 }
 
 // Wallet is the light half of a sidechain handler. It hands out the backend
@@ -82,7 +82,7 @@ func (w *Wallet) Backend() *Backend {
 		w.backend = NewBackend(
 			sidechainesplora.New(mode.IndexURL),
 			NewWindow(w.chain.Seed, w.chain.Derive, AddressWindow),
-			w.chain.ValueKey,
+			w.chain.Output,
 		)
 	}
 	return w.backend

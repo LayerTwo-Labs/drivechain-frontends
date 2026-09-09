@@ -14,17 +14,17 @@ type Backend struct {
 	client    *sidechainesplora.Client
 	discovery *Discovery
 	coins     *IndexCoins
-	// valueKey is the JSON key this chain names a plain coin value under.
-	valueKey string
+	// shape is how this chain writes a wallet output.
+	shape OutputShape
 }
 
 // NewBackend reads one window of addresses through one index.
-func NewBackend(client *sidechainesplora.Client, window *Window, valueKey string) *Backend {
+func NewBackend(client *sidechainesplora.Client, window *Window, shape OutputShape) *Backend {
 	return &Backend{
 		client:    client,
 		discovery: NewDiscovery(window, client),
 		coins:     NewIndexCoins(client),
-		valueKey:  valueKey,
+		shape:     shape,
 	}
 }
 
@@ -53,7 +53,7 @@ func (b *Backend) UTXOs(ctx context.Context) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return MarshalUTXOs(b.valueKey, confirmed, pending)
+	return MarshalUTXOs(b.shape, confirmed, pending)
 }
 
 // NewAddress hands out the first address that never received a coin. Asking
