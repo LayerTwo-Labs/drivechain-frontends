@@ -11,6 +11,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
 // New returns the client for a sidechain. A Core derived chain speaks Core's
@@ -18,6 +19,9 @@ import (
 // chains speak a bare JSON-RPC with no credentials.
 func New(name, host string, port int, isBitcoinCore bool, network config.Network) (sidechain.Node, error) {
 	if !isBitcoinCore {
+		if name == "zside" {
+			return zside.NewNode(host, port), nil
+		}
 		return sidechain.NewJSONRPCProxy(host, port), nil
 	}
 	dirs, ok := config.DirConfigByName(name)
