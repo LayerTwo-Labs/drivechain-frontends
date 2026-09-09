@@ -182,6 +182,7 @@ var startCommand = &cli.Command{
 			Usage:   "start in background without streaming logs",
 		},
 	},
+	Before: rejectFlagAfterArgument,
 	Action: func(cctx *cli.Context) error {
 		return runStart(cctx, newClient(cctx))
 	},
@@ -445,6 +446,7 @@ var stopCommand = &cli.Command{
 			Usage: "force kill (SIGKILL) instead of graceful shutdown",
 		},
 	},
+	Before: rejectFlagAfterArgument,
 	Action: func(cctx *cli.Context) error {
 		if cctx.NArg() < 1 {
 			return printUsageWithBinaries(cctx, "stop")
