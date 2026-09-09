@@ -10,6 +10,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1"
 	svc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitnames/v1/bitnamesv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/lightwallet"
 )
 
 var _ svc.BitnamesServiceHandler = (*Handler)(nil)
@@ -19,6 +20,9 @@ var _ svc.BitnamesServiceHandler = (*Handler)(nil)
 // implemented directly using the proxy's Client.
 type Handler struct {
 	proxy *sidechain.JSONRPCProxy
+	// light answers the wallet when no node runs. A light install starts no
+	// sidechain daemon, so nothing may dial one here.
+	light *lightwallet.Wallet
 }
 
 func NewHandler(proxy *sidechain.JSONRPCProxy) *Handler {
@@ -28,7 +32,7 @@ func NewHandler(proxy *sidechain.JSONRPCProxy) *Handler {
 // --- Common Node methods ---
 
 func (h *Handler) GetBalance(ctx context.Context, req *connect.Request[pb.GetBalanceRequest]) (*connect.Response[pb.GetBalanceResponse], error) {
-	total, available, err := h.proxy.GetBalance(ctx)
+	total, available, err := h.WalletBalance(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +58,7 @@ func (h *Handler) Stop(ctx context.Context, req *connect.Request[pb.StopRequest]
 }
 
 func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	address, err := h.proxy.GetNewAddress(ctx)
+	address, err := h.walletAddress(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +106,7 @@ func (h *Handler) GetPendingWithdrawalBundle(ctx context.Context, req *connect.R
 }
 
 func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.GetWalletUtxosRequest]) (*connect.Response[pb.GetWalletUtxosResponse], error) {
-	raw, err := h.proxy.GetWalletUtxos(ctx)
+	raw, err := h.walletUTXOs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -334,8 +338,8 @@ func (h *Handler) SignArbitraryMsgAsAddr(ctx context.Context, req *connect.Reque
 }
 
 func (h *Handler) GetWalletAddresses(ctx context.Context, req *connect.Request[pb.GetWalletAddressesRequest]) (*connect.Response[pb.GetWalletAddressesResponse], error) {
-	var addresses []string
-	if err := h.proxy.Client.Call(ctx, "get_wallet_addresses", nil, &addresses); err != nil {
+	addresses, err := h.walletAddresses(ctx)
+	if err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetWalletAddressesResponse{Addresses: addresses}), nil
