@@ -56,6 +56,7 @@ jobs:
       - name: Install SQLite
         if: matrix.install-sqlite
         run: |
+          sudo find /etc/apt/sources.list.d -maxdepth 1 -type f -name '*google-chrome*' -delete
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev
 

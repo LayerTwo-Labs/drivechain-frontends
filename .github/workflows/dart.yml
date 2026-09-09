@@ -88,9 +88,10 @@ jobs:
 
         # https://docs.flutter.dev/platform-integration/linux/building
       - name: Install Linux build dependencies
-        run:
-          sudo apt-get update -y && sudo apt-get install -y clang cmake
-          ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+        run: |
+          sudo find /etc/apt/sources.list.d -maxdepth 1 -type f -name '*google-chrome*' -delete
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
 
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
