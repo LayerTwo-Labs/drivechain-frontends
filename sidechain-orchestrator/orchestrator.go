@@ -1468,8 +1468,9 @@ func (o *Orchestrator) adoptIfCoreOwnsDatadir(cfg BinaryConfig, startErr error) 
 	if startErr == nil || !ownsDatadirAlready(startErr) {
 		return startErr
 	}
-	// The lock is the proof of ownership here, so the wider lookup is safe.
-	o.adoptCore(cfg, o.discoverPid(cfg), startErr)
+	// The lock proves an owner, but not which process it is. Adopt only the
+	// one the datadir names: a stranger adopted here is a stranger stopped.
+	o.adoptCore(cfg, o.datadirOwnerPid(cfg), startErr)
 	return nil
 }
 
