@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"time"
 
@@ -403,20 +404,15 @@ func (h *BMMHandler) ConnectBid(
 		return nil, err
 	}
 
-	// A sidechain reports an inclusion only for a block it already holds, and it
-	// gets ours from this very call.
-	mainBlockHash := req.Msg.MainBlockHash
+	inclusions, err := proxy.GetBmmInclusions(ctx, req.Msg.CriticalHash)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
+	}
+	mainBlockHash := connectTarget(req.Msg.MainBlockHash, inclusions)
 	if mainBlockHash == "" {
-		inclusions, err := proxy.GetBmmInclusions(ctx, req.Msg.CriticalHash)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get bmm inclusions: %w", err))
-		}
-		if len(inclusions) == 0 {
-			// The empty answer names no block, which is how the caller tells a
-			// bid the sidechain has not seen from a block it refused.
-			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
-		}
-		mainBlockHash = inclusions[0]
+		// The empty answer names no block, which is how the caller tells a bid
+		// the sidechain has not seen from a block it refused.
+		return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
 	}
 
 	connected, err := proxy.ConnectBlock(ctx, json.RawMessage(req.Msg.BlockJson), mainBlockHash)
@@ -427,6 +423,22 @@ func (h *BMMHandler) ConnectBid(
 		Connected:     connected,
 		MainBlockHash: mainBlockHash,
 	}), nil
+}
+
+// connectTarget picks the mainchain block to connect the won block on, empty
+// while the sidechain lists no inclusion for it. A sidechain learns of an
+// inclusion by polling, so it holds the block the caller names only later.
+func connectTarget(want string, inclusions []string) string {
+	if want == "" {
+		if len(inclusions) == 0 {
+			return ""
+		}
+		return inclusions[0]
+	}
+	if !slices.Contains(inclusions, want) {
+		return ""
+	}
+	return want
 }
 
 // ListBids reads the slot's bids out of the mainchain mempool. An M8 is a

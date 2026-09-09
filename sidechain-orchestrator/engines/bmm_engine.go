@@ -1047,6 +1047,9 @@ func (e *BmmEngine) retryConnects(ctx context.Context, sidechain pb.BinaryType, 
 		}
 		round.BlocksWaited++
 		if round.BlocksWaited < bmmConnectAttempts {
+			// The count goes to disk, or a restart hands the round the whole
+			// budget again and the bound never binds.
+			e.save(round)
 			stillPending = append(stillPending, round)
 			continue
 		}

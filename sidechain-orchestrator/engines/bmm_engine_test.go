@@ -1191,6 +1191,37 @@ func TestBmmEngineBoundsARepeatedRefusal(t *testing.T) {
 	assert.Zero(t, pendingCount(restarted), "a restart hands it no fresh budget")
 }
 
+// The bound only binds if it survives a restart, so a reloaded round carries
+// the attempts it already spent.
+func TestBmmEngineKeepsTheAttemptCountAcrossARestart(t *testing.T) {
+	engine, backend, _, store := newEngine(t)
+	backend.noInclusion = true
+
+	round := unconnectedRound("counted-round", 996770)
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	ctx := context.Background()
+	for range 3 {
+		engine.retryConnects(ctx, testSidechain, "tip", 996773)
+	}
+
+	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, &fakeTip{}, newFakeFee(), store)
+	restarted.resumeUnconnected()
+	restarted.mu.Lock()
+	resumed := restarted.unconnected[testSidechain]
+	restarted.mu.Unlock()
+	require.Len(t, resumed, 1)
+	assert.Equal(t, 3, resumed[0].BlocksWaited, "the restart carries the spent attempts")
+
+	for range bmmConnectAttempts - 3 {
+		restarted.retryConnects(ctx, testSidechain, "tip", 996773)
+	}
+
+	assert.Zero(t, pendingCount(restarted), "the bound binds after a restart")
+}
+
 // unconnectedRound is a round a miner took, waiting on the sidechain.
 func unconnectedRound(prevMainHash string, prevMainHeight int32) *bmmstate.Round {
 	return &bmmstate.Round{
