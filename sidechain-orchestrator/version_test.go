@@ -82,6 +82,7 @@ func writeVersionScript(t *testing.T, dataDir, binaryName, versionOutput string)
 }
 
 func TestBinaryVersion_ResolvesAndRunsProd(t *testing.T) {
+	setTestHome(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("uses a shell script as the fake binary")
 	}
@@ -103,6 +104,7 @@ func TestBinaryVersion_ResolvesAndRunsProd(t *testing.T) {
 }
 
 func TestBinaryVersion_TestBuildShortCircuits(t *testing.T) {
+	setTestHome(t)
 	dataDir := t.TempDir()
 	log := testLogger(t)
 	cfg := makeSidechainConfig("http://example.invalid/")
@@ -120,6 +122,7 @@ func TestBinaryVersion_TestBuildShortCircuits(t *testing.T) {
 }
 
 func TestBinaryVersion_NotDownloadedReturnsStatError(t *testing.T) {
+	setTestHome(t)
 	dataDir := t.TempDir()
 	log := testLogger(t)
 	cfg := makeSidechainConfig("http://example.invalid/")

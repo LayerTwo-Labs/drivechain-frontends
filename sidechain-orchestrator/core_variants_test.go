@@ -206,6 +206,7 @@ func TestDownload_VariantSkipsWhenInstalled(t *testing.T) {
 }
 
 func TestOrchestrator_ListCoreVariants(t *testing.T) {
+	setTestHome(t)
 	cases := []struct {
 		network string
 		want    []string

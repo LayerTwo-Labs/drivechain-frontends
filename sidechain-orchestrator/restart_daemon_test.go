@@ -37,6 +37,7 @@ func TestRestartDaemon_UnknownBinary(t *testing.T) {
 // pre-condition that triggered the old bug and asserts the bitcoind
 // monitor's ConnectionError stays clear of the phantom string.
 func TestRestartDaemon_EnforcerLeavesBitcoindMonitorUntouched(t *testing.T) {
+	useTempHome(t)
 	o := newTestOrchestrator(t)
 
 	// Pre-populate pm.processes with bitcoind. This is the state that
@@ -174,6 +175,7 @@ func TestStartEnforcerWhenReady_AlreadyInPM_NoPhantomStart(t *testing.T) {
 // Confirms the per-daemon scope of RestartDaemon: restarting bitcoind must
 // never touch enforcer state.
 func TestRestartDaemon_BitcoindLeavesEnforcerMonitorUntouched(t *testing.T) {
+	useTempHome(t)
 	o := newTestOrchestrator(t)
 
 	enforcerCfg, _ := o.getConfig("enforcer")

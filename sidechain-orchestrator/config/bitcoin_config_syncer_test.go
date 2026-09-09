@@ -626,6 +626,9 @@ func TestPrivateConfWithExplicitChainMain(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestCopyConfigDownstream(t *testing.T) {
+	SetHomeDir(t.TempDir())
+	t.Cleanup(func() { SetHomeDir("") })
+
 	tmpDir := t.TempDir()
 	m := newTestManager(tmpDir)
 	m.Network = NetworkSignet

@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -227,13 +226,14 @@ func TestSidechainConfByName(t *testing.T) {
 // A network swap reloads BitcoinConf alone. Without a resync the args would
 // carry the new network and the ports of the network the node just left.
 func TestSyncNetworkRealignsThePortsAfterASwap(t *testing.T) {
+	SetHomeDir(t.TempDir())
+	t.Cleanup(func() { SetHomeDir("") })
+
 	m := sidechainConfFor(t, "thunder", NetworkSignet, map[string]string{
 		"net-addr":           "0.0.0.0:4009",
 		"mainchain-grpc-url": "http://localhost:50051",
 		"network":            "signet",
 	})
-	m.ConfigPath = filepath.Join(t.TempDir(), "thunder.conf")
-
 	m.BitcoinConf.Network = NetworkRegtest
 	if err := m.SyncNetworkFromBitcoinConf(); err != nil {
 		t.Fatal(err)

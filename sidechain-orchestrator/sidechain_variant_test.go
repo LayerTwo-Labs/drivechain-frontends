@@ -180,6 +180,7 @@ func TestDownload_SidechainVariant_CoexistsWithProd(t *testing.T) {
 // alt URL is hit and the binary lands in the per-test subfolder. Mirrors the
 // Core variant fresh-switch integration test for layer-2 binaries.
 func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
+	setTestHome(t)
 	binName := "thunder"
 	if runtime.GOOS == "windows" {
 		binName += ".exe"
@@ -329,6 +330,7 @@ func TestProcess_ForceBackend_BypassesVariant(t *testing.T) {
 }
 
 func TestOrchestrator_ForceBackend_AdoptsProdPidWhenTestSidechainsEnabled(t *testing.T) {
+	setTestHome(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("uses symlinked system sleep binary")
 	}
@@ -361,6 +363,7 @@ func TestOrchestrator_ForceBackend_AdoptsProdPidWhenTestSidechainsEnabled(t *tes
 }
 
 func TestOrchestrator_StopStopsManagedSidechainGUICompanion(t *testing.T) {
+	setTestHome(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("uses symlinked system sleep binary")
 	}
@@ -411,6 +414,7 @@ func TestOrchestrator_StopStopsManagedSidechainGUICompanion(t *testing.T) {
 }
 
 func TestOrchestrator_AdoptsGUICompanionUnderGUISlot(t *testing.T) {
+	setTestHome(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("uses symlinked system sleep binary")
 	}
@@ -454,6 +458,7 @@ func TestOrchestrator_AdoptsGUICompanionUnderGUISlot(t *testing.T) {
 }
 
 func TestOrchestrator_SidechainVariantResolver_ReturnsAltForLayerTwo(t *testing.T) {
+	setTestHome(t)
 	dataDir := t.TempDir()
 	bwDir := t.TempDir()
 	o := New(dataDir, "signet", bwDir, AllDefaults(), testLogger(t))

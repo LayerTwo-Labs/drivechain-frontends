@@ -340,6 +340,7 @@ func TestReleaseCheckerReadsTheLocalTimeLive(t *testing.T) {
 // running process can be the other download. The check must follow the
 // caller's own options, because that is what its update button will replace.
 func TestStatusChecksTheRequestedDownloadNotTheRunningOne(t *testing.T) {
+	setTestHome(t)
 	testBuilt := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	prodBuilt := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC)
 

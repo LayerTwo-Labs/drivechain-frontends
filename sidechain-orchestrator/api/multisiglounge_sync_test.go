@@ -31,6 +31,7 @@ type loungeRegtest struct {
 	cli     string
 	dataDir string
 	port    int
+	cmd     *exec.Cmd
 }
 
 func newLoungeRegtest(t *testing.T) *loungeRegtest {
@@ -50,13 +51,12 @@ func newLoungeRegtest(t *testing.T) *loungeRegtest {
 	// historical txs by id via getrawtransaction, which needs the tx index.
 	// Per-node RPC and P2P ports keep concurrent regtest nodes (e.g. the wallet
 	// package's e2e running in parallel) from colliding on the defaults.
-	require.NoError(t, exec.Command(daemon, "-regtest", "-datadir="+dir, "-daemon", "-server=1",
+	cmd := exec.Command(daemon, "-regtest", "-datadir="+dir, "-server=1",
 		"-rpcuser=u", "-rpcpassword=p", "-fallbackfee=0.0001", "-txindex=1",
 		fmt.Sprintf("-rpcport=%d", rpcPort), fmt.Sprintf("-port=%d", p2pPort),
-		fmt.Sprintf("-bind=127.0.0.1:%d", p2pPort), "-listen=1").Run())
-	rt := &loungeRegtest{t: t, cli: cli, dataDir: dir, port: rpcPort}
-	// -daemon detaches, so the node outlives the test binary unless we stop it.
-	// Registered before the readiness wait: its t.Fatal path returns no handle.
+		fmt.Sprintf("-bind=127.0.0.1:%d", p2pPort), "-listen=1")
+	require.NoError(t, cmd.Start())
+	rt := &loungeRegtest{t: t, cli: cli, dataDir: dir, port: rpcPort, cmd: cmd}
 	t.Cleanup(rt.stop)
 
 	deadline := time.Now().Add(20 * time.Second)
@@ -71,8 +71,18 @@ func newLoungeRegtest(t *testing.T) *loungeRegtest {
 }
 
 func (rt *loungeRegtest) stop() {
-	_, _ = rt.cliCall("", "stop", "")
-	time.Sleep(time.Second)
+	_, stopErr := rt.cliCall("", "stop", "")
+	done := make(chan error, 1)
+	go func() { done <- rt.cmd.Wait() }()
+	select {
+	case err := <-done:
+		require.NoError(rt.t, err)
+	case <-time.After(10 * time.Second):
+		require.NoError(rt.t, rt.cmd.Process.Kill())
+		require.Error(rt.t, <-done)
+		rt.t.Error("the test node did not stop within ten seconds")
+	}
+	require.NoError(rt.t, stopErr)
 }
 
 // freePort returns an OS-assigned free TCP port for the node's RPC.

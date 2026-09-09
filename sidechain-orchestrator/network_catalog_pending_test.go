@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -158,8 +160,20 @@ func TestStartOffECashKeepsTheRecordedChain(t *testing.T) {
 	o := ecashOnPendingNetwork(t)
 	require.NoError(t, o.SwapNetwork(context.Background(), config.NetworkMainnet))
 	require.Empty(t, o.installedECashNetwork(), "the swap strips the eCash sentinel")
+	publish(t, o, catalogWithECashRows(t, "drynet4", "drynet2"))
+	refreshed := make(chan struct{})
+	o.log = zerolog.New(io.Discard).Hook(zerolog.HookFunc(func(_ *zerolog.Event, _ zerolog.Level, message string) {
+		if message == "took the published network catalog" {
+			close(refreshed)
+		}
+	}))
 
 	o.ResolveNetworkCatalog(context.Background())
+	select {
+	case <-refreshed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the catalog refresh did not finish")
+	}
 
 	require.Equal(t, "drynet2", config.ECashNetworkID())
 }
