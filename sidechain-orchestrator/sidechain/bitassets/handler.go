@@ -10,7 +10,6 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1"
 	svc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bitassets/v1/bitassetsv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/lightwallet"
 )
 
 var _ svc.BitAssetsServiceHandler = (*Handler)(nil)
@@ -20,13 +19,24 @@ var _ svc.BitAssetsServiceHandler = (*Handler)(nil)
 // implemented directly using the proxy's Client.
 type Handler struct {
 	proxy *sidechain.JSONRPCProxy
-	// light answers the wallet when no node runs. A light install starts no
-	// sidechain daemon, so nothing may dial one here.
-	light *lightwallet.Wallet
 }
 
 func NewHandler(proxy *sidechain.JSONRPCProxy) *Handler {
 	return &Handler{proxy: proxy}
+}
+
+// WalletBalance reads the wallet balance in sats. Another service answers the
+// same number from here.
+func (h *Handler) WalletBalance(ctx context.Context) (total, available int64, err error) {
+	// The node names this call bitcoin_balance, not balance.
+	var result struct {
+		TotalSats     int64 `json:"total_sats"`
+		AvailableSats int64 `json:"available_sats"`
+	}
+	if err := h.proxy.Client.Call(ctx, "bitcoin_balance", nil, &result); err != nil {
+		return 0, 0, err
+	}
+	return result.TotalSats, result.AvailableSats, nil
 }
 
 // --- Common Node methods ---
@@ -58,7 +68,7 @@ func (h *Handler) Stop(ctx context.Context, req *connect.Request[pb.StopRequest]
 }
 
 func (h *Handler) GetNewAddress(ctx context.Context, req *connect.Request[pb.GetNewAddressRequest]) (*connect.Response[pb.GetNewAddressResponse], error) {
-	address, err := h.walletAddress(ctx)
+	address, err := h.proxy.GetNewAddress(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +115,7 @@ func (h *Handler) GetPendingWithdrawalBundle(ctx context.Context, req *connect.R
 }
 
 func (h *Handler) GetWalletUtxos(ctx context.Context, req *connect.Request[pb.GetWalletUtxosRequest]) (*connect.Response[pb.GetWalletUtxosResponse], error) {
-	raw, err := h.walletUTXOs(ctx)
+	raw, err := h.proxy.GetWalletUtxos(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -353,8 +363,8 @@ func (h *Handler) VerifySignature(ctx context.Context, req *connect.Request[pb.V
 }
 
 func (h *Handler) GetWalletAddresses(ctx context.Context, req *connect.Request[pb.GetWalletAddressesRequest]) (*connect.Response[pb.GetWalletAddressesResponse], error) {
-	addresses, err := h.walletAddresses(ctx)
-	if err != nil {
+	var addresses []string
+	if err := h.proxy.Client.Call(ctx, "get_wallet_addresses", nil, &addresses); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetWalletAddressesResponse{Addresses: addresses}), nil
