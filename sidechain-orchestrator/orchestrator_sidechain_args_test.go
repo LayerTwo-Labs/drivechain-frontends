@@ -152,34 +152,32 @@ func TestPrepareSidechainArgsFindsTheConfByDisplayName(t *testing.T) {
 	}
 }
 
-// BitNames and BitAssets read rpc-addr and a split mainchain host and port. The
-// generic zmq template writes rpc-port and no mainchain field, so passing it
-// would give the daemon an argv it cannot read.
-func TestPrepareSidechainArgsLeavesTheZmqChainsAlone(t *testing.T) {
-	useTempHome(t)
-	for _, name := range []string{"bitnames", "bitassets"} {
+// BitNames and BitAssets bind a ZMQ publisher. Without the address the daemon
+// binds its own default, and a second node on another network cannot start.
+func TestPrepareSidechainArgsPassesTheZmqChainPorts(t *testing.T) {
+	for name, want := range map[string][]string{
+		"bitnames":  {"--net-addr=0.0.0.0:34002", "--zmq-addr=127.0.0.1:58002", "--network=signet"},
+		"bitassets": {"--net-addr=0.0.0.0:34004", "--zmq-addr=127.0.0.1:58004", "--network=signet"},
+	} {
+		useTempHome(t)
 		spec, ok := config.KnownSidechainSpecs[name]
 		if !ok {
 			t.Fatalf("%s is missing from the known sidechain specs", name)
 		}
 		orch := &Orchestrator{
-			log: zerolog.Nop(),
+			log:     zerolog.Nop(),
+			Network: string(config.NetworkSignet),
 			SidechainConfs: map[string]*config.SidechainConfManager{
 				name: {
-					Spec: spec,
-					Config: &config.GenericAppConfig{Settings: map[string]string{
-						"net-addr": "0.0.0.0:24002",
-						"rpc-port": "26002",
-						"network":  "mainnet",
-					}},
+					Spec:        spec,
+					Config:      &config.GenericAppConfig{Settings: map[string]string{}},
+					BitcoinConf: &config.BitcoinConfManager{Network: config.NetworkSignet},
 				},
 			},
 		}
 		var opts StartOpts
 		prepareArgs(t, orch, BinaryConfig{Name: spec.Name, ChainLayer: 2}, &opts)
-		if len(opts.TargetArgs) != 0 {
-			t.Errorf("%s got args %v, want none", name, opts.TargetArgs)
-		}
+		assert.Equal(t, want, opts.TargetArgs, name)
 	}
 }
 
