@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 )
 
@@ -44,6 +45,9 @@ type Client struct {
 	opts       Options
 	cookiePath string
 	http       *http.Client
+	// timeout is the deadline one method gets. http.Client.Timeout would cap
+	// every method at the shortest of them.
+	timeout func(method string) time.Duration
 }
 
 // New creates a client pointed at host:port. name prefixes an RPC error, so a
@@ -58,7 +62,8 @@ func New(name, host string, port int, cookiePath string, opts Options) *Client {
 		baseURL:    fmt.Sprintf("http://%s:%d", host, port),
 		opts:       opts,
 		cookiePath: cookiePath,
-		http:       &http.Client{Timeout: 30 * time.Second},
+		http:       &http.Client{},
+		timeout:    rpc.MethodTimeout,
 	}
 }
 
@@ -102,6 +107,9 @@ func (c *Client) callAt(ctx context.Context, path, method string, params any) (j
 	if err != nil {
 		return nil, fmt.Errorf("marshal %s request: %w", method, err)
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, c.timeout(method))
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(body))
 	if err != nil {

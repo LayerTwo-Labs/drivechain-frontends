@@ -8,9 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 )
 
 type recordedRequest struct {
@@ -184,4 +187,62 @@ func TestFeeEstimateFallsBackWithoutHistory(t *testing.T) {
 	rate, err := clientFor(t, srv, cookieFile(t, "user:pass"), Options{}).EstimateSmartFee(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, FallbackFeeRate, rate)
+}
+
+// slowNode answers after delay. release stops a handler still waiting, so a
+// test that never gets an answer still returns.
+func slowNode(t *testing.T, delay time.Duration) *httptest.Server {
+	t.Helper()
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		select {
+		case <-time.After(delay):
+		case <-release:
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"result":true,"error":null}`))
+	}))
+	t.Cleanup(func() {
+		close(release)
+		srv.Close()
+	})
+	return srv
+}
+
+// connect_block stores the mainchain ancestors of the block before it answers,
+// so it takes a deadline the ordinary calls never get.
+func TestConnectBlockOutlastsAnOrdinaryCall(t *testing.T) {
+	client := clientFor(t, slowNode(t, 200*time.Millisecond), cookieFile(t, "user:pass"), Options{})
+	client.timeout = func(method string) time.Duration {
+		if method == "connect_block" {
+			return 5 * time.Second
+		}
+		return 50 * time.Millisecond
+	}
+
+	connected, err := Decode[bool](context.Background(), client, "connect_block", []any{"{}", "hash"})
+	require.NoError(t, err)
+	assert.True(t, connected)
+
+	_, err = client.GetBlockCount(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "getblockcount call")
+}
+
+// The longer deadline still ends the call. A node that hangs must not hold the
+// BMM engine for as long as it runs.
+func TestConnectBlockStopsAtItsOwnDeadline(t *testing.T) {
+	client := clientFor(t, slowNode(t, time.Hour), cookieFile(t, "user:pass"), Options{})
+	client.timeout = func(string) time.Duration { return 100 * time.Millisecond }
+
+	_, err := Decode[bool](context.Background(), client, "connect_block", []any{"{}", "hash"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "connect_block call")
+}
+
+func TestMethodTimeoutBindsTheCoreTransport(t *testing.T) {
+	client := New("testchain", "127.0.0.1", 0, "", Options{})
+	assert.Equal(t, rpc.ConnectBlockTimeout, client.timeout("connect_block"))
+	assert.Equal(t, rpc.CallTimeout, client.timeout("getblockcount"))
 }
