@@ -197,6 +197,52 @@
         }
       }
     },
+    "create_transfer_many": {
+      "post": {
+        "description": "Create a tx that transfers funds to each address in `dests`,\nwhich maps an address to a value in sats",
+        "operationId": "create_transfer_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dests": {
+                    "type": "object",
+                    "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    }
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "create_withdrawal": {
       "post": {
         "description": "Creates a tx that initiates a withdrawal to the specified mainchain\naddress",
@@ -878,9 +924,14 @@
                     "required": [
                       "txid",
                       "size",
+                      "raw",
                       "tx"
                     ],
                     "properties": {
+                      "raw": {
+                        "type": "string",
+                        "description": "Borsh encoding, as hex"
+                      },
                       "size": {
                         "type": "integer",
                         "format": "u-int64",

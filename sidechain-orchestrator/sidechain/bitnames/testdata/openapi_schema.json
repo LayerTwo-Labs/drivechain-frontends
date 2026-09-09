@@ -277,6 +277,52 @@
         }
       }
     },
+    "create_transfer_many": {
+      "post": {
+        "description": "Create a tx that transfers funds to each address in `dests`,\nwhich maps an address to a value in sats",
+        "operationId": "create_transfer_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dests": {
+                    "type": "object",
+                    "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    }
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "create_withdrawal": {
       "post": {
         "description": "Creates a tx that initiates a withdrawal to the specified mainchain\naddress",
@@ -558,6 +604,98 @@
                       }
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_hash": {
+      "post": {
+        "description": "Get the block hash at the specified height in the current chain,\nif it exists",
+        "operationId": "get_block_hash",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "u-int32",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_block_index": {
+      "post": {
+        "description": "Get the transaction ids, sizes and encodings of a block, with the\nmainchain deposits and withdrawal bundle spends it applied",
+        "operationId": "get_block_index",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Everything about a block that its body does not carry",
+                  "required": [
+                    "txs",
+                    "deposits",
+                    "bundle_spends"
+                  ],
+                  "properties": {
+                    "bundle_spends": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexSpend"
+                      },
+                      "description": "Outputs that a withdrawal bundle removed"
+                    },
+                    "deposits": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexDeposit"
+                      },
+                      "description": "Outputs that mainchain deposits created"
+                    },
+                    "txs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BlockIndexTx"
+                      },
+                      "description": "Transactions in body order"
+                    }
+                  }
                 }
               }
             }
@@ -1230,6 +1368,53 @@
                       "minimum": 0
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "list_mempool": {
+      "post": {
+        "description": "List the transactions the mempool holds, in no particular order.",
+        "operationId": "list_mempool",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One transaction the mempool holds",
+                    "required": [
+                      "txid",
+                      "size",
+                      "raw",
+                      "tx"
+                    ],
+                    "properties": {
+                      "raw": {
+                        "type": "string",
+                        "description": "Borsh encoding, as hex"
+                      },
+                      "size": {
+                        "type": "integer",
+                        "format": "u-int64",
+                        "description": "Canonical size in bytes",
+                        "minimum": 0
+                      },
+                      "tx": {
+                        "$ref": "#/components/schemas/Transaction"
+                      },
+                      "txid": {
+                        "$ref": "#/components/schemas/Txid",
+                        "description": "Blake3 over the canonical encoding"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -2336,6 +2521,62 @@
       },
       "BlockHash": {
         "type": "string"
+      },
+      "BlockIndexDeposit": {
+        "type": "object",
+        "description": "One output a mainchain deposit created",
+        "required": [
+          "outpoint",
+          "output"
+        ],
+        "properties": {
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          },
+          "output": {
+            "$ref": "#/components/schemas/FilledOutput"
+          }
+        }
+      },
+      "BlockIndexSpend": {
+        "type": "object",
+        "description": "One output a withdrawal bundle removed, with the bundle that took it",
+        "required": [
+          "outpoint",
+          "m6id"
+        ],
+        "properties": {
+          "m6id": {
+            "$ref": "#/components/schemas/M6id"
+          },
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          }
+        }
+      },
+      "BlockIndexTx": {
+        "type": "object",
+        "description": "One transaction of a block, with the fields its body omits",
+        "required": [
+          "txid",
+          "size",
+          "raw"
+        ],
+        "properties": {
+          "raw": {
+            "type": "string",
+            "description": "Borsh encoding, as hex"
+          },
+          "size": {
+            "type": "integer",
+            "format": "u-int64",
+            "description": "Canonical size in bytes",
+            "minimum": 0
+          },
+          "txid": {
+            "$ref": "#/components/schemas/Txid"
+          }
+        }
       },
       "Body": {
         "type": "object",
