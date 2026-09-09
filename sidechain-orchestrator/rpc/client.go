@@ -12,21 +12,20 @@ import (
 
 // Client is a minimal JSON-RPC 2.0 HTTP client.
 type Client struct {
-	url    string
-	http   *http.Client
-	nextID atomic.Int64
+	url  string
+	http *http.Client
+	// timeout is the deadline one method gets. http.Client.Timeout would cap
+	// every method at the shortest of them.
+	timeout func(method string) time.Duration
+	nextID  atomic.Int64
 }
-
-// callTimeout bounds one RPC. A node that accepts the connection and then
-// answers nothing would otherwise hold the caller's goroutine for as long as
-// the node runs.
-const callTimeout = 30 * time.Second
 
 // New creates a JSON-RPC client targeting the given host and port.
 func New(host string, port int) *Client {
 	return &Client{
-		url:  fmt.Sprintf("http://%s:%d", host, port),
-		http: &http.Client{Timeout: callTimeout},
+		url:     fmt.Sprintf("http://%s:%d", host, port),
+		http:    &http.Client{},
+		timeout: MethodTimeout,
 	}
 }
 
@@ -67,6 +66,9 @@ func (c *Client) Call(ctx context.Context, method string, params any, out any) e
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, c.timeout(method))
+	defer cancel()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(body))
 	if err != nil {
@@ -111,6 +113,9 @@ func (c *Client) CallRaw(ctx context.Context, method string, params any) (json.R
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, c.timeout(method))
+	defer cancel()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(body))
 	if err != nil {
