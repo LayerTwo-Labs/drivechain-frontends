@@ -25,9 +25,9 @@ var _ rpc.OrchestratorServiceHandler = new(Handler)
 // Handler implements the OrchestratorService gRPC handler.
 type Handler struct {
 	orch *orchestrator.Orchestrator
-	// thunderBalance answers the thunder balance whatever wallet mode runs.
-	// Light mode starts no thunder node, so nothing may dial one here.
-	thunderBalance SidechainBalanceFunc
+	// sidechainBalances answer one chain's balance whatever wallet mode runs.
+	// Light mode starts no sidechain node, so nothing may dial one here.
+	sidechainBalances map[string]SidechainBalanceFunc
 }
 
 // SidechainBalanceFunc reads one sidechain balance, in sats.
@@ -37,10 +37,13 @@ func NewHandler(orch *orchestrator.Orchestrator) *Handler {
 	return &Handler{orch: orch}
 }
 
-// SetThunderBalance names the reader that answers the thunder balance. It is
-// the same wallet the thunder RPCs use, so both modes agree.
-func (h *Handler) SetThunderBalance(read SidechainBalanceFunc) {
-	h.thunderBalance = read
+// SetSidechainBalance names the reader that answers one chain's balance. It is
+// the same wallet that chain's RPCs use, so both modes agree.
+func (h *Handler) SetSidechainBalance(name string, read SidechainBalanceFunc) {
+	if h.sidechainBalances == nil {
+		h.sidechainBalances = map[string]SidechainBalanceFunc{}
+	}
+	h.sidechainBalances[name] = read
 }
 
 func (h *Handler) ListBinaries(ctx context.Context, req *connect.Request[pb.ListBinariesRequest]) (*connect.Response[pb.ListBinariesResponse], error) {
@@ -609,7 +612,7 @@ func (h *Handler) GetSidechainBalance(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("sidechain %s is not configured", name))
 	}
 
-	confirmedSats, pendingSats, err := h.fetchSidechainBalance(ctx, req.Msg.Sidechain, cfg)
+	confirmedSats, pendingSats, err := h.fetchSidechainBalance(ctx, cfg)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
@@ -662,10 +665,10 @@ func sidechainNames(binary pb.BinaryType) (name, displayName string, err error) 
 	}
 }
 
-func (h *Handler) fetchSidechainBalance(ctx context.Context, binary pb.BinaryType, cfg orchestrator.BinaryConfig) (confirmedSats, pendingSats int64, err error) {
-	// A thunder light wallet reads an index, not a local node.
-	if binary == pb.BinaryType_BINARY_TYPE_THUNDER && h.thunderBalance != nil {
-		total, available, err := h.thunderBalance(ctx)
+func (h *Handler) fetchSidechainBalance(ctx context.Context, cfg orchestrator.BinaryConfig) (confirmedSats, pendingSats int64, err error) {
+	// A light wallet reads an index, not a local node.
+	if read := h.sidechainBalances[cfg.Name]; read != nil {
+		total, available, err := read(ctx)
 		if err != nil {
 			return 0, 0, err
 		}

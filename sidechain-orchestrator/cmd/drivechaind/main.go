@@ -638,7 +638,7 @@ func run(cctx *cli.Context) error {
 			mux.Handle(path, thunderHandler)
 			// The sidechain balance the frontend reads must come from the same
 			// wallet, because light mode starts no thunder node to dial.
-			handler.SetThunderBalance(h.WalletBalance)
+			handler.SetSidechainBalance(name, h.WalletBalance)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
 		case "bitnames":
 			h := bitnamessvc.NewHandler(proxy)
