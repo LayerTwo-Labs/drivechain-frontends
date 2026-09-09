@@ -47,4 +47,55 @@ void main() {
     expect(utxo.type, OutpointType.deposit);
     expect(utxo.outpoint, 'abcd:0');
   });
+
+  test('a block pays a miner through a coinbase outpoint', () {
+    final utxo = SidechainUTXO.fromJson({
+      'outpoint': {
+        'Coinbase': {'merkle_root': 'bb', 'vout': 2},
+      },
+      'output': {
+        'address': 'mine',
+        'content': {'Value': 5000},
+      },
+    });
+
+    expect(utxo.type, OutpointType.coinbase);
+    expect(utxo.outpoint, 'bb:2');
+  });
+
+  test('a bitnames coin reads its own value key and its pending flag', () {
+    final utxo = BitnamesUTXO.fromJson({
+      'outpoint': {'Deposit': 'abcd:0'},
+      'output': {
+        'address': 'mine',
+        'content': {'BitcoinSats': 750},
+        'memo': <int>[],
+      },
+      'confirmed': false,
+    });
+
+    expect(utxo.type, OutpointType.deposit);
+    expect(utxo.outpoint, 'abcd:0');
+    expect(utxo.valueSats, 750);
+    expect(utxo.confirmed, isFalse);
+  });
+
+  test('a bitassets coin reads the outpoint the node writes', () {
+    final utxo = BitAssetsUTXO.fromJson({
+      'outpoint': {
+        'Regular': {'txid': 'cc', 'vout': 3},
+      },
+      'output': {
+        'address': 'mine',
+        'content': {'BitcoinSats': 900},
+        'memo': <int>[],
+      },
+      'confirmed': false,
+    });
+
+    expect(utxo.type, OutpointType.regular);
+    expect(utxo.outpoint, 'cc:3');
+    expect(utxo.valueSats, 900);
+    expect(utxo.confirmed, isFalse);
+  });
 }

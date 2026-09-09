@@ -1123,12 +1123,15 @@ class DutchAuctionEntry {
 class BitAssetsUTXO extends SidechainUTXO {
   final Map<String, dynamic> output;
 
-  BitAssetsUTXO({required super.outpoint, required this.output})
-    : super(
-        address: output['address'] as String,
-        valueSats: _extractValueSats(output['content']),
-        type: OutpointType.deposit,
-      );
+  BitAssetsUTXO({
+    required super.outpoint,
+    required super.type,
+    required super.confirmed,
+    required this.output,
+  }) : super(
+         address: output['address'] as String,
+         valueSats: _extractValueSats(output['content']),
+       );
 
   static int _extractValueSats(Map<String, dynamic> content) {
     // Extract value based on content type
@@ -1140,8 +1143,13 @@ class BitAssetsUTXO extends SidechainUTXO {
     return 0;
   }
 
-  factory BitAssetsUTXO.fromJson(Map<String, dynamic> json) => BitAssetsUTXO(
-    outpoint: json['outpoint'] as String,
-    output: json['output'] as Map<String, dynamic>,
-  );
+  factory BitAssetsUTXO.fromJson(Map<String, dynamic> json) {
+    final outpoint = Outpoint.fromJson(json['outpoint'] as Map<String, dynamic>);
+    return BitAssetsUTXO(
+      outpoint: outpoint.id,
+      type: outpoint.type,
+      confirmed: json['confirmed'] as bool? ?? true,
+      output: json['output'] as Map<String, dynamic>,
+    );
+  }
 }

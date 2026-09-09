@@ -4,10 +4,32 @@ import 'dart:convert';
 enum OutpointType {
   deposit,
   regular,
+  coinbase,
 
   // bitname specific types
   bitnameReservation,
   bitname,
+}
+
+/// One outpoint of a UTXO: the text form to show, and the kind it names.
+class Outpoint {
+  final String id;
+  final OutpointType type;
+
+  const Outpoint(this.id, this.type);
+
+  /// Reads the externally tagged form every sidechain node writes.
+  factory Outpoint.fromJson(Map<String, dynamic> json) {
+    final regular = json['Regular'];
+    if (regular is Map<String, dynamic>) {
+      return Outpoint('${regular['txid']}:${regular['vout']}', OutpointType.regular);
+    }
+    final coinbase = json['Coinbase'];
+    if (coinbase is Map<String, dynamic>) {
+      return Outpoint('${coinbase['merkle_root']}:${coinbase['vout']}', OutpointType.coinbase);
+    }
+    return Outpoint(json['Deposit'] as String, OutpointType.deposit);
+  }
 }
 
 /// Represents a generic sidechain UTXO
@@ -30,27 +52,12 @@ class SidechainUTXO {
   });
 
   factory SidechainUTXO.fromJson(Map<String, dynamic> json) {
-    final outpoint = json['outpoint'] as Map<String, dynamic>;
-    final address = json['output']['address'] as String;
-    final valueSats = json['output']['content']['Value'] as int;
-
-    // Handle both Regular and Deposit outpoint types
-    String outpointStr;
-    OutpointType type;
-    if (outpoint.containsKey('Regular')) {
-      final regular = outpoint['Regular'] as Map<String, dynamic>;
-      outpointStr = '${regular['txid']}:${regular['vout']}';
-      type = OutpointType.regular;
-    } else {
-      outpointStr = outpoint['Deposit'] as String;
-      type = OutpointType.deposit;
-    }
-
+    final outpoint = Outpoint.fromJson(json['outpoint'] as Map<String, dynamic>);
     return SidechainUTXO(
-      outpoint: outpointStr,
-      address: address,
-      valueSats: valueSats,
-      type: type,
+      outpoint: outpoint.id,
+      address: json['output']['address'] as String,
+      valueSats: json['output']['content']['Value'] as int,
+      type: outpoint.type,
       confirmed: json['confirmed'] as bool? ?? true,
     );
   }
@@ -69,24 +76,15 @@ class BitnamesUTXO extends SidechainUTXO {
     required super.address,
     required super.valueSats,
     required super.type,
+    required super.confirmed,
     required this.content,
   });
 
   factory BitnamesUTXO.fromJson(Map<String, dynamic> json) {
-    final outpoint = json['outpoint'] as Map<String, dynamic>;
+    final outpoint = Outpoint.fromJson(json['outpoint'] as Map<String, dynamic>);
     final output = json['output'] as Map<String, dynamic>;
-
-    // Handle both Regular and Deposit outpoint types
-    String outpointStr;
-    OutpointType type;
-    if (outpoint.containsKey('Regular')) {
-      final regular = outpoint['Regular'] as Map<String, dynamic>;
-      outpointStr = '${regular['txid']}:${regular['vout']}';
-      type = OutpointType.regular;
-    } else {
-      outpointStr = outpoint['Deposit'] as String;
-      type = OutpointType.deposit;
-    }
+    String outpointStr = outpoint.id;
+    OutpointType type = outpoint.type;
 
     // Get value from content
     int valueSats = 0;
@@ -108,6 +106,7 @@ class BitnamesUTXO extends SidechainUTXO {
       address: output['address'] as String,
       valueSats: valueSats,
       type: type,
+      confirmed: json['confirmed'] as bool? ?? true,
       content: jsonEncode(content),
     );
   }
