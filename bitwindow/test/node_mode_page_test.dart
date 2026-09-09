@@ -52,6 +52,20 @@ void main() {
     expect(picked, 0);
   });
 
+  testWidgets('accepts the Bitcoin light wallet without an enforcer', (tester) async {
+    await pumpPage(tester);
+    wallet.up = true;
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+
+    expect(find.text('Your Bitcoin wallet uses Electrum. No Bitcoin Core download.'), findsOneWidget);
+    await tester.tap(find.byType(SailButton));
+    await tester.pumpAndSettle();
+
+    expect(wallet.mode, wmpb.NodeMode.NODE_MODE_LIGHT);
+    expect(picked, 1);
+  });
+
   testWidgets('moves on when the backend reports the mode the user already picked', (tester) async {
     await pumpPage(tester);
     wallet.up = true;
@@ -127,6 +141,11 @@ class _FakeWallet implements OrchestratorWalletRPC {
       throw Exception('connection refused');
     }
     return wmpb.GetNodeModeResponse(mode: mode, lightModeAvailable: true);
+  }
+
+  @override
+  Future<void> setNodeMode(wmpb.NodeMode next) async {
+    mode = next;
   }
 
   @override

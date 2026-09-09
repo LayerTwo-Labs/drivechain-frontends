@@ -32,7 +32,7 @@ const (
 	NodeMode_NODE_MODE_UNSPECIFIED NodeMode = 0
 	// Runs Bitcoin Core and the enforcer on this machine.
 	NodeMode_NODE_MODE_FULL NodeMode = 1
-	// Reads the chain from a remote Esplora server, and starts no local daemon.
+	// Runs local sidechains with remote Bitcoin services.
 	NodeMode_NODE_MODE_LIGHT NodeMode = 2
 )
 
@@ -740,11 +740,12 @@ func (*GetNodeModeRequest) Descriptor() ([]byte, []int) {
 type GetNodeModeResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Mode  NodeMode               `protobuf:"varint,1,opt,name=mode,proto3,enum=walletmanager.v1.NodeMode" json:"mode,omitempty"`
-	// False when the current network serves no Esplora, so light mode cannot
-	// read a chain. Regtest and testnet.
+	// True when the current network has remote services for light mode.
 	LightModeAvailable bool `protobuf:"varint,2,opt,name=light_mode_available,json=lightModeAvailable,proto3" json:"light_mode_available,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// True when the current network has a remote validator endpoint.
+	RemoteEnforcerAvailable bool `protobuf:"varint,3,opt,name=remote_enforcer_available,json=remoteEnforcerAvailable,proto3" json:"remote_enforcer_available,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *GetNodeModeResponse) Reset() {
@@ -787,6 +788,13 @@ func (x *GetNodeModeResponse) GetMode() NodeMode {
 func (x *GetNodeModeResponse) GetLightModeAvailable() bool {
 	if x != nil {
 		return x.LightModeAvailable
+	}
+	return false
+}
+
+func (x *GetNodeModeResponse) GetRemoteEnforcerAvailable() bool {
+	if x != nil {
+		return x.RemoteEnforcerAvailable
 	}
 	return false
 }
@@ -10002,10 +10010,11 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"total_sats\x18\x01 \x01(\x03R\ttotalSats\x12\x1f\n" +
 	"\vrecent_sats\x18\x02 \x01(\x03R\n" +
 	"recentSats\"\x14\n" +
-	"\x12GetNodeModeRequest\"w\n" +
+	"\x12GetNodeModeRequest\"\xb3\x01\n" +
 	"\x13GetNodeModeResponse\x12.\n" +
 	"\x04mode\x18\x01 \x01(\x0e2\x1a.walletmanager.v1.NodeModeR\x04mode\x120\n" +
-	"\x14light_mode_available\x18\x02 \x01(\bR\x12lightModeAvailable\"D\n" +
+	"\x14light_mode_available\x18\x02 \x01(\bR\x12lightModeAvailable\x12:\n" +
+	"\x19remote_enforcer_available\x18\x03 \x01(\bR\x17remoteEnforcerAvailable\"D\n" +
 	"\x12SetNodeModeRequest\x12.\n" +
 	"\x04mode\x18\x01 \x01(\x0e2\x1a.walletmanager.v1.NodeModeR\x04mode\"\x15\n" +
 	"\x13SetNodeModeResponse\"\xd8\x01\n" +

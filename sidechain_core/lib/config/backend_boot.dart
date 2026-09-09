@@ -8,8 +8,11 @@ enum BackendBoot {
   /// The user never picked. Nothing boots until the mode gate asks.
   awaitChoice,
 
-  /// Light mode. The chain comes from a remote index, so no daemon boots.
-  remoteChain,
+  /// Light mode uses local sidechains and a remote enforcer.
+  remoteEnforcer,
+
+  /// Light mode uses the Bitcoin wallet without a remote enforcer.
+  walletOnly,
 
   /// Full mode. Bitcoin Core and the enforcer boot on this machine.
   localBackends;
@@ -17,11 +20,14 @@ enum BackendBoot {
   /// True when this install starts its own Bitcoin backends.
   bool get startsLocalBackends => this == BackendBoot.localBackends;
 
+  bool get startsBackends => this == BackendBoot.localBackends || this == BackendBoot.remoteEnforcer;
+
   /// Why the boot took this branch. Both apps log it.
   String get reason => switch (this) {
     BackendBoot.awaitChoice => 'no node mode picked yet; the mode gate asks before any boot',
-    BackendBoot.remoteChain => 'light mode; the chain comes from a remote index',
-    BackendBoot.localBackends => 'full mode; starting the local Bitcoin backends',
+    BackendBoot.remoteEnforcer => 'light mode; local sidechains use the remote enforcer',
+    BackendBoot.walletOnly => 'light mode; the Bitcoin wallet uses Electrum',
+    BackendBoot.localBackends => 'full mode; start the local Bitcoin backends',
   };
 }
 
@@ -45,5 +51,8 @@ Future<BackendBoot> readBackendBoot({required bool orchestratorReady}) async {
   if (mode.needsChoice) {
     return BackendBoot.awaitChoice;
   }
-  return mode.isFull ? BackendBoot.localBackends : BackendBoot.remoteChain;
+  if (mode.isFull) {
+    return BackendBoot.localBackends;
+  }
+  return mode.usesEnforcer ? BackendBoot.remoteEnforcer : BackendBoot.walletOnly;
 }

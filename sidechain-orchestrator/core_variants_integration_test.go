@@ -103,6 +103,7 @@ func newIntegrationOrchestrator(t *testing.T, network, baseURL string, dataDir, 
 	o := New(dataDir, network, bitwindowDir, configs, testLogger(t))
 	t.Cleanup(func() {
 		o.StopAllMonitors()
+		require.NoError(t, o.closeRemoteEnforcer())
 	})
 	return o
 }

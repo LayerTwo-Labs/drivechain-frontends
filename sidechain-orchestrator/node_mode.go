@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,8 +19,7 @@ const (
 	NodeModeUnset NodeMode = ""
 	// NodeModeFull runs Bitcoin Core and the enforcer on this machine.
 	NodeModeFull NodeMode = "full"
-	// NodeModeLight reads the chain from a remote Esplora server and starts no
-	// local daemon.
+	// NodeModeLight uses remote Bitcoin services and local sidechain daemons.
 	NodeModeLight NodeMode = "light"
 )
 
@@ -80,4 +80,101 @@ func NodeModeForNetwork(mode NodeMode, network config.Network) NodeMode {
 // network can serve.
 func (o *Orchestrator) NodeMode() NodeMode {
 	return NodeModeForNetwork(ReadNodeMode(o.BitwindowDir), config.Network(o.CurrentNetwork()))
+}
+
+// SetNodeMode changes the Bitcoin services and restarts active sidechain daemons.
+func (o *Orchestrator) SetNodeMode(ctx context.Context, mode NodeMode) error {
+	if mode != NodeModeFull && mode != NodeModeLight {
+		return fmt.Errorf("select full or light mode")
+	}
+	o.swapNetworkMu.Lock()
+	defer o.swapNetworkMu.Unlock()
+	if o.NodeMode() == mode {
+		return WriteNodeMode(o.BitwindowDir, mode)
+	}
+	if mode == NodeModeLight && !config.SupportsLightMode(config.Network(o.CurrentNetwork())) {
+		return fmt.Errorf("%s does not support light mode", o.CurrentNetwork())
+	}
+	for _, cfg := range o.Configs() {
+		if cfg.ChainLayer != 2 && (mode != NodeModeLight || (cfg.Name != "enforcer" && cfg.Name != "bitcoind")) {
+			continue
+		}
+		if o.process.IsAdopted(cfg.Name) && !o.mayStopAdopted(cfg.Name) {
+			return fmt.Errorf("stop %s in its own launcher before you change node mode", cfg.Name)
+		}
+	}
+
+	sidechains := make(map[string]StartOpts)
+	for _, cfg := range o.Configs() {
+		if cfg.ChainLayer != 2 || !o.process.IsRunning(cfg.Name) {
+			continue
+		}
+		if mode == NodeModeLight {
+			spec, known := config.SidechainSpecByName(cfg.Name)
+			if cfg.IsBitcoinCore || !known || spec.EnforcerArg == "" {
+				return fmt.Errorf("stop %s before you select light mode; it uses local Bitcoin services", cfg.Name)
+			}
+			if config.RemoteEnforcerURLForNetwork(config.Network(o.CurrentNetwork())) == "" {
+				return fmt.Errorf("%s has no remote enforcer endpoint", o.CurrentNetwork())
+			}
+		}
+		opts := StartOpts{ForceBackend: true}
+		if proc := o.process.Get(cfg.Name); proc != nil && proc.Cmd != nil {
+			opts.TargetArgs = append([]string(nil), proc.Cmd.Args[1:]...)
+			opts.TargetEnv = make(map[string]string)
+			for _, entry := range proc.Cmd.Env {
+				if key, value, ok := strings.Cut(entry, "="); ok {
+					opts.TargetEnv[key] = value
+				}
+			}
+		}
+		for _, flag := range []string{"--mainchain-grpc-url", "--mainchain-grpc-host", "--mainchain-grpc-port", "--mnemonic-seed-phrase-path"} {
+			opts.TargetArgs = replaceCLIFlag(opts.TargetArgs, flag, "")
+		}
+		sidechains[cfg.Name] = opts
+	}
+	if mode == NodeModeFull && len(sidechains) > 0 {
+		network := config.Network(o.CurrentNetwork())
+		if o.BitcoinConf == nil || !o.BitcoinConf.HasDatadirForNetwork(network) {
+			return fmt.Errorf("select a Bitcoin data directory for %s before full mode", network)
+		}
+	}
+	for name := range sidechains {
+		if err := o.stopForNetworkSwap(ctx, name, StopOptions{ForceBackend: true}); err != nil {
+			return err
+		}
+	}
+	if mode == NodeModeLight {
+		for _, name := range []string{"enforcer", "bitcoind"} {
+			if o.process.IsRunning(name) {
+				if err := o.stopForNetworkSwap(ctx, name); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	if err := o.closeRemoteEnforcer(); err != nil {
+		return err
+	}
+	if err := WriteNodeMode(o.BitwindowDir, mode); err != nil {
+		return err
+	}
+	o.syncConnMu.Lock()
+	o.enforcerSync = nil
+	o.syncConnMu.Unlock()
+	for name, opts := range sidechains {
+		ch, err := o.StartWithL1(context.Background(), name, opts)
+		if err != nil {
+			return fmt.Errorf("restart %s: %w", name, err)
+		}
+		go func() {
+			for progress := range ch {
+				if progress.Error != nil {
+					o.log.Error().Err(progress.Error).Str("binary", name).Msg("sidechain restart failed after the mode change")
+					return
+				}
+			}
+		}()
+	}
+	return nil
 }

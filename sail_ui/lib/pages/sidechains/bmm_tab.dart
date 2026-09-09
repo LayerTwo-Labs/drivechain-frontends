@@ -15,7 +15,10 @@ import 'package:url_launcher/url_launcher.dart';
 /// trails Bitcoin Core names a block miners have already built past and can
 /// never be included. The orchestrator rejects those bids too — this only keeps
 /// the controls from offering an action that cannot succeed.
-String? bidBlockedReasonFor(SyncProvider sync) {
+String? bidBlockedReasonFor(SyncProvider sync, {bool lightMode = false}) {
+  if (lightMode) {
+    return 'BMM is unavailable in light mode';
+  }
   // Without Core the enforcer's goal falls back to its own height, which reads
   // as synced however far behind it is.
   if (sync.mainchainSyncInfo == null || (sync.mainchainError?.isNotEmpty ?? false)) {
@@ -229,6 +232,7 @@ class _Controls extends StatelessWidget {
             ),
           ],
         ),
+        if (viewModel.isLight) SailText.secondary12(viewModel.bidBlockedReason!),
         if (viewModel.fundingWarning)
           SailText.secondary12(
             viewModel.fundingWarningLabel,
@@ -667,6 +671,7 @@ class BMMViewModel extends BaseViewModel {
   final BMMProvider bmmProvider = GetIt.I.get<BMMProvider>();
   final BitcoinConfProvider _conf = GetIt.I.get<BitcoinConfProvider>();
   final SyncProvider _sync = GetIt.I.get<SyncProvider>();
+  final NodeModeProvider? _nodeMode = GetIt.I.isRegistered<NodeModeProvider>() ? GetIt.I.get<NodeModeProvider>() : null;
 
   final TextEditingController maxBidController = TextEditingController();
   final TextEditingController minBidController = TextEditingController();
@@ -677,13 +682,15 @@ class BMMViewModel extends BaseViewModel {
     minBidController.text = _minBidText;
     bmmProvider.addListener(_onProviderChanged);
     _sync.addListener(_onSyncChanged);
+    _nodeMode?.addListener(_onSyncChanged);
   }
 
   String get chainName => bmmProvider.sidechainRPC.chain.name;
   int get slot => bmmProvider.sidechainRPC.chain.slot;
 
   bool get canBid => bidBlockedReason == null;
-  String? get bidBlockedReason => bidBlockedReasonFor(_sync);
+  bool get isLight => _nodeMode?.isLight ?? false;
+  String? get bidBlockedReason => bidBlockedReasonFor(_sync, lightMode: isLight);
 
   bool get running => bmmProvider.running;
   String? get bmmError => bmmProvider.error ?? bmmProvider.lastBidError;
@@ -727,6 +734,9 @@ class BMMViewModel extends BaseViewModel {
   }
 
   String get slotStatus {
+    if (isLight) {
+      return 'Paused';
+    }
     if (!running) {
       return 'Not bidding';
     }
@@ -922,6 +932,7 @@ class BMMViewModel extends BaseViewModel {
   void dispose() {
     bmmProvider.removeListener(_onProviderChanged);
     _sync.removeListener(_onSyncChanged);
+    _nodeMode?.removeListener(_onSyncChanged);
     maxBidController.dispose();
     minBidController.dispose();
     super.dispose();

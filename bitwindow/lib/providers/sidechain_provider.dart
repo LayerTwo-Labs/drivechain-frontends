@@ -1,4 +1,5 @@
 import 'package:sidechain_core/providers/network_scoped.dart';
+import 'package:sidechain_core/providers/node_mode_provider.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -53,7 +54,10 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   void _onSync() {
-    if (_syncProvider.isSynced) {
+    final synced = NodeModeProvider.runsLocalBackends
+        ? _syncProvider.isSynced
+        : (_syncProvider.enforcerSyncInfo?.isSynced ?? false);
+    if (synced) {
       fetch();
     }
   }

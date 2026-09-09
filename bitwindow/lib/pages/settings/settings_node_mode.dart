@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/pages/router.gr.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 
@@ -46,9 +47,7 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
       return;
     }
 
-    // The side navigation stays live through the awaits below, so this page can
-    // go away mid-transition. The router outlives it, and a half-applied mode
-    // leaves full mode written with no directory and no daemons.
+    // The router stays valid if the user leaves this page.
     final router = context.router;
 
     final confirmed = await _confirm(next);
@@ -61,19 +60,23 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
       _error = null;
     });
     try {
-      await _nodeMode.select(next);
-      // select() starts nothing while the network has no data directory, and
-      // the route guards never re-run for a page already on screen. So this
-      // toggle walks the same path the guard does.
       if (next == wmpb.NodeMode.NODE_MODE_FULL) {
-        final ready = await ensureDataDirThenStartBackends(router);
-        if (!ready) {
-          // select() already wrote full mode, so a toggle left on here would
-          // read as full mode with every local daemon down.
-          await _nodeMode.select(wmpb.NodeMode.NODE_MODE_LIGHT);
-          _showError('Full mode stores the chain on disk, so it needs a data directory.');
+        final conf = GetIt.I.get<BitcoinConfProvider>();
+        await conf.loadConfig();
+        final selectDataDir =
+            !conf.hasPrivateBitcoinConf &&
+            (conf.network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET ||
+                conf.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) &&
+            !conf.hasDataDirFor(conf.network);
+        if (selectDataDir) {
+          final selected = await router.push<bool>(DataDirSetupRoute(network: conf.network));
+          await conf.loadConfig();
+          if (selected != true || !conf.hasDataDirFor(conf.network)) {
+            return;
+          }
         }
       }
+      await _nodeMode.select(next);
     } catch (e) {
       _showError('$e');
     } finally {
@@ -110,8 +113,11 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
                   toFull
                       ? 'BitWindow downloads Bitcoin Core and the enforcer, then syncs the chain. '
                             'That takes hours and hundreds of gigabytes. You can leave this page while it runs.'
-                      : 'BitWindow stops the local node and reads the chain from a remote server. '
-                            'Your chain data stays on disk, so a switch back does not sync from the start.',
+                      : _nodeMode.remoteEnforcerAvailable
+                      ? 'BitWindow stops Bitcoin Core and the local enforcer. Local sidechains use the remote enforcer. '
+                            'Your Bitcoin wallet uses Electrum. Your chain data stays on disk.'
+                      : 'BitWindow stops Bitcoin Core and the local enforcer. '
+                            'Your Bitcoin wallet uses Electrum. Your chain data stays on disk.',
                 ),
                 SailText.secondary13('No wallet and no key is deleted.'),
                 SailRow(
@@ -143,11 +149,13 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
       children: [
         SailSettingsGroup(
           title: 'Node mode',
-          description: 'Full mode runs Bitcoin on this machine. Light mode reads it from a remote server.',
+          description: _nodeMode.remoteEnforcerAvailable
+              ? 'Both modes run local sidechains. Light mode uses a remote enforcer and an Electrum Bitcoin wallet.'
+              : 'Light mode uses an Electrum Bitcoin wallet.',
           children: [
             SailSettingsRow(
               label: 'Full mode',
-              description: 'If enabled, gives you sidechains and mining. Needs 1TB of disk.',
+              description: 'Runs Bitcoin Core and the enforcer locally. Uses about 1 TB of disk.',
               trailing: _ModeToggle(
                 value: isFull,
                 // The row below says light mode is unavailable here, so the
@@ -161,7 +169,7 @@ class _SettingsNodeModeState extends State<SettingsNodeMode> {
             if (!_nodeMode.lightModeAvailable)
               SailSettingsRow(
                 label: 'Light mode is unavailable here',
-                description: 'This network serves no remote chain server, so it runs full mode only.',
+                description: 'This network has no remote enforcer or Bitcoin wallet server, so it uses full mode.',
               ),
             if (_error != null)
               SailSettingsRow(

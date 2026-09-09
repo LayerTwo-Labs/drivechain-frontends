@@ -160,7 +160,7 @@ enum NodeMode {
   NODE_MODE_UNSPECIFIED = 0;
   // Runs Bitcoin Core and the enforcer on this machine.
   NODE_MODE_FULL = 1;
-  // Reads the chain from a remote Esplora server, and starts no local daemon.
+  // Runs local sidechains with remote Bitcoin services.
   NODE_MODE_LIGHT = 2;
 }
 
@@ -202,9 +202,10 @@ message GetNodeModeRequest {}
 
 message GetNodeModeResponse {
   NodeMode mode = 1;
-  // False when the current network serves no Esplora, so light mode cannot
-  // read a chain. Regtest and testnet.
+  // True when the current network has remote services for light mode.
   bool light_mode_available = 2;
+  // True when the current network has a remote validator endpoint.
+  bool remote_enforcer_available = 3;
 }
 
 message SetNodeModeRequest {

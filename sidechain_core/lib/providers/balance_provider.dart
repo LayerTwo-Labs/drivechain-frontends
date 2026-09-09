@@ -1,5 +1,4 @@
 import 'package:sidechain_core/providers/network_scoped.dart';
-import 'package:sidechain_core/providers/node_mode_provider.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -103,9 +102,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
 
       // Fetch balances from all connections
       for (final rpc in connections) {
-        // A light install starts no sidechain daemon, so none reads as
-        // connected. Their wallets still answer through an index.
-        if (!rpc.connected && NodeModeProvider.runsLocalBackends) {
+        if (!rpc.connected) {
           // dont bother fetching balance if connection is down
           continue;
         }

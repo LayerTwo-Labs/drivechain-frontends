@@ -52,10 +52,6 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final hashWarning = viewModel.hashMismatchWarning;
 
-    // Every slot, balance and withdrawal on this tab is BIP300 state, which only
-    // a local Core + enforcer can produce. Without them the tables are empty and
-    // the buttons fail, so say so instead of showing a dead page. A network that
-    // has no sidechains at all says so first — starting daemons wouldn't help.
     final gated = viewModel.networkSupportsSidechains && viewModel.l1Gate != L1Gate.ready;
 
     final Widget mainContent = gated
@@ -86,27 +82,23 @@ class SidechainsTab extends ViewModelWidget<SidechainsViewModel> {
 }
 
 /// Why the sidechains tab can't do anything yet.
-enum L1Gate { ready, stopped, starting, syncing }
+enum L1Gate { ready, unavailable, stopped, starting, syncing }
 
-/// Sidechains live in the enforcer's view of the chain, so both daemons must be
-/// up *and* synced before any slot, balance or withdrawal on this tab is real.
+/// The enforcer must connect and complete its sync before the tab opens.
 @visibleForTesting
 L1Gate resolveL1Gate({
   required bool walletNeedsBackends,
+  required bool remoteEnforcerAvailable,
   required bool coreConnected,
   required bool enforcerConnected,
   required bool coming,
   required bool synced,
   required bool chainIsEmpty,
 }) {
-  // An electrum wallet reads BIP300 state from the hosted orchestrator instead
-  // (bitwindowd swaps the data source per call), and StartWithL1 is a no-op for
-  // it — gating here would block a working tab behind a button that does
-  // nothing.
-  if (!walletNeedsBackends) {
-    return L1Gate.ready;
+  if (!walletNeedsBackends && !remoteEnforcerAvailable) {
+    return L1Gate.unavailable;
   }
-  if (!coreConnected || !enforcerConnected) {
+  if ((walletNeedsBackends && !coreConnected) || !enforcerConnected) {
     return coming ? L1Gate.starting : L1Gate.stopped;
   }
   // A fresh regtest node sits at 0/0 with nothing to sync from, and isSynced
@@ -119,21 +111,6 @@ L1Gate resolveL1Gate({
   return synced ? L1Gate.ready : L1Gate.syncing;
 }
 
-/// A deposit asks the chain for an address. A light install runs no daemon, so
-/// only a chain that answers through an index can give one. Full mode waits for
-/// the daemon it runs.
-@visibleForTesting
-bool resolveCanDeposit({
-  required bool walletNeedsBackends,
-  required bool sidechainRunning,
-  required bool servesLightWallet,
-}) {
-  if (walletNeedsBackends) {
-    return sidechainRunning;
-  }
-  return servesLightWallet;
-}
-
 /// Stands in for the whole tab while the L1 stack is missing, and doubles as the
 /// place to start it — the same daemons the bottom nav reports on.
 class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
@@ -143,11 +120,30 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final gate = viewModel.l1Gate;
 
+    if (gate == L1Gate.unavailable) {
+      return SailCard(
+        title: 'Sidechains are unavailable in light mode',
+        child: Padding(
+          padding: const EdgeInsets.all(SailStyleValues.padding12),
+          child: SailColumn(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SailText.secondary13(
+                'This network has no remote enforcer. Select full mode in Settings to use sidechains.',
+              ),
+              SailText.secondary13('Your Bitcoin wallet still uses Electrum.'),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SailCard(
       title: switch (gate) {
-        L1Gate.stopped => 'Sidechains need a fully synced Bitcoin Core node',
-        L1Gate.starting => 'Starting Bitcoin Core and the enforcer',
-        _ => 'Bitcoin Core is syncing',
+        L1Gate.stopped => 'The enforcer connection is not ready',
+        L1Gate.starting => 'The enforcer connection starts',
+        _ => 'The enforcer sync is not complete',
       },
       child: Padding(
         padding: const EdgeInsets.all(SailStyleValues.padding12),
@@ -159,34 +155,31 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
               child: SailText.secondary13(
                 switch (gate) {
                   L1Gate.stopped =>
-                    'Deposits, withdrawals and the slot list are read from BIP300 state, which only a local '
-                        'Bitcoin Core plus the enforcer can produce. Both must be running and fully synced '
-                        'before this tab can do anything.',
+                    'The enforcer must connect and complete its sync before this tab can show sidechain data.',
                   // One string for both: the enforcer drops in and out while it
                   // catches up, and a per-state string reflows the page each time.
-                  _ =>
-                    'The slot list and balances stay empty until Core and the enforcer have caught up with '
-                        'the chain tip. You can leave this tab — syncing carries on.',
+                  _ => 'The slot list and balances stay empty until the enforcer reaches the chain tip.',
                 },
               ),
             ),
             const SailSpacing(SailStyleValues.padding16),
             // The same cards the bottom nav shows, so status, sync progress and
             // the per-daemon restart/logs controls stay in one implementation.
-            DaemonConnectionCard(
-              connection: viewModel.mainchainConnection,
-              syncInfo: viewModel.mainchainSyncInfo,
-              infoMessage: null,
-              restartDaemon: () => viewModel.restartDaemon(BitcoinCore()),
-              stopDaemon: () => viewModel.stopDaemon(BitcoinCore()),
-              navigateToLogs: viewModel.navigateToLogs,
-            ),
+            if (NodeModeProvider.runsLocalBackends)
+              DaemonConnectionCard(
+                connection: viewModel.mainchainConnection,
+                syncInfo: viewModel.mainchainSyncInfo,
+                infoMessage: null,
+                restartDaemon: () => viewModel.restartDaemon(BitcoinCore()),
+                stopDaemon: () => viewModel.stopDaemon(BitcoinCore()),
+                navigateToLogs: viewModel.navigateToLogs,
+              ),
             DaemonConnectionCard(
               connection: viewModel.enforcerConnection,
               syncInfo: viewModel.enforcerSyncInfo,
               infoMessage: viewModel.enforcerInfoMessage,
-              restartDaemon: () => viewModel.restartDaemon(Enforcer()),
-              stopDaemon: () => viewModel.stopDaemon(Enforcer()),
+              restartDaemon: NodeModeProvider.runsLocalBackends ? () => viewModel.restartDaemon(Enforcer()) : null,
+              stopDaemon: NodeModeProvider.runsLocalBackends ? () => viewModel.stopDaemon(Enforcer()) : null,
               navigateToLogs: viewModel.navigateToLogs,
             ),
             if (gate == L1Gate.stopped) ...[
@@ -194,13 +187,17 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
               Row(
                 children: [
                   SailButton(
-                    label: 'Start Bitcoin Core + Enforcer',
+                    label: NodeModeProvider.runsLocalBackends
+                        ? 'Start Bitcoin Core + Enforcer'
+                        : 'Connect to remote enforcer',
                     onPressed: viewModel.startL1,
                   ),
-                  const SizedBox(width: SailStyleValues.padding12),
-                  Flexible(
-                    child: SailText.secondary12('Takes a while on first run — the chain has to download and verify.'),
-                  ),
+                  if (NodeModeProvider.runsLocalBackends) ...[
+                    const SizedBox(width: SailStyleValues.padding12),
+                    Flexible(
+                      child: SailText.secondary12('The first start must download and check the chain.'),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -683,6 +680,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
   final BitcoinConfProvider _confProvider = GetIt.I.get<BitcoinConfProvider>();
   final SyncProvider _syncProvider = GetIt.I.get<SyncProvider>();
+  final NodeModeProvider? _nodeMode = GetIt.I.isRegistered<NodeModeProvider>() ? GetIt.I.get<NodeModeProvider>() : null;
   DownloadProvider? get _downloadProvider =>
       GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
@@ -730,6 +728,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _sidechainProvider.fetch();
 
     _walletReader.addListener(_onChange);
+    _nodeMode?.addListener(_onChange);
 
     _binaryProvider.addListener(_onChange);
     _binaryProvider.addListener(notifyListeners);
@@ -749,11 +748,10 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   bool get loading => _enforcerRPC.initializingBinary;
 
-  /// What is missing before the tab can read BIP300 state. Sidechains live in
-  /// the enforcer's view of the chain, so a running *and* synced Core plus
-  /// enforcer is the floor — an electrum wallet has neither.
+  /// The connection state before the tab can read BIP300 data.
   L1Gate get l1Gate => resolveL1Gate(
     walletNeedsBackends: NodeModeProvider.runsLocalBackends,
+    remoteEnforcerAvailable: _nodeMode?.remoteEnforcerAvailable ?? false,
     coreConnected: _binaryProvider.isConnected(BitcoinCore()),
     enforcerConnected: _binaryProvider.isConnected(Enforcer()),
     coming:
@@ -761,7 +759,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         _binaryProvider.isInitializing(Enforcer()) ||
         _isDownloadingFor(BitcoinCore()) ||
         _isDownloadingFor(Enforcer()),
-    synced: _syncProvider.isSynced,
+    synced: NodeModeProvider.runsLocalBackends
+        ? _syncProvider.isSynced
+        : (_syncProvider.enforcerSyncInfo?.isSynced ?? false),
     chainIsEmpty: _regtestChainIsEmpty,
   );
 
@@ -909,11 +909,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return '${mismatched.join(', ')} and $last';
   }
 
-  bool canDeposit(int slot) => resolveCanDeposit(
-    walletNeedsBackends: NodeModeProvider.runsLocalBackends,
-    sidechainRunning: isSidechainRunning(slot),
-    servesLightWallet: _sidechainRPC(slot)?.servesLightWallet ?? false,
-  );
+  bool canDeposit(int slot) => isSidechainRunning(slot);
 
   bool isSidechainRunning(int slot) => _sidechainRPC(slot)?.connected ?? false;
 
@@ -1335,6 +1331,7 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   void dispose() {
     _sidechainProvider.removeListener(_onChange);
     _walletReader.removeListener(_onChange);
+    _nodeMode?.removeListener(_onChange);
     addressController.removeListener(_onChange);
     depositAmountController.removeListener(_onChange);
     feeController.removeListener(_onChange);
@@ -1630,10 +1627,7 @@ class SeeWithdrawalsView extends ViewModelWidget<SidechainsViewModel> {
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
-    final isDisabled = viewModel.sidechainManagementUnavailable;
-
     return SailCard(
-      error: isDisabled ? 'Bundle history comes from the enforcer, so light mode lists none.' : null,
       bottomPadding: false,
       child: const RecentWithdrawalsTable(),
     );
@@ -1819,12 +1813,7 @@ class _DepositModalState extends State<DepositModal> {
     };
 
     // The same rule the deposit button reads.
-    if (rpc != null &&
-        resolveCanDeposit(
-          walletNeedsBackends: NodeModeProvider.runsLocalBackends,
-          sidechainRunning: rpc.connected,
-          servesLightWallet: rpc.servesLightWallet,
-        )) {
+    if (rpc != null && rpc.connected) {
       return rpc;
     }
     return null;

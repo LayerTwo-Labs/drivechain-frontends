@@ -70,7 +70,7 @@ func (o *Orchestrator) PlanNetworkChange(req NetworkChangeRequest) NetworkChange
 
 	// The node mode decides whether a local node runs, so the plan follows it
 	// rather than the wallet backend. Full mode with an electrum wallet still
-	// runs Core, and light mode runs nothing whatever the wallet is.
+	// runs Core, and light mode uses remote Bitcoin services.
 	//
 	// With no mode picked, nothing is about to start Core, so only an explicit
 	// network change is heading for a local node. Treating that as Core is what

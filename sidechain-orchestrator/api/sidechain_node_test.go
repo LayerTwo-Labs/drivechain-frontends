@@ -102,9 +102,7 @@ func TestBalanceReadsTheNodeTheConfigNames(t *testing.T) {
 	assert.Equal(t, int64(175), pending)
 }
 
-// Thunder light mode starts no node, so the balance comes from the wallet the
-// thunder RPCs read and nothing dials a port.
-func TestThunderLightBalanceNeverDialsANode(t *testing.T) {
+func TestThunderBalanceUsesTheRegisteredHandler(t *testing.T) {
 	h := &Handler{
 		orch: &orchestrator.Orchestrator{Network: string(config.NetworkRegtest)},
 		sidechainBalances: map[string]SidechainBalanceFunc{

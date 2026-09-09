@@ -221,10 +221,6 @@ class BottomNav extends StatelessWidget {
         ),
         builder: ((context, model, child) {
           final binaryProvider = GetIt.I.get<BinaryProvider>();
-          // Electrum wallets run no local Core or enforcer by design, so their
-          // cards would sit at a misleading "Not connected" — omit them. Unless
-          // the daemons are up anyway: switching to an electrum wallet leaves
-          // them running, and hiding them loses the sync they still report.
           final walletNeedsBackends = NodeModeProvider.runsLocalBackends;
           final showMainchain = showDaemonCard(
             walletNeedsBackends: walletNeedsBackends,
@@ -232,7 +228,7 @@ class BottomNav extends StatelessWidget {
             initializing: model.mainchain.initializingBinary,
           );
           final showEnforcer = showDaemonCard(
-            walletNeedsBackends: walletNeedsBackends,
+            walletNeedsBackends: model.needsEnforcer,
             connected: model.enforcer.connected,
             initializing: model.enforcer.initializingBinary,
           );
@@ -290,33 +286,29 @@ class BottomNav extends StatelessWidget {
                             : model.syncProvider.inHeaderSync
                             ? 'Waiting for L1 to sync headers...'
                             : null,
-                        restartDaemon: () => binaryProvider.restart(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == Enforcer().name,
-                          ),
-                        ),
-                        stopDaemon: () => binaryProvider.stop(
-                          binaryProvider.binaries.firstWhere(
-                            (b) => b.name == Enforcer().name,
-                          ),
-                        ),
+                        restartDaemon: walletNeedsBackends
+                            ? () => binaryProvider.restart(
+                                binaryProvider.binaries.firstWhere(
+                                  (b) => b.name == Enforcer().name,
+                                ),
+                              )
+                            : null,
+                        stopDaemon: walletNeedsBackends
+                            ? () => binaryProvider.stop(
+                                binaryProvider.binaries.firstWhere(
+                                  (b) => b.name == Enforcer().name,
+                                ),
+                              )
+                            : null,
                         navigateToLogs: model.navigateToLogs,
                         onOpenConfConfigurator: onOpenEnforcerConfConfigurator,
                       ),
                     if (showAdditional)
                       Builder(
                         builder: (context) {
-                          // Only sidechains (chainLayer == 2) actually need Core
-                          // header sync — their RPC reports 0/0 until headers
-                          // arrive, which reads as "broken" in the UI. Layer-1
-                          // companions like bitwindowd have their own
-                          // independent connection state and must show it
-                          // unconditionally; gating their card on Core's IBD
-                          // hid the bitwindowd backend status entirely behind
-                          // a misleading "Waiting for Bitcoin Core header sync"
-                          // message even when bitwindowd was healthy.
                           final isSidechain = additionalConnection.rpc.binary.chainLayer == 2;
                           final bool coreReady =
+                              !model.needsBackends ||
                               !isSidechain ||
                               (model.mainchain.connected &&
                                   !model.mainchain.initializingBinary &&
@@ -428,11 +420,12 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   DownloadProvider? get downloadProvider =>
       GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
 
+  NodeModeProvider? get nodeMode => GetIt.I.isRegistered<NodeModeProvider>() ? GetIt.I.get<NodeModeProvider>() : null;
+
   final bool mainchainInfo;
   final Function(String, String, BinaryType) navigateToLogs;
 
-  /// The orchestrator's own daemon. In light mode it is the only one running,
-  /// so a modal without it would be empty.
+  /// The connection to the local orchestrator.
   late final DrivechaindState? drivechaind = GetIt.I.isRegistered<BackendStateProvider>() ? DrivechaindState() : null;
 
   BottomNavViewModel({
@@ -448,6 +441,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     syncProvider.addListener(_onChange);
     downloadProvider?.addListener(_onChange);
     drivechaind?.addListener(_onChange);
+    nodeMode?.addListener(_onChange);
   }
 
   /// Resolves the SyncInfo for the additional daemon card. SyncProvider
@@ -479,31 +473,25 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     notifyIfChanged(); // Use change tracking for normal updates
   }
 
-  // Electrum wallets run no local Core/enforcer, so the L1 daemons must not
-  // gate the bottom-nav connection status — otherwise it sticks on "Waiting
-  // for Bitcoin Core" forever. True for enforcer/core wallets and when no
-  // wallet is loaded yet.
   bool get needsBackends => !GetIt.I.isRegistered<WalletReaderProvider>() || NodeModeProvider.runsLocalBackends;
 
-  /// A sidechain daemon needs the enforcer, so light mode runs none, and its
-  /// silence must not hold the whole status back. Only a chain that answers
-  /// through an index earns that: one that cannot still reports its fault. A
-  /// layer-1 companion such as bitwindowd runs either way.
-  bool get needsAdditional {
-    final rpc = additionalConnection.rpc;
-    if (rpc.binary.chainLayer != 2 || needsBackends) {
-      return true;
-    }
-    return !rpc.servesLightWallet || rpc.connectionError != null;
-  }
+  bool get needsEnforcer =>
+      needsBackends || additionalConnection.rpc.binary.chainLayer == 2 || (nodeMode?.usesEnforcer ?? false);
+
+  bool get needsAdditional => true;
+
+  bool get needsAdditionalSync => needsBackends || additionalConnection.rpc.binary.chainLayer == 2;
 
   // Connection status
   bool get allConnected =>
-      (!needsBackends || (mainchain.connected && enforcer.connected)) &&
+      (!needsBackends || mainchain.connected) &&
+      (!needsEnforcer || enforcer.connected) &&
       (!needsAdditional || additionalConnection.connected) &&
       (drivechaind?.connected ?? true);
   bool get initializingAny =>
-      mainchain.initializingBinary || enforcer.initializingBinary || additionalConnection.initializingBinary;
+      (needsBackends && mainchain.initializingBinary) ||
+      (needsEnforcer && enforcer.initializingBinary) ||
+      additionalConnection.initializingBinary;
   bool get downloadingAny => downloadProvider?.hasActiveDownloads ?? false;
 
   Color get connectionColor {
@@ -516,7 +504,8 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     //
     // `connected` is the authoritative "healthy" signal — stale startupError /
     // initializingBinary on an already-connected daemon are ignored.
-    if ((needsBackends && (mainchain.connectionError != null || enforcer.connectionError != null)) ||
+    if ((needsBackends && mainchain.connectionError != null) ||
+        (needsEnforcer && enforcer.connectionError != null) ||
         (needsAdditional && additionalConnection.connectionError != null) ||
         drivechaind?.connectionError != null) {
       return SailColorScheme.red;
@@ -534,11 +523,11 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return SailColorScheme.orange;
     }
 
-    if (needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+    if (needsEnforcer && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
-    if (needsBackends && !(additionalSyncInfo?.isSynced ?? false)) {
+    if (needsAdditionalSync && !(additionalSyncInfo?.isSynced ?? false)) {
       return SailColorScheme.orange;
     }
 
@@ -598,7 +587,9 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       if (mainchainLine != null) {
         return mainchainLine;
       }
+    }
 
+    if (needsEnforcer) {
       final enforcerLine = _statusLineFor(
         rpc: enforcer,
         binaryLabel: 'Enforcer',
@@ -622,11 +613,11 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
       return 'Syncing mainchain blocks';
     }
 
-    if (needsBackends && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
+    if (needsEnforcer && !(syncProvider.enforcerSyncInfo?.isSynced ?? false)) {
       return 'Syncing enforcer blocks';
     }
 
-    if (needsBackends && !(additionalSyncInfo?.isSynced ?? false)) {
+    if (needsAdditionalSync && !(additionalSyncInfo?.isSynced ?? false)) {
       return 'Syncing ${additionalConnection.name} blocks';
     }
 
@@ -670,6 +661,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     additionalConnection.rpc.removeListener(_onChange);
     syncProvider.removeListener(_onChange);
     drivechaind?.dispose();
+    nodeMode?.removeListener(_onChange);
     super.dispose();
   }
 }
@@ -679,9 +671,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
 
   @override
   Widget build(BuildContext context, BottomNavViewModel viewModel) {
-    // Electrum wallets run no L1 daemons, so there are no block-sync bars to
-    // show — the chain source reports the only height they have.
-    if (!viewModel.needsBackends) {
+    if (!viewModel.needsBackends && viewModel.additionalConnection.rpc.binary.chainLayer != 2) {
       final blocks = chainSourceBlocks(
         viewModel.syncProvider.chainSourceSyncInfo,
       );
@@ -690,7 +680,7 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
       }
       return SailText.secondary12(blocks);
     }
-    final mainchainConnected = viewModel.syncProvider.mainchainSyncInfo != null;
+    final mainchainConnected = viewModel.needsBackends && viewModel.syncProvider.mainchainSyncInfo != null;
     final enforcerConnected = viewModel.syncProvider.enforcerSyncInfo != null;
     final additionalConnected = viewModel.additionalSyncInfo != null;
 

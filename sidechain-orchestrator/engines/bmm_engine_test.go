@@ -24,6 +24,7 @@ const testSidechain = pb.BinaryType_BINARY_TYPE_THUNDER
 type fakeBackend struct {
 	mu sync.Mutex
 
+	disabled          bool
 	bids              int
 	connects          int
 	connected         bool
@@ -42,6 +43,12 @@ type fakeBackend struct {
 	lastExpectTip     string
 	lastWalletID      string
 	lastFeeRate       float64
+}
+
+func (f *fakeBackend) BMMAvailable() bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return !f.disabled
 }
 
 func (f *fakeBackend) CreateBid(
@@ -127,14 +134,16 @@ func (f *fakeBackend) BlockAfter(_ context.Context, _, _ string) (string, error)
 
 // fakeFee stands in for Core's next block estimate.
 type fakeFee struct {
-	mu   sync.Mutex
-	rate float64
-	err  error
+	mu    sync.Mutex
+	calls int
+	rate  float64
+	err   error
 }
 
 func (f *fakeFee) EstimateFee(context.Context) (float64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.calls++
 	return f.rate, f.err
 }
 
@@ -154,6 +163,7 @@ func newFakeFee() *fakeFee { return &fakeFee{rate: 50} }
 
 type fakeTip struct {
 	mu     sync.Mutex
+	calls  int
 	hash   string
 	height int32
 }
@@ -161,6 +171,7 @@ type fakeTip struct {
 func (f *fakeTip) ChainTip(context.Context) (string, int32, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.calls++
 	return f.hash, f.height, nil
 }
 

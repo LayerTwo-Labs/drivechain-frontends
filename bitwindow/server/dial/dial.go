@@ -30,7 +30,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-// EnforcerValidator creates a CUSF enforcer validator client.
 // Bitcoind returns a btc-buf BitcoinService client against the orchestrator's
 // hosted core proxy. orchestratorAddr is a full URL (config.OrchestratorAddr
 // defaults to "http://localhost:30400"); a bare host:port also works and gets
@@ -43,9 +42,6 @@ func Bitcoind(ctx context.Context, orchestratorAddr string) (corerpc.BitcoinServ
 		getSharedClient(ctx),
 		ensureHTTPScheme(orchestratorAddr),
 		connect.WithGRPC(),
-		// Bitcoind is the one dial target on the orchestrator (its hosted core
-		// proxy); enforcer/sidechain dials go to other daemons and stay
-		// cookie-free.
 		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
 	), nil
 }
@@ -62,6 +58,7 @@ func ensureHTTPScheme(addr string) string {
 	return "http://" + addr
 }
 
+// EnforcerValidator returns a validator client through the local orchestrator.
 func EnforcerValidator(ctx context.Context, url string) (
 	rpc.ValidatorServiceClient, error,
 ) {
@@ -71,8 +68,9 @@ func EnforcerValidator(ctx context.Context, url string) (
 
 	client := rpc.NewValidatorServiceClient(
 		getSharedClient(ctx),
-		fmt.Sprintf("http://%s", url),
+		ensureHTTPScheme(url),
 		connect.WithGRPC(),
+		connect.WithInterceptors(localauth.Interceptor(cookieDir)),
 	)
 	_, err := client.GetSidechains(ctx, connect.NewRequest(&pb.GetSidechainsRequest{}))
 	if err != nil {

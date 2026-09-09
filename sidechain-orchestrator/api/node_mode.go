@@ -52,13 +52,13 @@ func (h *WalletHandler) GetNodeMode(
 	network := h.currentNetwork()
 	mode := orchestrator.NodeModeForNetwork(orchestrator.ReadNodeMode(h.orch.BitwindowDir), network)
 	return connect.NewResponse(&pb.GetNodeModeResponse{
-		Mode:               nodeModeToProto(mode),
-		LightModeAvailable: config.SupportsLightMode(network),
+		Mode:                    nodeModeToProto(mode),
+		LightModeAvailable:      config.SupportsLightMode(network),
+		RemoteEnforcerAvailable: config.RemoteEnforcerURLForNetwork(network) != "",
 	}), nil
 }
 
-// SetNodeMode records the user's choice. It refuses light mode on a network
-// that serves no Esplora, because that wallet could never read a chain.
+// SetNodeMode changes the mode and restarts active sidechains.
 func (h *WalletHandler) SetNodeMode(
 	ctx context.Context, req *connect.Request[pb.SetNodeModeRequest],
 ) (*connect.Response[pb.SetNodeModeResponse], error) {
@@ -72,9 +72,9 @@ func (h *WalletHandler) SetNodeMode(
 	network := h.currentNetwork()
 	if mode == orchestrator.NodeModeLight && !config.SupportsLightMode(network) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("light mode needs a remote chain server, and %s has none", network))
+			fmt.Errorf("%s has no remote enforcer or Bitcoin wallet server", network))
 	}
-	if err := orchestrator.WriteNodeMode(h.orch.BitwindowDir, mode); err != nil {
+	if err := h.orch.SetNodeMode(ctx, mode); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&pb.SetNodeModeResponse{}), nil

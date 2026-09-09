@@ -4,17 +4,17 @@ import 'package:logger/logger.dart';
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
 import 'package:sidechain_core/sidechain_core.dart';
 
-/// How much of Bitcoin this install runs. Full mode starts Bitcoin Core and the
-/// enforcer locally. Light mode reads the chain from a remote server and starts
-/// no daemon.
+/// Keeps the node mode and network service support.
 class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
   final Logger _logger = GetIt.I.get<Logger>();
   OrchestratorWalletRPC get _client => GetIt.I.get<OrchestratorRPC>().wallet;
 
   wmpb.NodeMode mode = wmpb.NodeMode.NODE_MODE_UNSPECIFIED;
 
-  /// False on a network with no remote chain server. Regtest and testnet.
+  /// True when the network supports light mode.
   bool lightModeAvailable = true;
+
+  bool remoteEnforcerAvailable = false;
 
   /// True once a read reaches the backend. A failed read is not an unpicked
   /// mode, so the first-run question waits for this.
@@ -25,6 +25,8 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
 
   bool get isLight => mode == wmpb.NodeMode.NODE_MODE_LIGHT;
   bool get isFull => mode == wmpb.NodeMode.NODE_MODE_FULL;
+
+  bool get usesEnforcer => isFull || Binary.isSidechainApp || (isLight && remoteEnforcerAvailable);
 
   /// True when this install runs Bitcoin Core and the enforcer locally. The one
   /// predicate every backend-dependent surface reads, so none of them can drift
@@ -49,6 +51,7 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
       final resp = await _client.getNodeMode();
       mode = resp.mode;
       lightModeAvailable = resp.lightModeAvailable;
+      remoteEnforcerAvailable = resp.remoteEnforcerAvailable;
       loaded = true;
       notifyListeners();
     } catch (e) {
@@ -59,42 +62,28 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
     }
   }
 
-  /// Records the choice, then brings the daemons in step with it. Without the
-  /// second half a first full-mode choice starts nothing until the next launch,
-  /// and a switch to light leaves the local node running.
+  /// Records the mode and starts its enforcer when necessary.
   Future<void> select(wmpb.NodeMode next) async {
-    final previous = mode;
     await _client.setNodeMode(next);
     mode = next;
     loaded = true;
     notifyListeners();
 
-    if (next == previous) {
+    if (!usesEnforcer) {
       return;
     }
-    try {
-      final orchestrator = GetIt.I.get<OrchestratorRPC>();
-      if (next == wmpb.NodeMode.NODE_MODE_FULL) {
-        // The backend refuses this until the network has a data directory, and
-        // the datadir gate runs right after this one. Skipping the call keeps
-        // a refusal out of the log on a first run.
-        final conf = GetIt.I.get<BitcoinConfProvider>();
-        await conf.loadConfig();
-        if (conf.mustSelectDatadir) {
-          return;
-        }
-        await orchestrator.startWithL1('enforcer');
-      } else {
-        await orchestrator.shutdownAll().drain<void>();
+    final orchestrator = GetIt.I.get<OrchestratorRPC>();
+    if (next == wmpb.NodeMode.NODE_MODE_FULL) {
+      final conf = GetIt.I.get<BitcoinConfProvider>();
+      await conf.loadConfig();
+      if (conf.mustSelectDatadir) {
+        return;
       }
-    } catch (e) {
-      // The mode is on disk either way, so the next launch obeys it.
-      _logger.w('NodeModeProvider: could not bring the daemons in step: $e');
     }
+    await orchestrator.startWithL1('enforcer');
   }
 
-  /// A network change moves both facts: regtest and testnet serve no remote
-  /// chain, so the backend narrows light mode to full there.
+  /// Reads the mode and service support after a network change.
   @override
   Future<void> onNetworkChanged() => load();
 }
