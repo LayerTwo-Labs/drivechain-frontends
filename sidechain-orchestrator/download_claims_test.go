@@ -176,3 +176,19 @@ func finalProgress(ch <-chan DownloadProgress) DownloadProgress {
 	}
 	return last
 }
+
+// A part that could not land is a failed update, not a finished one. The old
+// warning let the caller record a version the disk never got.
+func TestMoveExtractedBinaries_FailsWhenAPartCannotLand(t *testing.T) {
+	dm, dataDir := newTestDownloadManager(t)
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "thunder"), []byte("new"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "thunder-cli"), []byte("new"), 0o755))
+
+	destDir := BinDir(dataDir)
+	require.NoError(t, os.MkdirAll(filepath.Join(destDir, "thunder", "held"), 0o755))
+
+	_, err := dm.moveExtractedBinaries(tmpDir, destDir, "thunder")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "thunder")
+}

@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -898,8 +899,7 @@ func (d *DownloadManager) moveExtractedBinaries(tmpDir, destDir, binaryName stri
 		}
 
 		if err := moveFile(path, destPath); err != nil {
-			d.log.Warn().Err(err).Str("file", name).Msg("move extracted file")
-			return nil
+			return fmt.Errorf("install %s over %s: %w", name, destPath, err)
 		}
 
 		if err := chmod(destPath); err != nil {
@@ -943,6 +943,9 @@ func moveFile(src, dest string) error {
 
 	destFile, err := os.Create(dest)
 	if err != nil {
+		if errors.Is(err, syscall.ETXTBSY) {
+			return fmt.Errorf("%s runs right now; stop it before you update it", dest)
+		}
 		return err
 	}
 	defer destFile.Close() //nolint:errcheck // cleanup
