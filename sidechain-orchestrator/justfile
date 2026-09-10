@@ -14,8 +14,10 @@ lint:
 gen: gen-cusf
     buf generate --template buf.go.gen.yaml .
 
+# The enforcer holds the cusf protos it serves. cusf_sidechain_proto is stale,
+# and a generation from it deletes every method the enforcer added since.
 gen-cusf:
-    buf generate --template buf.go.gen.yaml --exclude-path proto/cusf/mainchain/v1/wallet.proto https://github.com/LayerTwo-Labs/cusf_sidechain_proto.git
+    buf generate --template buf.go.gen.yaml --exclude-path proto/cusf/mainchain/v1/wallet.proto https://github.com/LayerTwo-Labs/bip300301_enforcer.git
 
 clean:
     rm -rf ./bin
