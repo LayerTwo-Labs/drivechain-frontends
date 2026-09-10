@@ -27,6 +27,35 @@ func TestLightPendingReadsTheFundingWallet(t *testing.T) {
 	assert.Equal(t, "bidder", wallet.listed[0].WalletId)
 }
 
+// A stored round names its funding wallet forever, so the list outlives a
+// wallet the user deletes. That wallet must not hide the bids of the current
+// one, or no later round ever replaces a stranded bid.
+func TestLightPendingSkipsADeletedWallet(t *testing.T) {
+	h := lightHandler(t)
+	wallet := &fakeBidWallet{
+		txs:     []*wpb.TransactionEntry{{Txid: "bid", Confirmations: 0}},
+		listErr: map[string]error{"gone": fmt.Errorf("wallet gone not found")},
+	}
+	h.wallet = wallet
+
+	held, err := h.MempoolTxids(context.Background(), []string{"bidder", "gone"})
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]bool{"bid": true}, held)
+	require.Len(t, wallet.listed, 2)
+}
+
+// The current funding wallet is the first id. A backend that cannot list it
+// reports nothing about our bids, so the read fails rather than reports none.
+func TestLightPendingFailsOnTheCurrentWallet(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{listErr: map[string]error{"bidder": fmt.Errorf("esplora is down")}}
+
+	_, err := h.MempoolTxids(context.Background(), []string{"bidder", "gone"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "esplora is down")
+}
+
 // An Electrum wallet carries no block time on an unconfirmed row, so it sorts
 // one after the whole confirmed history. The read asks past that history.
 func TestLightPendingReadsPastTheConfirmedHistory(t *testing.T) {

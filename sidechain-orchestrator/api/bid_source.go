@@ -34,7 +34,7 @@ type BidSource interface {
 	// Replacement prices a replacement of one of our own bids.
 	Replacement(ctx context.Context, walletID, txid string) (Replacement, error)
 	// PendingTxids names our own transactions no block carries yet, over every
-	// wallet in walletIDs.
+	// wallet in walletIDs. The first id names the current funding wallet.
 	PendingTxids(ctx context.Context, walletIDs []string) (map[string]bool, error)
 	// PaidSats reports what one of our own bids paid. It reports false when
 	// no source names the transaction.
