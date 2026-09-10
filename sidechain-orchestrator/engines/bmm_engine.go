@@ -73,7 +73,10 @@ const (
 // BmmBackend assembles, broadcasts and connects bids, and reads what a
 // mainchain block committed to. Implemented by the BMM handler.
 type BmmBackend interface {
-	BMMAvailable() bool
+	// MempoolTxids names every transaction the mainchain mempool holds. An
+	// install that reads no mempool names the pending transactions of the
+	// named wallets instead.
+	MempoolTxids(ctx context.Context, walletIDs []string) (map[string]bool, error)
 	CreateBid(context.Context, *connect.Request[bmmpb.CreateBidRequest]) (*connect.Response[bmmpb.CreateBidResponse], error)
 	ConnectBid(context.Context, *connect.Request[bmmpb.ConnectBidRequest]) (*connect.Response[bmmpb.ConnectBidResponse], error)
 	ListBids(context.Context, *connect.Request[bmmpb.ListBidsRequest]) (*connect.Response[bmmpb.ListBidsResponse], error)
@@ -531,9 +534,6 @@ func (e *BmmEngine) resumeUnconnected() {
 }
 
 func (e *BmmEngine) tick(ctx context.Context) {
-	if !e.backend.BMMAvailable() {
-		return
-	}
 	e.mu.Lock()
 	targets := make(map[pb.BinaryType]bmmTarget, len(e.targets))
 	for k, v := range e.targets {
@@ -650,7 +650,7 @@ func (e *BmmEngine) openRound(
 	// funded it can sign them.
 	walletID := target.walletID
 	replaceTxid := ""
-	if stranded, ok := e.strandedBid(ctx, sidechain, tip); ok {
+	if stranded, ok := e.strandedBid(ctx, sidechain, tip, walletID); ok {
 		replaceTxid = stranded.Txid
 		if stranded.WalletID != "" {
 			walletID = stranded.WalletID
@@ -691,24 +691,20 @@ func (e *BmmEngine) openRound(
 // One replacement per round is sufficient: a bid that funds itself elsewhere
 // leaves its own chain, and the next round finds and replaces that one too.
 func (e *BmmEngine) strandedBid(
-	ctx context.Context, sidechain pb.BinaryType, tip string,
+	ctx context.Context, sidechain pb.BinaryType, tip, walletID string,
 ) (bmmstate.Bid, bool) {
-	resp, err := e.backend.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: sidechain}))
-	if err != nil {
-		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read mempool bids")
-		return bmmstate.Bid{}, false
-	}
-	inMempool := make(map[string]bool, len(resp.Msg.Bids))
-	for _, b := range resp.Msg.Bids {
-		inMempool[b.Txid] = true
-	}
-	if len(inMempool) == 0 {
-		return bmmstate.Bid{}, false
-	}
-
 	rounds, err := e.store.List(int32(sidechain))
 	if err != nil {
 		e.log.Warn().Err(err).Stringer("sidechain", sidechain).Msg("read stored rounds")
+		return bmmstate.Bid{}, false
+	}
+
+	inMempool, err := e.backend.MempoolTxids(ctx, biddingWallets(rounds, walletID))
+	if err != nil {
+		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read the mainchain mempool")
+		return bmmstate.Bid{}, false
+	}
+	if len(inMempool) == 0 {
 		return bmmstate.Bid{}, false
 	}
 
@@ -731,6 +727,24 @@ func (e *BmmEngine) strandedBid(
 		}
 	}
 	return oldest, found
+}
+
+// biddingWallets names every wallet that funded a stored bid, with walletID
+// first. A user who picks another funding wallet mid-run leaves a bid behind
+// in the old one, and only that wallet lists it.
+func biddingWallets(rounds []bmmstate.Round, walletID string) []string {
+	wallets := []string{walletID}
+	seen := map[string]bool{walletID: true}
+	for _, round := range rounds {
+		for _, bid := range round.OurBids {
+			if bid.WalletID == "" || seen[bid.WalletID] {
+				continue
+			}
+			seen[bid.WalletID] = true
+			wallets = append(wallets, bid.WalletID)
+		}
+	}
+	return wallets
 }
 
 // lastBidTxid names the bid the current round just placed.
@@ -793,7 +807,10 @@ func (e *BmmEngine) retryTip(sidechain pb.BinaryType, tip string) {
 // snapshotOthers records the competing bids. Once the round is decided these
 // are unrecoverable, so this is the only chance to see them.
 func (e *BmmEngine) snapshotOthers(ctx context.Context, sidechain pb.BinaryType, tip string) []bmmstate.Bid {
-	resp, err := e.backend.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: sidechain}))
+	resp, err := e.backend.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{
+		Sidechain:    sidechain,
+		PrevMainHash: tip,
+	}))
 	if err != nil {
 		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read competing bids")
 		return nil
@@ -803,11 +820,6 @@ func (e *BmmEngine) snapshotOthers(ctx context.Context, sidechain pb.BinaryType,
 	out := make([]bmmstate.Bid, 0, len(resp.Msg.Bids))
 	for _, b := range resp.Msg.Bids {
 		if ours[b.Txid] {
-			continue
-		}
-		// A bid built on another tip can never win this round, so raising
-		// against it would spend for nothing.
-		if tip != "" && b.PrevMainHash != "" && b.PrevMainHash != tip {
 			continue
 		}
 		out = append(out, bmmstate.Bid{
@@ -903,9 +915,6 @@ func (e *BmmEngine) placeBid(
 // A miner leaves a cheaper bid in the mempool, and the engine raises only
 // against a competitor, so an opening bid under this rate never gets mined.
 func (e *BmmEngine) NextBlockRate(ctx context.Context) float64 {
-	if !e.backend.BMMAvailable() {
-		return 0
-	}
 	if e.fee == nil {
 		return relayMinimumRate
 	}

@@ -25,7 +25,7 @@ const cancelDustSats = 546
 func (h *BMMHandler) CancelBid(
 	ctx context.Context, req *connect.Request[bmmpb.CancelBidRequest],
 ) (*connect.Response[bmmpb.CancelBidResponse], error) {
-	if err := h.requireBMMAvailable(); err != nil {
+	if err := h.requireMempoolRead("a cancel"); err != nil {
 		return nil, err
 	}
 	if h.wallet == nil {
@@ -43,24 +43,21 @@ func (h *BMMHandler) CancelBid(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
-	if err := h.requireStrandedBid(ctx, req.Msg.Txid, tip); err != nil {
+	if err := h.requireStrandedBid(ctx, walletID, req.Msg.Txid, tip); err != nil {
 		return nil, err
 	}
 
-	inputs, roots, err := h.bidInputs(ctx, req.Msg.Txid)
+	replacement, err := h.bids().Replacement(ctx, walletID, req.Msg.Txid)
 	if err != nil {
 		return nil, err
 	}
-	evicted := h.evictedByReplacement(ctx, roots)
+	inputs, evicted := replacement.Inputs, replacement.Evicted
 	if err := h.requireNoLiveBid(ctx, evicted, tip, req.Msg.Txid); err != nil {
 		return nil, err
 	}
 
-	evictedSats, err := h.evictedFeeSats(ctx, evicted)
-	if err != nil {
-		return nil, err
-	}
-	vsize, err := h.cancelVsize(ctx, roots, len(inputs))
+	evictedSats := replacement.EvictedFeeSats
+	vsize, err := h.cancelVsize(ctx, replacement.Roots, len(inputs))
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +106,10 @@ func (h *BMMHandler) CancelBid(
 
 // requireStrandedBid refuses a bid the next block can still take. Cancelling
 // one throws away a round the wallet already paid for.
-func (h *BMMHandler) requireStrandedBid(ctx context.Context, txid, tip string) error {
-	if !h.pendingBid(ctx, txid) {
+func (h *BMMHandler) requireStrandedBid(ctx context.Context, walletID, txid, tip string) error {
+	// A cancel refuses without a mempool read, so this reads Core alongside
+	// the two reads below it.
+	if !(coreBids{h: h}).pending(ctx, walletID, txid) {
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
 			"%s is not an unconfirmed BMM bid", txid))
 	}

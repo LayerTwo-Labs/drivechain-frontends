@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 )
 
@@ -63,10 +66,16 @@ func (n *fakeNode) call(_ context.Context, method, paramsJSON, _ string) (json.R
 	return json.Marshal(out)
 }
 
-func handlerOver(node *fakeNode) *BMMHandler {
+// sourceOver reads the bids of an install that runs Bitcoin Core.
+func sourceOver(node coreCaller) bidSource {
 	h := &BMMHandler{}
 	h.SetCoreCaller(node.call)
-	return h
+	return bidSource{h: h, own: coreBids{h: h}}
+}
+
+// coreCaller is a fake node the bid source reads through.
+type coreCaller interface {
+	call(ctx context.Context, method, paramsJSON, wallet string) (json.RawMessage, error)
 }
 
 // A new bid takes the change of the bid before it. A replacement must respend
@@ -80,20 +89,20 @@ func TestBidInputsWalksToTheConfirmedCoins(t *testing.T) {
 		"top":    {vin: []string{"middle:1"}, slot: 9},
 	}}
 
-	got, roots, err := handlerOver(node).bidInputs(context.Background(), "top")
+	replacement, err := sourceOver(node).Replacement(context.Background(), "", "top")
 	if err != nil {
 		t.Fatalf("bid inputs: %v", err)
 	}
-	if len(got) != 1 {
-		t.Fatalf("got %d inputs, want the one confirmed coin", len(got))
+	if len(replacement.Inputs) != 1 {
+		t.Fatalf("replacement.Inputs %d inputs, want the one confirmed coin", len(replacement.Inputs))
 	}
-	if got[0].Txid != "coin" || got[0].Vout != 1 {
-		t.Errorf("input = %s:%d, want coin:1", got[0].Txid, got[0].Vout)
+	if replacement.Inputs[0].Txid != "coin" || replacement.Inputs[0].Vout != 1 {
+		t.Errorf("input = %s:%d, want coin:1", replacement.Inputs[0].Txid, replacement.Inputs[0].Vout)
 	}
 	// The mempool counts the fee of the whole chain under the root, and the
 	// replacement must beat all of it.
-	if len(roots) != 1 || roots[0] != "root" {
-		t.Errorf("roots = %v, want the bottom bid", roots)
+	if len(replacement.Roots) != 1 || replacement.Roots[0] != "root" {
+		t.Errorf("roots = %v, want the bottom bid", replacement.Roots)
 	}
 }
 
@@ -104,15 +113,15 @@ func TestBidInputsKeepsAConfirmedInput(t *testing.T) {
 		"bid":  {vin: []string{"coin:0"}, slot: 9},
 	}}
 
-	got, roots, err := handlerOver(node).bidInputs(context.Background(), "bid")
+	replacement, err := sourceOver(node).Replacement(context.Background(), "", "bid")
 	if err != nil {
 		t.Fatalf("bid inputs: %v", err)
 	}
-	if len(got) != 1 || got[0].Txid != "coin" || got[0].Vout != 0 {
-		t.Errorf("inputs = %+v, want coin:0", got)
+	if len(replacement.Inputs) != 1 || replacement.Inputs[0].Txid != "coin" || replacement.Inputs[0].Vout != 0 {
+		t.Errorf("inputs = %+v, want coin:0", replacement.Inputs)
 	}
-	if len(roots) != 1 || roots[0] != "bid" {
-		t.Errorf("roots = %v, want the bid itself", roots)
+	if len(replacement.Roots) != 1 || replacement.Roots[0] != "bid" {
+		t.Errorf("roots = %v, want the bid itself", replacement.Roots)
 	}
 }
 
@@ -126,12 +135,12 @@ func TestBidInputsWalksThroughAnotherSlot(t *testing.T) {
 		"bid":     {vin: []string{"foreign:1"}, slot: 9},
 	}}
 
-	got, _, err := handlerOver(node).bidInputs(context.Background(), "bid")
+	replacement, err := sourceOver(node).Replacement(context.Background(), "", "bid")
 	if err != nil {
 		t.Fatalf("bid inputs: %v", err)
 	}
-	if len(got) != 1 || got[0].Txid != "coin" || got[0].Vout != 0 {
-		t.Errorf("inputs = %+v, want coin:0", got)
+	if len(replacement.Inputs) != 1 || replacement.Inputs[0].Txid != "coin" || replacement.Inputs[0].Vout != 0 {
+		t.Errorf("inputs = %+v, want coin:0", replacement.Inputs)
 	}
 }
 
@@ -144,12 +153,12 @@ func TestBidInputsStopsAtAPayment(t *testing.T) {
 		"bid":     {vin: []string{"payment:1"}, slot: 9},
 	}}
 
-	got, _, err := handlerOver(node).bidInputs(context.Background(), "bid")
+	replacement, err := sourceOver(node).Replacement(context.Background(), "", "bid")
 	if err != nil {
 		t.Fatalf("bid inputs: %v", err)
 	}
-	if len(got) != 1 || got[0].Txid != "payment" || got[0].Vout != 1 {
-		t.Errorf("inputs = %+v, want payment:1", got)
+	if len(replacement.Inputs) != 1 || replacement.Inputs[0].Txid != "payment" || replacement.Inputs[0].Vout != 1 {
+		t.Errorf("inputs = %+v, want payment:1", replacement.Inputs)
 	}
 }
 
@@ -160,12 +169,12 @@ func TestBidInputsKeepsAnUnknownParent(t *testing.T) {
 		"bid": {vin: []string{"gone:2"}, slot: 9},
 	}}
 
-	got, _, err := handlerOver(node).bidInputs(context.Background(), "bid")
+	replacement, err := sourceOver(node).Replacement(context.Background(), "", "bid")
 	if err != nil {
 		t.Fatalf("bid inputs: %v", err)
 	}
-	if len(got) != 1 || got[0].Txid != "gone" {
-		t.Errorf("inputs = %+v, want gone:2", got)
+	if len(replacement.Inputs) != 1 || replacement.Inputs[0].Txid != "gone" {
+		t.Errorf("inputs = %+v, want gone:2", replacement.Inputs)
 	}
 }
 
@@ -178,12 +187,12 @@ func TestBidInputsNamesEachCoinOneTime(t *testing.T) {
 		"top":  {vin: []string{"root:0", "root:1"}, slot: 9},
 	}}
 
-	got, _, err := handlerOver(node).bidInputs(context.Background(), "top")
+	replacement, err := sourceOver(node).Replacement(context.Background(), "", "top")
 	if err != nil {
 		t.Fatalf("bid inputs: %v", err)
 	}
-	if len(got) != 1 {
-		t.Errorf("inputs = %+v, want the coin one time", got)
+	if len(replacement.Inputs) != 1 {
+		t.Errorf("inputs = %+v, want the coin one time", replacement.Inputs)
 	}
 }
 
@@ -194,7 +203,7 @@ func TestBidInputsRefusesALoop(t *testing.T) {
 		"b": {vin: []string{"a:0"}, slot: 9},
 	}}
 
-	if _, _, err := handlerOver(node).bidInputs(context.Background(), "a"); err == nil {
+	if _, err := sourceOver(node).Replacement(context.Background(), "", "a"); err == nil {
 		t.Fatal("want an error for a loop, got none")
 	}
 }
@@ -205,6 +214,8 @@ type nodeWithFees struct {
 	*fakeNode
 	// modified names the fee of one transaction in BTC, after the deltas.
 	modified map[string]float64
+	// base names what one transaction pays a miner, in BTC, before the deltas.
+	base map[string]float64
 	// descendants names what the mempool holds over one transaction.
 	descendants map[string][]string
 }
@@ -222,7 +233,10 @@ func (n *nodeWithFees) call(ctx context.Context, method, paramsJSON, wallet stri
 		if !ok {
 			return nil, fmt.Errorf("no mempool entry %s", txid)
 		}
-		return json.Marshal(map[string]any{"fees": map[string]any{"modified": fee}})
+		return json.Marshal(map[string]any{"fees": map[string]any{
+			"base":     n.base[txid],
+			"modified": fee,
+		}})
 	case "getmempooldescendants":
 		return json.Marshal(n.descendants[txid])
 	default:
@@ -234,11 +248,12 @@ func floorOver(t *testing.T, node *nodeWithFees, roots []string) int64 {
 	t.Helper()
 	h := &BMMHandler{}
 	h.SetCoreCaller(node.call)
-	floor, err := h.replacementFloorSats(context.Background(), roots)
+	source := bidSource{h: h, own: coreBids{h: h}}
+	evictedSats, err := source.evictedFeeSats(context.Background(), "", source.own.evicted(context.Background(), roots, nil))
 	if err != nil {
 		t.Fatalf("floor: %v", err)
 	}
-	return floor
+	return floorSats(evictedSats)
 }
 
 // A replacement evicts every bid over the coins it takes, so it must pay more
@@ -295,4 +310,27 @@ func TestReplacementFloorOfAGoneBid(t *testing.T) {
 	if floorOver(t, node, []string{"gone"}) != 0 {
 		t.Errorf("floor = %d, want 0", floorOver(t, node, []string{"gone"}))
 	}
+}
+
+// A node delta changes what a replacement has to beat, not what the bid spent.
+// The round history records the payment, so the two reads stay apart.
+func TestCoreBidSeparatesThePaidFeeFromTheFloor(t *testing.T) {
+	node := &nodeWithFees{
+		fakeNode: &fakeNode{txs: map[string]fakeTx{}},
+		base:     map[string]float64{"bid": 0.00001},
+		modified: map[string]float64{"bid": 0.00003},
+	}
+	h := &BMMHandler{}
+	h.SetCoreCaller(node.call)
+	own := coreBids{h: h}
+
+	paid, ok, err := own.paidSats(context.Background(), "", "bid")
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.EqualValues(t, 1_000, paid)
+
+	floor, ok, err := own.feeSats(context.Background(), "", "bid")
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.EqualValues(t, 3_000, floor)
 }

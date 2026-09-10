@@ -25,7 +25,7 @@ const testSidechain = pb.BinaryType_BINARY_TYPE_THUNDER
 type fakeBackend struct {
 	mu sync.Mutex
 
-	disabled          bool
+	noMempool         bool
 	bids              int
 	connects          int
 	connected         bool
@@ -49,12 +49,8 @@ type fakeBackend struct {
 	lastExpectTip     string
 	lastWalletID      string
 	lastFeeRate       float64
-}
-
-func (f *fakeBackend) BMMAvailable() bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return !f.disabled
+	// lastMempoolWallets names the wallets the last mempool read asked about.
+	lastMempoolWallets []string
 }
 
 func (f *fakeBackend) CreateBid(
@@ -115,12 +111,35 @@ func (f *fakeBackend) ConnectBid(
 	}), nil
 }
 
+// ListBids answers for one parent block, as the enforcer does.
 func (f *fakeBackend) ListBids(
-	_ context.Context, _ *connect.Request[bmmpb.ListBidsRequest],
+	_ context.Context, req *connect.Request[bmmpb.ListBidsRequest],
 ) (*connect.Response[bmmpb.ListBidsResponse], error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: f.others}), nil
+	bids := make([]*bmmpb.Bid, 0, len(f.others))
+	for _, bid := range f.others {
+		if req.Msg.PrevMainHash != "" && bid.PrevMainHash != "" &&
+			bid.PrevMainHash != req.Msg.PrevMainHash {
+			continue
+		}
+		bids = append(bids, bid)
+	}
+	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
+}
+
+func (f *fakeBackend) MempoolTxids(_ context.Context, walletIDs []string) (map[string]bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.lastMempoolWallets = walletIDs
+	if f.noMempool {
+		return nil, nil
+	}
+	held := make(map[string]bool, len(f.others))
+	for _, bid := range f.others {
+		held[bid.Txid] = true
+	}
+	return held, nil
 }
 
 func (f *fakeBackend) PrepareBMM(
@@ -1003,8 +1022,27 @@ func TestBmmEngineReplacesWithTheFundingWallet(t *testing.T) {
 
 			assert.Equal(t, "txid-1", backend.lastReplace)
 			assert.Equal(t, walletID, backend.lastWalletID, "the funding wallet signs the replacement")
+			assert.Contains(t, backend.lastMempoolWallets, walletID,
+				"a light install reads the pending bids of the funding wallet")
 		})
 	}
+}
+
+// A user can pick another funding wallet while the engine runs, which leaves a
+// bid behind in the old one. Only the old wallet lists that bid.
+func TestBmmEngineReadsThePendingBidsOfEveryWallet(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	ctx := context.Background()
+	require.NoError(t, engine.Start(ctx, testSidechain, "first-wallet", 20_000, false))
+	engine.tick(ctx)
+
+	require.NoError(t, engine.Start(ctx, testSidechain, "second-wallet", 20_000, false))
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Contains(t, backend.lastMempoolWallets, "second-wallet")
+	assert.Contains(t, backend.lastMempoolWallets, "first-wallet",
+		"the wallet that funded the stranded bid still lists it")
 }
 
 // A bid the miner took leaves the mempool, so the next round must open freely
