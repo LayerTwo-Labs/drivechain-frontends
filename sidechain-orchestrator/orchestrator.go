@@ -735,7 +735,7 @@ func (o *Orchestrator) StatusWithOptions(name string, opts DownloadOptions) Bina
 	}
 
 	if o.releases != nil {
-		if check, ok := o.releases.Check(config, o.CurrentNetwork(), requestedPath); ok {
+		if check, ok := o.releases.CheckDownloads(config, o.CurrentNetwork(), opts); ok {
 			status.UpdateAvailable = check.UpdateAvailable()
 			status.RemoteTimestamp = check.Remote
 			status.LocalTimestamp = check.Local
