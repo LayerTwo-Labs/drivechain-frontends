@@ -1814,6 +1814,7 @@ const TransactionEntry$json = {
     {'1': 'fee', '3': 11, '4': 1, '5': 1, '10': 'fee'},
     {'1': 'replaced_by_txid', '3': 12, '4': 1, '5': 8, '10': 'replacedByTxid'},
     {'1': 'wallet_id', '3': 13, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'bmm_bid', '3': 14, '4': 1, '5': 11, '6': '.walletmanager.v1.BmmBid', '10': 'bmmBid'},
   ],
 };
 
@@ -1825,7 +1826,25 @@ final $typed_data.Uint8List transactionEntryDescriptor = $convert.base64Decode(
     'F0cxIkCg1jb25maXJtYXRpb25zGAcgASgFUg1jb25maXJtYXRpb25zEh0KCmJsb2NrX3RpbWUY'
     'CCABKANSCWJsb2NrVGltZRISCgR0aW1lGAkgASgDUgR0aW1lEhQKBWxhYmVsGAogASgJUgVsYW'
     'JlbBIQCgNmZWUYCyABKAFSA2ZlZRIoChByZXBsYWNlZF9ieV90eGlkGAwgASgIUg5yZXBsYWNl'
-    'ZEJ5VHhpZBIbCgl3YWxsZXRfaWQYDSABKAlSCHdhbGxldElk');
+    'ZEJ5VHhpZBIbCgl3YWxsZXRfaWQYDSABKAlSCHdhbGxldElkEjEKB2JtbV9iaWQYDiABKAsyGC'
+    '53YWxsZXRtYW5hZ2VyLnYxLkJtbUJpZFIGYm1tQmlk');
+
+@$core.Deprecated('Use bmmBidDescriptor instead')
+const BmmBid$json = {
+  '1': 'BmmBid',
+  '2': [
+    {'1': 'slot', '3': 1, '4': 1, '5': 13, '10': 'slot'},
+    {'1': 'critical_hash', '3': 2, '4': 1, '5': 9, '10': 'criticalHash'},
+    {'1': 'prev_main_hash', '3': 3, '4': 1, '5': 9, '10': 'prevMainHash'},
+    {'1': 'lost', '3': 4, '4': 1, '5': 8, '10': 'lost'},
+  ],
+};
+
+/// Descriptor for `BmmBid`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bmmBidDescriptor = $convert.base64Decode(
+    'CgZCbW1CaWQSEgoEc2xvdBgBIAEoDVIEc2xvdBIjCg1jcml0aWNhbF9oYXNoGAIgASgJUgxjcm'
+    'l0aWNhbEhhc2gSJAoOcHJldl9tYWluX2hhc2gYAyABKAlSDHByZXZNYWluSGFzaBISCgRsb3N0'
+    'GAQgASgIUgRsb3N0');
 
 @$core.Deprecated('Use listTransactionsResponseDescriptor instead')
 const ListTransactionsResponse$json = {
@@ -2766,6 +2785,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletMana
   '.walletmanager.v1.ListTransactionsRequest': ListTransactionsRequest$json,
   '.walletmanager.v1.ListTransactionsResponse': ListTransactionsResponse$json,
   '.walletmanager.v1.TransactionEntry': TransactionEntry$json,
+  '.walletmanager.v1.BmmBid': BmmBid$json,
   '.walletmanager.v1.ListUnspentRequest': ListUnspentRequest$json,
   '.walletmanager.v1.ListUnspentResponse': ListUnspentResponse$json,
   '.walletmanager.v1.ListReceiveAddressesRequest': ListReceiveAddressesRequest$json,

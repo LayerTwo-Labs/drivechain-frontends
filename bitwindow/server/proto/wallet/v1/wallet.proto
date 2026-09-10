@@ -200,6 +200,19 @@ message WalletTransaction {
   string note = 7;
 
   Confirmation confirmation_time = 8;
+  // Set when output 0 carries a BMM request. Unset for every other transaction.
+  BmmBid bmm_bid = 9;
+}
+
+// BmmBid names the BMM request one wallet transaction carries.
+message BmmBid {
+  uint32 slot = 1;
+  string critical_hash = 2;
+  // The mainchain block the sidechain block builds on. The bid reaches only
+  // the block after it.
+  string prev_main_hash = 3;
+  // True when the mainchain tip moved past prev_main_hash.
+  bool lost = 4;
 }
 
 message ListSidechainDepositsRequest {

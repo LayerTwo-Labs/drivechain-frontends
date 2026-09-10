@@ -945,9 +945,33 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 		}
 	})
 
+	bids := h.bidLabels(ctx, pbTxs)
+	for _, entry := range pbTxs {
+		entry.BmmBid = bids[entry.Txid]
+	}
+
 	return connect.NewResponse(&pb.ListTransactionsResponse{
 		Transactions: pbTxs,
 	}), nil
+}
+
+// bidLabels names the BMM request each unconfirmed transaction carries. A
+// confirmed transaction cannot be a live bid, so a settled wallet costs no
+// Core call.
+func (h *WalletHandler) bidLabels(ctx context.Context, entries []*pb.TransactionEntry) map[string]*pb.BmmBid {
+	if h.orch == nil {
+		return nil
+	}
+	pending := lo.FilterMap(entries, func(e *pb.TransactionEntry, _ int) (string, bool) {
+		return e.Txid, e.Confirmations == 0
+	})
+	if len(pending) == 0 {
+		return nil
+	}
+	core := NewHandler(h.orch)
+	return BidLabels(ctx, func(ctx context.Context, method, paramsJSON string) (json.RawMessage, error) {
+		return core.RawCoreCall(ctx, method, paramsJSON, "")
+	}, lo.Uniq(pending))
 }
 
 func (h *WalletHandler) ListUnspent(ctx context.Context, req *connect.Request[pb.ListUnspentRequest]) (*connect.Response[pb.ListUnspentResponse], error) {
