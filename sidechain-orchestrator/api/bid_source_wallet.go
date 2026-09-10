@@ -87,18 +87,24 @@ func (w walletBids) evicted(_ context.Context, _, chain []string) []string {
 const pendingListCount = 100_000
 
 // PendingTxids names our own transactions no block carries yet, over every
-// wallet in walletIDs.
+// wallet in walletIDs. The first id names the current funding wallet.
 func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[string]bool, error) {
 	if w.h.wallet == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
 	}
 	held := make(map[string]bool)
-	for _, walletID := range lo.Uniq(walletIDs) {
+	for i, walletID := range lo.Uniq(walletIDs) {
 		resp, err := w.h.wallet.ListTransactions(ctx, connect.NewRequest(&wpb.ListTransactionsRequest{
 			WalletId: walletID,
 			Count:    pendingListCount,
 		}))
 		if err != nil {
+			// A stored round names its funding wallet forever, so the tail of
+			// this list can name a wallet the user deleted since. The current
+			// wallet reads the same backend, so a backend that is down fails.
+			if i > 0 {
+				continue
+			}
 			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("list the wallet transactions: %w", err))
 		}
 		for _, tx := range resp.Msg.Transactions {

@@ -125,6 +125,9 @@ type fakeBidWallet struct {
 	// details answers GetTransactionDetails, and txs answers ListTransactions.
 	details map[string]*wpb.GetTransactionDetailsResponse
 	txs     []*wpb.TransactionEntry
+	// listErr fails ListTransactions per wallet, for a test that names a
+	// wallet the manager no longer holds.
+	listErr map[string]error
 	// listed records every ListTransactions request the wallet took.
 	listed []*wpb.ListTransactionsRequest
 }
@@ -143,6 +146,9 @@ func (w *fakeBidWallet) ListTransactions(
 	_ context.Context, req *connect.Request[wpb.ListTransactionsRequest],
 ) (*connect.Response[wpb.ListTransactionsResponse], error) {
 	w.listed = append(w.listed, req.Msg)
+	if err, ok := w.listErr[req.Msg.WalletId]; ok {
+		return nil, err
+	}
 	// The handler defaults an unset count to 100, and the electrum backend cuts
 	// the list at it after sorting an unconfirmed row last.
 	count := int(req.Msg.Count)
