@@ -450,17 +450,17 @@ func (m *ConnectionMonitor) StartConnectionTimer(ctx context.Context) {
 	m.mu.Unlock()
 
 	// Dart L307: immediate first ping
-	m.log.Info().Str("binary", m.Name).Msg("checking connection")
+	m.log.Debug().Str("binary", m.Name).Msg("checking connection")
 	m.testConnection(ctx)
 
 	if m.Connected() {
-		m.log.Info().Str("binary", m.Name).Msg("already running")
+		m.log.Debug().Str("binary", m.Name).Msg("already running")
 	} else {
 		m.log.Info().Str("binary", m.Name).Str("error", m.ConnectionError()).Msg("could not connect")
 	}
 
 	// Dart L317: start 1-second periodic timer
-	m.log.Info().Str("binary", m.Name).Msg("starting connection timer")
+	m.log.Debug().Str("binary", m.Name).Msg("starting connection timer")
 	go func() {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
