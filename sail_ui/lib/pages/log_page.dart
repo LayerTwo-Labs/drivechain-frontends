@@ -551,11 +551,14 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 90,
+                  width: 130,
                   child: SailText.secondary12(
                     formatDate(log.timestamp, long: false),
                     color: SailColorScheme.greyLight,
                   ),
+                ),
+                SailText.secondary12('|',
+                    color: SailColorScheme.greyLight,
                 ),
                 const SizedBox(width: 8),
                 if (log.isStderr) ...[
@@ -576,7 +579,7 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
                   const SizedBox(width: 8),
                 ],
                 Expanded(
-                  child: SailText.primary12(log.message, color: textColor),
+                  child: SailText.primary12(log.message.substring(20), color: textColor),
                 ),
               ],
             ),
