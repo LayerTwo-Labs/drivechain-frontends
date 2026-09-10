@@ -19,6 +19,13 @@ import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_wallet_rpc.dart';
 
+BmmBid _bmmBid(wmpb.BmmBid bid) => BmmBid(
+  slot: bid.slot,
+  criticalHash: bid.criticalHash,
+  prevMainHash: bid.prevMainHash,
+  lost: bid.lost,
+);
+
 // because the class extends ChangeNotifier, any subscribers
 // to this class will be notified of changes to new transactions
 class TransactionProvider extends ChangeNotifier implements NetworkScoped {
@@ -172,6 +179,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                       // sort to the top and show immediately.
                       timestamp: Timestamp(seconds: tx.blockTime != Int64.ZERO ? tx.blockTime : tx.time),
                     ),
+                    bmmBid: tx.hasBmmBid() ? _bmmBid(tx.bmmBid) : null,
                   ),
                 )
                 .toList();
