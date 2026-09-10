@@ -33,10 +33,36 @@ func TestSetHomeDirMovesEveryBinaryPath(t *testing.T) {
 }
 
 func TestHomeDirFallsBackToTheUserHome(t *testing.T) {
-	realHome, err := os.UserHomeDir()
-	require.NoError(t, err)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
 	SetHomeDir(t.TempDir())
 	SetHomeDir("")
-	require.Equal(t, realHome, HomeDir())
+	require.Equal(t, home, HomeDir())
+}
+
+func TestTestBinaryNeverResolvesTheStartHome(t *testing.T) {
+	require.NotEqual(t, startHome, HomeDir())
+
+	SetHomeDir(t.TempDir())
+	SetHomeDir("")
+	require.NotEqual(t, startHome, HomeDir())
+
+	t.Run("setenv", func(t *testing.T) {
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		t.Setenv("USERPROFILE", home)
+	})
+	require.NotEqual(t, startHome, HomeDir())
+	require.Equal(t, testHome(), HomeDir())
+
+	for _, dc := range AllDirConfigs() {
+		require.True(t, strings.HasPrefix(dc.AppDir(), testHome()),
+			"%s AppDir left the test home: %s", dc.BinaryName, dc.AppDir())
+		for _, n := range []Network{NetworkSignet, NetworkECash, NetworkMainnet} {
+			require.True(t, strings.HasPrefix(dc.DatadirNetwork(n, ""), testHome()),
+				"%s %s datadir left the test home", dc.BinaryName, n)
+		}
+	}
 }

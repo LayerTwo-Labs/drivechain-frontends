@@ -32,10 +32,7 @@ func newTestPidManager(t *testing.T) *PidFileManager {
 
 func setTestHome(t *testing.T) {
 	t.Helper()
-	previousHome := config.HomeDir()
-	userHome, err := os.UserHomeDir()
-	require.NoError(t, err)
-	if previousHome != userHome {
+	if config.HomeDir() != config.UserHomeDir() {
 		return
 	}
 	config.SetHomeDir(t.TempDir())

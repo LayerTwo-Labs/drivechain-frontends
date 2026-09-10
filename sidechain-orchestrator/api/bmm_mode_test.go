@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"os"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -22,9 +21,7 @@ import (
 func newBMMModeHandler(t *testing.T) (*BMMHandler, *bmmstate.Store) {
 	t.Helper()
 	home := config.HomeDir()
-	userHome, err := os.UserHomeDir()
-	require.NoError(t, err)
-	if home == userHome {
+	if home == config.UserHomeDir() {
 		home = ""
 	}
 	config.SetHomeDir(t.TempDir())
