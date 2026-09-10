@@ -43,7 +43,7 @@ func TestRemoteSidechainRestartsOwnedOrphans(t *testing.T) {
 				ownThisInstall(t, o)
 			}
 			cfg, env, argsPath := installRemoteTestDaemon(t, o)
-			oldBridge, err := enforcerproxy.NewRemote(server.URL)
+			oldBridge, err := enforcerproxy.NewRemote(server.URL, nil)
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, oldBridge.Close()) })
 			oldArgs := []string{"--headless", "--mainchain-grpc-url=" + oldBridge.URL()}

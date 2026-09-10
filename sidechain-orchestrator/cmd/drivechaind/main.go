@@ -176,6 +176,10 @@ func run(cctx *cli.Context) error {
 		Timestamp().
 		Logger()
 
+	// net/http repeats a refused dial and a dropped frame once a second while a
+	// daemon boots. Only those two drop to debug; a handler panic stays at error.
+	transportLog := logfile.StdLogger(log, logfile.TransportNoise)
+
 	dataDir := cctx.String("datadir")
 	network := cctx.String("network")
 	listenAddr := cctx.String("rpclisten")
@@ -396,7 +400,7 @@ func run(cctx *cli.Context) error {
 	if _, ok := orch.Configs()["enforcer"]; ok {
 		// Enforcer passthrough: sidechain apps funnel all enforcer traffic
 		// through drivechaind instead of dialing the enforcer directly.
-		enforcerBridge := enforcerproxy.ConnectDynamic(orch.EnforcerURL)
+		enforcerBridge := enforcerproxy.ConnectDynamic(orch.EnforcerURL, transportLog)
 		for _, svc := range []string{
 			enforcerrpc.ValidatorServiceName,
 			cryptorpc.CryptoServiceName,
@@ -664,6 +668,7 @@ func run(cctx *cli.Context) error {
 
 	srv := &http.Server{
 		ConnState: clients.ConnState,
+		ErrorLog:  transportLog,
 		Handler:   mux,
 		Protocols: protocols,
 		HTTP2:     &http.HTTP2Config{SendPingTimeout: 30 * time.Second},
