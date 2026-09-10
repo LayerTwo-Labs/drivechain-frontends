@@ -57,7 +57,7 @@ const (
 )
 
 const (
-	reasonRefused  = "the sidechain refused the block"
+	reasonRefused  = "the sidechain did not connect the block"
 	reasonNoAnswer = "the sidechain never accepted the block"
 )
 
@@ -1232,15 +1232,16 @@ func (e *BmmEngine) retire(sidechain pb.BinaryType, round *bmmstate.Round, reaso
 	}
 	e.log.Warn().Stringer("sidechain", sidechain).Str("round", round.PrevMainHash).
 		Str("main_block", round.IncludedInBlock).Str("reason", reason).
-		Msg("retiring a won block the sidechain will not take")
+		Msg("retiring a won block the sidechain did not connect")
 	e.save(round)
 }
 
 // connectWon hands the won block to the sidechain, naming the mainchain block
 // that carries the commitment — the sidechain cannot name a block it never saw.
 //
-// An empty answer means the sidechain has not seen the inclusion yet; an answer
-// that names the block means the sidechain judged it and said no.
+// An empty answer means the sidechain has not seen the inclusion yet. An answer
+// that names the block means the sidechain did not take ours, which a node that
+// already holds the block from a peer answers as well.
 func (e *BmmEngine) connectWon(
 	ctx context.Context, sidechain pb.BinaryType, round *bmmstate.Round,
 ) roundStep {
@@ -1265,8 +1266,10 @@ func (e *BmmEngine) connectWon(
 				Msg("the sidechain has not seen the bid included yet")
 			return stepRetry
 		}
+		// A node that already holds the block from a peer answers false as
+		// well, so a false answer alone names no lost block.
 		e.log.Warn().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
-			Str("main_block", resp.Msg.MainBlockHash).Msg("sidechain refused the won block")
+			Str("main_block", resp.Msg.MainBlockHash).Msg("the sidechain did not connect the won block")
 		return stepRetire
 	}
 	live.State = BidConnected
