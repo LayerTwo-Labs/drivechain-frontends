@@ -157,16 +157,26 @@ type BlockResult struct {
 	Error  error
 }
 
+// ResetChainData deletes every row derived from a block at or above height. It
+// keeps the rows the user made.
+func ResetChainData(ctx context.Context, db *sql.DB, height uint32) error {
+	_, err := purgeChainAtOrAbove(ctx, db, height)
+	return err
+}
+
 // resetProcessedChain drops every processed block and everything derived from
 // them; the derived inserts ignore conflicts, so stale rows would survive the
 // rescan.
 func (p *Parser) resetProcessedChain(ctx context.Context) error {
-	_, err := p.purgeAtOrAbove(ctx, 0)
-	return err
+	return ResetChainData(ctx, p.db, 0)
 }
 
-// purgeAtOrAbove drops every row derived from a block at height or above, so a
-// replay of that range rebuilds them against the chain Core now follows.
+func (p *Parser) purgeAtOrAbove(ctx context.Context, height uint32) (uint32, error) {
+	return purgeChainAtOrAbove(ctx, p.db, height)
+}
+
+// purgeChainAtOrAbove drops every row derived from a block at height or above,
+// so a replay of that range rebuilds them against the chain Core now follows.
 //
 // One transaction. A partial purge would delete the processed markers that make
 // the fork detectable while orphan rows survive, and the first-wins inserts on
@@ -174,8 +184,8 @@ func (p *Parser) resetProcessedChain(ctx context.Context) error {
 // It returns the height the replay has to start from, which the M4 purge can
 // take below height: a bundle whose score the orphan branch moved only rebuilds
 // by replaying the blocks that built it.
-func (p *Parser) purgeAtOrAbove(ctx context.Context, height uint32) (uint32, error) {
-	tx, err := p.db.BeginTx(ctx, nil)
+func purgeChainAtOrAbove(ctx context.Context, db *sql.DB, height uint32) (uint32, error) {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("open the fork purge: %w", err)
 	}
@@ -184,6 +194,9 @@ func (p *Parser) purgeAtOrAbove(ctx context.Context, height uint32) (uint32, err
 	replayFrom, err := purgeM4AtOrAboveTx(ctx, tx, height)
 	if err != nil {
 		return 0, fmt.Errorf("purge m4 on fork: %w", err)
+	}
+	if err := purgeChequesAtOrAboveTx(ctx, tx, height); err != nil {
+		return 0, fmt.Errorf("purge cheques on fork: %w", err)
 	}
 	if err := blocks.DeleteProcessedBlocksAtOrAboveTx(ctx, tx, replayFrom); err != nil {
 		return 0, fmt.Errorf("delete processed blocks on fork: %w", err)
@@ -310,21 +323,15 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		return fmt.Errorf("fetch current height: %w", err)
 	}
 
-	// A node shorter than our processed tip means the chain was wiped. A healthy
-	// node — and a fresh install (processed tip 0) — is never shorter than
-	// what we've already processed, so this only fires on a real wipe, not on
-	// the pruning/reindex/restart blips that keep the tip high. Left stale,
-	// the scanner reprocesses against blocks the node no longer has and pins
-	// bitcoind, which starves getblockchaininfo and the wallet readiness probe
-	// ("Backend not ready after 60s"). Drop the stale state and re-scan the
-	// node's actual chain from scratch.
+	// The node dropped every block above its tip: a wiped datadir, or an eCash
+	// switch that rewound below the fork. The next tick checks the rest.
 	if currentHeight < lastProcessedHeight {
 		zerolog.Ctx(ctx).Warn().
 			Uint32("processed_tip", lastProcessedHeight).
 			Uint32("node_tip", currentHeight).
-			Msg("bitcoind_engine/parser: node is behind our processed tip — chain wiped, resetting processed_blocks")
-		if err := p.resetProcessedChain(ctx); err != nil {
-			return fmt.Errorf("reset processed chain on chain wipe: %w", err)
+			Msg("bitcoind_engine/parser: node is behind our processed tip, dropping the blocks above it")
+		if _, err := p.purgeAtOrAbove(ctx, currentHeight+1); err != nil {
+			return fmt.Errorf("purge above the node tip: %w", err)
 		}
 		return nil
 	}

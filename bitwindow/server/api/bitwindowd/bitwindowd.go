@@ -56,7 +56,7 @@ func New(
 	bitcoind *service.Service[corerpc.BitcoinServiceClient],
 	walletEngine *engines.WalletEngine,
 	config config.Config,
-	recycle func(ctx context.Context, network config.Network, networkID string) error,
+	recycle func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error,
 ) *Server {
 	s := &Server{
 		onShutdown:       onShutdown,
@@ -77,7 +77,7 @@ type Server struct {
 	bitcoind         *service.Service[corerpc.BitcoinServiceClient]
 	walletEngine     *engines.WalletEngine
 	bandwidthTracker *bandwidth.Tracker
-	recycle          func(ctx context.Context, network config.Network, networkID string) error
+	recycle          func(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error
 
 	config config.Config
 
@@ -177,6 +177,19 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 	if target == "" {
 		target = req.Msg.Network
 	}
+	// Planned before the switch runs: once it has, the plan reads as a no-op.
+	var resetFrom uint32
+	if network == config.NetworkECash && req.Msg.NetworkId != "" {
+		plan, err := confClient.PlanECashSwitch(ctx, connect.NewRequest(&orchpb.PlanECashSwitchRequest{
+			NetworkId: req.Msg.NetworkId,
+		}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.PlanECashSwitch: %w", err))
+		}
+		if plan.Msg.NeedsRollback {
+			resetFrom = plan.Msg.RewindHeight + 1
+		}
+	}
 	if _, err := confClient.SetBitcoinConfigNetwork(ctx, connect.NewRequest(&orchpb.SetBitcoinConfigNetworkRequest{
 		Network: target,
 		DataDir: req.Msg.DataDir,
@@ -184,7 +197,7 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 		return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.SetBitcoinConfigNetwork: %w", err))
 	}
 
-	if err := s.recycle(ctx, network, target); err != nil {
+	if err := s.recycle(ctx, network, target, resetFrom); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("recycle runtime to %s: %w", network, err))
 	}
 

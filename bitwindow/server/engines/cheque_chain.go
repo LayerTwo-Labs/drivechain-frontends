@@ -13,6 +13,8 @@ type ChequeUTXO struct {
 	Vout          int32
 	ValueSats     int64
 	Confirmations int32
+	// Height is the block that confirmed the output, 0 while unconfirmed.
+	Height uint32
 }
 
 // ChequeChain is the chain access a cheque needs: reads of an address the
@@ -34,7 +36,7 @@ func NewElectrumChequeChain(engine *WalletEngine) *ElectrumChequeChain {
 }
 
 func (c *ElectrumChequeChain) AddressUnspent(ctx context.Context, address string) ([]ChequeUTXO, error) {
-	utxos, _, err := c.engine.ChequeAddressUnspent(ctx, address)
+	utxos, tip, err := c.engine.ChequeAddressUnspent(ctx, address)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +46,16 @@ func (c *ElectrumChequeChain) AddressUnspent(ctx context.Context, address string
 			Vout:          u.Vout,
 			ValueSats:     u.ValueSats,
 			Confirmations: u.Confirmations,
+			Height:        confirmedHeight(tip, u.Confirmations),
 		}
 	}), nil
+}
+
+func confirmedHeight(tip, confirmations int32) uint32 {
+	if confirmations <= 0 || tip < confirmations {
+		return 0
+	}
+	return uint32(tip - confirmations + 1)
 }
 
 func (c *ElectrumChequeChain) FeeRateSatPerVByte(ctx context.Context, confTarget int32) (float64, error) {

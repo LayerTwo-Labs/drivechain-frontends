@@ -221,8 +221,15 @@ func attachFundingOutputs(ctx context.Context, db *sql.DB, walletID string, cheq
 	return rows.Err()
 }
 
-// UpdateFunding updates a cheque's funding txids and amount
-func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, txids []string, actualAmount uint64) error {
+// FundingOutput is one transaction paying a cheque. BlockHeight is 0 while it
+// is unconfirmed.
+type FundingOutput struct {
+	Txid        string
+	BlockHeight uint32
+}
+
+// UpdateFunding updates a cheque's funding outputs and amount
+func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, outputs []FundingOutput, actualAmount uint64) error {
 	now := time.Now()
 
 	result, err := db.ExecContext(ctx, `
@@ -242,11 +249,17 @@ func UpdateFunding(ctx context.Context, db *sql.DB, walletID string, id int64, t
 		return sql.ErrNoRows
 	}
 
-	for _, txid := range txids {
+	for _, out := range outputs {
+		var height sql.NullInt64
+		if out.BlockHeight > 0 {
+			height = sql.NullInt64{Int64: int64(out.BlockHeight), Valid: true}
+		}
 		if _, err := db.ExecContext(ctx, `
-			INSERT OR IGNORE INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats)
-			VALUES (?, ?, 0, 0)
-		`, id, txid); err != nil {
+			INSERT INTO cheque_funding_outputs (cheque_id, txid, vout, value_sats, block_height)
+			VALUES (?, ?, 0, 0, ?)
+			ON CONFLICT (cheque_id, txid, vout) DO UPDATE
+			SET block_height = COALESCE(excluded.block_height, block_height)
+		`, id, out.Txid, height); err != nil {
 			return fmt.Errorf("record funding output: %w", err)
 		}
 	}
@@ -331,8 +344,11 @@ func CreateOrUpdateFromRecovery(ctx context.Context, db *sql.DB, walletID string
 	}
 
 	if existing != nil {
-		// Update existing cheque
-		return UpdateFunding(ctx, db, walletID, existing.ID, txids, amount)
+		outputs := make([]FundingOutput, len(txids))
+		for i, txid := range txids {
+			outputs[i] = FundingOutput{Txid: txid}
+		}
+		return UpdateFunding(ctx, db, walletID, existing.ID, outputs, amount)
 	}
 
 	// Create new cheque as already funded

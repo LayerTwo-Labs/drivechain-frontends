@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -16,6 +14,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
 	service "github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	cryptorpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/crypto/v1/cryptov1connect"
@@ -215,8 +214,9 @@ func New(
 // network-scoped DB, builds new engines, registers new sub-handlers on a
 // new mux, atomically points the listener at the new mux, and tears down
 // the old runtime asynchronously. The HTTP server keeps running across
-// the swap on the same port; the bitwindowd process never exits.
-func (s *Server) Recycle(ctx context.Context, network config.Network, networkID string) error {
+// the swap on the same port; the bitwindowd process never exits. resetFrom is
+// the first block the new eCash network does not share with the old one.
+func (s *Server) Recycle(ctx context.Context, network config.Network, networkID string, resetFrom uint32) error {
 	s.recycleMu.Lock()
 	defer s.recycleMu.Unlock()
 
@@ -244,18 +244,16 @@ func (s *Server) Recycle(ctx context.Context, network config.Network, networkID 
 		return fmt.Errorf("finalize conf for %s: %w", network, err)
 	}
 
-	// An eCash id change keeps the network, so the old and the new runtime name
-	// the same database file. The old one has to close before the reset, or the
-	// rows survive: a rename leaves the open handle on the same inode, and on
-	// Windows it fails outright.
 	// Only an eCash id change reaches here with the network unchanged, and only
-	// then do the old and the new runtime name the same database file.
+	// then do the old and the new runtime name the same database file. The old
+	// one closes first, so its engines write no rows from the old chain after
+	// the reset.
 	sameDatabase := old != nil && old.conf.BitcoinCoreNetwork == network && network == config.NetworkECash
 	if sameDatabase {
 		old.Close()
 		old = nil
 		log.Info().Msg("old runtime closed before the database reset")
-		if err := resetChainDatabase(newConf); err != nil {
+		if err := resetChainDatabase(ctx, newConf, resetFrom); err != nil {
 			return fmt.Errorf("reset chain database for %s: %w", network, err)
 		}
 	}
@@ -484,15 +482,15 @@ func getCode(err error) (connect.Code, bool) {
 	return connect.CodeUnknown, false
 }
 
-// resetChainDatabase removes the chain-derived database for a network, so a
-// runtime that reopens it indexes the chain from scratch. Called only with the
-// database closed.
-func resetChainDatabase(conf config.Config) error {
-	path := filepath.Join(conf.Datadir, "bitwindow.db")
-	for _, p := range []string{path, path + "-wal", path + "-shm"} {
-		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("remove %s: %w", p, err)
-		}
+// resetChainDatabase deletes the rows a network's database derived from blocks
+// at or above height. The user's rows stay. Called only with the database closed.
+func resetChainDatabase(ctx context.Context, conf config.Config, height uint32) error {
+	db, err := database.New(ctx, conf)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
 	}
-	return nil
+	if err := engines.ResetChainData(ctx, db, height); err != nil {
+		return errors.Join(fmt.Errorf("reset chain data: %w", err), db.Close())
+	}
+	return db.Close()
 }
