@@ -4,10 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	api_bitwindowd "github.com/LayerTwo-Labs/sidesail/bitwindow/server/api/bitwindowd"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/config"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	v1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1"
 	v1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
@@ -15,10 +18,12 @@ import (
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/deniability"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
+	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1183,6 +1188,59 @@ func TestService_ResumeDenial(t *testing.T) {
 		_, err := cli.ResumeDenial(context.Background(), connect.NewRequest(&v1.ResumeDenialRequest{Id: 99999}))
 		require.Error(t, err)
 	})
+}
+
+func TestService_ListBlocksInitialSync(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name       string
+		network    config.Network
+		initial    bool
+		blockCount uint32
+	}{
+		{name: "mainnet initial sync", network: config.NetworkMainnet, initial: true},
+		{name: "ecash initial sync", network: config.NetworkECash, initial: true},
+		{name: "mainnet after sync", network: config.NetworkMainnet, blockCount: 1},
+		{name: "ecash after sync", network: config.NetworkECash, blockCount: 1},
+		{name: "regtest initial sync", network: config.NetworkRegtest, initial: true, blockCount: 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockBitcoind := mocks.NewMockBitcoinServiceClient(gomock.NewController(t))
+			mockBitcoind.EXPECT().GetBlockchainInfo(gomock.Any(), gomock.Any()).
+				Return(connect.NewResponse(&corepb.GetBlockchainInfoResponse{
+					Blocks:               100,
+					BestBlockHash:        "hash100",
+					InitialBlockDownload: test.initial,
+				}), nil)
+
+			var hashReads, blockReads atomic.Uint32
+			mockBitcoind.EXPECT().GetBlockHash(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockHashRequest]) (*connect.Response[corepb.GetBlockHashResponse], error) {
+					hashReads.Add(1)
+					return connect.NewResponse(&corepb.GetBlockHashResponse{Hash: fmt.Sprintf("hash%d", req.Msg.Height)}), nil
+				}).AnyTimes()
+			mockBitcoind.EXPECT().GetBlock(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, req *connect.Request[corepb.GetBlockRequest]) (*connect.Response[corepb.GetBlockResponse], error) {
+					blockReads.Add(1)
+					return connect.NewResponse(&corepb.GetBlockResponse{Height: 100, Hash: req.Msg.Hash}), nil
+				}).AnyTimes()
+
+			core := service.New("bitcoind", func(context.Context) (corerpc.BitcoinServiceClient, error) {
+				return mockBitcoind, nil
+			})
+			server := api_bitwindowd.New(nil, nil, core, nil, config.Config{BitcoinCoreNetwork: test.network}, nil)
+
+			response, err := server.ListBlocks(context.Background(), connect.NewRequest(&v1.ListBlocksRequest{PageSize: 1}))
+			require.NoError(t, err)
+			assert.Len(t, response.Msg.RecentBlocks, int(test.blockCount))
+			assert.Equal(t, test.blockCount > 0, response.Msg.HasMore)
+			assert.Equal(t, test.blockCount, hashReads.Load())
+			assert.Equal(t, test.blockCount, blockReads.Load())
+		})
+	}
 }
 
 func TestService_ListBlocks(t *testing.T) {
