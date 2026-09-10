@@ -339,6 +339,7 @@ const WalletTransaction$json = {
     {'1': 'address_label', '3': 6, '4': 1, '5': 9, '10': 'addressLabel'},
     {'1': 'note', '3': 7, '4': 1, '5': 9, '10': 'note'},
     {'1': 'confirmation_time', '3': 8, '4': 1, '5': 11, '6': '.wallet.v1.Confirmation', '10': 'confirmationTime'},
+    {'1': 'bmm_bid', '3': 9, '4': 1, '5': 11, '6': '.wallet.v1.BmmBid', '10': 'bmmBid'},
   ],
 };
 
@@ -349,7 +350,25 @@ final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'CgxzZW50X3NhdG9zaGkYBCABKARSC3NlbnRTYXRvc2hpEhgKB2FkZHJlc3MYBSABKAlSB2FkZH'
     'Jlc3MSIwoNYWRkcmVzc19sYWJlbBgGIAEoCVIMYWRkcmVzc0xhYmVsEhIKBG5vdGUYByABKAlS'
     'BG5vdGUSRAoRY29uZmlybWF0aW9uX3RpbWUYCCABKAsyFy53YWxsZXQudjEuQ29uZmlybWF0aW'
-    '9uUhBjb25maXJtYXRpb25UaW1l');
+    '9uUhBjb25maXJtYXRpb25UaW1lEioKB2JtbV9iaWQYCSABKAsyES53YWxsZXQudjEuQm1tQmlk'
+    'UgZibW1CaWQ=');
+
+@$core.Deprecated('Use bmmBidDescriptor instead')
+const BmmBid$json = {
+  '1': 'BmmBid',
+  '2': [
+    {'1': 'slot', '3': 1, '4': 1, '5': 13, '10': 'slot'},
+    {'1': 'critical_hash', '3': 2, '4': 1, '5': 9, '10': 'criticalHash'},
+    {'1': 'prev_main_hash', '3': 3, '4': 1, '5': 9, '10': 'prevMainHash'},
+    {'1': 'lost', '3': 4, '4': 1, '5': 8, '10': 'lost'},
+  ],
+};
+
+/// Descriptor for `BmmBid`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List bmmBidDescriptor = $convert.base64Decode(
+    'CgZCbW1CaWQSEgoEc2xvdBgBIAEoDVIEc2xvdBIjCg1jcml0aWNhbF9oYXNoGAIgASgJUgxjcm'
+    'l0aWNhbEhhc2gSJAoOcHJldl9tYWluX2hhc2gYAyABKAlSDHByZXZNYWluSGFzaBISCgRsb3N0'
+    'GAQgASgIUgRsb3N0');
 
 @$core.Deprecated('Use listSidechainDepositsRequestDescriptor instead')
 const ListSidechainDepositsRequest$json = {
@@ -1246,6 +1265,7 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> WalletServ
   '.wallet.v1.ListTransactionsResponse': ListTransactionsResponse$json,
   '.wallet.v1.WalletTransaction': WalletTransaction$json,
   '.wallet.v1.Confirmation': Confirmation$json,
+  '.wallet.v1.BmmBid': BmmBid$json,
   '.wallet.v1.ListUnspentRequest': ListUnspentRequest$json,
   '.wallet.v1.ListUnspentResponse': ListUnspentResponse$json,
   '.wallet.v1.ListReceiveAddressesRequest': ListReceiveAddressesRequest$json,

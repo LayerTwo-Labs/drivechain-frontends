@@ -1181,6 +1181,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     $core.String? addressLabel,
     $core.String? note,
     Confirmation? confirmationTime,
+    BmmBid? bmmBid,
   }) {
     final $result = create();
     if (txid != null) {
@@ -1207,6 +1208,9 @@ class WalletTransaction extends $pb.GeneratedMessage {
     if (confirmationTime != null) {
       $result.confirmationTime = confirmationTime;
     }
+    if (bmmBid != null) {
+      $result.bmmBid = bmmBid;
+    }
     return $result;
   }
   WalletTransaction._() : super();
@@ -1222,6 +1226,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'addressLabel')
     ..aOS(7, _omitFieldNames ? '' : 'note')
     ..aOM<Confirmation>(8, _omitFieldNames ? '' : 'confirmationTime', subBuilder: Confirmation.create)
+    ..aOM<BmmBid>(9, _omitFieldNames ? '' : 'bmmBid', subBuilder: BmmBid.create)
     ..hasRequiredFields = false
   ;
 
@@ -1319,6 +1324,114 @@ class WalletTransaction extends $pb.GeneratedMessage {
   void clearConfirmationTime() => clearField(8);
   @$pb.TagNumber(8)
   Confirmation ensureConfirmationTime() => $_ensure(7);
+
+  /// Set when output 0 carries a BMM request. Unset for every other transaction.
+  @$pb.TagNumber(9)
+  BmmBid get bmmBid => $_getN(8);
+  @$pb.TagNumber(9)
+  set bmmBid(BmmBid v) { setField(9, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasBmmBid() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearBmmBid() => clearField(9);
+  @$pb.TagNumber(9)
+  BmmBid ensureBmmBid() => $_ensure(8);
+}
+
+/// BmmBid names the BMM request one wallet transaction carries.
+class BmmBid extends $pb.GeneratedMessage {
+  factory BmmBid({
+    $core.int? slot,
+    $core.String? criticalHash,
+    $core.String? prevMainHash,
+    $core.bool? lost,
+  }) {
+    final $result = create();
+    if (slot != null) {
+      $result.slot = slot;
+    }
+    if (criticalHash != null) {
+      $result.criticalHash = criticalHash;
+    }
+    if (prevMainHash != null) {
+      $result.prevMainHash = prevMainHash;
+    }
+    if (lost != null) {
+      $result.lost = lost;
+    }
+    return $result;
+  }
+  BmmBid._() : super();
+  factory BmmBid.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BmmBid.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BmmBid', package: const $pb.PackageName(_omitMessageNames ? '' : 'wallet.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'slot', $pb.PbFieldType.OU3)
+    ..aOS(2, _omitFieldNames ? '' : 'criticalHash')
+    ..aOS(3, _omitFieldNames ? '' : 'prevMainHash')
+    ..aOB(4, _omitFieldNames ? '' : 'lost')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BmmBid clone() => BmmBid()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BmmBid copyWith(void Function(BmmBid) updates) => super.copyWith((message) => updates(message as BmmBid)) as BmmBid;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BmmBid create() => BmmBid._();
+  BmmBid createEmptyInstance() => create();
+  static $pb.PbList<BmmBid> createRepeated() => $pb.PbList<BmmBid>();
+  @$core.pragma('dart2js:noInline')
+  static BmmBid getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BmmBid>(create);
+  static BmmBid? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get slot => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set slot($core.int v) { $_setUnsignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSlot() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSlot() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get criticalHash => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set criticalHash($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCriticalHash() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCriticalHash() => clearField(2);
+
+  /// The mainchain block the sidechain block builds on. The bid reaches only
+  /// the block after it.
+  @$pb.TagNumber(3)
+  $core.String get prevMainHash => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set prevMainHash($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasPrevMainHash() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPrevMainHash() => clearField(3);
+
+  /// True when the mainchain tip moved past prev_main_hash.
+  @$pb.TagNumber(4)
+  $core.bool get lost => $_getBF(3);
+  @$pb.TagNumber(4)
+  set lost($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasLost() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLost() => clearField(4);
 }
 
 class ListSidechainDepositsRequest extends $pb.GeneratedMessage {
