@@ -384,6 +384,13 @@ func (c *CoreRPCClient) ListUnspentMinConf(ctx context.Context, walletName strin
 	return utxos, nil
 }
 
+// LockUnspent locks or unlocks outputs, so Core's own coin selection leaves
+// them alone. Core holds the locks in memory, and a restart drops them.
+func (c *CoreRPCClient) LockUnspent(ctx context.Context, walletName string, unlock bool, outputs []RawInput) error {
+	_, err := c.call(ctx, walletName, "lockunspent", unlock, outputs)
+	return err
+}
+
 // CreateRawTransaction builds an unsigned transaction node-side. Outputs
 // keep their given order; each entry is {address: btc} or {"data": hex}. A
 // non-zero locktime is set on the tx, and Core lowers the given inputs'

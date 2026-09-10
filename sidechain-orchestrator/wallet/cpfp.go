@@ -1,8 +1,11 @@
 package wallet
 
 import (
+	"context"
 	"fmt"
 	"math"
+
+	"connectrpc.com/connect"
 )
 
 // CpfpRequest selects an unconfirmed wallet UTXO (the parent's output that this
@@ -41,4 +44,16 @@ func cpfpChildPlan(targetRate, parentVsize, parentFee, childVsize, parentValue i
 		return 0, 0, fmt.Errorf("child fee %d sats exceeds parent output value %d sats", childFee, parentValue)
 	}
 	return childFee, parentValue - childFee, nil
+}
+
+func (s *Service) checkCpfpParent(ctx context.Context, req CpfpRequest) error {
+	parent := Outpoint{TxID: req.ParentTxID, Vout: req.ParentVout}
+	frozen, err := s.FrozenCoins(ctx, []Outpoint{parent})
+	if err != nil {
+		return err
+	}
+	if frozen[parent.Key()] {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("outpoint %s is held by a live bmm bid", parent.Key()))
+	}
+	return nil
 }

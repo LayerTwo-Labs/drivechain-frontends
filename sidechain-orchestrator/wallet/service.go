@@ -54,6 +54,10 @@ type Service struct {
 	lastWalletDigest      walletfile.Digest
 	lastWalletDigestKnown bool
 
+	// frozenCoins names the coins a live BMM bid holds, so coin selection
+	// leaves them alone.
+	frozenCoins FrozenCoinsFunc
+
 	// Callbacks
 	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
 	OnStopAllBinaries func() error

@@ -480,6 +480,12 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	}
 	protect := ReplayProtect(p.svc.Network(), req.AllowReplay)
 
+	unlock, err := p.lockFrozenCoins(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	defer unlock()
+
 	needsRawPath := req.OpReturnHex != "" ||
 		req.FeeRateSatPerVB > 0 ||
 		req.FixedFeeSats > 0 ||
@@ -730,7 +736,6 @@ func (p *CoreBackend) selectInputsForFixedFee(ctx context.Context, walletID stri
 	if err != nil {
 		return nil, 0, fmt.Errorf("list unspent: %w", err)
 	}
-
 	sort.Slice(utxos, func(i, j int) bool {
 		return utxos[i].Amount > utxos[j].Amount
 	})
@@ -921,6 +926,13 @@ func (p *CoreBackend) BumpFee(ctx context.Context, walletID string, req BumpFeeR
 	if err != nil {
 		return nil, err
 	}
+	// A bump can reach for a wallet coin when the change cannot pay the raise.
+	unlock, err := p.lockFrozenCoins(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	preview, tx, err := p.previewBumpFee(ctx, name, req)
 	if err != nil {
 		return nil, err
@@ -1043,6 +1055,10 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 	if parent.Confirmations > 0 {
 		return "", connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
+	}
+
+	if err := p.svc.checkCpfpParent(ctx, req); err != nil {
+		return "", err
 	}
 
 	entry, err := p.rpc.GetMempoolEntry(ctx, req.ParentTxID)
