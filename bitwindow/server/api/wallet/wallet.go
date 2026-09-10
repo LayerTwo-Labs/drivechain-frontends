@@ -1634,17 +1634,19 @@ func (s *Server) CheckChequeFunding(ctx context.Context, c *connect.Request[pb.C
 	if len(utxos) > 0 {
 		var amountSats uint64
 		var txids []string
+		var outputs []cheques.FundingOutput
 		var minConfirmations uint32 = math.MaxUint32
 		for _, utxo := range utxos {
 			amountSats += uint64(utxo.ValueSats)
 			txids = append(txids, utxo.TxID)
+			outputs = append(outputs, cheques.FundingOutput{Txid: utxo.TxID, BlockHeight: utxo.Height})
 			if confs := uint32(utxo.Confirmations); confs < minConfirmations {
 				minConfirmations = confs
 			}
 		}
 
 		// Always update — handles new fundings arriving after first one
-		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, txids, amountSats); err != nil {
+		if err := cheques.UpdateFunding(ctx, s.database, walletId, c.Msg.Id, outputs, amountSats); err != nil {
 			log.Error().Err(err).Msg("failed to update cheque funding")
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update funding: %w", err))
 		}

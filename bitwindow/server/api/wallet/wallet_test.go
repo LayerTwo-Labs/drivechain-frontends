@@ -261,7 +261,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qpartialdelete000000000000000000000000000")
 		require.NoError(t, err)
 		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
-			[]string{"partial0partial0partial0partial0partial0partial0partial0partial0"}, 50_000_000))
+			[]cheques.FundingOutput{{Txid: "partial0partial0partial0partial0partial0partial0partial0partial0"}}, 50_000_000))
 
 		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
 			WalletId: testWalletID,
@@ -283,7 +283,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qfulldelete0000000000000000000000000000000")
 		require.NoError(t, err)
 		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
-			[]string{"full0000full0000full0000full0000full0000full0000full0000full0000"}, 100_000_000))
+			[]cheques.FundingOutput{{Txid: "full0000full0000full0000full0000full0000full0000full0000full0000"}}, 100_000_000))
 
 		_, err = cli.DeleteCheque(context.Background(), connect.NewRequest(&walletv1.DeleteChequeRequest{
 			WalletId: testWalletID,
@@ -304,7 +304,7 @@ func TestService_DeleteChequeFundingGuard(t *testing.T) {
 		chequeID, err := cheques.Create(context.Background(), db, testWalletID, 0, 100_000_000, "tb1qsweptdelete000000000000000000000000000000")
 		require.NoError(t, err)
 		require.NoError(t, cheques.UpdateFunding(context.Background(), db, testWalletID, chequeID,
-			[]string{"swept000swept000swept000swept000swept000swept000swept000swept000"}, 100_000_000))
+			[]cheques.FundingOutput{{Txid: "swept000swept000swept000swept000swept000swept000swept000swept000"}}, 100_000_000))
 		require.NoError(t, cheques.UpdateSwept(context.Background(), db, testWalletID, chequeID,
 			"deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef0"))
 
