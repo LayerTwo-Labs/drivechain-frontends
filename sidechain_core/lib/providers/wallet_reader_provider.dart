@@ -108,10 +108,6 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     required String? newActiveId,
     required bool newHasWalletOnDisk,
   }) {
-    _logger.i(
-      'WalletReaderProvider: frame wallets=${protoWallets.length} '
-      'active=$newActiveId hasWallet=$newHasWalletOnDisk (current=${wallets.length})',
-    );
     // Reconnecting stream can send an empty initial frame; keep a populated
     // list (a real delete arrives with hasWallet=false).
     if (protoWallets.isEmpty && wallets.isNotEmpty && newHasWalletOnDisk) {
@@ -135,14 +131,18 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     final previousHasWallet = hasWalletOnDisk;
     hasWalletOnDisk = newHasWalletOnDisk;
     if (previousHasWallet != hasWalletOnDisk) {
-      _logger.i('WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk');
+      _logger.i(
+        'WalletReaderProvider: hasWalletOnDisk $previousHasWallet -> $hasWalletOnDisk',
+      );
     }
 
     wallets = protoWallets.map<WalletData>((protoWallet) {
       WalletGradient gradient = WalletGradient.fromWalletId(protoWallet.id);
       if (protoWallet.gradientJson.isNotEmpty) {
         try {
-          final parsed = WalletGradient.fromJsonString(protoWallet.gradientJson);
+          final parsed = WalletGradient.fromJsonString(
+            protoWallet.gradientJson,
+          );
           // Legacy default {"background_svg":""} parses cleanly but would
           // render an empty avatar; keep the deterministic fallback in that
           // case.
@@ -208,7 +208,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     if (!GetIt.I.isRegistered<OrchestratorRPC>()) {
       // bootBackendManagedSidechain calls back into init() once the
       // orchestrator is registered + ready; bail without crashing.
-      _logger.d('WalletReaderProvider: OrchestratorRPC not registered yet, skipping seed');
+      _logger.d(
+        'WalletReaderProvider: OrchestratorRPC not registered yet, skipping seed',
+      );
       return;
     }
     _ensureSupervisor();
@@ -333,7 +335,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
         return resp.hasWallet;
       } catch (e) {
         if (attempt == maxAttempts - 1) {
-          _logger.w('WalletReaderProvider.hasWallet: giving up after $maxAttempts attempts: $e');
+          _logger.w(
+            'WalletReaderProvider.hasWallet: giving up after $maxAttempts attempts: $e',
+          );
           return false;
         }
         await Future.delayed(delay);
@@ -362,7 +366,9 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
         await _seedWalletsIfEmpty('unlock');
       }
       if (wallets.isEmpty && !await _waitForWalletState(unlockStateWait)) {
-        _logger.w('WalletReaderProvider: unlock succeeded but wallet state did not load');
+        _logger.w(
+          'WalletReaderProvider: unlock succeeded but wallet state did not load',
+        );
         return false;
       }
       unlockedPassword = password;
@@ -434,7 +440,10 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
 
   /// Resolves whatever the backend needs before a wallet switch — moving onto a
   /// Core wallet can need a datadir this network was never given.
-  Future<String> resolveSwitchRequirements(BuildContext context, String walletId) async {
+  Future<String> resolveSwitchRequirements(
+    BuildContext context,
+    String walletId,
+  ) async {
     if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
       return '';
     }
@@ -448,7 +457,11 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
     if (!context.mounted) {
       throw NetworkChangeDeclined(conf.network);
     }
-    final dataDir = await conf.resolveNetworkChangePlan(context, plan, conf.network);
+    final dataDir = await conf.resolveNetworkChangePlan(
+      context,
+      plan,
+      conf.network,
+    );
     if (dataDir == null) {
       throw NetworkChangeDeclined(conf.network);
     }

@@ -96,12 +96,10 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
   }
 
   Future<void> _loadMnemonic() async {
-    log.i('HDWalletProvider: _loadMnemonic start');
     try {
       // Use WalletWriterProvider to load L1 mnemonic (supports both old and new structure)
       final walletProvider = GetIt.I.get<WalletWriterProvider>();
       final l1Mnemonic = await walletProvider.getL1Starter();
-      log.i('HDWalletProvider: getL1Starter returned len=${l1Mnemonic?.length ?? -1}');
 
       if (l1Mnemonic == null || l1Mnemonic.isEmpty) {
         // Electrum wallets have no L1 (enforcer) seed, so the HD Explorer has
@@ -237,7 +235,11 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
         adjustedPath = path.replaceAll("'0'/", "'1'/");
       }
 
-      final mnemonicObj = Mnemonic.fromSentence(mnemonic, Language.english, passphrase: passphrase);
+      final mnemonicObj = Mnemonic.fromSentence(
+        mnemonic,
+        Language.english,
+        passphrase: passphrase,
+      );
       final seedHex = hex.encode(mnemonicObj.seed);
       final chain = Chain.seed(seedHex);
 
@@ -414,7 +416,10 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
     }
   }
 
-  Future<Map<String, String>> generateWalletXpub(int accountIndex, [bool isMainnet = false]) async {
+  Future<Map<String, String>> generateWalletXpub(
+    int accountIndex, [
+    bool isMainnet = false,
+  ]) async {
     final coinType = isMainnet ? "0'" : "1'";
     final path = "m/84'/$coinType/$accountIndex'";
 
@@ -438,7 +443,10 @@ class HDWalletProvider extends ChangeNotifier implements NetworkScoped {
     );
   }
 
-  Future<Map<String, String>> deriveKeyInfo(String mnemonic, String path) async {
+  Future<Map<String, String>> deriveKeyInfo(
+    String mnemonic,
+    String path,
+  ) async {
     final isMainnet = GetIt.I.get<BitcoinConfProvider>().usesMainnetParams;
     return deriveExtendedKeyInfo(mnemonic, path, isMainnet);
   }
