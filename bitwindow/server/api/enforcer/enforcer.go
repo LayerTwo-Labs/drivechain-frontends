@@ -138,6 +138,33 @@ func (s *Server) SetAckAllProposals(ctx context.Context, c *connect.Request[main
 	return producer.SetAckAllProposals(ctx, c)
 }
 
+// SetWithdrawalBundleAck implements mainchainv1connect.BlockProducerServiceHandler.
+func (s *Server) SetWithdrawalBundleAck(ctx context.Context, c *connect.Request[mainchainv1.SetWithdrawalBundleAckRequest]) (*connect.Response[mainchainv1.SetWithdrawalBundleAckResponse], error) {
+	producer, err := s.blockProducer.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return producer.SetWithdrawalBundleAck(ctx, c)
+}
+
+// SetWithdrawalBundlePolicy implements mainchainv1connect.BlockProducerServiceHandler.
+func (s *Server) SetWithdrawalBundlePolicy(ctx context.Context, c *connect.Request[mainchainv1.SetWithdrawalBundlePolicyRequest]) (*connect.Response[mainchainv1.SetWithdrawalBundlePolicyResponse], error) {
+	producer, err := s.blockProducer.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return producer.SetWithdrawalBundlePolicy(ctx, c)
+}
+
+// ProposeWithdrawalBundle implements mainchainv1connect.BlockProducerServiceHandler.
+func (s *Server) ProposeWithdrawalBundle(ctx context.Context, c *connect.Request[mainchainv1.ProposeWithdrawalBundleRequest]) (*connect.Response[mainchainv1.ProposeWithdrawalBundleResponse], error) {
+	producer, err := s.blockProducer.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return producer.ProposeWithdrawalBundle(ctx, c)
+}
+
 // GetBlockProducerState implements mainchainv1connect.BlockProducerServiceHandler.
 func (s *Server) GetBlockProducerState(ctx context.Context, c *connect.Request[mainchainv1.GetBlockProducerStateRequest]) (*connect.Response[mainchainv1.GetBlockProducerStateResponse], error) {
 	producer, err := s.blockProducer.Get(ctx)
@@ -226,6 +253,15 @@ func (s *Server) GetSidechainProposals(ctx context.Context, c *connect.Request[m
 		return nil, err
 	}
 	return validator.GetSidechainProposals(ctx, c)
+}
+
+// GetSeenBmmRequests implements mainchainv1connect.ValidatorServiceHandler.
+func (s *Server) GetSeenBmmRequests(ctx context.Context, c *connect.Request[mainchainv1.GetSeenBmmRequestsRequest]) (*connect.Response[mainchainv1.GetSeenBmmRequestsResponse], error) {
+	validator, err := s.validator.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return validator.GetSeenBmmRequests(ctx, c)
 }
 
 // GetSidechains implements mainchainv1connect.ValidatorServiceHandler.
