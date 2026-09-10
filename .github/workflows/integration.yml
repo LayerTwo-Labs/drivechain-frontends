@@ -42,7 +42,7 @@ jobs:
       - name: Cache managed binaries
         uses: actions/cache@v5
         with:
-          path: ~/.local/share/bitwindow/assets/bin
+          path: ~/.cache/drivechain-test-binaries
           key: managed-binaries-v2-${{ runner.os }}-${{ hashFiles('sidechain-orchestrator/chains_config.json', 'sidechain-orchestrator/config/chains_config.json') }}
 
       - name: Run bitwindow backend smoke test
@@ -70,11 +70,11 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
-            cache-path: ~/.local/share/bitwindow/assets/bin
+            cache-path: ~/.cache/drivechain-test-binaries
           - os: windows-latest
-            cache-path: ~/AppData/Roaming/10520LayertwoLabs/BitWindow/assets/bin
+            cache-path: ~/AppData/Local/drivechain-test-binaries
           - os: macos-latest
-            cache-path: ~/Library/Application Support/bitwindow/assets/bin
+            cache-path: ~/Library/Caches/drivechain-test-binaries
 
     steps:
       - uses: actions/checkout@v5
