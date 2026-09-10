@@ -331,6 +331,27 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Point the daemon at the frontend process that owns it now. An app update
+  /// replaces the frontend with a new process, and the daemon drains itself a
+  /// few seconds after the old one dies. bitwindowd calls this the moment it
+  /// finds a live daemon, so the warm stack survives the swap.
+  Future<orchestratorv1orchestrator.AdoptOwnerResponse> adoptOwner(
+    orchestratorv1orchestrator.AdoptOwnerRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.adoptOwner,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Get the current BTC/USD exchange rate.
   Future<orchestratorv1orchestrator.GetBTCPriceResponse> getBTCPrice(
     orchestratorv1orchestrator.GetBTCPriceRequest input, {

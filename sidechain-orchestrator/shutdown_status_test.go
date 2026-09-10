@@ -2,14 +2,60 @@ package orchestrator
 
 import (
 	"context"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAdoptOwnerCancelsExit(t *testing.T) {
+	o := &Orchestrator{shutdownState: shutdownStateDrainingExit}
+	o.SetLease(lease.New(os.Getpid(), time.Minute, func() {}))
+
+	canceled, err := o.AdoptOwner(os.Getpid())
+
+	require.NoError(t, err)
+	require.True(t, canceled)
+	drain, exit := o.ShutdownDraining()
+	require.True(t, drain)
+	require.False(t, exit)
+}
+
+func TestAdoptOwnerCancelsExpiredLease(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	fired := make(chan struct{})
+	clients := lease.New(0x7FFFFFF0, 0, func() { close(fired) })
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		clients.Run(ctx)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+	select {
+	case <-fired:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the lease did not expire")
+	}
+	o := &Orchestrator{shutdownState: shutdownStateDrainingExit}
+	o.SetLease(clients)
+
+	canceled, err := o.AdoptOwner(os.Getpid())
+
+	require.NoError(t, err)
+	require.True(t, canceled)
+	drain, exit := o.ShutdownDraining()
+	require.True(t, drain)
+	require.False(t, exit)
+}
 
 // TestStop_EmitsStoppingThenStopped guards the frontend-visible shutdown
 // sequence: the daemon-status card relies on stoppingBinary flipping to
@@ -115,4 +161,38 @@ func TestMarkStopped_SuppressesRestartTimer(t *testing.T) {
 	time.Sleep(1100 * time.Millisecond)
 
 	assert.Equal(t, int32(0), atomic.LoadInt32(&restarts), "MarkStopped must short-circuit the restart timer; otherwise stopped-by-user binaries come back from the dead")
+}
+
+// A frontend that took over a drain and then left must not strand the daemon.
+// The lease fires again, and the drain in flight goes back to exit.
+func TestRequestExit_RearmsAKeptDrain(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	o.shutdownMu.Lock()
+	o.shutdownState = shutdownStateDrainingKeep
+	o.shutdownIdle = make(chan struct{})
+	o.shutdownMu.Unlock()
+
+	o.RequestExit()
+
+	o.shutdownMu.Lock()
+	defer o.shutdownMu.Unlock()
+	assert.Equal(t, shutdownStateDrainingExit, o.shutdownState)
+}
+
+// A drain already set to exit stays that way, and RequestExit starts no second
+// drain over the top of it.
+func TestRequestExit_LeavesAnExitDrainAlone(t *testing.T) {
+	o := newTestOrchestrator(t)
+
+	o.shutdownMu.Lock()
+	o.shutdownState = shutdownStateDrainingExit
+	o.shutdownIdle = make(chan struct{})
+	o.shutdownMu.Unlock()
+
+	o.RequestExit()
+
+	o.shutdownMu.Lock()
+	defer o.shutdownMu.Unlock()
+	assert.Equal(t, shutdownStateDrainingExit, o.shutdownState)
 }

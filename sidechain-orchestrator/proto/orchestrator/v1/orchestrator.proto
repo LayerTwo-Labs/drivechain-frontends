@@ -86,6 +86,12 @@ service OrchestratorService {
   // stack — no separate cancel/await RPCs needed by callers.
   rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 
+  // Point the daemon at the frontend process that owns it now. An app update
+  // replaces the frontend with a new process, and the daemon drains itself a
+  // few seconds after the old one dies. bitwindowd calls this the moment it
+  // finds a live daemon, so the warm stack survives the swap.
+  rpc AdoptOwner(AdoptOwnerRequest) returns (AdoptOwnerResponse);
+
   // Get the current BTC/USD exchange rate.
   rpc GetBTCPrice(GetBTCPriceRequest) returns (GetBTCPriceResponse);
 
@@ -899,3 +905,12 @@ message ShutdownRequest {
   bool only_if_last = 1;
 }
 message ShutdownResponse {}
+
+message AdoptOwnerRequest {
+  // Process ID of the frontend that owns the daemon now.
+  int32 owner_pid = 1;
+}
+message AdoptOwnerResponse {
+  // True when the daemon was on its way out and this call stopped the exit.
+  bool canceled_exit = 1;
+}

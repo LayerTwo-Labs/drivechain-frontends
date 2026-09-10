@@ -663,7 +663,7 @@ func run(cctx *cli.Context) error {
 	protocols.SetUnencryptedHTTP2(true)
 	clients := lease.New(cctx.Int("owner-pid"), lease.DefaultGrace, func() {
 		log.Info().Msg("no clients left and the owner is gone, shutting down")
-		orch.BeginShutdown()
+		orch.RequestExit()
 	})
 	orch.SetLease(clients)
 

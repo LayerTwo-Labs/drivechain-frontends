@@ -1285,6 +1285,31 @@ const ShutdownResponse$json = {
 final $typed_data.Uint8List shutdownResponseDescriptor = $convert.base64Decode(
     'ChBTaHV0ZG93blJlc3BvbnNl');
 
+@$core.Deprecated('Use adoptOwnerRequestDescriptor instead')
+const AdoptOwnerRequest$json = {
+  '1': 'AdoptOwnerRequest',
+  '2': [
+    {'1': 'owner_pid', '3': 1, '4': 1, '5': 5, '10': 'ownerPid'},
+  ],
+};
+
+/// Descriptor for `AdoptOwnerRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List adoptOwnerRequestDescriptor = $convert.base64Decode(
+    'ChFBZG9wdE93bmVyUmVxdWVzdBIbCglvd25lcl9waWQYASABKAVSCG93bmVyUGlk');
+
+@$core.Deprecated('Use adoptOwnerResponseDescriptor instead')
+const AdoptOwnerResponse$json = {
+  '1': 'AdoptOwnerResponse',
+  '2': [
+    {'1': 'canceled_exit', '3': 1, '4': 1, '5': 8, '10': 'canceledExit'},
+  ],
+};
+
+/// Descriptor for `AdoptOwnerResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List adoptOwnerResponseDescriptor = $convert.base64Decode(
+    'ChJBZG9wdE93bmVyUmVzcG9uc2USIwoNY2FuY2VsZWRfZXhpdBgBIAEoCFIMY2FuY2VsZWRFeG'
+    'l0');
+
 const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
   '1': 'OrchestratorService',
   '2': [
@@ -1304,6 +1329,7 @@ const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
     {'1': 'ConfirmPendingNetworkGeneration', '2': '.orchestrator.v1.ConfirmPendingNetworkGenerationRequest', '3': '.orchestrator.v1.ConfirmPendingNetworkGenerationResponse'},
     {'1': 'ShutdownAll', '2': '.orchestrator.v1.ShutdownAllRequest', '3': '.orchestrator.v1.ShutdownAllResponse', '6': true},
     {'1': 'Shutdown', '2': '.orchestrator.v1.ShutdownRequest', '3': '.orchestrator.v1.ShutdownResponse'},
+    {'1': 'AdoptOwner', '2': '.orchestrator.v1.AdoptOwnerRequest', '3': '.orchestrator.v1.AdoptOwnerResponse'},
     {'1': 'GetBTCPrice', '2': '.orchestrator.v1.GetBTCPriceRequest', '3': '.orchestrator.v1.GetBTCPriceResponse'},
     {'1': 'GetMainchainBlockchainInfo', '2': '.orchestrator.v1.GetMainchainBlockchainInfoRequest', '3': '.orchestrator.v1.GetMainchainBlockchainInfoResponse'},
     {'1': 'GetEnforcerBlockchainInfo', '2': '.orchestrator.v1.GetEnforcerBlockchainInfoRequest', '3': '.orchestrator.v1.GetEnforcerBlockchainInfoResponse'},
@@ -1361,6 +1387,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> Orchestrat
   '.orchestrator.v1.ShutdownAllResponse': ShutdownAllResponse$json,
   '.orchestrator.v1.ShutdownRequest': ShutdownRequest$json,
   '.orchestrator.v1.ShutdownResponse': ShutdownResponse$json,
+  '.orchestrator.v1.AdoptOwnerRequest': AdoptOwnerRequest$json,
+  '.orchestrator.v1.AdoptOwnerResponse': AdoptOwnerResponse$json,
   '.orchestrator.v1.GetBTCPriceRequest': GetBTCPriceRequest$json,
   '.orchestrator.v1.GetBTCPriceResponse': GetBTCPriceResponse$json,
   '.orchestrator.v1.GetMainchainBlockchainInfoRequest': GetMainchainBlockchainInfoRequest$json,
@@ -1433,35 +1461,37 @@ final $typed_data.Uint8List orchestratorServiceDescriptor = $convert.base64Decod
     'b3JrR2VuZXJhdGlvblJlc3BvbnNlEloKC1NodXRkb3duQWxsEiMub3JjaGVzdHJhdG9yLnYxLl'
     'NodXRkb3duQWxsUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5TaHV0ZG93bkFsbFJlc3BvbnNl'
     'MAESTwoIU2h1dGRvd24SIC5vcmNoZXN0cmF0b3IudjEuU2h1dGRvd25SZXF1ZXN0GiEub3JjaG'
-    'VzdHJhdG9yLnYxLlNodXRkb3duUmVzcG9uc2USWAoLR2V0QlRDUHJpY2USIy5vcmNoZXN0cmF0'
-    'b3IudjEuR2V0QlRDUHJpY2VSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkdldEJUQ1ByaWNlUm'
-    'VzcG9uc2UShQEKGkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvEjIub3JjaGVzdHJhdG9yLnYx'
-    'LkdldE1haW5jaGFpbkJsb2NrY2hhaW5JbmZvUmVxdWVzdBozLm9yY2hlc3RyYXRvci52MS5HZX'
-    'RNYWluY2hhaW5CbG9ja2NoYWluSW5mb1Jlc3BvbnNlEoIBChlHZXRFbmZvcmNlckJsb2NrY2hh'
-    'aW5JbmZvEjEub3JjaGVzdHJhdG9yLnYxLkdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXF1ZX'
-    'N0GjIub3JjaGVzdHJhdG9yLnYxLkdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXNwb25zZRJe'
-    'Cg1HZXRTeW5jU3RhdHVzEiUub3JjaGVzdHJhdG9yLnYxLkdldFN5bmNTdGF0dXNSZXF1ZXN0Gi'
-    'Yub3JjaGVzdHJhdG9yLnYxLkdldFN5bmNTdGF0dXNSZXNwb25zZRJqChFHZXREb3dubG9hZFN0'
-    'YXR1cxIpLm9yY2hlc3RyYXRvci52MS5HZXREb3dubG9hZFN0YXR1c1JlcXVlc3QaKi5vcmNoZX'
-    'N0cmF0b3IudjEuR2V0RG93bmxvYWRTdGF0dXNSZXNwb25zZRJwChNHZXRNYWluY2hhaW5CYWxh'
-    'bmNlEisub3JjaGVzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3JjaG'
-    'VzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJhbGFuY2VSZXNwb25zZRJwChNHZXRTaWRlY2hhaW5C'
-    'YWxhbmNlEisub3JjaGVzdHJhdG9yLnYxLkdldFNpZGVjaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3'
-    'JjaGVzdHJhdG9yLnYxLkdldFNpZGVjaGFpbkJhbGFuY2VSZXNwb25zZRJwChNHYXRoZXJGaWxl'
-    'c1RvRGVsZXRlEisub3JjaGVzdHJhdG9yLnYxLkdhdGhlckZpbGVzVG9EZWxldGVSZXF1ZXN0Gi'
-    'wub3JjaGVzdHJhdG9yLnYxLkdhdGhlckZpbGVzVG9EZWxldGVSZXNwb25zZRJaCgtEZWxldGVG'
-    'aWxlcxIjLm9yY2hlc3RyYXRvci52MS5EZWxldGVGaWxlc1JlcXVlc3QaJC5vcmNoZXN0cmF0b3'
-    'IudjEuRGVsZXRlRmlsZXNSZXNwb25zZTABElgKC1JlamVjdEJsb2NrEiMub3JjaGVzdHJhdG9y'
-    'LnYxLlJlamVjdEJsb2NrUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5SZWplY3RCbG9ja1Jlc3'
-    'BvbnNlElgKC0FjY2VwdEJsb2NrEiMub3JjaGVzdHJhdG9yLnYxLkFjY2VwdEJsb2NrUmVxdWVz'
-    'dBokLm9yY2hlc3RyYXRvci52MS5BY2NlcHRCbG9ja1Jlc3BvbnNlEl0KDFJlc2V0VG9CbG9jax'
-    'IkLm9yY2hlc3RyYXRvci52MS5SZXNldFRvQmxvY2tSZXF1ZXN0GiUub3JjaGVzdHJhdG9yLnYx'
-    'LlJlc2V0VG9CbG9ja1Jlc3BvbnNlMAESbQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdH'
-    'JhdG9yLnYxLkdldENvcmVNZW1wb29sSW5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0'
-    'Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2USXgoNR2V0Qm1tQ29udGV4dBIlLm9yY2hlc3RyYXRvci'
-    '52MS5HZXRCbW1Db250ZXh0UmVxdWVzdBomLm9yY2hlc3RyYXRvci52MS5HZXRCbW1Db250ZXh0'
-    'UmVzcG9uc2USWAoLQ29yZVJhd0NhbGwSIy5vcmNoZXN0cmF0b3IudjEuQ29yZVJhd0NhbGxSZX'
-    'F1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLkNvcmVSYXdDYWxsUmVzcG9uc2USXgoNR2V0Rm9ya1N0'
-    'YXR1cxIlLm9yY2hlc3RyYXRvci52MS5HZXRGb3JrU3RhdHVzUmVxdWVzdBomLm9yY2hlc3RyYX'
-    'Rvci52MS5HZXRGb3JrU3RhdHVzUmVzcG9uc2U=');
+    'VzdHJhdG9yLnYxLlNodXRkb3duUmVzcG9uc2USVQoKQWRvcHRPd25lchIiLm9yY2hlc3RyYXRv'
+    'ci52MS5BZG9wdE93bmVyUmVxdWVzdBojLm9yY2hlc3RyYXRvci52MS5BZG9wdE93bmVyUmVzcG'
+    '9uc2USWAoLR2V0QlRDUHJpY2USIy5vcmNoZXN0cmF0b3IudjEuR2V0QlRDUHJpY2VSZXF1ZXN0'
+    'GiQub3JjaGVzdHJhdG9yLnYxLkdldEJUQ1ByaWNlUmVzcG9uc2UShQEKGkdldE1haW5jaGFpbk'
+    'Jsb2NrY2hhaW5JbmZvEjIub3JjaGVzdHJhdG9yLnYxLkdldE1haW5jaGFpbkJsb2NrY2hhaW5J'
+    'bmZvUmVxdWVzdBozLm9yY2hlc3RyYXRvci52MS5HZXRNYWluY2hhaW5CbG9ja2NoYWluSW5mb1'
+    'Jlc3BvbnNlEoIBChlHZXRFbmZvcmNlckJsb2NrY2hhaW5JbmZvEjEub3JjaGVzdHJhdG9yLnYx'
+    'LkdldEVuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXF1ZXN0GjIub3JjaGVzdHJhdG9yLnYxLkdldE'
+    'VuZm9yY2VyQmxvY2tjaGFpbkluZm9SZXNwb25zZRJeCg1HZXRTeW5jU3RhdHVzEiUub3JjaGVz'
+    'dHJhdG9yLnYxLkdldFN5bmNTdGF0dXNSZXF1ZXN0GiYub3JjaGVzdHJhdG9yLnYxLkdldFN5bm'
+    'NTdGF0dXNSZXNwb25zZRJqChFHZXREb3dubG9hZFN0YXR1cxIpLm9yY2hlc3RyYXRvci52MS5H'
+    'ZXREb3dubG9hZFN0YXR1c1JlcXVlc3QaKi5vcmNoZXN0cmF0b3IudjEuR2V0RG93bmxvYWRTdG'
+    'F0dXNSZXNwb25zZRJwChNHZXRNYWluY2hhaW5CYWxhbmNlEisub3JjaGVzdHJhdG9yLnYxLkdl'
+    'dE1haW5jaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3JjaGVzdHJhdG9yLnYxLkdldE1haW5jaGFpbk'
+    'JhbGFuY2VSZXNwb25zZRJwChNHZXRTaWRlY2hhaW5CYWxhbmNlEisub3JjaGVzdHJhdG9yLnYx'
+    'LkdldFNpZGVjaGFpbkJhbGFuY2VSZXF1ZXN0Giwub3JjaGVzdHJhdG9yLnYxLkdldFNpZGVjaG'
+    'FpbkJhbGFuY2VSZXNwb25zZRJwChNHYXRoZXJGaWxlc1RvRGVsZXRlEisub3JjaGVzdHJhdG9y'
+    'LnYxLkdhdGhlckZpbGVzVG9EZWxldGVSZXF1ZXN0Giwub3JjaGVzdHJhdG9yLnYxLkdhdGhlck'
+    'ZpbGVzVG9EZWxldGVSZXNwb25zZRJaCgtEZWxldGVGaWxlcxIjLm9yY2hlc3RyYXRvci52MS5E'
+    'ZWxldGVGaWxlc1JlcXVlc3QaJC5vcmNoZXN0cmF0b3IudjEuRGVsZXRlRmlsZXNSZXNwb25zZT'
+    'ABElgKC1JlamVjdEJsb2NrEiMub3JjaGVzdHJhdG9yLnYxLlJlamVjdEJsb2NrUmVxdWVzdBok'
+    'Lm9yY2hlc3RyYXRvci52MS5SZWplY3RCbG9ja1Jlc3BvbnNlElgKC0FjY2VwdEJsb2NrEiMub3'
+    'JjaGVzdHJhdG9yLnYxLkFjY2VwdEJsb2NrUmVxdWVzdBokLm9yY2hlc3RyYXRvci52MS5BY2Nl'
+    'cHRCbG9ja1Jlc3BvbnNlEl0KDFJlc2V0VG9CbG9jaxIkLm9yY2hlc3RyYXRvci52MS5SZXNldF'
+    'RvQmxvY2tSZXF1ZXN0GiUub3JjaGVzdHJhdG9yLnYxLlJlc2V0VG9CbG9ja1Jlc3BvbnNlMAES'
+    'bQoSR2V0Q29yZU1lbXBvb2xJbmZvEioub3JjaGVzdHJhdG9yLnYxLkdldENvcmVNZW1wb29sSW'
+    '5mb1JlcXVlc3QaKy5vcmNoZXN0cmF0b3IudjEuR2V0Q29yZU1lbXBvb2xJbmZvUmVzcG9uc2US'
+    'XgoNR2V0Qm1tQ29udGV4dBIlLm9yY2hlc3RyYXRvci52MS5HZXRCbW1Db250ZXh0UmVxdWVzdB'
+    'omLm9yY2hlc3RyYXRvci52MS5HZXRCbW1Db250ZXh0UmVzcG9uc2USWAoLQ29yZVJhd0NhbGwS'
+    'Iy5vcmNoZXN0cmF0b3IudjEuQ29yZVJhd0NhbGxSZXF1ZXN0GiQub3JjaGVzdHJhdG9yLnYxLk'
+    'NvcmVSYXdDYWxsUmVzcG9uc2USXgoNR2V0Rm9ya1N0YXR1cxIlLm9yY2hlc3RyYXRvci52MS5H'
+    'ZXRGb3JrU3RhdHVzUmVxdWVzdBomLm9yY2hlc3RyYXRvci52MS5HZXRGb3JrU3RhdHVzUmVzcG'
+    '9uc2U=');
 

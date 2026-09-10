@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -348,6 +349,20 @@ func (h *Handler) Shutdown(_ context.Context, req *connect.Request[pb.ShutdownRe
 	}
 	h.orch.BeginShutdown()
 	return connect.NewResponse(&pb.ShutdownResponse{}), nil
+}
+
+func (h *Handler) AdoptOwner(_ context.Context, req *connect.Request[pb.AdoptOwnerRequest]) (*connect.Response[pb.AdoptOwnerResponse], error) {
+	pid := int(req.Msg.GetOwnerPid())
+	if pid <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("owner_pid must name a live process"))
+	}
+	canceled, err := h.orch.AdoptOwner(pid)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	return connect.NewResponse(&pb.AdoptOwnerResponse{
+		CanceledExit: canceled,
+	}), nil
 }
 
 func (h *Handler) GetBTCPrice(ctx context.Context, req *connect.Request[pb.GetBTCPriceRequest]) (*connect.Response[pb.GetBTCPriceResponse], error) {

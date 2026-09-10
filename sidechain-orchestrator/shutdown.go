@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"os"
 	"time"
 
@@ -38,6 +39,21 @@ func (o *Orchestrator) ClientLeaving() {
 	}
 }
 
+// AdoptOwner changes the frontend owner and returns whether it canceled an exit.
+func (o *Orchestrator) AdoptOwner(pid int) (bool, error) {
+	inTime := true
+	if o.clients != nil {
+		inTime = o.clients.SetOwner(pid)
+	}
+	canceled := o.CancelShutdownExit()
+	if !inTime && !canceled {
+		return false, errors.New("the daemon exit already started")
+	}
+	o.log.Info().Int("owner_pid", pid).Bool("in_time", inTime).
+		Bool("canceled_exit", canceled).Msg("a new frontend took over the daemon")
+	return canceled, nil
+}
+
 // BeginShutdown kicks off the drivechaind shutdown sequence. Idempotent:
 // subsequent calls while a drain is in flight are no-ops. Returns true iff
 // this call initiated a fresh drain.
@@ -47,14 +63,40 @@ func (o *Orchestrator) BeginShutdown() bool {
 		o.shutdownMu.Unlock()
 		return false
 	}
-	o.shutdownState = shutdownStateDrainingExit
-	o.shutdownIdle = make(chan struct{})
-	idleCh := o.shutdownIdle
-	o.shutdownGen.Add(1)
+	idleCh := o.startDrainLocked()
 	o.shutdownMu.Unlock()
 
 	go o.runShutdown(idleCh)
 	return true
+}
+
+// startDrainLocked marks a fresh drain. The caller holds shutdownMu, the state
+// is RUNNING, and the caller starts runShutdown on the channel it returns.
+func (o *Orchestrator) startDrainLocked() chan struct{} {
+	o.shutdownState = shutdownStateDrainingExit
+	o.shutdownIdle = make(chan struct{})
+	o.shutdownGen.Add(1)
+	return o.shutdownIdle
+}
+
+// RequestExit drains every child and exits. A drain that already runs is set
+// back to exit, so a KEEP the daemon took for a frontend that then left cannot
+// strand it.
+func (o *Orchestrator) RequestExit() {
+	o.shutdownMu.Lock()
+	if o.shutdownState == shutdownStateDrainingKeep {
+		o.shutdownState = shutdownStateDrainingExit
+		o.shutdownMu.Unlock()
+		return
+	}
+	if o.shutdownState != shutdownStateRunning {
+		o.shutdownMu.Unlock()
+		return
+	}
+	idleCh := o.startDrainLocked()
+	o.shutdownMu.Unlock()
+
+	go o.runShutdown(idleCh)
 }
 
 // runShutdown drains all managed children, then either os.Exit(0)s or stays
