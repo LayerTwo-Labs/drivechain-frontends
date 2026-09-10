@@ -119,6 +119,10 @@ class _FileLogsTabState extends State<_FileLogsTab> {
                   if (index == _logLines.length) {
                     return const SizedBox(height: 100);
                   }
+                  final timestamp = _logLines[index].length > 20
+                      ? DateTime.tryParse(_logLines[index].substring(0, 20))
+                      : DateTime.now();
+                  final logMsg = timestamp != null ? _logLines[index].substring(20) : _logLines[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
@@ -126,14 +130,22 @@ class _FileLogsTabState extends State<_FileLogsTab> {
                     ),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: Text.rich(
-                        _parseAnsiCodes(_logLines[index]),
-                        softWrap: false,
-                        style: const TextStyle(
-                          fontFamily: 'IBMPlexMono',
-                          fontSize: 10,
-                          color: SailColorScheme.whiteDark,
-                        ),
+                      child: Row(
+                        children: [
+                          SailText.secondary12(
+                            formatDate(timestamp ?? DateTime.now(), long: false),
+                          ),
+                          SailText.secondary12(' | '),
+                          Text.rich(
+                            _parseAnsiCodes(logMsg),
+                            softWrap: false,
+                            style: const TextStyle(
+                              fontFamily: 'IBMPlexMono',
+                              fontSize: 10,
+                              color: SailColorScheme.whiteDark,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -557,10 +569,7 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
                     color: SailColorScheme.greyLight,
                   ),
                 ),
-                SailText.secondary12(
-                  '|',
-                  color: SailColorScheme.greyLight,
-                ),
+                SailText.secondary12('|', color: SailColorScheme.greyLight),
                 const SizedBox(width: 8),
                 if (log.isStderr) ...[
                   Container(
@@ -580,7 +589,10 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
                   const SizedBox(width: 8),
                 ],
                 Expanded(
-                  child: SailText.primary12(log.message.substring(20), color: textColor),
+                  child: SailText.primary12(
+                    log.message.substring(20),
+                    color: textColor,
+                  ),
                 ),
               ],
             ),
