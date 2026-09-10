@@ -25,6 +25,141 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// How the block producer votes (BIP300 M2) on sidechain proposals it holds no
+// explicit `SetSidechainAck` ACK for.
+//
+// Proposals for an occupied sidechain slot are kept apart from proposals for an
+// empty one: activating a proposal for an occupied slot evicts the sidechain
+// sitting there (BIP300 M2, used-slot activation), so "ACK every new sidechain"
+// and "ACK every proposal in sight" are deliberately different policies.
+type AckAllProposalsPolicy int32
+
+const (
+	AckAllProposalsPolicy_ACK_ALL_PROPOSALS_POLICY_UNSPECIFIED AckAllProposalsPolicy = 0
+	// Emit only the ACKs set via `SetSidechainAck`.
+	AckAllProposalsPolicy_ACK_ALL_PROPOSALS_POLICY_NONE AckAllProposalsPolicy = 1
+	// Additionally ACK every proposal for a sidechain slot that no active
+	// sidechain occupies. Proposals that would replace an active sidechain are
+	// left to `SetSidechainAck`.
+	AckAllProposalsPolicy_ACK_ALL_PROPOSALS_POLICY_NEW_SLOTS AckAllProposalsPolicy = 2
+	// Additionally ACK every proposal, including ones that would replace the
+	// sidechain currently occupying a slot.
+	AckAllProposalsPolicy_ACK_ALL_PROPOSALS_POLICY_ALL AckAllProposalsPolicy = 3
+)
+
+// Enum value maps for AckAllProposalsPolicy.
+var (
+	AckAllProposalsPolicy_name = map[int32]string{
+		0: "ACK_ALL_PROPOSALS_POLICY_UNSPECIFIED",
+		1: "ACK_ALL_PROPOSALS_POLICY_NONE",
+		2: "ACK_ALL_PROPOSALS_POLICY_NEW_SLOTS",
+		3: "ACK_ALL_PROPOSALS_POLICY_ALL",
+	}
+	AckAllProposalsPolicy_value = map[string]int32{
+		"ACK_ALL_PROPOSALS_POLICY_UNSPECIFIED": 0,
+		"ACK_ALL_PROPOSALS_POLICY_NONE":        1,
+		"ACK_ALL_PROPOSALS_POLICY_NEW_SLOTS":   2,
+		"ACK_ALL_PROPOSALS_POLICY_ALL":         3,
+	}
+)
+
+func (x AckAllProposalsPolicy) Enum() *AckAllProposalsPolicy {
+	p := new(AckAllProposalsPolicy)
+	*p = x
+	return p
+}
+
+func (x AckAllProposalsPolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AckAllProposalsPolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_cusf_mainchain_v1_block_producer_proto_enumTypes[0].Descriptor()
+}
+
+func (AckAllProposalsPolicy) Type() protoreflect.EnumType {
+	return &file_cusf_mainchain_v1_block_producer_proto_enumTypes[0]
+}
+
+func (x AckAllProposalsPolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AckAllProposalsPolicy.Descriptor instead.
+func (AckAllProposalsPolicy) EnumDescriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{0}
+}
+
+// How the block producer votes (BIP300 M4) on the withdrawal bundles pending
+// for each active sidechain.
+//
+// An M4 carries one vote per active sidechain: abstain, alarm (downvote every
+// bundle currently carrying positive votes), or the index of the single bundle
+// to upvote. Upvoting one bundle downvotes that sidechain's others, so a
+// sidechain can back at most one bundle per block.
+type WithdrawalBundlePolicy int32
+
+const (
+	WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_UNSPECIFIED WithdrawalBundlePolicy = 0
+	// Abstain for every sidechain. Bundles ACKed via `SetWithdrawalBundleAck`
+	// are still upvoted.
+	WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_NONE WithdrawalBundlePolicy = 1
+	// Upvote the first pending bundle this node holds the transaction for --
+	// one it proposed or had broadcast through it. Abstain for a sidechain
+	// whose pending bundles are all strangers'.
+	WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_KNOWN WithdrawalBundlePolicy = 2
+	// Upvote each sidechain's first pending bundle, whoever proposed it.
+	WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_ALL WithdrawalBundlePolicy = 3
+	// Alarm every sidechain: downvote every bundle carrying positive votes,
+	// backing none of them.
+	WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_ALARM WithdrawalBundlePolicy = 4
+)
+
+// Enum value maps for WithdrawalBundlePolicy.
+var (
+	WithdrawalBundlePolicy_name = map[int32]string{
+		0: "WITHDRAWAL_BUNDLE_POLICY_UNSPECIFIED",
+		1: "WITHDRAWAL_BUNDLE_POLICY_NONE",
+		2: "WITHDRAWAL_BUNDLE_POLICY_KNOWN",
+		3: "WITHDRAWAL_BUNDLE_POLICY_ALL",
+		4: "WITHDRAWAL_BUNDLE_POLICY_ALARM",
+	}
+	WithdrawalBundlePolicy_value = map[string]int32{
+		"WITHDRAWAL_BUNDLE_POLICY_UNSPECIFIED": 0,
+		"WITHDRAWAL_BUNDLE_POLICY_NONE":        1,
+		"WITHDRAWAL_BUNDLE_POLICY_KNOWN":       2,
+		"WITHDRAWAL_BUNDLE_POLICY_ALL":         3,
+		"WITHDRAWAL_BUNDLE_POLICY_ALARM":       4,
+	}
+)
+
+func (x WithdrawalBundlePolicy) Enum() *WithdrawalBundlePolicy {
+	p := new(WithdrawalBundlePolicy)
+	*p = x
+	return p
+}
+
+func (x WithdrawalBundlePolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WithdrawalBundlePolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_cusf_mainchain_v1_block_producer_proto_enumTypes[1].Descriptor()
+}
+
+func (WithdrawalBundlePolicy) Type() protoreflect.EnumType {
+	return &file_cusf_mainchain_v1_block_producer_proto_enumTypes[1]
+}
+
+func (x WithdrawalBundlePolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WithdrawalBundlePolicy.Descriptor instead.
+func (WithdrawalBundlePolicy) EnumDescriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{1}
+}
+
 type CreateSidechainProposalRequest struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	SidechainId   *wrapperspb.UInt32Value `protobuf:"bytes,1,opt,name=sidechain_id,json=sidechainId,proto3" json:"sidechain_id,omitempty"`
@@ -398,7 +533,7 @@ func (*SetSidechainAckResponse) Descriptor() ([]byte, []int) {
 
 type SetAckAllProposalsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	AckAll        bool                   `protobuf:"varint,1,opt,name=ack_all,json=ackAll,proto3" json:"ack_all,omitempty"`
+	Policy        AckAllProposalsPolicy  `protobuf:"varint,2,opt,name=policy,proto3,enum=cusf.mainchain.v1.AckAllProposalsPolicy" json:"policy,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -433,11 +568,11 @@ func (*SetAckAllProposalsRequest) Descriptor() ([]byte, []int) {
 	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *SetAckAllProposalsRequest) GetAckAll() bool {
+func (x *SetAckAllProposalsRequest) GetPolicy() AckAllProposalsPolicy {
 	if x != nil {
-		return x.AckAll
+		return x.Policy
 	}
-	return false
+	return AckAllProposalsPolicy_ACK_ALL_PROPOSALS_POLICY_UNSPECIFIED
 }
 
 type SetAckAllProposalsResponse struct {
@@ -476,6 +611,235 @@ func (*SetAckAllProposalsResponse) Descriptor() ([]byte, []int) {
 	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{8}
 }
 
+type SetWithdrawalBundlePolicyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policy        WithdrawalBundlePolicy `protobuf:"varint,1,opt,name=policy,proto3,enum=cusf.mainchain.v1.WithdrawalBundlePolicy" json:"policy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetWithdrawalBundlePolicyRequest) Reset() {
+	*x = SetWithdrawalBundlePolicyRequest{}
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetWithdrawalBundlePolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetWithdrawalBundlePolicyRequest) ProtoMessage() {}
+
+func (x *SetWithdrawalBundlePolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetWithdrawalBundlePolicyRequest.ProtoReflect.Descriptor instead.
+func (*SetWithdrawalBundlePolicyRequest) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SetWithdrawalBundlePolicyRequest) GetPolicy() WithdrawalBundlePolicy {
+	if x != nil {
+		return x.Policy
+	}
+	return WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_UNSPECIFIED
+}
+
+type SetWithdrawalBundlePolicyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetWithdrawalBundlePolicyResponse) Reset() {
+	*x = SetWithdrawalBundlePolicyResponse{}
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetWithdrawalBundlePolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetWithdrawalBundlePolicyResponse) ProtoMessage() {}
+
+func (x *SetWithdrawalBundlePolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetWithdrawalBundlePolicyResponse.ProtoReflect.Descriptor instead.
+func (*SetWithdrawalBundlePolicyResponse) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{10}
+}
+
+type WithdrawalBundleAck struct {
+	state           protoimpl.MessageState  `protogen:"open.v1"`
+	SidechainNumber *wrapperspb.UInt32Value `protobuf:"bytes,1,opt,name=sidechain_number,json=sidechainNumber,proto3" json:"sidechain_number,omitempty"`
+	M6Id            *v1.ConsensusHex        `protobuf:"bytes,2,opt,name=m6id,proto3" json:"m6id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *WithdrawalBundleAck) Reset() {
+	*x = WithdrawalBundleAck{}
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WithdrawalBundleAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WithdrawalBundleAck) ProtoMessage() {}
+
+func (x *WithdrawalBundleAck) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WithdrawalBundleAck.ProtoReflect.Descriptor instead.
+func (*WithdrawalBundleAck) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *WithdrawalBundleAck) GetSidechainNumber() *wrapperspb.UInt32Value {
+	if x != nil {
+		return x.SidechainNumber
+	}
+	return nil
+}
+
+func (x *WithdrawalBundleAck) GetM6Id() *v1.ConsensusHex {
+	if x != nil {
+		return x.M6Id
+	}
+	return nil
+}
+
+type SetWithdrawalBundleAckRequest struct {
+	state           protoimpl.MessageState  `protogen:"open.v1"`
+	SidechainNumber *wrapperspb.UInt32Value `protobuf:"bytes,1,opt,name=sidechain_number,json=sidechainNumber,proto3" json:"sidechain_number,omitempty"`
+	M6Id            *v1.ConsensusHex        `protobuf:"bytes,2,opt,name=m6id,proto3" json:"m6id,omitempty"`
+	// ACK the bundle if true, withdraw the ACK (NACK) if false.
+	Ack           bool `protobuf:"varint,3,opt,name=ack,proto3" json:"ack,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetWithdrawalBundleAckRequest) Reset() {
+	*x = SetWithdrawalBundleAckRequest{}
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetWithdrawalBundleAckRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetWithdrawalBundleAckRequest) ProtoMessage() {}
+
+func (x *SetWithdrawalBundleAckRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetWithdrawalBundleAckRequest.ProtoReflect.Descriptor instead.
+func (*SetWithdrawalBundleAckRequest) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SetWithdrawalBundleAckRequest) GetSidechainNumber() *wrapperspb.UInt32Value {
+	if x != nil {
+		return x.SidechainNumber
+	}
+	return nil
+}
+
+func (x *SetWithdrawalBundleAckRequest) GetM6Id() *v1.ConsensusHex {
+	if x != nil {
+		return x.M6Id
+	}
+	return nil
+}
+
+func (x *SetWithdrawalBundleAckRequest) GetAck() bool {
+	if x != nil {
+		return x.Ack
+	}
+	return false
+}
+
+type SetWithdrawalBundleAckResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetWithdrawalBundleAckResponse) Reset() {
+	*x = SetWithdrawalBundleAckResponse{}
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetWithdrawalBundleAckResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetWithdrawalBundleAckResponse) ProtoMessage() {}
+
+func (x *SetWithdrawalBundleAckResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetWithdrawalBundleAckResponse.ProtoReflect.Descriptor instead.
+func (*SetWithdrawalBundleAckResponse) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{13}
+}
+
 type GetBlockProducerStateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -484,7 +848,7 @@ type GetBlockProducerStateRequest struct {
 
 func (x *GetBlockProducerStateRequest) Reset() {
 	*x = GetBlockProducerStateRequest{}
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[9]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -496,7 +860,7 @@ func (x *GetBlockProducerStateRequest) String() string {
 func (*GetBlockProducerStateRequest) ProtoMessage() {}
 
 func (x *GetBlockProducerStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[9]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -509,7 +873,7 @@ func (x *GetBlockProducerStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockProducerStateRequest.ProtoReflect.Descriptor instead.
 func (*GetBlockProducerStateRequest) Descriptor() ([]byte, []int) {
-	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{9}
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{14}
 }
 
 // A sidechain proposal authored on this node that is not yet on-chain: it
@@ -530,7 +894,7 @@ type PendingSidechainProposal struct {
 
 func (x *PendingSidechainProposal) Reset() {
 	*x = PendingSidechainProposal{}
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[10]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -542,7 +906,7 @@ func (x *PendingSidechainProposal) String() string {
 func (*PendingSidechainProposal) ProtoMessage() {}
 
 func (x *PendingSidechainProposal) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[10]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -555,7 +919,7 @@ func (x *PendingSidechainProposal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PendingSidechainProposal.ProtoReflect.Descriptor instead.
 func (*PendingSidechainProposal) Descriptor() ([]byte, []int) {
-	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{10}
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *PendingSidechainProposal) GetSidechainNumber() *wrapperspb.UInt32Value {
@@ -590,18 +954,22 @@ type GetBlockProducerStateResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Sidechain proposals authored here but not yet mined into a coinbase.
 	PendingProposals []*PendingSidechainProposal `protobuf:"bytes,1,rep,name=pending_proposals,json=pendingProposals,proto3" json:"pending_proposals,omitempty"`
-	// When set, every active sidechain proposal is ACKed regardless of the
-	// explicit ACKs below.
-	AckAllProposals bool `protobuf:"varint,2,opt,name=ack_all_proposals,json=ackAllProposals,proto3" json:"ack_all_proposals,omitempty"`
 	// Proposals explicitly ACKed via `SetSidechainAck`.
-	ExplicitAcks  []*SidechainAck `protobuf:"bytes,3,rep,name=explicit_acks,json=explicitAcks,proto3" json:"explicit_acks,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ExplicitAcks []*SidechainAck `protobuf:"bytes,3,rep,name=explicit_acks,json=explicitAcks,proto3" json:"explicit_acks,omitempty"`
+	// Which proposals are ACKed automatically, on top of `explicit_acks`.
+	AckPolicy AckAllProposalsPolicy `protobuf:"varint,4,opt,name=ack_policy,json=ackPolicy,proto3,enum=cusf.mainchain.v1.AckAllProposalsPolicy" json:"ack_policy,omitempty"`
+	// Which withdrawal bundles are upvoted automatically, on top of
+	// `explicit_bundle_acks`.
+	WithdrawalBundlePolicy WithdrawalBundlePolicy `protobuf:"varint,5,opt,name=withdrawal_bundle_policy,json=withdrawalBundlePolicy,proto3,enum=cusf.mainchain.v1.WithdrawalBundlePolicy" json:"withdrawal_bundle_policy,omitempty"`
+	// Bundles explicitly ACKed via `SetWithdrawalBundleAck`.
+	ExplicitBundleAcks []*WithdrawalBundleAck `protobuf:"bytes,6,rep,name=explicit_bundle_acks,json=explicitBundleAcks,proto3" json:"explicit_bundle_acks,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetBlockProducerStateResponse) Reset() {
 	*x = GetBlockProducerStateResponse{}
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[11]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -613,7 +981,7 @@ func (x *GetBlockProducerStateResponse) String() string {
 func (*GetBlockProducerStateResponse) ProtoMessage() {}
 
 func (x *GetBlockProducerStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[11]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -626,7 +994,7 @@ func (x *GetBlockProducerStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBlockProducerStateResponse.ProtoReflect.Descriptor instead.
 func (*GetBlockProducerStateResponse) Descriptor() ([]byte, []int) {
-	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{11}
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetBlockProducerStateResponse) GetPendingProposals() []*PendingSidechainProposal {
@@ -636,18 +1004,120 @@ func (x *GetBlockProducerStateResponse) GetPendingProposals() []*PendingSidechai
 	return nil
 }
 
-func (x *GetBlockProducerStateResponse) GetAckAllProposals() bool {
-	if x != nil {
-		return x.AckAllProposals
-	}
-	return false
-}
-
 func (x *GetBlockProducerStateResponse) GetExplicitAcks() []*SidechainAck {
 	if x != nil {
 		return x.ExplicitAcks
 	}
 	return nil
+}
+
+func (x *GetBlockProducerStateResponse) GetAckPolicy() AckAllProposalsPolicy {
+	if x != nil {
+		return x.AckPolicy
+	}
+	return AckAllProposalsPolicy_ACK_ALL_PROPOSALS_POLICY_UNSPECIFIED
+}
+
+func (x *GetBlockProducerStateResponse) GetWithdrawalBundlePolicy() WithdrawalBundlePolicy {
+	if x != nil {
+		return x.WithdrawalBundlePolicy
+	}
+	return WithdrawalBundlePolicy_WITHDRAWAL_BUNDLE_POLICY_UNSPECIFIED
+}
+
+func (x *GetBlockProducerStateResponse) GetExplicitBundleAcks() []*WithdrawalBundleAck {
+	if x != nil {
+		return x.ExplicitBundleAcks
+	}
+	return nil
+}
+
+type ProposeWithdrawalBundleRequest struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	SidechainId   *wrapperspb.UInt32Value `protobuf:"bytes,1,opt,name=sidechain_id,json=sidechainId,proto3" json:"sidechain_id,omitempty"`
+	Transaction   *wrapperspb.BytesValue  `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProposeWithdrawalBundleRequest) Reset() {
+	*x = ProposeWithdrawalBundleRequest{}
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProposeWithdrawalBundleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProposeWithdrawalBundleRequest) ProtoMessage() {}
+
+func (x *ProposeWithdrawalBundleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProposeWithdrawalBundleRequest.ProtoReflect.Descriptor instead.
+func (*ProposeWithdrawalBundleRequest) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ProposeWithdrawalBundleRequest) GetSidechainId() *wrapperspb.UInt32Value {
+	if x != nil {
+		return x.SidechainId
+	}
+	return nil
+}
+
+func (x *ProposeWithdrawalBundleRequest) GetTransaction() *wrapperspb.BytesValue {
+	if x != nil {
+		return x.Transaction
+	}
+	return nil
+}
+
+type ProposeWithdrawalBundleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProposeWithdrawalBundleResponse) Reset() {
+	*x = ProposeWithdrawalBundleResponse{}
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProposeWithdrawalBundleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProposeWithdrawalBundleResponse) ProtoMessage() {}
+
+func (x *ProposeWithdrawalBundleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProposeWithdrawalBundleResponse.ProtoReflect.Descriptor instead.
+func (*ProposeWithdrawalBundleResponse) Descriptor() ([]byte, []int) {
+	return file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP(), []int{18}
 }
 
 type CreateSidechainProposalResponse_Confirmed struct {
@@ -663,7 +1133,7 @@ type CreateSidechainProposalResponse_Confirmed struct {
 
 func (x *CreateSidechainProposalResponse_Confirmed) Reset() {
 	*x = CreateSidechainProposalResponse_Confirmed{}
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[12]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -675,7 +1145,7 @@ func (x *CreateSidechainProposalResponse_Confirmed) String() string {
 func (*CreateSidechainProposalResponse_Confirmed) ProtoMessage() {}
 
 func (x *CreateSidechainProposalResponse_Confirmed) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[12]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -737,7 +1207,7 @@ type CreateSidechainProposalResponse_NotConfirmed struct {
 
 func (x *CreateSidechainProposalResponse_NotConfirmed) Reset() {
 	*x = CreateSidechainProposalResponse_NotConfirmed{}
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[13]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -749,7 +1219,7 @@ func (x *CreateSidechainProposalResponse_NotConfirmed) String() string {
 func (*CreateSidechainProposalResponse_NotConfirmed) ProtoMessage() {}
 
 func (x *CreateSidechainProposalResponse_NotConfirmed) ProtoReflect() protoreflect.Message {
-	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[13]
+	mi := &file_cusf_mainchain_v1_block_producer_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -821,25 +1291,57 @@ const file_cusf_mainchain_v1_block_producer_proto_rawDesc = "" +
 	"\x10sidechain_number\x18\x01 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x0fsidechainNumber\x12T\n" +
 	"\x18description_sha256d_hash\x18\x02 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x16descriptionSha256dHash\x12\x10\n" +
 	"\x03ack\x18\x03 \x01(\bR\x03ack\"\x19\n" +
-	"\x17SetSidechainAckResponse\"4\n" +
-	"\x19SetAckAllProposalsRequest\x12\x17\n" +
-	"\aack_all\x18\x01 \x01(\bR\x06ackAll\"\x1c\n" +
-	"\x1aSetAckAllProposalsResponse\"\x1e\n" +
+	"\x17SetSidechainAckResponse\"l\n" +
+	"\x19SetAckAllProposalsRequest\x12@\n" +
+	"\x06policy\x18\x02 \x01(\x0e2(.cusf.mainchain.v1.AckAllProposalsPolicyR\x06policyJ\x04\b\x01\x10\x02R\aack_all\"\x1c\n" +
+	"\x1aSetAckAllProposalsResponse\"e\n" +
+	" SetWithdrawalBundlePolicyRequest\x12A\n" +
+	"\x06policy\x18\x01 \x01(\x0e2).cusf.mainchain.v1.WithdrawalBundlePolicyR\x06policy\"#\n" +
+	"!SetWithdrawalBundlePolicyResponse\"\x90\x01\n" +
+	"\x13WithdrawalBundleAck\x12G\n" +
+	"\x10sidechain_number\x18\x01 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x0fsidechainNumber\x120\n" +
+	"\x04m6id\x18\x02 \x01(\v2\x1c.cusf.common.v1.ConsensusHexR\x04m6id\"\xac\x01\n" +
+	"\x1dSetWithdrawalBundleAckRequest\x12G\n" +
+	"\x10sidechain_number\x18\x01 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x0fsidechainNumber\x120\n" +
+	"\x04m6id\x18\x02 \x01(\v2\x1c.cusf.common.v1.ConsensusHexR\x04m6id\x12\x10\n" +
+	"\x03ack\x18\x03 \x01(\bR\x03ack\" \n" +
+	"\x1eSetWithdrawalBundleAckResponse\"\x1e\n" +
 	"\x1cGetBlockProducerStateRequest\"\xbb\x02\n" +
 	"\x18PendingSidechainProposal\x12G\n" +
 	"\x10sidechain_number\x18\x01 \x01(\v2\x1c.google.protobuf.UInt32ValueR\x0fsidechainNumber\x12T\n" +
 	"\x18description_sha256d_hash\x18\x02 \x01(\v2\x1a.cusf.common.v1.ReverseHexR\x16descriptionSha256dHash\x12I\n" +
 	"\vdeclaration\x18\x03 \x01(\v2'.cusf.mainchain.v1.SidechainDeclarationR\vdeclaration\x125\n" +
-	"\vdescription\x18\x04 \x01(\v2\x13.cusf.common.v1.HexR\vdescription\"\xeb\x01\n" +
+	"\vdescription\x18\x04 \x01(\v2\x13.cusf.common.v1.HexR\vdescription\"\xe0\x03\n" +
 	"\x1dGetBlockProducerStateResponse\x12X\n" +
-	"\x11pending_proposals\x18\x01 \x03(\v2+.cusf.mainchain.v1.PendingSidechainProposalR\x10pendingProposals\x12*\n" +
-	"\x11ack_all_proposals\x18\x02 \x01(\bR\x0fackAllProposals\x12D\n" +
-	"\rexplicit_acks\x18\x03 \x03(\v2\x1f.cusf.mainchain.v1.SidechainAckR\fexplicitAcks2\xfc\x04\n" +
+	"\x11pending_proposals\x18\x01 \x03(\v2+.cusf.mainchain.v1.PendingSidechainProposalR\x10pendingProposals\x12D\n" +
+	"\rexplicit_acks\x18\x03 \x03(\v2\x1f.cusf.mainchain.v1.SidechainAckR\fexplicitAcks\x12G\n" +
+	"\n" +
+	"ack_policy\x18\x04 \x01(\x0e2(.cusf.mainchain.v1.AckAllProposalsPolicyR\tackPolicy\x12c\n" +
+	"\x18withdrawal_bundle_policy\x18\x05 \x01(\x0e2).cusf.mainchain.v1.WithdrawalBundlePolicyR\x16withdrawalBundlePolicy\x12X\n" +
+	"\x14explicit_bundle_acks\x18\x06 \x03(\v2&.cusf.mainchain.v1.WithdrawalBundleAckR\x12explicitBundleAcksJ\x04\b\x02\x10\x03R\x11ack_all_proposals\"\xa0\x01\n" +
+	"\x1eProposeWithdrawalBundleRequest\x12?\n" +
+	"\fsidechain_id\x18\x01 \x01(\v2\x1c.google.protobuf.UInt32ValueR\vsidechainId\x12=\n" +
+	"\vtransaction\x18\x02 \x01(\v2\x1b.google.protobuf.BytesValueR\vtransaction\"!\n" +
+	"\x1fProposeWithdrawalBundleResponse*\xae\x01\n" +
+	"\x15AckAllProposalsPolicy\x12(\n" +
+	"$ACK_ALL_PROPOSALS_POLICY_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dACK_ALL_PROPOSALS_POLICY_NONE\x10\x01\x12&\n" +
+	"\"ACK_ALL_PROPOSALS_POLICY_NEW_SLOTS\x10\x02\x12 \n" +
+	"\x1cACK_ALL_PROPOSALS_POLICY_ALL\x10\x03*\xcf\x01\n" +
+	"\x16WithdrawalBundlePolicy\x12(\n" +
+	"$WITHDRAWAL_BUNDLE_POLICY_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dWITHDRAWAL_BUNDLE_POLICY_NONE\x10\x01\x12\"\n" +
+	"\x1eWITHDRAWAL_BUNDLE_POLICY_KNOWN\x10\x02\x12 \n" +
+	"\x1cWITHDRAWAL_BUNDLE_POLICY_ALL\x10\x03\x12\"\n" +
+	"\x1eWITHDRAWAL_BUNDLE_POLICY_ALARM\x10\x042\x8c\b\n" +
 	"\x14BlockProducerService\x12\x82\x01\n" +
 	"\x17CreateSidechainProposal\x121.cusf.mainchain.v1.CreateSidechainProposalRequest\x1a2.cusf.mainchain.v1.CreateSidechainProposalResponse0\x01\x12\x80\x01\n" +
 	"\x17SubmitSidechainProposal\x121.cusf.mainchain.v1.SubmitSidechainProposalRequest\x1a2.cusf.mainchain.v1.SubmitSidechainProposalResponse\x12h\n" +
 	"\x0fSetSidechainAck\x12).cusf.mainchain.v1.SetSidechainAckRequest\x1a*.cusf.mainchain.v1.SetSidechainAckResponse\x12q\n" +
-	"\x12SetAckAllProposals\x12,.cusf.mainchain.v1.SetAckAllProposalsRequest\x1a-.cusf.mainchain.v1.SetAckAllProposalsResponse\x12\x7f\n" +
+	"\x12SetAckAllProposals\x12,.cusf.mainchain.v1.SetAckAllProposalsRequest\x1a-.cusf.mainchain.v1.SetAckAllProposalsResponse\x12}\n" +
+	"\x16SetWithdrawalBundleAck\x120.cusf.mainchain.v1.SetWithdrawalBundleAckRequest\x1a1.cusf.mainchain.v1.SetWithdrawalBundleAckResponse\x12\x86\x01\n" +
+	"\x19SetWithdrawalBundlePolicy\x123.cusf.mainchain.v1.SetWithdrawalBundlePolicyRequest\x1a4.cusf.mainchain.v1.SetWithdrawalBundlePolicyResponse\x12\x85\x01\n" +
+	"\x17ProposeWithdrawalBundle\x121.cusf.mainchain.v1.ProposeWithdrawalBundleRequest\x1a2.cusf.mainchain.v1.ProposeWithdrawalBundleResponse\"\x03\x90\x02\x02\x12\x7f\n" +
 	"\x15GetBlockProducerState\x12/.cusf.mainchain.v1.GetBlockProducerStateRequest\x1a0.cusf.mainchain.v1.GetBlockProducerStateResponse\"\x03\x90\x02\x01B\xed\x01\n" +
 	"\x15com.cusf.mainchain.v1B\x12BlockProducerProtoP\x01ZZgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1;mainchainv1\xa2\x02\x03CMX\xaa\x02\x11Cusf.Mainchain.V1\xca\x02\x11Cusf\\Mainchain\\V1\xe2\x02\x1dCusf\\Mainchain\\V1\\GPBMetadata\xea\x02\x13Cusf::Mainchain::V1b\x06proto3"
 
@@ -855,68 +1357,97 @@ func file_cusf_mainchain_v1_block_producer_proto_rawDescGZIP() []byte {
 	return file_cusf_mainchain_v1_block_producer_proto_rawDescData
 }
 
-var file_cusf_mainchain_v1_block_producer_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_cusf_mainchain_v1_block_producer_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_cusf_mainchain_v1_block_producer_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_cusf_mainchain_v1_block_producer_proto_goTypes = []any{
-	(*CreateSidechainProposalRequest)(nil),               // 0: cusf.mainchain.v1.CreateSidechainProposalRequest
-	(*CreateSidechainProposalResponse)(nil),              // 1: cusf.mainchain.v1.CreateSidechainProposalResponse
-	(*SubmitSidechainProposalRequest)(nil),               // 2: cusf.mainchain.v1.SubmitSidechainProposalRequest
-	(*SubmitSidechainProposalResponse)(nil),              // 3: cusf.mainchain.v1.SubmitSidechainProposalResponse
-	(*SidechainAck)(nil),                                 // 4: cusf.mainchain.v1.SidechainAck
-	(*SetSidechainAckRequest)(nil),                       // 5: cusf.mainchain.v1.SetSidechainAckRequest
-	(*SetSidechainAckResponse)(nil),                      // 6: cusf.mainchain.v1.SetSidechainAckResponse
-	(*SetAckAllProposalsRequest)(nil),                    // 7: cusf.mainchain.v1.SetAckAllProposalsRequest
-	(*SetAckAllProposalsResponse)(nil),                   // 8: cusf.mainchain.v1.SetAckAllProposalsResponse
-	(*GetBlockProducerStateRequest)(nil),                 // 9: cusf.mainchain.v1.GetBlockProducerStateRequest
-	(*PendingSidechainProposal)(nil),                     // 10: cusf.mainchain.v1.PendingSidechainProposal
-	(*GetBlockProducerStateResponse)(nil),                // 11: cusf.mainchain.v1.GetBlockProducerStateResponse
-	(*CreateSidechainProposalResponse_Confirmed)(nil),    // 12: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed
-	(*CreateSidechainProposalResponse_NotConfirmed)(nil), // 13: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed
-	(*wrapperspb.UInt32Value)(nil),                       // 14: google.protobuf.UInt32Value
-	(*SidechainDeclaration)(nil),                         // 15: cusf.mainchain.v1.SidechainDeclaration
-	(*v1.ReverseHex)(nil),                                // 16: cusf.common.v1.ReverseHex
-	(*v1.Hex)(nil),                                       // 17: cusf.common.v1.Hex
-	(*OutPoint)(nil),                                     // 18: cusf.mainchain.v1.OutPoint
+	(AckAllProposalsPolicy)(0),                           // 0: cusf.mainchain.v1.AckAllProposalsPolicy
+	(WithdrawalBundlePolicy)(0),                          // 1: cusf.mainchain.v1.WithdrawalBundlePolicy
+	(*CreateSidechainProposalRequest)(nil),               // 2: cusf.mainchain.v1.CreateSidechainProposalRequest
+	(*CreateSidechainProposalResponse)(nil),              // 3: cusf.mainchain.v1.CreateSidechainProposalResponse
+	(*SubmitSidechainProposalRequest)(nil),               // 4: cusf.mainchain.v1.SubmitSidechainProposalRequest
+	(*SubmitSidechainProposalResponse)(nil),              // 5: cusf.mainchain.v1.SubmitSidechainProposalResponse
+	(*SidechainAck)(nil),                                 // 6: cusf.mainchain.v1.SidechainAck
+	(*SetSidechainAckRequest)(nil),                       // 7: cusf.mainchain.v1.SetSidechainAckRequest
+	(*SetSidechainAckResponse)(nil),                      // 8: cusf.mainchain.v1.SetSidechainAckResponse
+	(*SetAckAllProposalsRequest)(nil),                    // 9: cusf.mainchain.v1.SetAckAllProposalsRequest
+	(*SetAckAllProposalsResponse)(nil),                   // 10: cusf.mainchain.v1.SetAckAllProposalsResponse
+	(*SetWithdrawalBundlePolicyRequest)(nil),             // 11: cusf.mainchain.v1.SetWithdrawalBundlePolicyRequest
+	(*SetWithdrawalBundlePolicyResponse)(nil),            // 12: cusf.mainchain.v1.SetWithdrawalBundlePolicyResponse
+	(*WithdrawalBundleAck)(nil),                          // 13: cusf.mainchain.v1.WithdrawalBundleAck
+	(*SetWithdrawalBundleAckRequest)(nil),                // 14: cusf.mainchain.v1.SetWithdrawalBundleAckRequest
+	(*SetWithdrawalBundleAckResponse)(nil),               // 15: cusf.mainchain.v1.SetWithdrawalBundleAckResponse
+	(*GetBlockProducerStateRequest)(nil),                 // 16: cusf.mainchain.v1.GetBlockProducerStateRequest
+	(*PendingSidechainProposal)(nil),                     // 17: cusf.mainchain.v1.PendingSidechainProposal
+	(*GetBlockProducerStateResponse)(nil),                // 18: cusf.mainchain.v1.GetBlockProducerStateResponse
+	(*ProposeWithdrawalBundleRequest)(nil),               // 19: cusf.mainchain.v1.ProposeWithdrawalBundleRequest
+	(*ProposeWithdrawalBundleResponse)(nil),              // 20: cusf.mainchain.v1.ProposeWithdrawalBundleResponse
+	(*CreateSidechainProposalResponse_Confirmed)(nil),    // 21: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed
+	(*CreateSidechainProposalResponse_NotConfirmed)(nil), // 22: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed
+	(*wrapperspb.UInt32Value)(nil),                       // 23: google.protobuf.UInt32Value
+	(*SidechainDeclaration)(nil),                         // 24: cusf.mainchain.v1.SidechainDeclaration
+	(*v1.ReverseHex)(nil),                                // 25: cusf.common.v1.ReverseHex
+	(*v1.ConsensusHex)(nil),                              // 26: cusf.common.v1.ConsensusHex
+	(*v1.Hex)(nil),                                       // 27: cusf.common.v1.Hex
+	(*wrapperspb.BytesValue)(nil),                        // 28: google.protobuf.BytesValue
+	(*OutPoint)(nil),                                     // 29: cusf.mainchain.v1.OutPoint
 }
 var file_cusf_mainchain_v1_block_producer_proto_depIdxs = []int32{
-	14, // 0: cusf.mainchain.v1.CreateSidechainProposalRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	15, // 1: cusf.mainchain.v1.CreateSidechainProposalRequest.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
-	12, // 2: cusf.mainchain.v1.CreateSidechainProposalResponse.confirmed:type_name -> cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed
-	13, // 3: cusf.mainchain.v1.CreateSidechainProposalResponse.not_confirmed:type_name -> cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed
-	14, // 4: cusf.mainchain.v1.SubmitSidechainProposalRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
-	15, // 5: cusf.mainchain.v1.SubmitSidechainProposalRequest.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
-	14, // 6: cusf.mainchain.v1.SidechainAck.sidechain_number:type_name -> google.protobuf.UInt32Value
-	16, // 7: cusf.mainchain.v1.SidechainAck.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
-	14, // 8: cusf.mainchain.v1.SetSidechainAckRequest.sidechain_number:type_name -> google.protobuf.UInt32Value
-	16, // 9: cusf.mainchain.v1.SetSidechainAckRequest.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
-	14, // 10: cusf.mainchain.v1.PendingSidechainProposal.sidechain_number:type_name -> google.protobuf.UInt32Value
-	16, // 11: cusf.mainchain.v1.PendingSidechainProposal.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
-	15, // 12: cusf.mainchain.v1.PendingSidechainProposal.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
-	17, // 13: cusf.mainchain.v1.PendingSidechainProposal.description:type_name -> cusf.common.v1.Hex
-	10, // 14: cusf.mainchain.v1.GetBlockProducerStateResponse.pending_proposals:type_name -> cusf.mainchain.v1.PendingSidechainProposal
-	4,  // 15: cusf.mainchain.v1.GetBlockProducerStateResponse.explicit_acks:type_name -> cusf.mainchain.v1.SidechainAck
-	16, // 16: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
-	14, // 17: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.confirmations:type_name -> google.protobuf.UInt32Value
-	14, // 18: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.height:type_name -> google.protobuf.UInt32Value
-	18, // 19: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.outpoint:type_name -> cusf.mainchain.v1.OutPoint
-	16, // 20: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
-	16, // 21: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
-	14, // 22: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.height:type_name -> google.protobuf.UInt32Value
-	16, // 23: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
-	0,  // 24: cusf.mainchain.v1.BlockProducerService.CreateSidechainProposal:input_type -> cusf.mainchain.v1.CreateSidechainProposalRequest
-	2,  // 25: cusf.mainchain.v1.BlockProducerService.SubmitSidechainProposal:input_type -> cusf.mainchain.v1.SubmitSidechainProposalRequest
-	5,  // 26: cusf.mainchain.v1.BlockProducerService.SetSidechainAck:input_type -> cusf.mainchain.v1.SetSidechainAckRequest
-	7,  // 27: cusf.mainchain.v1.BlockProducerService.SetAckAllProposals:input_type -> cusf.mainchain.v1.SetAckAllProposalsRequest
-	9,  // 28: cusf.mainchain.v1.BlockProducerService.GetBlockProducerState:input_type -> cusf.mainchain.v1.GetBlockProducerStateRequest
-	1,  // 29: cusf.mainchain.v1.BlockProducerService.CreateSidechainProposal:output_type -> cusf.mainchain.v1.CreateSidechainProposalResponse
-	3,  // 30: cusf.mainchain.v1.BlockProducerService.SubmitSidechainProposal:output_type -> cusf.mainchain.v1.SubmitSidechainProposalResponse
-	6,  // 31: cusf.mainchain.v1.BlockProducerService.SetSidechainAck:output_type -> cusf.mainchain.v1.SetSidechainAckResponse
-	8,  // 32: cusf.mainchain.v1.BlockProducerService.SetAckAllProposals:output_type -> cusf.mainchain.v1.SetAckAllProposalsResponse
-	11, // 33: cusf.mainchain.v1.BlockProducerService.GetBlockProducerState:output_type -> cusf.mainchain.v1.GetBlockProducerStateResponse
-	29, // [29:34] is the sub-list for method output_type
-	24, // [24:29] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	23, // 0: cusf.mainchain.v1.CreateSidechainProposalRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	24, // 1: cusf.mainchain.v1.CreateSidechainProposalRequest.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
+	21, // 2: cusf.mainchain.v1.CreateSidechainProposalResponse.confirmed:type_name -> cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed
+	22, // 3: cusf.mainchain.v1.CreateSidechainProposalResponse.not_confirmed:type_name -> cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed
+	23, // 4: cusf.mainchain.v1.SubmitSidechainProposalRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	24, // 5: cusf.mainchain.v1.SubmitSidechainProposalRequest.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
+	23, // 6: cusf.mainchain.v1.SidechainAck.sidechain_number:type_name -> google.protobuf.UInt32Value
+	25, // 7: cusf.mainchain.v1.SidechainAck.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
+	23, // 8: cusf.mainchain.v1.SetSidechainAckRequest.sidechain_number:type_name -> google.protobuf.UInt32Value
+	25, // 9: cusf.mainchain.v1.SetSidechainAckRequest.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
+	0,  // 10: cusf.mainchain.v1.SetAckAllProposalsRequest.policy:type_name -> cusf.mainchain.v1.AckAllProposalsPolicy
+	1,  // 11: cusf.mainchain.v1.SetWithdrawalBundlePolicyRequest.policy:type_name -> cusf.mainchain.v1.WithdrawalBundlePolicy
+	23, // 12: cusf.mainchain.v1.WithdrawalBundleAck.sidechain_number:type_name -> google.protobuf.UInt32Value
+	26, // 13: cusf.mainchain.v1.WithdrawalBundleAck.m6id:type_name -> cusf.common.v1.ConsensusHex
+	23, // 14: cusf.mainchain.v1.SetWithdrawalBundleAckRequest.sidechain_number:type_name -> google.protobuf.UInt32Value
+	26, // 15: cusf.mainchain.v1.SetWithdrawalBundleAckRequest.m6id:type_name -> cusf.common.v1.ConsensusHex
+	23, // 16: cusf.mainchain.v1.PendingSidechainProposal.sidechain_number:type_name -> google.protobuf.UInt32Value
+	25, // 17: cusf.mainchain.v1.PendingSidechainProposal.description_sha256d_hash:type_name -> cusf.common.v1.ReverseHex
+	24, // 18: cusf.mainchain.v1.PendingSidechainProposal.declaration:type_name -> cusf.mainchain.v1.SidechainDeclaration
+	27, // 19: cusf.mainchain.v1.PendingSidechainProposal.description:type_name -> cusf.common.v1.Hex
+	17, // 20: cusf.mainchain.v1.GetBlockProducerStateResponse.pending_proposals:type_name -> cusf.mainchain.v1.PendingSidechainProposal
+	6,  // 21: cusf.mainchain.v1.GetBlockProducerStateResponse.explicit_acks:type_name -> cusf.mainchain.v1.SidechainAck
+	0,  // 22: cusf.mainchain.v1.GetBlockProducerStateResponse.ack_policy:type_name -> cusf.mainchain.v1.AckAllProposalsPolicy
+	1,  // 23: cusf.mainchain.v1.GetBlockProducerStateResponse.withdrawal_bundle_policy:type_name -> cusf.mainchain.v1.WithdrawalBundlePolicy
+	13, // 24: cusf.mainchain.v1.GetBlockProducerStateResponse.explicit_bundle_acks:type_name -> cusf.mainchain.v1.WithdrawalBundleAck
+	23, // 25: cusf.mainchain.v1.ProposeWithdrawalBundleRequest.sidechain_id:type_name -> google.protobuf.UInt32Value
+	28, // 26: cusf.mainchain.v1.ProposeWithdrawalBundleRequest.transaction:type_name -> google.protobuf.BytesValue
+	25, // 27: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
+	23, // 28: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.confirmations:type_name -> google.protobuf.UInt32Value
+	23, // 29: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.height:type_name -> google.protobuf.UInt32Value
+	29, // 30: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.outpoint:type_name -> cusf.mainchain.v1.OutPoint
+	25, // 31: cusf.mainchain.v1.CreateSidechainProposalResponse.Confirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
+	25, // 32: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.block_hash:type_name -> cusf.common.v1.ReverseHex
+	23, // 33: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.height:type_name -> google.protobuf.UInt32Value
+	25, // 34: cusf.mainchain.v1.CreateSidechainProposalResponse.NotConfirmed.prev_block_hash:type_name -> cusf.common.v1.ReverseHex
+	2,  // 35: cusf.mainchain.v1.BlockProducerService.CreateSidechainProposal:input_type -> cusf.mainchain.v1.CreateSidechainProposalRequest
+	4,  // 36: cusf.mainchain.v1.BlockProducerService.SubmitSidechainProposal:input_type -> cusf.mainchain.v1.SubmitSidechainProposalRequest
+	7,  // 37: cusf.mainchain.v1.BlockProducerService.SetSidechainAck:input_type -> cusf.mainchain.v1.SetSidechainAckRequest
+	9,  // 38: cusf.mainchain.v1.BlockProducerService.SetAckAllProposals:input_type -> cusf.mainchain.v1.SetAckAllProposalsRequest
+	14, // 39: cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundleAck:input_type -> cusf.mainchain.v1.SetWithdrawalBundleAckRequest
+	11, // 40: cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundlePolicy:input_type -> cusf.mainchain.v1.SetWithdrawalBundlePolicyRequest
+	19, // 41: cusf.mainchain.v1.BlockProducerService.ProposeWithdrawalBundle:input_type -> cusf.mainchain.v1.ProposeWithdrawalBundleRequest
+	16, // 42: cusf.mainchain.v1.BlockProducerService.GetBlockProducerState:input_type -> cusf.mainchain.v1.GetBlockProducerStateRequest
+	3,  // 43: cusf.mainchain.v1.BlockProducerService.CreateSidechainProposal:output_type -> cusf.mainchain.v1.CreateSidechainProposalResponse
+	5,  // 44: cusf.mainchain.v1.BlockProducerService.SubmitSidechainProposal:output_type -> cusf.mainchain.v1.SubmitSidechainProposalResponse
+	8,  // 45: cusf.mainchain.v1.BlockProducerService.SetSidechainAck:output_type -> cusf.mainchain.v1.SetSidechainAckResponse
+	10, // 46: cusf.mainchain.v1.BlockProducerService.SetAckAllProposals:output_type -> cusf.mainchain.v1.SetAckAllProposalsResponse
+	15, // 47: cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundleAck:output_type -> cusf.mainchain.v1.SetWithdrawalBundleAckResponse
+	12, // 48: cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundlePolicy:output_type -> cusf.mainchain.v1.SetWithdrawalBundlePolicyResponse
+	20, // 49: cusf.mainchain.v1.BlockProducerService.ProposeWithdrawalBundle:output_type -> cusf.mainchain.v1.ProposeWithdrawalBundleResponse
+	18, // 50: cusf.mainchain.v1.BlockProducerService.GetBlockProducerState:output_type -> cusf.mainchain.v1.GetBlockProducerStateResponse
+	43, // [43:51] is the sub-list for method output_type
+	35, // [35:43] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_cusf_mainchain_v1_block_producer_proto_init() }
@@ -934,13 +1465,14 @@ func file_cusf_mainchain_v1_block_producer_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cusf_mainchain_v1_block_producer_proto_rawDesc), len(file_cusf_mainchain_v1_block_producer_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   14,
+			NumEnums:      2,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_cusf_mainchain_v1_block_producer_proto_goTypes,
 		DependencyIndexes: file_cusf_mainchain_v1_block_producer_proto_depIdxs,
+		EnumInfos:         file_cusf_mainchain_v1_block_producer_proto_enumTypes,
 		MessageInfos:      file_cusf_mainchain_v1_block_producer_proto_msgTypes,
 	}.Build()
 	File_cusf_mainchain_v1_block_producer_proto = out.File

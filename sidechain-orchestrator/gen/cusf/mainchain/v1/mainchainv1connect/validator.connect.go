@@ -56,6 +56,9 @@ const (
 	// ValidatorServiceGetCtipProcedure is the fully-qualified name of the ValidatorService's GetCtip
 	// RPC.
 	ValidatorServiceGetCtipProcedure = "/cusf.mainchain.v1.ValidatorService/GetCtip"
+	// ValidatorServiceGetSeenBmmRequestsProcedure is the fully-qualified name of the ValidatorService's
+	// GetSeenBmmRequests RPC.
+	ValidatorServiceGetSeenBmmRequestsProcedure = "/cusf.mainchain.v1.ValidatorService/GetSeenBmmRequests"
 	// ValidatorServiceGetSidechainProposalsProcedure is the fully-qualified name of the
 	// ValidatorService's GetSidechainProposals RPC.
 	ValidatorServiceGetSidechainProposalsProcedure = "/cusf.mainchain.v1.ValidatorService/GetSidechainProposals"
@@ -94,6 +97,10 @@ type ValidatorServiceClient interface {
 	GetChainTip(context.Context, *connect.Request[v1.GetChainTipRequest]) (*connect.Response[v1.GetChainTipResponse], error)
 	GetCoinbasePSBT(context.Context, *connect.Request[v1.GetCoinbasePSBTRequest]) (*connect.Response[v1.GetCoinbasePSBTResponse], error)
 	GetCtip(context.Context, *connect.Request[v1.GetCtipRequest]) (*connect.Response[v1.GetCtipResponse], error)
+	// Fetches the BMM requests (M8) that the mempool holds for a mainchain
+	// block. A request whose transaction left the mempool is left out, so a
+	// replaced bid never appears.
+	GetSeenBmmRequests(context.Context, *connect.Request[v1.GetSeenBmmRequestsRequest]) (*connect.Response[v1.GetSeenBmmRequestsResponse], error)
 	GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error)
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
 	GetTwoWayPegData(context.Context, *connect.Request[v1.GetTwoWayPegDataRequest]) (*connect.Response[v1.GetTwoWayPegDataResponse], error)
@@ -167,6 +174,13 @@ func NewValidatorServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 			connect.WithClientOptions(opts...),
 		),
+		getSeenBmmRequests: connect.NewClient[v1.GetSeenBmmRequestsRequest, v1.GetSeenBmmRequestsResponse](
+			httpClient,
+			baseURL+ValidatorServiceGetSeenBmmRequestsProcedure,
+			connect.WithSchema(validatorServiceMethods.ByName("GetSeenBmmRequests")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
 		getSidechainProposals: connect.NewClient[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse](
 			httpClient,
 			baseURL+ValidatorServiceGetSidechainProposalsProcedure,
@@ -228,6 +242,7 @@ type validatorServiceClient struct {
 	getChainTip                  *connect.Client[v1.GetChainTipRequest, v1.GetChainTipResponse]
 	getCoinbasePSBT              *connect.Client[v1.GetCoinbasePSBTRequest, v1.GetCoinbasePSBTResponse]
 	getCtip                      *connect.Client[v1.GetCtipRequest, v1.GetCtipResponse]
+	getSeenBmmRequests           *connect.Client[v1.GetSeenBmmRequestsRequest, v1.GetSeenBmmRequestsResponse]
 	getSidechainProposals        *connect.Client[v1.GetSidechainProposalsRequest, v1.GetSidechainProposalsResponse]
 	getSidechains                *connect.Client[v1.GetSidechainsRequest, v1.GetSidechainsResponse]
 	getTwoWayPegData             *connect.Client[v1.GetTwoWayPegDataRequest, v1.GetTwoWayPegDataResponse]
@@ -270,6 +285,11 @@ func (c *validatorServiceClient) GetCoinbasePSBT(ctx context.Context, req *conne
 // GetCtip calls cusf.mainchain.v1.ValidatorService.GetCtip.
 func (c *validatorServiceClient) GetCtip(ctx context.Context, req *connect.Request[v1.GetCtipRequest]) (*connect.Response[v1.GetCtipResponse], error) {
 	return c.getCtip.CallUnary(ctx, req)
+}
+
+// GetSeenBmmRequests calls cusf.mainchain.v1.ValidatorService.GetSeenBmmRequests.
+func (c *validatorServiceClient) GetSeenBmmRequests(ctx context.Context, req *connect.Request[v1.GetSeenBmmRequestsRequest]) (*connect.Response[v1.GetSeenBmmRequestsResponse], error) {
+	return c.getSeenBmmRequests.CallUnary(ctx, req)
 }
 
 // GetSidechainProposals calls cusf.mainchain.v1.ValidatorService.GetSidechainProposals.
@@ -324,6 +344,10 @@ type ValidatorServiceHandler interface {
 	GetChainTip(context.Context, *connect.Request[v1.GetChainTipRequest]) (*connect.Response[v1.GetChainTipResponse], error)
 	GetCoinbasePSBT(context.Context, *connect.Request[v1.GetCoinbasePSBTRequest]) (*connect.Response[v1.GetCoinbasePSBTResponse], error)
 	GetCtip(context.Context, *connect.Request[v1.GetCtipRequest]) (*connect.Response[v1.GetCtipResponse], error)
+	// Fetches the BMM requests (M8) that the mempool holds for a mainchain
+	// block. A request whose transaction left the mempool is left out, so a
+	// replaced bid never appears.
+	GetSeenBmmRequests(context.Context, *connect.Request[v1.GetSeenBmmRequestsRequest]) (*connect.Response[v1.GetSeenBmmRequestsResponse], error)
 	GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error)
 	GetSidechains(context.Context, *connect.Request[v1.GetSidechainsRequest]) (*connect.Response[v1.GetSidechainsResponse], error)
 	GetTwoWayPegData(context.Context, *connect.Request[v1.GetTwoWayPegDataRequest]) (*connect.Response[v1.GetTwoWayPegDataResponse], error)
@@ -393,6 +417,13 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
 		connect.WithHandlerOptions(opts...),
 	)
+	validatorServiceGetSeenBmmRequestsHandler := connect.NewUnaryHandler(
+		ValidatorServiceGetSeenBmmRequestsProcedure,
+		svc.GetSeenBmmRequests,
+		connect.WithSchema(validatorServiceMethods.ByName("GetSeenBmmRequests")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
 	validatorServiceGetSidechainProposalsHandler := connect.NewUnaryHandler(
 		ValidatorServiceGetSidechainProposalsProcedure,
 		svc.GetSidechainProposals,
@@ -458,6 +489,8 @@ func NewValidatorServiceHandler(svc ValidatorServiceHandler, opts ...connect.Han
 			validatorServiceGetCoinbasePSBTHandler.ServeHTTP(w, r)
 		case ValidatorServiceGetCtipProcedure:
 			validatorServiceGetCtipHandler.ServeHTTP(w, r)
+		case ValidatorServiceGetSeenBmmRequestsProcedure:
+			validatorServiceGetSeenBmmRequestsHandler.ServeHTTP(w, r)
 		case ValidatorServiceGetSidechainProposalsProcedure:
 			validatorServiceGetSidechainProposalsHandler.ServeHTTP(w, r)
 		case ValidatorServiceGetSidechainsProcedure:
@@ -507,6 +540,10 @@ func (UnimplementedValidatorServiceHandler) GetCoinbasePSBT(context.Context, *co
 
 func (UnimplementedValidatorServiceHandler) GetCtip(context.Context, *connect.Request[v1.GetCtipRequest]) (*connect.Response[v1.GetCtipResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.GetCtip is not implemented"))
+}
+
+func (UnimplementedValidatorServiceHandler) GetSeenBmmRequests(context.Context, *connect.Request[v1.GetSeenBmmRequestsRequest]) (*connect.Response[v1.GetSeenBmmRequestsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.ValidatorService.GetSeenBmmRequests is not implemented"))
 }
 
 func (UnimplementedValidatorServiceHandler) GetSidechainProposals(context.Context, *connect.Request[v1.GetSidechainProposalsRequest]) (*connect.Response[v1.GetSidechainProposalsResponse], error) {

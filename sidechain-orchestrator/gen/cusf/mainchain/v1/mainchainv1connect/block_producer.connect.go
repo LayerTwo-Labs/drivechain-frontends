@@ -47,6 +47,15 @@ const (
 	// BlockProducerServiceSetAckAllProposalsProcedure is the fully-qualified name of the
 	// BlockProducerService's SetAckAllProposals RPC.
 	BlockProducerServiceSetAckAllProposalsProcedure = "/cusf.mainchain.v1.BlockProducerService/SetAckAllProposals"
+	// BlockProducerServiceSetWithdrawalBundleAckProcedure is the fully-qualified name of the
+	// BlockProducerService's SetWithdrawalBundleAck RPC.
+	BlockProducerServiceSetWithdrawalBundleAckProcedure = "/cusf.mainchain.v1.BlockProducerService/SetWithdrawalBundleAck"
+	// BlockProducerServiceSetWithdrawalBundlePolicyProcedure is the fully-qualified name of the
+	// BlockProducerService's SetWithdrawalBundlePolicy RPC.
+	BlockProducerServiceSetWithdrawalBundlePolicyProcedure = "/cusf.mainchain.v1.BlockProducerService/SetWithdrawalBundlePolicy"
+	// BlockProducerServiceProposeWithdrawalBundleProcedure is the fully-qualified name of the
+	// BlockProducerService's ProposeWithdrawalBundle RPC.
+	BlockProducerServiceProposeWithdrawalBundleProcedure = "/cusf.mainchain.v1.BlockProducerService/ProposeWithdrawalBundle"
 	// BlockProducerServiceGetBlockProducerStateProcedure is the fully-qualified name of the
 	// BlockProducerService's GetBlockProducerState RPC.
 	BlockProducerServiceGetBlockProducerStateProcedure = "/cusf.mainchain.v1.BlockProducerService/GetBlockProducerState"
@@ -65,11 +74,24 @@ type BlockProducerServiceClient interface {
 	// proposal (M1 in BIP300) and persists it to the local database for further
 	// processing, returning immediately once the proposal has been created.
 	SubmitSidechainProposal(context.Context, *connect.Request[v1.SubmitSidechainProposalRequest]) (*connect.Response[v1.SubmitSidechainProposalResponse], error)
-	// Toggle ACK or NACK policy for a specific sidechain proposal. Has no effect
-	// while `SetAckAllProposals` is on.
+	// Toggle ACK or NACK policy for a specific sidechain proposal. Redundant for
+	// proposals `SetAckAllProposals` already covers.
 	SetSidechainAck(context.Context, *connect.Request[v1.SetSidechainAckRequest]) (*connect.Response[v1.SetSidechainAckResponse], error)
-	// Toggle ACK of every active sidechain proposal.
+	// Set which sidechain proposals are ACKed without an explicit
+	// `SetSidechainAck`.
 	SetAckAllProposals(context.Context, *connect.Request[v1.SetAckAllProposalsRequest]) (*connect.Response[v1.SetAckAllProposalsResponse], error)
+	// Toggle ACK or NACK for a specific pending withdrawal bundle. An ACKed
+	// bundle is upvoted whatever `SetWithdrawalBundlePolicy` says, and is the
+	// only way to back a bundle under `WITHDRAWAL_BUNDLE_POLICY_NONE`. The ACK
+	// is dropped once the bundle stops being pending for that sidechain.
+	SetWithdrawalBundleAck(context.Context, *connect.Request[v1.SetWithdrawalBundleAckRequest]) (*connect.Response[v1.SetWithdrawalBundleAckResponse], error)
+	// Set which pending withdrawal bundles are upvoted without an explicit
+	// `SetWithdrawalBundleAck`.
+	SetWithdrawalBundlePolicy(context.Context, *connect.Request[v1.SetWithdrawalBundlePolicyRequest]) (*connect.Response[v1.SetWithdrawalBundlePolicyResponse], error)
+	// Store a withdrawal bundle so the block producer proposes it (M3). A bundle
+	// reaches only the block producer database, so a sidechain with no mainchain
+	// wallet still proposes one.
+	ProposeWithdrawalBundle(context.Context, *connect.Request[v1.ProposeWithdrawalBundleRequest]) (*connect.Response[v1.ProposeWithdrawalBundleResponse], error)
 	// Block-producer / operator state that is not (yet) reflected on-chain:
 	// sidechain proposals authored here but not yet mined into a coinbase, plus
 	// the ACK policy. Complements ValidatorService.GetSidechainProposals, which
@@ -112,6 +134,25 @@ func NewBlockProducerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(blockProducerServiceMethods.ByName("SetAckAllProposals")),
 			connect.WithClientOptions(opts...),
 		),
+		setWithdrawalBundleAck: connect.NewClient[v1.SetWithdrawalBundleAckRequest, v1.SetWithdrawalBundleAckResponse](
+			httpClient,
+			baseURL+BlockProducerServiceSetWithdrawalBundleAckProcedure,
+			connect.WithSchema(blockProducerServiceMethods.ByName("SetWithdrawalBundleAck")),
+			connect.WithClientOptions(opts...),
+		),
+		setWithdrawalBundlePolicy: connect.NewClient[v1.SetWithdrawalBundlePolicyRequest, v1.SetWithdrawalBundlePolicyResponse](
+			httpClient,
+			baseURL+BlockProducerServiceSetWithdrawalBundlePolicyProcedure,
+			connect.WithSchema(blockProducerServiceMethods.ByName("SetWithdrawalBundlePolicy")),
+			connect.WithClientOptions(opts...),
+		),
+		proposeWithdrawalBundle: connect.NewClient[v1.ProposeWithdrawalBundleRequest, v1.ProposeWithdrawalBundleResponse](
+			httpClient,
+			baseURL+BlockProducerServiceProposeWithdrawalBundleProcedure,
+			connect.WithSchema(blockProducerServiceMethods.ByName("ProposeWithdrawalBundle")),
+			connect.WithIdempotency(connect.IdempotencyIdempotent),
+			connect.WithClientOptions(opts...),
+		),
 		getBlockProducerState: connect.NewClient[v1.GetBlockProducerStateRequest, v1.GetBlockProducerStateResponse](
 			httpClient,
 			baseURL+BlockProducerServiceGetBlockProducerStateProcedure,
@@ -124,11 +165,14 @@ func NewBlockProducerServiceClient(httpClient connect.HTTPClient, baseURL string
 
 // blockProducerServiceClient implements BlockProducerServiceClient.
 type blockProducerServiceClient struct {
-	createSidechainProposal *connect.Client[v1.CreateSidechainProposalRequest, v1.CreateSidechainProposalResponse]
-	submitSidechainProposal *connect.Client[v1.SubmitSidechainProposalRequest, v1.SubmitSidechainProposalResponse]
-	setSidechainAck         *connect.Client[v1.SetSidechainAckRequest, v1.SetSidechainAckResponse]
-	setAckAllProposals      *connect.Client[v1.SetAckAllProposalsRequest, v1.SetAckAllProposalsResponse]
-	getBlockProducerState   *connect.Client[v1.GetBlockProducerStateRequest, v1.GetBlockProducerStateResponse]
+	createSidechainProposal   *connect.Client[v1.CreateSidechainProposalRequest, v1.CreateSidechainProposalResponse]
+	submitSidechainProposal   *connect.Client[v1.SubmitSidechainProposalRequest, v1.SubmitSidechainProposalResponse]
+	setSidechainAck           *connect.Client[v1.SetSidechainAckRequest, v1.SetSidechainAckResponse]
+	setAckAllProposals        *connect.Client[v1.SetAckAllProposalsRequest, v1.SetAckAllProposalsResponse]
+	setWithdrawalBundleAck    *connect.Client[v1.SetWithdrawalBundleAckRequest, v1.SetWithdrawalBundleAckResponse]
+	setWithdrawalBundlePolicy *connect.Client[v1.SetWithdrawalBundlePolicyRequest, v1.SetWithdrawalBundlePolicyResponse]
+	proposeWithdrawalBundle   *connect.Client[v1.ProposeWithdrawalBundleRequest, v1.ProposeWithdrawalBundleResponse]
+	getBlockProducerState     *connect.Client[v1.GetBlockProducerStateRequest, v1.GetBlockProducerStateResponse]
 }
 
 // CreateSidechainProposal calls cusf.mainchain.v1.BlockProducerService.CreateSidechainProposal.
@@ -151,6 +195,21 @@ func (c *blockProducerServiceClient) SetAckAllProposals(ctx context.Context, req
 	return c.setAckAllProposals.CallUnary(ctx, req)
 }
 
+// SetWithdrawalBundleAck calls cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundleAck.
+func (c *blockProducerServiceClient) SetWithdrawalBundleAck(ctx context.Context, req *connect.Request[v1.SetWithdrawalBundleAckRequest]) (*connect.Response[v1.SetWithdrawalBundleAckResponse], error) {
+	return c.setWithdrawalBundleAck.CallUnary(ctx, req)
+}
+
+// SetWithdrawalBundlePolicy calls cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundlePolicy.
+func (c *blockProducerServiceClient) SetWithdrawalBundlePolicy(ctx context.Context, req *connect.Request[v1.SetWithdrawalBundlePolicyRequest]) (*connect.Response[v1.SetWithdrawalBundlePolicyResponse], error) {
+	return c.setWithdrawalBundlePolicy.CallUnary(ctx, req)
+}
+
+// ProposeWithdrawalBundle calls cusf.mainchain.v1.BlockProducerService.ProposeWithdrawalBundle.
+func (c *blockProducerServiceClient) ProposeWithdrawalBundle(ctx context.Context, req *connect.Request[v1.ProposeWithdrawalBundleRequest]) (*connect.Response[v1.ProposeWithdrawalBundleResponse], error) {
+	return c.proposeWithdrawalBundle.CallUnary(ctx, req)
+}
+
 // GetBlockProducerState calls cusf.mainchain.v1.BlockProducerService.GetBlockProducerState.
 func (c *blockProducerServiceClient) GetBlockProducerState(ctx context.Context, req *connect.Request[v1.GetBlockProducerStateRequest]) (*connect.Response[v1.GetBlockProducerStateResponse], error) {
 	return c.getBlockProducerState.CallUnary(ctx, req)
@@ -170,11 +229,24 @@ type BlockProducerServiceHandler interface {
 	// proposal (M1 in BIP300) and persists it to the local database for further
 	// processing, returning immediately once the proposal has been created.
 	SubmitSidechainProposal(context.Context, *connect.Request[v1.SubmitSidechainProposalRequest]) (*connect.Response[v1.SubmitSidechainProposalResponse], error)
-	// Toggle ACK or NACK policy for a specific sidechain proposal. Has no effect
-	// while `SetAckAllProposals` is on.
+	// Toggle ACK or NACK policy for a specific sidechain proposal. Redundant for
+	// proposals `SetAckAllProposals` already covers.
 	SetSidechainAck(context.Context, *connect.Request[v1.SetSidechainAckRequest]) (*connect.Response[v1.SetSidechainAckResponse], error)
-	// Toggle ACK of every active sidechain proposal.
+	// Set which sidechain proposals are ACKed without an explicit
+	// `SetSidechainAck`.
 	SetAckAllProposals(context.Context, *connect.Request[v1.SetAckAllProposalsRequest]) (*connect.Response[v1.SetAckAllProposalsResponse], error)
+	// Toggle ACK or NACK for a specific pending withdrawal bundle. An ACKed
+	// bundle is upvoted whatever `SetWithdrawalBundlePolicy` says, and is the
+	// only way to back a bundle under `WITHDRAWAL_BUNDLE_POLICY_NONE`. The ACK
+	// is dropped once the bundle stops being pending for that sidechain.
+	SetWithdrawalBundleAck(context.Context, *connect.Request[v1.SetWithdrawalBundleAckRequest]) (*connect.Response[v1.SetWithdrawalBundleAckResponse], error)
+	// Set which pending withdrawal bundles are upvoted without an explicit
+	// `SetWithdrawalBundleAck`.
+	SetWithdrawalBundlePolicy(context.Context, *connect.Request[v1.SetWithdrawalBundlePolicyRequest]) (*connect.Response[v1.SetWithdrawalBundlePolicyResponse], error)
+	// Store a withdrawal bundle so the block producer proposes it (M3). A bundle
+	// reaches only the block producer database, so a sidechain with no mainchain
+	// wallet still proposes one.
+	ProposeWithdrawalBundle(context.Context, *connect.Request[v1.ProposeWithdrawalBundleRequest]) (*connect.Response[v1.ProposeWithdrawalBundleResponse], error)
 	// Block-producer / operator state that is not (yet) reflected on-chain:
 	// sidechain proposals authored here but not yet mined into a coinbase, plus
 	// the ACK policy. Complements ValidatorService.GetSidechainProposals, which
@@ -213,6 +285,25 @@ func NewBlockProducerServiceHandler(svc BlockProducerServiceHandler, opts ...con
 		connect.WithSchema(blockProducerServiceMethods.ByName("SetAckAllProposals")),
 		connect.WithHandlerOptions(opts...),
 	)
+	blockProducerServiceSetWithdrawalBundleAckHandler := connect.NewUnaryHandler(
+		BlockProducerServiceSetWithdrawalBundleAckProcedure,
+		svc.SetWithdrawalBundleAck,
+		connect.WithSchema(blockProducerServiceMethods.ByName("SetWithdrawalBundleAck")),
+		connect.WithHandlerOptions(opts...),
+	)
+	blockProducerServiceSetWithdrawalBundlePolicyHandler := connect.NewUnaryHandler(
+		BlockProducerServiceSetWithdrawalBundlePolicyProcedure,
+		svc.SetWithdrawalBundlePolicy,
+		connect.WithSchema(blockProducerServiceMethods.ByName("SetWithdrawalBundlePolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	blockProducerServiceProposeWithdrawalBundleHandler := connect.NewUnaryHandler(
+		BlockProducerServiceProposeWithdrawalBundleProcedure,
+		svc.ProposeWithdrawalBundle,
+		connect.WithSchema(blockProducerServiceMethods.ByName("ProposeWithdrawalBundle")),
+		connect.WithIdempotency(connect.IdempotencyIdempotent),
+		connect.WithHandlerOptions(opts...),
+	)
 	blockProducerServiceGetBlockProducerStateHandler := connect.NewUnaryHandler(
 		BlockProducerServiceGetBlockProducerStateProcedure,
 		svc.GetBlockProducerState,
@@ -230,6 +321,12 @@ func NewBlockProducerServiceHandler(svc BlockProducerServiceHandler, opts ...con
 			blockProducerServiceSetSidechainAckHandler.ServeHTTP(w, r)
 		case BlockProducerServiceSetAckAllProposalsProcedure:
 			blockProducerServiceSetAckAllProposalsHandler.ServeHTTP(w, r)
+		case BlockProducerServiceSetWithdrawalBundleAckProcedure:
+			blockProducerServiceSetWithdrawalBundleAckHandler.ServeHTTP(w, r)
+		case BlockProducerServiceSetWithdrawalBundlePolicyProcedure:
+			blockProducerServiceSetWithdrawalBundlePolicyHandler.ServeHTTP(w, r)
+		case BlockProducerServiceProposeWithdrawalBundleProcedure:
+			blockProducerServiceProposeWithdrawalBundleHandler.ServeHTTP(w, r)
 		case BlockProducerServiceGetBlockProducerStateProcedure:
 			blockProducerServiceGetBlockProducerStateHandler.ServeHTTP(w, r)
 		default:
@@ -255,6 +352,18 @@ func (UnimplementedBlockProducerServiceHandler) SetSidechainAck(context.Context,
 
 func (UnimplementedBlockProducerServiceHandler) SetAckAllProposals(context.Context, *connect.Request[v1.SetAckAllProposalsRequest]) (*connect.Response[v1.SetAckAllProposalsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.BlockProducerService.SetAckAllProposals is not implemented"))
+}
+
+func (UnimplementedBlockProducerServiceHandler) SetWithdrawalBundleAck(context.Context, *connect.Request[v1.SetWithdrawalBundleAckRequest]) (*connect.Response[v1.SetWithdrawalBundleAckResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundleAck is not implemented"))
+}
+
+func (UnimplementedBlockProducerServiceHandler) SetWithdrawalBundlePolicy(context.Context, *connect.Request[v1.SetWithdrawalBundlePolicyRequest]) (*connect.Response[v1.SetWithdrawalBundlePolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.BlockProducerService.SetWithdrawalBundlePolicy is not implemented"))
+}
+
+func (UnimplementedBlockProducerServiceHandler) ProposeWithdrawalBundle(context.Context, *connect.Request[v1.ProposeWithdrawalBundleRequest]) (*connect.Response[v1.ProposeWithdrawalBundleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cusf.mainchain.v1.BlockProducerService.ProposeWithdrawalBundle is not implemented"))
 }
 
 func (UnimplementedBlockProducerServiceHandler) GetBlockProducerState(context.Context, *connect.Request[v1.GetBlockProducerStateRequest]) (*connect.Response[v1.GetBlockProducerStateResponse], error) {
