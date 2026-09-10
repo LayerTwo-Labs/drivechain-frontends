@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -48,6 +49,9 @@ type cancelNode struct {
 	tip string
 	// incrementalFee is the incremental relay fee, in BTC/kvB.
 	incrementalFee float64
+	// late names bids the mempool gets over a transaction after its first
+	// descendant read.
+	late map[string][]string
 }
 
 func (n *cancelNode) call(_ context.Context, method, paramsJSON, _ string) (json.RawMessage, error) {
@@ -66,7 +70,14 @@ func (n *cancelNode) call(_ context.Context, method, paramsJSON, _ string) (json
 	case "getbestblockhash":
 		return json.Marshal(n.tip)
 	case "getmempooldescendants":
-		return json.Marshal(n.txs[txid].descendants)
+		tx := n.txs[txid]
+		out := tx.descendants
+		if late := n.late[txid]; len(late) > 0 {
+			tx.descendants = append(slices.Clone(out), late...)
+			n.txs[txid] = tx
+			delete(n.late, txid)
+		}
+		return json.Marshal(out)
 	case "getnetworkinfo":
 		return json.Marshal(map[string]any{"incrementalfee": n.incrementalFee})
 	case "getmempoolentry":
@@ -330,4 +341,25 @@ func TestCancelBidPaysTheIncrementalRelayFeeOnItsSize(t *testing.T) {
 	require.Len(t, w.sends[0].RequiredInputs, coins)
 	require.Equal(t, int64(10_000+2*(2_100+coins)), got.FeeSats,
 		"the evicted fee plus 2 sat/vB on the largest the cancel can be")
+}
+
+// The bidder can put a live bid over the chain after the guard reads it. The
+// cancel pays only for the bids the guard saw, so the node refuses to evict it.
+func TestCancelBidPaysOnlyForTheBidsItChecked(t *testing.T) {
+	node := strandedNode()
+	node.txs["live"] = cancelTx{
+		vin:      []string{"lost:1"},
+		values:   []int64{0, 99_970_000},
+		slot:     4,
+		prevMain: cancelTip,
+		feeSats:  20_000,
+	}
+	node.late = map[string][]string{"lost": {"live"}}
+	w := &fakeBidWallet{sendTxid: "replacement"}
+
+	got, err := cancel(t, node, w, "lost")
+
+	require.NoError(t, err)
+	require.Equal(t, []string{"lost"}, got.CancelledTxids)
+	require.Equal(t, int64(10_189), got.FeeSats, "under the live bid's fee, so the node refuses the cancel")
 }
