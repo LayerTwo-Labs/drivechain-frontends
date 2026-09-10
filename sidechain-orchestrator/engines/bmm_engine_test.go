@@ -25,7 +25,7 @@ const testSidechain = pb.BinaryType_BINARY_TYPE_THUNDER
 type fakeBackend struct {
 	mu sync.Mutex
 
-	disabled          bool
+	noMempool         bool
 	bids              int
 	connects          int
 	connected         bool
@@ -51,10 +51,10 @@ type fakeBackend struct {
 	lastFeeRate       float64
 }
 
-func (f *fakeBackend) BMMAvailable() bool {
+func (f *fakeBackend) ReadsMempool() bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return !f.disabled
+	return !f.noMempool
 }
 
 func (f *fakeBackend) CreateBid(

@@ -73,7 +73,9 @@ const (
 // BmmBackend assembles, broadcasts and connects bids, and reads what a
 // mainchain block committed to. Implemented by the BMM handler.
 type BmmBackend interface {
-	BMMAvailable() bool
+	// ReadsMempool reports whether the install reads the mainchain mempool.
+	// The competing bids and the price of a raise both come from it.
+	ReadsMempool() bool
 	CreateBid(context.Context, *connect.Request[bmmpb.CreateBidRequest]) (*connect.Response[bmmpb.CreateBidResponse], error)
 	ConnectBid(context.Context, *connect.Request[bmmpb.ConnectBidRequest]) (*connect.Response[bmmpb.ConnectBidResponse], error)
 	ListBids(context.Context, *connect.Request[bmmpb.ListBidsRequest]) (*connect.Response[bmmpb.ListBidsResponse], error)
@@ -531,9 +533,6 @@ func (e *BmmEngine) resumeUnconnected() {
 }
 
 func (e *BmmEngine) tick(ctx context.Context) {
-	if !e.backend.BMMAvailable() {
-		return
-	}
 	e.mu.Lock()
 	targets := make(map[pb.BinaryType]bmmTarget, len(e.targets))
 	for k, v := range e.targets {
@@ -585,7 +584,9 @@ func (e *BmmEngine) tick(ctx context.Context) {
 
 		// Same tip means the same round; the only move left is to out-bid.
 		if target.lastTip == tip {
-			e.maybeRaise(ctx, sidechain, target)
+			if e.backend.ReadsMempool() {
+				e.maybeRaise(ctx, sidechain, target)
+			}
 			continue
 		}
 		if !e.markTip(sidechain, tip) {
@@ -693,6 +694,9 @@ func (e *BmmEngine) openRound(
 func (e *BmmEngine) strandedBid(
 	ctx context.Context, sidechain pb.BinaryType, tip string,
 ) (bmmstate.Bid, bool) {
+	if !e.backend.ReadsMempool() {
+		return bmmstate.Bid{}, false
+	}
 	resp, err := e.backend.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: sidechain}))
 	if err != nil {
 		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read mempool bids")
@@ -791,8 +795,12 @@ func (e *BmmEngine) retryTip(sidechain pb.BinaryType, tip string) {
 }
 
 // snapshotOthers records the competing bids. Once the round is decided these
-// are unrecoverable, so this is the only chance to see them.
+// are unrecoverable, so this is the only chance to see them. An install that
+// reads no mempool records none, rather than an empty list of rivals.
 func (e *BmmEngine) snapshotOthers(ctx context.Context, sidechain pb.BinaryType, tip string) []bmmstate.Bid {
+	if !e.backend.ReadsMempool() {
+		return nil
+	}
 	resp, err := e.backend.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: sidechain}))
 	if err != nil {
 		e.log.Debug().Err(err).Stringer("sidechain", sidechain).Msg("read competing bids")
@@ -903,9 +911,6 @@ func (e *BmmEngine) placeBid(
 // A miner leaves a cheaper bid in the mempool, and the engine raises only
 // against a competitor, so an opening bid under this rate never gets mined.
 func (e *BmmEngine) NextBlockRate(ctx context.Context) float64 {
-	if !e.backend.BMMAvailable() {
-		return 0
-	}
 	if e.fee == nil {
 		return relayMinimumRate
 	}

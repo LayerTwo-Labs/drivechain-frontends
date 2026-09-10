@@ -25,7 +25,7 @@ const cancelDustSats = 546
 func (h *BMMHandler) CancelBid(
 	ctx context.Context, req *connect.Request[bmmpb.CancelBidRequest],
 ) (*connect.Response[bmmpb.CancelBidResponse], error) {
-	if err := h.requireBMMAvailable(); err != nil {
+	if err := h.requireMempoolRead("a cancel"); err != nil {
 		return nil, err
 	}
 	if h.wallet == nil {

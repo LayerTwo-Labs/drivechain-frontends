@@ -97,16 +97,22 @@ func (h *BMMHandler) SetEngine(engine *engines.BmmEngine) {
 	h.engine = engine
 }
 
-// BMMAvailable reports whether the selected node mode supports BMM.
-func (h *BMMHandler) BMMAvailable() bool {
+func (h *BMMHandler) runsLocalCore() bool {
 	return h.orch.NodeMode() != orchestrator.NodeModeLight
 }
 
-func (h *BMMHandler) requireBMMAvailable() error {
-	if !h.BMMAvailable() {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("BMM is unavailable in light mode"))
+// ReadsMempool reports whether this install reads the mainchain mempool. Only a
+// local Bitcoin Core serves that read; the remote enforcer publishes no mempool method.
+func (h *BMMHandler) ReadsMempool() bool {
+	return h.runsLocalCore()
+}
+
+func (h *BMMHandler) requireMempoolRead(action string) error {
+	if h.ReadsMempool() {
+		return nil
 	}
-	return nil
+	return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+		"%s reads the mainchain mempool, and light mode runs no Bitcoin Core", action))
 }
 
 // requireEnforcerSynced rejects bidding until the enforcer has validated every
@@ -118,31 +124,51 @@ func (h *BMMHandler) requireBMMAvailable() error {
 // controls unlock: GetSyncStatus fills the enforcer's Headers from the
 // mainchain tip, leaving Blocks == Headers as "level with Core".
 func (h *BMMHandler) requireEnforcerSynced(ctx context.Context) error {
-	if err := h.requireBMMAvailable(); err != nil {
-		return err
-	}
 	status, err := h.orch.GetSyncStatus(ctx)
 	if err != nil {
 		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("read sync status: %w", err))
 	}
-	return enforcerBiddingBlocked(status)
+	return enforcerBiddingBlocked(status, h.runsLocalCore())
 }
 
 // enforcerBiddingBlocked returns the reason bidding is unavailable for status,
-// or nil when it is allowed.
-func enforcerBiddingBlocked(status *orchestrator.SyncStatus) error {
-	if status == nil || status.Mainchain == nil || status.Enforcer == nil {
+// or nil when it is allowed. readsCore is false for an install with no local
+// Bitcoin Core, which reports a mainchain error at all times.
+func enforcerBiddingBlocked(status *orchestrator.SyncStatus, readsCore bool) error {
+	if status == nil || status.Enforcer == nil || (readsCore && status.Mainchain == nil) {
 		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("sync status unavailable"))
 	}
-	if msg := status.Mainchain.Error; msg != "" {
-		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin core is not available: %s", msg))
+	if readsCore && status.Mainchain.Error != "" {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+			"bitcoin core is not available: %s", status.Mainchain.Error))
 	}
 	if msg := status.Enforcer.Error; msg != "" {
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("enforcer is not available: %s", msg))
 	}
+	if !readsCore {
+		return enforcerLevelWithChainSource(status)
+	}
 	if status.Enforcer.Headers <= 0 || status.Enforcer.Blocks != status.Enforcer.Headers {
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
 			"enforcer is still syncing: %d of %d blocks", status.Enforcer.Blocks, status.Enforcer.Headers,
+		))
+	}
+	return nil
+}
+
+// enforcerLevelWithChainSource measures the remote enforcer against the wallet
+// chain source. Without Core, GetSyncStatus fills the enforcer's Headers from
+// its own Blocks, so that pair reports a stale enforcer as synced. The wallet
+// chain source is the only other mainchain tip a light install reads.
+func enforcerLevelWithChainSource(status *orchestrator.SyncStatus) error {
+	source := status.ChainSource
+	if source == nil || source.Error != "" || source.Blocks <= 0 {
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf(
+			"the wallet chain source reports no tip to measure the enforcer against"))
+	}
+	if status.Enforcer.Blocks < source.Blocks {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
+			"enforcer is still syncing: %d of %d blocks", status.Enforcer.Blocks, source.Blocks,
 		))
 	}
 	return nil
@@ -330,6 +356,12 @@ func (h *BMMHandler) CreateBid(
 	if err := checkBidInput(req.Msg.BidSats, req.Msg.FeeRateSatVb); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	// A raise is refused for good, so it names its own reason before a gate that refuses for a moment.
+	if req.Msg.ReplaceTxid != "" {
+		if err := h.requireMempoolRead("a raise"); err != nil {
+			return nil, err
+		}
+	}
 	if err := h.requireEnforcerSynced(ctx); err != nil {
 		return nil, err
 	}
@@ -440,12 +472,12 @@ func (h *BMMHandler) CreateBid(
 	// The fee is spent by now, so a lookup that misses — an electrum broadcast
 	// the local node has not seen, or a block that already took it — reports
 	// the asking price rather than losing the bid.
-	if paid, err := h.bidFeeSats(ctx, send.Msg.Txid); err == nil {
+	if !h.ReadsMempool() {
+		bidSats = askingBidSats(bidSats, byRate, req.Msg.FeeRateSatVb)
+	} else if paid, err := h.bidFeeSats(ctx, send.Msg.Txid); err == nil {
 		bidSats = paid
 	} else {
-		if byRate {
-			bidSats = int64(math.Ceil(req.Msg.FeeRateSatVb * nominalBidVsize))
-		}
+		bidSats = askingBidSats(bidSats, byRate, req.Msg.FeeRateSatVb)
 		zerolog.Ctx(ctx).Warn().Err(err).Str("txid", send.Msg.Txid).
 			Msg("could not read what the bid paid, reporting what it asked for")
 	}
@@ -532,7 +564,7 @@ func connectTarget(want string, inclusions []string) string {
 func (h *BMMHandler) ListBids(
 	ctx context.Context, req *connect.Request[bmmpb.ListBidsRequest],
 ) (*connect.Response[bmmpb.ListBidsResponse], error) {
-	if err := h.requireBMMAvailable(); err != nil {
+	if err := h.requireMempoolRead("the competing bids"); err != nil {
 		return nil, err
 	}
 	cfg, err := h.sidechainConfig(req.Msg.Sidechain)
@@ -573,8 +605,12 @@ func (h *BMMHandler) ListBids(
 	return connect.NewResponse(&bmmpb.ListBidsResponse{Bids: bids}), nil
 }
 
-// mempoolTxids names every transaction the mainchain mempool holds.
+// mempoolTxids names every transaction the mainchain mempool holds. It names
+// none for an install that reads no mempool.
 func (h *BMMHandler) mempoolTxids(ctx context.Context) (map[string]bool, error) {
+	if !h.ReadsMempool() {
+		return nil, nil
+	}
 	raw, err := h.coreCall(ctx, "getrawmempool", "[false]")
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get raw mempool: %w", err))
@@ -672,9 +708,6 @@ func betterSlotCoin(a, b *wpb.UnspentOutput, slotSats int64) bool {
 func (h *BMMHandler) PrepareBMM(
 	ctx context.Context, req *connect.Request[bmmpb.PrepareBMMRequest],
 ) (*connect.Response[bmmpb.PrepareBMMResponse], error) {
-	if err := h.requireBMMAvailable(); err != nil {
-		return nil, err
-	}
 	if len(req.Msg.Targets) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("targets must name a sidechain"))
 	}
@@ -846,8 +879,9 @@ func (h *BMMHandler) readWalletCoins(
 			out.free = append(out.free, u)
 			continue
 		}
-		// A deposit over a bid carries no bid of its own, and a replacement of
-		// the bid below it takes the deposit and its change away as well.
+		if !h.ReadsMempool() {
+			continue
+		}
 		request, err := bids.get(ctx, u.Txid)
 		if err != nil {
 			zerolog.Ctx(ctx).Debug().Err(err).Str("txid", u.Txid).Msg("read the parent of a wallet coin")
@@ -933,6 +967,15 @@ func largestCoin(coins []*wpb.UnspentOutput) *wpb.UnspentOutput {
 		}
 	}
 	return largest
+}
+
+// askingBidSats is the price a bid asked for. It stands in when no mempool entry
+// reports what the bid paid.
+func askingBidSats(bidSats int64, byRate bool, rateSatVb float64) int64 {
+	if !byRate {
+		return bidSats
+	}
+	return int64(math.Ceil(rateSatVb * nominalBidVsize))
 }
 
 // pinSats is what the pinned coin has to cover. A bid sized at a rate carries

@@ -12,18 +12,11 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
-// FrozenCoins names the candidates a live BMM bid can take away, keyed
-// txid:vout. It answers with no frozen coin in light mode, where no bid runs.
-//
-// A replacement evicts every mempool descendant of the bid it replaces, so a
-// send over the change of a live bid dies with that bid. A send over the coin
-// the bid spends replaces the bid itself. An unconfirmed coin the mainchain
-// node cannot name yet counts as frozen, because nothing else can tell a bid's
-// change from any other change.
+// FrozenCoins returns the candidate outpoints a live BMM bid can remove, keyed by txid:vout.
 func (h *BMMHandler) FrozenCoins(
 	ctx context.Context, candidates []wallet.Outpoint,
 ) (map[string]bool, error) {
-	if len(candidates) == 0 || !h.BMMAvailable() {
+	if len(candidates) == 0 || !h.ReadsMempool() {
 		return nil, nil
 	}
 
@@ -69,6 +62,9 @@ func (h *BMMHandler) FrozenCoins(
 func (h *BMMHandler) bidSpentCoins(
 	ctx context.Context, candidates []wallet.Outpoint, bids *bidCache,
 ) (map[string]bool, error) {
+	if !h.ReadsMempool() {
+		return nil, nil
+	}
 	if bids == nil {
 		bids = newBidCache(h)
 	}
