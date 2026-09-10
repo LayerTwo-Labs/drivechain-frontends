@@ -82,10 +82,12 @@ def _with_client(req, fn):
 
 def _handle(req):
     cmd = req["cmd"]
-    _log("cmd=%s type=%s path=%r fp=%r pass=%s" % (
-        cmd, req.get("type"), req.get("device_path"), req.get("fingerprint"),
-        "yes" if req.get("passphrase") else "no",
-    ))
+    # The frontend polls enumerate every few seconds, so it stays out of the log.
+    if cmd != "enumerate":
+        _log("cmd=%s type=%s path=%r fp=%r pass=%s" % (
+            cmd, req.get("type"), req.get("device_path"), req.get("fingerprint"),
+            "yes" if req.get("passphrase") else "no",
+        ))
 
     if cmd == "enumerate":
         return commands.enumerate(password=req.get("passphrase") or "")
