@@ -1075,6 +1075,16 @@ func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryC
 //
 // A transaction the mempool no longer holds needs no floor at all.
 func (h *BMMHandler) replacementFloorSats(ctx context.Context, roots []string) (int64, error) {
+	total, err := h.evictedFeeSats(ctx, roots)
+	if err != nil || total == 0 {
+		return 0, err
+	}
+	return total + replacementBumpSats, nil
+}
+
+// evictedFeeSats totals the modified fees of every mempool transaction a
+// replacement of roots evicts.
+func (h *BMMHandler) evictedFeeSats(ctx context.Context, roots []string) (int64, error) {
 	// One chain can carry two roots, and a bid over both of them belongs to
 	// each root's descendants. So each transaction counts one time, by txid.
 	counted := make(map[string]bool)
@@ -1097,10 +1107,7 @@ func (h *BMMHandler) replacementFloorSats(ctx context.Context, roots []string) (
 	// A node that deprioritised the chain reports a fee far below zero, and a
 	// replacement then beats it at any price. Core compares the same modified
 	// fees, so this is the number its own rule reads.
-	if total <= 0 {
-		return 0, nil
-	}
-	return total + replacementBumpSats, nil
+	return max(total, 0), nil
 }
 
 // mempoolDescendants names every transaction the mempool holds over one

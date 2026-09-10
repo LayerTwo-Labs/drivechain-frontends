@@ -145,6 +145,25 @@ extension type BMMServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// CancelBid replaces a stranded bid with a payment back to its own wallet,
+  /// so the coins under it come back. A bid that can still win is refused.
+  Future<bmmv1bmm.CancelBidResponse> cancelBid(
+    bmmv1bmm.CancelBidRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BMMService.cancelBid,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// ListBids reads the competing bids for the slot out of the mainchain
   /// mempool, highest bid first.
   Future<bmmv1bmm.ListBidsResponse> listBids(
@@ -156,6 +175,27 @@ extension type BMMServiceClient (connect.Transport _transport) {
   }) {
     return connect.Client(_transport).unary(
       specs.BMMService.listBids,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
+  /// and splits one large coin when the wallet holds too few. One wallet funds
+  /// them all, and a bid over another slot's bid change dies when that slot
+  /// replaces its own bid.
+  Future<bmmv1bmm.PrepareBMMResponse> prepareBMM(
+    bmmv1bmm.PrepareBMMRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BMMService.prepareBMM,
       input,
       signal: signal,
       headers: headers,

@@ -80,4 +80,15 @@ class OrchestratorBmmRPC {
       ),
     );
   }
+
+  /// Replace a stranded bid with a payment back to its own wallet, so the coins
+  /// under it come back. A bid that can still win is refused.
+  Future<bmmpb.CancelBidResponse> cancelBid({
+    required String txid,
+    String? walletId,
+  }) {
+    return _unaryClient.cancelBid(
+      bmmpb.CancelBidRequest(txid: txid, walletId: walletId ?? ''),
+    );
+  }
 }
