@@ -147,6 +147,21 @@ func (mr *MockValidatorServiceClientMockRecorder) GetCtip(arg0, arg1 any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCtip", reflect.TypeOf((*MockValidatorServiceClient)(nil).GetCtip), arg0, arg1)
 }
 
+// GetSeenBmmRequests mocks base method.
+func (m *MockValidatorServiceClient) GetSeenBmmRequests(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSeenBmmRequestsRequest]) (*connect.Response[mainchainv1.GetSeenBmmRequestsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSeenBmmRequests", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSeenBmmRequestsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSeenBmmRequests indicates an expected call of GetSeenBmmRequests.
+func (mr *MockValidatorServiceClientMockRecorder) GetSeenBmmRequests(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSeenBmmRequests", reflect.TypeOf((*MockValidatorServiceClient)(nil).GetSeenBmmRequests), arg0, arg1)
+}
+
 // GetSidechainProposals mocks base method.
 func (m *MockValidatorServiceClient) GetSidechainProposals(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSidechainProposalsRequest]) (*connect.Response[mainchainv1.GetSidechainProposalsResponse], error) {
 	m.ctrl.T.Helper()
@@ -379,6 +394,21 @@ func (m *MockValidatorServiceHandler) GetCtip(arg0 context.Context, arg1 *connec
 func (mr *MockValidatorServiceHandlerMockRecorder) GetCtip(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCtip", reflect.TypeOf((*MockValidatorServiceHandler)(nil).GetCtip), arg0, arg1)
+}
+
+// GetSeenBmmRequests mocks base method.
+func (m *MockValidatorServiceHandler) GetSeenBmmRequests(arg0 context.Context, arg1 *connect.Request[mainchainv1.GetSeenBmmRequestsRequest]) (*connect.Response[mainchainv1.GetSeenBmmRequestsResponse], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSeenBmmRequests", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[mainchainv1.GetSeenBmmRequestsResponse])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSeenBmmRequests indicates an expected call of GetSeenBmmRequests.
+func (mr *MockValidatorServiceHandlerMockRecorder) GetSeenBmmRequests(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSeenBmmRequests", reflect.TypeOf((*MockValidatorServiceHandler)(nil).GetSeenBmmRequests), arg0, arg1)
 }
 
 // GetSidechainProposals mocks base method.
