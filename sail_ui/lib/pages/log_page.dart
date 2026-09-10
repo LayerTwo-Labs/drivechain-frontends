@@ -557,8 +557,9 @@ class _ProcessLogsTabState extends State<_ProcessLogsTab> {
                     color: SailColorScheme.greyLight,
                   ),
                 ),
-                SailText.secondary12('|',
-                    color: SailColorScheme.greyLight,
+                SailText.secondary12(
+                  '|',
+                  color: SailColorScheme.greyLight,
                 ),
                 const SizedBox(width: 8),
                 if (log.isStderr) ...[
