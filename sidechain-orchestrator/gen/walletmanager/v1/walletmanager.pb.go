@@ -744,8 +744,10 @@ type GetNodeModeResponse struct {
 	LightModeAvailable bool `protobuf:"varint,2,opt,name=light_mode_available,json=lightModeAvailable,proto3" json:"light_mode_available,omitempty"`
 	// True when the current network has a remote validator endpoint.
 	RemoteEnforcerAvailable bool `protobuf:"varint,3,opt,name=remote_enforcer_available,json=remoteEnforcerAvailable,proto3" json:"remote_enforcer_available,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// Display names of every network with a remote validator endpoint.
+	RemoteEnforcerNetworks []string `protobuf:"bytes,4,rep,name=remote_enforcer_networks,json=remoteEnforcerNetworks,proto3" json:"remote_enforcer_networks,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetNodeModeResponse) Reset() {
@@ -797,6 +799,13 @@ func (x *GetNodeModeResponse) GetRemoteEnforcerAvailable() bool {
 		return x.RemoteEnforcerAvailable
 	}
 	return false
+}
+
+func (x *GetNodeModeResponse) GetRemoteEnforcerNetworks() []string {
+	if x != nil {
+		return x.RemoteEnforcerNetworks
+	}
+	return nil
 }
 
 type SetNodeModeRequest struct {
@@ -10091,11 +10100,12 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"total_sats\x18\x01 \x01(\x03R\ttotalSats\x12\x1f\n" +
 	"\vrecent_sats\x18\x02 \x01(\x03R\n" +
 	"recentSats\"\x14\n" +
-	"\x12GetNodeModeRequest\"\xb3\x01\n" +
+	"\x12GetNodeModeRequest\"\xed\x01\n" +
 	"\x13GetNodeModeResponse\x12.\n" +
 	"\x04mode\x18\x01 \x01(\x0e2\x1a.walletmanager.v1.NodeModeR\x04mode\x120\n" +
 	"\x14light_mode_available\x18\x02 \x01(\bR\x12lightModeAvailable\x12:\n" +
-	"\x19remote_enforcer_available\x18\x03 \x01(\bR\x17remoteEnforcerAvailable\"D\n" +
+	"\x19remote_enforcer_available\x18\x03 \x01(\bR\x17remoteEnforcerAvailable\x128\n" +
+	"\x18remote_enforcer_networks\x18\x04 \x03(\tR\x16remoteEnforcerNetworks\"D\n" +
 	"\x12SetNodeModeRequest\x12.\n" +
 	"\x04mode\x18\x01 \x01(\x0e2\x1a.walletmanager.v1.NodeModeR\x04mode\"\x15\n" +
 	"\x13SetNodeModeResponse\"\xd8\x01\n" +

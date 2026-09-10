@@ -163,4 +163,26 @@ void main() {
       );
     });
   });
+
+  // A user who reads the unavailable card must learn where light mode does
+  // serve sidechains, not only that this network does not.
+  group('lightSidechainNetworksLine', () {
+    test('names the networks that host an enforcer', () {
+      expect(
+        lightSidechainNetworksLine(['Alphanet']),
+        'Light mode serves sidechains on Alphanet.',
+      );
+      expect(
+        lightSidechainNetworksLine(['Alphanet', 'signet']),
+        'Light mode serves sidechains on Alphanet, signet.',
+      );
+    });
+
+    test('says so when no network hosts one', () {
+      expect(
+        lightSidechainNetworksLine([]),
+        'No network hosts an enforcer yet, so light mode serves sidechains nowhere.',
+      );
+    });
+  });
 }

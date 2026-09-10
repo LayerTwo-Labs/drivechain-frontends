@@ -16,6 +16,9 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
 
   bool remoteEnforcerAvailable = false;
 
+  /// Display names of the networks with a remote validator endpoint.
+  List<String> remoteEnforcerNetworks = const [];
+
   /// True once a read reaches the backend. A failed read is not an unpicked
   /// mode, so the first-run question waits for this.
   bool loaded = false;
@@ -52,6 +55,7 @@ class NodeModeProvider extends ChangeNotifier implements NetworkScoped {
       mode = resp.mode;
       lightModeAvailable = resp.lightModeAvailable;
       remoteEnforcerAvailable = resp.remoteEnforcerAvailable;
+      remoteEnforcerNetworks = List.unmodifiable(resp.remoteEnforcerNetworks);
       loaded = true;
       notifyListeners();
     } catch (e) {

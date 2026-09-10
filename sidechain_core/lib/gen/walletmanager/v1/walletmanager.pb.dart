@@ -585,6 +585,7 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
     NodeMode? mode,
     $core.bool? lightModeAvailable,
     $core.bool? remoteEnforcerAvailable,
+    $core.Iterable<$core.String>? remoteEnforcerNetworks,
   }) {
     final $result = create();
     if (mode != null) {
@@ -596,6 +597,9 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
     if (remoteEnforcerAvailable != null) {
       $result.remoteEnforcerAvailable = remoteEnforcerAvailable;
     }
+    if (remoteEnforcerNetworks != null) {
+      $result.remoteEnforcerNetworks.addAll(remoteEnforcerNetworks);
+    }
     return $result;
   }
   GetNodeModeResponse._() : super();
@@ -606,6 +610,7 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
     ..e<NodeMode>(1, _omitFieldNames ? '' : 'mode', $pb.PbFieldType.OE, defaultOrMaker: NodeMode.NODE_MODE_UNSPECIFIED, valueOf: NodeMode.valueOf, enumValues: NodeMode.values)
     ..aOB(2, _omitFieldNames ? '' : 'lightModeAvailable')
     ..aOB(3, _omitFieldNames ? '' : 'remoteEnforcerAvailable')
+    ..pPS(4, _omitFieldNames ? '' : 'remoteEnforcerNetworks')
     ..hasRequiredFields = false
   ;
 
@@ -658,6 +663,10 @@ class GetNodeModeResponse extends $pb.GeneratedMessage {
   $core.bool hasRemoteEnforcerAvailable() => $_has(2);
   @$pb.TagNumber(3)
   void clearRemoteEnforcerAvailable() => clearField(3);
+
+  /// Display names of every network with a remote validator endpoint.
+  @$pb.TagNumber(4)
+  $core.List<$core.String> get remoteEnforcerNetworks => $_getList(3);
 }
 
 class SetNodeModeRequest extends $pb.GeneratedMessage {

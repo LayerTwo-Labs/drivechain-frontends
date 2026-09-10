@@ -111,6 +111,15 @@ L1Gate resolveL1Gate({
   return synced ? L1Gate.ready : L1Gate.syncing;
 }
 
+/// Names the networks that serve sidechains in light mode.
+@visibleForTesting
+String lightSidechainNetworksLine(List<String> networks) {
+  if (networks.isEmpty) {
+    return 'No network hosts an enforcer yet, so light mode serves sidechains nowhere.';
+  }
+  return 'Light mode serves sidechains on ${networks.join(', ')}.';
+}
+
 /// Stands in for the whole tab while the L1 stack is missing, and doubles as the
 /// place to start it — the same daemons the bottom nav reports on.
 class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
@@ -130,8 +139,9 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SailText.secondary13(
-                'This network has no remote enforcer. Select full mode in Settings to use sidechains.',
+                'This network hosts no enforcer. Select full mode in Settings to use sidechains here.',
               ),
+              SailText.secondary13(lightSidechainNetworksLine(viewModel.remoteEnforcerNetworks)),
               SailText.secondary13('Your Bitcoin wallet still uses Electrum.'),
             ],
           ),
@@ -747,6 +757,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   bool get loading => _enforcerRPC.initializingBinary;
+
+  /// Networks that serve sidechains in light mode.
+  List<String> get remoteEnforcerNetworks => _nodeMode?.remoteEnforcerNetworks ?? const [];
 
   /// The connection state before the tab can read BIP300 data.
   L1Gate get l1Gate => resolveL1Gate(
