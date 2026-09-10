@@ -963,7 +963,7 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	})
 	// A coin a live BMM bid holds is the largest coin the wallet lists, so
 	// largest-first selection takes it first and the send dies with the bid.
-	remaining, frozenErr := p.dropFrozenCoins(ctx, remaining)
+	remaining, frozenErr := p.dropFrozenCoins(ctx, walletID, remaining)
 	if frozenErr != nil {
 		return nil, nil, nil, frozenErr
 	}
@@ -1654,7 +1654,7 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
 	}
 
-	if err := p.svc.checkCpfpParent(ctx, req); err != nil {
+	if err := p.svc.checkCpfpParent(ctx, walletID, req); err != nil {
 		return "", err
 	}
 

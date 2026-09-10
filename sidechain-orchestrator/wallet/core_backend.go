@@ -480,7 +480,7 @@ func (p *CoreBackend) Send(ctx context.Context, walletID string, req SendRequest
 	}
 	protect := ReplayProtect(p.svc.Network(), req.AllowReplay)
 
-	unlock, err := p.lockFrozenCoins(ctx, name)
+	unlock, err := p.lockFrozenCoins(ctx, walletID, name)
 	if err != nil {
 		return "", err
 	}
@@ -927,7 +927,7 @@ func (p *CoreBackend) BumpFee(ctx context.Context, walletID string, req BumpFeeR
 		return nil, err
 	}
 	// A bump can reach for a wallet coin when the change cannot pay the raise.
-	unlock, err := p.lockFrozenCoins(ctx, name)
+	unlock, err := p.lockFrozenCoins(ctx, walletID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -1057,7 +1057,7 @@ func (p *CoreBackend) CreateCpfp(ctx context.Context, walletID string, req CpfpR
 			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
 	}
 
-	if err := p.svc.checkCpfpParent(ctx, req); err != nil {
+	if err := p.svc.checkCpfpParent(ctx, walletID, req); err != nil {
 		return "", err
 	}
 

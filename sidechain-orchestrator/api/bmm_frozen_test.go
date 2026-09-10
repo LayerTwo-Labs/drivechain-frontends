@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
+	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
@@ -30,7 +30,7 @@ func frozenHandler(t *testing.T, mempool *fakeSlotMempool) *BMMHandler {
 func TestFrozenCoinsHoldsTheChangeOfALiveBid(t *testing.T) {
 	h := frozenHandler(t, &fakeSlotMempool{slots: map[string]int{liveBid: 9}, plain: []string{plainTx}})
 
-	frozen, err := h.FrozenCoins(context.Background(), []wallet.Outpoint{
+	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{
 		{TxID: liveBid, Vout: 1},
 		{TxID: plainTx, Vout: 0},
 		{TxID: oldBlock, Vout: 0, Confirmed: true},
@@ -50,7 +50,7 @@ func TestFrozenCoinsHoldsACoinALiveBidSpends(t *testing.T) {
 		spends: map[string]string{oldBlock + ":0": liveBid, oldBlock + ":1": plainTx},
 	})
 
-	frozen, err := h.FrozenCoins(context.Background(), []wallet.Outpoint{
+	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{
 		{TxID: oldBlock, Vout: 0, Confirmed: true},
 		{TxID: oldBlock, Vout: 1, Confirmed: true},
 	})
@@ -64,7 +64,7 @@ func TestFrozenCoinsHoldsACoinALiveBidSpends(t *testing.T) {
 func TestFrozenCoinsFreesTheCoinsOfAConfirmedBid(t *testing.T) {
 	h := frozenHandler(t, &fakeSlotMempool{})
 
-	frozen, err := h.FrozenCoins(context.Background(), []wallet.Outpoint{
+	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{
 		{TxID: liveBid, Vout: 1, Confirmed: true},
 	})
 	require.NoError(t, err)
@@ -76,17 +76,55 @@ func TestFrozenCoinsFreesTheCoinsOfAConfirmedBid(t *testing.T) {
 func TestFrozenCoinsHoldsAnUnconfirmedCoinTheNodeCannotName(t *testing.T) {
 	h := frozenHandler(t, &fakeSlotMempool{})
 
-	frozen, err := h.FrozenCoins(context.Background(), []wallet.Outpoint{{TxID: liveBid, Vout: 1}})
+	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{{TxID: liveBid, Vout: 1}})
 	require.NoError(t, err)
 	assert.True(t, frozen[liveBid+":1"])
 }
 
-// Light mode runs no bid, and reads no mainchain node.
-func TestFrozenCoinsHoldsNothingInLightMode(t *testing.T) {
-	h := frozenHandler(t, &fakeSlotMempool{slots: map[string]int{liveBid: 9}})
-	require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, orchestrator.NodeModeLight))
+// Light mode reads no mainchain mempool, so the wallet's own unconfirmed
+// transactions name the bid line. A send that spends one of those coins dies
+// with the next raise, which evicts the whole line.
+func TestFrozenCoinsHoldsALightBidLine(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{
+		txs: []*wpb.TransactionEntry{{Txid: "bid"}, {Txid: "payment"}},
+		details: map[string]*wpb.GetTransactionDetailsResponse{
+			"bid": {
+				Inputs:  []*wpb.TransactionInput{{PrevTxid: "coin", PrevVout: 0}},
+				Outputs: []*wpb.TransactionOutput{m8Output(t, 9)},
+			},
+			"payment": {Inputs: []*wpb.TransactionInput{{PrevTxid: "bid", PrevVout: 1}}},
+		},
+	}
 
-	frozen, err := h.FrozenCoins(context.Background(), []wallet.Outpoint{{TxID: liveBid, Vout: 1}})
+	frozen, err := h.FrozenCoins(context.Background(), "bidder", []wallet.Outpoint{
+		{TxID: "bid", Vout: 1},
+		{TxID: "payment", Vout: 0},
+		{TxID: "coin", Vout: 0},
+		{TxID: plainTx, Vout: 0, Confirmed: true},
+	})
+	require.NoError(t, err)
+
+	assert.True(t, frozen["bid:1"], "the change of the bid")
+	assert.True(t, frozen["payment:0"], "the change of a transaction chained on the bid")
+	assert.True(t, frozen["coin:0"], "the coin the bid spends")
+	assert.False(t, frozen[plainTx+":0"], "a coin no bid reaches")
+}
+
+// A light wallet that runs no bid must spend its coins freely.
+func TestFrozenCoinsHoldsNothingWithoutALightBid(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{
+		txs: []*wpb.TransactionEntry{{Txid: "payment"}},
+		details: map[string]*wpb.GetTransactionDetailsResponse{
+			"payment": {Inputs: []*wpb.TransactionInput{{PrevTxid: "coin", PrevVout: 0}}},
+		},
+	}
+
+	frozen, err := h.FrozenCoins(context.Background(), "bidder", []wallet.Outpoint{
+		{TxID: "payment", Vout: 0},
+		{TxID: "coin", Vout: 0},
+	})
 	require.NoError(t, err)
 	assert.Empty(t, frozen)
 }
@@ -96,7 +134,7 @@ func TestFrozenCoinsHoldsNothingInLightMode(t *testing.T) {
 func TestFrozenCoinsFailsOnAnUnreadableMempoolTx(t *testing.T) {
 	h := frozenHandler(t, &fakeSlotMempool{unreadable: []string{liveBid}})
 
-	_, err := h.FrozenCoins(context.Background(), []wallet.Outpoint{{TxID: liveBid, Vout: 1}})
+	_, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{{TxID: liveBid, Vout: 1}})
 	require.Error(t, err)
 	assert.True(t, strings.Contains(err.Error(), liveBid))
 }
@@ -111,7 +149,7 @@ func TestFrozenCoinsHoldsTheChangeOfABidDescendant(t *testing.T) {
 		ancestors: map[string][]string{deposit: {liveBid}, plainTx: {}},
 	})
 
-	frozen, err := h.FrozenCoins(context.Background(), []wallet.Outpoint{
+	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{
 		{TxID: deposit, Vout: 2},
 		{TxID: plainTx, Vout: 0},
 	})
@@ -130,7 +168,7 @@ func TestFrozenCoinsQueriesTheSpendersInBatches(t *testing.T) {
 	for i := range 250 {
 		candidates = append(candidates, wallet.Outpoint{TxID: oldBlock, Vout: i, Confirmed: true})
 	}
-	_, err := h.FrozenCoins(context.Background(), candidates)
+	_, err := h.FrozenCoins(context.Background(), "", candidates)
 	require.NoError(t, err)
 
 	assert.Equal(t, []int{100, 100, 50}, mempool.spenderQueries)

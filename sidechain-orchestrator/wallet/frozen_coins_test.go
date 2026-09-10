@@ -34,7 +34,7 @@ func twoCoinWallet(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, s
 		{TxID: frozenCoinTxid, Vout: 1, Value: 4_000_000, Status: EsploraStatus{Confirmed: false}},
 		{TxID: freeCoinTxid, Vout: 0, Value: 1_000_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}},
 	}
-	p.svc.SetFrozenCoins(func(_ context.Context, candidates []Outpoint) (map[string]bool, error) {
+	p.svc.SetFrozenCoins(func(_ context.Context, _ string, candidates []Outpoint) (map[string]bool, error) {
 		frozen := map[string]bool{}
 		for _, c := range candidates {
 			if c.TxID == frozenCoinTxid {
@@ -127,7 +127,7 @@ func TestElectrumSendPinsACoinTheFreezeHolds(t *testing.T) {
 // send can spend a coin the next replacement takes away.
 func TestElectrumSendFailsWhenTheFreezeCannotBeRead(t *testing.T) {
 	p, fake, w, _ := twoCoinWallet(t)
-	p.svc.SetFrozenCoins(func(context.Context, []Outpoint) (map[string]bool, error) {
+	p.svc.SetFrozenCoins(func(context.Context, string, []Outpoint) (map[string]bool, error) {
 		return nil, errors.New("the node is down")
 	})
 
@@ -180,7 +180,7 @@ func TestCoreBackendSendSkipsACoinABidHolds(t *testing.T) {
 	})
 	fake.handle("sendrawtransaction", func(bitcoindCall) (any, string) { return "txid-fixed", "" })
 
-	backend.svc.SetFrozenCoins(func(_ context.Context, candidates []Outpoint) (map[string]bool, error) {
+	backend.svc.SetFrozenCoins(func(_ context.Context, _ string, candidates []Outpoint) (map[string]bool, error) {
 		frozen := map[string]bool{}
 		for _, c := range candidates {
 			if c.TxID == frozenCoinTxid {
@@ -250,7 +250,7 @@ func TestCoreBackendUnlocksAfterACanceledSend(t *testing.T) {
 	})
 	fake.handle("sendtoaddress", func(bitcoindCall) (any, string) { return "", "the node is busy" })
 
-	backend.svc.SetFrozenCoins(func(_ context.Context, candidates []Outpoint) (map[string]bool, error) {
+	backend.svc.SetFrozenCoins(func(_ context.Context, _ string, candidates []Outpoint) (map[string]bool, error) {
 		frozen := map[string]bool{}
 		for _, c := range candidates {
 			frozen[c.Key()] = true
@@ -287,7 +287,7 @@ func TestElectrumCpfpRejectsACoinABidHolds(t *testing.T) {
 func TestCoreCpfpRejectsACoinABidHolds(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
-	backend.svc.SetFrozenCoins(func(_ context.Context, candidates []Outpoint) (map[string]bool, error) {
+	backend.svc.SetFrozenCoins(func(_ context.Context, _ string, candidates []Outpoint) (map[string]bool, error) {
 		frozen := map[string]bool{}
 		for _, c := range candidates {
 			if c.TxID == frozenCoinTxid {

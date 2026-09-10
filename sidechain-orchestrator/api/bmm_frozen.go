@@ -12,48 +12,48 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
-// FrozenCoins names the candidates a live BMM bid can take away, keyed
-// txid:vout. It answers with no frozen coin in light mode, where no bid runs.
-//
-// A replacement evicts every mempool descendant of the bid it replaces, so a
-// send over the change of a live bid dies with that bid. A send over the coin
-// the bid spends replaces the bid itself. An unconfirmed coin the mainchain
-// node cannot name yet counts as frozen, because nothing else can tell a bid's
-// change from any other change.
+// FrozenCoins returns the candidate outpoints a live BMM bid can remove, keyed by txid:vout.
 func (h *BMMHandler) FrozenCoins(
-	ctx context.Context, candidates []wallet.Outpoint,
+	ctx context.Context, walletID string, candidates []wallet.Outpoint,
 ) (map[string]bool, error) {
-	if len(candidates) == 0 || !h.BMMAvailable() {
+	if len(candidates) == 0 {
 		return nil, nil
 	}
+	return h.bids().FrozenCoins(ctx, walletID, candidates)
+}
 
-	held, err := h.mempoolTxids(ctx)
+// frozenCoins reads the mainchain mempool, which names every bid the node
+// relayed, ours and anyone else's.
+func (c coreBids) frozenCoins(
+	ctx context.Context, walletID string, candidates []wallet.Outpoint,
+) (map[string]bool, error) {
+	held, err := c.PendingTxids(ctx, []string{walletID})
 	if err != nil {
 		return nil, err
 	}
-	bids := newBidCache(h)
+	bids := newBidCache(c.h)
 
 	frozen := make(map[string]bool)
-	for _, c := range candidates {
-		if !held[c.TxID] {
+	for _, cand := range candidates {
+		if !held[cand.TxID] {
 			// An Electrum wallet broadcasts through Esplora and lists its own
 			// change before Core sees the transaction that paid it. A coin no
 			// block holds, and no mempool names, can still be a bid's change.
-			if !c.Confirmed {
-				frozen[c.Key()] = true
+			if !cand.Confirmed {
+				frozen[cand.Key()] = true
 			}
 			continue
 		}
-		onABid, err := bids.overABid(ctx, c.TxID)
+		onABid, err := bids.overABid(ctx, cand.TxID)
 		if err != nil {
 			return nil, err
 		}
 		if onABid {
-			frozen[c.Key()] = true
+			frozen[cand.Key()] = true
 		}
 	}
 
-	spent, err := h.bidSpentCoins(ctx, candidates, bids)
+	spent, err := c.h.bidSpentCoins(ctx, candidates, bids)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +69,9 @@ func (h *BMMHandler) FrozenCoins(
 func (h *BMMHandler) bidSpentCoins(
 	ctx context.Context, candidates []wallet.Outpoint, bids *bidCache,
 ) (map[string]bool, error) {
+	if !h.ReadsMempool() {
+		return nil, nil
+	}
 	if bids == nil {
 		bids = newBidCache(h)
 	}
