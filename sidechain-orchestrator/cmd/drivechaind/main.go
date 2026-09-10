@@ -550,7 +550,7 @@ func run(cctx *cli.Context) error {
 		// the frontend actually issues and how slow each is. authIC stays
 		// outermost (auth before metering); meterIC times only the post-auth
 		// handler. Logs a per-method summary every coreMeterInterval.
-		const coreMeterInterval = 30 * time.Second
+		const coreMeterInterval = 5 * time.Minute
 		meterIC := rpcmeter.New(ctx, log, coreMeterInterval).Interceptor()
 
 		swappable := newSwappableHandler()
