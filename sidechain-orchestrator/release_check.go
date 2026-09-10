@@ -94,6 +94,18 @@ func (r *ReleaseChecker) Check(config BinaryConfig, network, binPath string) (Re
 	return ReleaseCheck{Remote: remote, Local: localModTime(binPath)}, true
 }
 
+// CheckDownloads compares every download that an update with opts replaces. It
+// returns the first one with an update waiting, else the first download.
+func (r *ReleaseChecker) CheckDownloads(config BinaryConfig, network string, opts DownloadOptions) (ReleaseCheck, bool) {
+	targets := r.downloads.Targets(config, network, opts)
+	for _, target := range targets {
+		if check, ok := r.Check(config, network, target.BinPath); ok && check.UpdateAvailable() {
+			return check, true
+		}
+	}
+	return r.Check(config, network, targets[0].BinPath)
+}
+
 // Run probes every binary at once, then again on each tick, until ctx ends.
 // It reads configs and network on every tick, so a swap takes effect at once.
 func (r *ReleaseChecker) Run(ctx context.Context, configs func() []BinaryConfig, network func() string) {
