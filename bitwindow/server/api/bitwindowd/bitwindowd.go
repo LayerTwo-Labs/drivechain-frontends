@@ -850,6 +850,9 @@ func (s *Server) ListBlocks(ctx context.Context, c *connect.Request[pb.ListBlock
 	if err != nil {
 		return nil, fmt.Errorf("bitcoind: could not get blockchain info: %w", err)
 	}
+	if info.Msg.InitialBlockDownload && config.IsFullChainNetwork(s.config.BitcoinCoreNetwork) {
+		return connect.NewResponse(&pb.ListBlocksResponse{}), nil
+	}
 	currentTip := info.Msg.Blocks
 	currentHash := info.Msg.BestBlockHash
 
