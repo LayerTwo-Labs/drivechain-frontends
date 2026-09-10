@@ -398,6 +398,19 @@ class BinaryProvider extends ChangeNotifier {
     );
   }
 
+  /// Names every daemon a PID file still points at, as "bitcoind (pid 1234)".
+  /// A page with no backend to ask uses this to name what holds the machine.
+  Future<List<String>> liveDaemonNames() async {
+    final found = <String>[];
+    for (final binary in binaries) {
+      final pid = await _processManager.pidFileManager.readPidFile(binary);
+      if (pid != null && await _processManager.pidFileManager.validatePid(pid, binary)) {
+        found.add('${binary.binaryName} (pid $pid)');
+      }
+    }
+    return found;
+  }
+
   /// Daemon binaries are spawned directly by Flutter rather than via the
   /// orchestrator RPC (it can't start itself, and bitwindowd is the host
   /// process for the embedded orchestrator).

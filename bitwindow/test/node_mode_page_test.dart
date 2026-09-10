@@ -17,9 +17,11 @@ void main() {
   late _FakeWallet wallet;
   late int picked;
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {String blocker = ''}) async {
     picked = 0;
-    await tester.pumpSailPage(NodeModePage(onModePicked: () => picked++));
+    await tester.pumpSailPage(
+      NodeModePage(onModePicked: () => picked++, readBlocker: () async => blocker),
+    );
   }
 
   setUp(() async {
@@ -38,6 +40,13 @@ void main() {
     expect(find.text('BitWindow cannot reach the local backend.'), findsOneWidget);
     expect(find.text('Light'), findsNothing);
     expect(find.text('Full node'), findsNothing);
+  });
+
+  testWidgets('names what holds the backend', (tester) async {
+    await pumpPage(tester, blocker: 'bitcoind (pid 1234) still runs.');
+    await tester.pump();
+
+    expect(find.text('bitcoind (pid 1234) still runs.'), findsOneWidget);
   });
 
   testWidgets('asks the question once the backend says the mode is unpicked', (tester) async {

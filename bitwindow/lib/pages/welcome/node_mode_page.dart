@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/env.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -13,13 +15,43 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 class NodeModePage extends StatefulWidget {
   final VoidCallback onModePicked;
 
-  const NodeModePage({super.key, required this.onModePicked});
+  /// Names what holds the backend while it stays silent. A test passes a stub,
+  /// because the real reader opens a socket and reads the PID files.
+  final Future<String> Function() readBlocker;
+
+  const NodeModePage({super.key, required this.onModePicked, this.readBlocker = readBackendBlocker});
 
   @override
   State<NodeModePage> createState() => _NodeModePageState();
 }
 
 const String _backendDown = 'BitWindow cannot reach the local backend.';
+
+/// Reads what holds the machine while drivechaind stays silent. A user who
+/// reads a process name and a pid can act on it.
+Future<String> readBackendBlocker() async {
+  final host = Environment.orchestratorHost.value;
+  final port = Environment.orchestratorPort.value;
+
+  var listens = false;
+  try {
+    final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 2));
+    socket.destroy();
+    listens = true;
+  } catch (_) {
+    listens = false;
+  }
+
+  final lines = <String>[
+    listens ? '$host:$port answers, but not as drivechaind.' : 'drivechaind does not listen on $host:$port.',
+  ];
+  final live = await GetIt.I.get<BinaryProvider>().liveDaemonNames();
+  if (live.isNotEmpty) {
+    lines.add('These still run from the last session: ${live.join(', ')}.');
+    lines.add('Stop them, then start BitWindow again.');
+  }
+  return lines.join('\n');
+}
 
 class _NodeModePageState extends State<NodeModePage> {
   NodeModeProvider get _nodeMode => GetIt.I.get<NodeModeProvider>();
@@ -30,12 +62,15 @@ class _NodeModePageState extends State<NodeModePage> {
   String? _error;
   Timer? _poll;
   bool _reloading = false;
+  bool _reading = false;
+  String? _blocker;
 
   @override
   void initState() {
     super.initState();
     _alignSelection();
     if (!_nodeMode.loaded) {
+      unawaited(_readBlocker());
       _poll = Timer.periodic(const Duration(seconds: 2), (_) => unawaited(_reload()));
     }
   }
@@ -66,7 +101,11 @@ class _NodeModePageState extends State<NodeModePage> {
     } finally {
       _reloading = false;
     }
-    if (!mounted || !_nodeMode.loaded) {
+    if (!mounted) {
+      return;
+    }
+    if (!_nodeMode.loaded) {
+      unawaited(_readBlocker());
       return;
     }
     _poll?.cancel();
@@ -76,6 +115,18 @@ class _NodeModePageState extends State<NodeModePage> {
       return;
     }
     setState(_alignSelection);
+  }
+
+  Future<void> _readBlocker() async {
+    if (_reading) {
+      return;
+    }
+    _reading = true;
+    final text = await widget.readBlocker();
+    _reading = false;
+    if (mounted && text.isNotEmpty) {
+      setState(() => _blocker = text);
+    }
   }
 
   Future<void> _confirm() async {
@@ -106,6 +157,7 @@ class _NodeModePageState extends State<NodeModePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SailText.secondary13(_backendDown, color: SailTheme.of(context).colors.error),
+            if (_blocker != null) SailText.secondary13(_blocker!),
             SailButton(
               label: 'Try again',
               onPressed: _reload,
