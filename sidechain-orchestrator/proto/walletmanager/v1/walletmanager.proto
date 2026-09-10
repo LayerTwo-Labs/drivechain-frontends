@@ -206,6 +206,8 @@ message GetNodeModeResponse {
   bool light_mode_available = 2;
   // True when the current network has a remote validator endpoint.
   bool remote_enforcer_available = 3;
+  // Display names of every network with a remote validator endpoint.
+  repeated string remote_enforcer_networks = 4;
 }
 
 message SetNodeModeRequest {
