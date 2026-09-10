@@ -12,6 +12,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/logfile"
 )
 
 // EnforcerURL returns the local enforcer URL or the bridge URL for light mode.
@@ -47,7 +48,7 @@ func (o *Orchestrator) EnforcerURL() (string, error) {
 		}
 		o.remoteEnforcer = nil
 	}
-	remote, err := enforcerproxy.NewRemote(upstream)
+	remote, err := enforcerproxy.NewRemote(upstream, logfile.StdLogger(o.log, logfile.TransportNoise))
 	if err != nil {
 		return "", fmt.Errorf("connect to the remote enforcer for %s: %w", network, err)
 	}

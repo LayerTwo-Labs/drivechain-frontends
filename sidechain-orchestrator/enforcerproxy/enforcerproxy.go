@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	stdlog "log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -23,8 +24,9 @@ const DefaultJSONRPCAddr = "127.0.0.1:8122"
 
 // Connect reverse-proxies Connect/gRPC requests to the enforcer's main
 // gRPC endpoint, preserving the request path. upstream is e.g.
-// "http://127.0.0.1:50051".
-func Connect(upstream string) (http.Handler, error) {
+// "http://127.0.0.1:50051". errorLog takes the transport failures; a nil
+// errorLog sends them to the standard logger.
+func Connect(upstream string, errorLog *stdlog.Logger) (http.Handler, error) {
 	u, err := url.Parse(upstream)
 	if err != nil {
 		return nil, fmt.Errorf("parse enforcer upstream %q: %w", upstream, err)
@@ -48,11 +50,12 @@ func Connect(upstream string) (http.Handler, error) {
 		},
 		Transport:     transport,
 		FlushInterval: -1,
+		ErrorLog:      errorLog,
 	}, nil
 }
 
 // ConnectDynamic resolves the enforcer endpoint for each request.
-func ConnectDynamic(resolve func() (string, error)) http.Handler {
+func ConnectDynamic(resolve func() (string, error), errorLog *stdlog.Logger) http.Handler {
 	var mu sync.Mutex
 	var current string
 	var handler http.Handler
@@ -64,7 +67,7 @@ func ConnectDynamic(resolve func() (string, error)) http.Handler {
 		}
 		mu.Lock()
 		if handler == nil || upstream != current {
-			next, err := Connect(upstream)
+			next, err := Connect(upstream, errorLog)
 			if err != nil {
 				mu.Unlock()
 				http.Error(w, err.Error(), http.StatusBadGateway)

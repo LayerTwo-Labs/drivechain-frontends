@@ -3,6 +3,7 @@ package enforcerproxy
 import (
 	"errors"
 	"fmt"
+	stdlog "log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -13,6 +14,7 @@ import (
 
 // Remote serves a remote validator through a loopback h2c listener.
 type Remote struct {
+	errorLog  *stdlog.Logger
 	server    *http.Server
 	listener  net.Listener
 	mu        sync.RWMutex
@@ -30,15 +32,15 @@ func closeIdleConnections(handler http.Handler) {
 }
 
 // NewRemote starts a loopback bridge to the remote enforcer URL.
-func NewRemote(upstream string) (*Remote, error) {
-	proxy, err := Connect(upstream)
+func NewRemote(upstream string, errorLog *stdlog.Logger) (*Remote, error) {
+	proxy, err := Connect(upstream, errorLog)
 	if err != nil {
 		return nil, err
 	}
-	return newRemote(proxy)
+	return newRemote(proxy, errorLog)
 }
 
-func newRemote(proxy http.Handler) (*Remote, error) {
+func newRemote(proxy http.Handler, errorLog *stdlog.Logger) (*Remote, error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return nil, fmt.Errorf("listen for remote enforcer: %w", err)
@@ -47,6 +49,7 @@ func newRemote(proxy http.Handler) (*Remote, error) {
 	protocols.SetHTTP1(true)
 	protocols.SetUnencryptedHTTP2(true)
 	r := &Remote{
+		errorLog: errorLog,
 		listener: listener,
 		proxy:    proxy,
 		done:     make(chan error, 1),
@@ -54,6 +57,7 @@ func newRemote(proxy http.Handler) (*Remote, error) {
 	r.server = &http.Server{
 		Handler:   ValidatorOnly(http.HandlerFunc(r.serveHTTP)),
 		Protocols: protocols,
+		ErrorLog:  errorLog,
 	}
 	go func() {
 		r.done <- r.server.Serve(listener)
@@ -70,7 +74,7 @@ func (r *Remote) serveHTTP(w http.ResponseWriter, request *http.Request) {
 
 // SetUpstream changes the validator endpoint without a listener change.
 func (r *Remote) SetUpstream(upstream string) error {
-	handler, err := Connect(upstream)
+	handler, err := Connect(upstream, r.errorLog)
 	if err != nil {
 		return err
 	}

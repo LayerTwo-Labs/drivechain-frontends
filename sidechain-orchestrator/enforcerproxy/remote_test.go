@@ -63,12 +63,12 @@ func TestRemoteForwardsTLSAndTrailers(t *testing.T) {
 	upstream.StartTLS()
 	defer upstream.Close()
 
-	proxy, err := Connect(upstream.URL + "/enforcer")
+	proxy, err := Connect(upstream.URL+"/enforcer", nil)
 	require.NoError(t, err)
 	roots := x509.NewCertPool()
 	roots.AddCert(upstream.Certificate())
 	proxy.(*httputil.ReverseProxy).Transport.(*http2.Transport).TLSClientConfig = &tls.Config{RootCAs: roots}
-	remote, err := newRemote(proxy)
+	remote, err := newRemote(proxy, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, remote.Close()) })
 
@@ -93,7 +93,7 @@ func TestRemoteBlocksAdminMethods(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer upstream.Close()
-	remote, err := NewRemote(upstream.URL)
+	remote, err := NewRemote(upstream.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, remote.Close()) })
 
@@ -129,7 +129,7 @@ func TestRemoteCloseStopsSubscriptions(t *testing.T) {
 	}))
 	defer upstream.Close()
 	defer close(release)
-	remote, err := NewRemote(upstream.URL)
+	remote, err := NewRemote(upstream.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, remote.Close()) })
 	response, err := testClient(t).Post(remote.URL()+"/cusf.mainchain.v1.ValidatorService/SubscribeEvents", "application/grpc", nil)
@@ -177,7 +177,7 @@ func TestRemoteSetUpstreamKeepsOldStreamUntilClose(t *testing.T) {
 		require.NoError(t, err)
 	}))
 	defer second.Close()
-	remote, err := NewRemote(first.URL)
+	remote, err := NewRemote(first.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, remote.Close()) })
 	endpoint := remote.URL()
@@ -227,7 +227,7 @@ func TestRemoteSetUpstreamDuringRequests(t *testing.T) {
 	first, second := server("first"), server("second")
 	defer first.Close()
 	defer second.Close()
-	remote, err := NewRemote(first.URL)
+	remote, err := NewRemote(first.URL, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, remote.Close()) })
 	client := testClient(t)
@@ -268,7 +268,7 @@ func TestConnectDynamicChangesEndpoint(t *testing.T) {
 	defer second.Close()
 	url := first.URL
 	var resolveErr error
-	handler := ConnectDynamic(func() (string, error) { return url, resolveErr })
+	handler := ConnectDynamic(func() (string, error) { return url, resolveErr }, nil)
 	for _, test := range []struct {
 		url  string
 		body string
@@ -290,7 +290,7 @@ func TestConnectDynamicChangesEndpoint(t *testing.T) {
 
 func TestConnectRejectsInvalidURLs(t *testing.T) {
 	for _, url := range []string{"", "localhost:50051", "ftp://example.com", "https://user:secret@example.com", "https://example.com?token=x"} {
-		_, err := Connect(url)
+		_, err := Connect(url, nil)
 		require.Error(t, err)
 	}
 }
