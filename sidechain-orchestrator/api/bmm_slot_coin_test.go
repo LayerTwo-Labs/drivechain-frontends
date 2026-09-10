@@ -122,6 +122,38 @@ type fakeBidWallet struct {
 	addresses int
 	sends     []*wpb.SendTransactionRequest
 	sendTxid  string
+	// details answers GetTransactionDetails, and txs answers ListTransactions.
+	details map[string]*wpb.GetTransactionDetailsResponse
+	txs     []*wpb.TransactionEntry
+	// listed records every ListTransactions request the wallet took.
+	listed []*wpb.ListTransactionsRequest
+}
+
+func (w *fakeBidWallet) GetTransactionDetails(
+	_ context.Context, req *connect.Request[wpb.GetTransactionDetailsRequest],
+) (*connect.Response[wpb.GetTransactionDetailsResponse], error) {
+	details, ok := w.details[req.Msg.Txid]
+	if !ok {
+		return nil, fmt.Errorf("the wallet knows no transaction %s", req.Msg.Txid)
+	}
+	return connect.NewResponse(details), nil
+}
+
+func (w *fakeBidWallet) ListTransactions(
+	_ context.Context, req *connect.Request[wpb.ListTransactionsRequest],
+) (*connect.Response[wpb.ListTransactionsResponse], error) {
+	w.listed = append(w.listed, req.Msg)
+	// The handler defaults an unset count to 100, and the electrum backend cuts
+	// the list at it after sorting an unconfirmed row last.
+	count := int(req.Msg.Count)
+	if count <= 0 {
+		count = 100
+	}
+	txs := w.txs
+	if count < len(txs) {
+		txs = txs[:count]
+	}
+	return connect.NewResponse(&wpb.ListTransactionsResponse{Transactions: txs}), nil
 }
 
 func (w *fakeBidWallet) ResolveWalletID(walletID string) (string, error) {

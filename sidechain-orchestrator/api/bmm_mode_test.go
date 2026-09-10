@@ -3,11 +3,13 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"testing"
 
 	"connectrpc.com/connect"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
@@ -16,6 +18,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
+	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 )
 
 func newBMMModeHandler(t *testing.T) (*BMMHandler, *bmmstate.Store) {
@@ -37,48 +40,136 @@ func newBMMModeHandler(t *testing.T) (*BMMHandler, *bmmstate.Store) {
 	return h, store
 }
 
-func TestBMMLightModeRejectsCoreWork(t *testing.T) {
-	for _, operation := range []string{"start", "create", "list"} {
-		t.Run(operation, func(t *testing.T) {
-			h, _ := newBMMModeHandler(t)
-			require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, orchestrator.NodeModeLight))
-			require.Equal(t, orchestrator.NodeModeLight, h.orch.NodeMode())
-			var coreCalls int
-			h.SetCoreCaller(func(context.Context, string, string, string) (json.RawMessage, error) {
-				coreCalls++
-				return json.RawMessage(`{}`), nil
-			})
-			ctx, cancel := context.WithCancel(context.Background())
-			cancel()
-			var err error
-			switch operation {
-			case "start":
-				_, err = h.Start(ctx, connect.NewRequest(&bmmpb.StartRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER, MaxBidSats: 10000}))
-			case "create":
-				_, err = h.CreateBid(ctx, connect.NewRequest(&bmmpb.CreateBidRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER, BidSats: 1000}))
-			case "list":
-				_, err = h.ListBids(ctx, connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER}))
-			}
-			require.ErrorContains(t, err, "BMM is unavailable in light mode")
-			require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
-			require.Zero(t, coreCalls)
-			running, _, _ := h.engine.Running(pb.BinaryType_BINARY_TYPE_THUNDER)
-			require.False(t, running)
+// lightHandler answers in light mode, and fails the test on a Core call.
+func lightHandler(t *testing.T) *BMMHandler {
+	t.Helper()
+	h, _ := newBMMModeHandler(t)
+	require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, orchestrator.NodeModeLight))
+	require.Equal(t, orchestrator.NodeModeLight, h.orch.NodeMode())
+	h.SetCoreCaller(func(_ context.Context, method, _, _ string) (json.RawMessage, error) {
+		t.Errorf("light mode called core: %s", method)
+		return nil, fmt.Errorf("no core")
+	})
+	return h
+}
+
+// Every mempool read names the mempool as the reason, so a user reads what is
+// missing rather than which mode they picked.
+func TestBMMLightModeRefusesTheMempoolReads(t *testing.T) {
+	tests := []struct {
+		name   string
+		reason string
+		call   func(*BMMHandler) error
+	}{
+		{
+			name:   "cancel a stranded bid",
+			reason: "a cancel reads the mainchain mempool",
+			call: func(h *BMMHandler) error {
+				_, err := h.CancelBid(context.Background(),
+					connect.NewRequest(&bmmpb.CancelBidRequest{Txid: "stranded"}))
+				return err
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.call(lightHandler(t))
+			require.Error(t, err)
+			assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+			assert.Contains(t, err.Error(), tc.reason)
+			assert.Contains(t, err.Error(), "light mode runs no Bitcoin Core")
 		})
 	}
 }
 
-func TestBMMFullModeReadsCore(t *testing.T) {
-	h, _ := newBMMModeHandler(t)
-	require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, orchestrator.NodeModeFull))
-	var coreCalls int
-	h.SetCoreCaller(func(context.Context, string, string, string) (json.RawMessage, error) {
-		coreCalls++
-		return json.RawMessage(`{}`), nil
-	})
-	_, err := h.ListBids(context.Background(), connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER}))
+// The opening bid picks its coin without a mempool read. Only a confirmed coin
+// qualifies: the parent of an unconfirmed one names the slot that owns it, and
+// that parent is out of reach.
+func TestBMMLightModePicksAConfirmedCoin(t *testing.T) {
+	const unconfirmed = "1111111111111111111111111111111111111111111111111111111111111111"
+	const confirmed = "2222222222222222222222222222222222222222222222222222222222222222"
+
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{utxos: []*wpb.UnspentOutput{
+		{Txid: unconfirmed, Vout: 0, AmountSats: 3_000_000, Spendable: true},
+		{Txid: confirmed, Vout: 0, AmountSats: 500_000, Spendable: true, Confirmations: 6},
+	}}
+
+	coin, err := h.slotCoin(context.Background(), bidRequest(), 9, 10_000)
 	require.NoError(t, err)
-	require.Equal(t, 1, coreCalls)
+	assert.Equal(t, confirmed, coin.Txid)
+}
+
+// The coin split spends through the wallet alone, so light mode prepares its
+// coins like any other install.
+func TestBMMLightModePreparesCoins(t *testing.T) {
+	const coin = "3333333333333333333333333333333333333333333333333333333333333333"
+
+	h := lightHandler(t)
+	wallet := &fakeBidWallet{utxos: []*wpb.UnspentOutput{
+		{Txid: coin, Vout: 0, AmountSats: 3_000_000, Spendable: true, Confirmations: 6},
+	}}
+	h.wallet = wallet
+
+	resp, err := h.PrepareBMM(context.Background(), connect.NewRequest(&bmmpb.PrepareBMMRequest{
+		Targets: []*bmmpb.PrepareBMMTarget{{WalletId: "bidder", MaxBidSats: 30_000}},
+	}))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Wallets, 1)
+	assert.EqualValues(t, 1, resp.Msg.Wallets[0].UsableCoins)
+	assert.Empty(t, wallet.sends, "one coin funds one sidechain")
+}
+
+// A bid that stays unconfirmed leaves change no light-mode bid can spend, so
+// the wallet splits another coin rather than counts that change as prepared.
+func TestBMMLightModeSplitsPastAnUnconfirmedCoin(t *testing.T) {
+	const unconfirmed = "4444444444444444444444444444444444444444444444444444444444444444"
+	const confirmed = "5555555555555555555555555555555555555555555555555555555555555555"
+
+	h := lightHandler(t)
+	wallet := &fakeBidWallet{
+		sendTxid: "6666666666666666666666666666666666666666666666666666666666666666",
+		utxos: []*wpb.UnspentOutput{
+			{Txid: unconfirmed, Vout: 0, AmountSats: 3_000_000, Spendable: true},
+			{Txid: confirmed, Vout: 0, AmountSats: 3_000_000, Spendable: true, Confirmations: 6},
+		},
+	}
+	h.wallet = wallet
+
+	resp, err := h.PrepareBMM(context.Background(), connect.NewRequest(&bmmpb.PrepareBMMRequest{
+		Targets: []*bmmpb.PrepareBMMTarget{
+			{WalletId: "bidder", MaxBidSats: 30_000},
+			{WalletId: "bidder", MaxBidSats: 30_000},
+		},
+	}))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Wallets, 1)
+	assert.EqualValues(t, 1, resp.Msg.Wallets[0].UsableCoins, "the unconfirmed coin counts for nothing")
+	require.Len(t, wallet.sends, 1, "the wallet splits the confirmed coin")
+	assert.Equal(t, confirmed, wallet.sends[0].RequiredInputs[0].Txid)
+}
+
+// The enforcer holds every bid the mainchain mempool carries, so the list
+// costs no Core call in either mode. Light mode reads a remote enforcer, and
+// full mode reads the local one.
+func TestBMMListBidsReadsNoCore(t *testing.T) {
+	for _, mode := range []orchestrator.NodeMode{orchestrator.NodeModeFull, orchestrator.NodeModeLight} {
+		t.Run(string(mode), func(t *testing.T) {
+			h, _ := newBMMModeHandler(t)
+			require.NoError(t, orchestrator.WriteNodeMode(h.orch.BitwindowDir, mode))
+			h.SetCoreCaller(func(_ context.Context, method, _, _ string) (json.RawMessage, error) {
+				t.Errorf("the bid list called core: %s", method)
+				return nil, fmt.Errorf("no core")
+			})
+			// No enforcer answers this handler, so the call fails on that
+			// rather than on the node mode.
+			_, err := h.ListBids(context.Background(),
+				connect.NewRequest(&bmmpb.ListBidsRequest{Sidechain: pb.BinaryType_BINARY_TYPE_THUNDER}))
+			require.Error(t, err)
+			assert.NotEqual(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		})
+	}
 }
 
 func TestBMMLightModeKeepsStopAndPaidHistory(t *testing.T) {
@@ -101,5 +192,6 @@ func TestBMMLightModeKeepsStopAndPaidHistory(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, state.Running)
 	require.Len(t, state.History, 1)
-	require.Zero(t, state.NextBlockFeeRateSatVb)
+	// Light mode still opens a bid, so it still reports the rate one opens at.
+	require.Positive(t, state.NextBlockFeeRateSatVb)
 }

@@ -134,6 +134,7 @@ func validatorPath(path string) bool {
 		"/cusf.mainchain.v1.ValidatorService/GetChainTip",
 		"/cusf.mainchain.v1.ValidatorService/GetCoinbasePSBT",
 		"/cusf.mainchain.v1.ValidatorService/GetCtip",
+		"/cusf.mainchain.v1.ValidatorService/GetSeenBmmRequests",
 		"/cusf.mainchain.v1.ValidatorService/GetSidechainProposals",
 		"/cusf.mainchain.v1.ValidatorService/GetSidechains",
 		"/cusf.mainchain.v1.ValidatorService/GetTwoWayPegData",

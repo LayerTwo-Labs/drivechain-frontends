@@ -4,62 +4,76 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 )
 
-func TestBmmEnginePausesWhenBackendIsUnavailable(t *testing.T) {
-	for _, resume := range []bool{false, true} {
-		name := "active"
-		if resume {
-			name = "resumed"
-		}
-		t.Run(name, func(t *testing.T) {
-			engine, backend, tip, store := newEngine(t)
-			fee := newFakeFee()
-			engine.fee = fee
-			ctx := context.Background()
-			require.NoError(t, engine.Start(ctx, testSidechain, "wallet", 20000, false))
-			engine.tick(ctx)
-			backend.commitment = "critical"
-			backend.noInclusion = true
-			tip.set("block-2")
-			engine.tick(ctx)
-			history := mustHistory(t, engine)
-			require.Equal(t, ResultWon, history[len(history)-1].Result)
-			current := engine.Current(testSidechain)
-			targets, err := store.Targets()
-			require.NoError(t, err)
-			bids, connects, tipCalls, feeCalls := backend.bids, backend.connects, tip.calls, fee.calls
-			backend.disabled = true
-			if resume {
-				engine = NewBmmEngine(engine.log, backend, tip, fee, store)
-				engine.resumeTargets()
-				engine.resumeUnconnected()
-			}
-			tip.set("block-3")
-			for range 2 {
-				engine.tick(ctx)
-			}
-			require.Equal(t, bids, backend.bids)
-			require.Equal(t, connects, backend.connects)
-			require.Equal(t, tipCalls, tip.calls)
-			require.Zero(t, engine.NextBlockRate(ctx))
-			require.Equal(t, feeCalls, fee.calls)
-			require.Equal(t, history, mustHistory(t, engine))
-			require.Equal(t, current, engine.Current(testSidechain))
-			savedTargets, err := store.Targets()
-			require.NoError(t, err)
-			require.Equal(t, targets, savedTargets)
-			running, _, _ := engine.Running(testSidechain)
-			require.True(t, running)
+// A backend with no mempool read still opens a bid and connects the block it
+// wins.
+func TestBmmEngineBidsWithNoMempoolRead(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	backend.noMempool = true
+	backend.feesSats = 50_000
+	backend.connected = true
+	ctx := context.Background()
+	require.NoError(t, engine.Start(ctx, testSidechain, "wallet", 30_000, false))
 
-			backend.disabled = false
-			backend.noInclusion = false
-			backend.connected = true
-			engine.tick(ctx)
-			require.Greater(t, backend.bids, bids)
-			require.Greater(t, backend.connects, connects)
-			require.Equal(t, BidConnected, roundOn(t, engine, "block-1").OurBids[0].State)
-		})
-	}
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids, "the opening bid goes out")
+
+	backend.commitment = "critical"
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	require.Equal(t, 1, backend.connects, "the won block connects")
+	assert.Equal(t, BidConnected, roundOn(t, engine, "block-1").OurBids[0].State)
+}
+
+// The rival list comes from the enforcer, so a backend with no mempool read
+// raises like any other.
+func TestBmmEngineRaisesWithNoMempoolRead(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.noMempool = true
+	backend.feesSats = 50_000
+	ctx := context.Background()
+	require.NoError(t, engine.Start(ctx, testSidechain, "", 30_000, false))
+
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 12_000}}
+	engine.tick(ctx)
+
+	require.Equal(t, 2, backend.bids, "outbid, so we raise")
+	assert.Equal(t, int64(13_000), backend.lastBidSats)
+	assert.Equal(t, "txid-1", backend.lastReplace)
+}
+
+// The same backend with a mempool read raises against that rival.
+func TestBmmEngineRaisesWithAMempoolRead(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.feesSats = 50_000
+	ctx := context.Background()
+	require.NoError(t, engine.Start(ctx, testSidechain, "", 30_000, false))
+
+	engine.tick(ctx)
+	backend.others = []*bmmpb.Bid{{Txid: "rival", CriticalHash: "rival-h", BidSats: 12_000}}
+	engine.tick(ctx)
+
+	require.Equal(t, 2, backend.bids, "outbid, so we raise")
+	assert.Equal(t, int64(13_000), backend.lastBidSats)
+	assert.Equal(t, "txid-1", backend.lastReplace)
+}
+
+// The opening rate comes from the fee source, not from the mempool.
+func TestBmmEngineRatesWithNoMempoolRead(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.noMempool = true
+	fee := newFakeFee()
+	engine.fee = fee
+
+	assert.Positive(t, engine.NextBlockRate(context.Background()))
+	assert.Equal(t, 1, fee.calls)
 }
