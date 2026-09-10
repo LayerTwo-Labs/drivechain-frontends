@@ -1,7 +1,6 @@
 package orchestrator
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -58,7 +57,8 @@ func TestGatherWalletFilesStayInsideTheAppHome(t *testing.T) {
 // Without an override the real user home is still the base, so a normal
 // install keeps working.
 func TestAppHomeDefaultsToTheUserHome(t *testing.T) {
-	home, err := os.UserHomeDir()
-	require.NoError(t, err)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	require.True(t, strings.HasPrefix(config.BitWindowDirs.FlutterFrontendPath(), home))
 }

@@ -1,15 +1,13 @@
 package config
 
 import (
-	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 )
 
 func home() string {
-	h, _ := os.UserHomeDir()
-	return h
+	return UserHomeDir()
 }
 
 // Tests verify Go paths match Dart binaries.dart paths exactly.

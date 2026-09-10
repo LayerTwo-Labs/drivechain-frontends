@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"sync"
+	"testing"
 )
 
 var (
@@ -31,6 +32,26 @@ func HomeDir() string {
 	if dir != "" {
 		return dir
 	}
+	return UserHomeDir()
+}
+
+var (
+	startHome, _ = os.UserHomeDir()
+	testHome     = sync.OnceValue(func() string {
+		dir, err := os.MkdirTemp("", "orchestrator-test-home-")
+		if err != nil {
+			panic(err)
+		}
+		return dir
+	})
+)
+
+// UserHomeDir returns the user's home directory. A test binary gets a temp
+// directory in place of the home the process started with.
+func UserHomeDir() string {
 	home, _ := os.UserHomeDir()
+	if testing.Testing() && home == startHome {
+		return testHome()
+	}
 	return home
 }
