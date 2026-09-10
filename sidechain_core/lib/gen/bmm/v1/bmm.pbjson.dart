@@ -323,13 +323,15 @@ const ListBidsRequest$json = {
   '1': 'ListBidsRequest',
   '2': [
     {'1': 'sidechain', '3': 1, '4': 1, '5': 14, '6': '.orchestrator.v1.BinaryType', '10': 'sidechain'},
+    {'1': 'prev_main_hash', '3': 2, '4': 1, '5': 9, '10': 'prevMainHash'},
   ],
 };
 
 /// Descriptor for `ListBidsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listBidsRequestDescriptor = $convert.base64Decode(
     'Cg9MaXN0Qmlkc1JlcXVlc3QSOQoJc2lkZWNoYWluGAEgASgOMhsub3JjaGVzdHJhdG9yLnYxLk'
-    'JpbmFyeVR5cGVSCXNpZGVjaGFpbg==');
+    'JpbmFyeVR5cGVSCXNpZGVjaGFpbhIkCg5wcmV2X21haW5faGFzaBgCIAEoCVIMcHJldk1haW5I'
+    'YXNo');
 
 @$core.Deprecated('Use listBidsResponseDescriptor instead')
 const ListBidsResponse$json = {

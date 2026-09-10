@@ -1240,8 +1240,10 @@ func (x *ConnectBidResponse) GetMainBlockHash() string {
 }
 
 type ListBidsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Sidechain     v1.BinaryType          `protobuf:"varint,1,opt,name=sidechain,proto3,enum=orchestrator.v1.BinaryType" json:"sidechain,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Sidechain v1.BinaryType          `protobuf:"varint,1,opt,name=sidechain,proto3,enum=orchestrator.v1.BinaryType" json:"sidechain,omitempty"`
+	// Mainchain block the bids are built on. An empty hash reads the chain tip.
+	PrevMainHash  string `protobuf:"bytes,2,opt,name=prev_main_hash,json=prevMainHash,proto3" json:"prev_main_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1281,6 +1283,13 @@ func (x *ListBidsRequest) GetSidechain() v1.BinaryType {
 		return x.Sidechain
 	}
 	return v1.BinaryType(0)
+}
+
+func (x *ListBidsRequest) GetPrevMainHash() string {
+	if x != nil {
+		return x.PrevMainHash
+	}
+	return ""
 }
 
 type ListBidsResponse struct {
@@ -1640,9 +1649,10 @@ const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\x0fmain_block_hash\x18\x04 \x01(\tR\rmainBlockHash\"Z\n" +
 	"\x12ConnectBidResponse\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12&\n" +
-	"\x0fmain_block_hash\x18\x02 \x01(\tR\rmainBlockHash\"L\n" +
+	"\x0fmain_block_hash\x18\x02 \x01(\tR\rmainBlockHash\"r\n" +
 	"\x0fListBidsRequest\x129\n" +
-	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\"3\n" +
+	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12$\n" +
+	"\x0eprev_main_hash\x18\x02 \x01(\tR\fprevMainHash\"3\n" +
 	"\x10ListBidsResponse\x12\x1f\n" +
 	"\x04bids\x18\x01 \x03(\v2\v.bmm.v1.BidR\x04bids\"G\n" +
 	"\x11PrepareBMMRequest\x122\n" +

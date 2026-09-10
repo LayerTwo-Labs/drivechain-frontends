@@ -226,6 +226,8 @@ message ConnectBidResponse {
 
 message ListBidsRequest {
   orchestrator.v1.BinaryType sidechain = 1;
+  // Mainchain block the bids are built on. An empty hash reads the chain tip.
+  string prev_main_hash = 2;
 }
 
 message ListBidsResponse {

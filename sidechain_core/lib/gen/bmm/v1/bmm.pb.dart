@@ -1589,10 +1589,14 @@ class ConnectBidResponse extends $pb.GeneratedMessage {
 class ListBidsRequest extends $pb.GeneratedMessage {
   factory ListBidsRequest({
     $3.BinaryType? sidechain,
+    $core.String? prevMainHash,
   }) {
     final $result = create();
     if (sidechain != null) {
       $result.sidechain = sidechain;
+    }
+    if (prevMainHash != null) {
+      $result.prevMainHash = prevMainHash;
     }
     return $result;
   }
@@ -1602,6 +1606,7 @@ class ListBidsRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListBidsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
     ..e<$3.BinaryType>(1, _omitFieldNames ? '' : 'sidechain', $pb.PbFieldType.OE, defaultOrMaker: $3.BinaryType.BINARY_TYPE_UNSPECIFIED, valueOf: $3.BinaryType.valueOf, enumValues: $3.BinaryType.values)
+    ..aOS(2, _omitFieldNames ? '' : 'prevMainHash')
     ..hasRequiredFields = false
   ;
 
@@ -1634,6 +1639,16 @@ class ListBidsRequest extends $pb.GeneratedMessage {
   $core.bool hasSidechain() => $_has(0);
   @$pb.TagNumber(1)
   void clearSidechain() => clearField(1);
+
+  /// Mainchain block the bids are built on. An empty hash reads the chain tip.
+  @$pb.TagNumber(2)
+  $core.String get prevMainHash => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set prevMainHash($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPrevMainHash() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPrevMainHash() => clearField(2);
 }
 
 class ListBidsResponse extends $pb.GeneratedMessage {
