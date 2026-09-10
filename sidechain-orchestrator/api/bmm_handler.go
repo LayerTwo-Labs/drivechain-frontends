@@ -1075,33 +1075,42 @@ func (h *BMMHandler) sidechainConfig(binary pb.BinaryType) (orchestrator.BinaryC
 //
 // A transaction the mempool no longer holds needs no floor at all.
 func (h *BMMHandler) replacementFloorSats(ctx context.Context, roots []string) (int64, error) {
-	total, err := h.evictedFeeSats(ctx, roots)
+	total, err := h.evictedFeeSats(ctx, h.evictedByReplacement(ctx, roots))
 	if err != nil || total == 0 {
 		return 0, err
 	}
 	return total + replacementBumpSats, nil
 }
 
-// evictedFeeSats totals the modified fees of every mempool transaction a
-// replacement of roots evicts.
-func (h *BMMHandler) evictedFeeSats(ctx context.Context, roots []string) (int64, error) {
+// evictedByReplacement names every transaction the replacement removes: each
+// root of the chain and everything the mempool holds over it.
+func (h *BMMHandler) evictedByReplacement(ctx context.Context, roots []string) []string {
 	// One chain can carry two roots, and a bid over both of them belongs to
 	// each root's descendants. So each transaction counts one time, by txid.
-	counted := make(map[string]bool)
-	var total int64
+	seen := make(map[string]bool)
+	var all []string
 	for _, root := range roots {
 		for _, txid := range append([]string{root}, h.mempoolDescendants(ctx, root)...) {
-			if counted[txid] {
+			if seen[txid] {
 				continue
 			}
-			counted[txid] = true
-			fee, ok, err := h.modifiedFeeSats(ctx, txid)
-			if err != nil {
-				return 0, err
-			}
-			if ok {
-				total += fee
-			}
+			seen[txid] = true
+			all = append(all, txid)
+		}
+	}
+	return all
+}
+
+// evictedFeeSats totals the modified fees of the evicted transactions.
+func (h *BMMHandler) evictedFeeSats(ctx context.Context, evicted []string) (int64, error) {
+	var total int64
+	for _, txid := range evicted {
+		fee, ok, err := h.modifiedFeeSats(ctx, txid)
+		if err != nil {
+			return 0, err
+		}
+		if ok {
+			total += fee
 		}
 	}
 	// A node that deprioritised the chain reports a fee far below zero, and a

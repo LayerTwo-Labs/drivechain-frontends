@@ -56,7 +56,7 @@ func (h *BMMHandler) CancelBid(
 		return nil, err
 	}
 
-	evictedSats, err := h.evictedFeeSats(ctx, roots)
+	evictedSats, err := h.evictedFeeSats(ctx, evicted)
 	if err != nil {
 		return nil, err
 	}
@@ -181,23 +181,6 @@ func incrementalRelayFeeSatPerKvB(ctx context.Context, call coreReader) (int64, 
 		return 0, fmt.Errorf("the node reports no incremental relay fee")
 	}
 	return int64(math.Round(*info.IncrementalFee * 1e8)), nil
-}
-
-// evictedByReplacement names every transaction the replacement removes: each
-// root of the chain and everything the mempool holds over it.
-func (h *BMMHandler) evictedByReplacement(ctx context.Context, roots []string) []string {
-	seen := make(map[string]bool)
-	var all []string
-	for _, root := range roots {
-		for _, txid := range append([]string{root}, h.mempoolDescendants(ctx, root)...) {
-			if seen[txid] {
-				continue
-			}
-			seen[txid] = true
-			all = append(all, txid)
-		}
-	}
-	return all
 }
 
 // requireNoLiveBid refuses a cancel that would take this round's bid with it.
