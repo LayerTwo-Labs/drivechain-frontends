@@ -34,7 +34,7 @@ func makeSidechainConfig(baseURL string) BinaryConfig {
 	}
 }
 
-func TestDownload_SidechainVariant_HitsAltURL(t *testing.T) {
+func TestDownload_SidechainVariant_FetchesAppAndBackend(t *testing.T) {
 	binName := "thunder"
 	if runtime.GOOS == "windows" {
 		binName += ".exe"
@@ -42,9 +42,9 @@ func TestDownload_SidechainVariant_HitsAltURL(t *testing.T) {
 	prodArchive := makeZipBytes(t, map[string][]byte{binName: []byte("prod-bin")})
 	testArchive := makeZipBytes(t, map[string][]byte{binName: []byte("test-bin")})
 
-	var requested string
+	var requested []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requested = r.URL.Path
+		requested = append(requested, r.URL.Path)
 		switch r.URL.Path {
 		case "/thunder-test.zip":
 			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(testArchive)))
@@ -74,19 +74,17 @@ func TestDownload_SidechainVariant_HitsAltURL(t *testing.T) {
 	require.NoError(t, err)
 	last := drainProgress(t, ch)
 	assert.True(t, last.Done)
-	assert.Equal(t, "/thunder-test.zip", requested)
+	assert.Equal(t, TestSidechainBinaryPath(dir, "thunder"), last.Message)
+	assert.Contains(t, requested, "/thunder-test.zip")
+	assert.Contains(t, requested, "/thunder-prod.zip")
 
-	// Test build lands under bin/test/<binary>/<binary> — Flutter app
-	// archives need a per-binary namespace for their lib/data trees, so
-	// every test sidechain extracts into its own subdirectory and the
-	// resolver finds the binary inside.
-	expected := TestSidechainBinaryPath(dir, "thunder")
-	got, err := os.ReadFile(expected)
+	app, err := os.ReadFile(TestSidechainBinaryPath(dir, "thunder"))
 	require.NoError(t, err)
-	assert.Equal(t, "test-bin", string(got))
+	assert.Equal(t, "test-bin", string(app))
 
-	_, err = os.Stat(filepath.Join(BinDir(dir), binName))
-	assert.True(t, os.IsNotExist(err), "must not write thunder to BinDir root when test variant is active")
+	backend, err := os.ReadFile(filepath.Join(BinDir(dir), binName))
+	require.NoError(t, err)
+	assert.Equal(t, "prod-bin", string(backend))
 }
 
 func TestDownload_SidechainVariant_FallsBackToProd(t *testing.T) {
@@ -225,7 +223,10 @@ func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
 	assert.True(t, last.Done)
 
 	assert.Contains(t, requested, "/test/thunder.zip", "must hit alt URL when toggle is on")
-	assert.NotContains(t, requested, "/prod/thunder.zip")
+	assert.Contains(t, requested, "/prod/thunder.zip", "must fetch the backend too")
+	prodGot, err := os.ReadFile(BinaryPath(dataDir, "thunder"))
+	require.NoError(t, err)
+	assert.Equal(t, "prod-bin", string(prodGot))
 
 	// Test build lives under bin/test/<binary>/<binary>.
 	got, err := os.ReadFile(TestSidechainBinaryPath(dataDir, "thunder"))
@@ -246,7 +247,7 @@ func TestIntegration_TestSidechains_FreshSwitchHitsAltURL(t *testing.T) {
 	drainProgress(t, progress)
 
 	assert.Contains(t, requested, "/prod/thunder.zip", "must hit prod URL when toggle is off")
-	prodGot, err := os.ReadFile(BinaryPath(dataDir, "thunder"))
+	prodGot, err = os.ReadFile(BinaryPath(dataDir, "thunder"))
 	require.NoError(t, err)
 	assert.Equal(t, "prod-bin", string(prodGot))
 }

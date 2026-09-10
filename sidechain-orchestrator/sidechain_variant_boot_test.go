@@ -97,14 +97,7 @@ func TestSidechainVariant_DownloadAndBoot(t *testing.T) {
 	require.NotZero(t, info.Size(), "%s is empty", binPath)
 	require.NoError(t, os.Chmod(binPath, 0o755), "chmod +x test variant")
 
-	// And the prod path stays empty — flipping the toggle must not double-write.
-	prodPath := filepath.Join(BinDir(dataDir), "thunder")
-	if runtime.GOOS == "windows" {
-		prodPath += ".exe"
-	}
-	if _, err := os.Stat(prodPath); err == nil {
-		t.Fatalf("prod binary unexpectedly present at %s when only test variant was downloaded", prodPath)
-	}
+	require.FileExists(t, BinaryPath(dataDir, "thunder"), "the backend lands next to the test build")
 
 	// Step 4: ProcessManager.Start with the same SidechainVariant resolver
 	// boots the test variant. We share the dataDir with the download

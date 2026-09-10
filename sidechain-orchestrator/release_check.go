@@ -78,7 +78,7 @@ func (o *Orchestrator) StartReleaseChecks(ctx context.Context) {
 // backend are two downloads of one binary, and the other one's timestamp says
 // nothing about this file.
 func (r *ReleaseChecker) Check(config BinaryConfig, network, binPath string) (ReleaseCheck, bool) {
-	target, ok := lo.Find(r.targets(config, network), func(t DownloadTarget) bool {
+	target, ok := lo.Find(r.downloads.Targets(config, network, DownloadOptions{}), func(t DownloadTarget) bool {
 		return t.BinPath == binPath
 	})
 	if !ok {
@@ -92,18 +92,6 @@ func (r *ReleaseChecker) Check(config BinaryConfig, network, binPath string) (Re
 		return ReleaseCheck{}, false
 	}
 	return ReleaseCheck{Remote: remote, Local: localModTime(binPath)}, true
-}
-
-// targets lists every download that writes a binary for this config. A layer-2
-// binary with the test build enabled has two: the test build the launcher picks
-// and the prod backend a sidechain app runs.
-func (r *ReleaseChecker) targets(config BinaryConfig, network string) []DownloadTarget {
-	targets := []DownloadTarget{r.downloads.ResolveTarget(config, network, DownloadOptions{})}
-	backend := r.downloads.ResolveTarget(config, network, DownloadOptions{ForceBackend: true})
-	if backend.InFlightKey != targets[0].InFlightKey {
-		targets = append(targets, backend)
-	}
-	return targets
 }
 
 // Run probes every binary at once, then again on each tick, until ctx ends.
@@ -139,7 +127,7 @@ func (r *ReleaseChecker) Run(ctx context.Context, configs func() []BinaryConfig,
 
 // Refresh probes every download of one binary and stores the published times.
 func (r *ReleaseChecker) Refresh(ctx context.Context, config BinaryConfig, network string) {
-	for _, target := range r.targets(config, network) {
+	for _, target := range r.downloads.Targets(config, network, DownloadOptions{}) {
 		remote, err := r.remoteTime(ctx, target)
 		if err != nil {
 			// A probe that fails leaves the binary with no remote time, which
