@@ -961,6 +961,12 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	remaining := lo.Filter(pool, func(u electrumUTXO, _ int) bool {
 		return !required[fmt.Sprintf("%s:%d", u.txid, u.vout)]
 	})
+	// A coin a live BMM bid holds is the largest coin the wallet lists, so
+	// largest-first selection takes it first and the send dies with the bid.
+	remaining, frozenErr := p.dropFrozenCoins(ctx, remaining)
+	if frozenErr != nil {
+		return nil, nil, nil, frozenErr
+	}
 	sort.Slice(remaining, func(i, j int) bool { return remaining[i].amountSats > remaining[j].amountSats })
 
 	feeRate := float64(req.FeeRateSatPerVB)
@@ -1646,6 +1652,10 @@ func (p *ElectrumBackend) CreateCpfp(ctx context.Context, walletID string, req C
 	if parentUTXO.confirmed {
 		return "", connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("outpoint %s:%d is already confirmed; CPFP only applies to unconfirmed parents", req.ParentTxID, req.ParentVout))
+	}
+
+	if err := p.svc.checkCpfpParent(ctx, req); err != nil {
+		return "", err
 	}
 
 	parentTx, err := p.client.Tx(ctx, req.ParentTxID)

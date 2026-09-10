@@ -27,6 +27,14 @@ type fakeSlotMempool struct {
 	plain []string
 	// unreadable names the mempool transactions the node refuses to read.
 	unreadable []string
+	// spends names the mempool transaction that spends each outpoint, by
+	// txid:vout.
+	spends map[string]string
+	// ancestors names the unconfirmed ancestors of each mempool transaction.
+	ancestors map[string][]string
+	// spenderQueries counts the gettxspendingprevout calls, and the outpoints
+	// each one carried.
+	spenderQueries []int
 }
 
 func (m *fakeSlotMempool) call(_ context.Context, method, paramsJSON, _ string) (json.RawMessage, error) {
@@ -46,6 +54,32 @@ func (m *fakeSlotMempool) call(_ context.Context, method, paramsJSON, _ string) 
 			entries[txid] = map[string]any{"fees": map[string]any{"base": 0.0001}}
 		}
 		return json.Marshal(entries)
+
+	case "getmempoolancestors":
+		var params []string
+		if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+			return nil, err
+		}
+		return json.Marshal(m.ancestors[params[0]])
+
+	case "gettxspendingprevout":
+		var params [][]struct {
+			Txid string `json:"txid"`
+			Vout int    `json:"vout"`
+		}
+		if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+			return nil, err
+		}
+		m.spenderQueries = append(m.spenderQueries, len(params[0]))
+		out := []map[string]any{}
+		for _, o := range params[0] {
+			entry := map[string]any{"txid": o.Txid, "vout": o.Vout}
+			if spender, ok := m.spends[fmt.Sprintf("%s:%d", o.Txid, o.Vout)]; ok {
+				entry["spendingtxid"] = spender
+			}
+			out = append(out, entry)
+		}
+		return json.Marshal(out)
 
 	case "getrawtransaction":
 		var params []any
@@ -208,19 +242,19 @@ func TestSlotCoinGivesTwoSlotsTwoCoins(t *testing.T) {
 	ctx := context.Background()
 	coinOne, err := h.slotCoin(ctx, bidRequest(), 1, 10_000)
 	require.NoError(t, err)
-	require.Equal(t, first, coinOne.Txid)
+	require.Equal(t, second, coinOne.Txid, "the smaller slot-sized coin comes first")
 
 	// Slot 1 spends its coin, so the wallet now holds that bid's change.
 	mempool.slots = map[string]int{bidOfFirstSlot: 1}
 	wallet.utxos = []*wpb.UnspentOutput{
-		{Txid: bidOfFirstSlot, Vout: 1, AmountSats: 2_990_000, Spendable: true},
-		{Txid: second, Vout: 0, AmountSats: 2_000_000, Spendable: true, Confirmations: 6},
+		{Txid: bidOfFirstSlot, Vout: 1, AmountSats: 1_990_000, Spendable: true},
+		{Txid: first, Vout: 0, AmountSats: 3_000_000, Spendable: true, Confirmations: 6},
 	}
 
 	coinTwo, err := h.slotCoin(ctx, bidRequest(), 2, 10_000)
 	require.NoError(t, err)
 
-	assert.Equal(t, second, coinTwo.Txid)
+	assert.Equal(t, first, coinTwo.Txid)
 	assert.NotEqual(t, coinOne.Txid, coinTwo.Txid, "the two slots spend separate coins")
 	assert.Empty(t, wallet.sends, "two free coins need no split")
 }
@@ -601,4 +635,103 @@ func TestPrepareBMMDropsTheHoldOnceTheSplitPaid(t *testing.T) {
 
 	assert.Equal(t, "split-txid", prepared(t, resp).SplitTxid, "the wallet pays the coins it still needs")
 	assert.Len(t, wallet.sends, 2)
+}
+
+// An electrum scan lists a coin a live bid already spends until it catches up.
+// An opening bid over that coin conflicts with the bid, and the node refuses it
+// at the same fee.
+func TestSlotCoinSkipsACoinALiveBidSpends(t *testing.T) {
+	const taken = "6666666666666666666666666666666666666666666666666666666666666666"
+	const free = "7777777777777777777777777777777777777777777777777777777777777777"
+	const bid = "8888888888888888888888888888888888888888888888888888888888888888"
+
+	wallet := &fakeBidWallet{utxos: []*wpb.UnspentOutput{
+		{Txid: taken, Vout: 0, AmountSats: 3_000_000, Spendable: true, Confirmations: 6},
+		{Txid: free, Vout: 0, AmountSats: 1_000_000, Spendable: true, Confirmations: 6},
+	}}
+	h := slotCoinHandler(t, &fakeSlotMempool{
+		slots:  map[string]int{bid: 9},
+		spends: map[string]string{taken + ":0": bid},
+	}, wallet)
+
+	coin, err := h.slotCoin(context.Background(), bidRequest(), 99, 10_000)
+	require.NoError(t, err)
+
+	assert.Equal(t, free, coin.Txid, "the larger coin already funds a live bid")
+}
+
+// The largest coin of the wallet pays every other send. A bid takes a
+// slot-sized coin instead, so a replacement can never take that balance away.
+func TestSlotCoinTakesTheSmallestSlotSizedCoin(t *testing.T) {
+	const slotSized = "9999999999999999999999999999999999999999999999999999999999999999"
+	const bulk = "aaaa999999999999999999999999999999999999999999999999999999999999"
+
+	wallet := &fakeBidWallet{utxos: []*wpb.UnspentOutput{
+		{Txid: slotSized, Vout: 0, AmountSats: 3_000_000, Spendable: true, Confirmations: 6},
+		{Txid: bulk, Vout: 0, AmountSats: 480_000_000, Spendable: true, Confirmations: 6},
+	}}
+	h := slotCoinHandler(t, &fakeSlotMempool{}, wallet)
+
+	coin, err := h.slotCoin(context.Background(), bidRequest(), 9, 10_000)
+	require.NoError(t, err)
+
+	assert.Equal(t, slotSized, coin.Txid)
+}
+
+// A deposit over a live bid carries no bid of its own. A replacement of the
+// bid below it takes the deposit and its change away as well, so no other slot
+// may bid from that change.
+func TestSlotCoinSkipsTheChangeOfABidDescendant(t *testing.T) {
+	const bid = "bbbb111111111111111111111111111111111111111111111111111111111111"
+	const deposit = "cccc222222222222222222222222222222222222222222222222222222222222"
+	const free = "dddd333333333333333333333333333333333333333333333333333333333333"
+
+	wallet := &fakeBidWallet{utxos: []*wpb.UnspentOutput{
+		{Txid: deposit, Vout: 2, AmountSats: 400_000_000, Spendable: true},
+		{Txid: free, Vout: 0, AmountSats: 3_000_000, Spendable: true, Confirmations: 6},
+	}}
+	h := slotCoinHandler(t, &fakeSlotMempool{
+		slots:     map[string]int{bid: 9},
+		plain:     []string{deposit},
+		ancestors: map[string][]string{deposit: {bid}},
+	}, wallet)
+
+	coin, err := h.slotCoin(context.Background(), bidRequest(), 2, 10_000)
+	require.NoError(t, err)
+
+	assert.Equal(t, free, coin.Txid, "the deposit change belongs to slot 9")
+}
+
+func TestSlotCoinSkipsItsOwnBidDescendant(t *testing.T) {
+	wallet := &fakeBidWallet{utxos: []*wpb.UnspentOutput{
+		{Txid: plainTx, Vout: 0, AmountSats: 4_000_000, Spendable: true},
+		{Txid: oldBlock, Vout: 0, AmountSats: 5_000_000, Spendable: true, Confirmations: 6},
+	}}
+	h := slotCoinHandler(t, &fakeSlotMempool{
+		slots:     map[string]int{liveBid: 9},
+		plain:     []string{plainTx},
+		ancestors: map[string][]string{plainTx: {liveBid}},
+	}, wallet)
+
+	coin, err := h.slotCoin(context.Background(), bidRequest(), 9, 10_000)
+	require.NoError(t, err)
+	assert.Equal(t, oldBlock, coin.Txid)
+}
+
+func TestPrepareBMMSkipsABidDescendant(t *testing.T) {
+	wallet := &fakeBidWallet{utxos: []*wpb.UnspentOutput{
+		{Txid: plainTx, Vout: 0, AmountSats: 4_000_000, Spendable: true},
+		{Txid: oldBlock, Vout: 0, AmountSats: 10_000_000, Spendable: true, Confirmations: 6},
+	}, sendTxid: "split"}
+	h := slotCoinHandler(t, &fakeSlotMempool{
+		slots:     map[string]int{liveBid: 9},
+		plain:     []string{plainTx},
+		ancestors: map[string][]string{plainTx: {liveBid}},
+	}, wallet)
+
+	_, err := h.PrepareBMM(context.Background(), prepareRequest(2))
+	require.NoError(t, err)
+	require.Len(t, wallet.sends, 1)
+	require.Len(t, wallet.sends[0].RequiredInputs, 1)
+	assert.Equal(t, oldBlock, wallet.sends[0].RequiredInputs[0].Txid)
 }

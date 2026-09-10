@@ -27,6 +27,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 // bmmAncestorWalk bounds the walk back from the tip when looking for the block
@@ -629,12 +630,17 @@ func (h *BMMHandler) slotCoin(
 		return nil, err
 	}
 
+	// A slot-sized coin comes first, smallest of them: it covers the bid and
+	// every raise on it, and it keeps the larger coins of the wallet out of the
+	// bid lineage, where a replacement takes away whatever hangs below.
+	want := bidSats + bmmSlotCoinFeeSats
+	slotSats := slotCoinSats(req.MaxBidSats)
 	var coin *wpb.UnspentOutput
 	for _, u := range coins.own {
-		if u.AmountSats < bidSats+bmmSlotCoinFeeSats {
+		if u.AmountSats < want {
 			continue
 		}
-		if coin == nil || u.AmountSats > coin.AmountSats {
+		if coin == nil || betterSlotCoin(u, coin, slotSats) {
 			coin = u
 		}
 	}
@@ -645,6 +651,20 @@ func (h *BMMHandler) slotCoin(
 			"the wallet holds no coin of its own for slot %d", slot))
 	}
 	return coin, nil
+}
+
+// betterSlotCoin says whether a beats b as the coin one slot bids from. A coin
+// that covers a full round of raises comes first, and the smallest of those
+// wins. A wallet with none of them falls back to its largest coin.
+func betterSlotCoin(a, b *wpb.UnspentOutput, slotSats int64) bool {
+	aFits, bFits := a.AmountSats >= slotSats, b.AmountSats >= slotSats
+	if aFits != bFits {
+		return aFits
+	}
+	if aFits {
+		return a.AmountSats < b.AmountSats
+	}
+	return a.AmountSats > b.AmountSats
 }
 
 // PrepareBMM gives every bidding sidechain a coin of its own, and splits one
@@ -801,10 +821,23 @@ func (h *BMMHandler) readWalletCoins(
 	if err != nil {
 		return nil, err
 	}
+	// An electrum scan lists a coin a live bid already spends until the scan
+	// catches up. An opening bid over one of those conflicts with that bid, and
+	// the node refuses it at the same fee.
+	bids := newBidCache(h)
+	spent, err := h.bidSpentCoins(ctx, lo.Map(unspent.Msg.Utxos, func(u *wpb.UnspentOutput, _ int) wallet.Outpoint {
+		return wallet.Outpoint{TxID: u.Txid, Vout: int(u.Vout), Confirmed: u.Confirmations > 0}
+	}), bids)
+	if err != nil {
+		return nil, err
+	}
 
 	out := &walletCoins{held: held}
 	for _, u := range unspent.Msg.Utxos {
 		if !u.Spendable {
+			continue
+		}
+		if spent[(wallet.Outpoint{TxID: u.Txid, Vout: int(u.Vout)}).Key()] {
 			continue
 		}
 		if u.Confirmations > 0 {
@@ -813,10 +846,21 @@ func (h *BMMHandler) readWalletCoins(
 			out.free = append(out.free, u)
 			continue
 		}
-		request, err := h.m8Request(ctx, u.Txid)
+		// A deposit over a bid carries no bid of its own, and a replacement of
+		// the bid below it takes the deposit and its change away as well.
+		request, err := bids.get(ctx, u.Txid)
 		if err != nil {
 			zerolog.Ctx(ctx).Debug().Err(err).Str("txid", u.Txid).Msg("read the parent of a wallet coin")
 			continue
+		}
+		if request == nil {
+			ancestor, err := bids.lineageBid(ctx, u.Txid)
+			if err != nil {
+				return nil, err
+			}
+			if ancestor != nil {
+				continue
+			}
 		}
 		out.all = append(out.all, u)
 		if request == nil {

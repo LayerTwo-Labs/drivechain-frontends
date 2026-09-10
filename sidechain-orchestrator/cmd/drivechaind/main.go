@@ -512,6 +512,7 @@ func run(cctx *cli.Context) error {
 	bmmStore := bmmstate.NewStore(walletSvc.NetworkDir(), 0)
 	bmmEngine := engines.NewBmmEngine(log, bmmHandler, orch, orch, bmmStore)
 	bmmHandler.SetEngine(bmmEngine)
+	walletSvc.SetFrozenCoins(bmmHandler.FrozenCoins)
 	walletEngine.OnNetworkReset(func(dir string) { bmmStore.Rebind(dir) })
 	go func() {
 		if err := bmmEngine.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
