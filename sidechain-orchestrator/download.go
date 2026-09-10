@@ -62,6 +62,7 @@ type DownloadManager struct {
 	httpClient     *http.Client
 	log            zerolog.Logger
 	inFlight       sync.Map
+	claimMu        sync.Mutex
 	// state holds the latest DownloadState for each in-flight binary, keyed
 	// by the binary's logical name (e.g. "bitcoind", "thunder"). Updated on
 	// every progress event from downloadFile, deleted on Done/Error so a
@@ -161,13 +162,7 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 
 	// A second caller waits for the running download instead of failing.
 	// SwapNetwork drops the core binary and restarts L1, so two paths ask at once.
-	claims := lo.Map(targets, func(target DownloadTarget, _ int) inFlightClaim {
-		done := make(chan struct{})
-		if existing, loaded := d.inFlight.LoadOrStore(target.InFlightKey, done); loaded {
-			return inFlightClaim{target: target, done: existing.(chan struct{})}
-		}
-		return inFlightClaim{target: target, done: done, owned: true}
-	})
+	owned, busy := d.claim(targets)
 
 	ch := make(chan DownloadProgress, 100)
 
@@ -180,18 +175,6 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	d.state.Store(stateKey, DownloadState{Running: true})
 
 	go func() {
-		release := func(i int) {
-			close(claims[i].done)
-			d.inFlight.Delete(claims[i].target.InFlightKey)
-			claims[i].owned = false
-		}
-		defer func() {
-			for i := range claims {
-				if claims[i].owned {
-					release(i)
-				}
-			}
-		}()
 		defer d.state.Delete(stateKey)
 		defer close(ch)
 
@@ -234,25 +217,37 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 			}
 		}
 
-		for i, claim := range claims {
-			if claim.owned {
-				if err := d.fetch(ctx, config, network, claim.target, send); err != nil {
-					send(DownloadProgress{Error: err})
+		for len(busy) > 0 {
+			for _, claim := range busy {
+				select {
+				case <-claim.done:
+				case <-ctx.Done():
+					send(DownloadProgress{Error: ctx.Err()})
 					return
 				}
-				release(i)
-				continue
+				if claim.err != nil {
+					send(DownloadProgress{Error: claim.err})
+					return
+				}
 			}
-			select {
-			case <-claim.done:
-			case <-ctx.Done():
-				send(DownloadProgress{Error: ctx.Err()})
-				return
+			waitedOn := func(target DownloadTarget, _ int) bool {
+				return lo.ContainsBy(busy, func(claim *inFlightClaim) bool {
+					return claim.target.InFlightKey == target.InFlightKey
+				})
 			}
-			if _, err := os.Stat(claim.target.BinPath); err != nil {
-				send(DownloadProgress{Error: fmt.Errorf("%s download finished without a binary", config.Name)})
-				return
+			for _, target := range lo.Filter(targets, waitedOn) {
+				if _, err := os.Stat(target.BinPath); err != nil {
+					send(DownloadProgress{Error: fmt.Errorf("%s download finished without a binary", config.Name)})
+					return
+				}
 			}
+			targets = lo.Reject(targets, waitedOn)
+			owned, busy = d.claim(targets)
+		}
+
+		if err := d.install(ctx, config, network, owned, send); err != nil {
+			send(DownloadProgress{Error: err})
+			return
 		}
 
 		send(DownloadProgress{Message: binPath, Done: true})
@@ -261,8 +256,50 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	return ch, nil
 }
 
-// fetch downloads one target's archive, records its hash and extracts it.
-func (d *DownloadManager) fetch(ctx context.Context, config BinaryConfig, network string, target DownloadTarget, send func(DownloadProgress) bool) error {
+// install downloads every claimed archive before it extracts any, so a failed
+// download leaves every installed part in place.
+func (d *DownloadManager) install(ctx context.Context, config BinaryConfig, network string, claims []*inFlightClaim, send func(DownloadProgress) bool) (err error) {
+	if len(claims) == 0 {
+		return nil
+	}
+	defer func() {
+		for _, claim := range claims {
+			claim.err = err
+			d.inFlight.Delete(claim.target.InFlightKey)
+			close(claim.done)
+		}
+	}()
+
+	tmpDir, err := os.MkdirTemp("", "orchestrator-download-*")
+	if err != nil {
+		return fmt.Errorf("create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
+
+	archives := make([]string, len(claims))
+	for i, claim := range claims {
+		if archives[i], err = d.fetchArchive(ctx, config, claim.target, tmpDir, send); err != nil {
+			return err
+		}
+	}
+
+	if !send(DownloadProgress{Message: "extracting..."}) {
+		return ctx.Err()
+	}
+	for i, claim := range claims {
+		hasCLI, extractErr := d.extractBinary(archives[i], config, claim.target, d.dataDir, network)
+		if extractErr != nil {
+			d.log.Error().Err(extractErr).Str("binary", config.Name).Msg("extract failed")
+			return fmt.Errorf("extract: %w", extractErr)
+		}
+		d.log.Info().Bool("has_cli", hasCLI).Str("binary", claim.target.ExtractName).Msg("extraction complete")
+	}
+	return nil
+}
+
+// fetchArchive downloads one target's archive into its own directory under
+// tmpDir and records its hash.
+func (d *DownloadManager) fetchArchive(ctx context.Context, config BinaryConfig, target DownloadTarget, tmpDir string, send func(DownloadProgress) bool) (string, error) {
 	// Test sidechain alt URLs are always served directly from
 	// releases.drivechain.info; the prod-side DownloadSourceGitHub flag
 	// (used by zside/thunder-orchard for the production builds) doesn't
@@ -274,7 +311,7 @@ func (d *DownloadManager) fetch(ctx context.Context, config BinaryConfig, networ
 	case DownloadSourceGitHub:
 		url, err := d.resolveGitHubURL(ctx, target.BaseURL, target.FileName)
 		if err != nil {
-			return fmt.Errorf("resolve GitHub URL: %w", err)
+			return "", fmt.Errorf("resolve GitHub URL: %w", err)
 		}
 		downloadURL = url
 	case DownloadSourceDirect:
@@ -283,21 +320,19 @@ func (d *DownloadManager) fetch(ctx context.Context, config BinaryConfig, networ
 
 	d.log.Info().Str("url", downloadURL).Str("binary", config.Name).Msg("downloading")
 
-	tmpDir, err := os.MkdirTemp("", "orchestrator-download-*")
+	dir, err := os.MkdirTemp(tmpDir, "archive-*")
 	if err != nil {
-		return fmt.Errorf("create temp dir: %w", err)
+		return "", fmt.Errorf("create temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
-
-	savePath := filepath.Join(tmpDir, filepath.Base(downloadURL))
+	savePath := filepath.Join(dir, filepath.Base(downloadURL))
 
 	if err := d.downloadFile(ctx, downloadURL, savePath, send); err != nil {
-		return err
+		return "", err
 	}
 
 	// Compute SHA256 hash and write back to config
 	if !send(DownloadProgress{Message: "verifying hash..."}) {
-		return ctx.Err()
+		return "", ctx.Err()
 	}
 	archiveHash, archiveSize, err := hashFile(savePath)
 	if err != nil {
@@ -310,18 +345,7 @@ func (d *DownloadManager) fetch(ctx context.Context, config BinaryConfig, networ
 			}
 		}
 	}
-
-	if !send(DownloadProgress{Message: "extracting..."}) {
-		return ctx.Err()
-	}
-
-	hasCLI, err := d.extractBinary(savePath, config, target, d.dataDir, network)
-	if err != nil {
-		d.log.Error().Err(err).Str("binary", config.Name).Msg("extract failed")
-		return fmt.Errorf("extract: %w", err)
-	}
-	d.log.Info().Bool("has_cli", hasCLI).Str("binary", target.ExtractName).Msg("extraction complete")
-	return nil
+	return savePath, nil
 }
 
 // activeVariant resolves the Core variant for the given config, if applicable.
@@ -1060,12 +1084,33 @@ func StripPlatformSuffix(name string) string {
 
 // attachToInFlight waits for an already-running download of the same binary and
 // reports success iff it left a binary on disk.
-// inFlightClaim is one target's slot in the in-flight map. owned is true while
-// this caller holds the claim.
+// inFlightClaim is one target's slot in the in-flight map. err holds the
+// owner's result once done closes.
 type inFlightClaim struct {
 	target DownloadTarget
 	done   chan struct{}
-	owned  bool
+	err    error
+}
+
+// claim takes every target, or none while another caller downloads one of
+// them. A holder never waits on another claim, so callers cannot deadlock.
+func (d *DownloadManager) claim(targets []DownloadTarget) (owned, busy []*inFlightClaim) {
+	d.claimMu.Lock()
+	defer d.claimMu.Unlock()
+	for _, target := range targets {
+		if existing, ok := d.inFlight.Load(target.InFlightKey); ok {
+			busy = append(busy, existing.(*inFlightClaim))
+		}
+	}
+	if len(busy) > 0 {
+		return nil, busy
+	}
+	for _, target := range targets {
+		claim := &inFlightClaim{target: target, done: make(chan struct{})}
+		d.inFlight.Store(target.InFlightKey, claim)
+		owned = append(owned, claim)
+	}
+	return owned, nil
 }
 
 // Targets lists every download that writes a binary for this config. A layer-2
