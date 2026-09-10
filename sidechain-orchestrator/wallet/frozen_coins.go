@@ -21,7 +21,7 @@ func (o Outpoint) Key() string { return fmt.Sprintf("%s:%d", o.TxID, o.Vout) }
 // FrozenCoinsFunc names the candidates a live BMM bid can take away, keyed
 // txid:vout. A coin the bid created dies with a replacement of that bid, and a
 // coin the bid spends conflicts with a second spend of it.
-type FrozenCoinsFunc func(ctx context.Context, candidates []Outpoint) (map[string]bool, error)
+type FrozenCoinsFunc func(ctx context.Context, walletID string, candidates []Outpoint) (map[string]bool, error)
 
 // SetFrozenCoins wires the source that names the coins a live BMM bid holds.
 // Coin selection leaves those coins alone. A pinned input still spends one,
@@ -41,22 +41,24 @@ func (s *Service) FreezesCoins() bool {
 
 // FrozenCoins names the candidates a live BMM bid holds. It names none while no
 // source is wired.
-func (s *Service) FrozenCoins(ctx context.Context, candidates []Outpoint) (map[string]bool, error) {
+func (s *Service) FrozenCoins(ctx context.Context, walletID string, candidates []Outpoint) (map[string]bool, error) {
 	s.mu.RLock()
 	fn := s.frozenCoins
 	s.mu.RUnlock()
 	if fn == nil || len(candidates) == 0 {
 		return nil, nil
 	}
-	frozen, err := fn(ctx, candidates)
+	frozen, err := fn(ctx, walletID, candidates)
 	if err != nil {
 		return nil, fmt.Errorf("read the coins a bmm bid holds: %w", err)
 	}
 	return frozen, nil
 }
 
-func (p *ElectrumBackend) dropFrozenCoins(ctx context.Context, pool []electrumUTXO) ([]electrumUTXO, error) {
-	frozen, err := p.svc.FrozenCoins(ctx, lo.Map(pool, func(u electrumUTXO, _ int) Outpoint {
+func (p *ElectrumBackend) dropFrozenCoins(
+	ctx context.Context, walletID string, pool []electrumUTXO,
+) ([]electrumUTXO, error) {
+	frozen, err := p.svc.FrozenCoins(ctx, walletID, lo.Map(pool, func(u electrumUTXO, _ int) Outpoint {
 		return Outpoint{TxID: u.txid, Vout: u.vout, Confirmed: u.confirmed}
 	}))
 	if err != nil || len(frozen) == 0 {
@@ -70,7 +72,7 @@ func (p *ElectrumBackend) dropFrozenCoins(ctx context.Context, pool []electrumUT
 // lockFrozenCoins locks the coins a live BMM bid holds for the length of one
 // send, because Core picks the coins itself on most of its send paths. The
 // caller unlocks them with the function it gets back.
-func (p *CoreBackend) lockFrozenCoins(ctx context.Context, walletName string) (func(), error) {
+func (p *CoreBackend) lockFrozenCoins(ctx context.Context, walletID, walletName string) (func(), error) {
 	if !p.svc.FreezesCoins() {
 		return func() {}, nil
 	}
@@ -80,7 +82,7 @@ func (p *CoreBackend) lockFrozenCoins(ctx context.Context, walletName string) (f
 	if err != nil {
 		return nil, fmt.Errorf("list unspent: %w", err)
 	}
-	frozen, err := p.svc.FrozenCoins(ctx, lo.Map(utxos, func(u UTXO, _ int) Outpoint {
+	frozen, err := p.svc.FrozenCoins(ctx, walletID, lo.Map(utxos, func(u UTXO, _ int) Outpoint {
 		return Outpoint{TxID: u.TxID, Vout: u.Vout, Confirmed: u.Confirmations > 0}
 	}))
 	if err != nil {

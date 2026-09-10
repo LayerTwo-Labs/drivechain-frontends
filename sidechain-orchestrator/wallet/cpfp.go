@@ -46,9 +46,9 @@ func cpfpChildPlan(targetRate, parentVsize, parentFee, childVsize, parentValue i
 	return childFee, parentValue - childFee, nil
 }
 
-func (s *Service) checkCpfpParent(ctx context.Context, req CpfpRequest) error {
+func (s *Service) checkCpfpParent(ctx context.Context, walletID string, req CpfpRequest) error {
 	parent := Outpoint{TxID: req.ParentTxID, Vout: req.ParentVout}
-	frozen, err := s.FrozenCoins(ctx, []Outpoint{parent})
+	frozen, err := s.FrozenCoins(ctx, walletID, []Outpoint{parent})
 	if err != nil {
 		return err
 	}
