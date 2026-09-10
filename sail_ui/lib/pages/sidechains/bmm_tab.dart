@@ -9,6 +9,11 @@ import 'package:sidechain_core/utils/explorer_url.dart';
 import 'package:stacked/stacked.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// What light mode reads for a bid, which the bid controls say out loud.
+const String bidSourceInLightMode =
+    'Light mode reads the rival bids from the enforcer, and raises up to the ceiling. '
+    'It reads no mainchain mempool, so a bid the enforcer never saw stays hidden.';
+
 /// Reason bidding is unavailable, or null when it is allowed.
 ///
 /// A bid commits to the tip the enforcer has validated, so one built while it
@@ -16,23 +21,41 @@ import 'package:url_launcher/url_launcher.dart';
 /// never be included. The orchestrator rejects those bids too — this only keeps
 /// the controls from offering an action that cannot succeed.
 String? bidBlockedReasonFor(SyncProvider sync, {bool lightMode = false}) {
-  if (lightMode) {
-    return 'BMM is unavailable in light mode';
-  }
   // Without Core the enforcer's goal falls back to its own height, which reads
-  // as synced however far behind it is.
-  if (sync.mainchainSyncInfo == null || (sync.mainchainError?.isNotEmpty ?? false)) {
+  // as synced however far behind it is. A light install runs no Core at all,
+  // and the remote validator it reads stands at the tip.
+  if (!lightMode && (sync.mainchainSyncInfo == null || (sync.mainchainError?.isNotEmpty ?? false))) {
     return 'Waiting for Bitcoin Core';
   }
   final enforcer = sync.enforcerSyncInfo;
   if (enforcer == null || (sync.enforcerError?.isNotEmpty ?? false)) {
     return 'Waiting for the enforcer to start';
   }
+  if (lightMode) {
+    return lightEnforcerBlockedReason(sync, enforcer);
+  }
   if (enforcer.isSynced) {
     return null;
   }
   return 'Enforcer is syncing — '
       '${enforcer.progressCurrent.toInt()} of ${enforcer.progressGoal.toInt()} blocks';
+}
+
+/// Reason the remote enforcer blocks a light-mode bid, null when it allows one.
+///
+/// Without Core the enforcer reports its own height as the goal, so it reads as
+/// synced however far it trails. The wallet chain source carries the only other
+/// mainchain tip a light install reads.
+String? lightEnforcerBlockedReason(SyncProvider sync, SyncInfo enforcer) {
+  final source = sync.chainSourceSyncInfo;
+  if (source == null || (sync.chainSourceError?.isNotEmpty ?? false) || source.progressCurrent <= 0) {
+    return 'Waiting for the wallet chain source';
+  }
+  if (enforcer.progressCurrent >= source.progressCurrent) {
+    return null;
+  }
+  return 'Enforcer is syncing — '
+      '${enforcer.progressCurrent.toInt()} of ${source.progressCurrent.toInt()} blocks';
 }
 
 final NumberFormat _thousands = NumberFormat('#,##0', 'en_US');
@@ -232,7 +255,7 @@ class _Controls extends StatelessWidget {
             ),
           ],
         ),
-        if (viewModel.isLight) SailText.secondary12(viewModel.bidBlockedReason!),
+        if (viewModel.isLight) SailText.secondary12(bidSourceInLightMode),
         if (viewModel.fundingWarning)
           SailText.secondary12(
             viewModel.fundingWarningLabel,
@@ -734,9 +757,6 @@ class BMMViewModel extends BaseViewModel {
   }
 
   String get slotStatus {
-    if (isLight) {
-      return 'Paused';
-    }
     if (!running) {
       return 'Not bidding';
     }
@@ -861,8 +881,11 @@ class BMMViewModel extends BaseViewModel {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SailText.secondary13(
-                  'A losing bid never confirms and leaves the mempool, so this is every bid we saw '
-                  'while the block was pending — not proof that it was all of them.',
+                  isLight
+                      ? 'Light mode reads the rival bids from the enforcer, not from a mainchain mempool. '
+                            'A bid the enforcer never saw can exist and never appear here.'
+                      : 'A losing bid never confirms and leaves the mempool, so this is every bid we saw '
+                            'while the block was pending — not proof that it was all of them.',
                 ),
                 _TableFrame(
                   height: tableFrameHeight(bids.length),
