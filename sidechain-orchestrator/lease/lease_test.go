@@ -3,6 +3,7 @@ package lease
 import (
 	"net/http"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -143,5 +144,120 @@ func TestGraceHoldsUntilItElapses(t *testing.T) {
 	l.Goodbye()
 	if !l.expired() {
 		t.Fatal("goodbye did not drop the grace")
+	}
+}
+
+// An app update replaces the frontend. The new one claims the daemon before
+// the dead pid drains it.
+func TestSetOwnerHoldsTheLeaseForTheNewFrontend(t *testing.T) {
+	drained, drain := drainedFlag()
+	l := New(deadPID, 0, drain)
+
+	pollUntilOwnerGone(l)
+	if !l.expired() {
+		t.Fatal("lease did not expire after the owner died")
+	}
+
+	if !l.SetOwner(os.Getpid()) {
+		t.Fatal("SetOwner reported a drain that never ran")
+	}
+	pollUntilOwnerGone(l)
+
+	if l.expired() {
+		t.Fatal("lease expired while the new frontend is alive")
+	}
+	if *drained {
+		t.Fatal("drained a daemon a live frontend owns")
+	}
+}
+
+// A claim that lands after the drain fired says so, and the daemon serves the
+// new frontend from there on.
+func TestSetOwnerAfterTheDrainReportsTheFire(t *testing.T) {
+	_, drain := drainedFlag()
+	l := New(deadPID, 0, drain)
+
+	pollUntilOwnerGone(l)
+	l.fire()
+
+	if l.SetOwner(os.Getpid()) {
+		t.Fatal("SetOwner missed the drain that already ran")
+	}
+
+	l.ConnState(nil, http.StateNew)
+	l.ConnState(nil, http.StateClosed)
+	pollUntilOwnerGone(l)
+	if l.expired() {
+		t.Fatal("lease expired while the new frontend is alive")
+	}
+}
+
+// The daemon keeps watching after a drain, so the frontend that took it over
+// reaps it in turn.
+func TestLeaseFiresAgainForTheNewOwner(t *testing.T) {
+	fires := 0
+	l := New(deadPID, 0, func() { fires++ })
+
+	pollUntilOwnerGone(l)
+	if l.expired() {
+		l.fire()
+	}
+	l.SetOwner(deadPID)
+	pollUntilOwnerGone(l)
+	if l.expired() {
+		l.fire()
+	}
+
+	if fires != 2 {
+		t.Fatalf("drain ran %d times, want 2", fires)
+	}
+}
+
+// A handover that lands while the owner poll runs must not read the answer for
+// the frontend the update replaced onto the one that replaced it.
+func TestSetOwnerRacesThePoll(t *testing.T) {
+	_, drain := drainedFlag()
+	l := New(deadPID, 0, drain)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for range 200 {
+			l.pollOwner()
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for range 200 {
+			l.SetOwner(os.Getpid())
+		}
+	}()
+	wg.Wait()
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.ownerGone {
+		t.Fatal("the poll marked a live owner gone")
+	}
+}
+
+// A handover that lands between the expiry check and the drain must win. The
+// tick that read the old owner cannot drain the daemon the claim just saved.
+func TestFireIfExpiredHonoursALateHandover(t *testing.T) {
+	drained, drain := drainedFlag()
+	l := New(deadPID, 0, drain)
+
+	pollUntilOwnerGone(l)
+	if !l.expired() {
+		t.Fatal("lease did not expire after the owner died")
+	}
+
+	// The tick already read expired. The claim lands before the drain.
+	l.SetOwner(os.Getpid())
+	l.fireIfExpired()
+
+	if *drained {
+		t.Fatal("drained a daemon the new frontend had already claimed")
 	}
 }

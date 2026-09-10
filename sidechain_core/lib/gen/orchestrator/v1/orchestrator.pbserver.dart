@@ -37,6 +37,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$3.ConfirmPendingNetworkGenerationResponse> confirmPendingNetworkGeneration($pb.ServerContext ctx, $3.ConfirmPendingNetworkGenerationRequest request);
   $async.Future<$3.ShutdownAllResponse> shutdownAll($pb.ServerContext ctx, $3.ShutdownAllRequest request);
   $async.Future<$3.ShutdownResponse> shutdown($pb.ServerContext ctx, $3.ShutdownRequest request);
+  $async.Future<$3.AdoptOwnerResponse> adoptOwner($pb.ServerContext ctx, $3.AdoptOwnerRequest request);
   $async.Future<$3.GetBTCPriceResponse> getBTCPrice($pb.ServerContext ctx, $3.GetBTCPriceRequest request);
   $async.Future<$3.GetMainchainBlockchainInfoResponse> getMainchainBlockchainInfo($pb.ServerContext ctx, $3.GetMainchainBlockchainInfoRequest request);
   $async.Future<$3.GetEnforcerBlockchainInfoResponse> getEnforcerBlockchainInfo($pb.ServerContext ctx, $3.GetEnforcerBlockchainInfoRequest request);
@@ -72,6 +73,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'ConfirmPendingNetworkGeneration': return $3.ConfirmPendingNetworkGenerationRequest();
       case 'ShutdownAll': return $3.ShutdownAllRequest();
       case 'Shutdown': return $3.ShutdownRequest();
+      case 'AdoptOwner': return $3.AdoptOwnerRequest();
       case 'GetBTCPrice': return $3.GetBTCPriceRequest();
       case 'GetMainchainBlockchainInfo': return $3.GetMainchainBlockchainInfoRequest();
       case 'GetEnforcerBlockchainInfo': return $3.GetEnforcerBlockchainInfoRequest();
@@ -110,6 +112,7 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'ConfirmPendingNetworkGeneration': return this.confirmPendingNetworkGeneration(ctx, request as $3.ConfirmPendingNetworkGenerationRequest);
       case 'ShutdownAll': return this.shutdownAll(ctx, request as $3.ShutdownAllRequest);
       case 'Shutdown': return this.shutdown(ctx, request as $3.ShutdownRequest);
+      case 'AdoptOwner': return this.adoptOwner(ctx, request as $3.AdoptOwnerRequest);
       case 'GetBTCPrice': return this.getBTCPrice(ctx, request as $3.GetBTCPriceRequest);
       case 'GetMainchainBlockchainInfo': return this.getMainchainBlockchainInfo(ctx, request as $3.GetMainchainBlockchainInfoRequest);
       case 'GetEnforcerBlockchainInfo': return this.getEnforcerBlockchainInfo(ctx, request as $3.GetEnforcerBlockchainInfoRequest);

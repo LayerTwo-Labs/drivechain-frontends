@@ -173,6 +173,17 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.ShutdownResponse.new,
   );
 
+  /// Point the daemon at the frontend process that owns it now. An app update
+  /// replaces the frontend with a new process, and the daemon drains itself a
+  /// few seconds after the old one dies. bitwindowd calls this the moment it
+  /// finds a live daemon, so the warm stack survives the swap.
+  static const adoptOwner = connect.Spec(
+    '/$name/AdoptOwner',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.AdoptOwnerRequest.new,
+    orchestratorv1orchestrator.AdoptOwnerResponse.new,
+  );
+
   /// Get the current BTC/USD exchange rate.
   static const getBTCPrice = connect.Spec(
     '/$name/GetBTCPrice',

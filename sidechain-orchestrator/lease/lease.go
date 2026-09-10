@@ -72,12 +72,27 @@ func (l *Lease) Goodbye() {
 	l.mu.Unlock()
 }
 
-// Run evaluates until ctx ends or the lease fires.
-func (l *Lease) Run(ctx context.Context) {
-	if l.ownerPID <= 0 {
-		return
-	}
+// SetOwner points the lease at a new owner process. An app update replaces the
+// frontend with a new process, and the dead pid alone would drain the stack
+// the replacement is about to use. Returns false once the lease fired, because
+// the drain is already under way and only the caller can cancel it.
+func (l *Lease) SetOwner(pid int) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	fired := l.drained
+	l.ownerPID = pid
+	l.ownerGone = false
+	l.strikes = 0
+	l.waived = false
+	l.drained = false
+	l.idleFrom = time.Now()
+	return !fired
+}
 
+// Run evaluates until ctx ends. It keeps ticking after the lease fires,
+// because SetOwner can hand the daemon to a new frontend, and that frontend
+// needs a lease of its own.
+func (l *Lease) Run(ctx context.Context) {
 	ticker := time.NewTicker(tick)
 	defer ticker.Stop()
 
@@ -88,10 +103,7 @@ func (l *Lease) Run(ctx context.Context) {
 		case <-ticker.C:
 		}
 		l.pollOwner()
-		if l.expired() {
-			l.fire()
-			return
-		}
+		l.fireIfExpired()
 	}
 }
 
@@ -99,21 +111,26 @@ func (l *Lease) Run(ctx context.Context) {
 // Watching only while idle would read a recycled pid as the owner come back.
 func (l *Lease) pollOwner() {
 	l.mu.Lock()
-	done := l.ownerGone || l.ownerPID <= 0
+	pid := l.ownerPID
+	done := l.ownerGone || pid <= 0
 	l.mu.Unlock()
 	if done {
 		return
 	}
 
-	if alive(l.ownerPID) {
-		l.mu.Lock()
-		l.strikes = 0
-		l.mu.Unlock()
-		return
-	}
+	live := alive(pid)
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	// SetOwner can land while the lookup runs. An answer about the frontend
+	// an update replaced says nothing about the one that replaced it.
+	if l.ownerPID != pid {
+		return
+	}
+	if live {
+		l.strikes = 0
+		return
+	}
 	l.strikes++
 	l.ownerGone = l.strikes >= deadStrikes
 }
@@ -121,7 +138,10 @@ func (l *Lease) pollOwner() {
 func (l *Lease) expired() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	return l.expiredLocked()
+}
 
+func (l *Lease) expiredLocked() bool {
 	if !l.ownerGone {
 		return false
 	}
@@ -130,6 +150,20 @@ func (l *Lease) expired() bool {
 		grace = 0
 	}
 	return l.live == 0 && time.Since(l.idleFrom) >= grace
+}
+
+// fireIfExpired takes the decision and the flag under one lock. A handover
+// that lands between the two would otherwise drain the daemon it just saved.
+func (l *Lease) fireIfExpired() {
+	l.mu.Lock()
+	if l.drained || !l.expiredLocked() {
+		l.mu.Unlock()
+		return
+	}
+	l.drained = true
+	l.mu.Unlock()
+
+	l.drain()
 }
 
 func (l *Lease) fire() {

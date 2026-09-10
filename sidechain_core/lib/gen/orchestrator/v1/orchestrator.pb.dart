@@ -5686,6 +5686,108 @@ class ShutdownResponse extends $pb.GeneratedMessage {
   static ShutdownResponse? _defaultInstance;
 }
 
+class AdoptOwnerRequest extends $pb.GeneratedMessage {
+  factory AdoptOwnerRequest({
+    $core.int? ownerPid,
+  }) {
+    final $result = create();
+    if (ownerPid != null) {
+      $result.ownerPid = ownerPid;
+    }
+    return $result;
+  }
+  AdoptOwnerRequest._() : super();
+  factory AdoptOwnerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AdoptOwnerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AdoptOwnerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'ownerPid', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AdoptOwnerRequest clone() => AdoptOwnerRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AdoptOwnerRequest copyWith(void Function(AdoptOwnerRequest) updates) => super.copyWith((message) => updates(message as AdoptOwnerRequest)) as AdoptOwnerRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AdoptOwnerRequest create() => AdoptOwnerRequest._();
+  AdoptOwnerRequest createEmptyInstance() => create();
+  static $pb.PbList<AdoptOwnerRequest> createRepeated() => $pb.PbList<AdoptOwnerRequest>();
+  @$core.pragma('dart2js:noInline')
+  static AdoptOwnerRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AdoptOwnerRequest>(create);
+  static AdoptOwnerRequest? _defaultInstance;
+
+  /// Process ID of the frontend that owns the daemon now.
+  @$pb.TagNumber(1)
+  $core.int get ownerPid => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set ownerPid($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasOwnerPid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOwnerPid() => clearField(1);
+}
+
+class AdoptOwnerResponse extends $pb.GeneratedMessage {
+  factory AdoptOwnerResponse({
+    $core.bool? canceledExit,
+  }) {
+    final $result = create();
+    if (canceledExit != null) {
+      $result.canceledExit = canceledExit;
+    }
+    return $result;
+  }
+  AdoptOwnerResponse._() : super();
+  factory AdoptOwnerResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AdoptOwnerResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AdoptOwnerResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'canceledExit')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AdoptOwnerResponse clone() => AdoptOwnerResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AdoptOwnerResponse copyWith(void Function(AdoptOwnerResponse) updates) => super.copyWith((message) => updates(message as AdoptOwnerResponse)) as AdoptOwnerResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AdoptOwnerResponse create() => AdoptOwnerResponse._();
+  AdoptOwnerResponse createEmptyInstance() => create();
+  static $pb.PbList<AdoptOwnerResponse> createRepeated() => $pb.PbList<AdoptOwnerResponse>();
+  @$core.pragma('dart2js:noInline')
+  static AdoptOwnerResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AdoptOwnerResponse>(create);
+  static AdoptOwnerResponse? _defaultInstance;
+
+  /// True when the daemon was on its way out and this call stopped the exit.
+  @$pb.TagNumber(1)
+  $core.bool get canceledExit => $_getBF(0);
+  @$pb.TagNumber(1)
+  set canceledExit($core.bool v) { $_setBool(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCanceledExit() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCanceledExit() => clearField(1);
+}
+
 class OrchestratorServiceApi {
   $pb.RpcClient _client;
   OrchestratorServiceApi(this._client);
@@ -5737,6 +5839,9 @@ class OrchestratorServiceApi {
   ;
   $async.Future<ShutdownResponse> shutdown($pb.ClientContext? ctx, ShutdownRequest request) =>
     _client.invoke<ShutdownResponse>(ctx, 'OrchestratorService', 'Shutdown', request, ShutdownResponse())
+  ;
+  $async.Future<AdoptOwnerResponse> adoptOwner($pb.ClientContext? ctx, AdoptOwnerRequest request) =>
+    _client.invoke<AdoptOwnerResponse>(ctx, 'OrchestratorService', 'AdoptOwner', request, AdoptOwnerResponse())
   ;
   $async.Future<GetBTCPriceResponse> getBTCPrice($pb.ClientContext? ctx, GetBTCPriceRequest request) =>
     _client.invoke<GetBTCPriceResponse>(ctx, 'OrchestratorService', 'GetBTCPrice', request, GetBTCPriceResponse())

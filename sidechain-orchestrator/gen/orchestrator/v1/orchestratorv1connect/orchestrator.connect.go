@@ -81,6 +81,9 @@ const (
 	// OrchestratorServiceShutdownProcedure is the fully-qualified name of the OrchestratorService's
 	// Shutdown RPC.
 	OrchestratorServiceShutdownProcedure = "/orchestrator.v1.OrchestratorService/Shutdown"
+	// OrchestratorServiceAdoptOwnerProcedure is the fully-qualified name of the OrchestratorService's
+	// AdoptOwner RPC.
+	OrchestratorServiceAdoptOwnerProcedure = "/orchestrator.v1.OrchestratorService/AdoptOwner"
 	// OrchestratorServiceGetBTCPriceProcedure is the fully-qualified name of the OrchestratorService's
 	// GetBTCPrice RPC.
 	OrchestratorServiceGetBTCPriceProcedure = "/orchestrator.v1.OrchestratorService/GetBTCPrice"
@@ -200,6 +203,11 @@ type OrchestratorServiceClient interface {
 	// will-exit bit + awaits the in-flight stops) before booting a fresh
 	// stack — no separate cancel/await RPCs needed by callers.
 	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
+	// Point the daemon at the frontend process that owns it now. An app update
+	// replaces the frontend with a new process, and the daemon drains itself a
+	// few seconds after the old one dies. bitwindowd calls this the moment it
+	// finds a live daemon, so the warm stack survives the swap.
+	AdoptOwner(context.Context, *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error)
 	// Get the current BTC/USD exchange rate.
 	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
 	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
@@ -361,6 +369,12 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("Shutdown")),
 			connect.WithClientOptions(opts...),
 		),
+		adoptOwner: connect.NewClient[v1.AdoptOwnerRequest, v1.AdoptOwnerResponse](
+			httpClient,
+			baseURL+OrchestratorServiceAdoptOwnerProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("AdoptOwner")),
+			connect.WithClientOptions(opts...),
+		),
 		getBTCPrice: connect.NewClient[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse](
 			httpClient,
 			baseURL+OrchestratorServiceGetBTCPriceProcedure,
@@ -478,6 +492,7 @@ type orchestratorServiceClient struct {
 	confirmPendingNetworkGeneration *connect.Client[v1.ConfirmPendingNetworkGenerationRequest, v1.ConfirmPendingNetworkGenerationResponse]
 	shutdownAll                     *connect.Client[v1.ShutdownAllRequest, v1.ShutdownAllResponse]
 	shutdown                        *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
+	adoptOwner                      *connect.Client[v1.AdoptOwnerRequest, v1.AdoptOwnerResponse]
 	getBTCPrice                     *connect.Client[v1.GetBTCPriceRequest, v1.GetBTCPriceResponse]
 	getMainchainBlockchainInfo      *connect.Client[v1.GetMainchainBlockchainInfoRequest, v1.GetMainchainBlockchainInfoResponse]
 	getEnforcerBlockchainInfo       *connect.Client[v1.GetEnforcerBlockchainInfoRequest, v1.GetEnforcerBlockchainInfoResponse]
@@ -576,6 +591,11 @@ func (c *orchestratorServiceClient) ShutdownAll(ctx context.Context, req *connec
 // Shutdown calls orchestrator.v1.OrchestratorService.Shutdown.
 func (c *orchestratorServiceClient) Shutdown(ctx context.Context, req *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
 	return c.shutdown.CallUnary(ctx, req)
+}
+
+// AdoptOwner calls orchestrator.v1.OrchestratorService.AdoptOwner.
+func (c *orchestratorServiceClient) AdoptOwner(ctx context.Context, req *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error) {
+	return c.adoptOwner.CallUnary(ctx, req)
 }
 
 // GetBTCPrice calls orchestrator.v1.OrchestratorService.GetBTCPrice.
@@ -728,6 +748,11 @@ type OrchestratorServiceHandler interface {
 	// will-exit bit + awaits the in-flight stops) before booting a fresh
 	// stack — no separate cancel/await RPCs needed by callers.
 	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
+	// Point the daemon at the frontend process that owns it now. An app update
+	// replaces the frontend with a new process, and the daemon drains itself a
+	// few seconds after the old one dies. bitwindowd calls this the moment it
+	// finds a live daemon, so the warm stack survives the swap.
+	AdoptOwner(context.Context, *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error)
 	// Get the current BTC/USD exchange rate.
 	GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error)
 	// Get blockchain info from Bitcoin Core (proxied via orchestrator).
@@ -885,6 +910,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("Shutdown")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServiceAdoptOwnerHandler := connect.NewUnaryHandler(
+		OrchestratorServiceAdoptOwnerProcedure,
+		svc.AdoptOwner,
+		connect.WithSchema(orchestratorServiceMethods.ByName("AdoptOwner")),
+		connect.WithHandlerOptions(opts...),
+	)
 	orchestratorServiceGetBTCPriceHandler := connect.NewUnaryHandler(
 		OrchestratorServiceGetBTCPriceProcedure,
 		svc.GetBTCPrice,
@@ -1015,6 +1046,8 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceShutdownAllHandler.ServeHTTP(w, r)
 		case OrchestratorServiceShutdownProcedure:
 			orchestratorServiceShutdownHandler.ServeHTTP(w, r)
+		case OrchestratorServiceAdoptOwnerProcedure:
+			orchestratorServiceAdoptOwnerHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetBTCPriceProcedure:
 			orchestratorServiceGetBTCPriceHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetMainchainBlockchainInfoProcedure:
@@ -1118,6 +1151,10 @@ func (UnimplementedOrchestratorServiceHandler) ShutdownAll(context.Context, *con
 
 func (UnimplementedOrchestratorServiceHandler) Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.Shutdown is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) AdoptOwner(context.Context, *connect.Request[v1.AdoptOwnerRequest]) (*connect.Response[v1.AdoptOwnerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.AdoptOwner is not implemented"))
 }
 
 func (UnimplementedOrchestratorServiceHandler) GetBTCPrice(context.Context, *connect.Request[v1.GetBTCPriceRequest]) (*connect.Response[v1.GetBTCPriceResponse], error) {
