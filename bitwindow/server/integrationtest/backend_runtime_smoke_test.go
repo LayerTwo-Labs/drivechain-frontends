@@ -30,6 +30,7 @@ import (
 	walletpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/testharness"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -152,6 +153,7 @@ func startBitwindowd(t *testing.T, binPath string, node *orchestratorOnlyNode, a
 		"--enforcer.host", fmt.Sprintf("127.0.0.1:%d", node.EnforcerGRPCPort),
 		"--orchestrator.addr", fmt.Sprintf("http://127.0.0.1:%d", node.OrchdGRPCPort),
 	)
+	cmd.Env = append(os.Environ(), "HOME="+filepath.Dir(node.BitwindowDir))
 	cmd.Stdout = stdoutFile
 	cmd.Stderr = stderrFile
 
@@ -190,9 +192,12 @@ func newOrchestratorOnlyNode(t *testing.T) *orchestratorOnlyNode {
 	rpcPort := basePort
 	p2pPort := basePort + 100
 	grpcPort := basePort + 200
-	prepareEnforcerConfigForSmokeTest(t, basePort+210, basePort+211, basePort+212)
 
 	nodeDir := filepath.Join(rootDir, "node0")
+	orchconfig.SetHomeDir(nodeDir)
+	t.Cleanup(func() { orchconfig.SetHomeDir("") })
+	prepareEnforcerConfigForSmokeTest(t, basePort+210, basePort+211, basePort+212)
+
 	bitwindowDir := filepath.Join(nodeDir, "bitwindow")
 	bitcoinDataDir := filepath.Join(nodeDir, "bitcoin")
 	require.NoError(t, os.MkdirAll(bitwindowDir, 0o700))
@@ -240,6 +245,8 @@ port=%d
 		"--loglevel", "info",
 		"--binary=enforcer",
 	)
+	// Confines drivechaind and the daemons it spawns to nodeDir.
+	orchCmd.Env = append(os.Environ(), "HOME="+nodeDir, "XDG_DATA_HOME="+filepath.Join(nodeDir, ".local", "share"))
 	orchStdout, err := orchCmd.StdoutPipe()
 	require.NoError(t, err)
 	orchStderr, err := orchCmd.StderrPipe()
@@ -335,7 +342,7 @@ func (n *orchestratorOnlyNode) Close(t *testing.T) {
 func findEnforcer(t *testing.T) string {
 	t.Helper()
 	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	dataDir := orchestrator.DefaultDataDir()
+	dataDir := testharness.BinaryCacheDir(t)
 	orchPath := orchestrator.BinaryPath(dataDir, "bip300301-enforcer")
 
 	if _, err := os.Stat(orchPath); err == nil {
@@ -343,7 +350,7 @@ func findEnforcer(t *testing.T) string {
 		return orchPath
 	}
 
-	configPath := orchestrator.ConfigFilePath(orchestrator.DefaultBitwindowDir())
+	configPath := orchestrator.ConfigFilePath(dataDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
 	var enforcerConfig *orchestrator.BinaryConfig
 	for i := range configs {
@@ -370,20 +377,9 @@ func findEnforcer(t *testing.T) string {
 func findBitcoind(t *testing.T) string {
 	t.Helper()
 	log := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
-	dataDir := orchestrator.DefaultDataDir()
-	bitwindowDir := orchestrator.DefaultBitwindowDir()
-	configPath := orchestrator.ConfigFilePath(bitwindowDir)
+	dataDir := testharness.BinaryCacheDir(t)
+	configPath := orchestrator.ConfigFilePath(dataDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
-	orchPath := orchestrator.ActiveCoreBinaryPath(dataDir, bitwindowDir, configs, "bitcoind", "regtest", "")
-
-	if _, err := os.Stat(orchPath); err == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := exec.CommandContext(ctx, orchPath, "--version").Run(); err == nil {
-			log.Info().Str("path", orchPath).Msg("found working bitcoind via orchestrator")
-			return orchPath
-		}
-	}
 
 	var bitcoindConfig *orchestrator.BinaryConfig
 	for i := range configs {
@@ -394,10 +390,21 @@ func findBitcoind(t *testing.T) string {
 	}
 	require.NotNil(t, bitcoindConfig)
 
-	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
 	// bitcoind downloads are now variant-keyed; pick a regtest-compatible
 	// variant explicitly since we don't have a full Orchestrator here.
 	variant := bitcoindConfig.Variants["core"]
+	orchPath := orchestrator.CoreBinaryPath(dataDir, variant, "bitcoind")
+
+	if _, err := os.Stat(orchPath); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := exec.CommandContext(ctx, orchPath, "--version").Run(); err == nil {
+			log.Info().Str("path", orchPath).Msg("found working bitcoind via orchestrator")
+			return orchPath
+		}
+	}
+
+	dm := orchestrator.NewDownloadManager(dataDir, configPath, log)
 	dm.CoreVariant = func() (orchestrator.CoreVariantSpec, bool) { return variant, true }
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()

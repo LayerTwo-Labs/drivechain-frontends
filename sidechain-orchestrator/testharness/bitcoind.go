@@ -4,12 +4,23 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/rs/zerolog"
 )
+
+// BinaryCacheDir returns the directory integration tests download managed binaries into.
+func BinaryCacheDir(t *testing.T) string {
+	t.Helper()
+	cache, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatalf("testharness: user cache dir: %v", err)
+	}
+	return filepath.Join(cache, "drivechain-test-binaries")
+}
 
 // bitcoindBinaryPath returns the on-disk path for a specific Core variant
 // from a configs slice. Falls back to the legacy flat layout when the variant
@@ -40,7 +51,7 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 		return bin
 	}
 
-	dataDir := orchestrator.DefaultDataDir()
+	dataDir := BinaryCacheDir(t)
 	// Testharness uses the default ("patched") variant unconditionally — it
 	// always wants the drivechain build, regardless of whatever the user has
 	// pinned in orchestrator_settings.json.
@@ -61,7 +72,7 @@ func findBitcoind(t *testing.T, log zerolog.Logger) string {
 	// Download using orchestrator's download logic.
 	log.Info().Msg("downloading bitcoind via orchestrator...")
 
-	configPath := orchestrator.ConfigFilePath(orchestrator.DefaultBitwindowDir())
+	configPath := orchestrator.ConfigFilePath(dataDir)
 	configs = orchestrator.LoadConfigFile(configPath, log)
 
 	var bitcoindConfig *orchestrator.BinaryConfig
