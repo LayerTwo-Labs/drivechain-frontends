@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 )
 
 type DownloadProgress struct {
@@ -134,12 +135,17 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 }
 
 // DownloadWithOptions is Download with per-call overrides (see DownloadOptions).
+// It downloads every target of the config, so a test sidechain gets its backend too.
 func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config BinaryConfig, network string, force bool, opts DownloadOptions) (<-chan DownloadProgress, error) {
-	target := d.ResolveTarget(config, network, opts)
-	binPath := target.BinPath
+	targets := d.Targets(config, network, opts)
+	binPath := targets[0].BinPath
 
 	if !force {
-		if _, err := os.Stat(binPath); err == nil {
+		targets = lo.Filter(targets, func(target DownloadTarget, _ int) bool {
+			_, err := os.Stat(target.BinPath)
+			return err != nil
+		})
+		if len(targets) == 0 {
 			ch := make(chan DownloadProgress, 1)
 			ch <- DownloadProgress{Message: binPath, Done: true}
 			close(ch)
@@ -147,19 +153,21 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 		}
 	}
 
-	fileName := target.FileName
-	baseURL := target.BaseURL
-	if fileName == "" || baseURL == "" {
-		return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentPlatform())
+	for _, target := range targets {
+		if target.FileName == "" || target.BaseURL == "" {
+			return nil, fmt.Errorf("no download available for %s on %s", config.Name, currentPlatform())
+		}
 	}
 
-	inFlightKey := target.InFlightKey
-	// A second caller attaches to the running download instead of failing.
+	// A second caller waits for the running download instead of failing.
 	// SwapNetwork drops the core binary and restarts L1, so two paths ask at once.
-	done := make(chan struct{})
-	if existing, loaded := d.inFlight.LoadOrStore(inFlightKey, done); loaded {
-		return d.attachToInFlight(ctx, existing.(chan struct{}), config.Name, binPath), nil
-	}
+	claims := lo.Map(targets, func(target DownloadTarget, _ int) inFlightClaim {
+		done := make(chan struct{})
+		if existing, loaded := d.inFlight.LoadOrStore(target.InFlightKey, done); loaded {
+			return inFlightClaim{target: target, done: existing.(chan struct{})}
+		}
+		return inFlightClaim{target: target, done: done, owned: true}
+	})
 
 	ch := make(chan DownloadProgress, 100)
 
@@ -172,8 +180,18 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 	d.state.Store(stateKey, DownloadState{Running: true})
 
 	go func() {
-		defer d.inFlight.Delete(inFlightKey)
-		defer close(done)
+		release := func(i int) {
+			close(claims[i].done)
+			d.inFlight.Delete(claims[i].target.InFlightKey)
+			claims[i].owned = false
+		}
+		defer func() {
+			for i := range claims {
+				if claims[i].owned {
+					release(i)
+				}
+			}
+		}()
 		defer d.state.Delete(stateKey)
 		defer close(ch)
 
@@ -216,73 +234,94 @@ func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config Binary
 			}
 		}
 
-		// Test sidechain alt URLs are always served directly from
-		// releases.drivechain.info; the prod-side DownloadSourceGitHub flag
-		// (used by zside/thunder-orchard for the production builds) doesn't
-		// apply to them. Falling through to resolveGitHubURL would try to
-		// JSON-parse an HTML 404 and abort the download with a confusing
-		// "decode response: invalid character '<'" error.
-		var downloadURL string
-		switch target.Source {
-		case DownloadSourceGitHub:
-			url, err := d.resolveGitHubURL(ctx, baseURL, fileName)
-			if err != nil {
-				send(DownloadProgress{Error: fmt.Errorf("resolve GitHub URL: %w", err)})
+		for i, claim := range claims {
+			if claim.owned {
+				if err := d.fetch(ctx, config, network, claim.target, send); err != nil {
+					send(DownloadProgress{Error: err})
+					return
+				}
+				release(i)
+				continue
+			}
+			select {
+			case <-claim.done:
+			case <-ctx.Done():
+				send(DownloadProgress{Error: ctx.Err()})
 				return
 			}
-			downloadURL = url
-		case DownloadSourceDirect:
-			downloadURL = baseURL + fileName
-		}
-
-		d.log.Info().Str("url", downloadURL).Str("binary", config.Name).Msg("downloading")
-
-		tmpDir, err := os.MkdirTemp("", "orchestrator-download-*")
-		if err != nil {
-			send(DownloadProgress{Error: fmt.Errorf("create temp dir: %w", err)})
-			return
-		}
-		defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
-
-		savePath := filepath.Join(tmpDir, filepath.Base(downloadURL))
-
-		if err := d.downloadFile(ctx, downloadURL, savePath, send); err != nil {
-			send(DownloadProgress{Error: err})
-			return
-		}
-
-		// Compute SHA256 hash and write back to config
-		if !send(DownloadProgress{Message: "verifying hash..."}) {
-			return
-		}
-		archiveHash, archiveSize, err := hashFile(savePath)
-		if err != nil {
-			d.log.Warn().Err(err).Msg("failed to hash archive")
-		} else {
-			d.log.Info().Str("hash", archiveHash).Int64("size", archiveSize).Str("binary", config.Name).Msg("archive hash")
-			if d.configFilePath != "" {
-				if err := writeHashToConfig(d.configFilePath, config.Name, currentPlatform(), archiveHash, archiveSize); err != nil {
-					d.log.Warn().Err(err).Msg("failed to write hash to config")
-				}
+			if _, err := os.Stat(claim.target.BinPath); err != nil {
+				send(DownloadProgress{Error: fmt.Errorf("%s download finished without a binary", config.Name)})
+				return
 			}
 		}
 
-		if !send(DownloadProgress{Message: "extracting..."}) {
-			return
-		}
-
-		hasCLI, err := d.extractBinary(savePath, config, target, d.dataDir, network)
-		if err != nil {
-			d.log.Error().Err(err).Str("binary", config.Name).Msg("extract failed")
-			send(DownloadProgress{Error: fmt.Errorf("extract: %w", err)})
-			return
-		}
-		d.log.Info().Bool("has_cli", hasCLI).Str("binary", target.ExtractName).Msg("extraction complete")
-
-		send(DownloadProgress{Message: target.BinPath, Done: true})
+		send(DownloadProgress{Message: binPath, Done: true})
 	}()
 
 	return ch, nil
+}
+
+// fetch downloads one target's archive, records its hash and extracts it.
+func (d *DownloadManager) fetch(ctx context.Context, config BinaryConfig, network string, target DownloadTarget, send func(DownloadProgress) bool) error {
+	// Test sidechain alt URLs are always served directly from
+	// releases.drivechain.info; the prod-side DownloadSourceGitHub flag
+	// (used by zside/thunder-orchard for the production builds) doesn't
+	// apply to them. Falling through to resolveGitHubURL would try to
+	// JSON-parse an HTML 404 and abort the download with a confusing
+	// "decode response: invalid character '<'" error.
+	var downloadURL string
+	switch target.Source {
+	case DownloadSourceGitHub:
+		url, err := d.resolveGitHubURL(ctx, target.BaseURL, target.FileName)
+		if err != nil {
+			return fmt.Errorf("resolve GitHub URL: %w", err)
+		}
+		downloadURL = url
+	case DownloadSourceDirect:
+		downloadURL = target.BaseURL + target.FileName
+	}
+
+	d.log.Info().Str("url", downloadURL).Str("binary", config.Name).Msg("downloading")
+
+	tmpDir, err := os.MkdirTemp("", "orchestrator-download-*")
+	if err != nil {
+		return fmt.Errorf("create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir) //nolint:errcheck // cleanup
+
+	savePath := filepath.Join(tmpDir, filepath.Base(downloadURL))
+
+	if err := d.downloadFile(ctx, downloadURL, savePath, send); err != nil {
+		return err
+	}
+
+	// Compute SHA256 hash and write back to config
+	if !send(DownloadProgress{Message: "verifying hash..."}) {
+		return ctx.Err()
+	}
+	archiveHash, archiveSize, err := hashFile(savePath)
+	if err != nil {
+		d.log.Warn().Err(err).Msg("failed to hash archive")
+	} else {
+		d.log.Info().Str("hash", archiveHash).Int64("size", archiveSize).Str("binary", config.Name).Msg("archive hash")
+		if d.configFilePath != "" {
+			if err := writeHashToConfig(d.configFilePath, config.Name, currentPlatform(), archiveHash, archiveSize); err != nil {
+				d.log.Warn().Err(err).Msg("failed to write hash to config")
+			}
+		}
+	}
+
+	if !send(DownloadProgress{Message: "extracting..."}) {
+		return ctx.Err()
+	}
+
+	hasCLI, err := d.extractBinary(savePath, config, target, d.dataDir, network)
+	if err != nil {
+		d.log.Error().Err(err).Str("binary", config.Name).Msg("extract failed")
+		return fmt.Errorf("extract: %w", err)
+	}
+	d.log.Info().Bool("has_cli", hasCLI).Str("binary", target.ExtractName).Msg("extraction complete")
+	return nil
 }
 
 // activeVariant resolves the Core variant for the given config, if applicable.
@@ -1021,22 +1060,23 @@ func StripPlatformSuffix(name string) string {
 
 // attachToInFlight waits for an already-running download of the same binary and
 // reports success iff it left a binary on disk.
-func (d *DownloadManager) attachToInFlight(ctx context.Context, done chan struct{}, name, binPath string) chan DownloadProgress {
-	ch := make(chan DownloadProgress, 1)
-	go func() {
-		defer close(ch)
-		select {
-		case <-done:
-			if _, err := os.Stat(binPath); err != nil {
-				ch <- DownloadProgress{Error: fmt.Errorf("%s download finished without a binary", name)}
-				return
-			}
-			ch <- DownloadProgress{Message: binPath, Done: true}
-		case <-ctx.Done():
-			ch <- DownloadProgress{Error: ctx.Err()}
-		}
-	}()
-	return ch
+// inFlightClaim is one target's slot in the in-flight map. owned is true while
+// this caller holds the claim.
+type inFlightClaim struct {
+	target DownloadTarget
+	done   chan struct{}
+	owned  bool
+}
+
+// Targets lists every download that writes a binary for this config. A layer-2
+// binary with the test build enabled has two: the test build and its backend.
+func (d *DownloadManager) Targets(config BinaryConfig, network string, opts DownloadOptions) []DownloadTarget {
+	target := d.ResolveTarget(config, network, opts)
+	backend := d.ResolveTarget(config, network, DownloadOptions{ForceBackend: true})
+	if backend.InFlightKey == target.InFlightKey || backend.FileName == "" || backend.BaseURL == "" {
+		return []DownloadTarget{target}
+	}
+	return []DownloadTarget{target, backend}
 }
 
 // DownloadTarget is where a binary lives on disk and where its archive comes
