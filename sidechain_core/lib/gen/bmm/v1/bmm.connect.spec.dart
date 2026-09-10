@@ -77,6 +77,15 @@ abstract final class BMMService {
     bmmv1bmm.ConnectBidResponse.new,
   );
 
+  /// CancelBid replaces a stranded bid with a payment back to its own wallet,
+  /// so the coins under it come back. A bid that can still win is refused.
+  static const cancelBid = connect.Spec(
+    '/$name/CancelBid',
+    connect.StreamType.unary,
+    bmmv1bmm.CancelBidRequest.new,
+    bmmv1bmm.CancelBidResponse.new,
+  );
+
   /// ListBids reads the competing bids for the slot out of the mainchain
   /// mempool, highest bid first.
   static const listBids = connect.Spec(
@@ -84,5 +93,16 @@ abstract final class BMMService {
     connect.StreamType.unary,
     bmmv1bmm.ListBidsRequest.new,
     bmmv1bmm.ListBidsResponse.new,
+  );
+
+  /// PrepareBMM gives every bidding sidechain a coin of its own to bid from,
+  /// and splits one large coin when the wallet holds too few. One wallet funds
+  /// them all, and a bid over another slot's bid change dies when that slot
+  /// replaces its own bid.
+  static const prepareBMM = connect.Spec(
+    '/$name/PrepareBMM',
+    connect.StreamType.unary,
+    bmmv1bmm.PrepareBMMRequest.new,
+    bmmv1bmm.PrepareBMMResponse.new,
   );
 }

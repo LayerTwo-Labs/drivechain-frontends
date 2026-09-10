@@ -1142,6 +1142,162 @@ class CreateBidRequest extends $pb.GeneratedMessage {
   void clearMaxBidSats() => clearField(8);
 }
 
+class CancelBidRequest extends $pb.GeneratedMessage {
+  factory CancelBidRequest({
+    $core.String? walletId,
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  CancelBidRequest._() : super();
+  factory CancelBidRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CancelBidRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CancelBidRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aOS(2, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CancelBidRequest clone() => CancelBidRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CancelBidRequest copyWith(void Function(CancelBidRequest) updates) => super.copyWith((message) => updates(message as CancelBidRequest)) as CancelBidRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelBidRequest create() => CancelBidRequest._();
+  CancelBidRequest createEmptyInstance() => create();
+  static $pb.PbList<CancelBidRequest> createRepeated() => $pb.PbList<CancelBidRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CancelBidRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelBidRequest>(create);
+  static CancelBidRequest? _defaultInstance;
+
+  /// Wallet that funds the replacement. Empty uses the active wallet.
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  /// The stranded M8 transaction.
+  @$pb.TagNumber(2)
+  $core.String get txid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxid() => clearField(2);
+}
+
+class CancelBidResponse extends $pb.GeneratedMessage {
+  factory CancelBidResponse({
+    $core.String? replacementTxid,
+    $fixnum.Int64? recoveredSats,
+    $fixnum.Int64? feeSats,
+    $core.Iterable<$core.String>? cancelledTxids,
+  }) {
+    final $result = create();
+    if (replacementTxid != null) {
+      $result.replacementTxid = replacementTxid;
+    }
+    if (recoveredSats != null) {
+      $result.recoveredSats = recoveredSats;
+    }
+    if (feeSats != null) {
+      $result.feeSats = feeSats;
+    }
+    if (cancelledTxids != null) {
+      $result.cancelledTxids.addAll(cancelledTxids);
+    }
+    return $result;
+  }
+  CancelBidResponse._() : super();
+  factory CancelBidResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CancelBidResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CancelBidResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'replacementTxid')
+    ..aInt64(2, _omitFieldNames ? '' : 'recoveredSats')
+    ..aInt64(3, _omitFieldNames ? '' : 'feeSats')
+    ..pPS(4, _omitFieldNames ? '' : 'cancelledTxids')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CancelBidResponse clone() => CancelBidResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CancelBidResponse copyWith(void Function(CancelBidResponse) updates) => super.copyWith((message) => updates(message as CancelBidResponse)) as CancelBidResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelBidResponse create() => CancelBidResponse._();
+  CancelBidResponse createEmptyInstance() => create();
+  static $pb.PbList<CancelBidResponse> createRepeated() => $pb.PbList<CancelBidResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CancelBidResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CancelBidResponse>(create);
+  static CancelBidResponse? _defaultInstance;
+
+  /// The replacement transaction.
+  @$pb.TagNumber(1)
+  $core.String get replacementTxid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set replacementTxid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasReplacementTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearReplacementTxid() => clearField(1);
+
+  /// What the fresh address receives.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get recoveredSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set recoveredSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasRecoveredSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRecoveredSats() => clearField(2);
+
+  /// What the replacement pays the miner to evict the chain.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get feeSats => $_getI64(2);
+  @$pb.TagNumber(3)
+  set feeSats($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFeeSats() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeeSats() => clearField(3);
+
+  /// Every bid the replacement evicts, the named one included.
+  @$pb.TagNumber(4)
+  $core.List<$core.String> get cancelledTxids => $_getList(3);
+}
+
 class CreateBidResponse extends $pb.GeneratedMessage {
   factory CreateBidResponse({
     $core.String? criticalHash,
@@ -1525,6 +1681,258 @@ class ListBidsResponse extends $pb.GeneratedMessage {
   $core.List<Bid> get bids => $_getList(0);
 }
 
+class PrepareBMMRequest extends $pb.GeneratedMessage {
+  factory PrepareBMMRequest({
+    $core.Iterable<PrepareBMMTarget>? targets,
+  }) {
+    final $result = create();
+    if (targets != null) {
+      $result.targets.addAll(targets);
+    }
+    return $result;
+  }
+  PrepareBMMRequest._() : super();
+  factory PrepareBMMRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PrepareBMMRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PrepareBMMRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
+    ..pc<PrepareBMMTarget>(1, _omitFieldNames ? '' : 'targets', $pb.PbFieldType.PM, subBuilder: PrepareBMMTarget.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PrepareBMMRequest clone() => PrepareBMMRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PrepareBMMRequest copyWith(void Function(PrepareBMMRequest) updates) => super.copyWith((message) => updates(message as PrepareBMMRequest)) as PrepareBMMRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMRequest create() => PrepareBMMRequest._();
+  PrepareBMMRequest createEmptyInstance() => create();
+  static $pb.PbList<PrepareBMMRequest> createRepeated() => $pb.PbList<PrepareBMMRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PrepareBMMRequest>(create);
+  static PrepareBMMRequest? _defaultInstance;
+
+  /// The sidechains that bid now. Each one needs a coin of its own.
+  @$pb.TagNumber(1)
+  $core.List<PrepareBMMTarget> get targets => $_getList(0);
+}
+
+/// PrepareBMMTarget is one sidechain that bids.
+class PrepareBMMTarget extends $pb.GeneratedMessage {
+  factory PrepareBMMTarget({
+    $core.String? walletId,
+    $fixnum.Int64? maxBidSats,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (maxBidSats != null) {
+      $result.maxBidSats = maxBidSats;
+    }
+    return $result;
+  }
+  PrepareBMMTarget._() : super();
+  factory PrepareBMMTarget.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PrepareBMMTarget.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PrepareBMMTarget', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..aInt64(2, _omitFieldNames ? '' : 'maxBidSats')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PrepareBMMTarget clone() => PrepareBMMTarget()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PrepareBMMTarget copyWith(void Function(PrepareBMMTarget) updates) => super.copyWith((message) => updates(message as PrepareBMMTarget)) as PrepareBMMTarget;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMTarget create() => PrepareBMMTarget._();
+  PrepareBMMTarget createEmptyInstance() => create();
+  static $pb.PbList<PrepareBMMTarget> createRepeated() => $pb.PbList<PrepareBMMTarget>();
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMTarget getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PrepareBMMTarget>(create);
+  static PrepareBMMTarget? _defaultInstance;
+
+  /// Wallet that funds its bids. Empty uses the active wallet.
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  /// Ceiling one of its bids may pay, in sats. It sizes the coin.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get maxBidSats => $_getI64(1);
+  @$pb.TagNumber(2)
+  set maxBidSats($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasMaxBidSats() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMaxBidSats() => clearField(2);
+}
+
+class PrepareBMMResponse extends $pb.GeneratedMessage {
+  factory PrepareBMMResponse({
+    $core.Iterable<PrepareBMMWallet>? wallets,
+  }) {
+    final $result = create();
+    if (wallets != null) {
+      $result.wallets.addAll(wallets);
+    }
+    return $result;
+  }
+  PrepareBMMResponse._() : super();
+  factory PrepareBMMResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PrepareBMMResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PrepareBMMResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
+    ..pc<PrepareBMMWallet>(1, _omitFieldNames ? '' : 'wallets', $pb.PbFieldType.PM, subBuilder: PrepareBMMWallet.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PrepareBMMResponse clone() => PrepareBMMResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PrepareBMMResponse copyWith(void Function(PrepareBMMResponse) updates) => super.copyWith((message) => updates(message as PrepareBMMResponse)) as PrepareBMMResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMResponse create() => PrepareBMMResponse._();
+  PrepareBMMResponse createEmptyInstance() => create();
+  static $pb.PbList<PrepareBMMResponse> createRepeated() => $pb.PbList<PrepareBMMResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PrepareBMMResponse>(create);
+  static PrepareBMMResponse? _defaultInstance;
+
+  /// One entry per wallet the targets name, with aliases of one wallet joined.
+  @$pb.TagNumber(1)
+  $core.List<PrepareBMMWallet> get wallets => $_getList(0);
+}
+
+class PrepareBMMWallet extends $pb.GeneratedMessage {
+  factory PrepareBMMWallet({
+    $core.String? walletId,
+    $core.int? usableCoins,
+    $core.int? wantedCoins,
+    $core.String? splitTxid,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (usableCoins != null) {
+      $result.usableCoins = usableCoins;
+    }
+    if (wantedCoins != null) {
+      $result.wantedCoins = wantedCoins;
+    }
+    if (splitTxid != null) {
+      $result.splitTxid = splitTxid;
+    }
+    return $result;
+  }
+  PrepareBMMWallet._() : super();
+  factory PrepareBMMWallet.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PrepareBMMWallet.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PrepareBMMWallet', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'usableCoins', $pb.PbFieldType.O3)
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'wantedCoins', $pb.PbFieldType.O3)
+    ..aOS(4, _omitFieldNames ? '' : 'splitTxid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PrepareBMMWallet clone() => PrepareBMMWallet()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PrepareBMMWallet copyWith(void Function(PrepareBMMWallet) updates) => super.copyWith((message) => updates(message as PrepareBMMWallet)) as PrepareBMMWallet;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMWallet create() => PrepareBMMWallet._();
+  PrepareBMMWallet createEmptyInstance() => create();
+  static $pb.PbList<PrepareBMMWallet> createRepeated() => $pb.PbList<PrepareBMMWallet>();
+  @$core.pragma('dart2js:noInline')
+  static PrepareBMMWallet getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PrepareBMMWallet>(create);
+  static PrepareBMMWallet? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  /// Coins the wallet holds that a sidechain can bid many rounds from.
+  @$pb.TagNumber(2)
+  $core.int get usableCoins => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set usableCoins($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasUsableCoins() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUsableCoins() => clearField(2);
+
+  /// Coins the sidechains that spend this wallet need, one each.
+  @$pb.TagNumber(3)
+  $core.int get wantedCoins => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set wantedCoins($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasWantedCoins() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWantedCoins() => clearField(3);
+
+  /// Transaction that pays the missing coins. Empty when none was necessary.
+  @$pb.TagNumber(4)
+  $core.String get splitTxid => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set splitTxid($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSplitTxid() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSplitTxid() => clearField(4);
+}
+
 class BMMServiceApi {
   $pb.RpcClient _client;
   BMMServiceApi(this._client);
@@ -1550,8 +1958,14 @@ class BMMServiceApi {
   $async.Future<ConnectBidResponse> connectBid($pb.ClientContext? ctx, ConnectBidRequest request) =>
     _client.invoke<ConnectBidResponse>(ctx, 'BMMService', 'ConnectBid', request, ConnectBidResponse())
   ;
+  $async.Future<CancelBidResponse> cancelBid($pb.ClientContext? ctx, CancelBidRequest request) =>
+    _client.invoke<CancelBidResponse>(ctx, 'BMMService', 'CancelBid', request, CancelBidResponse())
+  ;
   $async.Future<ListBidsResponse> listBids($pb.ClientContext? ctx, ListBidsRequest request) =>
     _client.invoke<ListBidsResponse>(ctx, 'BMMService', 'ListBids', request, ListBidsResponse())
+  ;
+  $async.Future<PrepareBMMResponse> prepareBMM($pb.ClientContext? ctx, PrepareBMMRequest request) =>
+    _client.invoke<PrepareBMMResponse>(ctx, 'BMMService', 'PrepareBMM', request, PrepareBMMResponse())
   ;
 }
 

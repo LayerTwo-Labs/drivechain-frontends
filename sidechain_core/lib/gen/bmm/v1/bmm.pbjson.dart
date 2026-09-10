@@ -234,6 +234,38 @@ final $typed_data.Uint8List createBidRequestDescriptor = $convert.base64Decode(
     'NhdF92YhgHIAEoAVIMZmVlUmF0ZVNhdFZiEiAKDG1heF9iaWRfc2F0cxgIIAEoA1IKbWF4Qmlk'
     'U2F0cw==');
 
+@$core.Deprecated('Use cancelBidRequestDescriptor instead')
+const CancelBidRequest$json = {
+  '1': 'CancelBidRequest',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'txid', '3': 2, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `CancelBidRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelBidRequestDescriptor = $convert.base64Decode(
+    'ChBDYW5jZWxCaWRSZXF1ZXN0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSEgoEdHhpZB'
+    'gCIAEoCVIEdHhpZA==');
+
+@$core.Deprecated('Use cancelBidResponseDescriptor instead')
+const CancelBidResponse$json = {
+  '1': 'CancelBidResponse',
+  '2': [
+    {'1': 'replacement_txid', '3': 1, '4': 1, '5': 9, '10': 'replacementTxid'},
+    {'1': 'recovered_sats', '3': 2, '4': 1, '5': 3, '10': 'recoveredSats'},
+    {'1': 'fee_sats', '3': 3, '4': 1, '5': 3, '10': 'feeSats'},
+    {'1': 'cancelled_txids', '3': 4, '4': 3, '5': 9, '10': 'cancelledTxids'},
+  ],
+};
+
+/// Descriptor for `CancelBidResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelBidResponseDescriptor = $convert.base64Decode(
+    'ChFDYW5jZWxCaWRSZXNwb25zZRIpChByZXBsYWNlbWVudF90eGlkGAEgASgJUg9yZXBsYWNlbW'
+    'VudFR4aWQSJQoOcmVjb3ZlcmVkX3NhdHMYAiABKANSDXJlY292ZXJlZFNhdHMSGQoIZmVlX3Nh'
+    'dHMYAyABKANSB2ZlZVNhdHMSJwoPY2FuY2VsbGVkX3R4aWRzGAQgAygJUg5jYW5jZWxsZWRUeG'
+    'lkcw==');
+
 @$core.Deprecated('Use createBidResponseDescriptor instead')
 const CreateBidResponse$json = {
   '1': 'CreateBidResponse',
@@ -311,6 +343,63 @@ const ListBidsResponse$json = {
 final $typed_data.Uint8List listBidsResponseDescriptor = $convert.base64Decode(
     'ChBMaXN0Qmlkc1Jlc3BvbnNlEh8KBGJpZHMYASADKAsyCy5ibW0udjEuQmlkUgRiaWRz');
 
+@$core.Deprecated('Use prepareBMMRequestDescriptor instead')
+const PrepareBMMRequest$json = {
+  '1': 'PrepareBMMRequest',
+  '2': [
+    {'1': 'targets', '3': 1, '4': 3, '5': 11, '6': '.bmm.v1.PrepareBMMTarget', '10': 'targets'},
+  ],
+};
+
+/// Descriptor for `PrepareBMMRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List prepareBMMRequestDescriptor = $convert.base64Decode(
+    'ChFQcmVwYXJlQk1NUmVxdWVzdBIyCgd0YXJnZXRzGAEgAygLMhguYm1tLnYxLlByZXBhcmVCTU'
+    '1UYXJnZXRSB3RhcmdldHM=');
+
+@$core.Deprecated('Use prepareBMMTargetDescriptor instead')
+const PrepareBMMTarget$json = {
+  '1': 'PrepareBMMTarget',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'max_bid_sats', '3': 2, '4': 1, '5': 3, '10': 'maxBidSats'},
+  ],
+};
+
+/// Descriptor for `PrepareBMMTarget`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List prepareBMMTargetDescriptor = $convert.base64Decode(
+    'ChBQcmVwYXJlQk1NVGFyZ2V0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSIAoMbWF4X2'
+    'JpZF9zYXRzGAIgASgDUgptYXhCaWRTYXRz');
+
+@$core.Deprecated('Use prepareBMMResponseDescriptor instead')
+const PrepareBMMResponse$json = {
+  '1': 'PrepareBMMResponse',
+  '2': [
+    {'1': 'wallets', '3': 1, '4': 3, '5': 11, '6': '.bmm.v1.PrepareBMMWallet', '10': 'wallets'},
+  ],
+};
+
+/// Descriptor for `PrepareBMMResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List prepareBMMResponseDescriptor = $convert.base64Decode(
+    'ChJQcmVwYXJlQk1NUmVzcG9uc2USMgoHd2FsbGV0cxgBIAMoCzIYLmJtbS52MS5QcmVwYXJlQk'
+    '1NV2FsbGV0Ugd3YWxsZXRz');
+
+@$core.Deprecated('Use prepareBMMWalletDescriptor instead')
+const PrepareBMMWallet$json = {
+  '1': 'PrepareBMMWallet',
+  '2': [
+    {'1': 'wallet_id', '3': 1, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'usable_coins', '3': 2, '4': 1, '5': 5, '10': 'usableCoins'},
+    {'1': 'wanted_coins', '3': 3, '4': 1, '5': 5, '10': 'wantedCoins'},
+    {'1': 'split_txid', '3': 4, '4': 1, '5': 9, '10': 'splitTxid'},
+  ],
+};
+
+/// Descriptor for `PrepareBMMWallet`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List prepareBMMWalletDescriptor = $convert.base64Decode(
+    'ChBQcmVwYXJlQk1NV2FsbGV0EhsKCXdhbGxldF9pZBgBIAEoCVIId2FsbGV0SWQSIQoMdXNhYm'
+    'xlX2NvaW5zGAIgASgFUgt1c2FibGVDb2lucxIhCgx3YW50ZWRfY29pbnMYAyABKAVSC3dhbnRl'
+    'ZENvaW5zEh0KCnNwbGl0X3R4aWQYBCABKAlSCXNwbGl0VHhpZA==');
+
 const $core.Map<$core.String, $core.dynamic> BMMServiceBase$json = {
   '1': 'BMMService',
   '2': [
@@ -321,7 +410,9 @@ const $core.Map<$core.String, $core.dynamic> BMMServiceBase$json = {
     {'1': 'GetRoundBids', '2': '.bmm.v1.GetRoundBidsRequest', '3': '.bmm.v1.GetRoundBidsResponse'},
     {'1': 'CreateBid', '2': '.bmm.v1.CreateBidRequest', '3': '.bmm.v1.CreateBidResponse'},
     {'1': 'ConnectBid', '2': '.bmm.v1.ConnectBidRequest', '3': '.bmm.v1.ConnectBidResponse'},
+    {'1': 'CancelBid', '2': '.bmm.v1.CancelBidRequest', '3': '.bmm.v1.CancelBidResponse'},
     {'1': 'ListBids', '2': '.bmm.v1.ListBidsRequest', '3': '.bmm.v1.ListBidsResponse'},
+    {'1': 'PrepareBMM', '2': '.bmm.v1.PrepareBMMRequest', '3': '.bmm.v1.PrepareBMMResponse'},
   ],
 };
 
@@ -343,8 +434,14 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BMMService
   '.bmm.v1.CreateBidResponse': CreateBidResponse$json,
   '.bmm.v1.ConnectBidRequest': ConnectBidRequest$json,
   '.bmm.v1.ConnectBidResponse': ConnectBidResponse$json,
+  '.bmm.v1.CancelBidRequest': CancelBidRequest$json,
+  '.bmm.v1.CancelBidResponse': CancelBidResponse$json,
   '.bmm.v1.ListBidsRequest': ListBidsRequest$json,
   '.bmm.v1.ListBidsResponse': ListBidsResponse$json,
+  '.bmm.v1.PrepareBMMRequest': PrepareBMMRequest$json,
+  '.bmm.v1.PrepareBMMTarget': PrepareBMMTarget$json,
+  '.bmm.v1.PrepareBMMResponse': PrepareBMMResponse$json,
+  '.bmm.v1.PrepareBMMWallet': PrepareBMMWallet$json,
 };
 
 /// Descriptor for `BMMService`. Decode as a `google.protobuf.ServiceDescriptorProto`.
@@ -357,6 +454,8 @@ final $typed_data.Uint8List bMMServiceDescriptor = $convert.base64Decode(
     'JvdW5kQmlkc1JlcXVlc3QaHC5ibW0udjEuR2V0Um91bmRCaWRzUmVzcG9uc2USQAoJQ3JlYXRl'
     'QmlkEhguYm1tLnYxLkNyZWF0ZUJpZFJlcXVlc3QaGS5ibW0udjEuQ3JlYXRlQmlkUmVzcG9uc2'
     'USQwoKQ29ubmVjdEJpZBIZLmJtbS52MS5Db25uZWN0QmlkUmVxdWVzdBoaLmJtbS52MS5Db25u'
-    'ZWN0QmlkUmVzcG9uc2USPQoITGlzdEJpZHMSFy5ibW0udjEuTGlzdEJpZHNSZXF1ZXN0GhguYm'
-    '1tLnYxLkxpc3RCaWRzUmVzcG9uc2U=');
+    'ZWN0QmlkUmVzcG9uc2USQAoJQ2FuY2VsQmlkEhguYm1tLnYxLkNhbmNlbEJpZFJlcXVlc3QaGS'
+    '5ibW0udjEuQ2FuY2VsQmlkUmVzcG9uc2USPQoITGlzdEJpZHMSFy5ibW0udjEuTGlzdEJpZHNS'
+    'ZXF1ZXN0GhguYm1tLnYxLkxpc3RCaWRzUmVzcG9uc2USQwoKUHJlcGFyZUJNTRIZLmJtbS52MS'
+    '5QcmVwYXJlQk1NUmVxdWVzdBoaLmJtbS52MS5QcmVwYXJlQk1NUmVzcG9uc2U=');
 

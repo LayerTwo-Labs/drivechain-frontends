@@ -28,7 +28,9 @@ abstract class BMMServiceBase extends $pb.GeneratedService {
   $async.Future<$4.GetRoundBidsResponse> getRoundBids($pb.ServerContext ctx, $4.GetRoundBidsRequest request);
   $async.Future<$4.CreateBidResponse> createBid($pb.ServerContext ctx, $4.CreateBidRequest request);
   $async.Future<$4.ConnectBidResponse> connectBid($pb.ServerContext ctx, $4.ConnectBidRequest request);
+  $async.Future<$4.CancelBidResponse> cancelBid($pb.ServerContext ctx, $4.CancelBidRequest request);
   $async.Future<$4.ListBidsResponse> listBids($pb.ServerContext ctx, $4.ListBidsRequest request);
+  $async.Future<$4.PrepareBMMResponse> prepareBMM($pb.ServerContext ctx, $4.PrepareBMMRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -39,7 +41,9 @@ abstract class BMMServiceBase extends $pb.GeneratedService {
       case 'GetRoundBids': return $4.GetRoundBidsRequest();
       case 'CreateBid': return $4.CreateBidRequest();
       case 'ConnectBid': return $4.ConnectBidRequest();
+      case 'CancelBid': return $4.CancelBidRequest();
       case 'ListBids': return $4.ListBidsRequest();
+      case 'PrepareBMM': return $4.PrepareBMMRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -53,7 +57,9 @@ abstract class BMMServiceBase extends $pb.GeneratedService {
       case 'GetRoundBids': return this.getRoundBids(ctx, request as $4.GetRoundBidsRequest);
       case 'CreateBid': return this.createBid(ctx, request as $4.CreateBidRequest);
       case 'ConnectBid': return this.connectBid(ctx, request as $4.ConnectBidRequest);
+      case 'CancelBid': return this.cancelBid(ctx, request as $4.CancelBidRequest);
       case 'ListBids': return this.listBids(ctx, request as $4.ListBidsRequest);
+      case 'PrepareBMM': return this.prepareBMM(ctx, request as $4.PrepareBMMRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

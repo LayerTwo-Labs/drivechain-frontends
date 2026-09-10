@@ -34,6 +34,9 @@ service BMMService {
   // drive a single attempt by hand; Start does both on a loop.
   rpc CreateBid(CreateBidRequest) returns (CreateBidResponse);
   rpc ConnectBid(ConnectBidRequest) returns (ConnectBidResponse);
+  // CancelBid replaces a stranded bid with a payment back to its own wallet,
+  // so the coins under it come back. A bid that can still win is refused.
+  rpc CancelBid(CancelBidRequest) returns (CancelBidResponse);
   // ListBids reads the competing bids for the slot out of the mainchain
   // mempool, highest bid first.
   rpc ListBids(ListBidsRequest) returns (ListBidsResponse);
@@ -168,6 +171,24 @@ message CreateBidRequest {
   double fee_rate_sat_vb = 7;
   // Highest the bid may go, in sats. Zero sets no ceiling.
   int64 max_bid_sats = 8;
+}
+
+message CancelBidRequest {
+  // Wallet that funds the replacement. Empty uses the active wallet.
+  string wallet_id = 1;
+  // The stranded M8 transaction.
+  string txid = 2;
+}
+
+message CancelBidResponse {
+  // The replacement transaction.
+  string replacement_txid = 1;
+  // What the fresh address receives.
+  int64 recovered_sats = 2;
+  // What the replacement pays the miner to evict the chain.
+  int64 fee_sats = 3;
+  // Every bid the replacement evicts, the named one included.
+  repeated string cancelled_txids = 4;
 }
 
 message CreateBidResponse {

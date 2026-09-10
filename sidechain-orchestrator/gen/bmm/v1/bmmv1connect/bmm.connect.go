@@ -47,6 +47,8 @@ const (
 	BMMServiceCreateBidProcedure = "/bmm.v1.BMMService/CreateBid"
 	// BMMServiceConnectBidProcedure is the fully-qualified name of the BMMService's ConnectBid RPC.
 	BMMServiceConnectBidProcedure = "/bmm.v1.BMMService/ConnectBid"
+	// BMMServiceCancelBidProcedure is the fully-qualified name of the BMMService's CancelBid RPC.
+	BMMServiceCancelBidProcedure = "/bmm.v1.BMMService/CancelBid"
 	// BMMServiceListBidsProcedure is the fully-qualified name of the BMMService's ListBids RPC.
 	BMMServiceListBidsProcedure = "/bmm.v1.BMMService/ListBids"
 	// BMMServicePrepareBMMProcedure is the fully-qualified name of the BMMService's PrepareBMM RPC.
@@ -74,6 +76,9 @@ type BMMServiceClient interface {
 	// drive a single attempt by hand; Start does both on a loop.
 	CreateBid(context.Context, *connect.Request[v1.CreateBidRequest]) (*connect.Response[v1.CreateBidResponse], error)
 	ConnectBid(context.Context, *connect.Request[v1.ConnectBidRequest]) (*connect.Response[v1.ConnectBidResponse], error)
+	// CancelBid replaces a stranded bid with a payment back to its own wallet,
+	// so the coins under it come back. A bid that can still win is refused.
+	CancelBid(context.Context, *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error)
 	// ListBids reads the competing bids for the slot out of the mainchain
 	// mempool, highest bid first.
 	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
@@ -137,6 +142,12 @@ func NewBMMServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(bMMServiceMethods.ByName("ConnectBid")),
 			connect.WithClientOptions(opts...),
 		),
+		cancelBid: connect.NewClient[v1.CancelBidRequest, v1.CancelBidResponse](
+			httpClient,
+			baseURL+BMMServiceCancelBidProcedure,
+			connect.WithSchema(bMMServiceMethods.ByName("CancelBid")),
+			connect.WithClientOptions(opts...),
+		),
 		listBids: connect.NewClient[v1.ListBidsRequest, v1.ListBidsResponse](
 			httpClient,
 			baseURL+BMMServiceListBidsProcedure,
@@ -161,6 +172,7 @@ type bMMServiceClient struct {
 	getRoundBids *connect.Client[v1.GetRoundBidsRequest, v1.GetRoundBidsResponse]
 	createBid    *connect.Client[v1.CreateBidRequest, v1.CreateBidResponse]
 	connectBid   *connect.Client[v1.ConnectBidRequest, v1.ConnectBidResponse]
+	cancelBid    *connect.Client[v1.CancelBidRequest, v1.CancelBidResponse]
 	listBids     *connect.Client[v1.ListBidsRequest, v1.ListBidsResponse]
 	prepareBMM   *connect.Client[v1.PrepareBMMRequest, v1.PrepareBMMResponse]
 }
@@ -200,6 +212,11 @@ func (c *bMMServiceClient) ConnectBid(ctx context.Context, req *connect.Request[
 	return c.connectBid.CallUnary(ctx, req)
 }
 
+// CancelBid calls bmm.v1.BMMService.CancelBid.
+func (c *bMMServiceClient) CancelBid(ctx context.Context, req *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error) {
+	return c.cancelBid.CallUnary(ctx, req)
+}
+
 // ListBids calls bmm.v1.BMMService.ListBids.
 func (c *bMMServiceClient) ListBids(ctx context.Context, req *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error) {
 	return c.listBids.CallUnary(ctx, req)
@@ -231,6 +248,9 @@ type BMMServiceHandler interface {
 	// drive a single attempt by hand; Start does both on a loop.
 	CreateBid(context.Context, *connect.Request[v1.CreateBidRequest]) (*connect.Response[v1.CreateBidResponse], error)
 	ConnectBid(context.Context, *connect.Request[v1.ConnectBidRequest]) (*connect.Response[v1.ConnectBidResponse], error)
+	// CancelBid replaces a stranded bid with a payment back to its own wallet,
+	// so the coins under it come back. A bid that can still win is refused.
+	CancelBid(context.Context, *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error)
 	// ListBids reads the competing bids for the slot out of the mainchain
 	// mempool, highest bid first.
 	ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error)
@@ -290,6 +310,12 @@ func NewBMMServiceHandler(svc BMMServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(bMMServiceMethods.ByName("ConnectBid")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bMMServiceCancelBidHandler := connect.NewUnaryHandler(
+		BMMServiceCancelBidProcedure,
+		svc.CancelBid,
+		connect.WithSchema(bMMServiceMethods.ByName("CancelBid")),
+		connect.WithHandlerOptions(opts...),
+	)
 	bMMServiceListBidsHandler := connect.NewUnaryHandler(
 		BMMServiceListBidsProcedure,
 		svc.ListBids,
@@ -318,6 +344,8 @@ func NewBMMServiceHandler(svc BMMServiceHandler, opts ...connect.HandlerOption) 
 			bMMServiceCreateBidHandler.ServeHTTP(w, r)
 		case BMMServiceConnectBidProcedure:
 			bMMServiceConnectBidHandler.ServeHTTP(w, r)
+		case BMMServiceCancelBidProcedure:
+			bMMServiceCancelBidHandler.ServeHTTP(w, r)
 		case BMMServiceListBidsProcedure:
 			bMMServiceListBidsHandler.ServeHTTP(w, r)
 		case BMMServicePrepareBMMProcedure:
@@ -357,6 +385,10 @@ func (UnimplementedBMMServiceHandler) CreateBid(context.Context, *connect.Reques
 
 func (UnimplementedBMMServiceHandler) ConnectBid(context.Context, *connect.Request[v1.ConnectBidRequest]) (*connect.Response[v1.ConnectBidResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.ConnectBid is not implemented"))
+}
+
+func (UnimplementedBMMServiceHandler) CancelBid(context.Context, *connect.Request[v1.CancelBidRequest]) (*connect.Response[v1.CancelBidResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bmm.v1.BMMService.CancelBid is not implemented"))
 }
 
 func (UnimplementedBMMServiceHandler) ListBids(context.Context, *connect.Request[v1.ListBidsRequest]) (*connect.Response[v1.ListBidsResponse], error) {
