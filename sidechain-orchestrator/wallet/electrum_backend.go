@@ -108,6 +108,10 @@ type ElectrumBackend struct {
 	subStatus  map[string]string
 	shWallet   map[string]string
 	consumerCh <-chan ElectrumNotification
+
+	// The descriptor build runs on every balance read; the warning is a
+	// property of the wallet, so it reads one time.
+	warnedNoOrigin sync.Map
 }
 
 var (
@@ -1971,6 +1975,11 @@ func (p *ElectrumBackend) multisigSigningDescriptorFor(w *WalletData, onlyXpub s
 		signWithXprv[c.Xpub] = xprv
 	}
 
+	if len(noOrigin) > 0 {
+		if _, seen := p.warnedNoOrigin.LoadOrStore(w.ID, true); seen {
+			noOrigin = nil
+		}
+	}
 	if len(noOrigin) > 0 {
 		p.log.Warn().
 			Str("wallet", w.ID).
