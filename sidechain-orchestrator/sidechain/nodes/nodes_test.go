@@ -9,6 +9,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
 // Two transports carry connect_block, and both give it its own deadline. A
@@ -38,7 +39,7 @@ func TestEveryBmmSidechainTakesAnAuditedTransport(t *testing.T) {
 			require.True(t, ok, "the BMM engine drives this chain")
 
 			switch bmm.(type) {
-			case *sidechain.JSONRPCProxy, *bbc.Client:
+			case *sidechain.JSONRPCProxy, *bbc.Client, *zside.Node:
 			default:
 				assert.Failf(t, "unaudited transport", "%s takes %T", chain.name, bmm)
 			}
