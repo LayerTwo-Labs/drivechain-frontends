@@ -143,7 +143,19 @@ const double bumpFeeColumnWidth = 104;
 /// Only a transaction that waits for a block can carry a replacement. Whether
 /// this wallet signs its inputs comes from the backend preview, because a
 /// self-send and a consolidation both read as amount zero here.
-bool canBumpFee(WalletTransaction tx) => tx.confirmationTime.height == 0;
+bool canBumpFee(WalletTransaction tx) => tx.confirmationTime.height == 0 && !canCancelBid(tx);
+
+/// A lost bid names a mainchain block the chain already built past, so no miner
+/// can take it. A replacement is the only way back to the coins.
+bool canCancelBid(WalletTransaction tx) => tx.hasBmmBid() && tx.bmmBid.lost;
+
+/// What the status column says about one transaction.
+String transactionStatus(WalletTransaction tx) {
+  if (tx.hasBmmBid()) {
+    return tx.bmmBid.lost ? 'BMM bid \u00b7 lost' : 'BMM bid \u00b7 slot ${tx.bmmBid.slot}';
+  }
+  return tx.confirmationTime.height == 0 ? 'Unconfirmed' : 'Confirmed';
+}
 
 class TransactionTable extends StatefulWidget {
   final Widget searchWidget;
@@ -296,6 +308,7 @@ class _TransactionTableState extends State<TransactionTable> {
                         final entry = entries[row];
                         final unconfirmed = entry.confirmationTime.height == 0;
                         final replaceable = canBumpFee(entry);
+                        final cancellable = canCancelBid(entry);
 
                         // Calculate amount and determine sign
                         final amountDiff = entry.receivedSatoshi - entry.sentSatoshi;
@@ -317,7 +330,7 @@ class _TransactionTableState extends State<TransactionTable> {
                             value: entry.note,
                           ),
                           SailTableCell(
-                            value: unconfirmed ? 'Unconfirmed' : 'Confirmed',
+                            value: transactionStatus(entry),
                             textColor: unconfirmed ? context.sailTheme.colors.orange : null,
                           ),
                           SailTableCell(
@@ -325,10 +338,20 @@ class _TransactionTableState extends State<TransactionTable> {
                             monospace: true,
                           ),
                           SailTableCell(
-                            value: replaceable ? 'Bump fee' : '',
+                            value: cancellable
+                                ? 'Cancel bid'
+                                : replaceable
+                                ? 'Bump fee'
+                                : '',
                             width: bumpFeeColumnWidth,
                             alignment: Alignment.centerRight,
-                            child: replaceable
+                            child: cancellable
+                                ? SailButton(
+                                    label: 'Cancel bid',
+                                    onPressed: () async => widget.model.cancelBid(context, entry),
+                                    insideTable: true,
+                                  )
+                                : replaceable
                                 ? SailButton(
                                     label: 'Bump fee',
                                     onPressed: () async => widget.model.openBumpFee(context, entry),
@@ -378,6 +401,14 @@ class _TransactionTableState extends State<TransactionTable> {
                             },
                             child: SailText.primary12(entry.note.isEmpty ? 'Add Note' : 'Update Note'),
                           ),
+                          if (canCancelBid(entry))
+                            SailMenuItem(
+                              closeOnSelect: false,
+                              onSelected: () async {
+                                await widget.model.cancelBid(context, entry);
+                              },
+                              child: SailText.primary12('Cancel bid'),
+                            ),
                           if (canBumpFee(entry))
                             SailMenuItem(
                               closeOnSelect: false,
@@ -437,6 +468,7 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
   final TransactionProvider _txProvider = GetIt.I<TransactionProvider>();
   final BitwindowRPC _bitwindowRPC = GetIt.I<BitwindowRPC>();
   final OrchestratorWalletRPC _orchestratorWallet = GetIt.I<OrchestratorRPC>().wallet;
+  final OrchestratorBmmRPC _orchestratorBmm = GetIt.I<OrchestratorRPC>().bmm;
   final EnforcerRPC _enforcerRPC = GetIt.I<EnforcerRPC>();
   final BalanceProvider _balanceProvider = GetIt.I<BalanceProvider>();
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
@@ -654,6 +686,33 @@ class OverviewViewModel extends BaseViewModel with ChangeTrackingMixin {
     );
     if (outcome == BumpFeeOutcome.accelerate && context.mounted) {
       await accelerateCpfp(context, tx);
+    }
+  }
+
+  /// Replaces a lost bid with a payment back to this wallet.
+  Future<void> cancelBid(BuildContext context, WalletTransaction tx) async {
+    final log = GetIt.I<Logger>();
+    try {
+      final result = await _orchestratorBmm.cancelBid(
+        txid: tx.txid,
+        walletId: _walletReader.activeWalletId,
+      );
+      log.i('cancelled bid ${tx.txid} with ${result.replacementTxid}');
+      if (context.mounted) {
+        showSailToast(
+          context,
+          'Cancelled. ${result.recoveredSats} sats come back in ${result.replacementTxid}',
+          variant: SailToastVariant.success,
+        );
+      }
+      // The network holds the replacement already. A refresh that fails changes
+      // nothing about that.
+      unawaited(_txProvider.fetch());
+    } catch (e) {
+      log.e('failed to cancel bid ${tx.txid}: $e');
+      if (context.mounted) {
+        showSailToast(context, 'Failed to cancel the bid: $e');
+      }
     }
   }
 
