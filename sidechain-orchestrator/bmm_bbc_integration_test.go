@@ -291,10 +291,10 @@ func activateSlot(ctx context.Context, t *testing.T, enforcer *jsonClient) {
 			},
 		},
 	}, nil))
-	// The field is ack_all; a wrong key here is silently ignored and the
+	// The field is policy; a wrong key here is silently ignored and the
 	// proposal expires without ever gaining a vote.
 	require.NoError(t, enforcer.call(ctx, "BlockProducerService/SetAckAllProposals",
-		map[string]any{"ackAll": true}, nil))
+		map[string]any{"policy": "ACK_ALL_PROPOSALS_POLICY_ALL"}, nil))
 
 	for i := 0; i < 12; i++ {
 		mineMainchain(ctx, t, enforcer, 1, address.Address)
