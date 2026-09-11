@@ -45,6 +45,21 @@ func TestLightPendingSkipsADeletedWallet(t *testing.T) {
 	require.Len(t, wallet.listed, 2)
 }
 
+// A wallet a stored round names can answer with a transient fault rather than
+// a deletion. Reading that as "no pending bids" leaves a stranded bid in place
+// and opens a second bid beside it, so the read fails instead.
+func TestLightPendingFailsOnATransientPriorWallet(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{
+		txs:     []*wpb.TransactionEntry{{Txid: "bid", Confirmations: 0}},
+		listErr: map[string]error{"older": fmt.Errorf("context deadline exceeded")},
+	}
+
+	_, err := h.MempoolTxids(context.Background(), []string{"bidder", "older"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "context deadline exceeded")
+}
+
 // The current funding wallet is the first id. A backend that cannot list it
 // reports nothing about our bids, so the read fails rather than reports none.
 func TestLightPendingFailsOnTheCurrentWallet(t *testing.T) {

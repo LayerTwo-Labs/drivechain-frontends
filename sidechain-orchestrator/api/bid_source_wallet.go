@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/samber/lo"
@@ -86,6 +87,13 @@ func (w walletBids) evicted(_ context.Context, _, chain []string) []string {
 // whole confirmed history.
 const pendingListCount = 100_000
 
+// walletGone reports whether the wallet no longer exists. The router answers
+// "wallet <id> not found" for one a user deleted, and the handler carries that
+// text through as an internal error.
+func walletGone(err error) bool {
+	return strings.Contains(err.Error(), "not found")
+}
+
 // PendingTxids names our own transactions no block carries yet, over every
 // wallet in walletIDs. The first id names the current funding wallet.
 func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[string]bool, error) {
@@ -100,9 +108,10 @@ func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[s
 		}))
 		if err != nil {
 			// A stored round names its funding wallet forever, so the tail of
-			// this list can name a wallet the user deleted since. The current
-			// wallet reads the same backend, so a backend that is down fails.
-			if i > 0 {
+			// this list can name a wallet the user deleted since. Only that
+			// answer is safe to skip; every other one hides a backend fault
+			// and would report a stranded bid as absent.
+			if i > 0 && walletGone(err) {
 				continue
 			}
 			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("list the wallet transactions: %w", err))
