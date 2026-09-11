@@ -25,7 +25,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   List<Block> blocks = [];
   List<RecentTransaction> recentTransactions = [];
 
-  String? error;
+  List<String> errors = [];
   bool hasMoreBlocks = true;
   bool isLoadingMoreBlocks = false;
   Set<int> loadedBlockHeights = {};
@@ -50,46 +50,46 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     _isFetching = true;
 
     try {
-      final newPeers = (await _orchestrator.bitcoind.getPeerInfo(GetPeerInfoRequest())).peers;
-      final newTXs = await bitwindowd.bitwindowd.listRecentTransactions();
-      final (newBlocks, hasMore) = await bitwindowd.bitwindowd.listBlocks();
+      errors = [];
+      final tReq = bitwindowd.bitwindowd.listRecentTransactions().onError(_return(recentTransactions));
+      final bReq = bitwindowd.bitwindowd.listBlocks().onError(_return((blocks, false)));
+      final pReq = _orchestrator.bitcoind
+          .getPeerInfo(GetPeerInfoRequest())
+          .onError(_return(GetPeerInfoResponse(peers: peers)));
 
-      if (_dataHasChanged(newPeers, newTXs, newBlocks)) {
-        peers = newPeers;
-        recentTransactions = newTXs;
-        if (blocks.isEmpty) {
-          blocks = newBlocks;
-          loadedBlockHeights = newBlocks.map((b) => b.height).toSet();
-        }
-        hasMoreBlocks = hasMore;
-        error = null;
+      final newTXs = await tReq;
+      final newPeers = (await pReq).peers;
+      final (newBlocks, hasMore) = await bReq;
+
+      var hasChanges = recentTransactions.updateWith(newTXs);
+      hasChanges = hasChanges | peers.updateWith(newPeers);
+      hasChanges =
+          hasChanges |
+          blocks.updateWith(
+            newBlocks,
+            afterUpdate: () {
+              hasMoreBlocks = hasMore;
+              loadedBlockHeights = newBlocks.map((b) => b.height).toSet();
+            },
+          );
+      if (hasChanges) {
         notifyListeners();
       }
+      if (errors.isNotEmpty) {
+        log.e(errors.join('\n'));
+      }
     } catch (e) {
-      error = e.toString();
+      log.e(e);
     } finally {
       _isFetching = false;
     }
   }
 
-  bool _dataHasChanged(
-    List<Peer> newPeers,
-    List<RecentTransaction> newTXs,
-    List<Block> newBlocks,
-  ) {
-    if (!listEquals(peers, newPeers)) {
-      return true;
-    }
-
-    if (!listEquals(recentTransactions, newTXs)) {
-      return true;
-    }
-
-    if (!listEquals(blocks, newBlocks)) {
-      return true;
-    }
-
-    return false;
+  FutureOr<T> Function(Object? e, StackTrace stt) _return<T>(T previous) {
+    return (e, stt) {
+      errors.add(e.toString() + stt.toString());
+      return previous;
+    };
   }
 
   void _startFetchTimer() {
@@ -134,7 +134,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     loadedBlockHeights = {};
     hasMoreBlocks = true;
     isLoadingMoreBlocks = false;
-    error = null;
+    errors.clear();
     notifyListeners();
   }
 
@@ -175,5 +175,18 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     _fetchTimer = null;
     mainchain.removeListener(fetch);
     super.dispose();
+  }
+}
+
+extension on List {
+  bool updateWith<T>(List<T> newest, {void Function()? afterUpdate}) {
+    if (listEquals(this, newest)) {
+      return false;
+    }
+    this
+      ..clear()
+      ..addAll(newest);
+    afterUpdate?.call();
+    return true;
   }
 }
