@@ -55,7 +55,12 @@ func (h *Handler) depositPendingSats(ctx context.Context, cfg orchestrator.Binar
 		return 0, fmt.Errorf("read the %s wallet coins: %w", cfg.DisplayName, err)
 	}
 
-	pendingSats, credited := splitCreditedDeposits(open, owned, ourCoins)
+	spentCoins, err := sidechain.SpentCoins(ctx, node, depositAddresses(open, owned))
+	if err != nil {
+		return 0, fmt.Errorf("read the %s spent wallet coins: %w", cfg.DisplayName, err)
+	}
+
+	pendingSats, credited := splitCreditedDeposits(open, owned, ourCoins, spentCoins)
 	for _, txid := range credited {
 		if err := svc.MarkSidechainDepositCredited(ctx, txid); err != nil {
 			return 0, err
@@ -68,24 +73,37 @@ func (h *Handler) depositPendingSats(ctx context.Context, cfg orchestrator.Binar
 // names the deposits it now holds a coin for.
 //
 // A sidechain names the coin a deposit made after the mainchain outpoint that
-// paid it, so one deposit answers for one coin. That coin is the deposit
-// already inside the confirmed balance, and a deposit with no coin is in no
+// paid it, so one deposit answers for one coin. A deposit whose coin the wallet
+// holds or spent is already in the balance, and a deposit with no coin is in no
 // balance at all. So one listing puts a deposit in exactly one of the two.
 func splitCreditedDeposits(
-	deposits []wallet.SidechainDeposit, owned map[string]bool, ourCoins map[string]int64,
+	deposits []wallet.SidechainDeposit, owned map[string]bool, ourCoins, spentCoins map[string]int64,
 ) (pendingSats int64, credited []string) {
 	for _, d := range deposits {
 		// A deposit to somebody else's address never becomes our money.
 		if !owned[d.Destination] {
 			continue
 		}
-		if holdsDepositCoin(ourCoins, d.Txid) {
+		if holdsDepositCoin(ourCoins, d.Txid) || holdsDepositCoin(spentCoins, d.Txid) {
 			credited = append(credited, d.Txid)
 			continue
 		}
 		pendingSats += d.AmountSats
 	}
 	return pendingSats, credited
+}
+
+// depositAddresses names each address of ours that a deposit paid, once.
+func depositAddresses(deposits []wallet.SidechainDeposit, owned map[string]bool) []string {
+	seen := make(map[string]bool)
+	addresses := make([]string, 0, len(deposits))
+	for _, d := range deposits {
+		if owned[d.Destination] && !seen[d.Destination] {
+			seen[d.Destination] = true
+			addresses = append(addresses, d.Destination)
+		}
+	}
+	return addresses
 }
 
 // holdsDepositCoin is true when the wallet lists the coin this deposit made.

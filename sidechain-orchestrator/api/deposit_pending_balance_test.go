@@ -26,6 +26,9 @@ type depositNodeState struct {
 	balanceSats int64
 	coins       string
 	addresses   []string
+	// stxos is the get_stxos answer. Empty means the node serves no such method.
+	stxos      string
+	stxoParams json.RawMessage
 }
 
 // newDepositTestHandler starts a fake sidechain node and wires a handler with
@@ -37,6 +40,7 @@ func newDepositTestHandler(t *testing.T, state *depositNodeState) (*Handler, *wa
 		var request struct {
 			ID     json.RawMessage `json:"id"`
 			Method string          `json:"method"`
+			Params json.RawMessage `json:"params"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Error(err)
@@ -55,6 +59,13 @@ func newDepositTestHandler(t *testing.T, state *depositNodeState) (*Handler, *wa
 			response["result"] = json.RawMessage(state.coins)
 		case "list_mempool":
 			response["result"] = json.RawMessage("[]")
+		case "get_stxos":
+			if state.stxos == "" {
+				response["error"] = map[string]any{"code": -32601, "message": "method not found"}
+				break
+			}
+			state.stxoParams = request.Params
+			response["result"] = json.RawMessage(state.stxos)
 		default:
 			response["error"] = map[string]any{"code": -32601, "message": "method not found"}
 		}
@@ -148,6 +159,42 @@ func TestSidechainBalanceCountsAPendingDeposit(t *testing.T) {
 	confirmed, pending = thunderBalance(t, handler)
 	assert.Zero(t, confirmed)
 	assert.Zero(t, pending, "a spent deposit never returns to the unconfirmed count")
+}
+
+// The sidechain credited the deposit and the user spent its coin before the
+// next balance read, so only the spent outputs name it.
+func TestSidechainBalanceCreditsADepositTheWalletSpent(t *testing.T) {
+	const (
+		depositTxid = "a9997ec41890321392116da102a3d260a64f1b959120197f5ced15f3823c4659"
+		destination = "31Uq54gY9MptZYuwL6XGPGY5ko9s"
+		amountSats  = 100_000_000
+	)
+	ctx := context.Background()
+	state := &depositNodeState{
+		balanceSats: 99_999_000,
+		coins: `[{"outpoint":{"Regular":{"txid":"997f3d7084f14839f66c14e8719be56bd0976582e887d4da72e11d26884d979e","vout":0}},` +
+			`"output":{"address":"` + destination + `","content":{"Value":99999000}}}]`,
+		addresses: []string{destination},
+		stxos: `[{"outpoint":{"Deposit":"` + depositTxid + `:0"},` +
+			`"output":{"output":{"address":"` + destination + `","content":{"Value":100000000}},` +
+			`"inpoint":{"Regular":{"txid":"997f3d7084f14839f66c14e8719be56bd0976582e887d4da72e11d26884d979e","vin":0}}}}]`,
+	}
+	handler, svc := newDepositTestHandler(t, state)
+
+	require.NoError(t, svc.RecordSidechainDeposit(ctx, wallet.SidechainDeposit{
+		Txid: depositTxid, WalletID: svc.ActiveWalletID(), Slot: 9,
+		Destination: destination, AmountSats: amountSats, FeeSats: 10_000,
+	}))
+
+	confirmed, pending := thunderBalance(t, handler)
+	assert.Equal(t, uint64(99_999_000), confirmed)
+	assert.Zero(t, pending, "a spent deposit coin is no pending money")
+	assert.JSONEq(t, `[["`+destination+`"]]`, string(state.stxoParams))
+
+	deposits, err := svc.SidechainDeposits(ctx, 9, "")
+	require.NoError(t, err)
+	require.Len(t, deposits, 1)
+	assert.False(t, deposits[0].CreditedAt.IsZero(), "the spent deposit is marked credited")
 }
 
 // The deposit page hands out one address, so two deposits pay the same one.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync/atomic"
@@ -50,6 +51,14 @@ type rpcError struct {
 
 func (e *rpcError) Error() string {
 	return fmt.Sprintf("rpc error %d: %s", e.Code, e.Message)
+}
+
+const methodNotFound = -32601
+
+// LacksMethod reports an error that says the node serves no such method.
+func LacksMethod(err error) bool {
+	var rpcErr *rpcError
+	return errors.As(err, &rpcErr) && rpcErr.Code == methodNotFound
 }
 
 // Call invokes a JSON-RPC method. params can be nil, a slice, a map, or a

@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 )
 
 // MempoolOutput is one output of an unconfirmed transaction.
@@ -483,4 +485,59 @@ func OurCoins(ctx context.Context, node Node) (map[string]int64, error) {
 		}
 	}
 	return coins, nil
+}
+
+// SpentCoins maps each coin that addresses held and later spent to what it
+// held, keyed like OurCoins. A node that serves no get_stxos names none.
+func SpentCoins(ctx context.Context, node Node, addresses []string) (map[string]int64, error) {
+	raw, err := node.CallRaw(ctx, "get_stxos", []any{addresses})
+	if rpc.LacksMethod(err) {
+		return map[string]int64{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read the spent wallet coins: %w", err)
+	}
+	var rows []spentCoin
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		return nil, fmt.Errorf("read the spent wallet coins: %w", err)
+	}
+	coins := make(map[string]int64, len(rows))
+	for _, row := range rows {
+		value := OutputValueSats(row.Spent.Output.Content)
+		switch {
+		case row.Outpoint.Regular != nil:
+			coins[fmt.Sprintf("%s:%d", row.Outpoint.Regular.Txid, row.Outpoint.Regular.Vout)] = value
+		case row.Outpoint.Deposit != nil:
+			coins[*row.Outpoint.Deposit] = value
+		}
+	}
+	return coins, nil
+}
+
+// spentCoin is one get_stxos row, written as named halves or as a pair.
+type spentCoin struct {
+	Outpoint mempoolOutpoint `json:"outpoint"`
+	Spent    struct {
+		Output struct {
+			Content json.RawMessage `json:"content"`
+		} `json:"output"`
+	} `json:"output"`
+}
+
+func (c *spentCoin) UnmarshalJSON(raw []byte) error {
+	if !bytes.HasPrefix(bytes.TrimSpace(raw), []byte("[")) {
+		type row spentCoin
+		return json.Unmarshal(raw, (*row)(c))
+	}
+	var pair []json.RawMessage
+	if err := json.Unmarshal(raw, &pair); err != nil {
+		return err
+	}
+	if len(pair) != 2 {
+		return fmt.Errorf("a spent coin holds an outpoint and an output, got %d parts", len(pair))
+	}
+	if err := json.Unmarshal(pair[0], &c.Outpoint); err != nil {
+		return err
+	}
+	return json.Unmarshal(pair[1], &c.Spent)
 }

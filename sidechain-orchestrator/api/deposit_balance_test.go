@@ -32,6 +32,7 @@ func TestSplitCreditedDeposits(t *testing.T) {
 		name         string
 		deposits     []wallet.SidechainDeposit
 		coins        map[string]int64
+		spent        map[string]int64
 		wantPending  int64
 		wantCredited []string
 	}{
@@ -45,6 +46,14 @@ func TestSplitCreditedDeposits(t *testing.T) {
 			name:         "the same deposit stops counting once the coin lands",
 			deposits:     []wallet.SidechainDeposit{{Txid: "m1", Destination: "mine", AmountSats: 1_000_000}},
 			coins:        map[string]int64{"m1:0": 1_000_000},
+			wantPending:  0,
+			wantCredited: []string{"m1"},
+		},
+		{
+			name:         "a deposit the wallet spent is credited",
+			deposits:     []wallet.SidechainDeposit{{Txid: "m1", Destination: "mine", AmountSats: 1_000_000}},
+			coins:        map[string]int64{"sidechaintx:0": 500_000, "sidechaintx:1": 499_000},
+			spent:        map[string]int64{"m1:0": 1_000_000},
 			wantPending:  0,
 			wantCredited: []string{"m1"},
 		},
@@ -84,7 +93,7 @@ func TestSplitCreditedDeposits(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			pending, credited := splitCreditedDeposits(tc.deposits, owned, tc.coins)
+			pending, credited := splitCreditedDeposits(tc.deposits, owned, tc.coins, tc.spent)
 			assert.Equal(t, tc.wantPending, pending)
 			assert.Equal(t, tc.wantCredited, credited)
 		})
