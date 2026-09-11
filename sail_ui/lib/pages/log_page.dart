@@ -119,10 +119,9 @@ class _FileLogsTabState extends State<_FileLogsTab> {
                   if (index == _logLines.length) {
                     return const SizedBox(height: 100);
                   }
-                  final timestamp = _logLines[index].length > 20
-                      ? DateTime.tryParse(_logLines[index].substring(0, 20))
-                      : DateTime.now();
-                  final logMsg = timestamp != null ? _logLines[index].substring(20) : _logLines[index];
+                  final line = _logLines[index];
+                  final timestamp = line.length > 20 ? DateTime.tryParse(line.substring(0, 20)) : null;
+                  final logMsg = timestamp != null ? line.substring(20) : line;
                   return Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
@@ -132,10 +131,10 @@ class _FileLogsTabState extends State<_FileLogsTab> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          SailText.secondary12(
-                            formatDate(timestamp ?? DateTime.now(), long: false),
-                          ),
-                          SailText.secondary12(' | '),
+                          if (timestamp != null) ...[
+                            SailText.secondary12(formatDate(timestamp, long: false)),
+                            SailText.secondary12(' | '),
+                          ],
                           Text.rich(
                             _parseAnsiCodes(logMsg),
                             softWrap: false,
