@@ -29,6 +29,8 @@ type fakeBackend struct {
 	bids              int
 	connects          int
 	connected         bool
+	held              bool
+	connectErr        error
 	noInclusion       bool
 	lastMainBlockHash string
 	bidErr            error
@@ -97,6 +99,9 @@ func (f *fakeBackend) ConnectBid(
 	defer f.mu.Unlock()
 	f.connects++
 	f.lastMainBlockHash = req.Msg.MainBlockHash
+	if f.connectErr != nil {
+		return nil, f.connectErr
+	}
 	// The handler names no block while the sidechain reports no inclusion for
 	// the critical hash.
 	if f.noInclusion {
@@ -111,6 +116,7 @@ func (f *fakeBackend) ConnectBid(
 	return connect.NewResponse(&bmmpb.ConnectBidResponse{
 		Connected:     f.connected,
 		MainBlockHash: main,
+		Held:          f.held,
 	}), nil
 }
 
@@ -1233,6 +1239,48 @@ func TestBmmEngineRetiresARefusedBlock(t *testing.T) {
 	restarted := NewBmmEngine(zerolog.New(zerolog.NewTestWriter(t)), backend, &fakeTip{}, newFakeFee(), store)
 	restarted.resumeUnconnected()
 	assert.Zero(t, pendingCount(restarted), "a restart leaves the retired round alone")
+}
+
+// A node that already holds the block from a peer refuses ours. The block is on
+// its chain, so the round is a win.
+func TestBmmEngineCountsAWonBlockTheSidechainHolds(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.connected = false
+	backend.held = true
+
+	round := unconnectedRound("held-round", 996770)
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	engine.retryConnects(context.Background(), testSidechain, "tip", 996773)
+
+	assert.Zero(t, pendingCount(engine), "the round leaves the retry list")
+	assert.Equal(t, ResultWon, round.Result)
+	require.Len(t, round.OurBids, 1)
+	assert.Equal(t, BidConnected, round.OurBids[0].State)
+	assert.Empty(t, round.OurBids[0].Error)
+	assert.Equal(t, "critical", round.WinnerCriticalHash)
+	assert.Equal(t, "won-txid", round.WinnerTxid)
+	assert.Equal(t, "main-block", round.IncludedInBlock)
+}
+
+// A failed read of the sidechain chain names no refusal, so the round waits.
+func TestBmmEngineRetriesWhenTheHeldCheckFails(t *testing.T) {
+	engine, backend, _, _ := newEngine(t)
+	backend.connectErr = errors.New("read the sidechain chain: connection refused")
+
+	round := unconnectedRound("check-failed-round", 996770)
+	engine.mu.Lock()
+	engine.unconnected[testSidechain] = []*bmmstate.Round{round}
+	engine.mu.Unlock()
+
+	engine.retryConnects(context.Background(), testSidechain, "tip", 996773)
+
+	assert.Equal(t, 1, backend.connects)
+	assert.Equal(t, 1, pendingCount(engine), "the round stays on the retry list")
+	assert.Equal(t, BidLive, round.OurBids[0].State)
+	assert.Empty(t, round.OurBids[0].Error)
 }
 
 // A sidechain that has not seen the bid included names no block. The mainchain

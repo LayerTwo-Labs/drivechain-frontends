@@ -1524,6 +1524,7 @@ class ConnectBidResponse extends $pb.GeneratedMessage {
   factory ConnectBidResponse({
     $core.bool? connected,
     $core.String? mainBlockHash,
+    $core.bool? held,
   }) {
     final $result = create();
     if (connected != null) {
@@ -1531,6 +1532,9 @@ class ConnectBidResponse extends $pb.GeneratedMessage {
     }
     if (mainBlockHash != null) {
       $result.mainBlockHash = mainBlockHash;
+    }
+    if (held != null) {
+      $result.held = held;
     }
     return $result;
   }
@@ -1541,6 +1545,7 @@ class ConnectBidResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConnectBidResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bmm.v1'), createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'connected')
     ..aOS(2, _omitFieldNames ? '' : 'mainBlockHash')
+    ..aOB(3, _omitFieldNames ? '' : 'held')
     ..hasRequiredFields = false
   ;
 
@@ -1584,6 +1589,16 @@ class ConnectBidResponse extends $pb.GeneratedMessage {
   $core.bool hasMainBlockHash() => $_has(1);
   @$pb.TagNumber(2)
   void clearMainBlockHash() => clearField(2);
+
+  /// The sidechain's chain already holds the block, from a peer or an earlier call.
+  @$pb.TagNumber(3)
+  $core.bool get held => $_getBF(2);
+  @$pb.TagNumber(3)
+  set held($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasHeld() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearHeld() => clearField(3);
 }
 
 class ListBidsRequest extends $pb.GeneratedMessage {

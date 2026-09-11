@@ -1191,6 +1191,8 @@ type ConnectBidResponse struct {
 	Connected bool `protobuf:"varint,1,opt,name=connected,proto3" json:"connected,omitempty"`
 	// Mainchain block that included the bid, when connected.
 	MainBlockHash string `protobuf:"bytes,2,opt,name=main_block_hash,json=mainBlockHash,proto3" json:"main_block_hash,omitempty"`
+	// The sidechain's chain already holds the block, from a peer or an earlier call.
+	Held          bool `protobuf:"varint,3,opt,name=held,proto3" json:"held,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1237,6 +1239,13 @@ func (x *ConnectBidResponse) GetMainBlockHash() string {
 		return x.MainBlockHash
 	}
 	return ""
+}
+
+func (x *ConnectBidResponse) GetHeld() bool {
+	if x != nil {
+		return x.Held
+	}
+	return false
 }
 
 type ListBidsRequest struct {
@@ -1646,10 +1655,11 @@ const file_bmm_v1_bmm_proto_rawDesc = "" +
 	"\rcritical_hash\x18\x02 \x01(\tR\fcriticalHash\x12\x1d\n" +
 	"\n" +
 	"block_json\x18\x03 \x01(\tR\tblockJson\x12&\n" +
-	"\x0fmain_block_hash\x18\x04 \x01(\tR\rmainBlockHash\"Z\n" +
+	"\x0fmain_block_hash\x18\x04 \x01(\tR\rmainBlockHash\"n\n" +
 	"\x12ConnectBidResponse\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12&\n" +
-	"\x0fmain_block_hash\x18\x02 \x01(\tR\rmainBlockHash\"r\n" +
+	"\x0fmain_block_hash\x18\x02 \x01(\tR\rmainBlockHash\x12\x12\n" +
+	"\x04held\x18\x03 \x01(\bR\x04held\"r\n" +
 	"\x0fListBidsRequest\x129\n" +
 	"\tsidechain\x18\x01 \x01(\x0e2\x1b.orchestrator.v1.BinaryTypeR\tsidechain\x12$\n" +
 	"\x0eprev_main_hash\x18\x02 \x01(\tR\fprevMainHash\"3\n" +
