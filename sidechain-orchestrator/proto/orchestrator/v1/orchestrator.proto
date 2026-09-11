@@ -564,6 +564,24 @@ message ChainSync {
   // Height verified_blocks counts towards: the block the snapshot commits to,
   // not the chain tip. 0 when no snapshot is loaded. Mainchain only.
   int32 verified_goal = 9;
+  // The mainchain step a sidechain node takes before it syncs its own
+  // blocks. While set, blocks and headers are that step's done and total.
+  MainchainSyncPhase mainchain_sync_phase = 10;
+  // Mainchain tip height the mainchain_sync_phase moves to, 0 when unset.
+  int32 mainchain_tip_height = 11;
+}
+
+enum MainchainSyncPhase {
+  // The node reports no mainchain sync.
+  MAINCHAIN_SYNC_PHASE_UNSPECIFIED = 0;
+  // The node fetches the mainchain headers.
+  MAINCHAIN_SYNC_PHASE_HEADERS = 1;
+  // The node connects the mainchain state.
+  MAINCHAIN_SYNC_PHASE_STATE = 2;
+  // The node writes the fetched mainchain headers to disk.
+  MAINCHAIN_SYNC_PHASE_WRITING = 3;
+  // The node reports a phase this build does not name.
+  MAINCHAIN_SYNC_PHASE_OTHER = 4;
 }
 
 // GetDownloadStatus

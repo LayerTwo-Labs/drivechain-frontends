@@ -94,6 +94,27 @@ class BinaryType extends $pb.ProtobufEnum {
   const BinaryType._($core.int v, $core.String n) : super(v, n);
 }
 
+class MainchainSyncPhase extends $pb.ProtobufEnum {
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_UNSPECIFIED = MainchainSyncPhase._(0, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_UNSPECIFIED');
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_HEADERS = MainchainSyncPhase._(1, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_HEADERS');
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_STATE = MainchainSyncPhase._(2, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_STATE');
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_WRITING = MainchainSyncPhase._(3, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_WRITING');
+  static const MainchainSyncPhase MAINCHAIN_SYNC_PHASE_OTHER = MainchainSyncPhase._(4, _omitEnumNames ? '' : 'MAINCHAIN_SYNC_PHASE_OTHER');
+
+  static const $core.List<MainchainSyncPhase> values = <MainchainSyncPhase> [
+    MAINCHAIN_SYNC_PHASE_UNSPECIFIED,
+    MAINCHAIN_SYNC_PHASE_HEADERS,
+    MAINCHAIN_SYNC_PHASE_STATE,
+    MAINCHAIN_SYNC_PHASE_WRITING,
+    MAINCHAIN_SYNC_PHASE_OTHER,
+  ];
+
+  static final $core.Map<$core.int, MainchainSyncPhase> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static MainchainSyncPhase? valueOf($core.int value) => _byValue[value];
+
+  const MainchainSyncPhase._($core.int v, $core.String n) : super(v, n);
+}
+
 /// DeletionType selects which category of a binary's files to gather/delete.
 class DeletionType extends $pb.ProtobufEnum {
   static const DeletionType DELETION_TYPE_UNSPECIFIED = DeletionType._(0, _omitEnumNames ? '' : 'DELETION_TYPE_UNSPECIFIED');

@@ -72,6 +72,25 @@ final $typed_data.Uint8List binaryTypeDescriptor = $convert.base64Decode(
     '9UWVBFX0xJUVVJRF9TSUdORVQQDhITCg9CSU5BUllfVFlQRV9CQkMQDxIYChRCSU5BUllfVFlQ'
     'RV9GUkVFQkFOSxAQ');
 
+@$core.Deprecated('Use mainchainSyncPhaseDescriptor instead')
+const MainchainSyncPhase$json = {
+  '1': 'MainchainSyncPhase',
+  '2': [
+    {'1': 'MAINCHAIN_SYNC_PHASE_UNSPECIFIED', '2': 0},
+    {'1': 'MAINCHAIN_SYNC_PHASE_HEADERS', '2': 1},
+    {'1': 'MAINCHAIN_SYNC_PHASE_STATE', '2': 2},
+    {'1': 'MAINCHAIN_SYNC_PHASE_WRITING', '2': 3},
+    {'1': 'MAINCHAIN_SYNC_PHASE_OTHER', '2': 4},
+  ],
+};
+
+/// Descriptor for `MainchainSyncPhase`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List mainchainSyncPhaseDescriptor = $convert.base64Decode(
+    'ChJNYWluY2hhaW5TeW5jUGhhc2USJAogTUFJTkNIQUlOX1NZTkNfUEhBU0VfVU5TUEVDSUZJRU'
+    'QQABIgChxNQUlOQ0hBSU5fU1lOQ19QSEFTRV9IRUFERVJTEAESHgoaTUFJTkNIQUlOX1NZTkNf'
+    'UEhBU0VfU1RBVEUQAhIgChxNQUlOQ0hBSU5fU1lOQ19QSEFTRV9XUklUSU5HEAMSHgoaTUFJTk'
+    'NIQUlOX1NZTkNfUEhBU0VfT1RIRVIQBA==');
+
 @$core.Deprecated('Use deletionTypeDescriptor instead')
 const DeletionType$json = {
   '1': 'DeletionType',
@@ -781,6 +800,8 @@ const ChainSync$json = {
     {'1': 'refused_branch_start', '3': 7, '4': 1, '5': 5, '10': 'refusedBranchStart'},
     {'1': 'verified_blocks', '3': 8, '4': 1, '5': 5, '10': 'verifiedBlocks'},
     {'1': 'verified_goal', '3': 9, '4': 1, '5': 5, '10': 'verifiedGoal'},
+    {'1': 'mainchain_sync_phase', '3': 10, '4': 1, '5': 14, '6': '.orchestrator.v1.MainchainSyncPhase', '10': 'mainchainSyncPhase'},
+    {'1': 'mainchain_tip_height', '3': 11, '4': 1, '5': 5, '10': 'mainchainTipHeight'},
   ],
 };
 
@@ -791,7 +812,10 @@ final $typed_data.Uint8List chainSyncDescriptor = $convert.base64Decode(
     'X2Jlc3RfaGVpZ2h0GAUgASgFUg5wZWVyQmVzdEhlaWdodBInCg9yZWplY3RlZF9icmFuY2gYBi'
     'ABKAhSDnJlamVjdGVkQnJhbmNoEjAKFHJlZnVzZWRfYnJhbmNoX3N0YXJ0GAcgASgFUhJyZWZ1'
     'c2VkQnJhbmNoU3RhcnQSJwoPdmVyaWZpZWRfYmxvY2tzGAggASgFUg52ZXJpZmllZEJsb2Nrcx'
-    'IjCg12ZXJpZmllZF9nb2FsGAkgASgFUgx2ZXJpZmllZEdvYWw=');
+    'IjCg12ZXJpZmllZF9nb2FsGAkgASgFUgx2ZXJpZmllZEdvYWwSVQoUbWFpbmNoYWluX3N5bmNf'
+    'cGhhc2UYCiABKA4yIy5vcmNoZXN0cmF0b3IudjEuTWFpbmNoYWluU3luY1BoYXNlUhJtYWluY2'
+    'hhaW5TeW5jUGhhc2USMAoUbWFpbmNoYWluX3RpcF9oZWlnaHQYCyABKAVSEm1haW5jaGFpblRp'
+    'cEhlaWdodA==');
 
 @$core.Deprecated('Use getDownloadStatusRequestDescriptor instead')
 const GetDownloadStatusRequest$json = {

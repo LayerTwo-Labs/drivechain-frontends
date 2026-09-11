@@ -3044,6 +3044,8 @@ class ChainSync extends $pb.GeneratedMessage {
     $core.int? refusedBranchStart,
     $core.int? verifiedBlocks,
     $core.int? verifiedGoal,
+    MainchainSyncPhase? mainchainSyncPhase,
+    $core.int? mainchainTipHeight,
   }) {
     final $result = create();
     if (blocks != null) {
@@ -3073,6 +3075,12 @@ class ChainSync extends $pb.GeneratedMessage {
     if (verifiedGoal != null) {
       $result.verifiedGoal = verifiedGoal;
     }
+    if (mainchainSyncPhase != null) {
+      $result.mainchainSyncPhase = mainchainSyncPhase;
+    }
+    if (mainchainTipHeight != null) {
+      $result.mainchainTipHeight = mainchainTipHeight;
+    }
     return $result;
   }
   ChainSync._() : super();
@@ -3089,6 +3097,8 @@ class ChainSync extends $pb.GeneratedMessage {
     ..a<$core.int>(7, _omitFieldNames ? '' : 'refusedBranchStart', $pb.PbFieldType.O3)
     ..a<$core.int>(8, _omitFieldNames ? '' : 'verifiedBlocks', $pb.PbFieldType.O3)
     ..a<$core.int>(9, _omitFieldNames ? '' : 'verifiedGoal', $pb.PbFieldType.O3)
+    ..e<MainchainSyncPhase>(10, _omitFieldNames ? '' : 'mainchainSyncPhase', $pb.PbFieldType.OE, defaultOrMaker: MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED, valueOf: MainchainSyncPhase.valueOf, enumValues: MainchainSyncPhase.values)
+    ..a<$core.int>(11, _omitFieldNames ? '' : 'mainchainTipHeight', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -3210,6 +3220,27 @@ class ChainSync extends $pb.GeneratedMessage {
   $core.bool hasVerifiedGoal() => $_has(8);
   @$pb.TagNumber(9)
   void clearVerifiedGoal() => clearField(9);
+
+  /// The mainchain step a sidechain node takes before it syncs its own
+  /// blocks. While set, blocks and headers are that step's done and total.
+  @$pb.TagNumber(10)
+  MainchainSyncPhase get mainchainSyncPhase => $_getN(9);
+  @$pb.TagNumber(10)
+  set mainchainSyncPhase(MainchainSyncPhase v) { setField(10, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasMainchainSyncPhase() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearMainchainSyncPhase() => clearField(10);
+
+  /// Mainchain tip height the mainchain_sync_phase moves to, 0 when unset.
+  @$pb.TagNumber(11)
+  $core.int get mainchainTipHeight => $_getIZ(10);
+  @$pb.TagNumber(11)
+  set mainchainTipHeight($core.int v) { $_setSignedInt32(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasMainchainTipHeight() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearMainchainTipHeight() => clearField(11);
 }
 
 class GetDownloadStatusRequest extends $pb.GeneratedMessage {

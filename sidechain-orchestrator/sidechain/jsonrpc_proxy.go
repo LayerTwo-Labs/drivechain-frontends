@@ -47,6 +47,36 @@ func (p *JSONRPCProxy) GetBlockCount(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
+// MainchainSyncPhase is the step a sidechain node takes to catch up with the
+// mainchain.
+type MainchainSyncPhase string
+
+const (
+	MainchainSyncIdle    MainchainSyncPhase = "idle"
+	MainchainSyncHeaders MainchainSyncPhase = "headers"
+	MainchainSyncWriting MainchainSyncPhase = "writing"
+	MainchainSyncState   MainchainSyncPhase = "state"
+)
+
+// MainchainSyncProgress is how far a sidechain node is through one phase.
+// Idle holds zero in every count. A newer node can report a phase not named here.
+type MainchainSyncProgress struct {
+	Phase     MainchainSyncPhase `json:"phase"`
+	Done      uint32             `json:"done"`
+	Total     uint32             `json:"total"`
+	TipHeight uint32             `json:"tip_height"`
+}
+
+// MainchainSyncProgress returns the node's mainchain sync phase. A node
+// without the method answers with an error that rpc.LacksMethod matches.
+func (p *JSONRPCProxy) MainchainSyncProgress(ctx context.Context) (*MainchainSyncProgress, error) {
+	var progress MainchainSyncProgress
+	if err := p.Client.Call(ctx, "mainchain_sync_progress", nil, &progress); err != nil {
+		return nil, err
+	}
+	return &progress, nil
+}
+
 func (p *JSONRPCProxy) GetNewAddress(ctx context.Context) (string, error) {
 	var address string
 	if err := p.Client.Call(ctx, "get_new_address", nil, &address); err != nil {

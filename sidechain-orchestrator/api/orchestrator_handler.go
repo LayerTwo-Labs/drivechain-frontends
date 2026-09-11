@@ -536,6 +536,23 @@ func chainSyncToProto(s *orchestrator.ChainSyncResult) *pb.ChainSync {
 		RefusedBranchStart: int32(s.RefusedBranchStart),
 		VerifiedBlocks:     int32(s.VerifiedBlocks),
 		VerifiedGoal:       int32(s.VerifiedGoal),
+		MainchainSyncPhase: mainchainSyncPhaseToProto(s.MainchainSyncPhase),
+		MainchainTipHeight: int32(s.MainchainTipHeight),
+	}
+}
+
+func mainchainSyncPhaseToProto(phase sidechain.MainchainSyncPhase) pb.MainchainSyncPhase {
+	switch phase {
+	case "":
+		return pb.MainchainSyncPhase_MAINCHAIN_SYNC_PHASE_UNSPECIFIED
+	case sidechain.MainchainSyncHeaders:
+		return pb.MainchainSyncPhase_MAINCHAIN_SYNC_PHASE_HEADERS
+	case sidechain.MainchainSyncWriting:
+		return pb.MainchainSyncPhase_MAINCHAIN_SYNC_PHASE_WRITING
+	case sidechain.MainchainSyncState:
+		return pb.MainchainSyncPhase_MAINCHAIN_SYNC_PHASE_STATE
+	default:
+		return pb.MainchainSyncPhase_MAINCHAIN_SYNC_PHASE_OTHER
 	}
 }
 
