@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +21,7 @@ type fakeNode struct {
 	template  string
 	addresses string
 	utxos     string
+	stxos     string
 	called    []string
 }
 
@@ -33,6 +38,9 @@ func (n *fakeNode) CallRaw(_ context.Context, method string, _ any) (json.RawMes
 			return json.RawMessage("[]"), nil
 		}
 		return json.RawMessage(n.utxos), nil
+	}
+	if method == "get_stxos" && n.stxos != "" {
+		return json.RawMessage(n.stxos), nil
 	}
 	return nil, fmt.Errorf("this node serves no %s", method)
 }
@@ -262,6 +270,41 @@ func TestOurCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
 	require.Len(t, coins, 2, "a deposit is a coin the wallet can spend")
 	assert.Equal(t, int64(2000), coins["aa:1"])
 	assert.Equal(t, int64(500), coins["maintxid:0"])
+}
+
+func TestSpentCoinsKeysEachCoinByItsOutpoint(t *testing.T) {
+	node := &fakeNode{stxos: `[
+	  {"outpoint":{"Deposit":"maintxid:0"},
+	   "output":{"output":{"address":"mine","content":{"Value":500}},"inpoint":{"Regular":{"txid":"bb","vin":0}}}},
+	  [{"Regular":{"txid":"aa","vout":1}},
+	   {"output":{"address":"mine","content":{"Value":2000}},"inpoint":{"Regular":{"txid":"cc","vin":1}}}]
+	]`}
+
+	coins, err := SpentCoins(context.Background(), node, []string{"mine"})
+	require.NoError(t, err)
+	assert.Equal(t, map[string]int64{"maintxid:0": 500, "aa:1": 2000}, coins)
+}
+
+func TestSpentCoinsIsEmptyOnANodeWithNoStxos(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"Method not found"}}`))
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(srv.Close)
+	host, portText, err := net.SplitHostPort(srv.Listener.Addr().String())
+	require.NoError(t, err)
+	port, err := strconv.Atoi(portText)
+	require.NoError(t, err)
+
+	coins, err := SpentCoins(context.Background(), NewJSONRPCProxy(host, port), []string{"mine"})
+	require.NoError(t, err)
+	assert.Empty(t, coins)
+}
+
+func TestSpentCoinsReportsAFault(t *testing.T) {
+	_, err := SpentCoins(context.Background(), &fakeNode{}, []string{"mine"})
+	require.Error(t, err)
 }
 
 // A child spends a coin its parent made, and that coin never reached the
