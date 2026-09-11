@@ -73,6 +73,9 @@ func (f *fakeBackend) CreateBid(
 	if req.Msg.CapToBlockWorth && f.feesSats > 0 && bid > f.feesSats {
 		bid = f.feesSats
 	}
+	if req.Msg.MaxBidSats > 0 && bid > req.Msg.MaxBidSats {
+		bid = req.Msg.MaxBidSats
+	}
 	f.lastBidSats = bid
 	f.lastExpectTip = req.Msg.ExpectPrevMainHash
 	f.lastWalletID = req.Msg.WalletId
@@ -533,7 +536,24 @@ func TestBmmEngineOpensByRateNotByAmount(t *testing.T) {
 
 	backend.mu.Lock()
 	defer backend.mu.Unlock()
-	assert.InDelta(t, 42, backend.lastFeeRate, 0.001)
+	assert.InDelta(t, 42+openingMarginSatVb, backend.lastFeeRate, 0.001)
+}
+
+// A block closes on a fee rate, and the transactions that pay it exactly are
+// the ones a miner cuts. Nobody competes for most sidechains, so the engine
+// never raises, and a bid that matches the rate loses every such block.
+func TestBmmEngineOpensOverTheNextBlockRate(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	engine.fee.(*fakeFee).set(2)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 10_000, false))
+	tip.set("main-1")
+
+	engine.tick(context.Background())
+
+	backend.mu.Lock()
+	defer backend.mu.Unlock()
+	assert.Greater(t, backend.lastFeeRate, 2.0, "an opening bid must beat the rate, not match it")
+	assert.InDelta(t, 3, backend.lastFeeRate, 0.001)
 }
 
 // The sidechain never saw the block it just won, so it cannot look up which

@@ -98,6 +98,11 @@ type MainchainTip interface {
 // reports neither an estimate nor a relay floor.
 const relayMinimumRate = 1.0
 
+// openingMarginSatVb is what an opening bid adds over the next block rate, in
+// sats per vByte. One whole sat clears every transaction that pays the rate
+// exactly, and it also covers the fee a bid loses to its own size estimate.
+const openingMarginSatVb = 1.0
+
 type bmmTarget struct {
 	maxBidSats int64
 	// walletID funds every bid. Empty spends from the active wallet.
@@ -663,7 +668,7 @@ func (e *BmmEngine) openRound(
 	e.current[sidechain] = round
 	e.mu.Unlock()
 
-	if err := e.placeBid(ctx, sidechain, round, walletID, 0, e.NextBlockRate(ctx),
+	if err := e.placeBid(ctx, sidechain, round, walletID, 0, e.openingRate(ctx),
 		target.maxBidSats, replaceTxid, target.capToBlockWorth); err != nil {
 		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 			e.log.Info().Err(err).Stringer("sidechain", sidechain).Msg("opening bmm bid refused, retrying next tick")
@@ -908,12 +913,18 @@ func (e *BmmEngine) placeBid(
 	return nil
 }
 
+// openingRate is the fee rate an opening bid pays, in sats per vByte. It
+// clears the next block rate by a margin, because a bid that only matches that
+// rate sits with the transactions a miner cuts, and the engine raises a bid
+// only against a competitor. A chain nobody competes for then loses every
+// block that closes at the rate.
+func (e *BmmEngine) openingRate(ctx context.Context) float64 {
+	return e.NextBlockRate(ctx) + openingMarginSatVb
+}
+
 // NextBlockRate is the fee rate a bid pays to enter the next mainchain block,
 // in sats per vByte. Core reports it, and the relay minimum stands in when
 // Core answers nothing.
-//
-// A miner leaves a cheaper bid in the mempool, and the engine raises only
-// against a competitor, so an opening bid under this rate never gets mined.
 func (e *BmmEngine) NextBlockRate(ctx context.Context) float64 {
 	if e.fee == nil {
 		return relayMinimumRate
