@@ -73,6 +73,12 @@ func isWalletNotLoadedErr(err error) bool {
 	return false
 }
 
+// isWalletRescanningErr reports whether Core refused a call because a rescan
+// holds the wallet.
+func isWalletRescanningErr(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "currently rescanning")
+}
+
 // isWalletAlreadyLoadedErr reports whether Core refused a load because it
 // already holds the wallet. That is the same outcome as a load that worked.
 func isWalletAlreadyLoadedErr(err error) bool {

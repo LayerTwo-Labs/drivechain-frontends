@@ -12,10 +12,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/replay"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet/bip47"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
@@ -146,6 +148,7 @@ func newCoreBackendFixture(t *testing.T) (*CoreBackend, *fakeBitcoind, string) {
 	fake := newFakeBitcoind(t)
 	log := zerolog.New(zerolog.NewTestWriter(t))
 	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), log)
+	t.Cleanup(backend.bip47Imports.Wait)
 	return backend, fake, core.ID
 }
 
@@ -155,6 +158,7 @@ func TestCoreBackendEnsureCreatesDescriptorWallet(t *testing.T) {
 
 	name, err := backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	assert.Equal(t, "wallet_"+coreID[:8], name)
 
 	creates := fake.callsFor("createwallet")
@@ -215,6 +219,7 @@ func TestCoreBackendEnsureNilNetworkFailsClosed(t *testing.T) {
 	fake.stubEnsureFlow()
 	log := zerolog.New(zerolog.NewTestWriter(t))
 	backend := NewCoreBackend(svc, fake.client(t), nil, log)
+	t.Cleanup(backend.bip47Imports.Wait)
 
 	_, err = backend.Ensure(context.Background(), core.ID)
 	require.ErrorContains(t, err, "no chain params")
@@ -263,6 +268,7 @@ func TestCoreBackendImportsBip47NotificationKeyOnce(t *testing.T) {
 
 	_, err := backend.Ensure(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	require.Equal(t, 1, notificationImports(t, fake))
 	require.True(t, backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
 
@@ -270,6 +276,7 @@ func TestCoreBackendImportsBip47NotificationKeyOnce(t *testing.T) {
 	require.NoError(t, err)
 	_, err = backend.walletName(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	assert.Equal(t, 1, notificationImports(t, fake))
 }
 
@@ -291,9 +298,11 @@ func TestCoreBackendImportedSeedBip47NotificationScansGenesis(t *testing.T) {
 		StaticParams(&chaincfg.RegressionNetParams),
 		zerolog.New(zerolog.NewTestWriter(t)),
 	)
+	t.Cleanup(backend.bip47Imports.Wait)
 
 	_, err = backend.Ensure(context.Background(), core.ID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 
 	imports := fake.callsFor("importdescriptors")
 	require.Len(t, imports, 2, "BIP84 pair + BIP47 notification descriptor")
@@ -321,10 +330,12 @@ func TestCoreBackendImportsBip47NotificationKeyPerNetwork(t *testing.T) {
 		ParamsFunc(func() *chaincfg.Params { return params }),
 		zerolog.New(zerolog.NewTestWriter(t)),
 	)
+	t.Cleanup(backend.bip47Imports.Wait)
 	ctx := context.Background()
 
 	_, err = backend.Ensure(ctx, core.ID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	require.Equal(t, 1, notificationImports(t, fake))
 	require.True(t, svc.GetWalletByID(core.ID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
 
@@ -332,6 +343,7 @@ func TestCoreBackendImportsBip47NotificationKeyPerNetwork(t *testing.T) {
 	backend.ResetNetworkState()
 	_, err = backend.Ensure(ctx, core.ID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	assert.Equal(t, 2, notificationImports(t, fake))
 	assert.True(t, svc.GetWalletByID(core.ID).Bip47NotificationImported[chaincfg.SigNetParams.Name])
 }
@@ -345,6 +357,7 @@ func TestCoreBackendImportsBip47NotificationKeyCoreLacksIt(t *testing.T) {
 
 	_, err := backend.Ensure(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	require.Equal(t, 1, notificationImports(t, fake))
 
 	// A fresh Core datadir: the wallet exists, and owns none of its addresses.
@@ -356,6 +369,7 @@ func TestCoreBackendImportsBip47NotificationKeyCoreLacksIt(t *testing.T) {
 	backend.ResetNetworkState()
 	_, err = backend.Ensure(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	assert.Equal(t, 2, notificationImports(t, fake))
 }
 
@@ -387,6 +401,7 @@ func TestCoreBackendRetriesBip47ImportCoreAlreadyOwns(t *testing.T) {
 
 	_, err := backend.Ensure(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	require.Equal(t, 1, notificationImports(t, fake))
 	require.False(t, backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
 
@@ -399,6 +414,7 @@ func TestCoreBackendRetriesBip47ImportCoreAlreadyOwns(t *testing.T) {
 
 	_, err = backend.walletName(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	assert.Equal(t, 2, notificationImports(t, fake))
 	assert.True(t, backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
 }
@@ -428,11 +444,13 @@ func TestCoreBackendRetriesFailedBip47NotificationImport(t *testing.T) {
 
 	_, err := backend.Ensure(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	require.Len(t, fake.callsFor("importdescriptors"), 2)
 
 	// Within the backoff window the failed import isn't hammered.
 	_, err = backend.Ensure(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	assert.Len(t, fake.callsFor("importdescriptors"), 2)
 
 	mu.Lock()
@@ -445,6 +463,7 @@ func TestCoreBackendRetriesFailedBip47NotificationImport(t *testing.T) {
 	// Once the backoff elapses the notification descriptor is imported again.
 	_, err = backend.walletName(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	imports := fake.callsFor("importdescriptors")
 	require.Len(t, imports, 3)
 	var notif []ImportDescriptor
@@ -455,6 +474,7 @@ func TestCoreBackendRetriesFailedBip47NotificationImport(t *testing.T) {
 	// Now that it succeeded, no further imports.
 	_, err = backend.Ensure(ctx, coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	assert.Len(t, fake.callsFor("importdescriptors"), 3)
 	assert.Empty(t, backend.bip47NotifRetry)
 }
@@ -841,6 +861,7 @@ func TestCoreBackendCreateCpfpTaproot(t *testing.T) {
 	fake := newFakeBitcoind(t)
 	log := zerolog.New(zerolog.NewTestWriter(t))
 	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), log)
+	t.Cleanup(backend.bip47Imports.Wait)
 	coreID := core.ID
 
 	// The wallet resolves to taproot.
@@ -939,6 +960,7 @@ func TestCoreBackendCpfpBase58Kinds(t *testing.T) {
 
 			fake := newFakeBitcoind(t)
 			backend := NewCoreBackend(svc, fake.client(t), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+			t.Cleanup(backend.bip47Imports.Wait)
 			coreID := core.ID
 			require.Equal(t, tc.kind, backend.walletScriptKind(coreID))
 
@@ -1037,8 +1059,11 @@ func TestCpfpChildPlanRejectsFeeExceedingParent(t *testing.T) {
 func TestCoreBackendWatchKeys(t *testing.T) {
 	backend, fake, coreID := newCoreBackendFixture(t)
 	fake.stubEnsureFlow()
+	_, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 
-	err := backend.WatchKeys(context.Background(), coreID, []WatchKey{
+	err = backend.WatchKeys(context.Background(), coreID, []WatchKey{
 		{WIF: "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN8rFTv2sfUK", RescanFrom: 1_700_000_000},
 	})
 	require.NoError(t, err)
@@ -1195,6 +1220,7 @@ func TestCoreBackendNextChangeAddressKind(t *testing.T) {
 
 		fake := newFakeBitcoind(t)
 		backend := NewCoreBackend(svc, fake.client(t), func() *chaincfg.Params { return net }, zerolog.New(zerolog.NewTestWriter(t)))
+		t.Cleanup(backend.bip47Imports.Wait)
 		coreID := core.ID
 		require.Equal(t, ScriptTaproot, backend.walletScriptKind(coreID))
 
@@ -1412,6 +1438,7 @@ func TestCoreBackendImportsTheWalletScriptTypeWithoutAPath(t *testing.T) {
 
 	fake := newFakeBitcoind(t)
 	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	t.Cleanup(backend.bip47Imports.Wait)
 	fake.stubEnsureFlow()
 
 	_, err = backend.Ensure(context.Background(), core.ID)
@@ -1443,6 +1470,7 @@ func TestCoreBackendImportsEveryKindTheWalletAdvertises(t *testing.T) {
 
 	fake := newFakeBitcoind(t)
 	backend := NewCoreBackend(svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	t.Cleanup(backend.bip47Imports.Wait)
 	fake.stubEnsureFlow()
 
 	_, err = backend.Ensure(context.Background(), core.ID)
@@ -1826,6 +1854,7 @@ func TestEnsureReloadsAfterTheCachedWalletGoesAway(t *testing.T) {
 
 	name, err := backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 
 	// Core drops the wallet, and the pending BIP47 retry comes due.
 	fake.stubEnsureFlowBip47Unloaded()
@@ -1848,6 +1877,7 @@ func TestBalanceReloadsRatherThanReadAStaleWallet(t *testing.T) {
 
 	_, err := backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 
 	// Core drops the wallet, and the pending BIP47 retry comes due.
 	fake.stubEnsureFlowBip47Unloaded()
@@ -1883,6 +1913,7 @@ func TestARescanningWalletKeepsServing(t *testing.T) {
 
 	name, err := backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err, "a rescan must not take the wallet away")
+	backend.bip47Imports.Wait()
 	assert.Equal(t, "wallet_"+coreID[:8], name)
 
 	cached, ok := backend.coreWallets[coreID]
@@ -1890,6 +1921,270 @@ func TestARescanningWalletKeepsServing(t *testing.T) {
 	assert.Equal(t, name, cached)
 	_, pending := backend.bip47NotifRetry[coreID]
 	assert.True(t, pending, "the notification import retries once the rescan ends")
+}
+
+// switchFixture serves a Core whose first notification import rescans until
+// endRescan, then answers lateErr, or success when lateErr is empty.
+type switchFixture struct {
+	backend   *CoreBackend
+	fake      *fakeBitcoind
+	coreID    string
+	params    atomic.Pointer[chaincfg.Params]
+	endRescan func()
+}
+
+func newSwitchFixture(t *testing.T, lateErr string) *switchFixture {
+	t.Helper()
+	svc := newTestService(t)
+	_, err := svc.GenerateWallet("Enforcer", "", "", testSlots)
+	require.NoError(t, err)
+	core, err := svc.GenerateWallet("Core", "", "", testSlots)
+	require.NoError(t, err)
+
+	f := &switchFixture{fake: newFakeBitcoind(t), coreID: core.ID}
+	f.fake.stubEnsureFlow()
+	rescan := make(chan struct{})
+	var once sync.Once
+	f.endRescan = func() { once.Do(func() { close(rescan) }) }
+	var mu sync.Mutex
+	first := true
+	f.fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		if len(descs) == 1 {
+			mu.Lock()
+			late := first
+			first = false
+			mu.Unlock()
+			if late {
+				<-rescan
+				if lateErr != "" {
+					return nil, lateErr
+				}
+			}
+		}
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": true}
+		}
+		return results, ""
+	})
+	f.params.Store(&chaincfg.RegressionNetParams)
+	f.backend = NewCoreBackend(svc, f.fake.client(t), ParamsFunc(f.params.Load), zerolog.New(zerolog.NewTestWriter(t)))
+	t.Cleanup(f.backend.bip47Imports.Wait)
+	t.Cleanup(f.endRescan)
+
+	_, err = f.backend.Ensure(context.Background(), core.ID)
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return len(f.fake.callsFor("importdescriptors")) == 2 }, 5*time.Second, 10*time.Millisecond)
+	return f
+}
+
+func (f *switchFixture) switchTo(net *chaincfg.Params) {
+	f.params.Store(net)
+	f.backend.ResetNetworkState()
+}
+
+func (f *switchFixture) imported(net string) bool {
+	f.backend.mu.Lock()
+	defer f.backend.mu.Unlock()
+	return f.backend.svc.GetWalletByID(f.coreID).Bip47NotificationImported[net]
+}
+
+// A network switch can land while an import still rescans. The new network's
+// wallet imports its own key, and the old import's outcome leaves it alone.
+func TestANetworkSwitchDuringAnImportImportsForTheNewNetwork(t *testing.T) {
+	f := newSwitchFixture(t, "")
+
+	f.switchTo(&chaincfg.SigNetParams)
+	_, err := f.backend.Ensure(context.Background(), f.coreID)
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return f.imported(chaincfg.SigNetParams.Name) }, 5*time.Second, 10*time.Millisecond,
+		"the new network imports its key while the old import still rescans")
+
+	f.endRescan()
+	f.backend.bip47Imports.Wait()
+	assert.True(t, f.imported(chaincfg.RegressionNetParams.Name))
+	assert.Equal(t, 2, notificationImports(t, f.fake))
+}
+
+// A switch away and back can land while the first import still rescans. Its
+// late answer belongs to an older generation and leaves the new state alone.
+func TestALateImportAnswerLeavesTheSameNetworkAlone(t *testing.T) {
+	f := newSwitchFixture(t, "Requested wallet does not exist or is not loaded")
+
+	f.switchTo(&chaincfg.SigNetParams)
+	f.switchTo(&chaincfg.RegressionNetParams)
+	_, err := f.backend.Ensure(context.Background(), f.coreID)
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return f.imported(chaincfg.RegressionNetParams.Name) }, 5*time.Second, 10*time.Millisecond)
+
+	f.endRescan()
+	f.backend.bip47Imports.Wait()
+	_, cached := f.backend.coreWallets[f.coreID]
+	assert.True(t, cached, "a late answer must not evict the wallet")
+	assert.Empty(t, f.backend.bip47NotifRetry, "a late answer must not schedule a retry")
+}
+
+// ownNotificationKey is the key the BIP47 engine gives EnsureNotificationWatched.
+func ownNotificationKey(t *testing.T, w *WalletData) WatchKey {
+	t.Helper()
+	net := &chaincfg.RegressionNetParams
+	priv, _, err := bip47.DeriveOwnNotificationKey(w.Master.SeedHex, net)
+	require.NoError(t, err)
+	wif, err := btcutil.NewWIF(priv, net, true)
+	require.NoError(t, err)
+	return WatchKey{WIF: wif.String(), RescanFrom: Bip47RescanFrom(w)}
+}
+
+type lockedLog struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (l *lockedLog) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.buf.Write(p)
+}
+
+func (l *lockedLog) String() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.buf.String()
+}
+
+// Core rescans from the key's timestamp on every import, so a key it holds gets
+// no second import from the engine tick or from the next start.
+func TestEnsureNotificationWatchedLeavesAnImportedKeyAlone(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	ctx := context.Background()
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	backend.bip47Imports.Wait()
+	require.Equal(t, 1, notificationImports(t, fake))
+
+	restarted := NewCoreBackend(backend.svc, fake.client(t), StaticParams(&chaincfg.RegressionNetParams), zerolog.New(zerolog.NewTestWriter(t)))
+	t.Cleanup(restarted.bip47Imports.Wait)
+	key := ownNotificationKey(t, backend.svc.GetWalletByID(coreID))
+	for _, b := range []*CoreBackend{backend, restarted} {
+		for range 3 {
+			require.NoError(t, b.EnsureNotificationWatched(ctx, coreID, key))
+		}
+		b.bip47Imports.Wait()
+	}
+	assert.Equal(t, 1, notificationImports(t, fake))
+}
+
+// Core refuses an import while a rescan holds the wallet. That is a wait: the
+// ticks send no import of their own, and the backend logs no warning.
+func TestARescanningWalletGetsNoImportPerTick(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	var logs lockedLog
+	backend.log = zerolog.New(&logs)
+	fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		if len(descs) == 1 {
+			return nil, "Wallet is currently rescanning. Abort existing rescan or wait."
+		}
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": true}
+		}
+		return results, ""
+	})
+	ctx := context.Background()
+	key := ownNotificationKey(t, backend.svc.GetWalletByID(coreID))
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err)
+	backend.bip47Imports.Wait()
+	for range 10 {
+		require.NoError(t, backend.EnsureNotificationWatched(ctx, coreID, key))
+	}
+	backend.bip47Imports.Wait()
+	assert.Equal(t, 1, notificationImports(t, fake), "the ticks inside one backoff send no import")
+
+	for range 5 {
+		backend.mu.Lock()
+		backend.bip47NotifRetry[coreID] = time.Time{}
+		backend.mu.Unlock()
+		require.NoError(t, backend.EnsureNotificationWatched(ctx, coreID, key))
+		backend.bip47Imports.Wait()
+	}
+	assert.Equal(t, 6, notificationImports(t, fake), "one refused import for each backoff")
+	assert.NotContains(t, logs.String(), `"level":"warn"`)
+	assert.Equal(t, 1, strings.Count(logs.String(), "bip47 notification import waits"))
+	assert.False(t, backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name])
+}
+
+// A fresh wallet imports its notification key one time, from its birthday. The
+// rescan outlasts any client timeout, so the backend waits for Core's answer and
+// sends no second import while the rescan runs.
+func TestAFreshWalletImportsItsNotificationKeyOnce(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	var mu sync.Mutex
+	landed := false
+	rescan := make(chan struct{})
+	var once sync.Once
+	endRescan := func() { once.Do(func() { close(rescan) }) }
+	t.Cleanup(endRescan)
+	fake.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
+		var address string
+		_ = json.Unmarshal(c.Params[0], &address)
+		mu.Lock()
+		defer mu.Unlock()
+		return map[string]any{"address": address, "ismine": landed}, ""
+	})
+	fake.handle("importdescriptors", func(c bitcoindCall) (any, string) {
+		var descs []ImportDescriptor
+		_ = json.Unmarshal(c.Params[0], &descs)
+		if len(descs) == 1 {
+			<-rescan
+			mu.Lock()
+			landed = true
+			mu.Unlock()
+		}
+		results := make([]map[string]any, len(descs))
+		for i := range results {
+			results[i] = map[string]any{"success": true}
+		}
+		return results, ""
+	})
+	ctx := context.Background()
+	imported := func() bool {
+		return backend.svc.GetWalletByID(coreID).Bip47NotificationImported[chaincfg.RegressionNetParams.Name]
+	}
+
+	_, err := backend.Ensure(ctx, coreID)
+	require.NoError(t, err, "the load does not wait for the rescan")
+	require.Eventually(t, func() bool { return len(fake.callsFor("importdescriptors")) == 2 }, 5*time.Second, 10*time.Millisecond)
+
+	key := ownNotificationKey(t, backend.svc.GetWalletByID(coreID))
+	for range 5 {
+		require.NoError(t, backend.EnsureNotificationWatched(ctx, coreID, key))
+	}
+	assert.Equal(t, 1, notificationImports(t, fake), "no second import while the rescan runs")
+	assert.False(t, imported())
+
+	endRescan()
+	backend.bip47Imports.Wait()
+	require.True(t, imported())
+	for range 5 {
+		require.NoError(t, backend.EnsureNotificationWatched(ctx, coreID, key))
+	}
+	backend.bip47Imports.Wait()
+	require.Equal(t, 1, notificationImports(t, fake))
+
+	var notif []ImportDescriptor
+	require.NoError(t, json.Unmarshal(fake.callsFor("importdescriptors")[1].Params[0], &notif))
+	require.Len(t, notif, 1)
+	assert.Equal(t, float64(backend.svc.GetWalletByID(coreID).CreatedAt.Unix()), asFloat(t, notif[0].Timestamp))
 }
 
 // Core lists a wallet it no longer holds, so this path skips the load and every
@@ -2016,6 +2311,7 @@ func TestAnyWalletCallDropsAWalletCoreUnloaded(t *testing.T) {
 
 	_, err := backend.Ensure(context.Background(), coreID)
 	require.NoError(t, err)
+	backend.bip47Imports.Wait()
 	require.Empty(t, backend.bip47NotifRetry, "the happy path leaves no retry to hang the eviction on")
 
 	// Core unloads the wallet, so the next balance read meets -18.
