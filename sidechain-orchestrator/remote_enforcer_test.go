@@ -329,6 +329,33 @@ func TestNodeModeChangeClosesTheRemoteBridge(t *testing.T) {
 	require.Equal(t, NodeModeFull, o.NodeMode())
 }
 
+func TestNodeModeChangeConnectsTheRemoteEnforcer(t *testing.T) {
+	server := remoteValidatorServer(t, 42, nil)
+	o := remoteTestOrchestrator(t, server.URL)
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeFull))
+	require.NoError(t, o.SetNodeMode(context.Background(), NodeModeLight))
+	require.Eventually(t, func() bool { return o.Status("enforcer").Connected }, 5*time.Second, 20*time.Millisecond)
+	require.False(t, o.Status("enforcer").Running)
+}
+
+func TestRemoteEnforcerConnectsAtBoot(t *testing.T) {
+	server := remoteValidatorServer(t, 42, nil)
+	o := remoteTestOrchestrator(t, server.URL)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	require.NoError(t, o.ConnectRemoteEnforcer(ctx))
+	require.Eventually(t, func() bool { return o.Status("enforcer").Connected }, 5*time.Second, 20*time.Millisecond)
+	require.False(t, o.Status("enforcer").Running)
+}
+
+func TestRemoteEnforcerStaysClosedInFullMode(t *testing.T) {
+	server := remoteValidatorServer(t, 42, nil)
+	o := remoteTestOrchestrator(t, server.URL)
+	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeFull))
+	require.NoError(t, o.ConnectRemoteEnforcer(context.Background()))
+	require.Nil(t, o.remoteEnforcer)
+}
+
 func TestNodeModeChangeStopsLocalL1BeforeTheModeWrite(t *testing.T) {
 	server := remoteValidatorServer(t, 42, nil)
 	o := remoteTestOrchestrator(t, server.URL)
