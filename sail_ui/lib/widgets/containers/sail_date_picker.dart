@@ -61,3 +61,46 @@ Widget _themedPickerBuilder(BuildContext context, Widget? child) {
     child: child!,
   );
 }
+
+class DateFilter extends StatefulWidget {
+  final Function(({DateTime start, DateTime end})? range) onPickedRange;
+
+  const DateFilter({super.key, required this.onPickedRange});
+
+  @override
+  State<StatefulWidget> createState() => _DateFilterState();
+}
+
+class _DateFilterState extends State<DateFilter> {
+  ({DateTime end, DateTime start})? _pickedRange;
+  bool filterActive = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        if (filterActive) {
+          filterActive = false;
+          widget.onPickedRange.call(null);
+          return;
+        }
+        _pickedRange = await showSailDateRangePicker(
+          context: context,
+          firstDate: DateTime(2009, 1, 3),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          initialRange: _pickedRange,
+        );
+
+        if (_pickedRange != null) {
+          widget.onPickedRange.call(_pickedRange);
+          filterActive = true;
+        }
+      },
+      child: SailSVG.icon(
+        filterActive ? SailSVGAsset.filterX : SailSVGAsset.filter,
+        color: filterActive ? context.sailTheme.colors.orange : context.sailTheme.colors.textSecondary,
+        width: 16,
+      ),
+    );
+  }
+}
