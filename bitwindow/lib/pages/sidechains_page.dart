@@ -980,6 +980,13 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (isRunning) {
       // Running but indexing: the same SyncInfo the bottom nav reports.
       final syncInfo = _syncInfoFor(sidechain);
+      if (syncInfo != null && syncInfo.mainchainSyncing) {
+        return SizedBox(
+          key: ValueKey('mainchain_sync_slot_${sidechain.slot}_${sidechain.name}'),
+          width: 160,
+          child: MainchainSyncStatus(syncInfo: syncInfo, compact: true),
+        );
+      }
       if (syncInfo != null && !syncInfo.isSynced && syncInfo.progressGoal > 0) {
         return _ActionProgress(
           key: ValueKey('syncing_slot_${sidechain.slot}_${sidechain.name}'),

@@ -267,4 +267,46 @@ void main() {
     expect(progressPercent(100, 100), '100%');
     expect(progressPercent(5, 0), '—');
   });
+
+  for (final (phase, label) in [
+    (MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_HEADERS, 'Fetching mainchain headers'),
+    (MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_WRITING, 'Writing mainchain headers'),
+    (MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_STATE, 'Syncing mainchain state'),
+  ]) {
+    testWidgets('a running chain in a mainchain phase shows "$label" and its percent', (tester) async {
+      setUpChain(_thunder());
+      thunderRPC.setConnected(true);
+      sync.sidechains = {
+        SidechainType.SIDECHAIN_TYPE_THUNDER: SyncInfo(
+          progressCurrent: 412000,
+          progressGoal: 997070,
+          lastBlockAt: null,
+          mainchainSyncPhase: phase,
+          mainchainTipHeight: 997070,
+        ),
+      };
+      await pumpTable(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(label), findsOneWidget);
+      expect(find.text('41.3%'), findsOneWidget);
+      expect(_button('Stop'), findsNothing);
+      expect(
+        tester.getRect(find.byType(MainchainSyncStatus)).right,
+        lessThanOrEqualTo(tester.getRect(_button('Deposit')).left),
+      );
+    });
+  }
+
+  testWidgets('a running chain without a mainchain phase keeps the block count bar', (tester) async {
+    setUpChain(_thunder());
+    thunderRPC.setConnected(true);
+    sync.sidechains = {
+      SidechainType.SIDECHAIN_TYPE_THUNDER: SyncInfo(progressCurrent: 100, progressGoal: 294, lastBlockAt: null),
+    };
+    await pumpTable(tester);
+
+    expect(find.byType(MainchainSyncStatus), findsNothing);
+    expect(find.text('34%'), findsOneWidget);
+  });
 }
