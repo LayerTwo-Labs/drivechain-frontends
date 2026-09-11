@@ -199,9 +199,10 @@ class _SailTableState extends State<SailTable> {
                     name: cell.name,
                     alignment: cell.alignment,
                     padding: cell.padding,
-                    isSorted: _sortColumnIndex == i,
+                    sortable: cell.sortable,
+                    isSorted: cell.sortable && _sortColumnIndex == i,
                     isAscending: _sortAscending,
-                    onSort: () => _handleSort(i),
+                    onSort: cell.sortable ? () => _handleSort(i) : null,
                     filterWidget: cell.filterWidget,
                   ),
                 ),
@@ -770,6 +771,7 @@ class SailTableHeaderCell extends StatelessWidget {
     this.alignment = Alignment.centerLeft,
     this.padding = const EdgeInsets.symmetric(horizontal: SailStyleValues.padding12),
     this.onSort,
+    this.sortable = true,
     this.isSorted = false,
     this.isAscending = true,
     this.filterWidget,
@@ -780,6 +782,9 @@ class SailTableHeaderCell extends StatelessWidget {
   final Alignment alignment;
   final EdgeInsets padding;
   final VoidCallback? onSort;
+
+  /// False when a tap on the header must not sort the table.
+  final bool sortable;
   final bool isSorted;
   final bool isAscending;
   final Widget? filterWidget;
