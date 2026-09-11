@@ -1106,57 +1106,6 @@ walkBlocks:
 	}), nil
 }
 
-// getCoinbaseAddress gets a new address from the active wallet for mining rewards
-func (s *Server) getCoinbaseAddress(ctx context.Context) (string, error) {
-	// Get the active wallet from wallet engine
-	activeWallet, err := s.walletEngine.GetActiveWallet(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get active wallet: %w", err)
-	}
-
-	// Get wallet type
-	walletType, err := s.walletEngine.GetWalletBackendType(ctx, activeWallet.ID)
-	if err != nil {
-		return "", fmt.Errorf("get wallet type: %w", err)
-	}
-
-	// get bitcoind-client here because we need it for both watch-only wallets and core wallets
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	switch walletType {
-	case engines.WalletTypeBitcoinCore:
-		// Watch-only Core wallets import a descriptor; full wallets use the
-		// seed-derived wallet. Both serve addresses from Bitcoin Core.
-		var walletName string
-		var err error
-		if activeWallet.IsWatchOnly() {
-			walletName, err = s.walletEngine.EnsureWatchOnlyWallet(ctx, activeWallet.ID)
-		} else {
-			walletName, err = s.walletEngine.GetBitcoinCoreWalletName(ctx, activeWallet.ID)
-		}
-		if err != nil {
-			return "", fmt.Errorf("ensure core wallet: %w", err)
-		}
-		addr, err := bitcoind.GetNewAddress(ctx, connect.NewRequest(&corepb.GetNewAddressRequest{
-			Wallet: walletName,
-		}))
-		if err != nil {
-			return "", err
-		}
-		return addr.Msg.Address, nil
-
-	case engines.WalletTypeElectrum:
-		// Electrum derives the address in the orchestrator (Esplora-backed).
-		return s.walletEngine.GetElectrumReceiveAddress(ctx, activeWallet.ID)
-
-	default:
-		return "", fmt.Errorf("unsupported wallet type: %s", walletType)
-	}
-}
-
 // StartMining spins up the backend CPU miner on eCash, idempotently. The miner
 // runs on a detached context and keeps going after this call returns.
 func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[emptypb.Empty], error) {
@@ -1176,47 +1125,11 @@ func (s *Server) StartMining(ctx context.Context, req *connect.Request[emptypb.E
 		return connect.NewResponse(&emptypb.Empty{}), nil
 	}
 
-	bitcoind, err := s.bitcoind.Get(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin core unreachable: %w", err))
-	}
-	if _, err := bitcoind.GetBlockchainInfo(ctx, connect.NewRequest(&corepb.GetBlockchainInfoRequest{})); err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("bitcoin core unreachable: %w", err))
-	}
-
-	// Get a payout address from the active wallet for mining rewards.
-	address, err := s.getCoinbaseAddress(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get mining address: %w", err))
-	}
-
-	// cpuminer talks raw bitcoind JSON-RPC; pull the live creds from
-	// drivechaind so we always match whatever bitcoind is running with.
-	confClient := orchrpc.NewBitcoinConfServiceClient(
-		http.DefaultClient,
-		s.config.OrchestratorAddr,
-		connect.WithGRPC(),
-		connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
-	)
-	confResp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read bitcoin config from orchestrator: %w", err))
-	}
+	// Core gives templates only to the enforcer. The enforcer adds the
+	// BIP300/301 outputs and the payout to the coinbase.
 	miner, err := cpuminer.New(cpuminer.Config{
-		RpcURL: fmt.Sprintf("http://localhost:%d", confResp.Msg.RpcPort),
-		// Re-resolve creds per request: Core rotates its cookie on restart, so a
-		// pair snapshotted here would 401 the moment bitcoind restarts.
-		Credentials: func() (string, string, error) {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			resp, err := confClient.GetBitcoinConfig(ctx, connect.NewRequest(&orchpb.GetBitcoinConfigRequest{}))
-			if err != nil {
-				return "", "", fmt.Errorf("read bitcoin config from orchestrator: %w", err)
-			}
-			return resp.Msg.RpcUser, resp.Msg.RpcPassword, nil
-		},
-		Routines:        1,
-		CoinbaseAddress: address,
+		RpcURL:   "http://" + s.config.EnforcerJSONRPCAddr,
+		Routines: 1,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create miner: %w", err))
