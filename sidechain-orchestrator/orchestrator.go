@@ -31,6 +31,7 @@ import (
 	enforcerpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1"
 	enforcerrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/cusf/mainchain/v1/mainchainv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/rpc"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/nodes"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
@@ -3369,6 +3370,19 @@ func (c *sidechainSyncConnection) Fetch(ctx context.Context) (*ChainSyncResult, 
 		return nil, fmt.Errorf("unknown sidechain: %s", c.name)
 	}
 	proxy := sidechain.NewJSONRPCProxy(cfg.RPCHost(), cfg.Port)
+	progress, err := proxy.MainchainSyncProgress(ctx)
+	switch {
+	case rpc.LacksMethod(err):
+	case err != nil:
+		return nil, err
+	case progress.Phase != sidechain.MainchainSyncIdle:
+		return &ChainSyncResult{
+			Blocks:             int64(progress.Done),
+			Headers:            int64(progress.Total),
+			MainchainSyncPhase: progress.Phase,
+			MainchainTipHeight: int64(progress.TipHeight),
+		}, nil
+	}
 	count, err := proxy.GetBlockCount(ctx)
 	if err != nil {
 		return nil, err
@@ -3477,6 +3491,11 @@ type ChainSyncResult struct {
 	// VerifiedGoal is the height VerifiedBlocks counts towards: the snapshot's
 	// base block, zero when no snapshot is loaded. Mainchain only.
 	VerifiedGoal int64
+	// MainchainSyncPhase is the mainchain step a sidechain node takes, empty
+	// when it reports none. While set, Blocks and Headers are its done and total.
+	MainchainSyncPhase sidechain.MainchainSyncPhase
+	// MainchainTipHeight is the mainchain height MainchainSyncPhase moves to.
+	MainchainTipHeight int64
 }
 
 // SyncStatus is the atomic snapshot returned by GetSyncStatus. Mainchain +
@@ -3633,7 +3652,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 			// back on — otherwise keep showing the last-good numbers so
 			// the UI's progress doesn't snap to zero on a transient
 			// timeout. Same behaviour for L1 (bitcoind) and L2.
-			if err != nil && (res == nil || res.Blocks == 0) {
+			if err != nil && (res == nil || (res.Blocks == 0 && res.MainchainSyncPhase == "")) {
 				j.slot.Error = err.Error()
 				return
 			}
@@ -3641,6 +3660,8 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 				j.slot.Blocks = res.Blocks
 				j.slot.Headers = res.Headers
 				j.slot.Time = res.Time
+				j.slot.MainchainSyncPhase = res.MainchainSyncPhase
+				j.slot.MainchainTipHeight = res.MainchainTipHeight
 			}
 		}()
 	}
@@ -3693,7 +3714,7 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	// sidechain as fully synced even mid-IBD — a far worse failure mode
 	// than a stuck-at-zero progress bar.
 	for name, slot := range out.Sidechains {
-		if slot.Error != "" {
+		if slot.Error != "" || slot.MainchainSyncPhase != "" {
 			continue
 		}
 		// Only an index knows the chain's tip. The node's own height would

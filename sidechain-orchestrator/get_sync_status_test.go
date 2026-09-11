@@ -87,20 +87,44 @@ func sidechainCountServer(t *testing.T, status int, count int64) *httptest.Serve
 	return srv
 }
 
-// writeJSONRPCCount echoes a JSON-RPC 2.0 success envelope with `count` as
-// the result. The id is mirrored from the request body when present.
-func writeJSONRPCCount(w http.ResponseWriter, r *http.Request, count int64) {
+// readJSONRPC returns the method and id of one JSON-RPC request.
+func readJSONRPC(r *http.Request) (string, int64) {
 	var req struct {
-		ID int64 `json:"id"`
+		Method string `json:"method"`
+		ID     int64  `json:"id"`
 	}
 	body, _ := io.ReadAll(r.Body)
 	_ = json.Unmarshal(body, &req)
+	return req.Method, req.ID
+}
+
+func writeJSONRPCResult(w http.ResponseWriter, id int64, result any) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"jsonrpc": "2.0",
-		"result":  count,
-		"id":      req.ID,
+		"result":  result,
+		"id":      id,
 	})
+}
+
+func writeJSONRPCError(w http.ResponseWriter, id int64, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"jsonrpc": "2.0",
+		"error":   map[string]any{"code": code, "message": message},
+		"id":      id,
+	})
+}
+
+// writeJSONRPCCount answers getblockcount with count, and every other method
+// the way a node without that method does.
+func writeJSONRPCCount(w http.ResponseWriter, r *http.Request, count int64) {
+	method, id := readJSONRPC(r)
+	if method != "getblockcount" {
+		writeJSONRPCError(w, id, RPCMethodNotFound, "Method not found")
+		return
+	}
+	writeJSONRPCResult(w, id, count)
 }
 
 func TestGetSyncStatus_LeavesHeadersZeroWhenExplorerDown(t *testing.T) {
@@ -323,14 +347,19 @@ func TestGetSyncStatus_EveryL2SidechainHasAPort(t *testing.T) {
 	}
 }
 
-// countingSidechainServer returns an httptest.Server that records every hit
-// and replies with the JSON-RPC `getblockcount` success envelope for <count>.
+// countingSidechainServer returns an httptest.Server that records every
+// `getblockcount` and replies to it with <count>.
 func countingSidechainServer(t *testing.T, count int64) (*httptest.Server, *int32) {
 	t.Helper()
 	var hits int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method, id := readJSONRPC(r)
+		if method != "getblockcount" {
+			writeJSONRPCError(w, id, RPCMethodNotFound, "Method not found")
+			return
+		}
 		atomic.AddInt32(&hits, 1)
-		writeJSONRPCCount(w, r, count)
+		writeJSONRPCResult(w, id, count)
 	}))
 	t.Cleanup(srv.Close)
 	return srv, &hits
@@ -363,9 +392,14 @@ func TestSidechainConnection_PreservesLastGoodOnError(t *testing.T) {
 
 	var hits int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method, id := readJSONRPC(r)
+		if method != "getblockcount" {
+			writeJSONRPCError(w, id, RPCMethodNotFound, "Method not found")
+			return
+		}
 		n := atomic.AddInt32(&hits, 1)
 		if n == 1 {
-			writeJSONRPCCount(w, r, 1500)
+			writeJSONRPCResult(w, id, 1500)
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
@@ -403,9 +437,14 @@ func TestGetSyncStatus_KeepsLastGoodBlocksAcrossTransientFailures(t *testing.T) 
 
 	var hits int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method, id := readJSONRPC(r)
+		if method != "getblockcount" {
+			writeJSONRPCError(w, id, RPCMethodNotFound, "Method not found")
+			return
+		}
 		n := atomic.AddInt32(&hits, 1)
 		if n == 1 {
-			writeJSONRPCCount(w, r, 1500)
+			writeJSONRPCResult(w, id, 1500)
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
