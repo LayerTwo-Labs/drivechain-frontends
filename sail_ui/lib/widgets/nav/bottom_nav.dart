@@ -247,7 +247,6 @@ class BottomNav extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 SailColumn(
-                  spacing: SailStyleValues.padding12,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (showMainchain &&

@@ -40,18 +40,27 @@ class DaemonConnectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final downloadProvider = GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
     if (downloadProvider == null) {
-      return _buildCard(context, downloadProgress: null);
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _buildCard(context, downloadProgress: null),
+      );
     }
     return ListenableBuilder(
       listenable: downloadProvider,
       builder: (context, _) {
         final progress = downloadProvider.statusFor(connection.binary.type);
-        return _buildCard(context, downloadProgress: progress);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildCard(context, downloadProgress: progress),
+        );
       },
     );
   }
 
-  Widget _buildCard(BuildContext context, {required DownloadProgress? downloadProgress}) {
+  Widget _buildCard(
+    BuildContext context, {
+    required DownloadProgress? downloadProgress,
+  }) {
     final theme = SailTheme.of(context);
     final providerBinary = _binaryProvider.binaries.firstWhereOrNull(
       (b) => b.name == connection.binary.name,
@@ -62,7 +71,7 @@ class DaemonConnectionCard extends StatelessWidget {
       child: SailColumn(
         children: [
           SailRow(
-            spacing: SailStyleValues.padding08,
+            spacing: SailStyleValues.padding04,
             children: [
               SailText.primary15(
                 '${connection.binary.name} daemon',
@@ -144,20 +153,22 @@ class DaemonConnectionCard extends StatelessWidget {
           // The row stays even with nothing to report, so a card that gains
           // sync info or a download does not grow.
           SizedBox(
-            width: progressBlockWidth(downloadProgress != null ? 1 : syncRowCount(syncInfo)),
+            width: progressBlockWidth(
+              downloadProgress != null ? 1 : syncRowCount(syncInfo),
+            ),
             height: downloadProgress == null && (syncInfo?.mainchainSyncing ?? false)
                 ? null
-                : progressBlockHeight(context, downloadProgress != null ? 1 : syncRowCount(syncInfo)),
+                : progressBlockHeight(
+                    context,
+                    downloadProgress != null ? 1 : syncRowCount(syncInfo),
+                  ),
             child: downloadProgress != null
                 ? DownloadStatusRow(
                     name: connection.binary.name,
                     download: downloadProgress,
                   )
                 : syncInfo != null
-                ? BlockStatus(
-                    name: connection.binary.name,
-                    syncInfo: syncInfo!,
-                  )
+                ? BlockStatus(name: connection.binary.name, syncInfo: syncInfo!)
                 : null,
           ),
           Padding(
@@ -181,7 +192,10 @@ class DaemonConnectionCard extends StatelessWidget {
     );
   }
 
-  Color _getConnectionColor(SailThemeData theme, {required bool isDownloading}) => resolveDaemonStatusColor(
+  Color _getConnectionColor(
+    SailThemeData theme, {
+    required bool isDownloading,
+  }) => resolveDaemonStatusColor(
     theme: theme,
     connectionError: connection.connectionError,
     startupError: connection.startupError,
@@ -467,9 +481,17 @@ class BlockStatus extends StatelessWidget {
   /// from genesis while it runs from a UTXO snapshot. Verification finishes at
   /// the snapshot's base block, so that row carries its own goal.
   static List<SyncRow> rowsFor(SyncInfo info) {
-    final rows = <SyncRow>[SyncRow('Blocks', info.progressCurrent, info.progressGoal)];
+    final rows = <SyncRow>[
+      SyncRow('Blocks', info.progressCurrent, info.progressGoal),
+    ];
     if (info.verifiedBlocks > 0 && info.verifiedGoal > 0) {
-      rows.add(SyncRow('Verified', info.verifiedBlocks.toDouble(), info.verifiedGoal.toDouble()));
+      rows.add(
+        SyncRow(
+          'Verified',
+          info.verifiedBlocks.toDouble(),
+          info.verifiedGoal.toDouble(),
+        ),
+      );
     }
     return rows;
   }
@@ -492,7 +514,10 @@ class BlockStatus extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SizedBox(width: syncLabelWidth, child: SailText.secondary12(row.label)),
+                SizedBox(
+                  width: syncLabelWidth,
+                  child: SailText.secondary12(row.label),
+                ),
                 SizedBox(
                   width: progressBarWidth,
                   child: ProgressBar(current: row.current, goal: row.goal),
@@ -527,7 +552,9 @@ class BlockStatus extends StatelessWidget {
                     ),
                   )
                 else
-                  SailText.secondary12('${formatWithThousandSpacers(currentProgress)} sync height'),
+                  SailText.secondary12(
+                    '${formatWithThousandSpacers(currentProgress)} sync height',
+                  ),
               ],
             ),
           ),

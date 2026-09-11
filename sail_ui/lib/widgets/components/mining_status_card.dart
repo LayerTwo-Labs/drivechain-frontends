@@ -32,43 +32,51 @@ class MiningStatusCard extends StatelessWidget {
           hasInfoMessage: false,
         );
 
-        return SailCard(
-          child: SailColumn(
-            children: [
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  SailText.primary15('CPU Mining', bold: true),
-                  SailSVG.fromAsset(SailSVGAsset.iconConnectionStatus, color: statusColor),
-                  Expanded(child: Container()),
-                  Tooltip(
-                    message: 'View logs',
-                    child: SailButton(
-                      variant: ButtonVariant.ghost,
-                      onPressed: () async => onViewLogs?.call(),
-                      disabled: onViewLogs == null,
-                      label: 'View logs',
+        return Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: SailCard(
+            child: SailColumn(
+              children: [
+                SailRow(
+                  spacing: SailStyleValues.padding08,
+                  children: [
+                    SailText.primary15('CPU Mining', bold: true),
+                    SailSVG.fromAsset(
+                      SailSVGAsset.iconConnectionStatus,
+                      color: statusColor,
+                    ),
+                    Expanded(child: Container()),
+                    Tooltip(
+                      message: 'View logs',
+                      child: SailButton(
+                        variant: ButtonVariant.ghost,
+                        onPressed: () async => onViewLogs?.call(),
+                        disabled: onViewLogs == null,
+                        label: 'View logs',
+                      ),
+                    ),
+                    SailButton(
+                      variant: ButtonVariant.icon,
+                      onPressed: () async => onOpenSettings?.call(),
+                      disabled: onOpenSettings == null,
+                      icon: SailSVGAsset.tabSettings,
+                    ),
+                    _StartStopButton(mining: mining),
+                  ],
+                ),
+                SizedBox(width: 350, child: MiningRateStatus(mining: mining)),
+                if (mining.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: SailStyleValues.padding04,
+                    ),
+                    child: SailText.secondary12(
+                      prettifyLogMessage(mining.error!),
+                      monospace: true,
                     ),
                   ),
-                  SailButton(
-                    variant: ButtonVariant.icon,
-                    onPressed: () async => onOpenSettings?.call(),
-                    disabled: onOpenSettings == null,
-                    icon: SailSVGAsset.tabSettings,
-                  ),
-                  _StartStopButton(mining: mining),
-                ],
-              ),
-              SizedBox(
-                width: 350,
-                child: MiningRateStatus(mining: mining),
-              ),
-              if (mining.error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: SailStyleValues.padding04),
-                  child: SailText.secondary12(prettifyLogMessage(mining.error!), monospace: true),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -96,7 +104,9 @@ class MiningRateStatus extends StatelessWidget {
         spacing: SailStyleValues.padding08,
         children: [
           SailText.secondary12(mining.formattedHashRate),
-          SailText.secondary12(blocks == 1 ? '1 block found' : '$blocks blocks found'),
+          SailText.secondary12(
+            blocks == 1 ? '1 block found' : '$blocks blocks found',
+          ),
         ],
       ),
     );
@@ -138,7 +148,11 @@ class _StartStopButtonState extends State<_StartStopButton> {
     if (_busy) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: SailStyleValues.padding08),
-        child: SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2)),
+        child: SizedBox(
+          width: 12,
+          height: 12,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
       );
     }
 
