@@ -420,7 +420,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "block_hash": {
+                    "type": "string"
+                  },
+                  "verbose": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  }
+                }
               }
             }
           }
@@ -436,19 +451,14 @@
                       "type": "null"
                     },
                     {
-                      "type": "object",
-                      "required": [
-                        "header",
-                        "body"
-                      ],
-                      "properties": {
-                        "body": {
-                          "$ref": "#/components/schemas/Body"
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Block"
                         },
-                        "header": {
-                          "$ref": "#/components/schemas/Header"
+                        {
+                          "$ref": "#/components/schemas/BlockVerbose"
                         }
-                      }
+                      ]
                     }
                   ]
                 }
@@ -460,7 +470,7 @@
     },
     "get_block_hash": {
       "post": {
-        "description": "Get the block hash at the specified height in the current chain,\nif it exists",
+        "description": "Get the block hash at the specified height in the active chain,\nif it exists",
         "operationId": "get_block_hash",
         "requestBody": {
           "content": {
@@ -833,6 +843,52 @@
         }
       }
     },
+    "get_withdrawal_bundle": {
+      "post": {
+        "description": "Get withdrawal bundle by M6id",
+        "operationId": "get_withdrawal_bundle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "info",
+                        "status"
+                      ],
+                      "properties": {
+                        "info": {
+                          "$ref": "#/components/schemas/WithdrawalBundleInfo"
+                        },
+                        "status": {
+                          "$ref": "#/components/schemas/WithdrawalBundleStatus"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "getblockcount": {
       "post": {
         "description": "Get the current block count",
@@ -1021,6 +1077,52 @@
         }
       }
     },
+    "mainchain_sync_progress": {
+      "post": {
+        "description": "Get the progress of the startup sync with the mainchain",
+        "operationId": "mainchain_sync_progress",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Progress of the startup sync with the mainchain",
+                  "required": [
+                    "phase",
+                    "done",
+                    "total",
+                    "tip_height"
+                  ],
+                  "properties": {
+                    "done": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    },
+                    "phase": {
+                      "$ref": "#/components/schemas/MainchainSyncPhase"
+                    },
+                    "tip_height": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "description": "Height of the mainchain tip that the sync moves to",
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "mine": {
       "post": {
         "description": "Attempt to mine a sidechain block",
@@ -1178,7 +1280,7 @@
                                     "$ref": "#/components/schemas/Address"
                                   },
                                   "content": {
-                                    "$ref": "OutputContent"
+                                    "$ref": "#/components/schemas/OutputContent"
                                   }
                                 }
                               }
@@ -1480,6 +1582,263 @@
       "Address": {
         "type": "string"
       },
+      "Authorization": {
+        "type": "object",
+        "required": [
+          "verifying_key",
+          "signature"
+        ],
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "verifying_key": {
+            "type": "string"
+          }
+        }
+      },
+      "Block": {
+        "type": "object",
+        "required": [
+          "header",
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/Body"
+          },
+          "header": {
+            "$ref": "#/components/schemas/Header"
+          }
+        }
+      },
+      "BlockHash": {
+        "type": "string"
+      },
+      "BlockIndexDeposit": {
+        "type": "object",
+        "description": "One output a mainchain deposit created",
+        "required": [
+          "outpoint",
+          "output"
+        ],
+        "properties": {
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          }
+        }
+      },
+      "BlockIndexSpend": {
+        "type": "object",
+        "description": "One output a withdrawal bundle removed, with the bundle that took it",
+        "required": [
+          "outpoint",
+          "m6id"
+        ],
+        "properties": {
+          "m6id": {
+            "$ref": "#/components/schemas/M6id"
+          },
+          "outpoint": {
+            "$ref": "#/components/schemas/OutPoint"
+          }
+        }
+      },
+      "BlockIndexTx": {
+        "type": "object",
+        "description": "One transaction of a block, with the fields its body omits",
+        "required": [
+          "txid",
+          "size",
+          "raw"
+        ],
+        "properties": {
+          "raw": {
+            "type": "string",
+            "description": "Borsh encoding, as hex"
+          },
+          "size": {
+            "type": "integer",
+            "format": "u-int64",
+            "description": "Canonical size in bytes",
+            "minimum": 0
+          },
+          "txid": {
+            "$ref": "#/components/schemas/Txid"
+          }
+        }
+      },
+      "BlockVerbose": {
+        "type": "object",
+        "required": [
+          "header",
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BodyVerbose"
+          },
+          "header": {
+            "$ref": "#/components/schemas/Header"
+          }
+        }
+      },
+      "Body": {
+        "type": "object",
+        "required": [
+          "coinbase",
+          "transactions",
+          "authorizations"
+        ],
+        "properties": {
+          "authorizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Authorization"
+            }
+          },
+          "coinbase": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            }
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          }
+        }
+      },
+      "BodyVerbose": {
+        "type": "object",
+        "required": [
+          "coinbase",
+          "transactions",
+          "authorizations"
+        ],
+        "properties": {
+          "authorizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Authorization"
+            }
+          },
+          "coinbase": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            }
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionVerbose"
+            }
+          }
+        }
+      },
+      "Header": {
+        "type": "object",
+        "required": [
+          "merkle_root",
+          "prev_main_hash",
+          "roots"
+        ],
+        "properties": {
+          "merkle_root": {
+            "$ref": "#/components/schemas/MerkleRoot"
+          },
+          "prev_main_hash": {
+            "$ref": "#/components/schemas/bitcoin.BlockHash"
+          },
+          "prev_side_hash": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BlockHash"
+              }
+            ]
+          },
+          "roots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/utreexo.NodeHash"
+            },
+            "description": "Utreexo roots"
+          }
+        }
+      },
+      "InPoint": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Transaction input",
+            "required": [
+              "Regular"
+            ],
+            "properties": {
+              "Regular": {
+                "type": "object",
+                "description": "Transaction input",
+                "required": [
+                  "txid",
+                  "vin"
+                ],
+                "properties": {
+                  "txid": {
+                    "$ref": "#/components/schemas/Txid"
+                  },
+                  "vin": {
+                    "type": "integer",
+                    "format": "u-int32",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Withdrawal"
+            ],
+            "properties": {
+              "Withdrawal": {
+                "type": "object",
+                "required": [
+                  "m6id"
+                ],
+                "properties": {
+                  "m6id": {
+                    "$ref": "#/components/schemas/M6id"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Reference to a tx input."
+      },
+      "M6id": {
+        "type": "string"
+      },
+      "MainchainSyncPhase": {
+        "type": "string",
+        "description": "Step of the startup sync with the mainchain",
+        "enum": [
+          "idle",
+          "headers",
+          "writing",
+          "state"
+        ]
+      },
       "MerkleRoot": {
         "type": "string"
       },
@@ -1559,7 +1918,7 @@
             "$ref": "#/components/schemas/Address"
           },
           "content": {
-            "$ref": "OutputContent"
+            "$ref": "#/components/schemas/OutputContent"
           }
         }
       },
@@ -1612,17 +1971,398 @@
         ],
         "description": ""
       },
+      "PeerConnectionStatus": {
+        "type": "string",
+        "enum": [
+          "Connecting",
+          "Connected"
+        ]
+      },
+      "SpentOutput": {
+        "type": "object",
+        "description": "Representation of a spent output",
+        "required": [
+          "output",
+          "inpoint"
+        ],
+        "properties": {
+          "inpoint": {
+            "$ref": "#/components/schemas/InPoint"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "required": [
+          "inputs",
+          "proof",
+          "outputs"
+        ],
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "Regular"
+                      ],
+                      "properties": {
+                        "Regular": {
+                          "type": "object",
+                          "required": [
+                            "txid",
+                            "vout"
+                          ],
+                          "properties": {
+                            "txid": {
+                              "$ref": "#/components/schemas/Txid"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Coinbase"
+                      ],
+                      "properties": {
+                        "Coinbase": {
+                          "type": "object",
+                          "required": [
+                            "merkle_root",
+                            "vout"
+                          ],
+                          "properties": {
+                            "merkle_root": {
+                              "$ref": "#/components/schemas/MerkleRoot"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Deposit"
+                      ],
+                      "properties": {
+                        "Deposit": {
+                          "$ref": "#/components/schemas/bitcoin.OutPoint"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Output"
+            }
+          },
+          "proof": {
+            "$ref": "#/components/schemas/utreexo.Proof",
+            "description": "Utreexo proof for inputs"
+          }
+        }
+      },
+      "TransactionVerbose": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Transaction"
+          },
+          {
+            "type": "object",
+            "required": [
+              "canonical_bytes"
+            ],
+            "properties": {
+              "canonical_bytes": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "u-int8",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        ]
+      },
       "Txid": {
         "type": "string"
       },
+      "WithdrawalBundle": {
+        "type": "object",
+        "required": [
+          "spend_utxos",
+          "tx"
+        ],
+        "properties": {
+          "spend_utxos": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "Regular"
+                      ],
+                      "properties": {
+                        "Regular": {
+                          "type": "object",
+                          "required": [
+                            "txid",
+                            "vout"
+                          ],
+                          "properties": {
+                            "txid": {
+                              "$ref": "#/components/schemas/Txid"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Coinbase"
+                      ],
+                      "properties": {
+                        "Coinbase": {
+                          "type": "object",
+                          "required": [
+                            "merkle_root",
+                            "vout"
+                          ],
+                          "properties": {
+                            "merkle_root": {
+                              "$ref": "#/components/schemas/MerkleRoot"
+                            },
+                            "vout": {
+                              "type": "integer",
+                              "format": "u-int32",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "Deposit"
+                      ],
+                      "properties": {
+                        "Deposit": {
+                          "$ref": "#/components/schemas/bitcoin.OutPoint"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "address",
+                    "content"
+                  ],
+                  "properties": {
+                    "address": {
+                      "$ref": "#/components/schemas/Address"
+                    },
+                    "content": {
+                      "$ref": "#/components/schemas/OutputContent"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "tx": {
+            "$ref": "#/components/schemas/bitcoin.Transaction"
+          }
+        }
+      },
+      "WithdrawalBundleInfo": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Withdrawal bundle is known",
+            "required": [
+              "Known"
+            ],
+            "properties": {
+              "Known": {
+                "$ref": "#/components/schemas/WithdrawalBundle",
+                "description": "Withdrawal bundle is known"
+              }
+            }
+          },
+          {
+            "type": "string",
+            "description": "Withdrawal bundle is unknown but unconfirmed / failed",
+            "enum": [
+              "Unknown"
+            ]
+          },
+          {
+            "type": "object",
+            "description": "If an unknown withdrawal bundle is confirmed, ALL UTXOs are\nconsidered spent.",
+            "required": [
+              "UnknownConfirmed"
+            ],
+            "properties": {
+              "UnknownConfirmed": {
+                "type": "object",
+                "description": "If an unknown withdrawal bundle is confirmed, ALL UTXOs are\nconsidered spent.",
+                "required": [
+                  "spend_utxos"
+                ],
+                "properties": {
+                  "spend_utxos": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/Output"
+                    },
+                    "propertyNames": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "Regular"
+                          ],
+                          "properties": {
+                            "Regular": {
+                              "type": "object",
+                              "required": [
+                                "txid",
+                                "vout"
+                              ],
+                              "properties": {
+                                "txid": {
+                                  "$ref": "#/components/schemas/Txid"
+                                },
+                                "vout": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "Coinbase"
+                          ],
+                          "properties": {
+                            "Coinbase": {
+                              "type": "object",
+                              "required": [
+                                "merkle_root",
+                                "vout"
+                              ],
+                              "properties": {
+                                "merkle_root": {
+                                  "$ref": "#/components/schemas/MerkleRoot"
+                                },
+                                "vout": {
+                                  "type": "integer",
+                                  "format": "u-int32",
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "Deposit"
+                          ],
+                          "properties": {
+                            "Deposit": {
+                              "$ref": "#/components/schemas/bitcoin.OutPoint"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Information we have regarding a withdrawal bundle"
+      },
+      "WithdrawalBundleStatus": {
+        "type": "string",
+        "enum": [
+          "Confirmed",
+          "Dropped",
+          "Failed",
+          "Pending",
+          "Submitted",
+          "SubmittedUnexpected"
+        ]
+      },
       "bitcoin.Address": {
+        "type": "string"
+      },
+      "bitcoin.BlockHash": {
         "type": "string"
       },
       "bitcoin.OutPoint": {
         "type": "object"
       },
-      "bitcoin.Txid": {
+      "bitcoin.Transaction": {
+        "type": "object"
+      },
+      "net.SocketAddr": {
         "type": "string"
+      },
+      "utreexo.NodeHash": {
+        "type": "string"
+      },
+      "utreexo.Proof": {
+        "type": "object"
       }
     }
   }

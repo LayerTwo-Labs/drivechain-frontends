@@ -969,6 +969,33 @@
         }
       }
     },
+    "invalidate_block": {
+      "post": {
+        "description": "Invalidate a block, potentially re-orging to a valid ancestor of the\ncurrent tip.",
+        "operationId": "invalidate_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "latest_failed_withdrawal_bundle_height": {
       "post": {
         "description": "Get the height of the latest failed withdrawal bundle",
@@ -1402,6 +1429,52 @@
         }
       }
     },
+    "mainchain_sync_progress": {
+      "post": {
+        "description": "Get the progress of the startup sync with the mainchain",
+        "operationId": "mainchain_sync_progress",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Progress of the startup sync with the mainchain",
+                  "required": [
+                    "phase",
+                    "done",
+                    "total",
+                    "tip_height"
+                  ],
+                  "properties": {
+                    "done": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    },
+                    "phase": {
+                      "$ref": "#/components/schemas/MainchainSyncPhase"
+                    },
+                    "tip_height": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "description": "Height of the mainchain tip that the sync moves to",
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "mine": {
       "post": {
         "description": "Attempt to mine a sidechain block",
@@ -1722,6 +1795,52 @@
         }
       }
     },
+    "transfer_many": {
+      "post": {
+        "description": "Transfer funds to each address in `dests`, which maps an address to a\nvalue in sats",
+        "operationId": "transfer_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dests": {
+                    "type": "object",
+                    "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    }
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "update_swap_l1_txid": {
       "post": {
         "description": "Update swap L1 transaction ID (called when L1 transaction is detected).\nFor open swaps, pass l2_claimer_address so the claim is only valid for that address.",
@@ -1889,6 +2008,16 @@
       },
       "M6id": {
         "type": "string"
+      },
+      "MainchainSyncPhase": {
+        "type": "string",
+        "description": "Step of the startup sync with the mainchain",
+        "enum": [
+          "idle",
+          "headers",
+          "writing",
+          "state"
+        ]
       },
       "MerkleRoot": {
         "type": "string"
@@ -2345,6 +2474,18 @@
             "$ref": "#/components/schemas/utreexo.Proof",
             "description": "Utreexo proof for inputs"
           }
+        }
+      },
+      "TransferDests": {
+        "type": "object",
+        "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
+        "additionalProperties": {
+          "type": "integer",
+          "format": "u-int64",
+          "minimum": 0
+        },
+        "propertyNames": {
+          "type": "string"
         }
       },
       "TxData": {

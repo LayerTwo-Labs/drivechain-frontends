@@ -41,7 +41,7 @@
     },
     "connect_block": {
       "post": {
-        "description": "Connect a block for which a BMM request was included in the specified\nmainchain block. Returns `true` if it was accepted as the new tip.",
+        "description": "Connect a block for which a BMM request was included in the\nspecified mainchain block. Returns `true` if it was accepted as the\nnew tip.",
         "operationId": "connect_block",
         "requestBody": {
           "content": {
@@ -853,6 +853,33 @@
         }
       }
     },
+    "invalidate_block": {
+      "post": {
+        "description": "Invalidate a block, potentially re-orging to a valid ancestor of\nthe current tip.",
+        "operationId": "invalidate_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "latest_failed_withdrawal_bundle_height": {
       "post": {
         "description": "Get the height of the latest failed withdrawal bundle",
@@ -985,6 +1012,52 @@
                       "output": {
                         "$ref": "#/components/schemas/Output"
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mainchain_sync_progress": {
+      "post": {
+        "description": "Get the progress of the startup sync with the mainchain",
+        "operationId": "mainchain_sync_progress",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Progress of the startup sync with the mainchain",
+                  "required": [
+                    "phase",
+                    "done",
+                    "total",
+                    "tip_height"
+                  ],
+                  "properties": {
+                    "done": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    },
+                    "phase": {
+                      "$ref": "#/components/schemas/MainchainSyncPhase"
+                    },
+                    "tip_height": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "description": "Height of the mainchain tip that the sync moves to",
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
                     }
                   }
                 }
