@@ -120,8 +120,8 @@ String lightSidechainNetworksLine(List<String> networks) {
   return 'Light mode serves sidechains on ${networks.join(', ')}.';
 }
 
-/// Stands in for the whole tab while the L1 stack is missing, and doubles as the
-/// place to start it — the same daemons the bottom nav reports on.
+/// Stands in for the whole tab while the L1 stack is missing, and in full mode
+/// doubles as the place to start it — the same daemons the bottom nav reports on.
 class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
   const _L1RequiredCard();
 
@@ -192,22 +192,18 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
               stopDaemon: NodeModeProvider.runsLocalBackends ? () => viewModel.stopDaemon(Enforcer()) : null,
               navigateToLogs: viewModel.navigateToLogs,
             ),
-            if (gate == L1Gate.stopped) ...[
+            if (gate == L1Gate.stopped && NodeModeProvider.runsLocalBackends) ...[
               const SailSpacing(SailStyleValues.padding16),
               Row(
                 children: [
                   SailButton(
-                    label: NodeModeProvider.runsLocalBackends
-                        ? 'Start Bitcoin Core + Enforcer'
-                        : 'Connect to remote enforcer',
+                    label: 'Start Bitcoin Core + Enforcer',
                     onPressed: viewModel.startL1,
                   ),
-                  if (NodeModeProvider.runsLocalBackends) ...[
-                    const SizedBox(width: SailStyleValues.padding12),
-                    Flexible(
-                      child: SailText.secondary12('The first start must download and check the chain.'),
-                    ),
-                  ],
+                  const SizedBox(width: SailStyleValues.padding12),
+                  Flexible(
+                    child: SailText.secondary12('The first start must download and check the chain.'),
+                  ),
                 ],
               ),
             ],
