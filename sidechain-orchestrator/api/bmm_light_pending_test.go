@@ -60,6 +60,20 @@ func TestLightPendingFailsOnATransientPriorWallet(t *testing.T) {
 	assert.Contains(t, err.Error(), "context deadline exceeded")
 }
 
+// A live wallet can answer "method not found" when its backend is at fault.
+// Reading that as a deletion hides the fault and drops a pending bid.
+func TestLightPendingFailsOnAMethodNotFound(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{
+		txs:     []*wpb.TransactionEntry{{Txid: "bid", Confirmations: 0}},
+		listErr: map[string]error{"older": fmt.Errorf("electrum error: method not found")},
+	}
+
+	_, err := h.MempoolTxids(context.Background(), []string{"bidder", "older"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "method not found")
+}
+
 // The current funding wallet is the first id. A backend that cannot list it
 // reports nothing about our bids, so the read fails rather than reports none.
 func TestLightPendingFailsOnTheCurrentWallet(t *testing.T) {
