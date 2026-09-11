@@ -57,6 +57,13 @@ type CoreBackend struct {
 	// wallet stays cached and later Ensure calls retry the import, gated by
 	// walletLoadingBackoff so a persistently failing rescan can't hot-loop.
 	bip47NotifRetry map[string]time.Time
+	// bip47Importing holds the wallets whose notification import waits on Core.
+	bip47Importing map[string]bool
+	// bip47Waiting holds the wallets whose import Core refused for a rescan.
+	bip47Waiting map[string]bool
+	// bip47Generation counts network resets; an import answer from an older one changes nothing.
+	bip47Generation uint64
+	bip47Imports    sync.WaitGroup
 
 	// Transient backoff: when bitcoind responds with a "still booting" error
 	// (-4 Wallet already loading, -28 Verifying blocks, …), Ensure returns
@@ -80,6 +87,8 @@ func NewCoreBackend(svc *Service, rpc *CoreRPCClient, params ParamsFunc, log zer
 		params:          params,
 		coreWallets:     make(map[string]string),
 		bip47NotifRetry: make(map[string]time.Time),
+		bip47Importing:  make(map[string]bool),
+		bip47Waiting:    make(map[string]bool),
 		staleWallets:    make(map[string]bool),
 	}
 	rpc.OnWalletError = backend.markWalletStale
@@ -115,6 +124,9 @@ func (p *CoreBackend) ResetNetworkState() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.coreWallets = make(map[string]string)
+	p.bip47Importing = make(map[string]bool)
+	p.bip47Waiting = make(map[string]bool)
+	p.bip47Generation++
 	p.loadingUntil = time.Time{}
 	p.loadingErr = nil
 }
@@ -177,11 +189,7 @@ func (p *CoreBackend) Ensure(ctx context.Context, walletID string) (string, erro
 		return "", err
 	}
 
-	// Ensure the wallet's BIP47 notification descriptor is imported. Runs
-	// both for newly-created wallets and existing ones so the descriptor
-	// lands on first boot post-engine-deploy. Idempotent in Core, and a
-	// failure here shouldn't break wallet loading — the backend will retry
-	// next time Ensure runs.
+	// A failed notification import does not stop the load; a later call retries it.
 	if targetWallet.WalletType == WalletTypeBitcoinCore && !targetWallet.IsWatchOnly() {
 		if perr := p.ensureBip47NotificationDescriptor(ctx, walletID, walletName, targetWallet.Master.SeedHex); perr != nil {
 			// This call reaches the wallet itself, so a "not loaded" answer means
@@ -462,11 +470,11 @@ func (p *CoreBackend) WatchKeys(ctx context.Context, walletID string, keys []Wat
 	return nil
 }
 
-// EnsureNotificationWatched imports the wallet's own BIP47 notification key as a
-// pkh() descriptor so Core's listtransactions surfaces inbound notification
-// txs. Idempotent — Core ignores already-known descriptors.
-func (p *CoreBackend) EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error {
-	return p.WatchKeys(ctx, walletID, []WatchKey{notifKey})
+// EnsureNotificationWatched loads the wallet. The load imports the notification
+// key from the wallet's own seed and birthday.
+func (p *CoreBackend) EnsureNotificationWatched(ctx context.Context, walletID string, _ WatchKey) error {
+	_, err := p.walletName(ctx, walletID)
+	return err
 }
 
 // Send routes simple sends through Core's own coin selection
@@ -1127,9 +1135,9 @@ func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error)
 // Core wallet creation (descriptor derivation + import)
 // ============================================================================
 
-// ensureBip47NotificationDescriptor imports the wallet's BIP47 notification
-// P2PKH key (m/47'/0'/0'/0) into Core. The import rescans from genesis, which
-// takes hours, so it runs one time for each network.
+// ensureBip47NotificationDescriptor starts the import of the wallet's BIP47
+// notification P2PKH key (m/47'/0'/0'/0) into Core, one time for each network.
+// The caller holds p.mu.
 //
 // Two signals gate it, and both are necessary. The wallet file names the
 // networks whose import landed, because Core keeps a descriptor whose rescan
@@ -1139,33 +1147,80 @@ func (c coreChain) Broadcast(ctx context.Context, rawHex string) (string, error)
 // the key.
 func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, walletID, walletName, seedHex string) error {
 	net := p.net()
-	if net == nil {
+	if net == nil || p.bip47Importing[walletID] {
 		return nil
 	}
 	notifPriv, notifAddr, err := bip47.DeriveOwnNotificationKey(seedHex, net)
 	if err != nil {
 		return fmt.Errorf("derive notification key: %w", err)
 	}
+	info, err := p.rpc.GetAddressInfo(ctx, walletName, notifAddr.EncodeAddress())
+	if err != nil {
+		return fmt.Errorf("read the notification address: %w", err)
+	}
 	w := p.svc.GetWalletByID(walletID)
-	if w != nil && w.Bip47NotificationImported[net.Name] {
-		info, err := p.rpc.GetAddressInfo(ctx, walletName, notifAddr.EncodeAddress())
-		if err != nil {
-			return fmt.Errorf("read the notification address: %w", err)
-		}
-		if info.IsMine {
-			return nil
-		}
+	if info.IsMine && w != nil && w.Bip47NotificationImported[net.Name] {
+		return nil
 	}
 	wif, err := btcutil.NewWIF(notifPriv, net, true)
 	if err != nil {
 		return fmt.Errorf("encode notification wif: %w", err)
 	}
-	desc := mustAddChecksum(fmt.Sprintf("pkh(%s)", wif.String()))
-	results, err := p.rpc.ImportDescriptors(ctx, walletName, []ImportDescriptor{{
-		Desc:      desc,
+	rescanFrom := Bip47RescanFrom(w)
+	if !p.bip47Waiting[walletID] {
+		p.log.Info().Str("wallet", walletName).Int64("rescan_from", rescanFrom).Msg("importing the bip47 notification key")
+	}
+	p.bip47Importing[walletID] = true
+	p.bip47Imports.Add(1)
+	go p.importBip47Notification(context.WithoutCancel(ctx), walletID, walletName, net.Name, p.bip47Generation, ImportDescriptor{
+		Desc:      mustAddChecksum(fmt.Sprintf("pkh(%s)", wif.String())),
 		Active:    false,
-		Timestamp: Bip47RescanFrom(w),
-	}})
+		Timestamp: rescanFrom,
+	})
+	return nil
+}
+
+// importBip47Notification waits for Core to import the notification key and
+// rescan, then records the outcome. A rescan runs for hours, so it holds no lock.
+func (p *CoreBackend) importBip47Notification(ctx context.Context, walletID, walletName, network string, generation uint64, key ImportDescriptor) {
+	defer p.bip47Imports.Done()
+	err := p.importBip47NotificationKey(ctx, walletName, key)
+
+	// p.mu also guards the wallet file record that ensureBip47NotificationDescriptor reads.
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if err == nil {
+		err = p.svc.MarkBip47NotificationImported(walletID, network)
+	}
+	// A network switch reset the state, and the new network runs its own import.
+	if generation != p.bip47Generation {
+		return
+	}
+	delete(p.bip47Importing, walletID)
+	if err == nil {
+		delete(p.bip47NotifRetry, walletID)
+		delete(p.bip47Waiting, walletID)
+		p.log.Info().Str("wallet", walletName).Msg("imported the bip47 notification key")
+		return
+	}
+	p.bip47NotifRetry[walletID] = time.Now().Add(walletLoadingBackoff)
+	if isWalletRescanningErr(err) {
+		if !p.bip47Waiting[walletID] {
+			p.bip47Waiting[walletID] = true
+			p.log.Info().Str("wallet", walletName).Msg("Core is rescanning, the bip47 notification import waits")
+		}
+		return
+	}
+	delete(p.bip47Waiting, walletID)
+	if isWalletNotLoadedErr(err) {
+		delete(p.coreWallets, walletID)
+		return
+	}
+	p.log.Warn().Err(err).Str("wallet", walletName).Msg("could not import the bip47 notification key")
+}
+
+func (p *CoreBackend) importBip47NotificationKey(ctx context.Context, walletName string, key ImportDescriptor) error {
+	results, err := p.rpc.ImportDescriptorsAndWait(ctx, walletName, []ImportDescriptor{key})
 	if err != nil {
 		return fmt.Errorf("import bip47 notification descriptor: %w", err)
 	}
@@ -1179,7 +1234,7 @@ func (p *CoreBackend) ensureBip47NotificationDescriptor(ctx context.Context, wal
 		}
 		return fmt.Errorf("bip47 descriptor %d import failed: %s", i, msg)
 	}
-	return p.svc.MarkBip47NotificationImported(walletID, net.Name)
+	return nil
 }
 
 // Bip47RescanFrom is the unix time a backend scans a wallet's own BIP47

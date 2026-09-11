@@ -38,6 +38,8 @@ func StaticCoreEndpoint(host string, port int, user, password string) CoreEndpoi
 type CoreRPCClient struct {
 	resolve CoreEndpointFunc
 	client  *http.Client
+	// rescanClient has no timeout: Core answers an import only when its rescan ends.
+	rescanClient *http.Client
 
 	// OnWalletError sees every failed call that names a wallet. The backend
 	// reads it to drop a wallet Core stopped holding, which reaches all of its
@@ -54,8 +56,9 @@ func NewCoreRPCClient(resolve CoreEndpointFunc) *CoreRPCClient {
 	}
 
 	return &CoreRPCClient{
-		resolve: resolve,
-		client:  &http.Client{Timeout: timeout},
+		resolve:      resolve,
+		client:       &http.Client{Timeout: timeout},
+		rescanClient: &http.Client{},
 	}
 }
 
@@ -79,14 +82,18 @@ type rpcError struct {
 // call makes a JSON-RPC call to Bitcoin Core.
 // If walletName is non-empty, routes to /wallet/<name>.
 func (c *CoreRPCClient) call(ctx context.Context, walletName, method string, params ...interface{}) (json.RawMessage, error) {
-	raw, err := c.callWallet(ctx, walletName, method, params...)
+	return c.callWith(ctx, c.client, walletName, method, params...)
+}
+
+func (c *CoreRPCClient) callWith(ctx context.Context, client *http.Client, walletName, method string, params ...interface{}) (json.RawMessage, error) {
+	raw, err := c.callWallet(ctx, client, walletName, method, params...)
 	if err != nil && walletName != "" && c.OnWalletError != nil {
 		c.OnWalletError(walletName, err)
 	}
 	return raw, err
 }
 
-func (c *CoreRPCClient) callWallet(ctx context.Context, walletName, method string, params ...interface{}) (json.RawMessage, error) {
+func (c *CoreRPCClient) callWallet(ctx context.Context, client *http.Client, walletName, method string, params ...interface{}) (json.RawMessage, error) {
 	if params == nil {
 		params = []interface{}{}
 	}
@@ -116,7 +123,7 @@ func (c *CoreRPCClient) callWallet(ctx context.Context, walletName, method strin
 		req.SetBasicAuth(endpoint.User, endpoint.Password)
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%s call: %w", method, err)
 	}
@@ -203,7 +210,17 @@ type ImportDescriptorResult struct {
 
 // ImportDescriptors imports descriptors into a Bitcoin Core wallet.
 func (c *CoreRPCClient) ImportDescriptors(ctx context.Context, walletName string, descriptors []ImportDescriptor) ([]ImportDescriptorResult, error) {
-	result, err := c.call(ctx, walletName, "importdescriptors", descriptors)
+	return c.importDescriptors(ctx, c.client, walletName, descriptors)
+}
+
+// ImportDescriptorsAndWait imports descriptors and waits for the rescan to end,
+// however long it runs. Only ctx stops the wait.
+func (c *CoreRPCClient) ImportDescriptorsAndWait(ctx context.Context, walletName string, descriptors []ImportDescriptor) ([]ImportDescriptorResult, error) {
+	return c.importDescriptors(ctx, c.rescanClient, walletName, descriptors)
+}
+
+func (c *CoreRPCClient) importDescriptors(ctx context.Context, client *http.Client, walletName string, descriptors []ImportDescriptor) ([]ImportDescriptorResult, error) {
+	result, err := c.callWith(ctx, client, walletName, "importdescriptors", descriptors)
 	if err != nil {
 		return nil, err
 	}
