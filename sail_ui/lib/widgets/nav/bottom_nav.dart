@@ -618,6 +618,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (needsAdditionalSync && !(additionalSyncInfo?.isSynced ?? false)) {
+      final info = additionalSyncInfo;
+      if (info != null && info.mainchainSyncing) {
+        return '${mainchainSyncText(info.mainchainSyncPhase).$1} for ${additionalConnection.name}';
+      }
       return 'Syncing ${additionalConnection.name} blocks';
     }
 
@@ -767,6 +771,10 @@ class ChainLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (syncInfo.mainchainSyncing) {
+      final loader = MainchainSyncStatus(syncInfo: syncInfo, compact: true);
+      return expanded ? Expanded(child: loader) : loader;
+    }
     final currentProgress = formatProgress(syncInfo.progressCurrent, false);
     final goalProgress = formatProgress(syncInfo.progressGoal, false);
 

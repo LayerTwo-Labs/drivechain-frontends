@@ -37,11 +37,20 @@ class SyncInfo {
   /// to, not the chain tip. 0 when no snapshot is loaded.
   final int verifiedGoal;
 
+  /// The mainchain step a sidechain node takes before it syncs its own blocks.
+  /// While set, progressCurrent / progressGoal are that step's done / total.
+  final orch_pb.MainchainSyncPhase mainchainSyncPhase;
+
+  /// Mainchain height [mainchainSyncPhase] moves to, 0 when unset.
+  final int mainchainTipHeight;
+
+  bool get mainchainSyncing => mainchainSyncPhase != orch_pb.MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED;
+
   double get progress => progressGoal == 0 ? 0 : progressCurrent / progressGoal;
 
   /// A node that passed the tip its index reports holds everything anyone
   /// knows of, so an index one block behind must not read as unsynced.
-  bool get isSynced => progressGoal > 0 && progressCurrent >= progressGoal;
+  bool get isSynced => !mainchainSyncing && progressGoal > 0 && progressCurrent >= progressGoal;
 
   /// True when every height this daemon reports reached the goal. A snapshot
   /// node hits the tip in blocks hours before it verifies the rest, so a card
@@ -66,6 +75,8 @@ class SyncInfo {
     this.refusedBranchStart = 0,
     this.verifiedBlocks = 0,
     this.verifiedGoal = 0,
+    this.mainchainSyncPhase = orch_pb.MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED,
+    this.mainchainTipHeight = 0,
   });
 
   @override
@@ -81,7 +92,9 @@ class SyncInfo {
         other.rejectedBranch == rejectedBranch &&
         other.refusedBranchStart == refusedBranchStart &&
         other.verifiedBlocks == verifiedBlocks &&
-        other.verifiedGoal == verifiedGoal;
+        other.verifiedGoal == verifiedGoal &&
+        other.mainchainSyncPhase == mainchainSyncPhase &&
+        other.mainchainTipHeight == mainchainTipHeight;
   }
 
   @override
@@ -94,6 +107,8 @@ class SyncInfo {
     refusedBranchStart,
     verifiedBlocks,
     verifiedGoal,
+    mainchainSyncPhase,
+    mainchainTipHeight,
   );
 }
 
@@ -456,6 +471,8 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       refusedBranchStart: cs?.refusedBranchStart ?? 0,
       verifiedBlocks: cs?.verifiedBlocks ?? 0,
       verifiedGoal: cs?.verifiedGoal ?? 0,
+      mainchainSyncPhase: cs?.mainchainSyncPhase ?? orch_pb.MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED,
+      mainchainTipHeight: cs?.mainchainTipHeight ?? 0,
     );
   }
 

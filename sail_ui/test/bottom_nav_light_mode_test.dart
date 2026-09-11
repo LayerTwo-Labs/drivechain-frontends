@@ -233,6 +233,26 @@ void main() {
     expect(model.allConnected, isTrue);
     expect(model.connectionColor, SailColorScheme.orange);
   });
+
+  test('a sidechain in a mainchain phase names the phase in the status', () {
+    expect(model.connectionStatus, 'All binaries connected');
+
+    sync.sidechains[SidechainType.SIDECHAIN_TYPE_THUNDER] = SyncInfo(
+      progressCurrent: 412000,
+      progressGoal: 997070,
+      lastBlockAt: null,
+      mainchainSyncPhase: MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_WRITING,
+    );
+    expect(model.connectionStatus, 'Writing mainchain headers for Thunder');
+
+    sync.sidechains[SidechainType.SIDECHAIN_TYPE_THUNDER] = SyncInfo(
+      progressCurrent: 2,
+      progressGoal: 3,
+      lastBlockAt: null,
+    );
+    expect(model.connectionStatus, 'Syncing Thunder blocks');
+  });
+
   test('the Bitcoin light wallet ignores an unavailable enforcer', () {
     daemon.binary = BitWindow();
     enforcer.connected = false;
