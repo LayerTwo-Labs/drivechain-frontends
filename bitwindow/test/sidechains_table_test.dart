@@ -241,6 +241,27 @@ void main() {
     expect(_button('Start'), findsNothing);
   });
 
+  testWidgets('a header tap changes neither the row order nor the headers', (tester) async {
+    setUpChain(_thunder());
+    GetIt.I.get<SidechainProvider>().sidechains[2] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'BitNames', slot: 2, balanceSatoshi: Int64(99000000)),
+      [],
+      [],
+    );
+    await pumpTable(tester);
+
+    for (final header in ['Slot', 'Name', 'Sidechain Balance', 'Your balance']) {
+      await tester.tap(find.text(header));
+      await tester.pumpAndSettle();
+
+      expect(tester.getTopLeft(find.text('2')).dy, lessThan(tester.getTopLeft(find.text('9')).dy));
+      expect(
+        tester.widgetList<SailTableHeaderCell>(find.byType(SailTableHeaderCell)).any((cell) => cell.isSorted),
+        isFalse,
+      );
+    }
+  });
+
   testWidgets('the slot shows its number with no colon', (tester) async {
     setUpChain(_thunder());
     await pumpTable(tester);

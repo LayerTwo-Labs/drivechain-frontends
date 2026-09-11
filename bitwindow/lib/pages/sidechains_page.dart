@@ -380,8 +380,6 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
 
   const _SidechainsTable({super.key, required this.slots, this.emptyPlaceholder});
 
-  static const _sortColumns = ['slot', 'name', 'balance'];
-
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final formatter = GetIt.I<FormatterProvider>();
@@ -402,22 +400,15 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
             cellHeight: 48,
             headerBackgroundColor: colors.backgroundSecondary,
             headerBuilder: (context) => [
-              SailTableHeaderCell(name: 'Slot', onSort: () => viewModel.sortSidechains('slot')),
-              SailTableHeaderCell(name: 'Name', onSort: () => viewModel.sortSidechains('name')),
-              SailTableHeaderCell(
-                name: 'Sidechain Balance',
-                alignment: Alignment.centerRight,
-                onSort: () => viewModel.sortSidechains('balance'),
-              ),
+              const SailTableHeaderCell(name: 'Slot', sortable: false),
+              const SailTableHeaderCell(name: 'Name', sortable: false),
+              const SailTableHeaderCell(name: 'Sidechain Balance', alignment: Alignment.centerRight, sortable: false),
               const SailTableHeaderCell(name: 'Your balance', alignment: Alignment.centerRight, sortable: false),
               const SailTableHeaderCell(name: '', sortable: false),
             ],
             rowBuilder: (context, row, selected) => _sidechainRow(context, viewModel, formatter, slots[row]),
             rowCount: slots.length,
             emptyPlaceholder: emptyPlaceholder,
-            sortAscending: viewModel.sortAscending,
-            sortColumnIndex: _sortColumns.indexOf(viewModel.sortColumn),
-            onSort: (columnIndex, ascending) => viewModel.sortSidechains(viewModel.sortColumn),
             selectedRowId: viewModel.selectedIndex?.toString(),
             // rowId is the SLOT NUMBER (e.g., "2", "4", "98") from getRowId
             onSelectedRow: (rowId) => viewModel.toggleSelection(int.parse(rowId ?? '0')),
@@ -823,10 +814,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   }
 
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;
-  List<SidechainOverview?> _sortedSidechains = [];
-
-  String sortColumn = 'slot';
-  bool sortAscending = true;
 
   bool showOnlyFilled = true;
   void setShowOnlyFilled(bool value) {
@@ -1113,61 +1100,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     );
   }
 
-  List<SidechainOverview?> get sortedSidechains {
-    if (!listEquals(_sortedSidechains, sidechains)) {
-      _sortedSidechains = List<SidechainOverview?>.from(sidechains);
-      _sortEntries();
-    }
-    return _sortedSidechains;
-  }
-
-  void sortSidechains(String column) {
-    if (sortColumn == column) {
-      sortAscending = !sortAscending;
-    } else {
-      sortColumn = column;
-      sortAscending = true;
-    }
-    _sortEntries();
-    notifyListeners();
-  }
-
-  void _sortEntries() {
-    _sortedSidechains.sort((a, b) {
-      if (a == null && b == null) {
-        return 0;
-      }
-      if (a == null) {
-        return sortAscending ? 1 : -1;
-      }
-      if (b == null) {
-        return sortAscending ? -1 : 1;
-      }
-
-      dynamic aValue;
-      dynamic bValue;
-
-      switch (sortColumn) {
-        case 'index':
-          aValue = sidechains.indexOf(a);
-          bValue = sidechains.indexOf(b);
-          break;
-        case 'balance':
-          aValue = a.info.balanceSatoshi;
-          bValue = b.info.balanceSatoshi;
-          break;
-        case 'title':
-          aValue = a.info.title;
-          bValue = b.info.title;
-          break;
-        default:
-          return 0;
-      }
-
-      return sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-    });
-  }
-
   int? _selectedIndex;
 
   int? get selectedIndex => _selectedIndex;
@@ -1352,8 +1284,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     track('depositWalletId', depositWalletId);
 
     // Sorting state
-    track('sortColumn', sortColumn);
-    track('sortAscending', sortAscending);
     track('depositSortColumn', depositSortColumn);
     track('depositSortAscending', depositSortAscending);
 
