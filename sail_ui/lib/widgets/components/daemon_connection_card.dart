@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:intl/intl.dart';
 import 'package:sail_ui/sail_ui.dart';
 
 class DaemonConnectionCard extends StatelessWidget {
@@ -144,7 +145,9 @@ class DaemonConnectionCard extends StatelessWidget {
           // sync info or a download does not grow.
           SizedBox(
             width: progressBlockWidth(downloadProgress != null ? 1 : syncRowCount(syncInfo)),
-            height: progressBlockHeight(context, downloadProgress != null ? 1 : syncRowCount(syncInfo)),
+            height: downloadProgress == null && (syncInfo?.mainchainSyncing ?? false)
+                ? null
+                : progressBlockHeight(context, downloadProgress != null ? 1 : syncRowCount(syncInfo)),
             child: downloadProgress != null
                 ? DownloadStatusRow(
                     name: connection.binary.name,
@@ -473,6 +476,9 @@ class BlockStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (syncInfo.mainchainSyncing) {
+      return MainchainSyncStatus(syncInfo: syncInfo);
+    }
     final rows = rowsFor(syncInfo);
     if (rows.length > 1) {
       return SailColumn(
@@ -534,6 +540,136 @@ class BlockStatus extends StatelessWidget {
 String formatProgress(double progress, bool withDecimal) {
   // otherwise return with appropriate decimal places
   return progress.toStringAsFixed(withDecimal ? 1 : 0);
+}
+
+/// The label and the count unit for a mainchain sync phase. A phase this build
+/// does not name gets a plain label and no unit.
+(String, String) mainchainSyncText(MainchainSyncPhase phase) {
+  if (phase == MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_HEADERS) {
+    return ('Fetching mainchain headers', ' headers');
+  }
+  if (phase == MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_WRITING) {
+    return ('Writing mainchain headers', ' headers');
+  }
+  if (phase == MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_STATE) {
+    return ('Syncing mainchain state', ' blocks');
+  }
+  return ('Syncing mainchain', '');
+}
+
+/// A sidechain node's progress through one mainchain sync phase.
+class MainchainSyncStatus extends StatelessWidget {
+  static const double barHeight = 6;
+
+  final SyncInfo syncInfo;
+
+  /// Moves the numbers line into the tooltip, for a slot one bar high.
+  final bool compact;
+
+  const MainchainSyncStatus({super.key, required this.syncInfo, this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final scaler = MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 2);
+    final secondary = daemonStatusStyle(context);
+    final primary = secondary.copyWith(color: theme.colors.text);
+    final number = NumberFormat('#,##0', 'en_US');
+
+    final (label, unit) = mainchainSyncText(syncInfo.mainchainSyncPhase);
+    final done = syncInfo.progressCurrent;
+    final total = syncInfo.progressGoal;
+    final fraction = total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0;
+    // A phase a few items short of its total must not read as done.
+    final percent = done < total ? math.min(fraction * 100, 99.9) : fraction * 100;
+    final counts = '${number.format(done)} / ${number.format(total)}$unit';
+    final maxHeight = 'Max height ${number.format(syncInfo.mainchainTipHeight)}';
+
+    Widget line(String text, TextStyle style) => Text(
+      text,
+      style: style,
+      textScaler: scaler,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    final percentText = line('${percent.toStringAsFixed(1)}%', primary);
+    final head = Row(
+      children: [
+        Expanded(child: line(label, primary)),
+        percentText,
+      ],
+    );
+    // Each phase starts its own bar at zero, so the bar never runs backwards.
+    final bar = _SyncBar(key: ValueKey(syncInfo.mainchainSyncPhase), fraction: fraction);
+
+    if (compact) {
+      return Tooltip(
+        message: '$label\n$counts\n$maxHeight',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            line(label, primary),
+            const SizedBox(height: SailStyleValues.padding04),
+            Row(
+              children: [
+                Expanded(child: bar),
+                const SizedBox(width: SailStyleValues.padding08),
+                percentText,
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        head,
+        const SizedBox(height: SailStyleValues.padding04),
+        bar,
+        const SizedBox(height: SailStyleValues.padding04),
+        Row(
+          children: [
+            Expanded(child: line(counts, secondary)),
+            line(maxHeight, secondary),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SyncBar extends StatelessWidget {
+  final double fraction;
+
+  const _SyncBar({super.key, required this.fraction});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+    final radius = theme.chrome.beveled ? BorderRadius.zero : BorderRadius.circular(MainchainSyncStatus.barHeight / 2);
+    return SizedBox(
+      height: MainchainSyncStatus.barHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: theme.colors.backgroundSecondary, borderRadius: radius),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: fraction),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+          builder: (context, value, _) => FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: value,
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: theme.colors.primary, borderRadius: radius),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Start or stop one daemon. A reader who wants to bounce a daemon stops it and
