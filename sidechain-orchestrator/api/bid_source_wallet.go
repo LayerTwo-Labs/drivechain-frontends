@@ -87,11 +87,12 @@ func (w walletBids) evicted(_ context.Context, _, chain []string) []string {
 // whole confirmed history.
 const pendingListCount = 100_000
 
-// walletGone reports whether the wallet no longer exists. The router answers
+// walletGone reports whether walletID no longer exists. The router answers
 // "wallet <id> not found" for one a user deleted, and the handler carries that
-// text through as an internal error.
-func walletGone(err error) bool {
-	return strings.Contains(err.Error(), "not found")
+// text through. A looser match would swallow "method not found" from a live
+// wallet whose backend is at fault.
+func walletGone(err error, walletID string) bool {
+	return strings.Contains(err.Error(), "wallet "+walletID+" not found")
 }
 
 // PendingTxids names our own transactions no block carries yet, over every
@@ -111,7 +112,7 @@ func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[s
 			// this list can name a wallet the user deleted since. Only that
 			// answer is safe to skip; every other one hides a backend fault
 			// and would report a stranded bid as absent.
-			if i > 0 && walletGone(err) {
+			if i > 0 && walletGone(err, walletID) {
 				continue
 			}
 			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("list the wallet transactions: %w", err))
