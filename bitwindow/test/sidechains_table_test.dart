@@ -84,6 +84,13 @@ class _ThunderRPC extends MockThunderRPC {
   Future<(double, double)> balance() async => wallet;
 }
 
+class _CoinShiftRPC extends MockCoinShiftRPC {
+  (double, double) wallet = (0, 0);
+
+  @override
+  Future<(double, double)> balance() async => wallet;
+}
+
 Thunder _thunder({bool downloaded = true, bool updateAvailable = false}) {
   final base = Thunder();
   return base.copyWith(
@@ -102,6 +109,7 @@ SailButton _buttonWidget(WidgetTester tester, String label) => tester.widget<Sai
 
 void main() {
   late _ThunderRPC thunderRPC;
+  late _CoinShiftRPC coinShiftRPC;
   late _Downloads downloads;
   late BalanceProvider balances;
   late SyncProvider sync;
@@ -132,7 +140,9 @@ void main() {
     GetIt.I.registerSingleton<LogProvider>(LogProvider());
     GetIt.I.registerSingleton<DownloadProvider>(downloads);
     GetIt.I.registerSingleton<ThunderRPC>(thunderRPC);
-    balances = BalanceProvider(connections: [thunderRPC]);
+    coinShiftRPC = _CoinShiftRPC();
+    GetIt.I.registerSingleton<CoinShiftRPC>(coinShiftRPC);
+    balances = BalanceProvider(connections: [thunderRPC, coinShiftRPC]);
     GetIt.I.registerSingleton<BalanceProvider>(balances);
   });
 
@@ -186,6 +196,35 @@ void main() {
     expect(_buttonWidget(tester, 'Deposit').disabled, isFalse);
     expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(4.1)), findsOneWidget);
     expect(find.text('—'), findsNothing);
+  });
+
+  testWidgets('a running CoinShift shows its balance, not a dash', (tester) async {
+    final coinShift = CoinShift();
+    GetIt.I.registerSingleton<BinaryProvider>(
+      _Binaries([
+        _thunder(),
+        coinShift.copyWith(
+          metadata: coinShift.metadata.copyWith(
+            remoteTimestamp: null,
+            downloadedTimestamp: DateTime(2026, 1),
+            binaryPath: File('/tmp/coinshift'),
+            updateable: true,
+          ),
+        ),
+      ]),
+    );
+    GetIt.I.get<SidechainProvider>().sidechains[255] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'CoinShift', slot: 255, balanceSatoshi: Int64(5000000)),
+      [],
+      [],
+    );
+    coinShiftRPC.wallet = (0.25, 0.0);
+    coinShiftRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester);
+
+    expect(find.text(GetIt.I.get<FormatterProvider>().formatBTC(0.25)), findsOneWidget);
+    expect(find.text('—'), findsOneWidget);
   });
 
   testWidgets('a chain that is not downloaded offers a primary Download', (tester) async {

@@ -259,6 +259,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
         GetIt.I.get<ZSideRPC>(),
         GetIt.I.get<PhotonRPC>(),
         GetIt.I.get<TruthcoinRPC>(),
+        GetIt.I.get<CoinShiftRPC>(),
       ],
     ),
   );
