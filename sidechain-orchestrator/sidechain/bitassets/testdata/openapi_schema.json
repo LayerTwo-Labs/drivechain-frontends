@@ -1189,6 +1189,53 @@
         }
       }
     },
+    "get_stxos": {
+      "post": {
+        "description": "Get stxos for addresses",
+        "operationId": "get_stxos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "A spent output, and the outpoint that created it",
+                    "required": [
+                      "outpoint",
+                      "output"
+                    ],
+                    "properties": {
+                      "outpoint": {
+                        "$ref": "#/components/schemas/OutPoint"
+                      },
+                      "output": {
+                        "$ref": "#/components/schemas/SpentOutput"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "get_transaction": {
       "post": {
         "description": "Get transaction by txid",
@@ -1400,6 +1447,186 @@
         }
       }
     },
+    "get_utxos": {
+      "post": {
+        "description": "Get utxos for addresses",
+        "operationId": "get_utxos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "outpoint",
+                      "output"
+                    ],
+                    "properties": {
+                      "outpoint": {
+                        "$ref": "#/components/schemas/OutPoint"
+                      },
+                      "output": {
+                        "type": "object",
+                        "required": [
+                          "address",
+                          "content",
+                          "memo"
+                        ],
+                        "properties": {
+                          "address": {
+                            "$ref": "#/components/schemas/Address"
+                          },
+                          "content": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "AmmLpToken"
+                                ],
+                                "properties": {
+                                  "AmmLpToken": {
+                                    "type": "object",
+                                    "required": [
+                                      "asset0",
+                                      "asset1",
+                                      "amount"
+                                    ],
+                                    "properties": {
+                                      "amount": {
+                                        "type": "integer",
+                                        "format": "u-int64",
+                                        "minimum": 0
+                                      },
+                                      "asset0": {
+                                        "$ref": "#/components/schemas/AssetId"
+                                      },
+                                      "asset1": {
+                                        "$ref": "#/components/schemas/AssetId"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "BitcoinSats"
+                                ],
+                                "properties": {
+                                  "BitcoinSats": {
+                                    "$ref": "#/components/schemas/BitcoinContent"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "BitcoinWithdrawal"
+                                ],
+                                "properties": {
+                                  "BitcoinWithdrawal": {
+                                    "$ref": "#/components/schemas/WithdrawalOutputContent"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "description": "BitAsset ID and coin value",
+                                "required": [
+                                  "BitAsset"
+                                ],
+                                "properties": {
+                                  "BitAsset": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object"
+                                    },
+                                    "description": "BitAsset ID and coin value",
+                                    "maxItems": 2,
+                                    "minItems": 2
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "BitAssetControl"
+                                ],
+                                "properties": {
+                                  "BitAssetControl": {
+                                    "$ref": "#/components/schemas/BitAssetId"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "description": "Reservation txid and commitment",
+                                "required": [
+                                  "BitAssetReservation"
+                                ],
+                                "properties": {
+                                  "BitAssetReservation": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object"
+                                    },
+                                    "description": "Reservation txid and commitment",
+                                    "maxItems": 2,
+                                    "minItems": 2
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "description": "Auction ID",
+                                "required": [
+                                  "DutchAuctionReceipt"
+                                ],
+                                "properties": {
+                                  "DutchAuctionReceipt": {
+                                    "$ref": "#/components/schemas/DutchAuctionId",
+                                    "description": "Auction ID"
+                                  }
+                                }
+                              }
+                            ],
+                            "description": "Representation of Output Content that includes asset type and/or\nreservation commitment"
+                          },
+                          "memo": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "format": "u-int8",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "get_wallet_addresses": {
       "post": {
         "description": "Get wallet addresses, sorted by base58 encoding",
@@ -1601,6 +1828,33 @@
                   "type": "integer",
                   "format": "u-int32",
                   "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "invalidate_block": {
+      "post": {
+        "description": "Invalidate a block and its descendants. If the tip descends from the\nblock, re-org to the parent of the block.",
+        "operationId": "invalidate_block",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null
                 }
               }
             }
@@ -1873,6 +2127,52 @@
                           }
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mainchain_sync_progress": {
+      "post": {
+        "description": "Get the progress of the startup sync with the mainchain",
+        "operationId": "mainchain_sync_progress",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Progress of the startup sync with the mainchain",
+                  "required": [
+                    "phase",
+                    "done",
+                    "total",
+                    "tip_height"
+                  ],
+                  "properties": {
+                    "done": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
+                    },
+                    "phase": {
+                      "$ref": "#/components/schemas/MainchainSyncPhase"
+                    },
+                    "tip_height": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "description": "Height of the mainchain tip that the sync moves to",
+                      "minimum": 0
+                    },
+                    "total": {
+                      "type": "integer",
+                      "format": "u-int32",
+                      "minimum": 0
                     }
                   }
                 }
@@ -2633,11 +2933,227 @@
         }
       }
     },
+    "sign_transaction": {
+      "post": {
+        "description": "Sign a transaction, and optionally broadcast it.",
+        "operationId": "sign_transaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "broadcast": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "transaction": {
+                    "type": "object",
+                    "required": [
+                      "inputs",
+                      "outputs",
+                      "memo"
+                    ],
+                    "properties": {
+                      "data": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "$ref": "#/components/schemas/TxData"
+                          }
+                        ]
+                      },
+                      "inputs": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "Regular"
+                              ],
+                              "properties": {
+                                "Regular": {
+                                  "type": "object",
+                                  "required": [
+                                    "txid",
+                                    "vout"
+                                  ],
+                                  "properties": {
+                                    "txid": {
+                                      "$ref": "#/components/schemas/Txid"
+                                    },
+                                    "vout": {
+                                      "type": "integer",
+                                      "format": "u-int32",
+                                      "minimum": 0
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "Coinbase"
+                              ],
+                              "properties": {
+                                "Coinbase": {
+                                  "type": "object",
+                                  "required": [
+                                    "merkle_root",
+                                    "vout"
+                                  ],
+                                  "properties": {
+                                    "merkle_root": {
+                                      "$ref": "#/components/schemas/MerkleRoot"
+                                    },
+                                    "vout": {
+                                      "type": "integer",
+                                      "format": "u-int32",
+                                      "minimum": 0
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "Deposit"
+                              ],
+                              "properties": {
+                                "Deposit": {
+                                  "$ref": "#/components/schemas/bitcoin.OutPoint"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "memo": {
+                        "type": "string"
+                      },
+                      "outputs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "address",
+                            "content",
+                            "memo"
+                          ],
+                          "properties": {
+                            "address": {
+                              "$ref": "#/components/schemas/Address"
+                            },
+                            "content": {
+                              "$ref": "#/components/schemas/OutputContent"
+                            },
+                            "memo": {
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "format": "u-int8",
+                                "minimum": 0
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "transaction",
+                    "authorizations"
+                  ],
+                  "properties": {
+                    "authorizations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Authorization"
+                      },
+                      "description": "Authorizations are called witnesses in Bitcoin."
+                    },
+                    "transaction": {
+                      "$ref": "#/components/schemas/Transaction"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "stop": {
       "post": {
         "description": "Stop the node",
         "operationId": "stop",
         "responses": {}
+      }
+    },
+    "submit_transaction": {
+      "post": {
+        "description": "Verify and broadcast a transaction",
+        "operationId": "submit_transaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "transaction",
+                  "authorizations"
+                ],
+                "properties": {
+                  "authorizations": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Authorization"
+                    },
+                    "description": "Authorizations are called witnesses in Bitcoin."
+                  },
+                  "transaction": {
+                    "$ref": "#/components/schemas/Transaction"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "transfer": {
@@ -2727,6 +3243,52 @@
                         "type": "string"
                       }
                     ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "transfer_many": {
+      "post": {
+        "description": "Transfer funds to each address in `dests`, which maps an address to a\nvalue in sats",
+        "operationId": "transfer_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dests": {
+                    "type": "object",
+                    "description": "Destinations of a transfer. Each address takes a value in sats.\nA repeated address is an error.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "format": "u-int64",
+                      "minimum": 0
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    }
+                  },
+                  "fee_sats": {
+                    "type": "integer",
+                    "format": "u-int64",
+                    "minimum": 0
                   }
                 }
               }
@@ -3378,8 +3940,69 @@
           }
         }
       },
+      "InPoint": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Transaction input",
+            "required": [
+              "Regular"
+            ],
+            "properties": {
+              "Regular": {
+                "type": "object",
+                "description": "Transaction input",
+                "required": [
+                  "txid",
+                  "vin"
+                ],
+                "properties": {
+                  "txid": {
+                    "$ref": "#/components/schemas/Txid"
+                  },
+                  "vin": {
+                    "type": "integer",
+                    "format": "u-int32",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Withdrawal"
+            ],
+            "properties": {
+              "Withdrawal": {
+                "type": "object",
+                "required": [
+                  "m6id"
+                ],
+                "properties": {
+                  "m6id": {
+                    "$ref": "#/components/schemas/M6id"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Reference to a tx input."
+      },
       "M6id": {
         "type": "string"
+      },
+      "MainchainSyncPhase": {
+        "type": "string",
+        "description": "Step of the startup sync with the mainchain",
+        "enum": [
+          "idle",
+          "headers",
+          "writing",
+          "state"
+        ]
       },
       "MerkleRoot": {
         "type": "string"
@@ -3553,6 +4176,156 @@
       },
       "Signature": {
         "type": "string"
+      },
+      "SpentOutput": {
+        "type": "object",
+        "description": "Representation of a spent output",
+        "required": [
+          "output",
+          "inpoint"
+        ],
+        "properties": {
+          "inpoint": {
+            "$ref": "#/components/schemas/InPoint"
+          },
+          "output": {
+            "type": "object",
+            "required": [
+              "address",
+              "content",
+              "memo"
+            ],
+            "properties": {
+              "address": {
+                "$ref": "#/components/schemas/Address"
+              },
+              "content": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "AmmLpToken"
+                    ],
+                    "properties": {
+                      "AmmLpToken": {
+                        "type": "object",
+                        "required": [
+                          "asset0",
+                          "asset1",
+                          "amount"
+                        ],
+                        "properties": {
+                          "amount": {
+                            "type": "integer",
+                            "format": "u-int64",
+                            "minimum": 0
+                          },
+                          "asset0": {
+                            "$ref": "#/components/schemas/AssetId"
+                          },
+                          "asset1": {
+                            "$ref": "#/components/schemas/AssetId"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "BitcoinSats"
+                    ],
+                    "properties": {
+                      "BitcoinSats": {
+                        "$ref": "#/components/schemas/BitcoinContent"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "BitcoinWithdrawal"
+                    ],
+                    "properties": {
+                      "BitcoinWithdrawal": {
+                        "$ref": "#/components/schemas/WithdrawalOutputContent"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "description": "BitAsset ID and coin value",
+                    "required": [
+                      "BitAsset"
+                    ],
+                    "properties": {
+                      "BitAsset": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        },
+                        "description": "BitAsset ID and coin value",
+                        "maxItems": 2,
+                        "minItems": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "BitAssetControl"
+                    ],
+                    "properties": {
+                      "BitAssetControl": {
+                        "$ref": "#/components/schemas/BitAssetId"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "description": "Reservation txid and commitment",
+                    "required": [
+                      "BitAssetReservation"
+                    ],
+                    "properties": {
+                      "BitAssetReservation": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        },
+                        "description": "Reservation txid and commitment",
+                        "maxItems": 2,
+                        "minItems": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "description": "Auction ID",
+                    "required": [
+                      "DutchAuctionReceipt"
+                    ],
+                    "properties": {
+                      "DutchAuctionReceipt": {
+                        "$ref": "#/components/schemas/DutchAuctionId",
+                        "description": "Auction ID"
+                      }
+                    }
+                  }
+                ],
+                "description": "Representation of Output Content that includes asset type and/or\nreservation commitment"
+              },
+              "memo": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "u-int8",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
       },
       "Transaction": {
         "type": "object",
