@@ -10,17 +10,11 @@ class CpuMiningDialog extends StatefulWidget {
 }
 
 class _CpuMiningDialogState extends State<CpuMiningDialog> {
-  WalletReaderProvider get _walletReader => GetIt.I.get<WalletReaderProvider>();
-  OrchestratorWalletRPC get _orchestratorWallet => GetIt.I.get<OrchestratorRPC>().wallet;
   MiningProvider get _miningProvider => GetIt.I.get<MiningProvider>();
-
-  final _coinbaseAddressController = TextEditingController();
-  bool _isLoadingAddress = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCoinbaseAddress();
     _miningProvider.refreshStatus();
     _miningProvider.addListener(_onMiningStateChanged);
   }
@@ -28,40 +22,12 @@ class _CpuMiningDialogState extends State<CpuMiningDialog> {
   @override
   void dispose() {
     _miningProvider.removeListener(_onMiningStateChanged);
-    _coinbaseAddressController.dispose();
     super.dispose();
   }
 
   void _onMiningStateChanged() {
     if (mounted) {
       setState(() {});
-    }
-  }
-
-  Future<void> _loadCoinbaseAddress() async {
-    setState(() {
-      _isLoadingAddress = true;
-    });
-
-    try {
-      final walletId = _walletReader.activeWalletId;
-      if (walletId != null) {
-        final address = await _orchestratorWallet.getNewAddress(walletId);
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _coinbaseAddressController.text = address.address;
-          _isLoadingAddress = false;
-        });
-      }
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isLoadingAddress = false;
-      });
     }
   }
 
@@ -135,17 +101,6 @@ class _CpuMiningDialogState extends State<CpuMiningDialog> {
                   ),
                 ),
           ],
-          const SizedBox(height: SailStyleValues.padding20),
-          SailTextField(
-            loading: LoadingDetails(
-              enabled: _isLoadingAddress,
-              description: 'Generating address...',
-            ),
-            label: 'Coinbase Address',
-            controller: _coinbaseAddressController,
-            hintText: 'Block rewards will be sent to this address',
-            readOnly: true,
-          ),
           const SizedBox(height: SailStyleValues.padding20),
           Row(
             children: [

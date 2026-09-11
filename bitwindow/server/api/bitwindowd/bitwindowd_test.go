@@ -3,7 +3,12 @@ package api_bitwindowd_test
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1894,6 +1899,56 @@ this line is not valid json
 		assert.Contains(t, exported.Msg.Jsonl, "Savings")
 		assert.Contains(t, exported.Msg.Jsonl, "Coinjoin change")
 	})
+}
+
+// A nil Core client makes the test panic if the miner goes to Core.
+func TestService_StartMiningAsksTheEnforcer(t *testing.T) {
+	t.Parallel()
+
+	type call struct {
+		method string
+		auth   bool
+	}
+	var (
+		mu    sync.Mutex
+		calls []call
+	)
+	enforcer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Method string `json:"method"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("decode request: %v", err)
+			return
+		}
+		_, _, auth := r.BasicAuth()
+		mu.Lock()
+		calls = append(calls, call{method: req.Method, auth: auth})
+		mu.Unlock()
+		//nolint:errcheck
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"code": -1, "message": "enforcer template"},
+		})
+	}))
+	defer enforcer.Close()
+
+	server := api_bitwindowd.New(nil, nil, nil, nil, config.Config{
+		BitcoinCoreNetwork:  config.NetworkECash,
+		EnforcerJSONRPCAddr: strings.TrimPrefix(enforcer.URL, "http://"),
+		Datadir:             t.TempDir(),
+	}, nil)
+
+	_, err := server.StartMining(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		status, err := server.GetMiningStatus(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		return err == nil && strings.Contains(status.Msg.Error, "enforcer template")
+	}, 10*time.Second, 10*time.Millisecond)
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []call{{method: "getblocktemplate"}}, calls)
 }
 
 // expectWatchWalletNoop satisfies the background ensureWatchWallet path
