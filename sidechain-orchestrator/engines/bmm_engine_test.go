@@ -53,6 +53,10 @@ type fakeBackend struct {
 	lastFeeRate       float64
 	// lastMempoolWallets names the wallets the last mempool read asked about.
 	lastMempoolWallets []string
+	// mined answers the live read, and minedReads records every txid it took.
+	mined      map[string]bool
+	minedErr   error
+	minedReads []string
 }
 
 func (f *fakeBackend) CreateBid(
@@ -149,6 +153,13 @@ func (f *fakeBackend) MempoolTxids(_ context.Context, walletIDs []string) (map[s
 		held[bid.Txid] = true
 	}
 	return held, nil
+}
+
+func (f *fakeBackend) Mined(_ context.Context, txid string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.minedReads = append(f.minedReads, txid)
+	return f.mined[txid], f.minedErr
 }
 
 func (f *fakeBackend) PrepareBMM(
@@ -1155,6 +1166,87 @@ func TestBmmEngineReplacesAStrandedBidAfterRestart(t *testing.T) {
 	assert.Equal(t, "txid-1", backend.lastReplace,
 		"the oldest stranded bid is the root of the chain, so replacing it evicts them all")
 	assert.Equal(t, "core-wallet", backend.lastWalletID)
+}
+
+// A wallet can list a bid as pending for a time after a block took it. The
+// live read wins, so the opening bid respends no input the block spent.
+func TestBmmEngineKeepsAPendingBidABlockHolds(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 20_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+	require.Equal(t, 1, backend.bids)
+
+	// The block takes the bid, and the wallet still lists it as pending.
+	backend.mu.Lock()
+	backend.commitment = "critical"
+	backend.connected = true
+	backend.others = []*bmmpb.Bid{{Txid: "txid-1", PrevMainHash: "block-1"}}
+	backend.mined = map[string]bool{"txid-1": true}
+	backend.mu.Unlock()
+
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Equal(t, 2, backend.bids)
+	assert.Empty(t, backend.lastReplace, "a block holds the bid, so its inputs are spent")
+}
+
+// A bid the live read also shows as pending is stranded, and the opening bid
+// replaces it as before.
+func TestBmmEngineReplacesABidTheLiveReadShowsPending(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 20_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.mu.Lock()
+	backend.others = []*bmmpb.Bid{{Txid: "txid-1", PrevMainHash: "block-1"}}
+	backend.mined = map[string]bool{"txid-1": false}
+	backend.mu.Unlock()
+
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Equal(t, "txid-1", backend.lastReplace)
+	assert.Contains(t, backend.minedReads, "txid-1", "the engine reads a live source before it replaces")
+}
+
+// A live read that fails decides nothing. The pass replaces nothing, the round
+// opens with a fresh bid, and the next pass reads again.
+func TestBmmEngineReplacesNothingWhenTheLiveReadFails(t *testing.T) {
+	engine, backend, tip, _ := newEngine(t)
+	require.NoError(t, engine.Start(context.Background(), testSidechain, "", 20_000, false))
+
+	ctx := context.Background()
+	engine.tick(ctx)
+
+	backend.mu.Lock()
+	backend.others = []*bmmpb.Bid{{Txid: "txid-1", PrevMainHash: "block-1"}}
+	backend.minedErr = errors.New("esplora is down")
+	backend.mu.Unlock()
+
+	tip.set("block-2")
+	engine.tick(ctx)
+
+	assert.Equal(t, 2, backend.bids)
+	assert.Empty(t, backend.lastReplace)
+	round := engine.Current(testSidechain)
+	require.NotNil(t, round)
+	assert.Equal(t, ResultOpen, round.Result)
+	require.NotEmpty(t, round.OurBids)
+	assert.Equal(t, BidLive, round.OurBids[len(round.OurBids)-1].State)
+
+	backend.mu.Lock()
+	backend.minedErr = nil
+	backend.mu.Unlock()
+
+	tip.set("block-3")
+	engine.tick(ctx)
+
+	assert.Equal(t, "txid-1", backend.lastReplace, "the next pass reads again and replaces the stranded bid")
 }
 
 // A won block the chain left far behind can never connect, because its header

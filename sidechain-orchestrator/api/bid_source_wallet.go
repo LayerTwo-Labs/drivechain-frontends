@@ -126,6 +126,18 @@ func (w walletBids) PendingTxids(ctx context.Context, walletIDs []string) (map[s
 	return held, nil
 }
 
+// mined reads the chain source, because the wallet cache lags a new block.
+func (w walletBids) mined(ctx context.Context, txid string) (bool, error) {
+	if w.h.wallet == nil {
+		return false, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no wallet is wired"))
+	}
+	status, err := w.h.wallet.TxStatus(ctx, txid)
+	if err != nil {
+		return false, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the chain status of %s: %w", txid, err))
+	}
+	return status.Confirmed, nil
+}
+
 // m8Script says whether the transaction carries a BMM request in its first
 // output, which is where an M8 sits.
 func m8Script(details *wpb.GetTransactionDetailsResponse) bool {

@@ -77,6 +77,15 @@ func (e *WalletEngine) electrumBackend() (*ElectrumBackend, error) {
 	return eb, nil
 }
 
+// TxStatus reads the chain status of one transaction from the electrum chain source.
+func (e *WalletEngine) TxStatus(ctx context.Context, txid string) (EsploraStatus, error) {
+	eb, err := e.electrumBackend()
+	if err != nil {
+		return EsploraStatus{}, err
+	}
+	return eb.TxStatus(ctx, txid)
+}
+
 // CreatePSBT builds an unsigned PSBT for a send from an electrum wallet.
 func (e *WalletEngine) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
 	eb, err := e.electrumBackend()
