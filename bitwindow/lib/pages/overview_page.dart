@@ -225,8 +225,8 @@ class TransactionsViewModel extends BaseViewModel {
     if (balanceProvider.error != null) {
       setErrorForObject('balance', balanceProvider.error);
     }
-    if (blockchainProvider.error != null) {
-      setErrorForObject('blockchain', blockchainProvider.error);
+    if (blockchainProvider.errors.isNotEmpty) {
+      setErrorForObject('blockchain', blockchainProvider.errors);
     }
   }
 
