@@ -134,6 +134,27 @@ func (o *Orchestrator) startRemoteEnforcer(ctx context.Context, ch chan<- Startu
 	return nil
 }
 
+// ConnectRemoteEnforcer starts the remote enforcer in light mode on a network
+// that publishes one. The enforcer monitor retries a failed connect.
+func (o *Orchestrator) ConnectRemoteEnforcer(ctx context.Context) error {
+	if _, ok := o.Configs()["enforcer"]; !ok || o.NodeMode() != NodeModeLight ||
+		config.RemoteEnforcerURLForNetwork(config.Network(o.CurrentNetwork())) == "" {
+		return nil
+	}
+	ch, err := o.StartWithL1(ctx, "enforcer", StartOpts{})
+	if err != nil {
+		return fmt.Errorf("start the remote enforcer: %w", err)
+	}
+	go func() {
+		for progress := range ch {
+			if progress.Error != nil {
+				o.log.Warn().Err(progress.Error).Msg("remote enforcer is not ready, the monitor retries")
+			}
+		}
+	}()
+	return nil
+}
+
 func (o *Orchestrator) restartRemoteOrphans(ctx context.Context, ch chan<- StartupProgress) error {
 	for name, cfg := range o.Configs() {
 		if cfg.ChainLayer != 2 || cfg.IsBitcoinCore || !o.process.IsAdopted(name) || !o.mayStopAdopted(name) {

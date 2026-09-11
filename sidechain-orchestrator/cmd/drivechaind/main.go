@@ -700,6 +700,10 @@ func run(cctx *cli.Context) error {
 
 	go clients.Run(ctx)
 
+	if err := orch.ConnectRemoteEnforcer(ctx); err != nil {
+		return err
+	}
+
 	// Auto-boot sidechains specified via --binary flags
 	binariesToBoot := cctx.StringSlice("binary")
 	forceBackend := cctx.Bool("force-backend")

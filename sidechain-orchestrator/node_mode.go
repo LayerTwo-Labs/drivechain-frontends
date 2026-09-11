@@ -162,6 +162,9 @@ func (o *Orchestrator) SetNodeMode(ctx context.Context, mode NodeMode) error {
 	o.syncConnMu.Lock()
 	o.enforcerSync = nil
 	o.syncConnMu.Unlock()
+	if err := o.ConnectRemoteEnforcer(context.Background()); err != nil {
+		return err
+	}
 	for name, opts := range sidechains {
 		ch, err := o.StartWithL1(context.Background(), name, opts)
 		if err != nil {
