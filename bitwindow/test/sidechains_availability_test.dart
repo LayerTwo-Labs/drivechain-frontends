@@ -124,17 +124,22 @@ void main() {
     expect(nodeMode.isLight, isTrue);
   });
 
-  testWidgets('alphanet light mode keeps the remote connection control', (tester) async {
+  testWidgets('alphanet light mode shows the remote enforcer state with no start control', (tester) async {
     conf.network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
     nodeMode.remoteEnforcerAvailable = true;
 
     await pumpOverview(tester);
 
     expect(model.l1Gate, L1Gate.stopped);
+    expect(find.text('The enforcer connection is not ready'), findsOneWidget);
     expect(find.byType(DaemonConnectionCard), findsOneWidget);
     expect(
-      find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'Connect to remote enforcer'),
-      findsOneWidget,
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is SailButton &&
+            ((widget.label?.startsWith('Start') ?? false) || (widget.label?.startsWith('Connect') ?? false)),
+      ),
+      findsNothing,
     );
   });
 
