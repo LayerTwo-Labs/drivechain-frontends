@@ -51,6 +51,10 @@ type BMMNode interface {
 
 	// GetBmmInclusions returns the mainchain blocks that carry a critical hash.
 	GetBmmInclusions(ctx context.Context, criticalHash string) ([]string, error)
+
+	// ChainHolds reports whether a critical hash names one of the depth blocks
+	// nearest the tip.
+	ChainHolds(ctx context.Context, criticalHash string, depth int) (bool, error)
 }
 
 // WithdrawalNode is a sidechain that proposes withdrawal bundles. A chain that

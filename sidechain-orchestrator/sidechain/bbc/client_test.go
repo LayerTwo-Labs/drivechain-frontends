@@ -85,6 +85,35 @@ func TestBlockTemplateCarriesTheCriticalHash(t *testing.T) {
 	assert.Equal(t, int64(4200), template.FeesSats)
 }
 
+const (
+	internalHash = "01" + "0000000000000000000000000000000000000000000000000000000000" + "ff"
+	displayHash  = "ff" + "0000000000000000000000000000000000000000000000000000000000" + "01"
+)
+
+// critical_hash is in internal byte order, and Core names its tip in display order.
+func TestChainHoldsReversesTheCriticalHash(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{
+		"getbestblockhash": json.RawMessage(`"` + displayHash + `"`),
+	})
+	defer srv.Close()
+
+	held, err := clientFor(t, srv).ChainHolds(context.Background(), internalHash, 11)
+	require.NoError(t, err)
+	assert.True(t, held)
+}
+
+func TestChainHoldsMissesABlockOffTheChain(t *testing.T) {
+	srv := fakeNode(t, map[string]json.RawMessage{
+		"getbestblockhash": json.RawMessage(`"` + internalHash + `"`),
+		"getblockheader":   json.RawMessage(`{"previousblockhash":""}`),
+	})
+	defer srv.Close()
+
+	held, err := clientFor(t, srv).ChainHolds(context.Background(), internalHash, 11)
+	require.NoError(t, err)
+	assert.False(t, held, "an unreversed hash names no block")
+}
+
 // The BMM engine drives Bbc blocks, but Bbc settles withdrawals elsewhere. The
 // explorer reads that from the type rather than from a stub error.
 func TestBbcDrivesBmmButProposesNoBundle(t *testing.T) {

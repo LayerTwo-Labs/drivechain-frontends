@@ -1280,14 +1280,12 @@ func (e *BmmEngine) connectWon(
 			Str("critical_hash", live.CriticalHash).Msg("connect won block")
 		return stepRetry
 	}
-	if !resp.Msg.Connected {
+	if !resp.Msg.Connected && !resp.Msg.Held {
 		if resp.Msg.MainBlockHash == "" {
 			e.log.Debug().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
 				Msg("the sidechain has not seen the bid included yet")
 			return stepRetry
 		}
-		// A node that already holds the block from a peer answers false as
-		// well, so a false answer alone names no lost block.
 		e.log.Warn().Stringer("sidechain", sidechain).Str("critical_hash", live.CriticalHash).
 			Str("main_block", resp.Msg.MainBlockHash).Msg("the sidechain did not connect the won block")
 		return stepRetire

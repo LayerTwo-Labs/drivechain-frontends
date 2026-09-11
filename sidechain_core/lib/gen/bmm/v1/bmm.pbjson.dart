@@ -310,13 +310,14 @@ const ConnectBidResponse$json = {
   '2': [
     {'1': 'connected', '3': 1, '4': 1, '5': 8, '10': 'connected'},
     {'1': 'main_block_hash', '3': 2, '4': 1, '5': 9, '10': 'mainBlockHash'},
+    {'1': 'held', '3': 3, '4': 1, '5': 8, '10': 'held'},
   ],
 };
 
 /// Descriptor for `ConnectBidResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List connectBidResponseDescriptor = $convert.base64Decode(
     'ChJDb25uZWN0QmlkUmVzcG9uc2USHAoJY29ubmVjdGVkGAEgASgIUgljb25uZWN0ZWQSJgoPbW'
-    'Fpbl9ibG9ja19oYXNoGAIgASgJUg1tYWluQmxvY2tIYXNo');
+    'Fpbl9ibG9ja19oYXNoGAIgASgJUg1tYWluQmxvY2tIYXNoEhIKBGhlbGQYAyABKAhSBGhlbGQ=');
 
 @$core.Deprecated('Use listBidsRequestDescriptor instead')
 const ListBidsRequest$json = {

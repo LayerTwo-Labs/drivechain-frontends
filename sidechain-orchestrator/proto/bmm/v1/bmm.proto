@@ -222,6 +222,8 @@ message ConnectBidResponse {
   bool connected = 1;
   // Mainchain block that included the bid, when connected.
   string main_block_hash = 2;
+  // The sidechain's chain already holds the block, from a peer or an earlier call.
+  bool held = 3;
 }
 
 message ListBidsRequest {

@@ -516,6 +516,7 @@ func (h *BMMHandler) ConnectBid(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("connect block: %w", err))
 	}
+	var held bool
 	if !connected {
 		// A sidechain learns of an inclusion by polling, and refuses every block
 		// until it does. The empty answer names no block, which is how the caller
@@ -527,12 +528,20 @@ func (h *BMMHandler) ConnectBid(
 		if connectTarget(mainBlockHash, inclusions) == "" {
 			return connect.NewResponse(&bmmpb.ConnectBidResponse{}), nil
 		}
+		held, err = proxy.ChainHolds(ctx, req.Msg.CriticalHash, heldBlockDepth)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("read the sidechain chain: %w", err))
+		}
 	}
 	return connect.NewResponse(&bmmpb.ConnectBidResponse{
 		Connected:     connected,
 		MainBlockHash: mainBlockHash,
+		Held:          held,
 	}), nil
 }
+
+// heldBlockDepth covers every won block the engine still offers: one sidechain block per mainchain block.
+const heldBlockDepth = 11
 
 func bmmInclusions(ctx context.Context, proxy sidechain.BMMNode, criticalHash string) ([]string, error) {
 	inclusions, err := proxy.GetBmmInclusions(ctx, criticalHash)

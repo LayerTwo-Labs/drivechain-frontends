@@ -131,6 +131,36 @@ func (p *JSONRPCProxy) GetBmmInclusions(ctx context.Context, criticalHash string
 	return inclusions, nil
 }
 
+func (p *JSONRPCProxy) ChainHolds(ctx context.Context, criticalHash string, depth int) (bool, error) {
+	var next *string
+	if err := p.Client.Call(ctx, "get_best_sidechain_block_hash", nil, &next); err != nil {
+		return false, err
+	}
+	for range depth {
+		if next == nil {
+			return false, nil
+		}
+		if *next == criticalHash {
+			return true, nil
+		}
+		// Thunder and photon nest the header. The other chains flatten it.
+		var block struct {
+			Header struct {
+				PrevSideHash *string `json:"prev_side_hash"`
+			} `json:"header"`
+			PrevSideHash *string `json:"prev_side_hash"`
+		}
+		if err := p.Client.Call(ctx, "get_block", []string{*next}, &block); err != nil {
+			return false, err
+		}
+		next = block.Header.PrevSideHash
+		if next == nil {
+			next = block.PrevSideHash
+		}
+	}
+	return false, nil
+}
+
 func (p *JSONRPCProxy) GetPendingWithdrawalBundle(ctx context.Context) (json.RawMessage, error) {
 	return p.Client.CallRaw(ctx, "pending_withdrawal_bundle", nil)
 }

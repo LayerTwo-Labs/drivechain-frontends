@@ -5,8 +5,10 @@ package bbc
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/corenode"
@@ -73,6 +75,39 @@ func (c *Client) ConnectBlock(ctx context.Context, block json.RawMessage, mainBl
 // GetBmmInclusions returns the mainchain blocks that carry a critical hash.
 func (c *Client) GetBmmInclusions(ctx context.Context, criticalHash string) ([]string, error) {
 	return corenode.Decode[[]string](ctx, c.Client, "get_bmm_inclusions", []any{criticalHash})
+}
+
+// ChainHolds reports whether a critical hash names one of the depth blocks
+// nearest the tip.
+func (c *Client) ChainHolds(ctx context.Context, criticalHash string, depth int) (bool, error) {
+	raw, err := hex.DecodeString(criticalHash)
+	if err != nil {
+		return false, fmt.Errorf("decode critical hash: %w", err)
+	}
+	// critical_hash is in internal byte order, and Core names a block in display order.
+	slices.Reverse(raw)
+	want := hex.EncodeToString(raw)
+
+	next, err := corenode.Decode[string](ctx, c.Client, "getbestblockhash", nil)
+	if err != nil {
+		return false, err
+	}
+	for range depth {
+		if next == want {
+			return true, nil
+		}
+		header, err := corenode.Decode[struct {
+			PreviousBlockHash string `json:"previousblockhash"`
+		}](ctx, c.Client, "getblockheader", []any{next})
+		if err != nil {
+			return false, err
+		}
+		if header.PreviousBlockHash == "" {
+			return false, nil
+		}
+		next = header.PreviousBlockHash
+	}
+	return false, nil
 }
 
 // GetBmmCommitment returns the sidechain block hash committed to by a mainchain
