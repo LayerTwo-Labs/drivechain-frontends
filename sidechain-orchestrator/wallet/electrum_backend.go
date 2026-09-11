@@ -1706,6 +1706,39 @@ func (p *ElectrumBackend) Chain() ChainSource {
 	return esploraChain{client: p.client}
 }
 
+// TxStatus reads the chain status of txid from the history of an address it
+// touches. Electrum reports the status of a lone transaction from a cache that
+// lags a new block.
+func (p *ElectrumBackend) TxStatus(ctx context.Context, txid string) (EsploraStatus, error) {
+	tx, err := p.client.Tx(ctx, txid)
+	if err != nil {
+		return EsploraStatus{}, err
+	}
+	var addresses []string
+	for _, out := range tx.Vout {
+		addresses = append(addresses, out.ScriptPubKeyAddress)
+	}
+	for _, in := range tx.Vin {
+		if in.Prevout != nil {
+			addresses = append(addresses, in.Prevout.ScriptPubKeyAddress)
+		}
+	}
+	address, ok := lo.Find(addresses, func(a string) bool { return a != "" })
+	if !ok {
+		return EsploraStatus{}, fmt.Errorf("transaction %s touches no address", txid)
+	}
+	history, err := p.client.AddressTxs(ctx, address)
+	if err != nil {
+		return EsploraStatus{}, err
+	}
+	for _, h := range history {
+		if h.TxID == txid {
+			return h.Status, nil
+		}
+	}
+	return EsploraStatus{}, fmt.Errorf("the history of %s names no transaction %s", address, txid)
+}
+
 // ServerURL returns the wallet's current primary Esplora endpoint, or "" when
 // the backend's client does not expose one.
 func (p *ElectrumBackend) ServerURL() string {

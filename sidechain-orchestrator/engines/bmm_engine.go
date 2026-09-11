@@ -77,6 +77,9 @@ type BmmBackend interface {
 	// install that reads no mempool names the pending transactions of the
 	// named wallets instead.
 	MempoolTxids(ctx context.Context, walletIDs []string) (map[string]bool, error)
+	// Mined reports whether a block carries txid, one that MempoolTxids named.
+	// It reads a live source.
+	Mined(ctx context.Context, txid string) (bool, error)
 	CreateBid(context.Context, *connect.Request[bmmpb.CreateBidRequest]) (*connect.Response[bmmpb.CreateBidResponse], error)
 	ConnectBid(context.Context, *connect.Request[bmmpb.ConnectBidRequest]) (*connect.Response[bmmpb.ConnectBidResponse], error)
 	ListBids(context.Context, *connect.Request[bmmpb.ListBidsRequest]) (*connect.Response[bmmpb.ListBidsResponse], error)
@@ -724,6 +727,16 @@ func (e *BmmEngine) strandedBid(
 		}
 		for _, bid := range round.OurBids {
 			if bid.Txid == "" || !inMempool[bid.Txid] {
+				continue
+			}
+			// A pending list can lag the block that took the bid.
+			mined, err := e.backend.Mined(ctx, bid.Txid)
+			if err != nil {
+				e.log.Warn().Err(err).Stringer("sidechain", sidechain).Str("txid", bid.Txid).
+					Msg("read whether a block holds a bmm bid")
+				return bmmstate.Bid{}, false
+			}
+			if mined {
 				continue
 			}
 			if !found || round.PrevMainHeight < height {

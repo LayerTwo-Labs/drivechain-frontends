@@ -9,7 +9,37 @@ import (
 	"github.com/stretchr/testify/require"
 
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
+
+// The wallet cache lists a bid as pending for a time after a block took it.
+// The chain source answers for the block.
+func TestLightMinedReadsTheChainSource(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{
+		txs:    []*wpb.TransactionEntry{{Txid: "bid"}},
+		status: map[string]wallet.EsploraStatus{"bid": {Confirmed: true, BlockHeight: 997083}},
+	}
+
+	held, err := h.MempoolTxids(context.Background(), []string{"bidder"})
+	require.NoError(t, err)
+	require.True(t, held["bid"], "the cache still lists the bid")
+
+	mined, err := h.Mined(context.Background(), "bid")
+	require.NoError(t, err)
+	assert.True(t, mined)
+}
+
+// A chain source that cannot answer says nothing about the bid, so the read
+// fails rather than reports it pending.
+func TestLightMinedFailsWhenTheChainSourceFails(t *testing.T) {
+	h := lightHandler(t)
+	h.wallet = &fakeBidWallet{statusErr: fmt.Errorf("esplora is down")}
+
+	_, err := h.Mined(context.Background(), "bid")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "esplora is down")
+}
 
 // The BMM controls let a user fund the bids from a wallet they never made
 // active. The pending read has to name that wallet, or it reports none of its

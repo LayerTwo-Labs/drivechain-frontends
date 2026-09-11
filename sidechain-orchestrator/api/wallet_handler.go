@@ -685,6 +685,14 @@ func (h *WalletHandler) ResolveWalletID(walletID string) (string, error) {
 	return h.engine.ResolveWalletID(walletID)
 }
 
+// TxStatus reads the chain status of one transaction from the chain source.
+func (h *WalletHandler) TxStatus(ctx context.Context, txid string) (wallet.EsploraStatus, error) {
+	if err := h.requireEngine(); err != nil {
+		return wallet.EsploraStatus{}, err
+	}
+	return h.engine.TxStatus(ctx, txid)
+}
+
 func (h *WalletHandler) requireEngine() error {
 	if h.engine == nil {
 		return fmt.Errorf("bitcoin Core RPC not configured")

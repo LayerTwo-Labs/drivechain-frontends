@@ -17,6 +17,7 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	bmmpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/bmm/v1"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
 // fakeSlotMempool answers the two Core reads the coin choice makes.
@@ -130,6 +131,13 @@ type fakeBidWallet struct {
 	listErr map[string]error
 	// listed records every ListTransactions request the wallet took.
 	listed []*wpb.ListTransactionsRequest
+	// status answers TxStatus, and statusErr fails it.
+	status    map[string]wallet.EsploraStatus
+	statusErr error
+}
+
+func (w *fakeBidWallet) TxStatus(_ context.Context, txid string) (wallet.EsploraStatus, error) {
+	return w.status[txid], w.statusErr
 }
 
 func (w *fakeBidWallet) GetTransactionDetails(

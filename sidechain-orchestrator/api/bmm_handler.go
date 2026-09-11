@@ -70,6 +70,8 @@ type bidWallet interface {
 	ListTransactions(
 		context.Context, *connect.Request[wpb.ListTransactionsRequest],
 	) (*connect.Response[wpb.ListTransactionsResponse], error)
+	// TxStatus reads the chain status of one transaction from the chain source.
+	TxStatus(ctx context.Context, txid string) (wallet.EsploraStatus, error)
 }
 
 // BMMHandler serves BMMService. It owns bid assembly; the engine drives it on
@@ -631,6 +633,11 @@ func (h *BMMHandler) enforcerBids(ctx context.Context, slot int, prevMainHash st
 // names the wallets that funded them, and an empty id names the active wallet.
 func (h *BMMHandler) MempoolTxids(ctx context.Context, walletIDs []string) (map[string]bool, error) {
 	return h.bids().PendingTxids(ctx, walletIDs)
+}
+
+// Mined reports whether a block carries txid, one that MempoolTxids named.
+func (h *BMMHandler) Mined(ctx context.Context, txid string) (bool, error) {
+	return h.bids().Mined(ctx, txid)
 }
 
 // m8Request reads the bid a transaction carries, nil when it carries none.
