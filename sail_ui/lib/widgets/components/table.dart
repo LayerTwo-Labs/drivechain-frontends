@@ -799,6 +799,11 @@ class SailTableHeaderCell extends StatelessWidget {
           children: [
             Expanded(
               child: Row(
+                mainAxisAlignment: switch (alignment.x) {
+                  > 0 => MainAxisAlignment.end,
+                  < 0 => MainAxisAlignment.start,
+                  _ => MainAxisAlignment.center,
+                },
                 children: [
                   Flexible(
                     child: SailText.primary13(
