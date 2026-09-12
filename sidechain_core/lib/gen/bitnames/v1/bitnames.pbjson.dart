@@ -711,6 +711,53 @@ const EncryptMsgResponse$json = {
 final $typed_data.Uint8List encryptMsgResponseDescriptor = $convert.base64Decode(
     'ChJFbmNyeXB0TXNnUmVzcG9uc2USHgoKY2lwaGVydGV4dBgBIAEoCVIKY2lwaGVydGV4dA==');
 
+@$core.Deprecated('Use getBitNameOwnerRequestDescriptor instead')
+const GetBitNameOwnerRequest$json = {
+  '1': 'GetBitNameOwnerRequest',
+  '2': [
+    {'1': 'bitname', '3': 1, '4': 1, '5': 9, '10': 'bitname'},
+  ],
+};
+
+/// Descriptor for `GetBitNameOwnerRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBitNameOwnerRequestDescriptor = $convert.base64Decode(
+    'ChZHZXRCaXROYW1lT3duZXJSZXF1ZXN0EhgKB2JpdG5hbWUYASABKAlSB2JpdG5hbWU=');
+
+@$core.Deprecated('Use getBitNameOwnerResponseDescriptor instead')
+const GetBitNameOwnerResponse$json = {
+  '1': 'GetBitNameOwnerResponse',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+  ],
+};
+
+/// Descriptor for `GetBitNameOwnerResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getBitNameOwnerResponseDescriptor = $convert.base64Decode(
+    'ChdHZXRCaXROYW1lT3duZXJSZXNwb25zZRIYCgdhZGRyZXNzGAEgASgJUgdhZGRyZXNz');
+
+@$core.Deprecated('Use getPendingPaymailRequestDescriptor instead')
+const GetPendingPaymailRequest$json = {
+  '1': 'GetPendingPaymailRequest',
+};
+
+/// Descriptor for `GetPendingPaymailRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getPendingPaymailRequestDescriptor = $convert.base64Decode(
+    'ChhHZXRQZW5kaW5nUGF5bWFpbFJlcXVlc3Q=');
+
+@$core.Deprecated('Use getPendingPaymailResponseDescriptor instead')
+const GetPendingPaymailResponse$json = {
+  '1': 'GetPendingPaymailResponse',
+  '2': [
+    {'1': 'paymail_json', '3': 1, '4': 1, '5': 9, '10': 'paymailJson'},
+    {'1': 'mempool_txids', '3': 2, '4': 3, '5': 9, '10': 'mempoolTxids'},
+  ],
+};
+
+/// Descriptor for `GetPendingPaymailResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getPendingPaymailResponseDescriptor = $convert.base64Decode(
+    'ChlHZXRQZW5kaW5nUGF5bWFpbFJlc3BvbnNlEiEKDHBheW1haWxfanNvbhgBIAEoCVILcGF5bW'
+    'FpbEpzb24SIwoNbWVtcG9vbF90eGlkcxgCIAMoCVIMbWVtcG9vbFR4aWRz');
+
 @$core.Deprecated('Use getPaymailRequestDescriptor instead')
 const GetPaymailRequest$json = {
   '1': 'GetPaymailRequest',
@@ -940,6 +987,8 @@ const $core.Map<$core.String, $core.dynamic> BitnamesServiceBase$json = {
     {'1': 'DecryptMsg', '2': '.bitnames.v1.DecryptMsgRequest', '3': '.bitnames.v1.DecryptMsgResponse'},
     {'1': 'EncryptMsg', '2': '.bitnames.v1.EncryptMsgRequest', '3': '.bitnames.v1.EncryptMsgResponse'},
     {'1': 'GetPaymail', '2': '.bitnames.v1.GetPaymailRequest', '3': '.bitnames.v1.GetPaymailResponse'},
+    {'1': 'GetPendingPaymail', '2': '.bitnames.v1.GetPendingPaymailRequest', '3': '.bitnames.v1.GetPendingPaymailResponse'},
+    {'1': 'GetBitNameOwner', '2': '.bitnames.v1.GetBitNameOwnerRequest', '3': '.bitnames.v1.GetBitNameOwnerResponse'},
     {'1': 'ResolveCommit', '2': '.bitnames.v1.ResolveCommitRequest', '3': '.bitnames.v1.ResolveCommitResponse'},
     {'1': 'ReadCommitment', '2': '.bitnames.v1.ReadCommitmentRequest', '3': '.bitnames.v1.ReadCommitmentResponse'},
     {'1': 'SignArbitraryMsg', '2': '.bitnames.v1.SignArbitraryMsgRequest', '3': '.bitnames.v1.SignArbitraryMsgResponse'},
@@ -1014,6 +1063,10 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitnamesSe
   '.bitnames.v1.EncryptMsgResponse': EncryptMsgResponse$json,
   '.bitnames.v1.GetPaymailRequest': GetPaymailRequest$json,
   '.bitnames.v1.GetPaymailResponse': GetPaymailResponse$json,
+  '.bitnames.v1.GetPendingPaymailRequest': GetPendingPaymailRequest$json,
+  '.bitnames.v1.GetPendingPaymailResponse': GetPendingPaymailResponse$json,
+  '.bitnames.v1.GetBitNameOwnerRequest': GetBitNameOwnerRequest$json,
+  '.bitnames.v1.GetBitNameOwnerResponse': GetBitNameOwnerResponse$json,
   '.bitnames.v1.ResolveCommitRequest': ResolveCommitRequest$json,
   '.bitnames.v1.ResolveCommitResponse': ResolveCommitResponse$json,
   '.bitnames.v1.ReadCommitmentRequest': ReadCommitmentRequest$json,
@@ -1083,16 +1136,20 @@ final $typed_data.Uint8List bitnamesServiceDescriptor = $convert.base64Decode(
     'MS5EZWNyeXB0TXNnUmVzcG9uc2USTQoKRW5jcnlwdE1zZxIeLmJpdG5hbWVzLnYxLkVuY3J5cH'
     'RNc2dSZXF1ZXN0Gh8uYml0bmFtZXMudjEuRW5jcnlwdE1zZ1Jlc3BvbnNlEk0KCkdldFBheW1h'
     'aWwSHi5iaXRuYW1lcy52MS5HZXRQYXltYWlsUmVxdWVzdBofLmJpdG5hbWVzLnYxLkdldFBheW'
-    '1haWxSZXNwb25zZRJWCg1SZXNvbHZlQ29tbWl0EiEuYml0bmFtZXMudjEuUmVzb2x2ZUNvbW1p'
-    'dFJlcXVlc3QaIi5iaXRuYW1lcy52MS5SZXNvbHZlQ29tbWl0UmVzcG9uc2USWQoOUmVhZENvbW'
-    '1pdG1lbnQSIi5iaXRuYW1lcy52MS5SZWFkQ29tbWl0bWVudFJlcXVlc3QaIy5iaXRuYW1lcy52'
-    'MS5SZWFkQ29tbWl0bWVudFJlc3BvbnNlEl8KEFNpZ25BcmJpdHJhcnlNc2cSJC5iaXRuYW1lcy'
-    '52MS5TaWduQXJiaXRyYXJ5TXNnUmVxdWVzdBolLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlN'
-    'c2dSZXNwb25zZRJxChZTaWduQXJiaXRyYXJ5TXNnQXNBZGRyEiouYml0bmFtZXMudjEuU2lnbk'
-    'FyYml0cmFyeU1zZ0FzQWRkclJlcXVlc3QaKy5iaXRuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNn'
-    'QXNBZGRyUmVzcG9uc2USZQoSR2V0V2FsbGV0QWRkcmVzc2VzEiYuYml0bmFtZXMudjEuR2V0V2'
-    'FsbGV0QWRkcmVzc2VzUmVxdWVzdBonLmJpdG5hbWVzLnYxLkdldFdhbGxldEFkZHJlc3Nlc1Jl'
-    'c3BvbnNlEkQKB015VXR4b3MSGy5iaXRuYW1lcy52MS5NeVV0eG9zUmVxdWVzdBocLmJpdG5hbW'
-    'VzLnYxLk15VXR4b3NSZXNwb25zZRJWCg1PcGVuYXBpU2NoZW1hEiEuYml0bmFtZXMudjEuT3Bl'
-    'bmFwaVNjaGVtYVJlcXVlc3QaIi5iaXRuYW1lcy52MS5PcGVuYXBpU2NoZW1hUmVzcG9uc2U=');
+    '1haWxSZXNwb25zZRJiChFHZXRQZW5kaW5nUGF5bWFpbBIlLmJpdG5hbWVzLnYxLkdldFBlbmRp'
+    'bmdQYXltYWlsUmVxdWVzdBomLmJpdG5hbWVzLnYxLkdldFBlbmRpbmdQYXltYWlsUmVzcG9uc2'
+    'USXAoPR2V0Qml0TmFtZU93bmVyEiMuYml0bmFtZXMudjEuR2V0Qml0TmFtZU93bmVyUmVxdWVz'
+    'dBokLmJpdG5hbWVzLnYxLkdldEJpdE5hbWVPd25lclJlc3BvbnNlElYKDVJlc29sdmVDb21taX'
+    'QSIS5iaXRuYW1lcy52MS5SZXNvbHZlQ29tbWl0UmVxdWVzdBoiLmJpdG5hbWVzLnYxLlJlc29s'
+    'dmVDb21taXRSZXNwb25zZRJZCg5SZWFkQ29tbWl0bWVudBIiLmJpdG5hbWVzLnYxLlJlYWRDb2'
+    '1taXRtZW50UmVxdWVzdBojLmJpdG5hbWVzLnYxLlJlYWRDb21taXRtZW50UmVzcG9uc2USXwoQ'
+    'U2lnbkFyYml0cmFyeU1zZxIkLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1ZXN0Gi'
+    'UuYml0bmFtZXMudjEuU2lnbkFyYml0cmFyeU1zZ1Jlc3BvbnNlEnEKFlNpZ25BcmJpdHJhcnlN'
+    'c2dBc0FkZHISKi5iaXRuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNnQXNBZGRyUmVxdWVzdBorLm'
+    'JpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXNwb25zZRJlChJHZXRXYWxsZXRB'
+    'ZGRyZXNzZXMSJi5iaXRuYW1lcy52MS5HZXRXYWxsZXRBZGRyZXNzZXNSZXF1ZXN0GicuYml0bm'
+    'FtZXMudjEuR2V0V2FsbGV0QWRkcmVzc2VzUmVzcG9uc2USRAoHTXlVdHhvcxIbLmJpdG5hbWVz'
+    'LnYxLk15VXR4b3NSZXF1ZXN0GhwuYml0bmFtZXMudjEuTXlVdHhvc1Jlc3BvbnNlElYKDU9wZW'
+    '5hcGlTY2hlbWESIS5iaXRuYW1lcy52MS5PcGVuYXBpU2NoZW1hUmVxdWVzdBoiLmJpdG5hbWVz'
+    'LnYxLk9wZW5hcGlTY2hlbWFSZXNwb25zZQ==');
 

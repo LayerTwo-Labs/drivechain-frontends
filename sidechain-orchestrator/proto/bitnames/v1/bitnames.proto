@@ -98,6 +98,13 @@ service BitnamesService {
   // Get paymail information.
   rpc GetPaymail(GetPaymailRequest) returns (GetPaymailResponse);
 
+  // Read the messages that wait in the mempool. A message reaches a BitName
+  // one block before GetPaymail reports it, so a chat reads both.
+  rpc GetPendingPaymail(GetPendingPaymailRequest) returns (GetPendingPaymailResponse);
+
+  // Read the address that holds a BitName. A message pays the holder.
+  rpc GetBitNameOwner(GetBitNameOwnerRequest) returns (GetBitNameOwnerResponse);
+
   // Resolve a commitment from a BitName.
   rpc ResolveCommit(ResolveCommitRequest) returns (ResolveCommitResponse);
 
@@ -397,6 +404,31 @@ message EncryptMsgRequest {
 
 message EncryptMsgResponse {
   string ciphertext = 1;
+}
+
+// GetBitNameOwner
+
+message GetBitNameOwnerRequest {
+  // The BitName hash, as hexadecimal.
+  string bitname = 1;
+}
+
+message GetBitNameOwnerResponse {
+  // The address that holds the BitName today.
+  string address = 1;
+}
+
+// GetPendingPaymail
+
+message GetPendingPaymailRequest {}
+
+message GetPendingPaymailResponse {
+  // The same JSON object GetPaymail returns, holding only the outputs that
+  // wait in the mempool.
+  string paymail_json = 1;
+  // Every transaction the mempool holds. A message a caller sent pays the
+  // reader, so no paymail feed reports it, and this says whether it waits.
+  repeated string mempool_txids = 2;
 }
 
 // GetPaymail

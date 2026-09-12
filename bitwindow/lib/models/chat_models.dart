@@ -10,20 +10,33 @@ class ChatMessage {
   final String content;
   final String senderPubkey;
   final String recipientPubkey;
+  final String? senderBitname;
+  final String? recipientBitname;
   final DateTime timestamp;
   final bool isOutgoing;
   final String? txid;
   final int? valueSats;
+
+  /// True while the message waits in the mempool. A block clears it.
+  final bool isPending;
+
+  /// True once the reader opens the conversation. It follows the same shape as
+  /// a NotificationItem, which the bell history already stores this way.
+  final bool read;
 
   ChatMessage({
     required this.id,
     required this.content,
     required this.senderPubkey,
     required this.recipientPubkey,
+    this.senderBitname,
+    this.recipientBitname,
     required this.timestamp,
     required this.isOutgoing,
     this.txid,
     this.valueSats,
+    this.isPending = false,
+    this.read = false,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
@@ -31,10 +44,14 @@ class ChatMessage {
     content: json['content'] ?? '',
     senderPubkey: json['sender_pubkey'] ?? '',
     recipientPubkey: json['recipient_pubkey'] ?? '',
+    senderBitname: json['sender_bitname'],
+    recipientBitname: json['recipient_bitname'],
     timestamp: json['timestamp'] != null ? DateTime.fromMillisecondsSinceEpoch(json['timestamp']) : DateTime.now(),
     isOutgoing: json['is_outgoing'] ?? false,
     txid: json['txid'],
     valueSats: json['value_sats'],
+    isPending: json['is_pending'] ?? false,
+    read: json['read'] ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -42,10 +59,14 @@ class ChatMessage {
     'content': content,
     'sender_pubkey': senderPubkey,
     'recipient_pubkey': recipientPubkey,
+    'sender_bitname': senderBitname,
+    'recipient_bitname': recipientBitname,
     'timestamp': timestamp.millisecondsSinceEpoch,
     'is_outgoing': isOutgoing,
     'txid': txid,
     'value_sats': valueSats,
+    'is_pending': isPending,
+    'read': read,
   };
 
   ChatMessage copyWith({
@@ -53,20 +74,28 @@ class ChatMessage {
     String? content,
     String? senderPubkey,
     String? recipientPubkey,
+    String? senderBitname,
+    String? recipientBitname,
     DateTime? timestamp,
     bool? isOutgoing,
     String? txid,
     int? valueSats,
+    bool? isPending,
+    bool? read,
   }) {
     return ChatMessage(
       id: id ?? this.id,
       content: content ?? this.content,
       senderPubkey: senderPubkey ?? this.senderPubkey,
       recipientPubkey: recipientPubkey ?? this.recipientPubkey,
+      senderBitname: senderBitname ?? this.senderBitname,
+      recipientBitname: recipientBitname ?? this.recipientBitname,
       timestamp: timestamp ?? this.timestamp,
       isOutgoing: isOutgoing ?? this.isOutgoing,
       txid: txid ?? this.txid,
       valueSats: valueSats ?? this.valueSats,
+      isPending: isPending ?? this.isPending,
+      read: read ?? this.read,
     );
   }
 }
@@ -131,6 +160,7 @@ class ChatContact {
     int? paymailFeeSats,
     String? lastMessage,
     DateTime? lastMessageTime,
+    bool clearPreview = false,
     bool? isManual,
   }) {
     return ChatContact(
@@ -140,8 +170,8 @@ class ChatContact {
       encryptionPubkey: encryptionPubkey ?? this.encryptionPubkey,
       address: address ?? this.address,
       paymailFeeSats: paymailFeeSats ?? this.paymailFeeSats,
-      lastMessage: lastMessage ?? this.lastMessage,
-      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+      lastMessage: clearPreview ? null : lastMessage ?? this.lastMessage,
+      lastMessageTime: clearPreview ? null : lastMessageTime ?? this.lastMessageTime,
       isManual: isManual ?? this.isManual,
     );
   }

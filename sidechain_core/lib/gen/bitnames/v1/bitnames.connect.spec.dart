@@ -258,6 +258,23 @@ abstract final class BitnamesService {
     bitnamesv1bitnames.GetPaymailResponse.new,
   );
 
+  /// Read the messages that wait in the mempool. A message reaches a BitName
+  /// one block before GetPaymail reports it, so a chat reads both.
+  static const getPendingPaymail = connect.Spec(
+    '/$name/GetPendingPaymail',
+    connect.StreamType.unary,
+    bitnamesv1bitnames.GetPendingPaymailRequest.new,
+    bitnamesv1bitnames.GetPendingPaymailResponse.new,
+  );
+
+  /// Read the address that holds a BitName. A message pays the holder.
+  static const getBitNameOwner = connect.Spec(
+    '/$name/GetBitNameOwner',
+    connect.StreamType.unary,
+    bitnamesv1bitnames.GetBitNameOwnerRequest.new,
+    bitnamesv1bitnames.GetBitNameOwnerResponse.new,
+  );
+
   /// Resolve a commitment from a BitName.
   static const resolveCommit = connect.Spec(
     '/$name/ResolveCommit',

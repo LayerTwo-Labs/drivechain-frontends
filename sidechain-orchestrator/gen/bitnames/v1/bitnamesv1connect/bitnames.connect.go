@@ -123,6 +123,12 @@ const (
 	// BitnamesServiceGetPaymailProcedure is the fully-qualified name of the BitnamesService's
 	// GetPaymail RPC.
 	BitnamesServiceGetPaymailProcedure = "/bitnames.v1.BitnamesService/GetPaymail"
+	// BitnamesServiceGetPendingPaymailProcedure is the fully-qualified name of the BitnamesService's
+	// GetPendingPaymail RPC.
+	BitnamesServiceGetPendingPaymailProcedure = "/bitnames.v1.BitnamesService/GetPendingPaymail"
+	// BitnamesServiceGetBitNameOwnerProcedure is the fully-qualified name of the BitnamesService's
+	// GetBitNameOwner RPC.
+	BitnamesServiceGetBitNameOwnerProcedure = "/bitnames.v1.BitnamesService/GetBitNameOwner"
 	// BitnamesServiceResolveCommitProcedure is the fully-qualified name of the BitnamesService's
 	// ResolveCommit RPC.
 	BitnamesServiceResolveCommitProcedure = "/bitnames.v1.BitnamesService/ResolveCommit"
@@ -209,6 +215,11 @@ type BitnamesServiceClient interface {
 	EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error)
 	// Get paymail information.
 	GetPaymail(context.Context, *connect.Request[v1.GetPaymailRequest]) (*connect.Response[v1.GetPaymailResponse], error)
+	// Read the messages that wait in the mempool. A message reaches a BitName
+	// one block before GetPaymail reports it, so a chat reads both.
+	GetPendingPaymail(context.Context, *connect.Request[v1.GetPendingPaymailRequest]) (*connect.Response[v1.GetPendingPaymailResponse], error)
+	// Read the address that holds a BitName. A message pays the holder.
+	GetBitNameOwner(context.Context, *connect.Request[v1.GetBitNameOwnerRequest]) (*connect.Response[v1.GetBitNameOwnerResponse], error)
 	// Resolve a commitment from a BitName.
 	ResolveCommit(context.Context, *connect.Request[v1.ResolveCommitRequest]) (*connect.Response[v1.ResolveCommitResponse], error)
 	// Read a data commitment from an address, before a BitName holds it.
@@ -422,6 +433,18 @@ func NewBitnamesServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitnamesServiceMethods.ByName("GetPaymail")),
 			connect.WithClientOptions(opts...),
 		),
+		getPendingPaymail: connect.NewClient[v1.GetPendingPaymailRequest, v1.GetPendingPaymailResponse](
+			httpClient,
+			baseURL+BitnamesServiceGetPendingPaymailProcedure,
+			connect.WithSchema(bitnamesServiceMethods.ByName("GetPendingPaymail")),
+			connect.WithClientOptions(opts...),
+		),
+		getBitNameOwner: connect.NewClient[v1.GetBitNameOwnerRequest, v1.GetBitNameOwnerResponse](
+			httpClient,
+			baseURL+BitnamesServiceGetBitNameOwnerProcedure,
+			connect.WithSchema(bitnamesServiceMethods.ByName("GetBitNameOwner")),
+			connect.WithClientOptions(opts...),
+		),
 		resolveCommit: connect.NewClient[v1.ResolveCommitRequest, v1.ResolveCommitResponse](
 			httpClient,
 			baseURL+BitnamesServiceResolveCommitProcedure,
@@ -500,6 +523,8 @@ type bitnamesServiceClient struct {
 	decryptMsg                            *connect.Client[v1.DecryptMsgRequest, v1.DecryptMsgResponse]
 	encryptMsg                            *connect.Client[v1.EncryptMsgRequest, v1.EncryptMsgResponse]
 	getPaymail                            *connect.Client[v1.GetPaymailRequest, v1.GetPaymailResponse]
+	getPendingPaymail                     *connect.Client[v1.GetPendingPaymailRequest, v1.GetPendingPaymailResponse]
+	getBitNameOwner                       *connect.Client[v1.GetBitNameOwnerRequest, v1.GetBitNameOwnerResponse]
 	resolveCommit                         *connect.Client[v1.ResolveCommitRequest, v1.ResolveCommitResponse]
 	readCommitment                        *connect.Client[v1.ReadCommitmentRequest, v1.ReadCommitmentResponse]
 	signArbitraryMsg                      *connect.Client[v1.SignArbitraryMsgRequest, v1.SignArbitraryMsgResponse]
@@ -665,6 +690,16 @@ func (c *bitnamesServiceClient) GetPaymail(ctx context.Context, req *connect.Req
 	return c.getPaymail.CallUnary(ctx, req)
 }
 
+// GetPendingPaymail calls bitnames.v1.BitnamesService.GetPendingPaymail.
+func (c *bitnamesServiceClient) GetPendingPaymail(ctx context.Context, req *connect.Request[v1.GetPendingPaymailRequest]) (*connect.Response[v1.GetPendingPaymailResponse], error) {
+	return c.getPendingPaymail.CallUnary(ctx, req)
+}
+
+// GetBitNameOwner calls bitnames.v1.BitnamesService.GetBitNameOwner.
+func (c *bitnamesServiceClient) GetBitNameOwner(ctx context.Context, req *connect.Request[v1.GetBitNameOwnerRequest]) (*connect.Response[v1.GetBitNameOwnerResponse], error) {
+	return c.getBitNameOwner.CallUnary(ctx, req)
+}
+
 // ResolveCommit calls bitnames.v1.BitnamesService.ResolveCommit.
 func (c *bitnamesServiceClient) ResolveCommit(ctx context.Context, req *connect.Request[v1.ResolveCommitRequest]) (*connect.Response[v1.ResolveCommitResponse], error) {
 	return c.resolveCommit.CallUnary(ctx, req)
@@ -764,6 +799,11 @@ type BitnamesServiceHandler interface {
 	EncryptMsg(context.Context, *connect.Request[v1.EncryptMsgRequest]) (*connect.Response[v1.EncryptMsgResponse], error)
 	// Get paymail information.
 	GetPaymail(context.Context, *connect.Request[v1.GetPaymailRequest]) (*connect.Response[v1.GetPaymailResponse], error)
+	// Read the messages that wait in the mempool. A message reaches a BitName
+	// one block before GetPaymail reports it, so a chat reads both.
+	GetPendingPaymail(context.Context, *connect.Request[v1.GetPendingPaymailRequest]) (*connect.Response[v1.GetPendingPaymailResponse], error)
+	// Read the address that holds a BitName. A message pays the holder.
+	GetBitNameOwner(context.Context, *connect.Request[v1.GetBitNameOwnerRequest]) (*connect.Response[v1.GetBitNameOwnerResponse], error)
 	// Resolve a commitment from a BitName.
 	ResolveCommit(context.Context, *connect.Request[v1.ResolveCommitRequest]) (*connect.Response[v1.ResolveCommitResponse], error)
 	// Read a data commitment from an address, before a BitName holds it.
@@ -973,6 +1013,18 @@ func NewBitnamesServiceHandler(svc BitnamesServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitnamesServiceMethods.ByName("GetPaymail")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitnamesServiceGetPendingPaymailHandler := connect.NewUnaryHandler(
+		BitnamesServiceGetPendingPaymailProcedure,
+		svc.GetPendingPaymail,
+		connect.WithSchema(bitnamesServiceMethods.ByName("GetPendingPaymail")),
+		connect.WithHandlerOptions(opts...),
+	)
+	bitnamesServiceGetBitNameOwnerHandler := connect.NewUnaryHandler(
+		BitnamesServiceGetBitNameOwnerProcedure,
+		svc.GetBitNameOwner,
+		connect.WithSchema(bitnamesServiceMethods.ByName("GetBitNameOwner")),
+		connect.WithHandlerOptions(opts...),
+	)
 	bitnamesServiceResolveCommitHandler := connect.NewUnaryHandler(
 		BitnamesServiceResolveCommitProcedure,
 		svc.ResolveCommit,
@@ -1079,6 +1131,10 @@ func NewBitnamesServiceHandler(svc BitnamesServiceHandler, opts ...connect.Handl
 			bitnamesServiceEncryptMsgHandler.ServeHTTP(w, r)
 		case BitnamesServiceGetPaymailProcedure:
 			bitnamesServiceGetPaymailHandler.ServeHTTP(w, r)
+		case BitnamesServiceGetPendingPaymailProcedure:
+			bitnamesServiceGetPendingPaymailHandler.ServeHTTP(w, r)
+		case BitnamesServiceGetBitNameOwnerProcedure:
+			bitnamesServiceGetBitNameOwnerHandler.ServeHTTP(w, r)
 		case BitnamesServiceResolveCommitProcedure:
 			bitnamesServiceResolveCommitHandler.ServeHTTP(w, r)
 		case BitnamesServiceReadCommitmentProcedure:
@@ -1224,6 +1280,14 @@ func (UnimplementedBitnamesServiceHandler) EncryptMsg(context.Context, *connect.
 
 func (UnimplementedBitnamesServiceHandler) GetPaymail(context.Context, *connect.Request[v1.GetPaymailRequest]) (*connect.Response[v1.GetPaymailResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.GetPaymail is not implemented"))
+}
+
+func (UnimplementedBitnamesServiceHandler) GetPendingPaymail(context.Context, *connect.Request[v1.GetPendingPaymailRequest]) (*connect.Response[v1.GetPendingPaymailResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.GetPendingPaymail is not implemented"))
+}
+
+func (UnimplementedBitnamesServiceHandler) GetBitNameOwner(context.Context, *connect.Request[v1.GetBitNameOwnerRequest]) (*connect.Response[v1.GetBitNameOwnerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.GetBitNameOwner is not implemented"))
 }
 
 func (UnimplementedBitnamesServiceHandler) ResolveCommit(context.Context, *connect.Request[v1.ResolveCommitRequest]) (*connect.Response[v1.ResolveCommitResponse], error) {

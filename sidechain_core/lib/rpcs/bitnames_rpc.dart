@@ -101,6 +101,13 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// Get all paymail
   Future<Map<String, dynamic>> getPaymail();
 
+  /// Get the paymail that waits in the mempool. A message reaches a BitName one
+  /// block before getPaymail reports it, so a chat reads both.
+  Future<PendingPaymail> getPendingPaymail();
+
+  /// Get the address that holds a BitName. A message pays the holder.
+  Future<String> getBitNameOwner(String bitname);
+
   /// Get wallet addresses, sorted by base58 encoding
   Future<List<String>> getWalletAddresses();
 
@@ -487,6 +494,21 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
+  Future<String> getBitNameOwner(String bitname) async {
+    final resp = await _client.getBitNameOwner(pb.GetBitNameOwnerRequest(bitname: bitname));
+    return resp.address;
+  }
+
+  @override
+  Future<PendingPaymail> getPendingPaymail() async {
+    final resp = await _client.getPendingPaymail(pb.GetPendingPaymailRequest());
+    return PendingPaymail(
+      entries: resp.paymailJson.isEmpty ? {} : jsonDecode(resp.paymailJson) as Map<String, dynamic>,
+      mempoolTxids: resp.mempoolTxids.toSet(),
+    );
+  }
+
+  @override
   Future<Map<String, dynamic>> getPaymail() async {
     final resp = await _client.getPaymail(pb.GetPaymailRequest());
     if (resp.paymailJson.isEmpty) {
@@ -744,6 +766,15 @@ class ResolveCommitResult {
 }
 
 /// A data commitment read from an address, before a BitName holds it.
+/// The messages that wait in the mempool, and every transaction it holds. A
+/// message a caller sent pays the reader, so no paymail feed reports it.
+class PendingPaymail {
+  final Map<String, dynamic> entries;
+  final Set<String> mempoolTxids;
+
+  const PendingPaymail({required this.entries, required this.mempoolTxids});
+}
+
 class ReadCommitmentResult {
   final String dataJson;
   final String commitment;

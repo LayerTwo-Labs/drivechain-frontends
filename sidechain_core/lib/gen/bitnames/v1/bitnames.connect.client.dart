@@ -566,6 +566,43 @@ extension type BitnamesServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Read the messages that wait in the mempool. A message reaches a BitName
+  /// one block before GetPaymail reports it, so a chat reads both.
+  Future<bitnamesv1bitnames.GetPendingPaymailResponse> getPendingPaymail(
+    bitnamesv1bitnames.GetPendingPaymailRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitnamesService.getPendingPaymail,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Read the address that holds a BitName. A message pays the holder.
+  Future<bitnamesv1bitnames.GetBitNameOwnerResponse> getBitNameOwner(
+    bitnamesv1bitnames.GetBitNameOwnerRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitnamesService.getBitNameOwner,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Resolve a commitment from a BitName.
   Future<bitnamesv1bitnames.ResolveCommitResponse> resolveCommit(
     bitnamesv1bitnames.ResolveCommitRequest input, {

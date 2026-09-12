@@ -3,6 +3,7 @@ package bitnames
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -316,6 +317,40 @@ func (h *Handler) EncryptMsg(ctx context.Context, req *connect.Request[pb.Encryp
 		return nil, err
 	}
 	return connect.NewResponse(&pb.EncryptMsgResponse{Ciphertext: ciphertext}), nil
+}
+
+func (h *Handler) GetBitNameOwner(
+	ctx context.Context, req *connect.Request[pb.GetBitNameOwnerRequest],
+) (*connect.Response[pb.GetBitNameOwnerResponse], error) {
+	address, err := BitNameOwner(ctx, h.proxy.Client, req.Msg.Bitname)
+	if errors.Is(err, errBitNameNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetBitNameOwnerResponse{Address: address}), nil
+}
+
+func (h *Handler) GetPendingPaymail(
+	ctx context.Context, req *connect.Request[pb.GetPendingPaymailRequest],
+) (*connect.Response[pb.GetPendingPaymailResponse], error) {
+	pending, err := pendingPaymail(ctx, h.proxy.Client)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := json.Marshal(pending)
+	if err != nil {
+		return nil, fmt.Errorf("marshal the pending paymail: %w", err)
+	}
+	txids, err := mempoolTxids(ctx, h.proxy.Client)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.GetPendingPaymailResponse{
+		PaymailJson:  string(raw),
+		MempoolTxids: txids,
+	}), nil
 }
 
 func (h *Handler) GetPaymail(ctx context.Context, req *connect.Request[pb.GetPaymailRequest]) (*connect.Response[pb.GetPaymailResponse], error) {
