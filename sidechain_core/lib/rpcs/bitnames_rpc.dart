@@ -696,6 +696,9 @@ class BitNameData {
   final String? socketAddrV4;
   final String? socketAddrV6;
 
+  /// A `host:port` the node resolves by DNS, when no socket address is set.
+  final String? socketAddrHost;
+
   BitNameData({
     this.commitment,
     this.encryptionPubkey,
@@ -703,6 +706,7 @@ class BitNameData {
     this.signingPubkey,
     this.socketAddrV4,
     this.socketAddrV6,
+    this.socketAddrHost,
   });
 
   Map<String, dynamic> toJson() => {
@@ -712,6 +716,7 @@ class BitNameData {
     if (signingPubkey != null) 'signing_pubkey': signingPubkey,
     if (socketAddrV4 != null) 'socket_addr_v4': socketAddrV4,
     if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
+    if (socketAddrHost != null) 'socket_addr_host': socketAddrHost,
   };
 
   factory BitNameData.fromJson(Map<String, dynamic> json) => BitNameData(
@@ -721,6 +726,7 @@ class BitNameData {
     signingPubkey: json['signing_pubkey'] as String?,
     socketAddrV4: json['socket_addr_v4'] as String?,
     socketAddrV6: json['socket_addr_v6'] as String?,
+    socketAddrHost: json['socket_addr_host'] as String?,
   );
 }
 

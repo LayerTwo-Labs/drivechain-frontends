@@ -17,6 +17,7 @@ type BitNameData struct {
 	SigningPubkey    *string `json:"signing_pubkey,omitempty"`
 	SocketAddrV4     *string `json:"socket_addr_v4,omitempty"`
 	SocketAddrV6     *string `json:"socket_addr_v6,omitempty"`
+	SocketAddrHost   *string `json:"socket_addr_host,omitempty"`
 }
 
 // BitnameDetails describes the on-chain state of a registered BitName.
@@ -25,6 +26,7 @@ type BitnameDetails struct {
 	Commitment       *string `json:"commitment,omitempty"`
 	SocketAddrV4     *string `json:"socket_addr_v4,omitempty"`
 	SocketAddrV6     *string `json:"socket_addr_v6,omitempty"`
+	SocketAddrHost   *string `json:"socket_addr_host,omitempty"`
 	EncryptionPubkey *string `json:"encryption_pubkey,omitempty"`
 	SigningPubkey    *string `json:"signing_pubkey,omitempty"`
 	PaymailFeeSats   *int64  `json:"paymail_fee_sats,omitempty"`
