@@ -247,6 +247,8 @@ void main() {
     expect(find.text('62%'), findsOneWidget);
     expect(find.text('Updating'), findsNothing);
     expect(_button('Download'), findsNothing);
+    // Nothing runs yet, so the bar keeps the place of the button.
+    expect(_button('Stop'), findsNothing);
   });
 
   testWidgets('an update puts a primary Update before an outline Start', (tester) async {
@@ -350,7 +352,13 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text(label), findsOneWidget);
       expect(find.text('41.3%'), findsOneWidget);
-      expect(_button('Stop'), findsNothing);
+      // A sync must not take the place of Stop: the chain's own window may be
+      // closed, and then the table is the only way to stop the node.
+      expect(_button('Stop'), findsOneWidget);
+      expect(
+        tester.getRect(_button('Stop')).right,
+        lessThanOrEqualTo(tester.getRect(find.byType(MainchainSyncStatus)).left),
+      );
       expect(
         tester.getRect(find.byType(MainchainSyncStatus)).right,
         lessThanOrEqualTo(tester.getRect(_button('Deposit')).left),
@@ -368,5 +376,93 @@ void main() {
 
     expect(find.byType(MainchainSyncStatus), findsNothing);
     expect(find.text('34%'), findsOneWidget);
+    expect(_button('Stop'), findsOneWidget);
   });
+
+  // A slot number is three characters at most, so the gap to the name was the
+  // table's default minimum, not the content.
+  testWidgets('the widest slot keeps Slot narrow and Name right after it', (tester) async {
+    setUpChain(_thunder());
+    GetIt.I.get<SidechainProvider>().sidechains[255] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'CoinShift', slot: 255, balanceSatoshi: Int64(5000000)),
+      [],
+      [],
+    );
+    await pumpTable(tester);
+
+    final slot = tester.getRect(_cell('255'));
+    final name = tester.getRect(_cell('CoinShift'));
+    expect(slot.width, lessThanOrEqualTo(_headerWidth('Slot') + 25));
+    expect(name.left - slot.right, lessThanOrEqualTo(8));
+  });
+
+  testWidgets('the widest name and balance stay on one line', (tester) async {
+    setUpChain(_thunder());
+    GetIt.I.get<SidechainProvider>().sidechains[9] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'Truthcoin', slot: 9, balanceSatoshi: Int64(11502555423)),
+      [],
+      [],
+    );
+    thunderRPC.wallet = (115.02555423, 0.0);
+    thunderRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester);
+
+    final balance = GetIt.I.get<FormatterProvider>().formatBTC(115.02555423);
+    _expectOneUncutLine(tester, _cell('Truthcoin'), 'Truthcoin', dressing: 16);
+    _expectOneUncutLine(tester, _cell(balance), balance);
+  });
+
+  // Adding confirmed and pending into one figure made the cell disagree with
+  // the bottom nav, which shows the two apart.
+  testWidgets('Your balance shows the confirmed figure and holds pending in a tooltip', (tester) async {
+    setUpChain(_thunder());
+    thunderRPC.wallet = (2.01999, 1.0);
+    thunderRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester);
+
+    final formatter = GetIt.I.get<FormatterProvider>();
+    expect(find.text(formatter.formatBTC(2.01999)), findsOneWidget);
+    expect(find.text(formatter.formatBTC(3.01999)), findsNothing);
+    expect(_tooltip('Pending ${formatter.formatBTC(1.0)}'), findsOneWidget);
+  });
+
+  testWidgets('a chain with nothing pending shows one number and no tooltip', (tester) async {
+    setUpChain(_thunder());
+    thunderRPC.wallet = (2.01999, 0.0);
+    thunderRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester);
+
+    final formatter = GetIt.I.get<FormatterProvider>();
+    expect(find.text(formatter.formatBTC(2.01999)), findsOneWidget);
+    expect(_tooltip('Pending ${formatter.formatBTC(0.0)}'), findsNothing);
+  });
+}
+
+Finder _tooltip(String message) =>
+    find.byWidgetPredicate((widget) => widget is SailTooltip && widget.message == message);
+
+Finder _cell(String value) => find.byWidgetPredicate((widget) => widget is SailTableCell && widget.value == value);
+
+double _textWidth(String text, {bool bold = false}) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: SailStyleValues.thirteen.copyWith(fontWeight: bold ? SailStyleValues.boldWeight : null),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  return painter.width;
+}
+
+double _headerWidth(String name) => _textWidth(name, bold: true);
+
+/// Fails when the column is narrower than the string plus its padding and
+/// [dressing], which is where an ellipsis or a second line comes from.
+void _expectOneUncutLine(WidgetTester tester, Finder cell, String text, {double dressing = 0}) {
+  for (final box in tester.widgetList(cell).indexed) {
+    expect(tester.getSize(cell.at(box.$1)).width, greaterThanOrEqualTo(_textWidth(text) + 16 + dressing));
+  }
 }

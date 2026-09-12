@@ -447,19 +447,25 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
   ) {
     final colors = context.sailTheme.colors;
     final sidechain = viewModel.sidechains[slot];
-    final slotCell = SailTableCell(value: '$slot', width: 56, textColor: colors.textSecondary);
+    final slotCell = SailTableCell(
+      value: '$slot',
+      width: _slotColumnWidth,
+      padding: _tightCellPadding,
+      textColor: colors.textSecondary,
+    );
 
     if (sidechain == null) {
       return [
         slotCell,
         SailTableCell(value: ''),
-        SailTableCell(value: '', width: 130),
-        SailTableCell(value: '', width: 130),
-        SailTableCell(value: '', width: 300),
+        SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
+        SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
+        SailTableCell(value: '', width: _actionsColumnWidth),
       ];
     }
 
     final yourBalance = viewModel.yourBalance(slot);
+    final yourBalanceText = yourBalance == null ? '—' : formatter.formatBTC(yourBalance.confirmed);
 
     return [
       slotCell,
@@ -477,19 +483,27 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       ),
       SailTableCell(
         value: formatter.formatSats(sidechain.info.balanceSatoshi.toInt()),
-        width: 130,
+        hugContent: true,
+        padding: _tightCellPadding,
         alignment: Alignment.centerRight,
         textColor: colors.text,
       ),
       SailTableCell(
-        value: yourBalance == null ? '—' : formatter.formatBTC(yourBalance),
-        width: 130,
+        value: yourBalanceText,
+        hugContent: true,
+        padding: _tightCellPadding,
         alignment: Alignment.centerRight,
         textColor: yourBalance == null ? colors.textSecondary : colors.text,
+        child: yourBalance == null || yourBalance.pending == 0
+            ? null
+            : SailTooltip(
+                message: 'Pending ${formatter.formatBTC(yourBalance.pending)}',
+                child: SailText.primary13(yourBalanceText, color: colors.text),
+              ),
       ),
       SailTableCell(
         value: '',
-        width: 300,
+        width: _actionsColumnWidth,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: SailStyleValues.padding12),
         child: _SidechainActions(viewModel: viewModel, slot: slot, sidechain: sidechain),
@@ -497,6 +511,16 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
     ];
   }
 }
+
+/// Slot holds 1 to 3 digits, so it never needs the table's default minimum.
+const double _slotColumnWidth = 48;
+
+/// Update, Stop, the sync bar with its percent, Deposit and the settings icon.
+const double _actionsColumnWidth = 400;
+
+/// A balance cell carries a long number and its unit, so it keeps less padding
+/// than the rest of the row.
+const EdgeInsets _tightCellPadding = EdgeInsets.symmetric(horizontal: SailStyleValues.padding08);
 
 /// The main action, Deposit and the settings button of one sidechain row.
 class _SidechainActions extends StatelessWidget {
@@ -871,13 +895,13 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool canDeposit(int slot) => isSidechainRunning(slot);
 
   /// The user's wallet balance in BTC on the chain in [slot], or null while the chain does not run.
-  double? yourBalance(int slot) {
+  ({double confirmed, double pending})? yourBalance(int slot) {
     final rpc = _sidechainRPC(slot);
     if (rpc == null || !rpc.connected || !_balanceProvider.connections.contains(rpc)) {
       return null;
     }
     final (confirmed, pending) = _balanceProvider.balanceFor(rpc);
-    return confirmed + pending;
+    return (confirmed: confirmed, pending: pending);
   }
 
   bool isSidechainRunning(int slot) => _sidechainRPC(slot)?.connected ?? false;
@@ -965,35 +989,27 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (isRunning) {
-      // Running but indexing: the same SyncInfo the bottom nav reports.
-      final syncInfo = _syncInfoFor(sidechain);
-      if (syncInfo != null && syncInfo.mainchainSyncing) {
-        return SizedBox(
-          key: ValueKey('mainchain_sync_slot_${sidechain.slot}_${sidechain.name}'),
-          width: 160,
-          child: MainchainSyncStatus(syncInfo: syncInfo, compact: true),
-        );
-      }
-      if (syncInfo != null && !syncInfo.isSynced && syncInfo.progressGoal > 0) {
-        return _ActionProgress(
-          key: ValueKey('syncing_slot_${sidechain.slot}_${sidechain.name}'),
-          width: 96,
-          current: syncInfo.progressCurrent,
-          goal: syncInfo.progressGoal,
-          color: colors.orangeLight,
-          tooltip:
-              '${sidechain.name}\n'
-              'Current height ${formatProgress(syncInfo.progressCurrent, false)}\n'
-              'Header height ${formatProgress(syncInfo.progressGoal, false)}',
-        );
+      // A sync must never take the place of Stop: closing the chain's own
+      // window would then leave no way to stop the node.
+      final stop = SailButton(
+        key: ValueKey('stop_slot_${sidechain.slot}_${sidechain.name}'),
+        label: 'Stop',
+        variant: ButtonVariant.outline,
+        onPressed: () async => _binaryProvider.stop(sidechain),
+      );
+      final syncing = _syncingWidget(context, sidechain);
+      if (syncing == null) {
+        return _withUpdate(sidechain, stop);
       }
       return _withUpdate(
         sidechain,
-        SailButton(
-          key: ValueKey('stop_slot_${sidechain.slot}_${sidechain.name}'),
-          label: 'Stop',
-          variant: ButtonVariant.outline,
-          onPressed: () async => _binaryProvider.stop(sidechain),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            stop,
+            const SizedBox(width: SailStyleValues.padding08),
+            syncing,
+          ],
         ),
       );
     }
@@ -1031,6 +1047,36 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         onPressed: () async => await _binaryProvider.start(sidechain),
       ),
     );
+  }
+
+  /// The sync bar that sits beside Stop, or null when the chain follows the tip.
+  Widget? _syncingWidget(BuildContext context, Sidechain sidechain) {
+    final colors = SailTheme.of(context).colors;
+    final syncInfo = _syncInfoFor(sidechain);
+    if (syncInfo == null) {
+      return null;
+    }
+    if (syncInfo.mainchainSyncing) {
+      return SizedBox(
+        key: ValueKey('mainchain_sync_slot_${sidechain.slot}_${sidechain.name}'),
+        width: 160,
+        child: MainchainSyncStatus(syncInfo: syncInfo, compact: true),
+      );
+    }
+    if (!syncInfo.isSynced && syncInfo.progressGoal > 0) {
+      return _ActionProgress(
+        key: ValueKey('syncing_slot_${sidechain.slot}_${sidechain.name}'),
+        width: 64,
+        current: syncInfo.progressCurrent,
+        goal: syncInfo.progressGoal,
+        color: colors.orangeLight,
+        tooltip:
+            '${sidechain.name}\n'
+            'Current height ${formatProgress(syncInfo.progressCurrent, false)}\n'
+            'Header height ${formatProgress(syncInfo.progressGoal, false)}',
+      );
+    }
+    return null;
   }
 
   Widget _withUpdate(Sidechain sidechain, Widget action) {
