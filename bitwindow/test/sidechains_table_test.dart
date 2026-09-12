@@ -247,6 +247,8 @@ void main() {
     expect(find.text('62%'), findsOneWidget);
     expect(find.text('Updating'), findsNothing);
     expect(_button('Download'), findsNothing);
+    // Nothing runs yet, so the bar keeps the place of the button.
+    expect(_button('Stop'), findsNothing);
   });
 
   testWidgets('an update puts a primary Update before an outline Start', (tester) async {
@@ -350,7 +352,13 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text(label), findsOneWidget);
       expect(find.text('41.3%'), findsOneWidget);
-      expect(_button('Stop'), findsNothing);
+      // A sync must not take the place of Stop: the chain's own window may be
+      // closed, and then the table is the only way to stop the node.
+      expect(_button('Stop'), findsOneWidget);
+      expect(
+        tester.getRect(_button('Stop')).right,
+        lessThanOrEqualTo(tester.getRect(find.byType(MainchainSyncStatus)).left),
+      );
       expect(
         tester.getRect(find.byType(MainchainSyncStatus)).right,
         lessThanOrEqualTo(tester.getRect(_button('Deposit')).left),
@@ -368,6 +376,7 @@ void main() {
 
     expect(find.byType(MainchainSyncStatus), findsNothing);
     expect(find.text('34%'), findsOneWidget);
+    expect(_button('Stop'), findsOneWidget);
   });
 
   // A slot number is three characters at most, so the gap to the name was the

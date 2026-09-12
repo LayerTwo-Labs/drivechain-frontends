@@ -989,35 +989,27 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     }
 
     if (isRunning) {
-      // Running but indexing: the same SyncInfo the bottom nav reports.
-      final syncInfo = _syncInfoFor(sidechain);
-      if (syncInfo != null && syncInfo.mainchainSyncing) {
-        return SizedBox(
-          key: ValueKey('mainchain_sync_slot_${sidechain.slot}_${sidechain.name}'),
-          width: 160,
-          child: MainchainSyncStatus(syncInfo: syncInfo, compact: true),
-        );
-      }
-      if (syncInfo != null && !syncInfo.isSynced && syncInfo.progressGoal > 0) {
-        return _ActionProgress(
-          key: ValueKey('syncing_slot_${sidechain.slot}_${sidechain.name}'),
-          width: 96,
-          current: syncInfo.progressCurrent,
-          goal: syncInfo.progressGoal,
-          color: colors.orangeLight,
-          tooltip:
-              '${sidechain.name}\n'
-              'Current height ${formatProgress(syncInfo.progressCurrent, false)}\n'
-              'Header height ${formatProgress(syncInfo.progressGoal, false)}',
-        );
+      // A sync must never take the place of Stop: closing the chain's own
+      // window would then leave no way to stop the node.
+      final stop = SailButton(
+        key: ValueKey('stop_slot_${sidechain.slot}_${sidechain.name}'),
+        label: 'Stop',
+        variant: ButtonVariant.outline,
+        onPressed: () async => _binaryProvider.stop(sidechain),
+      );
+      final syncing = _syncingWidget(context, sidechain);
+      if (syncing == null) {
+        return _withUpdate(sidechain, stop);
       }
       return _withUpdate(
         sidechain,
-        SailButton(
-          key: ValueKey('stop_slot_${sidechain.slot}_${sidechain.name}'),
-          label: 'Stop',
-          variant: ButtonVariant.outline,
-          onPressed: () async => _binaryProvider.stop(sidechain),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            stop,
+            const SizedBox(width: SailStyleValues.padding08),
+            syncing,
+          ],
         ),
       );
     }
@@ -1055,6 +1047,36 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
         onPressed: () async => await _binaryProvider.start(sidechain),
       ),
     );
+  }
+
+  /// The sync bar that sits beside Stop, or null when the chain follows the tip.
+  Widget? _syncingWidget(BuildContext context, Sidechain sidechain) {
+    final colors = SailTheme.of(context).colors;
+    final syncInfo = _syncInfoFor(sidechain);
+    if (syncInfo == null) {
+      return null;
+    }
+    if (syncInfo.mainchainSyncing) {
+      return SizedBox(
+        key: ValueKey('mainchain_sync_slot_${sidechain.slot}_${sidechain.name}'),
+        width: 160,
+        child: MainchainSyncStatus(syncInfo: syncInfo, compact: true),
+      );
+    }
+    if (!syncInfo.isSynced && syncInfo.progressGoal > 0) {
+      return _ActionProgress(
+        key: ValueKey('syncing_slot_${sidechain.slot}_${sidechain.name}'),
+        width: 64,
+        current: syncInfo.progressCurrent,
+        goal: syncInfo.progressGoal,
+        color: colors.orangeLight,
+        tooltip:
+            '${sidechain.name}\n'
+            'Current height ${formatProgress(syncInfo.progressCurrent, false)}\n'
+            'Header height ${formatProgress(syncInfo.progressGoal, false)}',
+      );
+    }
+    return null;
   }
 
   Widget _withUpdate(Sidechain sidechain, Widget action) {
