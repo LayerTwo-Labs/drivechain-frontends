@@ -41,16 +41,19 @@ class BinaryProvider extends ChangeNotifier {
   /// True only for windows/apps that are allowed to initiate backend shutdown.
   final bool shutdownEnabled;
 
-  /// Manages daemon processes spawned directly by Flutter.
-  late final ProcessManager _processManager;
+  /// Manages daemon processes spawned directly by Flutter. A test may build a
+  /// provider without one.
+  ProcessManager? _ownedProcessManager;
+  ProcessManager get _processManager => _ownedProcessManager!;
 
   BinaryProvider._({
     required this.appDir,
     required this.binaries,
-    required this._processManager,
+    required ProcessManager processManager,
     required this.isSidechainApp,
     required this.shutdownEnabled,
   }) {
+    _ownedProcessManager = processManager;
     _processManager.addListener(notifyListeners);
     _startMetadataRefreshTimer();
   }
@@ -82,9 +85,13 @@ class BinaryProvider extends ChangeNotifier {
     }
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     _metadataRefreshTimer?.cancel();
+    _ownedProcessManager?.dispose();
     if (_settingsListener != null && GetIt.I.isRegistered<SettingsProvider>()) {
       GetIt.I.get<SettingsProvider>().removeListener(_settingsListener!);
     }
@@ -126,9 +133,12 @@ class BinaryProvider extends ChangeNotifier {
   BinaryProvider.test({
     required this.appDir,
     required this.binaries,
+    ProcessManager? processManager,
     this.isSidechainApp = false,
     this.shutdownEnabled = true,
-  });
+  }) {
+    _ownedProcessManager = processManager;
+  }
 
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
 
@@ -217,13 +227,11 @@ class BinaryProvider extends ChangeNotifier {
     return _orchestrator.getSnapshotStatus();
   }
 
-  /// [expectRestart] silences the exit watchdog for this stop, so a caller that
-  /// owns the reboot isn't raced by an automatic one two seconds later.
-  Future<void> stop(Binary binary, {bool skipDownstream = false, bool expectRestart = false}) async {
+  /// A stop silences the exit watchdog, so the daemon stays down until a
+  /// caller starts it again.
+  Future<void> stop(Binary binary, {bool skipDownstream = false}) async {
     if (_isDaemonBinary(binary)) {
-      if (expectRestart) {
-        _expectedStops.add(binary.name);
-      }
+      _expectedStops.add(binary.name);
       await _stopDaemonBinary(binary);
       return;
     }
@@ -376,6 +384,12 @@ class BinaryProvider extends ChangeNotifier {
   /// Daemons stopped on purpose by a caller that will restart them itself.
   final Set<String> _expectedStops = {};
 
+  /// Daemons that already carry an exit listener.
+  final Set<String> _watchedDaemons = {};
+
+  /// Daemons that already carry a scheduled restart.
+  final Set<String> _pendingRestarts = {};
+
   /// Returns true for binaries that Flutter must spawn directly because
   /// the orchestrator can't manage itself.
   /// Adopt processes from a previous session by reading PID files.
@@ -387,12 +401,7 @@ class BinaryProvider extends ChangeNotifier {
         final pid = await _processManager.pidFileManager.readPidFile(binary);
         if (pid != null && await _processManager.pidFileManager.validatePid(pid, binary)) {
           log.i('Adopting ${binary.name} (PID $pid) from previous session');
-          _processManager.runningProcesses[binary.name] = SailProcess(
-            binary: binary,
-            pid: pid,
-            cleanup: () async {},
-            adopted: true,
-          );
+          _processManager.adopt(binary, pid);
         }
       }),
     );
@@ -422,6 +431,9 @@ class BinaryProvider extends ChangeNotifier {
     _expectedStops.remove(binary.name);
     if (_processManager.isRunning(binary)) {
       log.i('BinaryProvider: ${binary.name} already running');
+      // An adopted daemon drains its own stack and then exits. Watch it, or
+      // nothing starts a new one and the app keeps a dead backend.
+      _watchDaemonExit(binary);
       return;
     }
 
@@ -441,8 +453,33 @@ class BinaryProvider extends ChangeNotifier {
     // bitcoincore config flags). Fall back to extraBootArgs if no RPC.
     final args = rpc != null ? await rpc.binaryArgs() : binary.extraBootArgs;
 
+    // The read above yields, so a stop can arrive between the check at the top
+    // and the spawn.
+    if (_disposed || _expectedStops.contains(binary.name)) {
+      return;
+    }
+
     log.i('BinaryProvider: starting daemon ${binary.name} with args: $args');
-    await _processManager.start(binary, args, () async {
+    try {
+      await _startProcess(binary, args);
+    } catch (e) {
+      // A daemon that dies in its first moment usually met a port the
+      // previous process still holds. Nothing watches a process that never
+      // came up, so schedule the restart here.
+      log.w('${binary.name} did not stay up: $e');
+      _scheduleDaemonRestart(binary);
+      rethrow;
+    }
+
+    // Sync RPCConnection state — daemon is running.
+    _syncDaemonConnectionState(binary, running: true);
+    notifyListeners();
+
+    _watchDaemonExit(binary);
+  }
+
+  Future<void> _startProcess(Binary binary, List<String> args) {
+    return _processManager.start(binary, args, () async {
       final process = _processManager.runningProcesses[binary.name];
       if (process == null) {
         return;
@@ -461,18 +498,17 @@ class BinaryProvider extends ChangeNotifier {
         await Future.delayed(const Duration(milliseconds: 100));
       }
     });
-
-    // Sync RPCConnection state — daemon is running.
-    _syncDaemonConnectionState(binary, running: true);
-    notifyListeners();
-
-    _watchDaemonExit(binary);
   }
 
   /// Watch for daemon exit and auto-restart unless shutting down.
   void _watchDaemonExit(Binary binary) {
     final process = _processManager.runningProcesses[binary.name];
     if (process == null) {
+      return;
+    }
+    // The listener re-arms itself on every exit, so a second one only doubles
+    // the restarts.
+    if (!_watchedDaemons.add(binary.name)) {
       return;
     }
 
@@ -483,11 +519,26 @@ class BinaryProvider extends ChangeNotifier {
       if (!_processManager.isRunning(binary)) {
         _syncDaemonConnectionState(binary, running: false);
         log.w('${binary.name} exited unexpectedly, restarting in 2s');
-        Future.delayed(const Duration(seconds: 2), () {
-          if (!_shuttingDown && !_processManager.isRunning(binary)) {
-            _startDaemonBinary(binary);
-          }
-        });
+        _scheduleDaemonRestart(binary);
+      }
+    });
+  }
+
+  void _scheduleDaemonRestart(Binary binary) {
+    // The exit notification and a failed spawn both report the same death.
+    if (!_pendingRestarts.add(binary.name)) {
+      return;
+    }
+    Future.delayed(const Duration(seconds: 2), () async {
+      _pendingRestarts.remove(binary.name);
+      if (_disposed || _shuttingDown || _expectedStops.contains(binary.name) || _processManager.isRunning(binary)) {
+        return;
+      }
+      try {
+        await _startDaemonBinary(binary);
+      } catch (e) {
+        // The failed attempt already scheduled the next one.
+        log.w('restart of ${binary.name} failed: $e');
       }
     });
   }

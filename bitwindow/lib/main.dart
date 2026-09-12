@@ -886,7 +886,7 @@ Future<void> rebootBitwindowBackend(Logger log) async {
   } catch (e) {
     log.w('REBOOT: drivechaind shutdown call failed: $e');
   }
-  await binaryProvider.stop(BitWindow(), expectRestart: true);
+  await binaryProvider.stop(BitWindow());
   await _awaitDrivechaindExit(log);
   await bootBitwindowBackend(log);
 }
