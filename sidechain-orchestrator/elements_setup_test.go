@@ -170,10 +170,15 @@ func TestElementsMetadataDoesNotAdvertiseObsoleteDownloads(t *testing.T) {
 	cfg, ok := BinaryConfigByName("liquid-signet")
 	require.True(t, ok)
 	require.Equal(t, "Elements Alpha", cfg.DisplayName)
-	for _, value := range cfg.DownloadURLs {
-		require.Empty(t, value)
+	require.Equal(t, "elementsd", cfg.BinaryName)
+	require.Equal(t, "elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip", cfg.Files["macos-arm64"])
+	for platform, value := range cfg.Files {
+		if platform != "macos-arm64" {
+			require.Empty(t, value)
+		}
 	}
-	for _, value := range cfg.Files {
-		require.Empty(t, value)
-	}
+	require.Equal(t, ArtifactPin{
+		ArchiveSHA256:    "fa3b818bd24485f370067ba1d1b8266605fb61d6333b726eb1da5affe5aa15d9",
+		ExecutableSHA256: "a54a81bf7d149fd1c4c73964ea98e33cd0e41c5c7a9183402cac5219e89cb327",
+	}, cfg.ArtifactPins["macos-arm64"])
 }

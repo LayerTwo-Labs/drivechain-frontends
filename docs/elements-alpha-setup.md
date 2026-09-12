@@ -3,7 +3,10 @@
 ## Current status
 
 Native installation components are implemented, but automatic download remains
-gated until the tested package is published and pinned. The old July
+gated pending full managed-stack qualification. The tested Apple Silicon package
+is published as `elements-alpha-cad1fc1fb-macos-arm64`; all three JSON metadata
+copies pin archive SHA256 `fa3b818bd24485f370067ba1d1b8266605fb61d6333b726eb1da5affe5aa15d9`
+and the executable digest below. Public retrieval reproduced both hashes. The old July
 `elements-bf8e9e1e` package is not Alpha and must not be reused. This PR remains
 draft; it does not yet claim a completed one-click installation.
 
@@ -65,9 +68,10 @@ Focused race-enabled Go tests cover native configuration, idempotence and
 conflict preservation, parent/network rejection, cookie rotation, wrong genesis,
 asset accounting, explicit receiving addresses, and artifact integrity.
 
-Flutter dependency validation currently fails because the installed Dart SDK is
-3.13.1 while the application pins 3.12.2. The application constraint was not
-relaxed; Flutter qualification remains pending with its pinned SDK.
+Flutter 3.44.8 with pinned Dart 3.12.2 was bootstrapped from the official tag.
+Dependency resolution and focused analysis pass. All 17 sidechain table tests
+pass, including third-party consent followed by the managed start call. This
+widget test mocks the backend; it does not prove full-stack installation.
 
 The opt-in `TestElementsNativeWalletIntegration` also ran against the real
 portable daemon in an isolated temporary directory. It authenticated the local

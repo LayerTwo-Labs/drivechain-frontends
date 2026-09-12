@@ -709,8 +709,8 @@
       "type": "sidechain",
       "slot": 24,
       "name": "Elements Alpha",
-      "version": "bf8e9e1e5a6453b3a0573ff57cf9c92b2b3afe2b",
-      "description": "Alpha slot 24. Automatic setup awaits a verified Alpha release and authenticated parent/enforcer integration.",
+      "version": "cad1fc1fb5695c14234c4e287cf9e47d958609e7",
+      "description": "Alpha slot 24. Apple Silicon prerelease; requires a local eCash Alphanet parent.",
       "repo_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation",
       "port": 29443,
       "chain_layer": 2,
@@ -719,7 +719,8 @@
       "dependencies": ["bitcoind", "enforcer"],
       "startup_log_patterns": ["Done loading"],
       "directories": {"binary": {"default": {"linux": "liquid-signet", "macos": "liquid-signet", "windows": "liquid-signet"}}, "flutter_frontend": {}},
-      "download": {"binary": "liquid-signet", "files": {"default": {"base_url": "", "linux-x86_64": "", "macos-x86_64": "", "macos-arm64": "", "windows-x86_64": ""}}},
+      "download": {"binary": "elementsd", "files": {"default": {"base_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-macos-arm64/", "linux-x86_64": "", "macos-x86_64": "", "macos-arm64": "elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip", "windows-x86_64": ""}}},
+      "artifact_pins": {"macos-arm64": {"archive_sha256": "fa3b818bd24485f370067ba1d1b8266605fb61d6333b726eb1da5affe5aa15d9", "executable_sha256": "a54a81bf7d149fd1c4c73964ea98e33cd0e41c5c7a9183402cac5219e89cb327"}},
       "hashes": {}
     },
     "zside": {
