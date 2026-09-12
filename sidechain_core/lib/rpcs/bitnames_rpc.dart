@@ -509,6 +509,8 @@ class BitnamesLive extends BitnamesRPC {
   Future<ReadCommitmentResult> readCommitment(String address) async {
     final resp = await _client.readCommitment(pb.ReadCommitmentRequest(address: address));
     return ReadCommitmentResult(
+      socketAddrV4: resp.socketAddrV4,
+      socketAddrV6: resp.socketAddrV6,
       dataJson: resp.dataJson,
       commitment: resp.commitment,
     );
@@ -697,7 +699,6 @@ class BitNameData {
   final String? socketAddrV6;
 
   /// A `host:port` the node resolves by DNS, when no socket address is set.
-  final String? socketAddrHost;
 
   BitNameData({
     this.commitment,
@@ -706,7 +707,6 @@ class BitNameData {
     this.signingPubkey,
     this.socketAddrV4,
     this.socketAddrV6,
-    this.socketAddrHost,
   });
 
   Map<String, dynamic> toJson() => {
@@ -716,7 +716,6 @@ class BitNameData {
     if (signingPubkey != null) 'signing_pubkey': signingPubkey,
     if (socketAddrV4 != null) 'socket_addr_v4': socketAddrV4,
     if (socketAddrV6 != null) 'socket_addr_v6': socketAddrV6,
-    if (socketAddrHost != null) 'socket_addr_host': socketAddrHost,
   };
 
   factory BitNameData.fromJson(Map<String, dynamic> json) => BitNameData(
@@ -726,7 +725,6 @@ class BitNameData {
     signingPubkey: json['signing_pubkey'] as String?,
     socketAddrV4: json['socket_addr_v4'] as String?,
     socketAddrV6: json['socket_addr_v6'] as String?,
-    socketAddrHost: json['socket_addr_host'] as String?,
   );
 }
 
@@ -748,9 +746,18 @@ class ReadCommitmentResult {
   final String dataJson;
   final String commitment;
 
+  /// The ipv4 address the host resolves to, as host:port. A BitName holds this
+  /// address, because the chain has no field for a host.
+  final String socketAddrV4;
+
+  /// The ipv6 address the host resolves to, as host:port.
+  final String socketAddrV6;
+
   ReadCommitmentResult({
     required this.dataJson,
     required this.commitment,
+    this.socketAddrV4 = '',
+    this.socketAddrV6 = '',
   });
 }
 
@@ -788,20 +795,23 @@ class BitnameEntry {
 
 class BitnameDetails {
   final String seqId;
+
+  /// A BitName registered elsewhere can hold a host. This client never writes
+  /// one, and the details still show where the record lives.
+  final String? socketAddrHost;
   final String? commitment;
   final String? socketAddrV4;
   final String? socketAddrV6;
-  final String? socketAddrHost;
   final String? encryptionPubkey;
   final String? signingPubkey;
   final int? paymailFeeSats;
 
   BitnameDetails({
     required this.seqId,
+    this.socketAddrHost,
     this.commitment,
     this.socketAddrV4,
     this.socketAddrV6,
-    this.socketAddrHost,
     this.encryptionPubkey,
     this.signingPubkey,
     this.paymailFeeSats,
@@ -809,10 +819,10 @@ class BitnameDetails {
 
   factory BitnameDetails.fromJson(Map<String, dynamic> json) => BitnameDetails(
     seqId: json['seq_id'] as String,
+    socketAddrHost: json['socket_addr_host'] as String?,
     commitment: json['commitment'] as String?,
     socketAddrV4: json['socket_addr_v4'] as String?,
     socketAddrV6: json['socket_addr_v6'] as String?,
-    socketAddrHost: json['socket_addr_host'] as String?,
     encryptionPubkey: json['encryption_pubkey'] as String?,
     signingPubkey: json['signing_pubkey'] as String?,
     paymailFeeSats: json['paymail_fee_sats'] as int?,

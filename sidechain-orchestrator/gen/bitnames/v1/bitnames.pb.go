@@ -2852,7 +2852,13 @@ type ReadCommitmentResponse struct {
 	// The JSON object the address served.
 	DataJson string `protobuf:"bytes,1,opt,name=data_json,json=dataJson,proto3" json:"data_json,omitempty"`
 	// BLAKE3 digest of the canonical form of data_json.
-	Commitment    string `protobuf:"bytes,2,opt,name=commitment,proto3" json:"commitment,omitempty"`
+	Commitment string `protobuf:"bytes,2,opt,name=commitment,proto3" json:"commitment,omitempty"`
+	// The ipv4 address the host resolves to, as host:port. Empty when the host
+	// has no ipv4 address. A BitName holds this address, not the host.
+	SocketAddrV4 string `protobuf:"bytes,3,opt,name=socket_addr_v4,json=socketAddrV4,proto3" json:"socket_addr_v4,omitempty"`
+	// The ipv6 address the host resolves to, as host:port. Empty when the host
+	// has no ipv6 address.
+	SocketAddrV6  string `protobuf:"bytes,4,opt,name=socket_addr_v6,json=socketAddrV6,proto3" json:"socket_addr_v6,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2897,6 +2903,20 @@ func (x *ReadCommitmentResponse) GetDataJson() string {
 func (x *ReadCommitmentResponse) GetCommitment() string {
 	if x != nil {
 		return x.Commitment
+	}
+	return ""
+}
+
+func (x *ReadCommitmentResponse) GetSocketAddrV4() string {
+	if x != nil {
+		return x.SocketAddrV4
+	}
+	return ""
+}
+
+func (x *ReadCommitmentResponse) GetSocketAddrV6() string {
+	if x != nil {
+		return x.SocketAddrV6
 	}
 	return ""
 }
@@ -3492,12 +3512,14 @@ const file_bitnames_v1_bitnames_proto_rawDesc = "" +
 	"\tdata_json\x18\x02 \x01(\tR\bdataJson\x12\x18\n" +
 	"\amatches\x18\x03 \x01(\bR\amatches\"1\n" +
 	"\x15ReadCommitmentRequest\x12\x18\n" +
-	"\aaddress\x18\x01 \x01(\tR\aaddress\"U\n" +
+	"\aaddress\x18\x01 \x01(\tR\aaddress\"\xa1\x01\n" +
 	"\x16ReadCommitmentResponse\x12\x1b\n" +
 	"\tdata_json\x18\x01 \x01(\tR\bdataJson\x12\x1e\n" +
 	"\n" +
 	"commitment\x18\x02 \x01(\tR\n" +
-	"commitment\"P\n" +
+	"commitment\x12$\n" +
+	"\x0esocket_addr_v4\x18\x03 \x01(\tR\fsocketAddrV4\x12$\n" +
+	"\x0esocket_addr_v6\x18\x04 \x01(\tR\fsocketAddrV6\"P\n" +
 	"\x17SignArbitraryMsgRequest\x12\x10\n" +
 	"\x03msg\x18\x01 \x01(\tR\x03msg\x12#\n" +
 	"\rverifying_key\x18\x02 \x01(\tR\fverifyingKey\"8\n" +

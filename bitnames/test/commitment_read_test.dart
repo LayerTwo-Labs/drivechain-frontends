@@ -29,7 +29,7 @@ class _SlowBitnamesRPC extends MockBitnamesRPC {
 
   @override
   Future<String> registerBitName(String plainName, BitNameData? data) {
-    registered.add('${data?.socketAddrHost}|${data?.commitment}');
+    registered.add('${data?.socketAddrV4}|${data?.commitment}');
     return Future.value('txid');
   }
 }
@@ -58,6 +58,78 @@ void main() {
     GetIt.I.registerSingleton<BalanceProvider>(balances);
   });
 
+  test('a lookup fills the two address fields the chain holds', () async {
+    final model = BitnamesViewModel();
+    model.websiteController.text = 'psztorc.com';
+
+    final read = model.readCommitmentFromServer();
+    expect(rpc.readAddress, 'psztorc.com:6002');
+    rpc.reply.complete(
+      ReadCommitmentResult(
+        dataJson: '{}',
+        commitment: _digest,
+        socketAddrV4: '203.0.113.7:6002',
+        socketAddrV6: '[2606:4700::1111]:6002',
+      ),
+    );
+    await read;
+
+    expect(model.ipv4Controller.text, '203.0.113.7:6002');
+    expect(model.ipv6Controller.text, '[2606:4700::1111]:6002');
+    expect(model.commitmentController.text, _digest);
+  });
+
+  test('a typed address reads without a domain', () async {
+    final model = BitnamesViewModel();
+    model.ipv4Controller.text = '203.0.113.7:6002';
+
+    final read = model.readCommitmentFromServer();
+    expect(rpc.readAddress, '203.0.113.7:6002');
+    rpc.reply.complete(ReadCommitmentResult(dataJson: '{}', commitment: _digest));
+    await read;
+
+    expect(model.commitmentController.text, _digest);
+  });
+
+  test('a second lookup clears a family the new server does not serve', () async {
+    final model = BitnamesViewModel();
+    model.ipv4Controller.text = '198.51.100.9:6002';
+    model.websiteController.text = 'psztorc.com';
+
+    final read = model.readCommitmentFromServer();
+    rpc.reply.complete(
+      ReadCommitmentResult(
+        dataJson: '{}',
+        commitment: _digest,
+        socketAddrV6: '[2606:4700::1111]:6002',
+      ),
+    );
+    await read;
+
+    // The old ipv4 belongs to a server the user left behind.
+    expect(model.ipv4Controller.text, isEmpty);
+    expect(model.ipv6Controller.text, '[2606:4700::1111]:6002');
+  });
+
+  // The chain holds the address fields, so an edit to either one leaves the
+  // digest describing a server the registration never names.
+  test('an edit to a resolved address drops the digest', () async {
+    final model = BitnamesViewModel();
+    model.websiteController.text = 'psztorc.com';
+
+    final read = model.readCommitmentFromServer();
+    rpc.reply.complete(
+      ReadCommitmentResult(dataJson: '{}', commitment: _digest, socketAddrV4: '203.0.113.7:6002'),
+    );
+    await read;
+    expect(model.commitmentController.text, _digest);
+
+    // The domain box still holds psztorc.com, so only the ipv4 field changed.
+    model.ipv4Controller.text = '198.51.100.9:6002';
+    expect(model.commitmentController.text, isEmpty);
+    expect(model.commitmentAddress, isNull);
+  });
+
   test('a read drops a digest the user makes stale', () async {
     final model = BitnamesViewModel();
     model.websiteController.text = 'psztorc.com';
@@ -66,7 +138,7 @@ void main() {
     expect(rpc.readAddress, 'psztorc.com:6002');
 
     model.websiteController.text = 'other.com';
-    rpc.reply.complete(ReadCommitmentResult(dataJson: '{}', commitment: _digest));
+    rpc.reply.complete(ReadCommitmentResult(dataJson: '{}', commitment: _digest, socketAddrV4: '203.0.113.7:6002'));
     await read;
 
     expect(model.commitmentAddress, isNull);
@@ -80,7 +152,9 @@ void main() {
     model.websiteController.text = 'psztorc.com';
 
     final read = model.readCommitmentFromServer();
-    rpc.reply.complete(ReadCommitmentResult(dataJson: '{"email":"a@b.c"}', commitment: _digest));
+    rpc.reply.complete(
+      ReadCommitmentResult(dataJson: '{"email":"a@b.c"}', commitment: _digest, socketAddrV4: '203.0.113.7:6002'),
+    );
     await read;
 
     expect(model.commitmentAddress, 'psztorc.com:6002');
@@ -97,7 +171,7 @@ void main() {
     expect(rpc.readAddress, 'psztorc.com:6002');
 
     model.websiteController.text = 'other.com';
-    rpc.reply.complete(ReadCommitmentResult(dataJson: '{}', commitment: _digest));
+    rpc.reply.complete(ReadCommitmentResult(dataJson: '{}', commitment: _digest, socketAddrV4: '203.0.113.7:6002'));
     await register;
 
     expect(rpc.registered, isEmpty);
@@ -111,9 +185,9 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     final register = model.registerBitname(tester.element(find.byType(SizedBox)));
-    rpc.reply.complete(ReadCommitmentResult(dataJson: '{}', commitment: _digest));
+    rpc.reply.complete(ReadCommitmentResult(dataJson: '{}', commitment: _digest, socketAddrV4: '203.0.113.7:6002'));
     await register;
 
-    expect(rpc.registered, ['psztorc.com:6002|$_digest']);
+    expect(rpc.registered, ['203.0.113.7:6002|$_digest']);
   });
 }

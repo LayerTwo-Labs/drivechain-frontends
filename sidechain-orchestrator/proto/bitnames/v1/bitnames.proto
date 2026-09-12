@@ -434,6 +434,12 @@ message ReadCommitmentResponse {
   string data_json = 1;
   // BLAKE3 digest of the canonical form of data_json.
   string commitment = 2;
+  // The ipv4 address the host resolves to, as host:port. Empty when the host
+  // has no ipv4 address. A BitName holds this address, not the host.
+  string socket_addr_v4 = 3;
+  // The ipv6 address the host resolves to, as host:port. Empty when the host
+  // has no ipv6 address.
+  string socket_addr_v6 = 4;
 }
 
 // SignArbitraryMsg

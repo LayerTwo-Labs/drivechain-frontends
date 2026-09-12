@@ -16,21 +16,21 @@ type BalanceResponse struct {
 // BitNameData holds optional metadata fields attached to a BitName.
 type BitNameData struct {
 	Commitment       *string `json:"commitment,omitempty"`
+	SocketAddrHost   *string `json:"socket_addr_host,omitempty"`
 	EncryptionPubkey *string `json:"encryption_pubkey,omitempty"`
 	PaymailFeeSats   *int64  `json:"paymail_fee_sats,omitempty"`
 	SigningPubkey    *string `json:"signing_pubkey,omitempty"`
 	SocketAddrV4     *string `json:"socket_addr_v4,omitempty"`
 	SocketAddrV6     *string `json:"socket_addr_v6,omitempty"`
-	SocketAddrHost   *string `json:"socket_addr_host,omitempty"`
 }
 
 // BitnameDetails describes the on-chain state of a registered BitName.
 type BitnameDetails struct {
 	SeqID            string  `json:"seq_id"`
+	SocketAddrHost   *string `json:"socket_addr_host,omitempty"`
 	Commitment       *string `json:"commitment,omitempty"`
 	SocketAddrV4     *string `json:"socket_addr_v4,omitempty"`
 	SocketAddrV6     *string `json:"socket_addr_v6,omitempty"`
-	SocketAddrHost   *string `json:"socket_addr_host,omitempty"`
 	EncryptionPubkey *string `json:"encryption_pubkey,omitempty"`
 	SigningPubkey    *string `json:"signing_pubkey,omitempty"`
 	PaymailFeeSats   *int64  `json:"paymail_fee_sats,omitempty"`
@@ -107,13 +107,15 @@ func ParseCommitment(digest string) (Commitment, error) {
 // nodeBitNameData is the form the node reads and writes. Its OpenAPI schema
 // calls commitment a string, and serde carries a 32-byte array.
 type nodeBitNameData struct {
-	Commitment       *Commitment `json:"commitment,omitempty"`
-	EncryptionPubkey *string     `json:"encryption_pubkey,omitempty"`
-	PaymailFeeSats   *int64      `json:"paymail_fee_sats,omitempty"`
-	SigningPubkey    *string     `json:"signing_pubkey,omitempty"`
-	SocketAddrV4     *string     `json:"socket_addr_v4,omitempty"`
-	SocketAddrV6     *string     `json:"socket_addr_v6,omitempty"`
-	SocketAddrHost   *string     `json:"socket_addr_host,omitempty"`
+	Commitment *Commitment `json:"commitment,omitempty"`
+	// A BitName registered elsewhere can hold a host. This client never writes
+	// one, and a resolver still has to reach that server.
+	SocketAddrHost   *string `json:"socket_addr_host,omitempty"`
+	EncryptionPubkey *string `json:"encryption_pubkey,omitempty"`
+	PaymailFeeSats   *int64  `json:"paymail_fee_sats,omitempty"`
+	SigningPubkey    *string `json:"signing_pubkey,omitempty"`
+	SocketAddrV4     *string `json:"socket_addr_v4,omitempty"`
+	SocketAddrV6     *string `json:"socket_addr_v6,omitempty"`
 }
 
 // nodeBitnameDetails adds the sequence id the node returns on a read.
@@ -123,13 +125,13 @@ type nodeBitnameDetails struct {
 }
 
 func (d BitNameData) toNode() (nodeBitNameData, error) {
+	// SocketAddrHost stays unset. The chain holds an ipv4 and an ipv6 address.
 	node := nodeBitNameData{
 		EncryptionPubkey: d.EncryptionPubkey,
 		PaymailFeeSats:   d.PaymailFeeSats,
 		SigningPubkey:    d.SigningPubkey,
 		SocketAddrV4:     d.SocketAddrV4,
 		SocketAddrV6:     d.SocketAddrV6,
-		SocketAddrHost:   d.SocketAddrHost,
 	}
 	if d.Commitment == nil || *d.Commitment == "" {
 		return node, nil
@@ -144,12 +146,12 @@ func (d BitNameData) toNode() (nodeBitNameData, error) {
 
 func (n nodeBitNameData) toClient() BitNameData {
 	data := BitNameData{
+		SocketAddrHost:   n.SocketAddrHost,
 		EncryptionPubkey: n.EncryptionPubkey,
 		PaymailFeeSats:   n.PaymailFeeSats,
 		SigningPubkey:    n.SigningPubkey,
 		SocketAddrV4:     n.SocketAddrV4,
 		SocketAddrV6:     n.SocketAddrV6,
-		SocketAddrHost:   n.SocketAddrHost,
 	}
 	if n.Commitment != nil {
 		digest := n.Commitment.Hex()
@@ -162,10 +164,10 @@ func (n nodeBitnameDetails) toClient() BitnameDetails {
 	data := n.nodeBitNameData.toClient()
 	return BitnameDetails{
 		SeqID:            n.SeqID,
+		SocketAddrHost:   data.SocketAddrHost,
 		Commitment:       data.Commitment,
 		SocketAddrV4:     data.SocketAddrV4,
 		SocketAddrV6:     data.SocketAddrV6,
-		SocketAddrHost:   data.SocketAddrHost,
 		EncryptionPubkey: data.EncryptionPubkey,
 		SigningPubkey:    data.SigningPubkey,
 		PaymailFeeSats:   data.PaymailFeeSats,

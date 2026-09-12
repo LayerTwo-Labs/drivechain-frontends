@@ -3125,6 +3125,8 @@ class ReadCommitmentResponse extends $pb.GeneratedMessage {
   factory ReadCommitmentResponse({
     $core.String? dataJson,
     $core.String? commitment,
+    $core.String? socketAddrV4,
+    $core.String? socketAddrV6,
   }) {
     final $result = create();
     if (dataJson != null) {
@@ -3132,6 +3134,12 @@ class ReadCommitmentResponse extends $pb.GeneratedMessage {
     }
     if (commitment != null) {
       $result.commitment = commitment;
+    }
+    if (socketAddrV4 != null) {
+      $result.socketAddrV4 = socketAddrV4;
+    }
+    if (socketAddrV6 != null) {
+      $result.socketAddrV6 = socketAddrV6;
     }
     return $result;
   }
@@ -3142,6 +3150,8 @@ class ReadCommitmentResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ReadCommitmentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'dataJson')
     ..aOS(2, _omitFieldNames ? '' : 'commitment')
+    ..aOS(3, _omitFieldNames ? '' : 'socketAddrV4')
+    ..aOS(4, _omitFieldNames ? '' : 'socketAddrV6')
     ..hasRequiredFields = false
   ;
 
@@ -3185,6 +3195,28 @@ class ReadCommitmentResponse extends $pb.GeneratedMessage {
   $core.bool hasCommitment() => $_has(1);
   @$pb.TagNumber(2)
   void clearCommitment() => clearField(2);
+
+  /// The ipv4 address the host resolves to, as host:port. Empty when the host
+  /// has no ipv4 address. A BitName holds this address, not the host.
+  @$pb.TagNumber(3)
+  $core.String get socketAddrV4 => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set socketAddrV4($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSocketAddrV4() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSocketAddrV4() => clearField(3);
+
+  /// The ipv6 address the host resolves to, as host:port. Empty when the host
+  /// has no ipv6 address.
+  @$pb.TagNumber(4)
+  $core.String get socketAddrV6 => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set socketAddrV6($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasSocketAddrV6() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSocketAddrV6() => clearField(4);
 }
 
 class SignArbitraryMsgRequest extends $pb.GeneratedMessage {

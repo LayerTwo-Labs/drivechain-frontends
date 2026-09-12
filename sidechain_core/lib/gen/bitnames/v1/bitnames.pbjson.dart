@@ -778,13 +778,16 @@ const ReadCommitmentResponse$json = {
   '2': [
     {'1': 'data_json', '3': 1, '4': 1, '5': 9, '10': 'dataJson'},
     {'1': 'commitment', '3': 2, '4': 1, '5': 9, '10': 'commitment'},
+    {'1': 'socket_addr_v4', '3': 3, '4': 1, '5': 9, '10': 'socketAddrV4'},
+    {'1': 'socket_addr_v6', '3': 4, '4': 1, '5': 9, '10': 'socketAddrV6'},
   ],
 };
 
 /// Descriptor for `ReadCommitmentResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List readCommitmentResponseDescriptor = $convert.base64Decode(
     'ChZSZWFkQ29tbWl0bWVudFJlc3BvbnNlEhsKCWRhdGFfanNvbhgBIAEoCVIIZGF0YUpzb24SHg'
-    'oKY29tbWl0bWVudBgCIAEoCVIKY29tbWl0bWVudA==');
+    'oKY29tbWl0bWVudBgCIAEoCVIKY29tbWl0bWVudBIkCg5zb2NrZXRfYWRkcl92NBgDIAEoCVIM'
+    'c29ja2V0QWRkclY0EiQKDnNvY2tldF9hZGRyX3Y2GAQgASgJUgxzb2NrZXRBZGRyVjY=');
 
 @$core.Deprecated('Use signArbitraryMsgRequestDescriptor instead')
 const SignArbitraryMsgRequest$json = {
