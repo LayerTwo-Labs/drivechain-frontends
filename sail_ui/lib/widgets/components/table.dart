@@ -369,19 +369,38 @@ class _SailTableState extends State<SailTable> {
       rowsToSample.addAll(List.generate(10, (i) => widget.rowCount - 10 + i));
     }
 
+    final hugging = List<bool>.filled(_numColumns!, false);
     for (int row in rowsToSample) {
       final cells = widget.rowBuilder(context, row, false);
       for (int col = 0; col < cells.length && col < _numColumns!; col++) {
         final cell = cells[col];
-        if (cell is SailTableCell && cell.width != null) {
+        if (cell is SailTableCell && (cell.width != null || cell.hugContent)) {
           fixedColumns[col] = true;
+          hugging[col] = hugging[col] || cell.hugContent;
         }
         final cellWidth = _calculateColumnWidth(cell);
         columnWidths[col] = max(columnWidths[col], cellWidth);
       }
     }
 
+    // A hugging column takes no spare width, so a row outside the sample would
+    // render in a column too narrow for it.
+    if (hugging.contains(true) && rowsToSample.length < widget.rowCount) {
+      for (int row = 0; row < widget.rowCount; row++) {
+        final cells = widget.rowBuilder(context, row, false);
+        for (int col = 0; col < cells.length && col < _numColumns!; col++) {
+          if (!hugging[col]) {
+            continue;
+          }
+          columnWidths[col] = max(columnWidths[col], _calculateColumnWidth(cells[col]));
+        }
+      }
+    }
+
     for (int i = 0; i < _numColumns!; i++) {
+      if (fixedColumns[i]) {
+        continue;
+      }
       columnWidths[i] = max(columnWidths[i], defaultMinColumnWidth);
     }
 
@@ -422,33 +441,39 @@ class _SailTableState extends State<SailTable> {
     String text = '';
     TextStyle? textStyle;
 
+    // A cell renders at thirteen, so a measurement at twelve leaves the widest
+    // value one ellipsis short of its own column.
     if (widget is SailTableCell) {
       if (widget.width != null) {
         return widget.width!;
       }
       text = widget.value;
-      textStyle = SailStyleValues.twelve.copyWith(
+      textStyle = SailStyleValues.thirteen.copyWith(
         fontFamily: widget.monospace ? 'IBMPlexMono' : 'Inter',
       );
+      return _calculateTextWidth(text, textStyle, widget.padding.horizontal);
     } else if (widget is SailTableHeaderCell) {
       text = widget.name;
-      textStyle = SailStyleValues.twelve.copyWith(
+      textStyle = SailStyleValues.thirteen.copyWith(
         fontFamily: 'Inter',
         fontWeight: SailStyleValues.boldWeight,
       );
+      return _calculateTextWidth(text, textStyle, widget.padding.horizontal);
     }
 
-    return _calculateTextWidth(text, textStyle ?? SailStyleValues.twelve);
+    return _calculateTextWidth(text, SailStyleValues.thirteen, 24);
   }
 
-  double _calculateTextWidth(String text, TextStyle textStyle) {
+  double _calculateTextWidth(String text, TextStyle textStyle, double padding) {
     if (text.isNotEmpty) {
       final textPainter = TextPainter(
         text: TextSpan(text: text, style: textStyle),
         textDirection: TextDirection.ltr,
+        // The same scaler SailText renders with, clamp included.
+        textScaler: MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 2),
       );
       textPainter.layout();
-      return textPainter.width + 25;
+      return textPainter.width + padding + 1;
     }
 
     return defaultMinColumnWidth;
@@ -727,6 +752,7 @@ class SailTableCell extends StatelessWidget {
     this.backgroundColor,
     this.monospace = false,
     this.italic = false,
+    this.hugContent = false,
     super.key,
   });
 
@@ -735,6 +761,10 @@ class SailTableCell extends StatelessWidget {
   final Widget? child;
   // Width override for cells whose child is wider than the value text.
   final double? width;
+
+  /// True keeps the column at the width its widest value needs, so the free
+  /// width of the table goes to the columns that can use it.
+  final bool hugContent;
   final Alignment alignment;
   final EdgeInsets padding;
   final SailSVGAsset? plainIconTheme;
