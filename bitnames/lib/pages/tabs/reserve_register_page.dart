@@ -454,6 +454,8 @@ Future<void> showBitnameDetails(BuildContext context, BitnameEntry entry) async 
                       DetailRow(label: 'Socket Address (IPv4)', value: entry.details.socketAddrV4!),
                     if (entry.details.socketAddrV6 != null)
                       DetailRow(label: 'Socket Address (IPv6)', value: entry.details.socketAddrV6!),
+                    if (entry.details.socketAddrHost != null)
+                      DetailRow(label: 'Website', value: entry.details.socketAddrHost!),
                     if (entry.details.encryptionPubkey != null)
                       DetailRow(label: 'Encryption Public Key', value: entry.details.encryptionPubkey!),
                     if (entry.details.signingPubkey != null)
