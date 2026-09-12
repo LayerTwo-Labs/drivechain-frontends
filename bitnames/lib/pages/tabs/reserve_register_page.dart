@@ -161,152 +161,166 @@ class BitnamesTabPage extends StatelessWidget {
                                   hintText: 'Enter name to register',
                                   controller: model.registerNameController,
                                 ),
-                                const _LabelWithHelp(
-                                  label: 'Your website (optional)',
-                                  message:
-                                      'Where your record lives. Your website answers the JSON-RPC method '
-                                      'bitname_commit with your email, your keys, anything you publish. The chain '
-                                      'holds only a hash of that record.',
-                                ),
-                                SailTextField(
-                                  hintText: 'psztorc.com',
-                                  controller: model.websiteController,
-                                  loading: LoadingDetails(
-                                    enabled: model.readLoading,
-                                    description: 'Reading your website...',
-                                  ),
-                                  onSubmitted: (_) {
-                                    model.readCommitmentFromServer();
-                                  },
-                                ),
-                                if (model.readError != null)
-                                  SailText.primary13(
-                                    model.readError!,
-                                    color: SailTheme.of(context).colors.error,
-                                  ),
-                                if (model.commitmentData != null) ...[
-                                  SailText.primary13(
-                                    'Your website answered with the following commitment',
-                                    color: SailTheme.of(context).colors.success,
-                                  ),
-                                  SailTextField(
-                                    hintText: '',
-                                    controller: TextEditingController(text: model.commitmentData),
-                                    readOnly: true,
-                                    maxLines: 4,
-                                    monospace: true,
-                                  ),
-                                  SailTextField(
-                                    label: 'Commitment',
-                                    hintText: '',
-                                    controller: model.commitmentController,
-                                    readOnly: true,
-                                    monospace: true,
-                                  ),
-                                ],
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () {
-                                    model.showAdvanced = !model.showAdvanced;
-                                    model.notifyListeners();
-                                  },
-                                  child: SailRow(
-                                    spacing: SailStyleValues.padding04,
+                                SailCard(
+                                  title: 'Where your record lives',
+                                  subtitle:
+                                      'Your server answers with your record. The chain holds the addresses below.',
+                                  child: SailColumn(
+                                    spacing: SailStyleValues.padding16,
                                     children: [
-                                      SailSVG.fromAsset(
-                                        model.showAdvanced ? SailSVGAsset.chevronDown : SailSVGAsset.chevronRight,
-                                        color: SailTheme.of(context).colors.textSecondary,
+                                      const _LabelWithHelp(
+                                        label: 'Quick Lookup With Domain',
+                                        message:
+                                            'Your server answers the JSON-RPC method bitname_commit with your '
+                                            'email, your keys, anything you publish. The chain holds only a hash '
+                                            'of that record.',
                                       ),
-                                      SailText.primary13(
-                                        'Advanced',
-                                        color: SailTheme.of(context).colors.textSecondary,
+                                      SailRow(
+                                        spacing: SailStyleValues.padding08,
+                                        children: [
+                                          Expanded(
+                                            child: SailTextField(
+                                              hintText: 'psztorc.com',
+                                              controller: model.websiteController,
+                                              loading: LoadingDetails(
+                                                enabled: model.readLoading,
+                                                description: 'Reading your server...',
+                                              ),
+                                              onSubmitted: (_) {
+                                                model.readCommitmentFromServer();
+                                              },
+                                            ),
+                                          ),
+                                          SailButton(
+                                            label: 'Get IP addresses',
+                                            variant: ButtonVariant.secondary,
+                                            loading: model.readLoading,
+                                            onPressed: () => model.readCommitmentFromServer(),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                if (model.showAdvanced) ...[
-                                  const _LabelWithHelp(
-                                    label: 'IPv4 address',
-                                    message: 'Use a numeric address when you have no website. It resolves first.',
-                                  ),
-                                  SailTextField(
-                                    hintText: 'Enter IPv4 address',
-                                    controller: model.ipv4Controller,
-                                  ),
-                                  const _LabelWithHelp(
-                                    label: 'IPv6 address',
-                                    message: 'The same server, at an IPv6 address.',
-                                  ),
-                                  SailTextField(
-                                    hintText: 'Enter IPv6 address',
-                                    controller: model.ipv6Controller,
-                                  ),
-                                  const _LabelWithHelp(
-                                    label: 'Message postage in sats',
-                                    message:
-                                        'The smallest payment you accept with a message. Somebody sends you a coin '
-                                        'with a memo, and your wallet hides a message that pays less. Nobody pays '
-                                        'this to a miner.',
-                                  ),
-                                  SailTextField(
-                                    hintText: 'Minimum you accept per message',
-                                    controller: model.paymailFeeController,
-                                  ),
-                                  SailRow(
-                                    spacing: SailStyleValues.padding04,
-                                    children: [
-                                      SailCheckbox(
-                                        label: 'Private messages',
-                                        value: model.useEncryptionKey,
-                                        onChanged: (value) {
-                                          model.useEncryptionKey = value;
-                                          model.notifyListeners();
-                                        },
+                                      SailText.secondary13(
+                                        'Reads the addresses behind the domain, and fills them in below. '
+                                        'The chain never holds the domain.',
                                       ),
-                                      SailTooltip(
-                                        message: 'People can send you a message only you can read.',
-                                        child: SailSVG.fromAsset(
-                                          SailSVGAsset.circleHelp,
-                                          color: SailTheme.of(context).colors.textSecondary,
+                                      SailTextField(
+                                        label: 'IPv4 address',
+                                        hintText: '203.0.113.7:6002',
+                                        controller: model.ipv4Controller,
+                                      ),
+                                      SailTextField(
+                                        label: 'IPv6 address',
+                                        hintText: '[2606:4700:4700::1111]:6002',
+                                        controller: model.ipv6Controller,
+                                      ),
+                                      const SailInfoBox(
+                                        type: InfoType.info,
+                                        text:
+                                            'The chain holds the IPv4 and IPv6 addresses above. You can update '
+                                            'them at any time after registering.',
+                                      ),
+                                      if (model.readError != null)
+                                        SailText.primary13(
+                                          model.readError!,
+                                          color: SailTheme.of(context).colors.error,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (model.useEncryptionKey && model.encryptionKey != null)
-                                    SailTextField(
-                                      label: 'Encryption Pubkey',
-                                      controller: TextEditingController(text: model.encryptionKey),
-                                      hintText: 'Encryption Pubkey',
-                                      readOnly: true,
-                                    ),
-                                  SailRow(
-                                    spacing: SailStyleValues.padding04,
-                                    children: [
-                                      SailCheckbox(
-                                        label: 'Signed messages',
-                                        value: model.useSigningKey,
-                                        onChanged: (value) {
-                                          model.useSigningKey = value;
-                                          model.notifyListeners();
-                                        },
-                                      ),
-                                      SailTooltip(
-                                        message: 'People can check that a message really comes from you.',
-                                        child: SailSVG.fromAsset(
-                                          SailSVGAsset.circleHelp,
-                                          color: SailTheme.of(context).colors.textSecondary,
+                                      if (model.commitmentData != null) ...[
+                                        SailText.primary13(
+                                          'Your server answered with the following commitment',
+                                          color: SailTheme.of(context).colors.success,
                                         ),
-                                      ),
+                                        SailTextField(
+                                          hintText: '',
+                                          controller: TextEditingController(text: model.commitmentData),
+                                          readOnly: true,
+                                          maxLines: 4,
+                                          monospace: true,
+                                        ),
+                                        SailTextField(
+                                          label: 'Commitment',
+                                          hintText: '',
+                                          controller: model.commitmentController,
+                                          readOnly: true,
+                                          monospace: true,
+                                        ),
+                                      ],
                                     ],
                                   ),
-                                  if (model.useSigningKey && model.signingKey != null)
-                                    SailTextField(
-                                      label: 'Signing Pubkey',
-                                      controller: TextEditingController(text: model.signingKey),
-                                      hintText: 'Signing Pubkey',
-                                      readOnly: true,
-                                    ),
-                                ],
+                                ),
+                                SailCard(
+                                  title: 'Messages',
+                                  subtitle: 'What a stranger pays to reach you, and the keys they use.',
+                                  child: SailColumn(
+                                    spacing: SailStyleValues.padding16,
+                                    children: [
+                                      const _LabelWithHelp(
+                                        label: 'Message postage in sats',
+                                        message:
+                                            'The smallest payment you accept with a message. Somebody sends you a '
+                                            'coin with a memo, and your wallet hides a message that pays less. '
+                                            'Nobody pays this to a miner.',
+                                      ),
+                                      SailTextField(
+                                        hintText: 'Minimum you accept per message',
+                                        controller: model.paymailFeeController,
+                                      ),
+                                      SailRow(
+                                        spacing: SailStyleValues.padding04,
+                                        children: [
+                                          SailCheckbox(
+                                            label: 'Private messages',
+                                            value: model.useEncryptionKey,
+                                            onChanged: (value) {
+                                              model.useEncryptionKey = value;
+                                              model.notifyListeners();
+                                            },
+                                          ),
+                                          SailTooltip(
+                                            message: 'People can send you a message only you can read.',
+                                            child: SailSVG.fromAsset(
+                                              SailSVGAsset.circleHelp,
+                                              color: SailTheme.of(context).colors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (model.useEncryptionKey && model.encryptionKey != null)
+                                        SailTextField(
+                                          label: 'Encryption Pubkey',
+                                          controller: TextEditingController(text: model.encryptionKey),
+                                          hintText: 'Encryption Pubkey',
+                                          readOnly: true,
+                                        ),
+                                      SailRow(
+                                        spacing: SailStyleValues.padding04,
+                                        children: [
+                                          SailCheckbox(
+                                            label: 'Signed messages',
+                                            value: model.useSigningKey,
+                                            onChanged: (value) {
+                                              model.useSigningKey = value;
+                                              model.notifyListeners();
+                                            },
+                                          ),
+                                          SailTooltip(
+                                            message: 'People can check that a message really comes from you.',
+                                            child: SailSVG.fromAsset(
+                                              SailSVGAsset.circleHelp,
+                                              color: SailTheme.of(context).colors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (model.useSigningKey && model.signingKey != null)
+                                        SailTextField(
+                                          label: 'Signing Pubkey',
+                                          controller: TextEditingController(text: model.signingKey),
+                                          hintText: 'Signing Pubkey',
+                                          readOnly: true,
+                                        ),
+                                    ],
+                                  ),
+                                ),
                                 SailButton(
                                   label: 'Register',
                                   onPressed: () => model.registerBitname(context),
@@ -455,7 +469,7 @@ Future<void> showBitnameDetails(BuildContext context, BitnameEntry entry) async 
                     if (entry.details.socketAddrV6 != null)
                       DetailRow(label: 'Socket Address (IPv6)', value: entry.details.socketAddrV6!),
                     if (entry.details.socketAddrHost != null)
-                      DetailRow(label: 'Website', value: entry.details.socketAddrHost!),
+                      DetailRow(label: 'Host', value: entry.details.socketAddrHost!),
                     if (entry.details.encryptionPubkey != null)
                       DetailRow(label: 'Encryption Public Key', value: entry.details.encryptionPubkey!),
                     if (entry.details.signingPubkey != null)
@@ -611,11 +625,14 @@ class BitnamesViewModel extends BaseViewModel {
   // The address the digest describes. A later edit makes the digest stale.
   String? commitmentAddress;
 
+  // The address fields as the read left them. The chain holds these, and the
+  // domain does not, so an edit to either one makes the digest stale.
+  String? commitmentFields;
+
   // A bare domain gets the sidechain RPC port, which is 6000 + sidechain 2.
   static const int defaultDataPort = 6002;
 
   final TextEditingController websiteController = TextEditingController();
-  bool showAdvanced = false;
 
   BitnamesViewModel() {
     searchController.addListener(notifyListeners);
@@ -751,6 +768,31 @@ class BitnamesViewModel extends BaseViewModel {
   }
 
   Future<void> registerBitname(BuildContext context) async {
+    // A slow read leaves the button live, and a second press sends a second
+    // registration transaction.
+    if (registerLoading) {
+      return;
+    }
+    registerLoading = true;
+    registerError = null;
+    notifyListeners();
+    try {
+      await _registerBitname(context);
+    } finally {
+      registerLoading = false;
+      notifyListeners();
+    }
+    // generateKeysWithRetry never gives up, so it runs after the button frees.
+    // The checkboxes stay off until it answers, so no stale key reaches a form.
+    if (registerError == null) {
+      useEncryptionKey = false;
+      useSigningKey = false;
+      notifyListeners();
+      await generateKeysWithRetry();
+    }
+  }
+
+  Future<void> _registerBitname(BuildContext context) async {
     if (balanceProvider.balance < 0.00001000) {
       registerError = 'Insufficient balance, deposit more funds on the Parent Chain tab to register a bitname';
       notifyListeners();
@@ -772,7 +814,7 @@ class BitnamesViewModel extends BaseViewModel {
         notifyListeners();
         return;
       }
-      if (commitmentAddress != address) {
+      if (commitmentAddress != address || commitmentFields != addressFields()) {
         registerError = 'The address changed while the read ran. Press Register again.';
         notifyListeners();
         return;
@@ -782,9 +824,8 @@ class BitnamesViewModel extends BaseViewModel {
     final commitment = commitmentController.text.trim().isEmpty ? null : commitmentController.text.trim();
     final ipv4 = ipv4Controller.text.trim().isEmpty ? null : ipv4Controller.text.trim();
     final ipv6 = ipv6Controller.text.trim().isEmpty ? null : ipv6Controller.text.trim();
-    final website = hostWithPort(websiteController.text, defaultDataPort);
 
-    final commitmentError = validateCommitment(commitment: commitment, website: website, ipv4: ipv4, ipv6: ipv6);
+    final commitmentError = validateCommitment(commitment: commitment, website: null, ipv4: ipv4, ipv6: ipv6);
     if (commitmentError != null) {
       registerError = commitmentError;
       notifyListeners();
@@ -802,9 +843,6 @@ class BitnamesViewModel extends BaseViewModel {
       }
     }
 
-    registerLoading = true;
-    registerError = null;
-    notifyListeners();
     try {
       final txid = await bitnamesRPC.registerBitName(
         name,
@@ -815,12 +853,9 @@ class BitnamesViewModel extends BaseViewModel {
           signingPubkey: useSigningKey ? signingKey : null,
           socketAddrV4: ipv4,
           socketAddrV6: ipv6,
-          socketAddrHost: website,
         ),
       );
       await provider.saveHashNameMapping(name, isMine: true);
-      registerLoading = false;
-      notifyListeners();
       if (context.mounted) {
         notificationProvider.add(
           title: 'Success',
@@ -839,14 +874,13 @@ class BitnamesViewModel extends BaseViewModel {
       useSigningKey = false;
       commitmentData = null;
       readError = null;
-
-      await generateKeysWithRetry();
     } catch (e) {
       registerError = e.toString();
-      registerLoading = false;
-      notifyListeners();
     }
   }
+
+  /// The fields the chain holds, as one value. A digest describes these.
+  String addressFields() => '${ipv4Controller.text.trim()}|${ipv6Controller.text.trim()}';
 
   /// A digest describes one address. An edit makes it describe nothing.
   void dropStaleCommitment() {
@@ -854,25 +888,37 @@ class BitnamesViewModel extends BaseViewModel {
       return;
     }
 
-    if (dataAddress() == commitmentAddress) {
+    if (dataAddress() == commitmentAddress && addressFields() == commitmentFields) {
       return;
     }
 
     commitmentAddress = null;
+    commitmentFields = null;
     commitmentData = null;
     commitmentController.clear();
     notifyListeners();
   }
 
-  String dataAddress() => dataServerAddress(
-    website: websiteController.text,
-    ipv4: ipv4Controller.text,
-    ipv6: ipv6Controller.text,
-    defaultPort: defaultDataPort,
-  );
+  /// The address the lookup reads from. The domain wins, because the button
+  /// looks a domain up. A typed address serves when no domain is set.
+  String dataAddress() {
+    final domain = hostWithPort(websiteController.text, defaultDataPort);
+    if (domain != null) {
+      return domain;
+    }
+    return dataServerAddress(
+      website: '',
+      ipv4: ipv4Controller.text,
+      ipv6: ipv6Controller.text,
+      defaultPort: defaultDataPort,
+    );
+  }
 
   Future<void> readCommitmentFromServer() async {
     final address = dataAddress();
+    // A lookup owns the address fields only when it starts from a domain. A
+    // typed address is the user's own, so the read leaves it alone.
+    final fromDomain = hostWithPort(websiteController.text, defaultDataPort) != null;
 
     if (address.isEmpty) {
       readError = 'Set a website or an address first';
@@ -891,14 +937,24 @@ class BitnamesViewModel extends BaseViewModel {
       if (dataAddress() != address) {
         return;
       }
+      // The chain holds a socket address, so the lookup writes what it reached
+      // into the fields the user sends. A family the lookup did not reach must
+      // not keep the address of a server the user left behind. Both writes run
+      // before the digest, because each one drops a stale digest.
+      if (fromDomain) {
+        ipv4Controller.text = result.socketAddrV4;
+        ipv6Controller.text = result.socketAddrV6;
+      }
       commitmentData = result.dataJson;
       commitmentAddress = address;
+      commitmentFields = addressFields();
       commitmentController.text = result.commitment;
     } catch (e) {
       if (dataAddress() != address) {
         return;
       }
       commitmentAddress = null;
+      commitmentFields = null;
       commitmentData = null;
       commitmentController.clear();
       readError = e.toString();

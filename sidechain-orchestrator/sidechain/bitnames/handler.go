@@ -326,8 +326,8 @@ func (h *Handler) GetPaymail(ctx context.Context, req *connect.Request[pb.GetPay
 	return connect.NewResponse(&pb.GetPaymailResponse{PaymailJson: string(raw)}), nil
 }
 
-// dataServerAddress returns the address to read data from. The protocol gives
-// an IPv4 address priority over an IPv6 address.
+// dataServerAddress returns the address to read data from. A resolver reads
+// the ipv4 address, then the ipv6 address.
 func dataServerAddress(data BitNameData) (string, error) {
 	if data.SocketAddrV4 != nil && *data.SocketAddrV4 != "" {
 		return *data.SocketAddrV4, nil
@@ -335,6 +335,7 @@ func dataServerAddress(data BitNameData) (string, error) {
 	if data.SocketAddrV6 != nil && *data.SocketAddrV6 != "" {
 		return *data.SocketAddrV6, nil
 	}
+	// A name registered elsewhere can hold a host instead of an address.
 	if data.SocketAddrHost != nil && *data.SocketAddrHost != "" {
 		return *data.SocketAddrHost, nil
 	}
@@ -376,14 +377,16 @@ func (h *Handler) ReadCommitment(ctx context.Context, req *connect.Request[pb.Re
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("address is empty"))
 	}
 
-	raw, digest, err := FetchCommitment(ctx, req.Msg.Address)
+	raw, digest, served, err := FetchCommitmentAt(ctx, req.Msg.Address)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 
 	return connect.NewResponse(&pb.ReadCommitmentResponse{
-		DataJson:   string(raw),
-		Commitment: digest,
+		DataJson:     string(raw),
+		Commitment:   digest,
+		SocketAddrV4: served.V4,
+		SocketAddrV6: served.V6,
 	}), nil
 }
 
