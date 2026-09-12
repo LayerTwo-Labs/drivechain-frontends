@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:bitwindow/models/bitintroduction_protocol.dart';
 import 'package:bitwindow/models/bitnames_recovery.dart';
 import 'package:bitwindow/models/chat_models.dart';
 import 'package:bitwindow/pages/sidechains_page.dart';
@@ -539,7 +540,9 @@ class ChatPage extends StatelessWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => SailDialog(
           title: 'Messaging setup',
-          subtitle: 'Direct messaging shares your detected IP address with contacts',
+          subtitle: model.torOnly
+              ? 'Tor-only: messages and BitNames chain writes use Tor'
+              : 'Direct messaging shares your detected IP address with contacts',
           actions: [
             SailButton(
               label: 'Close',
@@ -560,7 +563,9 @@ class ChatPage extends StatelessWidget {
               ),
               const SizedBox(height: SailStyleValues.padding12),
               SailText.secondary12(
-                'Your reply address is detected automatically.',
+                model.torOnly
+                    ? 'Your IP address is hidden. BitNames chain writes also use the connected Tor tunnel.'
+                    : 'Your reply address is detected automatically. Use Tor-only mode to hide your IP address.',
               ),
               const SizedBox(height: SailStyleValues.padding12),
               SailText.primary13(model.commitmentSummary),
@@ -575,6 +580,22 @@ class ChatPage extends StatelessWidget {
               Row(
                 children: [
                   SailButton(
+                    label: model.torReady ? 'Tor ready' : 'Download / start Tor',
+                    disabled: busy || model.torReady,
+                    onPressed: () async => run(setState, model.startTor, 'BitNames Tor is ready'),
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
+                    label: model.torOnly ? 'Use direct mode' : 'Use Tor-only mode',
+                    disabled: busy || (!model.torOnly && !model.hasTorChainPeer),
+                    onPressed: () async => run(
+                      setState,
+                      () => model.setTorOnly(!model.torOnly),
+                      model.torOnly ? 'Direct mode enabled' : 'Tor-only mode enabled',
+                    ),
+                  ),
+                  const SizedBox(width: SailStyleValues.padding08),
+                  SailButton(
                     label: 'Save & publish reply profile',
                     disabled: busy,
                     onPressed: () async => run(
@@ -585,6 +606,13 @@ class ChatPage extends StatelessWidget {
                   ),
                 ],
               ),
+              if (!model.torOnly && !model.hasTorChainPeer) ...[
+                const SizedBox(height: SailStyleValues.padding08),
+                SailText.secondary12(
+                  'Tor-only chain routing needs a Tor-capable contact or LayerTwo relay. None is configured yet.',
+                  color: SailTheme.of(context).colors.warning,
+                ),
+              ],
             ],
           ),
         ),
@@ -989,6 +1017,7 @@ class _RegisterBitNameDialog extends StatefulWidget {
 class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
   final controller = TextEditingController();
   final feeController = TextEditingController(text: '1000');
+  late bool useTor;
   bool busy = false;
   bool registered = false;
   String? resultMessage;
@@ -996,6 +1025,7 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
   @override
   void initState() {
     super.initState();
+    useTor = widget.model.torOnly;
     controller.addListener(_onTextChanged);
     feeController.addListener(_onTextChanged);
   }
@@ -1040,6 +1070,16 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
                     busy = true;
                     resultMessage = null;
                   });
+                  final ready = await widget.model.prepareRegistration(useTor);
+                  if (!ready || !mounted) {
+                    if (mounted) {
+                      setState(() {
+                        busy = false;
+                        resultMessage = widget.model.chatError ?? 'Messaging setup failed';
+                      });
+                    }
+                    return;
+                  }
                   final name = controller.text.trim();
                   final fee = int.parse(feeController.text.trim());
                   final txid = await widget.model.registerIdentity(name, fee);
@@ -1091,6 +1131,20 @@ class _RegisterBitNameDialogState extends State<_RegisterBitNameDialog> {
               color: theme.colors.textSecondary,
             ),
             const SizedBox(height: SailStyleValues.padding12),
+            SailCheckbox(
+              value: useTor,
+              onChanged: busy || !widget.model.hasTorChainPeer ? null : (value) => setState(() => useTor = value),
+              label: 'Continue through Tor',
+            ),
+            const SizedBox(height: SailStyleValues.padding08),
+            SailText.secondary12(
+              !widget.model.hasTorChainPeer
+                  ? 'Tor registration needs a Tor-capable BitNames peer or LayerTwo relay; none is configured yet.'
+                  : useTor
+                  ? 'Requires a reachable BitNames Tor peer; setup fails safely if none is available.'
+                  : 'Direct setup shares your detected IP address with contacts.',
+              color: theme.colors.textSecondary,
+            ),
             if (busy || resultMessage != null) ...[
               const SizedBox(height: SailStyleValues.padding12),
               AnimatedBuilder(
@@ -1130,6 +1184,9 @@ class ChatViewModel extends BaseViewModel {
 
   bool get isSending => _chatProvider.isSending;
   String? get chatError => _chatProvider.error;
+  bool get torOnly => _chatProvider.torOnly;
+  bool get torReady => _chatProvider.torStatus.ready;
+  String? get ownOnion => _chatProvider.torStatus.onionHost;
   bool get messagingReady => _chatProvider.selectedProfileReady;
   bool get messagingProfilePending => _chatProvider.selectedProfilePending;
   bool get commitmentBlocked => _chatProvider.selectedCommitmentBlocked;
@@ -1142,6 +1199,17 @@ class ChatViewModel extends BaseViewModel {
   BitnamesChainSnapshot get chainHealth => _chatProvider.chainHealth;
   BitnamesStorageStatus get storageStatus => _chatProvider.storageStatus;
   bool get chainWritesReady => chainHealth.mutationSafe && storageStatus.writable;
+  bool get hasTorChainPeer {
+    if (torOnly || _chatProvider.hasConfiguredTorPeer) {
+      return true;
+    }
+    try {
+      final profile = selectedContact?.replyProfile;
+      return profile != null && BitMessageProfile.fromJson(profile).torEndpoints.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
 
   bool get canSend => switch (selectedContact?.relationshipState) {
     ChatRelationshipState.accepted => true,
@@ -1156,7 +1224,7 @@ class ChatViewModel extends BaseViewModel {
         message.deliveryState == ChatDeliveryState.pending,
   );
   String get relationshipStatus => switch (selectedContact!.relationshipState) {
-    ChatRelationshipState.accepted => 'Accepted • direct chat unlocked',
+    ChatRelationshipState.accepted => 'Accepted • direct/Tor chat unlocked',
     ChatRelationshipState.incomingIntroduction => 'Introduction received • accept to unlock chat',
     ChatRelationshipState.acceptancePending => 'Acceptance sent • waiting for chain confirmation',
     ChatRelationshipState.outgoingIntroduction when introductionAwaitingBlock =>
@@ -1208,6 +1276,13 @@ class ChatViewModel extends BaseViewModel {
 
   void selectIdentity(BitnameEntry identity) {
     _chatProvider.selectIdentity(identity);
+  }
+
+  Future<bool> prepareRegistration(bool useTor) async {
+    if (useTor && !torReady && !await startTor()) {
+      return false;
+    }
+    return setTorOnly(useTor);
   }
 
   Future<String?> registerIdentity(String name, int fee) async {
@@ -1288,8 +1363,17 @@ class ChatViewModel extends BaseViewModel {
     }
   }
 
+  Future<bool> startTor() async => (await _chatProvider.downloadAndStartTor()).ready;
+  Future<bool> setTorOnly(bool enabled) {
+    final profile = selectedContact?.replyProfile;
+    final onion = profile == null ? null : BitMessageProfile.fromJson(profile).torEndpoints.firstOrNull?.host;
+    final peer = onion == null || onion.contains(':') ? onion : '$onion:6002';
+    return _chatProvider.setTorOnly(enabled, peerOnion: peer);
+  }
+
   Future<bool> publishProfile(String fee) async {
     try {
+      final onion = ownOnion;
       final parsedFee = int.tryParse(fee.trim());
       if (fee.trim().isNotEmpty && parsedFee == null) {
         return false;
@@ -1297,8 +1381,8 @@ class ChatViewModel extends BaseViewModel {
       final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
       final address = interfaces.expand((interface) => interface.addresses).where((ip) => !ip.isLoopback).firstOrNull;
       return await _chatProvider.publishProfile(
-            direct: [if (address != null) Uri.parse('http://${address.address}:37999')],
-            tor: const [],
+            direct: [if (!torOnly && address != null) Uri.parse('http://${address.address}:37999')],
+            tor: [if (onion != null) Uri.parse('http://$onion')],
             paymailFeeSats: parsedFee,
           ) !=
           null;

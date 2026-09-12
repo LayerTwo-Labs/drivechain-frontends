@@ -75,6 +75,7 @@ class BitMessageTransportException implements Exception {
 class BitMessageTransport {
   BitMessageTransport({
     required this.directDialer,
+    this.torDialer,
     this.requestTimeout = const Duration(seconds: 10),
     this.maxProfileResponseBytes = 16 * 1024,
   }) {
@@ -84,6 +85,7 @@ class BitMessageTransport {
   }
 
   final BitMessageHttpDialer directDialer;
+  final BitMessageHttpDialer? torDialer;
   final Duration requestTimeout;
   final int maxProfileResponseBytes;
 
@@ -139,6 +141,8 @@ class BitMessageTransport {
   List<_HttpRoute> _routes(BitMessageProfile profile, bool torOnly) => [
     if (!torOnly)
       ...profile.directEndpoints.map((uri) => _HttpRoute(BitMessageTransportType.direct, uri, directDialer)),
+    if (torDialer != null)
+      ...profile.torEndpoints.map((uri) => _HttpRoute(BitMessageTransportType.tor, uri, torDialer!)),
   ];
 
   Future<void> _verifyProfile(_HttpRoute route, VerifiedBitMessageProfile expected) async {
@@ -173,6 +177,9 @@ class BitMessageTransport {
 
   void close() {
     directDialer.close();
+    if (!identical(torDialer, directDialer)) {
+      torDialer?.close();
+    }
   }
 }
 
