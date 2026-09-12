@@ -73,15 +73,27 @@ The opt-in `TestElementsNativeWalletIntegration` also ran against the real
 portable daemon in an isolated temporary directory. It authenticated the local
 parent bridge, created/reopened an unfunded test wallet, returned an explicit
 address and zero balance, and synchronized through Alpha block 86 through the
-public bootstrap relay. The isolated daemon was stopped. This used the bridge
-credential-file mode, not BitWindow's parent-cookie mode. The existing live
-daemon and wallet were not changed.
+public bootstrap relay. A second run used the actual managed configuration
+installer with a temporary cookie-authenticated, read-only relay to the real
+parent, then restarted the same data directory and reopened its wallet with
+the rotated child cookie (42.41 seconds). The relay translates authentication,
+not chain data; it is test-only, not an installed service. Initial relay tests
+failed because its allowlist omitted startup RPCs; the corrected run passed.
+The existing live daemon, parent credentials and wallet were not changed.
+
+`TestElementsNativeDownloadExtraction` passed using a local HTTP ZIP containing
+the real candidate: archive verification, extraction, executable verification
+and execution of `-version`. This does not qualify a public release URL or the
+full BitWindow UI/StartWithL1 path; the obsolete-release gate stays enabled.
 
 Test environment variables:
 
 - `ELEMENTS_ALPHA_TEST_BINARY`: absolute path to the candidate daemon.
 - `ELEMENTS_ALPHA_TEST_PARENT_PORT`: authenticated loopback parent RPC port.
 - `ELEMENTS_ALPHA_TEST_PARENT_CREDENTIAL_FILE`: private parent bridge file.
+- Alternatively `ELEMENTS_ALPHA_TEST_PARENT_COOKIE`: real parent cookie path.
+- Optional `ELEMENTS_ALPHA_TEST_COOKIE_PROXY=1` uses the credential file through
+  an ephemeral read-only cookie relay to exercise managed cookie configuration.
 - Optional `ELEMENTS_ALPHA_TEST_PEER` and `ELEMENTS_ALPHA_TEST_MIN_HEIGHT` enable
   actual synchronization qualification. Otherwise child peers are disabled.
 

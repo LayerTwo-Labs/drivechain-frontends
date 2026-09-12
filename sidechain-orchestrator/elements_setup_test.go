@@ -8,12 +8,42 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/stretchr/testify/require"
 )
+
+func TestElementsNativeDownloadExtraction(t *testing.T) {
+	binary := os.Getenv("ELEMENTS_ALPHA_TEST_BINARY")
+	if binary == "" {
+		t.Skip("set ELEMENTS_ALPHA_TEST_BINARY to qualify real extraction")
+	}
+	dm, dir := newTestDownloadManager(t)
+	payload, err := os.ReadFile(binary)
+	require.NoError(t, err)
+	archivePath := filepath.Join(dir, "alpha.zip")
+	makeZipFile(t, archivePath, map[string][]byte{"liquid-signet": payload})
+	archive, err := os.ReadFile(archivePath)
+	require.NoError(t, err)
+	archiveHash := sha256.Sum256(archive)
+	binaryHash := sha256.Sum256(payload)
+	cfg := BinaryConfig{Name: "liquid-signet", BinaryName: "liquid-signet", ArtifactPins: map[string]ArtifactPin{
+		currentPlatform(): {ArchiveSHA256: hex.EncodeToString(archiveHash[:]), ExecutableSHA256: hex.EncodeToString(binaryHash[:])},
+	}}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(archive) }))
+	defer server.Close()
+	target := DownloadTarget{Source: DownloadSourceDirect, BaseURL: server.URL + "/", FileName: "alpha.zip", ExtractName: "liquid-signet", BinPath: filepath.Join(BinDir(dir), "liquid-signet")}
+	claims, busy := dm.claim([]DownloadTarget{target})
+	require.Empty(t, busy)
+	require.NoError(t, dm.install(context.Background(), cfg, "ecash", claims, func(DownloadProgress) bool { return true }))
+	require.NoError(t, verifyElementsArtifact(cfg, target.BinPath, false))
+	output, err := exec.Command(target.BinPath, "-version").CombinedOutput()
+	require.NoError(t, err, string(output))
+	require.Contains(t, string(output), "Elements")
+}
 
 func TestElementsArtifactIntegrity(t *testing.T) {
 	payload := []byte("synthetic artifact, not executable")
