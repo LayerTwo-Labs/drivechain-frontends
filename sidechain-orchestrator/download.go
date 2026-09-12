@@ -139,8 +139,18 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 // DownloadWithOptions is Download with per-call overrides (see DownloadOptions).
 // It downloads every target of the config, so a test sidechain gets its backend too.
 func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config BinaryConfig, network string, force bool, opts DownloadOptions) (<-chan DownloadProgress, error) {
+	if err := checkElementsSetup(config); err != nil {
+		return nil, err
+	}
 	targets := d.Targets(config, network, opts)
 	binPath := targets[0].BinPath
+	if !force && config.Name == "liquid-signet" {
+		if _, err := os.Lstat(binPath); err == nil {
+			if err := verifyElementsArtifact(config, binPath, false); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	if !force {
 		targets = lo.Filter(targets, func(target DownloadTarget, _ int) bool {
@@ -294,6 +304,9 @@ func (d *DownloadManager) install(ctx context.Context, config BinaryConfig, netw
 			return fmt.Errorf("extract: %w", extractErr)
 		}
 		d.log.Info().Bool("has_cli", hasCLI).Str("binary", claim.target.ExtractName).Msg("extraction complete")
+		if err := verifyElementsArtifact(config, claim.target.BinPath, false); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -329,6 +342,12 @@ func (d *DownloadManager) fetchArchive(ctx context.Context, config BinaryConfig,
 
 	if err := d.downloadFile(ctx, downloadURL, savePath, send); err != nil {
 		return "", err
+	}
+	if config.Name == "liquid-signet" {
+		if err := verifyElementsArtifact(config, savePath, true); err != nil {
+			return "", err
+		}
+		return savePath, nil
 	}
 
 	// Compute SHA256 hash and write back to config

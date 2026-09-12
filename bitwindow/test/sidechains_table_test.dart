@@ -58,6 +58,8 @@ class _Transactions implements TransactionProvider {
 
 class _Binaries extends BinaryProvider {
   final updated = <Binary>[];
+  final started = <Binary>[];
+  final downloaded = <Binary>[];
 
   // ignore: invalid_use_of_visible_for_testing_member
   _Binaries(List<Binary> binaries) : super.test(appDir: Directory.systemTemp, binaries: binaries);
@@ -66,6 +68,12 @@ class _Binaries extends BinaryProvider {
   Future<void> update(Binary binary) async {
     updated.add(binary);
   }
+
+  @override
+  Future<void> start(Binary binary) async => started.add(binary);
+
+  @override
+  Future<void> download(Binary binary, {bool shouldUpdate = false}) async => downloaded.add(binary);
 }
 
 class _Downloads extends DownloadProvider {
@@ -233,6 +241,28 @@ void main() {
 
     expect(_buttonWidget(tester, 'Download').variant, ButtonVariant.primary);
     expect(_button('Start'), findsNothing);
+  });
+
+  testWidgets('Elements installation requires consent and starts the managed stack', (tester) async {
+    final elements = LiquidSignet();
+    final binaries = _Binaries([elements]);
+    GetIt.I.registerSingleton<BinaryProvider>(binaries);
+    GetIt.I.get<SidechainProvider>().sidechains[24] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'Elements Alpha', slot: 24),
+      [],
+      [],
+    );
+    await pumpTable(tester);
+    expect(_buttonWidget(tester, 'Install & Start').variant, ButtonVariant.primary);
+    await tester.tap(_button('Install & Start'));
+    await tester.pump(kDoubleTapTimeout);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(binaries.started, isEmpty);
+    expect(binaries.downloaded, isEmpty);
+    await tester.tap(_button('Download anyway'));
+    await tester.pumpAndSettle();
+    expect(binaries.started, [elements]);
+    expect(binaries.downloaded, isEmpty);
   });
 
   testWidgets('a download in progress shows its percent in place of the button', (tester) async {

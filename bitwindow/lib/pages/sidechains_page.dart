@@ -1027,13 +1027,17 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     if (!sidechain.isDownloaded) {
       return SailButton(
         key: ValueKey('download_slot_${sidechain.slot}_${sidechain.name}'),
-        label: 'Download',
+        label: sidechain is LiquidSignet ? 'Install & Start' : 'Download',
         variant: ButtonVariant.primary,
         onPressed: () async {
           if (!sidechain.developedByLayerTwoLabs && !await _confirmUntrustedDownload(context, sidechain)) {
             return;
           }
-          await _binaryProvider.download(sidechain);
+          if (sidechain is LiquidSignet) {
+            await _binaryProvider.start(sidechain);
+          } else {
+            await _binaryProvider.download(sidechain);
+          }
         },
       );
     }
