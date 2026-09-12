@@ -316,6 +316,9 @@ func dataServerAddress(data BitNameData) (string, error) {
 	if data.SocketAddrV6 != nil && *data.SocketAddrV6 != "" {
 		return *data.SocketAddrV6, nil
 	}
+	if data.SocketAddrHost != nil && *data.SocketAddrHost != "" {
+		return *data.SocketAddrHost, nil
+	}
 	return "", fmt.Errorf("bitname holds no socket address")
 }
 
