@@ -98,11 +98,15 @@ func (o *Orchestrator) prepareElementsAlphaArgs(cfg BinaryConfig, opts *StartOpt
 const elementsSetupUnavailable = "Elements Alpha setup requires a checksum-pinned native release for this platform; see docs/elements-alpha-setup.md"
 
 func checkElementsSetup(cfg BinaryConfig) error {
+	return checkElementsSetupForPlatform(cfg, currentPlatform())
+}
+
+func checkElementsSetupForPlatform(cfg BinaryConfig, platform string) error {
 	if cfg.Name != "liquid-signet" {
 		return nil
 	}
-	pin := cfg.ArtifactPins[currentPlatform()]
-	if cfg.BinaryName != "elementsd" || cfg.Files[currentPlatform()] == "" || cfg.BaseURL("default") == "" {
+	pin := cfg.ArtifactPins[platform]
+	if cfg.BinaryName != "elementsd" || cfg.Files[platform] == "" || cfg.BaseURL("default") == "" {
 		return fmt.Errorf("%s", elementsSetupUnavailable)
 	}
 	for _, hash := range []string{pin.ArchiveSHA256, pin.ExecutableSHA256} {

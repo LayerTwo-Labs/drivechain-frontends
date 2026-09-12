@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"sync/atomic"
 	"testing"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
@@ -25,17 +27,21 @@ func TestElementsNativeDownloadExtraction(t *testing.T) {
 	payload, err := os.ReadFile(binary)
 	require.NoError(t, err)
 	archivePath := filepath.Join(dir, "alpha.zip")
-	makeZipFile(t, archivePath, map[string][]byte{"liquid-signet": payload})
+	name := "elementsd"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	makeZipFile(t, archivePath, map[string][]byte{name: payload})
 	archive, err := os.ReadFile(archivePath)
 	require.NoError(t, err)
 	archiveHash := sha256.Sum256(archive)
 	binaryHash := sha256.Sum256(payload)
-	cfg := BinaryConfig{Name: "liquid-signet", BinaryName: "liquid-signet", ArtifactPins: map[string]ArtifactPin{
+	cfg := BinaryConfig{Name: "liquid-signet", BinaryName: "elementsd", ArtifactPins: map[string]ArtifactPin{
 		currentPlatform(): {ArchiveSHA256: hex.EncodeToString(archiveHash[:]), ExecutableSHA256: hex.EncodeToString(binaryHash[:])},
 	}}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(archive) }))
 	defer server.Close()
-	target := DownloadTarget{Source: DownloadSourceDirect, BaseURL: server.URL + "/", FileName: "alpha.zip", ExtractName: "liquid-signet", BinPath: filepath.Join(BinDir(dir), "liquid-signet")}
+	target := DownloadTarget{Source: DownloadSourceDirect, BaseURL: server.URL + "/", FileName: "alpha.zip", ExtractName: "elementsd", BinPath: BinaryPath(dir, "elementsd")}
 	claims, busy := dm.claim([]DownloadTarget{target})
 	require.Empty(t, busy)
 	require.NoError(t, dm.install(context.Background(), cfg, "ecash", claims, func(DownloadProgress) bool { return true }))
@@ -43,6 +49,63 @@ func TestElementsNativeDownloadExtraction(t *testing.T) {
 	output, err := exec.Command(target.BinPath, "-version").CombinedOutput()
 	require.NoError(t, err, string(output))
 	require.Contains(t, string(output), "Elements")
+}
+
+// Exercise the real downloader with both release archive formats. These bytes
+// intentionally are not a daemon; runtime qualification is a separate opt-in test.
+func TestElementsPinnedArchiveInstallAndCache(t *testing.T) {
+	for _, extension := range []string{".zip", ".tar.gz"} {
+		t.Run(extension, func(t *testing.T) {
+			dm, dir := newTestDownloadManager(t)
+			name := "elementsd"
+			if runtime.GOOS == "windows" {
+				name += ".exe"
+			}
+			payload := []byte("synthetic pinned Alpha installer payload")
+			archivePath := filepath.Join(t.TempDir(), "alpha"+extension)
+			files := map[string][]byte{"elements-alpha/bin/" + name: payload}
+			if extension == ".zip" {
+				makeZipFile(t, archivePath, files)
+			} else {
+				makeTarGzFile(t, archivePath, files)
+			}
+			archive, err := os.ReadFile(archivePath)
+			require.NoError(t, err)
+			archiveHash, binaryHash := sha256.Sum256(archive), sha256.Sum256(payload)
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet {
+					requests.Add(1)
+				}
+				_, _ = w.Write(archive)
+			}))
+			defer server.Close()
+			cfg := BinaryConfig{Name: "liquid-signet", BinaryName: "elementsd",
+				DownloadURLs: map[string]string{"default": server.URL + "/"},
+				Files:        map[string]string{currentPlatform(): "alpha" + extension},
+				ArtifactPins: map[string]ArtifactPin{currentPlatform(): {
+					ArchiveSHA256: hex.EncodeToString(archiveHash[:]), ExecutableSHA256: hex.EncodeToString(binaryHash[:]),
+				}},
+			}
+			for attempt := 0; attempt < 2; attempt++ {
+				ch, err := dm.Download(context.Background(), cfg, "ecash", false)
+				require.NoError(t, err)
+				done := false
+				for progress := range ch {
+					require.NoError(t, progress.Error)
+					done = done || progress.Done
+				}
+				require.True(t, done)
+				require.NoError(t, verifyElementsArtifact(cfg, BinaryPath(dir, cfg.BinaryName), false))
+			}
+			require.EqualValues(t, 1, requests.Load(), "restart must reuse the verified binary")
+			require.NoError(t, os.WriteFile(BinaryPath(dir, cfg.BinaryName), []byte("tampered"), 0700))
+			ch, err := dm.Download(context.Background(), cfg, "ecash", false)
+			require.ErrorContains(t, err, "checksum mismatch")
+			require.Nil(t, ch)
+			require.EqualValues(t, 1, requests.Load())
+		})
+	}
 }
 
 func TestElementsArtifactIntegrity(t *testing.T) {
@@ -148,13 +211,15 @@ func TestElementsStartAndRestartFailBeforeTouchingProcesses(t *testing.T) {
 func TestElementsSetupRequiresPinnedPlatformRelease(t *testing.T) {
 	cfg, ok := BinaryConfigByName("liquid-signet")
 	require.True(t, ok)
-	if currentPlatform() != "macos-arm64" {
-		require.EqualError(t, checkElementsSetup(cfg), elementsSetupUnavailable)
-		return
+	for _, platform := range []string{"macos-arm64", "linux-x86_64", "windows-x86_64"} {
+		require.NoError(t, checkElementsSetupForPlatform(cfg, platform), platform)
+		invalid := cfg
+		invalid.ArtifactPins = map[string]ArtifactPin{platform: {ArchiveSHA256: "invalid", ExecutableSHA256: "invalid"}}
+		require.EqualError(t, checkElementsSetupForPlatform(invalid, platform), elementsSetupUnavailable)
 	}
-	require.NoError(t, checkElementsSetup(cfg))
-	cfg.ArtifactPins = map[string]ArtifactPin{currentPlatform(): {ArchiveSHA256: "invalid", ExecutableSHA256: "invalid"}}
-	require.EqualError(t, checkElementsSetup(cfg), elementsSetupUnavailable)
+	for _, platform := range []string{"macos-x86_64", "linux-arm64", "windows-arm64", "unknown"} {
+		require.EqualError(t, checkElementsSetupForPlatform(cfg, platform), elementsSetupUnavailable)
+	}
 }
 
 func TestElementsSetupGateDoesNotAffectOtherBinaries(t *testing.T) {
@@ -187,11 +252,17 @@ func TestElementsMetadataDoesNotAdvertiseObsoleteDownloads(t *testing.T) {
 	require.Equal(t, "Elements Alpha", cfg.DisplayName)
 	require.Equal(t, "elementsd", cfg.BinaryName)
 	require.Equal(t, "elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip", cfg.Files["macos-arm64"])
-	for platform, value := range cfg.Files {
-		if platform != "macos-arm64" {
-			require.Empty(t, value)
-		}
-	}
+	require.Equal(t, "elements-alpha-cad1fc1fb-linux-x86_64.tar.gz", cfg.Files["linux-x86_64"])
+	require.Equal(t, "elements-alpha-cad1fc1fb-windows-x86_64.zip", cfg.Files["windows-x86_64"])
+	require.Empty(t, cfg.Files["macos-x86_64"])
+	require.Equal(t, ArtifactPin{
+		ArchiveSHA256:    "f5125e66ad2a33d95e3b1da9226b88f6a8b43be04d194a1798b3467f12d9e224",
+		ExecutableSHA256: "4a0beb8a084a753f4a9f023db75d2e8801ebf48c16dcd8442e7ddf105d715205",
+	}, cfg.ArtifactPins["linux-x86_64"])
+	require.Equal(t, ArtifactPin{
+		ArchiveSHA256:    "2a86bf6e0313455f2774b021fa2e02b7f5a90811283a006741b8b0c05e91b579",
+		ExecutableSHA256: "87d687f87d7ed54300ecde51ca0bf9253320ef13e24e950cd6704a2cfac17f75",
+	}, cfg.ArtifactPins["windows-x86_64"])
 	require.Equal(t, ArtifactPin{
 		ArchiveSHA256:    "fa3b818bd24485f370067ba1d1b8266605fb61d6333b726eb1da5affe5aa15d9",
 		ExecutableSHA256: "a54a81bf7d149fd1c4c73964ea98e33cd0e41c5c7a9183402cac5219e89cb327",

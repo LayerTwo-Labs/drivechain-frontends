@@ -2,13 +2,19 @@
 
 ## Current status
 
-One-click native installation is enabled for Apple Silicon with a local eCash
-Alphanet parent and an initialized BitWindow wallet. The tested Apple Silicon package
-is published as `elements-alpha-cad1fc1fb-macos-arm64`; all three JSON metadata
-copies pin archive SHA256 `fa3b818bd24485f370067ba1d1b8266605fb61d6333b726eb1da5affe5aa15d9`
-and the executable digest below. Public retrieval reproduced both hashes. The old July
-`elements-bf8e9e1e` package is not Alpha and must not be reused. Other platforms
-remain unavailable rather than falling back to that package.
+One-click native installation supports Windows x86_64, Linux x86_64 with
+glibc 2.39 or newer (for example Ubuntu 24.04), and Apple Silicon. A local
+eCash Alphanet parent and an initialized BitWindow wallet are required.
+Windows runs `elementsd.exe` directly; WSL is used only for Linux build/testing
+and Windows cross-compilation, and is not an end-user dependency.
+
+The desktop prerelease is `elements-alpha-cad1fc1fb-desktop`. All three JSON
+metadata copies pin each archive and executable independently. The Apple Silicon
+archive is byte-identical to the earlier macOS prerelease. Intel macOS, ARM Linux,
+and ARM Windows remain unavailable. The July `elements-bf8e9e1e` package is not
+Alpha and must not be reused.
+
+[Download the desktop prerelease](https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/tag/elements-alpha-cad1fc1fb-desktop).
 
 `liquid-signet` remains the internal/protobuf identifier and directory key.
 The selected network is **Elements Alpha, slot 24**, not Signet.
@@ -34,6 +40,66 @@ The selected network is **Elements Alpha, slot 24**, not Signet.
    expected pins. Unsupported platforms remain unavailable.
 8. Validation-only Elements startup depends on the parent, not the enforcer.
    Reconnecting to an already-running managed node also initializes its wallet.
+
+Initial parent authentication can take several minutes on Windows. The startup
+timeline includes `Authenticating drivechain parent state`; wait for readiness
+before using the wallet. Managed startup keeps all paths as individual arguments,
+including Windows paths with spaces, and uses the native platform executable.
+
+## Windows and Linux qualification
+
+The September 12 desktop candidates were built from source commit
+`cad1fc1fb5695c14234c4e287cf9e47d958609e7` in Ubuntu 24.04 under WSL2.
+Windows was cross-compiled with MinGW GCC 13.2 and executed on Windows.
+Linux uses GCC 13.3, static libevent/SQLite/libstdc++, and system glibc/libm.
+Windows imports only system DLLs; no MinGW DLL or WSL installation is needed.
+The Linux build requires glibc 2.39+, not musl/Alpine or older glibc releases.
+
+Both builds link the actual USDD and ECX verifier source closures used by the
+Mac release. USDD's 26-file semantic source manifest is
+`fa87d87b59f9aa58b6a9477ec74e664810f9a218cfa09b638280e710ab5d5f42`;
+the native semantic-identity programs on Linux and Windows both report
+`6b0292570fa120ae885743a391eba18a1e530455284648cfde30dc28bf3b64a9`.
+The three frozen catalogue/profile definitions in the source build guide are
+preserved. No dummy verifier or changed consensus identity is used.
+
+| Platform | Archive SHA256 | Executable SHA256 |
+| --- | --- | --- |
+| Linux x86_64 | `f5125e66ad2a33d95e3b1da9226b88f6a8b43be04d194a1798b3467f12d9e224` | `4a0beb8a084a753f4a9f023db75d2e8801ebf48c16dcd8442e7ddf105d715205` |
+| Windows x86_64 | `2a86bf6e0313455f2774b021fa2e02b7f5a90811283a006741b8b0c05e91b579` | `87d687f87d7ed54300ecde51ca0bf9253320ef13e24e950cd6704a2cfac17f75` |
+
+`TestElementsCandidateOneClickInstall` passed on Linux in 120.23 seconds and on
+native Windows in 216.95 seconds. It serves the candidate archive locally and
+exercises the real downloader, both pin checks, `StartWithL1`, authenticated
+Alpha genesis, unfunded descriptor-wallet setup, already-running adoption, and
+restart preserving address ownership. The parent was already running and
+accessed through an SSH tunnel plus an authenticated read-only relay. These
+results do not establish cold parent download/IBD, a graphical end-to-end test,
+or every OS version. Temporary test nodes/data are isolated from existing wallets.
+
+After publication, `TestElementsPublishedOneClickInstall` passed against the
+public GitHub URLs on Linux in 111.83 seconds and native Windows in 205.35
+seconds. The published artifact hashes match the pins above. Focused backend
+tests pass on both platforms, and all 18 Flutter table/metadata tests pass on
+the Mac with the updated manifests and fallback configuration.
+
+To qualify a candidate before publication, set `ELEMENTS_ALPHA_TEST_ARCHIVE`,
+`ELEMENTS_ALPHA_TEST_EXECUTABLE_SHA256`, and the parent environment variables
+below, then run `go test . -run '^TestElementsCandidateOneClickInstall$' -v
+-timeout 20m` from `sidechain-orchestrator`. The candidate metadata exists only
+inside that test; production pins are not overwritten. The published installer
+test now selects the current platform and retains the same checks.
+
+Packaging/cache/tamper tests pass on Linux and Windows with both ZIP and tar.gz.
+Broader source-test qualification is **incomplete**: two test-only compilation
+repairs were needed (explicit `Txid::ToUint256()` in a pair comparison and a
+missing opt-in replay credential variable). No daemon source was changed for
+these repairs. On Linux, 31/32 selected native tests pass; the existing
+`native_candidate_parent_bound_script_cache` fixture fails four assertions.
+The Windows C++ test runner aborts at the pre-test `g_used_g_prng` assertion.
+These limitations are separate from the passing real installer tests and are
+not represented as a green full consensus suite. Release provenance retains
+the build inputs, commands, test-only patch, and qualification limits.
 
 Managed configuration uses `bitwindow-elements-alpha.conf` under the existing
 Elements data directory, with native `elements-v11` chain subdirectory.

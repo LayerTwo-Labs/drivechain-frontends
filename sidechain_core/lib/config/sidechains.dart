@@ -212,7 +212,8 @@ class LiquidSignet extends Sidechain {
   LiquidSignet({
     super.name = 'Elements Alpha',
     super.version = 'cad1fc1fb5695c14234c4e287cf9e47d958609e7',
-    super.description = 'Alpha slot 24. Apple Silicon prerelease; requires a local eCash Alphanet parent.',
+    super.description =
+        'Alpha slot 24. Native Windows x64, Linux x64 (glibc 2.39+), and Apple Silicon; requires a local eCash Alphanet parent.',
     super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
@@ -229,8 +230,11 @@ class LiquidSignet extends Sidechain {
                  'binary': 'elementsd',
                  'files': {
                    'default': {
-                     'base_url': 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-macos-arm64/',
+                     'base_url':
+                         'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-desktop/',
                      'macos-arm64': 'elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip',
+                     'linux-x86_64': 'elements-alpha-cad1fc1fb-linux-x86_64.tar.gz',
+                     'windows-x86_64': 'elements-alpha-cad1fc1fb-windows-x86_64.zip',
                    },
                  },
                }),

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -27,11 +28,43 @@ func TestElementsPublishedOneClickInstall(t *testing.T) {
 	if os.Getenv("ELEMENTS_ALPHA_TEST_INSTALL") != "1" {
 		t.Skip("set ELEMENTS_ALPHA_TEST_INSTALL=1 and local parent credentials")
 	}
-	require.Equal(t, "macos-arm64", currentPlatform())
+	candidate, ok := BinaryConfigByName("liquid-signet")
+	require.True(t, ok)
+	require.NoError(t, checkElementsSetup(candidate), "this platform needs a published, pinned Alpha release")
+	testElementsOneClickInstall(t, candidate)
+}
+
+// Qualify a release candidate through the installer before publishing it. This
+// supplies test-only metadata; it never changes the production download pins.
+func TestElementsCandidateOneClickInstall(t *testing.T) {
+	archivePath := os.Getenv("ELEMENTS_ALPHA_TEST_ARCHIVE")
+	if archivePath == "" {
+		t.Skip("set ELEMENTS_ALPHA_TEST_ARCHIVE, ELEMENTS_ALPHA_TEST_EXECUTABLE_SHA256 and local parent credentials")
+	}
+	payload, err := os.ReadFile(archivePath)
+	require.NoError(t, err)
+	digest := sha256.Sum256(payload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(payload) }))
+	defer server.Close()
+	candidate, ok := BinaryConfigByName("liquid-signet")
+	require.True(t, ok)
+	candidate.DownloadURLs = map[string]string{"default": server.URL + "/"}
+	candidate.Files = map[string]string{currentPlatform(): filepath.Base(archivePath)}
+	candidate.ArtifactPins = map[string]ArtifactPin{currentPlatform(): {
+		ArchiveSHA256:    hex.EncodeToString(digest[:]),
+		ExecutableSHA256: os.Getenv("ELEMENTS_ALPHA_TEST_EXECUTABLE_SHA256"),
+	}}
+	require.NoError(t, checkElementsSetup(candidate))
+	testElementsOneClickInstall(t, candidate)
+}
+
+func testElementsOneClickInstall(t *testing.T, candidate BinaryConfig) {
+	t.Helper()
 	old := config.ECashNetworkID()
 	config.SetECashNetworkID("alphanet")
 	t.Cleanup(func() { config.SetECashNetworkID(old) })
 	o := planFixture(t, "ecash")
+	o.configs[candidate.Name] = candidate
 	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeFull))
 	require.NoError(t, o.BitcoinConf.UpdateDataDir(t.TempDir(), config.NetworkECash))
 	port, cookie := elementsReadOnlyParent(t)
@@ -52,7 +85,9 @@ func TestElementsPublishedOneClickInstall(t *testing.T) {
 	o.WalletSvc = wallet.NewService(o.BitwindowDir, testLogger(t))
 	_, err = o.WalletSvc.GenerateWallet("Unfunded installer test", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", "", []wallet.SidechainSlot{{Slot: 24, Name: "Elements Alpha"}})
 	require.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	// Cold parent replay on Windows can take several minutes, especially under
+	// filesystem scanning. Keep a finite budget without treating it as a crash.
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	t.Cleanup(func() {
 		o.StopAllMonitors()
 		stopCtx, stopCancel := context.WithTimeout(context.Background(), 15*time.Second)
