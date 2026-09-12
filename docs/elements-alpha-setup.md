@@ -21,8 +21,11 @@ asset URL or reuse an old archive hash for it.
 
 The replacement installer must use the native Elements interface, not the
 Rust sidechains' `--network`, `--rpc-addr` and `--mainchain-grpc-url` flags.
-The generic sidechain config and RPC proxy currently do not implement this
-contract. Changing a URL or setting `is_bitcoin_core` is insufficient.
+`config.ElementsAlphaOptions` now materializes the validation-only native
+configuration, rejects non-Alphanet parents, non-loopback endpoints, malformed
+paths and colliding ports. It does not write or overwrite existing configuration.
+Startup orchestration and live parent qualification remain to be connected.
+Changing a URL or setting `is_bitcoin_core` is insufficient.
 
 For that source candidate, the network pins are:
 
@@ -68,10 +71,32 @@ See the source candidate's `doc/drivechain-rpc-security.md` and
 unsupported on Windows; leave Windows unavailable until implemented and tested.
 Never silently fall back to plaintext or disable TLS verification.
 
-Use the Elements cookie-authenticated RPC adapter, including asset-aware balance
-handling. A listening TCP port alone is not readiness: check the Alpha genesis,
-authenticated RPC, parent/enforcer connection and synchronization. The existing
-`sidechain/elements` client is not yet wired into the generic node interface.
+The native `sidechain/elements.Node` is now selected by the generic node factory.
+It reloads cookie credentials on every request, uses the `elements-v11/.cookie`
+path, and resolves asset labels to the pinned Alpha policy asset before counting
+balances in exact atoms. It does not expose the Rust BMM interface. Its
+`VerifyAlpha` method checks the authenticated genesis; this is a building block,
+not yet a startup-readiness hook. A listening TCP port alone is not readiness:
+parent replay and synchronization must also be checked.
+
+Source inspection distinguishes validation from bidding: `drivechainl1blocksync=0`
+disables local block production, while parent-state revalidation continues.
+The mTLS path above must be qualified for enforcer-dependent operations; a
+validation-only clean-install test must establish which operations it needs.
+
+Current release blockers independently checked:
+
+- Candidate PR4 macOS CI fails at `ecx_exchange_state.cpp:1155` because the
+  unfrozen build hits `-Werror,-Wunreachable-code`. Simply suppressing the warning
+  would not compile in the frozen catalogue and verifier used by the live node.
+- The existing Mac executable depends on Homebrew libevent dylibs at absolute
+  paths. Copying that executable alone is not a portable release package.
+- No current Alpha download release exists; July assets remain withdrawn.
+
+Automated qualification added here covers configuration rejection, missing and
+rotated RPC cookies, wrong genesis, label-aware ECX accounting, fractional-atom
+rejection and malformed balance responses. These are local unit/HTTP tests,
+not evidence of a completed native installation.
 
 Downloading must not turn on BMM spending, install a reward address, expose RPC,
 or change the machine's default route. A normal direct P2P connection exposes

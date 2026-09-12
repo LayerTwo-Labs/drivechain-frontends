@@ -10,6 +10,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/elements"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
@@ -18,6 +19,17 @@ import (
 // JSON-RPC authenticated by the cookie its node writes on start; the CUSF
 // chains speak a bare JSON-RPC with no credentials.
 func New(name, host string, port int, isBitcoinCore bool, network config.Network) (sidechain.Node, error) {
+	if name == "liquid-signet" {
+		if network != config.NetworkECash || config.ECashNetworkID() != "alphanet" {
+			return nil, fmt.Errorf("Elements Alpha requires eCash Alphanet")
+		}
+		dirs, ok := config.DirConfigByName(name)
+		if !ok {
+			return nil, fmt.Errorf("no directory config for %s", name)
+		}
+		cookie := filepath.Join(dirs.DatadirNetwork(network, ""), config.ElementsAlphaChainDir, ".cookie")
+		return elements.NewNode(host, port, cookie), nil
+	}
 	if !isBitcoinCore {
 		if name == "zside" {
 			return zside.NewNode(host, port), nil
