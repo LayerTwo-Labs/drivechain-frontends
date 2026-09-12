@@ -72,6 +72,17 @@ type Bip47Backend interface {
 	EnsureNotificationWatched(ctx context.Context, walletID string, notifKey WatchKey) error
 }
 
+// SendFeeTarget is the confirmation target, in blocks, a send prices at when
+// the caller names no rate.
+const SendFeeTarget = 6
+
+// FeeRater is a Backend that takes a send's fee rate from a chain estimate, so
+// a caller can read that rate before it broadcasts anything. A backend that
+// prices its own sends (Core) does not implement it.
+type FeeRater interface {
+	FeeRateForTarget(ctx context.Context, target int) (float64, error)
+}
+
 // DepositBackend is a backend that builds the BIP300 M5 itself, so the caller
 // hands it the slot and the destination instead of a raw treasury output.
 type DepositBackend interface {

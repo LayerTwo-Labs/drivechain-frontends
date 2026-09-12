@@ -869,16 +869,6 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		}
 	}
 
-	if expansion.notificationTxHex != "" {
-		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex, req.Msg.AllowReplay)
-		if err != nil {
-			// The payment never went out, so its index is still free.
-			h.releaseBip47Index(walletID, expansion)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast bip47 notification: %w", err))
-		}
-		_ = notifTxID
-	}
-
 	sendReq := wallet.SendRequest{
 		DestinationsSats:      req.Msg.Destinations,
 		FeeRateSatPerVB:       req.Msg.FeeRateSatPerVbyte,
@@ -887,6 +877,27 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
 		AllowReplay:           req.Msg.AllowReplay,
 		Replaceable:           req.Msg.Replaceable,
+	}
+
+	// A BIP47 payment holds a reserved index, and its first send also publishes
+	// a notification that spends a real coin. Price the payment before either,
+	// so a wallet that cannot price it gives the index back and leaves the
+	// chain untouched.
+	if expansion.recipientCode != "" {
+		if err := h.resolveSendFeeRate(ctx, walletID, &sendReq); err != nil {
+			h.releaseBip47Index(walletID, expansion)
+			return nil, err
+		}
+	}
+
+	if expansion.notificationTxHex != "" {
+		notifTxID, err := h.broadcastBip47Notification(ctx, walletID, expansion.recipientCode, expansion.notificationTxHex, req.Msg.AllowReplay)
+		if err != nil {
+			// The payment never went out, so its index is still free.
+			h.releaseBip47Index(walletID, expansion)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast bip47 notification: %w", err))
+		}
+		_ = notifTxID
 	}
 	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
 		return wallet.RequiredInput{

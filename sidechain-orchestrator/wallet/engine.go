@@ -56,6 +56,16 @@ func (e *WalletEngine) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
 	return b, ok
 }
 
+// FeeRaterFor returns the wallet's backend as a FeeRater when it prices a send
+// from a chain estimate, so a caller can read that rate before it broadcasts.
+func (e *WalletEngine) FeeRaterFor(walletID string) (FeeRater, bool) {
+	if r, ok := e.backend.(*BackendRouter); ok {
+		return r.FeeRaterFor(walletID)
+	}
+	f, ok := e.backend.(FeeRater)
+	return f, ok
+}
+
 // ChainForWallet returns the chain source for a wallet's backend, dispatching
 // by wallet type so electrum wallets read/broadcast over Esplora.
 func (e *WalletEngine) ChainForWallet(walletID string) ChainSource {
@@ -127,7 +137,7 @@ func (e *WalletEngine) EstimateFeeRate(ctx context.Context, confTarget int) (flo
 	if err != nil {
 		return 0, err
 	}
-	return eb.FeeRateForTarget(ctx, confTarget), nil
+	return eb.FeeRateForTarget(ctx, confTarget)
 }
 
 // SyncElectrumWallet brings a wallet's cached scan up to the chain tip, serving

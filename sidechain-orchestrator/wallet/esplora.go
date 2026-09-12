@@ -34,7 +34,9 @@ type ChainDataSource interface {
 	TxHex(ctx context.Context, txid string) (string, error)
 	Broadcast(ctx context.Context, rawHex string) (string, error)
 	TipHeight(ctx context.Context) (int, error)
-	FeeRateForTarget(ctx context.Context, target int, fallback float64) float64
+	// FeeRateForTarget is the sat/vB rate that confirms within target blocks.
+	// A source with no estimate answers an error, never a substitute rate.
+	FeeRateForTarget(ctx context.Context, target int) (float64, error)
 }
 
 // EsploraClient talks to a Blockstream-style Esplora REST API. It serves the
@@ -599,19 +601,19 @@ func (c *EsploraClient) FeeEstimates(ctx context.Context) (map[string]float64, e
 }
 
 // FeeRateForTarget returns the sat/vB fee rate for the given confirmation
-// target, falling back to the nearest available estimate, then to fallback.
-func (c *EsploraClient) FeeRateForTarget(ctx context.Context, target int, fallback float64) float64 {
+// target, or the nearest target the server estimates.
+func (c *EsploraClient) FeeRateForTarget(ctx context.Context, target int) (float64, error) {
 	est, err := c.FeeEstimates(ctx)
-	if err != nil || len(est) == 0 {
-		return fallback
+	if err != nil {
+		return 0, fmt.Errorf("esplora fee estimates: %w", err)
 	}
 	if rate, ok := est[strconv.Itoa(target)]; ok && rate > 0 {
-		return rate
+		return rate, nil
 	}
 	best, bestDelta := 0.0, 1<<30
 	for k, rate := range est {
 		blocks, err := strconv.Atoi(k)
-		if err != nil {
+		if err != nil || rate <= 0 {
 			continue
 		}
 		if delta := abs(blocks - target); delta < bestDelta {
@@ -619,9 +621,9 @@ func (c *EsploraClient) FeeRateForTarget(ctx context.Context, target int, fallba
 		}
 	}
 	if best > 0 {
-		return best
+		return best, nil
 	}
-	return fallback
+	return 0, fmt.Errorf("esplora has no fee estimate for %d blocks", target)
 }
 
 func abs(n int) int {

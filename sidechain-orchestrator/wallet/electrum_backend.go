@@ -196,9 +196,10 @@ func (p *ElectrumBackend) ResetNetworkState() {
 	p.log.Info().Msg("dropped wallet chain state after network switch")
 }
 
-// FeeRateForTarget returns the esplora sat/vB fee estimate for a confirmation target.
-func (p *ElectrumBackend) FeeRateForTarget(ctx context.Context, target int) float64 {
-	return p.client.FeeRateForTarget(ctx, target, 1.0)
+// FeeRateForTarget returns the chain source's sat/vB estimate for a
+// confirmation target, and errors when the source has none.
+func (p *ElectrumBackend) FeeRateForTarget(ctx context.Context, target int) (float64, error) {
+	return p.client.FeeRateForTarget(ctx, target)
 }
 
 // scannedAddr is one derived (or watched) address with its key and current
@@ -969,12 +970,15 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	}
 	sort.Slice(remaining, func(i, j int) bool { return remaining[i].amountSats > remaining[j].amountSats })
 
+	// A rate the caller did not set must come from the chain, never from a
+	// stand-in: a send at a made-up rate cannot confirm on a busy chain.
 	feeRate := float64(req.FeeRateSatPerVB)
-	if feeRate <= 0 {
-		feeRate = p.client.FeeRateForTarget(ctx, 6, 1.0)
-		if feeRate < 1 {
-			feeRate = 1
+	if feeRate <= 0 && req.FixedFeeSats <= 0 {
+		estimate, err := p.client.FeeRateForTarget(ctx, SendFeeTarget)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("no fee estimate for %d blocks: %w", SendFeeTarget, err)
 		}
+		feeRate = max(estimate, float64(minRelayFeeRate))
 	}
 
 	// Per-type sizing: input vsize from the wallet descriptor (accurate for
@@ -1461,9 +1465,12 @@ func (p *ElectrumBackend) previewBumpFee(ctx context.Context, scan *electrumScan
 		outputs = append(outputs, out)
 	}
 
-	suggested := int64(math.Ceil(p.FeeRateForTarget(ctx, electrumBumpFeeTarget)))
-	if floor := minBumpFeeRate(tx.Fee, vsize, len(tx.Vin)); suggested < floor {
-		suggested = floor
+	// No estimate leaves the suggestion empty: the preview still reports what
+	// the user needs to name a rate or to pay a child instead.
+	var suggested int64
+	estimate, estimateErr := p.FeeRateForTarget(ctx, electrumBumpFeeTarget)
+	if estimateErr == nil {
+		suggested = max(int64(math.Ceil(estimate)), minBumpFeeRate(tx.Fee, vsize, len(tx.Vin)))
 	}
 	preview := &BumpFeePreview{
 		InputCount:    len(tx.Vin),
@@ -1494,6 +1501,10 @@ func (p *ElectrumBackend) previewBumpFee(ctx context.Context, scan *electrumScan
 
 	rate := req.NewFeeRate
 	if rate <= 0 {
+		if suggested == 0 {
+			preview.Reason = fmt.Sprintf("no fee estimate for %d blocks: %v", electrumBumpFeeTarget, estimateErr)
+			return preview, nil
+		}
 		rate = suggested
 	}
 	target, err := pickBumpFeeOutput(outputs, req.FeeFromVout)

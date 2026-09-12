@@ -158,15 +158,24 @@ func (f *fallbackChainSource) TipHeight(ctx context.Context) (int, error) {
 	return out, err
 }
 
-// FeeRateForTarget reports no error, so a source that hands back the caller's
-// own fallback value counts as a miss and the next source gets a turn.
-func (f *fallbackChainSource) FeeRateForTarget(ctx context.Context, target int, fallback float64) float64 {
+// FeeRateForTarget asks each source in turn. A server with no estimate still
+// serves reads and pushes, so a miss here leaves its health state alone.
+func (f *fallbackChainSource) FeeRateForTarget(ctx context.Context, target int) (float64, error) {
+	var errs []error
 	for _, i := range f.order() {
-		if rate := f.sources[i].FeeRateForTarget(ctx, target, fallback); rate != fallback {
-			return rate
+		if err := ctx.Err(); err != nil {
+			return 0, err
 		}
+		rate, err := f.sources[i].FeeRateForTarget(ctx, target)
+		if err == nil {
+			return rate, nil
+		}
+		errs = append(errs, err)
 	}
-	return fallback
+	if len(errs) == 0 {
+		return 0, errors.New("no chain source configured")
+	}
+	return 0, errors.Join(errs...)
 }
 
 // BaseURLs reports every endpoint behind this source, best first.

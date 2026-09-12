@@ -226,15 +226,25 @@ func TestElectrumClientFeeRateConversion(t *testing.T) {
 		return nil
 	})
 	c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
-	assert.InDelta(t, 2.0, c.FeeRateForTarget(ctx, 6, 1), 1e-9)
+	rate, err := c.FeeRateForTarget(ctx, 6)
+	require.NoError(t, err)
+	assert.InDelta(t, 2.0, rate, 1e-9)
+}
 
-	// A server with no estimate (negative) falls back.
-	url2 := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
-		if method == "blockchain.estimatefee" {
-			return -1
-		}
-		return nil
-	})
-	c2 := NewElectrumClient(url2, zerolog.Nop(), &chaincfg.SigNetParams)
-	assert.Equal(t, 5.0, c2.FeeRateForTarget(ctx, 6, 5))
+// A server with no estimate answers a negative number. The old code turned
+// that into 1 sat/vB, which builds a transaction the chain never confirms.
+func TestElectrumClientFeeRateRefusesAMissingEstimate(t *testing.T) {
+	ctx := context.Background()
+	for _, answer := range []interface{}{-1, 0} {
+		url := startFakeElectrum(t, func(method string, _ []json.RawMessage) interface{} {
+			if method == "blockchain.estimatefee" {
+				return answer
+			}
+			return nil
+		})
+		c := NewElectrumClient(url, zerolog.Nop(), &chaincfg.SigNetParams)
+		rate, err := c.FeeRateForTarget(ctx, 6)
+		require.Error(t, err)
+		assert.Zero(t, rate)
+	}
 }
