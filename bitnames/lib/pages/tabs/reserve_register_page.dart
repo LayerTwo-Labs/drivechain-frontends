@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/utils/commitment_validation.dart';
+import 'package:sidechain_core/utils/data_server_address.dart';
 import 'package:stacked/stacked.dart';
 import 'package:thirds/blake3.dart';
 
@@ -755,26 +756,30 @@ class BitnamesViewModel extends BaseViewModel {
     }
 
     final name = registerNameController.text.trim();
-    final commitment = commitmentController.text.trim().isEmpty ? null : commitmentController.text.trim();
-    final ipv4 = ipv4Controller.text.trim().isEmpty ? null : ipv4Controller.text.trim();
-    final ipv6 = ipv6Controller.text.trim().isEmpty ? null : ipv6Controller.text.trim();
-    final website = websiteController.text.trim().isEmpty ? null : dataAddress();
-
     if (name.isEmpty) {
       registerError = 'Name cannot be empty';
       notifyListeners();
       return;
     }
 
+    final address = dataAddress();
+    if (address.isNotEmpty && commitmentAddress != address) {
+      await readCommitmentFromServer();
+      if (readError != null) {
+        registerError = readError;
+        notifyListeners();
+        return;
+      }
+    }
+
+    final commitment = commitmentController.text.trim().isEmpty ? null : commitmentController.text.trim();
+    final ipv4 = ipv4Controller.text.trim().isEmpty ? null : ipv4Controller.text.trim();
+    final ipv6 = ipv6Controller.text.trim().isEmpty ? null : ipv6Controller.text.trim();
+    final website = hostWithPort(websiteController.text, defaultDataPort);
+
     final commitmentError = validateCommitment(commitment: commitment, website: website, ipv4: ipv4, ipv6: ipv6);
     if (commitmentError != null) {
       registerError = commitmentError;
-      notifyListeners();
-      return;
-    }
-
-    if (commitment != null && commitmentAddress != dataAddress()) {
-      registerError = 'The address changed after the read. Read from the server again.';
       notifyListeners();
       return;
     }
@@ -852,26 +857,12 @@ class BitnamesViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  /// A resolver reads v4, then v6, then the host. The digest must come from the
-  /// same server that a resolver reaches.
-  String dataAddress() {
-    final ipv4 = ipv4Controller.text.trim();
-    if (ipv4.isNotEmpty) {
-      return ipv4;
-    }
-
-    final ipv6 = ipv6Controller.text.trim();
-    if (ipv6.isNotEmpty) {
-      return ipv6;
-    }
-
-    final website = websiteController.text.trim();
-    if (website.isEmpty) {
-      return '';
-    }
-
-    return website.contains(':') ? website : '$website:$defaultDataPort';
-  }
+  String dataAddress() => dataServerAddress(
+    website: websiteController.text,
+    ipv4: ipv4Controller.text,
+    ipv6: ipv6Controller.text,
+    defaultPort: defaultDataPort,
+  );
 
   Future<void> readCommitmentFromServer() async {
     final address = dataAddress();
