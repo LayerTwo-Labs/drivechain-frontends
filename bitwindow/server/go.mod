@@ -57,6 +57,7 @@ require (
 	github.com/btcsuite/btcd/chaincfg/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/chainhash/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/wire/v2 v2.0.1 // indirect
+	github.com/gowebpki/jcs v1.0.1 // indirect
 	github.com/kcalvinalvin/anet v0.0.0-20251112173137-d8ddc1f6dbee // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/mr-tron/base58 v1.3.0 // indirect
