@@ -36,6 +36,25 @@ func (n *Node) VerifyAlpha(ctx context.Context) error {
 	return nil
 }
 
+// GetNewAddress returns the explicit address required by Alpha consensus.
+func (n *Node) GetNewAddress(ctx context.Context) (string, error) {
+	address, err := corenode.DecodeWallet[string](ctx, n.Client, "getnewaddress", []any{"", "bech32"})
+	if err != nil {
+		return "", err
+	}
+	info, err := corenode.DecodeWallet[struct {
+		Unconfidential string `json:"unconfidential"`
+		IsMine         bool   `json:"ismine"`
+	}](ctx, n.Client, "getaddressinfo", []any{address})
+	if err != nil {
+		return "", err
+	}
+	if !info.IsMine || info.Unconfidential == "" {
+		return "", fmt.Errorf("Elements wallet did not return an owned explicit address")
+	}
+	return info.Unconfidential, nil
+}
+
 // GetBalance resolves the node's asset labels before selecting the pinned
 // policy asset. It never sums unrelated tokens or assumes a "bitcoin" label.
 func (n *Node) GetBalance(ctx context.Context) (int64, int64, error) {

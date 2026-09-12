@@ -1,12 +1,41 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestElementsAlphaInstallIsIdempotentAndPreservesExistingFiles(t *testing.T) {
+	old := ECashNetworkID()
+	SetECashNetworkID("alphanet")
+	t.Cleanup(func() { SetECashNetworkID(old) })
+	o := ElementsAlphaOptions{Network: NetworkECash, DataDir: filepath.Join(t.TempDir(), "node"), ParentHost: "127.0.0.1", ParentPort: 18302, RPCPort: 7065, P2PPort: 7066, ParentCookie: filepath.Join(t.TempDir(), ".cookie")}
+	args, err := o.Install()
+	require.NoError(t, err)
+	path := filepath.Join(o.DataDir, ElementsAlphaConfigFilename)
+	require.Equal(t, []string{"-datadir=" + o.DataDir, "-conf=" + path}, args)
+	again, err := o.Install()
+	require.NoError(t, err)
+	require.Equal(t, args, again)
+	before, err := os.ReadFile(path)
+	require.NoError(t, err)
+	o.ParentPort++
+	_, err = o.Install()
+	require.Error(t, err)
+	after, err := os.ReadFile(path)
+	require.NoError(t, err)
+	require.Equal(t, before, after)
+	linkDir := t.TempDir()
+	require.NoError(t, os.Symlink(path, filepath.Join(linkDir, ElementsAlphaConfigFilename)))
+	o.DataDir = linkDir
+	o.ParentPort--
+	_, err = o.Install()
+	require.ErrorContains(t, err, "regular file")
+}
 
 func TestElementsAlphaNativeConfiguration(t *testing.T) {
 	old := ECashNetworkID()

@@ -1,20 +1,37 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 const ElementsAlphaGenesis = "672af009bd90bfc6527a5a9dda4c83aba0048c15cff3697d07e89a7f96fa5bcd"
 const ElementsAlphaPolicyAsset = "62dce3bd80dc4b0503e7ccbb3fcfa4d7adfd64b4e0cc78fa5e1754b88f1d2da4"
 const ElementsAlphaChainDir = "elements-v11"
+const ElementsAlphaConfigFilename = "bitwindow-elements-alpha.conf"
+const ElementsAlphaBootstrapPeer = "163.192.123.236:39444"
 
-// ElementsAlphaOptions describes a validation-only native node. ParentCookie
-// points to the parent's rotating cookie; its contents never enter this config.
-// This is deliberately separate from the Rust sidechain config materializer.
+// ElementsAlphaWalletParams pins key encodings from elements_drivechain_identity.h.
+func ElementsAlphaWalletParams() *chaincfg.Params {
+	p := chaincfg.MainNetParams
+	p.Name = "elements-alpha"
+	p.PubKeyHashAddrID = 68
+	p.ScriptHashAddrID = 13
+	p.PrivateKeyID = 0x37
+	p.HDPublicKeyID = [4]byte{0x18, 0x71, 0x7d, 0xf5}
+	p.HDPrivateKeyID = [4]byte{0xb2, 0x63, 0xbd, 0x77}
+	p.Bech32HRPSegwit = "elements"
+	return &p
+}
+
+// ElementsAlphaOptions configures a validation-only node without copying credentials.
 type ElementsAlphaOptions struct {
 	Network      Network
 	DataDir      string
@@ -29,9 +46,40 @@ func (o ElementsAlphaOptions) CookiePath() string {
 	return filepath.Join(o.DataDir, ElementsAlphaChainDir, ".cookie")
 }
 
-// Config returns native Elements configuration without mutating existing data.
-// Network identity, parent txindex and authenticated readiness still need live
-// RPC verification by the installer; a valid configuration alone is not ready.
+// Install preserves existing configuration and accepts identical bytes on restart.
+func (o ElementsAlphaOptions) Install() ([]string, error) {
+	content, err := o.Config()
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(o.DataDir, 0700); err != nil {
+		return nil, err
+	}
+	path := filepath.Join(o.DataDir, ElementsAlphaConfigFilename)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if os.IsExist(err) {
+		info, statErr := os.Lstat(path)
+		if statErr != nil || !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("Elements managed config must be a regular file: %s", path)
+		}
+		previous, readErr := os.ReadFile(path)
+		if readErr != nil || string(previous) != content {
+			return nil, fmt.Errorf("existing Elements managed config differs; review %s before restarting", path)
+		}
+	} else if err != nil {
+		return nil, err
+	} else {
+		_, writeErr := f.WriteString(content)
+		syncErr := f.Sync()
+		closeErr := f.Close()
+		if writeErr != nil || syncErr != nil || closeErr != nil {
+			return nil, fmt.Errorf("persist Elements configuration: %w", errors.Join(writeErr, syncErr, closeErr))
+		}
+	}
+	return []string{"-datadir=" + o.DataDir, "-conf=" + path}, nil
+}
+
+// Config validates settings; authenticated runtime readiness is checked separately.
 func (o ElementsAlphaOptions) Config() (string, error) {
 	if o.Network != NetworkECash || ECashNetworkID() != "alphanet" {
 		return "", fmt.Errorf("Elements Alpha requires the eCash Alphanet parent")
@@ -60,6 +108,7 @@ func (o ElementsAlphaOptions) Config() (string, error) {
 		"mainchainrpchost=" + o.ParentHost,
 		"mainchainrpcport=" + strconv.Itoa(o.ParentPort),
 		"mainchainrpccookiefile=" + o.ParentCookie,
+		"addnode=" + ElementsAlphaBootstrapPeer,
 		"drivechainl1blocksync=0", "",
 	}, "\n"), nil
 }

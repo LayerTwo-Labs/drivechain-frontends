@@ -278,6 +278,9 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	if _, err := os.Stat(binPath); err != nil {
 		return 0, fmt.Errorf("binary not found at %s: %w", binPath, err)
 	}
+	if err := verifyElementsArtifact(config, binPath, false); err != nil {
+		return 0, err
+	}
 	_ = pidName // referenced below for PID file ops
 
 	if err := chmod(binPath); err != nil {

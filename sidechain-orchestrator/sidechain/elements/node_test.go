@@ -21,6 +21,7 @@ func TestAlphaNodeCookieRotationIdentityAndAssetBalance(t *testing.T) {
 	password := "first"
 	genesis := config.ElementsAlphaGenesis
 	balance := `{"mine":{"trusted":{"ECX":0.00000003,"other":999},"untrusted_pending":{"ECX":0.00000002},"immature":{"ECX":0}}}`
+	explicitAddress := "elements1-test-explicit"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
 		if !ok || user != "__cookie__" || pass != password {
@@ -38,6 +39,12 @@ func TestAlphaNodeCookieRotationIdentityAndAssetBalance(t *testing.T) {
 		}
 		var result any
 		switch request.Method {
+		case "getnewaddress":
+			require.Equal(t, []any{"", "bech32"}, request.Params)
+			result = "confidential-test-address"
+		case "getaddressinfo":
+			require.Equal(t, []any{"confidential-test-address"}, request.Params)
+			result = map[string]any{"ismine": true, "unconfidential": explicitAddress}
 		case "getblockhash":
 			result = genesis
 		case "dumpassetlabels":
@@ -71,6 +78,12 @@ func TestAlphaNodeCookieRotationIdentityAndAssetBalance(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 5, total)
 	require.EqualValues(t, 3, available)
+	address, err := node.GetNewAddress(ctx)
+	require.NoError(t, err)
+	require.Equal(t, explicitAddress, address)
+	explicitAddress = ""
+	_, err = node.GetNewAddress(ctx)
+	require.ErrorContains(t, err, "owned explicit address")
 	genesis = "wrong-network"
 	require.ErrorContains(t, node.VerifyAlpha(ctx), "genesis mismatch")
 	for _, invalid := range []string{`{}`, `{"mine":{"trusted":1}}`, `{"mine":{"trusted":{"ECX":0.000000001},"untrusted_pending":{"ECX":0},"immature":{"ECX":0}}}`} {

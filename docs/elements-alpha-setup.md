@@ -1,119 +1,104 @@
-# Elements Alpha download/setup
+# Elements Alpha installation
 
-## Status
+## Current status
 
-Automatic setup is **not available**. The previously advertised July
-`elements-bf8e9e1e` release must not be installed as the current Alpha node.
-The download and process-start paths reject it, including cached binaries,
-forced downloads and restarts. This does not stop an already-running node or
-delete its data. Other sidechains are unaffected.
+Native installation components are implemented, but automatic download remains
+gated until the tested package is published and pinned. The old July
+`elements-bf8e9e1e` package is not Alpha and must not be reused. This PR remains
+draft; it does not yet claim a completed one-click installation.
 
-`liquid-signet` remains the internal/protobuf identifier and directory key;
-the displayed name is Elements Alpha. This is not a Signet network selection.
-The retained version value identifies the withdrawn package, not a new release.
+`liquid-signet` remains the internal/protobuf identifier and directory key.
+The selected network is **Elements Alpha, slot 24**, not Signet.
 
-The current source candidate is
-[`cad1fc1fb5695c14234c4e287cf9e47d958609e7`](https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/pull/4).
-It is a source PR, not a qualified downloadable release. Do not manufacture an
-asset URL or reuse an old archive hash for it.
+## Implemented flow
 
-## Native setup contract
+1. **Install & Start** retains third-party-code consent and invokes
+   `StartWithL1`, not download alone. Other sidechain buttons are unchanged.
+2. Native configuration is created once with owner-only permissions. Identical
+   restart configuration is accepted; conflicts and symlinks are rejected rather
+   than overwritten. Existing chain and wallet data is retained.
+3. Only a local eCash Alphanet parent is accepted. Its configured RPC port and
+   rotating cookie path are used; passwords are not copied into arguments.
+4. Elements uses native `-datadir`/`-conf` arguments, not Rust-sidechain flags.
+   RPC remains loopback-only; local block production and bidding stay off.
+5. Authenticated genesis verification replaces TCP-only health checks.
+   Health means the correct daemon answers, **not** that synchronization is done.
+6. The slot-derived mnemonic initializes a descriptor wallet through native RPC.
+   Existing wallets are retained. Receiving addresses are explicit; balances
+   select only the pinned ECX policy asset and use exact atom amounts.
+7. Archive and executable SHA-256 pins are enforced separately. Cached binaries
+   are checked before reuse and process launch. Downloaded bytes do not replace
+   expected pins. Unsupported platforms remain unavailable.
 
-The replacement installer must use the native Elements interface, not the
-Rust sidechains' `--network`, `--rpc-addr` and `--mainchain-grpc-url` flags.
-`config.ElementsAlphaOptions` now materializes the validation-only native
-configuration, rejects non-Alphanet parents, non-loopback endpoints, malformed
-paths and colliding ports. It does not write or overwrite existing configuration.
-Startup orchestration and live parent qualification remain to be connected.
-Changing a URL or setting `is_bitcoin_core` is insufficient.
+Managed configuration uses `bitwindow-elements-alpha.conf` under the existing
+Elements data directory, with native `elements-v11` chain subdirectory.
+Bootstrap peer `163.192.123.236:39444` is an Oracle relay to the existing Alpha
+node, not an independent validator. Direct P2P exposes the installing computer's
+IP to peers; this installer does not provide a VPN.
 
-For that source candidate, the network pins are:
+## Network and release identity
 
-- `-chain=elements`, chain directory `elements-v11`, slot 24.
-- Genesis `672af009bd90bfc6527a5a9dda4c83aba0048c15cff3697d07e89a7f96fa5bcd`.
-- Native defaults: RPC 7065, P2P 7066. Choose explicit non-conflicting ports;
-  do not reuse the old metadata's 29443 as evidence of the Alpha default.
-- Explicit-only transactions and 144-block withdrawals are node consensus
-  rules, not settings to override in an installer.
+- Genesis: `672af009bd90bfc6527a5a9dda4c83aba0048c15cff3697d07e89a7f96fa5bcd`.
+- Policy asset: `62dce3bd80dc4b0503e7ccbb3fcfa4d7adfd64b4e0cc78fa5e1754b88f1d2da4`.
+- Native defaults: RPC 7065, P2P 7066; BitWindow uses its explicitly configured
+  RPC port. Explicit-only transactions and 144-block withdrawals are unchanged.
+- Source candidate:
+  [`cad1fc1fb5695c14234c4e287cf9e47d958609e7`](https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/pull/4).
 
-An installer-generated configuration needs these native settings. Paths below
-are placeholders, **not a ready-to-launch configuration**:
+The Apple Silicon candidate was relinked from preserved frozen native objects
+and real verifier archives, using static libevent 2.1.13 built for macOS 11.
+It has only system dynamic-library dependencies. A deployment target does not
+establish testing every macOS version. No Windows or Intel/Linux artifact is
+qualified by this result.
 
-```ini
-chain=elements
-server=1
-rpcbind=127.0.0.1
-rpcallowip=127.0.0.1
-rpcport=7065
-port=7066
-mainchainrpchost=127.0.0.1
-mainchainrpcport=18302
-mainchainrpccookiefile=/absolute/private/parent/.cookie
-drivechainl1blocksync=0
-drivechainbmmgrpcaddr=127.0.0.1:55051
-drivechainbmmgrpcurl=/absolute/private/bin/grpcurl
-drivechainbmmgrpcca=/absolute/private/tls/ca.pem
-drivechainbmmgrpccert=/absolute/private/tls/elements-client.pem
-drivechainbmmgrpckey=/absolute/private/tls/elements-client-key.pem
-drivechainbmmgrpcauthority=enforcer.local
-```
+Tested executable SHA-256:
+`a54a81bf7d149fd1c4c73964ea98e33cd0e41c5c7a9183402cac5219e89cb327`.
+This is an executable digest, not a downloadable archive digest.
 
-Derive the parent endpoint and cookie path from the selected, validated eCash
-Alphanet node; 18302 is only a reference default. Check the parent network,
-genesis/checkpoint and txindex before launching. Refuse other parent networks.
-Use the native rotating cookie authentication, with owner-only files and the
-node's no-symlink checks. Do not copy RPC passwords into command lines or logs.
+Source PR CI's unfrozen build still fails on an unreachable-code warning.
+The installer candidate uses the frozen catalogue and activation profile;
+do not replace those with placeholders to produce a release.
 
-The enforcer connection needs the authenticated local mTLS proxy, private
-certificates, verified `grpcurl`, startup supervision and certificate renewal.
-See the source candidate's `doc/drivechain-rpc-security.md` and
-`contrib/drivechain-mtls/`. The current native authenticated subprocess path is
-unsupported on Windows; leave Windows unavailable until implemented and tested.
-Never silently fall back to plaintext or disable TLS verification.
+## Qualification
 
-The native `sidechain/elements.Node` is now selected by the generic node factory.
-It reloads cookie credentials on every request, uses the `elements-v11/.cookie`
-path, and resolves asset labels to the pinned Alpha policy asset before counting
-balances in exact atoms. It does not expose the Rust BMM interface. Its
-`VerifyAlpha` method checks the authenticated genesis; this is a building block,
-not yet a startup-readiness hook. A listening TCP port alone is not readiness:
-parent replay and synchronization must also be checked.
+Focused race-enabled Go tests cover native configuration, idempotence and
+conflict preservation, parent/network rejection, cookie rotation, wrong genesis,
+asset accounting, explicit receiving addresses, and artifact integrity.
 
-Source inspection distinguishes validation from bidding: `drivechainl1blocksync=0`
-disables local block production, while parent-state revalidation continues.
-The mTLS path above must be qualified for enforcer-dependent operations; a
-validation-only clean-install test must establish which operations it needs.
+Flutter dependency validation currently fails because the installed Dart SDK is
+3.13.1 while the application pins 3.12.2. The application constraint was not
+relaxed; Flutter qualification remains pending with its pinned SDK.
 
-Current release blockers independently checked:
+The opt-in `TestElementsNativeWalletIntegration` also ran against the real
+portable daemon in an isolated temporary directory. It authenticated the local
+parent bridge, created/reopened an unfunded test wallet, returned an explicit
+address and zero balance, and synchronized through Alpha block 86 through the
+public bootstrap relay. The isolated daemon was stopped. This used the bridge
+credential-file mode, not BitWindow's parent-cookie mode. The existing live
+daemon and wallet were not changed.
 
-- Candidate PR4 macOS CI fails at `ecx_exchange_state.cpp:1155` because the
-  unfrozen build hits `-Werror,-Wunreachable-code`. Simply suppressing the warning
-  would not compile in the frozen catalogue and verifier used by the live node.
-- The existing Mac executable depends on Homebrew libevent dylibs at absolute
-  paths. Copying that executable alone is not a portable release package.
-- No current Alpha download release exists; July assets remain withdrawn.
+Test environment variables:
 
-Automated qualification added here covers configuration rejection, missing and
-rotated RPC cookies, wrong genesis, label-aware ECX accounting, fractional-atom
-rejection and malformed balance responses. These are local unit/HTTP tests,
-not evidence of a completed native installation.
+- `ELEMENTS_ALPHA_TEST_BINARY`: absolute path to the candidate daemon.
+- `ELEMENTS_ALPHA_TEST_PARENT_PORT`: authenticated loopback parent RPC port.
+- `ELEMENTS_ALPHA_TEST_PARENT_CREDENTIAL_FILE`: private parent bridge file.
+- Optional `ELEMENTS_ALPHA_TEST_PEER` and `ELEMENTS_ALPHA_TEST_MIN_HEIGHT` enable
+  actual synchronization qualification. Otherwise child peers are disabled.
 
-Downloading must not turn on BMM spending, install a reward address, expose RPC,
-or change the machine's default route. A normal direct P2P connection exposes
-the machine's IP to peers; downloading a node does not provide IP protection.
+The test uses a public test-vector mnemonic, never a funded wallet, and does
+not bid, sign spend transactions, broadcast, or provision servers.
 
-## Requirements before enabling the button
+## Remaining before enabling download
 
-1. Publish reproducible Alpha packages from reviewed source. Pin each supported
-   platform's immutable URL, executable layout, SHA-256 and size in all three
-   current `chains_config.json` copies. Include/verify required helper binaries.
-2. Implement the native configuration, parent cookie and supervised enforcer
-   mTLS integration above. Connect the authenticated Elements RPC adapter.
-3. Verify clean install and restart against Alpha, wrong-network refusal,
-   corrupt archives, missing/expired credentials, occupied ports, cached old
-   binaries and failed dependencies. Never mark a TCP-only listener ready.
-4. Remove `checkElementsSetup` and its temporary refusal tests only with that
-   tested integration. Updating release metadata alone must not enable startup.
+1. Publish the qualified prerelease with provenance/licenses; pin its actual
+   archive and executable hashes in all three chain metadata copies.
+2. Exercise download/install/restart with BitWindow's parent-cookie setup;
+   test Flutter UI and dependency-failure handling.
+3. Replace unconditional setup refusal with supported-release/platform checks
+   only after those results pass.
 
-This draft does not claim end-to-end setup, Windows support, live-node changes,
-or a new Alpha binary release.
+Validation-only startup and synchronization work without enabling enforcer
+spending. BMM/withdrawal operations require authenticated mTLS integration
+described in the node's `doc/drivechain-rpc-security.md`; this installer does
+not downgrade it to plaintext or authorize bidding. No live routing,
+existing-node settings, or reward address is changed.

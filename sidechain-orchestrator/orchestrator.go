@@ -598,6 +598,16 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	if err != nil {
 		return 0, err
 	}
+	if config.Name == "liquid-signet" {
+		if err := checkElementsSetup(config); err != nil {
+			return 0, err
+		}
+		opts := StartOpts{TargetArgs: args}
+		if err := o.prepareElementsAlphaArgs(config, &opts); err != nil {
+			return 0, err
+		}
+		args = opts.TargetArgs
+	}
 	// A layer-2 binary starts its frontend, which then asks for the backend slot
 	// under this same name, so the frontend takes the GUI slot instead.
 	if config.ChainLayer == 2 && o.process.SidechainVariant != nil {
@@ -1012,7 +1022,7 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 	}
 	// Core exits on an unknown option, so a Core derived sidechain takes the
 	// same starter over RPC instead — see ensureCoreSidechainWallet.
-	if config.IsBitcoinCore {
+	if config.IsBitcoinCore || config.Name == "liquid-signet" {
 		return
 	}
 	if _, err := o.WalletSvc.GetOrDeriveSidechainStarter(config.Slot, config.DisplayName); err != nil {
@@ -1032,7 +1042,7 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 // node must be accepting RPC; Core creates no wallet on its own, so without
 // this every wallet call answers "no wallet is loaded".
 func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg BinaryConfig) error {
-	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
+	if (!cfg.IsBitcoinCore && cfg.Name != "liquid-signet") || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
 	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
@@ -1044,6 +1054,11 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		return fmt.Errorf("no directory config for %s", cfg.Name)
 	}
 	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), ".cookie")
+	netParams := o.NetParams.Resolve()
+	if cfg.Name == "liquid-signet" {
+		cookiePath = filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), config.ElementsAlphaChainDir, ".cookie")
+		netParams = config.ElementsAlphaWalletParams()
+	}
 	user, password, err := config.ReadCookieFile(cookiePath)
 	if err != nil {
 		return err
@@ -1058,7 +1073,7 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		return wallet.EnsureLegacyCoreWalletFromMnemonic(ctx, rpc, o.log, mnemonic, o.NetParams.Resolve())
 	}
 	return wallet.EnsureCoreWalletFromMnemonic(
-		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, o.NetParams.Resolve(),
+		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, netParams,
 	)
 }
 
@@ -1152,6 +1167,9 @@ var errSidechainNetworkUnknown = errors.New("this sidechain has no network of it
 // its own default network and syncs a different chain than the mainchain, and
 // no later step can detect that.
 func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) error {
+	if cfg.Name == "liquid-signet" {
+		return o.prepareElementsAlphaArgs(cfg, opts)
+	}
 	if cfg.ChainLayer == 2 && o.NodeMode() == NodeModeLight {
 		return o.prepareRemoteSidechainArgs(cfg, opts)
 	}
