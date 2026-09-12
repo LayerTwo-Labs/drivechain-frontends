@@ -1,7 +1,11 @@
 // Package bitnames provides a JSON-RPC client for the BitNames sidechain.
 package bitnames
 
-import "encoding/json"
+import (
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+)
 
 // BalanceResponse is the reply from the "balance" RPC.
 type BalanceResponse struct {
@@ -77,4 +81,110 @@ type BmmResult struct {
 	Nfees                  int     `json:"nfees"`
 	Txid                   string  `json:"txid"`
 	Error                  *string `json:"error,omitempty"`
+}
+
+// Commitment is the BLAKE3 digest a BitName holds. The node carries it as a
+// 32-byte array, and every client shows it as hex.
+type Commitment [32]byte
+
+// Hex returns the digest in lower case hexadecimal.
+func (c Commitment) Hex() string { return hex.EncodeToString(c[:]) }
+
+// ParseCommitment reads the hex form, in either case.
+func ParseCommitment(digest string) (Commitment, error) {
+	raw, err := hex.DecodeString(digest)
+	if err != nil {
+		return Commitment{}, fmt.Errorf("commitment %q is not hexadecimal: %w", digest, err)
+	}
+	if len(raw) != len(Commitment{}) {
+		return Commitment{}, fmt.Errorf("commitment %q is %d bytes, and the chain holds 32", digest, len(raw))
+	}
+	var parsed Commitment
+	copy(parsed[:], raw)
+	return parsed, nil
+}
+
+// nodeBitNameData is the form the node reads and writes. Its OpenAPI schema
+// calls commitment a string, and serde carries a 32-byte array.
+type nodeBitNameData struct {
+	Commitment       *Commitment `json:"commitment,omitempty"`
+	EncryptionPubkey *string     `json:"encryption_pubkey,omitempty"`
+	PaymailFeeSats   *int64      `json:"paymail_fee_sats,omitempty"`
+	SigningPubkey    *string     `json:"signing_pubkey,omitempty"`
+	SocketAddrV4     *string     `json:"socket_addr_v4,omitempty"`
+	SocketAddrV6     *string     `json:"socket_addr_v6,omitempty"`
+	SocketAddrHost   *string     `json:"socket_addr_host,omitempty"`
+}
+
+// nodeBitnameDetails adds the sequence id the node returns on a read.
+type nodeBitnameDetails struct {
+	nodeBitNameData
+	SeqID string `json:"seq_id"`
+}
+
+func (d BitNameData) toNode() (nodeBitNameData, error) {
+	node := nodeBitNameData{
+		EncryptionPubkey: d.EncryptionPubkey,
+		PaymailFeeSats:   d.PaymailFeeSats,
+		SigningPubkey:    d.SigningPubkey,
+		SocketAddrV4:     d.SocketAddrV4,
+		SocketAddrV6:     d.SocketAddrV6,
+		SocketAddrHost:   d.SocketAddrHost,
+	}
+	if d.Commitment == nil || *d.Commitment == "" {
+		return node, nil
+	}
+	parsed, err := ParseCommitment(*d.Commitment)
+	if err != nil {
+		return nodeBitNameData{}, err
+	}
+	node.Commitment = &parsed
+	return node, nil
+}
+
+func (n nodeBitNameData) toClient() BitNameData {
+	data := BitNameData{
+		EncryptionPubkey: n.EncryptionPubkey,
+		PaymailFeeSats:   n.PaymailFeeSats,
+		SigningPubkey:    n.SigningPubkey,
+		SocketAddrV4:     n.SocketAddrV4,
+		SocketAddrV6:     n.SocketAddrV6,
+		SocketAddrHost:   n.SocketAddrHost,
+	}
+	if n.Commitment != nil {
+		digest := n.Commitment.Hex()
+		data.Commitment = &digest
+	}
+	return data
+}
+
+func (n nodeBitnameDetails) toClient() BitnameDetails {
+	data := n.nodeBitNameData.toClient()
+	return BitnameDetails{
+		SeqID:            n.SeqID,
+		Commitment:       data.Commitment,
+		SocketAddrV4:     data.SocketAddrV4,
+		SocketAddrV6:     data.SocketAddrV6,
+		SocketAddrHost:   data.SocketAddrHost,
+		EncryptionPubkey: data.EncryptionPubkey,
+		SigningPubkey:    data.SigningPubkey,
+		PaymailFeeSats:   data.PaymailFeeSats,
+	}
+}
+
+// nodeBitnameEntry is the [hash, details] tuple the "bitnames" RPC returns.
+type nodeBitnameEntry struct {
+	Hash    string
+	Details nodeBitnameDetails
+}
+
+func (e *nodeBitnameEntry) UnmarshalJSON(data []byte) error {
+	var raw [2]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(raw[0], &e.Hash); err != nil {
+		return err
+	}
+	return json.Unmarshal(raw[1], &e.Details)
 }
