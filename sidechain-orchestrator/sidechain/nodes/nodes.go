@@ -21,7 +21,7 @@ import (
 func New(name, host string, port int, isBitcoinCore bool, network config.Network) (sidechain.Node, error) {
 	if name == "liquid-signet" {
 		if network != config.NetworkECash || config.ECashNetworkID() != "alphanet" {
-			return nil, fmt.Errorf("Elements Alpha requires eCash Alphanet")
+			return nil, fmt.Errorf("elements alpha requires eCash Alphanet")
 		}
 		dirs, ok := config.DirConfigByName(name)
 		if !ok {

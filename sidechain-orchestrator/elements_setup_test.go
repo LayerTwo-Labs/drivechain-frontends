@@ -256,12 +256,12 @@ func TestElementsMetadataDoesNotAdvertiseObsoleteDownloads(t *testing.T) {
 	require.Equal(t, "elements-alpha-cad1fc1fb-windows-x86_64.zip", cfg.Files["windows-x86_64"])
 	require.Empty(t, cfg.Files["macos-x86_64"])
 	require.Equal(t, ArtifactPin{
-		ArchiveSHA256:    "f5125e66ad2a33d95e3b1da9226b88f6a8b43be04d194a1798b3467f12d9e224",
-		ExecutableSHA256: "4a0beb8a084a753f4a9f023db75d2e8801ebf48c16dcd8442e7ddf105d715205",
+		ArchiveSHA256:    "be77167166b6761d7d68155cc35ad1a97f31f6faa886f352187a4c08edbefec0",
+		ExecutableSHA256: "cbd7c540c860fe6c013e26426997ac4d873123c7b0238f38bcc96a085bc6d86d",
 	}, cfg.ArtifactPins["linux-x86_64"])
 	require.Equal(t, ArtifactPin{
-		ArchiveSHA256:    "2a86bf6e0313455f2774b021fa2e02b7f5a90811283a006741b8b0c05e91b579",
-		ExecutableSHA256: "87d687f87d7ed54300ecde51ca0bf9253320ef13e24e950cd6704a2cfac17f75",
+		ArchiveSHA256:    "713a46f6af39946ba52fa8a51142f96fe94eb98eaae88c65ae24ebb909131442",
+		ExecutableSHA256: "edc2e88f4568352b6ceb6a48fbdaa177a64a85035239e3bc96296ae0af9de0dd",
 	}, cfg.ArtifactPins["windows-x86_64"])
 	require.Equal(t, ArtifactPin{
 		ArchiveSHA256:    "fa3b818bd24485f370067ba1d1b8266605fb61d6333b726eb1da5affe5aa15d9",

@@ -111,6 +111,26 @@ func testElementsOneClickInstall(t *testing.T, candidate BinaryConfig) {
 	require.True(t, ok)
 	node := elements.NewNode("127.0.0.1", cfg.Port, filepath.Join(dirs.DatadirNetwork(config.NetworkECash, ""), config.ElementsAlphaChainDir, ".cookie"))
 	require.NoError(t, node.VerifyAlpha(ctx))
+	// Qualification must include the frozen Simplicity catalogue exercised by
+	// Alpha block 86; genesis-only startup cannot detect a mismatched decoder.
+	minimum := os.Getenv("ELEMENTS_ALPHA_TEST_MIN_HEIGHT")
+	if minimum == "" {
+		minimum = "86"
+	}
+	height, err := strconv.Atoi(minimum)
+	require.NoError(t, err)
+	require.Positive(t, height)
+	require.Eventually(t, func() bool {
+		raw, err := node.Call(ctx, "getblockchaininfo", nil)
+		if err != nil {
+			return false
+		}
+		var info struct {
+			Blocks int `json:"blocks"`
+		}
+		return json.Unmarshal(raw, &info) == nil && info.Blocks >= height
+	}, 10*time.Minute, time.Second, "installed node must validate the requested Alpha history")
+	t.Logf("installed native daemon validated Alpha history through height %d", height)
 	address, err := node.GetNewAddress(ctx)
 	require.NoError(t, err)
 	require.Contains(t, address, "elements1")
@@ -175,7 +195,7 @@ func elementsReadOnlyParent(t *testing.T) (int, string) {
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		w.WriteHeader(response.StatusCode)
 		_, _ = io.Copy(w, response.Body)
 	}))

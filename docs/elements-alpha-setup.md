@@ -8,13 +8,13 @@ eCash Alphanet parent and an initialized BitWindow wallet are required.
 Windows runs `elementsd.exe` directly; WSL is used only for Linux build/testing
 and Windows cross-compilation, and is not an end-user dependency.
 
-The desktop prerelease is `elements-alpha-cad1fc1fb-desktop`. All three JSON
+The desktop prerelease is `elements-alpha-cad1fc1fb-desktop-r2`. All three JSON
 metadata copies pin each archive and executable independently. The Apple Silicon
 archive is byte-identical to the earlier macOS prerelease. Intel macOS, ARM Linux,
 and ARM Windows remain unavailable. The July `elements-bf8e9e1e` package is not
 Alpha and must not be reused.
 
-[Download the desktop prerelease](https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/tag/elements-alpha-cad1fc1fb-desktop).
+[Download the desktop prerelease](https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/tag/elements-alpha-cad1fc1fb-desktop-r2).
 
 `liquid-signet` remains the internal/protobuf identifier and directory key.
 The selected network is **Elements Alpha, slot 24**, not Signet.
@@ -48,8 +48,16 @@ including Windows paths with spaces, and uses the native platform executable.
 
 ## Windows and Linux qualification
 
-The September 12 desktop candidates were built from source commit
-`cad1fc1fb5695c14234c4e287cf9e47d958609e7` in Ubuntu 24.04 under WSL2.
+The September 12 desktop revision was built from source commit
+`b2b928fd65e02901d8a98ee38adfe35dfb0f379f` in Ubuntu 24.04 under WSL2,
+based on the Mac's `cad1fc1fb5695c14234c4e287cf9e47d958609e7` source.
+The native daemon adds a bounded download retry for admitted blocks that have
+not yet connected after a parent-validation timeout. It waits for their
+accumulator before requesting descendants; validation rules and deadlines
+are unchanged. It also reuses at most 256 hash-verified immutable raw parent
+headers per validation thread; proof-of-work is rechecked on hits, and
+active-chain metadata is not cached.
+The source branch corrects the C compiler build flags as well.
 Windows was cross-compiled with MinGW GCC 13.2 and executed on Windows.
 Linux uses GCC 13.3, static libevent/SQLite/libstdc++, and system glibc/libm.
 Windows imports only system DLLs; no MinGW DLL or WSL installation is needed.
@@ -60,42 +68,51 @@ Mac release. USDD's 26-file semantic source manifest is
 `fa87d87b59f9aa58b6a9477ec74e664810f9a218cfa09b638280e710ab5d5f42`;
 the native semantic-identity programs on Linux and Windows both report
 `6b0292570fa120ae885743a391eba18a1e530455284648cfde30dc28bf3b64a9`.
-The three frozen catalogue/profile definitions in the source build guide are
-preserved. No dummy verifier or changed consensus identity is used.
+The frozen catalogue/profile definitions in the source build guide are
+preserved. `ECX_SIMPLICITY_CATALOGUE_FROZEN=1` must be set for both C and C++:
+the C Simplicity decoder otherwise rejects the Alpha history at block 86.
+No dummy verifier or changed consensus identity is used.
 
 | Platform | Archive SHA256 | Executable SHA256 |
 | --- | --- | --- |
-| Linux x86_64 | `f5125e66ad2a33d95e3b1da9226b88f6a8b43be04d194a1798b3467f12d9e224` | `4a0beb8a084a753f4a9f023db75d2e8801ebf48c16dcd8442e7ddf105d715205` |
-| Windows x86_64 | `2a86bf6e0313455f2774b021fa2e02b7f5a90811283a006741b8b0c05e91b579` | `87d687f87d7ed54300ecde51ca0bf9253320ef13e24e950cd6704a2cfac17f75` |
+| Linux x86_64 | `be77167166b6761d7d68155cc35ad1a97f31f6faa886f352187a4c08edbefec0` | `cbd7c540c860fe6c013e26426997ac4d873123c7b0238f38bcc96a085bc6d86d` |
+| Windows x86_64 | `713a46f6af39946ba52fa8a51142f96fe94eb98eaae88c65ae24ebb909131442` | `edc2e88f4568352b6ceb6a48fbdaa177a64a85035239e3bc96296ae0af9de0dd` |
 
-`TestElementsCandidateOneClickInstall` passed on Linux in 120.23 seconds and on
-native Windows in 216.95 seconds. It serves the candidate archive locally and
-exercises the real downloader, both pin checks, `StartWithL1`, authenticated
-Alpha genesis, unfunded descriptor-wallet setup, already-running adoption, and
-restart preserving address ownership. The parent was already running and
-accessed through an SSH tunnel plus an authenticated read-only relay. These
-results do not establish cold parent download/IBD, a graphical end-to-end test,
-or every OS version. Temporary test nodes/data are isolated from existing wallets.
+`TestElementsCandidateOneClickInstall` passed on Linux in 202.12 seconds
+and native Windows in 449.17 seconds. It serves the final candidate
+archive locally and exercises real download/extraction, both SHA256 checks,
+`StartWithL1`, authenticated Alpha genesis, validation through block 86,
+unfunded descriptor-wallet setup, already-running adoption, and restart
+preserving address ownership. The parent was already running and accessed
+through an SSH tunnel plus an authenticated read-only relay. These results
+do not establish cold parent download/IBD, a graphical end-to-end test, or
+every OS version. Test nodes/data are isolated from existing wallets.
 
-After publication, `TestElementsPublishedOneClickInstall` passed against the
-public GitHub URLs on Linux in 111.83 seconds and native Windows in 205.35
-seconds. The published artifact hashes match the pins above. Focused backend
-tests pass on both platforms, and all 18 Flutter table/metadata tests pass on
-the Mac with the updated manifests and fallback configuration.
+The first desktop candidate was superseded after the stronger sync test
+exposed a missing C catalogue flag and a parent-timeout retry issue. The
+revision uses a new release tag and new archive/executable pins. Earlier
+genesis-only installer timings do not qualify the revised binaries.
+
+Focused Go installer/configuration/Elements tests pass on Linux and native
+Windows. Backend package tests pass, with the read-only-directory test rerun
+as a normal WSL user rather than root. Lint and backend build pass. All 18
+Flutter table/metadata tests pass on the Mac with the revised release URL.
 
 To qualify a candidate before publication, set `ELEMENTS_ALPHA_TEST_ARCHIVE`,
 `ELEMENTS_ALPHA_TEST_EXECUTABLE_SHA256`, and the parent environment variables
 below, then run `go test . -run '^TestElementsCandidateOneClickInstall$' -v
 -timeout 20m` from `sidechain-orchestrator`. The candidate metadata exists only
 inside that test; production pins are not overwritten. The published installer
-test now selects the current platform and retains the same checks.
+test selects the current platform and validates through block 86 by default;
+`ELEMENTS_ALPHA_TEST_MIN_HEIGHT` may select another positive checkpoint.
 
 Packaging/cache/tamper tests pass on Linux and Windows with both ZIP and tar.gz.
 Broader source-test qualification is **incomplete**: two test-only compilation
 repairs were needed (explicit `Txid::ToUint256()` in a pair comparison and a
 missing opt-in replay credential variable). No daemon source was changed for
-these repairs. On Linux, 31/32 selected native tests pass; the existing
-`native_candidate_parent_bound_script_cache` fixture fails four assertions.
+these repairs. On Linux, all 103 selected verifier, peg, startup, networking
+and validation tests pass, including the parent-timeout readiness regression,
+the two-second deadline test, and `native_candidate_parent_bound_script_cache`.
 The Windows C++ test runner aborts at the pre-test `g_used_g_prng` assertion.
 These limitations are separate from the passing real installer tests and are
 not represented as a green full consensus suite. Release provenance retains
@@ -130,7 +147,7 @@ Source PR CI's unfrozen build still fails on an unreachable-code warning.
 The installer candidate uses the frozen catalogue and activation profile;
 do not replace those with placeholders to produce a release.
 
-## Qualification
+## Original Apple Silicon qualification
 
 Focused race-enabled Go tests cover native configuration, idempotence and
 conflict preservation, parent/network rejection, cookie rotation, wrong genesis,
@@ -187,11 +204,12 @@ not bid, sign spend transactions, broadcast, or provision servers.
 
 ## Scope and limitations
 
-The qualified path is a fresh Apple Silicon Elements installation. Existing
+The qualified paths are fresh Windows x86_64, Linux x86_64 (glibc 2.39+), and
+Apple Silicon Elements installations. Existing
 custom metadata selecting the obsolete binary is refused; it is not silently
 migrated, and existing chain/wallet directories must not be deleted. Release
 publication does not establish clean-source reproducibility, notarization,
-cross-platform support, or successful testing on every macOS version.
+successful testing on every supported OS version, or full consensus-suite success.
 
 Validation-only startup and synchronization work without enabling enforcer
 spending. BMM/withdrawal operations require authenticated mTLS integration

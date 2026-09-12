@@ -231,7 +231,7 @@ class LiquidSignet extends Sidechain {
                  'files': {
                    'default': {
                      'base_url':
-                         'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-desktop/',
+                         'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-desktop-r2/',
                      'macos-arm64': 'elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip',
                      'linux-x86_64': 'elements-alpha-cad1fc1fb-linux-x86_64.tar.gz',
                      'windows-x86_64': 'elements-alpha-cad1fc1fb-windows-x86_64.zip',

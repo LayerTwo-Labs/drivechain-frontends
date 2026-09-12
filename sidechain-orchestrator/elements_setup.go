@@ -23,18 +23,18 @@ func verifyElementsArtifact(cfg BinaryConfig, path string, archive bool) error {
 	}
 	decoded, err := hex.DecodeString(expected)
 	if err != nil || len(decoded) != 32 {
-		return fmt.Errorf("Elements Alpha has no valid artifact pin for %s", currentPlatform())
+		return fmt.Errorf("elements alpha has no valid artifact pin for %s", currentPlatform())
 	}
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() {
-		return fmt.Errorf("Elements Alpha artifact must be a regular file: %s", path)
+		return fmt.Errorf("elements alpha artifact must be a regular file: %s", path)
 	}
 	actual, _, err := hashFile(path)
 	if err != nil {
 		return err
 	}
 	if actual != expected {
-		return fmt.Errorf("Elements Alpha artifact checksum mismatch; refusing %s", path)
+		return fmt.Errorf("elements alpha artifact checksum mismatch; refusing %s", path)
 	}
 	return nil
 }
@@ -64,10 +64,10 @@ func newElementsAlphaHealthCheck(cfg BinaryConfig) HealthChecker {
 
 func (o *Orchestrator) prepareElementsAlphaArgs(cfg BinaryConfig, opts *StartOpts) error {
 	if o.NodeMode() == NodeModeLight {
-		return fmt.Errorf("Elements Alpha needs a local authenticated Alphanet parent; light mode is unsupported")
+		return fmt.Errorf("elements alpha needs a local authenticated Alphanet parent; light mode is unsupported")
 	}
 	if o.BitcoinConf == nil {
-		return fmt.Errorf("Elements Alpha parent configuration is unavailable")
+		return fmt.Errorf("elements alpha parent configuration is unavailable")
 	}
 	if len(opts.TargetArgs) != 0 {
 		return fmt.Errorf("managed Elements Alpha startup does not accept custom flags")

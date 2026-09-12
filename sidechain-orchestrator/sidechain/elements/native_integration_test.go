@@ -84,7 +84,7 @@ func TestElementsNativeWalletIntegration(t *testing.T) {
 				w.WriteHeader(http.StatusBadGateway)
 				return
 			}
-			defer response.Body.Close()
+			defer func() { _ = response.Body.Close() }()
 			w.WriteHeader(response.StatusCode)
 			_, _ = io.Copy(w, response.Body)
 		}))

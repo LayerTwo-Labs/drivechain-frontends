@@ -31,7 +31,7 @@ func (n *Node) VerifyAlpha(ctx context.Context) error {
 		return err
 	}
 	if genesis != config.ElementsAlphaGenesis {
-		return fmt.Errorf("Elements Alpha genesis mismatch: %s", genesis)
+		return fmt.Errorf("elements alpha genesis mismatch: %s", genesis)
 	}
 	return nil
 }
@@ -50,7 +50,7 @@ func (n *Node) GetNewAddress(ctx context.Context) (string, error) {
 		return "", err
 	}
 	if !info.IsMine || info.Unconfidential == "" {
-		return "", fmt.Errorf("Elements wallet did not return an owned explicit address")
+		return "", fmt.Errorf("elements wallet did not return an owned explicit address")
 	}
 	return info.Unconfidential, nil
 }
@@ -89,11 +89,11 @@ func (n *Node) GetBalance(ctx context.Context) (int64, int64, error) {
 	var available int64
 	for i, amounts := range []map[string]json.Number{reply.Mine.Trusted, reply.Mine.Pending, reply.Mine.Immature} {
 		if amounts == nil {
-			return 0, 0, fmt.Errorf("Elements balance response missing asset map")
+			return 0, 0, fmt.Errorf("elements balance response missing asset map")
 		}
 		value, found := amounts[assetKey]
 		if !found {
-			return 0, 0, fmt.Errorf("Elements balance is missing the policy asset")
+			return 0, 0, fmt.Errorf("elements balance is missing the policy asset")
 		}
 		amount, ok := new(big.Rat).SetString(string(value))
 		if !ok || amount.Sign() < 0 {
@@ -101,7 +101,7 @@ func (n *Node) GetBalance(ctx context.Context) (int64, int64, error) {
 		}
 		amount.Mul(amount, big.NewRat(100000000, 1))
 		if !amount.IsInt() || !amount.Num().IsInt64() {
-			return 0, 0, fmt.Errorf("Elements balance is not a valid atom amount")
+			return 0, 0, fmt.Errorf("elements balance is not a valid atom amount")
 		}
 		if i == 0 {
 			available = amount.Num().Int64()
@@ -109,7 +109,7 @@ func (n *Node) GetBalance(ctx context.Context) (int64, int64, error) {
 		total.Add(total, amount.Num())
 	}
 	if !total.IsInt64() {
-		return 0, 0, fmt.Errorf("Elements balance overflow")
+		return 0, 0, fmt.Errorf("elements balance overflow")
 	}
 	return total.Int64(), available, nil
 }
