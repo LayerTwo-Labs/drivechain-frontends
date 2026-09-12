@@ -791,6 +791,7 @@ class BitnameDetails {
   final String? commitment;
   final String? socketAddrV4;
   final String? socketAddrV6;
+  final String? socketAddrHost;
   final String? encryptionPubkey;
   final String? signingPubkey;
   final int? paymailFeeSats;
@@ -800,6 +801,7 @@ class BitnameDetails {
     this.commitment,
     this.socketAddrV4,
     this.socketAddrV6,
+    this.socketAddrHost,
     this.encryptionPubkey,
     this.signingPubkey,
     this.paymailFeeSats,
@@ -810,6 +812,7 @@ class BitnameDetails {
     commitment: json['commitment'] as String?,
     socketAddrV4: json['socket_addr_v4'] as String?,
     socketAddrV6: json['socket_addr_v6'] as String?,
+    socketAddrHost: json['socket_addr_host'] as String?,
     encryptionPubkey: json['encryption_pubkey'] as String?,
     signingPubkey: json['signing_pubkey'] as String?,
     paymailFeeSats: json['paymail_fee_sats'] as int?,
