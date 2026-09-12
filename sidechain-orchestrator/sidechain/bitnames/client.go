@@ -294,7 +294,7 @@ func (c *Client) PendingWithdrawalBundle(ctx context.Context) (json.RawMessage, 
 
 // ConnectPeer connects to a peer at the given address.
 func (c *Client) ConnectPeer(ctx context.Context, address string) error {
-	_, err := c.call(ctx, "connect_peer", address)
+	_, err := c.call(ctx, "connect_peer", []any{address})
 	return err
 }
 
@@ -345,12 +345,12 @@ func (c *Client) DecryptMsg(ctx context.Context, encryptionPubkey, ciphertext st
 
 // SignArbitraryMsg signs a message with the specified verifying key.
 func (c *Client) SignArbitraryMsg(ctx context.Context, msg, verifyingKey string) (string, error) {
-	return unmarshal[string](c, ctx, "sign_arbitrary_msg", []interface{}{msg, verifyingKey})
+	return unmarshal[string](c, ctx, "sign_arbitrary_msg", []interface{}{verifyingKey, msg})
 }
 
 // SignArbitraryMsgAsAddr signs a message with the secret key for the given address.
 func (c *Client) SignArbitraryMsgAsAddr(ctx context.Context, msg, address string) (*SignatureResponse, error) {
-	r, err := unmarshal[SignatureResponse](c, ctx, "sign_arbitrary_msg_as_addr", []interface{}{msg, address})
+	r, err := unmarshal[SignatureResponse](c, ctx, "sign_arbitrary_msg_as_addr", []interface{}{address, msg})
 	if err != nil {
 		return nil, err
 	}
