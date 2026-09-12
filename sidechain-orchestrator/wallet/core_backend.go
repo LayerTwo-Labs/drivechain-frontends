@@ -46,6 +46,10 @@ type CoreBackend struct {
 	mu          sync.Mutex
 	coreWallets map[string]string // walletID -> Core wallet name
 
+	// holdMu guards frozenHolds, and it is never held across an RPC.
+	holdMu      sync.Mutex
+	frozenHolds map[string]*frozenHold // Core wallet name -> the sends that hold its frozen coins
+
 	// staleMu guards staleWallets, and it is never held across an RPC. The
 	// error hook runs inside a call that may already hold mu, so the two locks
 	// stay apart.

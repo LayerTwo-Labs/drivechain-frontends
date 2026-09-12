@@ -36,6 +36,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	dial "github.com/LayerTwo-Labs/sidesail/bitwindow/server/dial"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/engines"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/utxometadata"
 
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitdrive/v1/bitdrivev1connect"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/bitwindowd/v1/bitwindowdv1connect"
@@ -185,6 +186,15 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 			s.svcs.OrchestratorAddr,
 			connect.WithInterceptors(localauth.Interceptor(s.svcs.BitwindowDir)),
 		))
+	}
+
+	// A coin the user froze belongs to no send of ours: not a news broadcast,
+	// not a timestamp, not a BitDrive write.
+	if rt.db != nil {
+		db := rt.db
+		rt.walletEngine.SetFrozenCoins(func(ctx context.Context) ([]string, error) {
+			return utxometadata.FrozenOutpoints(ctx, db)
+		})
 	}
 
 	rt.chequeChain = engines.NewElectrumChequeChain(rt.walletEngine)
@@ -371,6 +381,14 @@ func (rt *Runtime) Start(parent context.Context) {
 	go func() {
 		defer rt.wg.Done()
 		rt.autoUnlockWallet(rt.ctx)
+	}()
+
+	// Coin selection runs in drivechaind, and a restart of it drops the frozen
+	// set. Hand the set over again while this runtime lives.
+	rt.wg.Add(1)
+	go func() {
+		defer rt.wg.Done()
+		rt.walletEngine.KeepFrozenCoins(rt.ctx)
 	}()
 
 	rt.runEngine("bitcoin", rt.bitcoinEngine.Run, log)

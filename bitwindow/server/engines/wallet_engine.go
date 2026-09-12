@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -88,6 +89,11 @@ type WalletEngine struct {
 	isUnlocked     bool
 	unlockCond     *sync.Cond
 
+	// frozenCoins names the coins the user froze, so no send of ours takes one.
+	frozenCoins FrozenCoinsFunc
+	// frozenPushMu runs one hand-over at a time, newest set last.
+	frozenPushMu sync.Mutex
+
 	// Maps walletId -> Bitcoin Core wallet name (cache)
 	coreWallets map[string]string
 
@@ -140,6 +146,97 @@ func NewWalletEngine(
 	}
 
 	return e
+}
+
+// FrozenCoinsFunc names the coins the user froze, as txid:vout.
+type FrozenCoinsFunc func(ctx context.Context) ([]string, error)
+
+// SetFrozenCoins wires the source that names the coins the user froze. Every
+// send this server makes leaves those coins alone.
+func (e *WalletEngine) SetFrozenCoins(fn FrozenCoinsFunc) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.frozenCoins = fn
+}
+
+// frozenCoinsInterval is how often the set goes over again. A drivechaind
+// restart drops the set it holds, and nothing here sees that restart. The
+// orchestrator picks coins for its own work too, so the window stays short.
+const frozenCoinsInterval = 10 * time.Second
+
+// KeepFrozenCoins hands the orchestrator the frozen set, and hands it over
+// again while ctx runs. Coin selection lives in drivechaind, and a restart of
+// it leaves the set behind.
+func (e *WalletEngine) KeepFrozenCoins(ctx context.Context) {
+	ticker := time.NewTicker(frozenCoinsInterval)
+	defer ticker.Stop()
+	for {
+		if err := e.PushFrozenCoins(ctx); err != nil {
+			zerolog.Ctx(ctx).Debug().Err(err).Msg("could not hand over the frozen coins")
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+// PushFrozenCoins hands over the whole frozen set of this install.
+func (e *WalletEngine) PushFrozenCoins(ctx context.Context) error {
+	return e.pushFrozenCoins(ctx)
+}
+
+// pushFrozenCoins hands the orchestrator the coins no send may take. It runs
+// before every send, so a drivechaind restart cannot leave the set behind.
+//
+// One push runs at a time. The set is read and sent under the same lock, so a
+// slow push cannot land after a newer one and put the older set back.
+func (e *WalletEngine) pushFrozenCoins(ctx context.Context) error {
+	e.mu.RLock()
+	fn := e.frozenCoins
+	e.mu.RUnlock()
+	if fn == nil || e.orchClient == nil {
+		return nil
+	}
+
+	e.frozenPushMu.Lock()
+	defer e.frozenPushMu.Unlock()
+
+	outpoints, err := fn(ctx)
+	if err != nil {
+		return fmt.Errorf("read the frozen coins: %w", err)
+	}
+
+	coins := make([]*orchpb.FrozenOutpoint, 0, len(outpoints))
+	for _, outpoint := range outpoints {
+		txid, vout, ok := splitOutpoint(outpoint)
+		if !ok {
+			return fmt.Errorf("frozen coin %q is not a txid:vout", outpoint)
+		}
+		coins = append(coins, &orchpb.FrozenOutpoint{Txid: txid, Vout: int32(vout)})
+	}
+
+	_, err = e.orchClient.SetFrozenCoins(ctx, connect.NewRequest(&orchpb.SetFrozenCoinsRequest{
+		Outpoints: coins,
+	}))
+	if err != nil {
+		return fmt.Errorf("set frozen coins: %w", err)
+	}
+	return nil
+}
+
+// splitOutpoint reads a txid:vout pair.
+func splitOutpoint(outpoint string) (string, int, bool) {
+	txid, voutText, found := strings.Cut(outpoint, ":")
+	if !found || txid == "" {
+		return "", 0, false
+	}
+	vout, err := strconv.Atoi(voutText)
+	if err != nil || vout < 0 {
+		return "", 0, false
+	}
+	return txid, vout, true
 }
 
 // SetOrchestratorClient sets the orchestrator WalletManagerService client.
@@ -886,6 +983,9 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 	if e.orchClient == nil {
 		return "", fmt.Errorf("orchestrator wallet client not connected")
 	}
+	if err := e.pushFrozenCoins(ctx); err != nil {
+		return "", err
+	}
 	resp, err := e.orchClient.SendTransaction(ctx, connect.NewRequest(req))
 	if err != nil {
 		return "", fmt.Errorf("send transaction: %w", err)
@@ -897,6 +997,9 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepositRequest) (string, error) {
 	if e.orchClient == nil {
 		return "", fmt.Errorf("orchestrator wallet client not connected")
+	}
+	if err := e.pushFrozenCoins(ctx); err != nil {
+		return "", err
 	}
 	resp, err := e.orchClient.CreateDeposit(ctx, connect.NewRequest(req))
 	if err != nil {

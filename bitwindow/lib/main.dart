@@ -293,6 +293,13 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerSingleton<M4Provider>(M4Provider());
   NetworkScopedRegistry.register<AddressBookProvider>(AddressBookProvider());
   GetIt.I.registerSingleton<CoinSelectionProvider>(CoinSelectionProvider());
+  // Coin selection runs in drivechaind, so a send hands it the frozen set
+  // first. Every frontend send reaches it through this one client.
+  GetIt.I.get<OrchestratorRPC>().wallet.frozenCoins = () async {
+    final coins = GetIt.I.get<CoinSelectionProvider>();
+    await coins.refresh();
+    return coins.frozenOutpoints.toList();
+  };
   NetworkScopedRegistry.register<ConsolidationProvider>(ConsolidationProvider());
   GetIt.I.registerSingleton<MiningProvider>(MiningProvider());
   NetworkScopedRegistry.register<HDWalletProvider>(HDWalletProvider());

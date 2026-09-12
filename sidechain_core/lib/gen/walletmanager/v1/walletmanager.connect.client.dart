@@ -587,6 +587,26 @@ extension type WalletManagerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// SetFrozenCoins records the coins the frontend froze. Every send after it
+  /// leaves those coins alone, and Bitcoin Core holds them locked for the
+  /// length of a send so its own coin selection skips them too.
+  Future<googleprotobufempty.Empty> setFrozenCoins(
+    walletmanagerv1walletmanager.SetFrozenCoinsRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.WalletManagerService.setFrozenCoins,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
   Future<walletmanagerv1walletmanager.CreateDepositResponse> createDeposit(
     walletmanagerv1walletmanager.CreateDepositRequest input, {

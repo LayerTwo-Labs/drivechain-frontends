@@ -53,6 +53,9 @@ const (
 type bidWallet interface {
 	// ResolveWalletID names the wallet an empty id means.
 	ResolveWalletID(walletID string) (string, error)
+	// HeldCoins names the coins the user froze, keyed txid:vout. A bid picks
+	// its coin by hand and pins it, so the coin has to leave the list here.
+	HeldCoins() map[string]bool
 	ListUnspent(
 		context.Context, *connect.Request[wpb.ListUnspentRequest],
 	) (*connect.Response[wpb.ListUnspentResponse], error)
@@ -879,12 +882,17 @@ func (h *BMMHandler) readWalletCoins(
 		return nil, err
 	}
 
+	frozen := h.wallet.HeldCoins()
+
 	out := &walletCoins{held: held}
 	for _, u := range unspent.Msg.Utxos {
 		if !u.Spendable {
 			continue
 		}
 		if spent[(wallet.Outpoint{TxID: u.Txid, Vout: int(u.Vout)}).Key()] {
+			continue
+		}
+		if frozen[(wallet.Outpoint{TxID: u.Txid, Vout: int(u.Vout)}).Key()] {
 			continue
 		}
 		if u.Confirmations > 0 {
