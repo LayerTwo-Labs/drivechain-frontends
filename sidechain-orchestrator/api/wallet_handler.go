@@ -824,6 +824,29 @@ func mapExternalInputs(exts []*pb.ExternalInput) []wallet.ExternalInput {
 	})
 }
 
+// SetFrozenCoins records the coins the frontend froze for one wallet, so every
+// later send leaves them alone.
+func (h *WalletHandler) SetFrozenCoins(ctx context.Context, req *connect.Request[pb.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+	if err := h.requireEngine(); err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	coins := make([]wallet.Outpoint, 0, len(req.Msg.Outpoints))
+	for _, out := range req.Msg.Outpoints {
+		if out.Txid == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a frozen coin needs a txid"))
+		}
+		coins = append(coins, wallet.Outpoint{TxID: out.Txid, Vout: int(out.Vout)})
+	}
+	h.svc.SetHeldCoins(walletID, coins)
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
 func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	// A transaction needs at least one output, but it doesn't have to be a
 	// payment: an OP_RETURN-only broadcast (e.g. coinnews) or a raw-script

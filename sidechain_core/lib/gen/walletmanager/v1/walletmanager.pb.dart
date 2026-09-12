@@ -5286,6 +5286,129 @@ class SendTransactionResponse extends $pb.GeneratedMessage {
   void clearTxid() => clearField(1);
 }
 
+class SetFrozenCoinsRequest extends $pb.GeneratedMessage {
+  factory SetFrozenCoinsRequest({
+    $core.String? walletId,
+    $core.Iterable<FrozenOutpoint>? outpoints,
+  }) {
+    final $result = create();
+    if (walletId != null) {
+      $result.walletId = walletId;
+    }
+    if (outpoints != null) {
+      $result.outpoints.addAll(outpoints);
+    }
+    return $result;
+  }
+  SetFrozenCoinsRequest._() : super();
+  factory SetFrozenCoinsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory SetFrozenCoinsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetFrozenCoinsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'walletId')
+    ..pc<FrozenOutpoint>(2, _omitFieldNames ? '' : 'outpoints', $pb.PbFieldType.PM, subBuilder: FrozenOutpoint.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  SetFrozenCoinsRequest clone() => SetFrozenCoinsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  SetFrozenCoinsRequest copyWith(void Function(SetFrozenCoinsRequest) updates) => super.copyWith((message) => updates(message as SetFrozenCoinsRequest)) as SetFrozenCoinsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetFrozenCoinsRequest create() => SetFrozenCoinsRequest._();
+  SetFrozenCoinsRequest createEmptyInstance() => create();
+  static $pb.PbList<SetFrozenCoinsRequest> createRepeated() => $pb.PbList<SetFrozenCoinsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static SetFrozenCoinsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetFrozenCoinsRequest>(create);
+  static SetFrozenCoinsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get walletId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set walletId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasWalletId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWalletId() => clearField(1);
+
+  /// The whole frozen set. An empty list frees every coin of the wallet.
+  @$pb.TagNumber(2)
+  $core.List<FrozenOutpoint> get outpoints => $_getList(1);
+}
+
+class FrozenOutpoint extends $pb.GeneratedMessage {
+  factory FrozenOutpoint({
+    $core.String? txid,
+    $core.int? vout,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (vout != null) {
+      $result.vout = vout;
+    }
+    return $result;
+  }
+  FrozenOutpoint._() : super();
+  factory FrozenOutpoint.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory FrozenOutpoint.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FrozenOutpoint', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'vout', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  FrozenOutpoint clone() => FrozenOutpoint()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  FrozenOutpoint copyWith(void Function(FrozenOutpoint) updates) => super.copyWith((message) => updates(message as FrozenOutpoint)) as FrozenOutpoint;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FrozenOutpoint create() => FrozenOutpoint._();
+  FrozenOutpoint createEmptyInstance() => create();
+  static $pb.PbList<FrozenOutpoint> createRepeated() => $pb.PbList<FrozenOutpoint>();
+  @$core.pragma('dart2js:noInline')
+  static FrozenOutpoint getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FrozenOutpoint>(create);
+  static FrozenOutpoint? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get vout => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set vout($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasVout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVout() => clearField(2);
+}
+
 /// RawOutput is a transaction output with a caller-supplied scriptPubKey.
 class RawOutput extends $pb.GeneratedMessage {
   factory RawOutput({
@@ -12399,6 +12522,9 @@ class WalletManagerServiceApi {
   ;
   $async.Future<SendTransactionResponse> sendTransaction($pb.ClientContext? ctx, SendTransactionRequest request) =>
     _client.invoke<SendTransactionResponse>(ctx, 'WalletManagerService', 'SendTransaction', request, SendTransactionResponse())
+  ;
+  $async.Future<$17.Empty> setFrozenCoins($pb.ClientContext? ctx, SetFrozenCoinsRequest request) =>
+    _client.invoke<$17.Empty>(ctx, 'WalletManagerService', 'SetFrozenCoins', request, $17.Empty())
   ;
   $async.Future<CreateDepositResponse> createDeposit($pb.ClientContext? ctx, CreateDepositRequest request) =>
     _client.invoke<CreateDepositResponse>(ctx, 'WalletManagerService', 'CreateDeposit', request, CreateDepositResponse())

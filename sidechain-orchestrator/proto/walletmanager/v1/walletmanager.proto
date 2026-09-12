@@ -59,6 +59,10 @@ service WalletManagerService {
   rpc EstimateFee(EstimateFeeRequest) returns (EstimateFeeResponse);
   rpc GetNewAddress(GetNewAddressRequest) returns (GetNewAddressResponse);
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+  // SetFrozenCoins records the coins the frontend froze. Every send after it
+  // leaves those coins alone, and Bitcoin Core holds them locked for the
+  // length of a send so its own coin selection skips them too.
+  rpc SetFrozenCoins(SetFrozenCoinsRequest) returns (google.protobuf.Empty);
 
   // CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
   rpc CreateDeposit(CreateDepositRequest) returns (CreateDepositResponse);
@@ -687,6 +691,17 @@ message SendTransactionRequest {
 
 message SendTransactionResponse {
   string txid = 1;
+}
+
+message SetFrozenCoinsRequest {
+  string wallet_id = 1;  // empty = active wallet
+  // The whole frozen set. An empty list frees every coin of the wallet.
+  repeated FrozenOutpoint outpoints = 2;
+}
+
+message FrozenOutpoint {
+  string txid = 1;
+  int32 vout = 2;
 }
 
 // RawOutput is a transaction output with a caller-supplied scriptPubKey.

@@ -259,6 +259,16 @@ abstract final class WalletManagerService {
     walletmanagerv1walletmanager.SendTransactionResponse.new,
   );
 
+  /// SetFrozenCoins records the coins the frontend froze. Every send after it
+  /// leaves those coins alone, and Bitcoin Core holds them locked for the
+  /// length of a send so its own coin selection skips them too.
+  static const setFrozenCoins = connect.Spec(
+    '/$name/SetFrozenCoins',
+    connect.StreamType.unary,
+    walletmanagerv1walletmanager.SetFrozenCoinsRequest.new,
+    googleprotobufempty.Empty.new,
+  );
+
   /// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
   static const createDeposit = connect.Spec(
     '/$name/CreateDeposit',

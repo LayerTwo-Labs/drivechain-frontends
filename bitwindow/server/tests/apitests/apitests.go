@@ -32,6 +32,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type configg struct {
@@ -358,6 +359,12 @@ func ExpectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 		Return(&connect.Response[orchpb.GetWalletStatusResponse]{
 			Msg: &orchpb.GetWalletStatusResponse{HasWallet: true, Unlocked: true},
 		}, nil).
+		AnyTimes()
+
+	// Every send hands over the coins the user froze first.
+	mock.EXPECT().
+		SetFrozenCoins(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil).
 		AnyTimes()
 
 	mock.EXPECT().

@@ -130,3 +130,35 @@ func TestGetTransactionDetailsFailsOnAnOwnershipError(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 }
+
+func TestSetFrozenCoinsRecordsTheWholeSet(t *testing.T) {
+	fake := &detailsProvider{rawTx: paymentWithChange()}
+	h, walletID := newDetailsHandler(t, fake)
+	ctx := context.Background()
+
+	_, err := h.SetFrozenCoins(ctx, connect.NewRequest(&pb.SetFrozenCoinsRequest{
+		WalletId:  walletID,
+		Outpoints: []*pb.FrozenOutpoint{{Txid: "held", Vout: 1}},
+	}))
+	require.NoError(t, err)
+
+	held := h.svc.HeldCoins(walletID)
+	assert.True(t, held[wallet.Outpoint{TxID: "held", Vout: 1}.Key()])
+
+	// An unfreeze arrives as a smaller set, and it must free the coin.
+	_, err = h.SetFrozenCoins(ctx, connect.NewRequest(&pb.SetFrozenCoinsRequest{WalletId: walletID}))
+	require.NoError(t, err)
+	assert.Empty(t, h.svc.HeldCoins(walletID))
+}
+
+func TestSetFrozenCoinsRefusesACoinWithoutATxid(t *testing.T) {
+	fake := &detailsProvider{rawTx: paymentWithChange()}
+	h, walletID := newDetailsHandler(t, fake)
+
+	_, err := h.SetFrozenCoins(context.Background(), connect.NewRequest(&pb.SetFrozenCoinsRequest{
+		WalletId:  walletID,
+		Outpoints: []*pb.FrozenOutpoint{{Vout: 1}},
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}

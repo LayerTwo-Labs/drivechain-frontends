@@ -58,6 +58,10 @@ type Service struct {
 	// leaves them alone.
 	frozenCoins FrozenCoinsFunc
 
+	// heldCoins names the coins a frontend froze, keyed by wallet then by
+	// txid:vout. Coin selection leaves them alone the same way.
+	heldCoins map[string]map[string]bool
+
 	// Callbacks
 	// Dart: deleteAllWallets stops all binaries before wiping (L560-575)
 	OnStopAllBinaries func() error

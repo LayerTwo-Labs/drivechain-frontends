@@ -1943,6 +1943,12 @@ func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetU
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set UTXO metadata: %w", err))
 	}
 
+	// Coin selection runs in drivechaind, so a freeze reaches it only when we
+	// hand the new set over.
+	if isFrozen != nil {
+		s.walletEngine.PushFrozenCoins(ctx)
+	}
+
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 

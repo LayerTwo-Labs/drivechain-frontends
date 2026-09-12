@@ -140,3 +140,24 @@ func GetFrozenOutpoints(ctx context.Context, db *sql.DB) ([]string, error) {
 	}
 	return outpoints, rows.Err()
 }
+
+// FrozenOutpoints names every outpoint the user froze, as txid:vout.
+func FrozenOutpoints(ctx context.Context, db *sql.DB) ([]string, error) {
+	rows, err := db.QueryContext(ctx,
+		`SELECT outpoint FROM utxo_metadata WHERE is_frozen = 1`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer database.SafeDefer(ctx, rows.Close)
+
+	var outpoints []string
+	for rows.Next() {
+		var outpoint string
+		if err := rows.Scan(&outpoint); err != nil {
+			return nil, err
+		}
+		outpoints = append(outpoints, outpoint)
+	}
+	return outpoints, rows.Err()
+}
