@@ -25,7 +25,12 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   final Map<RPCConnection, (double confirmed, double pending)> _balances = {};
   String? error;
 
-  bool initialized = false;
+  final Set<RPCConnection> _reported = {};
+
+  /// True once the headline connection answered. A sidechain answer must not
+  /// clear the loading state, or the bar shows an unread zero as the balance.
+  bool get initialized => _reported.contains(mainConnection);
+
   bool _isFetching = false;
   Timer? _fetchTimer;
 
@@ -81,9 +86,9 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   // Write a balance fetched elsewhere in the same batch as utxos/transactions,
   // so the displayed number can't drift from the list it belongs to.
   void setBalance(RPCConnection rpc, double confirmed, double pending) {
-    final changed = _balances[rpc] != (confirmed, pending) || !initialized;
+    final changed = _balances[rpc] != (confirmed, pending) || !_reported.contains(rpc);
     _balances[rpc] = (confirmed, pending);
-    initialized = true;
+    _reported.add(rpc);
     if (changed) {
       error = null;
       notifyListeners();
@@ -94,7 +99,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
     for (final rpc in connections) {
       _balances[rpc] = (0.0, 0.0);
     }
-    initialized = false;
+    _reported.clear();
     _lastWalletId = _walletReader?.activeWalletId;
     error = null;
     notifyListeners();
@@ -128,10 +133,9 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
           continue;
         }
         final (confirmed, pending) = balances;
-        if (!initialized) {
+        if (_reported.add(rpc)) {
           // wen't from not initialized to initialized, make sure to notify
           changed = true;
-          initialized = true;
         }
 
         if (_balances[rpc] != (confirmed, pending)) {
