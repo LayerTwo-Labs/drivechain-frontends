@@ -228,17 +228,29 @@ func (h *Handler) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[
 }
 
 func (h *Handler) GetBitNameData(ctx context.Context, req *connect.Request[pb.GetBitNameDataRequest]) (*connect.Response[pb.GetBitNameDataResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "bitname_data", req.Msg.Name)
-	if err != nil {
+	var details nodeBitnameDetails
+	if err := h.proxy.Client.Call(ctx, "bitname_data", req.Msg.Name, &details); err != nil {
 		return nil, err
+	}
+	raw, err := json.Marshal(details.toClient())
+	if err != nil {
+		return nil, fmt.Errorf("marshal bitname data: %w", err)
 	}
 	return connect.NewResponse(&pb.GetBitNameDataResponse{DataJson: string(raw)}), nil
 }
 
 func (h *Handler) ListBitNames(ctx context.Context, req *connect.Request[pb.ListBitNamesRequest]) (*connect.Response[pb.ListBitNamesResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "bitnames", nil)
-	if err != nil {
+	var entries []nodeBitnameEntry
+	if err := h.proxy.Client.Call(ctx, "bitnames", nil, &entries); err != nil {
 		return nil, err
+	}
+	listed := make([]BitnameEntry, len(entries))
+	for i, entry := range entries {
+		listed[i] = BitnameEntry{Hash: entry.Hash, Details: entry.Details.toClient()}
+	}
+	raw, err := json.Marshal(listed)
+	if err != nil {
+		return nil, fmt.Errorf("marshal bitnames: %w", err)
 	}
 	return connect.NewResponse(&pb.ListBitNamesResponse{BitnamesJson: string(raw)}), nil
 }
@@ -246,9 +258,15 @@ func (h *Handler) ListBitNames(ctx context.Context, req *connect.Request[pb.List
 func (h *Handler) RegisterBitName(ctx context.Context, req *connect.Request[pb.RegisterBitNameRequest]) (*connect.Response[pb.RegisterBitNameResponse], error) {
 	var data any
 	if req.Msg.DataJson != "" {
-		if err := json.Unmarshal([]byte(req.Msg.DataJson), &data); err != nil {
+		var client BitNameData
+		if err := json.Unmarshal([]byte(req.Msg.DataJson), &client); err != nil {
 			return nil, fmt.Errorf("unmarshal data: %w", err)
 		}
+		node, err := client.toNode()
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		data = node
 	}
 	var txid string
 	params := []any{req.Msg.PlainName, data}
@@ -324,17 +342,18 @@ func dataServerAddress(data BitNameData) (string, error) {
 }
 
 func (h *Handler) ResolveCommit(ctx context.Context, req *connect.Request[pb.ResolveCommitRequest]) (*connect.Response[pb.ResolveCommitResponse], error) {
-	var data BitNameData
-	if err := h.proxy.Client.Call(ctx, "bitname_data", req.Msg.Bitname, &data); err != nil {
+	var details nodeBitnameDetails
+	if err := h.proxy.Client.Call(ctx, "bitname_data", req.Msg.Bitname, &details); err != nil {
 		return nil, err
 	}
+	data := details.toClient()
 
 	if data.Commitment == nil || *data.Commitment == "" {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("bitname %s holds no commitment", req.Msg.Bitname))
 	}
 
-	address, err := dataServerAddress(data)
+	address, err := dataServerAddress(details.nodeBitNameData.toClient())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
