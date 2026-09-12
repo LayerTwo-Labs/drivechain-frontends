@@ -730,7 +730,9 @@ class ChatProvider extends ChangeNotifier {
     final walletChange = _walletChange;
     final outpointKey = entry.key;
     final data = entry.value as Map<String, dynamic>;
-    final seen = _messages.indexWhere((m) => m.txid == outpointKey || m.id == outpointKey);
+    final seen = _messages.indexWhere(
+      (m) => !m.isOutgoing && (m.txid == outpointKey || m.id == outpointKey),
+    );
     if (seen >= 0) {
       if (!pending && _messages[seen].isPending) {
         _messages[seen] = _messages[seen].copyWith(isPending: false);
@@ -791,9 +793,11 @@ class ChatProvider extends ChangeNotifier {
         throw const FormatException('The sender BitName has no encryption key');
       }
       messageId = memoMessage.storeId;
-      final duplicate = _messages.indexWhere((m) => m.id == messageId);
+      final duplicate = _messages.indexWhere(
+        (m) => m.id == messageId && (m.isOutgoing ? m.senderBitname : m.recipientBitname) == identity.hash,
+      );
       if (duplicate >= 0) {
-        if (!pending && _messages[duplicate].isPending) {
+        if (!pending && !_messages[duplicate].isOutgoing && _messages[duplicate].isPending) {
           _messages[duplicate] = _messages[duplicate].copyWith(isPending: false, txid: outpointKey);
           await _saveMessages();
         }
