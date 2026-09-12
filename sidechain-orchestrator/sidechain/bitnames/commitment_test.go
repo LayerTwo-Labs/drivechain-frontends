@@ -3,8 +3,11 @@ package bitnames
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,4 +72,41 @@ func TestFetchCommitmentErrorsWhenServerIsDown(t *testing.T) {
 
 	_, _, err := fetchCommitmentFrom(context.Background(), address, nil)
 	require.Error(t, err)
+}
+
+// countingConn reports the close of the connection the transport dialed.
+type countingConn struct {
+	net.Conn
+	closed atomic.Bool
+}
+
+func (c *countingConn) Close() error {
+	c.closed.Store(true)
+	return c.Conn.Close()
+}
+
+func TestFetchCommitmentClosesItsConnection(t *testing.T) {
+	// The transport lives for one call, so a connection it keeps alive holds a
+	// socket and a read goroutine until the process stops.
+	srv := fakeRPC(t, map[string]interface{}{"bitname_commit": map[string]string{"email": "bo@bb.no"}})
+	defer srv.Close()
+
+	target := strings.TrimPrefix(srv.URL, "http://")
+	var conns []*countingConn
+	dial := func(ctx context.Context, network, _ string) (net.Conn, error) {
+		conn, err := (&net.Dialer{}).DialContext(ctx, network, target)
+		if err != nil {
+			return nil, err
+		}
+		counted := &countingConn{Conn: conn}
+		conns = append(conns, counted)
+		return counted, nil
+	}
+
+	_, _, err := fetchCommitmentFrom(context.Background(), "bitnames.test:6002", dial)
+	require.NoError(t, err)
+	require.Len(t, conns, 1)
+
+	assert.Eventually(t, conns[0].closed.Load, time.Second, 10*time.Millisecond,
+		"the transport must close the connection it dialed")
 }

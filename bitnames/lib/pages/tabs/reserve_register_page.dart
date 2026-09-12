@@ -770,6 +770,11 @@ class BitnamesViewModel extends BaseViewModel {
         notifyListeners();
         return;
       }
+      if (commitmentAddress != address) {
+        registerError = 'The address changed while the read ran. Press Register again.';
+        notifyListeners();
+        return;
+      }
     }
 
     final commitment = commitmentController.text.trim().isEmpty ? null : commitmentController.text.trim();
@@ -879,18 +884,26 @@ class BitnamesViewModel extends BaseViewModel {
 
     try {
       final result = await bitnamesRPC.readCommitment(address);
+      // An edit during the read leaves the digest describing an address the
+      // fields no longer hold.
+      if (dataAddress() != address) {
+        return;
+      }
       commitmentData = result.dataJson;
       commitmentAddress = address;
       commitmentController.text = result.commitment;
     } catch (e) {
+      if (dataAddress() != address) {
+        return;
+      }
       commitmentAddress = null;
       commitmentData = null;
       commitmentController.clear();
       readError = e.toString();
+    } finally {
+      readLoading = false;
+      notifyListeners();
     }
-
-    readLoading = false;
-    notifyListeners();
   }
 
   @override
