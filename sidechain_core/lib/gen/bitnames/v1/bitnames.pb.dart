@@ -2857,6 +2857,202 @@ class EncryptMsgResponse extends $pb.GeneratedMessage {
   void clearCiphertext() => clearField(1);
 }
 
+class GetBitNameOwnerRequest extends $pb.GeneratedMessage {
+  factory GetBitNameOwnerRequest({
+    $core.String? bitname,
+  }) {
+    final $result = create();
+    if (bitname != null) {
+      $result.bitname = bitname;
+    }
+    return $result;
+  }
+  GetBitNameOwnerRequest._() : super();
+  factory GetBitNameOwnerRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBitNameOwnerRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBitNameOwnerRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'bitname')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBitNameOwnerRequest clone() => GetBitNameOwnerRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBitNameOwnerRequest copyWith(void Function(GetBitNameOwnerRequest) updates) => super.copyWith((message) => updates(message as GetBitNameOwnerRequest)) as GetBitNameOwnerRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameOwnerRequest create() => GetBitNameOwnerRequest._();
+  GetBitNameOwnerRequest createEmptyInstance() => create();
+  static $pb.PbList<GetBitNameOwnerRequest> createRepeated() => $pb.PbList<GetBitNameOwnerRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameOwnerRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBitNameOwnerRequest>(create);
+  static GetBitNameOwnerRequest? _defaultInstance;
+
+  /// The BitName hash, as hexadecimal.
+  @$pb.TagNumber(1)
+  $core.String get bitname => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set bitname($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasBitname() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBitname() => clearField(1);
+}
+
+class GetBitNameOwnerResponse extends $pb.GeneratedMessage {
+  factory GetBitNameOwnerResponse({
+    $core.String? address,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    return $result;
+  }
+  GetBitNameOwnerResponse._() : super();
+  factory GetBitNameOwnerResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetBitNameOwnerResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetBitNameOwnerResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetBitNameOwnerResponse clone() => GetBitNameOwnerResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetBitNameOwnerResponse copyWith(void Function(GetBitNameOwnerResponse) updates) => super.copyWith((message) => updates(message as GetBitNameOwnerResponse)) as GetBitNameOwnerResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameOwnerResponse create() => GetBitNameOwnerResponse._();
+  GetBitNameOwnerResponse createEmptyInstance() => create();
+  static $pb.PbList<GetBitNameOwnerResponse> createRepeated() => $pb.PbList<GetBitNameOwnerResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetBitNameOwnerResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetBitNameOwnerResponse>(create);
+  static GetBitNameOwnerResponse? _defaultInstance;
+
+  /// The address that holds the BitName today.
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
+}
+
+class GetPendingPaymailRequest extends $pb.GeneratedMessage {
+  factory GetPendingPaymailRequest() => create();
+  GetPendingPaymailRequest._() : super();
+  factory GetPendingPaymailRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPendingPaymailRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingPaymailRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPendingPaymailRequest clone() => GetPendingPaymailRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPendingPaymailRequest copyWith(void Function(GetPendingPaymailRequest) updates) => super.copyWith((message) => updates(message as GetPendingPaymailRequest)) as GetPendingPaymailRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPendingPaymailRequest create() => GetPendingPaymailRequest._();
+  GetPendingPaymailRequest createEmptyInstance() => create();
+  static $pb.PbList<GetPendingPaymailRequest> createRepeated() => $pb.PbList<GetPendingPaymailRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetPendingPaymailRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPendingPaymailRequest>(create);
+  static GetPendingPaymailRequest? _defaultInstance;
+}
+
+class GetPendingPaymailResponse extends $pb.GeneratedMessage {
+  factory GetPendingPaymailResponse({
+    $core.String? paymailJson,
+    $core.Iterable<$core.String>? mempoolTxids,
+  }) {
+    final $result = create();
+    if (paymailJson != null) {
+      $result.paymailJson = paymailJson;
+    }
+    if (mempoolTxids != null) {
+      $result.mempoolTxids.addAll(mempoolTxids);
+    }
+    return $result;
+  }
+  GetPendingPaymailResponse._() : super();
+  factory GetPendingPaymailResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetPendingPaymailResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPendingPaymailResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'paymailJson')
+    ..pPS(2, _omitFieldNames ? '' : 'mempoolTxids')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetPendingPaymailResponse clone() => GetPendingPaymailResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetPendingPaymailResponse copyWith(void Function(GetPendingPaymailResponse) updates) => super.copyWith((message) => updates(message as GetPendingPaymailResponse)) as GetPendingPaymailResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetPendingPaymailResponse create() => GetPendingPaymailResponse._();
+  GetPendingPaymailResponse createEmptyInstance() => create();
+  static $pb.PbList<GetPendingPaymailResponse> createRepeated() => $pb.PbList<GetPendingPaymailResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetPendingPaymailResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPendingPaymailResponse>(create);
+  static GetPendingPaymailResponse? _defaultInstance;
+
+  /// The same JSON object GetPaymail returns, holding only the outputs that
+  /// wait in the mempool.
+  @$pb.TagNumber(1)
+  $core.String get paymailJson => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set paymailJson($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasPaymailJson() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPaymailJson() => clearField(1);
+
+  /// Every transaction the mempool holds. A message a caller sent pays the
+  /// reader, so no paymail feed reports it, and this says whether it waits.
+  @$pb.TagNumber(2)
+  $core.List<$core.String> get mempoolTxids => $_getList(1);
+}
+
 class GetPaymailRequest extends $pb.GeneratedMessage {
   factory GetPaymailRequest() => create();
   GetPaymailRequest._() : super();
@@ -3797,6 +3993,12 @@ class BitnamesServiceApi {
   ;
   $async.Future<GetPaymailResponse> getPaymail($pb.ClientContext? ctx, GetPaymailRequest request) =>
     _client.invoke<GetPaymailResponse>(ctx, 'BitnamesService', 'GetPaymail', request, GetPaymailResponse())
+  ;
+  $async.Future<GetPendingPaymailResponse> getPendingPaymail($pb.ClientContext? ctx, GetPendingPaymailRequest request) =>
+    _client.invoke<GetPendingPaymailResponse>(ctx, 'BitnamesService', 'GetPendingPaymail', request, GetPendingPaymailResponse())
+  ;
+  $async.Future<GetBitNameOwnerResponse> getBitNameOwner($pb.ClientContext? ctx, GetBitNameOwnerRequest request) =>
+    _client.invoke<GetBitNameOwnerResponse>(ctx, 'BitnamesService', 'GetBitNameOwner', request, GetBitNameOwnerResponse())
   ;
   $async.Future<ResolveCommitResponse> resolveCommit($pb.ClientContext? ctx, ResolveCommitRequest request) =>
     _client.invoke<ResolveCommitResponse>(ctx, 'BitnamesService', 'ResolveCommit', request, ResolveCommitResponse())

@@ -130,10 +130,11 @@ class ChatPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 280,
+                      width: 360,
                       // Contact list (inlined)
                       child: SailCard(
-                        title: 'Contacts',
+                        title: 'Chats',
+                        subtitle: 'You pay a name to reach it. They keep the postage.',
                         bottomPadding: false,
                         child: model.contacts.isEmpty
                             ? Center(
@@ -209,11 +210,31 @@ class ChatPage extends StatelessWidget {
                                               ],
                                             ),
                                           ),
-                                          if (contact.lastMessageTime != null)
-                                            SailText.secondary12(
-                                              _formatTime(contact.lastMessageTime!),
-                                              color: theme.colors.textTertiary,
-                                            ),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (contact.lastMessageTime != null)
+                                                SailText.secondary12(
+                                                  _formatTime(contact.lastMessageTime!),
+                                                  color: theme.colors.textTertiary,
+                                                ),
+                                              if (model.unreadCount(contact.id) > 0) ...[
+                                                const SizedBox(height: SailStyleValues.padding04),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: theme.colors.primary,
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: SailText.secondary12(
+                                                    '${model.unreadCount(contact.id)}',
+                                                    color: theme.colors.background,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -247,7 +268,9 @@ class ChatPage extends StatelessWidget {
                           : SailCard(
                               title: model.selectedContact!.displayName,
                               subtitle:
-                                  'Paymail fee: ${model.selectedContact!.paymailFeeSats ?? 1000} sats per message',
+                                  '${model.postageSats} ${activeTicker.subunit} to reach them, plus '
+                                  '${ChatProvider.networkFeeSats} ${activeTicker.subunit} network fee. '
+                                  'They keep the postage.',
                               bottomPadding: false,
                               child: Column(
                                 children: [
@@ -275,45 +298,62 @@ class ChatPage extends StatelessWidget {
                                             // Message bubble (inlined)
                                             final isOwn = message.isOutgoing;
 
+                                            // A message the mempool still holds reads as sent, not
+                                            // as delivered.
+                                            final bodyColor = isOwn ? theme.colors.background : theme.colors.text;
+                                            final metaColor = isOwn
+                                                ? theme.colors.background.withValues(alpha: 0.7)
+                                                : theme.colors.textTertiary;
+
                                             return Align(
                                               alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
-                                              child: Container(
-                                                constraints: const BoxConstraints(maxWidth: 400),
-                                                margin: const EdgeInsets.symmetric(vertical: SailStyleValues.padding04),
-                                                padding: const EdgeInsets.all(SailStyleValues.padding12),
-                                                decoration: BoxDecoration(
-                                                  color: isOwn
-                                                      ? theme.colors.primary.withAlpha(30)
-                                                      : theme.colors.backgroundSecondary,
-                                                  borderRadius: BorderRadius.circular(12),
-                                                  border: Border.all(
-                                                    color: isOwn
-                                                        ? theme.colors.primary.withAlpha(50)
-                                                        : theme.colors.divider,
+                                              child: Opacity(
+                                                opacity: message.isPending ? 0.65 : 1,
+                                                child: Container(
+                                                  constraints: const BoxConstraints(maxWidth: 520),
+                                                  margin: const EdgeInsets.symmetric(
+                                                    vertical: SailStyleValues.padding04,
                                                   ),
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    SailText.primary13(message.content),
-                                                    const SizedBox(height: SailStyleValues.padding04),
-                                                    Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        SailText.secondary12(
-                                                          _formatMessageTime(message.timestamp),
-                                                          color: theme.colors.textTertiary,
-                                                        ),
-                                                        if (message.valueSats != null) ...[
-                                                          const SizedBox(width: SailStyleValues.padding08),
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: SailStyleValues.padding12,
+                                                    vertical: SailStyleValues.padding08,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isOwn
+                                                        ? theme.colors.primary
+                                                        : theme.colors.backgroundSecondary,
+                                                    borderRadius: BorderRadius.circular(14),
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      SailText.primary13(message.content, color: bodyColor),
+                                                      const SizedBox(height: SailStyleValues.padding04),
+                                                      Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
                                                           SailText.secondary12(
-                                                            '${message.valueSats} ${activeTicker.subunit}',
-                                                            color: theme.colors.textTertiary,
+                                                            _formatMessageTime(message.timestamp),
+                                                            color: metaColor,
                                                           ),
+                                                          if (message.valueSats != null) ...[
+                                                            const SizedBox(width: SailStyleValues.padding08),
+                                                            SailText.secondary12(
+                                                              '${message.valueSats} ${activeTicker.subunit}',
+                                                              color: metaColor,
+                                                            ),
+                                                          ],
+                                                          if (message.isPending) ...[
+                                                            const SizedBox(width: SailStyleValues.padding08),
+                                                            SailText.secondary12(
+                                                              'waiting for a block',
+                                                              color: metaColor,
+                                                            ),
+                                                          ],
                                                         ],
-                                                      ],
-                                                    ),
-                                                  ],
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             );
@@ -337,7 +377,7 @@ class ChatPage extends StatelessWidget {
                                       ),
                                       const SizedBox(width: SailStyleValues.padding08),
                                       SailButton(
-                                        label: 'Send',
+                                        label: 'Send · ${model.messageCostSats} ${activeTicker.subunit}',
                                         loading: model.isSending,
                                         disabled: model.messageController.text.isEmpty,
                                         onPressed: model.sendMessage,
@@ -735,6 +775,7 @@ class ChatViewModel extends BaseViewModel {
   final ChatProvider _chatProvider = GetIt.I.get<ChatProvider>();
   final BitnamesRPC _bitnamesRPC = GetIt.I.get<BitnamesRPC>();
   final TextEditingController messageController = TextEditingController();
+  late int _walletChange;
 
   bool get isConnected => _bitnamesRPC.connected;
 
@@ -749,6 +790,13 @@ class ChatViewModel extends BaseViewModel {
   List<ChatMessage> get currentConversation => _chatProvider.currentConversation;
 
   bool get isSending => _chatProvider.isSending;
+
+  /// How many messages of one conversation the reader has not opened.
+  int unreadCount(String contactId) => _chatProvider.unreadCount(contactId);
+
+  /// The postage the reader keeps, and what one message costs the wallet.
+  int get postageSats => _chatProvider.postageSats;
+  int get messageCostSats => _chatProvider.messageCostSats;
   String? get chatError => _chatProvider.error;
 
   bool get isClaiming => _chatProvider.isClaiming;
@@ -756,6 +804,7 @@ class ChatViewModel extends BaseViewModel {
   List<StatusMessage> get statusMessages => _chatProvider.statusMessages;
 
   ChatViewModel() {
+    _walletChange = _chatProvider.walletChange;
     _chatProvider.addListener(_onProviderChanged);
     _bitnamesRPC.addListener(_onConnectionChanged);
     messageController.addListener(notifyListeners);
@@ -768,6 +817,11 @@ class ChatViewModel extends BaseViewModel {
   }
 
   void _onProviderChanged() {
+    final walletChange = _chatProvider.walletChange;
+    if (walletChange != _walletChange) {
+      _walletChange = walletChange;
+      messageController.clear();
+    }
     notifyListeners();
   }
 
@@ -819,11 +873,11 @@ class ChatViewModel extends BaseViewModel {
     }
 
     final content = messageController.text;
+    final walletChange = _chatProvider.walletChange;
     messageController.clear();
 
     final txid = await _chatProvider.sendMessage(content);
-    if (txid == null && _chatProvider.error != null) {
-      // Message failed, restore text
+    if (walletChange == _chatProvider.walletChange && txid == null && _chatProvider.error != null) {
       messageController.text = content;
     }
   }

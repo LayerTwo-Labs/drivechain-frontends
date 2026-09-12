@@ -52,6 +52,8 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
   $async.Future<$2.DecryptMsgResponse> decryptMsg($pb.ServerContext ctx, $2.DecryptMsgRequest request);
   $async.Future<$2.EncryptMsgResponse> encryptMsg($pb.ServerContext ctx, $2.EncryptMsgRequest request);
   $async.Future<$2.GetPaymailResponse> getPaymail($pb.ServerContext ctx, $2.GetPaymailRequest request);
+  $async.Future<$2.GetPendingPaymailResponse> getPendingPaymail($pb.ServerContext ctx, $2.GetPendingPaymailRequest request);
+  $async.Future<$2.GetBitNameOwnerResponse> getBitNameOwner($pb.ServerContext ctx, $2.GetBitNameOwnerRequest request);
   $async.Future<$2.ResolveCommitResponse> resolveCommit($pb.ServerContext ctx, $2.ResolveCommitRequest request);
   $async.Future<$2.ReadCommitmentResponse> readCommitment($pb.ServerContext ctx, $2.ReadCommitmentRequest request);
   $async.Future<$2.SignArbitraryMsgResponse> signArbitraryMsg($pb.ServerContext ctx, $2.SignArbitraryMsgRequest request);
@@ -93,6 +95,8 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
       case 'DecryptMsg': return $2.DecryptMsgRequest();
       case 'EncryptMsg': return $2.EncryptMsgRequest();
       case 'GetPaymail': return $2.GetPaymailRequest();
+      case 'GetPendingPaymail': return $2.GetPendingPaymailRequest();
+      case 'GetBitNameOwner': return $2.GetBitNameOwnerRequest();
       case 'ResolveCommit': return $2.ResolveCommitRequest();
       case 'ReadCommitment': return $2.ReadCommitmentRequest();
       case 'SignArbitraryMsg': return $2.SignArbitraryMsgRequest();
@@ -137,6 +141,8 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
       case 'DecryptMsg': return this.decryptMsg(ctx, request as $2.DecryptMsgRequest);
       case 'EncryptMsg': return this.encryptMsg(ctx, request as $2.EncryptMsgRequest);
       case 'GetPaymail': return this.getPaymail(ctx, request as $2.GetPaymailRequest);
+      case 'GetPendingPaymail': return this.getPendingPaymail(ctx, request as $2.GetPendingPaymailRequest);
+      case 'GetBitNameOwner': return this.getBitNameOwner(ctx, request as $2.GetBitNameOwnerRequest);
       case 'ResolveCommit': return this.resolveCommit(ctx, request as $2.ResolveCommitRequest);
       case 'ReadCommitment': return this.readCommitment(ctx, request as $2.ReadCommitmentRequest);
       case 'SignArbitraryMsg': return this.signArbitraryMsg(ctx, request as $2.SignArbitraryMsgRequest);

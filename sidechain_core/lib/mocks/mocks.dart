@@ -1397,6 +1397,16 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
+  Future<String> getBitNameOwner(String bitname) async {
+    return 'mock_bitname_owner_address';
+  }
+
+  @override
+  Future<PendingPaymail> getPendingPaymail() async {
+    return const PendingPaymail(entries: {}, mempoolTxids: {});
+  }
+
+  @override
   Future<Map<String, dynamic>> getPaymail() async {
     return Future.value({'paymail': 'mock_paymail_1234'});
   }

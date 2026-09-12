@@ -393,3 +393,13 @@ func (c *Client) Stop(ctx context.Context) error {
 	_, err := c.call(ctx, "stop", nil)
 	return err
 }
+
+// ListMempool returns the transactions the node holds, as raw JSON.
+func (c *Client) ListMempool(ctx context.Context) (json.RawMessage, error) {
+	return c.call(ctx, "list_mempool", nil)
+}
+
+// WalletAddresses returns the addresses this wallet owns.
+func (c *Client) WalletAddresses(ctx context.Context) ([]string, error) {
+	return unmarshal[[]string](c, ctx, "get_wallet_addresses", nil)
+}
