@@ -23,6 +23,16 @@ func TestCheckGlobalAddressRejectsNonPublic(t *testing.T) {
 		"172.16.0.1:6002",
 		"169.254.1.1:6002",
 		"[::1]:6002",
+		// Go calls these global unicast, and they still reach a carrier or a lab.
+		"100.64.0.1:6002",
+		"198.18.0.1:6002",
+		"192.0.0.8:6002",
+		"203.0.113.7:6002",
+		"198.51.100.1:6002",
+		"192.0.2.1:6002",
+		"240.0.0.1:6002",
+		"[2001:db8::1]:6002",
+		"[fc00::1]:6002",
 	} {
 		err := checkGlobalAddress(address)
 		require.Error(t, err, "address %s must not pass", address)
@@ -36,7 +46,9 @@ func TestCheckGlobalAddressRejectsMalformed(t *testing.T) {
 }
 
 func TestCheckGlobalAddressAcceptsPublic(t *testing.T) {
-	require.NoError(t, checkGlobalAddress("203.0.113.7:6002"))
+	// A literal address skips DNS, so this test needs no network.
+	require.NoError(t, checkGlobalAddress("8.8.8.8:6002"))
+	require.NoError(t, checkGlobalAddress("[2606:4700:4700::1111]:6002"))
 }
 
 func TestFetchCommitmentRefusesLoopback(t *testing.T) {
