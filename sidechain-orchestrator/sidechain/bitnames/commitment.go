@@ -20,32 +20,35 @@ const (
 	commitMaxBody = 1 << 20
 )
 
-// checkGlobalAddress refuses an address that points back at the machine or at
+// resolveGlobalAddress refuses an address that points back at the machine or at
 // a private network. A BitName holder chooses it, so it can aim anywhere.
-func checkGlobalAddress(address string) error {
+func resolveGlobalAddress(address string) ([]netip.Addr, string, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
-		return fmt.Errorf("address %q is not host:port: %w", address, err)
+		return nil, "", fmt.Errorf("address %q is not host:port: %w", address, err)
 	}
 	if host == "" || port == "" {
-		return fmt.Errorf("address %q is not host:port", address)
+		return nil, "", fmt.Errorf("address %q is not host:port", address)
 	}
 
 	ips, err := net.LookupIP(host)
 	if err != nil {
-		return fmt.Errorf("resolve %q: %w", host, err)
+		return nil, "", fmt.Errorf("resolve %q: %w", host, err)
 	}
 	if len(ips) == 0 {
-		return fmt.Errorf("%q resolves to no address", host)
+		return nil, "", fmt.Errorf("%q resolves to no address", host)
 	}
 
+	addrs := make([]netip.Addr, 0, len(ips))
 	for _, ip := range ips {
-		if !ip.IsGlobalUnicast() || isSpecialUse(ip) {
-			return fmt.Errorf("%q resolves to the non-public address %s", host, ip)
+		addr, ok := netip.AddrFromSlice(ip)
+		if !ok || !ip.IsGlobalUnicast() || isSpecialUse(ip) {
+			return nil, "", fmt.Errorf("%q resolves to the non-public address %s", host, ip)
 		}
+		addrs = append(addrs, addr.Unmap())
 	}
 
-	return nil
+	return addrs, port, nil
 }
 
 // specialUsePrefixes holds the ranges that Go reports as global unicast, and
@@ -108,25 +111,57 @@ func CommitmentFor(raw json.RawMessage) (string, error) {
 // FetchCommitment calls bitname_commit on the data server at address, and
 // returns the JSON object it served with the digest that object commits to.
 func FetchCommitment(ctx context.Context, address string) (json.RawMessage, string, error) {
-	if err := checkGlobalAddress(address); err != nil {
+	addrs, port, err := resolveGlobalAddress(address)
+	if err != nil {
 		return nil, "", err
 	}
 
-	return fetchCommitmentFrom(ctx, address)
+	return fetchCommitmentFrom(ctx, address, pinnedDialer(addrs, port))
+}
+
+// pinnedDialer dials only the addresses that resolveGlobalAddress accepts. A
+// second lookup can answer with a private address that the check never sees.
+func pinnedDialer(addrs []netip.Addr, port string) func(context.Context, string, string) (net.Conn, error) {
+	var dialer net.Dialer
+
+	return func(ctx context.Context, network, _ string) (net.Conn, error) {
+		var lastErr error
+		for _, addr := range addrs {
+			conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(addr.String(), port))
+			if err == nil {
+				return conn, nil
+			}
+			lastErr = err
+		}
+		if lastErr == nil {
+			lastErr = fmt.Errorf("no address to dial")
+		}
+
+		return nil, lastErr
+	}
 }
 
 // fetchCommitmentFrom dials address without the public-address check. Only
 // FetchCommitment and a test reach it.
-func fetchCommitmentFrom(ctx context.Context, address string) (json.RawMessage, string, error) {
+func fetchCommitmentFrom(
+	ctx context.Context,
+	address string,
+	dial func(context.Context, string, string) (net.Conn, error),
+) (json.RawMessage, string, error) {
+	client := &http.Client{
+		Timeout: commitTimeout,
+		// A redirect can aim at a private address the check above refuses.
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return fmt.Errorf("%s redirects, which this client refuses", address)
+		},
+	}
+	if dial != nil {
+		client.Transport = &http.Transport{DialContext: dial}
+	}
+
 	server := &Client{
 		baseURL: "http://" + address,
-		http: &http.Client{
-			Timeout: commitTimeout,
-			// A redirect can aim at a private address the check above refused.
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return fmt.Errorf("%s redirects, which this client refuses", address)
-			},
-		},
+		http:    client,
 		maxBody: commitMaxBody,
 	}
 
