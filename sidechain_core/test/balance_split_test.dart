@@ -46,6 +46,16 @@ void main() {
     expect(provider.sidechainPendingBalance, 0.5);
   });
 
+  // The bar stops its loading skeleton on initialized. A sidechain answer with
+  // no mainchain answer would leave an unread zero reading as the balance.
+  test('a sidechain answer alone leaves the provider uninitialized', () {
+    provider.setBalance(thunder, 2, 0);
+    expect(provider.initialized, isFalse);
+
+    provider.setBalance(mainchain, 0, 0);
+    expect(provider.initialized, isTrue);
+  });
+
   // A sidechain window holds one connection, so it owns the headline figure.
   test('a lone connection drives the headline figure', () {
     final lone = MockThunderRPC();
