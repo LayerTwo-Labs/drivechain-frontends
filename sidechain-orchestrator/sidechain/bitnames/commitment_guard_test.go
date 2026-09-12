@@ -35,6 +35,13 @@ func TestResolveGlobalAddressRejectsNonPublic(t *testing.T) {
 		"240.0.0.1:6002",
 		"[2001:db8::1]:6002",
 		"[fc00::1]:6002",
+		// The IPv6 twins of the IPv4 ranges above.
+		"[2001:2::1]:6002",
+		"[2001::1]:6002",
+		"[2001:20::1]:6002",
+		"[2002::1]:6002",
+		"[3fff::1]:6002",
+		"[5f00::1]:6002",
 	} {
 		_, _, err := resolveGlobalAddress(context.Background(), address)
 		require.Error(t, err, "address %s must not pass", address)
