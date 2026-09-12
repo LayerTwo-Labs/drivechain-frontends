@@ -50,9 +50,11 @@ type jsonBinaryConf struct {
 		FlutterFrontend map[string]string          `json:"flutter_frontend"`
 	} `json:"directories"`
 
-	Download    *jsonDownloadConf `json:"download"`
-	AltDownload *jsonDownloadConf `json:"alternative_download"`
-	Hashes      map[string]any    `json:"hashes"`
+	Download            *jsonDownloadConf      `json:"download"`
+	AltDownload         *jsonDownloadConf      `json:"alternative_download"`
+	Hashes              map[string]ArchiveHash `json:"hashes"`
+	RequireHash         bool                   `json:"require_hash"`
+	PreserveArchiveTree bool                   `json:"preserve_archive_tree"`
 }
 
 type jsonDownloadConf struct {
@@ -256,18 +258,21 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 	}
 
 	bc := BinaryConfig{
-		Name:               name,
-		DisplayName:        jb.Name,
-		Version:            jb.Version,
-		Description:        jb.Description,
-		RepoURL:            jb.RepoURL,
-		Port:               jb.Port,
-		ChainLayer:         jb.ChainLayer,
-		Slot:               jb.Slot,
-		IsBitcoinCore:      jb.IsBitcoinCore,
-		LegacyWallet:       jb.LegacyWallet,
-		Dependencies:       jb.Dependencies,
-		StartupLogPatterns: jb.StartupLogPatterns,
+		ArchiveHashes:       jb.Hashes,
+		RequireHash:         jb.RequireHash,
+		PreserveArchiveTree: jb.PreserveArchiveTree,
+		Name:                name,
+		DisplayName:         jb.Name,
+		Version:             jb.Version,
+		Description:         jb.Description,
+		RepoURL:             jb.RepoURL,
+		Port:                jb.Port,
+		ChainLayer:          jb.ChainLayer,
+		Slot:                jb.Slot,
+		IsBitcoinCore:       jb.IsBitcoinCore,
+		LegacyWallet:        jb.LegacyWallet,
+		Dependencies:        jb.Dependencies,
+		StartupLogPatterns:  jb.StartupLogPatterns,
 	}
 
 	// Parse health check from JSON

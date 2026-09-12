@@ -310,7 +310,9 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<MempoolProvider>(() => MempoolProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
   NetworkScopedRegistry.register<ForkProvider>(ForkProvider()..init());
-  GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
+  if (!isSubWindow) {
+    GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
+  }
   NetworkScopedRegistry.register<FastWithdrawalProvider>(FastWithdrawalProvider());
   GetIt.I.registerSingleton<UpdateProvider>(
     UpdateProvider(
