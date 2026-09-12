@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/utils/commitment_validation.dart';
 import 'package:stacked/stacked.dart';
 import 'package:thirds/blake3.dart';
 
@@ -160,11 +161,6 @@ class BitnamesTabPage extends StatelessWidget {
                                   controller: model.registerNameController,
                                 ),
                                 SailTextField(
-                                  label: 'Commitment',
-                                  hintText: 'Enter commitment',
-                                  controller: model.commitmentController,
-                                ),
-                                SailTextField(
                                   label: 'IPv4 Address (optional)',
                                   hintText: 'Enter IPv4 address',
                                   controller: model.ipv4Controller,
@@ -173,6 +169,38 @@ class BitnamesTabPage extends StatelessWidget {
                                   label: 'IPv6 Address (optional)',
                                   hintText: 'Enter IPv6 address',
                                   controller: model.ipv6Controller,
+                                ),
+                                SailButton(
+                                  label: 'Read from server',
+                                  loading: model.readLoading,
+                                  onPressed: () => model.readCommitmentFromServer(),
+                                ),
+                                if (model.readError != null)
+                                  SailText.primary13(
+                                    model.readError!,
+                                    color: SailTheme.of(context).colors.error,
+                                  ),
+                                if (model.commitmentData != null) ...[
+                                  SailTextField(
+                                    label: 'Data from server',
+                                    hintText: '',
+                                    controller: TextEditingController(text: model.commitmentData),
+                                    readOnly: true,
+                                    maxLines: 4,
+                                    monospace: true,
+                                  ),
+                                  SailTextField(
+                                    label: 'Commitment (computed)',
+                                    hintText: '',
+                                    controller: model.commitmentController,
+                                    readOnly: true,
+                                    monospace: true,
+                                  ),
+                                ],
+                                SailTextField(
+                                  label: 'Paymail fee in sats (optional)',
+                                  hintText: 'Minimum you accept per message',
+                                  controller: model.paymailFeeController,
                                 ),
                                 SailCheckbox(
                                   label: 'Set Encryption Pubkey',
@@ -357,6 +385,7 @@ Future<void> showBitnameDetails(BuildContext context, BitnameEntry entry) async 
                       DetailRow(label: 'Signing Public Key', value: entry.details.signingPubkey!),
                     if (entry.details.paymailFeeSats != null)
                       DetailRow(label: 'Paymail Fee (sats)', value: entry.details.paymailFeeSats!.toString()),
+                    if (entry.details.commitment != null) _ResolvedCommitment(bitname: entry.hash),
                   ],
                 ),
               ),
@@ -367,6 +396,48 @@ Future<void> showBitnameDetails(BuildContext context, BitnameEntry entry) async 
     );
   });
   return;
+}
+
+class _ResolvedCommitment extends StatelessWidget {
+  final String bitname;
+
+  const _ResolvedCommitment({required this.bitname});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = SailTheme.of(context);
+
+    return FutureBuilder<ResolveCommitResult>(
+      future: GetIt.I.get<BitnamesRPC>().resolveCommit(bitname),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox.shrink();
+        }
+
+        if (snapshot.hasError) {
+          return SailText.primary13(
+            'Could not read the data: ${snapshot.error}',
+            color: theme.colors.error,
+          );
+        }
+
+        final result = snapshot.data!;
+        return SailColumn(
+          spacing: SailStyleValues.padding08,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DetailRow(label: 'Data from address', value: result.dataJson),
+            SailText.primary13(
+              result.matches
+                  ? 'This data hashes to the commitment on the chain.'
+                  : 'This data does not match the commitment on the chain.',
+              color: result.matches ? theme.colors.success : theme.colors.error,
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class DetailRow extends StatelessWidget {
@@ -430,6 +501,11 @@ class BitnamesViewModel extends BaseViewModel {
   // New state variables
   bool useEncryptionKey = false;
   bool useSigningKey = false;
+
+  // The JSON the address served, and the state of that read
+  String? commitmentData;
+  bool readLoading = false;
+  String? readError;
 
   BitnamesViewModel() {
     searchController.addListener(notifyListeners);
@@ -579,18 +655,19 @@ class BitnamesViewModel extends BaseViewModel {
       return;
     }
 
-    // Validate commitment if provided
-    if (commitment != null) {
-      // Check if commitment is a valid hex string
-      if (!RegExp(r'^[0-9a-fA-F]+$').hasMatch(commitment)) {
-        registerError = 'Commitment must be a valid hex string';
-        notifyListeners();
-        return;
-      }
+    final commitmentError = validateCommitment(commitment: commitment, ipv4: ipv4, ipv6: ipv6);
+    if (commitmentError != null) {
+      registerError = commitmentError;
+      notifyListeners();
+      return;
+    }
 
-      // Check if commitment is a valid Blake3 hash (64 characters)
-      if (commitment.length != 64) {
-        registerError = 'Commitment must be a valid Blake3 hash (64 characters)';
+    final paymailFeeText = paymailFeeController.text.trim();
+    int? paymailFeeSats;
+    if (paymailFeeText.isNotEmpty) {
+      paymailFeeSats = int.tryParse(paymailFeeText);
+      if (paymailFeeSats == null) {
+        registerError = 'Paymail fee must be a whole number of sats';
         notifyListeners();
         return;
       }
@@ -605,7 +682,7 @@ class BitnamesViewModel extends BaseViewModel {
         BitNameData(
           commitment: commitment,
           encryptionPubkey: useEncryptionKey ? encryptionKey : null,
-          paymailFeeSats: 1000,
+          paymailFeeSats: paymailFeeSats,
           signingPubkey: useSigningKey ? signingKey : null,
           socketAddrV4: ipv4,
           socketAddrV6: ipv6,
@@ -626,8 +703,11 @@ class BitnamesViewModel extends BaseViewModel {
       commitmentController.clear();
       ipv4Controller.clear();
       ipv6Controller.clear();
+      paymailFeeController.clear();
       useEncryptionKey = false;
       useSigningKey = false;
+      commitmentData = null;
+      readError = null;
 
       await generateKeysWithRetry();
     } catch (e) {
@@ -635,6 +715,35 @@ class BitnamesViewModel extends BaseViewModel {
       registerLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> readCommitmentFromServer() async {
+    final ipv4 = ipv4Controller.text.trim();
+    final ipv6 = ipv6Controller.text.trim();
+    final address = ipv4.isNotEmpty ? ipv4 : ipv6;
+
+    if (address.isEmpty) {
+      readError = 'Set an address first';
+      notifyListeners();
+      return;
+    }
+
+    readLoading = true;
+    readError = null;
+    notifyListeners();
+
+    try {
+      final result = await bitnamesRPC.readCommitment(address);
+      commitmentData = result.dataJson;
+      commitmentController.text = result.commitment;
+    } catch (e) {
+      commitmentData = null;
+      commitmentController.clear();
+      readError = e.toString();
+    }
+
+    readLoading = false;
+    notifyListeners();
   }
 
   @override
