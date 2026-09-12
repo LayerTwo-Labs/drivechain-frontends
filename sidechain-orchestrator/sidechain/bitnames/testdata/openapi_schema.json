@@ -1868,6 +1868,13 @@
                               }
                             ]
                           },
+                          "socket_addr_host": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Optional `host:port`, resolved by DNS. Used when neither socket addr is\nset."
+                          },
                           "socket_addr_v4": {
                             "type": [
                               "string",
@@ -2386,6 +2393,7 @@
           "commitment",
           "socket_addr_v4",
           "socket_addr_v6",
+          "socket_addr_host",
           "encryption_pubkey",
           "signing_pubkey",
           "paymail_fee_sats"
@@ -2475,6 +2483,33 @@
             ]
           },
           "signing_pubkey": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Delete"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Retain"
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "Set"
+                ],
+                "properties": {
+                  "Set": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          },
+          "socket_addr_host": {
             "oneOf": [
               {
                 "type": "string",
@@ -2891,6 +2926,13 @@
                 "description": "Optional pubkey used for signing messages"
               }
             ]
+          },
+          "socket_addr_host": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional `host:port`, resolved by DNS. Used when neither socket addr is\nset."
           },
           "socket_addr_v4": {
             "type": [
