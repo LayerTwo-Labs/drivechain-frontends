@@ -247,6 +247,7 @@ const UnspentOutput$json = {
     {'1': 'splittable', '3': 9, '4': 1, '5': 8, '9': 1, '10': 'splittable', '17': true},
     {'1': 'height', '3': 10, '4': 1, '5': 5, '10': 'height'},
     {'1': 'input_weight_units', '3': 11, '4': 1, '5': 5, '10': 'inputWeightUnits'},
+    {'1': 'confirmations', '3': 12, '4': 1, '5': 5, '10': 'confirmations'},
   ],
   '8': [
     {'1': '_denial_info'},
@@ -263,8 +264,8 @@ final $typed_data.Uint8List unspentOutputDescriptor = $convert.base64Decode(
     'bxgHIAEoCzIZLmJpdHdpbmRvd2QudjEuRGVuaWFsSW5mb0gAUgpkZW5pYWxJbmZviAEBEicKD2'
     'Rlcml2YXRpb25fcGF0aBgIIAEoCVIOZGVyaXZhdGlvblBhdGgSIwoKc3BsaXR0YWJsZRgJIAEo'
     'CEgBUgpzcGxpdHRhYmxliAEBEhYKBmhlaWdodBgKIAEoBVIGaGVpZ2h0EiwKEmlucHV0X3dlaW'
-    'dodF91bml0cxgLIAEoBVIQaW5wdXRXZWlnaHRVbml0c0IOCgxfZGVuaWFsX2luZm9CDQoLX3Nw'
-    'bGl0dGFibGU=');
+    'dodF91bml0cxgLIAEoBVIQaW5wdXRXZWlnaHRVbml0cxIkCg1jb25maXJtYXRpb25zGAwgASgF'
+    'Ug1jb25maXJtYXRpb25zQg4KDF9kZW5pYWxfaW5mb0INCgtfc3BsaXR0YWJsZQ==');
 
 @$core.Deprecated('Use listUnspentResponseDescriptor instead')
 const ListUnspentResponse$json = {

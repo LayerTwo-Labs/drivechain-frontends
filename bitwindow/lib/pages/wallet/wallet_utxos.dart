@@ -455,7 +455,10 @@ class _UTXOTableState extends State<UTXOTable> {
                       : const SizedBox(width: 14),
                 ),
                 SailTableCell(
-                  value: utxo.hasReceivedAt() ? formatDate(utxo.receivedAt.toDateTime().toLocal()) : '—',
+                  value: utxo.confirmations == 0
+                      ? 'Pending'
+                      : (utxo.hasReceivedAt() ? formatDate(utxo.receivedAt.toDateTime().toLocal()) : '—'),
+                  textColor: utxo.confirmations == 0 ? theme.colors.orange : null,
                 ),
                 SailTableCell(
                   value: '${utxo.output.substring(0, 6)}..:${utxo.output.split(':').last}',
