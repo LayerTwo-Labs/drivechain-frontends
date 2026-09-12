@@ -102,9 +102,9 @@ class ProcessManager extends ChangeNotifier {
       runningProcesses.remove(binary.name);
       await pidFileManager.deletePidFile(binary);
       logProvider.addExitMarker(binary.type, binary.name, null);
-      notifyListeners();
+      _notify();
     });
-    notifyListeners();
+    _notify();
   }
 
   bool _holdsAdopted(Binary binary, int pid) {
@@ -113,6 +113,15 @@ class ProcessManager extends ChangeNotifier {
     }
     final process = runningProcesses[binary.name];
     return process != null && process.adopted && process.pid == pid;
+  }
+
+  /// A spawned process reports its exit whenever it ends, and an adopted one
+  /// polls. Both can outlive the dispose.
+  void _notify() {
+    if (_disposed) {
+      return;
+    }
+    notifyListeners();
   }
 
   void _cancelAdoptedWatch(Binary binary) {
@@ -310,7 +319,7 @@ class ProcessManager extends ChangeNotifier {
           _stdoutStreams.remove(binary.name);
           _finalErr.remove(binary.name);
         } finally {
-          notifyListeners();
+          _notify();
         }
       }),
     );
@@ -333,7 +342,7 @@ class ProcessManager extends ChangeNotifier {
     // Write PID file so we can find this process after hot restart/crash
     await pidFileManager.writePidFile(binary, process.pid);
 
-    notifyListeners();
+    _notify();
     return process.pid;
   }
 
@@ -386,7 +395,7 @@ class ProcessManager extends ChangeNotifier {
     _cancelAdoptedWatch(process.binary);
     runningProcesses.remove(process.binary.name);
     await pidFileManager.deletePidFile(process.binary);
-    notifyListeners();
+    _notify();
   }
 
   /// Check if a PID is still alive
