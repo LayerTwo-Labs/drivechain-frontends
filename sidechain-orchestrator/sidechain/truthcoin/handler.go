@@ -114,7 +114,7 @@ func (h *Handler) ListUtxos(ctx context.Context, req *connect.Request[pb.ListUtx
 }
 
 func (h *Handler) RemoveFromMempool(ctx context.Context, req *connect.Request[pb.RemoveFromMempoolRequest]) (*connect.Response[pb.RemoveFromMempoolResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "remove_from_mempool", req.Msg.Txid, nil); err != nil {
+	if err := h.proxy.Client.Call(ctx, "remove_from_mempool", []any{req.Msg.Txid}, nil); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.RemoveFromMempoolResponse{}), nil
@@ -137,7 +137,7 @@ func (h *Handler) GenerateMnemonic(ctx context.Context, req *connect.Request[pb.
 }
 
 func (h *Handler) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[pb.SetSeedFromMnemonicRequest]) (*connect.Response[pb.SetSeedFromMnemonicResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "set_seed_from_mnemonic", req.Msg.Mnemonic, nil); err != nil {
+	if err := h.proxy.Client.Call(ctx, "set_seed_from_mnemonic", []any{req.Msg.Mnemonic}, nil); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.SetSeedFromMnemonicResponse{}), nil
@@ -192,7 +192,7 @@ func (h *Handler) ListPeers(ctx context.Context, req *connect.Request[pb.ListPee
 }
 
 func (h *Handler) GetBlock(ctx context.Context, req *connect.Request[pb.GetBlockRequest]) (*connect.Response[pb.GetBlockResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_block", req.Msg.Hash)
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_block", []any{req.Msg.Hash})
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (h *Handler) GetBestSidechainBlockHash(ctx context.Context, req *connect.Re
 
 func (h *Handler) GetBmmInclusions(ctx context.Context, req *connect.Request[pb.GetBmmInclusionsRequest]) (*connect.Response[pb.GetBmmInclusionsResponse], error) {
 	var inclusions string
-	if err := h.proxy.Client.Call(ctx, "get_bmm_inclusions", req.Msg.BlockHash, &inclusions); err != nil {
+	if err := h.proxy.Client.Call(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash}, &inclusions); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: inclusions}), nil
@@ -231,7 +231,7 @@ func (h *Handler) RefreshWallet(ctx context.Context, req *connect.Request[pb.Ref
 }
 
 func (h *Handler) GetTransaction(ctx context.Context, req *connect.Request[pb.GetTransactionRequest]) (*connect.Response[pb.GetTransactionResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction", req.Msg.Txid)
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction", []any{req.Msg.Txid})
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (h *Handler) GetTransaction(ctx context.Context, req *connect.Request[pb.Ge
 }
 
 func (h *Handler) GetTransactionInfo(ctx context.Context, req *connect.Request[pb.GetTransactionInfoRequest]) (*connect.Response[pb.GetTransactionInfoResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction_info", req.Msg.Txid)
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_transaction_info", []any{req.Msg.Txid})
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +310,7 @@ func (h *Handler) MarketList(ctx context.Context, req *connect.Request[pb.Market
 }
 
 func (h *Handler) MarketGet(ctx context.Context, req *connect.Request[pb.MarketGetRequest]) (*connect.Response[pb.MarketGetResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "market_get", req.Msg.MarketId)
+	raw, err := h.proxy.Client.CallRaw(ctx, "market_get", []any{req.Msg.MarketId})
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func (h *Handler) SlotList(ctx context.Context, req *connect.Request[pb.SlotList
 }
 
 func (h *Handler) SlotGet(ctx context.Context, req *connect.Request[pb.SlotGetRequest]) (*connect.Response[pb.SlotGetResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "slot_get", req.Msg.SlotId)
+	raw, err := h.proxy.Client.CallRaw(ctx, "slot_get", []any{req.Msg.SlotId})
 	if err != nil {
 		return nil, err
 	}
@@ -431,7 +431,7 @@ func (h *Handler) VoteRegister(ctx context.Context, req *connect.Request[pb.Vote
 }
 
 func (h *Handler) VoteVoter(ctx context.Context, req *connect.Request[pb.VoteVoterRequest]) (*connect.Response[pb.VoteVoterResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "vote_voter", req.Msg.Address)
+	raw, err := h.proxy.Client.CallRaw(ctx, "vote_voter", []any{req.Msg.Address})
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +471,7 @@ func (h *Handler) VoteList(ctx context.Context, req *connect.Request[pb.VoteList
 }
 
 func (h *Handler) VotePeriod(ctx context.Context, req *connect.Request[pb.VotePeriodRequest]) (*connect.Response[pb.VotePeriodResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "vote_period", req.Msg.PeriodId)
+	raw, err := h.proxy.Client.CallRaw(ctx, "vote_period", []any{req.Msg.PeriodId})
 	if err != nil {
 		return nil, err
 	}
@@ -491,7 +491,7 @@ func (h *Handler) VotecoinTransfer(ctx context.Context, req *connect.Request[pb.
 
 func (h *Handler) VotecoinBalance(ctx context.Context, req *connect.Request[pb.VotecoinBalanceRequest]) (*connect.Response[pb.VotecoinBalanceResponse], error) {
 	var balance int64
-	if err := h.proxy.Client.Call(ctx, "votecoin_balance", req.Msg.Address, &balance); err != nil {
+	if err := h.proxy.Client.Call(ctx, "votecoin_balance", []any{req.Msg.Address}, &balance); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.VotecoinBalanceResponse{Balance: balance}), nil

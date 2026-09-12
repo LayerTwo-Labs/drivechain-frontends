@@ -116,7 +116,7 @@ func (h *Handler) ListUtxos(ctx context.Context, req *connect.Request[pb.ListUtx
 }
 
 func (h *Handler) RemoveFromMempool(ctx context.Context, req *connect.Request[pb.RemoveFromMempoolRequest]) (*connect.Response[pb.RemoveFromMempoolResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "remove_from_mempool", req.Msg.Txid, nil); err != nil {
+	if err := h.proxy.Client.Call(ctx, "remove_from_mempool", []any{req.Msg.Txid}, nil); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.RemoveFromMempoolResponse{}), nil
@@ -139,7 +139,7 @@ func (h *Handler) GenerateMnemonic(ctx context.Context, req *connect.Request[pb.
 }
 
 func (h *Handler) SetSeedFromMnemonic(ctx context.Context, req *connect.Request[pb.SetSeedFromMnemonicRequest]) (*connect.Response[pb.SetSeedFromMnemonicResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "set_seed_from_mnemonic", req.Msg.Mnemonic, nil); err != nil {
+	if err := h.proxy.Client.Call(ctx, "set_seed_from_mnemonic", []any{req.Msg.Mnemonic}, nil); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.SetSeedFromMnemonicResponse{}), nil
@@ -186,7 +186,7 @@ func (h *Handler) ConnectPeer(ctx context.Context, req *connect.Request[pb.Conne
 }
 
 func (h *Handler) ForgetPeer(ctx context.Context, req *connect.Request[pb.ForgetPeerRequest]) (*connect.Response[pb.ForgetPeerResponse], error) {
-	if err := h.proxy.Client.Call(ctx, "forget_peer", req.Msg.Address, nil); err != nil {
+	if err := h.proxy.Client.Call(ctx, "forget_peer", []any{req.Msg.Address}, nil); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.ForgetPeerResponse{}), nil
@@ -201,7 +201,7 @@ func (h *Handler) ListPeers(ctx context.Context, req *connect.Request[pb.ListPee
 }
 
 func (h *Handler) GetBlock(ctx context.Context, req *connect.Request[pb.GetBlockRequest]) (*connect.Response[pb.GetBlockResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "get_block", req.Msg.Hash)
+	raw, err := h.proxy.Client.CallRaw(ctx, "get_block", []any{req.Msg.Hash})
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (h *Handler) GetBestSidechainBlockHash(ctx context.Context, req *connect.Re
 
 func (h *Handler) GetBmmInclusions(ctx context.Context, req *connect.Request[pb.GetBmmInclusionsRequest]) (*connect.Response[pb.GetBmmInclusionsResponse], error) {
 	var inclusions string
-	if err := h.proxy.Client.Call(ctx, "get_bmm_inclusions", req.Msg.BlockHash, &inclusions); err != nil {
+	if err := h.proxy.Client.Call(ctx, "get_bmm_inclusions", []any{req.Msg.BlockHash}, &inclusions); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&pb.GetBmmInclusionsResponse{Inclusions: inclusions}), nil
@@ -299,7 +299,7 @@ func (h *Handler) ListSwaps(ctx context.Context, req *connect.Request[pb.ListSwa
 }
 
 func (h *Handler) ListSwapsByRecipient(ctx context.Context, req *connect.Request[pb.ListSwapsByRecipientRequest]) (*connect.Response[pb.ListSwapsByRecipientResponse], error) {
-	raw, err := h.proxy.Client.CallRaw(ctx, "list_swaps_by_recipient", req.Msg.Recipient)
+	raw, err := h.proxy.Client.CallRaw(ctx, "list_swaps_by_recipient", []any{req.Msg.Recipient})
 	if err != nil {
 		return nil, err
 	}
