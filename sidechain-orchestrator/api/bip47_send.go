@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/proto"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
@@ -147,6 +148,15 @@ func (h *WalletHandler) buildBip47NotificationTx(
 		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("list unspent: %w", err))
 	}
 
+	// The pick below becomes a required input, which Core spends as it is
+	// told. A coin the user froze has to leave the list here.
+	frozen, err := h.svc.FrozenCoins(ctx, walletID, lo.Map(utxos, func(u wallet.UTXO, _ int) wallet.Outpoint {
+		return wallet.Outpoint{TxID: u.TxID, Vout: u.Vout, Confirmed: u.Confirmations > 0}
+	}))
+	if err != nil {
+		return "", "", connect.NewError(connect.CodeInternal, err)
+	}
+
 	const dustSats int64 = 546
 	feeSats := bip47send.EstimateNotificationFee(2)
 	minRequired := dustSats + feeSats + dustSats
@@ -154,6 +164,9 @@ func (h *WalletHandler) buildBip47NotificationTx(
 	var picked *wallet.UTXO
 	for i, u := range utxos {
 		if !u.Spendable {
+			continue
+		}
+		if frozen[(wallet.Outpoint{TxID: u.TxID, Vout: u.Vout}).Key()] {
 			continue
 		}
 		amountSats := int64(math.Round(u.Amount * 1e8))

@@ -32,6 +32,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type configg struct {
@@ -329,6 +330,16 @@ func ExpectCoreWalletSetup(mock *mocks.MockBitcoinServiceClient) {
 // Note the node mode it reports is FULL, so a test that exercises light mode
 // must set its own GetNodeMode expectation.
 func ExpectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
+	expectOrchestratorReads(mock)
+
+	// Every send hands over the coins the user froze first.
+	mock.EXPECT().
+		SetFrozenCoins(gomock.Any(), gomock.Any()).
+		Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil).
+		AnyTimes()
+}
+
+func expectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 	seedHex := "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" +
 		"202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
 
@@ -366,4 +377,10 @@ func ExpectOrchestratorReads(mock *mocks.MockWalletManagerServiceClient) {
 			Msg: &orchpb.GetNodeModeResponse{Mode: orchpb.NodeMode_NODE_MODE_FULL},
 		}, nil).
 		AnyTimes()
+}
+
+// ExpectOrchestratorReadsWithoutFrozenCoins is ExpectOrchestratorReads for a
+// test that answers SetFrozenCoins itself.
+func ExpectOrchestratorReadsWithoutFrozenCoins(mock *mocks.MockWalletManagerServiceClient) {
+	expectOrchestratorReads(mock)
 }

@@ -123,6 +123,8 @@ type fakeBidWallet struct {
 	addresses int
 	sends     []*wpb.SendTransactionRequest
 	sendTxid  string
+	// heldCoins names the coins the user froze, keyed txid:vout.
+	heldCoins map[string]bool
 	// details answers GetTransactionDetails, and txs answers ListTransactions.
 	details map[string]*wpb.GetTransactionDetailsResponse
 	txs     []*wpb.TransactionEntry
@@ -169,6 +171,9 @@ func (w *fakeBidWallet) ListTransactions(
 	}
 	return connect.NewResponse(&wpb.ListTransactionsResponse{Transactions: txs}), nil
 }
+
+// heldCoins names the coins a test froze, keyed txid:vout.
+func (w *fakeBidWallet) HeldCoins() map[string]bool { return w.heldCoins }
 
 func (w *fakeBidWallet) ResolveWalletID(walletID string) (string, error) {
 	if walletID == "" {
@@ -780,4 +785,25 @@ func TestPrepareBMMSkipsABidDescendant(t *testing.T) {
 	require.Len(t, wallet.sends, 1)
 	require.Len(t, wallet.sends[0].RequiredInputs, 1)
 	assert.Equal(t, oldBlock, wallet.sends[0].RequiredInputs[0].Txid)
+}
+
+// A bid pins the coin it picks, and Core spends a pinned coin as it is told.
+// A coin the user froze has to leave the list before the pick.
+func TestSlotCoinSkipsACoinTheUserFroze(t *testing.T) {
+	const frozen = "6666666666666666666666666666666666666666666666666666666666666666"
+	const free = "7777777777777777777777777777777777777777777777777777777777777777"
+
+	wallet := &fakeBidWallet{
+		utxos: []*wpb.UnspentOutput{
+			{Txid: frozen, Vout: 0, AmountSats: 3_000_000, Spendable: true, Confirmations: 6},
+			{Txid: free, Vout: 0, AmountSats: 2_000_000, Spendable: true, Confirmations: 6},
+		},
+		heldCoins: map[string]bool{frozen + ":0": true},
+	}
+	h := slotCoinHandler(t, &fakeSlotMempool{}, wallet)
+
+	coin, err := h.slotCoin(context.Background(), bidRequest(), 1, 10_000)
+	require.NoError(t, err)
+
+	assert.Equal(t, free, coin.Txid, "the bid takes the coin the user left free")
 }

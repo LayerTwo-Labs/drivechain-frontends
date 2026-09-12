@@ -133,6 +133,9 @@ const (
 	// WalletManagerServiceSendTransactionProcedure is the fully-qualified name of the
 	// WalletManagerService's SendTransaction RPC.
 	WalletManagerServiceSendTransactionProcedure = "/walletmanager.v1.WalletManagerService/SendTransaction"
+	// WalletManagerServiceSetFrozenCoinsProcedure is the fully-qualified name of the
+	// WalletManagerService's SetFrozenCoins RPC.
+	WalletManagerServiceSetFrozenCoinsProcedure = "/walletmanager.v1.WalletManagerService/SetFrozenCoins"
 	// WalletManagerServiceCreateDepositProcedure is the fully-qualified name of the
 	// WalletManagerService's CreateDeposit RPC.
 	WalletManagerServiceCreateDepositProcedure = "/walletmanager.v1.WalletManagerService/CreateDeposit"
@@ -295,6 +298,10 @@ type WalletManagerServiceClient interface {
 	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	// SetFrozenCoins records the coins the frontend froze. Every send after it
+	// leaves those coins alone, and Bitcoin Core holds them locked for the
+	// length of a send so its own coin selection skips them too.
+	SetFrozenCoins(context.Context, *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error)
 	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
 	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
@@ -571,6 +578,12 @@ func NewWalletManagerServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
 			connect.WithClientOptions(opts...),
 		),
+		setFrozenCoins: connect.NewClient[v1.SetFrozenCoinsRequest, emptypb.Empty](
+			httpClient,
+			baseURL+WalletManagerServiceSetFrozenCoinsProcedure,
+			connect.WithSchema(walletManagerServiceMethods.ByName("SetFrozenCoins")),
+			connect.WithClientOptions(opts...),
+		),
 		createDeposit: connect.NewClient[v1.CreateDepositRequest, v1.CreateDepositResponse](
 			httpClient,
 			baseURL+WalletManagerServiceCreateDepositProcedure,
@@ -825,6 +838,7 @@ type walletManagerServiceClient struct {
 	estimateFee                  *connect.Client[v1.EstimateFeeRequest, v1.EstimateFeeResponse]
 	getNewAddress                *connect.Client[v1.GetNewAddressRequest, v1.GetNewAddressResponse]
 	sendTransaction              *connect.Client[v1.SendTransactionRequest, v1.SendTransactionResponse]
+	setFrozenCoins               *connect.Client[v1.SetFrozenCoinsRequest, emptypb.Empty]
 	createDeposit                *connect.Client[v1.CreateDepositRequest, v1.CreateDepositResponse]
 	listTransactions             *connect.Client[v1.ListTransactionsRequest, v1.ListTransactionsResponse]
 	listUnspent                  *connect.Client[v1.ListUnspentRequest, v1.ListUnspentResponse]
@@ -1026,6 +1040,11 @@ func (c *walletManagerServiceClient) GetNewAddress(ctx context.Context, req *con
 // SendTransaction calls walletmanager.v1.WalletManagerService.SendTransaction.
 func (c *walletManagerServiceClient) SendTransaction(ctx context.Context, req *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return c.sendTransaction.CallUnary(ctx, req)
+}
+
+// SetFrozenCoins calls walletmanager.v1.WalletManagerService.SetFrozenCoins.
+func (c *walletManagerServiceClient) SetFrozenCoins(ctx context.Context, req *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+	return c.setFrozenCoins.CallUnary(ctx, req)
 }
 
 // CreateDeposit calls walletmanager.v1.WalletManagerService.CreateDeposit.
@@ -1262,6 +1281,10 @@ type WalletManagerServiceHandler interface {
 	EstimateFee(context.Context, *connect.Request[v1.EstimateFeeRequest]) (*connect.Response[v1.EstimateFeeResponse], error)
 	GetNewAddress(context.Context, *connect.Request[v1.GetNewAddressRequest]) (*connect.Response[v1.GetNewAddressResponse], error)
 	SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error)
+	// SetFrozenCoins records the coins the frontend froze. Every send after it
+	// leaves those coins alone, and Bitcoin Core holds them locked for the
+	// length of a send so its own coin selection skips them too.
+	SetFrozenCoins(context.Context, *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error)
 	// CreateDeposit funds a BIP300 M5 deposit to a sidechain from any wallet.
 	CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error)
 	ListTransactions(context.Context, *connect.Request[v1.ListTransactionsRequest]) (*connect.Response[v1.ListTransactionsResponse], error)
@@ -1532,6 +1555,12 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 		WalletManagerServiceSendTransactionProcedure,
 		svc.SendTransaction,
 		connect.WithSchema(walletManagerServiceMethods.ByName("SendTransaction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	walletManagerServiceSetFrozenCoinsHandler := connect.NewUnaryHandler(
+		WalletManagerServiceSetFrozenCoinsProcedure,
+		svc.SetFrozenCoins,
+		connect.WithSchema(walletManagerServiceMethods.ByName("SetFrozenCoins")),
 		connect.WithHandlerOptions(opts...),
 	)
 	walletManagerServiceCreateDepositHandler := connect.NewUnaryHandler(
@@ -1818,6 +1847,8 @@ func NewWalletManagerServiceHandler(svc WalletManagerServiceHandler, opts ...con
 			walletManagerServiceGetNewAddressHandler.ServeHTTP(w, r)
 		case WalletManagerServiceSendTransactionProcedure:
 			walletManagerServiceSendTransactionHandler.ServeHTTP(w, r)
+		case WalletManagerServiceSetFrozenCoinsProcedure:
+			walletManagerServiceSetFrozenCoinsHandler.ServeHTTP(w, r)
 		case WalletManagerServiceCreateDepositProcedure:
 			walletManagerServiceCreateDepositHandler.ServeHTTP(w, r)
 		case WalletManagerServiceListTransactionsProcedure:
@@ -2029,6 +2060,10 @@ func (UnimplementedWalletManagerServiceHandler) GetNewAddress(context.Context, *
 
 func (UnimplementedWalletManagerServiceHandler) SendTransaction(context.Context, *connect.Request[v1.SendTransactionRequest]) (*connect.Response[v1.SendTransactionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SendTransaction is not implemented"))
+}
+
+func (UnimplementedWalletManagerServiceHandler) SetFrozenCoins(context.Context, *connect.Request[v1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("walletmanager.v1.WalletManagerService.SetFrozenCoins is not implemented"))
 }
 
 func (UnimplementedWalletManagerServiceHandler) CreateDeposit(context.Context, *connect.Request[v1.CreateDepositRequest]) (*connect.Response[v1.CreateDepositResponse], error) {

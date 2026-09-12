@@ -913,6 +913,21 @@ func (mr *MockWalletManagerServiceClientMockRecorder) SetElectrumServer(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetElectrumServer", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).SetElectrumServer), arg0, arg1)
 }
 
+// SetFrozenCoins mocks base method.
+func (m *MockWalletManagerServiceClient) SetFrozenCoins(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetFrozenCoins", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[emptypb.Empty])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetFrozenCoins indicates an expected call of SetFrozenCoins.
+func (mr *MockWalletManagerServiceClientMockRecorder) SetFrozenCoins(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFrozenCoins", reflect.TypeOf((*MockWalletManagerServiceClient)(nil).SetFrozenCoins), arg0, arg1)
+}
+
 // SetNodeMode mocks base method.
 func (m *MockWalletManagerServiceClient) SetNodeMode(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetNodeModeRequest]) (*connect.Response[walletmanagerv1.SetNodeModeResponse], error) {
 	m.ctrl.T.Helper()
@@ -1969,6 +1984,21 @@ func (m *MockWalletManagerServiceHandler) SetElectrumServer(arg0 context.Context
 func (mr *MockWalletManagerServiceHandlerMockRecorder) SetElectrumServer(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetElectrumServer", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).SetElectrumServer), arg0, arg1)
+}
+
+// SetFrozenCoins mocks base method.
+func (m *MockWalletManagerServiceHandler) SetFrozenCoins(arg0 context.Context, arg1 *connect.Request[walletmanagerv1.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetFrozenCoins", arg0, arg1)
+	ret0, _ := ret[0].(*connect.Response[emptypb.Empty])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetFrozenCoins indicates an expected call of SetFrozenCoins.
+func (mr *MockWalletManagerServiceHandlerMockRecorder) SetFrozenCoins(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFrozenCoins", reflect.TypeOf((*MockWalletManagerServiceHandler)(nil).SetFrozenCoins), arg0, arg1)
 }
 
 // SetNodeMode mocks base method.

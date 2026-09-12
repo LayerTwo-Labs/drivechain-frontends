@@ -55,6 +55,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
   $async.Future<$18.EstimateFeeResponse> estimateFee($pb.ServerContext ctx, $18.EstimateFeeRequest request);
   $async.Future<$18.GetNewAddressResponse> getNewAddress($pb.ServerContext ctx, $18.GetNewAddressRequest request);
   $async.Future<$18.SendTransactionResponse> sendTransaction($pb.ServerContext ctx, $18.SendTransactionRequest request);
+  $async.Future<$17.Empty> setFrozenCoins($pb.ServerContext ctx, $18.SetFrozenCoinsRequest request);
   $async.Future<$18.CreateDepositResponse> createDeposit($pb.ServerContext ctx, $18.CreateDepositRequest request);
   $async.Future<$18.ListTransactionsResponse> listTransactions($pb.ServerContext ctx, $18.ListTransactionsRequest request);
   $async.Future<$18.ListUnspentResponse> listUnspent($pb.ServerContext ctx, $18.ListUnspentRequest request);
@@ -127,6 +128,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'EstimateFee': return $18.EstimateFeeRequest();
       case 'GetNewAddress': return $18.GetNewAddressRequest();
       case 'SendTransaction': return $18.SendTransactionRequest();
+      case 'SetFrozenCoins': return $18.SetFrozenCoinsRequest();
       case 'CreateDeposit': return $18.CreateDepositRequest();
       case 'ListTransactions': return $18.ListTransactionsRequest();
       case 'ListUnspent': return $18.ListUnspentRequest();
@@ -202,6 +204,7 @@ abstract class WalletManagerServiceBase extends $pb.GeneratedService {
       case 'EstimateFee': return this.estimateFee(ctx, request as $18.EstimateFeeRequest);
       case 'GetNewAddress': return this.getNewAddress(ctx, request as $18.GetNewAddressRequest);
       case 'SendTransaction': return this.sendTransaction(ctx, request as $18.SendTransactionRequest);
+      case 'SetFrozenCoins': return this.setFrozenCoins(ctx, request as $18.SetFrozenCoinsRequest);
       case 'CreateDeposit': return this.createDeposit(ctx, request as $18.CreateDepositRequest);
       case 'ListTransactions': return this.listTransactions(ctx, request as $18.ListTransactionsRequest);
       case 'ListUnspent': return this.listUnspent(ctx, request as $18.ListUnspentRequest);

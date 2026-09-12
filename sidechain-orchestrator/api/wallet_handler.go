@@ -637,6 +637,12 @@ func (h *WalletHandler) BroadcastTransaction(ctx context.Context, req *connect.R
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	// A saved draft spends the coins it named when the user built it. The user
+	// can freeze one of them before this call, so read the inputs again.
+	if err := h.refuseFrozenRawInputs(req.Msg.TxHex); err != nil {
+		return nil, err
+	}
+
 	txid, err := h.engine.ChainForWallet(walletID).Broadcast(ctx, req.Msg.TxHex)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("broadcast: %w", err))
@@ -832,6 +838,67 @@ func mapExternalInputs(exts []*pb.ExternalInput) []wallet.ExternalInput {
 	})
 }
 
+// refuseFrozenRawInputs stops a broadcast of a transaction that spends a coin
+// the user froze. A raw transaction names its inputs, so no lock reaches them.
+func (h *WalletHandler) refuseFrozenRawInputs(txHex string) error {
+	held := h.svc.HeldCoins()
+	if len(held) == 0 {
+		return nil
+	}
+	decoded, err := wallet.DecodeTransaction(txHex, h.engine.Network())
+	if err != nil {
+		// An unreadable transaction fails at the node, with its own words.
+		return nil
+	}
+	for _, in := range decoded.Inputs {
+		outpoint := wallet.Outpoint{TxID: in.PrevTxID, Vout: in.PrevVout}
+		if held[outpoint.Key()] {
+			return connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("the output %s is frozen; unfreeze it to spend it", outpoint.Key()))
+		}
+	}
+	return nil
+}
+
+// refuseFrozenInputs stops a send that names a coin the user froze.
+func (h *WalletHandler) refuseFrozenInputs(inputs []*pb.UnspentOutput) error {
+	if len(inputs) == 0 {
+		return nil
+	}
+	held := h.svc.HeldCoins()
+	if len(held) == 0 {
+		return nil
+	}
+	for _, in := range inputs {
+		outpoint := wallet.Outpoint{TxID: in.Txid, Vout: int(in.Vout)}
+		if held[outpoint.Key()] {
+			return connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("the output %s is frozen; unfreeze it to spend it", outpoint.Key()))
+		}
+	}
+	return nil
+}
+
+// HeldCoins names the coins the frontend froze.
+func (h *WalletHandler) HeldCoins() map[string]bool {
+	return h.svc.HeldCoins()
+}
+
+// SetFrozenCoins records the coins the frontend froze, so every later send
+// leaves them alone.
+func (h *WalletHandler) SetFrozenCoins(ctx context.Context, req *connect.Request[pb.SetFrozenCoinsRequest]) (*connect.Response[emptypb.Empty], error) {
+	coins := make([]wallet.Outpoint, 0, len(req.Msg.Outpoints))
+	for _, out := range req.Msg.Outpoints {
+		if out.Txid == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a frozen coin needs a txid"))
+		}
+		coins = append(coins, wallet.Outpoint{TxID: out.Txid, Vout: int(out.Vout)})
+	}
+	h.svc.SetHeldCoins(coins)
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
 func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Request[pb.SendTransactionRequest]) (*connect.Response[pb.SendTransactionResponse], error) {
 	// A transaction needs at least one output, but it doesn't have to be a
 	// payment: an OP_RETURN-only broadcast (e.g. coinnews) or a raw-script
@@ -851,6 +918,13 @@ func (h *WalletHandler) SendTransaction(ctx context.Context, req *connect.Reques
 	walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	// A required input is spent as it is given, so no lock reaches it. The
+	// set here is the user's alone: a bid raise pins the coin its own bid
+	// holds, and that coin has to stay spendable.
+	if err := h.refuseFrozenInputs(req.Msg.RequiredInputs); err != nil {
+		return nil, err
 	}
 
 	// Resolve any BIP47 payment-code destinations into per-payment addresses
@@ -1507,6 +1581,14 @@ func (h *WalletHandler) CreateCpfp(ctx context.Context, req *connect.Request[pb.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	// The child spends the parent output the caller names, so a freeze has to
+	// stop the call. No lock reaches an outpoint a caller pins by hand.
+	parent := wallet.Outpoint{TxID: req.Msg.ParentTxid, Vout: int(req.Msg.ParentVout)}
+	if h.svc.HeldCoins()[parent.Key()] {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("the output %s is frozen; unfreeze it to spend it", parent.Key()))
+	}
+
 	childTxID, err := h.engine.Backend().CreateCpfp(ctx, walletID, wallet.CpfpRequest{
 		ParentTxID: req.Msg.ParentTxid,
 		ParentVout: int(req.Msg.ParentVout),
@@ -2080,6 +2162,9 @@ func (h *WalletHandler) CreatePsbt(ctx context.Context, req *connect.Request[pb.
 		OpReturnHex:           req.Msg.OpReturnHex,
 		SubtractFeeFromAmount: req.Msg.SubtractFeeFromAmount,
 		AllowReplay:           req.Msg.AllowReplay,
+	}
+	if err := h.refuseFrozenInputs(req.Msg.RequiredInputs); err != nil {
+		return nil, err
 	}
 	sendReq.RequiredInputs = lo.Map(req.Msg.RequiredInputs, func(u *pb.UnspentOutput, _ int) wallet.RequiredInput {
 		return wallet.RequiredInput{

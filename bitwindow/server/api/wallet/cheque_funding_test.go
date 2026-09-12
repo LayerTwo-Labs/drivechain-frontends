@@ -15,6 +15,7 @@ import (
 	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const testWalletID = "test-wallet-id-1234"
@@ -29,6 +30,13 @@ type fakeOrchestrator struct {
 	// perCall serves a different answer per poll, for the poll-after-send case.
 	perCall func(n int32) []*orchpb.AddressUnspentOutput
 	calls   atomic.Int32
+}
+
+// The runtime hands over the frozen coins on a timer, whatever else runs.
+func (f *fakeOrchestrator) SetFrozenCoins(
+	context.Context, *connect.Request[orchpb.SetFrozenCoinsRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
 // The pollers ask before each tick. A full-mode answer keeps them running,

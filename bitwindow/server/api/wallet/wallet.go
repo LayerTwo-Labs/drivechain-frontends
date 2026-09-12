@@ -166,6 +166,24 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}
 	}
 
+	// A send that names its inputs spends those coins, so no lock reaches
+	// them. Refuse before any node call.
+	if len(c.Msg.RequiredInputs) > 0 {
+		frozen, err := utxometadata.FrozenOutpoints(ctx, s.database)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read the frozen coins: %w", err))
+		}
+		// A caller can spell a txid in either case, and a vout with or without
+		// a leading zero, so compare one canonical form.
+		held := lo.SliceToMap(frozen, func(o string) (string, bool) { return canonicalOutpoint(o), true })
+		for _, input := range c.Msg.RequiredInputs {
+			if held[canonicalOutpoint(input.Output)] {
+				return nil, connect.NewError(connect.CodeFailedPrecondition,
+					fmt.Errorf("the output %s is frozen; unfreeze it to spend it", input.Output))
+			}
+		}
+	}
+
 	log := zerolog.Ctx(ctx)
 
 	// Get wallet type to determine routing
@@ -221,6 +239,21 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 	return connect.NewResponse(&pb.SendTransactionResponse{
 		Txid: resp.Msg.Txid,
 	}), nil
+}
+
+// canonicalOutpoint reads a txid:vout pair into one spelling: the txid in
+// lower case, and the vout with no leading zero. A string it cannot read comes
+// back trimmed and lowered, so two unreadable spellings still match.
+func canonicalOutpoint(outpoint string) string {
+	txid, voutText, found := strings.Cut(strings.ToLower(strings.TrimSpace(outpoint)), ":")
+	if !found {
+		return strings.ToLower(strings.TrimSpace(outpoint))
+	}
+	vout, err := strconv.Atoi(voutText)
+	if err != nil {
+		return strings.ToLower(strings.TrimSpace(outpoint))
+	}
+	return fmt.Sprintf("%s:%d", txid, vout)
 }
 
 // sendWithRequiredInputs parses the "txid:vout" required inputs and broadcasts
@@ -1941,6 +1974,15 @@ func (s *Server) SetUTXOMetadata(ctx context.Context, c *connect.Request[pb.SetU
 
 	if err := utxometadata.Set(ctx, s.database, c.Msg.Outpoint, isFrozen, label); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set UTXO metadata: %w", err))
+	}
+
+	// Coin selection runs in drivechaind, so a freeze reaches it only when we
+	// hand the new set over. A caller that reads success must be able to
+	// believe the coin is safe.
+	if isFrozen != nil {
+		if err := s.walletEngine.PushFrozenCoins(ctx); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
 	}
 
 	return connect.NewResponse(&emptypb.Empty{}), nil

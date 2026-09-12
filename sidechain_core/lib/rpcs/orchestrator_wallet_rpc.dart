@@ -13,11 +13,27 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 /// when wallet/runtime ownership lives in orchestrator. Splits unary
 /// (HTTP/1.1) and streaming (HTTP/2) over two transports — see
 /// [OrchestratorRPC] for why.
+/// Runs one task at a time, in the order the callers arrive.
+class SerialQueue {
+  Future<void> _tail = Future<void>.value();
+
+  Future<T> add<T>(Future<T> Function() task) {
+    final result = _tail.then((_) => task());
+    // A failed task must not fail every task after it.
+    _tail = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+}
+
 class OrchestratorWalletRPC {
   late WalletManagerServiceClient _unaryClient;
   late WalletManagerServiceClient _streamClient;
 
   static const _defaultTransactionCount = 100;
+
+  /// Names the coins the user froze, as txid:vout. An app that holds no
+  /// frozen set leaves this null.
+  Future<List<String>> Function()? frozenCoins;
 
   /// Create from the two transports owned by [OrchestratorRPC]. Unary RPCs
   /// go to [unary], server-streaming RPCs (currently just `watchWalletData`)
@@ -28,6 +44,43 @@ class OrchestratorWalletRPC {
   }) {
     _unaryClient = WalletManagerServiceClient(unary);
     _streamClient = WalletManagerServiceClient(stream);
+  }
+
+  final SerialQueue _frozenPushes = SerialQueue();
+
+  /// Hands the orchestrator the coins no send may take. Coin selection runs
+  /// there, so it acts on the set this call leaves behind.
+  ///
+  /// One hand-over runs at a time. The set is read and sent in that order, so
+  /// a slow one cannot land after a newer one and put the older set back.
+  Future<void> pushFrozenCoins() {
+    return _frozenPushes.add(_pushFrozenCoins);
+  }
+
+  Future<void> _pushFrozenCoins() async {
+    final source = frozenCoins;
+    if (source == null) {
+      return;
+    }
+    final outpoints = await source();
+    await _unaryClient.setFrozenCoins(
+      wmpb.SetFrozenCoinsRequest(
+        outpoints: outpoints.map(frozenOutpointOf).toList(),
+      ),
+    );
+  }
+
+  /// Reads a txid:vout pair into the shape the orchestrator takes.
+  static wmpb.FrozenOutpoint frozenOutpointOf(String outpoint) {
+    final parts = outpoint.split(':');
+    if (parts.length != 2) {
+      throw ArgumentError('frozen coin "$outpoint" is not a txid:vout');
+    }
+    final vout = int.tryParse(parts[1]);
+    if (parts[0].isEmpty || vout == null || vout < 0) {
+      throw ArgumentError('frozen coin "$outpoint" is not a txid:vout');
+    }
+    return wmpb.FrozenOutpoint(txid: parts[0], vout: vout);
   }
 
   Future<wmpb.GetWalletStatusResponse> getWalletStatus() {
@@ -279,10 +332,11 @@ class OrchestratorWalletRPC {
     String? opReturnHex,
     List<bwpb.UnspentOutput>? requiredInputs,
     bool allowReplay = false,
-  }) {
+  }) async {
     final resolvedOpReturnHex =
         opReturnHex ?? (opReturnMessage == null ? null : _bytesToHex(utf8.encode(opReturnMessage)));
 
+    await pushFrozenCoins();
     return _unaryClient.sendTransaction(
       wmpb.SendTransactionRequest(
         walletId: walletId,
@@ -315,6 +369,7 @@ class OrchestratorWalletRPC {
     final resolvedOpReturnHex =
         opReturnHex ?? (opReturnMessage == null ? null : _bytesToHex(utf8.encode(opReturnMessage)));
 
+    await pushFrozenCoins();
     final response = await _unaryClient.createPsbt(
       wmpb.CreatePsbtRequest(
         walletId: walletId,
@@ -625,7 +680,9 @@ class OrchestratorWalletRPC {
     required String txid,
     int? newFeeRate,
     int? feeFromVout,
-  }) {
+  }) async {
+    // A bump reaches for another coin when the change cannot pay the raise.
+    await pushFrozenCoins();
     return _unaryClient.bumpFee(
       wmpb.BumpFeeRequest(
         walletId: walletId,
@@ -659,7 +716,9 @@ class OrchestratorWalletRPC {
     required String parentTxid,
     required int parentVout,
     required int targetFeeRate,
-  }) {
+  }) async {
+    // The child pays the parent's fee, and it funds that from another coin.
+    await pushFrozenCoins();
     return _unaryClient.createCpfp(
       wmpb.CreateCpfpRequest(
         walletId: walletId,
