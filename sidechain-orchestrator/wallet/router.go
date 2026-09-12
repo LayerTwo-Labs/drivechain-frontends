@@ -149,6 +149,14 @@ func (r *BackendRouter) AddressHDPath(ctx context.Context, walletID, address str
 	return p.AddressHDPath(ctx, walletID, address)
 }
 
+func (r *BackendRouter) OwnedAddresses(ctx context.Context, walletID string, addresses []string) (map[string]bool, error) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, err
+	}
+	return p.OwnedAddresses(ctx, walletID, addresses)
+}
+
 func (r *BackendRouter) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (DerivedAddress, error) {
 	p, err := r.pick(walletID)
 	if err != nil {

@@ -1157,9 +1157,11 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 
 	outputs := make([]*pb.TransactionOutput, 0, len(rawTx.Vout))
 	totalOutputSats := int64(0)
+	addresses := make([]string, 0, len(rawTx.Vout))
 	for i, vout := range rawTx.Vout {
 		valueSats := int64(math.Round(vout.Value * 1e8))
 		totalOutputSats += valueSats
+		addresses = append(addresses, vout.ScriptPubKey.Address)
 		outputs = append(outputs, &pb.TransactionOutput{
 			Index:           int32(i),
 			ValueSats:       valueSats,
@@ -1168,6 +1170,16 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 			ScriptPubkeyAsm: vout.ScriptPubKey.Asm,
 			ScriptPubkeyHex: vout.ScriptPubKey.Hex,
 		})
+	}
+
+	owned, err := h.engine.Backend().OwnedAddresses(ctx, walletID, addresses)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read address ownership: %w", err))
+	}
+	for _, out := range outputs {
+		change, mine := owned[out.Address]
+		out.IsMine = mine
+		out.IsChange = change
 	}
 
 	feeSats := totalInputSats - totalOutputSats

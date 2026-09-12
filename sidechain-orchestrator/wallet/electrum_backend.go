@@ -475,6 +475,23 @@ func (p *ElectrumBackend) AddressHDPath(ctx context.Context, walletID, address s
 	return a.hdPath, nil
 }
 
+func (p *ElectrumBackend) OwnedAddresses(ctx context.Context, walletID string, addresses []string) (map[string]bool, error) {
+	scan, err := p.scanWallet(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	owned := make(map[string]bool, len(addresses))
+	for _, address := range addresses {
+		if address == "" {
+			continue
+		}
+		if a, ok := scan.byAddr[address]; ok {
+			owned[address] = a.change
+		}
+	}
+	return owned, nil
+}
+
 func (p *ElectrumBackend) NextReceiveAddress(ctx context.Context, walletID string, kind ScriptKind) (DerivedAddress, error) {
 	w := p.svc.GetWalletByID(walletID)
 	if w == nil {

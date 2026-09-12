@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:bitwindow/pages/explorer/widgets/output_owner.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
@@ -418,6 +419,10 @@ class _TooltipContent extends StatelessWidget {
               'Address: ${_truncateAddress(output.address)}',
               monospace: true,
             ),
+            if (outputOwnerLabel(output) case final owner?) ...[
+              const SizedBox(height: 2),
+              SailText.primary12(owner),
+            ],
             const SizedBox(height: 2),
             SailText.secondary12('Type: ${output.scriptType}'),
           ],

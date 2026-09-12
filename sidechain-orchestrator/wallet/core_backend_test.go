@@ -2332,3 +2332,37 @@ func TestAnyWalletCallDropsAWalletCoreUnloaded(t *testing.T) {
 	assert.Greater(t, len(fake.callsFor("createwallet")), before,
 		"the cached name was used, and Core no longer holds that wallet")
 }
+
+func TestCoreBackendOwnedAddressesReadsEachAddressOnce(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("getaddressinfo", func(c bitcoindCall) (any, string) {
+		address := mustString(t, c.Params[0])
+		return map[string]any{
+			"address":  address,
+			"ismine":   address != "stranger",
+			"ischange": address == "change",
+		}, ""
+	})
+
+	_, err := backend.Ensure(context.Background(), coreID)
+	require.NoError(t, err)
+	backend.bip47Imports.Wait()
+	before := len(fake.callsFor("getaddressinfo"))
+
+	owned, err := backend.OwnedAddresses(context.Background(), coreID,
+		[]string{"stranger", "", "change", "change", "receive"})
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]bool{"change": true, "receive": false}, owned)
+	assert.Len(t, fake.callsFor("getaddressinfo"), before+3, "an empty address and a repeat cost no call")
+}
+
+func TestCoreBackendOwnedAddressesFailsOnACoreError(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("getaddressinfo", func(bitcoindCall) (any, string) { return nil, "Invalid address" })
+
+	_, err := backend.OwnedAddresses(context.Background(), coreID, []string{"change"})
+	require.ErrorContains(t, err, "get address info for change")
+}

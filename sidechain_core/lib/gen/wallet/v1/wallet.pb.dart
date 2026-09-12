@@ -4535,6 +4535,8 @@ class TransactionOutput extends $pb.GeneratedMessage {
     $core.String? scriptType,
     $core.String? scriptPubkeyAsm,
     $core.String? scriptPubkeyHex,
+    $core.bool? isChange,
+    $core.bool? isMine,
   }) {
     final $result = create();
     if (index != null) {
@@ -4555,6 +4557,12 @@ class TransactionOutput extends $pb.GeneratedMessage {
     if (scriptPubkeyHex != null) {
       $result.scriptPubkeyHex = scriptPubkeyHex;
     }
+    if (isChange != null) {
+      $result.isChange = isChange;
+    }
+    if (isMine != null) {
+      $result.isMine = isMine;
+    }
     return $result;
   }
   TransactionOutput._() : super();
@@ -4568,6 +4576,8 @@ class TransactionOutput extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'scriptType')
     ..aOS(5, _omitFieldNames ? '' : 'scriptPubkeyAsm')
     ..aOS(6, _omitFieldNames ? '' : 'scriptPubkeyHex')
+    ..aOB(7, _omitFieldNames ? '' : 'isChange')
+    ..aOB(8, _omitFieldNames ? '' : 'isMine')
     ..hasRequiredFields = false
   ;
 
@@ -4645,6 +4655,26 @@ class TransactionOutput extends $pb.GeneratedMessage {
   $core.bool hasScriptPubkeyHex() => $_has(5);
   @$pb.TagNumber(6)
   void clearScriptPubkeyHex() => clearField(6);
+
+  /// The output pays the wallet's own change chain.
+  @$pb.TagNumber(7)
+  $core.bool get isChange => $_getBF(6);
+  @$pb.TagNumber(7)
+  set isChange($core.bool v) { $_setBool(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasIsChange() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearIsChange() => clearField(7);
+
+  /// The wallet owns the output's address.
+  @$pb.TagNumber(8)
+  $core.bool get isMine => $_getBF(7);
+  @$pb.TagNumber(8)
+  set isMine($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasIsMine() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearIsMine() => clearField(8);
 }
 
 /// UTXO Distribution - for chart visualization
