@@ -716,7 +716,7 @@
       "chain_layer": 2,
       "color": "blue",
       "health_check": {"type": "tcp"},
-      "dependencies": ["bitcoind", "enforcer"],
+      "dependencies": ["bitcoind"],
       "startup_log_patterns": ["Done loading"],
       "directories": {"binary": {"default": {"linux": "liquid-signet", "macos": "liquid-signet", "windows": "liquid-signet"}}, "flutter_frontend": {}},
       "download": {"binary": "elementsd", "files": {"default": {"base_url": "https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-macos-arm64/", "linux-x86_64": "", "macos-x86_64": "", "macos-arm64": "elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip", "windows-x86_64": ""}}},

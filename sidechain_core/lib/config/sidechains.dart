@@ -28,6 +28,7 @@ abstract class Sidechain extends Binary {
       case 'Big Block Covenant':
         return 'bbc';
       case 'Liquid Signet':
+      case 'Elements Alpha':
         return 'liquid-signet';
       default:
         return name.toLowerCase();
@@ -224,10 +225,15 @@ class LiquidSignet extends Sidechain {
          metadata:
              metadata ??
              MetadataConfig(
-               downloadConfig: DownloadConfig(
-                 binary: 'liquid-signet',
-                 files: allPlatforms(''),
-               ),
+               downloadConfig: DownloadConfigJson.fromJson({
+                 'binary': 'elementsd',
+                 'files': {
+                   'default': {
+                     'base_url': 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-macos-arm64/',
+                     'macos-arm64': 'elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip',
+                   },
+                 },
+               }),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,

@@ -948,7 +948,8 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		// prefetch is still running when we need to start, we block on its
 		// completion — which is no worse than the old sequential flow.
 		var enforcerPrefetch <-chan error
-		if !skipLocalL1 {
+		needsEnforcer := !skipLocalL1 && config.Name != "liquid-signet"
+		if needsEnforcer {
 			enforcerPrefetch = o.prefetchBinary(ctx, o.configs["enforcer"], false)
 		}
 		var targetPrefetch <-chan error
@@ -962,7 +963,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
-			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			if needsEnforcer {
+				o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			}
 
 			// Wait for enforcer's gRPC port to actually accept dials before
 			// launching the sidechain target. startEnforcerWhenReady returns
@@ -971,7 +974,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			// and exit with "tcp connect error" against the CUSF mainchain
 			// service. Gated on ChainLayer == 2 so the L1 binaries (bitcoind,
 			// enforcer as target) don't wait on themselves.
-			if config.ChainLayer == 2 {
+			if config.ChainLayer == 2 && needsEnforcer {
 				enforcerCfg := o.configs["enforcer"]
 				enforcerMon := o.getOrCreateMonitor("enforcer", NewHealthChecker(enforcerCfg), enforcerStartupPatterns)
 				if errMsg := enforcerMon.ConnectionError(); errMsg != "" {
@@ -1861,6 +1864,10 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		}
 
 		if !opensFrontend {
+			if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
+				failBoot(targetMon, ch, "wallet for "+config.Name, err)
+				return
+			}
 			o.log.Info().Str("binary", config.Name).Msg("target already running, not booting")
 			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("%s already running", config.DisplayName)}
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}

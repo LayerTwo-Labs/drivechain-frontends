@@ -3,7 +3,6 @@ package orchestrator
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -96,11 +95,21 @@ func (o *Orchestrator) prepareElementsAlphaArgs(cfg BinaryConfig, opts *StartOpt
 
 // The legacy identifier is also a protobuf enum and an on-disk directory name.
 // Do not confuse its July Signet package with the current slot-24 Alpha node.
-const elementsSetupUnavailable = "Elements Alpha setup is unavailable: the published elements-bf8e9e1e package is not the current Alpha node. A verified Alpha release and authenticated parent/enforcer integration are required; see docs/elements-alpha-setup.md"
+const elementsSetupUnavailable = "Elements Alpha setup requires a checksum-pinned native release for this platform; see docs/elements-alpha-setup.md"
 
-func checkElementsSetup(config BinaryConfig) error {
-	if config.Name == "liquid-signet" {
-		return errors.New(elementsSetupUnavailable)
+func checkElementsSetup(cfg BinaryConfig) error {
+	if cfg.Name != "liquid-signet" {
+		return nil
+	}
+	pin := cfg.ArtifactPins[currentPlatform()]
+	if cfg.BinaryName != "elementsd" || cfg.Files[currentPlatform()] == "" || cfg.BaseURL("default") == "" {
+		return fmt.Errorf("%s", elementsSetupUnavailable)
+	}
+	for _, hash := range []string{pin.ArchiveSHA256, pin.ExecutableSHA256} {
+		decoded, err := hex.DecodeString(hash)
+		if err != nil || len(decoded) != 32 {
+			return fmt.Errorf("%s", elementsSetupUnavailable)
+		}
 	}
 	return nil
 }

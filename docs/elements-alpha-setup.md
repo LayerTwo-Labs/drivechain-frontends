@@ -2,13 +2,13 @@
 
 ## Current status
 
-Native installation components are implemented, but automatic download remains
-gated pending full managed-stack qualification. The tested Apple Silicon package
+One-click native installation is enabled for Apple Silicon with a local eCash
+Alphanet parent and an initialized BitWindow wallet. The tested Apple Silicon package
 is published as `elements-alpha-cad1fc1fb-macos-arm64`; all three JSON metadata
 copies pin archive SHA256 `fa3b818bd24485f370067ba1d1b8266605fb61d6333b726eb1da5affe5aa15d9`
 and the executable digest below. Public retrieval reproduced both hashes. The old July
-`elements-bf8e9e1e` package is not Alpha and must not be reused. This PR remains
-draft; it does not yet claim a completed one-click installation.
+`elements-bf8e9e1e` package is not Alpha and must not be reused. Other platforms
+remain unavailable rather than falling back to that package.
 
 `liquid-signet` remains the internal/protobuf identifier and directory key.
 The selected network is **Elements Alpha, slot 24**, not Signet.
@@ -32,6 +32,8 @@ The selected network is **Elements Alpha, slot 24**, not Signet.
 7. Archive and executable SHA-256 pins are enforced separately. Cached binaries
    are checked before reuse and process launch. Downloaded bytes do not replace
    expected pins. Unsupported platforms remain unavailable.
+8. Validation-only Elements startup depends on the parent, not the enforcer.
+   Reconnecting to an already-running managed node also initializes its wallet.
 
 Managed configuration uses `bitwindow-elements-alpha.conf` under the existing
 Elements data directory, with native `elements-v11` chain subdirectory.
@@ -88,7 +90,18 @@ The existing live daemon, parent credentials and wallet were not changed.
 `TestElementsNativeDownloadExtraction` passed using a local HTTP ZIP containing
 the real candidate: archive verification, extraction, executable verification
 and execution of `-version`. This does not qualify a public release URL or the
-full BitWindow UI/StartWithL1 path; the obsolete-release gate stays enabled.
+full BitWindow UI/StartWithL1 path by itself.
+
+`TestElementsPublishedOneClickInstall` passed in 24.259 seconds with the public
+release URL and an empty install directory: `StartWithL1` downloaded and verified
+the archive/executable, started the actual native daemon with managed parent
+cookie configuration, verified Alpha genesis, created an unfunded explicit-address
+wallet, adopted the running connection, and preserved address ownership across
+`RestartDaemon`. No enforcer was configured. The parent was already running and
+accessed through an ephemeral read-only authentication relay; fresh parent
+download/IBD and a full graphical end-to-end session are not covered by this test.
+The Flutter metadata test verifies that fallback and bundled registry entries
+select the same native release and parent-only dependency.
 
 Test environment variables:
 
@@ -100,18 +113,19 @@ Test environment variables:
   an ephemeral read-only cookie relay to exercise managed cookie configuration.
 - Optional `ELEMENTS_ALPHA_TEST_PEER` and `ELEMENTS_ALPHA_TEST_MIN_HEIGHT` enable
   actual synchronization qualification. Otherwise child peers are disabled.
+- `ELEMENTS_ALPHA_TEST_INSTALL=1` enables the public-download orchestration test
+  in the root Go package, using the parent port and credential-file variables.
 
 The test uses a public test-vector mnemonic, never a funded wallet, and does
 not bid, sign spend transactions, broadcast, or provision servers.
 
-## Remaining before enabling download
+## Scope and limitations
 
-1. Publish the qualified prerelease with provenance/licenses; pin its actual
-   archive and executable hashes in all three chain metadata copies.
-2. Exercise download/install/restart with BitWindow's parent-cookie setup;
-   test Flutter UI and dependency-failure handling.
-3. Replace unconditional setup refusal with supported-release/platform checks
-   only after those results pass.
+The qualified path is a fresh Apple Silicon Elements installation. Existing
+custom metadata selecting the obsolete binary is refused; it is not silently
+migrated, and existing chain/wallet directories must not be deleted. Release
+publication does not establish clean-source reproducibility, notarization,
+cross-platform support, or successful testing on every macOS version.
 
 Validation-only startup and synchronization work without enabling enforcer
 spending. BMM/withdrawal operations require authenticated mTLS integration

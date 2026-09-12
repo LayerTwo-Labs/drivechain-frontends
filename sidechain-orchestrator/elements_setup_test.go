@@ -131,6 +131,9 @@ func TestElementsDownloadRejectsObsoleteAndCachedPackages(t *testing.T) {
 
 func TestElementsStartAndRestartFailBeforeTouchingProcesses(t *testing.T) {
 	o := newTestOrchestrator(t)
+	cfg := o.configs["liquid-signet"]
+	cfg.ArtifactPins = nil
+	o.configs["liquid-signet"] = cfg
 	ch, err := o.StartWithL1(context.Background(), "liquid-signet", StartOpts{})
 	require.EqualError(t, err, elementsSetupUnavailable)
 	require.Nil(t, ch)
@@ -140,6 +143,18 @@ func TestElementsStartAndRestartFailBeforeTouchingProcesses(t *testing.T) {
 	pid, err := o.Start(context.Background(), "liquid-signet", nil, nil)
 	require.EqualError(t, err, elementsSetupUnavailable)
 	require.Zero(t, pid)
+}
+
+func TestElementsSetupRequiresPinnedPlatformRelease(t *testing.T) {
+	cfg, ok := BinaryConfigByName("liquid-signet")
+	require.True(t, ok)
+	if currentPlatform() != "macos-arm64" {
+		require.EqualError(t, checkElementsSetup(cfg), elementsSetupUnavailable)
+		return
+	}
+	require.NoError(t, checkElementsSetup(cfg))
+	cfg.ArtifactPins = map[string]ArtifactPin{currentPlatform(): {ArchiveSHA256: "invalid", ExecutableSHA256: "invalid"}}
+	require.EqualError(t, checkElementsSetup(cfg), elementsSetupUnavailable)
 }
 
 func TestElementsSetupGateDoesNotAffectOtherBinaries(t *testing.T) {
