@@ -17,6 +17,11 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
   final log = GetIt.I.get<Logger>();
   final List<RPCConnection> connections;
 
+  /// The wallet the Send page spends. Its balance is the headline figure, and
+  /// every other connection counts as a sidechain. Defaults to the first
+  /// connection.
+  late final RPCConnection mainConnection;
+
   final Map<RPCConnection, (double confirmed, double pending)> _balances = {};
   String? error;
 
@@ -33,14 +38,19 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
       : null;
   String? _lastWalletId;
 
-  // Utility getters for total balances
-  double get balance => _balances.values.fold(0.0, (sum, b) => sum + b.$1);
-  double get pendingBalance => _balances.values.fold(0.0, (sum, b) => sum + b.$2);
+  double get balance => balanceFor(mainConnection).$1;
+  double get pendingBalance => balanceFor(mainConnection).$2;
+
+  double get sidechainBalance => _otherConnections.fold(0.0, (sum, rpc) => sum + balanceFor(rpc).$1);
+  double get sidechainPendingBalance => _otherConnections.fold(0.0, (sum, rpc) => sum + balanceFor(rpc).$2);
+
+  Iterable<RPCConnection> get _otherConnections => connections.where((rpc) => rpc != mainConnection);
 
   // Get balance for specific RPC
   (double confirmed, double pending) balanceFor(RPCConnection rpc) => _balances[rpc] ?? (0.0, 0.0);
 
-  BalanceProvider({required this.connections}) {
+  BalanceProvider({required this.connections, RPCConnection? mainConnection}) {
+    this.mainConnection = mainConnection ?? connections.first;
     // Add listeners for connection changes
     for (final rpc in connections) {
       rpc.addListener(_onConnectionChange);
