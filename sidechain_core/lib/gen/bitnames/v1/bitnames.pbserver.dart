@@ -53,6 +53,7 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
   $async.Future<$2.EncryptMsgResponse> encryptMsg($pb.ServerContext ctx, $2.EncryptMsgRequest request);
   $async.Future<$2.GetPaymailResponse> getPaymail($pb.ServerContext ctx, $2.GetPaymailRequest request);
   $async.Future<$2.ResolveCommitResponse> resolveCommit($pb.ServerContext ctx, $2.ResolveCommitRequest request);
+  $async.Future<$2.ReadCommitmentResponse> readCommitment($pb.ServerContext ctx, $2.ReadCommitmentRequest request);
   $async.Future<$2.SignArbitraryMsgResponse> signArbitraryMsg($pb.ServerContext ctx, $2.SignArbitraryMsgRequest request);
   $async.Future<$2.SignArbitraryMsgAsAddrResponse> signArbitraryMsgAsAddr($pb.ServerContext ctx, $2.SignArbitraryMsgAsAddrRequest request);
   $async.Future<$2.GetWalletAddressesResponse> getWalletAddresses($pb.ServerContext ctx, $2.GetWalletAddressesRequest request);
@@ -93,6 +94,7 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
       case 'EncryptMsg': return $2.EncryptMsgRequest();
       case 'GetPaymail': return $2.GetPaymailRequest();
       case 'ResolveCommit': return $2.ResolveCommitRequest();
+      case 'ReadCommitment': return $2.ReadCommitmentRequest();
       case 'SignArbitraryMsg': return $2.SignArbitraryMsgRequest();
       case 'SignArbitraryMsgAsAddr': return $2.SignArbitraryMsgAsAddrRequest();
       case 'GetWalletAddresses': return $2.GetWalletAddressesRequest();
@@ -136,6 +138,7 @@ abstract class BitnamesServiceBase extends $pb.GeneratedService {
       case 'EncryptMsg': return this.encryptMsg(ctx, request as $2.EncryptMsgRequest);
       case 'GetPaymail': return this.getPaymail(ctx, request as $2.GetPaymailRequest);
       case 'ResolveCommit': return this.resolveCommit(ctx, request as $2.ResolveCommitRequest);
+      case 'ReadCommitment': return this.readCommitment(ctx, request as $2.ReadCommitmentRequest);
       case 'SignArbitraryMsg': return this.signArbitraryMsg(ctx, request as $2.SignArbitraryMsgRequest);
       case 'SignArbitraryMsgAsAddr': return this.signArbitraryMsgAsAddr(ctx, request as $2.SignArbitraryMsgAsAddrRequest);
       case 'GetWalletAddresses': return this.getWalletAddresses(ctx, request as $2.GetWalletAddressesRequest);

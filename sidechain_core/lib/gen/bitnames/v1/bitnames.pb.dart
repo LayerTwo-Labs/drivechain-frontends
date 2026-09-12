@@ -2992,10 +2992,18 @@ class ResolveCommitRequest extends $pb.GeneratedMessage {
 class ResolveCommitResponse extends $pb.GeneratedMessage {
   factory ResolveCommitResponse({
     $core.String? commitment,
+    $core.String? dataJson,
+    $core.bool? matches,
   }) {
     final $result = create();
     if (commitment != null) {
       $result.commitment = commitment;
+    }
+    if (dataJson != null) {
+      $result.dataJson = dataJson;
+    }
+    if (matches != null) {
+      $result.matches = matches;
     }
     return $result;
   }
@@ -3005,6 +3013,8 @@ class ResolveCommitResponse extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ResolveCommitResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'commitment')
+    ..aOS(2, _omitFieldNames ? '' : 'dataJson')
+    ..aOB(3, _omitFieldNames ? '' : 'matches')
     ..hasRequiredFields = false
   ;
 
@@ -3029,6 +3039,7 @@ class ResolveCommitResponse extends $pb.GeneratedMessage {
   static ResolveCommitResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ResolveCommitResponse>(create);
   static ResolveCommitResponse? _defaultInstance;
 
+  /// The commitment the BitName holds on chain.
   @$pb.TagNumber(1)
   $core.String get commitment => $_getSZ(0);
   @$pb.TagNumber(1)
@@ -3037,6 +3048,143 @@ class ResolveCommitResponse extends $pb.GeneratedMessage {
   $core.bool hasCommitment() => $_has(0);
   @$pb.TagNumber(1)
   void clearCommitment() => clearField(1);
+
+  /// The JSON object the address served.
+  @$pb.TagNumber(2)
+  $core.String get dataJson => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set dataJson($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasDataJson() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDataJson() => clearField(2);
+
+  /// True when data_json hashes to commitment.
+  @$pb.TagNumber(3)
+  $core.bool get matches => $_getBF(2);
+  @$pb.TagNumber(3)
+  set matches($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasMatches() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMatches() => clearField(3);
+}
+
+class ReadCommitmentRequest extends $pb.GeneratedMessage {
+  factory ReadCommitmentRequest({
+    $core.String? address,
+  }) {
+    final $result = create();
+    if (address != null) {
+      $result.address = address;
+    }
+    return $result;
+  }
+  ReadCommitmentRequest._() : super();
+  factory ReadCommitmentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ReadCommitmentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ReadCommitmentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'address')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ReadCommitmentRequest clone() => ReadCommitmentRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ReadCommitmentRequest copyWith(void Function(ReadCommitmentRequest) updates) => super.copyWith((message) => updates(message as ReadCommitmentRequest)) as ReadCommitmentRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadCommitmentRequest create() => ReadCommitmentRequest._();
+  ReadCommitmentRequest createEmptyInstance() => create();
+  static $pb.PbList<ReadCommitmentRequest> createRepeated() => $pb.PbList<ReadCommitmentRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ReadCommitmentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ReadCommitmentRequest>(create);
+  static ReadCommitmentRequest? _defaultInstance;
+
+  /// Socket address, as host:port.
+  @$pb.TagNumber(1)
+  $core.String get address => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set address($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAddress() => clearField(1);
+}
+
+class ReadCommitmentResponse extends $pb.GeneratedMessage {
+  factory ReadCommitmentResponse({
+    $core.String? dataJson,
+    $core.String? commitment,
+  }) {
+    final $result = create();
+    if (dataJson != null) {
+      $result.dataJson = dataJson;
+    }
+    if (commitment != null) {
+      $result.commitment = commitment;
+    }
+    return $result;
+  }
+  ReadCommitmentResponse._() : super();
+  factory ReadCommitmentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ReadCommitmentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ReadCommitmentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'bitnames.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'dataJson')
+    ..aOS(2, _omitFieldNames ? '' : 'commitment')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ReadCommitmentResponse clone() => ReadCommitmentResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ReadCommitmentResponse copyWith(void Function(ReadCommitmentResponse) updates) => super.copyWith((message) => updates(message as ReadCommitmentResponse)) as ReadCommitmentResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadCommitmentResponse create() => ReadCommitmentResponse._();
+  ReadCommitmentResponse createEmptyInstance() => create();
+  static $pb.PbList<ReadCommitmentResponse> createRepeated() => $pb.PbList<ReadCommitmentResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ReadCommitmentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ReadCommitmentResponse>(create);
+  static ReadCommitmentResponse? _defaultInstance;
+
+  /// The JSON object the address served.
+  @$pb.TagNumber(1)
+  $core.String get dataJson => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set dataJson($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDataJson() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDataJson() => clearField(1);
+
+  /// BLAKE3 digest of the canonical form of data_json.
+  @$pb.TagNumber(2)
+  $core.String get commitment => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set commitment($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCommitment() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCommitment() => clearField(2);
 }
 
 class SignArbitraryMsgRequest extends $pb.GeneratedMessage {
@@ -3620,6 +3768,9 @@ class BitnamesServiceApi {
   ;
   $async.Future<ResolveCommitResponse> resolveCommit($pb.ClientContext? ctx, ResolveCommitRequest request) =>
     _client.invoke<ResolveCommitResponse>(ctx, 'BitnamesService', 'ResolveCommit', request, ResolveCommitResponse())
+  ;
+  $async.Future<ReadCommitmentResponse> readCommitment($pb.ClientContext? ctx, ReadCommitmentRequest request) =>
+    _client.invoke<ReadCommitmentResponse>(ctx, 'BitnamesService', 'ReadCommitment', request, ReadCommitmentResponse())
   ;
   $async.Future<SignArbitraryMsgResponse> signArbitraryMsg($pb.ClientContext? ctx, SignArbitraryMsgRequest request) =>
     _client.invoke<SignArbitraryMsgResponse>(ctx, 'BitnamesService', 'SignArbitraryMsg', request, SignArbitraryMsgResponse())

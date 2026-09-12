@@ -126,6 +126,9 @@ const (
 	// BitnamesServiceResolveCommitProcedure is the fully-qualified name of the BitnamesService's
 	// ResolveCommit RPC.
 	BitnamesServiceResolveCommitProcedure = "/bitnames.v1.BitnamesService/ResolveCommit"
+	// BitnamesServiceReadCommitmentProcedure is the fully-qualified name of the BitnamesService's
+	// ReadCommitment RPC.
+	BitnamesServiceReadCommitmentProcedure = "/bitnames.v1.BitnamesService/ReadCommitment"
 	// BitnamesServiceSignArbitraryMsgProcedure is the fully-qualified name of the BitnamesService's
 	// SignArbitraryMsg RPC.
 	BitnamesServiceSignArbitraryMsgProcedure = "/bitnames.v1.BitnamesService/SignArbitraryMsg"
@@ -208,6 +211,8 @@ type BitnamesServiceClient interface {
 	GetPaymail(context.Context, *connect.Request[v1.GetPaymailRequest]) (*connect.Response[v1.GetPaymailResponse], error)
 	// Resolve a commitment from a BitName.
 	ResolveCommit(context.Context, *connect.Request[v1.ResolveCommitRequest]) (*connect.Response[v1.ResolveCommitResponse], error)
+	// Read a data commitment from an address, before a BitName holds it.
+	ReadCommitment(context.Context, *connect.Request[v1.ReadCommitmentRequest]) (*connect.Response[v1.ReadCommitmentResponse], error)
 	// Sign an arbitrary message with the specified verifying key.
 	SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error)
 	// Sign an arbitrary message as a specific address.
@@ -423,6 +428,12 @@ func NewBitnamesServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(bitnamesServiceMethods.ByName("ResolveCommit")),
 			connect.WithClientOptions(opts...),
 		),
+		readCommitment: connect.NewClient[v1.ReadCommitmentRequest, v1.ReadCommitmentResponse](
+			httpClient,
+			baseURL+BitnamesServiceReadCommitmentProcedure,
+			connect.WithSchema(bitnamesServiceMethods.ByName("ReadCommitment")),
+			connect.WithClientOptions(opts...),
+		),
 		signArbitraryMsg: connect.NewClient[v1.SignArbitraryMsgRequest, v1.SignArbitraryMsgResponse](
 			httpClient,
 			baseURL+BitnamesServiceSignArbitraryMsgProcedure,
@@ -490,6 +501,7 @@ type bitnamesServiceClient struct {
 	encryptMsg                            *connect.Client[v1.EncryptMsgRequest, v1.EncryptMsgResponse]
 	getPaymail                            *connect.Client[v1.GetPaymailRequest, v1.GetPaymailResponse]
 	resolveCommit                         *connect.Client[v1.ResolveCommitRequest, v1.ResolveCommitResponse]
+	readCommitment                        *connect.Client[v1.ReadCommitmentRequest, v1.ReadCommitmentResponse]
 	signArbitraryMsg                      *connect.Client[v1.SignArbitraryMsgRequest, v1.SignArbitraryMsgResponse]
 	signArbitraryMsgAsAddr                *connect.Client[v1.SignArbitraryMsgAsAddrRequest, v1.SignArbitraryMsgAsAddrResponse]
 	getWalletAddresses                    *connect.Client[v1.GetWalletAddressesRequest, v1.GetWalletAddressesResponse]
@@ -658,6 +670,11 @@ func (c *bitnamesServiceClient) ResolveCommit(ctx context.Context, req *connect.
 	return c.resolveCommit.CallUnary(ctx, req)
 }
 
+// ReadCommitment calls bitnames.v1.BitnamesService.ReadCommitment.
+func (c *bitnamesServiceClient) ReadCommitment(ctx context.Context, req *connect.Request[v1.ReadCommitmentRequest]) (*connect.Response[v1.ReadCommitmentResponse], error) {
+	return c.readCommitment.CallUnary(ctx, req)
+}
+
 // SignArbitraryMsg calls bitnames.v1.BitnamesService.SignArbitraryMsg.
 func (c *bitnamesServiceClient) SignArbitraryMsg(ctx context.Context, req *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error) {
 	return c.signArbitraryMsg.CallUnary(ctx, req)
@@ -749,6 +766,8 @@ type BitnamesServiceHandler interface {
 	GetPaymail(context.Context, *connect.Request[v1.GetPaymailRequest]) (*connect.Response[v1.GetPaymailResponse], error)
 	// Resolve a commitment from a BitName.
 	ResolveCommit(context.Context, *connect.Request[v1.ResolveCommitRequest]) (*connect.Response[v1.ResolveCommitResponse], error)
+	// Read a data commitment from an address, before a BitName holds it.
+	ReadCommitment(context.Context, *connect.Request[v1.ReadCommitmentRequest]) (*connect.Response[v1.ReadCommitmentResponse], error)
 	// Sign an arbitrary message with the specified verifying key.
 	SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error)
 	// Sign an arbitrary message as a specific address.
@@ -960,6 +979,12 @@ func NewBitnamesServiceHandler(svc BitnamesServiceHandler, opts ...connect.Handl
 		connect.WithSchema(bitnamesServiceMethods.ByName("ResolveCommit")),
 		connect.WithHandlerOptions(opts...),
 	)
+	bitnamesServiceReadCommitmentHandler := connect.NewUnaryHandler(
+		BitnamesServiceReadCommitmentProcedure,
+		svc.ReadCommitment,
+		connect.WithSchema(bitnamesServiceMethods.ByName("ReadCommitment")),
+		connect.WithHandlerOptions(opts...),
+	)
 	bitnamesServiceSignArbitraryMsgHandler := connect.NewUnaryHandler(
 		BitnamesServiceSignArbitraryMsgProcedure,
 		svc.SignArbitraryMsg,
@@ -1056,6 +1081,8 @@ func NewBitnamesServiceHandler(svc BitnamesServiceHandler, opts ...connect.Handl
 			bitnamesServiceGetPaymailHandler.ServeHTTP(w, r)
 		case BitnamesServiceResolveCommitProcedure:
 			bitnamesServiceResolveCommitHandler.ServeHTTP(w, r)
+		case BitnamesServiceReadCommitmentProcedure:
+			bitnamesServiceReadCommitmentHandler.ServeHTTP(w, r)
 		case BitnamesServiceSignArbitraryMsgProcedure:
 			bitnamesServiceSignArbitraryMsgHandler.ServeHTTP(w, r)
 		case BitnamesServiceSignArbitraryMsgAsAddrProcedure:
@@ -1201,6 +1228,10 @@ func (UnimplementedBitnamesServiceHandler) GetPaymail(context.Context, *connect.
 
 func (UnimplementedBitnamesServiceHandler) ResolveCommit(context.Context, *connect.Request[v1.ResolveCommitRequest]) (*connect.Response[v1.ResolveCommitResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.ResolveCommit is not implemented"))
+}
+
+func (UnimplementedBitnamesServiceHandler) ReadCommitment(context.Context, *connect.Request[v1.ReadCommitmentRequest]) (*connect.Response[v1.ReadCommitmentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("bitnames.v1.BitnamesService.ReadCommitment is not implemented"))
 }
 
 func (UnimplementedBitnamesServiceHandler) SignArbitraryMsg(context.Context, *connect.Request[v1.SignArbitraryMsgRequest]) (*connect.Response[v1.SignArbitraryMsgResponse], error) {

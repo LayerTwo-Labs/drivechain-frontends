@@ -584,6 +584,24 @@ extension type BitnamesServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// Read a data commitment from an address, before a BitName holds it.
+  Future<bitnamesv1bitnames.ReadCommitmentResponse> readCommitment(
+    bitnamesv1bitnames.ReadCommitmentRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.BitnamesService.readCommitment,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// Sign an arbitrary message with the specified verifying key.
   Future<bitnamesv1bitnames.SignArbitraryMsgResponse> signArbitraryMsg(
     bitnamesv1bitnames.SignArbitraryMsgRequest input, {

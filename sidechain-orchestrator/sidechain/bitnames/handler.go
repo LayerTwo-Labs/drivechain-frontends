@@ -307,12 +307,60 @@ func (h *Handler) GetPaymail(ctx context.Context, req *connect.Request[pb.GetPay
 	return connect.NewResponse(&pb.GetPaymailResponse{PaymailJson: string(raw)}), nil
 }
 
+// dataServerAddress returns the address to read data from. The protocol gives
+// an IPv4 address priority over an IPv6 address.
+func dataServerAddress(data BitNameData) (string, error) {
+	if data.SocketAddrV4 != nil && *data.SocketAddrV4 != "" {
+		return *data.SocketAddrV4, nil
+	}
+	if data.SocketAddrV6 != nil && *data.SocketAddrV6 != "" {
+		return *data.SocketAddrV6, nil
+	}
+	return "", fmt.Errorf("bitname holds no socket address")
+}
+
 func (h *Handler) ResolveCommit(ctx context.Context, req *connect.Request[pb.ResolveCommitRequest]) (*connect.Response[pb.ResolveCommitResponse], error) {
-	var commitment string
-	if err := h.proxy.Client.Call(ctx, "resolve_commit", req.Msg.Bitname, &commitment); err != nil {
+	var data BitNameData
+	if err := h.proxy.Client.Call(ctx, "bitname_data", []any{req.Msg.Bitname}, &data); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&pb.ResolveCommitResponse{Commitment: commitment}), nil
+
+	if data.Commitment == nil || *data.Commitment == "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("bitname %s holds no commitment", req.Msg.Bitname))
+	}
+
+	address, err := dataServerAddress(data)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+
+	raw, digest, err := FetchCommitment(ctx, address)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+
+	return connect.NewResponse(&pb.ResolveCommitResponse{
+		Commitment: *data.Commitment,
+		DataJson:   string(raw),
+		Matches:    digest == *data.Commitment,
+	}), nil
+}
+
+func (h *Handler) ReadCommitment(ctx context.Context, req *connect.Request[pb.ReadCommitmentRequest]) (*connect.Response[pb.ReadCommitmentResponse], error) {
+	if req.Msg.Address == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("address is empty"))
+	}
+
+	raw, digest, err := FetchCommitment(ctx, req.Msg.Address)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+
+	return connect.NewResponse(&pb.ReadCommitmentResponse{
+		DataJson:   string(raw),
+		Commitment: digest,
+	}), nil
 }
 
 func (h *Handler) SignArbitraryMsg(ctx context.Context, req *connect.Request[pb.SignArbitraryMsgRequest]) (*connect.Response[pb.SignArbitraryMsgResponse], error) {

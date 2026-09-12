@@ -12,6 +12,7 @@ require (
 	github.com/btcsuite/btcd/btcutil/psbt v1.2.0
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/gowebpki/jcs v1.0.1
 	github.com/mattn/go-sqlite3 v1.14.45
 	github.com/mr-tron/base58 v1.3.0
 	github.com/rs/zerolog v1.35.1

@@ -101,6 +101,9 @@ service BitnamesService {
   // Resolve a commitment from a BitName.
   rpc ResolveCommit(ResolveCommitRequest) returns (ResolveCommitResponse);
 
+  // Read a data commitment from an address, before a BitName holds it.
+  rpc ReadCommitment(ReadCommitmentRequest) returns (ReadCommitmentResponse);
+
   // Sign an arbitrary message with the specified verifying key.
   rpc SignArbitraryMsg(SignArbitraryMsgRequest) returns (SignArbitraryMsgResponse);
 
@@ -411,7 +414,26 @@ message ResolveCommitRequest {
 }
 
 message ResolveCommitResponse {
+  // The commitment the BitName holds on chain.
   string commitment = 1;
+  // The JSON object the address served.
+  string data_json = 2;
+  // True when data_json hashes to commitment.
+  bool matches = 3;
+}
+
+// ReadCommitment
+
+message ReadCommitmentRequest {
+  // Socket address, as host:port.
+  string address = 1;
+}
+
+message ReadCommitmentResponse {
+  // The JSON object the address served.
+  string data_json = 1;
+  // BLAKE3 digest of the canonical form of data_json.
+  string commitment = 2;
 }
 
 // SignArbitraryMsg
