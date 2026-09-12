@@ -217,27 +217,25 @@ func (s *Server) SendTransaction(ctx context.Context, c *connect.Request[pb.Send
 		}), nil
 	}
 
-	sendReq := &corepb.SendRequest{
-		Destinations: destinations,
-		Wallet:       coreWalletName,
-	}
-
-	// Set fee rate if provided (Bitcoin Core expects sat/vB directly)
-	if c.Msg.FeeSatPerVbyte > 0 {
-		sendReq.FeeRate = float64(c.Msg.FeeSatPerVbyte)
-	}
-
-	resp, err := bitcoind.Send(ctx, connect.NewRequest(sendReq))
+	// Coin selection belongs to drivechaind, which locks the frozen coins for
+	// the length of a send. A second selector here would spend them.
+	txid, err := s.walletEngine.SendTransaction(ctx, &orchpb.SendTransactionRequest{
+		WalletId: walletId,
+		Destinations: lo.MapValues(c.Msg.Destinations, func(sats uint64, _ string) int64 {
+			return int64(sats)
+		}),
+		FeeRateSatPerVbyte: int64(c.Msg.FeeSatPerVbyte),
+		FixedFeeSats:       int64(c.Msg.FixedFeeSats),
+	})
 	if err != nil {
-		err = fmt.Errorf("bitcoin Core: send transaction: %w", err)
 		zerolog.Ctx(ctx).Error().Err(err).Msg("could not send transaction")
 		return nil, err
 	}
 
-	log.Info().Msgf("send tx: broadcast transaction (Bitcoin Core): %s", resp.Msg.Txid)
+	log.Info().Msgf("send tx: broadcast transaction: %s", txid)
 
 	return connect.NewResponse(&pb.SendTransactionResponse{
-		Txid: resp.Msg.Txid,
+		Txid: txid,
 	}), nil
 }
 
@@ -2363,51 +2361,39 @@ func formatBucketRange(minSats, maxSats uint64) string {
 // Uses Bitcoin Core's bumpfee command with automatic fee estimation.
 func (s *Server) BumpFee(ctx context.Context, c *connect.Request[pb.BumpFeeRequest]) (*connect.Response[pb.BumpFeeResponse], error) {
 	log := zerolog.Ctx(ctx)
-	txid := c.Msg.Txid
-
-	if txid == "" {
+	if c.Msg.Txid == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("txid required"))
 	}
 
-	bitcoind, err := s.bitcoind.Get(ctx)
+	// The caller names a txid alone, so try every wallet until one owns it.
+	// Each try runs where the frozen coins sit locked.
+	wallets, err := s.walletEngine.ListWalletIDs(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	// Get the list of loaded wallets to find one that owns this transaction
-	listResp, err := bitcoind.ListWallets(ctx, connect.NewRequest(&emptypb.Empty{}))
-	if err != nil {
-		return nil, fmt.Errorf("list wallets: %w", err)
-	}
-
-	// Try each wallet until one successfully bumps the fee
-	var bumpResp *connect.Response[corepb.BumpFeeResponse]
-	for _, walletName := range listResp.Msg.Wallets {
-		resp, err := bitcoind.BumpFee(ctx, connect.NewRequest(&corepb.BumpFeeRequest{
-			Wallet: walletName,
-			Txid:   txid,
-		}))
+	var resp *orchpb.BumpFeeResponse
+	for _, walletID := range append([]string{""}, wallets...) {
+		resp, err = s.walletEngine.BumpFee(ctx, &orchpb.BumpFeeRequest{
+			WalletId: walletID,
+			Txid:     c.Msg.Txid,
+		})
 		if err == nil {
-			bumpResp = resp
 			break
 		}
 	}
-
-	if bumpResp == nil {
-		return nil, fmt.Errorf("could not bump fee: transaction not found in any wallet")
+	if resp == nil {
+		return nil, fmt.Errorf("could not bump fee: transaction not found in any wallet: %w", err)
 	}
 
 	log.Info().
-		Str("old_txid", txid).
-		Str("new_txid", bumpResp.Msg.Txid).
-		Float64("original_fee", bumpResp.Msg.OriginalFee).
-		Float64("new_fee", bumpResp.Msg.NewFee).
-		Msg("RBF transaction broadcast via Core bumpfee")
+		Str("old_txid", c.Msg.Txid).
+		Str("new_txid", resp.NewTxid).
+		Msg("RBF transaction broadcast")
 
 	return connect.NewResponse(&pb.BumpFeeResponse{
-		Txid:        bumpResp.Msg.Txid,
-		OriginalFee: bumpResp.Msg.OriginalFee,
-		NewFee:      bumpResp.Msg.NewFee,
+		Txid:        resp.NewTxid,
+		OriginalFee: float64(resp.GetPlan().GetOldFeeSats()) / 1e8,
+		NewFee:      float64(resp.GetPlan().GetNewFeeSats()) / 1e8,
 	}), nil
 }
 
