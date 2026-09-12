@@ -552,6 +552,130 @@ void main() {
     expect(provider.contacts.single.encryptionPubkey, alice.details.encryptionPubkey);
   });
 
+  for (final receipt in ['pending', 'confirmed', 'stored outpoint']) {
+    test('an owned recipient keeps its copy after a $receipt receipt and reload', () async {
+      final key = _StorageKey();
+      addTearDown(key.dispose);
+      final store = BitnamesSecureStore(store: MockStore(), keySource: key);
+      provider.dispose();
+      rpc.online = false;
+      provider = ChatProvider(store: store);
+      provider.selectIdentity(alice);
+      rpc.online = true;
+      await provider.addContactFromEntry(bob);
+      provider.selectContact(provider.contacts.single);
+      final txid = await provider.sendMessage('From Alice to Bob');
+      expect(txid, 'tx-1');
+      final outpoint = '$txid:0';
+      if (receipt == 'stored outpoint') {
+        provider.messages[0] = provider.messages.single.copyWith(txid: outpoint, isPending: false);
+      }
+      final outgoing = provider.messages.single;
+      final transfer = rpc.transfers.single;
+      final output = {
+        'address': transfer.address,
+        'memo': hex.decode(transfer.memo!),
+        'content': {'BitcoinSats': transfer.value},
+      };
+      if (receipt == 'pending') {
+        rpc.pending = {outpoint: output};
+      } else {
+        rpc.mempool.clear();
+        rpc.settled = {
+          outpoint: {...output, 'memo': transfer.memo},
+        };
+      }
+      rpc.online = false;
+      provider.selectIdentity(bob);
+      rpc.online = true;
+      await provider.fetchPaymail();
+
+      expect(provider.error, isNull);
+      expect(provider.messages, hasLength(2));
+      final incoming = provider.messages.singleWhere((message) => !message.isOutgoing);
+      expect(incoming.id, outgoing.id);
+      expect(incoming.txid, outpoint);
+      expect(incoming.recipientBitname, bob.hash);
+      expect(incoming.isPending, receipt == 'pending');
+      expect(provider.unreadCount(alice.hash), 1);
+      provider.selectContact(provider.contacts.singleWhere((contact) => contact.id == alice.hash));
+      expect(provider.currentConversation.single.content, outgoing.content);
+      expect(provider.currentConversation.single.isOutgoing, isFalse);
+      await provider.markConversationRead(alice.hash);
+      await provider.fetchPaymail();
+      expect(provider.messages, hasLength(2));
+
+      if (receipt == 'pending') {
+        rpc.pending['copy:0'] = output;
+      } else {
+        rpc.settled['copy:0'] = {...output, 'memo': transfer.memo};
+      }
+      await provider.fetchPaymail();
+      expect(provider.messages, hasLength(2));
+      rpc.pending = {};
+      rpc.mempool.clear();
+      rpc.settled = {
+        outpoint: {...output, 'memo': transfer.memo},
+      };
+      await provider.fetchPaymail();
+      final received = provider.currentConversation.single;
+      expect(received.timestamp, incoming.timestamp);
+      expect(received.read, isTrue);
+      expect(received.isPending, isFalse);
+      final sent = provider.messages.singleWhere((message) => message.isOutgoing);
+      expect(sent.txid, outgoing.txid);
+      expect(sent.timestamp, outgoing.timestamp);
+      expect(sent.isPending, isFalse);
+      expect((await store.load())['messages'], hasLength(2));
+
+      provider.dispose();
+      provider = ChatProvider(store: store);
+      rpc.online = false;
+      provider.selectIdentity(alice);
+      await waitForChat(outgoing.content);
+      expect(provider.error, isNull);
+      expect(provider.messages, hasLength(2));
+      provider.selectContact(provider.contacts.singleWhere((contact) => contact.id == bob.hash));
+      expect(provider.currentConversation.single.toJson(), sent.toJson());
+      provider.selectIdentity(bob);
+      provider.selectContact(provider.contacts.singleWhere((contact) => contact.id == alice.hash));
+      expect(provider.currentConversation.single.toJson(), received.toJson());
+      rpc.online = true;
+      await provider.fetchPaymail();
+      expect(provider.messages, hasLength(2));
+    });
+  }
+
+  test('a self-send keeps one stored record and its transaction ID', () async {
+    final key = _StorageKey();
+    addTearDown(key.dispose);
+    final store = BitnamesSecureStore(store: MockStore(), keySource: key);
+    provider.dispose();
+    rpc.online = false;
+    provider = ChatProvider(store: store);
+    provider.selectIdentity(bob);
+    rpc.online = true;
+    await provider.addContactFromEntry(bob);
+    provider.selectContact(provider.contacts.single);
+    final txid = await provider.sendMessage('For myself');
+    final transfer = rpc.transfers.single;
+    rpc.mempool.clear();
+    rpc.settled = {
+      '$txid:0': {
+        'address': transfer.address,
+        'memo': transfer.memo,
+        'content': {'BitcoinSats': transfer.value},
+      },
+    };
+    await provider.fetchPaymail();
+
+    expect(provider.error, isNull);
+    expect(provider.currentConversation.single.txid, txid);
+    expect(provider.currentConversation.single.isOutgoing, isTrue);
+    expect(provider.currentConversation.single.isPending, isFalse);
+    expect((await store.load())['messages'], hasLength(1));
+  });
+
   test('a block keeps the message sender and read state', () async {
     final memo = await signed();
     rpc.pending = {'first:0': await rpc.output(memo.encode(), bob)};
@@ -702,6 +826,41 @@ void main() {
     provider.selectContact(provider.contacts.single);
     expect(provider.currentConversation.single.content, 'For Carol');
     expect(provider.error, isNull);
+  });
+
+  test('unsigned mail with a shared key and owner keeps one incoming record', () async {
+    carol = rpc.addIdentity('carol', 3, encryptionKey: bob.details.encryptionPubkey);
+    rpc.owners[carol.hash] = rpc.owners[bob.hash]!;
+    final output = await rpc.output('Legacy text', bob);
+    rpc.pending = {'shared:0': output};
+    await provider.fetchPaymail();
+    provider.selectContact(provider.contacts.single);
+    await provider.markConversationRead('unknown');
+    final received = provider.messages.single;
+    expect(received.recipientBitname, bob.hash);
+    expect(received.read, isTrue);
+
+    rpc.online = false;
+    provider.selectIdentity(carol);
+    rpc.online = true;
+    await provider.fetchPaymail();
+
+    expect(provider.error, isNull);
+    expect(provider.messages, hasLength(1));
+    expect(provider.messages.single.toJson(), received.toJson());
+    expect(provider.currentConversation, isEmpty);
+    rpc.pending = {};
+    rpc.settled = {
+      'shared:0': {...output, 'memo': hex.encode(output['memo'] as List<int>)},
+    };
+    await provider.fetchPaymail();
+    await provider.fetchPaymail();
+    expect(provider.error, isNull);
+    expect(provider.messages.single.toJson(), received.copyWith(isPending: false).toJson());
+    rpc.online = false;
+    provider.selectIdentity(bob);
+    expect(provider.currentConversation.single.read, isTrue);
+    expect(provider.currentConversation.single.content, 'Legacy text');
   });
 
   for (final state in ['pending', 'confirmed']) {
