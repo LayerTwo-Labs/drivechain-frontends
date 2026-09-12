@@ -74,7 +74,6 @@ Widget _wideRowInTheMiddle({double textScale = 1.0}) {
             width: 800,
             height: 400,
             child: SailTable(
-              key: ValueKey(textScale),
               getRowId: (index) => 'row$index',
               headerBuilder: (context) => const [
                 SailTableHeaderCell(name: 'Name'),
@@ -153,5 +152,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getSize(_cell('1 ECX').first).width, greaterThanOrEqualTo(_renderedWidth(_wideAmount, 1) + 24));
+  });
+
+  // The font-size slider changes the scale under a mounted table, so the
+  // widths must not stay at the measurement of the previous scale.
+  testWidgets('a hugging column follows a text scale the user changes', (tester) async {
+    await tester.pumpWidget(_wideRowInTheMiddle());
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(_wideRowInTheMiddle(textScale: 1.5));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(_cell('1 ECX').first).width, greaterThanOrEqualTo(_renderedWidth(_wideAmount, 1.5) + 24));
   });
 }
