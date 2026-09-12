@@ -52,7 +52,7 @@ func TestFetchCommitmentReturnsDataAndDigest(t *testing.T) {
 	srv := fakeRPC(t, map[string]interface{}{"bitname_commit": answer})
 	defer srv.Close()
 
-	raw, digest, err := FetchCommitment(context.Background(), strings.TrimPrefix(srv.URL, "http://"))
+	raw, digest, err := fetchCommitmentFrom(context.Background(), strings.TrimPrefix(srv.URL, "http://"))
 	require.NoError(t, err)
 
 	want, err := CommitmentFor(raw)
@@ -67,6 +67,6 @@ func TestFetchCommitmentErrorsWhenServerIsDown(t *testing.T) {
 	address := strings.TrimPrefix(srv.URL, "http://")
 	srv.Close()
 
-	_, _, err := FetchCommitment(context.Background(), address)
+	_, _, err := fetchCommitmentFrom(context.Background(), address)
 	require.Error(t, err)
 }

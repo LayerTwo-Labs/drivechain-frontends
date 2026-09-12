@@ -576,6 +576,9 @@ class BitnamesViewModel extends BaseViewModel {
   bool readLoading = false;
   String? readError;
 
+  // The address the digest describes. A later edit makes the digest stale.
+  String? commitmentAddress;
+
   BitnamesViewModel() {
     searchController.addListener(notifyListeners);
     provider.addListener(notifyListeners);
@@ -584,6 +587,8 @@ class BitnamesViewModel extends BaseViewModel {
       reserveError = null;
       notifyListeners();
     });
+    ipv4Controller.addListener(dropStaleCommitment);
+    ipv6Controller.addListener(dropStaleCommitment);
 
     generateKeysWithRetry();
   }
@@ -731,12 +736,19 @@ class BitnamesViewModel extends BaseViewModel {
       return;
     }
 
+    final readAddress = (ipv4 != null && ipv4.isNotEmpty) ? ipv4 : ipv6;
+    if (commitment != null && commitmentAddress != readAddress) {
+      registerError = 'The address changed after the read. Read from the server again.';
+      notifyListeners();
+      return;
+    }
+
     final paymailFeeText = paymailFeeController.text.trim();
     int? paymailFeeSats;
     if (paymailFeeText.isNotEmpty) {
       paymailFeeSats = int.tryParse(paymailFeeText);
-      if (paymailFeeSats == null) {
-        registerError = 'Paymail fee must be a whole number of sats';
+      if (paymailFeeSats == null || paymailFeeSats < 0) {
+        registerError = 'Paymail fee must be a whole number of sats, and zero or more';
         notifyListeners();
         return;
       }
@@ -786,6 +798,25 @@ class BitnamesViewModel extends BaseViewModel {
     }
   }
 
+  /// A digest describes one address. An edit makes it describe nothing.
+  void dropStaleCommitment() {
+    if (commitmentAddress == null) {
+      return;
+    }
+
+    final ipv4 = ipv4Controller.text.trim();
+    final ipv6 = ipv6Controller.text.trim();
+    final address = ipv4.isNotEmpty ? ipv4 : ipv6;
+    if (address == commitmentAddress) {
+      return;
+    }
+
+    commitmentAddress = null;
+    commitmentData = null;
+    commitmentController.clear();
+    notifyListeners();
+  }
+
   Future<void> readCommitmentFromServer() async {
     final ipv4 = ipv4Controller.text.trim();
     final ipv6 = ipv6Controller.text.trim();
@@ -804,8 +835,10 @@ class BitnamesViewModel extends BaseViewModel {
     try {
       final result = await bitnamesRPC.readCommitment(address);
       commitmentData = result.dataJson;
+      commitmentAddress = address;
       commitmentController.text = result.commitment;
     } catch (e) {
+      commitmentAddress = null;
       commitmentData = null;
       commitmentController.clear();
       readError = e.toString();

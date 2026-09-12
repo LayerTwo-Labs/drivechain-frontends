@@ -321,7 +321,7 @@ func dataServerAddress(data BitNameData) (string, error) {
 
 func (h *Handler) ResolveCommit(ctx context.Context, req *connect.Request[pb.ResolveCommitRequest]) (*connect.Response[pb.ResolveCommitResponse], error) {
 	var data BitNameData
-	if err := h.proxy.Client.Call(ctx, "bitname_data", []any{req.Msg.Bitname}, &data); err != nil {
+	if err := h.proxy.Client.Call(ctx, "bitname_data", req.Msg.Bitname, &data); err != nil {
 		return nil, err
 	}
 

@@ -15,6 +15,8 @@ import (
 type Client struct {
 	baseURL string
 	http    *http.Client
+	// maxBody caps the answer from an untrusted server. Zero means no cap.
+	maxBody int64
 }
 
 // NewClient creates a BitNames RPC client pointed at host:port.
@@ -75,9 +77,17 @@ func (c *Client) call(ctx context.Context, method string, params interface{}) (j
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	respBody, err := io.ReadAll(resp.Body)
+	var answer io.Reader = resp.Body
+	if c.maxBody > 0 {
+		answer = io.LimitReader(resp.Body, c.maxBody+1)
+	}
+
+	respBody, err := io.ReadAll(answer)
 	if err != nil {
 		return nil, fmt.Errorf("read %s response: %w", method, err)
+	}
+	if c.maxBody > 0 && int64(len(respBody)) > c.maxBody {
+		return nil, fmt.Errorf("%s answer is larger than %d bytes", method, c.maxBody)
 	}
 
 	var rpcResp rpcResponse
