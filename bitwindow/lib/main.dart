@@ -251,6 +251,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
 
   GetIt.I.registerLazySingleton<BalanceProvider>(
     () => BalanceProvider(
+      mainConnection: bitwindow,
       connections: [
         bitwindow,
         GetIt.I.get<BitnamesRPC>(),
