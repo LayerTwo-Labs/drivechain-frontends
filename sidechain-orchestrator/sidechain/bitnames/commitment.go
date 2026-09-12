@@ -160,7 +160,11 @@ func fetchCommitmentFrom(
 		},
 	}
 	if dial != nil {
-		client.Transport = &http.Transport{DialContext: dial}
+		transport := &http.Transport{DialContext: dial}
+		// This transport serves one call, so its idle connection and the read
+		// goroutine of that connection stay for the life of the process.
+		defer transport.CloseIdleConnections()
+		client.Transport = transport
 	}
 
 	server := &Client{
