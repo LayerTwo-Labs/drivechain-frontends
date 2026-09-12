@@ -289,9 +289,9 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 		if werr := e.rejectWatchOnly(ctx, walletId); werr != nil {
 			return werr
 		}
-		txid, err = e.sendBitcoinCoreTransaction(ctx, walletId, utxo, destinations, fee)
+		txid, err = e.sendTransaction(ctx, walletId, utxo, destinations, fee)
 	case WalletTypeElectrum:
-		txid, err = e.sendElectrumTransaction(ctx, walletId, utxo, destinations, fee)
+		txid, err = e.sendTransaction(ctx, walletId, utxo, destinations, fee)
 	default:
 		return fmt.Errorf("unknown wallet type: %s", walletType)
 	}
@@ -334,33 +334,9 @@ func (e *DeniabilityEngine) ProcessUTXO(ctx context.Context, utxo *UTXO, denial 
 	return nil
 }
 
-// sendBitcoinCoreTransaction sends a transaction via Bitcoin Core, spending the
-// chosen UTXO into the denial destinations.
-func (e *DeniabilityEngine) sendBitcoinCoreTransaction(
-	ctx context.Context,
-	walletId string,
-	utxo *UTXO,
-	destinations map[string]uint64,
-	fee uint64,
-) (string, error) {
-	coreWalletName, err := e.walletEngine.GetBitcoinCoreWalletName(ctx, walletId)
-	if err != nil {
-		return "", fmt.Errorf("get bitcoin core wallet name: %w", err)
-	}
-
-	bitcoind, err := e.bitcoind.Get(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get bitcoind client: %w", err)
-	}
-
-	return SendCoreWithRequiredInputs(ctx, bitcoind, coreWalletName, []CoreOutpoint{
-		{Txid: utxo.Txid, Vout: utxo.Vout},
-	}, destinations, 0, fee)
-}
-
-// sendElectrumTransaction sends a transaction via the orchestrator wallet
-// manager, spending the chosen UTXO into the denial destinations.
-func (e *DeniabilityEngine) sendElectrumTransaction(
+// sendTransaction spends the chosen UTXO into the denial destinations through
+// the orchestrator, which holds the frozen coins locked for the length of it.
+func (e *DeniabilityEngine) sendTransaction(
 	ctx context.Context,
 	walletId string,
 	utxo *UTXO,

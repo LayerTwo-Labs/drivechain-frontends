@@ -17,11 +17,14 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/service"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
+	orchpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	orchrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	corepb "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const denialWalletID = "80CEBA2163224572BDEADD2D2181C51B"
@@ -30,7 +33,9 @@ const denialWalletID = "80CEBA2163224572BDEADD2D2181C51B"
 // Passing nil here is what once pushed the empty-wallet-id tolerance into the
 // product, where it skipped the watch-only check and reached Core's loaded
 // wallet.
-func testDenialWalletEngine(t *testing.T, bitcoind corerpc.BitcoinServiceClient) *engines.WalletEngine {
+func testDenialWalletEngine(
+	t *testing.T, bitcoind corerpc.BitcoinServiceClient, orchestrator orchrpc.WalletManagerServiceClient,
+) *engines.WalletEngine {
 	t.Helper()
 
 	dir := t.TempDir()
@@ -48,11 +53,15 @@ func testDenialWalletEngine(t *testing.T, bitcoind corerpc.BitcoinServiceClient)
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "wallet.json"), walletData, 0o600))
 
-	return engines.NewWalletEngine(
+	engine := engines.NewWalletEngine(
 		func(ctx context.Context) (corerpc.BitcoinServiceClient, error) { return bitcoind, nil },
 		dir,
 		&chaincfg.SigNetParams,
 	)
+	if orchestrator != nil {
+		engine.SetOrchestratorClient(orchestrator)
+	}
+	return engine
 }
 
 func TestDeniabilityEngine(t *testing.T) {
@@ -70,7 +79,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, nil))
 
 		// Create a denial with empty wallet_id (legacy behavior)
 		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
@@ -109,7 +118,25 @@ func TestDeniabilityEngine(t *testing.T) {
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		mockOrch.EXPECT().
+			SetFrozenCoins(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[emptypb.Empty]{Msg: &emptypb.Empty{}}, nil)
+		// With a client wired, the engine reads the Core wallet name there.
+		mockOrch.EXPECT().
+			CreateBitcoinCoreWallet(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[orchpb.CreateBitcoinCoreWalletResponse]{
+				Msg: &orchpb.CreateBitcoinCoreWalletResponse{CoreWalletName: "wallet_80CEBA21"},
+			}, nil)
+		mockOrch.EXPECT().
+			SendTransaction(gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(&connect.Response[orchpb.SendTransactionResponse]{
+				Msg: &orchpb.SendTransactionResponse{Txid: "new-txid"},
+			}, nil)
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, mockOrch))
 
 		// Create a denial with empty wallet_id (legacy behavior)
 		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)
@@ -178,7 +205,7 @@ func TestDeniabilityEngine(t *testing.T) {
 		bitcoindService := service.New("bitcoind", func(ctx context.Context) (corerpc.BitcoinServiceClient, error) {
 			return mockBitcoind, nil
 		})
-		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind))
+		engine := engines.NewDeniability(bitcoindService, db, testDenialWalletEngine(t, mockBitcoind, nil))
 
 		// Create a denial with empty wallet_id (legacy behavior)
 		denial, err := deniability.Create(ctx, db, denialWalletID, "test-txid", 0, 1*time.Hour, 3, nil)

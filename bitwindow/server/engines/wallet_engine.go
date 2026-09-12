@@ -993,6 +993,34 @@ func (e *WalletEngine) SendTransaction(ctx context.Context, req *orchpb.SendTran
 	return resp.Msg.Txid, nil
 }
 
+// ListWalletIDs names every wallet the orchestrator holds.
+func (e *WalletEngine) ListWalletIDs(ctx context.Context) ([]string, error) {
+	if e.orchClient == nil {
+		return nil, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	resp, err := e.orchClient.ListWallets(ctx, connect.NewRequest(&orchpb.ListWalletsRequest{}))
+	if err != nil {
+		return nil, fmt.Errorf("list wallets: %w", err)
+	}
+	return lo.Map(resp.Msg.Wallets, func(w *orchpb.WalletMetadata, _ int) string { return w.Id }), nil
+}
+
+// BumpFee replaces a transaction with one that pays more. Coin selection runs
+// in the orchestrator, which locks the frozen coins for the length of the call.
+func (e *WalletEngine) BumpFee(ctx context.Context, req *orchpb.BumpFeeRequest) (*orchpb.BumpFeeResponse, error) {
+	if e.orchClient == nil {
+		return nil, fmt.Errorf("orchestrator wallet client not connected")
+	}
+	if err := e.pushFrozenCoins(ctx); err != nil {
+		return nil, err
+	}
+	resp, err := e.orchClient.BumpFee(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, fmt.Errorf("bump fee: %w", err)
+	}
+	return resp.Msg, nil
+}
+
 // CreateDeposit builds and broadcasts a BIP300 M5 deposit from any wallet.
 func (e *WalletEngine) CreateDeposit(ctx context.Context, req *orchpb.CreateDepositRequest) (string, error) {
 	if e.orchClient == nil {
