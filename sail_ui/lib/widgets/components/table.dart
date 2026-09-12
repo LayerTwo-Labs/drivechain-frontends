@@ -79,6 +79,7 @@ class _SailTableState extends State<SailTable> {
   BoxConstraints? _currentConstraints;
   double _startColumnWidth = 0;
   int? _numColumns;
+  TextScaler? _lastScaler;
 
   double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
 
@@ -87,6 +88,18 @@ class _SailTableState extends State<SailTable> {
     super.initState();
     _initializeState();
     _verticalController.addListener(_checkScrollPosition);
+  }
+
+  // The font-size slider changes the scaler under a mounted table, and the
+  // widths hold the measurement of the previous scale.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final scaler = MediaQuery.of(context).textScaler;
+    if (_lastScaler != null && _lastScaler != scaler && _currentConstraints != null) {
+      _resizeColumns(_currentConstraints!.maxWidth, force: true);
+    }
+    _lastScaler = scaler;
   }
 
   @override
@@ -469,6 +482,8 @@ class _SailTableState extends State<SailTable> {
       final textPainter = TextPainter(
         text: TextSpan(text: text, style: textStyle),
         textDirection: TextDirection.ltr,
+        // The same scaler SailText renders with, clamp included.
+        textScaler: MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 2),
       );
       textPainter.layout();
       return textPainter.width + padding + 1;
