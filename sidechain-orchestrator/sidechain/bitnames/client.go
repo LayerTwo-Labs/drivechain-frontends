@@ -181,7 +181,7 @@ func (c *Client) SidechainWealthSats(ctx context.Context) (int64, error) {
 
 // BitNameData retrieves data for a single BitName.
 func (c *Client) BitNameData(ctx context.Context, name string) (*BitNameData, error) {
-	raw, err := c.call(ctx, "bitname_data", name)
+	raw, err := c.call(ctx, "bitname_data", []any{name})
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (c *Client) GetBlockCount(ctx context.Context) (int, error) {
 
 // GetBlock returns block data for a given hash.
 func (c *Client) GetBlock(ctx context.Context, hash string) (json.RawMessage, error) {
-	return c.call(ctx, "get_block", hash)
+	return c.call(ctx, "get_block", []any{hash})
 }
 
 // GetBMMInclusions returns mainchain blocks that commit to the given block hash.
@@ -314,7 +314,7 @@ func (c *Client) GenerateMnemonic(ctx context.Context) (string, error) {
 
 // SetSeedFromMnemonic sets the wallet seed from a mnemonic phrase.
 func (c *Client) SetSeedFromMnemonic(ctx context.Context, mnemonic string) error {
-	_, err := c.call(ctx, "set_seed_from_mnemonic", mnemonic)
+	_, err := c.call(ctx, "set_seed_from_mnemonic", []any{mnemonic})
 	return err
 }
 

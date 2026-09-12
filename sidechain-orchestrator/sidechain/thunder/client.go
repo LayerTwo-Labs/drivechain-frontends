@@ -176,7 +176,7 @@ func (c *Client) GetBlockCount(ctx context.Context) (int, error) {
 
 // GetBlock returns block data for a given hash.
 func (c *Client) GetBlock(ctx context.Context, hash string) (json.RawMessage, error) {
-	return c.call(ctx, "get_block", hash)
+	return c.call(ctx, "get_block", []any{hash})
 }
 
 // GetBMMInclusions returns mainchain blocks that commit to the given block hash.
@@ -240,7 +240,7 @@ func (c *Client) PendingWithdrawalBundle(ctx context.Context) (json.RawMessage, 
 
 // RemoveFromMempool removes a transaction from the mempool.
 func (c *Client) RemoveFromMempool(ctx context.Context, txid string) error {
-	_, err := c.call(ctx, "remove_from_mempool", txid)
+	_, err := c.call(ctx, "remove_from_mempool", []any{txid})
 	return err
 }
 
@@ -250,7 +250,7 @@ func (c *Client) RemoveFromMempool(ctx context.Context, txid string) error {
 
 // ConnectPeer connects to a peer at the given address.
 func (c *Client) ConnectPeer(ctx context.Context, address string) error {
-	_, err := c.call(ctx, "connect_peer", address)
+	_, err := c.call(ctx, "connect_peer", []any{address})
 	return err
 }
 
@@ -270,7 +270,7 @@ func (c *Client) GenerateMnemonic(ctx context.Context) (string, error) {
 
 // SetSeedFromMnemonic sets the wallet seed from a mnemonic phrase.
 func (c *Client) SetSeedFromMnemonic(ctx context.Context, mnemonic string) error {
-	_, err := c.call(ctx, "set_seed_from_mnemonic", mnemonic)
+	_, err := c.call(ctx, "set_seed_from_mnemonic", []any{mnemonic})
 	return err
 }
 
