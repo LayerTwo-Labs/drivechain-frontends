@@ -248,6 +248,9 @@ func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args [
 
 // StartWithOptions is Start with per-call overrides (see ProcessStartOptions).
 func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfig, args []string, env map[string]string, opts ProcessStartOptions) (int, error) {
+	if err := checkElementsSetup(config); err != nil {
+		return 0, err
+	}
 	processName := opts.ProcessName
 	if processName == "" {
 		processName = config.Name

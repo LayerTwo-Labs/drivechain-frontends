@@ -873,6 +873,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	if err != nil {
 		return nil, err
 	}
+	if err := checkElementsSetup(config); err != nil {
+		return nil, err
+	}
 	if err := o.refuseWhileParked(); err != nil {
 		return nil, err
 	}
@@ -1505,6 +1508,9 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 	config, err := o.getConfig(name)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkElementsSetup(config); err != nil {
 		return nil, err
 	}
 	if err := o.refuseWhileParked(); err != nil {

@@ -139,6 +139,9 @@ func (d *DownloadManager) Download(ctx context.Context, config BinaryConfig, net
 // DownloadWithOptions is Download with per-call overrides (see DownloadOptions).
 // It downloads every target of the config, so a test sidechain gets its backend too.
 func (d *DownloadManager) DownloadWithOptions(ctx context.Context, config BinaryConfig, network string, force bool, opts DownloadOptions) (<-chan DownloadProgress, error) {
+	if err := checkElementsSetup(config); err != nil {
+		return nil, err
+	}
 	targets := d.Targets(config, network, opts)
 	binPath := targets[0].BinPath
 
