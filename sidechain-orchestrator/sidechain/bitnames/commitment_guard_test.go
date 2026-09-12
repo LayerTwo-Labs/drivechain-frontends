@@ -36,26 +36,26 @@ func TestResolveGlobalAddressRejectsNonPublic(t *testing.T) {
 		"[2001:db8::1]:6002",
 		"[fc00::1]:6002",
 	} {
-		_, _, err := resolveGlobalAddress(address)
+		_, _, err := resolveGlobalAddress(context.Background(), address)
 		require.Error(t, err, "address %s must not pass", address)
 	}
 }
 
 func TestResolveGlobalAddressRejectsMalformed(t *testing.T) {
 	for _, address := range []string{"", "psztorc.com", "psztorc.com:", ":6002"} {
-		_, _, err := resolveGlobalAddress(address)
+		_, _, err := resolveGlobalAddress(context.Background(), address)
 		require.Error(t, err, "address %q must not pass", address)
 	}
 }
 
 func TestResolveGlobalAddressAcceptsPublic(t *testing.T) {
 	// A literal address skips DNS, so this test needs no network.
-	addrs, port, err := resolveGlobalAddress("8.8.8.8:6002")
+	addrs, port, err := resolveGlobalAddress(context.Background(), "8.8.8.8:6002")
 	require.NoError(t, err)
 	assert.Equal(t, "6002", port)
 	assert.Equal(t, []netip.Addr{netip.MustParseAddr("8.8.8.8")}, addrs)
 
-	_, _, err = resolveGlobalAddress("[2606:4700:4700::1111]:6002")
+	_, _, err = resolveGlobalAddress(context.Background(), "[2606:4700:4700::1111]:6002")
 	require.NoError(t, err)
 }
 

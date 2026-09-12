@@ -22,7 +22,7 @@ const (
 
 // resolveGlobalAddress refuses an address that points back at the machine or at
 // a private network. A BitName holder chooses it, so it can aim anywhere.
-func resolveGlobalAddress(address string) ([]netip.Addr, string, error) {
+func resolveGlobalAddress(ctx context.Context, address string) ([]netip.Addr, string, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, "", fmt.Errorf("address %q is not host:port: %w", address, err)
@@ -31,7 +31,8 @@ func resolveGlobalAddress(address string) ([]netip.Addr, string, error) {
 		return nil, "", fmt.Errorf("address %q is not host:port", address)
 	}
 
-	ips, err := net.LookupIP(host)
+	// A stalled authoritative server holds a lookup that carries no deadline.
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
 	if err != nil {
 		return nil, "", fmt.Errorf("resolve %q: %w", host, err)
 	}
@@ -111,7 +112,10 @@ func CommitmentFor(raw json.RawMessage) (string, error) {
 // FetchCommitment calls bitname_commit on the data server at address, and
 // returns the JSON object it served with the digest that object commits to.
 func FetchCommitment(ctx context.Context, address string) (json.RawMessage, string, error) {
-	addrs, port, err := resolveGlobalAddress(address)
+	ctx, cancel := context.WithTimeout(ctx, commitTimeout)
+	defer cancel()
+
+	addrs, port, err := resolveGlobalAddress(ctx, address)
 	if err != nil {
 		return nil, "", err
 	}
