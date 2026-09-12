@@ -574,14 +574,17 @@ func (c *ElectrumClient) TipHeight(ctx context.Context) (int, error) {
 	return head.Height, nil
 }
 
-// FeeRateForTarget maps Electrum's estimatefee (BTC/kB) to sat/vB, falling back
-// when the server has no estimate (it returns a negative number).
-func (c *ElectrumClient) FeeRateForTarget(ctx context.Context, target int, fallback float64) float64 {
+// FeeRateForTarget maps Electrum's estimatefee (BTC/kB) to sat/vB. A server
+// with no estimate answers a number at or below zero, which is an error here.
+func (c *ElectrumClient) FeeRateForTarget(ctx context.Context, target int) (float64, error) {
 	var btcPerKB float64
-	if err := c.call(ctx, &btcPerKB, "blockchain.estimatefee", target); err != nil || btcPerKB <= 0 {
-		return fallback
+	if err := c.call(ctx, &btcPerKB, "blockchain.estimatefee", target); err != nil {
+		return 0, fmt.Errorf("electrum estimatefee %d: %w", target, err)
 	}
-	return btcPerKB * 1e8 / 1000.0
+	if btcPerKB <= 0 {
+		return 0, fmt.Errorf("electrum server has no fee estimate for %d blocks", target)
+	}
+	return btcPerKB * 1e8 / 1000.0, nil
 }
 
 // buildTx fetches a raw transaction, decodes it, resolves each input's prevout,

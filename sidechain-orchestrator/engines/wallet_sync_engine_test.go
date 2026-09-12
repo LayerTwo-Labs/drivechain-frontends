@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 
@@ -37,8 +38,8 @@ func (c *countingChain) Tx(context.Context, string) (wallet.EsploraTx, error) {
 func (c *countingChain) TxHex(context.Context, string) (string, error)     { return "", nil }
 func (c *countingChain) Broadcast(context.Context, string) (string, error) { return "", nil }
 func (c *countingChain) TipHeight(context.Context) (int, error)            { return 110, nil }
-func (c *countingChain) FeeRateForTarget(_ context.Context, _ int, fallback float64) float64 {
-	return fallback
+func (c *countingChain) FeeRateForTarget(context.Context, int) (float64, error) {
+	return 0, errors.New("no fee estimate")
 }
 
 func newSyncFixture(t *testing.T) (*WalletSyncEngine, *wallet.Service, *wallet.WalletEngine, *countingChain) {

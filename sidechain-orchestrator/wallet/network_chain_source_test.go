@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -270,8 +271,8 @@ func (c *switchOnTipClient) AddressTxs(context.Context, string) ([]EsploraTx, er
 func (c *switchOnTipClient) Tx(context.Context, string) (EsploraTx, error)     { return EsploraTx{}, nil }
 func (c *switchOnTipClient) TxHex(context.Context, string) (string, error)     { return "", nil }
 func (c *switchOnTipClient) Broadcast(context.Context, string) (string, error) { return "", nil }
-func (c *switchOnTipClient) FeeRateForTarget(_ context.Context, _ int, fallback float64) float64 {
-	return fallback
+func (c *switchOnTipClient) FeeRateForTarget(context.Context, int) (float64, error) {
+	return 0, errors.New("no fee estimate")
 }
 
 // consumerOnce bound to the first client meant an Esplora-first process could

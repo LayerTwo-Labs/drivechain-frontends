@@ -56,6 +56,17 @@ func (r *BackendRouter) Bip47BackendFor(walletID string) (Bip47Backend, bool) {
 	return b, ok
 }
 
+// FeeRaterFor returns the wallet's backend as a FeeRater when it prices a send
+// from a chain estimate. ok is false when the backend prices its own sends.
+func (r *BackendRouter) FeeRaterFor(walletID string) (FeeRater, bool) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, false
+	}
+	f, ok := p.(FeeRater)
+	return f, ok
+}
+
 func (r *BackendRouter) pick(walletID string) (Backend, error) {
 	w := r.svc.GetWalletByID(walletID)
 	if w == nil {

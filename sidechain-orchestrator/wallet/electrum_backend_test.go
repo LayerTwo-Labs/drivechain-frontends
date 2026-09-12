@@ -58,6 +58,8 @@ type fakeEsplora struct {
 	hexByID   map[string]string
 	tip       int
 	feeRate   float64
+	feeErr    error
+	feeCalls  int
 	broadcast []string
 }
 
@@ -149,13 +151,17 @@ func (f *fakeEsplora) TipHeight(_ context.Context) (int, error) {
 	return f.tip, nil
 }
 
-func (f *fakeEsplora) FeeRateForTarget(_ context.Context, _ int, fallback float64) float64 {
+func (f *fakeEsplora) FeeRateForTarget(_ context.Context, target int) (float64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.feeRate > 0 {
-		return f.feeRate
+	f.feeCalls++
+	if f.feeErr != nil {
+		return 0, f.feeErr
 	}
-	return fallback
+	if f.feeRate <= 0 {
+		return 0, fmt.Errorf("no fee estimate for %d blocks", target)
+	}
+	return f.feeRate, nil
 }
 
 func newElectrumFixture(t *testing.T) (*ElectrumBackend, *fakeEsplora, *WalletData, string) {

@@ -47,8 +47,8 @@ func (e *psbtTestEsplora) TxHex(context.Context, string) (string, error) {
 }
 func (e *psbtTestEsplora) Broadcast(context.Context, string) (string, error) { return "txid", nil }
 func (e *psbtTestEsplora) TipHeight(context.Context) (int, error)            { return 110, nil }
-func (e *psbtTestEsplora) FeeRateForTarget(context.Context, int, float64) float64 {
-	return 2
+func (e *psbtTestEsplora) FeeRateForTarget(context.Context, int) (float64, error) {
+	return 2, nil
 }
 
 // TestWalletHandlerPSBTRoundTrip drives the exposed PSBT RPCs through the real

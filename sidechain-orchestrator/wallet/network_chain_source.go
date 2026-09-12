@@ -245,12 +245,12 @@ func (s *NetworkChainSource) TipHeight(ctx context.Context) (int, error) {
 	return c.TipHeight(ctx)
 }
 
-func (s *NetworkChainSource) FeeRateForTarget(ctx context.Context, target int, fallback float64) float64 {
+func (s *NetworkChainSource) FeeRateForTarget(ctx context.Context, target int) (float64, error) {
 	c, err := s.current()
 	if err != nil {
-		return fallback
+		return 0, err
 	}
-	return c.FeeRateForTarget(ctx, target, fallback)
+	return c.FeeRateForTarget(ctx, target)
 }
 
 // Notifications relays the active client's push stream when it has one.

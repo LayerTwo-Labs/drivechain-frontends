@@ -56,12 +56,12 @@ func (s *stubChainSource) TipHeight(context.Context) (int, error) {
 	return s.height, nil
 }
 
-func (s *stubChainSource) FeeRateForTarget(_ context.Context, _ int, fallback float64) float64 {
+func (s *stubChainSource) FeeRateForTarget(context.Context, int) (float64, error) {
 	s.calls++
 	if s.fee == 0 {
-		return fallback
+		return 0, errors.New("no fee estimate")
 	}
-	return s.fee
+	return s.fee, nil
 }
 
 // A dead Fulcrum server must not stop the wallet: the next source serves.
@@ -117,14 +117,39 @@ func TestFallbackChainSourceReportsEverySourceFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "esplora down")
 }
 
-// A source that cannot estimate hands back the caller's own fallback, so the
-// next source gets a turn instead of the wallet using a static fee.
+// A source that cannot estimate errors, so the next source gets a turn
+// instead of the wallet using a static fee.
 func TestFallbackChainSourceFeeRateFallsThrough(t *testing.T) {
 	fulcrum := &stubChainSource{}
 	esplora := &stubChainSource{fee: 12.5}
 
 	f := newFallbackChainSource([]ChainDataSource{fulcrum, esplora}, zerolog.Nop())
-	assert.Equal(t, 12.5, f.FeeRateForTarget(context.Background(), 6, 1))
+	rate, err := f.FeeRateForTarget(context.Background(), 6)
+	require.NoError(t, err)
+	assert.Equal(t, 12.5, rate)
+}
+
+// A server with no fee estimate still serves reads and pushes, so the miss
+// must not send the next read to the slower source.
+func TestFallbackChainSourceFeeRateMissKeepsThePrimary(t *testing.T) {
+	fulcrum := &stubChainSource{height: 840000}
+	esplora := &stubChainSource{fee: 12.5}
+
+	f := newFallbackChainSource([]ChainDataSource{fulcrum, esplora}, zerolog.Nop())
+	_, err := f.FeeRateForTarget(context.Background(), 6)
+	require.NoError(t, err)
+
+	_, err = f.TipHeight(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 2, fulcrum.calls, "the primary must still take the next read")
+}
+
+// No source can estimate, so the read fails. A wallet must not send at a rate
+// the chain never gave.
+func TestFallbackChainSourceFeeRateErrorsWhenNoSourceEstimates(t *testing.T) {
+	f := newFallbackChainSource([]ChainDataSource{&stubChainSource{}, &stubChainSource{}}, zerolog.Nop())
+	_, err := f.FeeRateForTarget(context.Background(), 6)
+	require.Error(t, err)
 }
 
 // A cancelled read must stop, not walk the whole source list.

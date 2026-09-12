@@ -119,6 +119,25 @@ func (h *WalletHandler) expandBip47Destinations(
 	return expansion, nil
 }
 
+// resolveSendFeeRate fills in the rate a send pays when the caller names
+// neither a rate nor a fixed fee, so the caller can price the send before it
+// broadcasts anything. A backend that prices its own sends needs nothing.
+func (h *WalletHandler) resolveSendFeeRate(ctx context.Context, walletID string, req *wallet.SendRequest) error {
+	if req.FeeRateSatPerVB > 0 || req.FixedFeeSats > 0 {
+		return nil
+	}
+	rater, ok := h.engine.FeeRaterFor(walletID)
+	if !ok {
+		return nil
+	}
+	rate, err := rater.FeeRateForTarget(ctx, wallet.SendFeeTarget)
+	if err != nil {
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("no fee estimate for the payment: %w", err))
+	}
+	req.FeeRateSatPerVB = int64(math.Ceil(rate))
+	return nil
+}
+
 // releaseBip47Index gives back the per-payment index reserved for a send that
 // failed, so the retry derives the same address instead of burning an index.
 // No-op for passthrough (non-BIP47) expansions.
