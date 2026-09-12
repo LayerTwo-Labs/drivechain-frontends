@@ -852,26 +852,32 @@ class BitnamesViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  /// Most people own a domain, not a static address, so the website wins.
+  /// A resolver reads v4, then v6, then the host. The digest must come from the
+  /// same server that a resolver reaches.
   String dataAddress() {
-    final website = websiteController.text.trim();
-    if (website.isNotEmpty) {
-      return website.contains(':') ? website : '$website:$defaultDataPort';
-    }
-
     final ipv4 = ipv4Controller.text.trim();
     if (ipv4.isNotEmpty) {
       return ipv4;
     }
 
-    return ipv6Controller.text.trim();
+    final ipv6 = ipv6Controller.text.trim();
+    if (ipv6.isNotEmpty) {
+      return ipv6;
+    }
+
+    final website = websiteController.text.trim();
+    if (website.isEmpty) {
+      return '';
+    }
+
+    return website.contains(':') ? website : '$website:$defaultDataPort';
   }
 
   Future<void> readCommitmentFromServer() async {
     final address = dataAddress();
 
     if (address.isEmpty) {
-      readError = 'Set a website first';
+      readError = 'Set a website or an address first';
       notifyListeners();
       return;
     }
