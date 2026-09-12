@@ -3,8 +3,10 @@ package bitnames
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"testing"
 
@@ -12,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCheckGlobalAddressRejectsNonPublic(t *testing.T) {
+func TestResolveGlobalAddressRejectsNonPublic(t *testing.T) {
 	// A BitName holder picks this address, so it can aim at the victim's own
 	// machine or network.
 	for _, address := range []string{
@@ -34,21 +36,45 @@ func TestCheckGlobalAddressRejectsNonPublic(t *testing.T) {
 		"[2001:db8::1]:6002",
 		"[fc00::1]:6002",
 	} {
-		err := checkGlobalAddress(address)
+		_, _, err := resolveGlobalAddress(address)
 		require.Error(t, err, "address %s must not pass", address)
 	}
 }
 
-func TestCheckGlobalAddressRejectsMalformed(t *testing.T) {
+func TestResolveGlobalAddressRejectsMalformed(t *testing.T) {
 	for _, address := range []string{"", "psztorc.com", "psztorc.com:", ":6002"} {
-		require.Error(t, checkGlobalAddress(address), "address %q must not pass", address)
+		_, _, err := resolveGlobalAddress(address)
+		require.Error(t, err, "address %q must not pass", address)
 	}
 }
 
-func TestCheckGlobalAddressAcceptsPublic(t *testing.T) {
+func TestResolveGlobalAddressAcceptsPublic(t *testing.T) {
 	// A literal address skips DNS, so this test needs no network.
-	require.NoError(t, checkGlobalAddress("8.8.8.8:6002"))
-	require.NoError(t, checkGlobalAddress("[2606:4700:4700::1111]:6002"))
+	addrs, port, err := resolveGlobalAddress("8.8.8.8:6002")
+	require.NoError(t, err)
+	assert.Equal(t, "6002", port)
+	assert.Equal(t, []netip.Addr{netip.MustParseAddr("8.8.8.8")}, addrs)
+
+	_, _, err = resolveGlobalAddress("[2606:4700:4700::1111]:6002")
+	require.NoError(t, err)
+}
+
+func TestPinnedDialerIgnoresTheAddressItGets(t *testing.T) {
+	srv := fakeRPC(t, map[string]interface{}{"bitname_commit": map[string]string{"a": "b"}})
+	defer srv.Close()
+
+	host, port, err := net.SplitHostPort(strings.TrimPrefix(srv.URL, "http://"))
+	require.NoError(t, err)
+	pinned, err := netip.ParseAddr(host)
+	require.NoError(t, err)
+
+	// A rebinding answer gives the name a private address after the check. The
+	// dialer holds the checked address, so the second answer reaches nothing.
+	conn, err := pinnedDialer([]netip.Addr{pinned}, port)(context.Background(), "tcp", "10.0.0.1:6002")
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }()
+
+	assert.Equal(t, srv.Listener.Addr().String(), conn.RemoteAddr().String())
 }
 
 func TestFetchCommitmentRefusesLoopback(t *testing.T) {

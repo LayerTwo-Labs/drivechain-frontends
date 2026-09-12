@@ -156,35 +156,27 @@ class BitnamesTabPage extends StatelessWidget {
                               spacing: SailStyleValues.padding16,
                               children: [
                                 SailTextField(
-                                  label: 'Plaintext Name',
+                                  label: 'Name',
                                   hintText: 'Enter name to register',
                                   controller: model.registerNameController,
                                 ),
                                 const _LabelWithHelp(
-                                  label: 'IPv4 Address (optional)',
+                                  label: 'Your website (optional)',
                                   message:
-                                      'Where your data lives. A reader dials this address and calls the JSON-RPC method '
-                                      'bitname_commit. An IPv4 address resolves before an IPv6 address. A domain name '
-                                      'does not work, because the chain stores a numeric address and a port.',
+                                      'Where your record lives. Your website answers the JSON-RPC method '
+                                      'bitname_commit with your email, your keys, anything you publish. The chain '
+                                      'holds only a hash of that record.',
                                 ),
                                 SailTextField(
-                                  hintText: 'Enter IPv4 address',
-                                  controller: model.ipv4Controller,
-                                ),
-                                const _LabelWithHelp(
-                                  label: 'IPv6 Address (optional)',
-                                  message:
-                                      'The same server, at an IPv6 address. A reader uses it only when no IPv4 '
-                                      'address is set.',
-                                ),
-                                SailTextField(
-                                  hintText: 'Enter IPv6 address',
-                                  controller: model.ipv6Controller,
-                                ),
-                                SailButton(
-                                  label: 'Read from server',
-                                  loading: model.readLoading,
-                                  onPressed: () async => await model.readCommitmentFromServer(),
+                                  hintText: 'psztorc.com',
+                                  controller: model.websiteController,
+                                  loading: LoadingDetails(
+                                    enabled: model.readLoading,
+                                    description: 'Reading your website...',
+                                  ),
+                                  onSubmitted: (_) {
+                                    model.readCommitmentFromServer();
+                                  },
                                 ),
                                 if (model.readError != null)
                                   SailText.primary13(
@@ -192,8 +184,11 @@ class BitnamesTabPage extends StatelessWidget {
                                     color: SailTheme.of(context).colors.error,
                                   ),
                                 if (model.commitmentData != null) ...[
+                                  SailText.primary13(
+                                    'Your website answered with the following commitment',
+                                    color: SailTheme.of(context).colors.success,
+                                  ),
                                   SailTextField(
-                                    label: 'Data from server',
                                     hintText: '',
                                     controller: TextEditingController(text: model.commitmentData),
                                     readOnly: true,
@@ -201,82 +196,116 @@ class BitnamesTabPage extends StatelessWidget {
                                     monospace: true,
                                   ),
                                   SailTextField(
-                                    label: 'Commitment (computed)',
+                                    label: 'Commitment',
                                     hintText: '',
                                     controller: model.commitmentController,
                                     readOnly: true,
                                     monospace: true,
                                   ),
                                 ],
-                                const _LabelWithHelp(
-                                  label: 'Paymail fee in sats (optional)',
-                                  message:
-                                      'The smallest payment you accept with a message. Somebody sends you a coin with '
-                                      'a memo, and your wallet hides a message that pays less. Nobody pays this to a '
-                                      'miner.',
-                                ),
-                                SailTextField(
-                                  hintText: 'Minimum you accept per message',
-                                  controller: model.paymailFeeController,
-                                ),
-                                SailRow(
-                                  spacing: SailStyleValues.padding04,
-                                  children: [
-                                    SailCheckbox(
-                                      label: 'Set Encryption Pubkey',
-                                      value: model.useEncryptionKey,
-                                      onChanged: (value) {
-                                        model.useEncryptionKey = value;
-                                        model.notifyListeners();
-                                      },
-                                    ),
-                                    SailTooltip(
-                                      message:
-                                          'Lets anybody encrypt a message to you by name. Without this key, the '
-                                          'app tells a sender that no encryption pubkey exists for this BitName.',
-                                      child: SailSVG.fromAsset(
-                                        SailSVGAsset.circleHelp,
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    model.showAdvanced = !model.showAdvanced;
+                                    model.notifyListeners();
+                                  },
+                                  child: SailRow(
+                                    spacing: SailStyleValues.padding04,
+                                    children: [
+                                      SailSVG.fromAsset(
+                                        model.showAdvanced ? SailSVGAsset.chevronDown : SailSVGAsset.chevronRight,
                                         color: SailTheme.of(context).colors.textSecondary,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                if (model.useEncryptionKey && model.encryptionKey != null)
-                                  SailTextField(
-                                    label: 'Encryption Pubkey',
-                                    controller: TextEditingController(text: model.encryptionKey),
-                                    hintText: 'Encryption Pubkey',
-                                    readOnly: true,
-                                  ),
-                                SailRow(
-                                  spacing: SailStyleValues.padding04,
-                                  children: [
-                                    SailCheckbox(
-                                      label: 'Set Signing Pubkey',
-                                      value: model.useSigningKey,
-                                      onChanged: (value) {
-                                        model.useSigningKey = value;
-                                        model.notifyListeners();
-                                      },
-                                    ),
-                                    SailTooltip(
-                                      message:
-                                          'Publishes which key is yours, so a reader can check a signature you '
-                                          'made against your name.',
-                                      child: SailSVG.fromAsset(
-                                        SailSVGAsset.circleHelp,
+                                      SailText.primary13(
+                                        'Advanced',
                                         color: SailTheme.of(context).colors.textSecondary,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                if (model.useSigningKey && model.signingKey != null)
-                                  SailTextField(
-                                    label: 'Signing Pubkey',
-                                    controller: TextEditingController(text: model.signingKey),
-                                    hintText: 'Signing Pubkey',
-                                    readOnly: true,
+                                    ],
                                   ),
+                                ),
+                                if (model.showAdvanced) ...[
+                                  const _LabelWithHelp(
+                                    label: 'IPv4 address',
+                                    message: 'Use a numeric address when you have no website. It resolves first.',
+                                  ),
+                                  SailTextField(
+                                    hintText: 'Enter IPv4 address',
+                                    controller: model.ipv4Controller,
+                                  ),
+                                  const _LabelWithHelp(
+                                    label: 'IPv6 address',
+                                    message: 'The same server, at an IPv6 address.',
+                                  ),
+                                  SailTextField(
+                                    hintText: 'Enter IPv6 address',
+                                    controller: model.ipv6Controller,
+                                  ),
+                                  const _LabelWithHelp(
+                                    label: 'Message postage in sats',
+                                    message:
+                                        'The smallest payment you accept with a message. Somebody sends you a coin '
+                                        'with a memo, and your wallet hides a message that pays less. Nobody pays '
+                                        'this to a miner.',
+                                  ),
+                                  SailTextField(
+                                    hintText: 'Minimum you accept per message',
+                                    controller: model.paymailFeeController,
+                                  ),
+                                  SailRow(
+                                    spacing: SailStyleValues.padding04,
+                                    children: [
+                                      SailCheckbox(
+                                        label: 'Private messages',
+                                        value: model.useEncryptionKey,
+                                        onChanged: (value) {
+                                          model.useEncryptionKey = value;
+                                          model.notifyListeners();
+                                        },
+                                      ),
+                                      SailTooltip(
+                                        message: 'People can send you a message only you can read.',
+                                        child: SailSVG.fromAsset(
+                                          SailSVGAsset.circleHelp,
+                                          color: SailTheme.of(context).colors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (model.useEncryptionKey && model.encryptionKey != null)
+                                    SailTextField(
+                                      label: 'Encryption Pubkey',
+                                      controller: TextEditingController(text: model.encryptionKey),
+                                      hintText: 'Encryption Pubkey',
+                                      readOnly: true,
+                                    ),
+                                  SailRow(
+                                    spacing: SailStyleValues.padding04,
+                                    children: [
+                                      SailCheckbox(
+                                        label: 'Signed messages',
+                                        value: model.useSigningKey,
+                                        onChanged: (value) {
+                                          model.useSigningKey = value;
+                                          model.notifyListeners();
+                                        },
+                                      ),
+                                      SailTooltip(
+                                        message: 'People can check that a message really comes from you.',
+                                        child: SailSVG.fromAsset(
+                                          SailSVGAsset.circleHelp,
+                                          color: SailTheme.of(context).colors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (model.useSigningKey && model.signingKey != null)
+                                    SailTextField(
+                                      label: 'Signing Pubkey',
+                                      controller: TextEditingController(text: model.signingKey),
+                                      hintText: 'Signing Pubkey',
+                                      readOnly: true,
+                                    ),
+                                ],
                                 SailButton(
                                   label: 'Register',
                                   onPressed: () => model.registerBitname(context),
@@ -579,6 +608,12 @@ class BitnamesViewModel extends BaseViewModel {
   // The address the digest describes. A later edit makes the digest stale.
   String? commitmentAddress;
 
+  // A bare domain gets the sidechain RPC port, which is 6000 + sidechain 2.
+  static const int defaultDataPort = 6002;
+
+  final TextEditingController websiteController = TextEditingController();
+  bool showAdvanced = false;
+
   BitnamesViewModel() {
     searchController.addListener(notifyListeners);
     provider.addListener(notifyListeners);
@@ -587,6 +622,7 @@ class BitnamesViewModel extends BaseViewModel {
       reserveError = null;
       notifyListeners();
     });
+    websiteController.addListener(dropStaleCommitment);
     ipv4Controller.addListener(dropStaleCommitment);
     ipv6Controller.addListener(dropStaleCommitment);
 
@@ -722,6 +758,7 @@ class BitnamesViewModel extends BaseViewModel {
     final commitment = commitmentController.text.trim().isEmpty ? null : commitmentController.text.trim();
     final ipv4 = ipv4Controller.text.trim().isEmpty ? null : ipv4Controller.text.trim();
     final ipv6 = ipv6Controller.text.trim().isEmpty ? null : ipv6Controller.text.trim();
+    final website = websiteController.text.trim().isEmpty ? null : dataAddress();
 
     if (name.isEmpty) {
       registerError = 'Name cannot be empty';
@@ -729,15 +766,14 @@ class BitnamesViewModel extends BaseViewModel {
       return;
     }
 
-    final commitmentError = validateCommitment(commitment: commitment, ipv4: ipv4, ipv6: ipv6);
+    final commitmentError = validateCommitment(commitment: commitment, website: website, ipv4: ipv4, ipv6: ipv6);
     if (commitmentError != null) {
       registerError = commitmentError;
       notifyListeners();
       return;
     }
 
-    final readAddress = (ipv4 != null && ipv4.isNotEmpty) ? ipv4 : ipv6;
-    if (commitment != null && commitmentAddress != readAddress) {
+    if (commitment != null && commitmentAddress != dataAddress()) {
       registerError = 'The address changed after the read. Read from the server again.';
       notifyListeners();
       return;
@@ -767,6 +803,7 @@ class BitnamesViewModel extends BaseViewModel {
           signingPubkey: useSigningKey ? signingKey : null,
           socketAddrV4: ipv4,
           socketAddrV6: ipv6,
+          socketAddrHost: website,
         ),
       );
       await provider.saveHashNameMapping(name, isMine: true);
@@ -781,6 +818,7 @@ class BitnamesViewModel extends BaseViewModel {
       }
       await provider.fetch();
       registerNameController.clear();
+      websiteController.clear();
       commitmentController.clear();
       ipv4Controller.clear();
       ipv6Controller.clear();
@@ -804,10 +842,7 @@ class BitnamesViewModel extends BaseViewModel {
       return;
     }
 
-    final ipv4 = ipv4Controller.text.trim();
-    final ipv6 = ipv6Controller.text.trim();
-    final address = ipv4.isNotEmpty ? ipv4 : ipv6;
-    if (address == commitmentAddress) {
+    if (dataAddress() == commitmentAddress) {
       return;
     }
 
@@ -817,13 +852,26 @@ class BitnamesViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<void> readCommitmentFromServer() async {
+  /// Most people own a domain, not a static address, so the website wins.
+  String dataAddress() {
+    final website = websiteController.text.trim();
+    if (website.isNotEmpty) {
+      return website.contains(':') ? website : '$website:$defaultDataPort';
+    }
+
     final ipv4 = ipv4Controller.text.trim();
-    final ipv6 = ipv6Controller.text.trim();
-    final address = ipv4.isNotEmpty ? ipv4 : ipv6;
+    if (ipv4.isNotEmpty) {
+      return ipv4;
+    }
+
+    return ipv6Controller.text.trim();
+  }
+
+  Future<void> readCommitmentFromServer() async {
+    final address = dataAddress();
 
     if (address.isEmpty) {
-      readError = 'Set an address first';
+      readError = 'Set a website first';
       notifyListeners();
       return;
     }
@@ -853,6 +901,7 @@ class BitnamesViewModel extends BaseViewModel {
     searchController.dispose();
     reserveNameController.dispose();
     registerNameController.dispose();
+    websiteController.dispose();
     commitmentController.dispose();
     ipv4Controller.dispose();
     ipv6Controller.dispose();
