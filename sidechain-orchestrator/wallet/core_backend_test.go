@@ -2366,3 +2366,26 @@ func TestCoreBackendOwnedAddressesFailsOnACoreError(t *testing.T) {
 	_, err := backend.OwnedAddresses(context.Background(), coreID, []string{"change"})
 	require.ErrorContains(t, err, "get address info for change")
 }
+
+// A send spends the whole coin and returns the rest as unconfirmed change. At
+// Core's default minconf the coin list reads empty until that change confirms.
+func TestCoreBackendListUnspentShowsAMempoolCoin(t *testing.T) {
+	backend, fake, coreID := newCoreBackendFixture(t)
+	fake.stubEnsureFlow()
+	fake.handle("listunspent", func(c bitcoindCall) (any, string) {
+		var minConf int
+		require.NoError(t, json.Unmarshal(c.Params[0], &minConf))
+		if minConf > 0 {
+			return []map[string]any{}, ""
+		}
+		return []map[string]any{
+			{"txid": "change", "vout": 1, "address": "bcrt1qchange", "amount": 8.32, "confirmations": 0, "spendable": true},
+		}, ""
+	})
+
+	utxos, err := backend.ListUnspent(context.Background(), coreID)
+	require.NoError(t, err)
+
+	require.Len(t, utxos, 1, "the pending change belongs to the wallet")
+	assert.Equal(t, 0, utxos[0].Confirmations)
+}

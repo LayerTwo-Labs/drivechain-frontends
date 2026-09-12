@@ -164,6 +164,8 @@ message UnspentOutput {
   // The largest weight, in weight units, that spending this output costs. 0
   // when the backend cannot report the output's descriptor.
   int32 input_weight_units = 11;
+  // Blocks that bury the output. 0 while it waits in the mempool.
+  int32 confirmations = 12;
 }
 
 message ListUnspentResponse {

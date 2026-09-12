@@ -265,7 +265,10 @@ func (p *CoreBackend) ListUnspent(ctx context.Context, walletID string) ([]UTXO,
 	if err != nil {
 		return nil, err
 	}
-	return p.rpc.ListUnspent(ctx, name)
+	// minconf 0: Core's default hides a coin that waits in the mempool, so a
+	// send emptied the coin list until it confirmed. The electrum backend
+	// lists that coin, and CPFP must find it.
+	return p.rpc.ListUnspentMinConf(ctx, name, 0)
 }
 
 func (p *CoreBackend) ListTransactions(ctx context.Context, walletID string, count int) ([]WalletTransaction, error) {

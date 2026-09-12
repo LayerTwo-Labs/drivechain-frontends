@@ -700,6 +700,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     $core.bool? splittable,
     $core.int? height,
     $core.int? inputWeightUnits,
+    $core.int? confirmations,
   }) {
     final $result = create();
     if (output != null) {
@@ -735,6 +736,9 @@ class UnspentOutput extends $pb.GeneratedMessage {
     if (inputWeightUnits != null) {
       $result.inputWeightUnits = inputWeightUnits;
     }
+    if (confirmations != null) {
+      $result.confirmations = confirmations;
+    }
     return $result;
   }
   UnspentOutput._() : super();
@@ -753,6 +757,7 @@ class UnspentOutput extends $pb.GeneratedMessage {
     ..aOB(9, _omitFieldNames ? '' : 'splittable')
     ..a<$core.int>(10, _omitFieldNames ? '' : 'height', $pb.PbFieldType.O3)
     ..a<$core.int>(11, _omitFieldNames ? '' : 'inputWeightUnits', $pb.PbFieldType.O3)
+    ..a<$core.int>(12, _omitFieldNames ? '' : 'confirmations', $pb.PbFieldType.O3)
     ..hasRequiredFields = false
   ;
 
@@ -892,6 +897,16 @@ class UnspentOutput extends $pb.GeneratedMessage {
   $core.bool hasInputWeightUnits() => $_has(10);
   @$pb.TagNumber(11)
   void clearInputWeightUnits() => clearField(11);
+
+  /// Blocks that bury the output. 0 while it waits in the mempool.
+  @$pb.TagNumber(12)
+  $core.int get confirmations => $_getIZ(11);
+  @$pb.TagNumber(12)
+  set confirmations($core.int v) { $_setSignedInt32(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasConfirmations() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearConfirmations() => clearField(12);
 }
 
 class ListUnspentResponse extends $pb.GeneratedMessage {
