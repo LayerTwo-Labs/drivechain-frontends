@@ -369,15 +369,31 @@ class _SailTableState extends State<SailTable> {
       rowsToSample.addAll(List.generate(10, (i) => widget.rowCount - 10 + i));
     }
 
+    final hugging = List<bool>.filled(_numColumns!, false);
     for (int row in rowsToSample) {
       final cells = widget.rowBuilder(context, row, false);
       for (int col = 0; col < cells.length && col < _numColumns!; col++) {
         final cell = cells[col];
         if (cell is SailTableCell && (cell.width != null || cell.hugContent)) {
           fixedColumns[col] = true;
+          hugging[col] = hugging[col] || cell.hugContent;
         }
         final cellWidth = _calculateColumnWidth(cell);
         columnWidths[col] = max(columnWidths[col], cellWidth);
+      }
+    }
+
+    // A hugging column takes no spare width, so a row outside the sample would
+    // render in a column too narrow for it.
+    if (hugging.contains(true) && rowsToSample.length < widget.rowCount) {
+      for (int row = 0; row < widget.rowCount; row++) {
+        final cells = widget.rowBuilder(context, row, false);
+        for (int col = 0; col < cells.length && col < _numColumns!; col++) {
+          if (!hugging[col]) {
+            continue;
+          }
+          columnWidths[col] = max(columnWidths[col], _calculateColumnWidth(cells[col]));
+        }
       }
     }
 

@@ -61,6 +61,50 @@ Widget _sizedTable({required double slotWidth, required bool hugAmount}) {
   );
 }
 
+/// A 100-row table where only row 50 carries the wide amount, so the sample of
+/// the first and last ten rows never sees it.
+Widget _wideRowInTheMiddle({double textScale = 1.0}) {
+  return MaterialApp(
+    home: MediaQuery(
+      data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+      child: SailTheme(
+        data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+        child: Scaffold(
+          body: SizedBox(
+            width: 800,
+            height: 400,
+            child: SailTable(
+              key: ValueKey(textScale),
+              getRowId: (index) => 'row$index',
+              headerBuilder: (context) => const [
+                SailTableHeaderCell(name: 'Name'),
+                SailTableHeaderCell(name: 'Amount'),
+              ],
+              rowBuilder: (context, index, selected) => [
+                const SailTableCell(value: 'Truthcoin'),
+                SailTableCell(value: index == 50 ? _wideAmount : '1 ECX', hugContent: true),
+              ],
+              rowCount: 100,
+              drawGrid: false,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+const _wideAmount = '115.0255,5423 ECX';
+
+double _renderedWidth(String text, double scale) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: SailStyleValues.thirteen),
+    textDirection: TextDirection.ltr,
+    textScaler: TextScaler.linear(scale),
+  )..layout();
+  return painter.width;
+}
+
 Finder _cell(String value) => find.byWidgetPredicate((widget) => widget is SailTableCell && widget.value == value);
 
 void main() {
@@ -102,5 +146,12 @@ void main() {
 
     expect(hugged, lessThan(stretched));
     expect(tester.getSize(_cell('Truthcoin')).width, greaterThan(stretched));
+  });
+
+  testWidgets('a hugging column fits a row outside the sample', (tester) async {
+    await tester.pumpWidget(_wideRowInTheMiddle());
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(_cell('1 ECX').first).width, greaterThanOrEqualTo(_renderedWidth(_wideAmount, 1) + 24));
   });
 }
