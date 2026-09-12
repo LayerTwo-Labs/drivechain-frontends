@@ -320,6 +320,31 @@ func (p *CoreBackend) AddressHDPath(ctx context.Context, walletID, address strin
 	return info.HDKeyPath, nil
 }
 
+func (p *CoreBackend) OwnedAddresses(ctx context.Context, walletID string, addresses []string) (map[string]bool, error) {
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return nil, err
+	}
+	owned := make(map[string]bool, len(addresses))
+	for _, address := range addresses {
+		if address == "" {
+			continue
+		}
+		if _, done := owned[address]; done {
+			continue
+		}
+		info, err := p.rpc.GetAddressInfo(ctx, name, address)
+		if err != nil {
+			return nil, fmt.Errorf("get address info for %s: %w", address, err)
+		}
+		if !info.IsMine {
+			continue
+		}
+		owned[address] = info.IsChange
+	}
+	return owned, nil
+}
+
 // NextReceiveAddress returns an existing unused address from the wallet, or
 // mints a new one if every address has received funds. "Unused" = present in
 // listreceivedbyaddress with zero amount and no txids (minconf=0 also catches

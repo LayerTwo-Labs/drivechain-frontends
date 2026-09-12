@@ -512,6 +512,10 @@ message TransactionOutput {
   string script_type = 4;
   string script_pubkey_asm = 5;
   string script_pubkey_hex = 6;
+  // The output pays the wallet's own change chain.
+  bool is_change = 7;
+  // The wallet owns the output's address.
+  bool is_mine = 8;
 }
 
 // UTXO Distribution - for chart visualization

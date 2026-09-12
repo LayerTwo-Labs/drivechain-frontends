@@ -768,6 +768,8 @@ class OrchestratorWalletRPC {
       scriptType: output.scriptType,
       scriptPubkeyAsm: output.scriptPubkeyAsm,
       scriptPubkeyHex: output.scriptPubkeyHex,
+      isChange: output.isChange,
+      isMine: output.isMine,
     );
   }
 }

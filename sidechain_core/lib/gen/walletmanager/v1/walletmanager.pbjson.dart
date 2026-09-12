@@ -2058,6 +2058,7 @@ const TransactionOutput$json = {
     {'1': 'script_pubkey_asm', '3': 5, '4': 1, '5': 9, '10': 'scriptPubkeyAsm'},
     {'1': 'script_pubkey_hex', '3': 6, '4': 1, '5': 9, '10': 'scriptPubkeyHex'},
     {'1': 'is_change', '3': 7, '4': 1, '5': 8, '10': 'isChange'},
+    {'1': 'is_mine', '3': 8, '4': 1, '5': 8, '10': 'isMine'},
   ],
 };
 
@@ -2067,7 +2068,7 @@ final $typed_data.Uint8List transactionOutputDescriptor = $convert.base64Decode(
     'gCIAEoA1IJdmFsdWVTYXRzEhgKB2FkZHJlc3MYAyABKAlSB2FkZHJlc3MSHwoLc2NyaXB0X3R5'
     'cGUYBCABKAlSCnNjcmlwdFR5cGUSKgoRc2NyaXB0X3B1YmtleV9hc20YBSABKAlSD3NjcmlwdF'
     'B1YmtleUFzbRIqChFzY3JpcHRfcHVia2V5X2hleBgGIAEoCVIPc2NyaXB0UHVia2V5SGV4EhsK'
-    'CWlzX2NoYW5nZRgHIAEoCFIIaXNDaGFuZ2U=');
+    'CWlzX2NoYW5nZRgHIAEoCFIIaXNDaGFuZ2USFwoHaXNfbWluZRgIIAEoCFIGaXNNaW5l');
 
 @$core.Deprecated('Use decodeTransactionRequestDescriptor instead')
 const DecodeTransactionRequest$json = {

@@ -33,6 +33,10 @@ type Backend interface {
 	GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error)
 	// AddressHDPath returns the BIP32 derivation path of a wallet address.
 	AddressHDPath(ctx context.Context, walletID, address string) (string, error)
+	// OwnedAddresses reports which of addresses the wallet owns. The map value
+	// is true for an address on the wallet's change chain. An address the
+	// wallet does not own is absent from the map.
+	OwnedAddresses(ctx context.Context, walletID string, addresses []string) (map[string]bool, error)
 
 	// NextReceiveAddress returns an unused receive address of the given script
 	// kind, minting one only when every existing address has received funds.

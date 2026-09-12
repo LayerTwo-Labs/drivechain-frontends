@@ -3346,3 +3346,16 @@ func TestElectrumReplacementSparesASiblingOnAnotherCoin(t *testing.T) {
 		assert.NotEqual(t, bidOfSlotTwo, u.txid, "the other slot bids from a coin of its own")
 	}
 }
+
+func TestElectrumOwnedAddressesSeparatesChangeFromReceive(t *testing.T) {
+	p, _, w, recv := newElectrumFixture(t)
+	ctx := context.Background()
+
+	change, err := p.NextChangeAddress(ctx, w.ID)
+	require.NoError(t, err)
+
+	owned, err := p.OwnedAddresses(ctx, w.ID, []string{recv, "", change, "stranger"})
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]bool{recv: false, change: true}, owned)
+}

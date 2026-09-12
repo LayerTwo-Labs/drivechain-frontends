@@ -3616,8 +3616,12 @@ type TransactionOutput struct {
 	ScriptType      string                 `protobuf:"bytes,4,opt,name=script_type,json=scriptType,proto3" json:"script_type,omitempty"`
 	ScriptPubkeyAsm string                 `protobuf:"bytes,5,opt,name=script_pubkey_asm,json=scriptPubkeyAsm,proto3" json:"script_pubkey_asm,omitempty"`
 	ScriptPubkeyHex string                 `protobuf:"bytes,6,opt,name=script_pubkey_hex,json=scriptPubkeyHex,proto3" json:"script_pubkey_hex,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// The output pays the wallet's own change chain.
+	IsChange bool `protobuf:"varint,7,opt,name=is_change,json=isChange,proto3" json:"is_change,omitempty"`
+	// The wallet owns the output's address.
+	IsMine        bool `protobuf:"varint,8,opt,name=is_mine,json=isMine,proto3" json:"is_mine,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TransactionOutput) Reset() {
@@ -3690,6 +3694,20 @@ func (x *TransactionOutput) GetScriptPubkeyHex() string {
 		return x.ScriptPubkeyHex
 	}
 	return ""
+}
+
+func (x *TransactionOutput) GetIsChange() bool {
+	if x != nil {
+		return x.IsChange
+	}
+	return false
+}
+
+func (x *TransactionOutput) GetIsMine() bool {
+	if x != nil {
+		return x.IsMine
+	}
+	return false
 }
 
 // UTXO Distribution - for chart visualization
@@ -4708,7 +4726,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\bsequence\x18\t \x01(\x03R\bsequence\x12\x1f\n" +
 	"\vis_coinbase\x18\n" +
 	" \x01(\bR\n" +
-	"isCoinbase\"\xdb\x01\n" +
+	"isCoinbase\"\x91\x02\n" +
 	"\x11TransactionOutput\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x1d\n" +
 	"\n" +
@@ -4717,7 +4735,9 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\vscript_type\x18\x04 \x01(\tR\n" +
 	"scriptType\x12*\n" +
 	"\x11script_pubkey_asm\x18\x05 \x01(\tR\x0fscriptPubkeyAsm\x12*\n" +
-	"\x11script_pubkey_hex\x18\x06 \x01(\tR\x0fscriptPubkeyHex\"Z\n" +
+	"\x11script_pubkey_hex\x18\x06 \x01(\tR\x0fscriptPubkeyHex\x12\x1b\n" +
+	"\tis_change\x18\a \x01(\bR\bisChange\x12\x17\n" +
+	"\ais_mine\x18\b \x01(\bR\x06isMine\"Z\n" +
 	"\x1aGetUTXODistributionRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x1f\n" +
 	"\vmax_buckets\x18\x02 \x01(\x05R\n" +
