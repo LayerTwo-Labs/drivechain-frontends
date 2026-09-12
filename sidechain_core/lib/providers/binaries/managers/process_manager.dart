@@ -14,7 +14,14 @@ class ProcessManager extends ChangeNotifier {
   final Directory appDir;
   final PidFileManager pidFileManager;
 
-  ProcessManager({required this.appDir, required this.pidFileManager});
+  /// How often an adopted process gets checked for its death.
+  final Duration adoptedPollInterval;
+
+  ProcessManager({
+    required this.appDir,
+    required this.pidFileManager,
+    this.adoptedPollInterval = const Duration(seconds: 5),
+  });
 
   Logger get log => GetIt.I.get<Logger>();
   LogProvider get logProvider => GetIt.I.get<LogProvider>();
@@ -23,6 +30,9 @@ class ProcessManager extends ChangeNotifier {
   ExitTuple? exited(Binary binary) => _exitTuples[binary.name];
 
   final Map<String, SailProcess> runningProcesses = {};
+
+  final Map<String, Timer> _adoptedWatches = {};
+  bool _disposed = false;
 
   final Map<String, Stream<String>> _stdoutStreams = {};
   final Map<String, Stream<String>> _stderrStreams = {};
@@ -62,6 +72,63 @@ class ProcessManager extends ChangeNotifier {
     log.i('[${binary.name}] $cleanLine');
   }
 
+  /// Track a process a previous session started. This process holds no exit
+  /// code for us to await, so a poll of the pid reports its death instead.
+  void adopt(Binary binary, int pid) {
+    _cancelAdoptedWatch(binary);
+    runningProcesses[binary.name] = SailProcess(
+      binary: binary,
+      pid: pid,
+      cleanup: () async {},
+      adopted: true,
+    );
+    _adoptedWatches[binary.name] = Timer.periodic(adoptedPollInterval, (_) async {
+      if (!_holdsAdopted(binary, pid)) {
+        _cancelAdoptedWatch(binary);
+        return;
+      }
+      // The same check the adoption makes: a pid the OS gave to another
+      // process is not this daemon.
+      if (await pidFileManager.validatePid(pid, binary)) {
+        return;
+      }
+      // A start or a stop can replace the entry while the check runs.
+      if (!_holdsAdopted(binary, pid)) {
+        _cancelAdoptedWatch(binary);
+        return;
+      }
+      _cancelAdoptedWatch(binary);
+      log.w('adopted ${binary.name} (pid $pid) exited');
+      runningProcesses.remove(binary.name);
+      await pidFileManager.deletePidFile(binary);
+      logProvider.addExitMarker(binary.type, binary.name, null);
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  bool _holdsAdopted(Binary binary, int pid) {
+    if (_disposed) {
+      return false;
+    }
+    final process = runningProcesses[binary.name];
+    return process != null && process.adopted && process.pid == pid;
+  }
+
+  void _cancelAdoptedWatch(Binary binary) {
+    _adoptedWatches.remove(binary.name)?.cancel();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    for (final watch in _adoptedWatches.values) {
+      watch.cancel();
+    }
+    _adoptedWatches.clear();
+    super.dispose();
+  }
+
   Future<int> start(
     Binary binary,
     List<String> args,
@@ -69,6 +136,7 @@ class ProcessManager extends ChangeNotifier {
     // Environment variables passed to the process, e.g RUST_BACKTRACE: 1
     Map<String, String> environment = const {},
   }) async {
+    _cancelAdoptedWatch(binary);
     final file = await binary.resolveBinaryPath(appDir);
 
     // Windows doesn't do executable permissions
@@ -315,6 +383,7 @@ class ProcessManager extends ChangeNotifier {
       await killPid(process.pid);
     }
 
+    _cancelAdoptedWatch(process.binary);
     runningProcesses.remove(process.binary.name);
     await pidFileManager.deletePidFile(process.binary);
     notifyListeners();
