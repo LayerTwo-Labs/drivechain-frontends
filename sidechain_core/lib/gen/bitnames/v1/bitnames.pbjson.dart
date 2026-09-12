@@ -750,13 +750,41 @@ const ResolveCommitResponse$json = {
   '1': 'ResolveCommitResponse',
   '2': [
     {'1': 'commitment', '3': 1, '4': 1, '5': 9, '10': 'commitment'},
+    {'1': 'data_json', '3': 2, '4': 1, '5': 9, '10': 'dataJson'},
+    {'1': 'matches', '3': 3, '4': 1, '5': 8, '10': 'matches'},
   ],
 };
 
 /// Descriptor for `ResolveCommitResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List resolveCommitResponseDescriptor = $convert.base64Decode(
-    'ChVSZXNvbHZlQ29tbWl0UmVzcG9uc2USHgoKY29tbWl0bWVudBgBIAEoCVIKY29tbWl0bWVudA'
-    '==');
+    'ChVSZXNvbHZlQ29tbWl0UmVzcG9uc2USHgoKY29tbWl0bWVudBgBIAEoCVIKY29tbWl0bWVudB'
+    'IbCglkYXRhX2pzb24YAiABKAlSCGRhdGFKc29uEhgKB21hdGNoZXMYAyABKAhSB21hdGNoZXM=');
+
+@$core.Deprecated('Use readCommitmentRequestDescriptor instead')
+const ReadCommitmentRequest$json = {
+  '1': 'ReadCommitmentRequest',
+  '2': [
+    {'1': 'address', '3': 1, '4': 1, '5': 9, '10': 'address'},
+  ],
+};
+
+/// Descriptor for `ReadCommitmentRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readCommitmentRequestDescriptor = $convert.base64Decode(
+    'ChVSZWFkQ29tbWl0bWVudFJlcXVlc3QSGAoHYWRkcmVzcxgBIAEoCVIHYWRkcmVzcw==');
+
+@$core.Deprecated('Use readCommitmentResponseDescriptor instead')
+const ReadCommitmentResponse$json = {
+  '1': 'ReadCommitmentResponse',
+  '2': [
+    {'1': 'data_json', '3': 1, '4': 1, '5': 9, '10': 'dataJson'},
+    {'1': 'commitment', '3': 2, '4': 1, '5': 9, '10': 'commitment'},
+  ],
+};
+
+/// Descriptor for `ReadCommitmentResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readCommitmentResponseDescriptor = $convert.base64Decode(
+    'ChZSZWFkQ29tbWl0bWVudFJlc3BvbnNlEhsKCWRhdGFfanNvbhgBIAEoCVIIZGF0YUpzb24SHg'
+    'oKY29tbWl0bWVudBgCIAEoCVIKY29tbWl0bWVudA==');
 
 @$core.Deprecated('Use signArbitraryMsgRequestDescriptor instead')
 const SignArbitraryMsgRequest$json = {
@@ -913,6 +941,7 @@ const $core.Map<$core.String, $core.dynamic> BitnamesServiceBase$json = {
     {'1': 'EncryptMsg', '2': '.bitnames.v1.EncryptMsgRequest', '3': '.bitnames.v1.EncryptMsgResponse'},
     {'1': 'GetPaymail', '2': '.bitnames.v1.GetPaymailRequest', '3': '.bitnames.v1.GetPaymailResponse'},
     {'1': 'ResolveCommit', '2': '.bitnames.v1.ResolveCommitRequest', '3': '.bitnames.v1.ResolveCommitResponse'},
+    {'1': 'ReadCommitment', '2': '.bitnames.v1.ReadCommitmentRequest', '3': '.bitnames.v1.ReadCommitmentResponse'},
     {'1': 'SignArbitraryMsg', '2': '.bitnames.v1.SignArbitraryMsgRequest', '3': '.bitnames.v1.SignArbitraryMsgResponse'},
     {'1': 'SignArbitraryMsgAsAddr', '2': '.bitnames.v1.SignArbitraryMsgAsAddrRequest', '3': '.bitnames.v1.SignArbitraryMsgAsAddrResponse'},
     {'1': 'GetWalletAddresses', '2': '.bitnames.v1.GetWalletAddressesRequest', '3': '.bitnames.v1.GetWalletAddressesResponse'},
@@ -987,6 +1016,8 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> BitnamesSe
   '.bitnames.v1.GetPaymailResponse': GetPaymailResponse$json,
   '.bitnames.v1.ResolveCommitRequest': ResolveCommitRequest$json,
   '.bitnames.v1.ResolveCommitResponse': ResolveCommitResponse$json,
+  '.bitnames.v1.ReadCommitmentRequest': ReadCommitmentRequest$json,
+  '.bitnames.v1.ReadCommitmentResponse': ReadCommitmentResponse$json,
   '.bitnames.v1.SignArbitraryMsgRequest': SignArbitraryMsgRequest$json,
   '.bitnames.v1.SignArbitraryMsgResponse': SignArbitraryMsgResponse$json,
   '.bitnames.v1.SignArbitraryMsgAsAddrRequest': SignArbitraryMsgAsAddrRequest$json,
@@ -1053,14 +1084,15 @@ final $typed_data.Uint8List bitnamesServiceDescriptor = $convert.base64Decode(
     'RNc2dSZXF1ZXN0Gh8uYml0bmFtZXMudjEuRW5jcnlwdE1zZ1Jlc3BvbnNlEk0KCkdldFBheW1h'
     'aWwSHi5iaXRuYW1lcy52MS5HZXRQYXltYWlsUmVxdWVzdBofLmJpdG5hbWVzLnYxLkdldFBheW'
     '1haWxSZXNwb25zZRJWCg1SZXNvbHZlQ29tbWl0EiEuYml0bmFtZXMudjEuUmVzb2x2ZUNvbW1p'
-    'dFJlcXVlc3QaIi5iaXRuYW1lcy52MS5SZXNvbHZlQ29tbWl0UmVzcG9uc2USXwoQU2lnbkFyYm'
-    'l0cmFyeU1zZxIkLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlNc2dSZXF1ZXN0GiUuYml0bmFt'
-    'ZXMudjEuU2lnbkFyYml0cmFyeU1zZ1Jlc3BvbnNlEnEKFlNpZ25BcmJpdHJhcnlNc2dBc0FkZH'
-    'ISKi5iaXRuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNnQXNBZGRyUmVxdWVzdBorLmJpdG5hbWVz'
-    'LnYxLlNpZ25BcmJpdHJhcnlNc2dBc0FkZHJSZXNwb25zZRJlChJHZXRXYWxsZXRBZGRyZXNzZX'
-    'MSJi5iaXRuYW1lcy52MS5HZXRXYWxsZXRBZGRyZXNzZXNSZXF1ZXN0GicuYml0bmFtZXMudjEu'
-    'R2V0V2FsbGV0QWRkcmVzc2VzUmVzcG9uc2USRAoHTXlVdHhvcxIbLmJpdG5hbWVzLnYxLk15VX'
-    'R4b3NSZXF1ZXN0GhwuYml0bmFtZXMudjEuTXlVdHhvc1Jlc3BvbnNlElYKDU9wZW5hcGlTY2hl'
-    'bWESIS5iaXRuYW1lcy52MS5PcGVuYXBpU2NoZW1hUmVxdWVzdBoiLmJpdG5hbWVzLnYxLk9wZW'
-    '5hcGlTY2hlbWFSZXNwb25zZQ==');
+    'dFJlcXVlc3QaIi5iaXRuYW1lcy52MS5SZXNvbHZlQ29tbWl0UmVzcG9uc2USWQoOUmVhZENvbW'
+    '1pdG1lbnQSIi5iaXRuYW1lcy52MS5SZWFkQ29tbWl0bWVudFJlcXVlc3QaIy5iaXRuYW1lcy52'
+    'MS5SZWFkQ29tbWl0bWVudFJlc3BvbnNlEl8KEFNpZ25BcmJpdHJhcnlNc2cSJC5iaXRuYW1lcy'
+    '52MS5TaWduQXJiaXRyYXJ5TXNnUmVxdWVzdBolLmJpdG5hbWVzLnYxLlNpZ25BcmJpdHJhcnlN'
+    'c2dSZXNwb25zZRJxChZTaWduQXJiaXRyYXJ5TXNnQXNBZGRyEiouYml0bmFtZXMudjEuU2lnbk'
+    'FyYml0cmFyeU1zZ0FzQWRkclJlcXVlc3QaKy5iaXRuYW1lcy52MS5TaWduQXJiaXRyYXJ5TXNn'
+    'QXNBZGRyUmVzcG9uc2USZQoSR2V0V2FsbGV0QWRkcmVzc2VzEiYuYml0bmFtZXMudjEuR2V0V2'
+    'FsbGV0QWRkcmVzc2VzUmVxdWVzdBonLmJpdG5hbWVzLnYxLkdldFdhbGxldEFkZHJlc3Nlc1Jl'
+    'c3BvbnNlEkQKB015VXR4b3MSGy5iaXRuYW1lcy52MS5NeVV0eG9zUmVxdWVzdBocLmJpdG5hbW'
+    'VzLnYxLk15VXR4b3NSZXNwb25zZRJWCg1PcGVuYXBpU2NoZW1hEiEuYml0bmFtZXMudjEuT3Bl'
+    'bmFwaVNjaGVtYVJlcXVlc3QaIi5iaXRuYW1lcy52MS5PcGVuYXBpU2NoZW1hUmVzcG9uc2U=');
 

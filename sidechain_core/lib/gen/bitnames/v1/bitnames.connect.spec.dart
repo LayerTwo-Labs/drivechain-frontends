@@ -266,6 +266,14 @@ abstract final class BitnamesService {
     bitnamesv1bitnames.ResolveCommitResponse.new,
   );
 
+  /// Read a data commitment from an address, before a BitName holds it.
+  static const readCommitment = connect.Spec(
+    '/$name/ReadCommitment',
+    connect.StreamType.unary,
+    bitnamesv1bitnames.ReadCommitmentRequest.new,
+    bitnamesv1bitnames.ReadCommitmentResponse.new,
+  );
+
   /// Sign an arbitrary message with the specified verifying key.
   static const signArbitraryMsg = connect.Spec(
     '/$name/SignArbitraryMsg',

@@ -1436,8 +1436,24 @@ class MockBitnamesRPC extends BitnamesRPC {
   }
 
   @override
-  Future<String> resolveCommit(String bitname) async {
-    return Future.value('mock_resolve_commit_1234');
+  Future<ResolveCommitResult> resolveCommit(String bitname) async {
+    return Future.value(
+      ResolveCommitResult(
+        commitment: 'mock_resolve_commit_1234',
+        dataJson: '{"email":"mock@example.com"}',
+        matches: true,
+      ),
+    );
+  }
+
+  @override
+  Future<ReadCommitmentResult> readCommitment(String address) async {
+    return Future.value(
+      ReadCommitmentResult(
+        dataJson: '{"email":"mock@example.com"}',
+        commitment: 'mock_commitment_1234',
+      ),
+    );
   }
 
   @override

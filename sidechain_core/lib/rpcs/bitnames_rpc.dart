@@ -117,8 +117,11 @@ abstract class BitnamesRPC extends SidechainRPC {
   /// Get OpenAPI schema
   Future<Map<String, dynamic>> openapiSchema();
 
-  /// Resolve a commitment from a BitName
-  Future<String> resolveCommit(String bitname);
+  /// Read the data a BitName commits to, and whether it matches the chain
+  Future<ResolveCommitResult> resolveCommit(String bitname);
+
+  /// Read a data commitment from an address that serves bitname_commit
+  Future<ReadCommitmentResult> readCommitment(String address);
 
   /// Sign an arbitrary message with the specified verifying key
   Future<String> signArbitraryMsg({
@@ -493,9 +496,22 @@ class BitnamesLive extends BitnamesRPC {
   }
 
   @override
-  Future<String> resolveCommit(String bitname) async {
+  Future<ResolveCommitResult> resolveCommit(String bitname) async {
     final resp = await _client.resolveCommit(pb.ResolveCommitRequest(bitname: bitname));
-    return resp.commitment;
+    return ResolveCommitResult(
+      commitment: resp.commitment,
+      dataJson: resp.dataJson,
+      matches: resp.matches,
+    );
+  }
+
+  @override
+  Future<ReadCommitmentResult> readCommitment(String address) async {
+    final resp = await _client.readCommitment(pb.ReadCommitmentRequest(address: address));
+    return ReadCommitmentResult(
+      dataJson: resp.dataJson,
+      commitment: resp.commitment,
+    );
   }
 
   @override
@@ -706,6 +722,30 @@ class BitNameData {
     socketAddrV4: json['socket_addr_v4'] as String?,
     socketAddrV6: json['socket_addr_v6'] as String?,
   );
+}
+
+/// The data a BitName commits to, read back from its address.
+class ResolveCommitResult {
+  final String commitment;
+  final String dataJson;
+  final bool matches;
+
+  ResolveCommitResult({
+    required this.commitment,
+    required this.dataJson,
+    required this.matches,
+  });
+}
+
+/// A data commitment read from an address, before a BitName holds it.
+class ReadCommitmentResult {
+  final String dataJson;
+  final String commitment;
+
+  ReadCommitmentResult({
+    required this.dataJson,
+    required this.commitment,
+  });
 }
 
 class BalanceResponse {
