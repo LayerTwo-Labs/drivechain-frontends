@@ -160,20 +160,31 @@ class BitnamesTabPage extends StatelessWidget {
                                   hintText: 'Enter name to register',
                                   controller: model.registerNameController,
                                 ),
-                                SailTextField(
+                                const _LabelWithHelp(
                                   label: 'IPv4 Address (optional)',
+                                  message:
+                                      'Where your data lives. A reader dials this address and calls the JSON-RPC method '
+                                      'bitname_commit. An IPv4 address resolves before an IPv6 address. A domain name '
+                                      'does not work, because the chain stores a numeric address and a port.',
+                                ),
+                                SailTextField(
                                   hintText: 'Enter IPv4 address',
                                   controller: model.ipv4Controller,
                                 ),
-                                SailTextField(
+                                const _LabelWithHelp(
                                   label: 'IPv6 Address (optional)',
+                                  message:
+                                      'The same server, at an IPv6 address. A reader uses it only when no IPv4 '
+                                      'address is set.',
+                                ),
+                                SailTextField(
                                   hintText: 'Enter IPv6 address',
                                   controller: model.ipv6Controller,
                                 ),
                                 SailButton(
                                   label: 'Read from server',
                                   loading: model.readLoading,
-                                  onPressed: () => model.readCommitmentFromServer(),
+                                  onPressed: () async => await model.readCommitmentFromServer(),
                                 ),
                                 if (model.readError != null)
                                   SailText.primary13(
@@ -197,18 +208,38 @@ class BitnamesTabPage extends StatelessWidget {
                                     monospace: true,
                                   ),
                                 ],
-                                SailTextField(
+                                const _LabelWithHelp(
                                   label: 'Paymail fee in sats (optional)',
+                                  message:
+                                      'The smallest payment you accept with a message. Somebody sends you a coin with '
+                                      'a memo, and your wallet hides a message that pays less. Nobody pays this to a '
+                                      'miner.',
+                                ),
+                                SailTextField(
                                   hintText: 'Minimum you accept per message',
                                   controller: model.paymailFeeController,
                                 ),
-                                SailCheckbox(
-                                  label: 'Set Encryption Pubkey',
-                                  value: model.useEncryptionKey,
-                                  onChanged: (value) {
-                                    model.useEncryptionKey = value;
-                                    model.notifyListeners();
-                                  },
+                                SailRow(
+                                  spacing: SailStyleValues.padding04,
+                                  children: [
+                                    SailCheckbox(
+                                      label: 'Set Encryption Pubkey',
+                                      value: model.useEncryptionKey,
+                                      onChanged: (value) {
+                                        model.useEncryptionKey = value;
+                                        model.notifyListeners();
+                                      },
+                                    ),
+                                    SailTooltip(
+                                      message:
+                                          'Lets anybody encrypt a message to you by name. Without this key, the '
+                                          'app tells a sender that no encryption pubkey exists for this BitName.',
+                                      child: SailSVG.fromAsset(
+                                        SailSVGAsset.circleHelp,
+                                        color: SailTheme.of(context).colors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 if (model.useEncryptionKey && model.encryptionKey != null)
                                   SailTextField(
@@ -217,13 +248,27 @@ class BitnamesTabPage extends StatelessWidget {
                                     hintText: 'Encryption Pubkey',
                                     readOnly: true,
                                   ),
-                                SailCheckbox(
-                                  label: 'Set Signing Pubkey',
-                                  value: model.useSigningKey,
-                                  onChanged: (value) {
-                                    model.useSigningKey = value;
-                                    model.notifyListeners();
-                                  },
+                                SailRow(
+                                  spacing: SailStyleValues.padding04,
+                                  children: [
+                                    SailCheckbox(
+                                      label: 'Set Signing Pubkey',
+                                      value: model.useSigningKey,
+                                      onChanged: (value) {
+                                        model.useSigningKey = value;
+                                        model.notifyListeners();
+                                      },
+                                    ),
+                                    SailTooltip(
+                                      message:
+                                          'Publishes which key is yours, so a reader can check a signature you '
+                                          'made against your name.',
+                                      child: SailSVG.fromAsset(
+                                        SailSVGAsset.circleHelp,
+                                        color: SailTheme.of(context).colors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 if (model.useSigningKey && model.signingKey != null)
                                   SailTextField(
@@ -396,6 +441,30 @@ Future<void> showBitnameDetails(BuildContext context, BitnameEntry entry) async 
     );
   });
   return;
+}
+
+class _LabelWithHelp extends StatelessWidget {
+  final String label;
+  final String message;
+
+  const _LabelWithHelp({required this.label, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return SailRow(
+      spacing: SailStyleValues.padding04,
+      children: [
+        SailText.primary13(label),
+        SailTooltip(
+          message: message,
+          child: SailSVG.fromAsset(
+            SailSVGAsset.circleHelp,
+            color: SailTheme.of(context).colors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _ResolvedCommitment extends StatelessWidget {
