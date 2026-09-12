@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"connectrpc.com/connect"
 
@@ -346,7 +347,8 @@ func (h *Handler) ResolveCommit(ctx context.Context, req *connect.Request[pb.Res
 	return connect.NewResponse(&pb.ResolveCommitResponse{
 		Commitment: *data.Commitment,
 		DataJson:   string(raw),
-		Matches:    digest == *data.Commitment,
+		// Another client may write the digest in upper case hex.
+		Matches: strings.EqualFold(digest, *data.Commitment),
 	}), nil
 }
 
