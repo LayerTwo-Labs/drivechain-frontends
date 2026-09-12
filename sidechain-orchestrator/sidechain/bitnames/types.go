@@ -11,6 +11,7 @@ type BalanceResponse struct {
 
 // BitNameData holds optional metadata fields attached to a BitName.
 type BitNameData struct {
+	SeqID            string  `json:"seq_id,omitempty"`
 	Commitment       *string `json:"commitment,omitempty"`
 	EncryptionPubkey *string `json:"encryption_pubkey,omitempty"`
 	PaymailFeeSats   *int64  `json:"paymail_fee_sats,omitempty"`
