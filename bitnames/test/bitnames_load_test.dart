@@ -14,11 +14,18 @@ import 'test_utils.dart';
 class _ListRPC extends MockBitnamesRPC {
   Completer<List<BitnameEntry>> reply = Completer<List<BitnameEntry>>();
   int calls = 0;
+  final List<String> reserved = [];
 
   @override
   Future<List<BitnameEntry>> listBitNames() {
     calls++;
     return reply.future;
+  }
+
+  @override
+  Future<String> reserveBitName(String name) async {
+    reserved.add(name);
+    return 'reserve-txid';
   }
 }
 
@@ -99,6 +106,53 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('a failed list refresh keeps the Reserve success', (tester) async {
+    await tester.pumpSailPage(const BitnamesTabPage());
+    final entry = BitnameEntry(
+      hash: 'a' * 64,
+      details: BitnameDetails(seqId: '1739-0029'),
+    );
+    rpc.reply.complete([entry]);
+    await tester.pump();
+
+    final nameField = find.byWidgetPredicate(
+      (widget) => widget is SailTextField && widget.hintText == 'Enter name to reserve',
+    );
+    await tester.enterText(find.descendant(of: nameField, matching: find.byType(EditableText)), 'alice');
+    final reserveButton = find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'Reserve');
+    await tester.ensureVisible(reserveButton);
+    rpc.reply = Completer<List<BitnameEntry>>();
+    final callsBeforeReserve = rpc.calls;
+
+    await tester.tap(reserveButton);
+    await tester.pump();
+    expect(rpc.reserved, ['alice']);
+    expect(rpc.calls, callsBeforeReserve + 1);
+
+    rpc.reply.completeError(StateError('The node cannot decode the Bitnames database.'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    final reserveCard = find.byWidgetPredicate((widget) => widget is SailCard && widget.title == 'Reserve');
+    expect(tester.widget<SailCard>(reserveCard).error, isNull);
+    expect(rpc.reserved, ['alice']);
+    expect(rpc.calls, callsBeforeReserve + 2);
+    expect(provider.entries, [entry]);
+    expect(provider.error, contains('The node cannot decode the Bitnames database.'));
+    expect(provider.hashNameMapping.value.values.single.name, 'alice');
+    expect(provider.hashNameMapping.value.values.single.isMine, isTrue);
+    expect(tester.widget<SailTextField>(nameField).controller.text, isEmpty);
+    expect(tester.widget<SailButton>(reserveButton).loading, isFalse);
+    expect(find.textContaining('The node cannot decode the Bitnames database.'), findsWidgets);
+    final notification = GetIt.I.get<NotificationProvider>().history.single;
+    expect(notification.dialogType, DialogType.success);
+    expect(notification.content, contains('reserve-txid'));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   test('a connection change can read the list after an error', () async {
     rpc.reply.completeError(StateError('The node is offline.'));
     await Future<void>.delayed(Duration.zero);
@@ -106,6 +160,7 @@ void main() {
 
     rpc.reply = Completer<List<BitnameEntry>>();
     rpc.setConnected(true);
+    await Future<void>.delayed(Duration.zero);
     expect(rpc.calls, 2);
     rpc.reply.complete([]);
     await Future<void>.delayed(Duration.zero);
@@ -130,5 +185,51 @@ void main() {
     expect(provider.entries, [entry]);
     expect(provider.error, contains('The node is offline.'));
     expect(provider.isLoading, isFalse);
+  });
+
+  test('a new provider reads saved names and ownership', () async {
+    rpc.reply.complete([]);
+    await Future<void>.delayed(Duration.zero);
+    final hash = 'a' * 64;
+    await GetIt.I.get<ClientSettings>().setValue(
+      HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice', isMine: true)}),
+    );
+    provider.dispose();
+    await GetIt.I.unregister<BitnamesProvider>();
+    rpc.reply = Completer<List<BitnameEntry>>();
+    provider = BitnamesProvider();
+    GetIt.I.registerSingleton<BitnamesProvider>(provider);
+    rpc.reply.complete([
+      BitnameEntry(
+        hash: hash,
+        details: BitnameDetails(seqId: '1739-0029'),
+      ),
+    ]);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(provider.getFriendlyName(hash), 'alice');
+    expect(provider.hashNameMapping.isMineFromHash(hash), isTrue);
+    final model = BitnamesViewModel();
+    expect(model.myEntries.map((entry) => entry.hash), [hash]);
+    await Future<void>.delayed(Duration.zero);
+    model.dispose();
+  });
+
+  test('a name save keeps the stored names and ownership', () async {
+    rpc.reply.complete([]);
+    await Future<void>.delayed(Duration.zero);
+    final hash = 'a' * 64;
+    final settings = GetIt.I.get<ClientSettings>();
+    await settings.setValue(
+      HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice', isMine: true)}),
+    );
+
+    await provider.saveHashNameMapping('bob', isMine: true);
+
+    final saved = await settings.getValue(HashNameMappingSetting());
+    expect(saved.value, hasLength(2));
+    expect(saved.value[hash]?.name, 'alice');
+    expect(saved.value[hash]?.isMine, isTrue);
+    expect(saved.value.values.map((entry) => entry.name), contains('bob'));
   });
 }
