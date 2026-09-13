@@ -28,7 +28,8 @@ class BitnamesProvider extends ChangeNotifier {
   /// Save a new hash-name mapping
   Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
     final hash = blake3Hex(utf8.encode(name));
-    final newMappings = Map<String, HashMapping>.from(hashNameMapping.value);
+    final saved = await clientSettings.getValue(HashNameMappingSetting());
+    final newMappings = Map<String, HashMapping>.from(saved.value);
     newMappings[hash] = HashMapping(name: name, isMine: isMine);
     hashNameMapping = HashNameMappingSetting(newValue: newMappings);
     await clientSettings.setValue(hashNameMapping);
@@ -48,6 +49,8 @@ class BitnamesProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final saved = await clientSettings.getValue(HashNameMappingSetting());
+      hashNameMapping = HashNameMappingSetting(newValue: saved.value);
       entries = await rpc.listBitNames();
       initialized = true;
     } catch (err) {
