@@ -372,7 +372,7 @@ class FullTable extends StatelessWidget {
 }
 
 /// Height of the bordered table: the header strip, the rows and the frame.
-double _tableHeight(int rows) => (rows == 0 ? 96 : rows * 48) + 40;
+double _tableHeight(int rows) => (rows == 0 ? 96 : rows * 40) + 40;
 
 class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
   final List<int> slots;
@@ -384,6 +384,21 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final formatter = GetIt.I<FormatterProvider>();
     final colors = context.sailTheme.colors;
+    final actionsWidth = slots.fold<double>(220, (width, slot) {
+      final sidechain = viewModel.sidechainForSlot(slot);
+      if (sidechain == null) {
+        return width;
+      }
+      if (sidechain.updateAvailable ||
+          viewModel._binaryProvider.isInitializing(sidechain) ||
+          viewModel._binaryProvider.isStopping(sidechain) ||
+          viewModel._downloadProgressFor(sidechain) != null ||
+          (viewModel._binaryProvider.isSidechainUp(sidechain) &&
+              viewModel._syncingWidget(context, sidechain) != null)) {
+        return 400;
+      }
+      return max(width, sidechain.isDownloaded ? 220 : 240);
+    });
 
     return LayoutBuilder(
       builder: (context, constraints) => Container(
@@ -396,17 +411,29 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
         child: ListenableBuilder(
           listenable: formatter,
           builder: (context, child) => SailTable(
+            key: ValueKey(actionsWidth),
             getRowId: (index) => slots[index].toString(),
-            cellHeight: 48,
+            cellHeight: 40,
             headerBackgroundColor: colors.backgroundSecondary,
             headerBuilder: (context) => [
-              const SailTableHeaderCell(name: 'Slot', sortable: false),
-              const SailTableHeaderCell(name: 'Name', sortable: false),
-              const SailTableHeaderCell(name: 'Sidechain Balance', alignment: Alignment.centerRight, sortable: false),
-              const SailTableHeaderCell(name: 'Your balance', alignment: Alignment.centerRight, sortable: false),
+              const SailTableHeaderCell(name: 'Slot', padding: _tightCellPadding, sortable: false),
+              const SailTableHeaderCell(name: 'Name', padding: _tightCellPadding, sortable: false),
+              const SailTableHeaderCell(
+                name: 'Sidechain Balance',
+                padding: _tightCellPadding,
+                alignment: Alignment.centerRight,
+                sortable: false,
+              ),
+              const SailTableHeaderCell(
+                name: 'Your balance',
+                padding: _tightCellPadding,
+                alignment: Alignment.centerRight,
+                sortable: false,
+              ),
               const SailTableHeaderCell(name: '', sortable: false),
             ],
-            rowBuilder: (context, row, selected) => _sidechainRow(context, viewModel, formatter, slots[row]),
+            rowBuilder: (context, row, selected) =>
+                _sidechainRow(context, viewModel, formatter, slots[row], actionsWidth),
             rowCount: slots.length,
             emptyPlaceholder: emptyPlaceholder,
             selectedRowId: viewModel.selectedIndex?.toString(),
@@ -444,6 +471,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
     SidechainsViewModel viewModel,
     FormatterProvider formatter,
     int slot,
+    double actionsWidth,
   ) {
     final colors = context.sailTheme.colors;
     final sidechain = viewModel.sidechains[slot];
@@ -460,7 +488,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
         SailTableCell(value: ''),
         SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
         SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
-        SailTableCell(value: '', width: _actionsColumnWidth),
+        SailTableCell(value: '', width: actionsWidth),
       ];
     }
 
@@ -471,6 +499,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       slotCell,
       SailTableCell(
         value: sidechain.info.title,
+        padding: _tightCellPadding,
         child: Row(
           children: [
             viewModel.sidechainStatusDot(context, slot) ?? const SizedBox(width: 8),
@@ -503,7 +532,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       ),
       SailTableCell(
         value: '',
-        width: _actionsColumnWidth,
+        width: actionsWidth,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: SailStyleValues.padding12),
         child: _SidechainActions(viewModel: viewModel, slot: slot, sidechain: sidechain),
@@ -514,9 +543,6 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
 
 /// Slot holds 1 to 3 digits, so it never needs the table's default minimum.
 const double _slotColumnWidth = 48;
-
-/// Update, Stop, the sync bar with its percent, Deposit and the settings icon.
-const double _actionsColumnWidth = 400;
 
 /// A balance cell carries a long number and its unit, so it keeps less padding
 /// than the rest of the row.

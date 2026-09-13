@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:bitwindow/pages/sidechains_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -114,6 +117,13 @@ void main() {
   late BalanceProvider balances;
   late SyncProvider sync;
 
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    for (final family in ['Inter', 'IBMPlexMono']) {
+      await (FontLoader(family)..addFont(rootBundle.load('assets/fonts/$family-Regular.ttf'))).load();
+    }
+  });
+
   _Binaries setUpChain(Thunder thunder) {
     final binaries = _Binaries([thunder]);
     GetIt.I.registerSingleton<BinaryProvider>(binaries);
@@ -151,12 +161,32 @@ void main() {
     await GetIt.I.reset();
   });
 
-  Future<void> pumpTable(WidgetTester tester) async {
+  Future<void> pumpTable(WidgetTester tester, {bool narrow = false}) async {
     addTearDown(() => tester.pumpWidget(const SizedBox()));
     await tester.pumpSailPage(
       ViewModelBuilder<SidechainsViewModel>.reactive(
         viewModelBuilder: () => SidechainsViewModel(),
-        builder: (context, model, child) => const SidechainsList(smallVersion: false),
+        builder: (context, model, child) => narrow
+            ? RepaintBoundary(
+                key: const ValueKey('sidechains-table-screen'),
+                child: SailTheme(
+                  data: SailThemeData.lightTheme(
+                    SailColorScheme.black,
+                    false,
+                    SailFontValues.inter,
+                    SailThemeStyle.ecash,
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
+                      SizedBox(width: 8),
+                      Expanded(flex: 4, child: SizedBox()),
+                    ],
+                  ),
+                ),
+              )
+            : const SidechainsList(smallVersion: false),
       ),
     );
     await tester.pumpAndSettle();
@@ -409,8 +439,52 @@ void main() {
     await pumpTable(tester);
 
     final balance = GetIt.I.get<FormatterProvider>().formatBTC(115.02555423);
-    _expectOneUncutLine(tester, _cell('Truthcoin'), 'Truthcoin', dressing: 16);
+    _expectOneUncutLine(tester, _cell('Truthcoin'), 'Truthcoin');
     _expectOneUncutLine(tester, _cell(balance), balance);
+  });
+
+  testWidgets('the narrow desktop table keeps each ECX amount on one line', (tester) async {
+    setUpChain(_thunder());
+    GetIt.I.get<BitcoinConfProvider>().network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+    GetIt.I.get<SidechainProvider>().sidechains[9] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'Truthcoin', slot: 9, balanceSatoshi: Int64(11502555423)),
+      [],
+      [],
+    );
+    thunderRPC.wallet = (115.02555423, 1.0);
+    thunderRPC.setConnected(true);
+    await balances.fetch();
+    await pumpTable(tester, narrow: true);
+    await _captureTable(tester, 'active');
+
+    for (final header in ['Slot', 'Name']) {
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(header));
+      expect(paragraph.getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: header.length)), hasLength(1));
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(tester.getSize(find.text(header)).width, greaterThan(0));
+    }
+    final amount = GetIt.I.get<FormatterProvider>().formatBTC(115.02555423);
+    expect(amount, contains('ECX'));
+    for (final match in find.text(amount).evaluate()) {
+      final paragraph = match.renderObject! as RenderParagraph;
+      expect(paragraph.getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: amount.length)), hasLength(1));
+      expect(paragraph.didExceedMaxLines, isFalse);
+    }
+    expect(find.text(amount), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the narrow desktop table keeps actions close to the balances', (tester) async {
+    setUpChain(_thunder());
+    GetIt.I.get<BitcoinConfProvider>().network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+    await pumpTable(tester, narrow: true);
+    await _captureTable(tester, 'stopped');
+
+    final balance = tester.getRect(_cell('—'));
+    final start = tester.getRect(_button('Start'));
+    expect(start.left - balance.right, lessThanOrEqualTo(40));
+    expect(tester.getRect(_button('Deposit')).right, lessThanOrEqualTo(tester.getRect(find.byType(SailTable)).right));
+    expect(tester.takeException(), isNull);
   });
 
   // Adding confirmed and pending into one figure made the cell disagree with
@@ -441,6 +515,24 @@ void main() {
   });
 }
 
+Future<void> _captureTable(WidgetTester tester, String name) async {
+  const directory = String.fromEnvironment('SIDECHAIN_TABLE_SCREEN_DIR');
+  if (directory.isEmpty) {
+    return;
+  }
+  final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(const ValueKey('sidechains-table-screen')));
+  await tester.runAsync(() async {
+    final image = await boundary.toImage();
+    try {
+      final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!;
+      await Directory(directory).create(recursive: true);
+      await File('$directory/$name.png').writeAsBytes(bytes.buffer.asUint8List());
+    } finally {
+      image.dispose();
+    }
+  });
+}
+
 Finder _tooltip(String message) =>
     find.byWidgetPredicate((widget) => widget is SailTooltip && widget.message == message);
 
@@ -459,10 +551,10 @@ double _textWidth(String text, {bool bold = false}) {
 
 double _headerWidth(String name) => _textWidth(name, bold: true);
 
-/// Fails when the column is narrower than the string plus its padding and
-/// [dressing], which is where an ellipsis or a second line comes from.
-void _expectOneUncutLine(WidgetTester tester, Finder cell, String text, {double dressing = 0}) {
-  for (final box in tester.widgetList(cell).indexed) {
-    expect(tester.getSize(cell.at(box.$1)).width, greaterThanOrEqualTo(_textWidth(text) + 16 + dressing));
+void _expectOneUncutLine(WidgetTester tester, Finder cell, String text) {
+  for (final match in find.descendant(of: cell, matching: find.text(text)).evaluate()) {
+    final paragraph = match.renderObject! as RenderParagraph;
+    expect(paragraph.getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: text.length)), hasLength(1));
+    expect(paragraph.didExceedMaxLines, isFalse);
   }
 }
