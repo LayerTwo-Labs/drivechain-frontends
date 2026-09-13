@@ -33,6 +33,10 @@ class BitnamesTabPage extends StatelessWidget {
                 SailCard(
                   title: 'Your Bitnames',
                   subtitle: 'View your registered bitnames',
+                  error: model.loadError,
+                  widgetHeaderEnd: model.loadError == null
+                      ? null
+                      : SailButton(label: 'Retry', onPressed: model.provider.fetch),
                   child: SailColumn(
                     spacing: SailStyleValues.padding16,
                     children: [
@@ -337,6 +341,10 @@ class BitnamesTabPage extends StatelessWidget {
                 SailCard(
                   title: 'All Bitnames',
                   subtitle: 'View and manage all registered bitnames',
+                  error: model.loadError,
+                  widgetHeaderEnd: model.loadError == null
+                      ? null
+                      : SailButton(label: 'Retry', onPressed: model.provider.fetch),
                   child: SailColumn(
                     spacing: SailStyleValues.padding16,
                     children: [
@@ -728,7 +736,8 @@ class BitnamesViewModel extends BaseViewModel {
     }).toList();
   }
 
-  bool get isLoading => !provider.initialized;
+  bool get isLoading => provider.isLoading;
+  String? get loadError => provider.error;
 
   Future<void> reserveBitname(BuildContext context) async {
     if (balanceProvider.balance < 0.00001000) {
