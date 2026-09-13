@@ -308,36 +308,43 @@ class SidechainsList extends ViewModelWidget<SidechainsViewModel> {
 
     final error = viewModel.error('sidechain');
 
-    return SailCard(
-      title: 'Sidechains',
-      titleTooltip:
-          'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
-      subtitle: viewModel._enforcerRPC.initializingBinary ? 'Enforcer is initializing...' : null,
-      error: viewModel._enforcerRPC.initializingBinary ? null : error,
-      widgetHeaderEnd: smallVersion
-          ? null
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SailToggle(
-                  label: 'Show only filled slots',
-                  value: viewModel.showOnlyFilled,
-                  onChanged: (value) => viewModel.setShowOnlyFilled(value),
+    return LayoutBuilder(
+      builder: (context, constraints) => SailCard(
+        title: 'Sidechains',
+        titleTooltip:
+            'List of all active sidechains with accompanying balance, and all empty slots where future sidechains will be added',
+        subtitle: viewModel._enforcerRPC.initializingBinary ? 'Enforcer is initializing...' : null,
+        error: viewModel._enforcerRPC.initializingBinary ? null : error,
+        widgetHeaderEnd: smallVersion
+            ? null
+            : ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: max(0, constraints.maxWidth - 2 * SailStyleValues.padding16)),
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: SailStyleValues.padding12,
+                  runSpacing: SailStyleValues.padding08,
+                  children: [
+                    SailToggle(
+                      label: 'Show only filled slots',
+                      value: viewModel.showOnlyFilled,
+                      onChanged: (value) => viewModel.setShowOnlyFilled(value),
+                    ),
+                    SailButton(
+                      label: 'Add / Remove',
+                      variant: ButtonVariant.outline,
+                      onPressed: viewModel.sidechainManagementUnavailable
+                          ? null
+                          : () => showSidechainActivationManagementModal(context),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: SailStyleValues.padding12),
-                SailButton(
-                  label: 'Add / Remove',
-                  variant: ButtonVariant.outline,
-                  onPressed: viewModel.sidechainManagementUnavailable
-                      ? null
-                      : () => showSidechainActivationManagementModal(context),
-                ),
-              ],
-            ),
-      child: SailSkeletonizer(
-        description: 'Waiting for enforcer to become available..',
-        enabled: viewModel.loading,
-        child: viewModel.showOnlyFilled ? OnlyFilledTable() : FullTable(),
+              ),
+        child: SailSkeletonizer(
+          description: 'Waiting for enforcer to become available..',
+          enabled: viewModel.loading,
+          child: viewModel.showOnlyFilled ? OnlyFilledTable() : FullTable(),
+        ),
       ),
     );
   }
@@ -381,6 +388,32 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
 
   const _SidechainsTable({super.key, required this.slots, this.emptyPlaceholder});
 
+  double _nameColumnWidth(BuildContext context, SidechainsViewModel viewModel) {
+    final style = DefaultTextStyle.of(context).style.merge(
+      SailStyleValues.thirteen.copyWith(fontFamily: context.sailTheme.chrome.fontFamily ?? 'Inter'),
+    );
+    final painter = TextPainter(
+      text: TextSpan(
+        text: 'Name',
+        style: style.copyWith(fontWeight: SailStyleValues.boldWeight),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 2),
+    )..layout();
+    var width = painter.width + _tightCellPadding.horizontal + 1;
+    for (final slot in slots) {
+      final sidechain = viewModel.sidechains[slot];
+      if (sidechain == null) {
+        continue;
+      }
+      painter.text = TextSpan(text: sidechain.info.title, style: style);
+      painter.layout();
+      width = max(width, painter.width + 8 + SailStyleValues.padding08 + _tightCellPadding.horizontal + 1);
+    }
+    painter.dispose();
+    return width;
+  }
+
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final formatter = GetIt.I<FormatterProvider>();
@@ -388,6 +421,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
     final textScaler = MediaQuery.textScalerOf(context);
     final textScale = max(1.0, textScaler.clamp(maxScaleFactor: 2).scale(12) / 12);
     final controlScale = context.sailTheme.chrome.terminalStyle ? max(1.0, textScaler.scale(12) / 12) : textScale;
+    final nameWidth = _nameColumnWidth(context, viewModel);
     final actionsWidth = slots.fold<double>(220, (width, slot) {
       final sidechain = viewModel.sidechainForSlot(slot);
       if (sidechain == null) {
@@ -418,6 +452,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
             key: ValueKey(actionsWidth),
             getRowId: (index) => slots[index].toString(),
             cellHeight: 40 * controlScale,
+            minColumnWidths: {1: nameWidth},
             headerBackgroundColor: colors.backgroundSecondary,
             headerBuilder: (context) => [
               const SailTableHeaderCell(name: 'Slot', padding: _tightCellPadding, sortable: false),
@@ -437,7 +472,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
               const SailTableHeaderCell(name: '', sortable: false),
             ],
             rowBuilder: (context, row, selected) =>
-                _sidechainRow(context, viewModel, formatter, slots[row], actionsWidth * controlScale),
+                _sidechainRow(context, viewModel, formatter, slots[row], nameWidth, actionsWidth * controlScale),
             rowCount: slots.length,
             emptyPlaceholder: emptyPlaceholder,
             selectedRowId: viewModel.selectedIndex?.toString(),
@@ -475,6 +510,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
     SidechainsViewModel viewModel,
     FormatterProvider formatter,
     int slot,
+    double nameWidth,
     double actionsWidth,
   ) {
     final colors = context.sailTheme.colors;
@@ -489,7 +525,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
     if (sidechain == null) {
       return [
         slotCell,
-        SailTableCell(value: ''),
+        SailTableCell(value: '', width: nameWidth),
         SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
         SailTableCell(value: '', hugContent: true, padding: _tightCellPadding),
         SailTableCell(value: '', width: actionsWidth),
@@ -503,14 +539,13 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
       slotCell,
       SailTableCell(
         value: sidechain.info.title,
+        width: nameWidth,
         padding: _tightCellPadding,
         child: Row(
           children: [
             viewModel.sidechainStatusDot(context, slot) ?? const SizedBox(width: 8),
             const SizedBox(width: SailStyleValues.padding08),
-            Flexible(
-              child: SailText.primary13(sidechain.info.title, color: colors.text, overflow: TextOverflow.ellipsis),
-            ),
+            SailText.primary13(sidechain.info.title, color: colors.text, overflow: TextOverflow.clip),
           ],
         ),
       ),
