@@ -462,13 +462,13 @@ class _SailTableState extends State<SailTable> {
       }
       text = widget.value;
       textStyle = SailStyleValues.thirteen.copyWith(
-        fontFamily: widget.monospace ? 'IBMPlexMono' : 'Inter',
+        fontFamily: SailTheme.of(context).chrome.fontFamily ?? (widget.monospace ? 'IBMPlexMono' : 'Inter'),
       );
       return _calculateTextWidth(text, textStyle, widget.padding.horizontal);
     } else if (widget is SailTableHeaderCell) {
       text = widget.name;
       textStyle = SailStyleValues.thirteen.copyWith(
-        fontFamily: 'Inter',
+        fontFamily: SailTheme.of(context).chrome.fontFamily ?? 'Inter',
         fontWeight: SailStyleValues.boldWeight,
       );
       return _calculateTextWidth(text, textStyle, widget.padding.horizontal);
@@ -480,7 +480,7 @@ class _SailTableState extends State<SailTable> {
   double _calculateTextWidth(String text, TextStyle textStyle, double padding) {
     if (text.isNotEmpty) {
       final textPainter = TextPainter(
-        text: TextSpan(text: text, style: textStyle),
+        text: TextSpan(text: text, style: DefaultTextStyle.of(context).style.merge(textStyle)),
         textDirection: TextDirection.ltr,
         // The same scaler SailText renders with, clamp included.
         textScaler: MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 2),
