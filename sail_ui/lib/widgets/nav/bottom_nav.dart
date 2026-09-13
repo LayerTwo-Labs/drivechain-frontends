@@ -109,8 +109,6 @@ class BottomNav extends StatelessWidget {
                   showUnconfirmed: model.showUnconfirmed,
                   onToggleUnconfirmed: model.toggleUnconfirmed,
                   usdBalance: model.usdBalance,
-                  sidechainBalance: model.sidechainBalance,
-                  sidechainPendingBalance: model.sidechainPendingBalance,
                 );
               },
             ),
@@ -804,11 +802,6 @@ class BalanceDisplay extends StatelessWidget {
   final VoidCallback onToggleUnconfirmed;
   final double? usdBalance;
 
-  /// The coins every other chain holds, apart from the figure above. Zero on
-  /// both hides the whole group.
-  final double sidechainBalance;
-  final double sidechainPendingBalance;
-
   const BalanceDisplay({
     super.key,
     required this.balance,
@@ -817,11 +810,7 @@ class BalanceDisplay extends StatelessWidget {
     required this.showUnconfirmed,
     required this.onToggleUnconfirmed,
     required this.usdBalance,
-    this.sidechainBalance = 0,
-    this.sidechainPendingBalance = 0,
   });
-
-  bool get _showSidechains => sidechainBalance > 0 || sidechainPendingBalance > 0;
 
   @override
   Widget build(BuildContext context) {
@@ -872,22 +861,6 @@ class BalanceDisplay extends StatelessWidget {
                   ),
                 ),
               ),
-            if (_showSidechains) const DividerDot(),
-            if (_showSidechains)
-              SailRow(
-                spacing: SailStyleValues.padding08,
-                children: [
-                  SailSVG.icon(
-                    SailSVGAsset.iconCoins,
-                    color: SailColorScheme.blue,
-                    width: SailStyleValues.iconSizeSecondary,
-                    height: SailStyleValues.iconSizeSecondary,
-                  ),
-                  SailText.secondary12('Sidechains ${formatBitcoin(sidechainBalance)}'),
-                  if (sidechainPendingBalance > 0) const DividerDot(),
-                  if (sidechainPendingBalance > 0) SailText.secondary12(formatBitcoin(sidechainPendingBalance)),
-                ],
-              ),
           ],
         ),
       ),
@@ -908,8 +881,6 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
   void _onChange() {
     track('balance', balance);
     track('pendingBalance', pendingBalance);
-    track('sidechainBalance', sidechainBalance);
-    track('sidechainPendingBalance', sidechainPendingBalance);
     track('balanceSyncing', balanceSyncing);
     track('showUnconfirmed', showUnconfirmed);
     notifyIfChanged();
@@ -917,8 +888,6 @@ class BalanceDisplayViewModel extends BaseViewModel with ChangeTrackingMixin {
 
   double get balance => _balanceProvider.balance;
   double get pendingBalance => _balanceProvider.pendingBalance;
-  double get sidechainBalance => _balanceProvider.sidechainBalance;
-  double get sidechainPendingBalance => _balanceProvider.sidechainPendingBalance;
   bool get balanceSyncing => !_balanceProvider.initialized;
   bool get showUnconfirmed => _showUnconfirmed;
   double? get usdBalance => _priceProvider.btcToUsd(balance);

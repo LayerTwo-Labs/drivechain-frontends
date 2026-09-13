@@ -7,8 +7,6 @@ Future<void> pumpBalance(
   required double balance,
   required double pendingBalance,
   required bool showUnconfirmed,
-  double sidechainBalance = 0,
-  double sidechainPendingBalance = 0,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1400, 400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -24,8 +22,6 @@ Future<void> pumpBalance(
             showUnconfirmed: showUnconfirmed,
             onToggleUnconfirmed: () {},
             usdBalance: null,
-            sidechainBalance: sidechainBalance,
-            sidechainPendingBalance: sidechainPendingBalance,
           ),
         ),
       ),
@@ -70,34 +66,5 @@ void main() {
 
     expect(find.textContaining(formatBitcoin(1.5)), findsOneWidget);
     expect(sidechainTotal, findsNothing);
-  });
-
-  testWidgets('a sidechain balance leaves the mainchain figure alone', (tester) async {
-    await pumpBalance(
-      tester,
-      balance: 0,
-      pendingBalance: 330.99479104,
-      showUnconfirmed: false,
-      sidechainBalance: 2.01999,
-      sidechainPendingBalance: 1,
-    );
-
-    expect(find.textContaining(formatBitcoin(0)), findsOneWidget);
-    expect(find.text(formatBitcoin(330.99479104)), findsOneWidget);
-    expect(find.text('Sidechains ${formatBitcoin(2.01999)}'), findsOneWidget);
-    expect(find.text(formatBitcoin(1)), findsOneWidget);
-  });
-
-  testWidgets('a sidechain figure with nothing pending shows one number', (tester) async {
-    await pumpBalance(
-      tester,
-      balance: 1,
-      pendingBalance: 0,
-      showUnconfirmed: false,
-      sidechainBalance: 2.5,
-    );
-
-    expect(find.text('Sidechains ${formatBitcoin(2.5)}'), findsOneWidget);
-    expect(find.text(formatBitcoin(0)), findsNothing);
   });
 }

@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart' as orchpb;
 import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wmpb;
+import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:stacked/stacked.dart';
 
 class _Connection extends ChangeNotifier implements RPCConnection {
@@ -79,6 +80,42 @@ class _Store implements KeyValueStore {
 }
 
 class _Wallet implements WalletReaderProvider {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Balance extends ChangeNotifier implements BalanceProvider {
+  @override
+  double balance = 1.5;
+
+  @override
+  double pendingBalance = 0;
+
+  @override
+  double sidechainBalance = 2.5;
+
+  @override
+  double sidechainPendingBalance = 0.75;
+
+  @override
+  bool get initialized => true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Price extends ChangeNotifier implements PriceProvider {
+  @override
+  double btcToUsd(double amount) => amount * 100;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Update extends ChangeNotifier implements UpdateProvider {
+  @override
+  bool get updateAvailable => false;
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -322,6 +359,57 @@ void main() {
       expect(sidechain.infoMessage, light ? isNull : 'Waiting for Bitcoin Core header sync');
       expect(sidechain.restartDaemon, isNotNull);
       expect(sidechain.stopDaemon, isNotNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  for (final mainchainInfo in [true, false]) {
+    testWidgets('${mainchainInfo ? 'mainchain' : 'sidechain'} bar shows only active wallet balances', (tester) async {
+      final balance = _Balance();
+      GetIt.I.registerSingleton<BalanceProvider>(balance);
+      GetIt.I.registerSingleton<PriceProvider>(_Price());
+      GetIt.I.registerSingleton<UpdateProvider>(_Update());
+      await tester.binding.setSurfaceSize(const Size(1600, 400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SailTheme(
+            data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+            child: Scaffold(
+              bottomNavigationBar: BottomNav(
+                endWidgets: const [],
+                additionalConnection: model.additionalConnection,
+                mainchainInfo: mainchainInfo,
+                navigateToLogs: (_, _, _) {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('${formatBitcoin(1.5)} (\$150)'), findsOneWidget);
+      expect(find.textContaining('Sidechains '), findsNothing);
+      expect(find.textContaining(formatBitcoin(2.5)), findsNothing);
+      expect(find.text(formatBitcoin(0.75)), findsNothing);
+      expect(find.byTooltip('Refresh balance'), findsOneWidget);
+      expect(find.byTooltip('Unconfirmed balance'), findsNothing);
+
+      await tester.tap(find.byTooltip('Confirmed balance'));
+      await tester.pump();
+      expect(find.byTooltip('Unconfirmed balance'), findsOneWidget);
+      expect(find.text(formatBitcoin(0)), findsOneWidget);
+      await tester.tap(find.byTooltip('Confirmed balance'));
+      await tester.pump();
+
+      balance.pendingBalance = 0.25;
+      balance.notifyListeners();
+      await tester.pump();
+      expect(find.byTooltip('Unconfirmed balance'), findsOneWidget);
+      expect(find.text(formatBitcoin(0.25)), findsOneWidget);
+      expect(find.byTooltip('Refresh balance'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
