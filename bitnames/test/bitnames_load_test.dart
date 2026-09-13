@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bitnames/pages/tabs/reserve_register_page.dart';
 import 'package:bitnames/providers/bitnames_provider.dart';
@@ -231,5 +232,49 @@ void main() {
     expect(saved.value[hash]?.name, 'alice');
     expect(saved.value[hash]?.isMine, isTrue);
     expect(saved.value.values.map((entry) => entry.name), contains('bob'));
+  });
+
+  test('two concurrent name saves keep both names and ownership', () async {
+    rpc.reply.complete([]);
+    await Future<void>.delayed(Duration.zero);
+    final directory = await Directory.systemTemp.createTemp('bitnames-name-save-');
+    addTearDown(() => directory.delete(recursive: true));
+    final log = GetIt.I.get<ClientSettings>().log;
+    await GetIt.I.unregister<ClientSettings>();
+    final settings = ClientSettings(store: FileStorage.fromDirectory(directory), log: log);
+    GetIt.I.registerSingleton<ClientSettings>(settings);
+    final oldHash = 'c' * 64;
+    await settings.setValue(
+      HashNameMappingSetting(newValue: {oldHash: HashMapping(name: 'carol', isMine: true)}),
+    );
+
+    await Future.wait([
+      provider.saveHashNameMapping('alice', isMine: true),
+      provider.saveHashNameMapping('bob'),
+    ]);
+
+    final saved = await ClientSettings(
+      store: FileStorage.fromDirectory(directory),
+      log: log,
+    ).getValue(HashNameMappingSetting());
+    expect(saved.value.values.map((entry) => entry.name), unorderedEquals(['carol', 'alice', 'bob']));
+    expect(saved.value[oldHash]?.name, 'carol');
+    expect(saved.value[oldHash]?.isMine, isTrue);
+    expect(saved.value.values.singleWhere((entry) => entry.name == 'alice').isMine, isTrue);
+    expect(saved.value.values.singleWhere((entry) => entry.name == 'bob').isMine, isFalse);
+    expect(provider.hashNameMapping.toJson(), HashNameMappingSetting(newValue: saved.value).toJson());
+  });
+
+  test('a name lookup keeps the saved ownership', () async {
+    rpc.reply.complete([]);
+    await Future<void>.delayed(Duration.zero);
+    await provider.saveHashNameMapping('alice', isMine: true);
+
+    await provider.saveHashNameMapping('alice');
+
+    final saved = await GetIt.I.get<ClientSettings>().getValue(HashNameMappingSetting());
+    expect(saved.value.values.single.name, 'alice');
+    expect(saved.value.values.single.isMine, isTrue);
+    expect(provider.hashNameMapping.value.values.single.isMine, isTrue);
   });
 }

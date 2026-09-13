@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
 import 'package:sidechain_core/settings/client_settings.dart';
 import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:thirds/blake3.dart';
 
 class BitnamesProvider extends ChangeNotifier {
@@ -14,6 +15,7 @@ class BitnamesProvider extends ChangeNotifier {
   List<BitnameEntry> entries = [];
   bool initialized = false;
   bool _isFetching = false;
+  final _nameSaveLock = Lock();
   String? error;
 
   bool get isLoading => _isFetching && !initialized;
@@ -27,12 +29,14 @@ class BitnamesProvider extends ChangeNotifier {
 
   /// Save a new hash-name mapping
   Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
-    final hash = blake3Hex(utf8.encode(name));
-    final saved = await clientSettings.getValue(HashNameMappingSetting());
-    final newMappings = Map<String, HashMapping>.from(saved.value);
-    newMappings[hash] = HashMapping(name: name, isMine: isMine);
-    hashNameMapping = HashNameMappingSetting(newValue: newMappings);
-    await clientSettings.setValue(hashNameMapping);
+    await _nameSaveLock.synchronized(() async {
+      final hash = blake3Hex(utf8.encode(name));
+      final saved = await clientSettings.getValue(HashNameMappingSetting());
+      final newMappings = Map<String, HashMapping>.from(saved.value);
+      newMappings[hash] = HashMapping(name: name, isMine: isMine || newMappings[hash]?.isMine == true);
+      hashNameMapping = HashNameMappingSetting(newValue: newMappings);
+      await clientSettings.setValue(hashNameMapping);
+    });
     notifyListeners();
     await fetch(); // refetch to set the name in the list
   }
