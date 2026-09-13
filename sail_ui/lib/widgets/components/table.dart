@@ -80,6 +80,7 @@ class _SailTableState extends State<SailTable> {
   double _startColumnWidth = 0;
   int? _numColumns;
   TextScaler? _lastScaler;
+  String? _lastFontFamily;
 
   double get _totalColumnWidths => _widths.fold(0, (prev, e) => prev + e);
 
@@ -90,21 +91,35 @@ class _SailTableState extends State<SailTable> {
     _verticalController.addListener(_checkScrollPosition);
   }
 
-  // The font-size slider changes the scaler under a mounted table, and the
-  // widths hold the measurement of the previous scale.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final scaler = MediaQuery.of(context).textScaler;
-    if (_lastScaler != null && _lastScaler != scaler && _currentConstraints != null) {
+    final fontFamily = SailTheme.of(context).chrome.fontFamily ?? 'Inter';
+    if (_lastScaler != null &&
+        (_lastScaler != scaler || _lastFontFamily != fontFamily) &&
+        _currentConstraints != null) {
       _resizeColumns(_currentConstraints!.maxWidth, force: true);
     }
     _lastScaler = scaler;
+    _lastFontFamily = fontFamily;
   }
 
   @override
   void didUpdateWidget(SailTable oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.cellHeight != widget.cellHeight && _verticalController.hasClients) {
+      final row = _verticalController.offset / oldWidget.cellHeight;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _verticalController.hasClients) {
+          final position = _verticalController.position;
+          _verticalController.jumpTo(
+            (row * widget.cellHeight).clamp(position.minScrollExtent, position.maxScrollExtent),
+          );
+        }
+      });
+    }
 
     // Update internal state for selection/sort (no column resize needed)
     _selectedId = widget.selectedRowId;
@@ -581,7 +596,7 @@ class _ResizeHandleState extends State<_ResizeHandle> {
               left: BorderSide(color: context.sailTheme.colors.divider),
             ),
           ),
-          child: Text(''),
+          child: const SizedBox(height: 20),
         ),
       ),
     );

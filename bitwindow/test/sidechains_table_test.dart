@@ -161,12 +161,12 @@ void main() {
     await GetIt.I.reset();
   });
 
-  Future<void> pumpTable(WidgetTester tester, {bool narrow = false}) async {
+  Future<void> pumpTable(WidgetTester tester, {bool narrow = false, bool ecash = false}) async {
     addTearDown(() => tester.pumpWidget(const SizedBox()));
     await tester.pumpSailPage(
       ViewModelBuilder<SidechainsViewModel>.reactive(
         viewModelBuilder: () => SidechainsViewModel(),
-        builder: (context, model, child) => narrow
+        builder: (context, model, child) => narrow || ecash
             ? RepaintBoundary(
                 key: const ValueKey('sidechains-table-screen'),
                 child: SailTheme(
@@ -176,14 +176,16 @@ void main() {
                     SailFontValues.inter,
                     SailThemeStyle.ecash,
                   ),
-                  child: const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
-                      SizedBox(width: 8),
-                      Expanded(flex: 4, child: SizedBox()),
-                    ],
-                  ),
+                  child: narrow
+                      ? const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
+                            SizedBox(width: 8),
+                            Expanded(flex: 4, child: SizedBox()),
+                          ],
+                        )
+                      : const SidechainsList(smallVersion: false),
                 ),
               )
             : const SidechainsList(smallVersion: false),
@@ -484,6 +486,169 @@ void main() {
     final start = tester.getRect(_button('Start'));
     expect(start.left - balance.right, lessThanOrEqualTo(40));
     expect(tester.getRect(_button('Deposit')).right, lessThanOrEqualTo(tester.getRect(find.byType(SailTable)).right));
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final ecash in [false, true]) {
+    for (final action in ['Start', 'Download', 'Stop']) {
+      testWidgets('the $action controls keep the 2x text size in the ${ecash ? 'eCash' : 'default'} theme', (
+        tester,
+      ) async {
+        setUpChain(_thunder(downloaded: action != 'Download'));
+        thunderRPC.setConnected(action == 'Stop');
+        if (ecash) {
+          GetIt.I.get<BitcoinConfProvider>().network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+        }
+        await pumpTable(tester, ecash: ecash);
+        final tableHeight = tester.getSize(find.byType(SailTable)).height;
+        if (ecash) {
+          await _captureTable(tester, '${action.toLowerCase()}-1x');
+        }
+        await tester.state<SailAppState>(find.byType(SailApp)).loadFontScale(2);
+        await tester.pumpAndSettle();
+
+        expect(tester.getSize(find.byType(SailTable)).height, tableHeight + 60);
+        for (final label in [action, 'Deposit']) {
+          final text = find.descendant(of: _button(label), matching: find.byType(Text)).last;
+          final paragraph = tester.renderObject<RenderParagraph>(text);
+          expect(paragraph.textScaler.scale(12), 24);
+          expect(paragraph.getTransformTo(null).entry(0, 0), closeTo(1, 0.001), reason: label);
+          expect(
+            tester.getRect(_button(label)).bottom,
+            lessThanOrEqualTo(tester.getRect(find.byType(SailTable)).bottom),
+            reason: label,
+          );
+        }
+        if (ecash) {
+          await _captureTable(tester, '${action.toLowerCase()}-2x');
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
+  testWidgets('the empty table keeps its height at the 2x text size', (tester) async {
+    setUpChain(_thunder());
+    GetIt.I.get<SidechainProvider>().sidechains.fillRange(0, 256, null);
+    await pumpTable(tester);
+    final tableHeight = tester.getSize(find.byType(SailTable)).height;
+    await tester.state<SailAppState>(find.byType(SailApp)).loadFontScale(2);
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.byType(SailTable)).height, tableHeight);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final ecash in [false, true]) {
+    for (final appScale in [1.5, 2.0]) {
+      for (final action in ['Start', 'Download', 'Stop']) {
+        testWidgets('the $action controls use OS 2x and app $appScale in the ${ecash ? 'eCash' : 'default'} theme', (
+          tester,
+        ) async {
+          tester.platformDispatcher.textScaleFactorTestValue = 2;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          setUpChain(_thunder(downloaded: action != 'Download'));
+          thunderRPC.setConnected(action == 'Stop');
+          if (ecash) {
+            GetIt.I.get<BitcoinConfProvider>().network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+          }
+          await pumpTable(tester, ecash: ecash);
+          final tableHeight = tester.getSize(find.byType(SailTable)).height;
+          await tester.state<SailAppState>(find.byType(SailApp)).loadFontScale(appScale);
+          await tester.pumpAndSettle();
+
+          final scale = ecash ? 2 * appScale : 2.0;
+          for (final label in [action, 'Deposit']) {
+            final text = find.descendant(of: _button(label), matching: find.byType(Text)).last;
+            final paragraph = tester.renderObject<RenderParagraph>(text);
+            expect(MediaQuery.textScalerOf(tester.element(text)).scale(12), 24 * appScale);
+            expect(paragraph.textScaler.scale(12), 12 * scale);
+            expect(paragraph.getTransformTo(null).entry(0, 0), closeTo(1, 0.001), reason: label);
+            expect(
+              tester.getRect(_button(label)).bottom,
+              lessThanOrEqualTo(tester.getRect(find.byType(SailTable)).bottom),
+              reason: label,
+            );
+          }
+          expect(tester.getSize(find.byType(SailTable)).height, tableHeight + 40 * (scale - 2));
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  }
+
+  for (final ecash in [false, true]) {
+    testWidgets('the full table keeps its visible row and fraction, eCash: $ecash', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = ecash ? 2 : 1;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      setUpChain(_thunder());
+      await pumpTable(tester, ecash: ecash);
+      tester.widget<SailToggle>(find.byType(SailToggle)).onChanged(false);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SailTable>(find.byType(SailTable)).rowCount, 256);
+      final tableState = tester.state(find.byType(SailTable));
+      final scroll = find.descendant(
+        of: find.byType(SailTable),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Scrollable && widget.axisDirection == AxisDirection.down,
+        ),
+      );
+
+      (int, double) visibleRow() {
+        final top = tester.getRect(scroll).top;
+        final cells = find.byWidgetPredicate((widget) => widget is SailTableCell && int.tryParse(widget.value) != null);
+        for (final element in cells.evaluate()) {
+          final cell = find.byWidget(element.widget);
+          final rect = tester.getRect(cell);
+          if (rect.top <= top && rect.bottom > top) {
+            return (int.parse((element.widget as SailTableCell).value), (top - rect.top) / rect.height);
+          }
+        }
+        throw StateError('The first visible slot is absent.');
+      }
+
+      await tester.drag(scroll, const Offset(0, -400));
+      await tester.pumpAndSettle();
+      final before = visibleRow();
+      expect(before.$1, greaterThan(0));
+      expect(before.$2, greaterThan(0));
+      final app = tester.state<SailAppState>(find.byType(SailApp));
+      for (final scale in [2.0, 1.0]) {
+        await app.loadFontScale(scale);
+        await tester.pumpAndSettle();
+        final after = visibleRow();
+        expect(after.$1, before.$1, reason: 'The visible row changed from $before to $after.');
+        expect(after.$2, closeTo(before.$2, 0.001));
+        expect(tester.state(find.byType(SailTable)), same(tableState));
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
+
+  testWidgets('the theme change keeps full terminal text and the table state', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    setUpChain(_thunder());
+    await pumpTable(tester);
+    final app = tester.state<SailAppState>(find.byType(SailApp));
+    await app.loadFontScale(2);
+    await tester.pumpAndSettle();
+    final tableState = tester.state(find.byType(SailTable));
+    await app.loadStyle(SailThemeStyle.ecash);
+    await tester.pumpAndSettle();
+
+    expect(tester.state(find.byType(SailTable)), same(tableState));
+    for (final label in ['Start', 'Deposit']) {
+      final text = find.descendant(of: _button(label), matching: find.byType(Text)).last;
+      final paragraph = tester.renderObject<RenderParagraph>(text);
+      expect(paragraph.textScaler.scale(12), 48);
+      expect(paragraph.getTransformTo(null).entry(0, 0), closeTo(1, 0.001), reason: label);
+      expect(
+        tester.getRect(_button(label)).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(SailTable)).bottom),
+        reason: label,
+      );
+    }
     expect(tester.takeException(), isNull);
   });
 

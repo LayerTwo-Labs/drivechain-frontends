@@ -372,7 +372,8 @@ class FullTable extends StatelessWidget {
 }
 
 /// Height of the bordered table: the header strip, the rows and the frame.
-double _tableHeight(int rows) => (rows == 0 ? 96 : rows * 40) + 40;
+double _tableHeight(int rows, double textScale, double controlScale) =>
+    rows == 0 ? 136 : rows * 40 * controlScale + 20 * textScale + 20;
 
 class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
   final List<int> slots;
@@ -384,6 +385,9 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     final formatter = GetIt.I<FormatterProvider>();
     final colors = context.sailTheme.colors;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final textScale = max(1.0, textScaler.clamp(maxScaleFactor: 2).scale(12) / 12);
+    final controlScale = context.sailTheme.chrome.terminalStyle ? max(1.0, textScaler.scale(12) / 12) : textScale;
     final actionsWidth = slots.fold<double>(220, (width, slot) {
       final sidechain = viewModel.sidechainForSlot(slot);
       if (sidechain == null) {
@@ -402,7 +406,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
 
     return LayoutBuilder(
       builder: (context, constraints) => Container(
-        height: min(constraints.maxHeight, _tableHeight(slots.length)),
+        height: min(constraints.maxHeight, _tableHeight(slots.length, textScale, controlScale)),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           border: Border.all(color: colors.border),
@@ -413,7 +417,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
           builder: (context, child) => SailTable(
             key: ValueKey(actionsWidth),
             getRowId: (index) => slots[index].toString(),
-            cellHeight: 40,
+            cellHeight: 40 * controlScale,
             headerBackgroundColor: colors.backgroundSecondary,
             headerBuilder: (context) => [
               const SailTableHeaderCell(name: 'Slot', padding: _tightCellPadding, sortable: false),
@@ -433,7 +437,7 @@ class _SidechainsTable extends ViewModelWidget<SidechainsViewModel> {
               const SailTableHeaderCell(name: '', sortable: false),
             ],
             rowBuilder: (context, row, selected) =>
-                _sidechainRow(context, viewModel, formatter, slots[row], actionsWidth),
+                _sidechainRow(context, viewModel, formatter, slots[row], actionsWidth * controlScale),
             rowCount: slots.length,
             emptyPlaceholder: emptyPlaceholder,
             selectedRowId: viewModel.selectedIndex?.toString(),
