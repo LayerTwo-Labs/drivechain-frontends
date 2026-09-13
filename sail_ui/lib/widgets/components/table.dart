@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' as intl;
@@ -20,6 +21,7 @@ class SailTable extends StatefulWidget {
     this.onDoubleTap,
     this.contextMenuItems,
     this.cellHeight = 40.0,
+    this.minColumnWidths = const {},
     this.shrinkWrap = false,
     this.drawGrid = false,
     this.resizableColumns = true,
@@ -47,6 +49,9 @@ class SailTable extends StatefulWidget {
   final void Function(String rowId)? onDoubleTap;
   final List<SailMenuEntity> Function(String rowId)? contextMenuItems;
   final double cellHeight;
+
+  /// Minimum widths in logical pixels, by column index.
+  final Map<int, double> minColumnWidths;
   final bool shrinkWrap;
   final bool drawGrid;
   final bool resizableColumns;
@@ -142,6 +147,10 @@ class _SailTableState extends State<SailTable> {
         });
       }
       return;
+    }
+
+    if (!mapEquals(oldWidget.minColumnWidths, widget.minColumnWidths) && _currentConstraints != null) {
+      _resizeColumns(_currentConstraints!.maxWidth, force: true);
     }
 
     // Recalculate column widths when row count changes
@@ -426,6 +435,7 @@ class _SailTableState extends State<SailTable> {
     }
 
     for (int i = 0; i < _numColumns!; i++) {
+      columnWidths[i] = max(columnWidths[i], widget.minColumnWidths[i] ?? 0);
       if (fixedColumns[i]) {
         continue;
       }
@@ -534,8 +544,8 @@ class _SailTableState extends State<SailTable> {
     }
 
     setState(() {
-      final minWidth = defaultMinColumnWidth;
-      final maxWidth = _currentConstraints!.maxWidth;
+      final minWidth = max(defaultMinColumnWidth, widget.minColumnWidths[column] ?? 0);
+      final maxWidth = max(minWidth, _currentConstraints!.maxWidth);
       final newWidth = (_startColumnWidth + delta).clamp(minWidth, maxWidth);
 
       _widths[column] = newWidth;

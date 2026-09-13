@@ -36,6 +36,16 @@ class _Sidechains extends ChangeNotifier implements SidechainProvider {
   @override
   String? error;
 
+  void addChain(int slot, String title) {
+    sidechains = List.of(sidechains);
+    sidechains[slot] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: title, slot: slot, balanceSatoshi: Int64.ZERO),
+      [],
+      [],
+    );
+    notifyListeners();
+  }
+
   @override
   Future<void> fetch() async {}
 
@@ -166,29 +176,27 @@ void main() {
     await tester.pumpSailPage(
       ViewModelBuilder<SidechainsViewModel>.reactive(
         viewModelBuilder: () => SidechainsViewModel(),
-        builder: (context, model, child) => narrow || ecash
-            ? RepaintBoundary(
-                key: const ValueKey('sidechains-table-screen'),
-                child: SailTheme(
-                  data: SailThemeData.lightTheme(
-                    SailColorScheme.black,
-                    false,
-                    SailFontValues.inter,
-                    SailThemeStyle.ecash,
-                  ),
-                  child: narrow
-                      ? const Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
-                            SizedBox(width: 8),
-                            Expanded(flex: 4, child: SizedBox()),
-                          ],
-                        )
-                      : const SidechainsList(smallVersion: false),
-                ),
-              )
-            : const SidechainsList(smallVersion: false),
+        builder: (context, model, child) {
+          Widget table = narrow
+              ? const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 6, child: SidechainsList(smallVersion: false)),
+                    SizedBox(width: 8),
+                    Expanded(flex: 4, child: SizedBox()),
+                  ],
+                )
+              : const SidechainsList(smallVersion: false);
+          if (ecash) {
+            table = SailTheme(
+              data: SailThemeData.lightTheme(SailColorScheme.black, false, SailFontValues.inter, SailThemeStyle.ecash),
+              child: table,
+            );
+          }
+          return narrow || ecash
+              ? RepaintBoundary(key: const ValueKey('sidechains-table-screen'), child: table)
+              : table;
+        },
       ),
     );
     await tester.pumpAndSettle();
@@ -445,6 +453,99 @@ void main() {
     _expectOneUncutLine(tester, _cell(balance), balance);
   });
 
+  for (final ecash in [false, true]) {
+    for (final large in [false, true]) {
+      testWidgets('the narrow table keeps full names, eCash: $ecash, large: $large', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = large ? 2 : 1;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        setUpChain(_thunder());
+        thunderRPC.setConnected(true);
+        final chains = GetIt.I.get<SidechainProvider>() as _Sidechains;
+        const name = 'A sidechain with a complete and unusually long public name for every user';
+        chains.addChain(128, name);
+        await pumpTable(tester, narrow: true, ecash: ecash);
+        tester.widget<SailToggle>(find.byType(SailToggle)).onChanged(false);
+        await tester.state<SailAppState>(find.byType(SailApp)).loadFontScale(large ? 2 : 1);
+        await tester.pumpAndSettle();
+        final table = find.byType(SailTable);
+        final state = tester.state(table);
+        final card = tester.getRect(find.byType(SailCard));
+        final toggle = tester.getRect(find.byType(SailToggle));
+        final button = tester.getRect(_button('Add / Remove'));
+        for (final bounds in [toggle, button]) {
+          expect(bounds.left, greaterThanOrEqualTo(card.left + SailStyleValues.padding16));
+          expect(bounds.right, lessThanOrEqualTo(card.right - SailStyleValues.padding16));
+          expect(bounds.bottom, lessThan(tester.getRect(table).top));
+        }
+        final buttonText = find.descendant(of: _button('Add / Remove'), matching: find.byType(Text)).last;
+        final paragraph = tester.renderObject<RenderParagraph>(buttonText);
+        expect(paragraph.textScaler.scale(12), large ? (ecash ? 48 : 24) : 12);
+        expect(paragraph.getTransformTo(null).entry(0, 0), closeTo(1, 0.001));
+        expect(tester.getSize(find.text('Sidechains')).width, greaterThan(0));
+        if (ecash && large) {
+          expect(button.top, greaterThan(toggle.bottom));
+        }
+        expect(tester.widget<SailTable>(table).rowCount, 256);
+        final vertical = find.descendant(
+          of: table,
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Scrollable && widget.axisDirection == AxisDirection.down,
+          ),
+        );
+        tester.state<ScrollableState>(vertical).position.jumpTo(128 * tester.widget<SailTable>(table).cellHeight);
+        await tester.pumpAndSettle();
+        _expectFullName(tester, name);
+        final width = tester.getSize(_cell(name)).width;
+        final horizontal = find.descendant(
+          of: table,
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Scrollable && widget.axisDirection == AxisDirection.right,
+          ),
+        );
+        expect(tester.state<ScrollableState>(horizontal).position.maxScrollExtent, greaterThan(0));
+        if (large) {
+          expect(width, greaterThan(tester.getSize(horizontal).width));
+        }
+
+        final handle = find
+            .descendant(
+              of: table,
+              matching: find.byWidgetPredicate(
+                (widget) => widget is MouseRegion && widget.cursor == SystemMouseCursors.resizeLeftRight,
+              ),
+            )
+            .at(1);
+        await tester.ensureVisible(handle);
+        await tester.pumpAndSettle();
+        await tester.drag(handle, const Offset(-2000, 0));
+        await tester.pumpAndSettle();
+        expect(tester.getSize(_cell(name)).width, closeTo(width, 0.01));
+        _expectFullName(tester, name);
+
+        const longer = '$name with more words after the table appears';
+        chains.addChain(129, longer);
+        await tester.pumpAndSettle();
+        expect(tester.widget<SailTable>(table).rowCount, 256);
+        expect(tester.state(table), same(state));
+        _expectFullName(tester, name);
+        _expectFullName(tester, longer);
+        expect(tester.getSize(_cell(longer)).width, greaterThan(width));
+        expect(tester.takeException(), isNull);
+        await _captureTable(tester, 'names-${ecash ? 'ecash' : 'default'}-${large ? '4x' : '1x'}');
+        if (!ecash && !large && const String.fromEnvironment('SIDECHAIN_TABLE_SCREEN_DIR').isNotEmpty) {
+          await tester.binding.setSurfaceSize(const Size(2600, 720));
+          await tester.pumpAndSettle();
+          tester.state<ScrollableState>(horizontal).position.jumpTo(0);
+          await tester.pumpAndSettle();
+          await _captureTable(tester, 'full-longest-name');
+          await tester.binding.setSurfaceSize(const Size(1200, 720));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+      });
+    }
+  }
+
   testWidgets('the narrow desktop table keeps each ECX amount on one line', (tester) async {
     setUpChain(_thunder());
     GetIt.I.get<BitcoinConfProvider>().network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
@@ -456,7 +557,7 @@ void main() {
     thunderRPC.wallet = (115.02555423, 1.0);
     thunderRPC.setConnected(true);
     await balances.fetch();
-    await pumpTable(tester, narrow: true);
+    await pumpTable(tester, narrow: true, ecash: true);
     await _captureTable(tester, 'active');
 
     for (final header in ['Slot', 'Name']) {
@@ -479,7 +580,7 @@ void main() {
   testWidgets('the narrow desktop table keeps actions close to the balances', (tester) async {
     setUpChain(_thunder());
     GetIt.I.get<BitcoinConfProvider>().network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
-    await pumpTable(tester, narrow: true);
+    await pumpTable(tester, narrow: true, ecash: true);
     await _captureTable(tester, 'stopped');
 
     final balance = tester.getRect(_cell('—'));
@@ -722,4 +823,34 @@ void _expectOneUncutLine(WidgetTester tester, Finder cell, String text) {
     expect(paragraph.getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: text.length)), hasLength(1));
     expect(paragraph.didExceedMaxLines, isFalse);
   }
+}
+
+void _expectFullName(WidgetTester tester, String name) {
+  final cell = _cell(name);
+  final text = find.descendant(of: cell, matching: find.text(name));
+  final paragraph = tester.renderObject<RenderParagraph>(text);
+  final painter = TextPainter(
+    text: paragraph.text,
+    textDirection: paragraph.textDirection,
+    textScaler: paragraph.textScaler,
+    maxLines: 1,
+  )..layout();
+  final width = painter.width;
+  painter.dispose();
+  final boxes = paragraph.getBoxesForSelection(TextSelection(baseOffset: 0, extentOffset: name.length));
+  expect(boxes, hasLength(1));
+  expect(paragraph.didExceedMaxLines, isFalse);
+  expect(boxes.single.right - boxes.single.left, closeTo(width, 1));
+  expect(paragraph.overflow, isNot(TextOverflow.ellipsis));
+  expect(paragraph.getTransformTo(null).entry(0, 0), closeTo(1, 0.001));
+  final widget = tester.widget<SailTableCell>(cell);
+  final row = widget.child! as Row;
+  final dot = tester.getSize(find.descendant(of: cell, matching: find.byWidget(row.children.first))).width;
+  final gap = tester.getSize(find.descendant(of: cell, matching: find.byWidget(row.children[1]))).width;
+  expect(dot, 8);
+  expect(gap, 8);
+  final bounds = tester.getRect(cell);
+  final textBounds = tester.getRect(text);
+  expect(textBounds.left, closeTo(bounds.left + widget.padding.left + dot + gap, 0.01));
+  expect(textBounds.left + boxes.single.right, lessThanOrEqualTo(bounds.right - widget.padding.right + 0.01));
 }
