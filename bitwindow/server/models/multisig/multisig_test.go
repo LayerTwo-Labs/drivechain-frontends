@@ -501,12 +501,12 @@ func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
 		Keys:  []multisig.Key{{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"}},
 	}))
 
-	// Update with different keys and balance
+	// Update the key metadata and balance; the xpub set stays the same.
 	g.Balance = 2.5
 	g.Name = "Updated"
 	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
 		Group: g,
-		Keys:  []multisig.Key{{GroupID: g.ID, Owner: "charlie", Xpub: "xpub3", DerivationPath: "m/48'/0'/2'"}},
+		Keys:  []multisig.Key{{GroupID: g.ID, Owner: "charlie", Xpub: "xpub1", DerivationPath: "m/48'/0'/2'"}},
 	}))
 
 	groups, err := store.ListGroups(ctx)
@@ -519,6 +519,53 @@ func TestSaveGroupAtomic_UpdateExisting(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, dbKeys, 1)
 	assert.Equal(t, "charlie", dbKeys[0].Owner)
+}
+
+func TestSaveGroupAtomic_CollidingIdRejected(t *testing.T) {
+	ctx := context.Background()
+	store := multisig.NewStore(setupTestDB(t))
+
+	g := sampleGroup()
+	require.NoError(t, store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
+		Group: g,
+		Keys: []multisig.Key{
+			{GroupID: g.ID, Owner: "alice", Xpub: "xpub1", DerivationPath: "m/48'/0'/0'"},
+			{GroupID: g.ID, Owner: "bob", Xpub: "xpub2", DerivationPath: "m/48'/0'/1'"},
+		},
+		Addresses:      []multisig.Address{{GroupID: g.ID, AddrType: "receive", Index: 0, Addr: "bc1q-a"}},
+		TransactionIDs: []string{"tx-a"},
+	}))
+
+	// A different group whose id collides must not take over the stored group.
+	other := g
+	other.Name = "Colliding Group"
+	err := store.SaveGroupAtomic(ctx, multisig.SaveGroupAtomicParams{
+		Group: other,
+		Keys: []multisig.Key{
+			{GroupID: other.ID, Owner: "carol", Xpub: "xpub3", DerivationPath: "m/48'/0'/2'"},
+			{GroupID: other.ID, Owner: "dave", Xpub: "xpub4", DerivationPath: "m/48'/0'/3'"},
+		},
+	})
+	require.Error(t, err, "colliding group id with a different key set must be rejected")
+
+	groups, err := store.ListGroups(ctx)
+	require.NoError(t, err)
+	require.Len(t, groups, 1)
+	assert.Equal(t, g.Name, groups[0].Name)
+
+	dbKeys, err := store.ListKeysForGroup(ctx, g.ID)
+	require.NoError(t, err)
+	require.Len(t, dbKeys, 2)
+	assert.Equal(t, "xpub1", dbKeys[0].Xpub)
+	assert.Equal(t, "xpub2", dbKeys[1].Xpub)
+
+	dbAddrs, err := store.ListAddresses(ctx, g.ID)
+	require.NoError(t, err)
+	require.Len(t, dbAddrs, 1)
+
+	txIDs, err := store.ListGroupTransactionIDs(ctx, g.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"tx-a"}, txIDs)
 }
 
 func TestGetNextAccountIndex(t *testing.T) {
