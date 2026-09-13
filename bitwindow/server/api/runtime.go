@@ -312,7 +312,7 @@ func (s *Server) buildRuntime(ctx context.Context, conf config.Config) (*Runtime
 		register(path, h)
 	}
 	{
-		multisigSvc := api_multisig.New(rt.db)
+		multisigSvc := api_multisig.New(rt.db, rt.walletEngine)
 		path, h := multisigv1connect.NewMultisigServiceHandler(multisigSvc, stdOpts...)
 		register(path, h)
 	}
