@@ -248,6 +248,9 @@ func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args [
 
 // StartWithOptions is Start with per-call overrides (see ProcessStartOptions).
 func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfig, args []string, env map[string]string, opts ProcessStartOptions) (int, error) {
+	if err := checkElementsSetup(config); err != nil {
+		return 0, err
+	}
 	processName := opts.ProcessName
 	if processName == "" {
 		processName = config.Name
@@ -274,6 +277,9 @@ func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfi
 	}
 	if _, err := os.Stat(binPath); err != nil {
 		return 0, fmt.Errorf("binary not found at %s: %w", binPath, err)
+	}
+	if err := verifyElementsArtifact(config, binPath, false); err != nil {
+		return 0, err
 	}
 	_ = pidName // referenced below for PID file ops
 

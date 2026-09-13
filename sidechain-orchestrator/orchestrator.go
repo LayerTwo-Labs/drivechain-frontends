@@ -598,6 +598,16 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 	if err != nil {
 		return 0, err
 	}
+	if config.Name == "liquid-signet" {
+		if err := checkElementsSetup(config); err != nil {
+			return 0, err
+		}
+		opts := StartOpts{TargetArgs: args}
+		if err := o.prepareElementsAlphaArgs(config, &opts); err != nil {
+			return 0, err
+		}
+		args = opts.TargetArgs
+	}
 	// A layer-2 binary starts its frontend, which then asks for the backend slot
 	// under this same name, so the frontend takes the GUI slot instead.
 	if config.ChainLayer == 2 && o.process.SidechainVariant != nil {
@@ -873,6 +883,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	if err != nil {
 		return nil, err
 	}
+	if err := checkElementsSetup(config); err != nil {
+		return nil, err
+	}
 	if err := o.refuseWhileParked(); err != nil {
 		return nil, err
 	}
@@ -935,7 +948,8 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		// prefetch is still running when we need to start, we block on its
 		// completion — which is no worse than the old sequential flow.
 		var enforcerPrefetch <-chan error
-		if !skipLocalL1 {
+		needsEnforcer := !skipLocalL1 && config.Name != "liquid-signet"
+		if needsEnforcer {
 			enforcerPrefetch = o.prefetchBinary(ctx, o.configs["enforcer"], false)
 		}
 		var targetPrefetch <-chan error
@@ -949,7 +963,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
-			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			if needsEnforcer {
+				o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			}
 
 			// Wait for enforcer's gRPC port to actually accept dials before
 			// launching the sidechain target. startEnforcerWhenReady returns
@@ -958,7 +974,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			// and exit with "tcp connect error" against the CUSF mainchain
 			// service. Gated on ChainLayer == 2 so the L1 binaries (bitcoind,
 			// enforcer as target) don't wait on themselves.
-			if config.ChainLayer == 2 {
+			if config.ChainLayer == 2 && needsEnforcer {
 				enforcerCfg := o.configs["enforcer"]
 				enforcerMon := o.getOrCreateMonitor("enforcer", NewHealthChecker(enforcerCfg), enforcerStartupPatterns)
 				if errMsg := enforcerMon.ConnectionError(); errMsg != "" {
@@ -1009,7 +1025,7 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 	}
 	// Core exits on an unknown option, so a Core derived sidechain takes the
 	// same starter over RPC instead — see ensureCoreSidechainWallet.
-	if config.IsBitcoinCore {
+	if config.IsBitcoinCore || config.Name == "liquid-signet" {
 		return
 	}
 	if _, err := o.WalletSvc.GetOrDeriveSidechainStarter(config.Slot, config.DisplayName); err != nil {
@@ -1029,7 +1045,7 @@ func (o *Orchestrator) injectSidechainStarter(config BinaryConfig, opts *StartOp
 // node must be accepting RPC; Core creates no wallet on its own, so without
 // this every wallet call answers "no wallet is loaded".
 func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg BinaryConfig) error {
-	if !cfg.IsBitcoinCore || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
+	if (!cfg.IsBitcoinCore && cfg.Name != "liquid-signet") || cfg.ChainLayer != 2 || cfg.Slot <= 0 || o.WalletSvc == nil {
 		return nil
 	}
 	mnemonic, err := o.WalletSvc.GetOrDeriveSidechainStarter(cfg.Slot, cfg.DisplayName)
@@ -1041,6 +1057,11 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		return fmt.Errorf("no directory config for %s", cfg.Name)
 	}
 	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), ".cookie")
+	netParams := o.NetParams.Resolve()
+	if cfg.Name == "liquid-signet" {
+		cookiePath = filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), config.ElementsAlphaChainDir, ".cookie")
+		netParams = config.ElementsAlphaWalletParams()
+	}
 	user, password, err := config.ReadCookieFile(cookiePath)
 	if err != nil {
 		return err
@@ -1055,7 +1076,7 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		return wallet.EnsureLegacyCoreWalletFromMnemonic(ctx, rpc, o.log, mnemonic, o.NetParams.Resolve())
 	}
 	return wallet.EnsureCoreWalletFromMnemonic(
-		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, o.NetParams.Resolve(),
+		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, netParams,
 	)
 }
 
@@ -1149,6 +1170,9 @@ var errSidechainNetworkUnknown = errors.New("this sidechain has no network of it
 // its own default network and syncs a different chain than the mainchain, and
 // no later step can detect that.
 func (o *Orchestrator) prepareSidechainArgs(cfg BinaryConfig, opts *StartOpts) error {
+	if cfg.Name == "liquid-signet" {
+		return o.prepareElementsAlphaArgs(cfg, opts)
+	}
 	if cfg.ChainLayer == 2 && o.NodeMode() == NodeModeLight {
 		return o.prepareRemoteSidechainArgs(cfg, opts)
 	}
@@ -1507,6 +1531,9 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 	if err != nil {
 		return nil, err
 	}
+	if err := checkElementsSetup(config); err != nil {
+		return nil, err
+	}
 	if err := o.refuseWhileParked(); err != nil {
 		return nil, err
 	}
@@ -1837,6 +1864,10 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		}
 
 		if !opensFrontend {
+			if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
+				failBoot(targetMon, ch, "wallet for "+config.Name, err)
+				return
+			}
 			o.log.Info().Str("binary", config.Name).Msg("target already running, not booting")
 			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("%s already running", config.DisplayName)}
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}

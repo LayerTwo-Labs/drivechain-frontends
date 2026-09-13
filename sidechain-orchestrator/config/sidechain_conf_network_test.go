@@ -219,7 +219,7 @@ func TestSidechainConfByName(t *testing.T) {
 			t.Errorf("SidechainConfByName(%q) = nil, want the thunder conf", name)
 		}
 	}
-	if SidechainConfByName(confs, "Liquid Signet") == nil {
+	if SidechainConfByName(confs, "Elements Alpha") == nil {
 		t.Error("a display name with a space found no conf")
 	}
 	if SidechainConfByName(confs, "bitnames") != nil {

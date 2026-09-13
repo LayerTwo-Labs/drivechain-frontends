@@ -50,9 +50,10 @@ type jsonBinaryConf struct {
 		FlutterFrontend map[string]string          `json:"flutter_frontend"`
 	} `json:"directories"`
 
-	Download    *jsonDownloadConf `json:"download"`
-	AltDownload *jsonDownloadConf `json:"alternative_download"`
-	Hashes      map[string]any    `json:"hashes"`
+	Download     *jsonDownloadConf      `json:"download"`
+	AltDownload  *jsonDownloadConf      `json:"alternative_download"`
+	Hashes       map[string]any         `json:"hashes"`
+	ArtifactPins map[string]ArtifactPin `json:"artifact_pins"`
 }
 
 type jsonDownloadConf struct {
@@ -256,6 +257,7 @@ func jsonToBinaryConfig(key string, jb jsonBinaryConf) BinaryConfig {
 	}
 
 	bc := BinaryConfig{
+		ArtifactPins:       jb.ArtifactPins,
 		Name:               name,
 		DisplayName:        jb.Name,
 		Version:            jb.Version,

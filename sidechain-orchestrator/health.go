@@ -169,6 +169,9 @@ type HealthCheckOpts struct {
 
 // NewHealthChecker creates the appropriate health checker for a binary config.
 func NewHealthChecker(config BinaryConfig, opts ...HealthCheckOpts) HealthChecker {
+	if config.Name == "liquid-signet" {
+		return newElementsAlphaHealthCheck(config)
+	}
 	timeout := 2 * time.Second
 	// Bitcoin Core holds cs_main during block validation; getblockchaininfo
 	// routinely takes many seconds during IBD on slow storage. A short

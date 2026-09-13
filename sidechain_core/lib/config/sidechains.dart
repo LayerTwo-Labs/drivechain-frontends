@@ -28,6 +28,7 @@ abstract class Sidechain extends Binary {
       case 'Big Block Covenant':
         return 'bbc';
       case 'Liquid Signet':
+      case 'Elements Alpha':
         return 'liquid-signet';
       default:
         return name.toLowerCase();
@@ -209,9 +210,10 @@ abstract class Sidechain extends Binary {
 
 class LiquidSignet extends Sidechain {
   LiquidSignet({
-    super.name = 'Liquid Signet',
-    super.version = 'bf8e9e1e5a6453b3a0573ff57cf9c92b2b3afe2b',
-    super.description = 'Elements/Liquid sidechain',
+    super.name = 'Elements Alpha',
+    super.version = 'cad1fc1fb5695c14234c4e287cf9e47d958609e7',
+    super.description =
+        'Alpha slot 24. Native Windows x64, Linux x64 (glibc 2.39+), and Apple Silicon; requires a local eCash Alphanet parent.',
     super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
@@ -224,10 +226,18 @@ class LiquidSignet extends Sidechain {
          metadata:
              metadata ??
              MetadataConfig(
-               downloadConfig: DownloadConfig(
-                 binary: 'liquid-signet',
-                 files: allPlatforms(''),
-               ),
+               downloadConfig: DownloadConfigJson.fromJson({
+                 'binary': 'elementsd',
+                 'files': {
+                   'default': {
+                     'base_url':
+                         'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation/releases/download/elements-alpha-cad1fc1fb-desktop-r2/',
+                     'macos-arm64': 'elements-alpha-cad1fc1fb-aarch64-apple-darwin.zip',
+                     'linux-x86_64': 'elements-alpha-cad1fc1fb-linux-x86_64.tar.gz',
+                     'windows-x86_64': 'elements-alpha-cad1fc1fb-windows-x86_64.zip',
+                   },
+                 },
+               }),
                remoteTimestamp: null,
                downloadedTimestamp: null,
                binaryPath: null,
