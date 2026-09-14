@@ -159,6 +159,10 @@ class _DecodedView extends StatelessWidget {
           ],
         ),
         const SailSpacing(SailStyleValues.padding08),
+        if (details.warningMessage.trim().isNotEmpty) ...[
+          SailAlert(variant: SailAlertVariant.warning, description: details.warningMessage),
+          const SailSpacing(SailStyleValues.padding08),
+        ],
         Expanded(
           child: InlineTabBar(
             tabs: [

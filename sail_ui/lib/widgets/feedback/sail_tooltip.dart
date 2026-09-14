@@ -14,6 +14,7 @@ class SailTooltip extends StatefulWidget {
   final double verticalOffset;
   final EdgeInsets padding;
   final bool showArrow;
+  final double? maxWidth;
 
   const SailTooltip({
     super.key,
@@ -25,6 +26,7 @@ class SailTooltip extends StatefulWidget {
     this.verticalOffset = 8,
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     this.showArrow = true,
+    this.maxWidth,
   });
 
   @override
@@ -133,6 +135,7 @@ class _SailTooltipState extends State<SailTooltip> with SingleTickerProviderStat
 
     final bubble = Container(
       padding: widget.padding,
+      constraints: widget.maxWidth == null ? null : BoxConstraints(maxWidth: widget.maxWidth!),
       decoration: BoxDecoration(
         color: background,
         borderRadius: theme.chrome.beveled

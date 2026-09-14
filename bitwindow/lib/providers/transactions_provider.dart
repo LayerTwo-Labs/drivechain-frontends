@@ -171,6 +171,7 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
                     address: tx.address,
                     addressLabel: tx.label,
                     note: '',
+                    warningMessage: tx.warningMessage,
                     confirmationTime: Confirmation(
                       height: tx.confirmations,
                       // Unconfirmed txs have blockTime 0, which would sink them

@@ -6820,9 +6820,11 @@ type TransactionEntry struct {
 	ReplacedByTxid bool                   `protobuf:"varint,12,opt,name=replaced_by_txid,json=replacedByTxid,proto3" json:"replaced_by_txid,omitempty"`
 	WalletId       string                 `protobuf:"bytes,13,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
 	// Set when output 0 carries a BMM request. Unset for every other transaction.
-	BmmBid        *BmmBid `protobuf:"bytes,14,opt,name=bmm_bid,json=bmmBid,proto3" json:"bmm_bid,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BmmBid *BmmBid `protobuf:"bytes,14,opt,name=bmm_bid,json=bmmBid,proto3" json:"bmm_bid,omitempty"`
+	// A backend warning for this transaction. Empty means no warning.
+	WarningMessage string `protobuf:"bytes,15,opt,name=warning_message,json=warningMessage,proto3" json:"warning_message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *TransactionEntry) Reset() {
@@ -6951,6 +6953,13 @@ func (x *TransactionEntry) GetBmmBid() *BmmBid {
 		return x.BmmBid
 	}
 	return nil
+}
+
+func (x *TransactionEntry) GetWarningMessage() string {
+	if x != nil {
+		return x.WarningMessage
+	}
+	return ""
 }
 
 // BmmBid names the BMM request one wallet transaction carries.
@@ -7938,11 +7947,12 @@ type DecodeTransactionRequest struct {
 	// A 64-hex-char txid, a raw transaction hex, or a base64 PSBT. The form is
 	// auto-detected.
 	Input string `protobuf:"bytes,1,opt,name=input,proto3" json:"input,omitempty"`
-	// Optional wallet to resolve a txid against (and enrich input values). Empty
-	// uses the active wallet.
-	WalletId      string `protobuf:"bytes,2,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Wallet for txid and ownership checks. Empty uses the active wallet.
+	WalletId string `protobuf:"bytes,2,opt,name=wallet_id,json=walletId,proto3" json:"wallet_id,omitempty"`
+	// Check output ownership with the wallet backend. This can read the network.
+	CheckOwnership bool `protobuf:"varint,3,opt,name=check_ownership,json=checkOwnership,proto3" json:"check_ownership,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *DecodeTransactionRequest) Reset() {
@@ -7989,6 +7999,13 @@ func (x *DecodeTransactionRequest) GetWalletId() string {
 	return ""
 }
 
+func (x *DecodeTransactionRequest) GetCheckOwnership() bool {
+	if x != nil {
+		return x.CheckOwnership
+	}
+	return false
+}
+
 type DecodeTransactionResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Form           DecodedForm            `protobuf:"varint,1,opt,name=form,proto3,enum=walletmanager.v1.DecodedForm" json:"form,omitempty"`
@@ -8011,9 +8028,11 @@ type DecodeTransactionResponse struct {
 	IsPsbt       bool  `protobuf:"varint,16,opt,name=is_psbt,json=isPsbt,proto3" json:"is_psbt,omitempty"`
 	SignedInputs int32 `protobuf:"varint,17,opt,name=signed_inputs,json=signedInputs,proto3" json:"signed_inputs,omitempty"`
 	// Raw transaction hex, or base64 for a PSBT.
-	Raw           string `protobuf:"bytes,18,opt,name=raw,proto3" json:"raw,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Raw string `protobuf:"bytes,18,opt,name=raw,proto3" json:"raw,omitempty"`
+	// A backend warning for this transaction. Empty means no warning.
+	WarningMessage string `protobuf:"bytes,19,opt,name=warning_message,json=warningMessage,proto3" json:"warning_message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *DecodeTransactionResponse) Reset() {
@@ -8168,6 +8187,13 @@ func (x *DecodeTransactionResponse) GetSignedInputs() int32 {
 func (x *DecodeTransactionResponse) GetRaw() string {
 	if x != nil {
 		return x.Raw
+	}
+	return ""
+}
+
+func (x *DecodeTransactionResponse) GetWarningMessage() string {
+	if x != nil {
+		return x.WarningMessage
 	}
 	return ""
 }
@@ -10645,7 +10671,7 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"descriptor\"L\n" +
 	"\x17ListTransactionsRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05count\"\xa4\x03\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"\xcd\x03\n" +
 	"\x10TransactionEntry\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04vout\x18\x02 \x01(\x05R\x04vout\x12\x18\n" +
@@ -10663,7 +10689,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x03fee\x18\v \x01(\x01R\x03fee\x12(\n" +
 	"\x10replaced_by_txid\x18\f \x01(\bR\x0ereplacedByTxid\x12\x1b\n" +
 	"\twallet_id\x18\r \x01(\tR\bwalletId\x121\n" +
-	"\abmm_bid\x18\x0e \x01(\v2\x18.walletmanager.v1.BmmBidR\x06bmmBid\"{\n" +
+	"\abmm_bid\x18\x0e \x01(\v2\x18.walletmanager.v1.BmmBidR\x06bmmBid\x12'\n" +
+	"\x0fwarning_message\x18\x0f \x01(\tR\x0ewarningMessage\"{\n" +
 	"\x06BmmBid\x12\x12\n" +
 	"\x04slot\x18\x01 \x01(\rR\x04slot\x12#\n" +
 	"\rcritical_hash\x18\x02 \x01(\tR\fcriticalHash\x12$\n" +
@@ -10756,10 +10783,11 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x11script_pubkey_asm\x18\x05 \x01(\tR\x0fscriptPubkeyAsm\x12*\n" +
 	"\x11script_pubkey_hex\x18\x06 \x01(\tR\x0fscriptPubkeyHex\x12\x1b\n" +
 	"\tis_change\x18\a \x01(\bR\bisChange\x12\x17\n" +
-	"\ais_mine\x18\b \x01(\bR\x06isMine\"M\n" +
+	"\ais_mine\x18\b \x01(\bR\x06isMine\"v\n" +
 	"\x18DecodeTransactionRequest\x12\x14\n" +
 	"\x05input\x18\x01 \x01(\tR\x05input\x12\x1b\n" +
-	"\twallet_id\x18\x02 \x01(\tR\bwalletId\"\x9b\x05\n" +
+	"\twallet_id\x18\x02 \x01(\tR\bwalletId\x12'\n" +
+	"\x0fcheck_ownership\x18\x03 \x01(\bR\x0echeckOwnership\"\xc4\x05\n" +
 	"\x19DecodeTransactionResponse\x121\n" +
 	"\x04form\x18\x01 \x01(\x0e2\x1d.walletmanager.v1.DecodedFormR\x04form\x12\x12\n" +
 	"\x04txid\x18\x02 \x01(\tR\x04txid\x12\x18\n" +
@@ -10780,7 +10808,8 @@ const file_walletmanager_v1_walletmanager_proto_rawDesc = "" +
 	"\x0ffee_rate_sat_vb\x18\x0f \x01(\x01R\ffeeRateSatVb\x12\x17\n" +
 	"\ais_psbt\x18\x10 \x01(\bR\x06isPsbt\x12#\n" +
 	"\rsigned_inputs\x18\x11 \x01(\x05R\fsignedInputs\x12\x10\n" +
-	"\x03raw\x18\x12 \x01(\tR\x03raw\"\x9e\x01\n" +
+	"\x03raw\x18\x12 \x01(\tR\x03raw\x12'\n" +
+	"\x0fwarning_message\x18\x13 \x01(\tR\x0ewarningMessage\"\x9e\x01\n" +
 	"\x0eBumpFeeRequest\x12\x1b\n" +
 	"\twallet_id\x18\x01 \x01(\tR\bwalletId\x12\x12\n" +
 	"\x04txid\x18\x02 \x01(\tR\x04txid\x12 \n" +

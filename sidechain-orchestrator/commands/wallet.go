@@ -13,6 +13,7 @@ import (
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	rpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/localauth"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
 )
@@ -96,6 +97,8 @@ var walletCommand = &cli.Command{
 		walletTransactionsCommand,
 		walletUnspentCommand,
 		walletSendCommand,
+		newWalletBurnECXCommand(wallet.ECXBurnAddress, wallet.ECXBurnMinimumSats),
+		walletSignPSBTCommand,
 		walletTxCommand,
 		walletBumpFeeCommand,
 		walletDeriveCommand,
@@ -737,6 +740,9 @@ var walletTransactionsCommand = &cli.Command{
 				ts = time.Unix(t.Time, 0).Format("2006-01-02 15:04")
 			}
 			_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\n", ts, t.Category, satsToBtcInt(t.AmountSats), t.Confirmations, t.Txid)
+			if err := writeTransactionWarning(tw, t.WarningMessage); err != nil {
+				return err
+			}
 		}
 		return tw.Flush()
 	},
@@ -863,6 +869,9 @@ var walletTxCommand = &cli.Command{
 		}
 		m := resp.Msg
 		fmt.Printf("txid:           %s\n", m.Transaction.Txid)
+		if err := writeTransactionWarning(os.Stdout, m.Transaction.WarningMessage); err != nil {
+			return err
+		}
 		fmt.Printf("confirmations:  %d\n", m.Confirmations)
 		fmt.Printf("blockhash:      %s\n", m.Blockhash)
 		if m.BlockTime != 0 {

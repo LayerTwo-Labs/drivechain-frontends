@@ -304,6 +304,50 @@ func TestDeriveWalletReceiveAddresses(t *testing.T) {
 	})
 }
 
+func TestDeriveMultisigReceiveAddresses(t *testing.T) {
+	for _, scriptType := range []string{"wsh", "sh-wsh", "sh", "tr"} {
+		t.Run(scriptType, func(t *testing.T) {
+			svc := newTestService(t)
+			net := &chaincfg.SigNetParams
+			cosigners := []MultisigCosigner{
+				multisigTestCosigner(t, net, 0, true),
+				multisigTestCosigner(t, net, 1, true),
+				multisigTestCosigner(t, net, 2, false),
+			}
+			w, err := svc.CreateElectrumMultisig("Receive", nil, 2, 3, scriptType, cosigners)
+			require.NoError(t, err)
+			backend := NewElectrumBackend(svc, newFakeEsplora(), StaticParams(net), zerolog.New(zerolog.NewTestWriter(t)))
+			d, err := backend.walletDescriptor(w)
+			require.NoError(t, err)
+			before := svc.maxAddressIndex(svc.Network(), w.ID, w.scriptKind(), false)
+			addresses, err := DeriveWalletReceiveAddresses(w, net, 0, 3)
+			require.NoError(t, err)
+			for i, address := range addresses {
+				expected, err := backend.deriveAddr(d, false, uint32(i))
+				require.NoError(t, err)
+				require.Equal(t, expected.address, address)
+			}
+			rangeAddresses, err := DeriveWalletReceiveAddresses(w, net, 1, 2)
+			require.NoError(t, err)
+			require.Equal(t, addresses[1:], rangeAddresses)
+
+			publicWallet := *w
+			publicWallet.Multisig = &MultisigWalletData{M: 2, N: 3}
+			for _, cosigner := range cosigners {
+				cosigner.Mnemonic = ""
+				cosigner.Passphrase = ""
+				cosigner.Xprv = ""
+				publicWallet.Multisig.Cosigners = append(publicWallet.Multisig.Cosigners, cosigner)
+			}
+			require.True(t, publicWallet.IsWatchOnly())
+			first, err := DeriveWalletReceiveAddresses(&publicWallet, net, 0, 1)
+			require.NoError(t, err)
+			require.Equal(t, addresses[:1], first)
+			require.Equal(t, before, svc.maxAddressIndex(svc.Network(), w.ID, w.scriptKind(), false))
+		})
+	}
+}
+
 // A Trezor legacy account exports a plain xpub, which states no script type.
 // Guessing BIP84 derives bc1 addresses the wallet does not own, so the import
 // reads as an empty wallet. The origin path's purpose settles it exactly.

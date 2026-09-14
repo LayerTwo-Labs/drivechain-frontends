@@ -332,6 +332,31 @@ class _TransactionTableState extends State<TransactionTable> {
                           SailTableCell(
                             value: transactionStatus(entry),
                             textColor: unconfirmed ? context.sailTheme.colors.orange : null,
+                            child: entry.warningMessage.trim().isEmpty
+                                ? null
+                                : Row(
+                                    children: [
+                                      SailTooltip(
+                                        message: entry.warningMessage,
+                                        maxWidth: 320,
+                                        child: Semantics(
+                                          label: entry.warningMessage,
+                                          child: SailSVG.icon(
+                                            SailSVGAsset.triangleAlert,
+                                            width: 14,
+                                            color: context.sailTheme.colors.orange,
+                                          ),
+                                        ),
+                                      ),
+                                      const SailSpacing(SailStyleValues.padding04),
+                                      Flexible(
+                                        child: SailText.primary13(
+                                          transactionStatus(entry),
+                                          color: unconfirmed ? context.sailTheme.colors.orange : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                           ),
                           SailTableCell(
                             value: formattedAmount,

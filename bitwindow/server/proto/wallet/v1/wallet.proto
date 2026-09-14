@@ -204,6 +204,8 @@ message WalletTransaction {
   Confirmation confirmation_time = 8;
   // Set when output 0 carries a BMM request. Unset for every other transaction.
   BmmBid bmm_bid = 9;
+  // A backend warning for this transaction. Empty means no warning.
+  string warning_message = 10;
 }
 
 // BmmBid names the BMM request one wallet transaction carries.
@@ -488,6 +490,8 @@ message GetTransactionDetailsResponse {
 
   // Raw hex for display
   string hex = 16;
+  // A backend warning for this transaction. Empty means no warning.
+  string warning_message = 17;
 }
 
 message TransactionInput {

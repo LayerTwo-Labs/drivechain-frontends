@@ -309,6 +309,8 @@ class _MultisigSignPanelState extends State<MultisigSignPanel> {
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (decoded.details.warningMessage.trim().isNotEmpty)
+                  SailAlert(variant: SailAlertVariant.warning, description: decoded.details.warningMessage),
                 if (_showDiagram)
                   TxFlowDiagram(
                     inputs: [

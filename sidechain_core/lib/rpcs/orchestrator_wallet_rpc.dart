@@ -322,6 +322,20 @@ class OrchestratorWalletRPC {
     );
   }
 
+  Future<wmpb.DeriveAddressesResponse> deriveAddresses({
+    required String walletId,
+    required int startIndex,
+    required int count,
+  }) {
+    return _unaryClient.deriveAddresses(
+      wmpb.DeriveAddressesRequest(
+        walletId: walletId,
+        startIndex: startIndex,
+        count: count,
+      ),
+    );
+  }
+
   Future<wmpb.SendTransactionResponse> sendTransaction({
     required String walletId,
     required Map<String, int> destinations,
@@ -637,6 +651,7 @@ class OrchestratorWalletRPC {
       outputs: response.outputs.map(_mapTransactionOutput).toList(),
       totalOutputSats: Int64(response.totalOutputSats.toInt()),
       hex: response.rawHex,
+      warningMessage: response.transaction.warningMessage,
     );
   }
 
@@ -669,6 +684,7 @@ class OrchestratorWalletRPC {
         outputs: response.outputs.map(_mapTransactionOutput).toList(),
         totalOutputSats: Int64(response.totalOutputSats.toInt()),
         hex: response.raw,
+        warningMessage: response.warningMessage,
       ),
     );
   }

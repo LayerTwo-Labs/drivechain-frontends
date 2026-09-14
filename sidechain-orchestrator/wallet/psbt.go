@@ -320,6 +320,39 @@ func prevOutForInput(packet *psbt.Packet, i int) *wire.TxOut {
 	return nil
 }
 
+// CheckPSBTInputs checks local prevout data and full previous transactions for legacy inputs in a base64 PSBT.
+func CheckPSBTInputs(psbtBase64 string) error {
+	packet, err := decodePSBTBase64(psbtBase64)
+	if err != nil {
+		return err
+	}
+	for i, in := range packet.Inputs {
+		out, err := authenticatedPrevOut(packet, i)
+		if err != nil {
+			return fmt.Errorf("PSBT input %d %w", i, err)
+		}
+		if out == nil {
+			return fmt.Errorf("PSBT input %d has no previous-output data", i)
+		}
+		if in.NonWitnessUtxo != nil {
+			continue
+		}
+		switch txscript.GetScriptClass(out.PkScript) {
+		case txscript.WitnessV0PubKeyHashTy, txscript.WitnessV0ScriptHashTy, txscript.WitnessV1TaprootTy:
+			continue
+		case txscript.ScriptHashTy:
+			if txscript.IsPayToWitnessPubKeyHash(in.RedeemScript) || txscript.IsPayToWitnessScriptHash(in.RedeemScript) {
+				if !bytes.Equal(btcutil.Hash160(in.RedeemScript), out.PkScript[2:22]) {
+					return fmt.Errorf("PSBT input %d has a redeem script that does not match its previous output", i)
+				}
+				continue
+			}
+		}
+		return fmt.Errorf("PSBT input %d has no full previous transaction for its legacy script", i)
+	}
+	return nil
+}
+
 // finalizeAndExtract finalizes a fully-signed PSBT and returns the raw tx hex.
 func finalizeAndExtract(packet *psbt.Packet) (string, error) {
 	if err := verifySignatures(packet); err != nil {
@@ -328,6 +361,9 @@ func finalizeAndExtract(packet *psbt.Packet) (string, error) {
 	// tr(sortedmulti_a) inputs are finalized by assembling the tapscript witness
 	// ourselves; the generic finalizer then sees them as already final.
 	for i := range packet.Inputs {
+		if packet.Inputs[i].FinalScriptSig != nil || packet.Inputs[i].FinalScriptWitness != nil {
+			continue
+		}
 		if len(packet.Inputs[i].TaprootLeafScript) > 0 {
 			if err := finalizeTaprootMultisigInput(packet, i); err != nil {
 				return "", fmt.Errorf("finalize taproot multisig input %d: %w", i, err)
@@ -1029,6 +1065,12 @@ func combinePSBT(base *psbt.Packet, others ...*psbt.Packet) error {
 		for i := range base.Inputs {
 			bi := &base.Inputs[i]
 			oi := o.Inputs[i]
+			if bi.FinalScriptSig == nil {
+				bi.FinalScriptSig = oi.FinalScriptSig
+			}
+			if bi.FinalScriptWitness == nil {
+				bi.FinalScriptWitness = oi.FinalScriptWitness
+			}
 			if bi.WitnessScript == nil {
 				bi.WitnessScript = oi.WitnessScript
 			}
