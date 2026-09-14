@@ -937,6 +937,8 @@ message TransactionEntry {
   string wallet_id = 13;
   // Set when output 0 carries a BMM request. Unset for every other transaction.
   BmmBid bmm_bid = 14;
+  // A backend warning for this transaction. Empty means no warning.
+  string warning_message = 15;
 }
 
 // BmmBid names the BMM request one wallet transaction carries.
@@ -1065,9 +1067,10 @@ message DecodeTransactionRequest {
   // A 64-hex-char txid, a raw transaction hex, or a base64 PSBT. The form is
   // auto-detected.
   string input = 1;
-  // Optional wallet to resolve a txid against (and enrich input values). Empty
-  // uses the active wallet.
+  // Wallet for txid and ownership checks. Empty uses the active wallet.
   string wallet_id = 2;
+  // Check output ownership with the wallet backend. This can read the network.
+  bool check_ownership = 3;
 }
 
 // DecodedForm reports which artifact the input was recognized as.
@@ -1100,6 +1103,8 @@ message DecodeTransactionResponse {
   int32 signed_inputs = 17;
   // Raw transaction hex, or base64 for a PSBT.
   string raw = 18;
+  // A backend warning for this transaction. Empty means no warning.
+  string warning_message = 19;
 }
 
 message BumpFeeRequest {
@@ -1370,4 +1375,3 @@ message CreateDepositResponse {
   // Treasury value after the deposit: the old CTIP plus the amount.
   int64 treasury_sats = 2;
 }
-

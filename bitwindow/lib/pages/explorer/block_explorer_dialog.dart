@@ -556,33 +556,44 @@ class _TransactionDetailsDialogState extends State<TransactionDetailsDialog> {
                   ),
                 ),
               )
-            : InlineTabBar(
-                tabs: [
-                  TabItem(
-                    label: 'Overview',
-                    child: _OverviewTab(details: _details!),
-                  ),
-                  TabItem(
-                    label: 'Inputs (${_details!.inputs.length})',
-                    child: _InputsTab(inputs: _details!.inputs),
-                  ),
-                  TabItem(
-                    label: 'Outputs (${_details!.outputs.length})',
-                    child: _OutputsTab(outputs: _details!.outputs),
-                  ),
-                  TabItem(
-                    label: 'Diagram',
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(SailStyleValues.padding16),
-                      child: TransactionDiagram(details: _details!),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_details!.warningMessage.trim().isNotEmpty) ...[
+                    SailAlert(variant: SailAlertVariant.warning, description: _details!.warningMessage),
+                    const SailSpacing(SailStyleValues.padding08),
+                  ],
+                  Expanded(
+                    child: InlineTabBar(
+                      tabs: [
+                        TabItem(
+                          label: 'Overview',
+                          child: _OverviewTab(details: _details!),
+                        ),
+                        TabItem(
+                          label: 'Inputs (${_details!.inputs.length})',
+                          child: _InputsTab(inputs: _details!.inputs),
+                        ),
+                        TabItem(
+                          label: 'Outputs (${_details!.outputs.length})',
+                          child: _OutputsTab(outputs: _details!.outputs),
+                        ),
+                        TabItem(
+                          label: 'Diagram',
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(SailStyleValues.padding16),
+                            child: TransactionDiagram(details: _details!),
+                          ),
+                        ),
+                        TabItem(
+                          label: 'Bytes',
+                          child: TransactionByteView(rawHex: _details!.hex),
+                        ),
+                      ],
+                      initialIndex: 0,
                     ),
                   ),
-                  TabItem(
-                    label: 'Bytes',
-                    child: TransactionByteView(rawHex: _details!.hex),
-                  ),
                 ],
-                initialIndex: 0,
               ),
       ),
     );

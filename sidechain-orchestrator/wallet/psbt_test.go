@@ -408,6 +408,11 @@ func TestPSBTSignSidechainDeposit(t *testing.T) {
 // multisigPacket builds a 2-of-3 P2WSH spend signed by two of the three keys.
 func multisigPacket(t *testing.T) (*psbt.Packet, derivedScript, int64) {
 	t.Helper()
+	return multisigPacketKind(t, ScriptMultisig)
+}
+
+func multisigPacketKind(t *testing.T, kind ScriptKind) (*psbt.Packet, derivedScript, int64) {
+	t.Helper()
 	net := &chaincfg.SigNetParams
 	const amount = int64(100_000)
 	const dest = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
@@ -424,7 +429,7 @@ func multisigPacket(t *testing.T) (*psbt.Packet, derivedScript, int64) {
 		return p
 	}
 	a, b, c := acct("a"), acct("b"), acct("c")
-	d := &Descriptor{Kind: ScriptMultisig, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
+	d := &Descriptor{Kind: kind, Threshold: 2, Keys: []DescriptorKey{{Account: a}, {Account: b}, {Account: c}}}
 	ds, _, err := d.DeriveScript(false, 0, net)
 	require.NoError(t, err)
 
@@ -435,8 +440,9 @@ func multisigPacket(t *testing.T) (*psbt.Packet, derivedScript, int64) {
 		outpoint: wire.OutPoint{Hash: prevTx.TxHash(), Index: 0},
 		amount:   amount,
 		addr: scannedAddr{
-			scriptPubKey: ds.scriptPubKey, witnessScript: ds.witnessScript,
-			kind: ScriptMultisig, multisigPrivs: []*btcec.PrivateKey{priv(a), priv(b)},
+			scriptPubKey: ds.scriptPubKey, witnessScript: ds.witnessScript, redeem: ds.redeemScript,
+			tapLeafScript: ds.tapLeafScript, tapControlBlock: ds.tapControlBlock, tapInternal: ds.tapInternal,
+			kind: kind, multisigPrivs: []*btcec.PrivateKey{priv(a), priv(b)},
 		},
 	}
 	out := []TxOutSpec{{Address: dest, AmountBTC: float64(amount-1000) / 1e8}}
@@ -494,6 +500,66 @@ func TestCombinePSBTRejectsDifferentTx(t *testing.T) {
 	err := combinePSBT(base, other)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "different transactions")
+}
+
+func TestCombinePSBTKeepsFinalMultisigSignatures(t *testing.T) {
+	for _, kind := range []ScriptKind{ScriptMultisig, ScriptMultisigNested, ScriptMultisigP2SH, ScriptMultisigTaproot} {
+		t.Run(kind.String(), func(t *testing.T) {
+			packet, script, amount := multisigPacketKind(t, kind)
+			encoded, err := packet.B64Encode()
+			require.NoError(t, err)
+			base, err := decodePSBTBase64(encoded)
+			require.NoError(t, err)
+			base.Inputs[0].PartialSigs = nil
+			base.Inputs[0].TaprootScriptSpendSig = nil
+			expected, err := finalizeAndExtract(packet)
+			require.NoError(t, err)
+			final := packet.Inputs[0]
+			packet.Inputs[0] = psbt.PInput{
+				WitnessUtxo: final.WitnessUtxo, NonWitnessUtxo: final.NonWitnessUtxo,
+				FinalScriptSig: final.FinalScriptSig, FinalScriptWitness: final.FinalScriptWitness,
+			}
+			importText, err := packet.B64Encode()
+			require.NoError(t, err)
+			imported, err := decodePSBTBase64(importText)
+			require.NoError(t, err)
+			require.NoError(t, combinePSBT(base, imported))
+			require.Equal(t, final.FinalScriptSig, base.Inputs[0].FinalScriptSig)
+			require.Equal(t, final.FinalScriptWitness, base.Inputs[0].FinalScriptWitness)
+			combined, err := base.B64Encode()
+			require.NoError(t, err)
+			base, err = decodePSBTBase64(combined)
+			require.NoError(t, err)
+			raw, err := finalizeAndExtract(base)
+			require.NoError(t, err)
+			require.Equal(t, expected, raw)
+			validateFinalizedInput0(t, raw, script.scriptPubKey, amount)
+		})
+	}
+}
+
+func TestCombinePSBTRejectsDifferentFinalTransaction(t *testing.T) {
+	base, _, _ := multisigPacket(t)
+	base.Inputs[0].PartialSigs = nil
+	other, _, _ := multisigPacket(t)
+	_, err := finalizeAndExtract(other)
+	require.NoError(t, err)
+	other.UnsignedTx.TxOut[0].Value--
+	require.ErrorContains(t, combinePSBT(base, other), "different transactions")
+	require.Nil(t, base.Inputs[0].FinalScriptWitness)
+}
+
+func TestCombinePSBTKeepsFinalSignatureChecks(t *testing.T) {
+	base, _, _ := multisigPacket(t)
+	base.Inputs[0].PartialSigs = nil
+	other, _, _ := multisigPacket(t)
+	_, err := finalizeAndExtract(other)
+	require.NoError(t, err)
+	witness := other.Inputs[0].FinalScriptWitness
+	witness[len(witness)-1] ^= 1
+	require.NoError(t, combinePSBT(base, other))
+	_, err = finalizeAndExtract(base)
+	require.ErrorContains(t, err, "the final script does not spend this output")
 }
 
 // TestFinalizeRejectsForeignWitnessScript: an imported PSBT can carry any

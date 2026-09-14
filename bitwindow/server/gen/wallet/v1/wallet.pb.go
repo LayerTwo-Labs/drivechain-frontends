@@ -1124,9 +1124,11 @@ type WalletTransaction struct {
 	Note             string                 `protobuf:"bytes,7,opt,name=note,proto3" json:"note,omitempty"`
 	ConfirmationTime *Confirmation          `protobuf:"bytes,8,opt,name=confirmation_time,json=confirmationTime,proto3" json:"confirmation_time,omitempty"`
 	// Set when output 0 carries a BMM request. Unset for every other transaction.
-	BmmBid        *BmmBid `protobuf:"bytes,9,opt,name=bmm_bid,json=bmmBid,proto3" json:"bmm_bid,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BmmBid *BmmBid `protobuf:"bytes,9,opt,name=bmm_bid,json=bmmBid,proto3" json:"bmm_bid,omitempty"`
+	// A backend warning for this transaction. Empty means no warning.
+	WarningMessage string `protobuf:"bytes,10,opt,name=warning_message,json=warningMessage,proto3" json:"warning_message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *WalletTransaction) Reset() {
@@ -1220,6 +1222,13 @@ func (x *WalletTransaction) GetBmmBid() *BmmBid {
 		return x.BmmBid
 	}
 	return nil
+}
+
+func (x *WalletTransaction) GetWarningMessage() string {
+	if x != nil {
+		return x.WarningMessage
+	}
+	return ""
 }
 
 // BmmBid names the BMM request one wallet transaction carries.
@@ -3352,9 +3361,11 @@ type GetTransactionDetailsResponse struct {
 	Outputs         []*TransactionOutput `protobuf:"bytes,14,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	TotalOutputSats int64                `protobuf:"varint,15,opt,name=total_output_sats,json=totalOutputSats,proto3" json:"total_output_sats,omitempty"`
 	// Raw hex for display
-	Hex           string `protobuf:"bytes,16,opt,name=hex,proto3" json:"hex,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Hex string `protobuf:"bytes,16,opt,name=hex,proto3" json:"hex,omitempty"`
+	// A backend warning for this transaction. Empty means no warning.
+	WarningMessage string `protobuf:"bytes,17,opt,name=warning_message,json=warningMessage,proto3" json:"warning_message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetTransactionDetailsResponse) Reset() {
@@ -3495,6 +3506,13 @@ func (x *GetTransactionDetailsResponse) GetTotalOutputSats() int64 {
 func (x *GetTransactionDetailsResponse) GetHex() string {
 	if x != nil {
 		return x.Hex
+	}
+	return ""
+}
+
+func (x *GetTransactionDetailsResponse) GetWarningMessage() string {
+	if x != nil {
+		return x.WarningMessage
 	}
 	return ""
 }
@@ -4532,7 +4550,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x0fderivation_path\x18\x06 \x01(\tR\x0ederivationPath\"`\n" +
 	"\fConfirmation\x12\x16\n" +
 	"\x06height\x18\x01 \x01(\rR\x06height\x128\n" +
-	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xd5\x02\n" +
+	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"\xfe\x02\n" +
 	"\x11WalletTransaction\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x19\n" +
 	"\bfee_sats\x18\x02 \x01(\x04R\afeeSats\x12)\n" +
@@ -4542,7 +4560,9 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\raddress_label\x18\x06 \x01(\tR\faddressLabel\x12\x12\n" +
 	"\x04note\x18\a \x01(\tR\x04note\x12D\n" +
 	"\x11confirmation_time\x18\b \x01(\v2\x17.wallet.v1.ConfirmationR\x10confirmationTime\x12*\n" +
-	"\abmm_bid\x18\t \x01(\v2\x11.wallet.v1.BmmBidR\x06bmmBid\"{\n" +
+	"\abmm_bid\x18\t \x01(\v2\x11.wallet.v1.BmmBidR\x06bmmBid\x12'\n" +
+	"\x0fwarning_message\x18\n" +
+	" \x01(\tR\x0ewarningMessage\"{\n" +
 	"\x06BmmBid\x12\x12\n" +
 	"\x04slot\x18\x01 \x01(\rR\x04slot\x12#\n" +
 	"\rcritical_hash\x18\x02 \x01(\tR\fcriticalHash\x12$\n" +
@@ -4702,7 +4722,7 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	" GetCoinSelectionStrategyResponse\x12<\n" +
 	"\bstrategy\x18\x01 \x01(\x0e2 .wallet.v1.CoinSelectionStrategyR\bstrategy\"2\n" +
 	"\x1cGetTransactionDetailsRequest\x12\x12\n" +
-	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xc2\x04\n" +
+	"\x04txid\x18\x01 \x01(\tR\x04txid\"\xeb\x04\n" +
 	"\x1dGetTransactionDetailsResponse\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x1c\n" +
 	"\tblockhash\x18\x02 \x01(\tR\tblockhash\x12$\n" +
@@ -4722,7 +4742,8 @@ const file_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x10total_input_sats\x18\r \x01(\x03R\x0etotalInputSats\x126\n" +
 	"\aoutputs\x18\x0e \x03(\v2\x1c.wallet.v1.TransactionOutputR\aoutputs\x12*\n" +
 	"\x11total_output_sats\x18\x0f \x01(\x03R\x0ftotalOutputSats\x12\x10\n" +
-	"\x03hex\x18\x10 \x01(\tR\x03hex\"\xbe\x02\n" +
+	"\x03hex\x18\x10 \x01(\tR\x03hex\x12'\n" +
+	"\x0fwarning_message\x18\x11 \x01(\tR\x0ewarningMessage\"\xbe\x02\n" +
 	"\x10TransactionInput\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x1b\n" +
 	"\tprev_txid\x18\x02 \x01(\tR\bprevTxid\x12\x1b\n" +

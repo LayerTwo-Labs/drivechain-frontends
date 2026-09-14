@@ -2,6 +2,8 @@ import 'package:bitwindow/pages/wallet/wallet_receive.dart';
 import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
+import 'package:bitwindow/widgets/burn_ecx_card.dart';
+import 'package:bitwindow/widgets/claim_ecx_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -73,6 +75,9 @@ class _FakeWalletReader extends ChangeNotifier implements WalletReaderProvider {
   WalletData? get activeWallet => null;
 
   @override
+  bool get isWalletLocked => false;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -94,9 +99,22 @@ class _FakeOrchestrator implements OrchestratorRPC {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _FakeConf implements BitcoinConfProvider {
+class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
   @override
-  BitcoinNetwork get network => BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
+  BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_REGTEST;
+
+  @override
+  String ecashNetworkId = '';
+
+  @override
+  String currentNetworkOptionId = 'regtest';
+
+  void changeNetwork(BitcoinNetwork value, String id) {
+    network = value;
+    ecashNetworkId = value == BitcoinNetwork.BITCOIN_NETWORK_ECASH ? id : '';
+    currentNetworkOptionId = id;
+    notifyListeners();
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -105,14 +123,19 @@ class _FakeConf implements BitcoinConfProvider {
 Future<void> _pumpReceiveTab(
   WidgetTester tester, {
   List<wmpb.AddressType> addressTypes = const [wmpb.AddressType.ADDRESS_TYPE_SEGWIT],
+  _FakeConf? conf,
 }) async {
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await GetIt.I.reset();
+  });
   GetIt.I.registerSingleton<BitwindowRPC>(_FakeBitwindow());
   GetIt.I.registerSingleton<AddressBookProvider>(_FakeAddressBook());
   GetIt.I.registerSingleton<HDWalletProvider>(_FakeHDWallet());
   GetIt.I.registerSingleton<TransactionProvider>(_FakeTransactions(addressTypes));
   GetIt.I.registerSingleton<WalletReaderProvider>(_FakeWalletReader());
   GetIt.I.registerSingleton<OrchestratorRPC>(_FakeOrchestrator());
-  GetIt.I.registerSingleton<BitcoinConfProvider>(_FakeConf());
+  GetIt.I.registerSingleton<BitcoinConfProvider>(conf ?? _FakeConf());
 
   await tester.pumpSailPage(const ReceiveTab());
   await tester.pump();
@@ -125,16 +148,71 @@ Finder _qr() => find.descendant(of: _addressCard(), matching: find.byType(QrImag
 Finder _addressField() => find.descendant(of: _addressCard(), matching: find.byType(SailTextField)).first;
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized({
-    'flutter.test.automatic_wait_for_timers': 'false',
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
     await GetIt.I.reset();
   });
 
-  tearDown(() async {
-    await GetIt.I.reset();
+  testWidgets('the Receive tab shows the production burn below the claim on Alphanet', (tester) async {
+    final conf = _FakeConf()..changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'alphanet');
+    await _pumpReceiveTab(tester, conf: conf);
+
+    final card = tester.widget<BurnEcxCard>(find.byType(BurnEcxCard));
+    expect(card.burnAddress, '1BitcoinEaterAddressDontSendf59kuE');
+    expect(card.minimumSats, 100000000000);
+    final title = find
+        .text('Burn Transaction')
+        .evaluate()
+        .where((element) => element.findAncestorWidgetOfExactType<SailButton>() == null);
+    expect(title, hasLength(1));
+    expect(
+      find.byWidgetPredicate((widget) => widget is SailButton && widget.label == 'Burn Transaction'),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(find.byType(BurnEcxCard)).dy,
+      greaterThan(tester.getBottomLeft(find.byType(ClaimEcxCard)).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the Receive tab changes burn access with the network', (tester) async {
+    final conf = _FakeConf();
+    await _pumpReceiveTab(tester, conf: conf);
+    void expectNoBurnGap() {
+      expect(find.byType(BurnEcxCard), findsNothing);
+      final actionCards = find.byWidgetPredicate(
+        (widget) => widget is SailColumn && widget.children.any((child) => child is ClaimEcxCard),
+      );
+      expect(tester.getSize(actionCards).height, tester.getSize(find.byType(ClaimEcxCard)).height);
+    }
+
+    expectNoBurnGap();
+
+    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'alphanet');
+    await tester.pump();
+    expect(find.byType(BurnEcxCard), findsOneWidget);
+
+    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_ECASH, 'betanet');
+    await tester.pump();
+    expectNoBurnGap();
+
+    conf.changeNetwork(BitcoinNetwork.BITCOIN_NETWORK_MAINNET, 'alphanet');
+    await tester.pump();
+    expectNoBurnGap();
+    expect(find.byType(ClaimEcxCard), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the Receive tab uses the catalog Alphanet ID when the explicit ID is empty', (tester) async {
+    final conf = _FakeConf()
+      ..network = BitcoinNetwork.BITCOIN_NETWORK_ECASH
+      ..currentNetworkOptionId = 'alphanet';
+    await _pumpReceiveTab(tester, conf: conf);
+
+    expect(find.byType(BurnEcxCard), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the QR code sits inside the address card', (tester) async {

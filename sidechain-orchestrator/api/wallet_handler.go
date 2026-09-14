@@ -10,6 +10,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -54,10 +55,11 @@ func walletTypeToProto(t wallet.WalletType) pb.WalletType {
 
 // WalletHandler implements the WalletManagerService gRPC handler.
 type WalletHandler struct {
-	svc        *wallet.Service
-	engine     *wallet.WalletEngine       // nil until Core RPC is configured
-	orch       *orchestrator.Orchestrator // nil until set; used for Core variant RPCs
-	bip47State *bip47state.Store          // nil until SetBip47StateStore is called
+	svc             *wallet.Service
+	engine          *wallet.WalletEngine       // nil until Core RPC is configured
+	orch            *orchestrator.Orchestrator // nil until set; used for Core variant RPCs
+	bip47State      *bip47state.Store          // nil until SetBip47StateStore is called
+	ecxBurnWarnings sync.Map
 }
 
 func NewWalletHandler(svc *wallet.Service) *WalletHandler {
@@ -1042,6 +1044,9 @@ func (h *WalletHandler) ListTransactions(ctx context.Context, req *connect.Reque
 	for _, entry := range pbTxs {
 		entry.BmmBid = bids[entry.Txid]
 	}
+	if err := h.setTransactionWarnings(ctx, walletID, pbTxs); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 
 	return connect.NewResponse(&pb.ListTransactionsResponse{
 		Transactions: pbTxs,
@@ -1287,14 +1292,15 @@ func (h *WalletHandler) GetTransactionDetails(ctx context.Context, req *connect.
 
 	return connect.NewResponse(&pb.GetTransactionDetailsResponse{
 		Transaction: &pb.TransactionEntry{
-			Txid:          tx.TxID,
-			Amount:        tx.Amount,
-			AmountSats:    int64(math.Round(tx.Amount * 1e8)),
-			Fee:           tx.Fee,
-			Confirmations: int32(tx.Confirmations),
-			BlockTime:     tx.BlockTime,
-			Time:          tx.Time,
-			WalletId:      walletID,
+			Txid:           tx.TxID,
+			WarningMessage: h.transactionWarning(outputs),
+			Amount:         tx.Amount,
+			AmountSats:     int64(math.Round(tx.Amount * 1e8)),
+			Fee:            tx.Fee,
+			Confirmations:  int32(tx.Confirmations),
+			BlockTime:      tx.BlockTime,
+			Time:           tx.Time,
+			WalletId:       walletID,
 		},
 		RawHex:          tx.Hex,
 		Blockhash:       rawTx.Blockhash,
@@ -1324,11 +1330,34 @@ func (h *WalletHandler) DecodeTransaction(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	response := decodedToResponse(decoded)
 	if decoded.Form == wallet.DecodedFormTxid {
-		return h.decodeTxidResponse(ctx, decoded.TxID, req.Msg.WalletId)
+		result, err := h.decodeTxidResponse(ctx, decoded.TxID, req.Msg.WalletId)
+		if err != nil {
+			return nil, err
+		}
+		response = result.Msg
 	}
 
-	return connect.NewResponse(decodedToResponse(decoded)), nil
+	if req.Msg.CheckOwnership {
+		walletID, err := h.engine.ResolveWalletID(req.Msg.WalletId)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		addresses := make([]string, len(response.Outputs))
+		for i, output := range response.Outputs {
+			addresses[i] = output.Address
+		}
+		owned, err := h.engine.Backend().OwnedAddresses(ctx, walletID, addresses)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read address ownership: %w", err))
+		}
+		for _, output := range response.Outputs {
+			output.IsChange, output.IsMine = owned[output.Address]
+		}
+	}
+	response.WarningMessage = h.transactionWarning(response.Outputs)
+	return connect.NewResponse(response), nil
 }
 
 func (h *WalletHandler) decodeTxidResponse(ctx context.Context, txid, walletID string) (*connect.Response[pb.DecodeTransactionResponse], error) {
@@ -1634,12 +1663,9 @@ func (h *WalletHandler) DeriveAddresses(ctx context.Context, req *connect.Reques
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	// Derive against the wallet's resolved kind/account so the preview matches
-	// its real receive addresses (custom-account / explicit-path / taproot
-	// wallets), not a hardcoded BIP84 account 0.
 	w := h.svc.GetWalletByID(walletID)
-	if w == nil || w.Master.SeedHex == "" {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s seed not found", walletID))
+	if w == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("wallet %s not found", walletID))
 	}
 
 	addrs, err := wallet.DeriveWalletReceiveAddresses(w, h.engine.Network(), start, count)

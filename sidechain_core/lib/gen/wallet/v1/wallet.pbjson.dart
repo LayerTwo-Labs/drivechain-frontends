@@ -341,6 +341,7 @@ const WalletTransaction$json = {
     {'1': 'note', '3': 7, '4': 1, '5': 9, '10': 'note'},
     {'1': 'confirmation_time', '3': 8, '4': 1, '5': 11, '6': '.wallet.v1.Confirmation', '10': 'confirmationTime'},
     {'1': 'bmm_bid', '3': 9, '4': 1, '5': 11, '6': '.wallet.v1.BmmBid', '10': 'bmmBid'},
+    {'1': 'warning_message', '3': 10, '4': 1, '5': 9, '10': 'warningMessage'},
   ],
 };
 
@@ -352,7 +353,7 @@ final $typed_data.Uint8List walletTransactionDescriptor = $convert.base64Decode(
     'Jlc3MSIwoNYWRkcmVzc19sYWJlbBgGIAEoCVIMYWRkcmVzc0xhYmVsEhIKBG5vdGUYByABKAlS'
     'BG5vdGUSRAoRY29uZmlybWF0aW9uX3RpbWUYCCABKAsyFy53YWxsZXQudjEuQ29uZmlybWF0aW'
     '9uUhBjb25maXJtYXRpb25UaW1lEioKB2JtbV9iaWQYCSABKAsyES53YWxsZXQudjEuQm1tQmlk'
-    'UgZibW1CaWQ=');
+    'UgZibW1CaWQSJwoPd2FybmluZ19tZXNzYWdlGAogASgJUg53YXJuaW5nTWVzc2FnZQ==');
 
 @$core.Deprecated('Use bmmBidDescriptor instead')
 const BmmBid$json = {
@@ -971,6 +972,7 @@ const GetTransactionDetailsResponse$json = {
     {'1': 'outputs', '3': 14, '4': 3, '5': 11, '6': '.wallet.v1.TransactionOutput', '10': 'outputs'},
     {'1': 'total_output_sats', '3': 15, '4': 1, '5': 3, '10': 'totalOutputSats'},
     {'1': 'hex', '3': 16, '4': 1, '5': 9, '10': 'hex'},
+    {'1': 'warning_message', '3': 17, '4': 1, '5': 9, '10': 'warningMessage'},
   ],
 };
 
@@ -986,7 +988,8 @@ final $typed_data.Uint8List getTransactionDetailsResponseDescriptor = $convert.b
     'V0LnYxLlRyYW5zYWN0aW9uSW5wdXRSBmlucHV0cxIoChB0b3RhbF9pbnB1dF9zYXRzGA0gASgD'
     'Ug50b3RhbElucHV0U2F0cxI2CgdvdXRwdXRzGA4gAygLMhwud2FsbGV0LnYxLlRyYW5zYWN0aW'
     '9uT3V0cHV0UgdvdXRwdXRzEioKEXRvdGFsX291dHB1dF9zYXRzGA8gASgDUg90b3RhbE91dHB1'
-    'dFNhdHMSEAoDaGV4GBAgASgJUgNoZXg=');
+    'dFNhdHMSEAoDaGV4GBAgASgJUgNoZXgSJwoPd2FybmluZ19tZXNzYWdlGBEgASgJUg53YXJuaW'
+    '5nTWVzc2FnZQ==');
 
 @$core.Deprecated('Use transactionInputDescriptor instead')
 const TransactionInput$json = {

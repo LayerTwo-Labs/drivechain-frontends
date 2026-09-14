@@ -1197,6 +1197,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     $core.String? note,
     Confirmation? confirmationTime,
     BmmBid? bmmBid,
+    $core.String? warningMessage,
   }) {
     final $result = create();
     if (txid != null) {
@@ -1226,6 +1227,9 @@ class WalletTransaction extends $pb.GeneratedMessage {
     if (bmmBid != null) {
       $result.bmmBid = bmmBid;
     }
+    if (warningMessage != null) {
+      $result.warningMessage = warningMessage;
+    }
     return $result;
   }
   WalletTransaction._() : super();
@@ -1242,6 +1246,7 @@ class WalletTransaction extends $pb.GeneratedMessage {
     ..aOS(7, _omitFieldNames ? '' : 'note')
     ..aOM<Confirmation>(8, _omitFieldNames ? '' : 'confirmationTime', subBuilder: Confirmation.create)
     ..aOM<BmmBid>(9, _omitFieldNames ? '' : 'bmmBid', subBuilder: BmmBid.create)
+    ..aOS(10, _omitFieldNames ? '' : 'warningMessage')
     ..hasRequiredFields = false
   ;
 
@@ -1351,6 +1356,16 @@ class WalletTransaction extends $pb.GeneratedMessage {
   void clearBmmBid() => clearField(9);
   @$pb.TagNumber(9)
   BmmBid ensureBmmBid() => $_ensure(8);
+
+  /// A backend warning for this transaction. Empty means no warning.
+  @$pb.TagNumber(10)
+  $core.String get warningMessage => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set warningMessage($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasWarningMessage() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearWarningMessage() => clearField(10);
 }
 
 /// BmmBid names the BMM request one wallet transaction carries.
@@ -4134,6 +4149,7 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
     $core.Iterable<TransactionOutput>? outputs,
     $fixnum.Int64? totalOutputSats,
     $core.String? hex,
+    $core.String? warningMessage,
   }) {
     final $result = create();
     if (txid != null) {
@@ -4184,6 +4200,9 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
     if (hex != null) {
       $result.hex = hex;
     }
+    if (warningMessage != null) {
+      $result.warningMessage = warningMessage;
+    }
     return $result;
   }
   GetTransactionDetailsResponse._() : super();
@@ -4207,6 +4226,7 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
     ..pc<TransactionOutput>(14, _omitFieldNames ? '' : 'outputs', $pb.PbFieldType.PM, subBuilder: TransactionOutput.create)
     ..aInt64(15, _omitFieldNames ? '' : 'totalOutputSats')
     ..aOS(16, _omitFieldNames ? '' : 'hex')
+    ..aOS(17, _omitFieldNames ? '' : 'warningMessage')
     ..hasRequiredFields = false
   ;
 
@@ -4368,6 +4388,16 @@ class GetTransactionDetailsResponse extends $pb.GeneratedMessage {
   $core.bool hasHex() => $_has(15);
   @$pb.TagNumber(16)
   void clearHex() => clearField(16);
+
+  /// A backend warning for this transaction. Empty means no warning.
+  @$pb.TagNumber(17)
+  $core.String get warningMessage => $_getSZ(16);
+  @$pb.TagNumber(17)
+  set warningMessage($core.String v) { $_setString(16, v); }
+  @$pb.TagNumber(17)
+  $core.bool hasWarningMessage() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearWarningMessage() => clearField(17);
 }
 
 class TransactionInput extends $pb.GeneratedMessage {

@@ -22,6 +22,29 @@ Widget _wrap(Widget child) {
 
 void main() {
   group('SailTooltip', () {
+    testWidgets('the width limit wraps a long message', (tester) async {
+      final message = List.filled(4, 'This transaction burns coins. You cannot reverse this transaction.').join(' ');
+      await tester.pumpWidget(
+        _wrap(
+          SailTooltip(
+            message: message,
+            maxWidth: 320,
+            showDuration: const Duration(seconds: 5),
+            child: SailText.primary12('Warning'),
+          ),
+        ),
+      );
+
+      await tester.longPress(find.byType(SailTooltip));
+      await tester.pump();
+
+      expect(find.text(message), findsOneWidget);
+      final textSize = tester.getSize(find.text(message));
+      expect(textSize.width, lessThanOrEqualTo(320));
+      expect(textSize.height, greaterThan(24));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('renders child', (tester) async {
       await tester.pumpWidget(
         _wrap(

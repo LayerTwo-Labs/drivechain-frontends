@@ -15,6 +15,7 @@ import 'package:sail_ui/sail_ui.dart';
 import 'test_utils.dart';
 
 class _FakeWalletRPC implements OrchestratorWalletRPC {
+  String warningMessage = '';
   wmpb.MultisigPsbtStatusResponse status = wmpb.MultisigPsbtStatusResponse(
     threshold: 2,
     signatures: 1,
@@ -43,6 +44,7 @@ class _FakeWalletRPC implements OrchestratorWalletRPC {
       hasTotalInput: true,
       changeOutputIndexes: {1},
       details: walletpb.GetTransactionDetailsResponse(
+        warningMessage: warningMessage,
         inputs: [
           walletpb.TransactionInput(index: 0, prevTxid: 'aa' * 32, prevVout: 0, valueSats: Int64(30000000)),
           walletpb.TransactionInput(index: 1, prevTxid: 'bb' * 32, prevVout: 1, valueSats: Int64(10000000)),
@@ -144,6 +146,28 @@ void main() {
     return tester.widget<SailButton>(
       find.byWidgetPredicate((w) => w is SailButton && w.label == 'Broadcast'),
     );
+  }
+
+  const warning = 'This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction.';
+  final messages = {'backend text': warning, 'no warning': '', 'long warning': List.filled(4, warning).join(' ')};
+  for (final message in messages.entries) {
+    testWidgets('the signature panel shows the RPC warning: ${message.key}', (tester) async {
+      final draftId = await setUpPanelDeps();
+      orchestrator.wallet.warningMessage = message.value;
+
+      await tester.pumpSailPage(MultisigSignPanel(walletId: 'wallet-1', draftId: draftId));
+      await tester.pumpAndSettle();
+
+      final alerts = tester.widgetList<SailAlert>(find.byType(SailAlert));
+      if (message.value.isEmpty) {
+        expect(alerts.where((alert) => alert.variant == SailAlertVariant.warning), isEmpty);
+      } else {
+        final alert = alerts.singleWhere((alert) => alert.variant == SailAlertVariant.warning);
+        expect(alert.description, message.value);
+        expect(find.text(message.value), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets('the flow diagram stays hidden until the user asks', (tester) async {

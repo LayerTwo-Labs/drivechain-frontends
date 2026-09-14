@@ -1844,6 +1844,7 @@ const TransactionEntry$json = {
     {'1': 'replaced_by_txid', '3': 12, '4': 1, '5': 8, '10': 'replacedByTxid'},
     {'1': 'wallet_id', '3': 13, '4': 1, '5': 9, '10': 'walletId'},
     {'1': 'bmm_bid', '3': 14, '4': 1, '5': 11, '6': '.walletmanager.v1.BmmBid', '10': 'bmmBid'},
+    {'1': 'warning_message', '3': 15, '4': 1, '5': 9, '10': 'warningMessage'},
   ],
 };
 
@@ -1856,7 +1857,8 @@ final $typed_data.Uint8List transactionEntryDescriptor = $convert.base64Decode(
     'CCABKANSCWJsb2NrVGltZRISCgR0aW1lGAkgASgDUgR0aW1lEhQKBWxhYmVsGAogASgJUgVsYW'
     'JlbBIQCgNmZWUYCyABKAFSA2ZlZRIoChByZXBsYWNlZF9ieV90eGlkGAwgASgIUg5yZXBsYWNl'
     'ZEJ5VHhpZBIbCgl3YWxsZXRfaWQYDSABKAlSCHdhbGxldElkEjEKB2JtbV9iaWQYDiABKAsyGC'
-    '53YWxsZXRtYW5hZ2VyLnYxLkJtbUJpZFIGYm1tQmlk');
+    '53YWxsZXRtYW5hZ2VyLnYxLkJtbUJpZFIGYm1tQmlkEicKD3dhcm5pbmdfbWVzc2FnZRgPIAEo'
+    'CVIOd2FybmluZ01lc3NhZ2U=');
 
 @$core.Deprecated('Use bmmBidDescriptor instead')
 const BmmBid$json = {
@@ -2103,13 +2105,15 @@ const DecodeTransactionRequest$json = {
   '2': [
     {'1': 'input', '3': 1, '4': 1, '5': 9, '10': 'input'},
     {'1': 'wallet_id', '3': 2, '4': 1, '5': 9, '10': 'walletId'},
+    {'1': 'check_ownership', '3': 3, '4': 1, '5': 8, '10': 'checkOwnership'},
   ],
 };
 
 /// Descriptor for `DecodeTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List decodeTransactionRequestDescriptor = $convert.base64Decode(
     'ChhEZWNvZGVUcmFuc2FjdGlvblJlcXVlc3QSFAoFaW5wdXQYASABKAlSBWlucHV0EhsKCXdhbG'
-    'xldF9pZBgCIAEoCVIId2FsbGV0SWQ=');
+    'xldF9pZBgCIAEoCVIId2FsbGV0SWQSJwoPY2hlY2tfb3duZXJzaGlwGAMgASgIUg5jaGVja093'
+    'bmVyc2hpcA==');
 
 @$core.Deprecated('Use decodeTransactionResponseDescriptor instead')
 const DecodeTransactionResponse$json = {
@@ -2133,6 +2137,7 @@ const DecodeTransactionResponse$json = {
     {'1': 'is_psbt', '3': 16, '4': 1, '5': 8, '10': 'isPsbt'},
     {'1': 'signed_inputs', '3': 17, '4': 1, '5': 5, '10': 'signedInputs'},
     {'1': 'raw', '3': 18, '4': 1, '5': 9, '10': 'raw'},
+    {'1': 'warning_message', '3': 19, '4': 1, '5': 9, '10': 'warningMessage'},
   ],
 };
 
@@ -2150,7 +2155,7 @@ final $typed_data.Uint8List decodeTransactionResponseDescriptor = $convert.base6
     'hmZWVfc2F0cxgNIAEoA1IHZmVlU2F0cxIXCgdoYXNfZmVlGA4gASgIUgZoYXNGZWUSJQoPZmVl'
     'X3JhdGVfc2F0X3ZiGA8gASgBUgxmZWVSYXRlU2F0VmISFwoHaXNfcHNidBgQIAEoCFIGaXNQc2'
     'J0EiMKDXNpZ25lZF9pbnB1dHMYESABKAVSDHNpZ25lZElucHV0cxIQCgNyYXcYEiABKAlSA3Jh'
-    'dw==');
+    'dxInCg93YXJuaW5nX21lc3NhZ2UYEyABKAlSDndhcm5pbmdNZXNzYWdl');
 
 @$core.Deprecated('Use bumpFeeRequestDescriptor instead')
 const BumpFeeRequest$json = {

@@ -535,27 +535,43 @@ func walletReceiveKind(w *WalletData) ScriptKind {
 	return w.scriptKind()
 }
 
-// DeriveWalletReceiveAddresses derives [start, start+count) external (receive)
-// addresses for a hot wallet using its resolved script kind and account path —
-// so the address preview matches the wallet's real receive addresses for custom
-// account / explicit-path / taproot wallets, not just the BIP84 account-0 case.
+// DeriveWalletReceiveAddresses derives receive addresses without an address allocation.
 func DeriveWalletReceiveAddresses(w *WalletData, net *chaincfg.Params, start, count int) ([]string, error) {
 	if net == nil {
 		return nil, errors.New("no chain params for this network; cannot derive addresses")
 	}
-	if w.Master.SeedHex == "" {
-		return nil, errors.New("wallet has no seed; cannot derive addresses")
+	var d *Descriptor
+	if w.Multisig != nil {
+		group := MultisigLoungeGroup{M: w.Multisig.M, N: w.Multisig.N}
+		for _, c := range w.Multisig.Cosigners {
+			group.Keys = append(group.Keys, MultisigLoungeKey{
+				Xpub: c.Xpub, Fingerprint: c.Fingerprint, OriginPath: c.OriginPath,
+				IsWallet: c.Fingerprint != "",
+			})
+		}
+		receive, _, err := BuildMultisigLoungeDescriptorsTyped(group, w.MultisigScriptType())
+		if err != nil {
+			return nil, err
+		}
+		d, err = ParseDescriptor(receive)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if w.Master.SeedHex == "" {
+			return nil, errors.New("wallet has no seed; cannot derive addresses")
+		}
+		kind := walletReceiveKind(w)
+		ap, err := accountPathFor(w, kind, net)
+		if err != nil {
+			return nil, err
+		}
+		acct, _, err := accountKeyAndOrigin(w.Master.SeedHex, ap, net)
+		if err != nil {
+			return nil, err
+		}
+		d = &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
 	}
-	kind := walletReceiveKind(w)
-	ap, err := accountPathFor(w, kind, net)
-	if err != nil {
-		return nil, err
-	}
-	acct, _, err := accountKeyAndOrigin(w.Master.SeedHex, ap, net)
-	if err != nil {
-		return nil, err
-	}
-	d := &Descriptor{Kind: kind, Threshold: 1, Keys: []DescriptorKey{{Account: acct}}}
 
 	addrs := make([]string, 0, count)
 	for i := start; i < start+count; i++ {

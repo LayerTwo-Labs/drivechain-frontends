@@ -78,6 +78,7 @@ func newDetailsHandler(t *testing.T, fake *detailsProvider) (*WalletHandler, str
 	t.Helper()
 	log := zerolog.New(zerolog.NewTestWriter(t))
 	svc := wallet.NewService(t.TempDir(), log)
+	svc.SetNetwork("signet")
 	require.NoError(t, svc.Init())
 	t.Cleanup(func() { svc.Close() })
 

@@ -2,6 +2,7 @@ import 'package:bitwindow/providers/address_book_provider.dart';
 import 'package:bitwindow/providers/hd_wallet_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/explorer_url.dart';
+import 'package:bitwindow/widgets/burn_ecx_card.dart';
 import 'package:bitwindow/widgets/claim_ecx_card.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
@@ -38,6 +39,20 @@ class ReceiveTab extends StatelessWidget {
             children: [
               LayoutBuilder(
                 builder: (context, constraints) {
+                  final conf = GetIt.I.get<BitcoinConfProvider>();
+                  final actionCards = ListenableBuilder(
+                    listenable: conf,
+                    builder: (context, child) => SailColumn(
+                      spacing: SailStyleValues.padding16,
+                      children: [
+                        const ClaimEcxCard(),
+                        if (conf.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH &&
+                            (conf.ecashNetworkId.isNotEmpty ? conf.ecashNetworkId : conf.currentNetworkOptionId) ==
+                                'alphanet')
+                          const BurnEcxCard(),
+                      ],
+                    ),
+                  );
                   final addressRow = SailRow(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -142,7 +157,7 @@ class ReceiveTab extends StatelessWidget {
                   );
 
                   if (constraints.maxWidth < _claimBesideAddress) {
-                    return SailColumn(spacing: SailStyleValues.padding16, children: [addressRow, const ClaimEcxCard()]);
+                    return SailColumn(spacing: SailStyleValues.padding16, children: [addressRow, actionCards]);
                   }
 
                   return SailRow(
@@ -150,7 +165,7 @@ class ReceiveTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(child: addressRow),
-                      const SizedBox(width: _claimCardWidth, child: ClaimEcxCard()),
+                      SizedBox(width: _claimCardWidth, child: actionCards),
                     ],
                   );
                 },

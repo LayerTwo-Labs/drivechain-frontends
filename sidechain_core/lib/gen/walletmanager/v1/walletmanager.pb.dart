@@ -7953,6 +7953,7 @@ class TransactionEntry extends $pb.GeneratedMessage {
     $core.bool? replacedByTxid,
     $core.String? walletId,
     BmmBid? bmmBid,
+    $core.String? warningMessage,
   }) {
     final $result = create();
     if (txid != null) {
@@ -7997,6 +7998,9 @@ class TransactionEntry extends $pb.GeneratedMessage {
     if (bmmBid != null) {
       $result.bmmBid = bmmBid;
     }
+    if (warningMessage != null) {
+      $result.warningMessage = warningMessage;
+    }
     return $result;
   }
   TransactionEntry._() : super();
@@ -8018,6 +8022,7 @@ class TransactionEntry extends $pb.GeneratedMessage {
     ..aOB(12, _omitFieldNames ? '' : 'replacedByTxid')
     ..aOS(13, _omitFieldNames ? '' : 'walletId')
     ..aOM<BmmBid>(14, _omitFieldNames ? '' : 'bmmBid', subBuilder: BmmBid.create)
+    ..aOS(15, _omitFieldNames ? '' : 'warningMessage')
     ..hasRequiredFields = false
   ;
 
@@ -8170,6 +8175,16 @@ class TransactionEntry extends $pb.GeneratedMessage {
   void clearBmmBid() => clearField(14);
   @$pb.TagNumber(14)
   BmmBid ensureBmmBid() => $_ensure(13);
+
+  /// A backend warning for this transaction. Empty means no warning.
+  @$pb.TagNumber(15)
+  $core.String get warningMessage => $_getSZ(14);
+  @$pb.TagNumber(15)
+  set warningMessage($core.String v) { $_setString(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasWarningMessage() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearWarningMessage() => clearField(15);
 }
 
 /// BmmBid names the BMM request one wallet transaction carries.
@@ -9520,6 +9535,7 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
   factory DecodeTransactionRequest({
     $core.String? input,
     $core.String? walletId,
+    $core.bool? checkOwnership,
   }) {
     final $result = create();
     if (input != null) {
@@ -9527,6 +9543,9 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
     }
     if (walletId != null) {
       $result.walletId = walletId;
+    }
+    if (checkOwnership != null) {
+      $result.checkOwnership = checkOwnership;
     }
     return $result;
   }
@@ -9537,6 +9556,7 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DecodeTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'walletmanager.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'input')
     ..aOS(2, _omitFieldNames ? '' : 'walletId')
+    ..aOB(3, _omitFieldNames ? '' : 'checkOwnership')
     ..hasRequiredFields = false
   ;
 
@@ -9572,8 +9592,7 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearInput() => clearField(1);
 
-  /// Optional wallet to resolve a txid against (and enrich input values). Empty
-  /// uses the active wallet.
+  /// Wallet for txid and ownership checks. Empty uses the active wallet.
   @$pb.TagNumber(2)
   $core.String get walletId => $_getSZ(1);
   @$pb.TagNumber(2)
@@ -9582,6 +9601,16 @@ class DecodeTransactionRequest extends $pb.GeneratedMessage {
   $core.bool hasWalletId() => $_has(1);
   @$pb.TagNumber(2)
   void clearWalletId() => clearField(2);
+
+  /// Check output ownership with the wallet backend. This can read the network.
+  @$pb.TagNumber(3)
+  $core.bool get checkOwnership => $_getBF(2);
+  @$pb.TagNumber(3)
+  set checkOwnership($core.bool v) { $_setBool(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasCheckOwnership() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCheckOwnership() => clearField(3);
 }
 
 class DecodeTransactionResponse extends $pb.GeneratedMessage {
@@ -9604,6 +9633,7 @@ class DecodeTransactionResponse extends $pb.GeneratedMessage {
     $core.bool? isPsbt,
     $core.int? signedInputs,
     $core.String? raw,
+    $core.String? warningMessage,
   }) {
     final $result = create();
     if (form != null) {
@@ -9660,6 +9690,9 @@ class DecodeTransactionResponse extends $pb.GeneratedMessage {
     if (raw != null) {
       $result.raw = raw;
     }
+    if (warningMessage != null) {
+      $result.warningMessage = warningMessage;
+    }
     return $result;
   }
   DecodeTransactionResponse._() : super();
@@ -9685,6 +9718,7 @@ class DecodeTransactionResponse extends $pb.GeneratedMessage {
     ..aOB(16, _omitFieldNames ? '' : 'isPsbt')
     ..a<$core.int>(17, _omitFieldNames ? '' : 'signedInputs', $pb.PbFieldType.O3)
     ..aOS(18, _omitFieldNames ? '' : 'raw')
+    ..aOS(19, _omitFieldNames ? '' : 'warningMessage')
     ..hasRequiredFields = false
   ;
 
@@ -9861,6 +9895,16 @@ class DecodeTransactionResponse extends $pb.GeneratedMessage {
   $core.bool hasRaw() => $_has(17);
   @$pb.TagNumber(18)
   void clearRaw() => clearField(18);
+
+  /// A backend warning for this transaction. Empty means no warning.
+  @$pb.TagNumber(19)
+  $core.String get warningMessage => $_getSZ(18);
+  @$pb.TagNumber(19)
+  set warningMessage($core.String v) { $_setString(18, v); }
+  @$pb.TagNumber(19)
+  $core.bool hasWarningMessage() => $_has(18);
+  @$pb.TagNumber(19)
+  void clearWarningMessage() => clearField(19);
 }
 
 class BumpFeeRequest extends $pb.GeneratedMessage {
