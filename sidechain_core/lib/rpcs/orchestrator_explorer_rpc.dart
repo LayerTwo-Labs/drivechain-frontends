@@ -42,6 +42,24 @@ class OrchestratorExplorerRPC {
     return response.transaction;
   }
 
+  /// Returns the signed JSON for a transaction in the local mempool.
+  Future<String> getSignedTransaction(String chain, String txid) async {
+    final response = await _client.getSignedTransaction(pb.GetSignedTransactionRequest(chain: chain, txid: txid));
+    return response.signedTransaction;
+  }
+
+  /// Resends a transaction from the local mempool to peers.
+  Future<pb.RebroadcastTransactionResponse> rebroadcastTransaction(String chain, String txid) async {
+    return await _client.rebroadcastTransaction(pb.RebroadcastTransactionRequest(chain: chain, txid: txid));
+  }
+
+  /// Sends a signed JSON transaction to the local node.
+  Future<pb.BroadcastTransactionResponse> broadcastTransaction(String chain, String signedTransaction) async {
+    return await _client.broadcastTransaction(
+      pb.BroadcastTransactionRequest(chain: chain, signedTransaction: signedTransaction),
+    );
+  }
+
   /// What an address holds and what it did.
   Future<pb.GetAddressResponse> getAddress(String chain, String address) async {
     return await _client.getAddress(pb.GetAddressRequest(chain: chain, address: address));

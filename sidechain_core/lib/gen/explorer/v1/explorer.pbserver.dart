@@ -15,39 +15,48 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'explorer.pb.dart' as $6;
+import 'explorer.pb.dart' as $0;
 import 'explorer.pbjson.dart';
 
 export 'explorer.pb.dart';
 
 abstract class ExplorerServiceBase extends $pb.GeneratedService {
-  $async.Future<$6.GetOverviewResponse> getOverview($pb.ServerContext ctx, $6.GetOverviewRequest request);
-  $async.Future<$6.GetBlockResponse> getBlock($pb.ServerContext ctx, $6.GetBlockRequest request);
-  $async.Future<$6.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $6.ListBlocksRequest request);
-  $async.Future<$6.GetTransactionResponse> getTransaction($pb.ServerContext ctx, $6.GetTransactionRequest request);
-  $async.Future<$6.GetAddressResponse> getAddress($pb.ServerContext ctx, $6.GetAddressRequest request);
-  $async.Future<$6.GetWithdrawalsResponse> getWithdrawals($pb.ServerContext ctx, $6.GetWithdrawalsRequest request);
+  $async.Future<$0.GetOverviewResponse> getOverview($pb.ServerContext ctx, $0.GetOverviewRequest request);
+  $async.Future<$0.GetBlockResponse> getBlock($pb.ServerContext ctx, $0.GetBlockRequest request);
+  $async.Future<$0.ListBlocksResponse> listBlocks($pb.ServerContext ctx, $0.ListBlocksRequest request);
+  $async.Future<$0.GetTransactionResponse> getTransaction($pb.ServerContext ctx, $0.GetTransactionRequest request);
+  $async.Future<$0.GetSignedTransactionResponse> getSignedTransaction($pb.ServerContext ctx, $0.GetSignedTransactionRequest request);
+  $async.Future<$0.RebroadcastTransactionResponse> rebroadcastTransaction($pb.ServerContext ctx, $0.RebroadcastTransactionRequest request);
+  $async.Future<$0.BroadcastTransactionResponse> broadcastTransaction($pb.ServerContext ctx, $0.BroadcastTransactionRequest request);
+  $async.Future<$0.GetAddressResponse> getAddress($pb.ServerContext ctx, $0.GetAddressRequest request);
+  $async.Future<$0.GetWithdrawalsResponse> getWithdrawals($pb.ServerContext ctx, $0.GetWithdrawalsRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
-      case 'GetOverview': return $6.GetOverviewRequest();
-      case 'GetBlock': return $6.GetBlockRequest();
-      case 'ListBlocks': return $6.ListBlocksRequest();
-      case 'GetTransaction': return $6.GetTransactionRequest();
-      case 'GetAddress': return $6.GetAddressRequest();
-      case 'GetWithdrawals': return $6.GetWithdrawalsRequest();
+      case 'GetOverview': return $0.GetOverviewRequest();
+      case 'GetBlock': return $0.GetBlockRequest();
+      case 'ListBlocks': return $0.ListBlocksRequest();
+      case 'GetTransaction': return $0.GetTransactionRequest();
+      case 'GetSignedTransaction': return $0.GetSignedTransactionRequest();
+      case 'RebroadcastTransaction': return $0.RebroadcastTransactionRequest();
+      case 'BroadcastTransaction': return $0.BroadcastTransactionRequest();
+      case 'GetAddress': return $0.GetAddressRequest();
+      case 'GetWithdrawals': return $0.GetWithdrawalsRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
 
   $async.Future<$pb.GeneratedMessage> handleCall($pb.ServerContext ctx, $core.String methodName, $pb.GeneratedMessage request) {
     switch (methodName) {
-      case 'GetOverview': return this.getOverview(ctx, request as $6.GetOverviewRequest);
-      case 'GetBlock': return this.getBlock(ctx, request as $6.GetBlockRequest);
-      case 'ListBlocks': return this.listBlocks(ctx, request as $6.ListBlocksRequest);
-      case 'GetTransaction': return this.getTransaction(ctx, request as $6.GetTransactionRequest);
-      case 'GetAddress': return this.getAddress(ctx, request as $6.GetAddressRequest);
-      case 'GetWithdrawals': return this.getWithdrawals(ctx, request as $6.GetWithdrawalsRequest);
+      case 'GetOverview': return this.getOverview(ctx, request as $0.GetOverviewRequest);
+      case 'GetBlock': return this.getBlock(ctx, request as $0.GetBlockRequest);
+      case 'ListBlocks': return this.listBlocks(ctx, request as $0.ListBlocksRequest);
+      case 'GetTransaction': return this.getTransaction(ctx, request as $0.GetTransactionRequest);
+      case 'GetSignedTransaction': return this.getSignedTransaction(ctx, request as $0.GetSignedTransactionRequest);
+      case 'RebroadcastTransaction': return this.rebroadcastTransaction(ctx, request as $0.RebroadcastTransactionRequest);
+      case 'BroadcastTransaction': return this.broadcastTransaction(ctx, request as $0.BroadcastTransactionRequest);
+      case 'GetAddress': return this.getAddress(ctx, request as $0.GetAddressRequest);
+      case 'GetWithdrawals': return this.getWithdrawals(ctx, request as $0.GetWithdrawalsRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

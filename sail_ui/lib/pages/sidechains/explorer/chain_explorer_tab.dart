@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/pages/sidechains/explorer/transaction_broadcast.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
 import 'package:sidechain_core/utils/explorer_url.dart';
@@ -52,10 +53,18 @@ class _ChainExplorerTabState extends State<ChainExplorerTab> {
         return SailColumn(
           spacing: SailStyleValues.padding16,
           children: [
-            SailTextField(
-              controller: _search,
-              hintText: 'Search a block height, a block hash, a transaction or an address',
-              onSubmitted: _submit,
+            SailRow(
+              spacing: SailStyleValues.padding12,
+              children: [
+                Expanded(
+                  child: SailTextField(
+                    controller: _search,
+                    hintText: 'Search a block height, a block hash, a transaction or an address',
+                    onSubmitted: _submit,
+                  ),
+                ),
+                ExplorerBroadcastButton(model: model, onOpen: _open),
+              ],
             ),
             Expanded(
               child: SingleChildScrollView(

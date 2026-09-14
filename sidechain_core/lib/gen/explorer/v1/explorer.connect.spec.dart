@@ -49,6 +49,30 @@ abstract final class ExplorerService {
     explorerv1explorer.GetTransactionResponse.new,
   );
 
+  /// GetSignedTransaction exports a transaction with its stored signatures.
+  static const getSignedTransaction = connect.Spec(
+    '/$name/GetSignedTransaction',
+    connect.StreamType.unary,
+    explorerv1explorer.GetSignedTransactionRequest.new,
+    explorerv1explorer.GetSignedTransactionResponse.new,
+  );
+
+  /// RebroadcastTransaction sends a pending transaction to connected peers.
+  static const rebroadcastTransaction = connect.Spec(
+    '/$name/RebroadcastTransaction',
+    connect.StreamType.unary,
+    explorerv1explorer.RebroadcastTransactionRequest.new,
+    explorerv1explorer.RebroadcastTransactionResponse.new,
+  );
+
+  /// BroadcastTransaction submits a signed transaction to the sidechain node.
+  static const broadcastTransaction = connect.Spec(
+    '/$name/BroadcastTransaction',
+    connect.StreamType.unary,
+    explorerv1explorer.BroadcastTransactionRequest.new,
+    explorerv1explorer.BroadcastTransactionResponse.new,
+  );
+
   /// GetAddress reads what an address holds and what it did. It needs an index,
   /// because no sidechain node keeps an address history.
   static const getAddress = connect.Spec(

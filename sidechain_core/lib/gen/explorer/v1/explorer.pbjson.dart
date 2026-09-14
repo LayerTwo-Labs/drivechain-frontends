@@ -203,6 +203,89 @@ const GetOverviewRequest$json = {
 final $typed_data.Uint8List getOverviewRequestDescriptor = $convert.base64Decode(
     'ChJHZXRPdmVydmlld1JlcXVlc3QSFAoFY2hhaW4YASABKAlSBWNoYWlu');
 
+@$core.Deprecated('Use getSignedTransactionRequestDescriptor instead')
+const GetSignedTransactionRequest$json = {
+  '1': 'GetSignedTransactionRequest',
+  '2': [
+    {'1': 'chain', '3': 1, '4': 1, '5': 9, '10': 'chain'},
+    {'1': 'txid', '3': 2, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `GetSignedTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSignedTransactionRequestDescriptor = $convert.base64Decode(
+    'ChtHZXRTaWduZWRUcmFuc2FjdGlvblJlcXVlc3QSFAoFY2hhaW4YASABKAlSBWNoYWluEhIKBH'
+    'R4aWQYAiABKAlSBHR4aWQ=');
+
+@$core.Deprecated('Use getSignedTransactionResponseDescriptor instead')
+const GetSignedTransactionResponse$json = {
+  '1': 'GetSignedTransactionResponse',
+  '2': [
+    {'1': 'signed_transaction', '3': 1, '4': 1, '5': 9, '10': 'signedTransaction'},
+  ],
+};
+
+/// Descriptor for `GetSignedTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSignedTransactionResponseDescriptor = $convert.base64Decode(
+    'ChxHZXRTaWduZWRUcmFuc2FjdGlvblJlc3BvbnNlEi0KEnNpZ25lZF90cmFuc2FjdGlvbhgBIA'
+    'EoCVIRc2lnbmVkVHJhbnNhY3Rpb24=');
+
+@$core.Deprecated('Use rebroadcastTransactionRequestDescriptor instead')
+const RebroadcastTransactionRequest$json = {
+  '1': 'RebroadcastTransactionRequest',
+  '2': [
+    {'1': 'chain', '3': 1, '4': 1, '5': 9, '10': 'chain'},
+    {'1': 'txid', '3': 2, '4': 1, '5': 9, '10': 'txid'},
+  ],
+};
+
+/// Descriptor for `RebroadcastTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rebroadcastTransactionRequestDescriptor = $convert.base64Decode(
+    'Ch1SZWJyb2FkY2FzdFRyYW5zYWN0aW9uUmVxdWVzdBIUCgVjaGFpbhgBIAEoCVIFY2hhaW4SEg'
+    'oEdHhpZBgCIAEoCVIEdHhpZA==');
+
+@$core.Deprecated('Use rebroadcastTransactionResponseDescriptor instead')
+const RebroadcastTransactionResponse$json = {
+  '1': 'RebroadcastTransactionResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'peer_count', '3': 2, '4': 1, '5': 13, '10': 'peerCount'},
+  ],
+};
+
+/// Descriptor for `RebroadcastTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rebroadcastTransactionResponseDescriptor = $convert.base64Decode(
+    'Ch5SZWJyb2FkY2FzdFRyYW5zYWN0aW9uUmVzcG9uc2USEgoEdHhpZBgBIAEoCVIEdHhpZBIdCg'
+    'pwZWVyX2NvdW50GAIgASgNUglwZWVyQ291bnQ=');
+
+@$core.Deprecated('Use broadcastTransactionRequestDescriptor instead')
+const BroadcastTransactionRequest$json = {
+  '1': 'BroadcastTransactionRequest',
+  '2': [
+    {'1': 'chain', '3': 1, '4': 1, '5': 9, '10': 'chain'},
+    {'1': 'signed_transaction', '3': 2, '4': 1, '5': 9, '10': 'signedTransaction'},
+  ],
+};
+
+/// Descriptor for `BroadcastTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List broadcastTransactionRequestDescriptor = $convert.base64Decode(
+    'ChtCcm9hZGNhc3RUcmFuc2FjdGlvblJlcXVlc3QSFAoFY2hhaW4YASABKAlSBWNoYWluEi0KEn'
+    'NpZ25lZF90cmFuc2FjdGlvbhgCIAEoCVIRc2lnbmVkVHJhbnNhY3Rpb24=');
+
+@$core.Deprecated('Use broadcastTransactionResponseDescriptor instead')
+const BroadcastTransactionResponse$json = {
+  '1': 'BroadcastTransactionResponse',
+  '2': [
+    {'1': 'txid', '3': 1, '4': 1, '5': 9, '10': 'txid'},
+    {'1': 'peer_count', '3': 2, '4': 1, '5': 13, '10': 'peerCount'},
+  ],
+};
+
+/// Descriptor for `BroadcastTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List broadcastTransactionResponseDescriptor = $convert.base64Decode(
+    'ChxCcm9hZGNhc3RUcmFuc2FjdGlvblJlc3BvbnNlEhIKBHR4aWQYASABKAlSBHR4aWQSHQoKcG'
+    'Vlcl9jb3VudBgCIAEoDVIJcGVlckNvdW50');
+
 @$core.Deprecated('Use getOverviewResponseDescriptor instead')
 const GetOverviewResponse$json = {
   '1': 'GetOverviewResponse',
@@ -426,6 +509,9 @@ const $core.Map<$core.String, $core.dynamic> ExplorerServiceBase$json = {
     {'1': 'GetBlock', '2': '.explorer.v1.GetBlockRequest', '3': '.explorer.v1.GetBlockResponse'},
     {'1': 'ListBlocks', '2': '.explorer.v1.ListBlocksRequest', '3': '.explorer.v1.ListBlocksResponse'},
     {'1': 'GetTransaction', '2': '.explorer.v1.GetTransactionRequest', '3': '.explorer.v1.GetTransactionResponse'},
+    {'1': 'GetSignedTransaction', '2': '.explorer.v1.GetSignedTransactionRequest', '3': '.explorer.v1.GetSignedTransactionResponse'},
+    {'1': 'RebroadcastTransaction', '2': '.explorer.v1.RebroadcastTransactionRequest', '3': '.explorer.v1.RebroadcastTransactionResponse'},
+    {'1': 'BroadcastTransaction', '2': '.explorer.v1.BroadcastTransactionRequest', '3': '.explorer.v1.BroadcastTransactionResponse'},
     {'1': 'GetAddress', '2': '.explorer.v1.GetAddressRequest', '3': '.explorer.v1.GetAddressResponse'},
     {'1': 'GetWithdrawals', '2': '.explorer.v1.GetWithdrawalsRequest', '3': '.explorer.v1.GetWithdrawalsResponse'},
   ],
@@ -450,6 +536,12 @@ const $core.Map<$core.String, $core.Map<$core.String, $core.dynamic>> ExplorerSe
   '.explorer.v1.GetTransactionResponse': GetTransactionResponse$json,
   '.explorer.v1.Transaction': Transaction$json,
   '.explorer.v1.Coin': Coin$json,
+  '.explorer.v1.GetSignedTransactionRequest': GetSignedTransactionRequest$json,
+  '.explorer.v1.GetSignedTransactionResponse': GetSignedTransactionResponse$json,
+  '.explorer.v1.RebroadcastTransactionRequest': RebroadcastTransactionRequest$json,
+  '.explorer.v1.RebroadcastTransactionResponse': RebroadcastTransactionResponse$json,
+  '.explorer.v1.BroadcastTransactionRequest': BroadcastTransactionRequest$json,
+  '.explorer.v1.BroadcastTransactionResponse': BroadcastTransactionResponse$json,
   '.explorer.v1.GetAddressRequest': GetAddressRequest$json,
   '.explorer.v1.GetAddressResponse': GetAddressResponse$json,
   '.explorer.v1.GetWithdrawalsRequest': GetWithdrawalsRequest$json,
@@ -464,6 +556,12 @@ final $typed_data.Uint8List explorerServiceDescriptor = $convert.base64Decode(
     'Nwb25zZRJNCgpMaXN0QmxvY2tzEh4uZXhwbG9yZXIudjEuTGlzdEJsb2Nrc1JlcXVlc3QaHy5l'
     'eHBsb3Jlci52MS5MaXN0QmxvY2tzUmVzcG9uc2USWQoOR2V0VHJhbnNhY3Rpb24SIi5leHBsb3'
     'Jlci52MS5HZXRUcmFuc2FjdGlvblJlcXVlc3QaIy5leHBsb3Jlci52MS5HZXRUcmFuc2FjdGlv'
+    'blJlc3BvbnNlEmsKFEdldFNpZ25lZFRyYW5zYWN0aW9uEiguZXhwbG9yZXIudjEuR2V0U2lnbm'
+    'VkVHJhbnNhY3Rpb25SZXF1ZXN0GikuZXhwbG9yZXIudjEuR2V0U2lnbmVkVHJhbnNhY3Rpb25S'
+    'ZXNwb25zZRJxChZSZWJyb2FkY2FzdFRyYW5zYWN0aW9uEiouZXhwbG9yZXIudjEuUmVicm9hZG'
+    'Nhc3RUcmFuc2FjdGlvblJlcXVlc3QaKy5leHBsb3Jlci52MS5SZWJyb2FkY2FzdFRyYW5zYWN0'
+    'aW9uUmVzcG9uc2USawoUQnJvYWRjYXN0VHJhbnNhY3Rpb24SKC5leHBsb3Jlci52MS5Ccm9hZG'
+    'Nhc3RUcmFuc2FjdGlvblJlcXVlc3QaKS5leHBsb3Jlci52MS5Ccm9hZGNhc3RUcmFuc2FjdGlv'
     'blJlc3BvbnNlEk0KCkdldEFkZHJlc3MSHi5leHBsb3Jlci52MS5HZXRBZGRyZXNzUmVxdWVzdB'
     'ofLmV4cGxvcmVyLnYxLkdldEFkZHJlc3NSZXNwb25zZRJZCg5HZXRXaXRoZHJhd2FscxIiLmV4'
     'cGxvcmVyLnYxLkdldFdpdGhkcmF3YWxzUmVxdWVzdBojLmV4cGxvcmVyLnYxLkdldFdpdGhkcm'
