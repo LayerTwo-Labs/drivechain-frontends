@@ -23,6 +23,15 @@ service ExplorerService {
   // GetTransaction reads one transaction, with the coins on both sides.
   rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
 
+  // GetSignedTransaction exports a transaction with its stored signatures.
+  rpc GetSignedTransaction(GetSignedTransactionRequest) returns (GetSignedTransactionResponse);
+
+  // RebroadcastTransaction sends a pending transaction to connected peers.
+  rpc RebroadcastTransaction(RebroadcastTransactionRequest) returns (RebroadcastTransactionResponse);
+
+  // BroadcastTransaction submits a signed transaction to the sidechain node.
+  rpc BroadcastTransaction(BroadcastTransactionRequest) returns (BroadcastTransactionResponse);
+
   // GetAddress reads what an address holds and what it did. It needs an index,
   // because no sidechain node keeps an address history.
   rpc GetAddress(GetAddressRequest) returns (GetAddressResponse);
@@ -153,6 +162,37 @@ message Mempool {
 message GetOverviewRequest {
   // chain is the sidechain name, as the chain registry writes it.
   string chain = 1;
+}
+
+message GetSignedTransactionRequest {
+  string chain = 1;
+  string txid = 2;
+}
+
+message GetSignedTransactionResponse {
+  string signed_transaction = 1;
+}
+
+message RebroadcastTransactionRequest {
+  string chain = 1;
+  string txid = 2;
+}
+
+message RebroadcastTransactionResponse {
+  string txid = 1;
+  // peer_count counts connected peer queues that accepted the relay request.
+  uint32 peer_count = 2;
+}
+
+message BroadcastTransactionRequest {
+  string chain = 1;
+  string signed_transaction = 2;
+}
+
+message BroadcastTransactionResponse {
+  string txid = 1;
+  // peer_count counts connected peer queues that accepted the relay request.
+  uint32 peer_count = 2;
 }
 
 message GetOverviewResponse {

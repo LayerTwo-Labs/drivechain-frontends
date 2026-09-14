@@ -1129,6 +1129,378 @@ class GetOverviewRequest extends $pb.GeneratedMessage {
   void clearChain() => clearField(1);
 }
 
+class GetSignedTransactionRequest extends $pb.GeneratedMessage {
+  factory GetSignedTransactionRequest({
+    $core.String? chain,
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (chain != null) {
+      $result.chain = chain;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  GetSignedTransactionRequest._() : super();
+  factory GetSignedTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSignedTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSignedTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chain')
+    ..aOS(2, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSignedTransactionRequest clone() => GetSignedTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSignedTransactionRequest copyWith(void Function(GetSignedTransactionRequest) updates) => super.copyWith((message) => updates(message as GetSignedTransactionRequest)) as GetSignedTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSignedTransactionRequest create() => GetSignedTransactionRequest._();
+  GetSignedTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<GetSignedTransactionRequest> createRepeated() => $pb.PbList<GetSignedTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetSignedTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSignedTransactionRequest>(create);
+  static GetSignedTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get chain => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set chain($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasChain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChain() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get txid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxid() => clearField(2);
+}
+
+class GetSignedTransactionResponse extends $pb.GeneratedMessage {
+  factory GetSignedTransactionResponse({
+    $core.String? signedTransaction,
+  }) {
+    final $result = create();
+    if (signedTransaction != null) {
+      $result.signedTransaction = signedTransaction;
+    }
+    return $result;
+  }
+  GetSignedTransactionResponse._() : super();
+  factory GetSignedTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetSignedTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetSignedTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'signedTransaction')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetSignedTransactionResponse clone() => GetSignedTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetSignedTransactionResponse copyWith(void Function(GetSignedTransactionResponse) updates) => super.copyWith((message) => updates(message as GetSignedTransactionResponse)) as GetSignedTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSignedTransactionResponse create() => GetSignedTransactionResponse._();
+  GetSignedTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<GetSignedTransactionResponse> createRepeated() => $pb.PbList<GetSignedTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetSignedTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetSignedTransactionResponse>(create);
+  static GetSignedTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get signedTransaction => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set signedTransaction($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSignedTransaction() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSignedTransaction() => clearField(1);
+}
+
+class RebroadcastTransactionRequest extends $pb.GeneratedMessage {
+  factory RebroadcastTransactionRequest({
+    $core.String? chain,
+    $core.String? txid,
+  }) {
+    final $result = create();
+    if (chain != null) {
+      $result.chain = chain;
+    }
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    return $result;
+  }
+  RebroadcastTransactionRequest._() : super();
+  factory RebroadcastTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RebroadcastTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RebroadcastTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chain')
+    ..aOS(2, _omitFieldNames ? '' : 'txid')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RebroadcastTransactionRequest clone() => RebroadcastTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RebroadcastTransactionRequest copyWith(void Function(RebroadcastTransactionRequest) updates) => super.copyWith((message) => updates(message as RebroadcastTransactionRequest)) as RebroadcastTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RebroadcastTransactionRequest create() => RebroadcastTransactionRequest._();
+  RebroadcastTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<RebroadcastTransactionRequest> createRepeated() => $pb.PbList<RebroadcastTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static RebroadcastTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RebroadcastTransactionRequest>(create);
+  static RebroadcastTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get chain => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set chain($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasChain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChain() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get txid => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set txid($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTxid() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTxid() => clearField(2);
+}
+
+class RebroadcastTransactionResponse extends $pb.GeneratedMessage {
+  factory RebroadcastTransactionResponse({
+    $core.String? txid,
+    $core.int? peerCount,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (peerCount != null) {
+      $result.peerCount = peerCount;
+    }
+    return $result;
+  }
+  RebroadcastTransactionResponse._() : super();
+  factory RebroadcastTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory RebroadcastTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RebroadcastTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'peerCount', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  RebroadcastTransactionResponse clone() => RebroadcastTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  RebroadcastTransactionResponse copyWith(void Function(RebroadcastTransactionResponse) updates) => super.copyWith((message) => updates(message as RebroadcastTransactionResponse)) as RebroadcastTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RebroadcastTransactionResponse create() => RebroadcastTransactionResponse._();
+  RebroadcastTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<RebroadcastTransactionResponse> createRepeated() => $pb.PbList<RebroadcastTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static RebroadcastTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RebroadcastTransactionResponse>(create);
+  static RebroadcastTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  /// peer_count counts connected peer queues that accepted the relay request.
+  @$pb.TagNumber(2)
+  $core.int get peerCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set peerCount($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPeerCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPeerCount() => clearField(2);
+}
+
+class BroadcastTransactionRequest extends $pb.GeneratedMessage {
+  factory BroadcastTransactionRequest({
+    $core.String? chain,
+    $core.String? signedTransaction,
+  }) {
+    final $result = create();
+    if (chain != null) {
+      $result.chain = chain;
+    }
+    if (signedTransaction != null) {
+      $result.signedTransaction = signedTransaction;
+    }
+    return $result;
+  }
+  BroadcastTransactionRequest._() : super();
+  factory BroadcastTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BroadcastTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'chain')
+    ..aOS(2, _omitFieldNames ? '' : 'signedTransaction')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionRequest clone() => BroadcastTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionRequest copyWith(void Function(BroadcastTransactionRequest) updates) => super.copyWith((message) => updates(message as BroadcastTransactionRequest)) as BroadcastTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionRequest create() => BroadcastTransactionRequest._();
+  BroadcastTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<BroadcastTransactionRequest> createRepeated() => $pb.PbList<BroadcastTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BroadcastTransactionRequest>(create);
+  static BroadcastTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get chain => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set chain($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasChain() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChain() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get signedTransaction => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set signedTransaction($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSignedTransaction() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSignedTransaction() => clearField(2);
+}
+
+class BroadcastTransactionResponse extends $pb.GeneratedMessage {
+  factory BroadcastTransactionResponse({
+    $core.String? txid,
+    $core.int? peerCount,
+  }) {
+    final $result = create();
+    if (txid != null) {
+      $result.txid = txid;
+    }
+    if (peerCount != null) {
+      $result.peerCount = peerCount;
+    }
+    return $result;
+  }
+  BroadcastTransactionResponse._() : super();
+  factory BroadcastTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BroadcastTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BroadcastTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'explorer.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'txid')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'peerCount', $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionResponse clone() => BroadcastTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BroadcastTransactionResponse copyWith(void Function(BroadcastTransactionResponse) updates) => super.copyWith((message) => updates(message as BroadcastTransactionResponse)) as BroadcastTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionResponse create() => BroadcastTransactionResponse._();
+  BroadcastTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<BroadcastTransactionResponse> createRepeated() => $pb.PbList<BroadcastTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static BroadcastTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BroadcastTransactionResponse>(create);
+  static BroadcastTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get txid => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set txid($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTxid() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTxid() => clearField(1);
+
+  /// peer_count counts connected peer queues that accepted the relay request.
+  @$pb.TagNumber(2)
+  $core.int get peerCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set peerCount($core.int v) { $_setUnsignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPeerCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPeerCount() => clearField(2);
+}
+
 class GetOverviewResponse extends $pb.GeneratedMessage {
   factory GetOverviewResponse({
     $core.Iterable<Block>? blocks,
@@ -2218,6 +2590,15 @@ class ExplorerServiceApi {
   ;
   $async.Future<GetTransactionResponse> getTransaction($pb.ClientContext? ctx, GetTransactionRequest request) =>
     _client.invoke<GetTransactionResponse>(ctx, 'ExplorerService', 'GetTransaction', request, GetTransactionResponse())
+  ;
+  $async.Future<GetSignedTransactionResponse> getSignedTransaction($pb.ClientContext? ctx, GetSignedTransactionRequest request) =>
+    _client.invoke<GetSignedTransactionResponse>(ctx, 'ExplorerService', 'GetSignedTransaction', request, GetSignedTransactionResponse())
+  ;
+  $async.Future<RebroadcastTransactionResponse> rebroadcastTransaction($pb.ClientContext? ctx, RebroadcastTransactionRequest request) =>
+    _client.invoke<RebroadcastTransactionResponse>(ctx, 'ExplorerService', 'RebroadcastTransaction', request, RebroadcastTransactionResponse())
+  ;
+  $async.Future<BroadcastTransactionResponse> broadcastTransaction($pb.ClientContext? ctx, BroadcastTransactionRequest request) =>
+    _client.invoke<BroadcastTransactionResponse>(ctx, 'ExplorerService', 'BroadcastTransaction', request, BroadcastTransactionResponse())
   ;
   $async.Future<GetAddressResponse> getAddress($pb.ClientContext? ctx, GetAddressRequest request) =>
     _client.invoke<GetAddressResponse>(ctx, 'ExplorerService', 'GetAddress', request, GetAddressResponse())

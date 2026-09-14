@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sail_ui/pages/sidechains/explorer/transaction_broadcast.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/gen/explorer/v1/explorer.pb.dart' as pb;
 import 'package:sidechain_core/utils/explorer_url.dart';
@@ -139,7 +140,7 @@ class _ExplorerDetailState extends State<ExplorerDetail> {
         else if (result is pb.GetBlockResponse)
           _BlockView(response: result, onOpen: widget.onOpen)
         else if (result is pb.Transaction)
-          _TransactionView(transaction: result, onOpen: widget.onOpen)
+          _TransactionView(model: widget.model, transaction: result, onOpen: widget.onOpen)
         else if (result is pb.GetAddressResponse)
           _AddressView(response: result, onOpen: widget.onOpen),
       ],
@@ -274,10 +275,11 @@ class _BlindMergeMineCard extends StatelessWidget {
 }
 
 class _TransactionView extends StatelessWidget {
+  final ExplorerModel model;
   final pb.Transaction transaction;
   final void Function(ExplorerTarget) onOpen;
 
-  const _TransactionView({required this.transaction, required this.onOpen});
+  const _TransactionView({required this.model, required this.transaction, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
@@ -290,6 +292,12 @@ class _TransactionView extends StatelessWidget {
           trailing: transaction.confirmed
               ? SailBadge('Block ${transaction.blockHeight}')
               : const SailBadge('Unconfirmed', tone: SailBadgeTone.warning),
+        ),
+        ExplorerTransactionActions(
+          key: ValueKey(transaction.txid),
+          model: model,
+          transaction: transaction,
+          onOpen: onOpen,
         ),
         SailCard(
           title: 'Details',

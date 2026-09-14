@@ -87,6 +87,60 @@ extension type ExplorerServiceClient (connect.Transport _transport) {
     );
   }
 
+  /// GetSignedTransaction exports a transaction with its stored signatures.
+  Future<explorerv1explorer.GetSignedTransactionResponse> getSignedTransaction(
+    explorerv1explorer.GetSignedTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ExplorerService.getSignedTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// RebroadcastTransaction sends a pending transaction to connected peers.
+  Future<explorerv1explorer.RebroadcastTransactionResponse> rebroadcastTransaction(
+    explorerv1explorer.RebroadcastTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ExplorerService.rebroadcastTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// BroadcastTransaction submits a signed transaction to the sidechain node.
+  Future<explorerv1explorer.BroadcastTransactionResponse> broadcastTransaction(
+    explorerv1explorer.BroadcastTransactionRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.ExplorerService.broadcastTransaction,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
   /// GetAddress reads what an address holds and what it did. It needs an index,
   /// because no sidechain node keeps an address history.
   Future<explorerv1explorer.GetAddressResponse> getAddress(

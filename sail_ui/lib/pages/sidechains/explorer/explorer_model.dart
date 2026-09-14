@@ -147,6 +147,18 @@ class ExplorerModel extends BaseViewModel {
     return _orchestrator.explorer.getTransaction(chain, txid);
   }
 
+  Future<String> signedTransaction(String txid) {
+    return _orchestrator.explorer.getSignedTransaction(chain, txid);
+  }
+
+  Future<pb.RebroadcastTransactionResponse> rebroadcastTransaction(String txid) {
+    return _orchestrator.explorer.rebroadcastTransaction(chain, txid);
+  }
+
+  Future<pb.BroadcastTransactionResponse> broadcastTransaction(String signedTransaction) {
+    return _orchestrator.explorer.broadcastTransaction(chain, signedTransaction);
+  }
+
   Future<pb.GetAddressResponse> address(String address) {
     return _orchestrator.explorer.getAddress(chain, address);
   }
