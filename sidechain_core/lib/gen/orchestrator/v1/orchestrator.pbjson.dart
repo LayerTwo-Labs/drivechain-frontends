@@ -1433,6 +1433,7 @@ const ECashMigrationStatus$json = {
     {'1': 'sync_state', '3': 17, '4': 1, '5': 9, '10': 'syncState'},
     {'1': 'pruned', '3': 18, '4': 1, '5': 8, '10': 'pruned'},
     {'1': 'prune_height', '3': 19, '4': 1, '5': 3, '10': 'pruneHeight'},
+    {'1': 'wallet_only', '3': 20, '4': 1, '5': 8, '10': 'walletOnly'},
   ],
 };
 
@@ -1448,7 +1449,8 @@ final $typed_data.Uint8List eCashMigrationStatusDescriptor = $convert.base64Deco
     'RzX3RvdGFsGA0gASgEUgxyZWNvcmRzVG90YWwSGAoHcnVubmluZxgOIAEoCFIHcnVubmluZxIa'
     'Cghjb21wbGV0ZRgPIAEoCFIIY29tcGxldGUSFAoFZXJyb3IYECABKAlSBWVycm9yEh0KCnN5bm'
     'Nfc3RhdGUYESABKAlSCXN5bmNTdGF0ZRIWCgZwcnVuZWQYEiABKAhSBnBydW5lZBIhCgxwcnVu'
-    'ZV9oZWlnaHQYEyABKANSC3BydW5lSGVpZ2h0');
+    'ZV9oZWlnaHQYEyABKANSC3BydW5lSGVpZ2h0Eh8KC3dhbGxldF9vbmx5GBQgASgIUgp3YWxsZX'
+    'RPbmx5');
 
 const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
   '1': 'OrchestratorService',

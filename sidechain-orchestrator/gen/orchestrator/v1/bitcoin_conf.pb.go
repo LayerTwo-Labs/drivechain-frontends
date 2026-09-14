@@ -491,7 +491,11 @@ type PlanECashSwitchResponse struct {
 	NeedsRollback bool   `protobuf:"varint,4,opt,name=needs_rollback,json=needsRollback,proto3" json:"needs_rollback,omitempty"`
 	// True when the switch cannot run: neither network publishes the fork height
 	// that says where the chains part, so no rewind reaches shared history.
-	Blocked       bool `protobuf:"varint,5,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	Blocked bool `protobuf:"varint,5,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	// True when the ECX data directory has chain files.
+	HasChainData bool `protobuf:"varint,6,opt,name=has_chain_data,json=hasChainData,proto3" json:"has_chain_data,omitempty"`
+	// The retained ECX chain ID. Empty when no chain files exist.
+	ChainId       string `protobuf:"bytes,7,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -559,6 +563,20 @@ func (x *PlanECashSwitchResponse) GetBlocked() bool {
 		return x.Blocked
 	}
 	return false
+}
+
+func (x *PlanECashSwitchResponse) GetHasChainData() bool {
+	if x != nil {
+		return x.HasChainData
+	}
+	return false
+}
+
+func (x *PlanECashSwitchResponse) GetChainId() string {
+	if x != nil {
+		return x.ChainId
+	}
+	return ""
 }
 
 type TakeNewNetworksRequest struct {
@@ -1120,13 +1138,15 @@ const file_orchestrator_v1_bitcoin_conf_proto_rawDesc = "" +
 	"\bnetworks\x18\x01 \x03(\v2\x1e.orchestrator.v1.NetworkOptionR\bnetworks\"7\n" +
 	"\x16PlanECashSwitchRequest\x12\x1d\n" +
 	"\n" +
-	"network_id\x18\x01 \x01(\tR\tnetworkId\"\xad\x01\n" +
+	"network_id\x18\x01 \x01(\tR\tnetworkId\"\xee\x01\n" +
 	"\x17PlanECashSwitchResponse\x12\x17\n" +
 	"\afrom_id\x18\x01 \x01(\tR\x06fromId\x12\x13\n" +
 	"\x05to_id\x18\x02 \x01(\tR\x04toId\x12#\n" +
 	"\rrewind_height\x18\x03 \x01(\rR\frewindHeight\x12%\n" +
 	"\x0eneeds_rollback\x18\x04 \x01(\bR\rneedsRollback\x12\x18\n" +
-	"\ablocked\x18\x05 \x01(\bR\ablocked\"\x18\n" +
+	"\ablocked\x18\x05 \x01(\bR\ablocked\x12$\n" +
+	"\x0ehas_chain_data\x18\x06 \x01(\bR\fhasChainData\x12\x19\n" +
+	"\bchain_id\x18\a \x01(\tR\achainId\"\x18\n" +
 	"\x16TakeNewNetworksRequest\"U\n" +
 	"\x17TakeNewNetworksResponse\x12:\n" +
 	"\bnetworks\x18\x01 \x03(\v2\x1e.orchestrator.v1.NetworkOptionR\bnetworks\"\x9b\x01\n" +

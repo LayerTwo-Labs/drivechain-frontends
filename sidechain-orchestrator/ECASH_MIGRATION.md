@@ -21,6 +21,23 @@ The daemon owns the data files, so the CLI can run on another host.
 Core must run on the daemon host.
 No GUI or Flutter process is necessary.
 
+## BitWindow
+
+Open **Settings → Network → ECX migration** to preview an upgrade or resume a saved job.
+The upgrade banner and ECX network selector open the same dialog.
+If another network is active, open the source network from the dialog first.
+The app then reads the migration preview.
+The preview shows the rollback block, data directory, and retained file counts.
+For wallets without chain files, the preview shows that target sync starts from the first block.
+Select **Start migration** after you review the preview.
+The dialog shows each phase and the record count during conversion.
+Close the dialog at any time after the job starts. The daemon continues the job.
+Wait until the job stops before you edit the Core configuration or data directory.
+Select **Resume migration** after you resolve a reported error.
+Select **Open betanet** after the local checks pass.
+The target chain sync continues after this step.
+Light mode and empty data directories use the normal network switch.
+
 ## Catalog
 
 Keep both network entries in `/config`.
@@ -57,7 +74,13 @@ The converter uses each record length to skip its payload.
 It applies the existing XOR key at each file offset.
 It keeps record sizes, payloads, checksums, and file positions unchanged.
 Wallet conversion keeps all wallet rows and checks their hashes.
-Legacy BDB wallets stop the migration with an error.
+Convert legacy BDB wallets to SQLite through source Core's `migratewallet` RPC before the ECX migration.
+The preview refuses BDB wallets before the daemon saves a job.
+
+Directories with only SQLite wallets use wallet conversion without rollback.
+Source Core reads registered paths for local and external wallets before conversion.
+A source node at block 0 can use the same path; the converter also keeps its genesis block.
+A partially synced source above block 0 must reach the common height before migration.
 
 The daemon preserves old sidechain and enforcer state in adjacent archive directories.
 Start compatible betanet services after the migration.

@@ -202,10 +202,14 @@ func writeECashMigrationStatus(out io.Writer, status *pb.ECashMigrationStatus, a
 		_, err := fmt.Fprintln(out, "No ECX migration record.")
 		return err
 	}
+	chain := fmt.Sprintf("Common block: %d %s\n", status.CommonHeight, status.CommonHash)
+	if status.WalletOnly {
+		chain = "Wallet conversion: target sync starts from the first block.\n"
+	}
 	_, err := fmt.Fprintf(out,
-		"Source: %s (%s)\nTarget: %s (%s)\nDaemon data directory: %s\nCommon block: %d %s\nFiles: %d block, %d undo\nPruned: %t; prune height: %d\n",
+		"Source: %s (%s)\nTarget: %s (%s)\nDaemon data directory: %s\n%sFiles: %d block, %d undo\nPruned: %t; prune height: %d\n",
 		status.FromId, status.SourceMagic, status.ToId, status.TargetMagic, status.DataDir,
-		status.CommonHeight, status.CommonHash, status.BlockFiles, status.UndoFiles, status.Pruned, status.PruneHeight)
+		chain, status.BlockFiles, status.UndoFiles, status.Pruned, status.PruneHeight)
 	if err != nil {
 		return err
 	}

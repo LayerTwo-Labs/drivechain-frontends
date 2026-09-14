@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -44,7 +45,8 @@ func TestRestartDaemon_EnforcerLeavesBitcoindMonitorUntouched(t *testing.T) {
 	// makes the old buggy path's process.Start("bitcoind", ...) return
 	// "bitcoind is already running".
 	bitcoindCfg, _ := o.getConfig("bitcoind")
-	o.process.AdoptProcess(bitcoindCfg, 1234)
+	o.process.AdoptProcess(bitcoindCfg, os.Getpid())
+	t.Cleanup(func() { o.process.Remove("bitcoind") })
 
 	// Materialise the bitcoind monitor with the same checker the production
 	// code would use. We deliberately do NOT call testConnection — the
@@ -179,7 +181,8 @@ func TestRestartDaemon_BitcoindLeavesEnforcerMonitorUntouched(t *testing.T) {
 	o := newTestOrchestrator(t)
 
 	enforcerCfg, _ := o.getConfig("enforcer")
-	o.process.AdoptProcess(enforcerCfg, 5678)
+	o.process.AdoptProcess(enforcerCfg, os.Getpid())
+	t.Cleanup(func() { o.process.Remove("enforcer") })
 
 	enforcerChecker := &mockChecker{}
 	enforcerMon := o.getOrCreateMonitor("enforcer", enforcerChecker, enforcerStartupPatterns)

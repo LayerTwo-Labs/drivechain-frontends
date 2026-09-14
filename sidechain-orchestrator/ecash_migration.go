@@ -46,6 +46,7 @@ type ECashMigrationStatus struct {
 	Running      bool   `json:"running"`
 	Complete     bool   `json:"complete"`
 	Pruned       bool   `json:"pruned"`
+	WalletOnly   bool   `json:"wallet_only"`
 }
 
 type ecashMigration struct {
@@ -154,6 +155,32 @@ func (o *Orchestrator) ECashMigrationStatus() (ECashMigrationStatus, error) {
 	return status, nil
 }
 
+// EditBitcoinConfig applies an edit when no ECX migration is active.
+func (o *Orchestrator) EditBitcoinConfig(edit func() error) error {
+	o.migrationMu.Lock()
+	defer o.migrationMu.Unlock()
+	if o.migrationBusy {
+		return fmt.Errorf("ECX migration is active; wait before a configuration change")
+	}
+	return edit()
+}
+
+func (o *Orchestrator) migrationCoreConfig(cfg BinaryConfig) (BinaryConfig, error) {
+	o.migrationMu.Lock()
+	defer o.migrationMu.Unlock()
+	state, err := o.readMigration()
+	if err != nil {
+		return BinaryConfig{}, err
+	}
+	if state != nil && !state.Status.Complete {
+		if state.Step < 4 {
+			return state.FromConfig, nil
+		}
+		return state.ToConfig, nil
+	}
+	return expandECashPlaceholder(cfg, o.RunningECashID(netcatalog.Embedded())), nil
+}
+
 func (o *Orchestrator) checkECashMigrationStart(ctx context.Context, cfg BinaryConfig) error {
 	if ctx.Value(ecashMigrationKey{}) == o {
 		return nil
@@ -168,13 +195,16 @@ func (o *Orchestrator) checkECashMigrationStart(ctx context.Context, cfg BinaryC
 	if status.JobID != "" && !status.Complete {
 		return fmt.Errorf("resume ECX migration %s before a node start", status.JobID)
 	}
+	if o.NodeMode() == NodeModeLight && !cfg.IsMainchainCore() {
+		return nil
+	}
 	if o.Settings != nil && o.CurrentNetwork() == string(config.NetworkECash) {
 		fromID := o.Settings.ECashChainID()
 		o.mu.RLock()
 		toID := o.ecashID
 		o.mu.RUnlock()
 		if fromID != "" && fromID != toID {
-			files, err := o.hasECashChainFiles()
+			files, err := o.hasECashData()
 			if err != nil {
 				return err
 			}
@@ -273,6 +303,17 @@ func (o *Orchestrator) newMigration(fromID, toID string) (*ecashMigration, error
 		RootDir: root, BlocksDir: filepath.Join(blocksDir, "blocks"), FromEntry: from, ToEntry: to,
 		FromConfig: expandECashPlaceholder(raw, fromID), ToConfig: expandECashPlaceholder(raw, toID),
 	}
+	chainFiles, err := o.hasECashChainFiles()
+	if err != nil {
+		return nil, err
+	}
+	paths, err := o.ecashWalletFiles()
+	if err != nil {
+		return nil, err
+	}
+	if !chainFiles && len(paths) > 0 {
+		o.setWalletOnlyMigration(state, paths)
+	}
 	return state, nil
 }
 
@@ -322,7 +363,10 @@ func (o *Orchestrator) PreviewECashMigration(ctx context.Context, fromID, toID s
 		if err != nil {
 			return state.Status, err
 		}
-		if err := checkMigrationChain(ctx, client, state, false); err != nil {
+		if err := o.checkWalletOnlySource(ctx, client, state); err != nil {
+			return state.Status, err
+		}
+		if err := checkMigrationChain(ctx, client, state, state.Status.WalletOnly); err != nil {
 			return state.Status, err
 		}
 	}
@@ -364,6 +408,16 @@ func (o *Orchestrator) StartECashMigration(ctx context.Context, fromID, toID str
 			return ECashMigrationStatus{}, err
 		}
 		state = *fresh
+		if o.coreRPCReachable() {
+			client, err := o.CoreStatusClient()
+			if err == nil {
+				err = o.checkWalletOnlySource(ctx, client, &state)
+			}
+			if err != nil {
+				o.migrationMu.Unlock()
+				return ECashMigrationStatus{}, err
+			}
+		}
 		state.Status.JobID = rand.Text()
 		state.Status.Phase = "prepare"
 	}
@@ -407,10 +461,33 @@ func (o *Orchestrator) runECashMigration(state ecashMigration) {
 		state.Status.Error = errors.Join(err, saveErr).Error()
 		state.Status.Complete = false
 	}
+	if state.Status.Complete {
+		o.restoreMigrationCoreMonitor()
+	}
 	o.migrationMu.Lock()
 	o.migrationState = &state
 	o.migrationBusy = false
 	o.migrationMu.Unlock()
+}
+
+func (o *Orchestrator) restoreMigrationCoreMonitor() {
+	o.mu.RLock()
+	cfg := o.configs["bitcoind"]
+	o.mu.RUnlock()
+	if cfg.Port == 0 {
+		cfg.Port = o.BitcoinConf.GetRPCPort()
+	}
+	checker := NewHealthChecker(cfg, HealthCheckOpts{Credentials: o.BitcoinConf.GetRPCCredentials})
+	monitor := o.getOrCreateMonitor("bitcoind", checker, bitcoindStartupPatterns)
+	ctx := context.Background()
+	monitor.StartConnectionTimer(ctx)
+	// Migration completion proves RPC startup before presync ends.
+	monitor.mu.Lock()
+	monitor.completedStartup = true
+	monitor.mu.Unlock()
+	var opts StartOpts
+	o.prepareCoreArgs(&opts)
+	o.startCoreRestartTimer(ctx, monitor, opts.CoreArgs)
 }
 
 func (o *Orchestrator) runMigrationSteps(ctx context.Context, state *ecashMigration) error {
@@ -535,7 +612,25 @@ func (o *Orchestrator) prepareMigration(ctx context.Context, state *ecashMigrati
 }
 
 func (o *Orchestrator) stopMigrationNodes(ctx context.Context) error {
-	for _, cfg := range o.Configs() {
+	configs := o.Configs()
+	for _, cfg := range configs {
+		if cfg.ChainLayer != 2 && cfg.Name != "bitcoind" && cfg.Name != "enforcer" {
+			continue
+		}
+		names := []string{cfg.Name}
+		if cfg.ChainLayer == 2 {
+			names = append(names, sidechainGUIProcessName(cfg.Name))
+		}
+		for _, name := range names {
+			if o.process.IsAdopted(name) && !o.mayStopAdopted(name) {
+				return fmt.Errorf("stop external %s in its own launcher before migration", name)
+			}
+		}
+	}
+	if !o.process.IsRunning("bitcoind") && o.coreRPCReachable() {
+		return fmt.Errorf("the Core is external to this daemon; stop it before migration")
+	}
+	for _, cfg := range configs {
 		if cfg.ChainLayer == 2 {
 			if err := o.Stop(ctx, cfg.Name, false); err != nil {
 				return err
@@ -550,9 +645,6 @@ func (o *Orchestrator) stopMigrationNodes(ctx context.Context) error {
 	if err := o.closeRemoteEnforcer(); err != nil {
 		return err
 	}
-	if !o.process.IsRunning("bitcoind") && o.coreRPCReachable() {
-		return fmt.Errorf("the Core is external to this daemon; stop it before migration")
-	}
 	return o.stopMigrationCore(ctx)
 }
 
@@ -560,6 +652,9 @@ func (o *Orchestrator) stopMigrationCore(ctx context.Context) error {
 	proc := o.process.Get("bitcoind")
 	if proc == nil {
 		return nil
+	}
+	if proc.Adopted && !o.mayStopAdopted("bitcoind") {
+		return fmt.Errorf("the Core is external to this daemon; stop it before migration")
 	}
 	client, err := o.CoreStatusClient()
 	if err != nil {
@@ -710,7 +805,8 @@ func moveMigrationFile(source, target string) error {
 }
 
 func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigration) error {
-	if o.process.IsRunning("bitcoind") {
+	sourceActive := o.process.IsRunning("bitcoind")
+	if sourceActive {
 		client, err := o.CoreStatusClient()
 		if err != nil {
 			return err
@@ -718,9 +814,17 @@ func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigratio
 		if err := o.saveMigrationWallets(ctx, client, state); err != nil {
 			return err
 		}
+		if state.Status.WalletOnly {
+			if err := checkMigrationChain(ctx, client, state, true); err != nil {
+				return err
+			}
+		}
 	}
 	if err := o.stopMigrationNodes(ctx); err != nil {
 		return err
+	}
+	if state.Status.WalletOnly && sourceActive {
+		return nil
 	}
 	for _, name := range []string{"peers.dat", "anchors.dat", "mempool.dat"} {
 		if err := moveMigrationFile(filepath.Join(state.Status.DataDir, name), filepath.Join(o.migrationBackup(state), "source-"+name)); err != nil {
@@ -729,6 +833,9 @@ func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigratio
 	}
 	client, err := o.startMigrationCore(ctx, state, false)
 	if err != nil {
+		return err
+	}
+	if err := o.checkWalletOnlySource(ctx, client, state); err != nil {
 		return err
 	}
 	if err := checkMigrationChain(ctx, client, state, false); err != nil {
@@ -789,6 +896,11 @@ func (o *Orchestrator) saveMigrationWallets(ctx context.Context, client *CoreSta
 			return err
 		}
 		state.WalletPaths = mergeMigrationWallets(state.WalletPaths, paths)
+		if state.Status.WalletOnly {
+			if err := o.normalizeWalletOnlyPaths(state); err != nil {
+				return err
+			}
+		}
 	}
 	return o.saveMigration(state)
 }
@@ -824,20 +936,27 @@ func (o *Orchestrator) convertMigration(ctx context.Context, state *ecashMigrati
 	if _, err := corewalletfile.Preview(ctx, wallets); err != nil {
 		return err
 	}
-	lastSave := time.Time{}
-	report, err := blockfile.Convert(ctx, blockfile.Options{DataDir: state.Status.DataDir, BlocksDir: state.BlocksDir,
-		JournalPath: filepath.Join(o.migrationBackup(state), "blocks.json"), From: from, To: to,
-		Progress: func(progress blockfile.Progress) error {
-			state.Status.RecordsDone = uint64(progress.ConvertedRecords)
-			state.Status.RecordsTotal = uint64(progress.Records)
-			if time.Since(lastSave) < time.Second {
-				return nil
-			}
-			lastSave = time.Now()
-			return o.saveMigration(state)
-		}})
+	chainFiles, err := o.hasECashChainFiles()
 	if err != nil {
 		return err
+	}
+	var report blockfile.Report
+	if !state.Status.WalletOnly || chainFiles {
+		lastSave := time.Time{}
+		report, err = blockfile.Convert(ctx, blockfile.Options{DataDir: state.Status.DataDir, BlocksDir: state.BlocksDir,
+			JournalPath: filepath.Join(o.migrationBackup(state), "blocks.json"), From: from, To: to,
+			Progress: func(progress blockfile.Progress) error {
+				state.Status.RecordsDone = uint64(progress.ConvertedRecords)
+				state.Status.RecordsTotal = uint64(progress.Records)
+				if time.Since(lastSave) < time.Second {
+					return nil
+				}
+				lastSave = time.Now()
+				return o.saveMigration(state)
+			}})
+		if err != nil {
+			return err
+		}
 	}
 	if _, err := corewalletfile.Convert(ctx, wallets); err != nil {
 		return err
@@ -925,13 +1044,33 @@ func (o *Orchestrator) checkMigration(ctx context.Context, state *ecashMigration
 		if err := migrationRPC(ctx, client, "listwallets", &loaded); err != nil {
 			return err
 		}
+		walletNames := make(map[string]string)
+		if state.Status.WalletOnly {
+			for _, name := range loaded {
+				path, err := migrationWalletPath(state, name)
+				if err != nil {
+					return err
+				}
+				walletNames[path] = name
+			}
+		}
 		for _, path := range state.WalletPaths {
-			if !slices.Contains(loaded, path) {
-				if err := migrationRPC(ctx, client, "loadwallet", nil, path); err != nil {
+			name := path
+			if state.Status.WalletOnly {
+				path, err := migrationWalletPath(state, path)
+				if err != nil {
+					return err
+				}
+				if loadedName, ok := walletNames[path]; ok {
+					name = loadedName
+				}
+			}
+			if !slices.Contains(loaded, name) {
+				if err := migrationRPC(ctx, client, "loadwallet", nil, name); err != nil {
 					return err
 				}
 			}
-			if _, err := client.callWallet(ctx, url.PathEscape(path), "getwalletinfo"); err != nil {
+			if _, err := client.callWallet(ctx, url.PathEscape(name), "getwalletinfo"); err != nil {
 				return err
 			}
 		}
@@ -948,6 +1087,9 @@ func (o *Orchestrator) hasECashChainFiles() (bool, error) {
 	}
 	root := o.ecashDatadir()
 	if root == "" {
+		if config.NetworkFromString(o.Network) != config.NetworkECash {
+			return false, nil
+		}
 		root = o.BitcoinConf.RootDataDir()
 	}
 	blocks := o.BitcoinConf.Config.GetEffectiveSetting("blocksdir", "main")
@@ -979,7 +1121,7 @@ func (o *Orchestrator) applyDiskECashSwitch(ctx context.Context, toID string) (b
 	if err != nil {
 		return true, err
 	}
-	files, err := o.hasECashChainFiles()
+	files, err := o.hasECashData()
 	if err != nil {
 		return true, err
 	}

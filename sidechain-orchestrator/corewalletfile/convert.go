@@ -64,6 +64,25 @@ type journal struct {
 
 var convertMu sync.Mutex
 
+// ErrLegacyWallet identifies a retained wallet that must use SQLite before migration.
+var ErrLegacyWallet = errors.New("convert legacy wallets to SQLite before the ECX network change")
+
+// FindWallets returns absolute SQLite wallet paths without network magic checks.
+func FindWallets(dataDir, walletDir string) ([]string, error) {
+	if dataDir != "" && walletDir == "" {
+		if _, err := os.Stat(dataDir); os.IsNotExist(err) {
+			return []string{}, nil
+		} else if err != nil {
+			return nil, err
+		}
+	}
+	opts, err := preparePaths(Options{DataDir: dataDir, WalletDir: walletDir})
+	if err != nil {
+		return nil, err
+	}
+	return discover(opts)
+}
+
 // Preview reads wallet identities without changes to the node files.
 func Preview(ctx context.Context, opts Options) (report Report, err error) {
 	if err := ctx.Err(); err != nil {
@@ -164,6 +183,10 @@ func prepare(opts Options) (Options, error) {
 	if opts.From == (blockfile.Magic{}) || opts.To == (blockfile.Magic{}) || opts.From == opts.To {
 		return opts, errors.New("source and target magic must differ and cannot equal zero")
 	}
+	return preparePaths(opts)
+}
+
+func preparePaths(opts Options) (Options, error) {
 	if opts.DataDir == "" {
 		return opts, errors.New("the Core data directory is empty")
 	}
@@ -233,7 +256,7 @@ func discover(opts Options) ([]string, error) {
 			return fmt.Errorf("read wallet %s: %w", path, err)
 		}
 		if !bytes.Equal(header[:16], []byte("SQLite format 3\x00")) {
-			return fmt.Errorf("wallet %s is not SQLite; convert legacy wallets to SQLite before the ECX network change", path)
+			return fmt.Errorf("wallet %s is not SQLite: %w", path, ErrLegacyWallet)
 		}
 		paths[path] = true
 		return nil
@@ -278,7 +301,7 @@ func discover(opts Options) ([]string, error) {
 				}
 				magic := binary.BigEndian.Uint32(header[12:16])
 				if magic == 0x00053162 || magic == 0x62310500 {
-					return fmt.Errorf("BDB wallet %s is unsupported; convert it to SQLite before the ECX network change", path)
+					return fmt.Errorf("BDB wallet %s is unsupported: %w", path, ErrLegacyWallet)
 				}
 			}
 		}

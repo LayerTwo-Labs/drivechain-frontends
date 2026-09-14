@@ -16,6 +16,10 @@ type ECashSwitchPlan struct {
 	// FromID and ToID are the eCash networks the move goes between.
 	FromID string
 	ToID   string
+	// HasChainData is true when the ECX data directory has chain or wallet files.
+	HasChainData bool
+	// ChainID identifies the retained ECX chain.
+	ChainID string
 	// RewindHeight is the height the chain ends at once the switch runs: one
 	// below the lower fork height, the last block both networks share.
 	RewindHeight uint32
@@ -48,7 +52,17 @@ func (o *Orchestrator) PlanECashSwitch(toID string) (ECashSwitchPlan, error) {
 	if to.Family != netcatalog.FamilyECash {
 		return ECashSwitchPlan{}, fmt.Errorf("%q is not an eCash network", toID)
 	}
-	plan := ECashSwitchPlan{FromID: fromID, ToID: toID}
+	hasChainData, err := o.hasECashData()
+	if err != nil {
+		return ECashSwitchPlan{}, fmt.Errorf("read ECX chain files: %w", err)
+	}
+	plan := ECashSwitchPlan{FromID: fromID, ToID: toID, HasChainData: hasChainData}
+	if hasChainData {
+		plan.ChainID, err = o.catalogChainID(fromID)
+		if err != nil {
+			return ECashSwitchPlan{}, fmt.Errorf("read ECX chain identity: %w", err)
+		}
+	}
 	if fromID == "" || fromID == toID {
 		return plan, nil
 	}
@@ -111,11 +125,9 @@ func (o *Orchestrator) RetargetECashEnforcerConf(previousID string) {
 // chain. A pick made from another network takes this path: the slot swap that
 // follows writes bitcoin.conf and starts binaries, and both read the id from
 // here, so a stale one boots the network the user just left.
-func (o *Orchestrator) AdoptECashID(id string) {
-	// Logged, not returned: the swap that follows writes the conf sentinel, and
-	// that sentinel names the network this install runs.
-	if err := o.recordECashChain(id); err != nil {
-		o.log.Warn().Err(err).Msg("could not record the eCash network this install runs")
+func (o *Orchestrator) AdoptECashID(id string) error {
+	if err := o.recordECashSwitchChain(id); err != nil {
+		return err
 	}
 
 	o.mu.Lock()
@@ -135,6 +147,15 @@ func (o *Orchestrator) AdoptECashID(id string) {
 	if o.BitcoinConf != nil {
 		o.BitcoinConf.ECashID = id
 	}
+	return nil
+}
+
+func (o *Orchestrator) recordECashSwitchChain(toID string) error {
+	id, err := o.catalogChainID(toID)
+	if err != nil {
+		return err
+	}
+	return o.recordECashChain(id)
 }
 
 // resumeECashSwitch finishes a switch that moved the chain but stopped before
@@ -148,7 +169,7 @@ func (o *Orchestrator) resumeECashSwitch(toID string) error {
 	}
 	// No tail, so the records are all an earlier run can still owe. Both skip an
 	// unchanged value, which is what an ordinary same-target request finds.
-	if err := o.recordECashChain(toID); err != nil {
+	if err := o.recordECashSwitchChain(toID); err != nil {
 		return err
 	}
 	if err := o.SelectECashNetwork(toID); err != nil {
@@ -180,10 +201,7 @@ func (o *Orchestrator) finishECashSwitch(fromID, toID string, restartL1 bool) er
 //
 // Call it with swapNetworkMu held.
 func (o *Orchestrator) recordECashSwitch(fromID, toID string) error {
-	// The blocks are on the new fork from here, and a swap to another network
-	// strips the conf sentinel that says so. A record that stays on the outgoing
-	// fork sends a later start after blocks this switch already moved.
-	if err := o.recordECashChain(toID); err != nil {
+	if err := o.recordECashSwitchChain(toID); err != nil {
 		return err
 	}
 	// Only once the chain and the conf both moved. A pick recorded ahead of a
@@ -236,14 +254,29 @@ func (o *Orchestrator) pendingECashSwap() bool {
 // confs and starts the stack again. The enforcer's validator chain is
 // per-network and small, so it goes rather than replays.
 func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error {
-	if migrated, err := o.applyDiskECashSwitch(ctx, toID); migrated || err != nil {
-		return err
+	light := o.NodeMode() == NodeModeLight
+	if light {
+		if err := o.checkECashMigrationStart(ctx, BinaryConfig{Name: "enforcer"}); err != nil {
+			return err
+		}
+	} else {
+		if migrated, err := o.applyDiskECashSwitch(ctx, toID); migrated || err != nil {
+			return err
+		}
 	}
 	// The lock comes before the plan. Two overlapping requests would otherwise
 	// both read the same outgoing id, and the second would bar the branch the
 	// first just moved to.
 	o.swapNetworkMu.Lock()
 	defer o.swapNetworkMu.Unlock()
+	if light {
+		o.mu.RLock()
+		fromID := o.ecashID
+		o.mu.RUnlock()
+		if err := o.recordECashSwitchChain(fromID); err != nil {
+			return err
+		}
+	}
 
 	// A tail an earlier switch left lands first. Its records still name the fork
 	// that switch moved from, and every path below can consume the note.
@@ -291,7 +324,7 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 	}
 
 	dropped := ""
-	if plan.NeedsRollback {
+	if plan.NeedsRollback && !light {
 		hash, err := o.rewindBelowTheFork(ctx, plan.RewindHeight)
 		switch {
 		case err == nil:
@@ -369,7 +402,7 @@ func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error 
 // keeps the record until it is gone. The enforcer keeps one validator chain per
 // network, not per fork, so a leftover serves the retired generation.
 func (o *Orchestrator) ApplyPendingEnforcerWipe() error {
-	if o.Settings == nil {
+	if o.Settings == nil || o.NodeMode() == NodeModeLight {
 		return nil
 	}
 	recorded := o.Settings.PendingEnforcerWipe()

@@ -136,6 +136,8 @@ func (h *BitcoinConfHandler) PlanECashSwitch(ctx context.Context, req *connect.R
 		RewindHeight:  plan.RewindHeight,
 		NeedsRollback: plan.NeedsRollback,
 		Blocked:       plan.Blocked,
+		HasChainData:  plan.HasChainData,
+		ChainId:       plan.ChainID,
 	}), nil
 }
 
@@ -159,7 +161,9 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 		if err := validateDirWritable(dataDir); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("directory not writable: %w", err))
 		}
-		if err := h.conf.UpdateDataDir(dataDir, network); err != nil {
+		if err := h.orch.EditBitcoinConfig(func() error {
+			return h.conf.UpdateDataDir(dataDir, network)
+		}); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err))
 		}
 	}
@@ -200,7 +204,9 @@ func (h *BitcoinConfHandler) SetBitcoinConfigNetwork(ctx context.Context, req *c
 		// the id from memory. A pick that only reached the settings file would
 		// boot the network the user just left.
 		if planErr == nil {
-			h.orch.AdoptECashID(ecashPlan.ToID)
+			if err := h.orch.AdoptECashID(ecashPlan.ToID); err != nil {
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("select ecash network: %w", err))
+			}
 			previousECashID = ecashPlan.FromID
 		}
 		// Before the swap, not after: the swap starts the L1 boot on a
@@ -220,13 +226,16 @@ func (h *BitcoinConfHandler) WriteBitcoinConfig(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("bitcoin config manager not initialized"))
 	}
 
-	if err := h.conf.WriteConfig(req.Msg.ConfigContent); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("write config: %w", err))
-	}
-
-	// Reload to pick up changes
-	if err := h.conf.LoadConfig(false); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("reload config: %w", err))
+	if err := h.orch.EditBitcoinConfig(func() error {
+		if err := h.conf.WriteConfig(req.Msg.ConfigContent); err != nil {
+			return fmt.Errorf("write config: %w", err)
+		}
+		if err := h.conf.LoadConfig(false); err != nil {
+			return fmt.Errorf("reload config: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&pb.WriteBitcoinConfigResponse{}), nil
@@ -255,7 +264,9 @@ func (h *BitcoinConfHandler) SetBitcoinConfigDataDir(ctx context.Context, req *c
 		}
 	}
 
-	if err := h.conf.UpdateDataDir(dataDir, forNetwork); err != nil {
+	if err := h.orch.EditBitcoinConfig(func() error {
+		return h.conf.UpdateDataDir(dataDir, forNetwork)
+	}); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update datadir: %w", err))
 	}
 

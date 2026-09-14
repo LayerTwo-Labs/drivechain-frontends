@@ -553,6 +553,8 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     $core.int? rewindHeight,
     $core.bool? needsRollback,
     $core.bool? blocked,
+    $core.bool? hasChainData,
+    $core.String? chainId,
   }) {
     final $result = create();
     if (fromId != null) {
@@ -570,6 +572,12 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     if (blocked != null) {
       $result.blocked = blocked;
     }
+    if (hasChainData != null) {
+      $result.hasChainData = hasChainData;
+    }
+    if (chainId != null) {
+      $result.chainId = chainId;
+    }
     return $result;
   }
   PlanECashSwitchResponse._() : super();
@@ -582,6 +590,8 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
     ..a<$core.int>(3, _omitFieldNames ? '' : 'rewindHeight', $pb.PbFieldType.OU3)
     ..aOB(4, _omitFieldNames ? '' : 'needsRollback')
     ..aOB(5, _omitFieldNames ? '' : 'blocked')
+    ..aOB(6, _omitFieldNames ? '' : 'hasChainData')
+    ..aOS(7, _omitFieldNames ? '' : 'chainId')
     ..hasRequiredFields = false
   ;
 
@@ -654,6 +664,26 @@ class PlanECashSwitchResponse extends $pb.GeneratedMessage {
   $core.bool hasBlocked() => $_has(4);
   @$pb.TagNumber(5)
   void clearBlocked() => clearField(5);
+
+  /// True when the ECX data directory has chain files.
+  @$pb.TagNumber(6)
+  $core.bool get hasChainData => $_getBF(5);
+  @$pb.TagNumber(6)
+  set hasChainData($core.bool v) { $_setBool(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasHasChainData() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearHasChainData() => clearField(6);
+
+  /// The retained ECX chain ID. Empty when no chain files exist.
+  @$pb.TagNumber(7)
+  $core.String get chainId => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set chainId($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasChainId() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearChainId() => clearField(7);
 }
 
 class TakeNewNetworksRequest extends $pb.GeneratedMessage {

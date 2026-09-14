@@ -328,6 +328,30 @@ class OrchestratorRPC {
     return _unaryClient.getPendingNetworkGeneration(GetPendingNetworkGenerationRequest());
   }
 
+  Future<PreviewECashMigrationResponse> previewECashMigration({
+    required String fromId,
+    required String toId,
+  }) {
+    return _unaryClient.previewECashMigration(
+      PreviewECashMigrationRequest(fromId: fromId, toId: toId),
+    );
+  }
+
+  Future<StartECashMigrationResponse> startECashMigration({
+    required String fromId,
+    required String toId,
+  }) {
+    return _unaryClient.startECashMigration(
+      StartECashMigrationRequest(fromId: fromId, toId: toId),
+    );
+  }
+
+  Future<GetECashMigrationStatusResponse> getECashMigrationStatus() {
+    return _unaryClient.getECashMigrationStatus(
+      GetECashMigrationStatusRequest(),
+    );
+  }
+
   /// Record the go-ahead to switch to the published eCash network. Applied
   /// on the next backend start, which the caller is responsible for.
   Future<ConfirmPendingNetworkGenerationResponse> confirmPendingNetworkGeneration() {
