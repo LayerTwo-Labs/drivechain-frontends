@@ -161,6 +161,126 @@ func TestCoreMagicMigration(t *testing.T) {
 	}
 }
 
+func TestCoreWalletOnlyMigration(t *testing.T) {
+	source := os.Getenv("BITCOIND_MIGRATION_SOURCE")
+	target := os.Getenv("BITCOIND_MIGRATION_TARGET")
+	if source == "" || target == "" {
+		t.Skip("set BITCOIND_MIGRATION_SOURCE and BITCOIND_MIGRATION_TARGET to run")
+	}
+	from, err := blockfile.ParseMagic("eca5a104")
+	require.NoError(t, err)
+	to, err := blockfile.ParseMagic("f9beb4d9")
+	require.NoError(t, err)
+	sourceDir := t.TempDir()
+	node := startMigrationCoreOnChain(t, source, sourceDir, "main", false)
+	require.Equal(t, "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f", migrationCall[string](t, node, "getblockhash", 0))
+	migrationCall[json.RawMessage](t, node, "createwallet", "cold", false, false, "", false, true, false)
+	descriptors := migrationCall[json.RawMessage](t, node, "listdescriptors", true)
+	node.stop(t)
+	paths, err := corewalletfile.FindWallets(sourceDir, "")
+	require.NoError(t, err)
+	require.Len(t, paths, 1)
+	wallet, err := os.ReadFile(paths[0])
+	require.NoError(t, err)
+	require.Equal(t, from[:], wallet[68:72])
+	for _, genesis := range []bool{false, true} {
+		t.Run(fmt.Sprintf("source_genesis_%t", genesis), func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "wallets", "cold", "wallet.dat")
+			require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+			require.NoError(t, os.WriteFile(path, wallet, 0o600))
+			var original map[string][]byte
+			var key []byte
+			if genesis {
+				node = startMigrationCoreOnChain(t, source, dir, "main", false)
+				migrationCall[json.RawMessage](t, node, "loadwallet", "cold", false)
+				require.Zero(t, migrationCall[int](t, node, "getblockcount"))
+				require.Equal(t, "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f", migrationCall[string](t, node, "getblockhash", 0))
+				migrationCheckIndexes(t, node)
+				node.stop(t)
+				original, key, _ = migrationReadFiles(t, dir, from)
+				_, err := blockfile.Convert(context.Background(), blockfile.Options{DataDir: dir, From: from, To: to})
+				require.NoError(t, err)
+				migrationCheckFiles(t, original, key, from, to)
+				migrationBackupPeers(t, dir)
+			} else {
+				require.NoDirExists(t, filepath.Join(dir, "blocks"))
+				require.NoDirExists(t, filepath.Join(dir, "chainstate"))
+			}
+			rows := migrationWalletRows(t, path)
+			opts := corewalletfile.Options{DataDir: dir, From: from, To: to}
+			report, err := corewalletfile.Convert(context.Background(), opts)
+			require.NoError(t, err)
+			require.Equal(t, 1, report.ConvertedWallets)
+			require.Equal(t, rows, migrationWalletRows(t, path))
+			_, err = corewalletfile.Convert(context.Background(), opts)
+			require.NoError(t, err)
+			node = startMigrationCoreOnChain(t, target, dir, "main", false)
+			migrationCall[json.RawMessage](t, node, "loadwallet", "cold", false)
+			info := migrationCall[struct {
+				Format      string `json:"format"`
+				PrivateKeys bool   `json:"private_keys_enabled"`
+			}](t, node, "getwalletinfo")
+			require.Equal(t, "sqlite", info.Format)
+			require.True(t, info.PrivateKeys)
+			require.JSONEq(t, string(descriptors), string(migrationCall[json.RawMessage](t, node, "listdescriptors", true)))
+			require.Zero(t, migrationCall[int](t, node, "getblockcount"))
+			require.True(t, migrationCall[bool](t, node, "verifychain", 4, 0))
+			migrationCheckIndexes(t, node)
+			node.stop(t)
+			t.Logf("unchanged target Core loaded the wallet; source genesis files: %t", genesis)
+		})
+	}
+}
+
+func TestCoreWalletOnlyKeepsAutoLoadWallet(t *testing.T) {
+	source, target := os.Getenv("BITCOIND_MIGRATION_SOURCE"), os.Getenv("BITCOIND_MIGRATION_TARGET")
+	if source == "" || target == "" {
+		t.Skip("set BITCOIND_MIGRATION_SOURCE and BITCOIND_MIGRATION_TARGET to run")
+	}
+	from, err := blockfile.ParseMagic("eca5a104")
+	require.NoError(t, err)
+	to, err := blockfile.ParseMagic("f9beb4d9")
+	require.NoError(t, err)
+	dir, external := t.TempDir(), filepath.Join(t.TempDir(), "external")
+	node := startMigrationCoreOnChain(t, source, dir, "main", false)
+	migrationCall[json.RawMessage](t, node, "createwallet", "local", false, false, "", false, true, true)
+	migrationCall[json.RawMessage](t, node, "createwallet", external, false, false, "", false, true, true)
+	node.stop(t)
+	paths, err := corewalletfile.FindWallets(dir, "")
+	require.NoError(t, err)
+	require.Len(t, paths, 1)
+	rows := make(map[string]map[string]string)
+	for _, path := range []string{paths[0], filepath.Join(external, "wallet.dat")} {
+		rows[path] = migrationWalletRows(t, path)
+	}
+	for _, name := range []string{"blocks", "chainstate", "indexes"} {
+		require.NoError(t, os.RemoveAll(filepath.Join(dir, name)))
+	}
+	paths, err = corewalletfile.FindWallets(dir, "")
+	require.NoError(t, err)
+	require.Len(t, paths, 1)
+	node = startMigrationCoreOnChain(t, source, dir, "main", false)
+	loaded := migrationCall[[]string](t, node, "listwallets")
+	require.Contains(t, loaded, external)
+	require.Contains(t, loaded, "local")
+	require.Zero(t, migrationCall[int](t, node, "getblockcount"))
+	node.stop(t)
+	_, err = blockfile.Convert(t.Context(), blockfile.Options{DataDir: dir, From: from, To: to})
+	require.NoError(t, err)
+	report, err := corewalletfile.Convert(t.Context(), corewalletfile.Options{DataDir: dir, WalletPaths: loaded, From: from, To: to})
+	require.NoError(t, err)
+	require.Equal(t, 2, report.ConvertedWallets)
+	for path, before := range rows {
+		require.Equal(t, before, migrationWalletRows(t, path))
+	}
+	migrationBackupPeers(t, dir)
+	node = startMigrationCoreOnChain(t, target, dir, "main", false)
+	require.ElementsMatch(t, loaded, migrationCall[[]string](t, node, "listwallets"))
+	require.True(t, migrationCall[bool](t, node, "verifychain", 4, 0))
+	node.stop(t)
+}
+
 type migrationUTXO struct {
 	Height      int     `json:"height"`
 	BestBlock   string  `json:"bestblock"`
@@ -183,6 +303,11 @@ type migrationCore struct {
 
 func startMigrationCore(t *testing.T, path, dir string, xor bool, extra ...string) *migrationCore {
 	t.Helper()
+	return startMigrationCoreOnChain(t, path, dir, "regtest", xor, extra...)
+}
+
+func startMigrationCoreOnChain(t *testing.T, path, dir, chain string, xor bool, extra ...string) *migrationCore {
+	t.Helper()
 	port, err := net.Listen("tcp4", "127.0.0.1:0")
 	require.NoError(t, err)
 	address := port.Addr().String()
@@ -194,7 +319,7 @@ func startMigrationCore(t *testing.T, path, dir string, xor bool, extra ...strin
 		xorFlag = "1"
 	}
 	args := []string{
-		"-regtest", "-datadir=" + dir, "-server=1", "-daemon=0", "-printtoconsole=0",
+		"-chain=" + chain, "-datadir=" + dir, "-server=1", "-daemon=0", "-printtoconsole=0",
 		"-listen=0", "-connect=0", "-dnsseed=0", "-discover=0", "-networkactive=0",
 		"-rpcbind=127.0.0.1", "-rpcport=" + number, "-rpcuser=migration", "-rpcpassword=migration",
 		"-txindex=1", "-blockfilterindex=1", "-fallbackfee=0.0001", "-persistmempool=0",

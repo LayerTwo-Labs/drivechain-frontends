@@ -108,6 +108,10 @@ message PlanECashSwitchResponse {
   // True when the switch cannot run: neither network publishes the fork height
   // that says where the chains part, so no rewind reaches shared history.
   bool blocked = 5;
+  // True when the ECX data directory has chain files.
+  bool has_chain_data = 6;
+  // The retained ECX chain ID. Empty when no chain files exist.
+  string chain_id = 7;
 }
 
 // TakeNewNetworks

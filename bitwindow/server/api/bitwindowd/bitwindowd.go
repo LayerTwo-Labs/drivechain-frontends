@@ -188,6 +188,22 @@ func (s *Server) UpdateNetwork(ctx context.Context, req *connect.Request[pb.Upda
 		}
 		if plan.Msg.NeedsRollback {
 			resetFrom = plan.Msg.RewindHeight + 1
+		} else {
+			// A completed migration already moved Core, so the switch plan has no rollback.
+			client := orchrpc.NewOrchestratorServiceClient(
+				http.DefaultClient,
+				s.config.OrchestratorAddr,
+				connect.WithGRPC(),
+				connect.WithInterceptors(localauth.Interceptor(s.config.BitwindowDir())),
+			)
+			status, err := client.GetECashMigrationStatus(ctx, connect.NewRequest(&orchpb.GetECashMigrationStatusRequest{}))
+			if err != nil {
+				return nil, connect.NewError(connect.CodeOf(err), fmt.Errorf("orchestrator.GetECashMigrationStatus: %w", err))
+			}
+			migration := status.Msg.GetStatus()
+			if migration.GetComplete() && migration.GetToId() == target && !migration.GetWalletOnly() {
+				resetFrom = uint32(migration.GetCommonHeight()) + 1
+			}
 		}
 	}
 	if _, err := confClient.SetBitcoinConfigNetwork(ctx, connect.NewRequest(&orchpb.SetBitcoinConfigNetworkRequest{

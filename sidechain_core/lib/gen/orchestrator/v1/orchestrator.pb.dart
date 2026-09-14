@@ -6156,6 +6156,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     $core.String? syncState,
     $core.bool? pruned,
     $fixnum.Int64? pruneHeight,
+    $core.bool? walletOnly,
   }) {
     final $result = create();
     if (jobId != null) {
@@ -6215,6 +6216,9 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     if (pruneHeight != null) {
       $result.pruneHeight = pruneHeight;
     }
+    if (walletOnly != null) {
+      $result.walletOnly = walletOnly;
+    }
     return $result;
   }
   ECashMigrationStatus._() : super();
@@ -6241,6 +6245,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     ..aOS(17, _omitFieldNames ? '' : 'syncState')
     ..aOB(18, _omitFieldNames ? '' : 'pruned')
     ..aInt64(19, _omitFieldNames ? '' : 'pruneHeight')
+    ..aOB(20, _omitFieldNames ? '' : 'walletOnly')
     ..hasRequiredFields = false
   ;
 
@@ -6436,6 +6441,15 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
   $core.bool hasPruneHeight() => $_has(18);
   @$pb.TagNumber(19)
   void clearPruneHeight() => clearField(19);
+
+  @$pb.TagNumber(20)
+  $core.bool get walletOnly => $_getBF(19);
+  @$pb.TagNumber(20)
+  set walletOnly($core.bool v) { $_setBool(19, v); }
+  @$pb.TagNumber(20)
+  $core.bool hasWalletOnly() => $_has(19);
+  @$pb.TagNumber(20)
+  void clearWalletOnly() => clearField(20);
 }
 
 class OrchestratorServiceApi {

@@ -290,7 +290,7 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 }
 
 func (o *Orchestrator) catalogChainID(selected string) (string, error) {
-	files, err := o.hasECashChainFiles()
+	files, err := o.hasECashData()
 	if err != nil || !files {
 		return selected, err
 	}

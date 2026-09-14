@@ -46,13 +46,15 @@ func TestECashMigrationHandlersRejectInvalidNetworks(t *testing.T) {
 
 func TestECashMigrationStatusReadsTheSavedDaemonRecord(t *testing.T) {
 	for _, test := range []struct {
-		name      string
-		complete  bool
-		errorText string
-		syncState string
+		name       string
+		complete   bool
+		errorText  string
+		syncState  string
+		walletOnly bool
 	}{
 		{name: "failed conversion", errorText: "the disk write failed", syncState: "waiting"},
 		{name: "local checks passed", complete: true, syncState: "syncing"},
+		{name: "wallet migration", complete: true, syncState: "syncing", walletOnly: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -68,6 +70,7 @@ func TestECashMigrationStatusReadsTheSavedDaemonRecord(t *testing.T) {
 					Complete:     test.complete,
 					Error:        test.errorText,
 					SyncState:    test.syncState,
+					WalletOnly:   test.walletOnly,
 				},
 				"step": 2,
 			})
@@ -93,6 +96,7 @@ func TestECashMigrationStatusReadsTheSavedDaemonRecord(t *testing.T) {
 			require.Equal(t, test.complete, status.Complete)
 			require.Equal(t, test.errorText, status.Error)
 			require.Equal(t, test.syncState, status.SyncState)
+			require.Equal(t, test.walletOnly, status.WalletOnly)
 		})
 	}
 }

@@ -987,4 +987,5 @@ message ECashMigrationStatus {
   string sync_state = 17;
   bool pruned = 18;
   int64 prune_height = 19;
+  bool wallet_only = 20;
 }

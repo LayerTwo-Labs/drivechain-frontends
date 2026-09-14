@@ -172,5 +172,7 @@ func (o *Orchestrator) SetDatadirForCurrentNetwork(dataDir string) error {
 	if o.BitcoinConf == nil {
 		return fmt.Errorf("bitcoin config manager not initialised")
 	}
-	return o.BitcoinConf.UpdateDataDir(dataDir, config.NetworkFromString(o.CurrentNetwork()))
+	return o.EditBitcoinConfig(func() error {
+		return o.BitcoinConf.UpdateDataDir(dataDir, config.NetworkFromString(o.CurrentNetwork()))
+	})
 }

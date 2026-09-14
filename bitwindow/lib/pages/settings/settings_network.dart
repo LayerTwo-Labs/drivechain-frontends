@@ -1,5 +1,6 @@
 import 'package:bitwindow/pages/settings/network_swap_page.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:bitwindow/widgets/ecash_upgrade_banner.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
@@ -383,6 +384,17 @@ class _SettingsNetworkState extends State<SettingsNetwork> {
                 },
               ),
             ),
+            if (_confProvider.network == BitcoinNetwork.BITCOIN_NETWORK_ECASH)
+              SailSettingsRow(
+                label: 'ECX migration',
+                description: 'Preview an upgrade or resume a saved migration',
+                trailing: SailButton(
+                  label: 'Open',
+                  small: true,
+                  variant: ButtonVariant.secondary,
+                  onPressed: () async => openECashUpgrade(context),
+                ),
+              ),
             if (showDataDir)
               SailSettingsRow(
                 label: 'Data directory',
@@ -594,6 +606,21 @@ Future<void> swapNetworkWithDatadirPrompt(
   }
   var targetId = networkId;
   if (network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
+    final migration = await planECashMigration(provider, targetId, plan: plan);
+    if (migration != null) {
+      if (!context.mounted) {
+        return;
+      }
+      await openECashMigration(
+        context,
+        fromId: migration.chainId.isEmpty ? migration.fromId : migration.chainId,
+        toId: targetId,
+      );
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
     final outcome = await confirmPendingECashUpgrade(context);
     if (outcome == ECashUpgradeOutcome.cancelled) {
       return;

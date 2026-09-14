@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +33,10 @@ type migrationCoreFixture struct {
 	Address        string `json:"address"`
 	DataDir        string `json:"data_dir"`
 	ExternalWallet string `json:"external_wallet,omitempty"`
+	AutoLoadWallet bool   `json:"auto_load_wallet,omitempty"`
+	AutoLoadLocal  bool   `json:"auto_load_local,omitempty"`
 	TwoBranches    bool   `json:"two_branches,omitempty"`
+	WalletOnly     bool   `json:"wallet_only,omitempty"`
 }
 
 type migrationCoreEvent struct {
@@ -262,12 +266,12 @@ func registerMigrationEngineCleanup(t *testing.T, o *Orchestrator) {
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		o.StopAllMonitors()
 		names := o.process.ListRunning()
 		require.NoError(t, o.process.StopAll(ctx, true))
 		for _, name := range names {
 			require.True(t, o.process.WaitForExit(name, 5*time.Second))
 		}
-		o.StopAllMonitors()
 		require.NoError(t, o.closeRemoteEnforcer())
 	})
 }
@@ -395,6 +399,9 @@ func runMigrationCoreFixture(path string) error {
 			readPath = filepath.Join(fixture.DataDir, filepath.FromSlash(name))
 		}
 		data, err := os.ReadFile(readPath)
+		if os.IsNotExist(err) && fixture.WalletOnly && offset == 0 {
+			continue
+		}
 		if err != nil {
 			return err
 		}
@@ -419,9 +426,12 @@ func runMigrationCoreFixture(path string) error {
 		}
 	}
 	loaded := make(map[string]bool)
+	if fixture.AutoLoadLocal {
+		loaded["migration"] = true
+	}
 	if network == "alphanet" {
 		loaded["migration"] = true
-		if fixture.ExternalWallet != "" && active {
+		if fixture.ExternalWallet != "" && (active || fixture.AutoLoadWallet) {
 			loaded[fixture.ExternalWallet] = true
 		}
 	}
@@ -515,6 +525,9 @@ func migrationCoreFixtureRPC(fixture migrationCoreFixture, method, wallet string
 		if height == 100 {
 			return strings.Repeat("a", 64), nil
 		}
+		if height == 0 && fixture.WalletOnly {
+			return config.ChainParamsFor(config.NetworkECash).GenesisHash.String(), nil
+		}
 		if height == 101 {
 			if fixture.TwoBranches {
 				data, err := os.ReadFile(filepath.Join(fixture.DataDir, "fixture-height"))
@@ -538,7 +551,18 @@ func migrationCoreFixtureRPC(fixture migrationCoreFixture, method, wallet string
 		if err := json.Unmarshal(params[0], &name); err != nil {
 			return nil, err
 		}
-		if name != "migration" && (fixture.ExternalWallet == "" || name != fixture.ExternalWallet) {
+		allowed := name == "migration" || fixture.ExternalWallet != "" && name == fixture.ExternalWallet
+		if !allowed && fixture.WalletOnly {
+			path, err := filepath.EvalSymlinks(filepath.Join(fixture.DataDir, "wallets", "migration"))
+			if err != nil {
+				return nil, err
+			}
+			allowed = name == path
+			if allowed && loaded["migration"] {
+				return nil, errors.New("the wallet is already loaded")
+			}
+		}
+		if !allowed {
 			return nil, fmt.Errorf("unexpected wallet name %s", name)
 		}
 		loaded[name] = true
@@ -587,6 +611,13 @@ func migrationCoreFixtureRPC(fixture migrationCoreFixture, method, wallet string
 		}
 		if err := errors.Join(json.Unmarshal(params[0], &hash), json.Unmarshal(params[1], &verbosity)); err != nil {
 			return nil, err
+		}
+		if fixture.WalletOnly && hash == config.ChainParamsFor(config.NetworkECash).GenesisHash.String() && verbosity == 0 {
+			var block bytes.Buffer
+			if err := config.ChainParamsFor(config.NetworkECash).GenesisBlock.Serialize(&block); err != nil {
+				return nil, err
+			}
+			return hex.EncodeToString(block.Bytes()), nil
 		}
 		if hash != strings.Repeat("a", 64) || verbosity != 0 {
 			return nil, errors.New("the fixture expects the raw common block")

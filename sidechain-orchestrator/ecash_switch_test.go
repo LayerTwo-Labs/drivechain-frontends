@@ -3,12 +3,15 @@ package orchestrator
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -420,7 +423,7 @@ func TestAdoptECashIDMovesTheInMemoryState(t *testing.T) {
 	o.adoptCatalog(ecashCatalog(), "drynet4")
 	require.Equal(t, "drynet4", config.ECashNetworkID())
 
-	o.AdoptECashID("alphanet")
+	require.NoError(t, o.AdoptECashID("alphanet"))
 
 	require.Equal(t, "alphanet", o.ecashID)
 	require.Equal(t, "alphanet", config.ECashNetworkID())
@@ -530,12 +533,6 @@ func TestApplyECashSwitchKeepsEverythingWhenTheRewindFails(t *testing.T) {
 	require.Nil(t, o.pendingSwap, "an abort installs no tail")
 }
 
-// The whole switch, over a live Core: it rewinds the chain, stops the daemons,
-// moves the conf sentinel and clears the pending tail.
-//
-// The failing-tail branch is not covered here. finishNetworkSwap only fails
-// through *wallet.WalletEngine, a concrete type with no seam, so nothing in a
-// test can make it return an error.
 func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf.Config.SetGroupDatadir(config.DatadirGroupECash, t.TempDir())
@@ -551,6 +548,18 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 		o.process.Remove(name)
 		return nil
 	}
+	for _, name := range []string{"bitcoind", "enforcer"} {
+		cfg := o.rawConfigs[name]
+		cfg.DownloadURLs = nil
+		o.rawConfigs[name] = cfg
+	}
+	o.download.CoreVariant = nil
+	restarted := make(chan struct{})
+	o.log = zerolog.New(io.Discard).Hook(zerolog.HookFunc(func(_ *zerolog.Event, _ zerolog.Level, message string) {
+		if message == "L1 stack restart after network swap failed" {
+			close(restarted)
+		}
+	}))
 
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "alphanet"))
 
@@ -560,6 +569,11 @@ func TestApplyECashSwitchRewindsAndLandsTheTarget(t *testing.T) {
 	require.Equal(t, "alphanet", o.RunningECashID(ecashCatalog()))
 	require.Equal(t, forkBlock, o.Settings.RewoundBlockHash())
 	require.Nil(t, o.pendingSwap, "a tail that lands leaves nothing pending")
+	select {
+	case <-restarted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the fixture restart did not finish")
+	}
 }
 
 // The conf goes before Core stops, so a failure there can still put the drop

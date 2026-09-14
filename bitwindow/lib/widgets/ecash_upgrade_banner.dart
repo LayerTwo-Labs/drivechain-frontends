@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bitwindow/main.dart' show rebootBitwindowBackend;
+import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -83,6 +84,8 @@ const _bannerIdPrefix = 'ecash-upgrade-';
 
 /// Id prefix for the "a new network is published" banner.
 const _newNetworkBannerIdPrefix = 'network-available-';
+const _migrationBannerIdPrefix = 'ecash-migration-';
+const _statusErrorBannerIdPrefix = '${_migrationBannerIdPrefix}status-error';
 
 /// Raises a banner notification when a newer eCash network is published.
 /// Polls because the backend records it from a detached goroutine after boot.
@@ -93,12 +96,83 @@ class ECashUpgradeWatcher {
   }
 
   Timer? _poll;
+  String? _statusErrorId;
 
   void dispose() => _poll?.cancel();
 
   Future<void> _check() async {
     if (!GetIt.I.isRegistered<NotificationProvider>()) {
       return;
+    }
+    final provider = GetIt.I.get<NotificationProvider>();
+    final ECashMigrationStatus migration;
+    try {
+      migration = (await GetIt.I.get<OrchestratorRPC>().getECashMigrationStatus()).status;
+    } catch (error) {
+      if (!isExpectedBootError(error)) {
+        _statusErrorId ??=
+            provider.history
+                .where((notice) => !notice.read && notice.id.startsWith(_statusErrorBannerIdPrefix))
+                .firstOrNull
+                ?.id ??
+            '$_statusErrorBannerIdPrefix-${DateTime.now().microsecondsSinceEpoch}';
+        provider.add(
+          id: _statusErrorId,
+          title: 'Migration status unavailable',
+          content: error.toString(),
+          dialogType: DialogType.error,
+          style: NotificationStyle.banner,
+          action: ecashUpgradeAction,
+        );
+      }
+      return;
+    }
+    for (final notice
+        in provider.history
+            .where((notice) => !notice.read && notice.id.startsWith(_statusErrorBannerIdPrefix))
+            .toList()) {
+      await provider.markRead(notice.id);
+    }
+    _statusErrorId = null;
+    if (migration.jobId.isNotEmpty) {
+      final state = migration.complete
+          ? 'complete'
+          : migration.running
+          ? 'active'
+          : 'paused';
+      final jobPrefix = '$_migrationBannerIdPrefix${migration.jobId}-';
+      final statePrefix = '$jobPrefix$state-';
+      final latest = provider.history.where((notice) => notice.id.startsWith(jobPrefix)).firstOrNull;
+      final id = latest != null && latest.id.startsWith(statePrefix)
+          ? latest.id
+          : '$statePrefix${DateTime.now().microsecondsSinceEpoch}';
+      for (final stale
+          in provider.history
+              .where(
+                (notice) =>
+                    !notice.read &&
+                    notice.id != id &&
+                    (notice.id == '$_bannerIdPrefix${migration.toId}' ||
+                        notice.id.startsWith(_migrationBannerIdPrefix)),
+              )
+              .toList()) {
+        await provider.markRead(stale.id);
+      }
+      provider.add(
+        id: id,
+        title: migration.complete
+            ? 'Migration to ${migration.toId} complete'
+            : migration.running
+            ? 'Migration to ${migration.toId} in progress'
+            : 'Resume migration to ${migration.toId}',
+        content: migration.complete ? 'Open ${migration.toId}' : 'View migration status',
+        dialogType: migration.error.isEmpty ? DialogType.info : DialogType.error,
+        style: NotificationStyle.banner,
+        action: ecashUpgradeAction,
+      );
+      if (!migration.complete) {
+        return;
+      }
     }
     await _announceNewNetworks();
     final GetPendingNetworkGenerationResponse pending;
@@ -107,7 +181,6 @@ class ECashUpgradeWatcher {
     } catch (e) {
       return; // Orchestrator not up yet; the next tick retries.
     }
-    final provider = GetIt.I.get<NotificationProvider>();
     if (pending.pendingNetworkId.isEmpty) {
       // Upgraded some other way, e.g. the settings network selector. Retire the
       // banner rather than keep advertising a network already installed.
@@ -154,12 +227,48 @@ Future<void> _announceNewNetworks() async {
 Future<bool> openECashUpgrade(BuildContext context) async {
   final GetPendingNetworkGenerationResponse pending;
   try {
+    final saved = (await GetIt.I.get<OrchestratorRPC>().getECashMigrationStatus()).status;
+    if (!context.mounted) {
+      return false;
+    }
+    if (saved.jobId.isNotEmpty && !saved.complete) {
+      return openECashMigration(context, fromId: saved.fromId, toId: saved.toId, initialStatus: saved);
+    }
     pending = await GetIt.I.get<OrchestratorRPC>().getPendingNetworkGeneration();
+    if (!context.mounted) {
+      return false;
+    }
+    if (pending.pendingNetworkId.isEmpty && saved.jobId.isNotEmpty) {
+      return openECashMigration(context, fromId: saved.fromId, toId: saved.toId, initialStatus: saved);
+    }
   } catch (e) {
+    if (context.mounted) {
+      await showThemedDialog<void>(
+        context: context,
+        builder: (context) => SailDialog(
+          title: 'Migration unavailable',
+          error: e.toString(),
+          actions: [SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop())],
+          child: SailText.secondary13(
+            'The app could not read the migration status. Try again after the daemon connects.',
+          ),
+        ),
+      );
+    }
     return false;
   }
   if (pending.pendingNetworkId.isEmpty) {
-    return true;
+    if (context.mounted) {
+      await showThemedDialog<void>(
+        context: context,
+        builder: (context) => SailDialog(
+          title: 'ECX migration',
+          actions: [SailButton(label: 'Close', onPressed: () async => Navigator.of(context).pop())],
+          child: SailText.secondary13('No network upgrade or saved migration is available.'),
+        ),
+      );
+    }
+    return false;
   }
   if (!context.mounted) {
     return false;
@@ -221,6 +330,73 @@ class ECashUpgradeDialog extends StatefulWidget {
 }
 
 class _ECashUpgradeDialogState extends State<ECashUpgradeDialog> {
+  bool _planRead = false;
+  PlanECashSwitchResponse? _migrationPlan;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_readPlan());
+  }
+
+  Future<void> _readPlan() async {
+    setState(() => _error = null);
+    try {
+      final plan = await planECashMigration(
+        GetIt.I.get<BitcoinConfProvider>(),
+        widget.pending.pendingNetworkId,
+      );
+      if (mounted) {
+        setState(() {
+          _migrationPlan = plan;
+          _planRead = true;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error.toString());
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_planRead) {
+      return SailDialog(
+        title: 'Switch to ${widget.pending.pendingNetworkId}',
+        error: _error,
+        actions: [
+          SailButton(
+            label: 'Close',
+            variant: ButtonVariant.secondary,
+            onPressed: () async => Navigator.of(context).pop(false),
+          ),
+          if (_error != null) SailButton(label: 'Retry', onPressed: _readPlan),
+        ],
+        child: SailText.secondary13('The app reads the network change plan.'),
+      );
+    }
+    final plan = _migrationPlan;
+    if (plan != null) {
+      return ECashMigrationDialog(
+        fromId: plan.chainId.isEmpty ? plan.fromId : plan.chainId,
+        toId: widget.pending.pendingNetworkId,
+      );
+    }
+    return _ECashNetworkChoiceDialog(pending: widget.pending);
+  }
+}
+
+class _ECashNetworkChoiceDialog extends StatefulWidget {
+  const _ECashNetworkChoiceDialog({required this.pending});
+  final GetPendingNetworkGenerationResponse pending;
+
+  @override
+  State<_ECashNetworkChoiceDialog> createState() => _ECashNetworkChoiceDialogState();
+}
+
+class _ECashNetworkChoiceDialogState extends State<_ECashNetworkChoiceDialog> {
   OrchestratorRPC get _orchestrator => GetIt.I.get<OrchestratorRPC>();
   Logger get _log => GetIt.I.get<Logger>();
 

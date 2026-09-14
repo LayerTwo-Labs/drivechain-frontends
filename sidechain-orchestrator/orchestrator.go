@@ -1368,35 +1368,7 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 
 	coreMon.SetInitializing(true)
 
-	coreArgs := opts.CoreArgs
-	coreMon.StartRestartTimer(ctx,
-		// Dart binary_provider.dart L490-506: detect -reindex need before restart
-		func(restartCtx context.Context) error {
-			proc := o.process.LatestRun("bitcoind")
-			if proc != nil {
-				logs := proc.RecentLogs(100)
-				for _, entry := range logs {
-					if strings.Contains(entry.Line, "Please restart with -reindex") {
-						o.log.Warn().Msg("Bitcoin Core needs reindex, adding -reindex flag for next boot attempt")
-						hasReindex := false
-						for _, arg := range coreArgs {
-							if arg == "-reindex" {
-								hasReindex = true
-								break
-							}
-						}
-						if !hasReindex {
-							coreArgs = append(coreArgs, "-reindex")
-						}
-						break
-					}
-				}
-			}
-
-			return o.startOrAdoptCore(restartCtx, coreArgs)
-		},
-		o.exitedFunc("bitcoind"),
-	)
+	o.startCoreRestartTimer(ctx, coreMon, opts.CoreArgs)
 
 	ch <- StartupProgress{Stage: "starting-bitcoind", Message: "starting Bitcoin Core..."}
 
@@ -1437,6 +1409,37 @@ func (o *Orchestrator) startBitcoindOnly(ctx context.Context, opts StartOpts, ch
 		return false
 	}
 	return true
+}
+
+func (o *Orchestrator) startCoreRestartTimer(ctx context.Context, coreMon *ConnectionMonitor, coreArgs []string) {
+	coreMon.StartRestartTimer(ctx,
+		// Dart binary_provider.dart L490-506: detect -reindex need before restart
+		func(restartCtx context.Context) error {
+			proc := o.process.LatestRun("bitcoind")
+			if proc != nil {
+				logs := proc.RecentLogs(100)
+				for _, entry := range logs {
+					if strings.Contains(entry.Line, "Please restart with -reindex") {
+						o.log.Warn().Msg("Bitcoin Core needs reindex, adding -reindex flag for next boot attempt")
+						hasReindex := false
+						for _, arg := range coreArgs {
+							if arg == "-reindex" {
+								hasReindex = true
+								break
+							}
+						}
+						if !hasReindex {
+							coreArgs = append(coreArgs, "-reindex")
+						}
+						break
+					}
+				}
+			}
+
+			return o.startOrAdoptCore(restartCtx, coreArgs)
+		},
+		o.exitedFunc("bitcoind"),
+	)
 }
 
 // startOrAdoptCore starts bitcoind, unless another process already runs one.
@@ -2334,6 +2337,11 @@ func (o *Orchestrator) AdoptOrphans(ctx context.Context) error {
 			config.Name = sidechainGUIProcessName(config.Name)
 			binPath = TestSidechainBinaryPath(o.DataDir, realBinaryName)
 		} else if config.IsMainchainCore() && o.process.CoreVariant != nil {
+			var err error
+			config, err = o.migrationCoreConfig(config)
+			if err != nil {
+				return err
+			}
 			if v, ok := o.process.CoreVariant(config); ok {
 				binPath = CoreBinaryPath(o.DataDir, v, config.BinaryName)
 			}
@@ -2444,7 +2452,11 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 // Sidechains are intentionally not auto-restarted — the user re-launches
 // them when they want to.
 func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error {
-	if err := o.checkECashMigrationStart(ctx, BinaryConfig{IsBitcoinCore: true, ChainLayer: 1}); err != nil {
+	startConfig := BinaryConfig{IsBitcoinCore: true, ChainLayer: 1}
+	if o.NodeMode() == NodeModeLight {
+		startConfig = BinaryConfig{Name: "enforcer"}
+	}
+	if err := o.checkECashMigrationStart(ctx, startConfig); err != nil {
 		return err
 	}
 	if o.BitcoinConf == nil {
