@@ -165,6 +165,15 @@ service OrchestratorService {
   // existing WalletManagerService (listUnspent / sendTransaction), one call
   // per wallet — this RPC only supplies the height.
   rpc GetForkStatus(GetForkStatusRequest) returns (GetForkStatusResponse);
+
+  // Read the migration plan from the daemon without changes to node files.
+  rpc PreviewECashMigration(PreviewECashMigrationRequest) returns (PreviewECashMigrationResponse);
+
+  // Start or resume a migration that continues after the client disconnects.
+  rpc StartECashMigration(StartECashMigrationRequest) returns (StartECashMigrationResponse);
+
+  // Read the saved migration state from the daemon.
+  rpc GetECashMigrationStatus(GetECashMigrationStatusRequest) returns (GetECashMigrationStatusResponse);
 }
 
 message BinaryStatusMsg {
@@ -931,4 +940,51 @@ message AdoptOwnerRequest {
 message AdoptOwnerResponse {
   // True when the daemon was on its way out and this call stopped the exit.
   bool canceled_exit = 1;
+}
+
+message PreviewECashMigrationRequest {
+  string from_id = 1;
+  string to_id = 2;
+}
+
+message PreviewECashMigrationResponse {
+  ECashMigrationStatus status = 1;
+}
+
+message StartECashMigrationRequest {
+  string from_id = 1;
+  string to_id = 2;
+}
+
+message StartECashMigrationResponse {
+  ECashMigrationStatus status = 1;
+}
+
+message GetECashMigrationStatusRequest {}
+
+message GetECashMigrationStatusResponse {
+  ECashMigrationStatus status = 1;
+}
+
+message ECashMigrationStatus {
+  string job_id = 1;
+  string from_id = 2;
+  string to_id = 3;
+  string phase = 4;
+  string data_dir = 5;
+  int64 common_height = 6;
+  string common_hash = 7;
+  string source_magic = 8;
+  string target_magic = 9;
+  uint64 block_files = 10;
+  uint64 undo_files = 11;
+  uint64 records_done = 12;
+  uint64 records_total = 13;
+  bool running = 14;
+  // Local target checks passed. Network sync can continue after this point.
+  bool complete = 15;
+  string error = 16;
+  string sync_state = 17;
+  bool pruned = 18;
+  int64 prune_height = 19;
 }

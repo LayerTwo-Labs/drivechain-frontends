@@ -261,3 +261,79 @@ func TestFireIfExpiredHonoursALateHandover(t *testing.T) {
 		t.Fatal("drained a daemon the new frontend had already claimed")
 	}
 }
+
+func TestHoldKeepsLeaseAfterClientExit(t *testing.T) {
+	drained, drain := drainedFlag()
+	l := New(deadPID, 0, drain)
+	l.ConnState(nil, http.StateNew)
+	release := l.Hold()
+	l.Goodbye()
+	l.ConnState(nil, http.StateClosed)
+	pollUntilOwnerGone(l)
+	l.fireIfExpired()
+	if *drained {
+		t.Fatal("lease drained with an active hold")
+	}
+	release()
+	l.fireIfExpired()
+	if !*drained {
+		t.Fatal("lease did not drain after the hold ended")
+	}
+}
+
+func TestHoldReleaseResetsGrace(t *testing.T) {
+	_, drain := drainedFlag()
+	l := New(deadPID, time.Hour, drain)
+	pollUntilOwnerGone(l)
+	l.idleFrom = time.Now().Add(-2 * time.Hour)
+	release := l.Hold()
+	before := time.Now()
+	release()
+	if l.idleFrom.Before(before) {
+		t.Fatal("the last hold did not reset the idle time")
+	}
+	if l.expired() {
+		t.Fatal("lease expired before the new grace period ended")
+	}
+	l.idleFrom = time.Now().Add(-2 * time.Hour)
+	if !l.expired() {
+		t.Fatal("lease did not expire after the new grace period")
+	}
+}
+
+func TestHoldReleaseRunsOnce(t *testing.T) {
+	drained, drain := drainedFlag()
+	l := New(deadPID, 0, drain)
+	pollUntilOwnerGone(l)
+	idleFrom := l.idleFrom
+	first := l.Hold()
+	second := l.Hold()
+	var group sync.WaitGroup
+	for range 32 {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			first()
+		}()
+	}
+	group.Wait()
+	if l.holds != 1 {
+		t.Fatalf("hold count = %d, want 1", l.holds)
+	}
+	if !l.idleFrom.Equal(idleFrom) {
+		t.Fatal("the first hold reset the idle time")
+	}
+	l.fireIfExpired()
+	if *drained {
+		t.Fatal("lease drained before the second hold ended")
+	}
+	second()
+	second()
+	if l.holds != 0 {
+		t.Fatalf("hold count = %d, want 0", l.holds)
+	}
+	l.fireIfExpired()
+	if !*drained {
+		t.Fatal("lease did not drain after both holds ended")
+	}
+}

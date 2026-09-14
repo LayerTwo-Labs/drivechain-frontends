@@ -151,7 +151,10 @@ type Orchestrator struct {
 
 	// ecashID is the live eCash network ("alphanet"). Guarded by mu; read
 	// by UpdateConfigs to expand the placeholder in freshly loaded configs.
-	ecashID string
+	ecashID        string
+	migrationMu    sync.Mutex
+	migrationBusy  bool
+	migrationState *ecashMigration
 
 	// releases reports whether a newer build of each binary is published.
 	releases *ReleaseChecker
@@ -404,6 +407,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	orch.process.SidechainVariant = sidechainVariantResolver
 
 	orch.stopBinary = orch.Stop
+	orch.process.BeforeStart = orch.checkECashMigrationStart
 	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
 	orch.coreReachable = orch.dialCoreRPC
 	orch.catalogURL = netcatalog.DefaultURL
@@ -871,6 +875,9 @@ func (o *Orchestrator) prefetchBinary(ctx context.Context, cfg BinaryConfig, for
 func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts StartOpts) (<-chan StartupProgress, error) {
 	config, err := o.getConfig(target)
 	if err != nil {
+		return nil, err
+	}
+	if err := o.checkECashMigrationStart(ctx, config); err != nil {
 		return nil, err
 	}
 	if err := o.refuseWhileParked(); err != nil {
@@ -1505,6 +1512,9 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 	config, err := o.getConfig(name)
 	if err != nil {
+		return nil, err
+	}
+	if err := o.checkECashMigrationStart(ctx, config); err != nil {
 		return nil, err
 	}
 	if err := o.refuseWhileParked(); err != nil {
@@ -2371,6 +2381,9 @@ func (o *Orchestrator) ListCoreVariants() []CoreVariantSpec {
 // On stop failure we escalate to SIGKILL; if even that fails we abort before
 // touching settings.
 func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
+	if err := o.checkECashMigrationStart(ctx, BinaryConfig{IsBitcoinCore: true, ChainLayer: 1}); err != nil {
+		return err
+	}
 	if o.Settings == nil {
 		return fmt.Errorf("orchestrator settings not initialised")
 	}
@@ -2431,6 +2444,9 @@ func (o *Orchestrator) SetCoreVariant(ctx context.Context, id string) error {
 // Sidechains are intentionally not auto-restarted — the user re-launches
 // them when they want to.
 func (o *Orchestrator) SwapNetwork(ctx context.Context, n config.Network) error {
+	if err := o.checkECashMigrationStart(ctx, BinaryConfig{IsBitcoinCore: true, ChainLayer: 1}); err != nil {
+		return err
+	}
 	if o.BitcoinConf == nil {
 		return fmt.Errorf("bitcoin config manager not initialised")
 	}

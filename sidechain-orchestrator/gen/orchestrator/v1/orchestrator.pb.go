@@ -5070,6 +5070,467 @@ func (x *AdoptOwnerResponse) GetCanceledExit() bool {
 	return false
 }
 
+type PreviewECashMigrationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FromId        string                 `protobuf:"bytes,1,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	ToId          string                 `protobuf:"bytes,2,opt,name=to_id,json=toId,proto3" json:"to_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PreviewECashMigrationRequest) Reset() {
+	*x = PreviewECashMigrationRequest{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreviewECashMigrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreviewECashMigrationRequest) ProtoMessage() {}
+
+func (x *PreviewECashMigrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreviewECashMigrationRequest.ProtoReflect.Descriptor instead.
+func (*PreviewECashMigrationRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *PreviewECashMigrationRequest) GetFromId() string {
+	if x != nil {
+		return x.FromId
+	}
+	return ""
+}
+
+func (x *PreviewECashMigrationRequest) GetToId() string {
+	if x != nil {
+		return x.ToId
+	}
+	return ""
+}
+
+type PreviewECashMigrationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *ECashMigrationStatus  `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PreviewECashMigrationResponse) Reset() {
+	*x = PreviewECashMigrationResponse{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreviewECashMigrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreviewECashMigrationResponse) ProtoMessage() {}
+
+func (x *PreviewECashMigrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreviewECashMigrationResponse.ProtoReflect.Descriptor instead.
+func (*PreviewECashMigrationResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *PreviewECashMigrationResponse) GetStatus() *ECashMigrationStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type StartECashMigrationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FromId        string                 `protobuf:"bytes,1,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	ToId          string                 `protobuf:"bytes,2,opt,name=to_id,json=toId,proto3" json:"to_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartECashMigrationRequest) Reset() {
+	*x = StartECashMigrationRequest{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartECashMigrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartECashMigrationRequest) ProtoMessage() {}
+
+func (x *StartECashMigrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartECashMigrationRequest.ProtoReflect.Descriptor instead.
+func (*StartECashMigrationRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *StartECashMigrationRequest) GetFromId() string {
+	if x != nil {
+		return x.FromId
+	}
+	return ""
+}
+
+func (x *StartECashMigrationRequest) GetToId() string {
+	if x != nil {
+		return x.ToId
+	}
+	return ""
+}
+
+type StartECashMigrationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *ECashMigrationStatus  `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartECashMigrationResponse) Reset() {
+	*x = StartECashMigrationResponse{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[78]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartECashMigrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartECashMigrationResponse) ProtoMessage() {}
+
+func (x *StartECashMigrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[78]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartECashMigrationResponse.ProtoReflect.Descriptor instead.
+func (*StartECashMigrationResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{78}
+}
+
+func (x *StartECashMigrationResponse) GetStatus() *ECashMigrationStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type GetECashMigrationStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetECashMigrationStatusRequest) Reset() {
+	*x = GetECashMigrationStatusRequest{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetECashMigrationStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetECashMigrationStatusRequest) ProtoMessage() {}
+
+func (x *GetECashMigrationStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetECashMigrationStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetECashMigrationStatusRequest) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{79}
+}
+
+type GetECashMigrationStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *ECashMigrationStatus  `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetECashMigrationStatusResponse) Reset() {
+	*x = GetECashMigrationStatusResponse{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetECashMigrationStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetECashMigrationStatusResponse) ProtoMessage() {}
+
+func (x *GetECashMigrationStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetECashMigrationStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetECashMigrationStatusResponse) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *GetECashMigrationStatusResponse) GetStatus() *ECashMigrationStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type ECashMigrationStatus struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	JobId        string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	FromId       string                 `protobuf:"bytes,2,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
+	ToId         string                 `protobuf:"bytes,3,opt,name=to_id,json=toId,proto3" json:"to_id,omitempty"`
+	Phase        string                 `protobuf:"bytes,4,opt,name=phase,proto3" json:"phase,omitempty"`
+	DataDir      string                 `protobuf:"bytes,5,opt,name=data_dir,json=dataDir,proto3" json:"data_dir,omitempty"`
+	CommonHeight int64                  `protobuf:"varint,6,opt,name=common_height,json=commonHeight,proto3" json:"common_height,omitempty"`
+	CommonHash   string                 `protobuf:"bytes,7,opt,name=common_hash,json=commonHash,proto3" json:"common_hash,omitempty"`
+	SourceMagic  string                 `protobuf:"bytes,8,opt,name=source_magic,json=sourceMagic,proto3" json:"source_magic,omitempty"`
+	TargetMagic  string                 `protobuf:"bytes,9,opt,name=target_magic,json=targetMagic,proto3" json:"target_magic,omitempty"`
+	BlockFiles   uint64                 `protobuf:"varint,10,opt,name=block_files,json=blockFiles,proto3" json:"block_files,omitempty"`
+	UndoFiles    uint64                 `protobuf:"varint,11,opt,name=undo_files,json=undoFiles,proto3" json:"undo_files,omitempty"`
+	RecordsDone  uint64                 `protobuf:"varint,12,opt,name=records_done,json=recordsDone,proto3" json:"records_done,omitempty"`
+	RecordsTotal uint64                 `protobuf:"varint,13,opt,name=records_total,json=recordsTotal,proto3" json:"records_total,omitempty"`
+	Running      bool                   `protobuf:"varint,14,opt,name=running,proto3" json:"running,omitempty"`
+	// Local target checks passed. Network sync can continue after this point.
+	Complete      bool   `protobuf:"varint,15,opt,name=complete,proto3" json:"complete,omitempty"`
+	Error         string `protobuf:"bytes,16,opt,name=error,proto3" json:"error,omitempty"`
+	SyncState     string `protobuf:"bytes,17,opt,name=sync_state,json=syncState,proto3" json:"sync_state,omitempty"`
+	Pruned        bool   `protobuf:"varint,18,opt,name=pruned,proto3" json:"pruned,omitempty"`
+	PruneHeight   int64  `protobuf:"varint,19,opt,name=prune_height,json=pruneHeight,proto3" json:"prune_height,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ECashMigrationStatus) Reset() {
+	*x = ECashMigrationStatus{}
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[81]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ECashMigrationStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ECashMigrationStatus) ProtoMessage() {}
+
+func (x *ECashMigrationStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_orchestrator_v1_orchestrator_proto_msgTypes[81]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ECashMigrationStatus.ProtoReflect.Descriptor instead.
+func (*ECashMigrationStatus) Descriptor() ([]byte, []int) {
+	return file_orchestrator_v1_orchestrator_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *ECashMigrationStatus) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetFromId() string {
+	if x != nil {
+		return x.FromId
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetToId() string {
+	if x != nil {
+		return x.ToId
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetDataDir() string {
+	if x != nil {
+		return x.DataDir
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetCommonHeight() int64 {
+	if x != nil {
+		return x.CommonHeight
+	}
+	return 0
+}
+
+func (x *ECashMigrationStatus) GetCommonHash() string {
+	if x != nil {
+		return x.CommonHash
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetSourceMagic() string {
+	if x != nil {
+		return x.SourceMagic
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetTargetMagic() string {
+	if x != nil {
+		return x.TargetMagic
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetBlockFiles() uint64 {
+	if x != nil {
+		return x.BlockFiles
+	}
+	return 0
+}
+
+func (x *ECashMigrationStatus) GetUndoFiles() uint64 {
+	if x != nil {
+		return x.UndoFiles
+	}
+	return 0
+}
+
+func (x *ECashMigrationStatus) GetRecordsDone() uint64 {
+	if x != nil {
+		return x.RecordsDone
+	}
+	return 0
+}
+
+func (x *ECashMigrationStatus) GetRecordsTotal() uint64 {
+	if x != nil {
+		return x.RecordsTotal
+	}
+	return 0
+}
+
+func (x *ECashMigrationStatus) GetRunning() bool {
+	if x != nil {
+		return x.Running
+	}
+	return false
+}
+
+func (x *ECashMigrationStatus) GetComplete() bool {
+	if x != nil {
+		return x.Complete
+	}
+	return false
+}
+
+func (x *ECashMigrationStatus) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetSyncState() string {
+	if x != nil {
+		return x.SyncState
+	}
+	return ""
+}
+
+func (x *ECashMigrationStatus) GetPruned() bool {
+	if x != nil {
+		return x.Pruned
+	}
+	return false
+}
+
+func (x *ECashMigrationStatus) GetPruneHeight() int64 {
+	if x != nil {
+		return x.PruneHeight
+	}
+	return 0
+}
+
 var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
 
 const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
@@ -5417,7 +5878,45 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x11AdoptOwnerRequest\x12\x1b\n" +
 	"\towner_pid\x18\x01 \x01(\x05R\bownerPid\"9\n" +
 	"\x12AdoptOwnerResponse\x12#\n" +
-	"\rcanceled_exit\x18\x01 \x01(\bR\fcanceledExit*\xf7\x01\n" +
+	"\rcanceled_exit\x18\x01 \x01(\bR\fcanceledExit\"L\n" +
+	"\x1cPreviewECashMigrationRequest\x12\x17\n" +
+	"\afrom_id\x18\x01 \x01(\tR\x06fromId\x12\x13\n" +
+	"\x05to_id\x18\x02 \x01(\tR\x04toId\"^\n" +
+	"\x1dPreviewECashMigrationResponse\x12=\n" +
+	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"J\n" +
+	"\x1aStartECashMigrationRequest\x12\x17\n" +
+	"\afrom_id\x18\x01 \x01(\tR\x06fromId\x12\x13\n" +
+	"\x05to_id\x18\x02 \x01(\tR\x04toId\"\\\n" +
+	"\x1bStartECashMigrationResponse\x12=\n" +
+	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\" \n" +
+	"\x1eGetECashMigrationStatusRequest\"`\n" +
+	"\x1fGetECashMigrationStatusResponse\x12=\n" +
+	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"\xc6\x04\n" +
+	"\x14ECashMigrationStatus\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x17\n" +
+	"\afrom_id\x18\x02 \x01(\tR\x06fromId\x12\x13\n" +
+	"\x05to_id\x18\x03 \x01(\tR\x04toId\x12\x14\n" +
+	"\x05phase\x18\x04 \x01(\tR\x05phase\x12\x19\n" +
+	"\bdata_dir\x18\x05 \x01(\tR\adataDir\x12#\n" +
+	"\rcommon_height\x18\x06 \x01(\x03R\fcommonHeight\x12\x1f\n" +
+	"\vcommon_hash\x18\a \x01(\tR\n" +
+	"commonHash\x12!\n" +
+	"\fsource_magic\x18\b \x01(\tR\vsourceMagic\x12!\n" +
+	"\ftarget_magic\x18\t \x01(\tR\vtargetMagic\x12\x1f\n" +
+	"\vblock_files\x18\n" +
+	" \x01(\x04R\n" +
+	"blockFiles\x12\x1d\n" +
+	"\n" +
+	"undo_files\x18\v \x01(\x04R\tundoFiles\x12!\n" +
+	"\frecords_done\x18\f \x01(\x04R\vrecordsDone\x12#\n" +
+	"\rrecords_total\x18\r \x01(\x04R\frecordsTotal\x12\x18\n" +
+	"\arunning\x18\x0e \x01(\bR\arunning\x12\x1a\n" +
+	"\bcomplete\x18\x0f \x01(\bR\bcomplete\x12\x14\n" +
+	"\x05error\x18\x10 \x01(\tR\x05error\x12\x1d\n" +
+	"\n" +
+	"sync_state\x18\x11 \x01(\tR\tsyncState\x12\x16\n" +
+	"\x06pruned\x18\x12 \x01(\bR\x06pruned\x12!\n" +
+	"\fprune_height\x18\x13 \x01(\x03R\vpruneHeight*\xf7\x01\n" +
 	"\rSidechainType\x12\x1e\n" +
 	"\x1aSIDECHAIN_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16SIDECHAIN_TYPE_THUNDER\x10\x01\x12\x18\n" +
@@ -5472,7 +5971,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x15RESET_PHASE_MOVE_BACK\x10\x02\x12\x1c\n" +
 	"\x18RESET_PHASE_SYNC_FORWARD\x10\x03\x12\x18\n" +
 	"\x14RESET_PHASE_ENFORCER\x10\x04\x12\x14\n" +
-	"\x10RESET_PHASE_DONE\x10\x052\xbd\x1a\n" +
+	"\x10RESET_PHASE_DONE\x10\x052\xa5\x1d\n" +
 	"\x13OrchestratorService\x12[\n" +
 	"\fListBinaries\x12$.orchestrator.v1.ListBinariesRequest\x1a%.orchestrator.v1.ListBinariesResponse\x12d\n" +
 	"\x0fGetBinaryStatus\x12'.orchestrator.v1.GetBinaryStatusRequest\x1a(.orchestrator.v1.GetBinaryStatusResponse\x12g\n" +
@@ -5509,7 +6008,10 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x12GetCoreMempoolInfo\x12*.orchestrator.v1.GetCoreMempoolInfoRequest\x1a+.orchestrator.v1.GetCoreMempoolInfoResponse\x12^\n" +
 	"\rGetBmmContext\x12%.orchestrator.v1.GetBmmContextRequest\x1a&.orchestrator.v1.GetBmmContextResponse\x12X\n" +
 	"\vCoreRawCall\x12#.orchestrator.v1.CoreRawCallRequest\x1a$.orchestrator.v1.CoreRawCallResponse\x12^\n" +
-	"\rGetForkStatus\x12%.orchestrator.v1.GetForkStatusRequest\x1a&.orchestrator.v1.GetForkStatusResponseB\xe2\x01\n" +
+	"\rGetForkStatus\x12%.orchestrator.v1.GetForkStatusRequest\x1a&.orchestrator.v1.GetForkStatusResponse\x12v\n" +
+	"\x15PreviewECashMigration\x12-.orchestrator.v1.PreviewECashMigrationRequest\x1a..orchestrator.v1.PreviewECashMigrationResponse\x12p\n" +
+	"\x13StartECashMigration\x12+.orchestrator.v1.StartECashMigrationRequest\x1a,.orchestrator.v1.StartECashMigrationResponse\x12|\n" +
+	"\x17GetECashMigrationStatus\x12/.orchestrator.v1.GetECashMigrationStatusRequest\x1a0.orchestrator.v1.GetECashMigrationStatusResponseB\xe2\x01\n" +
 	"\x13com.orchestrator.v1B\x11OrchestratorProtoP\x01Z[github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/orchestrator/v1;orchestratorv1\xa2\x02\x03OXX\xaa\x02\x0fOrchestrator.V1\xca\x02\x0fOrchestrator\\V1\xe2\x02\x1bOrchestrator\\V1\\GPBMetadata\xea\x02\x10Orchestrator::V1b\x06proto3"
 
 var (
@@ -5525,7 +6027,7 @@ func file_orchestrator_v1_orchestrator_proto_rawDescGZIP() []byte {
 }
 
 var file_orchestrator_v1_orchestrator_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 77)
+var file_orchestrator_v1_orchestrator_proto_msgTypes = make([]protoimpl.MessageInfo, 84)
 var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(SidechainType)(0),                              // 0: orchestrator.v1.SidechainType
 	(BinaryType)(0),                                 // 1: orchestrator.v1.BinaryType
@@ -5608,15 +6110,22 @@ var file_orchestrator_v1_orchestrator_proto_goTypes = []any{
 	(*ShutdownResponse)(nil),                        // 78: orchestrator.v1.ShutdownResponse
 	(*AdoptOwnerRequest)(nil),                       // 79: orchestrator.v1.AdoptOwnerRequest
 	(*AdoptOwnerResponse)(nil),                      // 80: orchestrator.v1.AdoptOwnerResponse
-	nil,                                             // 81: orchestrator.v1.StartBinaryRequest.EnvEntry
-	nil,                                             // 82: orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	(*PreviewECashMigrationRequest)(nil),            // 81: orchestrator.v1.PreviewECashMigrationRequest
+	(*PreviewECashMigrationResponse)(nil),           // 82: orchestrator.v1.PreviewECashMigrationResponse
+	(*StartECashMigrationRequest)(nil),              // 83: orchestrator.v1.StartECashMigrationRequest
+	(*StartECashMigrationResponse)(nil),             // 84: orchestrator.v1.StartECashMigrationResponse
+	(*GetECashMigrationStatusRequest)(nil),          // 85: orchestrator.v1.GetECashMigrationStatusRequest
+	(*GetECashMigrationStatusResponse)(nil),         // 86: orchestrator.v1.GetECashMigrationStatusResponse
+	(*ECashMigrationStatus)(nil),                    // 87: orchestrator.v1.ECashMigrationStatus
+	nil,                                             // 88: orchestrator.v1.StartBinaryRequest.EnvEntry
+	nil,                                             // 89: orchestrator.v1.StartWithL1Request.TargetEnvEntry
 }
 var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	7,  // 0: orchestrator.v1.BinaryStatusMsg.startup_logs:type_name -> orchestrator.v1.StartupLogEntryMsg
 	6,  // 1: orchestrator.v1.ListBinariesResponse.binaries:type_name -> orchestrator.v1.BinaryStatusMsg
 	6,  // 2: orchestrator.v1.GetBinaryStatusResponse.status:type_name -> orchestrator.v1.BinaryStatusMsg
-	81, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
-	82, // 4: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
+	88, // 3: orchestrator.v1.StartBinaryRequest.env:type_name -> orchestrator.v1.StartBinaryRequest.EnvEntry
+	89, // 4: orchestrator.v1.StartWithL1Request.target_env:type_name -> orchestrator.v1.StartWithL1Request.TargetEnvEntry
 	47, // 5: orchestrator.v1.GetSyncStatusResponse.mainchain:type_name -> orchestrator.v1.ChainSync
 	47, // 6: orchestrator.v1.GetSyncStatusResponse.enforcer:type_name -> orchestrator.v1.ChainSync
 	46, // 7: orchestrator.v1.GetSyncStatusResponse.sidechains:type_name -> orchestrator.v1.SidechainStatus
@@ -5638,77 +6147,86 @@ var file_orchestrator_v1_orchestrator_proto_depIdxs = []int32{
 	5,  // 23: orchestrator.v1.ResetToBlockResponse.phase:type_name -> orchestrator.v1.ResetPhase
 	75, // 24: orchestrator.v1.GetForkStatusResponse.claims:type_name -> orchestrator.v1.ForkWalletClaim
 	76, // 25: orchestrator.v1.ForkWalletClaim.utxos:type_name -> orchestrator.v1.ForkClaimUtxo
-	8,  // 26: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
-	10, // 27: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
-	12, // 28: orchestrator.v1.OrchestratorService.GetBinaryVersion:input_type -> orchestrator.v1.GetBinaryVersionRequest
-	14, // 29: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
-	16, // 30: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
-	18, // 31: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
-	20, // 32: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
-	22, // 33: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
-	24, // 34: orchestrator.v1.OrchestratorService.RestartDaemon:input_type -> orchestrator.v1.RestartDaemonRequest
-	26, // 35: orchestrator.v1.OrchestratorService.RestartL1:input_type -> orchestrator.v1.RestartL1Request
-	28, // 36: orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot:input_type -> orchestrator.v1.ApplyUTXOSnapshotRequest
-	30, // 37: orchestrator.v1.OrchestratorService.GetSnapshotStatus:input_type -> orchestrator.v1.GetSnapshotStatusRequest
-	32, // 38: orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration:input_type -> orchestrator.v1.GetPendingNetworkGenerationRequest
-	34, // 39: orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration:input_type -> orchestrator.v1.ConfirmPendingNetworkGenerationRequest
-	36, // 40: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
-	77, // 41: orchestrator.v1.OrchestratorService.Shutdown:input_type -> orchestrator.v1.ShutdownRequest
-	79, // 42: orchestrator.v1.OrchestratorService.AdoptOwner:input_type -> orchestrator.v1.AdoptOwnerRequest
-	38, // 43: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
-	40, // 44: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
-	42, // 45: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
-	44, // 46: orchestrator.v1.OrchestratorService.GetSyncStatus:input_type -> orchestrator.v1.GetSyncStatusRequest
-	48, // 47: orchestrator.v1.OrchestratorService.GetDownloadStatus:input_type -> orchestrator.v1.GetDownloadStatusRequest
-	51, // 48: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
-	53, // 49: orchestrator.v1.OrchestratorService.GetSidechainBalance:input_type -> orchestrator.v1.GetSidechainBalanceRequest
-	56, // 50: orchestrator.v1.OrchestratorService.GatherFilesToDelete:input_type -> orchestrator.v1.GatherFilesToDeleteRequest
-	59, // 51: orchestrator.v1.OrchestratorService.DeleteFiles:input_type -> orchestrator.v1.DeleteFilesRequest
-	61, // 52: orchestrator.v1.OrchestratorService.RejectBlock:input_type -> orchestrator.v1.RejectBlockRequest
-	63, // 53: orchestrator.v1.OrchestratorService.AcceptBlock:input_type -> orchestrator.v1.AcceptBlockRequest
-	65, // 54: orchestrator.v1.OrchestratorService.ResetToBlock:input_type -> orchestrator.v1.ResetToBlockRequest
-	67, // 55: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:input_type -> orchestrator.v1.GetCoreMempoolInfoRequest
-	69, // 56: orchestrator.v1.OrchestratorService.GetBmmContext:input_type -> orchestrator.v1.GetBmmContextRequest
-	71, // 57: orchestrator.v1.OrchestratorService.CoreRawCall:input_type -> orchestrator.v1.CoreRawCallRequest
-	73, // 58: orchestrator.v1.OrchestratorService.GetForkStatus:input_type -> orchestrator.v1.GetForkStatusRequest
-	9,  // 59: orchestrator.v1.OrchestratorService.ListBinaries:output_type -> orchestrator.v1.ListBinariesResponse
-	11, // 60: orchestrator.v1.OrchestratorService.GetBinaryStatus:output_type -> orchestrator.v1.GetBinaryStatusResponse
-	13, // 61: orchestrator.v1.OrchestratorService.GetBinaryVersion:output_type -> orchestrator.v1.GetBinaryVersionResponse
-	15, // 62: orchestrator.v1.OrchestratorService.DownloadBinary:output_type -> orchestrator.v1.DownloadBinaryResponse
-	17, // 63: orchestrator.v1.OrchestratorService.StartBinary:output_type -> orchestrator.v1.StartBinaryResponse
-	19, // 64: orchestrator.v1.OrchestratorService.StopBinary:output_type -> orchestrator.v1.StopBinaryResponse
-	21, // 65: orchestrator.v1.OrchestratorService.StreamLogs:output_type -> orchestrator.v1.StreamLogsResponse
-	23, // 66: orchestrator.v1.OrchestratorService.StartWithL1:output_type -> orchestrator.v1.StartWithL1Response
-	25, // 67: orchestrator.v1.OrchestratorService.RestartDaemon:output_type -> orchestrator.v1.RestartDaemonResponse
-	27, // 68: orchestrator.v1.OrchestratorService.RestartL1:output_type -> orchestrator.v1.RestartL1Response
-	29, // 69: orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot:output_type -> orchestrator.v1.ApplyUTXOSnapshotResponse
-	31, // 70: orchestrator.v1.OrchestratorService.GetSnapshotStatus:output_type -> orchestrator.v1.GetSnapshotStatusResponse
-	33, // 71: orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration:output_type -> orchestrator.v1.GetPendingNetworkGenerationResponse
-	35, // 72: orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration:output_type -> orchestrator.v1.ConfirmPendingNetworkGenerationResponse
-	37, // 73: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
-	78, // 74: orchestrator.v1.OrchestratorService.Shutdown:output_type -> orchestrator.v1.ShutdownResponse
-	80, // 75: orchestrator.v1.OrchestratorService.AdoptOwner:output_type -> orchestrator.v1.AdoptOwnerResponse
-	39, // 76: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse
-	41, // 77: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse
-	43, // 78: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:output_type -> orchestrator.v1.GetEnforcerBlockchainInfoResponse
-	45, // 79: orchestrator.v1.OrchestratorService.GetSyncStatus:output_type -> orchestrator.v1.GetSyncStatusResponse
-	49, // 80: orchestrator.v1.OrchestratorService.GetDownloadStatus:output_type -> orchestrator.v1.GetDownloadStatusResponse
-	52, // 81: orchestrator.v1.OrchestratorService.GetMainchainBalance:output_type -> orchestrator.v1.GetMainchainBalanceResponse
-	54, // 82: orchestrator.v1.OrchestratorService.GetSidechainBalance:output_type -> orchestrator.v1.GetSidechainBalanceResponse
-	57, // 83: orchestrator.v1.OrchestratorService.GatherFilesToDelete:output_type -> orchestrator.v1.GatherFilesToDeleteResponse
-	60, // 84: orchestrator.v1.OrchestratorService.DeleteFiles:output_type -> orchestrator.v1.DeleteFilesResponse
-	62, // 85: orchestrator.v1.OrchestratorService.RejectBlock:output_type -> orchestrator.v1.RejectBlockResponse
-	64, // 86: orchestrator.v1.OrchestratorService.AcceptBlock:output_type -> orchestrator.v1.AcceptBlockResponse
-	66, // 87: orchestrator.v1.OrchestratorService.ResetToBlock:output_type -> orchestrator.v1.ResetToBlockResponse
-	68, // 88: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:output_type -> orchestrator.v1.GetCoreMempoolInfoResponse
-	70, // 89: orchestrator.v1.OrchestratorService.GetBmmContext:output_type -> orchestrator.v1.GetBmmContextResponse
-	72, // 90: orchestrator.v1.OrchestratorService.CoreRawCall:output_type -> orchestrator.v1.CoreRawCallResponse
-	74, // 91: orchestrator.v1.OrchestratorService.GetForkStatus:output_type -> orchestrator.v1.GetForkStatusResponse
-	59, // [59:92] is the sub-list for method output_type
-	26, // [26:59] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	87, // 26: orchestrator.v1.PreviewECashMigrationResponse.status:type_name -> orchestrator.v1.ECashMigrationStatus
+	87, // 27: orchestrator.v1.StartECashMigrationResponse.status:type_name -> orchestrator.v1.ECashMigrationStatus
+	87, // 28: orchestrator.v1.GetECashMigrationStatusResponse.status:type_name -> orchestrator.v1.ECashMigrationStatus
+	8,  // 29: orchestrator.v1.OrchestratorService.ListBinaries:input_type -> orchestrator.v1.ListBinariesRequest
+	10, // 30: orchestrator.v1.OrchestratorService.GetBinaryStatus:input_type -> orchestrator.v1.GetBinaryStatusRequest
+	12, // 31: orchestrator.v1.OrchestratorService.GetBinaryVersion:input_type -> orchestrator.v1.GetBinaryVersionRequest
+	14, // 32: orchestrator.v1.OrchestratorService.DownloadBinary:input_type -> orchestrator.v1.DownloadBinaryRequest
+	16, // 33: orchestrator.v1.OrchestratorService.StartBinary:input_type -> orchestrator.v1.StartBinaryRequest
+	18, // 34: orchestrator.v1.OrchestratorService.StopBinary:input_type -> orchestrator.v1.StopBinaryRequest
+	20, // 35: orchestrator.v1.OrchestratorService.StreamLogs:input_type -> orchestrator.v1.StreamLogsRequest
+	22, // 36: orchestrator.v1.OrchestratorService.StartWithL1:input_type -> orchestrator.v1.StartWithL1Request
+	24, // 37: orchestrator.v1.OrchestratorService.RestartDaemon:input_type -> orchestrator.v1.RestartDaemonRequest
+	26, // 38: orchestrator.v1.OrchestratorService.RestartL1:input_type -> orchestrator.v1.RestartL1Request
+	28, // 39: orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot:input_type -> orchestrator.v1.ApplyUTXOSnapshotRequest
+	30, // 40: orchestrator.v1.OrchestratorService.GetSnapshotStatus:input_type -> orchestrator.v1.GetSnapshotStatusRequest
+	32, // 41: orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration:input_type -> orchestrator.v1.GetPendingNetworkGenerationRequest
+	34, // 42: orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration:input_type -> orchestrator.v1.ConfirmPendingNetworkGenerationRequest
+	36, // 43: orchestrator.v1.OrchestratorService.ShutdownAll:input_type -> orchestrator.v1.ShutdownAllRequest
+	77, // 44: orchestrator.v1.OrchestratorService.Shutdown:input_type -> orchestrator.v1.ShutdownRequest
+	79, // 45: orchestrator.v1.OrchestratorService.AdoptOwner:input_type -> orchestrator.v1.AdoptOwnerRequest
+	38, // 46: orchestrator.v1.OrchestratorService.GetBTCPrice:input_type -> orchestrator.v1.GetBTCPriceRequest
+	40, // 47: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:input_type -> orchestrator.v1.GetMainchainBlockchainInfoRequest
+	42, // 48: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:input_type -> orchestrator.v1.GetEnforcerBlockchainInfoRequest
+	44, // 49: orchestrator.v1.OrchestratorService.GetSyncStatus:input_type -> orchestrator.v1.GetSyncStatusRequest
+	48, // 50: orchestrator.v1.OrchestratorService.GetDownloadStatus:input_type -> orchestrator.v1.GetDownloadStatusRequest
+	51, // 51: orchestrator.v1.OrchestratorService.GetMainchainBalance:input_type -> orchestrator.v1.GetMainchainBalanceRequest
+	53, // 52: orchestrator.v1.OrchestratorService.GetSidechainBalance:input_type -> orchestrator.v1.GetSidechainBalanceRequest
+	56, // 53: orchestrator.v1.OrchestratorService.GatherFilesToDelete:input_type -> orchestrator.v1.GatherFilesToDeleteRequest
+	59, // 54: orchestrator.v1.OrchestratorService.DeleteFiles:input_type -> orchestrator.v1.DeleteFilesRequest
+	61, // 55: orchestrator.v1.OrchestratorService.RejectBlock:input_type -> orchestrator.v1.RejectBlockRequest
+	63, // 56: orchestrator.v1.OrchestratorService.AcceptBlock:input_type -> orchestrator.v1.AcceptBlockRequest
+	65, // 57: orchestrator.v1.OrchestratorService.ResetToBlock:input_type -> orchestrator.v1.ResetToBlockRequest
+	67, // 58: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:input_type -> orchestrator.v1.GetCoreMempoolInfoRequest
+	69, // 59: orchestrator.v1.OrchestratorService.GetBmmContext:input_type -> orchestrator.v1.GetBmmContextRequest
+	71, // 60: orchestrator.v1.OrchestratorService.CoreRawCall:input_type -> orchestrator.v1.CoreRawCallRequest
+	73, // 61: orchestrator.v1.OrchestratorService.GetForkStatus:input_type -> orchestrator.v1.GetForkStatusRequest
+	81, // 62: orchestrator.v1.OrchestratorService.PreviewECashMigration:input_type -> orchestrator.v1.PreviewECashMigrationRequest
+	83, // 63: orchestrator.v1.OrchestratorService.StartECashMigration:input_type -> orchestrator.v1.StartECashMigrationRequest
+	85, // 64: orchestrator.v1.OrchestratorService.GetECashMigrationStatus:input_type -> orchestrator.v1.GetECashMigrationStatusRequest
+	9,  // 65: orchestrator.v1.OrchestratorService.ListBinaries:output_type -> orchestrator.v1.ListBinariesResponse
+	11, // 66: orchestrator.v1.OrchestratorService.GetBinaryStatus:output_type -> orchestrator.v1.GetBinaryStatusResponse
+	13, // 67: orchestrator.v1.OrchestratorService.GetBinaryVersion:output_type -> orchestrator.v1.GetBinaryVersionResponse
+	15, // 68: orchestrator.v1.OrchestratorService.DownloadBinary:output_type -> orchestrator.v1.DownloadBinaryResponse
+	17, // 69: orchestrator.v1.OrchestratorService.StartBinary:output_type -> orchestrator.v1.StartBinaryResponse
+	19, // 70: orchestrator.v1.OrchestratorService.StopBinary:output_type -> orchestrator.v1.StopBinaryResponse
+	21, // 71: orchestrator.v1.OrchestratorService.StreamLogs:output_type -> orchestrator.v1.StreamLogsResponse
+	23, // 72: orchestrator.v1.OrchestratorService.StartWithL1:output_type -> orchestrator.v1.StartWithL1Response
+	25, // 73: orchestrator.v1.OrchestratorService.RestartDaemon:output_type -> orchestrator.v1.RestartDaemonResponse
+	27, // 74: orchestrator.v1.OrchestratorService.RestartL1:output_type -> orchestrator.v1.RestartL1Response
+	29, // 75: orchestrator.v1.OrchestratorService.ApplyUTXOSnapshot:output_type -> orchestrator.v1.ApplyUTXOSnapshotResponse
+	31, // 76: orchestrator.v1.OrchestratorService.GetSnapshotStatus:output_type -> orchestrator.v1.GetSnapshotStatusResponse
+	33, // 77: orchestrator.v1.OrchestratorService.GetPendingNetworkGeneration:output_type -> orchestrator.v1.GetPendingNetworkGenerationResponse
+	35, // 78: orchestrator.v1.OrchestratorService.ConfirmPendingNetworkGeneration:output_type -> orchestrator.v1.ConfirmPendingNetworkGenerationResponse
+	37, // 79: orchestrator.v1.OrchestratorService.ShutdownAll:output_type -> orchestrator.v1.ShutdownAllResponse
+	78, // 80: orchestrator.v1.OrchestratorService.Shutdown:output_type -> orchestrator.v1.ShutdownResponse
+	80, // 81: orchestrator.v1.OrchestratorService.AdoptOwner:output_type -> orchestrator.v1.AdoptOwnerResponse
+	39, // 82: orchestrator.v1.OrchestratorService.GetBTCPrice:output_type -> orchestrator.v1.GetBTCPriceResponse
+	41, // 83: orchestrator.v1.OrchestratorService.GetMainchainBlockchainInfo:output_type -> orchestrator.v1.GetMainchainBlockchainInfoResponse
+	43, // 84: orchestrator.v1.OrchestratorService.GetEnforcerBlockchainInfo:output_type -> orchestrator.v1.GetEnforcerBlockchainInfoResponse
+	45, // 85: orchestrator.v1.OrchestratorService.GetSyncStatus:output_type -> orchestrator.v1.GetSyncStatusResponse
+	49, // 86: orchestrator.v1.OrchestratorService.GetDownloadStatus:output_type -> orchestrator.v1.GetDownloadStatusResponse
+	52, // 87: orchestrator.v1.OrchestratorService.GetMainchainBalance:output_type -> orchestrator.v1.GetMainchainBalanceResponse
+	54, // 88: orchestrator.v1.OrchestratorService.GetSidechainBalance:output_type -> orchestrator.v1.GetSidechainBalanceResponse
+	57, // 89: orchestrator.v1.OrchestratorService.GatherFilesToDelete:output_type -> orchestrator.v1.GatherFilesToDeleteResponse
+	60, // 90: orchestrator.v1.OrchestratorService.DeleteFiles:output_type -> orchestrator.v1.DeleteFilesResponse
+	62, // 91: orchestrator.v1.OrchestratorService.RejectBlock:output_type -> orchestrator.v1.RejectBlockResponse
+	64, // 92: orchestrator.v1.OrchestratorService.AcceptBlock:output_type -> orchestrator.v1.AcceptBlockResponse
+	66, // 93: orchestrator.v1.OrchestratorService.ResetToBlock:output_type -> orchestrator.v1.ResetToBlockResponse
+	68, // 94: orchestrator.v1.OrchestratorService.GetCoreMempoolInfo:output_type -> orchestrator.v1.GetCoreMempoolInfoResponse
+	70, // 95: orchestrator.v1.OrchestratorService.GetBmmContext:output_type -> orchestrator.v1.GetBmmContextResponse
+	72, // 96: orchestrator.v1.OrchestratorService.CoreRawCall:output_type -> orchestrator.v1.CoreRawCallResponse
+	74, // 97: orchestrator.v1.OrchestratorService.GetForkStatus:output_type -> orchestrator.v1.GetForkStatusResponse
+	82, // 98: orchestrator.v1.OrchestratorService.PreviewECashMigration:output_type -> orchestrator.v1.PreviewECashMigrationResponse
+	84, // 99: orchestrator.v1.OrchestratorService.StartECashMigration:output_type -> orchestrator.v1.StartECashMigrationResponse
+	86, // 100: orchestrator.v1.OrchestratorService.GetECashMigrationStatus:output_type -> orchestrator.v1.GetECashMigrationStatusResponse
+	65, // [65:101] is the sub-list for method output_type
+	29, // [29:65] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_orchestrator_v1_orchestrator_proto_init() }
@@ -5723,7 +6241,7 @@ func file_orchestrator_v1_orchestrator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_orchestrator_v1_orchestrator_proto_rawDesc), len(file_orchestrator_v1_orchestrator_proto_rawDesc)),
 			NumEnums:      6,
-			NumMessages:   77,
+			NumMessages:   84,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

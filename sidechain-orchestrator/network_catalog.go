@@ -237,12 +237,24 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 		o.log.Warn().Msg("network catalog carries no eCash network, eCash downloads will not resolve")
 	}
 
-	// Logged, not returned: a start moves no chain, and the conf sentinel the
-	// swap writes still names the network this install runs.
-	if err := o.recordECashChain(id); err != nil {
-		o.log.Warn().Err(err).Msg("could not record the eCash network this install runs")
+	chainID, err := o.catalogChainID(id)
+	if err != nil {
+		o.log.Error().Err(err).Msg("cannot identify the ECX files")
+		return
+	}
+	if err := o.recordECashChain(chainID); err != nil {
+		o.log.Error().Err(err).Msg("cannot save the ECX network identity")
+		return
 	}
 	o.adoptCatalogRows(c, id)
+	status, err := o.ECashMigrationStatus()
+	if err != nil {
+		o.log.Error().Err(err).Msg("cannot read the ECX migration")
+		return
+	}
+	if chainID != id || status.JobID != "" && !status.Complete {
+		return
+	}
 
 	o.mu.RLock()
 	conf := o.BitcoinConf
@@ -275,6 +287,38 @@ func (o *Orchestrator) adoptCatalog(c netcatalog.Catalog, id string) {
 			o.log.Warn().Err(err).Msg("could not rewrite eCash bitcoin.conf for the new generation")
 		}
 	}
+}
+
+func (o *Orchestrator) catalogChainID(selected string) (string, error) {
+	files, err := o.hasECashChainFiles()
+	if err != nil || !files {
+		return selected, err
+	}
+	if o.Settings != nil {
+		if id := o.Settings.ECashChainID(); id != "" {
+			return id, nil
+		}
+	}
+	o.migrationMu.Lock()
+	state, err := o.readMigration()
+	id := ""
+	if state != nil {
+		id = state.Status.FromID
+		if state.Step >= 4 {
+			id = state.Status.ToID
+		}
+	}
+	o.migrationMu.Unlock()
+	if err != nil {
+		return "", err
+	}
+	if id != "" {
+		return id, nil
+	}
+	if id := o.installedECashNetwork(); id != "" {
+		return id, nil
+	}
+	return "", fmt.Errorf("ECX files have no saved network identity")
 }
 
 // recordECashChain persists the network this install serves, so a start off

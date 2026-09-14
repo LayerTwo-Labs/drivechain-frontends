@@ -155,9 +155,10 @@ type StartupLogEntry struct {
 
 // ProcessManager handles spawning, monitoring, and killing processes.
 type ProcessManager struct {
-	dataDir    string
-	pidManager *PidFileManager
-	log        zerolog.Logger
+	BeforeStart func(context.Context, BinaryConfig) error
+	dataDir     string
+	pidManager  *PidFileManager
+	log         zerolog.Logger
 
 	// CoreVariant resolves the binary path for Bitcoin Core when set. If nil
 	// (or it returns ok=false), the default flat BinaryPath is used.
@@ -247,7 +248,12 @@ func (pm *ProcessManager) Start(ctx context.Context, config BinaryConfig, args [
 }
 
 // StartWithOptions is Start with per-call overrides (see ProcessStartOptions).
-func (pm *ProcessManager) StartWithOptions(_ context.Context, config BinaryConfig, args []string, env map[string]string, opts ProcessStartOptions) (int, error) {
+func (pm *ProcessManager) StartWithOptions(ctx context.Context, config BinaryConfig, args []string, env map[string]string, opts ProcessStartOptions) (int, error) {
+	if pm.BeforeStart != nil {
+		if err := pm.BeforeStart(ctx, config); err != nil {
+			return 0, err
+		}
+	}
 	processName := opts.ProcessName
 	if processName == "" {
 		processName = config.Name

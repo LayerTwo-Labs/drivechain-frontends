@@ -46,11 +46,13 @@ type Catalog struct {
 
 // Network is one entry of the catalog.
 type Network struct {
-	ID          string `json:"id"`
-	Family      string `json:"family"`
-	DisplayName string `json:"display_name"`
-	Description string `json:"description"`
-	Chain       string `json:"chain"`
+	ID             string `json:"id"`
+	Family         string `json:"family"`
+	DisplayName    string `json:"display_name"`
+	Description    string `json:"description"`
+	Chain          string `json:"chain"`
+	NetworkMagic   string `json:"network_magic,omitempty"`
+	ForkParentHash string `json:"fork_parent_hash,omitempty"`
 
 	Currency struct {
 		Name   string `json:"name"`

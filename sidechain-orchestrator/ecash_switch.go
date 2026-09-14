@@ -236,6 +236,9 @@ func (o *Orchestrator) pendingECashSwap() bool {
 // confs and starts the stack again. The enforcer's validator chain is
 // per-network and small, so it goes rather than replays.
 func (o *Orchestrator) ApplyECashSwitch(ctx context.Context, toID string) error {
+	if migrated, err := o.applyDiskECashSwitch(ctx, toID); migrated || err != nil {
+		return err
+	}
 	// The lock comes before the plan. Two overlapping requests would otherwise
 	// both read the same outgoing id, and the second would bar the branch the
 	// first just moved to.

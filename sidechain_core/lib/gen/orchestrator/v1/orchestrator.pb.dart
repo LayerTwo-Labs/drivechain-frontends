@@ -5819,6 +5819,625 @@ class AdoptOwnerResponse extends $pb.GeneratedMessage {
   void clearCanceledExit() => clearField(1);
 }
 
+class PreviewECashMigrationRequest extends $pb.GeneratedMessage {
+  factory PreviewECashMigrationRequest({
+    $core.String? fromId,
+    $core.String? toId,
+  }) {
+    final $result = create();
+    if (fromId != null) {
+      $result.fromId = fromId;
+    }
+    if (toId != null) {
+      $result.toId = toId;
+    }
+    return $result;
+  }
+  PreviewECashMigrationRequest._() : super();
+  factory PreviewECashMigrationRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewECashMigrationRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewECashMigrationRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fromId')
+    ..aOS(2, _omitFieldNames ? '' : 'toId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewECashMigrationRequest clone() => PreviewECashMigrationRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewECashMigrationRequest copyWith(void Function(PreviewECashMigrationRequest) updates) => super.copyWith((message) => updates(message as PreviewECashMigrationRequest)) as PreviewECashMigrationRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewECashMigrationRequest create() => PreviewECashMigrationRequest._();
+  PreviewECashMigrationRequest createEmptyInstance() => create();
+  static $pb.PbList<PreviewECashMigrationRequest> createRepeated() => $pb.PbList<PreviewECashMigrationRequest>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewECashMigrationRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewECashMigrationRequest>(create);
+  static PreviewECashMigrationRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get fromId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set fromId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFromId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFromId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get toId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set toId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasToId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearToId() => clearField(2);
+}
+
+class PreviewECashMigrationResponse extends $pb.GeneratedMessage {
+  factory PreviewECashMigrationResponse({
+    ECashMigrationStatus? status,
+  }) {
+    final $result = create();
+    if (status != null) {
+      $result.status = status;
+    }
+    return $result;
+  }
+  PreviewECashMigrationResponse._() : super();
+  factory PreviewECashMigrationResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory PreviewECashMigrationResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PreviewECashMigrationResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOM<ECashMigrationStatus>(1, _omitFieldNames ? '' : 'status', subBuilder: ECashMigrationStatus.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  PreviewECashMigrationResponse clone() => PreviewECashMigrationResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  PreviewECashMigrationResponse copyWith(void Function(PreviewECashMigrationResponse) updates) => super.copyWith((message) => updates(message as PreviewECashMigrationResponse)) as PreviewECashMigrationResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewECashMigrationResponse create() => PreviewECashMigrationResponse._();
+  PreviewECashMigrationResponse createEmptyInstance() => create();
+  static $pb.PbList<PreviewECashMigrationResponse> createRepeated() => $pb.PbList<PreviewECashMigrationResponse>();
+  @$core.pragma('dart2js:noInline')
+  static PreviewECashMigrationResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PreviewECashMigrationResponse>(create);
+  static PreviewECashMigrationResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ECashMigrationStatus get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status(ECashMigrationStatus v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => clearField(1);
+  @$pb.TagNumber(1)
+  ECashMigrationStatus ensureStatus() => $_ensure(0);
+}
+
+class StartECashMigrationRequest extends $pb.GeneratedMessage {
+  factory StartECashMigrationRequest({
+    $core.String? fromId,
+    $core.String? toId,
+  }) {
+    final $result = create();
+    if (fromId != null) {
+      $result.fromId = fromId;
+    }
+    if (toId != null) {
+      $result.toId = toId;
+    }
+    return $result;
+  }
+  StartECashMigrationRequest._() : super();
+  factory StartECashMigrationRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StartECashMigrationRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartECashMigrationRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fromId')
+    ..aOS(2, _omitFieldNames ? '' : 'toId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StartECashMigrationRequest clone() => StartECashMigrationRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StartECashMigrationRequest copyWith(void Function(StartECashMigrationRequest) updates) => super.copyWith((message) => updates(message as StartECashMigrationRequest)) as StartECashMigrationRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StartECashMigrationRequest create() => StartECashMigrationRequest._();
+  StartECashMigrationRequest createEmptyInstance() => create();
+  static $pb.PbList<StartECashMigrationRequest> createRepeated() => $pb.PbList<StartECashMigrationRequest>();
+  @$core.pragma('dart2js:noInline')
+  static StartECashMigrationRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartECashMigrationRequest>(create);
+  static StartECashMigrationRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get fromId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set fromId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFromId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFromId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get toId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set toId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasToId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearToId() => clearField(2);
+}
+
+class StartECashMigrationResponse extends $pb.GeneratedMessage {
+  factory StartECashMigrationResponse({
+    ECashMigrationStatus? status,
+  }) {
+    final $result = create();
+    if (status != null) {
+      $result.status = status;
+    }
+    return $result;
+  }
+  StartECashMigrationResponse._() : super();
+  factory StartECashMigrationResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory StartECashMigrationResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'StartECashMigrationResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOM<ECashMigrationStatus>(1, _omitFieldNames ? '' : 'status', subBuilder: ECashMigrationStatus.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  StartECashMigrationResponse clone() => StartECashMigrationResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  StartECashMigrationResponse copyWith(void Function(StartECashMigrationResponse) updates) => super.copyWith((message) => updates(message as StartECashMigrationResponse)) as StartECashMigrationResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StartECashMigrationResponse create() => StartECashMigrationResponse._();
+  StartECashMigrationResponse createEmptyInstance() => create();
+  static $pb.PbList<StartECashMigrationResponse> createRepeated() => $pb.PbList<StartECashMigrationResponse>();
+  @$core.pragma('dart2js:noInline')
+  static StartECashMigrationResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<StartECashMigrationResponse>(create);
+  static StartECashMigrationResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ECashMigrationStatus get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status(ECashMigrationStatus v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => clearField(1);
+  @$pb.TagNumber(1)
+  ECashMigrationStatus ensureStatus() => $_ensure(0);
+}
+
+class GetECashMigrationStatusRequest extends $pb.GeneratedMessage {
+  factory GetECashMigrationStatusRequest() => create();
+  GetECashMigrationStatusRequest._() : super();
+  factory GetECashMigrationStatusRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetECashMigrationStatusRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetECashMigrationStatusRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetECashMigrationStatusRequest clone() => GetECashMigrationStatusRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetECashMigrationStatusRequest copyWith(void Function(GetECashMigrationStatusRequest) updates) => super.copyWith((message) => updates(message as GetECashMigrationStatusRequest)) as GetECashMigrationStatusRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetECashMigrationStatusRequest create() => GetECashMigrationStatusRequest._();
+  GetECashMigrationStatusRequest createEmptyInstance() => create();
+  static $pb.PbList<GetECashMigrationStatusRequest> createRepeated() => $pb.PbList<GetECashMigrationStatusRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetECashMigrationStatusRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetECashMigrationStatusRequest>(create);
+  static GetECashMigrationStatusRequest? _defaultInstance;
+}
+
+class GetECashMigrationStatusResponse extends $pb.GeneratedMessage {
+  factory GetECashMigrationStatusResponse({
+    ECashMigrationStatus? status,
+  }) {
+    final $result = create();
+    if (status != null) {
+      $result.status = status;
+    }
+    return $result;
+  }
+  GetECashMigrationStatusResponse._() : super();
+  factory GetECashMigrationStatusResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetECashMigrationStatusResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetECashMigrationStatusResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOM<ECashMigrationStatus>(1, _omitFieldNames ? '' : 'status', subBuilder: ECashMigrationStatus.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetECashMigrationStatusResponse clone() => GetECashMigrationStatusResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetECashMigrationStatusResponse copyWith(void Function(GetECashMigrationStatusResponse) updates) => super.copyWith((message) => updates(message as GetECashMigrationStatusResponse)) as GetECashMigrationStatusResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetECashMigrationStatusResponse create() => GetECashMigrationStatusResponse._();
+  GetECashMigrationStatusResponse createEmptyInstance() => create();
+  static $pb.PbList<GetECashMigrationStatusResponse> createRepeated() => $pb.PbList<GetECashMigrationStatusResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetECashMigrationStatusResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetECashMigrationStatusResponse>(create);
+  static GetECashMigrationStatusResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ECashMigrationStatus get status => $_getN(0);
+  @$pb.TagNumber(1)
+  set status(ECashMigrationStatus v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasStatus() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStatus() => clearField(1);
+  @$pb.TagNumber(1)
+  ECashMigrationStatus ensureStatus() => $_ensure(0);
+}
+
+class ECashMigrationStatus extends $pb.GeneratedMessage {
+  factory ECashMigrationStatus({
+    $core.String? jobId,
+    $core.String? fromId,
+    $core.String? toId,
+    $core.String? phase,
+    $core.String? dataDir,
+    $fixnum.Int64? commonHeight,
+    $core.String? commonHash,
+    $core.String? sourceMagic,
+    $core.String? targetMagic,
+    $fixnum.Int64? blockFiles,
+    $fixnum.Int64? undoFiles,
+    $fixnum.Int64? recordsDone,
+    $fixnum.Int64? recordsTotal,
+    $core.bool? running,
+    $core.bool? complete,
+    $core.String? error,
+    $core.String? syncState,
+    $core.bool? pruned,
+    $fixnum.Int64? pruneHeight,
+  }) {
+    final $result = create();
+    if (jobId != null) {
+      $result.jobId = jobId;
+    }
+    if (fromId != null) {
+      $result.fromId = fromId;
+    }
+    if (toId != null) {
+      $result.toId = toId;
+    }
+    if (phase != null) {
+      $result.phase = phase;
+    }
+    if (dataDir != null) {
+      $result.dataDir = dataDir;
+    }
+    if (commonHeight != null) {
+      $result.commonHeight = commonHeight;
+    }
+    if (commonHash != null) {
+      $result.commonHash = commonHash;
+    }
+    if (sourceMagic != null) {
+      $result.sourceMagic = sourceMagic;
+    }
+    if (targetMagic != null) {
+      $result.targetMagic = targetMagic;
+    }
+    if (blockFiles != null) {
+      $result.blockFiles = blockFiles;
+    }
+    if (undoFiles != null) {
+      $result.undoFiles = undoFiles;
+    }
+    if (recordsDone != null) {
+      $result.recordsDone = recordsDone;
+    }
+    if (recordsTotal != null) {
+      $result.recordsTotal = recordsTotal;
+    }
+    if (running != null) {
+      $result.running = running;
+    }
+    if (complete != null) {
+      $result.complete = complete;
+    }
+    if (error != null) {
+      $result.error = error;
+    }
+    if (syncState != null) {
+      $result.syncState = syncState;
+    }
+    if (pruned != null) {
+      $result.pruned = pruned;
+    }
+    if (pruneHeight != null) {
+      $result.pruneHeight = pruneHeight;
+    }
+    return $result;
+  }
+  ECashMigrationStatus._() : super();
+  factory ECashMigrationStatus.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ECashMigrationStatus.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ECashMigrationStatus', package: const $pb.PackageName(_omitMessageNames ? '' : 'orchestrator.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'jobId')
+    ..aOS(2, _omitFieldNames ? '' : 'fromId')
+    ..aOS(3, _omitFieldNames ? '' : 'toId')
+    ..aOS(4, _omitFieldNames ? '' : 'phase')
+    ..aOS(5, _omitFieldNames ? '' : 'dataDir')
+    ..aInt64(6, _omitFieldNames ? '' : 'commonHeight')
+    ..aOS(7, _omitFieldNames ? '' : 'commonHash')
+    ..aOS(8, _omitFieldNames ? '' : 'sourceMagic')
+    ..aOS(9, _omitFieldNames ? '' : 'targetMagic')
+    ..a<$fixnum.Int64>(10, _omitFieldNames ? '' : 'blockFiles', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(11, _omitFieldNames ? '' : 'undoFiles', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(12, _omitFieldNames ? '' : 'recordsDone', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..a<$fixnum.Int64>(13, _omitFieldNames ? '' : 'recordsTotal', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(14, _omitFieldNames ? '' : 'running')
+    ..aOB(15, _omitFieldNames ? '' : 'complete')
+    ..aOS(16, _omitFieldNames ? '' : 'error')
+    ..aOS(17, _omitFieldNames ? '' : 'syncState')
+    ..aOB(18, _omitFieldNames ? '' : 'pruned')
+    ..aInt64(19, _omitFieldNames ? '' : 'pruneHeight')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ECashMigrationStatus clone() => ECashMigrationStatus()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ECashMigrationStatus copyWith(void Function(ECashMigrationStatus) updates) => super.copyWith((message) => updates(message as ECashMigrationStatus)) as ECashMigrationStatus;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ECashMigrationStatus create() => ECashMigrationStatus._();
+  ECashMigrationStatus createEmptyInstance() => create();
+  static $pb.PbList<ECashMigrationStatus> createRepeated() => $pb.PbList<ECashMigrationStatus>();
+  @$core.pragma('dart2js:noInline')
+  static ECashMigrationStatus getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ECashMigrationStatus>(create);
+  static ECashMigrationStatus? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get jobId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set jobId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasJobId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearJobId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get fromId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fromId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFromId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFromId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get toId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set toId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasToId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearToId() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get phase => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set phase($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPhase() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPhase() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get dataDir => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set dataDir($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasDataDir() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDataDir() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get commonHeight => $_getI64(5);
+  @$pb.TagNumber(6)
+  set commonHeight($fixnum.Int64 v) { $_setInt64(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasCommonHeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCommonHeight() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get commonHash => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set commonHash($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasCommonHash() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearCommonHash() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get sourceMagic => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set sourceMagic($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasSourceMagic() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSourceMagic() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get targetMagic => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set targetMagic($core.String v) { $_setString(8, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasTargetMagic() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearTargetMagic() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get blockFiles => $_getI64(9);
+  @$pb.TagNumber(10)
+  set blockFiles($fixnum.Int64 v) { $_setInt64(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasBlockFiles() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearBlockFiles() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $fixnum.Int64 get undoFiles => $_getI64(10);
+  @$pb.TagNumber(11)
+  set undoFiles($fixnum.Int64 v) { $_setInt64(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasUndoFiles() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearUndoFiles() => clearField(11);
+
+  @$pb.TagNumber(12)
+  $fixnum.Int64 get recordsDone => $_getI64(11);
+  @$pb.TagNumber(12)
+  set recordsDone($fixnum.Int64 v) { $_setInt64(11, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasRecordsDone() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearRecordsDone() => clearField(12);
+
+  @$pb.TagNumber(13)
+  $fixnum.Int64 get recordsTotal => $_getI64(12);
+  @$pb.TagNumber(13)
+  set recordsTotal($fixnum.Int64 v) { $_setInt64(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasRecordsTotal() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearRecordsTotal() => clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.bool get running => $_getBF(13);
+  @$pb.TagNumber(14)
+  set running($core.bool v) { $_setBool(13, v); }
+  @$pb.TagNumber(14)
+  $core.bool hasRunning() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearRunning() => clearField(14);
+
+  /// Local target checks passed. Network sync can continue after this point.
+  @$pb.TagNumber(15)
+  $core.bool get complete => $_getBF(14);
+  @$pb.TagNumber(15)
+  set complete($core.bool v) { $_setBool(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasComplete() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearComplete() => clearField(15);
+
+  @$pb.TagNumber(16)
+  $core.String get error => $_getSZ(15);
+  @$pb.TagNumber(16)
+  set error($core.String v) { $_setString(15, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasError() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearError() => clearField(16);
+
+  @$pb.TagNumber(17)
+  $core.String get syncState => $_getSZ(16);
+  @$pb.TagNumber(17)
+  set syncState($core.String v) { $_setString(16, v); }
+  @$pb.TagNumber(17)
+  $core.bool hasSyncState() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearSyncState() => clearField(17);
+
+  @$pb.TagNumber(18)
+  $core.bool get pruned => $_getBF(17);
+  @$pb.TagNumber(18)
+  set pruned($core.bool v) { $_setBool(17, v); }
+  @$pb.TagNumber(18)
+  $core.bool hasPruned() => $_has(17);
+  @$pb.TagNumber(18)
+  void clearPruned() => clearField(18);
+
+  @$pb.TagNumber(19)
+  $fixnum.Int64 get pruneHeight => $_getI64(18);
+  @$pb.TagNumber(19)
+  set pruneHeight($fixnum.Int64 v) { $_setInt64(18, v); }
+  @$pb.TagNumber(19)
+  $core.bool hasPruneHeight() => $_has(18);
+  @$pb.TagNumber(19)
+  void clearPruneHeight() => clearField(19);
+}
+
 class OrchestratorServiceApi {
   $pb.RpcClient _client;
   OrchestratorServiceApi(this._client);
@@ -5921,6 +6540,15 @@ class OrchestratorServiceApi {
   ;
   $async.Future<GetForkStatusResponse> getForkStatus($pb.ClientContext? ctx, GetForkStatusRequest request) =>
     _client.invoke<GetForkStatusResponse>(ctx, 'OrchestratorService', 'GetForkStatus', request, GetForkStatusResponse())
+  ;
+  $async.Future<PreviewECashMigrationResponse> previewECashMigration($pb.ClientContext? ctx, PreviewECashMigrationRequest request) =>
+    _client.invoke<PreviewECashMigrationResponse>(ctx, 'OrchestratorService', 'PreviewECashMigration', request, PreviewECashMigrationResponse())
+  ;
+  $async.Future<StartECashMigrationResponse> startECashMigration($pb.ClientContext? ctx, StartECashMigrationRequest request) =>
+    _client.invoke<StartECashMigrationResponse>(ctx, 'OrchestratorService', 'StartECashMigration', request, StartECashMigrationResponse())
+  ;
+  $async.Future<GetECashMigrationStatusResponse> getECashMigrationStatus($pb.ClientContext? ctx, GetECashMigrationStatusRequest request) =>
+    _client.invoke<GetECashMigrationStatusResponse>(ctx, 'OrchestratorService', 'GetECashMigrationStatus', request, GetECashMigrationStatusResponse())
   ;
 }
 
