@@ -54,6 +54,9 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
   $async.Future<$3.GetBmmContextResponse> getBmmContext($pb.ServerContext ctx, $3.GetBmmContextRequest request);
   $async.Future<$3.CoreRawCallResponse> coreRawCall($pb.ServerContext ctx, $3.CoreRawCallRequest request);
   $async.Future<$3.GetForkStatusResponse> getForkStatus($pb.ServerContext ctx, $3.GetForkStatusRequest request);
+  $async.Future<$3.PreviewECashMigrationResponse> previewECashMigration($pb.ServerContext ctx, $3.PreviewECashMigrationRequest request);
+  $async.Future<$3.StartECashMigrationResponse> startECashMigration($pb.ServerContext ctx, $3.StartECashMigrationRequest request);
+  $async.Future<$3.GetECashMigrationStatusResponse> getECashMigrationStatus($pb.ServerContext ctx, $3.GetECashMigrationStatusRequest request);
 
   $pb.GeneratedMessage createRequest($core.String methodName) {
     switch (methodName) {
@@ -90,6 +93,9 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetBmmContext': return $3.GetBmmContextRequest();
       case 'CoreRawCall': return $3.CoreRawCallRequest();
       case 'GetForkStatus': return $3.GetForkStatusRequest();
+      case 'PreviewECashMigration': return $3.PreviewECashMigrationRequest();
+      case 'StartECashMigration': return $3.StartECashMigrationRequest();
+      case 'GetECashMigrationStatus': return $3.GetECashMigrationStatusRequest();
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }
@@ -129,6 +135,9 @@ abstract class OrchestratorServiceBase extends $pb.GeneratedService {
       case 'GetBmmContext': return this.getBmmContext(ctx, request as $3.GetBmmContextRequest);
       case 'CoreRawCall': return this.coreRawCall(ctx, request as $3.CoreRawCallRequest);
       case 'GetForkStatus': return this.getForkStatus(ctx, request as $3.GetForkStatusRequest);
+      case 'PreviewECashMigration': return this.previewECashMigration(ctx, request as $3.PreviewECashMigrationRequest);
+      case 'StartECashMigration': return this.startECashMigration(ctx, request as $3.StartECashMigrationRequest);
+      case 'GetECashMigrationStatus': return this.getECashMigrationStatus(ctx, request as $3.GetECashMigrationStatusRequest);
       default: throw $core.ArgumentError('Unknown method: $methodName');
     }
   }

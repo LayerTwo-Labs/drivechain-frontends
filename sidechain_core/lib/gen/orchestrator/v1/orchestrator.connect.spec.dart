@@ -331,4 +331,28 @@ abstract final class OrchestratorService {
     orchestratorv1orchestrator.GetForkStatusRequest.new,
     orchestratorv1orchestrator.GetForkStatusResponse.new,
   );
+
+  /// Read the migration plan from the daemon without changes to node files.
+  static const previewECashMigration = connect.Spec(
+    '/$name/PreviewECashMigration',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.PreviewECashMigrationRequest.new,
+    orchestratorv1orchestrator.PreviewECashMigrationResponse.new,
+  );
+
+  /// Start or resume a migration that continues after the client disconnects.
+  static const startECashMigration = connect.Spec(
+    '/$name/StartECashMigration',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.StartECashMigrationRequest.new,
+    orchestratorv1orchestrator.StartECashMigrationResponse.new,
+  );
+
+  /// Read the saved migration state from the daemon.
+  static const getECashMigrationStatus = connect.Spec(
+    '/$name/GetECashMigrationStatus',
+    connect.StreamType.unary,
+    orchestratorv1orchestrator.GetECashMigrationStatusRequest.new,
+    orchestratorv1orchestrator.GetECashMigrationStatusResponse.new,
+  );
 }

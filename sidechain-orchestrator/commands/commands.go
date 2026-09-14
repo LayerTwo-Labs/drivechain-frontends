@@ -87,6 +87,7 @@ func Commands() []*cli.Command {
 		walletCommand,
 		bmmCommand,
 		resetCommand,
+		ecashCommand,
 		m1Command,
 	}
 

@@ -659,4 +659,58 @@ extension type OrchestratorServiceClient (connect.Transport _transport) {
       onTrailer: onTrailer,
     );
   }
+
+  /// Read the migration plan from the daemon without changes to node files.
+  Future<orchestratorv1orchestrator.PreviewECashMigrationResponse> previewECashMigration(
+    orchestratorv1orchestrator.PreviewECashMigrationRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.previewECashMigration,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Start or resume a migration that continues after the client disconnects.
+  Future<orchestratorv1orchestrator.StartECashMigrationResponse> startECashMigration(
+    orchestratorv1orchestrator.StartECashMigrationRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.startECashMigration,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
+
+  /// Read the saved migration state from the daemon.
+  Future<orchestratorv1orchestrator.GetECashMigrationStatusResponse> getECashMigrationStatus(
+    orchestratorv1orchestrator.GetECashMigrationStatusRequest input, {
+    connect.Headers? headers,
+    connect.AbortSignal? signal,
+    Function(connect.Headers)? onHeader,
+    Function(connect.Headers)? onTrailer,
+  }) {
+    return connect.Client(_transport).unary(
+      specs.OrchestratorService.getECashMigrationStatus,
+      input,
+      signal: signal,
+      headers: headers,
+      onHeader: onHeader,
+      onTrailer: onTrailer,
+    );
+  }
 }

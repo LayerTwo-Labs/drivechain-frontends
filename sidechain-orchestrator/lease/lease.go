@@ -28,6 +28,7 @@ type Lease struct {
 
 	mu        sync.Mutex
 	live      int
+	holds     int
 	idleFrom  time.Time
 	strikes   int
 	drained   bool
@@ -70,6 +71,24 @@ func (l *Lease) Goodbye() {
 	l.mu.Lock()
 	l.waived = true
 	l.mu.Unlock()
+}
+
+// Hold keeps the lease active until the returned function runs.
+func (l *Lease) Hold() func() {
+	l.mu.Lock()
+	l.holds++
+	l.mu.Unlock()
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			l.mu.Lock()
+			defer l.mu.Unlock()
+			l.holds--
+			if l.holds == 0 {
+				l.idleFrom = time.Now()
+			}
+		})
+	}
 }
 
 // SetOwner points the lease at a new owner process. An app update replaces the
@@ -149,7 +168,7 @@ func (l *Lease) expiredLocked() bool {
 	if l.waived {
 		grace = 0
 	}
-	return l.live == 0 && time.Since(l.idleFrom) >= grace
+	return l.live == 0 && l.holds == 0 && time.Since(l.idleFrom) >= grace
 }
 
 // fireIfExpired takes the decision and the flag under one lock. A handover

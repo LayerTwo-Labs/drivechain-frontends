@@ -132,6 +132,15 @@ const (
 	// OrchestratorServiceGetForkStatusProcedure is the fully-qualified name of the
 	// OrchestratorService's GetForkStatus RPC.
 	OrchestratorServiceGetForkStatusProcedure = "/orchestrator.v1.OrchestratorService/GetForkStatus"
+	// OrchestratorServicePreviewECashMigrationProcedure is the fully-qualified name of the
+	// OrchestratorService's PreviewECashMigration RPC.
+	OrchestratorServicePreviewECashMigrationProcedure = "/orchestrator.v1.OrchestratorService/PreviewECashMigration"
+	// OrchestratorServiceStartECashMigrationProcedure is the fully-qualified name of the
+	// OrchestratorService's StartECashMigration RPC.
+	OrchestratorServiceStartECashMigrationProcedure = "/orchestrator.v1.OrchestratorService/StartECashMigration"
+	// OrchestratorServiceGetECashMigrationStatusProcedure is the fully-qualified name of the
+	// OrchestratorService's GetECashMigrationStatus RPC.
+	OrchestratorServiceGetECashMigrationStatusProcedure = "/orchestrator.v1.OrchestratorService/GetECashMigrationStatus"
 )
 
 // OrchestratorServiceClient is a client for the orchestrator.v1.OrchestratorService service.
@@ -260,6 +269,12 @@ type OrchestratorServiceClient interface {
 	// existing WalletManagerService (listUnspent / sendTransaction), one call
 	// per wallet — this RPC only supplies the height.
 	GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error)
+	// Read the migration plan from the daemon without changes to node files.
+	PreviewECashMigration(context.Context, *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error)
+	// Start or resume a migration that continues after the client disconnects.
+	StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error)
+	// Read the saved migration state from the daemon.
+	GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error)
 }
 
 // NewOrchestratorServiceClient constructs a client for the orchestrator.v1.OrchestratorService
@@ -471,6 +486,24 @@ func NewOrchestratorServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(orchestratorServiceMethods.ByName("GetForkStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		previewECashMigration: connect.NewClient[v1.PreviewECashMigrationRequest, v1.PreviewECashMigrationResponse](
+			httpClient,
+			baseURL+OrchestratorServicePreviewECashMigrationProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("PreviewECashMigration")),
+			connect.WithClientOptions(opts...),
+		),
+		startECashMigration: connect.NewClient[v1.StartECashMigrationRequest, v1.StartECashMigrationResponse](
+			httpClient,
+			baseURL+OrchestratorServiceStartECashMigrationProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("StartECashMigration")),
+			connect.WithClientOptions(opts...),
+		),
+		getECashMigrationStatus: connect.NewClient[v1.GetECashMigrationStatusRequest, v1.GetECashMigrationStatusResponse](
+			httpClient,
+			baseURL+OrchestratorServiceGetECashMigrationStatusProcedure,
+			connect.WithSchema(orchestratorServiceMethods.ByName("GetECashMigrationStatus")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -509,6 +542,9 @@ type orchestratorServiceClient struct {
 	getBmmContext                   *connect.Client[v1.GetBmmContextRequest, v1.GetBmmContextResponse]
 	coreRawCall                     *connect.Client[v1.CoreRawCallRequest, v1.CoreRawCallResponse]
 	getForkStatus                   *connect.Client[v1.GetForkStatusRequest, v1.GetForkStatusResponse]
+	previewECashMigration           *connect.Client[v1.PreviewECashMigrationRequest, v1.PreviewECashMigrationResponse]
+	startECashMigration             *connect.Client[v1.StartECashMigrationRequest, v1.StartECashMigrationResponse]
+	getECashMigrationStatus         *connect.Client[v1.GetECashMigrationStatusRequest, v1.GetECashMigrationStatusResponse]
 }
 
 // ListBinaries calls orchestrator.v1.OrchestratorService.ListBinaries.
@@ -678,6 +714,21 @@ func (c *orchestratorServiceClient) GetForkStatus(ctx context.Context, req *conn
 	return c.getForkStatus.CallUnary(ctx, req)
 }
 
+// PreviewECashMigration calls orchestrator.v1.OrchestratorService.PreviewECashMigration.
+func (c *orchestratorServiceClient) PreviewECashMigration(ctx context.Context, req *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error) {
+	return c.previewECashMigration.CallUnary(ctx, req)
+}
+
+// StartECashMigration calls orchestrator.v1.OrchestratorService.StartECashMigration.
+func (c *orchestratorServiceClient) StartECashMigration(ctx context.Context, req *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error) {
+	return c.startECashMigration.CallUnary(ctx, req)
+}
+
+// GetECashMigrationStatus calls orchestrator.v1.OrchestratorService.GetECashMigrationStatus.
+func (c *orchestratorServiceClient) GetECashMigrationStatus(ctx context.Context, req *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error) {
+	return c.getECashMigrationStatus.CallUnary(ctx, req)
+}
+
 // OrchestratorServiceHandler is an implementation of the orchestrator.v1.OrchestratorService
 // service.
 type OrchestratorServiceHandler interface {
@@ -805,6 +856,12 @@ type OrchestratorServiceHandler interface {
 	// existing WalletManagerService (listUnspent / sendTransaction), one call
 	// per wallet — this RPC only supplies the height.
 	GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error)
+	// Read the migration plan from the daemon without changes to node files.
+	PreviewECashMigration(context.Context, *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error)
+	// Start or resume a migration that continues after the client disconnects.
+	StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error)
+	// Read the saved migration state from the daemon.
+	GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error)
 }
 
 // NewOrchestratorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -1012,6 +1069,24 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 		connect.WithSchema(orchestratorServiceMethods.ByName("GetForkStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	orchestratorServicePreviewECashMigrationHandler := connect.NewUnaryHandler(
+		OrchestratorServicePreviewECashMigrationProcedure,
+		svc.PreviewECashMigration,
+		connect.WithSchema(orchestratorServiceMethods.ByName("PreviewECashMigration")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceStartECashMigrationHandler := connect.NewUnaryHandler(
+		OrchestratorServiceStartECashMigrationProcedure,
+		svc.StartECashMigration,
+		connect.WithSchema(orchestratorServiceMethods.ByName("StartECashMigration")),
+		connect.WithHandlerOptions(opts...),
+	)
+	orchestratorServiceGetECashMigrationStatusHandler := connect.NewUnaryHandler(
+		OrchestratorServiceGetECashMigrationStatusProcedure,
+		svc.GetECashMigrationStatus,
+		connect.WithSchema(orchestratorServiceMethods.ByName("GetECashMigrationStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/orchestrator.v1.OrchestratorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrchestratorServiceListBinariesProcedure:
@@ -1080,6 +1155,12 @@ func NewOrchestratorServiceHandler(svc OrchestratorServiceHandler, opts ...conne
 			orchestratorServiceCoreRawCallHandler.ServeHTTP(w, r)
 		case OrchestratorServiceGetForkStatusProcedure:
 			orchestratorServiceGetForkStatusHandler.ServeHTTP(w, r)
+		case OrchestratorServicePreviewECashMigrationProcedure:
+			orchestratorServicePreviewECashMigrationHandler.ServeHTTP(w, r)
+		case OrchestratorServiceStartECashMigrationProcedure:
+			orchestratorServiceStartECashMigrationHandler.ServeHTTP(w, r)
+		case OrchestratorServiceGetECashMigrationStatusProcedure:
+			orchestratorServiceGetECashMigrationStatusHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1219,4 +1300,16 @@ func (UnimplementedOrchestratorServiceHandler) CoreRawCall(context.Context, *con
 
 func (UnimplementedOrchestratorServiceHandler) GetForkStatus(context.Context, *connect.Request[v1.GetForkStatusRequest]) (*connect.Response[v1.GetForkStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetForkStatus is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) PreviewECashMigration(context.Context, *connect.Request[v1.PreviewECashMigrationRequest]) (*connect.Response[v1.PreviewECashMigrationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.PreviewECashMigration is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) StartECashMigration(context.Context, *connect.Request[v1.StartECashMigrationRequest]) (*connect.Response[v1.StartECashMigrationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.StartECashMigration is not implemented"))
+}
+
+func (UnimplementedOrchestratorServiceHandler) GetECashMigrationStatus(context.Context, *connect.Request[v1.GetECashMigrationStatusRequest]) (*connect.Response[v1.GetECashMigrationStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("orchestrator.v1.OrchestratorService.GetECashMigrationStatus is not implemented"))
 }
