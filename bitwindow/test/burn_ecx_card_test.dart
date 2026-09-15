@@ -257,7 +257,7 @@ void main() {
   testWidgets('starts with a disabled burn action', (tester) async {
     await pumpCard(tester);
     final title = find
-        .text('Burn Transaction')
+        .text('Burn Alphanet Coins')
         .evaluate()
         .where((element) => element.findAncestorWidgetOfExactType<SailButton>() == null);
     expect(title, hasLength(1));

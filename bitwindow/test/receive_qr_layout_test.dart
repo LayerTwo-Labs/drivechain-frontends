@@ -162,7 +162,7 @@ void main() {
     expect(card.burnAddress, '1BitcoinEaterAddressDontSendf59kuE');
     expect(card.minimumSats, 100000000000);
     final title = find
-        .text('Burn Transaction')
+        .text('Burn Alphanet Coins')
         .evaluate()
         .where((element) => element.findAncestorWidgetOfExactType<SailButton>() == null);
     expect(title, hasLength(1));
