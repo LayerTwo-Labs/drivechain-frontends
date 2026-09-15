@@ -516,35 +516,22 @@ class _AddContactDialogState extends State<_AddContactDialog> {
       return null;
     }
 
-    // Compute Blake3 hash of the search text
-    final searchHash = blake3Hex(utf8.encode(query.toLowerCase()));
-
-    // Find BitName with matching hash
-    return widget.model.allBitNames.where((entry) {
-      return entry.hash.toLowerCase() == searchHash.toLowerCase();
-    }).firstOrNull;
+    final searchHash = blake3Hex(utf8.encode(query));
+    return widget.model.allBitNames.where((entry) => entry.hash.toLowerCase() == searchHash).firstOrNull;
   }
 
   List<BitnameEntry> get filteredBitNames {
-    final query = searchController.text.toLowerCase().trim();
-    if (query.isEmpty) {
+    final typed = searchController.text.trim();
+    if (typed.isEmpty) {
       return widget.model.allBitNames;
     }
-
-    // Compute Blake3 hash of the search text
-    String? searchHash;
-    try {
-      searchHash = blake3Hex(utf8.encode(query));
-    } catch (e) {
-      searchHash = null;
-    }
+    final query = typed.toLowerCase();
+    final searchHash = blake3Hex(utf8.encode(typed));
 
     return widget.model.allBitNames.where((entry) {
-      // Exact hash match from plaintext search
-      if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
+      if (entry.hash.toLowerCase() == searchHash) {
         return true;
       }
-      // Plaintext name match (if already decrypted)
       if (entry.plaintextName?.toLowerCase().contains(query) ?? false) {
         return true;
       }
@@ -932,18 +919,12 @@ class _SearchableIdentityDropdownState extends State<_SearchableIdentityDropdown
       placeholder: 'Select identity',
       searchPlaceholder: 'Search by name or hash...',
       noResultsText: 'No matching identities found',
-      filter: (item, query) {
-        // Plaintext queries also match their Blake3 hash.
-        String? searchHash;
-        try {
-          searchHash = blake3Hex(utf8.encode(query));
-        } catch (_) {
-          searchHash = null;
-        }
+      filter: (item, typed) {
         final entry = item.value;
-        if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
+        if (entry.hash.toLowerCase() == blake3Hex(utf8.encode(typed.trim()))) {
           return true;
         }
+        final query = typed.toLowerCase();
         if (entry.plaintextName?.toLowerCase().contains(query) ?? false) {
           return true;
         }

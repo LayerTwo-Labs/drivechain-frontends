@@ -680,28 +680,21 @@ class BitnamesViewModel extends BaseViewModel {
   }
 
   List<BitnameEntry> get entries {
-    final searchText = searchController.text.toLowerCase();
-    if (searchText.isEmpty) {
+    final query = searchController.text.trim();
+    if (query.isEmpty) {
       return provider.entries;
     }
-
-    // Hash the search text with Blake3 using thirds package
-    String? searchHash;
-    try {
-      searchHash = blake3Hex(utf8.encode(searchText));
-    } catch (e) {
-      // If hashing fails, continue with regular search
-      searchHash = null;
-    }
+    final searchText = query.toLowerCase();
+    final searchHash = blake3Hex(utf8.encode(query));
 
     return provider.entries.where((entry) {
-      // Check if search text hash matches entry hash
-      if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
+      if (entry.hash.toLowerCase() == searchHash) {
         if (entry.plaintextName == null) {
-          // we found a hash match, but it's not saved yet! Make sure to save it
-          // to disk for easy access later
-          unawaited(provider.saveHashNameMapping(searchText));
+          unawaited(provider.saveHashNameMapping(query));
         }
+        return true;
+      }
+      if (entry.plaintextName?.toLowerCase().contains(searchText) ?? false) {
         return true;
       }
 

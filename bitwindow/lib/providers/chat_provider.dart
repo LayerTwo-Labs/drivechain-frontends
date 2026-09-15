@@ -279,15 +279,8 @@ class ChatProvider extends ChangeNotifier {
       return null;
     }
 
-    try {
-      final searchHash = blake3Hex(utf8.encode(searchText.toLowerCase()));
-      return _allBitNames.firstWhere(
-        (entry) => entry.hash.toLowerCase() == searchHash.toLowerCase(),
-        orElse: () => throw StateError('Not found'),
-      );
-    } catch (e) {
-      return null;
-    }
+    final searchHash = blake3Hex(utf8.encode(searchText.trim()));
+    return _allBitNames.firstWhereOrNull((entry) => entry.hash.toLowerCase() == searchHash);
   }
 
   /// Get filtered BitNames based on search text
@@ -297,18 +290,10 @@ class ChatProvider extends ChangeNotifier {
     }
 
     final searchLower = searchText.toLowerCase();
-
-    // First try to find by Blake3 hash match
-    String? searchHash;
-    try {
-      searchHash = blake3Hex(utf8.encode(searchLower));
-    } catch (e) {
-      searchHash = null;
-    }
+    final searchHash = blake3Hex(utf8.encode(searchText.trim()));
 
     return myIdentities.where((entry) {
-      // Check hash match
-      if (searchHash != null && entry.hash.toLowerCase() == searchHash.toLowerCase()) {
+      if (entry.hash.toLowerCase() == searchHash) {
         return true;
       }
       // Check plaintext name match
