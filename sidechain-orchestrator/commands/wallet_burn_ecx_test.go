@@ -416,16 +416,32 @@ func TestBurnECXRejectsUnsupportedWallets(t *testing.T) {
 	}
 }
 
+func TestBurnECXAcceptsABitcoinCoreWallet(t *testing.T) {
+	f := newBurnTestFlow(t, "--yes")
+	f.daemon.wallets.Wallets[0].WalletType = pb.WalletType_WALLET_TYPE_BITCOIN_CORE
+	require.NoError(t, f.run())
+	require.Equal(t, "active-wallet", f.daemon.derived.WalletId)
+	require.Equal(t, "active-wallet", f.daemon.created.WalletId)
+	require.Equal(t, map[string]int64{burnTestAddress: 100000001}, f.daemon.created.Destinations)
+	require.Equal(t, hex.EncodeToString([]byte(burnTestReceiveAddress)), f.daemon.created.OpReturnHex)
+	require.False(t, f.daemon.created.AllowReplay)
+	require.True(t, f.daemon.decoded.CheckOwnership)
+	require.Equal(t, "active-wallet", f.daemon.signed.WalletId)
+	require.Equal(t, "signed-psbt", f.daemon.finalized.PsbtBase64)
+	require.Equal(t, "active-wallet", f.daemon.broadcast.WalletId)
+	require.Equal(t, "final-transaction", f.daemon.broadcast.TxHex)
+	require.Contains(t, f.output.String(), "Burn sent: burn-txid")
+}
+
 func TestBurnECXRejectsOtherWalletTypes(t *testing.T) {
 	for _, walletType := range []pb.WalletType{
-		pb.WalletType_WALLET_TYPE_BITCOIN_CORE,
 		pb.WalletType_WALLET_TYPE_ENFORCER,
 		pb.WalletType_WALLET_TYPE_UNSPECIFIED,
 	} {
 		t.Run(walletType.String(), func(t *testing.T) {
 			f := newBurnTestFlow(t, "--preview")
 			f.daemon.wallets.Wallets[0].WalletType = walletType
-			require.ErrorContains(t, f.run(), "use an Electrum wallet")
+			require.ErrorContains(t, f.run(), "use an Electrum or Bitcoin Core wallet")
 			require.Nil(t, f.daemon.derived)
 			require.Nil(t, f.daemon.created)
 		})

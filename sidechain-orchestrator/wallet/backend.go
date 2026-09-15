@@ -87,6 +87,13 @@ type FeeRater interface {
 	FeeRateForTarget(ctx context.Context, target int) (float64, error)
 }
 
+// PSBTBackend builds and signs PSBTs for its wallets.
+type PSBTBackend interface {
+	CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error)
+	// SignPSBT adds the wallet's signatures and leaves other inputs for their signers.
+	SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error)
+}
+
 // DepositBackend is a backend that builds the BIP300 M5 itself, so the caller
 // hands it the slot and the destination instead of a raw treasury output.
 type DepositBackend interface {

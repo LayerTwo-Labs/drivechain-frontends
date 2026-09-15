@@ -445,6 +445,40 @@ func (c *CoreRPCClient) FundRawTransaction(
 	return &resp, nil
 }
 
+// WalletCreateFundedPSBT funds outputs from the wallet into an unsigned PSBT.
+// Each output is {address: btc} or {"data": hex}.
+func (c *CoreRPCClient) WalletCreateFundedPSBT(
+	ctx context.Context,
+	walletName string,
+	outputs []map[string]interface{},
+	locktime uint32,
+	options map[string]interface{},
+) (*WalletCreateFundedPSBTResult, error) {
+	result, err := c.call(ctx, walletName, "walletcreatefundedpsbt", []RawInput{}, outputs, locktime, options)
+	if err != nil {
+		return nil, err
+	}
+	var resp WalletCreateFundedPSBTResult
+	if err := json.Unmarshal(result, &resp); err != nil {
+		return nil, fmt.Errorf("decode walletcreatefundedpsbt: %w", err)
+	}
+	return &resp, nil
+}
+
+// WalletProcessPSBT signs the wallet's inputs of a PSBT.
+func (c *CoreRPCClient) WalletProcessPSBT(ctx context.Context, walletName, psbtBase64 string) (*WalletProcessPSBTResult, error) {
+	// No finalize here: FinalizePSBT checks every signature before it extracts.
+	result, err := c.call(ctx, walletName, "walletprocesspsbt", psbtBase64, true, "DEFAULT", true, false)
+	if err != nil {
+		return nil, err
+	}
+	var resp WalletProcessPSBTResult
+	if err := json.Unmarshal(result, &resp); err != nil {
+		return nil, fmt.Errorf("decode walletprocesspsbt: %w", err)
+	}
+	return &resp, nil
+}
+
 func (c *CoreRPCClient) SignRawTransactionWithWallet(
 	ctx context.Context,
 	walletName, hexString string,
