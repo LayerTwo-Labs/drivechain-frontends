@@ -517,6 +517,11 @@ func sidechainTypeFromName(name string) pb.SidechainType {
 		return pb.SidechainType_SIDECHAIN_TYPE_PHOTON
 	case "coinshift":
 		return pb.SidechainType_SIDECHAIN_TYPE_COINSHIFT
+	case "freebank":
+		// FreeBank is a plain-bitassets fork (the Rust freebankd), so it is a
+		// CUSF chain the orchestrator manages exactly like bitassets — surface
+		// it in the sync-status enumeration rather than dropping it.
+		return pb.SidechainType_SIDECHAIN_TYPE_FREEBANK
 	default:
 		return pb.SidechainType_SIDECHAIN_TYPE_UNSPECIFIED
 	}

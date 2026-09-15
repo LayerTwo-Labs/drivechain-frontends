@@ -617,6 +617,17 @@ func run(cctx *cli.Context) error {
 			path, bitassetsHandler := bitassetsrpc.NewBitAssetsServiceHandler(h, connect.WithInterceptors(authIC))
 			mux.Handle(path, bitassetsHandler)
 			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain RPC service")
+		case "freebank":
+			// FreeBank is a plain-bitassets fork: its wallet answers
+			// bitcoin_balance, not the proxy's default "balance" method, so it
+			// needs the same balance reader bitassets uses or GetSidechainBalance
+			// gets -32601. It has no native pane, so the frontend drives it
+			// through the generic OrchestratorService; the chain-agnostic
+			// BitAssets typed-RPC path is registered under the bitassets arm and
+			// must not be registered a second time here.
+			h := bitassetssvc.NewHandler(proxy)
+			handler.SetSidechainBalance(name, h.WalletBalance)
+			log.Info().Str("sidechain", name).Int("port", cfg.Port).Msg("registered sidechain balance reader")
 		case "photon":
 			h := photonsvc.NewHandler(proxy)
 			handler.SetSidechainBalance(name, h.WalletBalance)

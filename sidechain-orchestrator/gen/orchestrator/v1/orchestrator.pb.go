@@ -36,6 +36,7 @@ const (
 	SidechainType_SIDECHAIN_TYPE_TRUTHCOIN   SidechainType = 5
 	SidechainType_SIDECHAIN_TYPE_PHOTON      SidechainType = 6
 	SidechainType_SIDECHAIN_TYPE_COINSHIFT   SidechainType = 7
+	SidechainType_SIDECHAIN_TYPE_FREEBANK    SidechainType = 8
 )
 
 // Enum value maps for SidechainType.
@@ -49,6 +50,7 @@ var (
 		5: "SIDECHAIN_TYPE_TRUTHCOIN",
 		6: "SIDECHAIN_TYPE_PHOTON",
 		7: "SIDECHAIN_TYPE_COINSHIFT",
+		8: "SIDECHAIN_TYPE_FREEBANK",
 	}
 	SidechainType_value = map[string]int32{
 		"SIDECHAIN_TYPE_UNSPECIFIED": 0,
@@ -59,6 +61,7 @@ var (
 		"SIDECHAIN_TYPE_TRUTHCOIN":   5,
 		"SIDECHAIN_TYPE_PHOTON":      6,
 		"SIDECHAIN_TYPE_COINSHIFT":   7,
+		"SIDECHAIN_TYPE_FREEBANK":    8,
 	}
 )
 
@@ -5417,7 +5420,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x11AdoptOwnerRequest\x12\x1b\n" +
 	"\towner_pid\x18\x01 \x01(\x05R\bownerPid\"9\n" +
 	"\x12AdoptOwnerResponse\x12#\n" +
-	"\rcanceled_exit\x18\x01 \x01(\bR\fcanceledExit*\xf7\x01\n" +
+	"\rcanceled_exit\x18\x01 \x01(\bR\fcanceledExit*\x94\x02\n" +
 	"\rSidechainType\x12\x1e\n" +
 	"\x1aSIDECHAIN_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16SIDECHAIN_TYPE_THUNDER\x10\x01\x12\x18\n" +
@@ -5426,7 +5429,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x18SIDECHAIN_TYPE_BITASSETS\x10\x04\x12\x1c\n" +
 	"\x18SIDECHAIN_TYPE_TRUTHCOIN\x10\x05\x12\x19\n" +
 	"\x15SIDECHAIN_TYPE_PHOTON\x10\x06\x12\x1c\n" +
-	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a*\xc8\x03\n" +
+	"\x18SIDECHAIN_TYPE_COINSHIFT\x10\a\x12\x1b\n" +
+	"\x17SIDECHAIN_TYPE_FREEBANK\x10\b*\xc8\x03\n" +
 	"\n" +
 	"BinaryType\x12\x1b\n" +
 	"\x17BINARY_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
