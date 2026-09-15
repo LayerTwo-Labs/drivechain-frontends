@@ -185,6 +185,7 @@ class WalletReaderProvider extends ChangeNotifier implements NetworkScoped {
         walletType: switch (protoWallet.walletType) {
           // Electrum runs no local backend binary.
           wmpb.WalletType.WALLET_TYPE_ELECTRUM => BinaryType.BINARY_TYPE_UNSPECIFIED,
+          wmpb.WalletType.WALLET_TYPE_ENFORCER => BinaryType.BINARY_TYPE_ENFORCER,
           _ => BinaryType.BINARY_TYPE_BITCOIND,
         },
         isElectrum: protoWallet.walletType == wmpb.WalletType.WALLET_TYPE_ELECTRUM,

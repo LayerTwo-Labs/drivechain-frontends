@@ -96,22 +96,30 @@ func (e *WalletEngine) TxStatus(ctx context.Context, txid string) (EsploraStatus
 	return eb.TxStatus(ctx, txid)
 }
 
-// CreatePSBT builds an unsigned PSBT for a send from an electrum wallet.
-func (e *WalletEngine) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
-	eb, err := e.electrumBackend()
-	if err != nil {
-		return "", err
+func (e *WalletEngine) psbtBackend(walletID string) (PSBTBackend, error) {
+	r, ok := e.backend.(*BackendRouter)
+	if !ok {
+		return nil, errors.New("backend router unavailable")
 	}
-	return eb.CreatePSBT(ctx, walletID, req)
+	return r.PSBTBackendFor(walletID)
 }
 
-// SignPSBT adds an electrum wallet's signatures to a base64 PSBT.
-func (e *WalletEngine) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
-	eb, err := e.electrumBackend()
+// CreatePSBT builds an unsigned PSBT for a send.
+func (e *WalletEngine) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
+	b, err := e.psbtBackend(walletID)
 	if err != nil {
 		return "", err
 	}
-	return eb.SignPSBT(ctx, walletID, psbtBase64)
+	return b.CreatePSBT(ctx, walletID, req)
+}
+
+// SignPSBT adds the wallet's signatures to a base64 PSBT.
+func (e *WalletEngine) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
+	b, err := e.psbtBackend(walletID)
+	if err != nil {
+		return "", err
+	}
+	return b.SignPSBT(ctx, walletID, psbtBase64)
 }
 
 // SignPSBTWithCosigner adds a single multisig cosigner's signature to a PSBT.

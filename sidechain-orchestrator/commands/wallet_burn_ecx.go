@@ -102,8 +102,8 @@ func (s *burnWalletState) check(cctx *cli.Context, client rpc.WalletManagerServi
 		if wallet.Id != s.walletID {
 			continue
 		}
-		if wallet.WalletType != pb.WalletType_WALLET_TYPE_ELECTRUM {
-			return fmt.Errorf("use an Electrum wallet for this burn")
+		if wallet.WalletType != pb.WalletType_WALLET_TYPE_ELECTRUM && wallet.WalletType != pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
+			return fmt.Errorf("use an Electrum or Bitcoin Core wallet for this burn")
 		}
 		s.multisig = wallet.Multisig != nil
 		if !s.multisig && (wallet.WatchOnly || wallet.HardwareDeviceType != "" || wallet.HardwareFingerprint != "") {

@@ -48,8 +48,8 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
         ? 'Unlock this wallet to burn coins.'
         : wallet == null
         ? 'Select a wallet to burn coins.'
-        : !wallet.isElectrum
-        ? 'This wallet cannot burn coins. Select an Electrum wallet.'
+        : !wallet.isElectrum && wallet.walletType != BinaryType.BINARY_TYPE_BITCOIND
+        ? 'This wallet cannot burn coins. Select an Electrum or Bitcoin Core wallet.'
         : wallet.isMultisig
         ? 'Use the CLI to export this multisig burn and collect cosigner signatures.'
         : wallet.isWatchOnly || wallet.isHardware

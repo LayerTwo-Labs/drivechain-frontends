@@ -12,7 +12,12 @@ import (
 	"testing"
 
 	pb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 )
@@ -163,16 +168,59 @@ func TestWalletSignPSBTChecksApproval(t *testing.T) {
 
 func TestWalletSignPSBTRejectsUnsupportedWallets(t *testing.T) {
 	for _, walletType := range []pb.WalletType{
-		pb.WalletType_WALLET_TYPE_BITCOIN_CORE, pb.WalletType_WALLET_TYPE_ENFORCER, pb.WalletType_WALLET_TYPE_UNSPECIFIED,
+		pb.WalletType_WALLET_TYPE_ENFORCER, pb.WalletType_WALLET_TYPE_UNSPECIFIED,
 	} {
 		t.Run(walletType.String(), func(t *testing.T) {
 			f, ctx, _, _ := newSignTestFlow(t, "--yes")
 			f.daemon.wallets.Wallets[0].WalletType = walletType
-			require.ErrorContains(t, runWalletSignPSBT(ctx, f.client), "Electrum wallet")
+			require.ErrorContains(t, runWalletSignPSBT(ctx, f.client), "Electrum or Bitcoin Core wallet")
 			require.Nil(t, f.daemon.decoded)
 			require.Nil(t, f.daemon.signed)
 		})
 	}
+}
+
+func TestWalletSignPSBTRejectsCoreWalletsWithoutLocalKeys(t *testing.T) {
+	cases := map[string]struct {
+		watchOnly    bool
+		hardwareType string
+		fingerprint  string
+	}{
+		"watch-only":           {watchOnly: true},
+		"hardware device":      {hardwareType: "ledger"},
+		"hardware fingerprint": {fingerprint: "12345678"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			f, ctx, packets, path := newSignTestFlow(t, "--yes")
+			selected := f.daemon.wallets.Wallets[0]
+			selected.WalletType = pb.WalletType_WALLET_TYPE_BITCOIN_CORE
+			selected.Multisig = nil
+			selected.WatchOnly = tc.watchOnly
+			selected.HardwareDeviceType = tc.hardwareType
+			selected.HardwareFingerprint = tc.fingerprint
+			f.daemon.signedPSBT = packets.original
+
+			require.ErrorContains(t, runWalletSignPSBT(ctx, f.client), "local private keys")
+			require.Nil(t, f.daemon.decoded)
+			require.Nil(t, f.daemon.signed)
+			require.NoFileExists(t, path)
+		})
+	}
+}
+
+func TestWalletSignPSBTKeepsPartialElectrumSignatures(t *testing.T) {
+	f, ctx, packets, path := newSignTestFlow(t, "--yes")
+	f.daemon.wallets.Wallets[0].WatchOnly = false
+	f.daemon.wallets.Wallets[0].Multisig.Cosigners[1].Held = false
+	f.daemon.signedPSBT = packets.first
+
+	require.NoError(t, runWalletSignPSBT(ctx, f.client))
+	stored, err := readPSBTFile(path)
+	require.NoError(t, err)
+	require.Equal(t, packets.first, stored)
+	require.Nil(t, f.daemon.finalized)
+	require.Nil(t, f.daemon.broadcast)
 }
 
 func TestWalletSignPSBTReturnsRPCFailures(t *testing.T) {
@@ -309,4 +357,61 @@ func TestWalletSignPSBTCompletesTheBurnFileFlow(t *testing.T) {
 	signed, err := os.ReadFile(output)
 	require.NoError(t, err)
 	require.False(t, bytes.Equal(unsigned, signed))
+}
+
+func TestWalletSignPSBTCompletesTheCoreBurnFileFlow(t *testing.T) {
+	packet, err := psbt.NewFromRawBytes(strings.NewReader(newBurnMultisigPackets(t).original), true)
+	require.NoError(t, err)
+	key, _ := btcec.PrivKeyFromBytes([]byte{1})
+	pubkey := key.PubKey().SerializeCompressed()
+	hash := btcutil.Hash160(pubkey)
+	script, err := txscript.NewScriptBuilder().AddOp(txscript.OP_0).AddData(hash).Script()
+	require.NoError(t, err)
+	scriptCode, err := txscript.NewScriptBuilder().AddOp(txscript.OP_DUP).AddOp(txscript.OP_HASH160).
+		AddData(hash).AddOp(txscript.OP_EQUALVERIFY).AddOp(txscript.OP_CHECKSIG).Script()
+	require.NoError(t, err)
+	value := packet.Inputs[0].WitnessUtxo.Value
+	packet.Inputs[0] = psbt.PInput{WitnessUtxo: wire.NewTxOut(value, script)}
+	unsigned, err := packet.B64Encode()
+	require.NoError(t, err)
+	hashes := txscript.NewTxSigHashes(packet.UnsignedTx, txscript.NewCannedPrevOutputFetcher(script, value))
+	signature, err := txscript.RawTxInWitnessSignature(packet.UnsignedTx, hashes, 0, value, scriptCode, txscript.SigHashAll, key)
+	require.NoError(t, err)
+	packet.Inputs[0].PartialSigs = []*psbt.PartialSig{{PubKey: pubkey, Signature: signature}}
+	signed, err := packet.B64Encode()
+	require.NoError(t, err)
+	_, err = (&wallet.ElectrumBackend{}).FinalizePSBT(signed)
+	require.NoError(t, err)
+
+	dir := t.TempDir()
+	input, output := filepath.Join(dir, "burn.psbt"), filepath.Join(dir, "signed.psbt")
+	f := newBurnTestFlow(t, "--psbt-out", input, "--yes")
+	f.daemon.wallets.Wallets[0].WalletType = pb.WalletType_WALLET_TYPE_BITCOIN_CORE
+	f.daemon.packet = unsigned
+	f.daemon.signedPSBT = signed
+
+	require.NoError(t, f.run())
+	require.Nil(t, f.daemon.signed)
+	require.Nil(t, f.daemon.broadcast)
+
+	ctx := newSignTestContext(t, f, "--psbt-in", input, "--psbt-out", output, "--yes", "active-wallet")
+	require.NoError(t, runWalletSignPSBT(ctx, f.client))
+	require.Equal(t, unsigned, f.daemon.signed.PsbtBase64)
+	require.Equal(t, "active-wallet", f.daemon.signed.WalletId)
+	require.Nil(t, f.daemon.finalized)
+	require.Nil(t, f.daemon.broadcast)
+	stored, err := readPSBTFile(output)
+	require.NoError(t, err)
+	require.Equal(t, signed, stored)
+
+	f.daemon.calls = nil
+	require.NoError(t, f.ctx.Set("psbt-out", ""))
+	require.NoError(t, f.ctx.Set("psbt-in", output))
+	require.NoError(t, f.run())
+
+	require.NotContains(t, f.daemon.calls, "sign")
+	require.Equal(t, signed, f.daemon.decoded.Input)
+	require.Equal(t, signed, f.daemon.finalized.PsbtBase64)
+	require.Equal(t, "active-wallet", f.daemon.broadcast.WalletId)
+	require.Contains(t, f.output.String(), "Burn sent: burn-txid")
 }

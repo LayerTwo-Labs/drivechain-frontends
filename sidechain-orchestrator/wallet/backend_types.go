@@ -152,6 +152,20 @@ type FundRawTransactionResult struct {
 	ChangePos int     `json:"changepos"`
 }
 
+// WalletCreateFundedPSBTResult is the funded PSBT. ChangePos is -1 when no
+// change output was added.
+type WalletCreateFundedPSBTResult struct {
+	PSBT      string  `json:"psbt"`
+	Fee       float64 `json:"fee"`
+	ChangePos int     `json:"changepos"`
+}
+
+// WalletProcessPSBTResult is the PSBT after the wallet signs it.
+type WalletProcessPSBTResult struct {
+	PSBT     string `json:"psbt"`
+	Complete bool   `json:"complete"`
+}
+
 // SignRawTransactionResult is the signed tx. Complete is true only when
 // every input carries a valid signature.
 type SignRawTransactionResult struct {

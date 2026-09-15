@@ -37,8 +37,7 @@ func (r *BackendRouter) ElectrumConfigured() bool {
 	return true
 }
 
-// ElectrumBackend returns the configured electrum backend, if any. PSBT
-// operations are electrum-specific and dispatch through it.
+// ElectrumBackend returns the configured electrum backend, if any.
 func (r *BackendRouter) ElectrumBackend() (*ElectrumBackend, bool) {
 	eb, ok := r.electrum.(*ElectrumBackend)
 	return eb, ok
@@ -65,6 +64,19 @@ func (r *BackendRouter) FeeRaterFor(walletID string) (FeeRater, bool) {
 	}
 	f, ok := p.(FeeRater)
 	return f, ok
+}
+
+// PSBTBackendFor returns the backend that builds and signs the wallet's PSBTs.
+func (r *BackendRouter) PSBTBackendFor(walletID string) (PSBTBackend, error) {
+	p, err := r.pick(walletID)
+	if err != nil {
+		return nil, err
+	}
+	b, ok := p.(PSBTBackend)
+	if !ok {
+		return nil, errors.New("wallet " + walletID + " cannot build a PSBT")
+	}
+	return b, nil
 }
 
 func (r *BackendRouter) pick(walletID string) (Backend, error) {
