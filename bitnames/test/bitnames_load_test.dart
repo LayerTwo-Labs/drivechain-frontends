@@ -18,12 +18,16 @@ class _ListRPC extends MockBitnamesRPC {
   Completer<List<BitnameEntry>> reply = Completer<List<BitnameEntry>>();
   int calls = 0;
   final List<String> reserved = [];
+  List<SidechainUTXO> utxos = [];
 
   @override
   Future<List<BitnameEntry>> listBitNames() {
     calls++;
     return reply.future;
   }
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async => utxos;
 
   @override
   Future<String> reserveBitName(String name) async {
@@ -144,7 +148,6 @@ void main() {
     expect(provider.entries, [entry]);
     expect(provider.error, contains('The node cannot decode the Bitnames database.'));
     expect(provider.hashNameMapping.value.values.single.name, 'alice');
-    expect(provider.hashNameMapping.value.values.single.isMine, isTrue);
     expect(tester.widget<SailTextField>(nameField).controller.text, isEmpty);
     expect(tester.widget<SailButton>(reserveButton).loading, isFalse);
     expect(find.textContaining('The node cannot decode the Bitnames database.'), findsWidgets);
@@ -190,12 +193,12 @@ void main() {
     expect(provider.isLoading, isFalse);
   });
 
-  test('a new provider reads saved names and ownership', () async {
+  test('a new provider reads saved names', () async {
     rpc.reply.complete([]);
     await Future<void>.delayed(Duration.zero);
     final hash = 'a' * 64;
     await GetIt.I.get<ClientSettings>().setValue(
-      HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice', isMine: true)}),
+      HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice')}),
     );
     provider.dispose();
     await GetIt.I.unregister<BitnamesProvider>();
@@ -211,9 +214,32 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(provider.getFriendlyName(hash), 'alice');
-    expect(provider.hashNameMapping.isMineFromHash(hash), isTrue);
+  });
+
+  test('Your Bitnames lists the names that the wallet coins hold', () async {
+    final owned = 'a' * 64;
+    final reservedHere = 'b' * 64;
+    final heldElsewhere = 'c' * 64;
+    await GetIt.I.get<ClientSettings>().setValue(
+      HashNameMappingSetting(newValue: {heldElsewhere: HashMapping(name: 'btcapsule', isMine: true)}),
+    );
+    rpc.utxos = [
+      bitnameCoin({'BitName': owned}),
+      bitnameCoin({'BitNameReservation': reservedHere}),
+      bitnameCoin({'BitcoinSats': 1000}),
+    ];
+    rpc.reply.complete([
+      for (final hash in [owned, reservedHere, heldElsewhere])
+        BitnameEntry(
+          hash: hash,
+          details: BitnameDetails(seqId: '1739-0029'),
+        ),
+    ]);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
     final model = BitnamesViewModel();
-    expect(model.myEntries.map((entry) => entry.hash), [hash]);
+    expect(model.myEntries.map((entry) => entry.hash), [owned]);
     await Future<void>.delayed(Duration.zero);
     model.dispose();
   });
@@ -252,25 +278,24 @@ void main() {
     model.dispose();
   });
 
-  test('a name save keeps the stored names and ownership', () async {
+  test('a name save keeps the stored names', () async {
     rpc.reply.complete([]);
     await Future<void>.delayed(Duration.zero);
     final hash = 'a' * 64;
     final settings = GetIt.I.get<ClientSettings>();
     await settings.setValue(
-      HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice', isMine: true)}),
+      HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice')}),
     );
 
-    await provider.saveHashNameMapping('bob', isMine: true);
+    await provider.saveHashNameMapping('bob');
 
     final saved = await settings.getValue(HashNameMappingSetting());
     expect(saved.value, hasLength(2));
     expect(saved.value[hash]?.name, 'alice');
-    expect(saved.value[hash]?.isMine, isTrue);
-    expect(saved.value.values.map((entry) => entry.name), contains('bob'));
+    expect(saved.value[blake3Hex(utf8.encode('bob'))]?.name, 'bob');
   });
 
-  test('two concurrent name saves keep both names and ownership', () async {
+  test('two concurrent name saves keep both names', () async {
     rpc.reply.complete([]);
     await Future<void>.delayed(Duration.zero);
     final directory = await Directory.systemTemp.createTemp('bitnames-name-save-');
@@ -281,11 +306,11 @@ void main() {
     GetIt.I.registerSingleton<ClientSettings>(settings);
     final oldHash = 'c' * 64;
     await settings.setValue(
-      HashNameMappingSetting(newValue: {oldHash: HashMapping(name: 'carol', isMine: true)}),
+      HashNameMappingSetting(newValue: {oldHash: HashMapping(name: 'carol')}),
     );
 
     await Future.wait([
-      provider.saveHashNameMapping('alice', isMine: true),
+      provider.saveHashNameMapping('alice'),
       provider.saveHashNameMapping('bob'),
     ]);
 
@@ -295,22 +320,13 @@ void main() {
     ).getValue(HashNameMappingSetting());
     expect(saved.value.values.map((entry) => entry.name), unorderedEquals(['carol', 'alice', 'bob']));
     expect(saved.value[oldHash]?.name, 'carol');
-    expect(saved.value[oldHash]?.isMine, isTrue);
-    expect(saved.value.values.singleWhere((entry) => entry.name == 'alice').isMine, isTrue);
-    expect(saved.value.values.singleWhere((entry) => entry.name == 'bob').isMine, isFalse);
     expect(provider.hashNameMapping.toJson(), HashNameMappingSetting(newValue: saved.value).toJson());
   });
-
-  test('a name lookup keeps the saved ownership', () async {
-    rpc.reply.complete([]);
-    await Future<void>.delayed(Duration.zero);
-    await provider.saveHashNameMapping('alice', isMine: true);
-
-    await provider.saveHashNameMapping('alice');
-
-    final saved = await GetIt.I.get<ClientSettings>().getValue(HashNameMappingSetting());
-    expect(saved.value.values.single.name, 'alice');
-    expect(saved.value.values.single.isMine, isTrue);
-    expect(provider.hashNameMapping.value.values.single.isMine, isTrue);
-  });
 }
+
+BitnamesUTXO bitnameCoin(Map<String, dynamic> content) => BitnamesUTXO.fromJson({
+  'outpoint': {
+    'Regular': {'txid': 'aa', 'vout': 0},
+  },
+  'output': {'address': 'mine', 'content': content},
+});

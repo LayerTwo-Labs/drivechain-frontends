@@ -207,25 +207,7 @@ class ChatProvider extends ChangeNotifier {
       }
       _hashNameMapping = loadedMapping as HashNameMappingSetting;
       _allBitNames = allBitNames;
-      final ownedHashes = <String>{};
-
-      for (final utxo in utxos) {
-        if (utxo.type == OutpointType.bitname && utxo is BitnamesUTXO) {
-          // Extract BitName hash from UTXO content
-          try {
-            final content = jsonDecode(utxo.content) as Map<String, dynamic>;
-            if (content.containsKey('BitName')) {
-              final bitnameHash = content['BitName'] as String;
-              ownedHashes.add(bitnameHash);
-            }
-          } catch (e) {
-            // Skip malformed content
-          }
-        }
-      }
-
-      // Save owned hashes for quick startup next time
-      _ownedHashes = ownedHashes;
+      _ownedHashes = ownedBitNames(utxos);
       await _saveOwnedHashes();
       if (walletChange != _walletChange) {
         return;

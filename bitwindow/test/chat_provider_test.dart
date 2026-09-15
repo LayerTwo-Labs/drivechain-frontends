@@ -40,8 +40,17 @@ class _ChatRPC extends MockBitnamesRPC {
   bool failPaymail = false;
   bool failPending = false;
 
+  List<BitnameEntry> listed = [];
+  List<SidechainUTXO> utxos = [];
+
   @override
   bool get connected => online;
+
+  @override
+  Future<List<BitnameEntry>> listBitNames() async => listed;
+
+  @override
+  Future<List<SidechainUTXO>> listUTXOs() async => utxos;
 
   BitnameEntry addIdentity(String name, int seed, {String? encryptionKey}) {
     final hash = BitnamesMessage.nameHash(name);
@@ -1104,6 +1113,30 @@ void main() {
     final contact = await provider.lookupBitName('eCashr');
     expect(contact!.id, eCashr.hash);
     expect(contact.plaintextName, 'eCashr');
+  });
+
+  test('a search with capital letters finds the name, and the coins name the identities', () async {
+    final eCashr = rpc.addIdentity('eCashr', 4);
+    rpc.listed = [alice, eCashr];
+    rpc.utxos = [
+      BitnamesUTXO.fromJson({
+        'outpoint': {
+          'Regular': {'txid': 'aa', 'vout': 0},
+        },
+        'output': {
+          'address': 'mine',
+          'content': {'BitName': eCashr.hash},
+        },
+      }),
+    ];
+
+    await provider.fetchIdentities();
+
+    expect(provider.searchBitNameByPlaintext('eCashr')?.hash, eCashr.hash);
+    expect(provider.searchBitNameByPlaintext('ecashr'), isNull);
+    expect(provider.myIdentities.map((entry) => entry.hash), [eCashr.hash]);
+    expect(provider.getFilteredBitNames('eCashr').map((entry) => entry.hash), [eCashr.hash]);
+    expect(provider.getFilteredBitNames('ECASH').map((entry) => entry.hash), [eCashr.hash]);
   });
 
   test('a contact from a plain name keeps its sent message', () async {
