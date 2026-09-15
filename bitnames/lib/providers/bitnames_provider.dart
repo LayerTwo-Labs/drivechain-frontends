@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/rpcs/bitnames_rpc.dart';
+import 'package:sidechain_core/rpcs/thunder_utxo.dart';
 import 'package:sidechain_core/settings/client_settings.dart';
 import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
 import 'package:synchronized/synchronized.dart';
@@ -13,6 +14,7 @@ class BitnamesProvider extends ChangeNotifier {
   ClientSettings get clientSettings => GetIt.I.get<ClientSettings>();
 
   List<BitnameEntry> entries = [];
+  Set<String> ownedHashes = {};
   bool initialized = false;
   bool _isFetching = false;
   final _nameSaveLock = Lock();
@@ -28,12 +30,12 @@ class BitnamesProvider extends ChangeNotifier {
   }
 
   /// Save a new hash-name mapping
-  Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
+  Future<void> saveHashNameMapping(String name) async {
     await _nameSaveLock.synchronized(() async {
       final hash = blake3Hex(utf8.encode(name));
       final saved = await clientSettings.getValue(HashNameMappingSetting());
       final newMappings = Map<String, HashMapping>.from(saved.value);
-      newMappings[hash] = HashMapping(name: name, isMine: isMine || newMappings[hash]?.isMine == true);
+      newMappings[hash] = HashMapping(name: name);
       hashNameMapping = HashNameMappingSetting(newValue: newMappings);
       await clientSettings.setValue(hashNameMapping);
     });
@@ -55,7 +57,10 @@ class BitnamesProvider extends ChangeNotifier {
     try {
       final saved = await clientSettings.getValue(HashNameMappingSetting());
       hashNameMapping = HashNameMappingSetting(newValue: saved.value);
-      entries = await rpc.listBitNames();
+      final listed = await rpc.listBitNames();
+      final utxos = await rpc.listUTXOs();
+      entries = listed;
+      ownedHashes = ownedBitNames(utxos);
       initialized = true;
     } catch (err) {
       error = 'Could not load Bitnames: $err';

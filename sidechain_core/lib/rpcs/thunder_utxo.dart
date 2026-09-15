@@ -110,4 +110,12 @@ class BitnamesUTXO extends SidechainUTXO {
       content: jsonEncode(content),
     );
   }
+
+  /// The hash of the BitName this coin holds, or null for any other coin.
+  String? get bitNameHash =>
+      type == OutpointType.bitname ? (jsonDecode(content) as Map<String, dynamic>)['BitName'] as String? : null;
 }
+
+/// The hashes of the BitNames that the coins hold.
+Set<String> ownedBitNames(Iterable<SidechainUTXO> utxos) =>
+    utxos.whereType<BitnamesUTXO>().map((utxo) => utxo.bitNameHash).nonNulls.toSet();

@@ -80,6 +80,32 @@ void main() {
     expect(utxo.confirmed, isFalse);
   });
 
+  test('only a BitName coin names an owned BitName', () {
+    BitnamesUTXO coin(Map<String, dynamic> content) => BitnamesUTXO.fromJson({
+      'outpoint': outpoint,
+      'output': {'address': 'mine', 'content': content},
+    });
+    final owned = coin({'BitName': 'a' * 64});
+
+    expect(owned.type, OutpointType.bitname);
+    expect(owned.bitNameHash, 'a' * 64);
+    expect(
+      ownedBitNames([
+        owned,
+        coin({'BitNameReservation': 'b' * 64}),
+        coin({'BitcoinSats': 10}),
+        SidechainUTXO.fromJson({
+          'outpoint': outpoint,
+          'output': {
+            'address': 'mine',
+            'content': {'Value': 10},
+          },
+        }),
+      ]),
+      {'a' * 64},
+    );
+  });
+
   test('a bitassets coin reads the outpoint the node writes', () {
     final utxo = BitAssetsUTXO.fromJson({
       'outpoint': {

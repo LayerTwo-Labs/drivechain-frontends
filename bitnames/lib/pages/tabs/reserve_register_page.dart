@@ -723,10 +723,7 @@ class BitnamesViewModel extends BaseViewModel {
   }
 
   List<BitnameEntry> get myEntries {
-    return provider.entries.where((entry) {
-      final mapping = provider.hashNameMapping.value[entry.hash];
-      return mapping?.isMine ?? false;
-    }).toList();
+    return provider.entries.where((entry) => provider.ownedHashes.contains(entry.hash)).toList();
   }
 
   bool get isLoading => provider.isLoading;
@@ -750,7 +747,7 @@ class BitnamesViewModel extends BaseViewModel {
     notifyListeners();
     try {
       final txid = await bitnamesRPC.reserveBitName(name);
-      await provider.saveHashNameMapping(name, isMine: true);
+      await provider.saveHashNameMapping(name);
       reserveLoading = false;
       notifyListeners();
       if (context.mounted) {
@@ -857,7 +854,7 @@ class BitnamesViewModel extends BaseViewModel {
           socketAddrV6: ipv6,
         ),
       );
-      await provider.saveHashNameMapping(name, isMine: true);
+      await provider.saveHashNameMapping(name);
       if (context.mounted) {
         notificationProvider.add(
           title: 'Success',
