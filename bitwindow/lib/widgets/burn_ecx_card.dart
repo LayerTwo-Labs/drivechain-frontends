@@ -273,8 +273,8 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
         spacing: SailStyleValues.padding04,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SailText.primary15('Burn Transaction', bold: true),
-          SailText.secondary13('Burn Alphanet coins to receive 1/100 of the amount as real ECX.'),
+          SailText.primary15('Burn Alphanet Coins', bold: true),
+          SailText.secondary13('Burn your coins to receive 1/100 of the amount as real ECX'),
         ],
       ),
       SailColumn(
