@@ -18,6 +18,7 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
+import 'package:thirds/blake3.dart';
 
 import 'mocks/store_mock.dart';
 
@@ -1092,6 +1093,17 @@ void main() {
     expect(provider.messages.single.content, 'Hello');
     expect(provider.contacts.single.id, alice.hash);
     expect(provider.error, contains('Rejected paymail bad:0'));
+  });
+
+  test('a name with capital letters keeps its own hash', () async {
+    final eCashr = rpc.addIdentity('eCashr', 4);
+    expect(eCashr.hash, blake3Hex(utf8.encode('eCashr')));
+    expect(BitnamesMessage.nameHash('ecashr'), isNot(eCashr.hash));
+    expect(BitnamesMessage.nameHash(eCashr.hash.toUpperCase()), eCashr.hash);
+
+    final contact = await provider.lookupBitName('eCashr');
+    expect(contact!.id, eCashr.hash);
+    expect(contact.plaintextName, 'eCashr');
   });
 
   test('a contact from a plain name keeps its sent message', () async {

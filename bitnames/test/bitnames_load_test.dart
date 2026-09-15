@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:bitnames/pages/tabs/reserve_register_page.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
+import 'package:thirds/blake3.dart';
 
 import 'mocks/rpc_mock_sidechain.dart';
 import 'test_utils.dart';
@@ -213,6 +215,40 @@ void main() {
     final model = BitnamesViewModel();
     expect(model.myEntries.map((entry) => entry.hash), [hash]);
     await Future<void>.delayed(Duration.zero);
+    model.dispose();
+  });
+
+  test('a search with capital letters finds and saves the name as typed', () async {
+    final hash = blake3Hex(utf8.encode('eCashr'));
+    rpc.reply.complete([
+      BitnameEntry(
+        hash: hash,
+        details: BitnameDetails(seqId: '1739-0329'),
+      ),
+      BitnameEntry(
+        hash: blake3Hex(utf8.encode('ecash')),
+        details: BitnameDetails(seqId: '1739-0129'),
+      ),
+    ]);
+    await Future<void>.delayed(Duration.zero);
+    final model = BitnamesViewModel();
+    rpc.reply = Completer<List<BitnameEntry>>()
+      ..complete([
+        BitnameEntry(
+          hash: hash,
+          plaintextName: 'eCashr',
+          details: BitnameDetails(seqId: '1739-0329'),
+        ),
+      ]);
+
+    model.searchController.text = ' eCashr ';
+    expect(model.entries.map((entry) => entry.hash), [hash]);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    final saved = await GetIt.I.get<ClientSettings>().getValue(HashNameMappingSetting());
+    expect(saved.value[hash]?.name, 'eCashr');
+    model.searchController.text = 'ECASH';
+    expect(model.entries.map((entry) => entry.hash), [hash]);
     model.dispose();
   });
 

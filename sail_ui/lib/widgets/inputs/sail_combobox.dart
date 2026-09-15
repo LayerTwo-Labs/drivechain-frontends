@@ -28,7 +28,7 @@ class SailCombobox<T> extends StatefulWidget {
   final double? width;
   final double maxPopoverHeight;
 
-  /// Custom match predicate; defaults to substring match on the item's matchKey.
+  /// Custom match predicate on the query as typed; defaults to a case-blind substring match on the item's matchKey.
   final bool Function(SailComboboxItem<T> item, String query)? filter;
 
   const SailCombobox({
@@ -90,10 +90,10 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
     if (_query.isEmpty) {
       return widget.items;
     }
-    final q = _query.toLowerCase();
     if (widget.filter != null) {
-      return widget.items.where((i) => widget.filter!(i, q)).toList();
+      return widget.items.where((i) => widget.filter!(i, _query)).toList();
     }
+    final q = _query.toLowerCase();
     return widget.items.where((i) => i.matchKey.contains(q)).toList();
   }
 

@@ -66,20 +66,6 @@ class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
     return HashNameMappingSetting(newValue: value);
   }
 
-  /// Add a new hash-name mapping
-  HashNameMappingSetting addMapping(
-    String hash,
-    String name, {
-    bool isMine = false,
-  }) {
-    final newMappings = Map<String, HashMapping>.from(value);
-    newMappings[hash.toLowerCase()] = HashMapping(
-      name: name.toLowerCase(),
-      isMine: isMine,
-    );
-    return HashNameMappingSetting(newValue: newMappings);
-  }
-
   /// Get friendly name for a given hash
   String? nameFromHash(String hash) {
     return value[hash.toLowerCase()]?.name;

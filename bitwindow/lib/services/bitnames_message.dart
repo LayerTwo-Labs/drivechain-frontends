@@ -73,7 +73,7 @@ class BitnamesMessage {
   static bool _isHash(dynamic value) => value is String && RegExp(r'^[0-9a-f]{64}$').hasMatch(value);
 
   static String nameHash(String name) =>
-      _isHash(name.toLowerCase()) ? name.toLowerCase() : blake3Hex(utf8.encode(name.toLowerCase()));
+      _isHash(name.toLowerCase()) ? name.toLowerCase() : blake3Hex(utf8.encode(name));
 
   static String addressForKey(String key) {
     final List<int> bytes;
