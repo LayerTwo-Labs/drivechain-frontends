@@ -852,8 +852,8 @@
         "binary": {
           "default": {
             "linux": "freebank",
-            "macos": "FreeBank",
-            "windows": "FreeBank"
+            "macos": "freebank",
+            "windows": "freebank"
           }
         },
         "flutter_frontend": {}
