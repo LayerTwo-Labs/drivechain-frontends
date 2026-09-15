@@ -67,7 +67,8 @@ build_orch_tool() {
 # Built as a standalone binary to be able to cancel ongoing operations etc.
 build_hwi_daemon() {
     local goarch="$1" out="$2"
-    [[ -f "$out" ]] && { echo "hwi-daemon present ($out)"; return; }
+    local src="$original_cwd/../sidechain-orchestrator/hwi-daemon"
+    [[ "$out" -nt "$src/hwi_daemon.py" && "$out" -nt "$src/build.sh" ]] && { echo "hwi-daemon current ($out)"; return; }
     # PyInstaller bundles the running interpreter, so it can only build for the
     # host arch. Skip a mismatched cross target rather than fail.
     if [[ -n "$goarch" && "$goarch" != "$host_goarch" ]]; then
