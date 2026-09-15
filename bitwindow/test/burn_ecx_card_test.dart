@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bitwindow/widgets/burn_ecx_card.dart';
 import 'package:fixnum/fixnum.dart';
@@ -22,7 +23,6 @@ WalletData _walletData({
   bool watchOnly = false,
   bool hardware = false,
   bool multisig = false,
-  BinaryType? walletType,
 }) => WalletData(
   version: 1,
   master: MasterWallet(mnemonic: '', seedHex: '', masterKey: '', chainCode: ''),
@@ -32,8 +32,8 @@ WalletData _walletData({
   name: id,
   gradient: WalletGradient.fromWalletId(id),
   createdAt: DateTime(2026),
-  walletType: walletType ?? BinaryType.BINARY_TYPE_UNSPECIFIED,
-  isElectrum: walletType == null,
+  walletType: BinaryType.BINARY_TYPE_UNSPECIFIED,
+  isElectrum: true,
   isWatchOnly: watchOnly,
   hardwareDeviceType: hardware ? 'test-device' : '',
   multisig: multisig ? wmpb.MultisigInfo() : null,
@@ -87,6 +87,7 @@ class _FakeConf extends ChangeNotifier implements BitcoinConfProvider {
 }
 
 class _FakeRpc implements OrchestratorWalletRPC {
+  wmpb.WalletType walletType = wmpb.WalletType.WALLET_TYPE_ELECTRUM;
   final calls = <String>[];
   final walletIds = <String>[];
   final amounts = <Map<String, int>>[];
@@ -104,6 +105,16 @@ class _FakeRpc implements OrchestratorWalletRPC {
   bool hasFee = true;
   String warningMessage = '';
   List<String> addresses = [_walletAddress];
+
+  @override
+  Future<wmpb.ListWalletsResponse> listWallets() async => wmpb.ListWalletsResponse(
+    activeWalletId: 'wallet-1',
+    wallets: [wmpb.WalletMetadata(id: 'wallet-1', name: 'Wallet 1', walletType: walletType)],
+  );
+
+  @override
+  Future<wmpb.GetWalletStatusResponse> getWalletStatus() async =>
+      wmpb.GetWalletStatusResponse(hasWallet: true, activeWalletId: 'wallet-1');
 
   Future<void> stage(String name) async {
     calls.add(name);
@@ -223,6 +234,16 @@ void main() {
   Finder burnButton() => find.byWidgetPredicate(
     (widget) => widget is SailButton && widget.label == 'Burn Transaction',
   );
+
+  Future<void> loadWallet(wmpb.WalletType type) async {
+    rpc.walletType = type;
+    await registerTestDependencies();
+    final reader = WalletReaderProvider(Directory.systemTemp);
+    await GetIt.I.unregister<WalletReaderProvider>();
+    GetIt.I.registerSingleton<WalletReaderProvider>(reader);
+    addTearDown(reader.dispose);
+    await reader.reloadForNetworkChange();
+  }
 
   Future<void> pumpCard(WidgetTester tester, {double width = 420, bool production = false}) async {
     await tester.pumpSailPage(
@@ -348,17 +369,40 @@ void main() {
     });
   }
 
-  for (final type in {'Core': BinaryType.BINARY_TYPE_BITCOIND, 'enforcer': BinaryType.BINARY_TYPE_ENFORCER}.entries) {
-    testWidgets('blocks the ${type.key} wallet before a burn RPC', (tester) async {
-      wallet.wallets = [_walletData(walletType: type.value)];
+  testWidgets('blocks the enforcer wallet before a burn RPC', (tester) async {
+    await loadWallet(wmpb.WalletType.WALLET_TYPE_ENFORCER);
+
+    await pumpCard(tester);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('This wallet cannot burn coins. Select an Electrum or Bitcoin Core wallet.'), findsOneWidget);
+    expect(tester.widget<SailTextField>(find.byType(SailTextField)).enabled, isFalse);
+    expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
+    expect(rpc.calls, isEmpty);
+  });
+
+  for (final type in [wmpb.WalletType.WALLET_TYPE_BITCOIN_CORE, wmpb.WalletType.WALLET_TYPE_ELECTRUM]) {
+    testWidgets('The ${type.name} wallet sends the burn.', (tester) async {
+      await loadWallet(type);
 
       await pumpCard(tester);
-      await tester.pump(const Duration(milliseconds: 500));
+      await enterAmount(tester);
 
-      expect(find.text('This wallet cannot burn coins. Select an Electrum wallet.'), findsOneWidget);
-      expect(tester.widget<SailTextField>(find.byType(SailTextField)).enabled, isFalse);
-      expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
-      expect(rpc.calls, isEmpty);
+      expect(find.textContaining('This wallet cannot'), findsNothing);
+      expect(rpc.amounts, [
+        {_burnAddress: 125000000000},
+      ]);
+      expect(rpc.opReturnAddresses, [_walletAddress]);
+      expect(rpc.replayOptions, [false]);
+      expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
+
+      await burn(tester);
+
+      expect(rpc.calls, ['derive', 'create', 'decode', 'sign', 'finalize', 'broadcast']);
+      expect(rpc.walletIds, everyElement('wallet-1'));
+      expect(rpc.signedPreviews, ['preview-1']);
+      expect(rpc.sentHex, ['hex-signed-preview-1']);
+      expect(find.text('Burn sent'), findsWidgets);
     });
   }
 

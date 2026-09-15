@@ -68,8 +68,12 @@ func runWalletSignPSBT(cctx *cli.Context, client rpc.WalletManagerServiceClient)
 	if selected == nil {
 		return fmt.Errorf("wallet %q is absent", walletID)
 	}
-	if selected.WalletType != pb.WalletType_WALLET_TYPE_ELECTRUM {
-		return fmt.Errorf("use an Electrum wallet to sign this PSBT")
+	if selected.WalletType != pb.WalletType_WALLET_TYPE_ELECTRUM && selected.WalletType != pb.WalletType_WALLET_TYPE_BITCOIN_CORE {
+		return fmt.Errorf("use an Electrum or Bitcoin Core wallet to sign this PSBT")
+	}
+	if selected.WalletType == pb.WalletType_WALLET_TYPE_BITCOIN_CORE &&
+		(selected.WatchOnly || selected.HardwareDeviceType != "" || selected.HardwareFingerprint != "") {
+		return fmt.Errorf("use a Bitcoin Core wallet with local private keys to sign this PSBT")
 	}
 	decoded, err := client.DecodeTransaction(cctx.Context, connect.NewRequest(&pb.DecodeTransactionRequest{
 		WalletId: walletID, Input: packet,

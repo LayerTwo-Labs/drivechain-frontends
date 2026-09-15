@@ -822,6 +822,61 @@ func (p *CoreBackend) SignTransaction(ctx context.Context, walletID, rawHex stri
 	return p.rpc.SignRawTransactionWithWallet(ctx, name, rawHex)
 }
 
+// CreatePSBT funds an unsigned PSBT with Core's coin selection. It takes
+// destinations, OP_RETURN data, a fee rate and fee subtraction.
+func (p *CoreBackend) CreatePSBT(ctx context.Context, walletID string, req SendRequest) (string, error) {
+	if len(req.RequiredInputs) > 0 || len(req.ExternalInputs) > 0 || len(req.RawOutputs) > 0 || req.FixedFeeSats > 0 {
+		return "", connect.NewError(connect.CodeInvalidArgument,
+			errors.New("a Core wallet PSBT takes no pinned inputs, external inputs, raw outputs or fixed fee"))
+	}
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return "", err
+	}
+	unlock, err := p.lockFrozenCoins(ctx, walletID, name)
+	if err != nil {
+		return "", err
+	}
+	defer unlock()
+
+	options := map[string]interface{}{}
+	if req.FeeRateSatPerVB > 0 {
+		options["fee_rate"] = req.FeeRateSatPerVB
+	}
+	if req.SubtractFeeFromAmount && len(req.DestinationsSats) > 0 {
+		options["subtractFeeFromOutputs"] = lo.Range(len(req.DestinationsSats))
+	}
+	locktime := uint32(0)
+	protect := ReplayProtect(p.svc.Network(), req.AllowReplay)
+	if protect {
+		locktime = replay.ReplayLockTime
+	}
+	if protect || req.Replaceable {
+		// A final input makes Core ignore the replay locktime.
+		options["replaceable"] = true
+	}
+
+	outputs, _ := buildSendOutputs(req)
+	funded, err := p.rpc.WalletCreateFundedPSBT(ctx, name, rpcOutputs(outputs), locktime, options)
+	if err != nil {
+		return "", fmt.Errorf("create funded psbt: %w", err)
+	}
+	return funded.PSBT, nil
+}
+
+// SignPSBT adds the Core wallet's signatures to a base64 PSBT.
+func (p *CoreBackend) SignPSBT(ctx context.Context, walletID, psbtBase64 string) (string, error) {
+	name, err := p.walletName(ctx, walletID)
+	if err != nil {
+		return "", err
+	}
+	processed, err := p.rpc.WalletProcessPSBT(ctx, name, psbtBase64)
+	if err != nil {
+		return "", fmt.Errorf("sign psbt: %w", err)
+	}
+	return processed.PSBT, nil
+}
+
 // PreviewBumpFee reports what a replacement of req.TxID costs, and which output
 // pays for it. A transaction it cannot replace comes back with a Reason and no
 // Plan, so the caller can tell the user why.
