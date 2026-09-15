@@ -346,9 +346,9 @@ class Bbc extends Sidechain {
 }
 
 /// Credit-creation drivechain of Scottish free-banking lineage: discount houses
-/// issue redeemable notes and discount bills of exchange. A Bitcoin Core fork,
-/// Core-derived like Bbc, so it speaks Core-style JSON-RPC rather than the CUSF
-/// interface the Rust sidechains use.
+/// issue redeemable notes and discount bills of exchange. A Rust sidechain built
+/// on L2L's plain-bitassets chassis (slot 130), so it speaks the CUSF jsonrpsee
+/// JSON-RPC dialect like the other Rust sidechains, not Core-style RPC.
 class FreeBank extends Sidechain {
   FreeBank({
     super.name = 'FreeBank',

@@ -1,0 +1,20 @@
+{
+  "version": 17,
+  "migration": "patch",
+  "binaries": {
+    "freebank": {
+      "is_bitcoin_core": false,
+      "legacy_wallet": false,
+      "startup_log_patterns": [],
+      "directories": {
+        "binary": {
+          "default": {
+            "linux": "freebank",
+            "macos": "freebank",
+            "windows": "freebank"
+          }
+        }
+      }
+    }
+  }
+}
