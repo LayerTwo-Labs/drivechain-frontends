@@ -1,6 +1,13 @@
-// Package freebank is what the FreeBank sidechain adds to a plain Bitcoin Core
-// fork: the wallet dialect its node speaks, and the mainchain identity it pins
-// itself to at boot. Everything Core answers comes from the shared Core client.
+// Package freebank was the Core-fork client the orchestrator once launched
+// FreeBank with. FreeBank is now a plain-bitassets fork (the Rust freebankd),
+// so the orchestrator routes it through the shared JSON-RPC proxy (see
+// sidechain/nodes.New) exactly as it does bitassets, and no longer builds this
+// client. The package is kept because the cmd/fbprobe diagnostic tool still
+// speaks to a Core-style node through it.
+//
+// What it models is what a FreeBank Core node adds to plain Bitcoin Core: the
+// wallet dialect its node speaks, and the mainchain identity it pins itself to
+// at boot. Everything Core answers comes from the shared Core client.
 package freebank
 
 import (
