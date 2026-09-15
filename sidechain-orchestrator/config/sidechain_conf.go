@@ -594,6 +594,24 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		RPCKey:         "rpc-port",
 		DirKey:         "bitassets",
 	},
+	// FreeBank is a plain-bitassets fork (the Rust freebankd, slot 130), so it
+	// shares BitAssets' exact clap surface: --mainchain-grpc-host/-port for the
+	// enforcer, a bare --rpc-port, --net-addr, and a --zmq-addr publisher
+	// (built into every release, default features carry "zmq"). BasePort is
+	// 8454, FreeBank's own RPC port and the health-check target, so the daemon
+	// must default its RPC port to 8454 on every network (rpc-port is withheld
+	// from CliArgKeys, exactly as bitassets withholds it, so the fixed
+	// health-check port always finds the daemon).
+	"freebank": {
+		EnforcerArg:    "mainchain-grpc-host",
+		Name:           "FreeBank",
+		ConfigFilename: "freebank.conf",
+		BasePort:       8454,
+		CliArgKeys:     []string{"net-addr", "zmq-addr"},
+		PortStyle:      "zmq",
+		RPCKey:         "rpc-port",
+		DirKey:         "freebank",
+	},
 	"bitnames": {
 		EnforcerArg:    "mainchain-grpc-host",
 		Name:           "BitNames",

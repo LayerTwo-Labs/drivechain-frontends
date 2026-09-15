@@ -13,6 +13,8 @@ import (
 var provedChainFlags = map[string][]string{
 	"thunder":   {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr"},
 	"bitassets": {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-host", "rpc-port", "zmq-addr"},
+	// freebankd is a plain-bitassets fork, so its `--help` lists the same flags.
+	"freebank":  {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-host", "rpc-port", "zmq-addr"},
 	"bitnames":  {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "zmq-addr"},
 	"photon":    {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "rpc-addr"},
 	"coinshift": {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-addr", "l1-signet", "l1-bch-testnet4"},
@@ -55,6 +57,7 @@ func TestRpcEndpointFollowsTheBinary(t *testing.T) {
 	for name, want := range map[string]string{
 		"thunder":   "127.0.0.1:36009",
 		"bitassets": "36004",
+		"freebank":  "38454",
 		"bitnames":  "127.0.0.1:36002",
 		"photon":    "127.0.0.1:36099",
 		"coinshift": "127.0.0.1:36255",
@@ -138,6 +141,7 @@ func TestECashKeepsTheDaemonDefaults(t *testing.T) {
 	for name, want := range map[string]map[string]string{
 		"thunder":   {"rpc-addr": "127.0.0.1:6009", "net-addr": "0.0.0.0:4009"},
 		"bitassets": {"rpc-port": "6004", "net-addr": "0.0.0.0:4004", "zmq-addr": "127.0.0.1:28004"},
+		"freebank":  {"rpc-port": "8454", "net-addr": "0.0.0.0:6454", "zmq-addr": "127.0.0.1:30454"},
 		"bitnames":  {"rpc-addr": "127.0.0.1:6002", "net-addr": "0.0.0.0:4002", "zmq-addr": "127.0.0.1:28002"},
 		"photon":    {"rpc-addr": "127.0.0.1:6099", "net-addr": "0.0.0.0:4099"},
 		"coinshift": {"rpc-addr": "127.0.0.1:6255", "net-addr": "0.0.0.0:4255"},

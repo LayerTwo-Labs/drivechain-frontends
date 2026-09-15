@@ -158,6 +158,7 @@ func TestPrepareSidechainArgsPassesTheZmqChainPorts(t *testing.T) {
 	for name, want := range map[string][]string{
 		"bitnames":  {"--net-addr=0.0.0.0:34002", "--zmq-addr=127.0.0.1:58002", "--network=signet"},
 		"bitassets": {"--net-addr=0.0.0.0:34004", "--zmq-addr=127.0.0.1:58004", "--network=signet"},
+		"freebank":  {"--net-addr=0.0.0.0:36454", "--zmq-addr=127.0.0.1:60454", "--network=signet"},
 	} {
 		useTempHome(t)
 		spec, ok := config.KnownSidechainSpecs[name]

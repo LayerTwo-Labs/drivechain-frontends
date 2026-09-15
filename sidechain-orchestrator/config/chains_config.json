@@ -841,18 +841,17 @@
       "repo_url": "https://github.com/mbdrivechains/freebank",
       "port": 8454,
       "chain_layer": 2,
-      "is_bitcoin_core": true,
-      "legacy_wallet": true,
+      "is_bitcoin_core": false,
       "color": "orange",
       "health_check": {
         "type": "tcp"
       },
       "dependencies": ["bitcoind", "enforcer"],
-      "startup_log_patterns": ["Done loading"],
+      "startup_log_patterns": [],
       "directories": {
         "binary": {
           "default": {
-            "linux": ".freebank",
+            "linux": "freebank",
             "macos": "FreeBank",
             "windows": "FreeBank"
           }
