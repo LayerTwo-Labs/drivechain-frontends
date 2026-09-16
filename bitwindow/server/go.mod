@@ -3,7 +3,7 @@ module github.com/LayerTwo-Labs/sidesail/bitwindow/server
 go 1.26.0
 
 require (
-	connectrpc.com/connect v1.20.0
+	connectrpc.com/connect v1.21.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633
 	github.com/brianvoe/gofakeit/v7 v7.17.0
