@@ -49,11 +49,11 @@ class SelectBackgroundDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 700, maxHeight: 600),
-        child: SailCard(
-          title: 'Select Background',
-          subtitle: 'Choose a background for your wallet',
-          withCloseButton: true,
-          child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: SailCard(
+            title: 'Select Background',
+            subtitle: 'Choose a background for your wallet',
+            withCloseButton: true,
             child: SailColumn(
               spacing: SailStyleValues.padding12,
               crossAxisAlignment: CrossAxisAlignment.stretch,

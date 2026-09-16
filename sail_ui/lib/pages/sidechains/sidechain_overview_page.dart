@@ -520,10 +520,10 @@ class _TransactionTableState extends State<TransactionTable> {
         backgroundColor: Colors.transparent,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: SailCard(
-            title: 'Transaction Details',
-            subtitle: 'Details of the selected transaction',
-            child: SingleChildScrollView(
+          child: SingleChildScrollView(
+            child: SailCard(
+              title: 'Transaction Details',
+              subtitle: 'Details of the selected transaction',
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

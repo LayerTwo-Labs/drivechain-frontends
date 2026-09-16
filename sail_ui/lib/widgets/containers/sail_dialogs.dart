@@ -100,12 +100,15 @@ Future<T?> widgetDialog<T>({
       backgroundColor: theme.colors.backgroundSecondary,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SailCard(
-          title: title,
-          subtitle: subtitle,
-          withCloseButton: true,
-          color: color,
-          child: child,
+        // Unbounded height makes the card hug its content; taller content scrolls.
+        child: SingleChildScrollView(
+          child: SailCard(
+            title: title,
+            subtitle: subtitle,
+            withCloseButton: true,
+            color: color,
+            child: child,
+          ),
         ),
       ),
     ),
@@ -284,13 +287,13 @@ class SailDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
-        child: SailCard(
-          title: title,
-          subtitle: subtitle,
-          error: error,
-          withCloseButton: withCloseButton,
-          color: color,
-          child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: SailCard(
+            title: title,
+            subtitle: subtitle,
+            error: error,
+            withCloseButton: withCloseButton,
+            color: color,
             child: SailColumn(
               spacing: SailStyleValues.padding16,
               crossAxisAlignment: CrossAxisAlignment.start,
