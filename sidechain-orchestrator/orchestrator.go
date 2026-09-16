@@ -277,9 +277,9 @@ type Orchestrator struct {
 	// the real boot helper; tests override it to bypass process spawning.
 	bootBitcoindForVariantSwap func(ctx context.Context) <-chan StartupProgress
 
-	// catalogURL is where the published network catalog is fetched from. Tests
-	// point it at their own server.
-	catalogURL string
+	// CatalogURL is where the published network catalog is fetched from. The
+	// --catalog-url flag and the tests point it at their own server.
+	CatalogURL string
 
 	// coreReachable reports whether something answers on Core's RPC port.
 	// Overridable so tests don't depend on what is listening on this machine.
@@ -410,7 +410,7 @@ func New(dataDir, network, bitwindowDir string, configs []BinaryConfig, log zero
 	orch.process.BeforeStart = orch.checkECashMigrationStart
 	orch.bootBitcoindForVariantSwap = orch.defaultBootBitcoindForVariantSwap
 	orch.coreReachable = orch.dialCoreRPC
-	orch.catalogURL = netcatalog.DefaultURL
+	orch.CatalogURL = netcatalog.DefaultURL
 
 	// Wire process exit events to ConnectionMonitor state.
 	// When a process crashes, its stderr error message becomes the monitor's

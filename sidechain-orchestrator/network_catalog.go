@@ -204,10 +204,10 @@ func (o *Orchestrator) refreshNetworkCatalog(ctx context.Context) {
 
 // publishedCatalogURL is where the document is fetched from.
 func (o *Orchestrator) publishedCatalogURL() string {
-	if o.catalogURL == "" {
+	if o.CatalogURL == "" {
 		return netcatalog.DefaultURL
 	}
-	return o.catalogURL
+	return o.CatalogURL
 }
 
 // retainRunningECash keeps the entry for the network this install runs when the

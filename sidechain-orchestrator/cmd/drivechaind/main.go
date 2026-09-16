@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 	orchestrator "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/api"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/enforcerproxy"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
@@ -117,6 +119,11 @@ func main() {
 				Usage:   "optional Thunder Esplora URL for wallet history; defaults to the local daemon",
 				EnvVars: []string{"ORCHESTRATOR_THUNDER_ESPLORA_URL"},
 			},
+			&cli.StringFlag{
+				Name:    "catalog-url",
+				Usage:   "fetch the network catalog from this URL instead of " + netcatalog.DefaultURL,
+				EnvVars: []string{"ORCHESTRATOR_CATALOG_URL"},
+			},
 			&cli.StringSliceFlag{
 				Name:    "binary",
 				Usage:   "sidechain binary to start with deps on boot (can be repeated, e.g. --binary=thunder --binary=bitnames)",
@@ -145,6 +152,25 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// A failed fetch falls back to the compiled-in document, so a typo would read
+// as a working default instead of a bad flag.
+func parseCatalogURL(raw string) (string, error) {
+	if raw == "" {
+		return "", nil
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("parse --catalog-url: %w", err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("--catalog-url must use http or https, got %q", raw)
+	}
+	if parsed.Host == "" {
+		return "", fmt.Errorf("--catalog-url must name a host, got %q", raw)
+	}
+	return raw, nil
 }
 
 func run(cctx *cli.Context) error {
@@ -217,6 +243,15 @@ func run(cctx *cli.Context) error {
 	configPath := orchestrator.ConfigFilePath(bitwindowDir)
 	configs := orchestrator.LoadConfigFile(configPath, log)
 	orch := orchestrator.New(dataDir, network, bitwindowDir, configs, log)
+
+	catalogURL, err := parseCatalogURL(cctx.String("catalog-url"))
+	if err != nil {
+		return err
+	}
+	if catalogURL != "" {
+		orch.CatalogURL = catalogURL
+		log.Info().Str("catalog_url", catalogURL).Msg("the network catalog comes from this URL")
+	}
 
 	// Whoever holds this owns the binaries in dataDir. The kernel frees it when
 	// the holder dies, so a leftover from a crashed run is ours to stop.

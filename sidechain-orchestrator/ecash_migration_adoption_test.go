@@ -49,7 +49,7 @@ func TestECashMigrationResumesAdoptedTarget(t *testing.T) {
 	require.True(t, held)
 	next.SetOwnerLock(lock)
 	t.Cleanup(func() { require.NoError(t, lock.Release()) })
-	next.catalogURL = server.URL
+	next.CatalogURL = server.URL
 	require.NoError(t, next.AdoptOrphans(ctx))
 	adopted := next.process.Get("bitcoind")
 	require.NotNil(t, adopted)

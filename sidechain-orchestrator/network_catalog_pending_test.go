@@ -74,7 +74,7 @@ func publish(t *testing.T, o *Orchestrator, c netcatalog.Catalog) {
 		_, _ = w.Write(body)
 	}))
 	t.Cleanup(srv.Close)
-	o.catalogURL = srv.URL
+	o.CatalogURL = srv.URL
 }
 
 // awaitRefresh waits for the detached fetch to take the published document.
@@ -190,7 +190,7 @@ func TestAStartNeverWaitsOnTheEndpoint(t *testing.T) {
 		close(held)
 		srv.Close()
 	})
-	o.catalogURL = srv.URL
+	o.CatalogURL = srv.URL
 
 	done := make(chan struct{})
 	go func() {
