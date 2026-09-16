@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.20.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/barebitcoin/btc-buf v0.0.0-20260808142039-a2f409838633
-	github.com/brianvoe/gofakeit/v7 v7.16.0
+	github.com/brianvoe/gofakeit/v7 v7.17.0
 	github.com/btcsuite/btcd/btcutil v1.2.0
 	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
 	github.com/go-zeromq/zmq4 v0.17.0
@@ -50,7 +50,6 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/btcsuite/btcd/address/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/btcutil/psbt v1.2.0 // indirect
 	github.com/btcsuite/btcd/btcutil/v2 v2.0.1 // indirect
@@ -60,7 +59,6 @@ require (
 	github.com/gowebpki/jcs v1.0.1 // indirect
 	github.com/kcalvinalvin/anet v0.0.0-20251112173137-d8ddc1f6dbee // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/mr-tron/base58 v1.3.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
