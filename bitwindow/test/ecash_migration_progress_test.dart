@@ -77,6 +77,36 @@ void main() {
     });
   });
 
+  group('migrationStepShowsDownload', () {
+    test('the prepare step shows the download it runs', () {
+      final status = ECashMigrationStatus(downloadMbDone: Int64(6), downloadMbTotal: Int64(24));
+      expect(migrationStepShowsDownload('prepare', status), isTrue);
+    });
+
+    test('a later step never shows it', () {
+      final status = ECashMigrationStatus(downloadMbDone: Int64(24), downloadMbTotal: Int64(24));
+      expect(migrationStepShowsDownload('convert', status), isFalse);
+    });
+
+    test('no download reported shows nothing', () {
+      expect(migrationStepShowsDownload('prepare', ECashMigrationStatus()), isFalse);
+    });
+  });
+
+  group('migrationDownloadLabel', () {
+    test('a known size names both figures and the percent', () {
+      final status = ECashMigrationStatus(downloadMbDone: Int64(6), downloadMbTotal: Int64(24));
+      expect(migrationDownloadLabel(status), '6 MB of 24 MB · 25%');
+      expect(migrationDownloadFraction(status), 0.25);
+    });
+
+    test('an unknown size names what arrived, and the bar stays open', () {
+      final status = ECashMigrationStatus(downloadMbDone: Int64(6), downloadMbTotal: Int64(-1));
+      expect(migrationDownloadLabel(status), '6 MB so far');
+      expect(migrationDownloadFraction(status), isNull);
+    });
+  });
+
   group('migrationElapsedLabel', () {
     final started = DateTime.utc(2026, 9, 16, 12);
 
