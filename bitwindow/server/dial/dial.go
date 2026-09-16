@@ -2,10 +2,8 @@ package dial
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -26,7 +24,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/truthcoin"
 	corerpc "github.com/barebitcoin/btc-buf/gen/bitcoin/bitcoind/v1alpha/bitcoindv1alphaconnect"
 	"github.com/rs/zerolog"
-	"golang.org/x/net/http2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -267,21 +264,22 @@ func SetCookieDir(dir string) { cookieDir = dir }
 // getSharedClient returns a singleton HTTP client for all connections
 func getSharedClient(ctx context.Context) *http.Client {
 	clientOnce.Do(func() {
-		sharedClient = &http.Client{
-			Transport: &http2.Transport{
-				AllowHTTP: true,
-				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-					var dialer net.Dialer
-					return dialer.DialContext(ctx, network, addr)
-				},
-				// Without explicit timeouts here, clients linger indefinitely
-				IdleConnTimeout:  15 * time.Second,
-				ReadIdleTimeout:  30 * time.Second, // Close if no data received for 30s
-				PingTimeout:      15 * time.Second,
-				WriteByteTimeout: 10 * time.Second,
+		protocols := new(http.Protocols)
+		protocols.SetUnencryptedHTTP2(true)
 
-				CountError: func(errType string) {
-					zerolog.Ctx(ctx).Error().Msgf("HTTP/2 transport error: %s", errType)
+		sharedClient = &http.Client{
+			Transport: &http.Transport{
+				Protocols: protocols,
+				// Without explicit timeouts here, clients linger indefinitely
+				IdleConnTimeout: 15 * time.Second,
+				HTTP2: &http.HTTP2Config{
+					SendPingTimeout:  30 * time.Second, // Close if no data received for 30s
+					PingTimeout:      15 * time.Second,
+					WriteByteTimeout: 10 * time.Second,
+
+					CountError: func(errType string) {
+						zerolog.Ctx(ctx).Error().Msgf("HTTP/2 transport error: %s", errType)
+					},
 				},
 			},
 			Timeout: 30 * time.Second, // Overall request timeout
