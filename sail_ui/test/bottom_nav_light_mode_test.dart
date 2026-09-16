@@ -413,4 +413,51 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+
+  testWidgets('a status override renames the daemon status and opens its own dialog', (tester) async {
+    if (!GetIt.I.isRegistered<BalanceProvider>()) {
+      GetIt.I.registerSingleton<BalanceProvider>(_Balance());
+    }
+    if (!GetIt.I.isRegistered<PriceProvider>()) {
+      GetIt.I.registerSingleton<PriceProvider>(_Price());
+    }
+    if (!GetIt.I.isRegistered<UpdateProvider>()) {
+      GetIt.I.registerSingleton<UpdateProvider>(_Update());
+    }
+    await tester.binding.setSurfaceSize(const Size(1600, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
+
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SailTheme(
+          data: SailThemeData.lightTheme(SailColorScheme.orange, true, SailFontValues.inter),
+          child: Scaffold(
+            bottomNavigationBar: BottomNav(
+              endWidgets: const [],
+              additionalConnection: model.additionalConnection,
+              mainchainInfo: true,
+              navigateToLogs: (_, _, _) {},
+              statusOverride: BottomNavStatusOverride(
+                label: 'Swapping to Betanet',
+                onTap: () => taps++,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Swapping to Betanet'), findsOneWidget);
+    expect(find.byTooltip('Open the swap progress'), findsOneWidget);
+    expect(find.byTooltip('Open daemon status dialog'), findsNothing);
+
+    await tester.tap(find.byTooltip('Open the swap progress'));
+    await tester.pump();
+    expect(taps, 1);
+    expect(find.byType(DaemonConnectionCard), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }
