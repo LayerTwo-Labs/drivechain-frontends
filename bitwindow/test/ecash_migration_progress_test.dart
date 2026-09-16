@@ -49,6 +49,32 @@ void main() {
     test('names both counts and the percent', () {
       expect(migrationRecordLabel(_records(412300, 1240118)), '412 300 of 1 240 118 records · 33%');
     });
+
+    test('the count stage says how many records it found, never a percent', () {
+      final status = _records(0, 1512480)..recordStage = 'preflight';
+      expect(migrationRecordLabel(status), '1 512 480 records found so far');
+    });
+  });
+
+  group('migrationCountsRecords', () {
+    test('the preflight stage counts', () {
+      expect(migrationCountsRecords(_records(0, 900000)..recordStage = 'preflight'), isTrue);
+    });
+
+    test('the convert stage writes', () {
+      expect(migrationCountsRecords(_records(10, 100)..recordStage = 'convert'), isFalse);
+    });
+
+    test('no stage reported reads as a write', () {
+      expect(migrationCountsRecords(_records(10, 100)), isFalse);
+    });
+  });
+
+  group('migrationStepShowsRecords', () {
+    test('the conversion step shows the count stage although no record is done', () {
+      final status = _records(0, 0)..recordStage = 'preflight';
+      expect(migrationStepShowsRecords('convert', status), isTrue);
+    });
   });
 
   group('migrationElapsedLabel', () {

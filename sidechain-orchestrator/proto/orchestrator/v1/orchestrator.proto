@@ -990,4 +990,7 @@ message ECashMigrationStatus {
   bool wallet_only = 20;
   // Unix seconds the job started, zero before a start.
   int64 started_at_unix = 21;
+  // Record conversion stage: "preflight" counts the records, "convert" writes
+  // them. Empty before the conversion starts.
+  string record_stage = 22;
 }

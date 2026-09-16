@@ -1435,6 +1435,7 @@ const ECashMigrationStatus$json = {
     {'1': 'prune_height', '3': 19, '4': 1, '5': 3, '10': 'pruneHeight'},
     {'1': 'wallet_only', '3': 20, '4': 1, '5': 8, '10': 'walletOnly'},
     {'1': 'started_at_unix', '3': 21, '4': 1, '5': 3, '10': 'startedAtUnix'},
+    {'1': 'record_stage', '3': 22, '4': 1, '5': 9, '10': 'recordStage'},
   ],
 };
 
@@ -1451,7 +1452,8 @@ final $typed_data.Uint8List eCashMigrationStatusDescriptor = $convert.base64Deco
     'Cghjb21wbGV0ZRgPIAEoCFIIY29tcGxldGUSFAoFZXJyb3IYECABKAlSBWVycm9yEh0KCnN5bm'
     'Nfc3RhdGUYESABKAlSCXN5bmNTdGF0ZRIWCgZwcnVuZWQYEiABKAhSBnBydW5lZBIhCgxwcnVu'
     'ZV9oZWlnaHQYEyABKANSC3BydW5lSGVpZ2h0Eh8KC3dhbGxldF9vbmx5GBQgASgIUgp3YWxsZX'
-    'RPbmx5EiYKD3N0YXJ0ZWRfYXRfdW5peBgVIAEoA1INc3RhcnRlZEF0VW5peA==');
+    'RPbmx5EiYKD3N0YXJ0ZWRfYXRfdW5peBgVIAEoA1INc3RhcnRlZEF0VW5peBIhCgxyZWNvcmRf'
+    'c3RhZ2UYFiABKAlSC3JlY29yZFN0YWdl');
 
 const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
   '1': 'OrchestratorService',

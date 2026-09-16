@@ -28,10 +28,17 @@ double migrationRecordFraction(ECashMigrationStatus status) {
 /// The record counts belong to the conversion alone. They stay populated after
 /// it, so a later phase would otherwise show them as its own progress.
 bool migrationStepShowsRecords(String phase, ECashMigrationStatus status) =>
-    phase == 'convert' && status.recordsTotal > 0;
+    phase == 'convert' && (status.recordsTotal > 0 || migrationCountsRecords(status));
+
+/// The conversion counts every record before it writes one, so a bar during the
+/// count would sit at zero and read as a stall.
+bool migrationCountsRecords(ECashMigrationStatus status) => status.recordStage == 'preflight';
 
 /// The line under the conversion bar: records done, records total, percent.
 String migrationRecordLabel(ECashMigrationStatus status) {
+  if (migrationCountsRecords(status)) {
+    return '${groupDigits(status.recordsTotal)} records found so far';
+  }
   final percent = (migrationRecordFraction(status) * 100).round();
   return '${groupDigits(status.recordsDone)} of ${groupDigits(status.recordsTotal)} records · $percent%';
 }
@@ -349,7 +356,7 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(3),
                       child: LinearProgressIndicator(
-                        value: migrationRecordFraction(status),
+                        value: migrationCountsRecords(status) ? null : migrationRecordFraction(status),
                         minHeight: 6,
                         color: colors.primary,
                         backgroundColor: colors.border,
