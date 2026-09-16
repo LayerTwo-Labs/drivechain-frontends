@@ -17,7 +17,9 @@ import 'package:bitwindow/main.dart';
 import 'package:bitwindow/pages/merchants/chain_merchants_dialog.dart';
 import 'package:bitwindow/pages/overview_page.dart';
 import 'package:bitwindow/pages/wallet/bitcoin_uri_dialog.dart';
+import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
+import 'package:bitwindow/widgets/ecash_migration_dialog.dart';
 import 'package:bitwindow/widgets/edit_wallet_flow.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fork_countdown_timer.dart';
@@ -1215,7 +1217,29 @@ class _StatusBarState extends State<StatusBar> {
 
   @override
   Widget build(BuildContext context) {
+    final migration = GetIt.I.get<ECashMigrationProvider>();
+    return ListenableBuilder(
+      listenable: migration,
+      builder: (context, _) => _bottomNav(context, migration),
+    );
+  }
+
+  Widget _bottomNav(BuildContext context, ECashMigrationProvider migration) {
+    final swap = migration.status;
     return BottomNav(
+      statusOverride: migration.swapping && swap != null
+          ? BottomNavStatusOverride(
+              label: migration.navLabel,
+              onTap: () => unawaited(
+                openECashMigration(
+                  context,
+                  fromId: swap.fromId,
+                  toId: swap.toId,
+                  initialStatus: swap,
+                ),
+              ),
+            )
+          : null,
       additionalConnection: ConnectionMonitor(
         rpc: bitwindow,
         name: 'BitWindow',

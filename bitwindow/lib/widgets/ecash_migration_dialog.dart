@@ -4,6 +4,52 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
 
+/// Thin-space digit groups, so a record count stays readable at a glance.
+String groupDigits(Object value) {
+  final digits = value.toString();
+  final out = StringBuffer();
+  for (var index = 0; index < digits.length; index++) {
+    if (index > 0 && (digits.length - index) % 3 == 0) {
+      out.write(' ');
+    }
+    out.write(digits[index]);
+  }
+  return out.toString();
+}
+
+/// How much of the record conversion is done, between 0 and 1.
+double migrationRecordFraction(ECashMigrationStatus status) {
+  if (status.recordsTotal == 0) {
+    return 0;
+  }
+  return (status.recordsDone.toDouble() / status.recordsTotal.toDouble()).clamp(0, 1);
+}
+
+/// The record counts belong to the conversion alone. They stay populated after
+/// it, so a later phase would otherwise show them as its own progress.
+bool migrationStepShowsRecords(String phase, ECashMigrationStatus status) =>
+    phase == 'convert' && status.recordsTotal > 0;
+
+/// The line under the conversion bar: records done, records total, percent.
+String migrationRecordLabel(ECashMigrationStatus status) {
+  final percent = (migrationRecordFraction(status) * 100).round();
+  return '${groupDigits(status.recordsDone)} of ${groupDigits(status.recordsTotal)} records · $percent%';
+}
+
+/// Time since the job started, as minutes and seconds.
+String migrationElapsedLabel(int startedAtUnix, {DateTime? now}) {
+  final started = DateTime.fromMillisecondsSinceEpoch(startedAtUnix * 1000);
+  final seconds = (now ?? DateTime.now()).difference(started).inSeconds;
+  if (seconds < 0) {
+    return '0 s';
+  }
+  if (seconds < 60) {
+    return '$seconds s';
+  }
+  final rest = (seconds % 60).toString().padLeft(2, '0');
+  return '${seconds ~/ 60} min $rest s';
+}
+
 Future<PlanECashSwitchResponse?> planECashMigration(
   BitcoinConfProvider provider,
   String toId, {
@@ -233,16 +279,45 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
     ],
   );
 
+  List<({String phase, String title, String reason})> _steps(ECashMigrationStatus status) => [
+    (
+      phase: 'prepare',
+      title: 'Download the ${widget.toId} binary',
+      reason: 'What happens here is quite obvious. No binary, no fun!',
+    ),
+    (
+      phase: 'rewind',
+      title: status.walletOnly ? 'Prepare the wallet data' : 'Roll back to block ${groupDigits(status.commonHeight)}',
+      reason: status.walletOnly
+          ? 'No blocks belong to ${widget.fromId}, so only the wallet files carry the old magic.'
+          : 'Mark every block above this height as invalid, so when we get to step 4, it continues syncing '
+                'from the correct height.',
+    ),
+    (
+      phase: 'convert',
+      title: 'Write the ${widget.toId} magic',
+      reason:
+          'The network magic is a special little thing that mess stuff up. Here we swap out the old magic '
+          'with the new, everywhere needed.',
+    ),
+    (
+      phase: 'select',
+      title: 'Select ${widget.toId}',
+      reason: 'Select ${widget.toId} as the network, making sure the correct core and enforcer is started.',
+    ),
+    (
+      phase: 'check',
+      title: 'Pray you don’t have to resync the entire chain',
+      reason:
+          'Hopefully nothing has gone wrong, and you reach this step. If you do, let out a little '
+          '“yee-haw” with us! You’re ready for ${widget.toId}.',
+    ),
+  ];
+
   List<Widget> _progress(ECashMigrationStatus status) {
     final colors = SailTheme.of(context).colors;
-    final steps = [
-      ('prepare', 'Prepare the Core binaries'),
-      ('rewind', status.walletOnly ? 'Prepare wallet data' : 'Return to block ${status.commonHeight}'),
-      ('convert', 'Change network data'),
-      ('select', 'Select ${widget.toId}'),
-      ('check', 'Check retained data'),
-    ];
-    final current = status.complete ? steps.length : steps.indexWhere((step) => step.$1 == status.phase);
+    final steps = _steps(status);
+    final current = status.complete ? steps.length : steps.indexWhere((step) => step.phase == status.phase);
     return [
       for (var index = 0; index < steps.length; index++)
         Row(
@@ -254,7 +329,7 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
                 width: 16,
                 height: 16,
                 child: index == current && status.running
-                    ? CircularProgressIndicator(strokeWidth: 1, color: colors.primary)
+                    ? CircularProgressIndicator(strokeWidth: 1.6, color: colors.primary)
                     : SailSVG.fromAsset(
                         index < current ? SailSVGAsset.circleCheck : SailSVGAsset.circle,
                         color: index < current ? colors.success : colors.textSecondary,
@@ -262,20 +337,31 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
               ),
             ),
             const SizedBox(width: SailStyleValues.padding08),
-            Expanded(child: SailText.primary13(steps[index].$2, overflow: TextOverflow.visible)),
+            Expanded(
+              child: SailColumn(
+                spacing: SailStyleValues.padding04,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SailText.primary13(steps[index].title, overflow: TextOverflow.visible),
+                  SailText.secondary12(steps[index].reason, overflow: TextOverflow.visible),
+                  if (migrationStepShowsRecords(steps[index].phase, status)) ...[
+                    const SizedBox(height: SailStyleValues.padding04),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: migrationRecordFraction(status),
+                        minHeight: 6,
+                        color: colors.primary,
+                        backgroundColor: colors.border,
+                      ),
+                    ),
+                    SailText.secondary12(migrationRecordLabel(status), overflow: TextOverflow.visible),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
-      if (status.recordsTotal > 0) ...[
-        LinearProgressIndicator(
-          value: (status.recordsDone.toDouble() / status.recordsTotal.toDouble()).clamp(0, 1),
-          color: colors.primary,
-          backgroundColor: colors.border,
-        ),
-        SailText.secondary12(
-          '${status.recordsDone} of ${status.recordsTotal} records complete',
-          overflow: TextOverflow.visible,
-        ),
-      ],
     ];
   }
 
@@ -322,14 +408,20 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_openSource) ...[
-            SailText.primary13('The retained ECX data belongs to ${widget.fromId}.', overflow: TextOverflow.visible),
+            SailText.primary13(
+              'The retained ECX data belongs to ${widget.fromId}.',
+              overflow: TextOverflow.visible,
+            ),
             SailText.secondary13('Open ${widget.fromId} to preview the migration to ${widget.toId}.'),
             SailText.secondary13('The app keeps the retained blocks.'),
           ] else if (_busy && status == null)
             SailText.secondary13('The app reads the migration preview.'),
           if (status != null) ...[
             SailText.primary13(
-              status.walletOnly
+              hasJob
+                  ? 'Hold on for a little while. BitWindow is doing some magic so you don’t have to resync '
+                        'the entire chain.'
+                  : status.walletOnly
                   ? 'The migration keeps wallet keys.'
                   : 'The migration keeps existing blocks and wallet keys.',
               overflow: TextOverflow.visible,
@@ -345,14 +437,21 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!status.walletOnly) _detail('Rollback block', status.commonHeight.toString()),
-                  _detail('Core data directory', status.dataDir),
-                  SailText.secondary12(
-                    status.walletOnly
-                        ? 'The target sync starts from the first block.'
-                        : '${status.blockFiles} block files and ${status.undoFiles} undo files stay on disk.',
-                    overflow: TextOverflow.visible,
-                  ),
+                  if (!status.walletOnly) _detail('Rollback block', groupDigits(status.commonHeight)),
+                  if (hasJob && status.startedAtUnix > 0)
+                    _detail('Elapsed', migrationElapsedLabel(status.startedAtUnix.toInt()))
+                  else
+                    _detail('Core data directory', status.dataDir),
+                  if (hasJob) ...[
+                    _detail('Block files', groupDigits(status.blockFiles)),
+                    _detail('Undo files', groupDigits(status.undoFiles)),
+                  ] else
+                    SailText.secondary12(
+                      status.walletOnly
+                          ? 'The target sync starts from the first block.'
+                          : '${status.blockFiles} block files and ${status.undoFiles} undo files stay on disk.',
+                      overflow: TextOverflow.visible,
+                    ),
                   if (status.pruned)
                     SailText.secondary12(
                       'The oldest retained block has height ${status.pruneHeight}.',
@@ -365,7 +464,10 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
               SailText.secondary13(
                 'Balances and transactions on ${widget.fromId} do not transfer to ${widget.toId}.',
               ),
-              SailText.secondary12('The full file check starts after Core stops.', overflow: TextOverflow.visible),
+              SailText.secondary12(
+                'The full file check starts after Core stops.',
+                overflow: TextOverflow.visible,
+              ),
             ] else ...[
               ..._progress(status),
               if (complete)
@@ -374,7 +476,7 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
                   overflow: TextOverflow.visible,
                 )
               else if (active)
-                SailText.secondary13('The daemon continues if you close this dialog.')
+                SailText.secondary13('You can safely close this dialog. It will continue in the background.')
               else
                 SailText.secondary13(
                   'The migration stopped before completion. Resume it after you resolve the error.',

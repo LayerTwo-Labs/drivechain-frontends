@@ -243,8 +243,15 @@ void main() {
     await _flush(tester);
   }
 
+  // The dialog scrolls, so a button below the fold has to come into view first.
+  Future<void> tapButton(WidgetTester tester, Finder finder) async {
+    await tester.ensureVisible(finder);
+    await tester.pump();
+    await tester.tap(finder);
+  }
+
   Future<void> closeDialog(WidgetTester tester) async {
-    await tester.tap(_button('Close'));
+    await tapButton(tester, _button('Close'));
     await _flush(tester);
   }
 
@@ -272,8 +279,8 @@ void main() {
 
     await openDialog(tester);
 
-    expect(find.text('Return to block 900000'), findsNothing);
-    expect(find.text('Change network data'), findsOneWidget);
+    expect(find.text('Roll back to block 900 000'), findsNothing);
+    expect(find.text('Write the betanet magic'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(rpc.previews, isEmpty);
     await closeDialog(tester);
@@ -298,7 +305,7 @@ void main() {
       expect(conf.selections, isEmpty);
       expect(networkState.clears, 0);
 
-      await tester.tap(_button('Open alphanet'));
+      await tapButton(tester, _button('Open alphanet'));
       await _flush(tester);
 
       expect(conf.selections, [(network: BitcoinNetwork.BITCOIN_NETWORK_ECASH, networkId: 'alphanet', dataDir: '')]);
@@ -316,7 +323,7 @@ void main() {
       expect(events.indexOf('clear done'), lessThan(events.indexOf('preview')));
       expect(rpc.starts, isEmpty);
 
-      await tester.tap(_button('Start migration'));
+      await tapButton(tester, _button('Start migration'));
       await _flush(tester);
 
       expect(rpc.starts, [(fromId: 'alphanet', toId: 'betanet')]);
@@ -330,7 +337,7 @@ void main() {
     conf.updateError = StateError('The source config is not available');
     await openDialog(tester);
 
-    await tester.tap(_button('Open alphanet'));
+    await tapButton(tester, _button('Open alphanet'));
     await _flush(tester);
 
     expect(find.textContaining('The source config is not available'), findsOneWidget);
@@ -341,7 +348,7 @@ void main() {
     expect(rpc.starts, isEmpty);
     conf.updateError = null;
 
-    await tester.tap(_button('Open alphanet'));
+    await tapButton(tester, _button('Open alphanet'));
     await _flush(tester);
 
     expect(conf.selections, hasLength(2));
@@ -366,7 +373,7 @@ void main() {
     expect(rpc.previews, isEmpty);
     expect(rpc.starts, isEmpty);
     rpc.statusError = null;
-    await tester.tap(_button('Refresh status'));
+    await tapButton(tester, _button('Refresh status'));
     await _flush(tester);
 
     expect(_button('Open alphanet'), findsOneWidget);
@@ -387,7 +394,7 @@ void main() {
     expect(conf.selections, isEmpty);
     expect(rpc.previews, isEmpty);
     expect(rpc.starts, isEmpty);
-    await tester.tap(_button('Open betanet'));
+    await tapButton(tester, _button('Open betanet'));
     await _flush(tester);
 
     expect(conf.selections, [(network: BitcoinNetwork.BITCOIN_NETWORK_ECASH, networkId: 'betanet', dataDir: '')]);
@@ -418,7 +425,7 @@ void main() {
     expect(conf.selections, isEmpty);
     await _capture(tester, 'ecx-preview');
 
-    await tester.tap(_button('Start migration'));
+    await tapButton(tester, _button('Start migration'));
     await _flush(tester);
 
     expect(rpc.starts, [(fromId: 'alphanet', toId: 'betanet')]);
@@ -437,7 +444,7 @@ void main() {
     await _capture(tester, 'ecx-preview-error');
 
     rpc.previewError = null;
-    await tester.tap(_button('Retry preview'));
+    await tapButton(tester, _button('Retry preview'));
     await _flush(tester);
 
     expect(rpc.previews, hasLength(2));
@@ -457,7 +464,7 @@ void main() {
     expect(rpc.starts, isEmpty);
 
     rpc.statusError = null;
-    await tester.tap(_button('Refresh status'));
+    await tapButton(tester, _button('Refresh status'));
     await _flush(tester);
 
     expect(rpc.statusReads, 2);
@@ -477,7 +484,7 @@ void main() {
     expect(rpc.previews, isEmpty);
     await _capture(tester, 'ecx-resume');
 
-    await tester.tap(_button('Resume migration'));
+    await tapButton(tester, _button('Resume migration'));
     await _flush(tester);
 
     expect(rpc.starts, [(fromId: 'alphanet', toId: 'betanet')]);
@@ -490,19 +497,19 @@ void main() {
     rpc.startError = StateError('The start response did not arrive');
     await openDialog(tester);
 
-    await tester.tap(_button('Start migration'));
+    await tapButton(tester, _button('Start migration'));
     await _flush(tester);
 
     expect(_button('Refresh status'), findsOneWidget);
     expect(rpc.starts, hasLength(1));
     rpc.saved = _status(jobId: 'job-1', phase: 'convert', active: true, recordsDone: 25);
-    await tester.tap(_button('Refresh status'));
+    await tapButton(tester, _button('Refresh status'));
     await _flush(tester);
 
     expect(rpc.statusReads, 2);
     expect(rpc.starts, hasLength(1));
     expect(rpc.previews, hasLength(1));
-    expect(find.text('25 of 100 records complete'), findsOneWidget);
+    expect(find.text('25 of 100 records · 25%'), findsOneWidget);
     expect(_button('Start migration'), findsNothing);
     expect(conf.selections, isEmpty);
     await closeDialog(tester);
@@ -521,9 +528,9 @@ void main() {
     await _flush(tester);
 
     expect(rpc.statusReads, 2);
-    expect(find.text('75 of 100 records complete'), findsOneWidget);
+    expect(find.text('75 of 100 records · 75%'), findsOneWidget);
     expect(tester.widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator)).value, 0.75);
-    expect(find.text('Change network data'), findsOneWidget);
+    expect(find.text('Write the betanet magic'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(conf.selections, isEmpty);
     await _capture(tester, 'ecx-progress');
@@ -539,16 +546,16 @@ void main() {
     await _flush(tester);
 
     expect(_button('Refresh status'), findsOneWidget);
-    expect(find.text('25 of 100 records complete'), findsOneWidget);
+    expect(find.text('25 of 100 records · 25%'), findsOneWidget);
     final failedReadCount = rpc.statusReads;
     await tester.pump(const Duration(seconds: 5));
     expect(rpc.statusReads, failedReadCount);
     rpc.statusError = null;
     rpc.saved = _status(jobId: 'job-1', phase: 'convert', active: true, recordsDone: 75);
-    await tester.tap(_button('Refresh status'));
+    await tapButton(tester, _button('Refresh status'));
     await _flush(tester);
 
-    expect(find.text('75 of 100 records complete'), findsOneWidget);
+    expect(find.text('75 of 100 records · 75%'), findsOneWidget);
     expect(rpc.starts, isEmpty);
     expect(rpc.previews, isEmpty);
     expect(conf.selections, isEmpty);
@@ -634,7 +641,7 @@ void main() {
     expect(networkState.clears, 0);
     await _capture(tester, 'ecx-complete');
 
-    await tester.tap(_button('Open betanet'));
+    await tapButton(tester, _button('Open betanet'));
     await _flush(tester);
 
     expect(conf.selections, [(network: BitcoinNetwork.BITCOIN_NETWORK_ECASH, networkId: 'betanet', dataDir: '')]);
@@ -654,14 +661,14 @@ void main() {
     conf.updateError = StateError('The local config is not available');
     await openDialog(tester);
 
-    await tester.tap(_button('Open betanet'));
+    await tapButton(tester, _button('Open betanet'));
     await _flush(tester);
 
     expect(find.textContaining('The local config is not available'), findsOneWidget);
     expect(results, isEmpty);
     expect(networkState.clears, 0);
     conf.updateError = null;
-    await tester.tap(_button('Open betanet'));
+    await tapButton(tester, _button('Open betanet'));
     await _flush(tester);
 
     expect(conf.selections, hasLength(2));
@@ -676,8 +683,11 @@ void main() {
     await openDialog(tester, ecash: true);
 
     expect(SailTheme.of(tester.element(find.byType(ECashMigrationDialog))).chrome.terminalStyle, isTrue);
-    expect(find.text('75 of 100 records complete'), findsOneWidget);
-    _expectFullText(tester, 'The migration keeps existing blocks and wallet keys.');
+    expect(find.text('75 of 100 records · 75%'), findsOneWidget);
+    _expectFullText(
+      tester,
+      'Hold on for a little while. BitWindow is doing some magic so you don’t have to resync the entire chain.',
+    );
     expect(tester.takeException(), isNull);
     await _capture(tester, 'ecx-progress');
     await closeDialog(tester);
@@ -711,9 +721,9 @@ void main() {
           _expectFullText(tester, 'Local checks passed. betanet sync continues.');
         }
         if (layout.saved != null) {
-          _expectFullText(tester, 'Prepare the Core binaries');
-          _expectFullText(tester, 'Return to block 900000');
-          _expectFullText(tester, 'Change network data');
+          _expectFullText(tester, 'Download the betanet binary');
+          _expectFullText(tester, 'Roll back to block 900 000');
+          _expectFullText(tester, 'Write the betanet magic');
         }
         final action = _button(layout.action);
         await tester.ensureVisible(action);
