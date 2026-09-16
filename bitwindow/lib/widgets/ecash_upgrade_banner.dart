@@ -87,6 +87,23 @@ const _newNetworkBannerIdPrefix = 'network-available-';
 const _migrationBannerIdPrefix = 'ecash-migration-';
 const _statusErrorBannerIdPrefix = '${_migrationBannerIdPrefix}status-error';
 
+/// The completion banner offers the target network. The offer ends once the app
+/// runs that network — a pick alone is not enough, because another network can
+/// be open at the same time.
+bool migrationBannerIsDone(ECashMigrationStatus migration, BitcoinNetwork network, String activeNetworkId) =>
+    migration.complete &&
+    migration.toId.isNotEmpty &&
+    network == BitcoinNetwork.BITCOIN_NETWORK_ECASH &&
+    activeNetworkId == migration.toId;
+
+bool _migrationTargetIsOpen(ECashMigrationStatus migration) {
+  if (!GetIt.I.isRegistered<BitcoinConfProvider>()) {
+    return false;
+  }
+  final conf = GetIt.I.get<BitcoinConfProvider>();
+  return migrationBannerIsDone(migration, conf.network, conf.ecashNetworkId);
+}
+
 /// Raises a banner notification when a newer eCash network is published.
 /// Polls because the backend records it from a detached goroutine after boot.
 class ECashUpgradeWatcher {
@@ -134,7 +151,14 @@ class ECashUpgradeWatcher {
       await provider.markRead(notice.id);
     }
     _statusErrorId = null;
-    if (migration.jobId.isNotEmpty) {
+    if (migration.jobId.isNotEmpty && _migrationTargetIsOpen(migration)) {
+      for (final stale
+          in provider.history
+              .where((notice) => !notice.read && notice.id.startsWith(_migrationBannerIdPrefix))
+              .toList()) {
+        await provider.markRead(stale.id);
+      }
+    } else if (migration.jobId.isNotEmpty) {
       final state = migration.complete
           ? 'complete'
           : migration.running

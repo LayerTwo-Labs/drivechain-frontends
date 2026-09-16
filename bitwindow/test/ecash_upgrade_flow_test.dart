@@ -625,14 +625,16 @@ void main() {
     expect(find.text('Resume migration to betanet'), findsOneWidget);
     expect(notices.activeBanner?.dialogType, DialogType.error);
 
+    // betanet is already the open network, so the completion offer has no job
+    // left and the banner retires rather than repeat on every poll.
     rpc.saved = _status(jobId: 'job-1', complete: true);
     await tester.pump(const Duration(seconds: 15));
     await _flush(tester);
-    expect(find.text('Migration to betanet complete'), findsOneWidget);
+    expect(find.text('Migration to betanet complete'), findsNothing);
     await tester.pump(const Duration(seconds: 15));
     await _flush(tester);
-    expect(find.text('Migration to betanet complete'), findsOneWidget);
-    expect(notices.history.where((notice) => !notice.read), hasLength(1));
+    expect(find.text('Migration to betanet complete'), findsNothing);
+    expect(notices.history.where((notice) => !notice.read), isEmpty);
     watcher.dispose();
   });
 
