@@ -38,10 +38,10 @@ require (
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.56.0
+	golang.org/x/crypto v0.57.0
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 )
 
 require (
@@ -50,7 +50,6 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/btcsuite/btcd/address/v2 v2.0.0 // indirect
 	github.com/btcsuite/btcd/btcutil/psbt v1.2.0 // indirect
 	github.com/btcsuite/btcd/btcutil/v2 v2.0.1 // indirect
@@ -60,7 +59,6 @@ require (
 	github.com/gowebpki/jcs v1.0.1 // indirect
 	github.com/kcalvinalvin/anet v0.0.0-20251112173137-d8ddc1f6dbee // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/mr-tron/base58 v1.3.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
