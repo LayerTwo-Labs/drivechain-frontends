@@ -54,6 +54,14 @@ String? chainSourceBlocks(SyncInfo? syncInfo) {
   return '${formatWithThousandSpacers(height)} blocks';
 }
 
+/// What the daemon status reads and opens while a long job owns the daemons.
+class BottomNavStatusOverride {
+  final String label;
+  final VoidCallback onTap;
+
+  const BottomNavStatusOverride({required this.label, required this.onTap});
+}
+
 class BottomNav extends StatelessWidget {
   final List<Widget> endWidgets;
   final List<Widget> balanceEndWidgets;
@@ -66,6 +74,7 @@ class BottomNav extends StatelessWidget {
   final VoidCallback? onOpenAdditionalConfConfigurator;
   final VoidCallback? onOpenMiningSettings;
   final VoidCallback? onViewMiningLogs;
+  final BottomNavStatusOverride? statusOverride;
 
   const BottomNav({
     super.key,
@@ -80,6 +89,7 @@ class BottomNav extends StatelessWidget {
     this.onOpenAdditionalConfConfigurator,
     this.onOpenMiningSettings,
     this.onViewMiningLogs,
+    this.statusOverride,
   });
 
   @override
@@ -140,19 +150,29 @@ class BottomNav extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     InkWell(
-                      onTap: () async => displayConnectionStatusDialog(
-                        context,
-                        additionalConnection,
-                        onlyShowAdditional,
-                      ),
+                      onTap: () {
+                        final override = statusOverride;
+                        if (override != null) {
+                          override.onTap();
+                          return;
+                        }
+                        displayConnectionStatusDialog(
+                          context,
+                          additionalConnection,
+                          onlyShowAdditional,
+                        );
+                      },
                       child: Tooltip(
-                        message: 'Open daemon status dialog',
+                        message: statusOverride == null ? 'Open daemon status dialog' : 'Open the swap progress',
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const SizedBox(width: SailStyleValues.padding08),
                             DecoratedBox(
-                              decoration: !model.initializingAny && model.connectionColor == SailColorScheme.red
+                              decoration:
+                                  statusOverride == null &&
+                                      !model.initializingAny &&
+                                      model.connectionColor == SailColorScheme.red
                                   ? BoxDecoration(
                                       boxShadow: [
                                         BoxShadow(
@@ -167,13 +187,22 @@ class BottomNav extends StatelessWidget {
                                   : const BoxDecoration(),
                               child: SailSVG.fromAsset(
                                 SailSVGAsset.iconConnectionStatus,
-                                color: model.connectionColor,
+                                // The swap stops the daemons on purpose, so the red alarm would misread.
+                                color: statusOverride == null
+                                    ? model.connectionColor
+                                    : SailTheme.of(context).colors.primary,
                               ),
                             ),
                             const SizedBox(width: SailStyleValues.padding08),
                             ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 200),
-                              child: model.connectionStatus == 'All binaries connected'
+                              child: statusOverride != null
+                                  ? SailText.primary12(
+                                      statusOverride!.label,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    )
+                                  : model.connectionStatus == 'All binaries connected'
                                   ? SailText.secondary12(
                                       model.connectionStatus,
                                       overflow: TextOverflow.ellipsis,
