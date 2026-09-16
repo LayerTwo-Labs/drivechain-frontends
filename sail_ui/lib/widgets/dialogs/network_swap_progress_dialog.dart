@@ -100,15 +100,15 @@ class _NetworkSwapProgressDialogState extends State<NetworkSwapProgressDialog> {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 550, maxHeight: 650),
-        child: SailCard(
-          title: 'Switching Network',
-          subtitle: _isCompleted
-              ? 'Successfully switched from $fromNetworkName to $toNetworkName!'
-              : _error != null
-              ? 'Network swap failed: $_error'
-              : 'Switching from $fromNetworkName to $toNetworkName...',
-          withCloseButton: true,
-          child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: SailCard(
+            title: 'Switching Network',
+            subtitle: _isCompleted
+                ? 'Successfully switched from $fromNetworkName to $toNetworkName!'
+                : _error != null
+                ? 'Network swap failed: $_error'
+                : 'Switching from $fromNetworkName to $toNetworkName...',
+            withCloseButton: true,
             child: SailColumn(
               spacing: SailStyleValues.padding08,
               crossAxisAlignment: CrossAxisAlignment.end,

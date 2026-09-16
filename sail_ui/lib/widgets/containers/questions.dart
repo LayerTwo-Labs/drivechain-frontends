@@ -20,8 +20,8 @@ class QuestionContainer extends StatelessWidget {
         backgroundColor: theme.colors.actionHeader,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 540, maxHeight: 540),
-          child: SailCard(
-            child: SingleChildScrollView(
+          child: SingleChildScrollView(
+            child: SailCard(
               child: Padding(
                 padding: const EdgeInsets.all(SailStyleValues.padding16),
                 child: SailColumn(
