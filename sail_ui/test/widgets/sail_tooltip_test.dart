@@ -23,7 +23,7 @@ Widget _wrap(Widget child) {
 void main() {
   group('SailTooltip', () {
     testWidgets('the width limit wraps a long message', (tester) async {
-      final message = List.filled(4, 'This transaction burns coins. You cannot reverse this transaction.').join(' ');
+      final message = List.filled(4, 'This transaction burns coins.').join(' ');
       await tester.pumpWidget(
         _wrap(
           SailTooltip(

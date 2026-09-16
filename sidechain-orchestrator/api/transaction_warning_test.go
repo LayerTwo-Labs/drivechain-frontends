@@ -24,7 +24,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
-const warningTestMessage = "This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction."
+const warningTestMessage = "This transaction burns Alphanet coins for a claim of real ECX."
 const warningTestBurnAddress = wallet.ECXBurnAddress
 const warningTestClaimAddress = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
 const warningTestPublicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"

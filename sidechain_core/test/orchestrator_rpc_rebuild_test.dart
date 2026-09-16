@@ -65,7 +65,7 @@ void main() {
     expect(result.addresses, ['first-wallet-address']);
   });
 
-  const warning = 'This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction.';
+  const warning = 'This transaction burns Alphanet coins for a claim of real ECX.';
   final messages = {'backend text': warning, 'no warning': '', 'long warning': List.filled(4, warning).join(' ')};
   for (final message in messages.entries) {
     test('the wallet client keeps the decode warning: ${message.key}', () async {
