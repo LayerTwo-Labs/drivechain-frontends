@@ -636,7 +636,8 @@ void main() {
     await openDialog(tester);
 
     expect(_button('Open betanet'), findsOneWidget);
-    expect(find.text('Local checks passed. betanet sync continues.'), findsOneWidget);
+    // The button says the whole story, so a complete job carries no closing line.
+    expect(find.textContaining('Local checks passed'), findsNothing);
     expect(conf.selections, isEmpty);
     expect(networkState.clears, 0);
     await _capture(tester, 'ecx-complete');
@@ -717,9 +718,6 @@ void main() {
 
         expect(tester.takeException(), isNull);
         _expectFullText(tester, dataDir);
-        if (layout.saved?.complete ?? false) {
-          _expectFullText(tester, 'Local checks passed. betanet sync continues.');
-        }
         if (layout.saved != null) {
           _expectFullText(tester, 'Download the betanet binary');
           _expectFullText(tester, 'Roll back to block 900 000');

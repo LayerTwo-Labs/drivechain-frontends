@@ -6159,6 +6159,8 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     $core.bool? walletOnly,
     $fixnum.Int64? startedAtUnix,
     $core.String? recordStage,
+    $fixnum.Int64? downloadMbDone,
+    $fixnum.Int64? downloadMbTotal,
   }) {
     final $result = create();
     if (jobId != null) {
@@ -6227,6 +6229,12 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     if (recordStage != null) {
       $result.recordStage = recordStage;
     }
+    if (downloadMbDone != null) {
+      $result.downloadMbDone = downloadMbDone;
+    }
+    if (downloadMbTotal != null) {
+      $result.downloadMbTotal = downloadMbTotal;
+    }
     return $result;
   }
   ECashMigrationStatus._() : super();
@@ -6256,6 +6264,8 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     ..aOB(20, _omitFieldNames ? '' : 'walletOnly')
     ..aInt64(21, _omitFieldNames ? '' : 'startedAtUnix')
     ..aOS(22, _omitFieldNames ? '' : 'recordStage')
+    ..aInt64(23, _omitFieldNames ? '' : 'downloadMbDone')
+    ..aInt64(24, _omitFieldNames ? '' : 'downloadMbTotal')
     ..hasRequiredFields = false
   ;
 
@@ -6481,6 +6491,26 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
   $core.bool hasRecordStage() => $_has(21);
   @$pb.TagNumber(22)
   void clearRecordStage() => clearField(22);
+
+  /// Megabytes of the target Core build. Total is -1 when the server states no
+  /// length, and both are zero when no download runs.
+  @$pb.TagNumber(23)
+  $fixnum.Int64 get downloadMbDone => $_getI64(22);
+  @$pb.TagNumber(23)
+  set downloadMbDone($fixnum.Int64 v) { $_setInt64(22, v); }
+  @$pb.TagNumber(23)
+  $core.bool hasDownloadMbDone() => $_has(22);
+  @$pb.TagNumber(23)
+  void clearDownloadMbDone() => clearField(23);
+
+  @$pb.TagNumber(24)
+  $fixnum.Int64 get downloadMbTotal => $_getI64(23);
+  @$pb.TagNumber(24)
+  set downloadMbTotal($fixnum.Int64 v) { $_setInt64(23, v); }
+  @$pb.TagNumber(24)
+  $core.bool hasDownloadMbTotal() => $_has(23);
+  @$pb.TagNumber(24)
+  void clearDownloadMbTotal() => clearField(24);
 }
 
 class OrchestratorServiceApi {

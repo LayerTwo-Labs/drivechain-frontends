@@ -5369,9 +5369,13 @@ type ECashMigrationStatus struct {
 	StartedAtUnix int64 `protobuf:"varint,21,opt,name=started_at_unix,json=startedAtUnix,proto3" json:"started_at_unix,omitempty"`
 	// Record conversion stage: "preflight" counts the records, "convert" writes
 	// them. Empty before the conversion starts.
-	RecordStage   string `protobuf:"bytes,22,opt,name=record_stage,json=recordStage,proto3" json:"record_stage,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RecordStage string `protobuf:"bytes,22,opt,name=record_stage,json=recordStage,proto3" json:"record_stage,omitempty"`
+	// Megabytes of the target Core build. Total is -1 when the server states no
+	// length, and both are zero when no download runs.
+	DownloadMbDone  int64 `protobuf:"varint,23,opt,name=download_mb_done,json=downloadMbDone,proto3" json:"download_mb_done,omitempty"`
+	DownloadMbTotal int64 `protobuf:"varint,24,opt,name=download_mb_total,json=downloadMbTotal,proto3" json:"download_mb_total,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ECashMigrationStatus) Reset() {
@@ -5556,6 +5560,20 @@ func (x *ECashMigrationStatus) GetRecordStage() string {
 		return x.RecordStage
 	}
 	return ""
+}
+
+func (x *ECashMigrationStatus) GetDownloadMbDone() int64 {
+	if x != nil {
+		return x.DownloadMbDone
+	}
+	return 0
+}
+
+func (x *ECashMigrationStatus) GetDownloadMbTotal() int64 {
+	if x != nil {
+		return x.DownloadMbTotal
+	}
+	return 0
 }
 
 var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
@@ -5918,7 +5936,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\" \n" +
 	"\x1eGetECashMigrationStatusRequest\"`\n" +
 	"\x1fGetECashMigrationStatusResponse\x12=\n" +
-	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"\xb2\x05\n" +
+	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"\x88\x06\n" +
 	"\x14ECashMigrationStatus\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x17\n" +
 	"\afrom_id\x18\x02 \x01(\tR\x06fromId\x12\x13\n" +
@@ -5947,7 +5965,9 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\vwallet_only\x18\x14 \x01(\bR\n" +
 	"walletOnly\x12&\n" +
 	"\x0fstarted_at_unix\x18\x15 \x01(\x03R\rstartedAtUnix\x12!\n" +
-	"\frecord_stage\x18\x16 \x01(\tR\vrecordStage*\xf7\x01\n" +
+	"\frecord_stage\x18\x16 \x01(\tR\vrecordStage\x12(\n" +
+	"\x10download_mb_done\x18\x17 \x01(\x03R\x0edownloadMbDone\x12*\n" +
+	"\x11download_mb_total\x18\x18 \x01(\x03R\x0fdownloadMbTotal*\xf7\x01\n" +
 	"\rSidechainType\x12\x1e\n" +
 	"\x1aSIDECHAIN_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16SIDECHAIN_TYPE_THUNDER\x10\x01\x12\x18\n" +

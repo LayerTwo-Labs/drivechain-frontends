@@ -993,4 +993,8 @@ message ECashMigrationStatus {
   // Record conversion stage: "preflight" counts the records, "convert" writes
   // them. Empty before the conversion starts.
   string record_stage = 22;
+  // Megabytes of the target Core build. Total is -1 when the server states no
+  // length, and both are zero when no download runs.
+  int64 download_mb_done = 23;
+  int64 download_mb_total = 24;
 }

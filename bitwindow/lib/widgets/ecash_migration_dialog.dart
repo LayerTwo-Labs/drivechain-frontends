@@ -34,6 +34,27 @@ bool migrationStepShowsRecords(String phase, ECashMigrationStatus status) =>
 /// count would sit at zero and read as a stall.
 bool migrationCountsRecords(ECashMigrationStatus status) => status.recordStage == 'preflight';
 
+/// A download runs only while the prepare step fetches the target Core build.
+bool migrationStepShowsDownload(String phase, ECashMigrationStatus status) =>
+    phase == 'prepare' && (status.downloadMbTotal != 0 || status.downloadMbDone > 0);
+
+/// How much of the target Core build arrived, or null while the size is unknown.
+double? migrationDownloadFraction(ECashMigrationStatus status) {
+  if (status.downloadMbTotal <= 0) {
+    return null;
+  }
+  return (status.downloadMbDone.toDouble() / status.downloadMbTotal.toDouble()).clamp(0, 1);
+}
+
+/// The line under the download bar.
+String migrationDownloadLabel(ECashMigrationStatus status) {
+  if (status.downloadMbTotal <= 0) {
+    return '${groupDigits(status.downloadMbDone)} MB so far';
+  }
+  final percent = ((migrationDownloadFraction(status) ?? 0) * 100).round();
+  return '${groupDigits(status.downloadMbDone)} MB of ${groupDigits(status.downloadMbTotal)} MB · $percent%';
+}
+
 /// The line under the conversion bar: records done, records total, percent.
 String migrationRecordLabel(ECashMigrationStatus status) {
   if (migrationCountsRecords(status)) {
@@ -104,6 +125,8 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
 
   ECashMigrationStatus? _status;
   Timer? _timer;
+  // The status poll is slower than a second, so the elapsed figure needs its own.
+  Timer? _clock;
   String? _error;
   bool _busy = true;
   bool _statusReadFailed = false;
@@ -118,7 +141,22 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
   @override
   void dispose() {
     _timer?.cancel();
+    _clock?.cancel();
     super.dispose();
+  }
+
+  void _runClock(ECashMigrationStatus status) {
+    final wanted = status.running && !status.complete && status.startedAtUnix > 0;
+    if (!wanted) {
+      _clock?.cancel();
+      _clock = null;
+      return;
+    }
+    _clock ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   void _checkStatus(ECashMigrationStatus status, {bool saved = false}) {
@@ -148,6 +186,7 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
     if (status.running && !status.complete) {
       _timer = Timer(const Duration(seconds: 2), () => unawaited(_readStatus()));
     }
+    _runClock(status);
   }
 
   Future<void> _load() async {
@@ -364,6 +403,19 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
                     ),
                     SailText.secondary12(migrationRecordLabel(status), overflow: TextOverflow.visible),
                   ],
+                  if (migrationStepShowsDownload(steps[index].phase, status)) ...[
+                    const SizedBox(height: SailStyleValues.padding04),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: migrationDownloadFraction(status),
+                        minHeight: 6,
+                        color: colors.primary,
+                        backgroundColor: colors.border,
+                      ),
+                    ),
+                    SailText.secondary12(migrationDownloadLabel(status), overflow: TextOverflow.visible),
+                  ],
                 ],
               ),
             ),
@@ -478,10 +530,7 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
             ] else ...[
               ..._progress(status),
               if (complete)
-                SailText.primary13(
-                  'Local checks passed. ${widget.toId} sync continues.',
-                  overflow: TextOverflow.visible,
-                )
+                const SizedBox.shrink()
               else if (active)
                 SailText.secondary13('You can safely close this dialog. It will continue in the background.')
               else

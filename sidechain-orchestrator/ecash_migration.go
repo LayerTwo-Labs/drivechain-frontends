@@ -45,10 +45,13 @@ type ECashMigrationStatus struct {
 	RecordsTotal uint64 `json:"records_total"`
 	StartedAt    int64  `json:"started_at_unix"`
 	RecordStage  string `json:"record_stage"`
-	Running      bool   `json:"running"`
-	Complete     bool   `json:"complete"`
-	Pruned       bool   `json:"pruned"`
-	WalletOnly   bool   `json:"wallet_only"`
+
+	DownloadMBDone  int64 `json:"download_mb_done"`
+	DownloadMBTotal int64 `json:"download_mb_total"`
+	Running         bool  `json:"running"`
+	Complete        bool  `json:"complete"`
+	Pruned          bool  `json:"pruned"`
+	WalletOnly      bool  `json:"wallet_only"`
 }
 
 type ecashMigration struct {
@@ -561,7 +564,7 @@ func (o *Orchestrator) checkMigrationRPC() error {
 	return fmt.Errorf("ECX migration uses a Core process on the daemon host; rpcconnect is %s", host)
 }
 
-func (o *Orchestrator) migrationBinary(ctx context.Context, cfg BinaryConfig) (string, error) {
+func (o *Orchestrator) migrationBinary(ctx context.Context, cfg BinaryConfig, report func(DownloadProgress)) (string, error) {
 	variant, ok := ResolveCoreVariant(cfg, "ecash", string(config.NetworkECash))
 	if !ok {
 		return "", fmt.Errorf("ECX Core variant is unavailable")
@@ -575,6 +578,9 @@ func (o *Orchestrator) migrationBinary(ctx context.Context, cfg BinaryConfig) (s
 	for item := range progress {
 		if item.Error != nil {
 			return "", item.Error
+		}
+		if report != nil {
+			report(item)
 		}
 	}
 	return CoreBinaryPath(o.DataDir, variant, cfg.BinaryName), nil
@@ -598,10 +604,25 @@ func (o *Orchestrator) prepareMigration(ctx context.Context, state *ecashMigrati
 		cfg    BinaryConfig
 		digest *string
 	}{{state.FromConfig, &state.FromDigest}, {state.ToConfig, &state.ToDigest}} {
-		path, err := o.migrationBinary(ctx, item.cfg)
+		lastSave := time.Time{}
+		path, err := o.migrationBinary(ctx, item.cfg, func(progress DownloadProgress) {
+			if progress.MBTotal == 0 && progress.MBDownloaded == 0 {
+				return
+			}
+			state.Status.DownloadMBDone = progress.MBDownloaded
+			state.Status.DownloadMBTotal = progress.MBTotal
+			if time.Since(lastSave) < time.Second {
+				return
+			}
+			lastSave = time.Now()
+			if err := o.saveMigration(state); err != nil {
+				o.log.Warn().Err(err).Msg("could not save the migration download progress")
+			}
+		})
 		if err != nil {
 			return err
 		}
+		state.Status.DownloadMBDone, state.Status.DownloadMBTotal = 0, 0
 		digest, err := migrationDigest(path)
 		if err != nil {
 			return err
