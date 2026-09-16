@@ -65,8 +65,7 @@ class NotificationBanner extends StatelessWidget {
                 const SizedBox(width: 8),
                 SailText.secondary12(item.title, bold: true, color: theme.colors.text),
                 const SizedBox(width: 10),
-                Flexible(child: SailText.secondary12(item.content, color: theme.colors.orange)),
-                const Spacer(),
+                Expanded(child: SailText.secondary12(item.content, color: theme.colors.orange)),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () async => provider.markRead(item.id),
