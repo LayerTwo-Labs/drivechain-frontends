@@ -74,5 +74,6 @@ func ecashMigrationStatusToProto(status orchestrator.ECashMigrationStatus) *pb.E
 		PruneHeight:   status.PruneHeight,
 		WalletOnly:    status.WalletOnly,
 		StartedAtUnix: status.StartedAt,
+		RecordStage:   status.RecordStage,
 	}
 }

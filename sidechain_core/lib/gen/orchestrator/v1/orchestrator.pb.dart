@@ -6158,6 +6158,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     $fixnum.Int64? pruneHeight,
     $core.bool? walletOnly,
     $fixnum.Int64? startedAtUnix,
+    $core.String? recordStage,
   }) {
     final $result = create();
     if (jobId != null) {
@@ -6223,6 +6224,9 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     if (startedAtUnix != null) {
       $result.startedAtUnix = startedAtUnix;
     }
+    if (recordStage != null) {
+      $result.recordStage = recordStage;
+    }
     return $result;
   }
   ECashMigrationStatus._() : super();
@@ -6251,6 +6255,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     ..aInt64(19, _omitFieldNames ? '' : 'pruneHeight')
     ..aOB(20, _omitFieldNames ? '' : 'walletOnly')
     ..aInt64(21, _omitFieldNames ? '' : 'startedAtUnix')
+    ..aOS(22, _omitFieldNames ? '' : 'recordStage')
     ..hasRequiredFields = false
   ;
 
@@ -6465,6 +6470,17 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
   $core.bool hasStartedAtUnix() => $_has(20);
   @$pb.TagNumber(21)
   void clearStartedAtUnix() => clearField(21);
+
+  /// Record conversion stage: "preflight" counts the records, "convert" writes
+  /// them. Empty before the conversion starts.
+  @$pb.TagNumber(22)
+  $core.String get recordStage => $_getSZ(21);
+  @$pb.TagNumber(22)
+  set recordStage($core.String v) { $_setString(21, v); }
+  @$pb.TagNumber(22)
+  $core.bool hasRecordStage() => $_has(21);
+  @$pb.TagNumber(22)
+  void clearRecordStage() => clearField(22);
 }
 
 class OrchestratorServiceApi {

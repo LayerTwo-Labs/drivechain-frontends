@@ -44,6 +44,7 @@ type ECashMigrationStatus struct {
 	RecordsDone  uint64 `json:"records_done"`
 	RecordsTotal uint64 `json:"records_total"`
 	StartedAt    int64  `json:"started_at_unix"`
+	RecordStage  string `json:"record_stage"`
 	Running      bool   `json:"running"`
 	Complete     bool   `json:"complete"`
 	Pruned       bool   `json:"pruned"`
@@ -950,6 +951,7 @@ func (o *Orchestrator) convertMigration(ctx context.Context, state *ecashMigrati
 			Progress: func(progress blockfile.Progress) error {
 				state.Status.RecordsDone = uint64(progress.ConvertedRecords)
 				state.Status.RecordsTotal = uint64(progress.Records)
+				state.Status.RecordStage = progress.Stage
 				if time.Since(lastSave) < time.Second {
 					return nil
 				}
