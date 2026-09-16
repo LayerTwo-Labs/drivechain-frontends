@@ -1,72 +1,44 @@
-import 'dart:developer';
-
-import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
+import 'package:bitwindow/env.dart';
 import 'package:bitwindow/main.dart' as app;
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:sail_ui/sail_ui.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('BitWindow launches and shows expected UI', (WidgetTester tester) async {
-    // Launch the app
-    app.main([]);
-
-    // Wait for app to settle (BitWindow has a lot of initialization)
-    // Use multiple pumps instead of timeout parameter
-    for (int i = 0; i < 10; i++) {
-      await tester.pump(const Duration(seconds: 2));
-    }
-
-    log('App launched, looking for UI elements...');
-
-    // Look for any of the main tab elements that should exist
-    final possibleElements = [
-      'Wallet',
-      'Overview',
-      'Sidechains',
-      'Console',
-      'Settings',
-    ];
-
-    bool foundElement = false;
-    String foundElementText = '';
-
-    for (final elementText in possibleElements) {
-      final finder = find.text(elementText);
-      if (tester.any(finder)) {
-        foundElement = true;
-        foundElementText = elementText;
-        log('Found expected element: $elementText');
-        break;
-      }
-    }
-
-    // If we didn't find tab text, try looking for other common UI elements
-    if (!foundElement) {
-      final fallbackFinders = [
-        find.text('BitWindow'),
-        find.textContaining('Bitcoin'),
-        find.textContaining('Balance'),
-        find.textContaining('Address'),
+  testWidgets('BitWindow starts and shows the app', (tester) async {
+    final errorHandler = FlutterError.onError;
+    final errorBuilder = ErrorWidget.builder;
+    try {
+      final (dir, logFile, log) = await app.init('');
+      final binaries = GetIt.I.get<BinaryProvider>();
+      binaries.binaries.whereType<BitWindow>().single.extraBootArgs = [
+        '--api.host=${Environment.bitwindowdHost.value}:${Environment.bitwindowdPort.value}',
+        '--orchestrator.addr=http://${Environment.orchestratorHost.value}:${Environment.orchestratorPort.value}',
       ];
+      addTearDown(binaries.onShutdown);
+      await app.runMainWindow(log, dir, logFile);
 
-      for (final finder in fallbackFinders) {
-        if (tester.any(finder)) {
-          foundElement = true;
-          foundElementText = finder.toString();
-          log('Found fallback element: $foundElementText');
+      for (var step = 0; step < 30; step++) {
+        await tester.pump(const Duration(seconds: 2));
+        final finder = find.byType(app.BitwindowApp);
+        if (tester.any(finder) && tester.widget<app.BitwindowApp>(finder).backendReady.value) {
           break;
         }
       }
+
+      final finder = find.byType(app.BitwindowApp);
+      expect(finder, findsOneWidget);
+      expect(tester.widget<app.BitwindowApp>(finder).backendReady.value, isTrue);
+      expect(find.textContaining('Initialization failed'), findsNothing);
+      expect((await GetIt.I.get<OrchestratorRPC>().listBinaries()).binaries, isNotEmpty);
+      expect(await GetIt.I.get<BitwindowRPC>().bitwindowd.listAddressBook(), isA<List<AddressBookEntry>>());
+    } finally {
+      FlutterError.onError = errorHandler;
+      ErrorWidget.builder = errorBuilder;
     }
-
-    expect(
-      foundElement,
-      isTrue,
-      reason: 'Should find at least one expected UI element - app may have crashed or failed to load',
-    );
-
-    log('Smoke test passed! BitWindow launched successfully and UI is visible.');
-    log('Found element: $foundElementText');
   });
 }
