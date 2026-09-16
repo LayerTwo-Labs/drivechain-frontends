@@ -160,21 +160,42 @@ func TestConvertFindsNestedAndExternalWallets(t *testing.T) {
 	require.Equal(t, toMagic, magic)
 }
 
-func TestConvertRejectsWrongMagicBeforeWalletChanges(t *testing.T) {
+// A datadir keeps wallets from earlier networks. They cannot follow this
+// migration, and one of them must not block the wallets that can.
+func TestConvertSkipsAWalletFromAnotherNetwork(t *testing.T) {
 	opts := testOptions(t)
-	first := filepath.Join(opts.DataDir, "a", "wallet.dat")
-	second := filepath.Join(opts.DataDir, "b", "wallet.dat")
-	createWallet(t, first, fromMagic)
-	createWallet(t, second, blockfile.Magic{1, 2, 3, 4})
-	before, err := os.ReadFile(first)
+	mine := filepath.Join(opts.DataDir, "a", "wallet.dat")
+	foreign := filepath.Join(opts.DataDir, "b", "wallet.dat")
+	createWallet(t, mine, fromMagic)
+	createWallet(t, foreign, blockfile.Magic{1, 2, 3, 4})
+	before, err := os.ReadFile(foreign)
 	require.NoError(t, err)
 
-	_, err = Convert(t.Context(), opts)
+	report, err := Convert(t.Context(), opts)
 
-	require.ErrorContains(t, err, "another network magic")
-	after, err := os.ReadFile(first)
+	require.NoError(t, err)
+	require.Equal(t, 1, report.Wallets)
+	require.Equal(t, 1, report.ConvertedWallets)
+	require.Equal(t, 1, report.ForeignWallets)
+
+	converted, _ := readRows(t, mine)
+	require.Equal(t, toMagic, converted)
+	after, err := os.ReadFile(foreign)
 	require.NoError(t, err)
 	require.Equal(t, before, after)
+}
+
+func TestPreviewCountsAWalletFromAnotherNetwork(t *testing.T) {
+	opts := testOptions(t)
+	createWallet(t, filepath.Join(opts.DataDir, "a", "wallet.dat"), fromMagic)
+	createWallet(t, filepath.Join(opts.DataDir, "b", "wallet.dat"), blockfile.Magic{1, 2, 3, 4})
+
+	report, err := Preview(t.Context(), opts)
+
+	require.NoError(t, err)
+	require.Equal(t, 1, report.Wallets)
+	require.Equal(t, 1, report.ForeignWallets)
+	require.Zero(t, report.ConvertedWallets)
 }
 
 func TestConvertRejectsLegacyBDBWallet(t *testing.T) {

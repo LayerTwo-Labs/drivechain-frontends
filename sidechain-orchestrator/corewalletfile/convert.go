@@ -36,8 +36,10 @@ type Options struct {
 type Report struct {
 	Wallets          int
 	ConvertedWallets int
-	Complete         bool
-	JournalPath      string
+	// ForeignWallets belong to neither network. They keep their own magic.
+	ForeignWallets int
+	Complete       bool
+	JournalPath    string
 }
 
 type savedFile struct {
@@ -92,7 +94,7 @@ func Preview(ctx context.Context, opts Options) (report Report, err error) {
 	if err != nil {
 		return report, err
 	}
-	paths, err := discover(opts)
+	found, err := discover(opts)
 	if err != nil {
 		return report, err
 	}
@@ -100,6 +102,11 @@ func Preview(ctx context.Context, opts Options) (report Report, err error) {
 	if err != nil {
 		return report, err
 	}
+	paths, foreign, err := partitionWallets(ctx, found, opts.From, opts.To, plan != nil)
+	if err != nil {
+		return report, err
+	}
+	report.ForeignWallets = len(foreign)
 	if plan != nil {
 		if err := checkPlan(opts, paths, plan); err != nil {
 			return report, err
@@ -145,7 +152,7 @@ func Convert(ctx context.Context, opts Options) (report Report, err error) {
 	if err := takeLock(lock); err != nil {
 		return report, fmt.Errorf("stop Core before the wallet conversion: %w", err)
 	}
-	paths, err := discover(opts)
+	found, err := discover(opts)
 	if err != nil {
 		return report, err
 	}
@@ -154,6 +161,11 @@ func Convert(ctx context.Context, opts Options) (report Report, err error) {
 		return report, err
 	}
 	resume := plan != nil
+	paths, foreign, err := partitionWallets(ctx, found, opts.From, opts.To, resume)
+	if err != nil {
+		return report, err
+	}
+	report.ForeignWallets = len(foreign)
 	if plan == nil {
 		plan, err = makeJournal(ctx, opts, paths)
 		if err != nil {
@@ -516,6 +528,23 @@ func convertWallet(ctx context.Context, opts Options, item wallet, resume bool) 
 		return errors.New("wallet magic differs after the write")
 	}
 	return nil
+}
+
+// partitionWallets splits the discovered wallets by the magic each one carries.
+// A wallet from another network cannot follow this migration, so it stays as it is.
+func partitionWallets(ctx context.Context, paths []string, from, to blockfile.Magic, resume bool) (mine, foreign []string, err error) {
+	for _, path := range paths {
+		magic, _, err := inspectCopy(ctx, path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("read wallet %s: %w", path, err)
+		}
+		if validMagic(magic, from, to, resume) {
+			mine = append(mine, path)
+			continue
+		}
+		foreign = append(foreign, path)
+	}
+	return mine, foreign, nil
 }
 
 func validMagic(actual, from, to blockfile.Magic, resume bool) bool {
