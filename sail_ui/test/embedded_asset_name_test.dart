@@ -3,6 +3,12 @@ import 'package:sail_ui/sail_ui.dart';
 
 void main() {
   group('embeddedAssetName', () {
+    for (final daemon in ['bitwindowd', 'drivechaind', 'drivechain-cli', 'hwi-daemon']) {
+      test('macOS selects the native ARM64 asset for $daemon', () {
+        expect(embeddedAssetName(daemon, isMacOS: true, arch: 'arm64'), '$daemon-arm64');
+      });
+    }
+
     test('macOS appends the host arch for embedded daemons', () {
       expect(embeddedAssetName('bitwindowd', isMacOS: true, arch: 'arm64'), 'bitwindowd-arm64');
       expect(embeddedAssetName('bitwindowd', isMacOS: true, arch: 'x86_64'), 'bitwindowd-x86_64');
