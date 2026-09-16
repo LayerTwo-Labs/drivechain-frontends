@@ -16,7 +16,7 @@ import 'package:sidechain_core/gen/walletmanager/v1/walletmanager.pb.dart' as wm
 
 import 'test_utils.dart';
 
-const _warning = 'This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction.';
+const _warning = 'This transaction burns Alphanet coins for a claim of real ECX.';
 final _messages = {'backend text': _warning, 'no warning': '', 'long warning': List.filled(4, _warning).join(' ')};
 
 class _WalletRPC implements OrchestratorWalletRPC {

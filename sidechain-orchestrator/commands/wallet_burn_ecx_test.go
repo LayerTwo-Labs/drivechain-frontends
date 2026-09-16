@@ -278,7 +278,7 @@ func TestBurnECXPreview(t *testing.T) {
 
 func TestBurnECXPrintsBackendWarningBeforeApproval(t *testing.T) {
 	f := newBurnTestFlow(t)
-	f.daemon.preview.WarningMessage = "This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction."
+	f.daemon.preview.WarningMessage = "This transaction burns Alphanet coins for a claim of real ECX."
 	require.NoError(t, f.run())
 	text := f.output.String()
 	warning := strings.Index(text, "Warning: "+f.daemon.preview.WarningMessage)

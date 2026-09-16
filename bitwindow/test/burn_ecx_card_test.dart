@@ -288,8 +288,7 @@ void main() {
   });
 
   testWidgets('shows the backend warning before and after the burn', (tester) async {
-    rpc.warningMessage =
-        'This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction.';
+    rpc.warningMessage = 'This transaction burns Alphanet coins for a claim of real ECX.';
     await pumpCard(tester, width: 360);
     await enterAmount(tester);
     expect(find.text(rpc.warningMessage), findsOneWidget);

@@ -148,7 +148,7 @@ void main() {
     );
   }
 
-  const warning = 'This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction.';
+  const warning = 'This transaction burns Alphanet coins for a claim of real ECX.';
   final messages = {'backend text': warning, 'no warning': '', 'long warning': List.filled(4, warning).join(' ')};
   for (final message in messages.entries) {
     testWidgets('the signature panel shows the RPC warning: ${message.key}', (tester) async {

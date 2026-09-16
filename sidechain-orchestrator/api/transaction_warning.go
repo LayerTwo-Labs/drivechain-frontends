@@ -14,7 +14,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
 
-const ecxBurnWarning = "This transaction burns Alphanet coins for a claim of real ECX. You cannot reverse this transaction."
+const ecxBurnWarning = "This transaction burns Alphanet coins for a claim of real ECX."
 
 func (h *WalletHandler) transactionWarning(outputs []*pb.TransactionOutput) string {
 	if config.NetworkFromString(h.svc.Network()) != config.NetworkECash || config.ECashNetworkID() != "alphanet" {
