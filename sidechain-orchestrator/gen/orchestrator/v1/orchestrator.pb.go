@@ -5359,12 +5359,14 @@ type ECashMigrationStatus struct {
 	RecordsTotal uint64                 `protobuf:"varint,13,opt,name=records_total,json=recordsTotal,proto3" json:"records_total,omitempty"`
 	Running      bool                   `protobuf:"varint,14,opt,name=running,proto3" json:"running,omitempty"`
 	// Local target checks passed. Network sync can continue after this point.
-	Complete      bool   `protobuf:"varint,15,opt,name=complete,proto3" json:"complete,omitempty"`
-	Error         string `protobuf:"bytes,16,opt,name=error,proto3" json:"error,omitempty"`
-	SyncState     string `protobuf:"bytes,17,opt,name=sync_state,json=syncState,proto3" json:"sync_state,omitempty"`
-	Pruned        bool   `protobuf:"varint,18,opt,name=pruned,proto3" json:"pruned,omitempty"`
-	PruneHeight   int64  `protobuf:"varint,19,opt,name=prune_height,json=pruneHeight,proto3" json:"prune_height,omitempty"`
-	WalletOnly    bool   `protobuf:"varint,20,opt,name=wallet_only,json=walletOnly,proto3" json:"wallet_only,omitempty"`
+	Complete    bool   `protobuf:"varint,15,opt,name=complete,proto3" json:"complete,omitempty"`
+	Error       string `protobuf:"bytes,16,opt,name=error,proto3" json:"error,omitempty"`
+	SyncState   string `protobuf:"bytes,17,opt,name=sync_state,json=syncState,proto3" json:"sync_state,omitempty"`
+	Pruned      bool   `protobuf:"varint,18,opt,name=pruned,proto3" json:"pruned,omitempty"`
+	PruneHeight int64  `protobuf:"varint,19,opt,name=prune_height,json=pruneHeight,proto3" json:"prune_height,omitempty"`
+	WalletOnly  bool   `protobuf:"varint,20,opt,name=wallet_only,json=walletOnly,proto3" json:"wallet_only,omitempty"`
+	// Unix seconds the job started, zero before a start.
+	StartedAtUnix int64 `protobuf:"varint,21,opt,name=started_at_unix,json=startedAtUnix,proto3" json:"started_at_unix,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5537,6 +5539,13 @@ func (x *ECashMigrationStatus) GetWalletOnly() bool {
 		return x.WalletOnly
 	}
 	return false
+}
+
+func (x *ECashMigrationStatus) GetStartedAtUnix() int64 {
+	if x != nil {
+		return x.StartedAtUnix
+	}
+	return 0
 }
 
 var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
@@ -5899,7 +5908,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\" \n" +
 	"\x1eGetECashMigrationStatusRequest\"`\n" +
 	"\x1fGetECashMigrationStatusResponse\x12=\n" +
-	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"\xe7\x04\n" +
+	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"\x8f\x05\n" +
 	"\x14ECashMigrationStatus\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x17\n" +
 	"\afrom_id\x18\x02 \x01(\tR\x06fromId\x12\x13\n" +
@@ -5926,7 +5935,8 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x06pruned\x18\x12 \x01(\bR\x06pruned\x12!\n" +
 	"\fprune_height\x18\x13 \x01(\x03R\vpruneHeight\x12\x1f\n" +
 	"\vwallet_only\x18\x14 \x01(\bR\n" +
-	"walletOnly*\xf7\x01\n" +
+	"walletOnly\x12&\n" +
+	"\x0fstarted_at_unix\x18\x15 \x01(\x03R\rstartedAtUnix*\xf7\x01\n" +
 	"\rSidechainType\x12\x1e\n" +
 	"\x1aSIDECHAIN_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16SIDECHAIN_TYPE_THUNDER\x10\x01\x12\x18\n" +

@@ -6157,6 +6157,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     $core.bool? pruned,
     $fixnum.Int64? pruneHeight,
     $core.bool? walletOnly,
+    $fixnum.Int64? startedAtUnix,
   }) {
     final $result = create();
     if (jobId != null) {
@@ -6219,6 +6220,9 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     if (walletOnly != null) {
       $result.walletOnly = walletOnly;
     }
+    if (startedAtUnix != null) {
+      $result.startedAtUnix = startedAtUnix;
+    }
     return $result;
   }
   ECashMigrationStatus._() : super();
@@ -6246,6 +6250,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     ..aOB(18, _omitFieldNames ? '' : 'pruned')
     ..aInt64(19, _omitFieldNames ? '' : 'pruneHeight')
     ..aOB(20, _omitFieldNames ? '' : 'walletOnly')
+    ..aInt64(21, _omitFieldNames ? '' : 'startedAtUnix')
     ..hasRequiredFields = false
   ;
 
@@ -6450,6 +6455,16 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
   $core.bool hasWalletOnly() => $_has(19);
   @$pb.TagNumber(20)
   void clearWalletOnly() => clearField(20);
+
+  /// Unix seconds the job started, zero before a start.
+  @$pb.TagNumber(21)
+  $fixnum.Int64 get startedAtUnix => $_getI64(20);
+  @$pb.TagNumber(21)
+  set startedAtUnix($fixnum.Int64 v) { $_setInt64(20, v); }
+  @$pb.TagNumber(21)
+  $core.bool hasStartedAtUnix() => $_has(20);
+  @$pb.TagNumber(21)
+  void clearStartedAtUnix() => clearField(21);
 }
 
 class OrchestratorServiceApi {

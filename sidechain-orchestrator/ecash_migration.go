@@ -43,6 +43,7 @@ type ECashMigrationStatus struct {
 	UndoFiles    uint64 `json:"undo_files"`
 	RecordsDone  uint64 `json:"records_done"`
 	RecordsTotal uint64 `json:"records_total"`
+	StartedAt    int64  `json:"started_at_unix"`
 	Running      bool   `json:"running"`
 	Complete     bool   `json:"complete"`
 	Pruned       bool   `json:"pruned"`
@@ -420,6 +421,7 @@ func (o *Orchestrator) StartECashMigration(ctx context.Context, fromID, toID str
 		}
 		state.Status.JobID = rand.Text()
 		state.Status.Phase = "prepare"
+		state.Status.StartedAt = time.Now().Unix()
 	}
 	if err := ctx.Err(); err != nil {
 		o.migrationMu.Unlock()

@@ -988,4 +988,6 @@ message ECashMigrationStatus {
   bool pruned = 18;
   int64 prune_height = 19;
   bool wallet_only = 20;
+  // Unix seconds the job started, zero before a start.
+  int64 started_at_unix = 21;
 }
