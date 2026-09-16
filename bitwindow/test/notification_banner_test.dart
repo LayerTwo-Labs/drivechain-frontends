@@ -39,7 +39,7 @@ void main() {
       final item = NotificationItem(
         id: 'ecash-upgrade-drynet3',
         title: 'drynet3 is out',
-        content: 'Switch over →',
+        content: 'Switch here →',
         dialogType: DialogType.info,
         timestamp: DateTime.now(),
         style: NotificationStyle.banner,
@@ -163,7 +163,7 @@ void main() {
       p.add(
         id: 'first',
         title: 'drynet3 is out',
-        content: 'Switch over →',
+        content: 'Switch here →',
         dialogType: DialogType.info,
         style: NotificationStyle.banner,
         action: 'act',

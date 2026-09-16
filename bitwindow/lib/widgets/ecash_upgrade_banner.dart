@@ -193,7 +193,7 @@ class ECashUpgradeWatcher {
     provider.add(
       id: '$_bannerIdPrefix${pending.pendingNetworkId}',
       title: '${pending.pendingNetworkId} is out',
-      content: 'Switch over →',
+      content: 'Switch here →',
       dialogType: DialogType.info,
       style: NotificationStyle.banner,
       action: ecashUpgradeAction,
