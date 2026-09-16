@@ -414,6 +414,9 @@ void main() {
     expect(_button('Open betanet'), findsOneWidget);
     expect(_button('Open alphanet'), findsNothing);
     expect(conf.calls.where((call) => call.startsWith('select:')), isEmpty);
+    // The dialog scrolls, so the button has to come into view before the tap.
+    await tester.ensureVisible(_button('Open betanet'));
+    await tester.pump();
     await tester.tap(_button('Open betanet'));
     await _flush(tester);
 

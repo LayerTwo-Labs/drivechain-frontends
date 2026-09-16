@@ -18,6 +18,7 @@ import 'package:bitwindow/providers/bitdrive_provider.dart';
 import 'package:bitwindow/providers/bitwindow_settings_provider.dart';
 import 'package:bitwindow/providers/chat_provider.dart';
 import 'package:bitwindow/providers/fast_withdrawal_provider.dart';
+import 'package:bitwindow/providers/ecash_migration_provider.dart';
 import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/blockchain_provider.dart';
 import 'package:bitwindow/providers/network_provider.dart';
@@ -309,6 +310,7 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   GetIt.I.registerLazySingleton<MempoolProvider>(() => MempoolProvider());
   GetIt.I.registerSingleton<NotificationStreamProvider>(NotificationStreamProvider());
   NetworkScopedRegistry.register<ForkProvider>(ForkProvider()..init());
+  GetIt.I.registerSingleton<ECashMigrationProvider>(ECashMigrationProvider()..start());
   GetIt.I.registerSingleton<ChatProvider>(ChatProvider());
   NetworkScopedRegistry.register<FastWithdrawalProvider>(FastWithdrawalProvider());
   GetIt.I.registerSingleton<UpdateProvider>(
