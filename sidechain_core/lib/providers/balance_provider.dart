@@ -27,6 +27,10 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
 
   final Set<RPCConnection> _reported = {};
 
+  /// Last error text printed per connection. A failure that stands, such as a
+  /// wallet the network serves no chain source for, prints one time.
+  final Map<RPCConnection, String> _loggedError = {};
+
   /// True once the headline connection answered. A sidechain answer must not
   /// clear the loading state, or the bar shows an unread zero as the balance.
   bool get initialized => _reported.contains(mainConnection);
@@ -100,6 +104,7 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
       _balances[rpc] = (0.0, 0.0);
     }
     _reported.clear();
+    _loggedError.clear();
     _lastWalletId = _walletReader?.activeWalletId;
     error = null;
     notifyListeners();
@@ -126,12 +131,15 @@ class BalanceProvider extends ChangeNotifier implements NetworkScoped {
           balances = await rpc.balance().timeout(_fetchTimeout);
         } catch (err) {
           // One unreachable chain must not stop the others from reporting.
-          if (!isExpectedBootError(err)) {
+          final text = err.toString();
+          if (!isExpectedBootError(err) && _loggedError[rpc] != text) {
             log.w('BalanceProvider: ${rpc.binaryType.name} balance failed: $err');
+            _loggedError[rpc] = text;
           }
-          error = err.toString();
+          error = text;
           continue;
         }
+        _loggedError.remove(rpc);
         final (confirmed, pending) = balances;
         if (_reported.add(rpc)) {
           // wen't from not initialized to initialized, make sure to notify
