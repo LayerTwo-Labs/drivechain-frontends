@@ -414,12 +414,10 @@ func getLogLevel(procedure string, code connect.Code, err error) zerolog.Level {
 	}
 
 	if code == connect.CodeInternal || code == connect.CodeUnknown {
+		// A busy or absent daemon answers every service the same way, and the
+		// connection monitor already reports that state one time per binary.
 		if err != nil && isBitcoinCoreStartupError(err.Error()) {
-			if strings.Contains(procedure, "BitwindowdService") ||
-				strings.Contains(procedure, "BitcoinService") ||
-				strings.Contains(procedure, "WalletService") {
-				return zerolog.Disabled
-			}
+			return zerolog.Disabled
 		}
 		return zerolog.ErrorLevel
 	}

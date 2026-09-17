@@ -184,6 +184,8 @@ bool isExpectedBootError(Object error) {
       s.contains('connection reset') ||
       s.contains('connection closed') ||
       s.contains('connection is being forcefully terminated') ||
+      s.contains('connection attempt cancelled') ||
+      s.contains('does not accept connections') ||
       s.contains('protocol_error') ||
       s.contains('http/2 connection is finishing') ||
       // ConnectRPC / gRPC error codes surfaced when daemons are down

@@ -33,6 +33,10 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
 
   Duration _currentInterval = const Duration(seconds: 5);
   bool _isFetching = false;
+
+  /// Last error text printed. A daemon that boots fails the same way on every
+  /// tick, and the console holds one copy of it.
+  String? _loggedError;
   Timer? _fetchTimer;
 
   BlockchainProvider() {
@@ -83,19 +87,39 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       if (hasChanges) {
         notifyListeners();
       }
-      if (errors.isNotEmpty) {
-        log.e(errors.join('\n'));
-      }
+      // The three calls run at the same time, so the list holds them in
+      // completion order. One sort keeps the text the same on every tick.
+      _report(([...errors]..sort()).join('\n'));
     } catch (e) {
-      log.e(e);
+      if (!isExpectedBootError(e)) {
+        _report(e.toString());
+      }
     } finally {
       _isFetching = false;
     }
   }
 
+  /// Prints text one time. An empty text clears the record, so the next
+  /// failure prints again.
+  void _report(String text) {
+    if (text.isEmpty) {
+      _loggedError = null;
+      return;
+    }
+    if (_loggedError == text) {
+      return;
+    }
+    _loggedError = text;
+    log.e(text);
+  }
+
   FutureOr<T> Function(Object? e, StackTrace stt) _return<T>(T previous) {
     return (e, stt) {
-      errors.add(e.toString() + stt.toString());
+      // A daemon that boots answers every call the same way, and its stack
+      // trace names this file, not the cause.
+      if (e != null && !isExpectedBootError(e)) {
+        errors.add(e.toString());
+      }
       return previous;
     };
   }
@@ -143,6 +167,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
     hasMoreBlocks = true;
     isLoadingMoreBlocks = false;
     errors.clear();
+    _loggedError = null;
     notifyListeners();
   }
 

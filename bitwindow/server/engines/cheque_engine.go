@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -250,7 +251,13 @@ func (e *ChequeEngine) recoverChequesOnUnlock(ctx context.Context) {
 	for _, wallet := range wallets {
 		recoveries, err := e.ScanForFunds(ctx, wallet.ID, 20)
 		if err != nil {
-			log.Warn().Err(err).Str("wallet_id", wallet.ID).Msg("failed to scan wallet for cheque funds")
+			// A watch-only wallet holds no seed, and a chain source that still
+			// boots refuses every read. Neither is a fault of this scan.
+			level := zerolog.WarnLevel
+			if strings.Contains(err.Error(), "has no seed") || IsBitcoinCoreStartupError(err.Error()) {
+				level = zerolog.DebugLevel
+			}
+			log.WithLevel(level).Err(err).Str("wallet_id", wallet.ID).Msg("failed to scan wallet for cheque funds")
 			continue
 		}
 
