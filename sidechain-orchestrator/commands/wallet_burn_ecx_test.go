@@ -366,7 +366,7 @@ func TestBurnECXChecksExplicitApproval(t *testing.T) {
 
 func TestBurnECXRejectsInvalidArguments(t *testing.T) {
 	for _, args := range [][]string{
-		{"--sats", "0"}, {"--sats", "1000"}, {"--sats", "-1"},
+		{"--sats", "0"}, {"--sats", "999"}, {"--sats", "-1"},
 		{"--fee-rate", "-1"}, {"active-wallet", "other-wallet"}, {"active-wallet", "--yes"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
@@ -377,14 +377,24 @@ func TestBurnECXRejectsInvalidArguments(t *testing.T) {
 	}
 }
 
-func TestBurnECXAcceptsOneSatoshiAboveTheMinimum(t *testing.T) {
-	f := newBurnTestFlow(t, "--sats", "1001", "--preview")
-	f.daemon.preview.Outputs[0].ValueSats = 1001
-	f.daemon.preview.TotalOutputSats = 11001
-	f.daemon.preview.TotalInputSats = 11453
-	require.NoError(t, f.run())
-	require.EqualValues(t, 1001, f.daemon.created.Destinations[burnTestAddress])
-	require.Contains(t, f.output.String(), "Real ECX credit: 0.00000011 ECX")
+func TestBurnECXAcceptsTheMinimumAndAbove(t *testing.T) {
+	for _, test := range []struct {
+		sats   int64
+		credit string
+	}{
+		{sats: 1000, credit: "0.00000010 ECX"},
+		{sats: 1001, credit: "0.00000011 ECX"},
+	} {
+		t.Run(strconv.FormatInt(test.sats, 10), func(t *testing.T) {
+			f := newBurnTestFlow(t, "--sats", strconv.FormatInt(test.sats, 10), "--preview")
+			f.daemon.preview.Outputs[0].ValueSats = test.sats
+			f.daemon.preview.TotalOutputSats = test.sats + 10000
+			f.daemon.preview.TotalInputSats = test.sats + 10452
+			require.NoError(t, f.run())
+			require.EqualValues(t, test.sats, f.daemon.created.Destinations[burnTestAddress])
+			require.Contains(t, f.output.String(), "Real ECX credit: "+test.credit)
+		})
+	}
 }
 
 func TestBurnECXChecksOneFirstAddress(t *testing.T) {
@@ -629,7 +639,7 @@ func TestBurnECXCommandChecksTheAmountFlag(t *testing.T) {
 }
 
 func TestBurnECXCommandChecksTheProductionMinimum(t *testing.T) {
-	for _, amount := range []int64{wallet.ECXBurnMinimumSats - 1, wallet.ECXBurnMinimumSats} {
+	for _, amount := range []int64{1, wallet.ECXBurnMinimumSats - 1} {
 		t.Run(strconv.FormatInt(amount, 10), func(t *testing.T) {
 			app := &cli.App{
 				Commands: []*cli.Command{walletCommand}, Flags: GlobalFlags,
@@ -639,9 +649,30 @@ func TestBurnECXCommandChecksTheProductionMinimum(t *testing.T) {
 				"drivechain-cli", "--rpcserver", "127.0.0.1:0", "--bitwindow-dir", t.TempDir(),
 				"wallet", "burn-ecx", "--sats", strconv.FormatInt(amount, 10), "--preview",
 			})
-			require.ErrorContains(t, err, "the burn amount must exceed 100000000000 Alphanet satoshis")
+			require.ErrorContains(t, err, "the burn must be at least 100000000000 Alphanet satoshis")
 		})
 	}
+}
+
+// A burn of exactly the minimum is valid. The limit reads "at least", so the
+// card and the command both have to take the round number a user types.
+func TestBurnECXAcceptsExactlyTheProductionMinimum(t *testing.T) {
+	const amount = wallet.ECXBurnMinimumSats
+	f := newBurnTestFlow(t, "--sats", strconv.FormatInt(amount, 10), "--yes")
+	address, err := btcutil.DecodeAddress(wallet.ECXBurnAddress, &chaincfg.MainNetParams)
+	require.NoError(t, err)
+	script, err := txscript.PayToAddrScript(address)
+	require.NoError(t, err)
+	f.daemon.preview.Outputs[0].ValueSats = amount
+	f.daemon.preview.Outputs[0].ScriptPubkeyHex = hex.EncodeToString(script)
+	f.daemon.preview.TotalOutputSats = amount + 10000
+	f.daemon.preview.TotalInputSats = amount + 10452
+
+	require.NoError(t, runWalletBurnECX(f.ctx, f.client, f.conf, wallet.ECXBurnAddress, wallet.ECXBurnMinimumSats))
+	require.Equal(t, map[string]int64{wallet.ECXBurnAddress: amount}, f.daemon.created.Destinations)
+	require.Contains(t, f.output.String(), "Alphanet burn: 1000.00000000 coins (100000000000 satoshis)")
+	require.Contains(t, f.output.String(), "Real ECX credit: 10.00000000 ECX")
+	require.NotNil(t, f.daemon.broadcast)
 }
 
 func TestBurnECXAcceptsOneSatoshiAboveTheProductionMinimum(t *testing.T) {

@@ -125,8 +125,8 @@ func runWalletBurnECX(cctx *cli.Context, client rpc.WalletManagerServiceClient, 
 		return fmt.Errorf("the burn minimum cannot be negative")
 	}
 	amount := cctx.Int64("sats")
-	if amount <= minimumSats {
-		return fmt.Errorf("the burn amount must exceed %d Alphanet satoshis", minimumSats)
+	if amount < minimumSats {
+		return fmt.Errorf("the burn must be at least %d Alphanet satoshis", minimumSats)
 	}
 	if cctx.Int64("fee-rate") < 0 {
 		return fmt.Errorf("the fee rate cannot be negative")
