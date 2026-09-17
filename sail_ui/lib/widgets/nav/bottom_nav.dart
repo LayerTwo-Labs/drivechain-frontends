@@ -29,6 +29,19 @@ bool showDaemonCard({
   return walletNeedsBackends || connected || initializing;
 }
 
+/// The line the additional daemon card shows in place of its progress bar, or
+/// null when the bar is the answer. A daemon that waits reports a tip that
+/// stands still, and a bar at 0% reads as a fault.
+String? additionalDaemonWait({required bool headerSyncPending, required bool waitsForCore}) {
+  if (headerSyncPending) {
+    return 'Waiting for Bitcoin Core header sync';
+  }
+  if (waitsForCore) {
+    return 'Waits for Bitcoin Core';
+  }
+  return null;
+}
+
 /// The block count an electrum wallet shows, or null when the chain source
 /// reports no height yet. A wallet with no local node has only this one.
 String? chainSourceBlocks(SyncInfo? syncInfo) {
@@ -324,10 +337,13 @@ class BottomNav extends StatelessWidget {
                                   !model.mainchain.initializingBinary &&
                                   model.mainchain.startupError == null &&
                                   !model.syncProvider.inHeaderSync);
-                          final infoMessage = isSidechain && !coreReady ? 'Waiting for Bitcoin Core header sync' : null;
+                          final infoMessage = additionalDaemonWait(
+                            headerSyncPending: isSidechain && !coreReady,
+                            waitsForCore: model.additionalSyncInfo?.waitsForCore ?? false,
+                          );
                           return DaemonConnectionCard(
                             connection: additionalConnection.rpc,
-                            syncInfo: coreReady ? model.additionalSyncInfo : null,
+                            syncInfo: infoMessage == null ? model.additionalSyncInfo : null,
                             infoMessage: infoMessage,
                             restartDaemon: () => binaryProvider.restart(
                               binaryProvider.binaries.firstWhere(
