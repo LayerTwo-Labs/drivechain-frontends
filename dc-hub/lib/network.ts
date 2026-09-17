@@ -189,15 +189,15 @@ export interface BinaryLink {
   url: string;
 }
 
-/** Prebuilt L1 node binaries for this network on releases.drivechain.info,
- * named `L1-ecash-bitcoin-<network id>-<target>.zip` there. Only the ecash
- * family gets per-network builds (each fork is its own chain); other
- * families return null. */
+export const ECASH_RELEASES_BASE = "https://releases.ecash.com/L1-ecash-bitcoin";
+
+/** Prebuilt L1 node binaries for this network, one build per ecash
+ * generation. Other families return null. */
 export function l1Binaries(net: NetworkConfig): BinaryLink[] | null {
   if (net.family !== "ecash") return null;
   return L1_BINARY_TARGETS.map(({ target, label }) => ({
     label,
-    url: `${RELEASES_BASE}/L1-ecash-bitcoin-${net.id}-${target}.zip`,
+    url: `${ECASH_RELEASES_BASE}/${net.id}/latest/L1-ecash-bitcoin-${target}.zip`,
   }));
 }
 
