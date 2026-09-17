@@ -29,21 +29,6 @@ bool showDaemonCard({
   return walletNeedsBackends || connected || initializing;
 }
 
-/// Why the node sits still on a chain that moves, or null when it follows its
-/// peers. Both progress bars read 100% off the network, so only this message
-/// tells the user.
-String? offNetworkMessage(SyncInfo? syncInfo) {
-  if (syncInfo == null || !syncInfo.offNetwork) {
-    return null;
-  }
-  if (syncInfo.refusedBranchStart > 0) {
-    return 'Off the network chain: the node refuses the branch from block ${syncInfo.refusedBranchStart}, '
-        '${syncInfo.behindPeers} blocks behind its peers';
-  }
-  return 'Off the network chain: the node refuses a block its peers accept, '
-      '${syncInfo.behindPeers} blocks behind';
-}
-
 /// The block count an electrum wallet shows, or null when the chain source
 /// reports no height yet. A wallet with no local node has only this one.
 String? chainSourceBlocks(SyncInfo? syncInfo) {
@@ -281,7 +266,6 @@ class BottomNav extends StatelessWidget {
                     if (showMainchain &&
                         (!model.mainchain.connected ||
                             !(model.syncProvider.mainchainSyncInfo?.allSyncsComplete ?? false) ||
-                            (model.syncProvider.mainchainSyncInfo?.offNetwork ?? false) ||
                             !onlyShowAdditional))
                       DaemonConnectionCard(
                         connection: model.mainchain,
@@ -296,9 +280,7 @@ class BottomNav extends StatelessWidget {
                             (b) => b.name == BitcoinCore().name,
                           ),
                         ),
-                        infoMessage: offNetworkMessage(
-                          model.syncProvider.mainchainSyncInfo,
-                        ),
+                        infoMessage: null,
                         navigateToLogs: model.navigateToLogs,
                         onOpenConfConfigurator: onOpenConfConfigurator,
                       ),
@@ -720,8 +702,6 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
     final enforcerSynced = enforcerConnected && viewModel.syncProvider.enforcerSyncInfo!.isSynced;
     final additionalSynced = additionalConnected && viewModel.additionalSyncInfo!.isSynced;
 
-    final offNetwork = mainchainConnected && viewModel.syncProvider.mainchainSyncInfo!.offNetwork;
-
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: SailRow(
@@ -729,14 +709,6 @@ class ChainLoaders extends ViewModelWidget<BottomNavViewModel> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (offNetwork) ...[
-            SailText.primary12(
-              'Off chain',
-              bold: true,
-              color: context.sailTheme.colors.error,
-            ),
-            DividerDot(),
-          ],
           if (mainchainConnected && !mainchainSynced) ...[
             ChainLoader(
               name: viewModel.syncProvider.mainchain.name,
