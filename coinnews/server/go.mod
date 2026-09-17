@@ -1,6 +1,6 @@
 module github.com/LayerTwo-Labs/sidesail/coinnews/server
 
-go 1.26.0
+go 1.27.0
 
 require (
 	connectrpc.com/connect v1.19.0
