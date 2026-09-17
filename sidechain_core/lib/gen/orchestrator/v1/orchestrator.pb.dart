@@ -3039,9 +3039,6 @@ class ChainSync extends $pb.GeneratedMessage {
     $core.int? headers,
     $fixnum.Int64? time,
     $core.String? error,
-    $core.int? peerBestHeight,
-    $core.bool? rejectedBranch,
-    $core.int? refusedBranchStart,
     $core.int? verifiedBlocks,
     $core.int? verifiedGoal,
     MainchainSyncPhase? mainchainSyncPhase,
@@ -3059,15 +3056,6 @@ class ChainSync extends $pb.GeneratedMessage {
     }
     if (error != null) {
       $result.error = error;
-    }
-    if (peerBestHeight != null) {
-      $result.peerBestHeight = peerBestHeight;
-    }
-    if (rejectedBranch != null) {
-      $result.rejectedBranch = rejectedBranch;
-    }
-    if (refusedBranchStart != null) {
-      $result.refusedBranchStart = refusedBranchStart;
     }
     if (verifiedBlocks != null) {
       $result.verifiedBlocks = verifiedBlocks;
@@ -3092,9 +3080,6 @@ class ChainSync extends $pb.GeneratedMessage {
     ..a<$core.int>(2, _omitFieldNames ? '' : 'headers', $pb.PbFieldType.O3)
     ..aInt64(3, _omitFieldNames ? '' : 'time')
     ..aOS(4, _omitFieldNames ? '' : 'error')
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'peerBestHeight', $pb.PbFieldType.O3)
-    ..aOB(6, _omitFieldNames ? '' : 'rejectedBranch')
-    ..a<$core.int>(7, _omitFieldNames ? '' : 'refusedBranchStart', $pb.PbFieldType.O3)
     ..a<$core.int>(8, _omitFieldNames ? '' : 'verifiedBlocks', $pb.PbFieldType.O3)
     ..a<$core.int>(9, _omitFieldNames ? '' : 'verifiedGoal', $pb.PbFieldType.O3)
     ..e<MainchainSyncPhase>(10, _omitFieldNames ? '' : 'mainchainSyncPhase', $pb.PbFieldType.OE, defaultOrMaker: MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED, valueOf: MainchainSyncPhase.valueOf, enumValues: MainchainSyncPhase.values)
@@ -3165,80 +3150,47 @@ class ChainSync extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearError() => clearField(4);
 
-  /// Highest tip the node's peers announce, 0 when unknown. Mainchain only.
-  @$pb.TagNumber(5)
-  $core.int get peerBestHeight => $_getIZ(4);
-  @$pb.TagNumber(5)
-  set peerBestHeight($core.int v) { $_setSignedInt32(4, v); }
-  @$pb.TagNumber(5)
-  $core.bool hasPeerBestHeight() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearPeerBestHeight() => clearField(5);
-
-  /// True when the node marked a branch at or above its own tip invalid.
-  /// With a higher peer_best_height it means the node left the network's
-  /// chain, which blocks and headers alone never show. Mainchain only.
-  @$pb.TagNumber(6)
-  $core.bool get rejectedBranch => $_getBF(5);
-  @$pb.TagNumber(6)
-  set rejectedBranch($core.bool v) { $_setBool(5, v); }
-  @$pb.TagNumber(6)
-  $core.bool hasRejectedBranch() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearRejectedBranch() => clearField(6);
-
-  /// Where the refused branch leaves this node's chain, 0 when the node
-  /// refuses none. The invalid block sits at or above it. Mainchain only.
-  @$pb.TagNumber(7)
-  $core.int get refusedBranchStart => $_getIZ(6);
-  @$pb.TagNumber(7)
-  set refusedBranchStart($core.int v) { $_setSignedInt32(6, v); }
-  @$pb.TagNumber(7)
-  $core.bool hasRefusedBranchStart() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearRefusedBranchStart() => clearField(7);
-
   /// Height Core verified from genesis, 0 when it loaded no UTXO snapshot.
   /// Behind a snapshot, blocks reaches the tip long before this does.
   /// Mainchain only.
   @$pb.TagNumber(8)
-  $core.int get verifiedBlocks => $_getIZ(7);
+  $core.int get verifiedBlocks => $_getIZ(4);
   @$pb.TagNumber(8)
-  set verifiedBlocks($core.int v) { $_setSignedInt32(7, v); }
+  set verifiedBlocks($core.int v) { $_setSignedInt32(4, v); }
   @$pb.TagNumber(8)
-  $core.bool hasVerifiedBlocks() => $_has(7);
+  $core.bool hasVerifiedBlocks() => $_has(4);
   @$pb.TagNumber(8)
   void clearVerifiedBlocks() => clearField(8);
 
   /// Height verified_blocks counts towards: the block the snapshot commits to,
   /// not the chain tip. 0 when no snapshot is loaded. Mainchain only.
   @$pb.TagNumber(9)
-  $core.int get verifiedGoal => $_getIZ(8);
+  $core.int get verifiedGoal => $_getIZ(5);
   @$pb.TagNumber(9)
-  set verifiedGoal($core.int v) { $_setSignedInt32(8, v); }
+  set verifiedGoal($core.int v) { $_setSignedInt32(5, v); }
   @$pb.TagNumber(9)
-  $core.bool hasVerifiedGoal() => $_has(8);
+  $core.bool hasVerifiedGoal() => $_has(5);
   @$pb.TagNumber(9)
   void clearVerifiedGoal() => clearField(9);
 
   /// The mainchain step a sidechain node takes before it syncs its own
   /// blocks. While set, blocks and headers are that step's done and total.
   @$pb.TagNumber(10)
-  MainchainSyncPhase get mainchainSyncPhase => $_getN(9);
+  MainchainSyncPhase get mainchainSyncPhase => $_getN(6);
   @$pb.TagNumber(10)
   set mainchainSyncPhase(MainchainSyncPhase v) { setField(10, v); }
   @$pb.TagNumber(10)
-  $core.bool hasMainchainSyncPhase() => $_has(9);
+  $core.bool hasMainchainSyncPhase() => $_has(6);
   @$pb.TagNumber(10)
   void clearMainchainSyncPhase() => clearField(10);
 
   /// Mainchain tip height the mainchain_sync_phase moves to, 0 when unset.
   @$pb.TagNumber(11)
-  $core.int get mainchainTipHeight => $_getIZ(10);
+  $core.int get mainchainTipHeight => $_getIZ(7);
   @$pb.TagNumber(11)
-  set mainchainTipHeight($core.int v) { $_setSignedInt32(10, v); }
+  set mainchainTipHeight($core.int v) { $_setSignedInt32(7, v); }
   @$pb.TagNumber(11)
-  $core.bool hasMainchainTipHeight() => $_has(10);
+  $core.bool hasMainchainTipHeight() => $_has(7);
   @$pb.TagNumber(11)
   void clearMainchainTipHeight() => clearField(11);
 }

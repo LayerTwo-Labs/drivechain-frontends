@@ -247,7 +247,6 @@ type Orchestrator struct {
 	bitcoindSync      Connection[*ChainSyncResult]
 	enforcerSync      *CachedConnection[*ChainSyncResult]
 	sidechainSyncs    map[string]*CachedConnection[*ChainSyncResult]
-	chainFork         *CachedConnection[*ChainForkState]
 	chainStates       *CachedConnection[*CoreChainStates]
 	chainSourceHeight *CachedConnection[int]
 
@@ -2844,7 +2843,6 @@ func (o *Orchestrator) clearNetworkSwapCaches() {
 	o.bitcoindSync = nil
 	o.enforcerSync = nil
 	o.sidechainSyncs = nil
-	o.chainFork = nil
 	o.chainStates = nil
 	o.chainSourceHeight = nil
 	o.syncConnMu.Unlock()
@@ -3089,10 +3087,6 @@ type MainchainBalance struct {
 // numbers every tick without us issuing more than one RPC per chain per tick.
 const chainSyncCacheTTL = 100 * time.Millisecond
 
-// chainForkCacheTTL bounds the fork probe. A refused branch stays refused, so
-// this reads far less often than the tip itself.
-const chainForkCacheTTL = 30 * time.Second
-
 // chainStatesCacheTTL bounds the getchainstates probe. Core verifies the blocks
 // below a snapshot over hours, so a second-old number is still current.
 const chainStatesCacheTTL = 2 * time.Second
@@ -3218,105 +3212,6 @@ func (c *bitcoindInfoConnection) Fetch(ctx context.Context) (*MainchainBlockchai
 	return &info, nil
 }
 
-// ChainForkState is what Core knows about branches it refuses and about the
-// tips its peers announce.
-type ChainForkState struct {
-	PeerBestHeight     int64
-	RejectedBranch     bool
-	RefusedBranchStart int64
-}
-
-// chainForkConnection reads getchaintips and getpeerinfo. A sync bar that only
-// compares blocks to headers reads "100%" on a node that rejects the network's
-// chain, because Core counts neither the refused branch nor its headers.
-type chainForkConnection struct{ o *Orchestrator }
-
-func (c *chainForkConnection) Fetch(ctx context.Context) (*ChainForkState, error) {
-	client, err := c.o.CoreStatusClient()
-	if err != nil {
-		return nil, err
-	}
-
-	tipsRaw, err := client.call(ctx, "getchaintips")
-	if err != nil {
-		return nil, fmt.Errorf("getchaintips: %w", err)
-	}
-	var tips []coreChainTip
-	if err := json.Unmarshal(tipsRaw, &tips); err != nil {
-		return nil, fmt.Errorf("decode getchaintips: %w", err)
-	}
-
-	peersRaw, err := client.call(ctx, "getpeerinfo")
-	if err != nil {
-		return nil, fmt.Errorf("getpeerinfo: %w", err)
-	}
-	var peers []corePeerTip
-	if err := json.Unmarshal(peersRaw, &peers); err != nil {
-		return nil, fmt.Errorf("decode getpeerinfo: %w", err)
-	}
-
-	state := forkStateFrom(tips, peers)
-	return &state, nil
-}
-
-// coreChainTip is one entry of getchaintips. BranchLen is zero on the active
-// chain, so that entry names the node's own tip.
-type coreChainTip struct {
-	Height    int64  `json:"height"`
-	Status    string `json:"status"`
-	BranchLen int64  `json:"branchlen"`
-}
-
-// forkHeight is where this branch leaves the node's own chain.
-func (t coreChainTip) forkHeight() int64 {
-	if t.BranchLen < 1 {
-		return t.Height
-	}
-	return t.Height - t.BranchLen + 1
-}
-
-// corePeerTip is what one peer announces. A fresh peer reports only
-// StartHeight until headers arrive.
-type corePeerTip struct {
-	SyncedHeaders int64 `json:"synced_headers"`
-	StartHeight   int64 `json:"startingheight"`
-}
-
-// forkStateFrom reads the two lists. A refused branch below the active tip is
-// ordinary history, so only one at or above it counts.
-func forkStateFrom(tips []coreChainTip, peers []corePeerTip) ChainForkState {
-	var active, rejected int64
-	for _, tip := range tips {
-		if tip.BranchLen == 0 {
-			active = tip.Height
-		}
-		if tip.Status == "invalid" {
-			rejected = max(rejected, tip.Height)
-		}
-	}
-
-	var refused int64
-	for _, tip := range tips {
-		if tip.Status != "invalid" || tip.Height < active {
-			continue
-		}
-		if fork := tip.forkHeight(); refused == 0 || fork < refused {
-			refused = fork
-		}
-	}
-
-	var best int64
-	for _, peer := range peers {
-		best = max(best, peer.SyncedHeaders, peer.StartHeight)
-	}
-
-	return ChainForkState{
-		PeerBestHeight:     best,
-		RejectedBranch:     rejected > 0 && rejected >= active,
-		RefusedBranchStart: refused,
-	}
-}
-
 // chainStatesConnection reads getchainstates. A node behind a UTXO snapshot
 // counts the tip in Blocks long before it verifies the blocks below it.
 type chainStatesConnection struct{ o *Orchestrator }
@@ -3347,20 +3242,6 @@ func (o *Orchestrator) chainStatesCached() *CachedConnection[*CoreChainStates] {
 		}
 	}
 	return o.chainStates
-}
-
-// chainForkCached returns the shared cache for the fork probe. Two more RPCs
-// per poll would be wasteful: a refused branch stays refused.
-func (o *Orchestrator) chainForkCached() *CachedConnection[*ChainForkState] {
-	o.syncConnMu.Lock()
-	defer o.syncConnMu.Unlock()
-	if o.chainFork == nil {
-		o.chainFork = &CachedConnection[*ChainForkState]{
-			inner: &chainForkConnection{o: o},
-			ttl:   chainForkCacheTTL,
-		}
-	}
-	return o.chainFork
 }
 
 // enforcerSyncConnection is the raw ValidatorService.GetChainTip RPC.
@@ -3504,15 +3385,6 @@ type ChainSyncResult struct {
 	Headers int64
 	Time    int64
 	Error   string
-	// PeerBestHeight is the highest tip any peer announces, zero when unknown.
-	PeerBestHeight int64
-	// RejectedBranch is true when the node marked a branch at or above its own
-	// tip invalid. Together with a higher PeerBestHeight it means the node
-	// refuses the chain its peers follow.
-	RejectedBranch bool
-	// RefusedBranchStart is where the refused branch leaves this node's
-	// chain, zero when none. The invalid block sits at or above it.
-	RefusedBranchStart int64
 	// VerifiedBlocks is the height Core verified from genesis, zero when it
 	// loaded no UTXO snapshot. Mainchain only.
 	VerifiedBlocks int64
@@ -3651,21 +3523,6 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 		out.ChainSource.Blocks, out.ChainSource.Headers = int64(height), int64(height)
 	}()
 
-	var fork *ChainForkState
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		state, err := o.chainForkCached().Fetch(ctx)
-		if err != nil {
-			o.log.Debug().Err(err).Msg("chain fork probe failed")
-		}
-		// The cache returns its last good state next to a transient error, so
-		// a failed refresh must not clear an active off-chain warning.
-		if state != nil {
-			fork = state
-		}
-	}()
-
 	for _, j := range jobs {
 		j := j
 		wg.Add(1)
@@ -3714,12 +3571,6 @@ func (o *Orchestrator) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	if chainStates != nil && out.Mainchain.Error == "" {
 		out.Mainchain.VerifiedBlocks = chainStates.VerifiedBlocks
 		out.Mainchain.VerifiedGoal = chainStates.VerifiedGoal
-	}
-
-	if fork != nil && out.Mainchain.Error == "" {
-		out.Mainchain.PeerBestHeight = fork.PeerBestHeight
-		out.Mainchain.RejectedBranch = fork.RejectedBranch
-		out.Mainchain.RefusedBranchStart = fork.RefusedBranchStart
 	}
 
 	// Headers fan-out: dependent chains measure progress against bitcoind's

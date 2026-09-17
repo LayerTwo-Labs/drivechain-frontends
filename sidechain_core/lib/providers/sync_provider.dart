@@ -19,16 +19,6 @@ class SyncInfo {
   final double progressGoal;
   final Timestamp? lastBlockAt;
 
-  /// Highest tip the node's peers announce, 0 when unknown.
-  final int peerBestHeight;
-
-  /// True when the node marked a branch at or above its own tip invalid.
-  final bool rejectedBranch;
-
-  /// Where the refused branch leaves this node's chain, 0 when it refuses
-  /// none. The invalid block sits at or above it.
-  final int refusedBranchStart;
-
   /// Height Core verified from genesis, 0 when it loaded no UTXO snapshot.
   /// Behind a snapshot, progressCurrent reaches the tip long before this does.
   final int verifiedBlocks;
@@ -57,22 +47,10 @@ class SyncInfo {
   /// that hides on [isSynced] hides the one bar the reader wants.
   bool get allSyncsComplete => isSynced && (verifiedGoal == 0 || verifiedBlocks >= verifiedGoal);
 
-  /// The node refuses a branch at or above its own tip while its peers run
-  /// ahead. Blocks and headers both read 100% here, because the node counts
-  /// neither side of the branch it threw away. Without the peer evidence a
-  /// node that rejects one competing block reads as off the chain forever.
-  bool get offNetwork => rejectedBranch && behindPeers > 0;
-
-  /// How far the peers' headers run past this node, 0 when they do not.
-  int get behindPeers => peerBestHeight > progressCurrent ? peerBestHeight - progressCurrent.toInt() : 0;
-
   SyncInfo({
     required this.progressCurrent,
     required this.progressGoal,
     required this.lastBlockAt,
-    this.peerBestHeight = 0,
-    this.rejectedBranch = false,
-    this.refusedBranchStart = 0,
     this.verifiedBlocks = 0,
     this.verifiedGoal = 0,
     this.mainchainSyncPhase = orch_pb.MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED,
@@ -88,9 +66,6 @@ class SyncInfo {
         other.progressCurrent == progressCurrent &&
         other.progressGoal == progressGoal &&
         other.lastBlockAt == lastBlockAt &&
-        other.peerBestHeight == peerBestHeight &&
-        other.rejectedBranch == rejectedBranch &&
-        other.refusedBranchStart == refusedBranchStart &&
         other.verifiedBlocks == verifiedBlocks &&
         other.verifiedGoal == verifiedGoal &&
         other.mainchainSyncPhase == mainchainSyncPhase &&
@@ -102,9 +77,6 @@ class SyncInfo {
     progressCurrent,
     progressGoal,
     lastBlockAt,
-    peerBestHeight,
-    rejectedBranch,
-    refusedBranchStart,
     verifiedBlocks,
     verifiedGoal,
     mainchainSyncPhase,
@@ -466,9 +438,6 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
       progressCurrent: blocks,
       progressGoal: headers,
       lastBlockAt: (cs?.time ?? Int64(0)) != Int64(0) ? Timestamp(seconds: cs!.time) : null,
-      peerBestHeight: cs?.peerBestHeight ?? 0,
-      rejectedBranch: cs?.rejectedBranch ?? false,
-      refusedBranchStart: cs?.refusedBranchStart ?? 0,
       verifiedBlocks: cs?.verifiedBlocks ?? 0,
       verifiedGoal: cs?.verifiedGoal ?? 0,
       mainchainSyncPhase: cs?.mainchainSyncPhase ?? orch_pb.MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED,

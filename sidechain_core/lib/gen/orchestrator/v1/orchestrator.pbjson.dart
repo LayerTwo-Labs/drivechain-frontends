@@ -795,27 +795,29 @@ const ChainSync$json = {
     {'1': 'headers', '3': 2, '4': 1, '5': 5, '10': 'headers'},
     {'1': 'time', '3': 3, '4': 1, '5': 3, '10': 'time'},
     {'1': 'error', '3': 4, '4': 1, '5': 9, '10': 'error'},
-    {'1': 'peer_best_height', '3': 5, '4': 1, '5': 5, '10': 'peerBestHeight'},
-    {'1': 'rejected_branch', '3': 6, '4': 1, '5': 8, '10': 'rejectedBranch'},
-    {'1': 'refused_branch_start', '3': 7, '4': 1, '5': 5, '10': 'refusedBranchStart'},
     {'1': 'verified_blocks', '3': 8, '4': 1, '5': 5, '10': 'verifiedBlocks'},
     {'1': 'verified_goal', '3': 9, '4': 1, '5': 5, '10': 'verifiedGoal'},
     {'1': 'mainchain_sync_phase', '3': 10, '4': 1, '5': 14, '6': '.orchestrator.v1.MainchainSyncPhase', '10': 'mainchainSyncPhase'},
     {'1': 'mainchain_tip_height', '3': 11, '4': 1, '5': 5, '10': 'mainchainTipHeight'},
   ],
+  '9': [
+    {'1': 5, '2': 6},
+    {'1': 6, '2': 7},
+    {'1': 7, '2': 8},
+  ],
+  '10': ['peer_best_height', 'rejected_branch', 'refused_branch_start'],
 };
 
 /// Descriptor for `ChainSync`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List chainSyncDescriptor = $convert.base64Decode(
     'CglDaGFpblN5bmMSFgoGYmxvY2tzGAEgASgFUgZibG9ja3MSGAoHaGVhZGVycxgCIAEoBVIHaG'
-    'VhZGVycxISCgR0aW1lGAMgASgDUgR0aW1lEhQKBWVycm9yGAQgASgJUgVlcnJvchIoChBwZWVy'
-    'X2Jlc3RfaGVpZ2h0GAUgASgFUg5wZWVyQmVzdEhlaWdodBInCg9yZWplY3RlZF9icmFuY2gYBi'
-    'ABKAhSDnJlamVjdGVkQnJhbmNoEjAKFHJlZnVzZWRfYnJhbmNoX3N0YXJ0GAcgASgFUhJyZWZ1'
-    'c2VkQnJhbmNoU3RhcnQSJwoPdmVyaWZpZWRfYmxvY2tzGAggASgFUg52ZXJpZmllZEJsb2Nrcx'
-    'IjCg12ZXJpZmllZF9nb2FsGAkgASgFUgx2ZXJpZmllZEdvYWwSVQoUbWFpbmNoYWluX3N5bmNf'
-    'cGhhc2UYCiABKA4yIy5vcmNoZXN0cmF0b3IudjEuTWFpbmNoYWluU3luY1BoYXNlUhJtYWluY2'
-    'hhaW5TeW5jUGhhc2USMAoUbWFpbmNoYWluX3RpcF9oZWlnaHQYCyABKAVSEm1haW5jaGFpblRp'
-    'cEhlaWdodA==');
+    'VhZGVycxISCgR0aW1lGAMgASgDUgR0aW1lEhQKBWVycm9yGAQgASgJUgVlcnJvchInCg92ZXJp'
+    'ZmllZF9ibG9ja3MYCCABKAVSDnZlcmlmaWVkQmxvY2tzEiMKDXZlcmlmaWVkX2dvYWwYCSABKA'
+    'VSDHZlcmlmaWVkR29hbBJVChRtYWluY2hhaW5fc3luY19waGFzZRgKIAEoDjIjLm9yY2hlc3Ry'
+    'YXRvci52MS5NYWluY2hhaW5TeW5jUGhhc2VSEm1haW5jaGFpblN5bmNQaGFzZRIwChRtYWluY2'
+    'hhaW5fdGlwX2hlaWdodBgLIAEoBVISbWFpbmNoYWluVGlwSGVpZ2h0SgQIBRAGSgQIBhAHSgQI'
+    'BxAIUhBwZWVyX2Jlc3RfaGVpZ2h0Ug9yZWplY3RlZF9icmFuY2hSFHJlZnVzZWRfYnJhbmNoX3'
+    'N0YXJ0');
 
 @$core.Deprecated('Use getDownloadStatusRequestDescriptor instead')
 const GetDownloadStatusRequest$json = {
