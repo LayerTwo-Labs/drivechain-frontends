@@ -31,7 +31,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
   bool isLoadingMoreBlocks = false;
   Set<int> loadedBlockHeights = {};
 
-  Duration _currentInterval = const Duration(seconds: 5);
+  static const _fetchInterval = Duration(seconds: 5);
   bool _isFetching = false;
 
   /// Last error text printed. A daemon that boots fails the same way on every
@@ -57,6 +57,15 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
     if (!bitwindowd.connected || _isFetching) {
+      return;
+    }
+    // bitwindowd answers both list calls with nothing while it waits for Core,
+    // and each one still costs Core an RPC under cs_main. A node that re-enters
+    // IBD holds rows from the chain it left, so drop them.
+    if (syncProvider.bitwindowdSyncInfo?.waitsForCore ?? false) {
+      if (blocks.isNotEmpty || recentTransactions.isNotEmpty || peers.isNotEmpty || errors.isNotEmpty) {
+        clear();
+      }
       return;
     }
     _isFetching = true;
@@ -131,30 +140,7 @@ class BlockchainProvider extends ChangeNotifier implements NetworkScoped {
       return;
     }
 
-    void tick() async {
-      try {
-        await fetch();
-        // During IBD we should be pretty spammy to get up-to-date info all the time
-        // After IBD however we can check less frequently, so as soon as IBD is done
-        // we check every 5 seconds.
-
-        // Check if we need to change the interval
-        // SyncProvider is the source of truth for "are we still catching up";
-        // ride its `isSynced` so we drop to a calmer cadence the moment all
-        // tracked daemons report synced.
-        final newInterval = syncProvider.isSynced ? const Duration(seconds: 5) : const Duration(milliseconds: 200);
-        if (newInterval != _currentInterval) {
-          // IBD-status changed!
-          _currentInterval = newInterval;
-          _fetchTimer?.cancel();
-          _fetchTimer = Timer.periodic(_currentInterval, (_) => tick());
-        }
-      } catch (e) {
-        // do nothing, swallov!
-      }
-    }
-
-    _fetchTimer = Timer.periodic(_currentInterval, (_) => tick());
+    _fetchTimer = Timer.periodic(_fetchInterval, (_) => fetch());
   }
 
   /// Wipe cached state on network swap so the UI stops showing the previous
