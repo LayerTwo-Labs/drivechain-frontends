@@ -190,7 +190,7 @@ void main() {
       expect(walletApi.sweptTo, _walletAddress);
       expect(find.text('ECX claimed'), findsOneWidget);
       expect(find.text('Claim another key'), findsWidgets);
-      expect(find.text('View on the explorer'), findsWidgets);
+      expect(find.text('View on explorer'), findsWidgets);
     });
 
     testWidgets('keeps a failure on screen with its reason', (tester) async {
