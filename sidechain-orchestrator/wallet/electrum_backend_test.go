@@ -1505,12 +1505,18 @@ func TestElectrumListReceivedReportsCurrentBalance(t *testing.T) {
 
 	recv, err := p.ListReceivedByAddress(ctx, wo.ID)
 	require.NoError(t, err)
-	byAddr := map[string]float64{}
+	balance := map[string]int64{}
+	gross := map[string]float64{}
 	for _, r := range recv {
-		byAddr[r.Address] = r.Amount
+		balance[r.Address] = r.BalanceSats
+		gross[r.Address] = r.Amount
 	}
-	assert.InDelta(t, 0.0, byAddr[addrs[0]], 1e-9, "fully spent address must report zero balance, not gross received")
-	assert.InDelta(t, 0.0005, byAddr[addrs[1]], 1e-9)
+	assert.EqualValues(t, 0, balance[addrs[0]], "fully spent address must report zero balance, not gross received")
+	assert.EqualValues(t, 50_000, balance[addrs[1]])
+	// Amount keeps the receipts, so the BIP47 import window still reads a
+	// probe address that received and then spent as used.
+	assert.InDelta(t, 0.001, gross[addrs[0]], 1e-9)
+	assert.InDelta(t, 0.0005, gross[addrs[1]], 1e-9)
 }
 
 // TestElectrumWatchOnlyUTXOsNotSpendable: a watch-only wallet's coins are

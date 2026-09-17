@@ -331,7 +331,9 @@ func (e *BIP47Engine) extendImports(ctx context.Context, walletID, seedHex strin
 	}
 	usedAddrs := make(map[string]bool, len(received))
 	for _, r := range received {
-		if r.Amount > 0 {
+		// A probe address that received and then spent still counts as used, so
+		// the window reads the receipts rather than the balance.
+		if len(r.TxIDs) > 0 || r.Amount > 0 {
 			usedAddrs[r.Address] = true
 		}
 	}
