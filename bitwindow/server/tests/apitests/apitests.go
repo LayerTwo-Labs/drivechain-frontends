@@ -43,6 +43,7 @@ type configg struct {
 	// walletType is the backend of the fixture wallet. Electrum by default: it
 	// starts no local node, so a test opts in to Core only when it needs one.
 	walletType string
+	network    config.Network
 }
 
 type ServerOpt func(opt *configg)
@@ -60,6 +61,9 @@ func (o *configg) populate(_ *testing.T, ctrl *gomock.Controller, options ...Ser
 	}
 	if o.bitcoind == nil {
 		o.bitcoind = defaultBitcoindMock(ctrl)
+	}
+	if o.network == "" {
+		o.network = config.NetworkRegtest
 	}
 }
 
@@ -93,6 +97,12 @@ func WithOrchestrator(client orchrpc.WalletManagerServiceClient) ServerOpt {
 
 func WithBitcoind(bitcoind bitcoindv1alphaconnect.BitcoinServiceClient) ServerOpt {
 	return func(opt *configg) { opt.bitcoind = bitcoind }
+}
+
+// WithNetwork runs the fixture on another network than regtest, for a test of
+// behaviour the network itself decides.
+func WithNetwork(network config.Network) ServerOpt {
+	return func(opt *configg) { opt.network = network }
 }
 
 // API creates a new external API Connect server that we can send test requests to
@@ -159,7 +169,7 @@ func API(t *testing.T, database *sql.DB, options ...ServerOpt) (connect.HTTPClie
 		// The name picks the data source and the coin news set, and regtest has
 		// no hosted orchestrator, so every read stays on the mocks above. The
 		// ChainParams above pick the address encoding the fixtures use.
-		BitcoinCoreNetwork: config.NetworkRegtest,
+		BitcoinCoreNetwork: conf.network,
 		GuiBootedMainchain: false,
 		GuiBootedEnforcer:  false,
 	}, func(shutdownCtx context.Context) {

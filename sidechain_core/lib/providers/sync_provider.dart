@@ -27,6 +27,10 @@ class SyncInfo {
   /// to, not the chain tip. 0 when no snapshot is loaded.
   final int verifiedGoal;
 
+  /// True while this daemon holds its own block scan until Bitcoin Core leaves
+  /// initial block download. The heights stand still for as long as it is set.
+  final bool waitsForCore;
+
   /// The mainchain step a sidechain node takes before it syncs its own blocks.
   /// While set, progressCurrent / progressGoal are that step's done / total.
   final orch_pb.MainchainSyncPhase mainchainSyncPhase;
@@ -53,6 +57,7 @@ class SyncInfo {
     required this.lastBlockAt,
     this.verifiedBlocks = 0,
     this.verifiedGoal = 0,
+    this.waitsForCore = false,
     this.mainchainSyncPhase = orch_pb.MainchainSyncPhase.MAINCHAIN_SYNC_PHASE_UNSPECIFIED,
     this.mainchainTipHeight = 0,
   });
@@ -68,6 +73,7 @@ class SyncInfo {
         other.lastBlockAt == lastBlockAt &&
         other.verifiedBlocks == verifiedBlocks &&
         other.verifiedGoal == verifiedGoal &&
+        other.waitsForCore == waitsForCore &&
         other.mainchainSyncPhase == mainchainSyncPhase &&
         other.mainchainTipHeight == mainchainTipHeight;
   }
@@ -79,6 +85,7 @@ class SyncInfo {
     lastBlockAt,
     verifiedBlocks,
     verifiedGoal,
+    waitsForCore,
     mainchainSyncPhase,
     mainchainTipHeight,
   );
@@ -413,6 +420,7 @@ class SyncProvider extends ChangeNotifier implements NetworkScoped {
           progressCurrent: info.tipBlockHeight.toDouble(),
           progressGoal: info.headerHeight.toDouble(),
           lastBlockAt: info.tipBlockTime != Int64(0) ? Timestamp(seconds: info.tipBlockTime) : null,
+          waitsForCore: info.waitsForCore,
         );
         if (_diff(bitwindowdSyncInfo, next) || bitwindowdError != null) {
           bitwindowdSyncInfo = next;

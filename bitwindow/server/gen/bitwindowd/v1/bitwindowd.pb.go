@@ -1020,8 +1020,12 @@ type GetSyncInfoResponse struct {
 	// "Rescanning…", "Loading wallet"). When set, the numeric height fields are
 	// 0/0 and the UI should render this message instead of "0/0 blocks".
 	StartupMessage string `protobuf:"bytes,7,opt,name=startup_message,json=startupMessage,proto3" json:"startup_message,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// True while the block scan holds off until Bitcoin Core leaves initial
+	// block download. The height fields stand still, so the UI reports the wait
+	// instead of a progress bar at 0%.
+	WaitsForCore  bool `protobuf:"varint,8,opt,name=waits_for_core,json=waitsForCore,proto3" json:"waits_for_core,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetSyncInfoResponse) Reset() {
@@ -1101,6 +1105,13 @@ func (x *GetSyncInfoResponse) GetStartupMessage() string {
 		return x.StartupMessage
 	}
 	return ""
+}
+
+func (x *GetSyncInfoResponse) GetWaitsForCore() bool {
+	if x != nil {
+		return x.WaitsForCore
+	}
+	return false
 }
 
 // Request to set a transaction note
@@ -2323,7 +2334,7 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
 	"\aaddress\x18\x03 \x01(\tR\aaddress\"/\n" +
 	"\x1dDeleteAddressBookEntryRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"\xcf\x02\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\xf5\x02\n" +
 	"\x13GetSyncInfoResponse\x12(\n" +
 	"\x10tip_block_height\x18\x01 \x01(\x03R\x0etipBlockHeight\x12$\n" +
 	"\x0etip_block_time\x18\x02 \x01(\x03R\ftipBlockTime\x12$\n" +
@@ -2331,7 +2342,8 @@ const file_bitwindowd_v1_bitwindowd_proto_rawDesc = "" +
 	"\x16tip_block_processed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x13tipBlockProcessedAt\x12#\n" +
 	"\rheader_height\x18\x05 \x01(\x03R\fheaderHeight\x12#\n" +
 	"\rsync_progress\x18\x06 \x01(\x01R\fsyncProgress\x12'\n" +
-	"\x0fstartup_message\x18\a \x01(\tR\x0estartupMessage\"`\n" +
+	"\x0fstartup_message\x18\a \x01(\tR\x0estartupMessage\x12$\n" +
+	"\x0ewaits_for_core\x18\b \x01(\bR\fwaitsForCore\"`\n" +
 	"\x19SetTransactionNoteRequest\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\tR\x04txid\x12\x12\n" +
 	"\x04note\x18\x02 \x01(\tR\x04note\x12\x1b\n" +

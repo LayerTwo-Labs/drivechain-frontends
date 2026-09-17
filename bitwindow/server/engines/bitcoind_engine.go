@@ -271,6 +271,14 @@ func (p *Parser) coreHoldsBlock(ctx context.Context, height uint32, hash string)
 	return res.Msg.Hash == hash, nil
 }
 
+// WaitsForCore reports whether the OP_RETURN scan holds off until Core leaves
+// initial block download. A full chain (mainnet, eCash) queues every scan RPC
+// behind cs_main and slows the sync itself. Signet, testnet and regtest blocks
+// are small, so the scan runs there mid-sync.
+func WaitsForCore(inIBD bool, network config.Network) bool {
+	return inIBD && config.IsFullChainNetwork(network)
+}
+
 func (p *Parser) handleBlockTick(ctx context.Context) error {
 
 	switch err := p.ensureSyncIsHealthy(ctx); {
@@ -362,19 +370,8 @@ func (p *Parser) handleBlockTick(ctx context.Context) error {
 		lastProcessedHeight = replayFrom - 1
 	}
 
-	// While Core is still doing initial block download on a *full* chain
-	// (mainnet / eCash), skip the OP_RETURN scan entirely. Each scan
-	// fans out a parallel batch of blocks and issues per-tx
-	// GetRawTransaction calls (needed for fee), all of which queue behind
-	// cs_main. During IBD on a populated chain that's enough pressure to
-	// push getblockchaininfo past its client timeout, which trips the
-	// orchestrator's connection-lost monitor and freezes the UI height.
-	// Catching up runs in one batch the first tick after IBD clears.
-	//
-	// Signet / testnet / regtest blocks are small or empty, so the scan
-	// is cheap even mid-sync — keep running there so the user sees recent
-	// OP_RETURN activity while Core finishes catching up.
-	if inIBD && config.IsFullChainNetwork(p.conf.BitcoinCoreNetwork) {
+	// The whole range replays in one batch on the first tick after IBD clears.
+	if WaitsForCore(inIBD, p.conf.BitcoinCoreNetwork) {
 		zerolog.Ctx(ctx).Debug().
 			Uint32("tip", currentHeight).
 			Uint32("processed", lastProcessedHeight).
