@@ -59,7 +59,7 @@ func TestECashLightSwitchKeepsSourceForFullMode(t *testing.T) {
 	require.NoError(t, o.ApplyECashSwitch(context.Background(), "betanet"))
 	core := BinaryConfig{IsBitcoinCore: true, ChainLayer: 1}
 	services := []BinaryConfig{{Name: "enforcer"}, {Name: "thunder", ChainLayer: 2}, {Name: "bitnames", IsBitcoinCore: true, ChainLayer: 2}}
-	want := "ECX files belong to alphanet; use drivechain-cli ecash migrate --from alphanet --to betanet --yes"
+	want := "ECX files belong to alphanet; open Settings, Network, ECX migration to move them to betanet"
 	require.EqualError(t, o.checkECashMigrationStart(context.Background(), core), want)
 	for _, cfg := range services {
 		require.NoError(t, o.checkECashMigrationStart(context.Background(), cfg))
