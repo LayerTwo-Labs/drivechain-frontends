@@ -413,9 +413,9 @@ void main() {
     expect(rpc.calls, isEmpty);
   });
 
-  testWidgets('rejects the minimum and invalid amount text', (tester) async {
+  testWidgets('rejects an amount below the minimum and invalid amount text', (tester) async {
     await pumpCard(tester);
-    for (final value in ['1000', '999.99999999', '0', '1e10', '1250.000000001', '-1250']) {
+    for (final value in ['999.99999999', '0', '1e10', '1250.000000001', '-1250']) {
       await enterAmount(tester, value);
       expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
       expect(rpc.calls, isEmpty);
@@ -439,7 +439,7 @@ void main() {
       expect(find.text('0 ECX'), findsOneWidget);
       expect(find.text('12.5 ECX'), findsOneWidget);
       expect(find.text('Real ECX'), findsOneWidget);
-      expect(find.textContaining('1/100 of the amount'), findsNWidgets(2));
+      expect(find.textContaining('1/100 of the amount'), findsOneWidget);
       expect(find.textContaining('Betanet'), findsNothing);
       expect(find.text('0.00000452 ECX'), findsOneWidget);
       expect(find.text('1,250.00000452 ECX'), findsOneWidget);
@@ -453,17 +453,22 @@ void main() {
     await enterAmount(tester, '1000.00000001');
     expect(rpc.amounts.single, {_burnAddress: 100000000001});
     expect(find.text('10.00000001 ECX'), findsOneWidget);
-    expect(find.text('The credit rounds up to a whole ECX satoshi.'), findsOneWidget);
+    expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
+  });
+
+  testWidgets('accepts a burn of exactly the minimum', (tester) async {
+    await pumpCard(tester);
+    await enterAmount(tester, '1000');
+    expect(rpc.amounts.single, {_burnAddress: _minimumSats});
+    expect(find.text('10 ECX'), findsOneWidget);
     expect(tester.widget<SailButton>(burnButton()).disabled, isFalse);
   });
 
   testWidgets('uses the production burn address and strict Alphanet minimum', (tester) async {
     await pumpCard(tester, production: true);
-    for (final amount in ['999.99999999', '1000']) {
-      await enterAmount(tester, amount);
-      expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
-      expect(rpc.calls, isEmpty);
-    }
+    await enterAmount(tester, '999.99999999');
+    expect(tester.widget<SailButton>(burnButton()).disabled, isTrue);
+    expect(rpc.calls, isEmpty);
 
     await enterAmount(tester, '1000.00000001');
     expect(rpc.amounts.single, {'1BitcoinEaterAddressDontSendf59kuE': 100000000001});

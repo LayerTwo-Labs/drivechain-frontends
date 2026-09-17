@@ -136,8 +136,8 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
       }
       try {
         _amountSats = parseBurnAmount(value);
-        if (_amountSats! <= widget.minimumSats) {
-          _error = 'The amount must exceed ${formatBurnAmount(widget.minimumSats)}.';
+        if (_amountSats! < widget.minimumSats) {
+          _error = 'The burn must be at least ${formatBurnAmount(widget.minimumSats)}.';
           return;
         }
       } on FormatException catch (error) {
@@ -153,7 +153,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
     final version = _version;
     final context = _context;
     final amount = _amountSats;
-    if (amount == null || amount <= widget.minimumSats || !_isCurrent(version, context)) {
+    if (amount == null || amount < widget.minimumSats || !_isCurrent(version, context)) {
       return;
     }
     setState(() {
@@ -296,7 +296,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
           if (_prepareBusy) SailText.secondary12('Please wait for the exact network fee.'),
         ],
       ),
-      if (amount != null && amount > widget.minimumSats) ...[
+      if (amount != null && amount >= widget.minimumSats) ...[
         _route(theme, amount),
         _outputs(theme, amount),
         if (fee != null) _totals(theme, amount, fee),
@@ -319,7 +319,7 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
               onPressed: _burn,
             ),
           ),
-          if (_error != null && _psbt == null && amount != null && amount > widget.minimumSats)
+          if (_error != null && _psbt == null && amount != null && amount >= widget.minimumSats)
             SailButton(label: 'Try again', variant: ButtonVariant.link, onPressed: _prepare),
         ],
       ),
@@ -346,8 +346,6 @@ class _BurnEcxCardState extends State<BurnEcxCard> {
               _address ?? 'The wallet will provide its first address.',
               overflow: TextOverflow.visible,
             ),
-            SailText.secondary12('You will receive 1/100 of the amount you burn as real ECX at this address.'),
-            SailText.secondary12('The credit rounds up to a whole ECX satoshi.'),
             SailText.secondary12('The address used is the first address of this wallet.'),
           ],
         ),
