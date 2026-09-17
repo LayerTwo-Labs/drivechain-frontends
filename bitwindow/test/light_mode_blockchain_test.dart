@@ -97,4 +97,21 @@ void main() {
 
     expect(rpc.api.blockCalls, greaterThan(0));
   });
+
+  test('blocks do not poll while bitwindowd waits for Core', () async {
+    final provider = await boot(wmpb.NodeMode.NODE_MODE_FULL);
+    await pumpEventQueue();
+    final before = rpc.api.blockCalls;
+
+    GetIt.I.get<SyncProvider>().bitwindowdSyncInfo = SyncInfo(
+      progressCurrent: 0,
+      progressGoal: 967362,
+      lastBlockAt: null,
+      waitsForCore: true,
+    );
+    await provider.fetch();
+
+    expect(rpc.api.blockCalls, before);
+    expect(provider.blocks, isEmpty);
+  });
 }
