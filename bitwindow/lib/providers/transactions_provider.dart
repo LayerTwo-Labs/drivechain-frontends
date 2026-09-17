@@ -44,6 +44,10 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
   String address = '';
   String addressDerivationPath = '';
 
+  /// Last address error printed. A failure that stands, such as a wallet the
+  /// network serves no chain source for, prints one time.
+  String? _loggedAddressError;
+
   /// The kind the user picked, or UNSPECIFIED to take the wallet's own. A
   /// wallet on an explicit path derives one kind only, and asking for another
   /// makes the backend refuse every poll.
@@ -317,10 +321,13 @@ class TransactionProvider extends ChangeNotifier implements NetworkScoped {
         // Always update - backend handles finding unused address
         equals: (a, b) => false,
       );
+      _loggedAddressError = null;
       notifyListeners();
     } catch (e) {
-      if (!isExpectedBootError(e)) {
+      final text = e.toString();
+      if (!isExpectedBootError(e) && _loggedAddressError != text) {
         _log.w('TransactionProvider: address fetch failed: $e');
+        _loggedAddressError = text;
       }
     }
   }
