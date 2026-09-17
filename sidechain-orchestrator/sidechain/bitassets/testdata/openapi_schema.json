@@ -320,6 +320,63 @@
         }
       }
     },
+    "broadcast_transaction": {
+      "post": {
+        "description": "Validate a signed transaction and send it to connected peer queues.",
+        "operationId": "broadcast_transaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "transaction",
+                  "authorizations"
+                ],
+                "properties": {
+                  "authorizations": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Authorization"
+                    },
+                    "description": "Authorizations are called witnesses in Bitcoin."
+                  },
+                  "transaction": {
+                    "$ref": "#/components/schemas/Transaction"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "txid",
+                    "peer_count"
+                  ],
+                  "properties": {
+                    "peer_count": {
+                      "type": "integer",
+                      "description": "The number of connected peer queues that accepted the request.",
+                      "minimum": 0
+                    },
+                    "txid": {
+                      "$ref": "#/components/schemas/Txid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "connect_block": {
       "post": {
         "description": "Connect a block for which a BMM request was included in the specified\nmainchain block. Returns `true` if it was accepted as the new tip.",
@@ -871,6 +928,56 @@
                     },
                     {
                       "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_authorized_transaction": {
+      "post": {
+        "description": "Get a signed transaction from the mempool.",
+        "operationId": "get_authorized_transaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "transaction",
+                        "authorizations"
+                      ],
+                      "properties": {
+                        "authorizations": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Authorization"
+                          },
+                          "description": "Authorizations are called witnesses in Bitcoin."
+                        },
+                        "transaction": {
+                          "$ref": "#/components/schemas/Transaction"
+                        }
+                      }
                     }
                   ]
                 }
@@ -2657,6 +2764,47 @@
         }
       }
     },
+    "rebroadcast_transaction": {
+      "post": {
+        "description": "Send a signed mempool transaction to connected peer queues.",
+        "operationId": "rebroadcast_transaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "txid",
+                    "peer_count"
+                  ],
+                  "properties": {
+                    "peer_count": {
+                      "type": "integer",
+                      "description": "The number of connected peer queues that accepted the request.",
+                      "minimum": 0
+                    },
+                    "txid": {
+                      "$ref": "#/components/schemas/Txid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "register_bitasset": {
       "post": {
         "description": "Register a BitAsset",
@@ -3115,7 +3263,7 @@
     },
     "submit_transaction": {
       "post": {
-        "description": "Verify and broadcast a transaction",
+        "description": "Validate and broadcast a transaction.",
         "operationId": "submit_transaction",
         "requestBody": {
           "content": {
