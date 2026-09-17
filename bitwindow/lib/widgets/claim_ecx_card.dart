@@ -525,7 +525,7 @@ class _ClaimedCard extends StatelessWidget {
           const SailSpacing(SailStyleValues.padding04),
           SailText.secondary12('To ${shortenAddress(destination)}'),
           const SailSpacing(SailStyleValues.padding16),
-          SailText.secondary12('TRANSACTION'),
+          SailText.secondary12('TXID'),
           const SailSpacing(SailStyleValues.padding08),
           Container(
             width: double.infinity,
@@ -541,19 +541,17 @@ class _ClaimedCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(child: SailText.primary12(shortenAddress(txid))),
-                CopyButton(text: txid),
+                SailButton(
+                  label: 'View on explorer',
+                  variant: ButtonVariant.link,
+                  icon: SailSVGAsset.externalLink,
+                  small: true,
+                  onPressed: () async => launchUrl(Uri.parse(url)),
+                ),
               ],
             ),
           ),
           const SailSpacing(SailStyleValues.padding10),
-          SailButton(
-            label: 'View on the explorer',
-            variant: ButtonVariant.link,
-            icon: SailSVGAsset.externalLink,
-            small: true,
-            onPressed: () async => launchUrl(Uri.parse(url)),
-          ),
-          const SailSpacing(SailStyleValues.padding16),
           _WideButton(
             label: 'Claim another key',
             icon: SailSVGAsset.rotateCcw,
