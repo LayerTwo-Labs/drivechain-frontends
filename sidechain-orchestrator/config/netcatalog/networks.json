@@ -253,6 +253,62 @@
       }
     },
     {
+      "id": "betanet",
+      "family": "ecash",
+      "display_name": "Betanet",
+      "description": "Fork of mainnet with PoW difficulty reset — the ECX beta network",
+      "chain": "main",
+      "currency": {
+        "name": "eCash",
+        "ticker": "ECX"
+      },
+      "network_magic": "eca5b104",
+      "fork_height": 967680,
+      "backends": [
+        {
+          "kind": "esplora",
+          "url": "https://esplora.beta.ecash.ninja",
+          "tls": true,
+          "label": "L2L Esplora"
+        },
+        {
+          "kind": "electrum",
+          "url": "ssl://explorer.beta.ecash.ninja:50002",
+          "tls": true,
+          "label": "Fulcrum"
+        }
+      ],
+      "explorer_tx_template": "https://explorer.beta.ecash.ninja/tx/{txid}",
+      "explorer_address_template": "https://explorer.beta.ecash.ninja/address/{address}",
+      "explorer_block_template": "https://explorer.beta.ecash.ninja/block/{hash}",
+      "services": {
+        "faucet": {
+          "url": null,
+          "amount": null,
+          "cooldown_seconds": null
+        },
+        "coinnews": {
+          "url": null
+        },
+        "blockbook": {
+          "url": null
+        },
+        "mining_pool": {
+          "url": "https://pool.beta.bip300.xyz",
+          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334"
+        },
+        "fast_withdrawal": [],
+        "enforcer": {
+          "url": "https://seed.beta.ecash.eu.com/enforcer"
+        }
+      },
+      "p2p": {
+        "address": "seed.beta.ecash.ninja:8533"
+      },
+      "sidechains": [],
+      "assumeutxo": null
+    },
+    {
       "id": "drynet4",
       "family": "ecash",
       "display_name": "Drynet 4",

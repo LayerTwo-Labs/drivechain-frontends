@@ -23,7 +23,7 @@ func sidechainConfFor(t *testing.T, name string, network Network, settings map[s
 	}
 }
 
-// Thunder knows alphanet, signet and regtest. It knows no mainnet, so
+// Thunder knows alphanet, betanet, signet and regtest. It knows no mainnet, so
 // a mainnet box gets no flag rather than a name that makes clap exit.
 func TestCusfNetworkName(t *testing.T) {
 	for network, want := range map[Network]string{
@@ -47,8 +47,10 @@ func TestCusfNetworkNameWithholdsAnUnknownECashGeneration(t *testing.T) {
 			t.Errorf("CusfNetworkName(ecash, %q) = %q, want no name", id, got)
 		}
 	}
-	if got := CusfNetworkName(NetworkECash, "alphanet"); got != "alphanet" {
-		t.Errorf("CusfNetworkName(ecash, alphanet) = %q, want alphanet", got)
+	for _, id := range []string{"alphanet", "betanet"} {
+		if got := CusfNetworkName(NetworkECash, id); got != id {
+			t.Errorf("CusfNetworkName(ecash, %q) = %q, want %q", id, got, id)
+		}
 	}
 }
 

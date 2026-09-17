@@ -11,11 +11,22 @@ func RemoteEnforcerURLForNetwork(network Network) string {
 	if entry.Services.Enforcer.URL != "" {
 		return entry.Services.Enforcer.URL
 	}
-	embedded, ok := netcatalog.Embedded().ForNetwork(string(network))
-	if !ok || (entry.ID != "" && entry.ID != embedded.ID) {
+	embedded, ok := embeddedEntryFor(entry.ID, network)
+	if !ok {
 		return ""
 	}
 	return embedded.Services.Enforcer.URL
+}
+
+// embeddedEntryFor finds the compiled-in entry that stands for a network. An id
+// from the published document matches by id, so each eCash network reads its
+// own row; the family lookup serves only a caller that has no id yet, because
+// it takes whichever eCash row comes first.
+func embeddedEntryFor(id string, network Network) (netcatalog.Network, bool) {
+	if id != "" {
+		return netcatalog.Embedded().ByID(id)
+	}
+	return netcatalog.Embedded().ForNetwork(string(network))
 }
 
 // RemoteEnforcerNetworks names every network that publishes a validator URL, by

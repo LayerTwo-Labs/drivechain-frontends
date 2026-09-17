@@ -52,18 +52,21 @@ const CliNetworkFlag = "--network"
 // the mainchain network n, on the eCash generation ecashID. It returns "" when
 // the daemon has no such network, and the launch path then stops the daemon.
 //
-// eCash carries a generation the daemon does not model: only alphanet has a
-// name in the daemon's own enum. A generation such as drynet4 runs a build
-// with its own magic, so a name from another generation stops it from syncing.
+// eCash carries a generation the daemon does not model: alphanet and betanet
+// have a name in the daemon's own enum, and the rest do not. A generation such
+// as drynet4 runs a build with its own magic, so a name from another generation
+// stops it from syncing.
 func CusfNetworkName(n Network, ecashID string) string {
 	switch n {
 	case NetworkRegtest:
 		return "regtest"
 	case NetworkECash:
-		if ecashID == "alphanet" {
-			return "alphanet"
+		switch ecashID {
+		case "alphanet", "betanet":
+			return ecashID
+		default:
+			return ""
 		}
-		return ""
 	case NetworkSignet:
 		return "signet"
 	default:

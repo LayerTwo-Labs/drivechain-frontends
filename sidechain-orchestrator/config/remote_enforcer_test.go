@@ -33,9 +33,14 @@ func TestRemoteEnforcerURLForNetwork(t *testing.T) {
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != entry.Services.Enforcer.URL {
 		t.Fatalf("published URL = %q, want %q", got, entry.Services.Enforcer.URL)
 	}
+	const betanetURL = "https://seed.beta.ecash.eu.com/enforcer"
 	SetECashEndpoints(netcatalog.Network{ID: "betanet"})
+	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != betanetURL {
+		t.Fatalf("betanet URL = %q, want %q", got, betanetURL)
+	}
+	SetECashEndpoints(netcatalog.Network{ID: "gammanet"})
 	if got := RemoteEnforcerURLForNetwork(NetworkECash); got != "" {
-		t.Fatalf("new generation used alphanet URL %q", got)
+		t.Fatalf("a generation no catalog knows used URL %q", got)
 	}
 
 	for _, network := range []Network{NetworkMainnet, NetworkSignet, NetworkRegtest, NetworkTestnet} {
