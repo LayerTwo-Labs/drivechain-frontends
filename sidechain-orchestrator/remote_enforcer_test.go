@@ -536,3 +536,24 @@ func TestRemoteSidechainStopsBeforeAnUnavailableValidator(t *testing.T) {
 	require.ErrorIs(t, err, os.ErrNotExist)
 	require.Contains(t, o.Status(cfg.Name).ConnectionError, "validator is offline")
 }
+
+// A network publishes its validator address before the host stands up. Until it
+// answers, light mode waits; it does not report a broken install.
+func TestRemoteEnforcerCheckErrorNamesAHostThatIsNotUp(t *testing.T) {
+	unreachable := connect.NewError(connect.CodeUnavailable, fmt.Errorf("dial tcp: no such host"))
+	require.EqualError(t, remoteEnforcerCheckError("Betanet", unreachable),
+		"the remote enforcer for Betanet is not live yet")
+
+	refused := connect.NewError(connect.CodeInternal, fmt.Errorf("bad certificate"))
+	require.EqualError(t, remoteEnforcerCheckError("Betanet", refused),
+		"check the remote validator service: internal: bad certificate")
+}
+
+// A remote host that answers and serves reaches the live enforcer, so the wait
+// message must never stand in for a working one.
+func TestRemoteEnforcerHealthCheckPassesOnALiveHost(t *testing.T) {
+	server := remoteValidatorServer(t, 7, nil)
+	o := remoteTestOrchestrator(t, server.URL)
+	check := &enforcerHealthCheck{orch: o, local: NewHealthChecker(BinaryConfig{})}
+	require.NoError(t, check.Check(context.Background()))
+}

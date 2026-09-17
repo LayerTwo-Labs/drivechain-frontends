@@ -252,12 +252,15 @@ void main() {
     expect(model.connectionColor, SailColorScheme.orange);
   });
 
+  // Another host runs the enforcer in light mode, so a connection it cannot
+  // make is a wait. Red would tell the user to fix an install that is correct.
   test('the remote enforcer connection controls the status', () {
     enforcer.connected = false;
 
     expect(model.allConnected, isFalse);
-    enforcer.connectionError = 'The remote enforcer is unavailable.';
-    expect(model.connectionColor, SailColorScheme.red);
+    expect(model.enforcerIsRemote, isTrue);
+    enforcer.connectionError = 'the remote enforcer for Betanet is not live yet';
+    expect(model.connectionColor, SailColorScheme.orange);
   });
 
   test('light mode waits for the local sidechain sync', () {

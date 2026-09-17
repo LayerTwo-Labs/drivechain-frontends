@@ -188,6 +188,7 @@ class _L1RequiredCard extends ViewModelWidget<SidechainsViewModel> {
               connection: viewModel.enforcerConnection,
               syncInfo: viewModel.enforcerSyncInfo,
               infoMessage: viewModel.enforcerInfoMessage,
+              remote: !NodeModeProvider.runsLocalBackends,
               restartDaemon: NodeModeProvider.runsLocalBackends ? () => viewModel.restartDaemon(Enforcer()) : null,
               stopDaemon: NodeModeProvider.runsLocalBackends ? () => viewModel.stopDaemon(Enforcer()) : null,
               navigateToLogs: viewModel.navigateToLogs,

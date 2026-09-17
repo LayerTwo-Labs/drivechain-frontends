@@ -86,6 +86,16 @@ type enforcerHealthCheck struct {
 	local HealthChecker
 }
 
+// remoteEnforcerCheckError names an endpoint that never answered as a wait. A
+// network publishes its validator address before the host stands up, and this
+// install runs none of it, so an unreachable host is not a fault here.
+func remoteEnforcerCheckError(network string, err error) error {
+	if connect.CodeOf(err) == connect.CodeUnavailable {
+		return fmt.Errorf("the remote enforcer for %s is not live yet", network)
+	}
+	return fmt.Errorf("check the remote validator service: %w", err)
+}
+
 func (h *enforcerHealthCheck) Check(ctx context.Context) error {
 	if h.orch.NodeMode() != NodeModeLight {
 		return h.local.Check(ctx)
@@ -103,7 +113,7 @@ func (h *enforcerHealthCheck) Check(ctx context.Context) error {
 	health := grpchealth.NewClient(h.orch.enforcerHTTP(), endpoint, connect.WithGRPC())
 	status, err := health.Check(ctx, &grpchealth.CheckRequest{Service: "cusf.mainchain.v1.ValidatorService"})
 	if err != nil {
-		return fmt.Errorf("check the remote validator service: %w", err)
+		return remoteEnforcerCheckError(config.NetworkDisplayName(config.Network(h.orch.CurrentNetwork())), err)
 	}
 	if status.Status != grpchealth.StatusServing {
 		return fmt.Errorf("the remote validator service is not ready")

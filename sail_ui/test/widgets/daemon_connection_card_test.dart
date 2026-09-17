@@ -185,4 +185,48 @@ void main() {
       expect(call(), 'Not connected');
     });
   });
+
+  group('resolveRemoteDaemonStatus', () {
+    test('a local daemon keeps its failure on the error line', () {
+      final status = resolveRemoteDaemonStatus(
+        remote: false,
+        connectionError: 'connection refused',
+        infoMessage: null,
+      );
+      expect(status.connectionError, 'connection refused');
+      expect(status.infoMessage, isNull);
+    });
+
+    test('a remote daemon moves its failure to the info line', () {
+      final status = resolveRemoteDaemonStatus(
+        remote: true,
+        connectionError: 'the remote enforcer for Betanet is not live yet',
+        infoMessage: null,
+      );
+      expect(status.connectionError, isNull);
+      expect(status.infoMessage, 'the remote enforcer for Betanet is not live yet');
+      expect(
+        resolveDaemonStatusColor(
+          theme: theme,
+          connectionError: status.connectionError,
+          startupError: null,
+          initializingBinary: false,
+          connected: false,
+          isDownloading: false,
+          hasInfoMessage: status.infoMessage != null,
+        ),
+        theme.colors.info,
+      );
+    });
+
+    test('a remote daemon that reaches its host keeps the given info line', () {
+      final status = resolveRemoteDaemonStatus(
+        remote: true,
+        connectionError: null,
+        infoMessage: 'Waiting for L1 to sync headers...',
+      );
+      expect(status.connectionError, isNull);
+      expect(status.infoMessage, 'Waiting for L1 to sync headers...');
+    });
+  });
 }
