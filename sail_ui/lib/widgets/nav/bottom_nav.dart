@@ -304,6 +304,7 @@ class BottomNav extends StatelessWidget {
                       DaemonConnectionCard(
                         connection: model.enforcer,
                         syncInfo: model.syncProvider.enforcerSyncInfo,
+                        remote: !walletNeedsBackends,
                         infoMessage: model.mainchain.initializingBinary
                             ? 'Waiting for mainchain to finish initializing'
                             : model.syncProvider.inHeaderSync
@@ -504,6 +505,10 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
   bool get needsEnforcer =>
       needsBackends || additionalConnection.rpc.binary.chainLayer == 2 || (nodeMode?.usesEnforcer ?? false);
 
+  /// True when another host runs the enforcer. A connection it cannot make is
+  /// then a wait, so the bar stays amber rather than red.
+  bool get enforcerIsRemote => !needsBackends;
+
   bool get needsAdditional => true;
 
   bool get needsAdditionalSync => needsBackends || additionalConnection.rpc.binary.chainLayer == 2;
@@ -531,7 +536,7 @@ class BottomNavViewModel extends BaseViewModel with ChangeTrackingMixin {
     // `connected` is the authoritative "healthy" signal — stale startupError /
     // initializingBinary on an already-connected daemon are ignored.
     if ((needsBackends && mainchain.connectionError != null) ||
-        (needsEnforcer && enforcer.connectionError != null) ||
+        (needsEnforcer && !enforcerIsRemote && enforcer.connectionError != null) ||
         (needsAdditional && additionalConnection.connectionError != null) ||
         drivechaind?.connectionError != null) {
       return SailColorScheme.red;

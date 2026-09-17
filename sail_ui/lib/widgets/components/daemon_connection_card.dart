@@ -24,17 +24,32 @@ class DaemonConnectionCard extends StatelessWidget {
 
   final String? infoMessage;
 
+  /// True for a daemon another host runs. A connection this card cannot make is
+  /// then a wait, because nothing here starts or fixes that host.
+  final bool remote;
+
   const DaemonConnectionCard({
     super.key,
     required this.connection,
     required this.syncInfo,
     required this.infoMessage,
+    this.remote = false,
     this.restartDaemon,
     this.stopDaemon,
     this.deleteFunction,
     this.navigateToLogs,
     this.onOpenConfConfigurator,
   });
+
+  ({String? connectionError, String? infoMessage}) get _status => resolveRemoteDaemonStatus(
+    remote: remote,
+    connectionError: connection.connectionError,
+    infoMessage: infoMessage,
+  );
+
+  String? get _connectionError => _status.connectionError;
+
+  String? get _infoMessage => _status.infoMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -174,12 +189,12 @@ class DaemonConnectionCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: SailStyleValues.padding04),
             child: DaemonStatusBlock(
-              message: infoMessage != null || connection.connectionError != null || !connection.connected
+              message: _infoMessage != null || _connectionError != null || !connection.connected
                   ? prettifyLogMessage(
                       resolveDaemonStatusMessage(
-                        connectionError: connection.connectionError,
+                        connectionError: _connectionError,
                         startupError: connection.startupError,
-                        infoMessage: infoMessage,
+                        infoMessage: _infoMessage,
                         initializingBinary: connection.initializingBinary,
                         initializingFallback: providerBinary?.startupLogs.lastOrNull?.message,
                       ),
@@ -197,12 +212,12 @@ class DaemonConnectionCard extends StatelessWidget {
     required bool isDownloading,
   }) => resolveDaemonStatusColor(
     theme: theme,
-    connectionError: connection.connectionError,
+    connectionError: _connectionError,
     startupError: connection.startupError,
     initializingBinary: connection.initializingBinary,
     connected: connection.connected,
     isDownloading: isDownloading,
-    hasInfoMessage: infoMessage != null,
+    hasInfoMessage: _infoMessage != null,
   );
 }
 
@@ -412,6 +427,21 @@ String resolveDaemonStatusMessage({
     return initializingFallback ?? 'Initializing...';
   }
   return 'Not connected';
+}
+
+/// Splits a daemon's failure between the error line and the info line. Nothing
+/// here starts or fixes a daemon another host runs, so a connection it does not
+/// make is a wait. Exposed for testing.
+@visibleForTesting
+({String? connectionError, String? infoMessage}) resolveRemoteDaemonStatus({
+  required bool remote,
+  required String? connectionError,
+  required String? infoMessage,
+}) {
+  if (!remote) {
+    return (connectionError: connectionError, infoMessage: infoMessage);
+  }
+  return (connectionError: null, infoMessage: connectionError ?? infoMessage);
 }
 
 /// Pure function for the daemon-status color precedence. Exposed for testing.
