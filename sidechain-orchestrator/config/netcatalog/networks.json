@@ -202,6 +202,7 @@
       },
       "network_magic": "eca5a104",
       "fork_height": 963648,
+      "fork_parent_hash": "00000000000000000000d29ee44c13e924c37abcaa80c537609ce70b1fea1f33",
       "backends": [
         {
           "kind": "esplora",

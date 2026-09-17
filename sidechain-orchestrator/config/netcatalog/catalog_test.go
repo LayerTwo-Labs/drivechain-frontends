@@ -137,3 +137,54 @@ func TestBackendURLPicksLowestPriority(t *testing.T) {
 		t.Errorf("BackendURL(nope) = %q, want empty", got)
 	}
 }
+
+// The published document dropped fork_parent_hash from the alphanet entry once,
+// and the migration that reads it stopped for every user at the same time.
+func TestFillForkParentHashTakesTheEmbeddedValue(t *testing.T) {
+	embedded := Catalog{Networks: []Network{
+		{ID: "alphanet", Family: FamilyECash, ForkParentHash: "aa"},
+		{ID: "betanet", Family: FamilyECash},
+	}}
+	fetched := Catalog{Networks: []Network{
+		{ID: "alphanet", Family: FamilyECash},
+		{ID: "betanet", Family: FamilyECash},
+		{ID: "gammanet", Family: FamilyECash},
+	}}
+
+	filled := fillForkParentHash(fetched, embedded)
+	for id, want := range map[string]string{"alphanet": "aa", "betanet": "", "gammanet": ""} {
+		entry, ok := filled.ByID(id)
+		if !ok {
+			t.Fatalf("%s left the catalog", id)
+		}
+		if entry.ForkParentHash != want {
+			t.Errorf("%s fork parent hash = %q, want %q", id, entry.ForkParentHash, want)
+		}
+	}
+}
+
+func TestFillForkParentHashKeepsThePublishedValue(t *testing.T) {
+	embedded := Catalog{Networks: []Network{{ID: "alphanet", Family: FamilyECash, ForkParentHash: "aa"}}}
+	fetched := Catalog{Networks: []Network{{ID: "alphanet", Family: FamilyECash, ForkParentHash: "bb"}}}
+
+	filled := fillForkParentHash(fetched, embedded)
+	entry, _ := filled.ByID("alphanet")
+	if entry.ForkParentHash != "bb" {
+		t.Errorf("fork parent hash = %q, want the published bb", entry.ForkParentHash)
+	}
+	if embedded.Networks[0].ForkParentHash != "aa" {
+		t.Error("fillForkParentHash wrote through to the source catalog")
+	}
+}
+
+// The alphanet hash is the one a migration off alphanet rewinds to, so the
+// embedded document has to carry it even when the published one does not.
+func TestEmbeddedCatalogPublishesTheForkParentHash(t *testing.T) {
+	entry, ok := Embedded().ByID(embeddedGeneration)
+	if !ok {
+		t.Fatalf("embedded catalog carries no %s", embeddedGeneration)
+	}
+	if len(entry.ForkParentHash) != 64 {
+		t.Errorf("%s fork parent hash = %q, want 64 hex characters", embeddedGeneration, entry.ForkParentHash)
+	}
+}

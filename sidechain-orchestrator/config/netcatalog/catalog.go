@@ -358,7 +358,30 @@ func Fetch(ctx context.Context, url string) (Catalog, error) {
 	if err != nil {
 		return Catalog{}, fmt.Errorf("read catalog body: %w", err)
 	}
-	return parse(body)
+	c, err := parse(body)
+	if err != nil {
+		return Catalog{}, err
+	}
+	return fillForkParentHash(c, Embedded()), nil
+}
+
+// fillForkParentHash gives an entry the fork parent hash the compiled-in entry
+// of the same id carries, where the document leaves it blank. A published value
+// always wins. The hash of the block a fork descends from never changes, so a
+// blank one is a gap in the document rather than a retired value.
+func fillForkParentHash(c, from Catalog) Catalog {
+	filled := make([]Network, len(c.Networks))
+	copy(filled, c.Networks)
+	for i, n := range filled {
+		if n.ForkParentHash != "" {
+			continue
+		}
+		if known, ok := from.ByID(n.ID); ok {
+			filled[i].ForkParentHash = known.ForkParentHash
+		}
+	}
+	c.Networks = filled
+	return c
 }
 
 // parse decodes a catalog document and rejects one that carries no networks or
