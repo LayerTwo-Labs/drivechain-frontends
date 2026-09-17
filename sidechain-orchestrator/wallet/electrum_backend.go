@@ -409,11 +409,18 @@ func (p *ElectrumBackend) ListReceivedByAddress(ctx context.Context, walletID st
 		if int(a.index) > limit {
 			continue
 		}
-		// Current balance for the address: funded minus spent, on-chain and in
-		// the mempool. The column shows the live balance, not gross received.
-		balance := (a.stats.ChainStats.FundedTxoSum - a.stats.ChainStats.SpentTxoSum) +
-			(a.stats.MempoolStats.FundedTxoSum - a.stats.MempoolStats.SpentTxoSum)
-		entry := ReceivedByAddress{Address: a.address, Amount: float64(balance) / 1e8, Change: a.change, HDPath: a.hdPath}
+		// Amount counts every coin the address received, on-chain and in the
+		// mempool. BalanceSats is what it still holds. The receive column reads
+		// the balance; the BIP47 import window reads the receipts.
+		gross := a.stats.ChainStats.FundedTxoSum + a.stats.MempoolStats.FundedTxoSum
+		balance := gross - a.stats.ChainStats.SpentTxoSum - a.stats.MempoolStats.SpentTxoSum
+		entry := ReceivedByAddress{
+			Address:     a.address,
+			Amount:      float64(gross) / 1e8,
+			BalanceSats: int64(balance),
+			Change:      a.change,
+			HDPath:      a.hdPath,
+		}
 		for _, tx := range a.txs {
 			entry.TxIDs = append(entry.TxIDs, tx.TxID)
 			if c := confsFor(tx.Status, tip); c > entry.Confirmations {

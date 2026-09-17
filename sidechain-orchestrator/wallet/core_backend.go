@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -296,7 +297,121 @@ func (p *CoreBackend) ListReceivedByAddress(ctx context.Context, walletID string
 	if err != nil {
 		return nil, err
 	}
-	return p.rpc.ListReceivedByAddress(ctx, name)
+	received, err := p.rpc.ListReceivedByAddress(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	// minconf 0, so a coin that waits in the mempool counts, the same way the
+	// electrum list counts it.
+	utxos, err := p.rpc.ListUnspentMinConf(ctx, name, 0)
+	if err != nil {
+		return nil, err
+	}
+	return coreReceiveList(received, utxos), nil
+}
+
+// coreReceiveList gives each address the balance it still holds, and lists the
+// addresses Core's receive list leaves out. Amount keeps every coin the address
+// ever received, because the BIP47 import window and the unused-address pick
+// both read it. Core names only its address book, so an address holding change
+// arrives from the coins instead.
+func coreReceiveList(received []ReceivedByAddress, utxos []UTXO) []ReceivedByAddress {
+	type holding struct {
+		sats          int64
+		confirmations int
+		label         string
+		change        bool
+		txids         []string
+		seen          map[string]bool
+	}
+	unspent := make(map[string]*holding, len(utxos))
+	for _, utxo := range utxos {
+		if utxo.Address == "" {
+			continue
+		}
+		held, ok := unspent[utxo.Address]
+		if !ok {
+			held = &holding{seen: map[string]bool{}}
+			unspent[utxo.Address] = held
+		}
+		held.sats += int64(math.Round(utxo.Amount * 1e8))
+		if utxo.TxID != "" && !held.seen[utxo.TxID] {
+			held.seen[utxo.TxID] = true
+			held.txids = append(held.txids, utxo.TxID)
+		}
+		held.change = held.change || descriptorIsChange(utxo.Descriptor)
+		if utxo.Confirmations > held.confirmations {
+			held.confirmations = utxo.Confirmations
+		}
+		if held.label == "" {
+			held.label = utxo.Label
+		}
+	}
+
+	out := make([]ReceivedByAddress, 0, len(received)+len(unspent))
+	listed := make(map[string]bool, len(received))
+	for _, entry := range received {
+		listed[entry.Address] = true
+		if held, ok := unspent[entry.Address]; ok {
+			entry.BalanceSats = held.sats
+		}
+		out = append(out, entry)
+	}
+
+	extra := make([]string, 0, len(unspent))
+	for address := range unspent {
+		if !listed[address] {
+			extra = append(extra, address)
+		}
+	}
+	sort.Strings(extra)
+	for _, address := range extra {
+		held := unspent[address]
+		out = append(out, ReceivedByAddress{
+			Address:       address,
+			Amount:        float64(held.sats) / 1e8,
+			BalanceSats:   held.sats,
+			Confirmations: held.confirmations,
+			Label:         held.label,
+			TxIDs:         held.txids,
+			Change:        held.change,
+		})
+	}
+	return out
+}
+
+// descriptorIsChange reads the chain a coin sits on from its output descriptor.
+// A BIP44-family path ends /0/<index> for a receive address and /1/<index> for
+// change. A descriptor that carries no such path, such as an imported single
+// key, names no chain and is not change.
+//
+// listunspent gives one coin's concrete descriptor, which carries the whole path
+// inside the key origin brackets. listdescriptors gives a ranged one, which
+// leaves the chain and the range after the key. A multisig descriptor carries
+// one origin per cosigner, and every cosigner derives on the same chain. So the
+// rule reads each path the descriptor holds and takes the first that names one.
+func descriptorIsChange(descriptor string) bool {
+	body, _, _ := strings.Cut(descriptor, "#")
+	for _, token := range strings.FieldsFunc(body, func(r rune) bool {
+		return r == '[' || r == ']' || r == '(' || r == ')' || r == ','
+	}) {
+		parts := strings.Split(token, "/")
+		if len(parts) < 2 {
+			continue
+		}
+		index, chain := parts[len(parts)-1], parts[len(parts)-2]
+		if index != "*" {
+			if _, err := strconv.Atoi(index); err != nil {
+				continue
+			}
+		}
+		// Only an unhardened 0 or 1 names a chain. A hardened level, such as
+		// the coin type in 84h/1h/0h, is an account and never a chain.
+		if chain == "0" || chain == "1" {
+			return chain == "1"
+		}
+	}
+	return false
 }
 
 func (p *CoreBackend) GetWalletTransaction(ctx context.Context, walletID, txid string) (*WalletTx, error) {

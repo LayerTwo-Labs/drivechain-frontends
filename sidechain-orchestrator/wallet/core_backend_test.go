@@ -2389,3 +2389,94 @@ func TestCoreBackendListUnspentShowsAMempoolCoin(t *testing.T) {
 	require.Len(t, utxos, 1, "the pending change belongs to the wallet")
 	assert.Equal(t, 0, utxos[0].Confirmations)
 }
+
+// Core's listreceivedbyaddress reports gross lifetime receipts, so a spent
+// address read as if it kept the coins. The Balance column carries what an
+// address still holds, while Amount keeps the receipts the BIP47 import window
+// and the unused-address pick both read.
+func TestCoreReceiveListReportsCurrentBalance(t *testing.T) {
+	const (
+		spent  = "bc1qyqqf4r7cqpae3jg78mvd936048jakqcr2p6uuw"
+		funded = "bc1qvr65a480qf05d88ufyvpc57lqwvpe2zqv0ygnx"
+		unused = "bc1qucvvwyfrgfv5lslc2tan8zjpd4l5nlwsfcm599"
+	)
+	received := []ReceivedByAddress{
+		{Address: spent, Amount: 833.00983800, Confirmations: 9, Label: "letter", TxIDs: []string{"a"}, HDPath: "m/84h/0h/0h/0/14"},
+		{Address: funded, Amount: 0.01, Confirmations: 4, TxIDs: []string{"b"}},
+		{Address: unused, Amount: 0},
+	}
+	const change = "bc1pxd3ae9ctl0cdune3qdqnawp8dzxse5ry6s644k8mcamxh0vpuf0qm8hg19"
+	utxos := []UTXO{
+		{Address: spent, Amount: 0.01, Confirmations: 2, Descriptor: "wpkh([abcd1234/84h/0h/0h]xpub6.../0/14)#aaaaaaaa"},
+		{Address: funded, Amount: 0.01, Confirmations: 4},
+		{Address: change, Amount: 832.99983637, Confirmations: 2, Label: "back", TxID: "7f9e76", Descriptor: "tr([abcd1234/86h/0h/0h/1/3]02ab)#bbbbbbbb"},
+		{Address: "", Amount: 5},
+	}
+
+	out := coreReceiveList(received, utxos)
+
+	require.Len(t, out, 4, "an address Core never listed still appears when it holds a coin")
+	require.Equal(t, spent, out[0].Address)
+	require.EqualValues(t, 1_000_000, out[0].BalanceSats, "a spent address holds only what is left")
+	require.InDelta(t, 833.00983800, out[0].Amount, 1e-9, "Amount keeps the receipts")
+	require.Equal(t, "letter", out[0].Label)
+	require.Equal(t, "m/84h/0h/0h/0/14", out[0].HDPath)
+	require.EqualValues(t, 1_000_000, out[1].BalanceSats)
+	require.EqualValues(t, 0, out[2].BalanceSats, "an unused address holds nothing")
+
+	require.Equal(t, change, out[3].Address)
+	require.EqualValues(t, 83_299_983_637, out[3].BalanceSats)
+	require.Equal(t, "back", out[3].Label)
+	require.Equal(t, 2, out[3].Confirmations)
+	require.True(t, out[3].Change, "the descriptor puts this coin on the change chain")
+	require.Equal(t, []string{"7f9e76"}, out[3].TxIDs, "the row carries its transactions, so TxCount is not zero")
+}
+
+// Core hands every coin its output descriptor, so the chain comes from the path
+// rather than from a guess about the address book.
+func TestDescriptorIsChange(t *testing.T) {
+	for descriptor, want := range map[string]bool{
+		// listunspent: one coin, whole path inside the key origin.
+		"wpkh([abcd1234/84h/0h/0h/1/7]02aabb)#aaaaaaaa": true,
+		"wpkh([abcd1234/84h/0h/0h/0/7]02aabb)#99999999": false,
+		"tr([abcd1234/86h/0h/0h/1/3]02aabb)#88888888":   true,
+		// listdescriptors: ranged, chain and range outside the origin.
+		"wpkh([abcd1234/84h/0h/0h]xpub6.../1/7)#aaaaaaaa": true,
+		"tr([abcd1234/86h/0h/0h]xpub6.../1/*)#bbbbbbbb":   true,
+		"wpkh([abcd1234/84h/0h/0h]xpub6.../0/7)#cccccccc": false,
+		// An imported single key names no chain, so it is a receive address.
+		"pkh(cVjzvJz2pRT1SMTDgfvbYVNqKFzMJmbLzTJmbLzTJmbLzTJmbLzT)#dddddddd": false,
+		// A key origin that ends in a hardened 1 is not a chain.
+		"wpkh([abcd1234/84h/1h/0h]xpub6...)#eeeeeeee": false,
+		// Multisig: one origin per cosigner, all on the same chain.
+		"wsh(multi(2,[abcd1234/48h/0h/0h/2h/1/7]02aabb,[99887766/48h/0h/0h/2h/1/7]02ccdd))#ffffffff":           true,
+		"wsh(multi(2,[abcd1234/48h/0h/0h/2h/0/7]02aabb,[99887766/48h/0h/0h/2h/0/7]02ccdd))#gggggggg":           false,
+		"wsh(sortedmulti(2,[abcd1234/48h/0h/0h/2h]xpub6.../1/7,[99887766/48h/0h/0h/2h]xpub7.../1/7))#hhhhhhhh": true,
+		"": false,
+	} {
+		require.Equal(t, want, descriptorIsChange(descriptor), "descriptor %q", descriptor)
+	}
+}
+
+// A fully spent address holds nothing. This is the rule the electrum list
+// already holds; see TestElectrumListReceivedReportsCurrentBalance.
+func TestCoreReceiveListZerosAFullySpentAddress(t *testing.T) {
+	const addr = "bc1qyqqf4r7cqpae3jg78mvd936048jakqcr2p6uuw"
+	out := coreReceiveList([]ReceivedByAddress{{Address: addr, Amount: 12.5, TxIDs: []string{"a"}}}, nil)
+	require.Len(t, out, 1)
+	require.EqualValues(t, 0, out[0].BalanceSats, "fully spent address must report zero balance, not gross received")
+	require.InDelta(t, 12.5, out[0].Amount, 1e-9, "the BIP47 window still sees the address as used")
+}
+
+// Two coins on one address add up, and the sum goes through satoshis so the
+// float amounts do not drift.
+func TestCoreReceiveListAddsEveryCoinOnAnAddress(t *testing.T) {
+	const addr = "bc1qvr65a480qf05d88ufyvpc57lqwvpe2zqv0ygnx"
+	utxos := []UTXO{
+		{Address: addr, Amount: 0.00000001},
+		{Address: addr, Amount: 0.00000002},
+	}
+	out := coreReceiveList([]ReceivedByAddress{{Address: addr}}, utxos)
+	require.Len(t, out, 1)
+	require.EqualValues(t, 3, out[0].BalanceSats)
+}

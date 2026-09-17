@@ -54,8 +54,11 @@ type WalletTransaction struct {
 // including zero-amount entries for known-but-unused addresses (minconf 0,
 // so mempool receives count).
 type ReceivedByAddress struct {
-	Address       string   `json:"address"`
-	Amount        float64  `json:"amount"`
+	Address string  `json:"address"`
+	Amount  float64 `json:"amount"`
+	// BalanceSats is what the address still holds. Amount counts every coin it
+	// ever received, so the two part company once the address spends.
+	BalanceSats   int64    `json:"-"`
 	Confirmations int      `json:"confirmations"`
 	Label         string   `json:"label"`
 	TxIDs         []string `json:"txids"`

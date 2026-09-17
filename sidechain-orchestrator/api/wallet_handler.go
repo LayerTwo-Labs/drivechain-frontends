@@ -1189,9 +1189,11 @@ func (h *WalletHandler) ListReceiveAddresses(ctx context.Context, req *connect.R
 
 	pbAddrs := lo.Map(addrs, func(a wallet.ReceivedByAddress, _ int) *pb.ReceiveAddress {
 		return &pb.ReceiveAddress{
-			Address:        a.Address,
-			Amount:         a.Amount,
-			AmountSats:     int64(math.Round(a.Amount * 1e8)),
+			Address: a.Address,
+			// The column reads "Balance", so it carries what the address still
+			// holds, not every coin it ever received.
+			Amount:         float64(a.BalanceSats) / 1e8,
+			AmountSats:     a.BalanceSats,
 			Label:          a.Label,
 			TxCount:        int32(len(a.TxIDs)),
 			IsChange:       a.Change,
