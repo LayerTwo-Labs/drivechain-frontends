@@ -437,7 +437,9 @@ func (rt *Runtime) runZMQ(ctx context.Context, log *zerolog.Logger) {
 		eng, err := dialZmqEngine(ctx, rt.conf)
 		if err != nil {
 			attempt++
-			if connect.CodeOf(err) == connect.CodeUnavailable || strings.Contains(err.Error(), "connection refused") {
+			if connect.CodeOf(err) == connect.CodeUnavailable ||
+				strings.Contains(err.Error(), "connection refused") ||
+				engines.IsBitcoinCoreStartupError(err.Error()) {
 				log.Debug().Msg("ZMQ engine: waiting for Bitcoin Core connection")
 			} else {
 				log.Error().Err(err).Msg("unable to acquire ZMQ engine")
