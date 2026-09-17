@@ -1097,6 +1097,7 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
     $fixnum.Int64? headerHeight,
     $core.double? syncProgress,
     $core.String? startupMessage,
+    $core.bool? waitsForCore,
   }) {
     final $result = create();
     if (tipBlockHeight != null) {
@@ -1120,6 +1121,9 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
     if (startupMessage != null) {
       $result.startupMessage = startupMessage;
     }
+    if (waitsForCore != null) {
+      $result.waitsForCore = waitsForCore;
+    }
     return $result;
   }
   GetSyncInfoResponse._() : super();
@@ -1134,6 +1138,7 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
     ..aInt64(5, _omitFieldNames ? '' : 'headerHeight')
     ..a<$core.double>(6, _omitFieldNames ? '' : 'syncProgress', $pb.PbFieldType.OD)
     ..aOS(7, _omitFieldNames ? '' : 'startupMessage')
+    ..aOB(8, _omitFieldNames ? '' : 'waitsForCore')
     ..hasRequiredFields = false
   ;
 
@@ -1226,6 +1231,18 @@ class GetSyncInfoResponse extends $pb.GeneratedMessage {
   $core.bool hasStartupMessage() => $_has(6);
   @$pb.TagNumber(7)
   void clearStartupMessage() => clearField(7);
+
+  /// True while the block scan holds off until Bitcoin Core leaves initial
+  /// block download. The height fields stand still, so the UI reports the wait
+  /// instead of a progress bar at 0%.
+  @$pb.TagNumber(8)
+  $core.bool get waitsForCore => $_getBF(7);
+  @$pb.TagNumber(8)
+  set waitsForCore($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasWaitsForCore() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearWaitsForCore() => clearField(8);
 }
 
 /// Request to set a transaction note

@@ -192,6 +192,10 @@ message GetSyncInfoResponse {
   // "Rescanning…", "Loading wallet"). When set, the numeric height fields are
   // 0/0 and the UI should render this message instead of "0/0 blocks".
   string startup_message = 7;
+  // True while the block scan holds off until Bitcoin Core leaves initial
+  // block download. The height fields stand still, so the UI reports the wait
+  // instead of a progress bar at 0%.
+  bool waits_for_core = 8;
 }
 
 // Request to set a transaction note

@@ -593,6 +593,8 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	waitsForCore := engines.WaitsForCore(tip.Msg.InitialBlockDownload, s.config.BitcoinCoreNetwork)
+
 	if processedTip == nil {
 		return connect.NewResponse(&pb.GetSyncInfoResponse{
 			TipBlockHeight:      0,
@@ -601,6 +603,7 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 			TipBlockProcessedAt: &timestamppb.Timestamp{},
 			HeaderHeight:        int64(tip.Msg.Headers),
 			SyncProgress:        0,
+			WaitsForCore:        waitsForCore,
 		}), nil
 	}
 
@@ -616,6 +619,7 @@ func (s *Server) GetSyncInfo(ctx context.Context, req *connect.Request[emptypb.E
 		TipBlockProcessedAt: timestamppb.New(processedTip.ProcessedAt),
 		SyncProgress:        syncProgress,
 		HeaderHeight:        int64(tip.Msg.Headers),
+		WaitsForCore:        waitsForCore,
 	}), nil
 }
 
