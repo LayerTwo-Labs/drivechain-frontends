@@ -68,7 +68,7 @@ class _NetworkSwapPageState extends State<NetworkSwapPage> {
       _log.e('NetworkSwapPage: swap failed: $e');
       if (mounted) {
         setState(() {
-          _step.endTime = DateTime.now();
+          _isSwapping = false;
           _error = e.toString();
         });
       }
