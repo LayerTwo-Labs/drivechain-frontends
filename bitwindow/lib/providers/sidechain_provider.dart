@@ -137,10 +137,15 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
         updatedSidechains[sidechain.slot] = SidechainOverview(sidechain, deposits, withdrawals);
       }
 
-      if (_dataHasChanged(sidechains, updatedSidechains) ||
-          _dataHasChanged(sidechainProposals, newSidechainProposals)) {
+      final changed =
+          _dataHasChanged(sidechains, updatedSidechains) || _dataHasChanged(sidechainProposals, newSidechainProposals);
+      if (changed) {
         sidechains = updatedSidechains;
         sidechainProposals = newSidechainProposals;
+      }
+      // A chain with no sidechains answers with the list the provider starts
+      // from, and the error of the tick before still has to go.
+      if (changed || error != null) {
         error = null;
         notifyListeners();
       }
