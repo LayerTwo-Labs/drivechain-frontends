@@ -214,7 +214,7 @@ func (o *Orchestrator) checkECashMigrationStart(ctx context.Context, cfg BinaryC
 				return err
 			}
 			if files {
-				return fmt.Errorf("ECX files belong to %s; use drivechain-cli ecash migrate --from %s --to %s --yes", fromID, fromID, toID)
+				return fmt.Errorf("ECX files belong to %s; open Settings, Network, ECX migration to move them to %s", fromID, toID)
 			}
 		}
 	}
