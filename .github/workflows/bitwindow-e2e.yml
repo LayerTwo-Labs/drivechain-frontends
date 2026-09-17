@@ -18,7 +18,7 @@ on:
 
 env:
   FLUTTER_VERSION: "3.44.8"
-  GO_VERSION: "1.26"
+  GO_VERSION: "1.27"
 
 jobs:
   e2e:

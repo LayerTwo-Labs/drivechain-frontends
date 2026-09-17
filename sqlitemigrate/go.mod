@@ -1,3 +1,3 @@
 module github.com/LayerTwo-Labs/sidesail/sqlitemigrate
 
-go 1.26.0
+go 1.27.0

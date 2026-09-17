@@ -1,6 +1,6 @@
 module github.com/LayerTwo-Labs/sidesail/coinnews/codec
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.6
