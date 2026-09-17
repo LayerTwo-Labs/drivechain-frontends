@@ -12,6 +12,13 @@ import 'package:sidechain_core/providers/sync_provider.dart';
 import 'package:sidechain_core/providers/wallet_reader_provider.dart';
 import 'package:sidechain_core/rpcs/bitwindow_api.dart';
 
+/// True when a failed fetch may run again: at most one time per [gap]. The
+/// sync poll fires every 100 ms, and a retry on each would hit the backend
+/// ten times a second.
+bool retryIsDue({required DateTime? last, required DateTime now, required Duration gap}) {
+  return last == null || now.difference(last) >= gap;
+}
+
 class SidechainProvider extends ChangeNotifier implements NetworkScoped {
   @override
   Future<void> onNetworkChanged() async {
@@ -34,6 +41,11 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
 
   String? error;
 
+  /// A failed first fetch holds its error until the next one lands, and the
+  /// synced gate below stays shut for the whole mainchain sync.
+  static const _retryGap = Duration(seconds: 5);
+  DateTime? _lastRetryAt;
+
   /// Last wallet ID we fetched for. Used to detect an actual wallet switch
   /// (vs. the stream just delivering a periodic refresh of the same wallet).
   String? _lastWalletId;
@@ -50,6 +62,7 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
     sidechainProposals = [];
     _lastWalletId = _walletReader.activeWalletId;
     error = null;
+    _lastRetryAt = null;
     notifyListeners();
   }
 
@@ -59,7 +72,21 @@ class SidechainProvider extends ChangeNotifier implements NetworkScoped {
         : (_syncProvider.enforcerSyncInfo?.isSynced ?? false);
     if (synced) {
       fetch();
+      return;
     }
+    if (error == null || !_retryIsDue()) {
+      return;
+    }
+    fetch();
+  }
+
+  bool _retryIsDue() {
+    final now = DateTime.now();
+    if (!retryIsDue(last: _lastRetryAt, now: now, gap: _retryGap)) {
+      return false;
+    }
+    _lastRetryAt = now;
+    return true;
   }
 
   void _onWalletChanged() {
