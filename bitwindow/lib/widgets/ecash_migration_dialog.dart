@@ -523,10 +523,6 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
               SailText.secondary13(
                 'Balances and transactions on ${widget.fromId} do not transfer to ${widget.toId}.',
               ),
-              SailText.secondary12(
-                'The full file check starts after Core stops.',
-                overflow: TextOverflow.visible,
-              ),
             ] else ...[
               ..._progress(status),
               if (complete)
