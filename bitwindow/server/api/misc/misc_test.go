@@ -17,8 +17,10 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/database"
 	miscv1 "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1"
 	miscv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/misc/v1/miscv1connect"
+	walletv1connect "github.com/LayerTwo-Labs/sidesail/bitwindow/server/gen/wallet/v1/walletv1connect"
 	cnstore "github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/coinnews"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/opreturns"
+	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/models/timestamps"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/apitests"
 	"github.com/LayerTwo-Labs/sidesail/bitwindow/server/tests/mocks"
 	coinnews "github.com/LayerTwo-Labs/sidesail/coinnews/codec"
@@ -737,6 +739,34 @@ func TestService_TimestampFile(t *testing.T) {
 		}))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "file data must be set")
+	})
+
+	t.Run("timestamp file with locked wallet", func(t *testing.T) {
+		t.Parallel()
+
+		ctrl := gomock.NewController(t)
+		mockOrch := mocks.NewMockWalletManagerServiceClient(ctrl)
+		apitests.ExpectOrchestratorReads(mockOrch)
+		// No SendTransaction expectation: a broadcast here fails the test.
+
+		database := database.Test(t)
+		httpClient, url := apitests.API(t, database, apitests.WithOrchestrator(mockOrch))
+
+		_, err := walletv1connect.NewWalletServiceClient(httpClient, url).
+			LockWallet(context.Background(), connect.NewRequest(&emptypb.Empty{}))
+		require.NoError(t, err)
+
+		_, err = miscv1connect.NewMiscServiceClient(httpClient, url).
+			TimestampFile(context.Background(), connect.NewRequest(&miscv1.TimestampFileRequest{
+				Filename: "locked.pdf",
+				FileData: []byte("content"),
+			}))
+		require.Error(t, err)
+		assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+		list, err := timestamps.List(context.Background(), database)
+		require.NoError(t, err)
+		assert.Empty(t, list)
 	})
 
 	t.Run("timestamp same file twice returns same timestamp", func(t *testing.T) {

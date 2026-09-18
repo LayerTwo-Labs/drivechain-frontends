@@ -86,8 +86,9 @@ func (m *Miner) jsonRpcCall(
 		return nil, fmt.Errorf("JSON decode failed: %v", err)
 	}
 
-	// Check for error
-	if val.Error != nil {
+	// Check for error. 1.0-style responders send "error":null on success, which
+	// decodes to a non-nil raw message.
+	if len(val.Error) > 0 && !bytes.Equal(val.Error, []byte("null")) {
 		return nil, fmt.Errorf("JSON-RPC call failed: %s", string(val.Error))
 	}
 

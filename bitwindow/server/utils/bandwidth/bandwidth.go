@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -27,6 +28,7 @@ type Stats struct {
 
 // Tracker maintains bandwidth statistics for multiple processes
 type Tracker struct {
+	mu    sync.Mutex
 	stats map[int]*Stats
 }
 
@@ -42,6 +44,9 @@ func (t *Tracker) GetStats(pid int, processName string) (*Stats, error) {
 	if pid <= 0 {
 		return nil, fmt.Errorf("invalid PID: %d", pid)
 	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	// Get or create stats entry
 	stats, exists := t.stats[pid]
@@ -59,7 +64,9 @@ func (t *Tracker) GetStats(pid int, processName string) (*Stats, error) {
 		return nil, fmt.Errorf("update stats: %w", err)
 	}
 
-	return stats, nil
+	// Return a copy so callers never read fields the next sample overwrites
+	out := *stats
+	return &out, nil
 }
 
 // updateStats updates the bandwidth statistics for a process
