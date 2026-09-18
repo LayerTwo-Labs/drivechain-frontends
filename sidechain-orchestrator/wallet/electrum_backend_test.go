@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,6 +59,7 @@ type fakeEsplora struct {
 	txByID    map[string]EsploraTx
 	hexByID   map[string]string
 	tip       int
+	tipErr    error
 	feeRate   float64
 	feeErr    error
 	feeCalls  int
@@ -148,7 +151,7 @@ func (f *fakeEsplora) Broadcast(_ context.Context, rawHex string) (string, error
 func (f *fakeEsplora) TipHeight(_ context.Context) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.tip, nil
+	return f.tip, f.tipErr
 }
 
 func (f *fakeEsplora) FeeRateForTarget(_ context.Context, target int) (float64, error) {
@@ -3301,6 +3304,108 @@ func TestElectrumSendAddsNoCoinBesideACoveringPin(t *testing.T) {
 
 	require.Len(t, tx.TxIn, 1, "the pinned coin covers the bid, so no other coin joins it")
 	assert.Equal(t, slotCoin, tx.TxIn[0].PreviousOutPoint.Hash.String())
+}
+
+// The mempool rejects a spend of a coinbase output with fewer than 100
+// confirmations, so the wallet never offers one for selection.
+func TestElectrumSendSkipsImmatureCoinbase(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const (
+		immatureCoin = "4444444444444444444444444444444444444444444444444444444444444444"
+		matureCoin   = "5555555555555555555555555555555555555555555555555555555555555555"
+		regularCoin  = "6666666666666666666666666666666666666666666666666666666666666666"
+	)
+	fake.tip = 300
+	coinbaseIn := []EsploraVin{{IsCoinbase: true}}
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 3, FundedTxoSum: 5_300_000, TxCount: 3},
+	}
+	fake.utxos[addr] = []EsploraUTXO{
+		{TxID: immatureCoin, Vout: 0, Value: 5_000_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 202}},
+		{TxID: matureCoin, Vout: 0, Value: 200_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 201}},
+		{TxID: regularCoin, Vout: 0, Value: 100_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 290}},
+	}
+	fake.txs[addr] = []EsploraTx{
+		{TxID: immatureCoin, Vin: coinbaseIn, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 5_000_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 202}},
+		{TxID: matureCoin, Vin: coinbaseIn, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 200_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 201}},
+		{TxID: regularCoin, Vin: []EsploraVin{{TxID: "77", Vout: 0}}, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 100_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 290}},
+	}
+
+	utxos, err := p.ListUnspent(ctx, w.ID)
+	require.NoError(t, err)
+	listed := lo.Map(utxos, func(u UTXO, _ int) string { return u.TxID })
+	assert.ElementsMatch(t, []string{matureCoin, regularCoin}, listed, "99 confirmations is immature, 100 is mature")
+
+	confirmed, pending, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.003, confirmed, 1e-9)
+	assert.InDelta(t, 0.05, pending, 1e-9)
+
+	dest := "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+	_, err = p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 250_000},
+		FeeRateSatPerVB:  2,
+	})
+	require.NoError(t, err)
+	require.Len(t, fake.broadcast, 1)
+	raw, err := hex.DecodeString(fake.broadcast[0])
+	require.NoError(t, err)
+	var tx wire.MsgTx
+	require.NoError(t, tx.Deserialize(bytes.NewReader(raw)))
+	var spent []string
+	for _, in := range tx.TxIn {
+		spent = append(spent, in.PreviousOutPoint.Hash.String())
+	}
+	assert.ElementsMatch(t, []string{matureCoin, regularCoin}, spent)
+
+	_, err = p.Send(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{dest: 50_000},
+		FeeRateSatPerVB:  2,
+		RequiredInputs:   []RequiredInput{{TxID: immatureCoin, Vout: 0}},
+	})
+	require.ErrorContains(t, err, "fewer than 100 confirmations")
+	require.Len(t, fake.broadcast, 1)
+}
+
+// A wallet with no unspent coinbase output has nothing to check for maturity,
+// so a failed tip read must not stop its balance or its sends.
+func TestElectrumMaturityCheckSkipsTipWithoutCoinbase(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	ctx := context.Background()
+
+	const coin = "4444444444444444444444444444444444444444444444444444444444444444"
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 200_000, TxCount: 1},
+	}
+	fake.utxos[addr] = []EsploraUTXO{
+		{TxID: coin, Vout: 0, Value: 200_000, Status: EsploraStatus{Confirmed: true, BlockHeight: 100}},
+	}
+	fake.txs[addr] = []EsploraTx{
+		{TxID: coin, Vin: []EsploraVin{{TxID: "77", Vout: 0}}, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 200_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 100}},
+		{TxID: "88", Vin: []EsploraVin{{IsCoinbase: true}}, Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 300_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 105}},
+	}
+	_, err := p.scanWallet(ctx, w.ID)
+	require.NoError(t, err)
+	fake.tipErr = errors.New("tip unavailable")
+
+	confirmed, _, err := p.Balance(ctx, w.ID)
+	require.NoError(t, err)
+	assert.InDelta(t, 0.002, confirmed, 1e-9)
+
+	_, err = p.CreatePSBT(ctx, w.ID, SendRequest{
+		DestinationsSats: map[string]int64{"tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx": 50_000},
+		FixedFeeSats:     1_000,
+	})
+	require.NoError(t, err)
 }
 
 // Each BMM slot bids from a coin of its own. A replacement on one slot then
