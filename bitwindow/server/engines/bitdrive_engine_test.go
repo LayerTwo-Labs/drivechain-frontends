@@ -351,3 +351,65 @@ func TestEncodeOPReturnData_NonASCIIRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+// TestWipeData_ClearsDatabaseRecords verifies that wiping also drops the
+// bitdrive_files rows, so the file list does not keep listing files whose
+// local content was deleted.
+func TestWipeData_ClearsDatabaseRecords(t *testing.T) {
+	ctx := context.Background()
+
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := db.Exec(`
+		CREATE TABLE bitdrive_files (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			txid TEXT NOT NULL UNIQUE,
+			filename TEXT NOT NULL,
+			file_type TEXT NOT NULL,
+			size_bytes INTEGER NOT NULL,
+			encrypted INTEGER NOT NULL DEFAULT 0,
+			timestamp INTEGER NOT NULL,
+			created_at INTEGER NOT NULL
+		)
+	`); err != nil {
+		t.Fatalf("create table: %v", err)
+	}
+
+	bitdriveDir := t.TempDir()
+	engine := &BitDriveEngine{
+		db:          db,
+		bitdriveDir: bitdriveDir,
+	}
+
+	meta := &ParsedMetadata{Timestamp: 1700000000, FileType: "txt"}
+	if err := engine.SaveFile(ctx, "txid-first", []byte("first file"), meta); err != nil {
+		t.Fatalf("save first file: %v", err)
+	}
+	if err := engine.SaveFile(ctx, "txid-second", []byte("second file"), meta); err != nil {
+		t.Fatalf("save second file: %v", err)
+	}
+
+	if err := engine.WipeData(ctx); err != nil {
+		t.Fatalf("wipe data: %v", err)
+	}
+
+	files, err := engine.ListFiles(ctx)
+	if err != nil {
+		t.Fatalf("list files: %v", err)
+	}
+	if len(files) != 0 {
+		t.Fatalf("expected no file records after wipe, got %d", len(files))
+	}
+
+	entries, err := os.ReadDir(bitdriveDir)
+	if err != nil {
+		t.Fatalf("read bitdrive dir after wipe: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected empty bitdrive dir after wipe, got %d entries", len(entries))
+	}
+}

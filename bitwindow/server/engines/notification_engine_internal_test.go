@@ -23,7 +23,7 @@ func TestProcessWalletTransactions_HistoryIsNotAnnounced(t *testing.T) {
 	events := engine.Subscribe(ctx)
 
 	const txid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-	engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{{
+	engine.processWalletTransactions(ctx, "wallet-a", 200, []*corepb.GetTransactionResponse{{
 		Txid:          txid,
 		Amount:        1,
 		Confirmations: 6,
@@ -64,12 +64,12 @@ func TestProcessWalletTransactions_DedupIsPerWallet(t *testing.T) {
 		Confirmations: 0,
 	}}
 
-	engine.processWalletTransactions(ctx, "wallet-a", txs)
-	engine.processWalletTransactions(ctx, "wallet-b", txs)
+	engine.processWalletTransactions(ctx, "wallet-a", 200, txs)
+	engine.processWalletTransactions(ctx, "wallet-b", 200, txs)
 
 	// A second pass must not notify again for either wallet.
-	engine.processWalletTransactions(ctx, "wallet-a", txs)
-	engine.processWalletTransactions(ctx, "wallet-b", txs)
+	engine.processWalletTransactions(ctx, "wallet-a", 200, txs)
+	engine.processWalletTransactions(ctx, "wallet-b", 200, txs)
 
 	var received int
 	for done := false; !done; {
@@ -97,7 +97,7 @@ func TestProcessWalletTransactions_SumsOutputsWithSameTxid(t *testing.T) {
 	events := engine.Subscribe(ctx)
 
 	const txid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-	engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{
+	engine.processWalletTransactions(ctx, "wallet-a", 200, []*corepb.GetTransactionResponse{
 		{Txid: txid, Amount: 1.5, Confirmations: 0},
 		{Txid: txid, Amount: 0.25, Confirmations: 0},
 	})
@@ -128,7 +128,7 @@ func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
 	events := engine.Subscribe(ctx)
 
 	const txid = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-	engine.processWalletTransactions(ctx, "wallet-a", []*corepb.GetTransactionResponse{
+	engine.processWalletTransactions(ctx, "wallet-a", 200, []*corepb.GetTransactionResponse{
 		{Txid: txid, Amount: -1.0, Confirmations: 0},
 		{Txid: txid, Amount: 1.0, Confirmations: 0},
 	})
@@ -141,4 +141,47 @@ func TestProcessWalletTransactions_SelfSendIsNotNettedToZero(t *testing.T) {
 	default:
 		t.Fatal("expected a sent notification, got none")
 	}
+}
+
+// A confirmation is recorded for good, so a fork that orphans the confirming
+// block has to clear it. Otherwise the re-confirmation on the new chain is
+// swallowed as a duplicate and the wallet never hears the transaction landed.
+func TestProcessWalletTransactions_ForkReArmsConfirmation(t *testing.T) {
+	ctx := context.Background()
+	db := database.Test(t)
+
+	engine := NewNotificationEngine(db, nil)
+	events := engine.Subscribe(ctx)
+
+	const txid = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+	// Seen in the mempool, then confirmed by the block at height 120.
+	engine.processWalletTransactions(ctx, "wallet-a", 119, []*corepb.GetTransactionResponse{
+		{Txid: txid, Amount: 1, Confirmations: 0},
+	})
+	engine.processWalletTransactions(ctx, "wallet-a", 120, []*corepb.GetTransactionResponse{
+		{Txid: txid, Amount: 1, Confirmations: 1},
+	})
+
+	parser := &Parser{db: db}
+	require.NoError(t, parser.purgeChainDerivedAtOrAbove(ctx, 110))
+
+	// The new chain confirms it again, at height 121.
+	engine.processWalletTransactions(ctx, "wallet-a", 121, []*corepb.GetTransactionResponse{
+		{Txid: txid, Amount: 1, Confirmations: 1},
+	})
+
+	seen := make(map[notificationv1.TransactionEvent_Type]int)
+	for done := false; !done; {
+		select {
+		case event := <-events:
+			seen[event.GetTransaction().GetType()]++
+		default:
+			done = true
+		}
+	}
+
+	require.Equal(t, 1, seen[notificationv1.TransactionEvent_TYPE_RECEIVED],
+		"the receive isn't tied to a block, so the fork leaves it alone")
+	require.Equal(t, 2, seen[notificationv1.TransactionEvent_TYPE_CONFIRMED],
+		"the re-confirmation after the fork is announced again")
 }

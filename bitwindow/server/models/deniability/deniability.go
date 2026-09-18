@@ -27,6 +27,8 @@ type Denial struct {
 	CancelledAt     *time.Time
 	CancelReason    *string
 	PausedAt        *time.Time
+	FailedAttempts  int32
+	RetryAfter      *time.Time
 	NextExecution   *time.Time
 	ExecutedDenials []ExecutedDenial
 }
@@ -94,7 +96,64 @@ func RecordExecution(ctx context.Context, db *sql.DB, denialID int64, fromTxID s
 			created_at
 		) VALUES (?, ?, ?, ?, ?, ?)
 	`, denialID, fromTxID, fromVout, toTxID, toVout, time.Now())
+	if err != nil {
+		return err
+	}
+
+	// A hop landed, so whatever failure streak preceded it is over.
+	_, err = db.ExecContext(ctx, `
+		UPDATE denials
+			SET failed_attempts = 0,
+			retry_after = NULL
+		WHERE id = ?
+	`, denialID)
 	return err
+}
+
+// Backoff bounds for a denial whose execution keeps failing.
+const (
+	minRetryBackoff = time.Minute
+	maxRetryBackoff = time.Hour
+)
+
+// RecordFailure counts one failed execution and pushes the next attempt out.
+// Without it a persistent send error re-issues the same transaction on every
+// engine tick. Returns the new consecutive failure count.
+func RecordFailure(ctx context.Context, db *sql.DB, denial Denial) (int32, error) {
+	attempts := denial.FailedAttempts + 1
+
+	rows, err := db.ExecContext(ctx, `
+		UPDATE denials
+			SET failed_attempts = ?,
+			retry_after = ?
+		WHERE id = ?
+	`, attempts, time.Now().Add(retryBackoff(denial.DelayDuration, attempts)), denial.ID)
+	if err != nil {
+		return 0, fmt.Errorf("could not record denial failure: %w", err)
+	}
+
+	if rows, _ := rows.RowsAffected(); rows == 0 {
+		return 0, connect.NewError(connect.CodeNotFound, fmt.Errorf("denial not found"))
+	}
+
+	return attempts, nil
+}
+
+// retryBackoff waits the denial's own hop delay after the first failure and
+// doubles from there, clamped to between a minute and an hour.
+func retryBackoff(delay time.Duration, attempts int32) time.Duration {
+	backoff := delay
+	for i := int32(1); i < attempts && backoff > 0 && backoff < maxRetryBackoff; i++ {
+		backoff *= 2
+	}
+
+	if backoff < minRetryBackoff {
+		return minRetryBackoff
+	}
+	if backoff > maxRetryBackoff {
+		return maxRetryBackoff
+	}
+	return backoff
 }
 
 // selectDenialQuery returns the common SELECT part of denial queries
@@ -111,6 +170,8 @@ func selectDenialQuery() string {
 			d.cancelled_at,
 			d.cancelled_reason,
 			d.paused_at,
+			d.failed_attempts,
+			d.retry_after,
 			COALESCE(e.to_txid, d.initial_txid) as tip_txid,
 			COALESCE(e.to_vout, d.initial_vout) as tip_vout
 		FROM denials d
@@ -196,6 +257,8 @@ func List(ctx context.Context, db *sql.DB, opts ...Option) ([]Denial, error) {
 			&denial.CancelledAt,
 			&denial.CancelReason,
 			&denial.PausedAt,
+			&denial.FailedAttempts,
+			&denial.RetryAfter,
 			&denial.TipTXID,
 			&denial.TipVout,
 		)
@@ -397,6 +460,8 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 		&denial.CancelledAt,
 		&denial.CancelReason,
 		&denial.PausedAt,
+		&denial.FailedAttempts,
+		&denial.RetryAfter,
 		&denial.TipTXID,
 		&denial.TipVout,
 	)
@@ -423,7 +488,7 @@ func GetByTip(ctx context.Context, db *sql.DB, tipTxID string, tipVout *int32) (
 func Update(ctx context.Context, db *sql.DB, id int64, delay time.Duration, numHops int32, txid string, vout int32) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE denials
-		SET delay_duration = ?, num_hops = num_hops + ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, updated_at = ?
+		SET delay_duration = ?, num_hops = num_hops + ?, initial_txid = ?, initial_vout = ?, cancelled_at = NULL, cancelled_reason = NULL, failed_attempts = 0, retry_after = NULL, updated_at = ?
 		WHERE id = ?
 	`, delay, numHops, txid, vout, time.Now(), id)
 	if err != nil {
@@ -451,6 +516,8 @@ func Get(ctx context.Context, db *sql.DB, id int64) (Denial, error) {
 		&denial.CancelledAt,
 		&denial.CancelReason,
 		&denial.PausedAt,
+		&denial.FailedAttempts,
+		&denial.RetryAfter,
 		&denial.TipTXID,
 		&denial.TipVout,
 	)

@@ -36,10 +36,17 @@ func HasBeenNotified(ctx context.Context, db *sql.DB, eventType, eventID string)
 
 // MarkNotified marks an event as notified
 func MarkNotified(ctx context.Context, db *sql.DB, eventType, eventID string) error {
+	return MarkNotifiedAt(ctx, db, eventType, eventID, nil)
+}
+
+// MarkNotifiedAt marks an event as notified by the block at `height`. A fork
+// that orphans that block drops the row, so the event is announced again once
+// the new chain confirms it.
+func MarkNotifiedAt(ctx context.Context, db *sql.DB, eventType, eventID string, height *int64) error {
 	query, args := sq.
 		Insert("notified_events").
-		Columns("event_type", "event_id", "notified_at").
-		Values(eventType, eventID, time.Now().UTC().Format(time.RFC3339)).
+		Columns("event_type", "event_id", "notified_at", "height").
+		Values(eventType, eventID, time.Now().UTC().Format(time.RFC3339), height).
 		MustSql()
 
 	_, err := db.ExecContext(ctx, query, args...)
