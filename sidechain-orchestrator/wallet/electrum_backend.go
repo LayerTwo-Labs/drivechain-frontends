@@ -56,6 +56,9 @@ const (
 	// electrumPushTTL replaces the poll interval once push subscriptions carry
 	// mempool activity, leaving the re-walk as a safety net.
 	electrumPushTTL = 5 * time.Minute
+	// coinbaseMaturity is the number of confirmations a coinbase output must
+	// have before the mempool accepts a spend of it.
+	coinbaseMaturity = 100
 )
 
 // ElectrumBackend serves a wallet with no local Core or enforcer: it derives
@@ -271,10 +274,15 @@ func (p *ElectrumBackend) Balance(ctx context.Context, walletID string) (float64
 	// answer from one set. A funded-minus-spent total from the index inflates
 	// the balance whenever the index misses a spend, and an M5 deposit pays
 	// nonstandard outputs that an index can miss.
+	immature, err := p.immatureCoinbase(ctx, scan)
+	if err != nil {
+		return 0, 0, err
+	}
 	var confirmed, pending int64
 	for _, a := range scan.addrs {
 		for _, u := range a.utxos {
-			if u.Status.Confirmed {
+			// An immature coinbase output cannot be spent yet, so it waits as pending.
+			if u.Status.Confirmed && !immature[fmt.Sprintf("%s:%d", u.TxID, u.Vout)] {
 				confirmed += u.Value
 				continue
 			}
@@ -293,8 +301,16 @@ func (p *ElectrumBackend) ListUnspent(ctx context.Context, walletID string) ([]U
 	if err != nil {
 		return nil, err
 	}
+	immature, err := p.immatureCoinbase(ctx, scan)
+	if err != nil {
+		return nil, err
+	}
 	out := lo.FlatMap(scan.addrs, func(a scannedAddr, _ int) []UTXO {
-		return lo.Map(a.utxos, func(u EsploraUTXO, _ int) UTXO {
+		// Bitcoin Core does not list an immature coinbase output either.
+		mature := lo.Filter(a.utxos, func(u EsploraUTXO, _ int) bool {
+			return !immature[fmt.Sprintf("%s:%d", u.TxID, u.Vout)]
+		})
+		return lo.Map(mature, func(u EsploraUTXO, _ int) UTXO {
 			return UTXO{
 				TxID:          u.TxID,
 				Vout:          u.Vout,
@@ -945,6 +961,10 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	outputs, totalOutSats := buildSendOutputs(req)
 
 	pool := p.spendableUTXOs(scan)
+	immature, err := p.immatureCoinbase(ctx, scan)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	// External (non-wallet) inputs — e.g. an anyone-can-spend sidechain CTIP —
 	// contribute their value toward the outputs but are not signed by us. Their
@@ -962,6 +982,9 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 	for _, ri := range req.RequiredInputs {
 		key := fmt.Sprintf("%s:%d", ri.TxID, ri.Vout)
 		required[key] = true
+		if immature[key] {
+			return nil, nil, nil, fmt.Errorf("required input %s is a coinbase output with fewer than %d confirmations", key, coinbaseMaturity)
+		}
 		u, ok := findUTXO(pool, ri.TxID, ri.Vout)
 		if !ok {
 			// A replacement pins the inputs of the transaction it replaces, and
@@ -977,7 +1000,8 @@ func (p *ElectrumBackend) buildSendPSBT(ctx context.Context, walletID string, sc
 		selectedSats += u.amountSats
 	}
 	remaining := lo.Filter(pool, func(u electrumUTXO, _ int) bool {
-		return !required[fmt.Sprintf("%s:%d", u.txid, u.vout)]
+		key := fmt.Sprintf("%s:%d", u.txid, u.vout)
+		return !required[key] && !immature[key]
 	})
 	// A coin a live BMM bid holds is the largest coin the wallet lists, so
 	// largest-first selection takes it first and the send dies with the bid.
@@ -2975,6 +2999,43 @@ func forEachUnconfirmed(scan *electrumScan, visit func(EsploraTx) bool) {
 			}
 		}
 	}
+}
+
+// immatureCoinbase returns the "txid:vout" keys of the scan's unspent coinbase
+// outputs that a transaction in the next block cannot spend. It reads the tip
+// only when the wallet holds an unspent coinbase output.
+func (p *ElectrumBackend) immatureCoinbase(ctx context.Context, scan *electrumScan) (map[string]bool, error) {
+	unspent := map[string]bool{}
+	for _, a := range scan.addrs {
+		for _, u := range a.utxos {
+			unspent[u.TxID] = true
+		}
+	}
+	var coinbases []EsploraTx
+	for _, a := range scan.addrs {
+		for _, tx := range a.txs {
+			if unspent[tx.TxID] && len(tx.Vin) > 0 && tx.Vin[0].IsCoinbase {
+				coinbases = append(coinbases, tx)
+			}
+		}
+	}
+	immature := map[string]bool{}
+	if len(coinbases) == 0 {
+		return immature, nil
+	}
+	tip, err := p.client.TipHeight(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, tx := range coinbases {
+		if confsFor(tx.Status, tip) >= coinbaseMaturity {
+			continue
+		}
+		for i := range tx.Vout {
+			immature[fmt.Sprintf("%s:%d", tx.TxID, i)] = true
+		}
+	}
+	return immature, nil
 }
 
 func findUTXO(pool []electrumUTXO, txid string, vout int) (electrumUTXO, bool) {
