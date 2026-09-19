@@ -361,6 +361,24 @@ func bidToProto(b bmmstate.Bid) *bmmpb.Bid {
 	}
 }
 
+// templatePrevMainHash reads the mainchain block a template builds on. Thunder
+// and photon nest the header. The other chains flatten it into the block.
+func templatePrevMainHash(block json.RawMessage) (string, error) {
+	var decoded struct {
+		Header struct {
+			PrevMainHash string `json:"prev_main_hash"`
+		} `json:"header"`
+		PrevMainHash string `json:"prev_main_hash"`
+	}
+	if err := json.Unmarshal(block, &decoded); err != nil {
+		return "", err
+	}
+	if decoded.Header.PrevMainHash != "" {
+		return decoded.Header.PrevMainHash, nil
+	}
+	return decoded.PrevMainHash, nil
+}
+
 // CreateBid assembles a sidechain block and broadcasts an M8 bid for it. The
 // bid is the transaction's fee, which is the only thing a miner can collect.
 func (h *BMMHandler) CreateBid(
@@ -381,20 +399,16 @@ func (h *BMMHandler) CreateBid(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("get block template: %w", err))
 	}
-	var block struct {
-		Header struct {
-			PrevMainHash string `json:"prev_main_hash"`
-		} `json:"header"`
-	}
-	if err := json.Unmarshal(template.Block, &block); err != nil {
+	prevMainHash, err := templatePrevMainHash(template.Block)
+	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("decode block header: %w", err))
 	}
 
 	// A bid only reaches the next block, so building on a tip the caller has
 	// already moved past would spend the fee on a round that cannot be won.
-	if want := req.Msg.ExpectPrevMainHash; want != "" && want != block.Header.PrevMainHash {
+	if want := req.Msg.ExpectPrevMainHash; want != "" && want != prevMainHash {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf(
-			"sidechain builds on %s, not the current tip %s", block.Header.PrevMainHash, want,
+			"sidechain builds on %s, not the current tip %s", prevMainHash, want,
 		))
 	}
 
@@ -409,7 +423,7 @@ func (h *BMMHandler) CreateBid(
 	})
 
 	script, err := orchestrator.M8BmmRequestScript(
-		uint8(cfg.Slot), template.CriticalHash, block.Header.PrevMainHash,
+		uint8(cfg.Slot), template.CriticalHash, prevMainHash,
 	)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("build bmm request: %w", err))
@@ -490,7 +504,7 @@ func (h *BMMHandler) CreateBid(
 		BmmTxid:      send.Msg.Txid,
 		FeesSats:     template.FeesSats,
 		BlockJson:    string(template.Block),
-		PrevMainHash: block.Header.PrevMainHash,
+		PrevMainHash: prevMainHash,
 		BidSats:      bidSats,
 	}), nil
 }
