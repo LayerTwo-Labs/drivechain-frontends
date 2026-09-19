@@ -87,11 +87,23 @@ type Network struct {
 		CoinNews struct {
 			URL string `json:"url"`
 		} `json:"coinnews"`
+		MiningPool MiningPool `json:"mining_pool"`
 	} `json:"services"`
 
 	// AssumeUTXO is the published UTXO snapshot for this network, or nil when it
 	// has none. URL points straight at the .dat file.
 	AssumeUTXO *AssumeUTXO `json:"assumeutxo"`
+}
+
+// MiningPool is the Stratum pool a network publishes. Name, Fee and
+// StatsURL are optional.
+type MiningPool struct {
+	URL     *string `json:"url"`
+	Stratum *string `json:"stratum"`
+	Name    string  `json:"name,omitempty"`
+	Fee     string  `json:"fee,omitempty"`
+	// StatsURL serves the pool overview JSON, with the pool hashrate.
+	StatsURL string `json:"stats_url,omitempty"`
 }
 
 // AssumeUTXO describes a network's published UTXO snapshot.

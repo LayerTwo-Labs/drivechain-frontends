@@ -295,7 +295,8 @@
         },
         "mining_pool": {
           "url": "https://pool.beta.bip300.xyz",
-          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334"
+          "stratum": "stratum+tcp://pool.beta.bip300.xyz:3334",
+          "stats_url": "https://pool.beta.bip300.xyz/api/overview"
         },
         "fast_withdrawal": [],
         "enforcer": {
