@@ -139,15 +139,20 @@ func (o *Orchestrator) autoSnapshotSource(_ context.Context) (*SnapshotSource, e
 // publishedSnapshot returns the active network's catalog assumeutxo entry, or
 // nil when none is published. o.Catalog is read under the lock.
 func (o *Orchestrator) publishedSnapshot() *netcatalog.AssumeUTXO {
-	o.mu.RLock()
-	cat := o.Catalog
-	ecashID := o.ecashID
-	o.mu.RUnlock()
-	entry, ok := o.catalogEntryForRunningNetwork(cat, ecashID)
+	entry, ok := o.RunningCatalogEntry()
 	if !ok {
 		return nil
 	}
 	return entry.AssumeUTXO
+}
+
+// RunningCatalogEntry returns the catalog entry of the network this install runs.
+func (o *Orchestrator) RunningCatalogEntry() (netcatalog.Network, bool) {
+	o.mu.RLock()
+	cat := o.Catalog
+	ecashID := o.ecashID
+	o.mu.RUnlock()
+	return o.catalogEntryForRunningNetwork(cat, ecashID)
 }
 
 // catalogEntryForRunningNetwork returns the entry this install runs. The eCash

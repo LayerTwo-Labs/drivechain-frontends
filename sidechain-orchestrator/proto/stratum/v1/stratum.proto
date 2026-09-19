@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package stratum.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// StratumService runs a Stratum v1 server for ASIC miners on the local
+// network. The server sends their work to this node or to a pool, and keeps
+// running with no client attached. eCash networks only.
+service StratumService {
+  rpc StartStratum(StartStratumRequest) returns (StartStratumResponse);
+  rpc StopStratum(StopStratumRequest) returns (StopStratumResponse);
+  rpc GetStratumStatus(GetStratumStatusRequest) returns (GetStratumStatusResponse);
+  // SetTarget selects where the miners' work goes. A running server switches
+  // at once and sends clean jobs.
+  rpc SetTarget(SetTargetRequest) returns (SetTargetResponse);
+  // ListTargets returns the catalog pools of the running network.
+  rpc ListTargets(ListTargetsRequest) returns (ListTargetsResponse);
+  // SetWorkMode changes the power mode of a connected miner over its device API.
+  rpc SetWorkMode(SetWorkModeRequest) returns (SetWorkModeResponse);
+}
+
+message StartStratumRequest {
+  // TCP port to listen on. Zero uses 3333.
+  uint32 port = 1;
+}
+
+message StartStratumResponse {}
+
+message StopStratumRequest {}
+
+message StopStratumResponse {}
+
+message GetStratumStatusRequest {}
+
+enum TargetKind {
+  TARGET_KIND_UNSPECIFIED = 0;
+  // This node builds each block from its own template.
+  TARGET_KIND_SOLO = 1;
+  // A pool from the network catalog.
+  TARGET_KIND_POOL = 2;
+  // A Stratum pool the user typed in.
+  TARGET_KIND_CUSTOM = 3;
+}
+
+message Target {
+  TargetKind kind = 1;
+  // Catalog pool id when kind is TARGET_KIND_POOL.
+  string pool_id = 2;
+  // stratum+tcp URL, worker and password when kind is TARGET_KIND_CUSTOM.
+  string url = 3;
+  string worker = 4;
+  string password = 5;
+}
+
+enum WorkMode {
+  WORK_MODE_UNSPECIFIED = 0;
+  WORK_MODE_LOW = 1;
+  WORK_MODE_MID = 2;
+  WORK_MODE_HIGH = 3;
+}
+
+message ConnectedMiner {
+  string worker = 1;
+  // IP address the miner connects from.
+  string address = 2;
+  // Hashes per second over the last five minutes.
+  double hashrate = 3;
+  double best_share = 4;
+  uint64 accepted_shares = 5;
+  uint64 rejected_shares = 6;
+  // Unset until the miner sends a share.
+  google.protobuf.Timestamp last_share_time = 7;
+  // Values from the miner's device API. Unset when the device does not answer.
+  optional double temperature_celsius = 8;
+  optional double fan_percent = 9;
+  optional double power_watts = 10;
+  WorkMode work_mode = 11;
+}
+
+message FoundBlock {
+  uint32 height = 1;
+  string hash = 2;
+  int64 reward_sats = 3;
+  string worker = 4;
+  google.protobuf.Timestamp found_time = 5;
+  // Confirmations from the local node. Negative when the block left the main
+  // chain. Unset when the node does not answer.
+  optional int32 confirmations = 6;
+}
+
+message GetStratumStatusResponse {
+  bool running = 1;
+  uint32 port = 2;
+  // stratum+tcp URL on the LAN IPv4 address of this machine. Empty when the
+  // machine has no LAN address.
+  string pool_url = 3;
+  // Hashes per second of all miners together.
+  double hashrate = 4;
+  double best_share = 5;
+  double network_difficulty = 6;
+  // Blocks found since the server started, newest first.
+  repeated FoundBlock blocks_found = 7;
+  repeated ConnectedMiner miners = 8;
+  // Why the server last stopped on its own. Empty after a clean stop.
+  string error = 9;
+  Target target = 10;
+  // Upstream pool state. Both are empty for a solo target.
+  bool pool_connected = 11;
+  string pool_host = 12;
+  // Address the catalog pool pays. Empty for other targets.
+  string payout_address = 13;
+  uint64 accepted_shares = 14;
+  uint64 rejected_shares = 15;
+}
+
+message SetTargetRequest {
+  Target target = 1;
+}
+
+message SetTargetResponse {}
+
+message ListTargetsRequest {}
+
+message CatalogPool {
+  string id = 1;
+  string name = 2;
+  // stratum+tcp URL of the pool.
+  string url = 3;
+  // Fee as the catalog states it. Empty when the catalog states none.
+  string fee = 4;
+  // Hashes per second of the whole pool. Unset when the pool publishes none.
+  optional double hashrate = 5;
+}
+
+message ListTargetsResponse {
+  repeated CatalogPool pools = 1;
+}
+
+message SetWorkModeRequest {
+  // Address of a connected miner, as GetStratumStatus reports it.
+  string address = 1;
+  WorkMode mode = 2;
+}
+
+message SetWorkModeResponse {}
