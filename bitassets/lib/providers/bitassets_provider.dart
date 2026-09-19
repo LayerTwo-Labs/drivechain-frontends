@@ -43,8 +43,14 @@ class BitAssetsProvider extends ChangeNotifier {
       if (await store.getString(OwnedBitAssetsSetting().key) != null) {
         return;
       }
-      final owned = ownedFromLegacyMapping(await store.getString(HashNameMappingSetting().key));
-      await appSettings.setValue(OwnedBitAssetsSetting(newValue: owned));
+      // The release before this one wrote the flag to the shared store, and
+      // the one before that to this app's own store.
+      final key = HashNameMappingSetting().key;
+      final owned = {
+        ...ownedFromLegacyMapping(await store.getString(key)),
+        ...ownedFromLegacyMapping(await nameSettings.store.getString(key)),
+      };
+      await appSettings.setValue(OwnedBitAssetsSetting(newValue: owned.toList()));
     } catch (e) {
       // A settings read failure leaves the old map in place for the next start.
     }
@@ -165,11 +171,11 @@ class BitAssetsProvider extends ChangeNotifier {
   /// Save a new hash-name mapping
   Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
     final hash = blake3Hex(utf8.encode(name));
-    final current = await nameSettings.getValue(HashNameMappingSetting());
-    final newMappings = Map<String, HashMapping>.from(current.value);
-    newMappings[hash] = HashMapping(name: name);
-    hashNameMapping = HashNameMappingSetting(newValue: newMappings);
-    await nameSettings.setValue(hashNameMapping);
+    final saved = await nameSettings.mergeValue(
+      HashNameMappingSetting(),
+      (current) => {...current, hash: HashMapping(name: name)},
+    );
+    hashNameMapping = HashNameMappingSetting(newValue: saved.value);
     if (isMine) {
       ownedHashes = {...ownedHashes, hash};
       await appSettings.setValue(OwnedBitAssetsSetting(newValue: ownedHashes.toList()));

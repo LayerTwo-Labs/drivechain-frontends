@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -16,6 +18,11 @@ class _Store implements KeyValueStore {
 
   @override
   Future<void> delete(String key) async => values.remove(key);
+
+  @override
+  Future<void> update(String key, String Function(String? current) change) async {
+    await setString(key, change(await getString(key)));
+  }
 }
 
 void main() {
@@ -48,6 +55,26 @@ void main() {
     final read = await HashNameMappingSetting.settings.getValue(HashNameMappingSetting());
 
     expect(read.value.values.map((mapping) => mapping.name), ['ecash']);
+  });
+
+  // Two apps read the whole map, add one name, and write it back. The merge
+  // runs under the store's lock, so neither drops the other one's name.
+  test('two saves at the same time keep both names', () async {
+    final dir = await Directory.systemTemp.createTemp('shared-names-');
+    addTearDown(() => dir.delete(recursive: true));
+    await GetIt.I.unregister<BitwindowClientSettings>();
+    GetIt.I.registerSingleton<BitwindowClientSettings>(
+      BitwindowClientSettings(store: FileStorage.fromDirectory(dir), log: GetIt.I.get<Logger>()),
+    );
+
+    await Future.wait([
+      HashNameMappingSetting().saveMapping('alpha'),
+      HashNameMappingSetting().saveMapping('beta'),
+    ]);
+
+    final read = await HashNameMappingSetting.settings.getValue(HashNameMappingSetting());
+
+    expect(read.value.values.map((mapping) => mapping.name).toSet(), {'alpha', 'beta'});
   });
 
   test('a name in the app store alone stays unknown', () async {

@@ -12,6 +12,11 @@ class _MockStore implements KeyValueStore {
   Future<void> setString(String key, String value) async => db[key] = value;
   @override
   Future<void> delete(String key) async => db.remove(key);
+
+  @override
+  Future<void> update(String key, String Function(String? current) change) async {
+    await setString(key, change(await getString(key)));
+  }
 }
 
 void main() {

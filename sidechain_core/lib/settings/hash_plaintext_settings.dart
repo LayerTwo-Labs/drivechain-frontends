@@ -72,11 +72,7 @@ class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
   }
 
   Future<void> saveMapping(String name) async {
-    final clientSettings = settings;
     final hash = blake3Hex(utf8.encode(name));
-    final currentValue = await clientSettings.getValue(this);
-    final newMappings = Map<String, HashMapping>.from(currentValue.value);
-    newMappings[hash] = HashMapping(name: name);
-    await clientSettings.setValue(withValue(newMappings));
+    await settings.mergeValue(HashNameMappingSetting(), (current) => {...current, hash: HashMapping(name: name)});
   }
 }

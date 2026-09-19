@@ -62,6 +62,11 @@ class _Store implements KeyValueStore {
 
   @override
   Future<void> delete(String key) async => _db.remove(key);
+
+  @override
+  Future<void> update(String key, String Function(String? current) change) async {
+    await setString(key, change(await getString(key)));
+  }
 }
 
 void main() {

@@ -77,6 +77,11 @@ class _Store implements KeyValueStore {
 
   @override
   Future<void> delete(String key) async => _values.remove(key);
+
+  @override
+  Future<void> update(String key, String Function(String? current) change) async {
+    await setString(key, change(await getString(key)));
+  }
 }
 
 class _Wallet implements WalletReaderProvider {

@@ -6,6 +6,11 @@ abstract class KeyValueStore {
   Future<void> setString(String key, String value);
   Future<void> delete(String key);
 
+  /// Reads one key, changes it, and writes it back as one step. A file store
+  /// holds its lock across the whole step, so two apps that change one key at
+  /// the same time keep both changes.
+  Future<void> update(String key, String Function(String? current) change);
+
   static Future<KeyValueStore> create({required Directory dir}) async {
     return FileStorage.fromDirectory(dir);
   }
@@ -69,5 +74,10 @@ class FileStorage implements KeyValueStore {
   @override
   Future<void> delete(String key) {
     return _write((values) => values.remove(key));
+  }
+
+  @override
+  Future<void> update(String key, String Function(String? current) change) {
+    return _write((values) => values[key] = change(values[key]));
   }
 }
