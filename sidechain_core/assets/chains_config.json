@@ -1,5 +1,5 @@
 {
-  "version": 19,
+  "version": 20,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -676,7 +676,7 @@
         "binary": "coinshift",
         "files": {
           "default": {
-            "base_url": "https://api.github.com/repos/octobocto/coinshift-rs/releases/latest",
+            "base_url": "https://api.github.com/repos/LayerTwo-Labs/coinshift-rs/releases/latest",
             "linux-x86_64": "coinshift-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
             "macos-x86_64": "coinshift-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
             "macos-arm64": "coinshift-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
