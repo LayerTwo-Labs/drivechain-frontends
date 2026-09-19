@@ -641,8 +641,9 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		Name:           "Truthcoin",
 		ConfigFilename: "truthcoin.conf",
 		BasePort:       6013,
-		PortStyle:      "grpc",
-		RPCKey:         "rpc-addr",
+		CliArgKeys:     []string{"net-addr", "zmq-addr"},
+		PortStyle:      "zmq",
+		RPCKey:         "rpc-port",
 		DirKey:         "truthcoin",
 	},
 	"coinshift": {

@@ -16,11 +16,12 @@ var provedChainFlags = map[string][]string{
 	"freebank":  {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-host", "rpc-port", "zmq-addr"},
 	"bitnames":  {"datadir", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-addr", "rpc-addr", "zmq-addr"},
 	"photon":    {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "rpc-addr"},
+	"truthcoin": {"add-peer", "datadir", "decision-config-testing", "file-log-level", "headless", "log-dir", "log-level", "mainchain-grpc-host", "mainchain-grpc-port", "mnemonic-seed-phrase-path", "net-addr", "network", "network-magic", "private-rpc-host", "private-rpc-port", "rpc-host", "rpc-port", "server-name", "wallet-dir", "zmq-addr"},
 	"coinshift": {"datadir", "headless", "log-dir", "log-level-file", "log-level", "mainchain-grpc-url", "mnemonic-seed-phrase-path", "net-addr", "network", "rpc-addr", "l1-signet", "l1-bch-testnet4"},
 }
 
 // unprovedChains ship no binary here, so nobody read their flags.
-var unprovedChains = []string{"zside", "truthcoin", "liquid-signet"}
+var unprovedChains = []string{"zside", "liquid-signet"}
 
 // A flag the daemon does not know stops it on the first boot.
 func TestCliArgKeysNameOnlyFlagsTheBinaryAccepts(t *testing.T) {
