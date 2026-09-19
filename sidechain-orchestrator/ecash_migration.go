@@ -468,7 +468,9 @@ func (o *Orchestrator) runECashMigration(state ecashMigration) {
 		state.Status.Complete = false
 	}
 	if state.Status.Complete {
-		o.restoreMigrationCoreMonitor()
+		if err := o.restoreMigrationCoreMonitor(); err != nil {
+			state.Status.Error = err.Error()
+		}
 	}
 	o.migrationMu.Lock()
 	o.migrationState = &state
@@ -476,7 +478,7 @@ func (o *Orchestrator) runECashMigration(state ecashMigration) {
 	o.migrationMu.Unlock()
 }
 
-func (o *Orchestrator) restoreMigrationCoreMonitor() {
+func (o *Orchestrator) restoreMigrationCoreMonitor() error {
 	o.mu.RLock()
 	cfg := o.configs["bitcoind"]
 	o.mu.RUnlock()
@@ -492,8 +494,11 @@ func (o *Orchestrator) restoreMigrationCoreMonitor() {
 	monitor.completedStartup = true
 	monitor.mu.Unlock()
 	var opts StartOpts
-	o.prepareCoreArgs(&opts)
+	if err := o.prepareCoreArgs(&opts); err != nil {
+		return err
+	}
 	o.startCoreRestartTimer(ctx, monitor, opts.CoreArgs)
+	return nil
 }
 
 func (o *Orchestrator) runMigrationSteps(ctx context.Context, state *ecashMigration) error {

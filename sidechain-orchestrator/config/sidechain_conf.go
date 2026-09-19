@@ -656,7 +656,7 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		DirKey:         "coinshift",
 	},
 	"liquid-signet": {
-		Name:           "Liquid Signet",
+		Name:           "Elements Alpha",
 		ConfigFilename: "liquid-signet.conf",
 		BasePort:       29443,
 		PortStyle:      "grpc",

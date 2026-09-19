@@ -85,7 +85,7 @@ func TestRestartDaemon_EnforcerLeavesBitcoindMonitorUntouched(t *testing.T) {
 func TestPrepareCoreArgs_NoOpWhenAlreadySet(t *testing.T) {
 	o := newTestOrchestrator(t)
 	opts := StartOpts{CoreArgs: []string{"-existing=arg"}}
-	o.prepareCoreArgs(&opts)
+	require.NoError(t, o.prepareCoreArgs(&opts))
 	require.Equal(t, []string{"-existing=arg"}, opts.CoreArgs)
 }
 
@@ -95,7 +95,7 @@ func TestPrepareCoreArgs_NoOpWhenAlreadySet(t *testing.T) {
 func TestPrepareCoreArgs_PinsTheDatadir(t *testing.T) {
 	o := newTestOrchestrator(t)
 	opts := StartOpts{}
-	o.prepareCoreArgs(&opts)
+	require.NoError(t, o.prepareCoreArgs(&opts))
 
 	require.Contains(t, opts.CoreArgs, fmt.Sprintf("-datadir=%s", o.BitcoinConf.RootDataDir()))
 	require.True(t, strings.HasPrefix(o.BitcoinConf.GetRPCCookiePath(), o.BitcoinConf.RootDataDir()))
@@ -107,7 +107,7 @@ func TestPrepareCoreArgs_NoOpWhenBitcoinConfNil(t *testing.T) {
 	o := newTestOrchestrator(t)
 	o.BitcoinConf = nil
 	opts := StartOpts{}
-	o.prepareCoreArgs(&opts)
+	require.NoError(t, o.prepareCoreArgs(&opts))
 	require.Empty(t, opts.CoreArgs)
 }
 

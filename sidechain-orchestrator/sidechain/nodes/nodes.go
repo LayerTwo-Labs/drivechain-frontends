@@ -10,6 +10,7 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/elements"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
@@ -27,7 +28,13 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 	if !ok {
 		return nil, fmt.Errorf("no directory config for %s", name)
 	}
-	cookie := filepath.Join(dirs.DatadirNetwork(network, ""), ".cookie")
+	datadir := dirs.DatadirNetwork(network, "")
+	cookie := filepath.Join(datadir, ".cookie")
 
-	return bbc.NewClient(host, port, cookie), nil
+	switch name {
+	case "liquid-signet":
+		return elements.NewNode(host, port, datadir, network), nil
+	default:
+		return bbc.NewClient(host, port, cookie), nil
+	}
 }

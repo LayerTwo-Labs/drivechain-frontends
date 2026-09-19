@@ -25,4 +25,15 @@ type Host interface {
 	// ToolPath is where the orchestrator downloaded a helper binary, empty
 	// when it holds none.
 	ToolPath(name string) string
+
+	// MainchainRPC returns the RPC address of the local mainchain node, or an
+	// error when none runs.
+	MainchainRPC() (host string, port int, err error)
+
+	// MainchainReader returns the credential file of a mainchain user that may
+	// call only read-only RPCs.
+	MainchainReader(ctx context.Context) (string, error)
+
+	// MainchainCookie is the admin cookie of the local mainchain node.
+	MainchainCookie() string
 }
