@@ -5347,8 +5347,11 @@ type ECashMigrationStatus struct {
 	// length, and both are zero when no download runs.
 	DownloadMbDone  int64 `protobuf:"varint,23,opt,name=download_mb_done,json=downloadMbDone,proto3" json:"download_mb_done,omitempty"`
 	DownloadMbTotal int64 `protobuf:"varint,24,opt,name=download_mb_total,json=downloadMbTotal,proto3" json:"download_mb_total,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// The source tip is below the fork, so the migration skips the rollback.
+	// common_height is then the source tip.
+	BelowFork     bool `protobuf:"varint,25,opt,name=below_fork,json=belowFork,proto3" json:"below_fork,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ECashMigrationStatus) Reset() {
@@ -5547,6 +5550,13 @@ func (x *ECashMigrationStatus) GetDownloadMbTotal() int64 {
 		return x.DownloadMbTotal
 	}
 	return 0
+}
+
+func (x *ECashMigrationStatus) GetBelowFork() bool {
+	if x != nil {
+		return x.BelowFork
+	}
+	return false
 }
 
 var File_orchestrator_v1_orchestrator_proto protoreflect.FileDescriptor
@@ -5906,7 +5916,7 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\" \n" +
 	"\x1eGetECashMigrationStatusRequest\"`\n" +
 	"\x1fGetECashMigrationStatusResponse\x12=\n" +
-	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"\x88\x06\n" +
+	"\x06status\x18\x01 \x01(\v2%.orchestrator.v1.ECashMigrationStatusR\x06status\"\xa7\x06\n" +
 	"\x14ECashMigrationStatus\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x17\n" +
 	"\afrom_id\x18\x02 \x01(\tR\x06fromId\x12\x13\n" +
@@ -5937,7 +5947,9 @@ const file_orchestrator_v1_orchestrator_proto_rawDesc = "" +
 	"\x0fstarted_at_unix\x18\x15 \x01(\x03R\rstartedAtUnix\x12!\n" +
 	"\frecord_stage\x18\x16 \x01(\tR\vrecordStage\x12(\n" +
 	"\x10download_mb_done\x18\x17 \x01(\x03R\x0edownloadMbDone\x12*\n" +
-	"\x11download_mb_total\x18\x18 \x01(\x03R\x0fdownloadMbTotal*\x94\x02\n" +
+	"\x11download_mb_total\x18\x18 \x01(\x03R\x0fdownloadMbTotal\x12\x1d\n" +
+	"\n" +
+	"below_fork\x18\x19 \x01(\bR\tbelowFork*\x94\x02\n" +
 	"\rSidechainType\x12\x1e\n" +
 	"\x1aSIDECHAIN_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16SIDECHAIN_TYPE_THUNDER\x10\x01\x12\x18\n" +

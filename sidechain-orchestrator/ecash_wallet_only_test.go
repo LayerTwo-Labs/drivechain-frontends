@@ -194,12 +194,14 @@ func TestECashWalletOnlyStoppedSourceStarts(t *testing.T) {
 	}
 }
 
-func TestECashWalletOnlySourceAboveGenesisKeepsSyncLimit(t *testing.T) {
+func TestECashWalletOnlySourceAboveGenesisSkipsRollback(t *testing.T) {
 	o, fixture, wallet := prepareWalletOnlyEngineTest(t, true)
-	require.NoError(t, os.WriteFile(filepath.Join(fixture.DataDir, "fixture-height"), []byte("1"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(fixture.DataDir, "fixture-height"), []byte("90"), 0o600))
 	preview, err := o.PreviewECashMigration(context.Background(), "alphanet", "betanet")
-	require.ErrorContains(t, err, "must reach the common height 100")
+	require.NoError(t, err)
 	require.False(t, preview.WalletOnly)
+	require.True(t, preview.BelowFork)
+	require.EqualValues(t, 90, preview.CommonHeight)
 	require.Equal(t, "alphanet", o.Settings.ECashChainID())
 	require.NoFileExists(t, o.migrationPath())
 	data, err := os.ReadFile(filepath.Join(fixture.DataDir, "wallets", "migration", "wallet.dat"))

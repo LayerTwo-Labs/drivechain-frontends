@@ -1441,6 +1441,7 @@ const ECashMigrationStatus$json = {
     {'1': 'record_stage', '3': 22, '4': 1, '5': 9, '10': 'recordStage'},
     {'1': 'download_mb_done', '3': 23, '4': 1, '5': 3, '10': 'downloadMbDone'},
     {'1': 'download_mb_total', '3': 24, '4': 1, '5': 3, '10': 'downloadMbTotal'},
+    {'1': 'below_fork', '3': 25, '4': 1, '5': 8, '10': 'belowFork'},
   ],
 };
 
@@ -1459,7 +1460,8 @@ final $typed_data.Uint8List eCashMigrationStatusDescriptor = $convert.base64Deco
     'ZV9oZWlnaHQYEyABKANSC3BydW5lSGVpZ2h0Eh8KC3dhbGxldF9vbmx5GBQgASgIUgp3YWxsZX'
     'RPbmx5EiYKD3N0YXJ0ZWRfYXRfdW5peBgVIAEoA1INc3RhcnRlZEF0VW5peBIhCgxyZWNvcmRf'
     'c3RhZ2UYFiABKAlSC3JlY29yZFN0YWdlEigKEGRvd25sb2FkX21iX2RvbmUYFyABKANSDmRvd2'
-    '5sb2FkTWJEb25lEioKEWRvd25sb2FkX21iX3RvdGFsGBggASgDUg9kb3dubG9hZE1iVG90YWw=');
+    '5sb2FkTWJEb25lEioKEWRvd25sb2FkX21iX3RvdGFsGBggASgDUg9kb3dubG9hZE1iVG90YWwS'
+    'HQoKYmVsb3dfZm9yaxgZIAEoCFIJYmVsb3dGb3Jr');
 
 const $core.Map<$core.String, $core.dynamic> OrchestratorServiceBase$json = {
   '1': 'OrchestratorService',
