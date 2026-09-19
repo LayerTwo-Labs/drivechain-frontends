@@ -480,4 +480,78 @@ func TestService_ListWithdrawals(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, resp.Msg.Bundles)
 	})
+
+	t.Run("reads on from the cached block while it stays on the chain", func(t *testing.T) {
+		t.Parallel()
+
+		starts := listWithdrawalsTwice(t, "00000000000000000000000000000000000000000000000000000000000000a0")
+		assert.Equal(t, []string{activationHash, "00000000000000000000000000000000000000000000000000000000000000a0"}, starts)
+	})
+
+	t.Run("reads again from activation when a reorg drops the cached block", func(t *testing.T) {
+		t.Parallel()
+
+		starts := listWithdrawalsTwice(t, "00000000000000000000000000000000000000000000000000000000000000b0")
+		assert.Equal(t, []string{activationHash, activationHash}, starts)
+	})
+}
+
+const activationHash = "0000000000000000000000000000000000000000000000000000000000000050"
+
+func header(height uint32, hash string) *mainchainv1.BlockHeaderInfo {
+	return &mainchainv1.BlockHeaderInfo{
+		Height:    height,
+		BlockHash: &commonv1.ReverseHex{Hex: wrapperspb.String(hash)},
+	}
+}
+
+// listWithdrawalsTwice lists at tip a0 (height 100), then at a tip of height
+// 101 whose ancestor at 100 is ancestorAt100. It returns each peg data start.
+func listWithdrawalsTwice(t *testing.T, ancestorAt100 string) []string {
+	t.Helper()
+
+	const firstTip = "00000000000000000000000000000000000000000000000000000000000000a0"
+	const secondTip = "00000000000000000000000000000000000000000000000000000000000000a1"
+
+	db := database.Test(t)
+	ctrl := gomock.NewController(t)
+	mockValidator := mocks.NewMockValidatorServiceClient(ctrl)
+
+	gomock.InOrder(
+		mockValidator.EXPECT().GetChainTip(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(100, firstTip)}), nil),
+		mockValidator.EXPECT().GetChainTip(gomock.Any(), gomock.Any()).
+			Return(connect.NewResponse(&mainchainv1.GetChainTipResponse{BlockHeaderInfo: header(101, secondTip)}), nil),
+	)
+
+	mockValidator.EXPECT().GetSidechains(gomock.Any(), gomock.Any()).
+		Return(connect.NewResponse(&mainchainv1.GetSidechainsResponse{
+			Sidechains: []*mainchainv1.GetSidechainsResponse_SidechainInfo{{
+				SidechainNumber:  wrapperspb.UInt32(0),
+				ActivationHeight: wrapperspb.UInt32(50),
+			}},
+		}), nil).AnyTimes()
+
+	mockValidator.EXPECT().GetBlockHeaderInfo(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *connect.Request[mainchainv1.GetBlockHeaderInfoRequest]) (*connect.Response[mainchainv1.GetBlockHeaderInfoResponse], error) {
+			headers := []*mainchainv1.BlockHeaderInfo{header(50, activationHash)}
+			if req.Msg.BlockHash.Hex.Value == secondTip {
+				headers = append(headers, header(101, secondTip), header(100, ancestorAt100))
+			}
+			return connect.NewResponse(&mainchainv1.GetBlockHeaderInfoResponse{HeaderInfos: headers}), nil
+		}).AnyTimes()
+
+	var starts []string
+	mockValidator.EXPECT().GetTwoWayPegData(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *connect.Request[mainchainv1.GetTwoWayPegDataRequest]) (*connect.Response[mainchainv1.GetTwoWayPegDataResponse], error) {
+			starts = append(starts, req.Msg.StartBlockHash.Hex.Value)
+			return connect.NewResponse(&mainchainv1.GetTwoWayPegDataResponse{}), nil
+		}).Times(2)
+
+	cli := rpc.NewDrivechainServiceClient(apitests.API(t, db, apitests.WithValidator(mockValidator)))
+	for range 2 {
+		_, err := cli.ListWithdrawals(context.Background(), connect.NewRequest(&pb.ListWithdrawalsRequest{SidechainId: 0}))
+		require.NoError(t, err)
+	}
+	return starts
 }
