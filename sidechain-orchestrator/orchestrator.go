@@ -614,6 +614,9 @@ func (o *Orchestrator) Start(ctx context.Context, name string, args []string, en
 			})
 		}
 	}
+	if err := o.alignECashSidechainState(config); err != nil {
+		return 0, err
+	}
 	return o.process.Start(ctx, config, args, env)
 }
 
@@ -929,6 +932,11 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			o.prepareEnforcerArgs(&opts)
 		}
 		o.injectSidechainStarter(config, &opts)
+		if err := o.alignECashSidechainState(config); err != nil {
+			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+			failBoot(mon, ch, "start "+config.Name, err)
+			return
+		}
 		if err := o.prepareSidechainArgs(config, &opts); err != nil {
 			mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 			failBoot(mon, ch, "start "+config.Name, err)
@@ -1393,7 +1401,7 @@ func (o *Orchestrator) parkedStateOutstanding() []string {
 		if _, err := os.Stat(path); err == nil {
 			continue
 		}
-		if _, ok := latestParkedPath(path, active); ok {
+		if _, ok := latestParkedPath(path, string(active)); ok {
 			outstanding = append(outstanding, path)
 		}
 	}
@@ -1666,6 +1674,11 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 		default:
 			o.injectSidechainStarter(config, &opts)
+			if err := o.alignECashSidechainState(config); err != nil {
+				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+				failBoot(mon, ch, "start "+config.Name, err)
+				return
+			}
 			if err := o.prepareSidechainArgs(config, &opts); err != nil {
 				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
 				failBoot(mon, ch, "start "+config.Name, err)
@@ -2738,7 +2751,7 @@ func (o *Orchestrator) parkOutgoingSwapState() error {
 			o.unparkPartialMove(moved)
 			return fmt.Errorf("read %s before parking it: %w", path, err)
 		}
-		outgoing, err := freeParkedPath(path, from)
+		outgoing, err := freeParkedPath(path, string(from))
 		if err != nil {
 			o.unparkPartialMove(moved)
 			return err
@@ -2783,7 +2796,7 @@ func (o *Orchestrator) RestoreParkedSwapState() error {
 			// would bury that; leaving it costs a retry.
 			return fmt.Errorf("read %s before restoring it: %w", path, err)
 		}
-		incoming, ok := latestParkedPath(path, active)
+		incoming, ok := latestParkedPath(path, string(active))
 		if !ok {
 			continue
 		}
@@ -2830,7 +2843,7 @@ func (o *Orchestrator) swapStatePaths(n config.Network) map[string]bool {
 		}
 		// The list above only reports files that exist, and a parked one does
 		// not — so without this the swap home never finds its own state.
-		for _, path := range parkedPathsFor(networkDir, n) {
+		for _, path := range parkedPathsFor(networkDir, string(n)) {
 			paths[path] = true
 		}
 	}
@@ -2840,8 +2853,8 @@ func (o *Orchestrator) swapStatePaths(n config.Network) map[string]bool {
 // parkedPathsFor returns the live paths whose state n parked in dir, numbered
 // slots included: an interrupted swap parks under a numbered one, and skipping
 // those would leave that state stranded for good.
-func parkedPathsFor(dir string, n config.Network) []string {
-	suffix := ".network-" + string(n)
+func parkedPathsFor(dir string, key string) []string {
+	suffix := ".network-" + key
 	seen := make(map[string]bool)
 	var paths []string
 	for _, pattern := range []string{"*" + suffix, "*" + suffix + ".*"} {
@@ -2864,8 +2877,8 @@ func parkedPathsFor(dir string, n config.Network) []string {
 // latestParkedPath returns the newest slot n parked, which is the highest
 // numbered one. An interrupted swap parks the live state above an older copy
 // nothing restored, so the number orders them.
-func latestParkedPath(path string, n config.Network) (string, bool) {
-	base := parkedPath(path, n)
+func latestParkedPath(path string, key string) (string, bool) {
+	base := parkedPath(path, key)
 	newest := ""
 	for i := 0; i < 20; i++ {
 		candidate := base
@@ -2880,15 +2893,15 @@ func latestParkedPath(path string, n config.Network) (string, bool) {
 }
 
 // parkedPath is where path lives while another network runs.
-func parkedPath(path string, n config.Network) string {
-	return path + ".network-" + string(n)
+func parkedPath(path string, key string) string {
+	return path + ".network-" + key
 }
 
 // freeParkedPath returns a parked name nothing occupies. A swap interrupted
 // before its restore leaves one behind, and overwriting it would delete the
 // very state parking exists to keep.
-func freeParkedPath(path string, n config.Network) (string, error) {
-	base := parkedPath(path, n)
+func freeParkedPath(path string, key string) (string, error) {
+	base := parkedPath(path, key)
 	for i := 0; i < 20; i++ {
 		candidate := base
 		if i > 0 {
@@ -2898,7 +2911,7 @@ func freeParkedPath(path string, n config.Network) (string, error) {
 			return candidate, nil
 		}
 	}
-	return "", fmt.Errorf("no free parking slot for %s under %s", path, n)
+	return "", fmt.Errorf("no free parking slot for %s under %s", path, key)
 }
 
 // enforcerNetworkSwapStatePaths returns the enforcer state a swap from -> to

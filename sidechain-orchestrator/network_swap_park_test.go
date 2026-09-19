@@ -124,7 +124,7 @@ func TestParkedPathsForFindsNumberedSlots(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "data.mdb.network-signet.1"), []byte("x"), 0o644))
 
-	require.Equal(t, []string{filepath.Join(dir, "data.mdb")}, parkedPathsFor(dir, config.NetworkSignet))
+	require.Equal(t, []string{filepath.Join(dir, "data.mdb")}, parkedPathsFor(dir, string(config.NetworkSignet)))
 }
 
 // A restore that fails leaves the network durable but the state parked. The
