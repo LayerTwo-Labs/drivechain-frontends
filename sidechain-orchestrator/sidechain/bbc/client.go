@@ -24,7 +24,7 @@ type Client struct {
 // NewClient creates a client pointed at host:port. cookiePath is the node's
 // .cookie.
 func NewClient(host string, port int, cookiePath string) *Client {
-	return &Client{Client: corenode.New("bbc", host, port, cookiePath, corenode.Options{})}
+	return &Client{Client: corenode.New("bbc", host, port, cookiePath)}
 }
 
 // SidechainInfo is the node's view of its link to the mainchain.
