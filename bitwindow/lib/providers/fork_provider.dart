@@ -72,7 +72,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
   Logger get _log => GetIt.I<Logger>();
 
   /// Fee rate used when sweeping; the fee is subtracted from the swept amount.
-  static const _sweepFeeRateSatPerVbyte = 1;
+  static const sweepFeeRateSatPerVbyte = 1;
 
   /// Countdown display assumptions (also used by the engine's height math).
   static const _minutesPerBlock = 10;
@@ -501,7 +501,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
       destinations: {address: amountSats},
       requiredInputs: inputs,
       subtractFeeFromAmount: true,
-      feeRateSatPerVbyte: _sweepFeeRateSatPerVbyte,
+      feeRateSatPerVbyte: sweepFeeRateSatPerVbyte,
     );
     if (_drafts.generation != generation) {
       throw Exception('The network changed during the build. Create the split transaction again.');
@@ -535,7 +535,7 @@ class ForkProvider extends ChangeNotifier implements NetworkScoped {
       destinations: {address: amountSats},
       requiredInputs: inputs,
       subtractFeeFromAmount: true,
-      feeRateSatPerVbyte: _sweepFeeRateSatPerVbyte,
+      feeRateSatPerVbyte: sweepFeeRateSatPerVbyte,
     )).txid;
 
     _log.i('Claimed eCash: wallet="${claim.walletName}" id=$walletId txid=$txid -> $address');
