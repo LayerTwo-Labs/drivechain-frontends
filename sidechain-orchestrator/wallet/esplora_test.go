@@ -112,7 +112,7 @@ func TestEsploraOutspendUnknownEverywhere(t *testing.T) {
 func TestEsploraOutspendEvictedTransaction(t *testing.T) {
 	const txid = "aa"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/tx/"+txid+"/status" {
+		if r.URL.Path == "/api/tx/"+txid {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}

@@ -506,8 +506,10 @@ func (c *EsploraClient) getFrom(ctx context.Context, root, path string) ([]byte,
 // transaction answers the same way as one holding a live output. Both facts
 // therefore come from one server, so they describe the same view of the chain.
 func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (EsploraOutspend, bool, error) {
-	status := "/tx/" + txid + "/status"
-	spend := "/tx/" + txid + "/outspend/" + strconv.Itoa(vout)
+	// Blockstream answers /tx/<id>/status with 200 {"confirmed":false} for a
+	// transaction it never saw, so only /tx/<id> proves the server holds it.
+	tx := "/tx/" + txid
+	spend := tx + "/outspend/" + strconv.Itoa(vout)
 	roots := c.BaseURLs()
 	notFound := 0
 	var lastErr error
@@ -531,7 +533,7 @@ func (c *EsploraClient) Outspend(ctx context.Context, txid string, vout int) (Es
 		}
 		// The spend answer comes first, so a transaction that drops out of the
 		// mempool between the two reads shows up as absent, not as unspent.
-		if _, err := c.getFrom(ctx, root, status); err != nil {
+		if _, err := c.getFrom(ctx, root, tx); err != nil {
 			if isNotFound(err) {
 				notFound++
 				continue
