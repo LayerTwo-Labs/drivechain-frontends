@@ -34,7 +34,7 @@ func TestECashMigrationKeepsCoreCrashRestart(t *testing.T) {
 				require.NoError(t, o.stopMigrationCore(ctx))
 				progress := make(chan StartupProgress, 64)
 				var opts StartOpts
-				o.prepareCoreArgs(&opts)
+				require.NoError(t, o.prepareCoreArgs(&opts))
 				started := o.startBitcoindOnly(ctx, opts, progress)
 				close(progress)
 				for item := range progress {

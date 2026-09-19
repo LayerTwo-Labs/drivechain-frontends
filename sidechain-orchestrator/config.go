@@ -30,6 +30,7 @@ const (
 // BinaryConfig is the 1:1 Go port of Dart's Binary abstract class + subclasses.
 // Every field maps to a Dart property from binaries.dart / sidechains.dart.
 type BinaryConfig struct {
+	ArtifactPins map[string]ArtifactPin
 	// Core identity — Dart: Binary constructor params (L61-72)
 	Name        string // Dart: Binary.name (internal identifier, e.g. "bitcoind", "thunder")
 	DisplayName string // Dart: Binary.name in subclass (e.g. "Bitcoin Core (Patched)")
@@ -84,6 +85,11 @@ type BinaryConfig struct {
 
 	// Dependencies: names of binaries that must be running before this one
 	Dependencies []string
+}
+
+type ArtifactPin struct {
+	ArchiveSHA256    string `json:"archive_sha256"`
+	ExecutableSHA256 string `json:"executable_sha256"`
 }
 
 // IsMainchainCore reports the Bitcoin Core node serving as the mainchain, as

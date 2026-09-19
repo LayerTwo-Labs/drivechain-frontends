@@ -27,7 +27,7 @@ abstract class Sidechain extends Binary {
     switch (name) {
       case 'Big Block Covenant':
         return 'bbc';
-      case 'Liquid Signet':
+      case 'Elements Alpha':
         return 'liquid-signet';
       default:
         return name.toLowerCase();
@@ -209,9 +209,9 @@ abstract class Sidechain extends Binary {
 
 class LiquidSignet extends Sidechain {
   LiquidSignet({
-    super.name = 'Liquid Signet',
-    super.version = 'bf8e9e1e5a6453b3a0573ff57cf9c92b2b3afe2b',
-    super.description = 'Elements/Liquid sidechain',
+    super.name = 'Elements Alpha',
+    super.version = 'cad1fc1fb5695c14234c4e287cf9e47d958609e7',
+    super.description = 'Elements sidechain',
     super.repoUrl = 'https://github.com/ekulkisnek/liquid-drivechain-signet-adaptation',
     DirectoryConfig? directories,
     MetadataConfig? metadata,
@@ -225,7 +225,7 @@ class LiquidSignet extends Sidechain {
              metadata ??
              MetadataConfig(
                downloadConfig: DownloadConfig(
-                 binary: 'liquid-signet',
+                 binary: 'elementsd',
                  files: allPlatforms(''),
                ),
                remoteTimestamp: null,

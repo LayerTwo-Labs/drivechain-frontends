@@ -3,6 +3,8 @@ package sidechain
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 // BlockTemplate is a sidechain block that is ready to be blind merged mined.
@@ -68,6 +70,15 @@ type WithdrawalNode interface {
 	// GetLatestFailedWithdrawalBundleHeight returns the height of the last
 	// bundle the mainchain refused.
 	GetLatestFailedWithdrawalBundleHeight(ctx context.Context) (int64, error)
+}
+
+// WalletParamsNode is a Core derived sidechain whose wallet keys use their own
+// address and key encodings, not the mainchain's.
+type WalletParamsNode interface {
+	Node
+
+	// WalletParams returns the encodings the node's wallet imports keys with.
+	WalletParams() *chaincfg.Params
 }
 
 // CoreWalletName is the wallet a Bitcoin Core derived sidechain loads. Core

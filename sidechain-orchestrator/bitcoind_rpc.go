@@ -71,6 +71,10 @@ func CallBitcoindRPC(ctx context.Context, url, user, password, method string, pa
 		return nil, fmt.Errorf("read %s response: %w", method, err)
 	}
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("%s: %w", method, ErrRPCUnauthorized)
+	}
+
 	var rpcResp struct {
 		Result json.RawMessage `json:"result"`
 		Error  *struct {
@@ -92,6 +96,9 @@ func CallBitcoindRPC(ctx context.Context, url, user, password, method string, pa
 	}
 	return rpcResp.Result, nil
 }
+
+// ErrRPCUnauthorized is Core's answer to credentials it does not know.
+var ErrRPCUnauthorized = errors.New("rpc credentials rejected")
 
 // RPCMethodNotFound is the JSON-RPC code Core answers for an unknown method.
 const RPCMethodNotFound = -32601

@@ -615,7 +615,9 @@ func (o *Orchestrator) restartResetBinary(ctx context.Context, binary ResetBinar
 	var startErr error
 	switch binary {
 	case ResetBinaryBitcoind:
-		o.prepareCoreArgs(&opts)
+		if startErr = o.prepareCoreArgs(&opts); startErr != nil {
+			break
+		}
 		if !o.startBitcoindOnly(ctx, opts, ch) {
 			startErr = fmt.Errorf("start %s failed", cfg.Name)
 		}

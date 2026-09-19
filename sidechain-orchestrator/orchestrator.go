@@ -921,7 +921,11 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		o.awaitDrainForBoot(ctx)
 
 		if !skipLocalL1 {
-			o.prepareCoreArgs(&opts)
+			if err := o.prepareCoreArgs(&opts); err != nil {
+				mon := o.getOrCreateMonitor(config.Name, NewHealthChecker(config), nil)
+				failBoot(mon, ch, "bitcoind args", err)
+				return
+			}
 			o.prepareEnforcerArgs(&opts)
 		}
 		o.injectSidechainStarter(config, &opts)
@@ -941,7 +945,8 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 		// prefetch is still running when we need to start, we block on its
 		// completion — which is no worse than the old sequential flow.
 		var enforcerPrefetch <-chan error
-		if !skipLocalL1 {
+		needsEnforcer := !skipLocalL1 && startsEnforcer(config)
+		if needsEnforcer {
 			enforcerPrefetch = o.prefetchBinary(ctx, o.configs["enforcer"], false)
 		}
 		var targetPrefetch <-chan error
@@ -955,7 +960,9 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 				return
 			}
 
-			o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			if needsEnforcer {
+				o.startEnforcerWhenReady(ctx, opts, enforcerPrefetch)
+			}
 
 			// Wait for enforcer's gRPC port to actually accept dials before
 			// launching the sidechain target. startEnforcerWhenReady returns
@@ -964,7 +971,7 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 			// and exit with "tcp connect error" against the CUSF mainchain
 			// service. Gated on ChainLayer == 2 so the L1 binaries (bitcoind,
 			// enforcer as target) don't wait on themselves.
-			if config.ChainLayer == 2 {
+			if config.ChainLayer == 2 && needsEnforcer {
 				enforcerCfg := o.configs["enforcer"]
 				enforcerMon := o.getOrCreateMonitor("enforcer", NewHealthChecker(enforcerCfg), enforcerStartupPatterns)
 				if errMsg := enforcerMon.ConnectionError(); errMsg != "" {
@@ -984,17 +991,35 @@ func (o *Orchestrator) StartWithL1(ctx context.Context, target string, opts Star
 	return ch, nil
 }
 
+// startsEnforcer reports whether a boot of target brings up the local enforcer.
+func startsEnforcer(target BinaryConfig) bool {
+	return target.ChainLayer != 2 || lo.Contains(target.Dependencies, "enforcer")
+}
+
 // prepareCoreArgs auto-fills opts.CoreArgs from BitcoinConf when empty.
-func (o *Orchestrator) prepareCoreArgs(opts *StartOpts) {
+func (o *Orchestrator) prepareCoreArgs(opts *StartOpts) error {
 	if len(opts.CoreArgs) > 0 || o.BitcoinConf == nil {
-		return
+		return nil
+	}
+	cookie, err := config.MainchainReaderCookie(o.DataDir)
+	if err != nil {
+		return err
+	}
+	section := config.CoreSectionForNetwork(o.BitcoinConf.Network)
+	ownWhitelist := o.BitcoinConf.Config != nil &&
+		(o.BitcoinConf.Config.GetEffectiveSetting("rpcwhitelist", section) != "" ||
+			o.BitcoinConf.Config.GetEffectiveSetting("rpcwhitelistdefault", section) != "")
+	reader, err := config.MainchainReaderArgs(cookie, ownWhitelist)
+	if err != nil {
+		return err
 	}
 	confPath := o.BitcoinConf.GetConfFilePath()
-	opts.CoreArgs = []string{
+	opts.CoreArgs = append([]string{
 		fmt.Sprintf("-conf=%s", confPath),
 		fmt.Sprintf("-datadir=%s", o.BitcoinConf.RootDataDir()),
-	}
-	o.log.Info().Strs("core_args", opts.CoreArgs).Msg("auto-built core args from config")
+	}, reader...)
+	o.log.Info().Str("conf", confPath).Msg("auto-built core args from config")
+	return nil
 }
 
 // prepareEnforcerArgs auto-fills opts.EnforcerArgs from EnforcerConf when empty.
@@ -1047,6 +1072,14 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		return fmt.Errorf("no directory config for %s", cfg.Name)
 	}
 	cookiePath := filepath.Join(dirs.DatadirNetwork(config.Network(o.Network), ""), ".cookie")
+	node, err := nodes.New(cfg.Name, cfg.RPCHost(), cfg.Port, cfg.IsBitcoinCore, config.Network(o.Network))
+	if err != nil {
+		return err
+	}
+	netParams := o.NetParams.Resolve()
+	if own, ok := node.(sidechain.WalletParamsNode); ok {
+		netParams = own.WalletParams()
+	}
 	user, password, err := config.ReadCookieFile(cookiePath)
 	if err != nil {
 		return err
@@ -1058,10 +1091,10 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 		// its own HD wallet at startup. sethdseed re-seeds that wallet from the mnemonic so every
 		// address it derives is reproducible — folding it into the unified backup like the descriptor
 		// chains, from v0.2.12 of the fork (earlier binaries lack sethdseed; see the wallet package).
-		return wallet.EnsureLegacyCoreWalletFromMnemonic(ctx, rpc, o.log, mnemonic, o.NetParams.Resolve())
+		return wallet.EnsureLegacyCoreWalletFromMnemonic(ctx, rpc, o.log, mnemonic, netParams)
 	}
 	return wallet.EnsureCoreWalletFromMnemonic(
-		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, o.NetParams.Resolve(),
+		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, netParams,
 	)
 }
 
@@ -1276,6 +1309,67 @@ func (h bootHost) MainchainBlockHash(ctx context.Context, height int) (string, e
 		return "", fmt.Errorf("decode the mainchain block hash at %d: %w", height, err)
 	}
 	return hash, nil
+}
+
+func (h bootHost) MainchainRPC() (string, int, error) {
+	o := h.orch
+	if o.NodeMode() == NodeModeLight || o.BitcoinConf == nil {
+		return "", 0, fmt.Errorf("this sidechain reads a local mainchain node, and none runs")
+	}
+	return o.BitcoinConf.GetRPCHost(), o.BitcoinConf.GetRPCPort(), nil
+}
+
+func (h bootHost) MainchainCookie() string {
+	if h.orch.BitcoinConf == nil {
+		return ""
+	}
+	return h.orch.BitcoinConf.GetRPCCookiePath()
+}
+
+func (h bootHost) MainchainReader(ctx context.Context) (string, error) {
+	o := h.orch
+	host, port, err := h.MainchainRPC()
+	if err != nil {
+		return "", err
+	}
+	cookie, err := config.MainchainReaderCookie(o.DataDir)
+	if err != nil {
+		return "", err
+	}
+	err = probeMainchainReader(ctx, host, port, cookie)
+	if !errors.Is(err, ErrRPCUnauthorized) {
+		return cookie, err
+	}
+	// Core reads -rpcauth only at start.
+	if !o.process.IsRunning("bitcoind") || (o.process.IsAdopted("bitcoind") && !o.mayStopAdopted("bitcoind")) {
+		return "", fmt.Errorf("restart Bitcoin Core from BitWindow so it accepts the mainchain reader")
+	}
+	ch, err := o.RestartDaemon(ctx, "bitcoind")
+	if err != nil {
+		return "", err
+	}
+	if err := drainStartupError(ch); err != nil {
+		return "", fmt.Errorf("restart bitcoind to add the mainchain reader: %w", err)
+	}
+	if err := probeMainchainReader(ctx, host, port, cookie); err != nil {
+		return "", fmt.Errorf("bitcoind still refuses the mainchain reader: %w", err)
+	}
+	return cookie, nil
+}
+
+// probeMainchainReader fails only when Core cannot be reached or refuses the
+// reader; an RPC error means Core accepted the credentials.
+func probeMainchainReader(ctx context.Context, host string, port int, cookie string) error {
+	user, password, err := config.ReadCookieFile(cookie)
+	if err != nil {
+		return err
+	}
+	_, err = CallBitcoindRPC(ctx, fmt.Sprintf("http://%s:%d", host, port), user, password, "getblockcount", nil)
+	var rpcErr *RPCError
+	if errors.As(err, &rpcErr) {
+		return nil
+	}
+	return err
 }
 
 func (h bootHost) ToolPath(name string) string {
@@ -1563,7 +1657,10 @@ func (o *Orchestrator) RestartDaemon(ctx context.Context, name string, options .
 
 		switch name {
 		case "bitcoind":
-			o.prepareCoreArgs(&opts)
+			if err := o.prepareCoreArgs(&opts); err != nil {
+				failBoot(o.getOrCreateMonitor(name, NewHealthChecker(config), bitcoindStartupPatterns), ch, "bitcoind args", err)
+				return
+			}
 			if !o.startBitcoindOnly(ctx, opts, ch) {
 				return
 			}
@@ -1849,6 +1946,10 @@ func (o *Orchestrator) startTargetOnly(ctx context.Context, config BinaryConfig,
 		}
 
 		if !opensFrontend {
+			if err := o.ensureCoreSidechainWallet(ctx, config); err != nil {
+				failBoot(targetMon, ch, "wallet for "+config.Name, err)
+				return
+			}
 			o.log.Info().Str("binary", config.Name).Msg("target already running, not booting")
 			ch <- StartupProgress{Stage: "waiting-" + config.Name, Message: fmt.Sprintf("%s already running", config.DisplayName)}
 			ch <- StartupProgress{Stage: "done", Message: fmt.Sprintf("%s started", config.DisplayName), Done: true}
