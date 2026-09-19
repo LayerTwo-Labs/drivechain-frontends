@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
@@ -19,10 +20,15 @@ const (
 )
 
 func frozenHandler(t *testing.T, mempool *fakeSlotMempool) *BMMHandler {
-	t.Helper()
-	h, _ := newBMMModeHandler(t)
-	h.SetCoreCaller(mempool.call)
+	h, _ := frozenHandlerWithStore(t, mempool)
 	return h
+}
+
+func frozenHandlerWithStore(t *testing.T, mempool *fakeSlotMempool) (*BMMHandler, *bmmstate.Store) {
+	t.Helper()
+	h, store := newBMMModeHandler(t)
+	h.SetCoreCaller(mempool.call)
+	return h, store
 }
 
 // The change of a live bid dies with the replacement of that bid, because a
@@ -72,13 +78,28 @@ func TestFrozenCoinsFreesTheCoinsOfAConfirmedBid(t *testing.T) {
 }
 
 // An Electrum wallet lists its own change before Core sees the transaction
-// that paid it, so an unconfirmed coin the node cannot name waits.
-func TestFrozenCoinsHoldsAnUnconfirmedCoinTheNodeCannotName(t *testing.T) {
-	h := frozenHandler(t, &fakeSlotMempool{})
+// that paid it, so the round record answers for a coin the mempool cannot name.
+func TestFrozenCoinsHoldsAnUnconfirmedBidTheNodeCannotName(t *testing.T) {
+	h, store := frozenHandlerWithStore(t, &fakeSlotMempool{})
+	require.NoError(t, store.Save(bmmstate.Round{
+		Sidechain:    9,
+		PrevMainHash: oldBlock,
+		OurBids:      []bmmstate.Bid{{Txid: liveBid, IsOurs: true}},
+	}))
 
 	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{{TxID: liveBid, Vout: 1}})
 	require.NoError(t, err)
 	assert.True(t, frozen[liveBid+":1"])
+}
+
+// A wallet that chains a send on its own unconfirmed change must not lose every
+// coin to the bid guard. Only a bid this node sent holds a coin.
+func TestFrozenCoinsFreesAnUnconfirmedCoinNoBidMade(t *testing.T) {
+	h := frozenHandler(t, &fakeSlotMempool{})
+
+	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{{TxID: plainTx, Vout: 0}})
+	require.NoError(t, err)
+	assert.Empty(t, frozen)
 }
 
 // Light mode reads no mainchain mempool, so the wallet's own unconfirmed
