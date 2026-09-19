@@ -95,3 +95,22 @@ func TestDrivechainIndexURLFollowsTheGeneration(t *testing.T) {
 		}
 	}
 }
+
+// The split engine reads drivechain's own BTC explorer first, and the public
+// explorers only when it fails.
+func TestSplitCheckEsploraURLsReadDrivechainFirst(t *testing.T) {
+	want := []string{
+		"https://explorer.mainnet.drivechain.info/api",
+		"https://mempool.space/api",
+		"https://blockstream.info/api",
+	}
+	got := SplitCheckEsploraURLs()
+	if len(got) != len(want) {
+		t.Fatalf("split servers = %q, want %q", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("split server %d = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
