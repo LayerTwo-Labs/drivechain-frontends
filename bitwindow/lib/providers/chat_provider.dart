@@ -551,7 +551,9 @@ class ChatProvider extends ChangeNotifier {
     final contact = ChatContact(
       id: entry.hash,
       name: entry.hash,
-      plaintextName: entry.plaintextName,
+      // A listing row carries no name when the chain never saw the plaintext.
+      // The names this wallet already holds answer it.
+      plaintextName: entry.plaintextName ?? knownPlaintextName(entry.hash),
       encryptionPubkey: entry.details.encryptionPubkey!,
       address: address,
       paymailFeeSats: entry.details.paymailFeeSats,
@@ -943,6 +945,20 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
+  /// The plaintext behind a hash, from the names this wallet already holds:
+  /// the saved mapping first, then the chain listing.
+  String? knownPlaintextName(String hash) {
+    final saved = _hashNameMapping.value[hash]?.name;
+    if (saved != null && saved.isNotEmpty) {
+      return saved;
+    }
+    final listed = _allBitNames.firstWhereOrNull((entry) => entry.hash == hash)?.plaintextName;
+    if (listed != null && listed.isNotEmpty) {
+      return listed;
+    }
+    return null;
+  }
+
   String _reportLateSend(String txid) {
     _error = 'The node accepted the message. The wallet change stopped the local history save.';
     notifyListeners();
@@ -1013,10 +1029,14 @@ class ChatProvider extends ChangeNotifier {
       // holder's address. A fresh address of this wallet pays nobody.
       final address = await bitnamesRPC.getBitNameOwner(hash);
 
+      // A BitName stores only the hash on chain, so a hash the user pastes
+      // carries no name of its own. The names this wallet already knows answer
+      // it; without one the row falls back to the hash.
+      final typed = nameOrHash.toLowerCase() == hash ? null : nameOrHash;
       return ChatContact(
         id: hash,
         name: hash,
-        plaintextName: nameOrHash,
+        plaintextName: typed ?? knownPlaintextName(hash),
         encryptionPubkey: data.encryptionPubkey!,
         address: address,
         paymailFeeSats: data.paymailFeeSats,

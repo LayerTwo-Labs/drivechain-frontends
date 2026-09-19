@@ -41,6 +41,7 @@ class _ChatRPC extends MockBitnamesRPC {
   bool failPending = false;
 
   List<BitnameEntry> listed = [];
+  Object? transferError;
   List<SidechainUTXO> utxos = [];
 
   @override
@@ -147,6 +148,9 @@ class _ChatRPC extends MockBitnamesRPC {
   @override
   Future<String> transfer({required String dest, required int value, required int fee, String? memo}) async {
     await transferWait?.future;
+    if (transferError != null) {
+      throw transferError!;
+    }
     transfers.add((address: dest, value: value, fee: fee, memo: memo));
     final txid = 'tx-${transfers.length}';
     mempool.add(txid);
@@ -293,6 +297,29 @@ void main() {
     await provider.fetchPaymail();
     return (wallet, store);
   }
+
+  // A failed send used to put the draft back and say nothing, so the user read
+  // it as the button doing nothing at all.
+  test('a failed send leaves the reason on the view model', () async {
+    await walletChat();
+    GetIt.I.registerSingleton<ChatProvider>(provider);
+    final model = ChatViewModel();
+    try {
+      final contact = await provider.lookupBitName('alice');
+      await provider.addContact(contact!);
+      model.selectIdentity(bob);
+      model.selectContact(contact);
+      rpc.transferError = ConnectException(Code.unavailable, 'the node refused the transfer');
+      model.messageController.text = 'Hello Alice';
+
+      await model.sendMessage();
+
+      expect(model.chatError, contains('the node refused the transfer'));
+      expect(model.messageController.text, 'Hello Alice', reason: 'the draft comes back');
+    } finally {
+      model.dispose();
+    }
+  });
 
   for (final action in ['change', 'lock']) {
     test('the composer clears an unsent draft after a wallet $action', () async {
@@ -1137,6 +1164,40 @@ void main() {
     expect(provider.myIdentities.map((entry) => entry.hash), [eCashr.hash]);
     expect(provider.getFilteredBitNames('eCashr').map((entry) => entry.hash), [eCashr.hash]);
     expect(provider.getFilteredBitNames('ECASH').map((entry) => entry.hash), [eCashr.hash]);
+  });
+
+  // A BitName stores only the hash on chain. A user who pastes a hash gets the
+  // name back when this wallet already knows it, rather than a row of hex.
+  test('a contact from a hash takes the name the chain listing holds', () async {
+    rpc.listed = [alice];
+    await provider.fetchIdentities();
+
+    final contact = await provider.lookupBitName(alice.hash);
+
+    expect(contact!.id, alice.hash);
+    expect(contact.plaintextName, 'alice');
+    expect(contact.displayName, 'alice');
+  });
+
+  test('a contact from an unknown hash falls back to the hash', () async {
+    rpc.listed = [];
+    await provider.fetchIdentities();
+
+    final contact = await provider.lookupBitName(alice.hash);
+
+    expect(contact!.plaintextName, isNull);
+    expect(contact.displayName, alice.hash);
+  });
+
+  // The Add Contact dialog goes through addContactFromEntry, so the fallback
+  // has to sit there too.
+  test('the contact dialog names an entry the chain left unnamed', () async {
+    final unnamed = BitnameEntry(hash: alice.hash, plaintextName: null, details: alice.details);
+    await provider.saveNameMapping('alice');
+
+    await provider.addContactFromEntry(unnamed);
+
+    expect(provider.contacts.single.displayName, 'alice');
   });
 
   test('a contact from a plain name keeps its sent message', () async {
