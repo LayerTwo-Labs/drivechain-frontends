@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/engines/bmmstate"
 	wpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/wallet"
 )
@@ -20,15 +19,10 @@ const (
 )
 
 func frozenHandler(t *testing.T, mempool *fakeSlotMempool) *BMMHandler {
-	h, _ := frozenHandlerWithStore(t, mempool)
-	return h
-}
-
-func frozenHandlerWithStore(t *testing.T, mempool *fakeSlotMempool) (*BMMHandler, *bmmstate.Store) {
 	t.Helper()
-	h, store := newBMMModeHandler(t)
+	h, _ := newBMMModeHandler(t)
 	h.SetCoreCaller(mempool.call)
-	return h, store
+	return h
 }
 
 // The change of a live bid dies with the replacement of that bid, because a
@@ -77,19 +71,32 @@ func TestFrozenCoinsFreesTheCoinsOfAConfirmedBid(t *testing.T) {
 	assert.Empty(t, frozen)
 }
 
-// An Electrum wallet lists its own change before Core sees the transaction
-// that paid it, so the round record answers for a coin the mempool cannot name.
-func TestFrozenCoinsHoldsAnUnconfirmedBidTheNodeCannotName(t *testing.T) {
-	h, store := frozenHandlerWithStore(t, &fakeSlotMempool{})
-	require.NoError(t, store.Save(bmmstate.Round{
-		Sidechain:    9,
-		PrevMainHash: oldBlock,
-		OurBids:      []bmmstate.Bid{{Txid: liveBid, IsOurs: true}},
-	}))
+// An Electrum wallet lists its own change before Core sees the transaction that
+// paid it, so the wallet's own view names the bid line of a coin the mempool
+// cannot name, the bid and everything chained on it.
+func TestFrozenCoinsHoldsAnUnnamedBidLine(t *testing.T) {
+	h := frozenHandler(t, &fakeSlotMempool{})
+	h.wallet = &fakeBidWallet{
+		txs: []*wpb.TransactionEntry{{Txid: "bid"}, {Txid: "payment"}},
+		details: map[string]*wpb.GetTransactionDetailsResponse{
+			"bid": {
+				Inputs:  []*wpb.TransactionInput{{PrevTxid: "coin", PrevVout: 0}},
+				Outputs: []*wpb.TransactionOutput{m8Output(t, 9)},
+			},
+			"payment": {Inputs: []*wpb.TransactionInput{{PrevTxid: "bid", PrevVout: 1}}},
+		},
+	}
 
-	frozen, err := h.FrozenCoins(context.Background(), "", []wallet.Outpoint{{TxID: liveBid, Vout: 1}})
+	frozen, err := h.FrozenCoins(context.Background(), "bidder", []wallet.Outpoint{
+		{TxID: "bid", Vout: 1},
+		{TxID: "payment", Vout: 0},
+		{TxID: plainTx, Vout: 0},
+	})
 	require.NoError(t, err)
-	assert.True(t, frozen[liveBid+":1"])
+
+	assert.True(t, frozen["bid:1"], "the change of the bid")
+	assert.True(t, frozen["payment:0"], "the change of a transaction chained on the bid")
+	assert.False(t, frozen[plainTx+":0"], "a coin no bid reaches")
 }
 
 // A wallet that chains a send on its own unconfirmed change must not lose every

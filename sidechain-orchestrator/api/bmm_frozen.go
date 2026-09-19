@@ -32,19 +32,13 @@ func (c coreBids) frozenCoins(
 		return nil, err
 	}
 	bids := newBidCache(c.h)
-	ours, err := c.h.ourBidTxids()
-	if err != nil {
-		return nil, err
-	}
 
 	frozen := make(map[string]bool)
+	var unnamed []wallet.Outpoint
 	for _, cand := range candidates {
 		if !held[cand.TxID] {
-			// An Electrum wallet broadcasts through Esplora and lists its own
-			// change before Core sees the transaction that paid it, so the
-			// round record answers for a coin the mempool does not name.
-			if !cand.Confirmed && ours[cand.TxID] {
-				frozen[cand.Key()] = true
+			if !cand.Confirmed {
+				unnamed = append(unnamed, cand)
 			}
 			continue
 		}
@@ -54,6 +48,19 @@ func (c coreBids) frozenCoins(
 		}
 		if onABid {
 			frozen[cand.Key()] = true
+		}
+	}
+
+	// An Electrum wallet broadcasts through Esplora and lists its own change
+	// before Core sees the transaction that paid it. The wallet's own view
+	// names the bid line of a coin the mempool cannot name.
+	if len(unnamed) > 0 && c.h.wallet != nil {
+		fromWallet, err := walletBids(c).frozenCoins(ctx, walletID, unnamed)
+		if err != nil {
+			return nil, err
+		}
+		for key := range fromWallet {
+			frozen[key] = true
 		}
 	}
 
@@ -229,17 +236,4 @@ func (h *BMMHandler) readSpenderBatch(
 		out[wallet.Outpoint{TxID: s.Txid, Vout: s.Vout}.Key()] = s.SpendingTxid
 	}
 	return nil
-}
-
-// ourBidTxids names the bids this node broadcast. A coin no mempool names is
-// frozen only when one of them made it.
-func (h *BMMHandler) ourBidTxids() (map[string]bool, error) {
-	if h.engine == nil {
-		return nil, nil
-	}
-	txids, err := h.engine.OurBidTxids()
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("read the bids this node sent: %w", err))
-	}
-	return txids, nil
 }
