@@ -411,7 +411,29 @@ func (s *Server) ListWithdrawals(
 	var startBlockHash string
 	var existingBundles []*pb.WithdrawalBundle
 
-	if cache != nil && cache.activationHeight == activationHeight && cache.lastBlockHeight > 0 {
+	reuseCache := false
+	if cache != nil && cache.activationHeight == activationHeight &&
+		cache.lastBlockHeight > 0 && cache.lastBlockHeight <= currentHeight {
+		ancestors := currentHeight - cache.lastBlockHeight
+		headersResp, err := enforcer.GetBlockHeaderInfo(ctx, connect.NewRequest(&validatorpb.GetBlockHeaderInfoRequest{
+			BlockHash:    chainTipResp.Msg.BlockHeaderInfo.BlockHash,
+			MaxAncestors: &ancestors,
+		}))
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal,
+				fmt.Errorf("get cached block header: %w", err))
+		}
+		reuseCache = cacheOnChain(cache, headersResp.Msg.HeaderInfos)
+		if !reuseCache {
+			log.Info().
+				Uint32("sidechain", sidechainId).
+				Uint32("cachedHeight", cache.lastBlockHeight).
+				Str("cachedHash", cache.lastBlockHash).
+				Msg("ListWithdrawals: cached block left the active chain, read again from activation")
+		}
+	}
+
+	if reuseCache {
 		// We have a cache - only fetch new blocks since last fetch
 		// Start from the block AFTER our last cached block
 		startBlockHash = cache.lastBlockHash
@@ -484,6 +506,16 @@ func (s *Server) ListWithdrawals(
 	return connect.NewResponse(&pb.ListWithdrawalsResponse{
 		Bundles: s.updateBundleAges(allBundles, currentHeight),
 	}), nil
+}
+
+// cacheOnChain reports whether the cached block is in headers, the ancestors
+// of the current tip. A reorg or a network switch takes it out.
+func cacheOnChain(cache *withdrawalCache, headers []*validatorpb.BlockHeaderInfo) bool {
+	return lo.ContainsBy(headers, func(h *validatorpb.BlockHeaderInfo) bool {
+		return h.Height == cache.lastBlockHeight &&
+			h.BlockHash != nil && h.BlockHash.Hex != nil &&
+			h.BlockHash.Hex.Value == cache.lastBlockHash
+	})
 }
 
 // BIP300 withdrawal verification period (max age for a bundle)
