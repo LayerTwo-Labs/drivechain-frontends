@@ -210,7 +210,9 @@ void main() {
   setUp(() {
     final log = Logger();
     GetIt.I.registerSingleton<Logger>(log);
-    GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: MockStore(), log: log));
+    final store = MockStore();
+    GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: store, log: log));
+    GetIt.I.registerSingleton<BitwindowClientSettings>(BitwindowClientSettings(store: store, log: log));
     rpc = _ChatRPC();
     alice = rpc.addIdentity('alice', 1);
     bob = rpc.addIdentity('bob', 2);
@@ -314,11 +316,56 @@ void main() {
 
       await model.sendMessage();
 
-      expect(model.chatError, contains('the node refused the transfer'));
+      expect(model.sendError, contains('the node refused the transfer'));
       expect(model.messageController.text, 'Hello Alice', reason: 'the draft comes back');
     } finally {
       model.dispose();
     }
+  });
+
+  // The paymail poll rewrites the shared error on every tick. A send failure
+  // kept there would disappear within seconds of the user reading it.
+  test('a paymail poll does not erase why the send failed', () async {
+    await walletChat();
+    GetIt.I.registerSingleton<ChatProvider>(provider);
+    final model = ChatViewModel();
+    try {
+      final contact = await provider.lookupBitName('alice');
+      await provider.addContact(contact!);
+      model.selectIdentity(bob);
+      model.selectContact(contact);
+      rpc.transferError = ConnectException(Code.unavailable, 'the node refused the transfer');
+      model.messageController.text = 'Hello Alice';
+      await model.sendMessage();
+      expect(model.sendError, contains('the node refused the transfer'));
+
+      rpc.transferError = null;
+      await provider.fetchPaymail();
+
+      expect(provider.error, isNull, reason: 'a clean poll clears its own error');
+      expect(model.sendError, contains('the node refused the transfer'), reason: 'the send failure stays');
+    } finally {
+      model.dispose();
+    }
+  });
+
+  // The banner sits above the message box, so a failure from one conversation
+  // must not accuse the next one.
+  test('a new conversation clears why the last send failed', () async {
+    await walletChat();
+    final alice = (await provider.lookupBitName('alice'))!;
+    final other = (await provider.lookupBitName('bob'))!;
+    await provider.addContact(alice);
+    await provider.addContact(other);
+    provider.selectIdentity(bob);
+    provider.selectContact(alice);
+    rpc.transferError = ConnectException(Code.unavailable, 'the node refused the transfer');
+    await provider.sendMessage('Hello Alice');
+    expect(provider.sendError, isNotNull);
+
+    provider.selectContact(other);
+
+    expect(provider.sendError, isNull);
   });
 
   for (final action in ['change', 'lock']) {
@@ -365,7 +412,7 @@ void main() {
       rpc.names[alice.hash] = BitNameData(encryptionPubkey: alice.details.encryptionPubkey, paymailFeeSats: 2500);
       model.messageController.text = 'Private draft B';
       await model.sendMessage();
-      expect(model.chatError, contains('The postage increased'));
+      expect(model.sendError, contains('The postage increased'));
       expect(model.messageController.text, 'Private draft B');
     } finally {
       rpc.encryptWait!.complete();
@@ -390,7 +437,7 @@ void main() {
       await model.sendMessage();
 
       expect(model.messageController.text, 'Private draft A');
-      expect(model.chatError, contains('The recipient BitName has no inbox'));
+      expect(model.sendError, contains('The recipient BitName has no inbox'));
       expect(rpc.transfers, isEmpty);
     } finally {
       model.dispose();
@@ -516,7 +563,7 @@ void main() {
       expect(result, step == 'encrypt' ? isNull : 'tx-1');
       expect(provider.contacts.single.lastMessage, isNull);
       expect(
-        provider.error,
+        provider.sendError,
         step == 'encrypt' ? isNull : 'The node accepted the message. The wallet change stopped the local history save.',
       );
       final saved = await store.load();
@@ -1200,6 +1247,16 @@ void main() {
     expect(provider.contacts.single.displayName, 'alice');
   });
 
+  // The dialog saves the mapping without a wait, so the caller must carry the
+  // name it matched.
+  test('the contact dialog names an entry before the mapping save lands', () async {
+    final unnamed = BitnameEntry(hash: alice.hash, plaintextName: null, details: alice.details);
+
+    await provider.addContactFromEntry(unnamed, plaintextName: 'alice');
+
+    expect(provider.contacts.single.displayName, 'alice');
+  });
+
   test('a contact from a plain name keeps its sent message', () async {
     final contact = await provider.lookupBitName('alice');
     expect(contact!.id, alice.hash);
@@ -1285,7 +1342,7 @@ void main() {
     rpc.names[alice.hash] = BitNameData(encryptionPubkey: alice.details.encryptionPubkey);
     expect(await provider.sendMessage('Hello Alice'), isNull);
     expect(rpc.transfers, isEmpty);
-    expect(provider.error, contains('The recipient BitName has no inbox'));
+    expect(provider.sendError, contains('The recipient BitName has no inbox'));
   });
 
   test('a zero-fee inbox can receive a message', () async {
@@ -1313,7 +1370,7 @@ void main() {
     expect(provider.postageSats, 2500);
     expect(provider.messageCostSats, 2600);
     expect(provider.isSending, isFalse);
-    expect(provider.error, 'The postage increased to 2500 sats. Select Send again to accept the new cost.');
+    expect(provider.sendError, 'The postage increased to 2500 sats. Select Send again to accept the new cost.');
     final contacts = await GetIt.I.get<ClientSettings>().getValue(ChatContactsSetting());
     expect(contacts.value.single.paymailFeeSats, 2500);
 

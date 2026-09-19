@@ -363,6 +363,10 @@ class ChatPage extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(height: SailStyleValues.padding08),
+                                  if (model.sendError != null) ...[
+                                    SailText.primary12(model.sendError!, color: theme.colors.error),
+                                    const SizedBox(height: SailStyleValues.padding08),
+                                  ],
                                   // Message input (inlined)
                                   Row(
                                     children: [
@@ -553,8 +557,11 @@ class _AddContactDialogState extends State<_AddContactDialog> {
     setState(() => isLoading = true);
 
     try {
-      // Create contact directly from entry data (no need to lookup again)
-      await widget.model.addContactFromEntry(entry);
+      // The typed name hashes to this row, so it names the row even before
+      // the mapping save lands on disk.
+      final typed = searchController.text.trim();
+      final matched = _findMatchingBitName()?.hash == entry.hash ? typed : null;
+      await widget.model.addContactFromEntry(entry, plaintextName: matched);
       if (mounted) {
         Navigator.of(context).pop();
       }
@@ -785,6 +792,7 @@ class ChatViewModel extends BaseViewModel {
   int get postageSats => _chatProvider.postageSats;
   int get messageCostSats => _chatProvider.messageCostSats;
   String? get chatError => _chatProvider.error;
+  String? get sendError => _chatProvider.sendError;
 
   bool get isClaiming => _chatProvider.isClaiming;
   String? get claimingStatus => _chatProvider.claimingStatus;
@@ -833,8 +841,8 @@ class ChatViewModel extends BaseViewModel {
     await _chatProvider.saveNameMapping(plaintextName);
   }
 
-  Future<void> addContactFromEntry(BitnameEntry entry) async {
-    await _chatProvider.addContactFromEntry(entry);
+  Future<void> addContactFromEntry(BitnameEntry entry, {String? plaintextName}) async {
+    await _chatProvider.addContactFromEntry(entry, plaintextName: plaintextName);
   }
 
   void selectContact(ChatContact contact) {
@@ -864,7 +872,7 @@ class ChatViewModel extends BaseViewModel {
     messageController.clear();
 
     final txid = await _chatProvider.sendMessage(content);
-    if (walletChange == _chatProvider.walletChange && txid == null && _chatProvider.error != null) {
+    if (walletChange == _chatProvider.walletChange && txid == null && _chatProvider.sendError != null) {
       messageController.text = content;
     }
   }
