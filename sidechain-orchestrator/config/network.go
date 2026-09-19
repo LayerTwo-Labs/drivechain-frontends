@@ -314,10 +314,14 @@ func ThunderEsploraURLForNetwork(n Network) string {
 	return SidechainEsploraURLForNetwork("thunder", n)
 }
 
-// SplitCheckEsploraURLs returns the public BTC-mainnet esplora servers the
-// split engine reads, primary first.
+// SplitCheckEsploraURLs returns the BTC-mainnet esplora servers the split
+// engine reads, primary first.
 func SplitCheckEsploraURLs() []string {
-	return []string{"https://mempool.space/api", "https://blockstream.info/api"}
+	return []string{
+		"https://explorer.mainnet.drivechain.info/api",
+		"https://mempool.space/api",
+		"https://blockstream.info/api",
+	}
 }
 
 // IsEcashFork reports whether the network is a fork of BTC mainnet, so its
