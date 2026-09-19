@@ -346,10 +346,15 @@ func TestUnforcedBackendKeepsItsWindow(t *testing.T) {
 	assert.Empty(t, opts.TargetArgs)
 }
 
-// A FreeBank backend starts with one --headless flag.
-func TestFreeBankForcedBackendGetsHeadlessOnce(t *testing.T) {
+// FreeBank has no frontend, so only a forced backend hides its window.
+func TestFreeBankHidesItsWindowOnlyAsABackend(t *testing.T) {
 	useTempHome(t)
 	orch := &Orchestrator{log: zerolog.Nop(), Network: string(config.NetworkRegtest), DataDir: t.TempDir()}
+
+	var windowed StartOpts
+	require.NoError(t, orch.appendSidechainArgs(context.Background(),
+		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 6130}, &windowed))
+	assert.NotContains(t, windowed.TargetArgs, "--headless")
 
 	fresh := StartOpts{ForceBackend: true}
 	require.NoError(t, orch.appendSidechainArgs(context.Background(),
