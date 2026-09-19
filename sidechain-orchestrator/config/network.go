@@ -262,11 +262,26 @@ func FeeExplorerURLForNetwork(n Network) string {
 // sit under a chain path. A network with no index answers empty, and a light
 // install there reads no sidechains.
 func DrivechainIndexURLForNetwork(n Network) string {
-	switch n {
-	case NetworkECash:
-		return "https://seed.alpha.ecash.eu.com/drivechain"
-	default:
+	host := ecashIndexHost(n, ECashNetworkID())
+	if host == "" {
 		return ""
+	}
+	return host + "/drivechain"
+}
+
+// ecashIndexHost names the box that serves one eCash generation's address
+// indexes. Each test generation runs its own; real ECX runs the bare host.
+func ecashIndexHost(n Network, generation string) string {
+	if n != NetworkECash {
+		return ""
+	}
+	switch generation {
+	case "alphanet":
+		return "https://seed.alpha.ecash.eu.com"
+	case "betanet":
+		return "https://seed.beta.ecash.eu.com"
+	default:
+		return "https://seed.ecash.eu.com"
 	}
 }
 
@@ -280,10 +295,14 @@ var indexedSidechains = []string{
 // SidechainEsploraURLForNetwork returns the address index hosted for one
 // sidechain on a network, or an empty string when none is hosted.
 func SidechainEsploraURLForNetwork(chain string, n Network) string {
-	if n != NetworkECash || !slices.Contains(indexedSidechains, chain) {
+	if !slices.Contains(indexedSidechains, chain) {
 		return ""
 	}
-	return "https://seed.alpha.ecash.eu.com/" + chain
+	host := ecashIndexHost(n, ECashNetworkID())
+	if host == "" {
+		return ""
+	}
+	return host + "/" + chain
 }
 
 // ThunderEsploraURLForNetwork returns the thunder address index for a network.
