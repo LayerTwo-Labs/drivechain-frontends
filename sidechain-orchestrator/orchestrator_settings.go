@@ -45,6 +45,22 @@ type OrchestratorSettings struct {
 	TorEnabled bool `json:"tor_enabled"`
 	// TorProxy is the SOCKS5 proxy address (host:port) used when TorEnabled.
 	TorProxy string `json:"tor_proxy"`
+	// Stratum is where the Stratum server sends its miners' work.
+	Stratum StratumSettings `json:"stratum"`
+}
+
+// StratumSettings is the work target of the Stratum server.
+type StratumSettings struct {
+	// Target is "solo", "pool" or "custom". Empty means solo.
+	Target string `json:"target,omitempty"`
+	// PoolID names the catalog pool when Target is "pool".
+	PoolID string `json:"pool_id,omitempty"`
+	// URL, Worker and Password reach the pool when Target is "custom".
+	URL      string `json:"url,omitempty"`
+	Worker   string `json:"worker,omitempty"`
+	Password string `json:"password,omitempty"`
+	// PayoutAddress is the wallet address a catalog pool pays.
+	PayoutAddress string `json:"payout_address,omitempty"`
 }
 
 // DefaultTorProxy is the SOCKS5 address of a standard local Tor daemon. Tor
@@ -347,4 +363,22 @@ func (s *SettingsStore) SetRewoundBlockHash(hash string) error {
 // CommitRewind records the block a drop barred, so a later switch can lift it.
 func (s *SettingsStore) CommitRewind(hash string) error {
 	return s.SetRewoundBlockHash(hash)
+}
+
+// StratumSettings returns the persisted Stratum target.
+func (s *SettingsStore) StratumSettings() StratumSettings {
+	return s.Get().Stratum
+}
+
+// SetStratumSettings persists the Stratum target.
+func (s *SettingsStore) SetStratumSettings(stratum StratumSettings) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := s.current
+	next.Stratum = stratum
+	if err := SaveSettings(s.bitwindowDir, next); err != nil {
+		return err
+	}
+	s.current = next
+	return nil
 }
