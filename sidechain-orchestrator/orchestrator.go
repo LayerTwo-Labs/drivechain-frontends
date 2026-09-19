@@ -1086,13 +1086,6 @@ func (o *Orchestrator) ensureCoreSidechainWallet(ctx context.Context, cfg Binary
 	}
 	rpc := wallet.NewCoreRPCClient(wallet.StaticCoreEndpoint(cfg.RPCHost(), cfg.Port, user, password))
 
-	if cfg.LegacyWallet {
-		// A pre-descriptor Core fork (FreeBank) has no createwallet/importdescriptors; it auto-creates
-		// its own HD wallet at startup. sethdseed re-seeds that wallet from the mnemonic so every
-		// address it derives is reproducible — folding it into the unified backup like the descriptor
-		// chains, from v0.2.12 of the fork (earlier binaries lack sethdseed; see the wallet package).
-		return wallet.EnsureLegacyCoreWalletFromMnemonic(ctx, rpc, o.log, mnemonic, netParams)
-	}
 	return wallet.EnsureCoreWalletFromMnemonic(
 		ctx, rpc, o.log, sidechain.CoreWalletName, mnemonic, netParams,
 	)

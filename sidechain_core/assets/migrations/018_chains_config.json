@@ -5,7 +5,6 @@
     "freebank": {
       "port": 6130,
       "is_bitcoin_core": false,
-      "legacy_wallet": false,
       "startup_log_patterns": [],
       "directories": {
         "binary": {
