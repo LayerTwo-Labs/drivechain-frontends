@@ -1,17 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:sidechain_core/utils/file_utils.dart';
-
 abstract class KeyValueStore {
   Future<String?> getString(String key);
   Future<void> setString(String key, String value);
   Future<void> delete(String key);
 
-  static Future<KeyValueStore> create({Directory? dir}) async {
-    return FileStorage.fromDirectory(
-      dir ?? await applicationSupportDir(),
-    );
+  static Future<KeyValueStore> create({required Directory dir}) async {
+    return FileStorage.fromDirectory(dir);
   }
 }
 
@@ -23,49 +19,55 @@ class FileStorage implements KeyValueStore {
   }
 
   final File file;
-  Map<String, String> _cache = {};
-  bool _loaded = false;
+  Future<void> _writes = Future<void>.value();
 
   FileStorage._(this.file);
 
-  Future<void> _ensureLoaded() async {
-    if (_loaded) {
-      return;
+  // Another app writes this same file. A cached copy goes stale, and a write
+  // from it drops what the other app saved.
+  Future<Map<String, String>> _read() async {
+    if (!await file.exists()) {
+      return {};
     }
+    try {
+      return Map<String, String>.from(jsonDecode(await file.readAsString()));
+    } catch (e) {
+      // If file is corrupted, start fresh
+      return {};
+    }
+  }
 
-    if (await file.exists()) {
+  // BitWindow and a sidechain app write this file from separate processes, so
+  // the read, the change and the write go under one lock. The rename gives a
+  // reader a whole file, never a half-written one.
+  Future<void> _write(void Function(Map<String, String>) change) {
+    final next = _writes.then((_) async {
+      final lock = await File('${file.path}.lock').open(mode: FileMode.write);
       try {
-        final contents = await file.readAsString();
-        _cache = Map<String, String>.from(jsonDecode(contents));
-      } catch (e) {
-        // If file is corrupted, start fresh
-        _cache = {};
+        await lock.lock(FileLock.blockingExclusive);
+        final values = await _read();
+        change(values);
+        final temp = File('${file.path}.$pid.tmp');
+        await temp.writeAsString(jsonEncode(values));
+        await temp.rename(file.path);
+      } finally {
+        await lock.close();
       }
-    }
-    _loaded = true;
-  }
-
-  Future<void> _save() async {
-    await file.writeAsString(jsonEncode(_cache));
+    });
+    _writes = next.catchError((Object _) {});
+    return next;
   }
 
   @override
-  Future<String?> getString(String key) async {
-    await _ensureLoaded();
-    return _cache[key];
+  Future<String?> getString(String key) async => (await _read())[key];
+
+  @override
+  Future<void> setString(String key, String value) {
+    return _write((values) => values[key] = value);
   }
 
   @override
-  Future<void> setString(String key, String value) async {
-    await _ensureLoaded();
-    _cache[key] = value;
-    await _save();
-  }
-
-  @override
-  Future<void> delete(String key) async {
-    await _ensureLoaded();
-    _cache.remove(key);
-    await _save();
+  Future<void> delete(String key) {
+    return _write((values) => values.remove(key));
   }
 }
