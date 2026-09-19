@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config/netcatalog"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -454,9 +455,69 @@ func TestGetCliArgsReflectsCurrentNetwork(t *testing.T) {
 	m.bitcoinConf.Network = NetworkMainnet
 	mainnetArgs := m.GetCliArgs()
 	requireArg(t, mainnetArgs, fmt.Sprintf("--node-rpc-addr=127.0.0.1:%d", RPCPortForNetwork(NetworkMainnet)))
-	// Mainnet has an esplora URL too; assert presence by prefix rather
-	// than exact value to keep the test robust to provider swaps.
-	requireArg(t, mainnetArgs, "--wallet-esplora-url=")
+	requireArg(t, mainnetArgs, "--wallet-sync-source=electrum")
+	requireArg(t, mainnetArgs, "--wallet-electrum-host=")
+	rejectArgPrefix(t, mainnetArgs, "--wallet-esplora-url=")
+}
+
+func setECashBackends(t *testing.T, backends ...netcatalog.Backend) {
+	t.Helper()
+	original := ECashEndpoints()
+	t.Cleanup(func() { SetECashEndpoints(original) })
+	SetECashEndpoints(netcatalog.Network{ID: "betanet", Backends: backends})
+}
+
+func TestGetCliArgsSyncsTheWalletFromThePublishedFulcrum(t *testing.T) {
+	setECashBackends(t,
+		netcatalog.Backend{Kind: netcatalog.KindEsplora, URL: "https://esplora.beta.example"},
+		netcatalog.Backend{Kind: netcatalog.KindFulcrum, URL: "ssl://fulcrum.beta.example:50002"},
+	)
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkECash
+
+	args := m.GetCliArgs()
+
+	assert.Contains(t, args, "--wallet-sync-source=electrum")
+	assert.Contains(t, args, "--wallet-electrum-host=ssl://fulcrum.beta.example")
+	assert.Contains(t, args, "--wallet-electrum-port=50002")
+	rejectArgPrefix(t, args, "--wallet-esplora-url=")
+}
+
+func TestGetCliArgsSyncsTheWalletFromEsploraWithoutAnElectrumServer(t *testing.T) {
+	setECashBackends(t, netcatalog.Backend{Kind: netcatalog.KindEsplora, URL: "https://esplora.beta.example"})
+	m, _ := newTestEnforcerManager(t)
+	require.NoError(t, m.LoadConfig())
+	m.bitcoinConf.Network = NetworkECash
+
+	args := m.GetCliArgs()
+
+	assert.Contains(t, args, "--wallet-esplora-url=https://esplora.beta.example")
+	rejectArgPrefix(t, args, "--wallet-sync-source=")
+	rejectArgPrefix(t, args, "--wallet-electrum-host=")
+}
+
+func TestGetCliArgsKeepsAPersistedWalletBackend(t *testing.T) {
+	setECashBackends(t, netcatalog.Backend{Kind: netcatalog.KindFulcrum, URL: "ssl://fulcrum.beta.example:50002"})
+
+	for key, value := range map[string]string{
+		"wallet-esplora-url":   "https://my-esplora.example",
+		"wallet-sync-source":   "disabled",
+		"wallet-electrum-host": "ssl://my-fulcrum.example",
+	} {
+		t.Run(key, func(t *testing.T) {
+			m, _ := newTestEnforcerManager(t)
+			require.NoError(t, m.LoadConfig())
+			m.bitcoinConf.Network = NetworkECash
+			m.Config.SetSetting(key, value)
+
+			args := m.GetCliArgs()
+
+			assert.Contains(t, args, fmt.Sprintf("--%s=%s", key, value))
+			rejectArg(t, args, "--wallet-sync-source=electrum")
+			rejectArg(t, args, "--wallet-electrum-host=ssl://fulcrum.beta.example")
+		})
+	}
 }
 
 func TestGetCliArgsOverlaysWhenConfigIsNil(t *testing.T) {
@@ -649,40 +710,6 @@ func TestGetCliArgs_PersistedCookieSuppressesDerivedUser(t *testing.T) {
 	assert.Contains(t, args, "--node-rpc-cookie-path=/custom/.cookie")
 	assert.False(t, hasArgPrefix(args, "--node-rpc-user="), "got %v", args)
 	assert.False(t, hasArgPrefix(args, "--node-rpc-pass="), "got %v", args)
-}
-
-func TestWithElectrumFallbackReplacesEsplora(t *testing.T) {
-	args := []string{"--enable-block-template-server", "--wallet-esplora-url=https://esplora.drynet4.drivechain.dev"}
-
-	got := WithElectrumFallback(args, "ssl://drynet4.drivechain.dev", 50002)
-
-	assert.Contains(t, got, "--enable-block-template-server")
-	assert.Contains(t, got, "--wallet-sync-source=electrum")
-	assert.Contains(t, got, "--wallet-electrum-host=ssl://drynet4.drivechain.dev")
-	assert.Contains(t, got, "--wallet-electrum-port=50002")
-	assert.False(t, hasArgPrefix(got, "--wallet-esplora-url="), "got %v", got)
-}
-
-// A pinned sync source is the user's choice, so the probe must not undo it.
-func TestWithElectrumFallbackKeepsPinnedSyncSource(t *testing.T) {
-	args := []string{"--wallet-esplora-url=https://esplora.example", "--wallet-sync-source=disabled"}
-
-	assert.Equal(t, args, WithElectrumFallback(args, "ssl://node.example", 50002))
-}
-
-func TestWithElectrumFallbackKeepsArgsWithoutElectrumServer(t *testing.T) {
-	args := []string{"--wallet-esplora-url=https://esplora.example"}
-
-	assert.Equal(t, args, WithElectrumFallback(args, "", 0))
-}
-
-func TestEsploraArgURL(t *testing.T) {
-	url, ok := EsploraArgURL([]string{"--enable-block-template-server", "--wallet-esplora-url=https://esplora.example"})
-	assert.True(t, ok)
-	assert.Equal(t, "https://esplora.example", url)
-
-	_, ok = EsploraArgURL([]string{"--enable-block-template-server"})
-	assert.False(t, ok)
 }
 
 // The L1 boot reads this file on a goroutine the swap starts, so it has to be
