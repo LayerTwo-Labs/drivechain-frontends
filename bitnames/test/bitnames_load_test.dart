@@ -197,7 +197,7 @@ void main() {
     rpc.reply.complete([]);
     await Future<void>.delayed(Duration.zero);
     final hash = 'a' * 64;
-    await GetIt.I.get<ClientSettings>().setValue(
+    await HashNameMappingSetting.settings.setValue(
       HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice')}),
     );
     provider.dispose();
@@ -220,7 +220,7 @@ void main() {
     final owned = 'a' * 64;
     final reservedHere = 'b' * 64;
     final heldElsewhere = 'c' * 64;
-    await GetIt.I.get<ClientSettings>().setValue(
+    await HashNameMappingSetting.settings.setValue(
       HashNameMappingSetting(newValue: {heldElsewhere: HashMapping(name: 'btcapsule', isMine: true)}),
     );
     rpc.utxos = [
@@ -271,7 +271,7 @@ void main() {
     expect(model.entries.map((entry) => entry.hash), [hash]);
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
-    final saved = await GetIt.I.get<ClientSettings>().getValue(HashNameMappingSetting());
+    final saved = await HashNameMappingSetting.settings.getValue(HashNameMappingSetting());
     expect(saved.value[hash]?.name, 'eCashr');
     model.searchController.text = 'ECASH';
     expect(model.entries.map((entry) => entry.hash), [hash]);
@@ -282,7 +282,7 @@ void main() {
     rpc.reply.complete([]);
     await Future<void>.delayed(Duration.zero);
     final hash = 'a' * 64;
-    final settings = GetIt.I.get<ClientSettings>();
+    final settings = HashNameMappingSetting.settings;
     await settings.setValue(
       HashNameMappingSetting(newValue: {hash: HashMapping(name: 'alice')}),
     );
@@ -300,10 +300,10 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     final directory = await Directory.systemTemp.createTemp('bitnames-name-save-');
     addTearDown(() => directory.delete(recursive: true));
-    final log = GetIt.I.get<ClientSettings>().log;
-    await GetIt.I.unregister<ClientSettings>();
-    final settings = ClientSettings(store: FileStorage.fromDirectory(directory), log: log);
-    GetIt.I.registerSingleton<ClientSettings>(settings);
+    final log = HashNameMappingSetting.settings.log;
+    await GetIt.I.unregister<BitwindowClientSettings>();
+    final settings = BitwindowClientSettings(store: FileStorage.fromDirectory(directory), log: log);
+    GetIt.I.registerSingleton<BitwindowClientSettings>(settings);
     final oldHash = 'c' * 64;
     await settings.setValue(
       HashNameMappingSetting(newValue: {oldHash: HashMapping(name: 'carol')}),
@@ -314,7 +314,7 @@ void main() {
       provider.saveHashNameMapping('bob'),
     ]);
 
-    final saved = await ClientSettings(
+    final saved = await BitwindowClientSettings(
       store: FileStorage.fromDirectory(directory),
       log: log,
     ).getValue(HashNameMappingSetting());

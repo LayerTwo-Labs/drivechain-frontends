@@ -560,7 +560,7 @@ class BitAssetsViewModel extends BaseViewModel {
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
   final BitAssetsProvider provider = GetIt.I.get<BitAssetsProvider>();
   final BitAssetsRPC bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
-  final ClientSettings clientSettings = GetIt.I.get<ClientSettings>();
+  BitwindowClientSettings get nameSettings => HashNameMappingSetting.settings;
 
   String? reserveError;
   bool reserveLoading = false;
@@ -696,10 +696,10 @@ class BitAssetsViewModel extends BaseViewModel {
       // Save the mapping with isMine=true
       final hash = blake3Hex(utf8.encode(name));
       final setting = HashNameMappingSetting();
-      final currentValue = await clientSettings.getValue(setting);
+      final currentValue = await nameSettings.getValue(setting);
       final newMappings = Map<String, HashMapping>.from(currentValue.value);
       newMappings[hash] = HashMapping(name: name, isMine: true);
-      await clientSettings.setValue(setting.withValue(newMappings));
+      await nameSettings.setValue(setting.withValue(newMappings));
 
       reserveLoading = false;
       notifyListeners();

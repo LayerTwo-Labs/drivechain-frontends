@@ -16,7 +16,6 @@ import 'package:sidechain_core/gen/bitnames/v1/bitnames.pb.dart' as pb;
 import 'package:sidechain_core/rpcs/orchestrator_rpc.dart';
 import 'package:sidechain_core/rpcs/rpc_sidechain.dart';
 import 'package:sidechain_core/rpcs/thunder_utxo.dart';
-import 'package:sidechain_core/settings/client_settings.dart';
 import 'package:sidechain_core/settings/hash_plaintext_settings.dart';
 import 'package:sidechain_core/models/core_transaction.dart';
 
@@ -279,7 +278,7 @@ class BitnamesLive extends BitnamesRPC {
 
   @override
   Future<List<BitnameEntry>> listBitNames() async {
-    final clientSettings = GetIt.I.get<ClientSettings>();
+    final clientSettings = HashNameMappingSetting.settings;
 
     Map<String, String>? hashNameMapping;
     try {

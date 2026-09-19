@@ -72,7 +72,11 @@ void identityTests() {
 
     setUp(() {
       GetIt.I.registerSingleton<Logger>(Logger());
-      GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: MockStore(), log: GetIt.I.get<Logger>()));
+      final store = MockStore();
+      GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: store, log: GetIt.I.get<Logger>()));
+      GetIt.I.registerSingleton<BitwindowClientSettings>(
+        BitwindowClientSettings(store: store, log: GetIt.I.get<Logger>()),
+      );
       rpc = MockBitnamesRPC();
       GetIt.I.registerSingleton<BitnamesRPC>(rpc);
       balance = BalanceProvider(connections: [rpc]);
