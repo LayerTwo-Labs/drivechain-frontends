@@ -9,6 +9,7 @@ import 'package:sidechain_core/gen/orchestrator/v1/orchestrator.pb.dart';
 import 'package:sidechain_core/rpcs/orchestrator_bmm_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_explorer_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_multisig_lounge_rpc.dart';
+import 'package:sidechain_core/rpcs/orchestrator_stratum_rpc.dart';
 import 'package:sidechain_core/rpcs/orchestrator_wallet_rpc.dart';
 
 /// RPC client for the orchestrator daemon.
@@ -35,6 +36,7 @@ class OrchestratorRPC {
   late final OrchestratorBmmRPC bmm;
   late final OrchestratorExplorerRPC explorer;
   late final OrchestratorMultisigLoungeRPC multisigLounge;
+  late final OrchestratorStratumRPC stratum;
 
   /// btc-buf BitcoinService — single canonical bitcoind proxy for all
   /// callers. Routes peers / mempool / fee / blocks / PSBT helpers.
@@ -67,6 +69,7 @@ class OrchestratorRPC {
     bmm = OrchestratorBmmRPC.fromTransports(unary: unaryTransport, stream: streamTransport);
     explorer = OrchestratorExplorerRPC.fromTransport(unaryTransport);
     multisigLounge = OrchestratorMultisigLoungeRPC.fromTransport(unaryTransport);
+    stratum = OrchestratorStratumRPC.fromTransport(unaryTransport);
     bitcoind = BitcoinServiceClient(unaryTransport);
   }
 
