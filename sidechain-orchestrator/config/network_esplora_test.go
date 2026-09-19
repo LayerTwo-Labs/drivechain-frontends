@@ -45,3 +45,48 @@ func TestSidechainEsploraURLRefusesAnUnhostedChain(t *testing.T) {
 		}
 	}
 }
+
+// Each eCash generation runs its own index box. A generation that reads the
+// previous one's box would show another chain's history as this chain's.
+func TestSidechainEsploraURLFollowsTheGeneration(t *testing.T) {
+	original := ECashNetworkID()
+	t.Cleanup(func() { SetECashNetworkID(original) })
+
+	for generation, want := range map[string]string{
+		"alphanet": "https://seed.alpha.ecash.eu.com/thunder",
+		"betanet":  "https://seed.beta.ecash.eu.com/thunder",
+		// Real ECX runs the bare host.
+		"ecash": "https://seed.ecash.eu.com/thunder",
+	} {
+		SetECashNetworkID(generation)
+		if got := SidechainEsploraURLForNetwork("thunder", NetworkECash); got != want {
+			t.Errorf("%s thunder index = %q, want %q", generation, got, want)
+		}
+		if got := ThunderEsploraURLForNetwork(NetworkECash); got != want {
+			t.Errorf("%s thunder helper = %q, want %q", generation, got, want)
+		}
+	}
+}
+
+// The escrow index belongs to the mainchain, so it follows the generation too.
+func TestDrivechainIndexURLFollowsTheGeneration(t *testing.T) {
+	original := ECashNetworkID()
+	t.Cleanup(func() { SetECashNetworkID(original) })
+
+	for generation, want := range map[string]string{
+		"alphanet": "https://seed.alpha.ecash.eu.com/drivechain",
+		"betanet":  "https://seed.beta.ecash.eu.com/drivechain",
+		"ecash":    "https://seed.ecash.eu.com/drivechain",
+	} {
+		SetECashNetworkID(generation)
+		if got := DrivechainIndexURLForNetwork(NetworkECash); got != want {
+			t.Errorf("%s escrow index = %q, want %q", generation, got, want)
+		}
+	}
+	SetECashNetworkID("alphanet")
+	for _, n := range []Network{NetworkSignet, NetworkMainnet, NetworkRegtest} {
+		if got := DrivechainIndexURLForNetwork(n); got != "" {
+			t.Errorf("%s escrow index = %q, want none hosted", n, got)
+		}
+	}
+}
