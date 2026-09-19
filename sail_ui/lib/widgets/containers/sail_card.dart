@@ -457,7 +457,7 @@ class SailCardStats extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SailText.primary13(title, bold: true),
+                          Flexible(child: SailText.primary13(title, bold: true)),
                           SailSVG.fromAsset(
                             icon,
                             color: theme.colors.inactiveNavText,
@@ -478,10 +478,12 @@ class SailCardStats extends StatelessWidget {
                               SailSVGAsset.bitcoin,
                               color: theme.colors.text,
                             ),
-                          SailSkeletonizer(
-                            description: loading?.description ?? '',
-                            enabled: loading?.enabled ?? false,
-                            child: SailText.primary24(value, bold: true),
+                          Flexible(
+                            child: SailSkeletonizer(
+                              description: loading?.description ?? '',
+                              enabled: loading?.enabled ?? false,
+                              child: SailText.primary24(value, bold: true),
+                            ),
                           ),
                         ],
                       ),
