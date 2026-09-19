@@ -94,6 +94,7 @@ type ElectrumBackend struct {
 	tipAt       map[string]int           // walletID -> chain tip the cached scan reflects
 	scanAt      map[string]time.Time     // walletID -> when the cached scan was taken
 	lastScan    map[string][]byte        // walletID -> last persisted scan bytes (skip rewrites)
+	firstSeen   map[string]int64         // txid -> unix time this process first listed it unconfirmed
 
 	// generation changes on every network switch, so a read that checked out a
 	// scan before the switch can tell its result belongs to the previous chain.
@@ -137,6 +138,7 @@ func NewElectrumBackend(svc *Service, client ChainDataSource, params ParamsFunc,
 		tipAt:       make(map[string]int),
 		scanAt:      make(map[string]time.Time),
 		lastScan:    make(map[string][]byte),
+		firstSeen:   make(map[string]int64),
 		scanLocks:   make(map[string]*sync.Mutex),
 		subStatus:   make(map[string]string),
 		shWallet:    make(map[string]string),
@@ -360,8 +362,9 @@ func (p *ElectrumBackend) ListTransactionsRange(ctx context.Context, walletID st
 	allTxs := lo.FlatMap(scan.addrs, func(a scannedAddr, _ int) []EsploraTx { return a.txs })
 	txByID := lo.KeyBy(allTxs, func(tx EsploraTx) string { return tx.TxID })
 
+	now := time.Now().Unix()
 	rows := lo.FlatMap(lo.Values(txByID), func(tx EsploraTx, _ int) []WalletTransaction {
-		return walletRowsForTx(tx, scan, tip)
+		return walletRowsForTx(tx, scan, tip, p.txTime(tx, now))
 	})
 
 	// Newest first, matching Core's listtransactions default ordering after
@@ -3068,10 +3071,29 @@ func walletFlow(tx EsploraTx, scan *electrumScan) (ownIn, ownOut int64) {
 	return ownIn, ownOut
 }
 
+// txTime is the block time of a confirmed tx. An index reports no time for a
+// mempool tx, so an unconfirmed tx gets the time this process first listed it.
+func (p *ElectrumBackend) txTime(tx EsploraTx, now int64) int64 {
+	if tx.Status.Confirmed {
+		return tx.Status.BlockTime
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if seen, ok := p.firstSeen[tx.TxID]; ok {
+		return seen
+	}
+	seen := tx.Status.BlockTime
+	if seen == 0 {
+		seen = now
+	}
+	p.firstSeen[tx.TxID] = seen
+	return seen
+}
+
 // walletRowsForTx maps one Esplora tx to listtransactions-style rows: a send
 // row per external destination when the wallet funded any input, otherwise a
 // receive row per output paying the wallet.
-func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int) []WalletTransaction {
+func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int, txTime int64) []WalletTransaction {
 	ownIn, _ := walletFlow(tx, scan)
 	confs := confsFor(tx.Status, tip)
 	var rows []WalletTransaction
@@ -3088,7 +3110,7 @@ func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int) []WalletTransact
 				Amount:        -float64(vout.Value) / 1e8,
 				Confirmations: confs,
 				BlockTime:     tx.Status.BlockTime,
-				Time:          tx.Status.BlockTime,
+				Time:          txTime,
 				TxID:          tx.TxID,
 			}
 			if !feeApplied {
@@ -3112,7 +3134,7 @@ func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int) []WalletTransact
 				Fee:           -float64(tx.Fee) / 1e8,
 				Confirmations: confs,
 				BlockTime:     tx.Status.BlockTime,
-				Time:          tx.Status.BlockTime,
+				Time:          txTime,
 				TxID:          tx.TxID,
 			})
 		}
@@ -3130,7 +3152,7 @@ func walletRowsForTx(tx EsploraTx, scan *electrumScan, tip int) []WalletTransact
 			Vout:          n,
 			Confirmations: confs,
 			BlockTime:     tx.Status.BlockTime,
-			Time:          tx.Status.BlockTime,
+			Time:          txTime,
 			TxID:          tx.TxID,
 		})
 	}
