@@ -93,7 +93,7 @@ func TestGetCliArgsPassesNetworkOnce(t *testing.T) {
 	}
 }
 
-// A chain names CLI keys only when someone read its binary. The other three
+// A chain names CLI keys only when someone read its binary. The other chains
 // ship no binary on any machine here, so their flags stay unproven.
 func TestOnlyProvedChainsNameCliArgKeys(t *testing.T) {
 	for _, name := range unprovedChains {
@@ -374,6 +374,23 @@ func TestSyncReplacesAnotherNetworksPort(t *testing.T) {
 	} {
 		if got := m.Config.GetSetting(key); got != want {
 			t.Errorf("%s = %q, want %q", key, got, want)
+		}
+	}
+}
+
+// A full node starts truthcoin from its conf, and truthcoin defaults to another
+// network than the mainchain runs.
+func TestGetCliArgsGivesTruthcoinTheNetwork(t *testing.T) {
+	m := sidechainConfFor(t, "truthcoin", NetworkSignet, map[string]string{
+		"net-addr": "0.0.0.0:34013",
+		"zmq-addr": "127.0.0.1:58013",
+	})
+
+	args := m.GetCliArgs()
+
+	for _, want := range []string{"--network=signet", "--net-addr=0.0.0.0:34013", "--zmq-addr=127.0.0.1:58013"} {
+		if !slices.Contains(args, want) {
+			t.Errorf("args = %v, want %s", args, want)
 		}
 	}
 }
