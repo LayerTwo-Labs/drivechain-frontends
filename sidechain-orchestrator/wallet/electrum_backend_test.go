@@ -1127,6 +1127,38 @@ func TestElectrumListTransactionsSelfSend(t *testing.T) {
 	assert.InDelta(t, -0.00001, rows[0].Fee, 1e-9) // -1000 sats
 }
 
+func TestElectrumListTransactionsUnconfirmedTime(t *testing.T) {
+	p, fake, w, addr := newElectrumFixture(t)
+	fake.stats[addr] = EsploraAddressStats{
+		Address:    addr,
+		ChainStats: EsploraTxoStats{FundedTxoCount: 1, FundedTxoSum: 50_000, TxCount: 1},
+	}
+	fake.txs[addr] = []EsploraTx{
+		{
+			TxID:   "confirmed",
+			Vout:   []EsploraVout{{ScriptPubKeyAddress: addr, Value: 50_000}},
+			Status: EsploraStatus{Confirmed: true, BlockHeight: 100, BlockTime: 1700000000},
+		},
+		{
+			TxID: "pending",
+			Vout: []EsploraVout{{ScriptPubKeyAddress: addr, Value: 20_000}},
+		},
+	}
+
+	before := time.Now().Unix()
+	rows, err := p.ListTransactions(context.Background(), w.ID, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	assert.Equal(t, "pending", rows[0].TxID, "an unconfirmed tx is the newest row")
+	assert.Zero(t, rows[0].BlockTime)
+	assert.GreaterOrEqual(t, rows[0].Time, before)
+	assert.Equal(t, int64(1700000000), rows[1].Time)
+
+	again, err := p.ListTransactions(context.Background(), w.ID, 0)
+	require.NoError(t, err)
+	assert.Equal(t, rows[0].Time, again[0].Time, "the first-seen time must not move")
+}
+
 // TestElectrumWatchOnlyDescriptorWatchesCorrectAddress imports a real wpkh
 // descriptor (origin prefix + /0/* branch) and proves the wallet scans exactly
 // the address that descriptor derives — i.e. the balance lands on the same
