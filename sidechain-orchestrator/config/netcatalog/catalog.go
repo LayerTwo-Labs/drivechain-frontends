@@ -1,7 +1,7 @@
 // Package netcatalog resolves the network catalog published at
 // https://drivechain.dev/config: the per-network service endpoints, explorer
 // URL templates and — for the eCash family — the live network id ("alphanet",
-// "drynet4", ...). Standing up a new eCash network is therefore a release
+// "betanet", ...). Standing up a new eCash network is therefore a release
 // artifact plus an entry in that document, with no code change here.
 package netcatalog
 
