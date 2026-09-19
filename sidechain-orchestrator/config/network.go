@@ -275,11 +275,15 @@ func ecashIndexHost(n Network, generation string) string {
 	if n != NetworkECash {
 		return ""
 	}
-	switch generation {
-	case "alphanet":
+	switch {
+	case generation == "alphanet":
 		return "https://seed.alpha.ecash.eu.com"
-	case "betanet":
+	case generation == "betanet":
 		return "https://seed.beta.ecash.eu.com"
+	case strings.HasPrefix(generation, legacyECashUAComment):
+		// The drynet series is retired and runs no box. Real ECX data under a
+		// test fork would read as that fork's own history.
+		return ""
 	default:
 		return "https://seed.ecash.eu.com"
 	}

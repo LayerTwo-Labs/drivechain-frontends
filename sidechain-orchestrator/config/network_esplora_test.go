@@ -57,6 +57,10 @@ func TestSidechainEsploraURLFollowsTheGeneration(t *testing.T) {
 		"betanet":  "https://seed.beta.ecash.eu.com/thunder",
 		// Real ECX runs the bare host.
 		"ecash": "https://seed.ecash.eu.com/thunder",
+		// The retired series runs no box, and real ECX history under a test
+		// fork would read as that fork's own.
+		"drynet4": "",
+		"drynet":  "",
 	} {
 		SetECashNetworkID(generation)
 		if got := SidechainEsploraURLForNetwork("thunder", NetworkECash); got != want {
@@ -77,6 +81,7 @@ func TestDrivechainIndexURLFollowsTheGeneration(t *testing.T) {
 		"alphanet": "https://seed.alpha.ecash.eu.com/drivechain",
 		"betanet":  "https://seed.beta.ecash.eu.com/drivechain",
 		"ecash":    "https://seed.ecash.eu.com/drivechain",
+		"drynet4":  "",
 	} {
 		SetECashNetworkID(generation)
 		if got := DrivechainIndexURLForNetwork(NetworkECash); got != want {

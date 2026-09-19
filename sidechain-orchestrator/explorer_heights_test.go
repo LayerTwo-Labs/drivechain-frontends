@@ -11,6 +11,12 @@ import (
 // existed. Its sidechains read a hosted address index instead, and a chain
 // with neither reports no tip.
 func TestExplorerHeightsSkipsNetworksWithoutHostedInfra(t *testing.T) {
+	// The hosted index belongs to one eCash generation, so the test names the
+	// one it means rather than reading whichever generation ran before it.
+	original := config.ECashNetworkID()
+	t.Cleanup(func() { config.SetECashNetworkID(original) })
+	config.SetECashNetworkID("alphanet")
+
 	// No public explorer and no chain configured, so nothing reports a tip.
 	for _, network := range []string{"ecash", "mainnet", "regtest", "testnet"} {
 		t.Run(network, func(t *testing.T) {
