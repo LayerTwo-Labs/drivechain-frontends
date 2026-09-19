@@ -98,6 +98,24 @@ void main() {
     expect(saved.value, [mine]);
   });
 
+  // The release before this one wrote the flag to the shared store.
+  test('an install of the last release keeps the assets it holds', () async {
+    final mine = blake3Hex(utf8.encode('SharedAsset'));
+    await store.setString(
+      HashNameMappingSetting().key,
+      jsonEncode({
+        mine: {'name': 'SharedAsset', 'isMine': true},
+      }),
+    );
+
+    final provider = BitAssetsProvider();
+    addTearDown(provider.dispose);
+    await provider.migrateOwnedHashes();
+
+    final saved = await appSettings.getValue(OwnedBitAssetsSetting());
+    expect(saved.value, [mine]);
+  });
+
   test('a second start keeps the owned set the user has', () async {
     await appSettings.setValue(OwnedBitAssetsSetting(newValue: ['kept']));
     await appSettings.store.setString(

@@ -33,11 +33,11 @@ class BitnamesProvider extends ChangeNotifier {
   Future<void> saveHashNameMapping(String name) async {
     await _nameSaveLock.synchronized(() async {
       final hash = blake3Hex(utf8.encode(name));
-      final saved = await nameSettings.getValue(HashNameMappingSetting());
-      final newMappings = Map<String, HashMapping>.from(saved.value);
-      newMappings[hash] = HashMapping(name: name);
-      hashNameMapping = HashNameMappingSetting(newValue: newMappings);
-      await nameSettings.setValue(hashNameMapping);
+      final saved = await nameSettings.mergeValue(
+        HashNameMappingSetting(),
+        (current) => {...current, hash: HashMapping(name: name)},
+      );
+      hashNameMapping = HashNameMappingSetting(newValue: saved.value);
     });
     notifyListeners();
     await fetch(); // refetch to set the name in the list

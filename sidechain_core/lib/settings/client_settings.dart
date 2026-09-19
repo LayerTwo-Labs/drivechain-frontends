@@ -27,6 +27,19 @@ class ClientSettings {
     return setting.withValue(value);
   }
 
+  /// Changes one setting under the store's lock, so two apps that change it at
+  /// the same time keep both changes.
+  Future<SettingValue<T>> mergeValue<T extends Object>(
+    SettingValue<T> setting,
+    T Function(T current) change,
+  ) async {
+    await store.update(setting.key, (raw) {
+      final current = raw == null ? setting.defaultValue() : (setting.fromJson(raw) ?? setting.defaultValue());
+      return setting.withValue(change(current)).toJson();
+    });
+    return getValue(setting);
+  }
+
   Future<SettingValue<T>> setValue<T extends Object>(
     SettingValue<T> setting,
   ) async {
