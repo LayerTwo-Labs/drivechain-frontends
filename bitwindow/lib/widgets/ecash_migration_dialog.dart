@@ -333,9 +333,15 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
     ),
     (
       phase: 'rewind',
-      title: status.walletOnly ? 'Prepare the wallet data' : 'Roll back to block ${groupDigits(status.commonHeight)}',
+      title: status.walletOnly
+          ? 'Prepare the wallet data'
+          : status.belowFork
+          ? 'Skip the rollback'
+          : 'Roll back to block ${groupDigits(status.commonHeight)}',
       reason: status.walletOnly
           ? 'No blocks belong to ${widget.fromId}, so only the wallet files carry the old magic.'
+          : status.belowFork
+          ? 'The sync is below the fork, so no block belongs to ${widget.fromId}. Nothing to roll back.'
           : 'Mark every block above this height as invalid, so when we get to step 4, it continues syncing '
                 'from the correct height.',
     ),
@@ -496,7 +502,10 @@ class _ECashMigrationDialogState extends State<ECashMigrationDialog> {
                 spacing: SailStyleValues.padding12,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!status.walletOnly) _detail('Rollback block', groupDigits(status.commonHeight)),
+                  if (status.belowFork)
+                    _detail('Synced to block', groupDigits(status.commonHeight))
+                  else if (!status.walletOnly)
+                    _detail('Rollback block', groupDigits(status.commonHeight)),
                   if (hasJob && status.startedAtUnix > 0)
                     _detail('Elapsed', migrationElapsedLabel(status.startedAtUnix.toInt()))
                   else
