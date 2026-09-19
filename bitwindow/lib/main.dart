@@ -294,6 +294,16 @@ Future<(Directory, File, Logger)> init(String arguments) async {
   };
   NetworkScopedRegistry.register<ConsolidationProvider>(ConsolidationProvider());
   GetIt.I.registerSingleton<MiningProvider>(MiningProvider());
+  GetIt.I.registerSingleton<StratumProvider>(
+    StratumProvider(
+      onBlockFound: (block) => GetIt.I.get<NotificationProvider>().add(
+        id: 'stratum-block-${block.hash}',
+        title: 'Block ${block.height} found',
+        content: '${block.worker} found it. The reward is spendable after 100 blocks.',
+        dialogType: DialogType.success,
+      ),
+    )..startPolling(),
+  );
   NetworkScopedRegistry.register<HDWalletProvider>(HDWalletProvider());
   GetIt.I.registerSingleton<BitDriveProvider>(BitDriveProvider());
   // Eager initialization so it can listen for wallet unlock events
