@@ -991,4 +991,7 @@ message ECashMigrationStatus {
   // length, and both are zero when no download runs.
   int64 download_mb_done = 23;
   int64 download_mb_total = 24;
+  // The source tip is below the fork, so the migration skips the rollback.
+  // common_height is then the source tip.
+  bool below_fork = 25;
 }

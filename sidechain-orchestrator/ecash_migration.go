@@ -52,6 +52,7 @@ type ECashMigrationStatus struct {
 	Complete        bool  `json:"complete"`
 	Pruned          bool  `json:"pruned"`
 	WalletOnly      bool  `json:"wallet_only"`
+	BelowFork       bool  `json:"below_fork"`
 }
 
 type ecashMigration struct {
@@ -369,6 +370,9 @@ func (o *Orchestrator) PreviewECashMigration(ctx context.Context, fromID, toID s
 			return state.Status, err
 		}
 		if err := o.checkWalletOnlySource(ctx, client, state); err != nil {
+			return state.Status, err
+		}
+		if err := checkBelowFork(ctx, client, state); err != nil {
 			return state.Status, err
 		}
 		if err := checkMigrationChain(ctx, client, state, state.Status.WalletOnly); err != nil {
@@ -792,6 +796,26 @@ func checkMigrationChain(ctx context.Context, client *CoreStatusClient, state *e
 	return nil
 }
 
+// A source tip below the fork parent holds only BTC blocks, so the rewind has no block to invalidate.
+func checkBelowFork(ctx context.Context, client *CoreStatusClient, state *ecashMigration) error {
+	var chain struct {
+		Blocks int64 `json:"blocks"`
+	}
+	if err := migrationRPC(ctx, client, "getblockchaininfo", &chain); err != nil {
+		return err
+	}
+	if chain.Blocks >= state.Status.CommonHeight {
+		return nil
+	}
+	var hash string
+	if err := migrationRPC(ctx, client, "getblockhash", &hash, chain.Blocks); err != nil {
+		return err
+	}
+	state.Status.BelowFork = true
+	state.Status.CommonHeight, state.Status.CommonHash = chain.Blocks, hash
+	return nil
+}
+
 func migrationRPC(ctx context.Context, client *CoreStatusClient, method string, out any, args ...any) error {
 	data, err := client.call(ctx, method, args...)
 	if err != nil {
@@ -867,6 +891,9 @@ func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigratio
 	if err := o.checkWalletOnlySource(ctx, client, state); err != nil {
 		return err
 	}
+	if err := checkBelowFork(ctx, client, state); err != nil {
+		return err
+	}
 	if err := checkMigrationChain(ctx, client, state, false); err != nil {
 		return err
 	}
@@ -878,6 +905,11 @@ func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigratio
 	}
 	for _, hash := range state.RejectedHashes {
 		if err := migrationRPC(ctx, client, "invalidateblock", nil, hash); err != nil {
+			return err
+		}
+	}
+	if state.Status.BelowFork {
+		if err := o.rejectSourceHeaders(ctx, client, state); err != nil {
 			return err
 		}
 	}
@@ -913,6 +945,45 @@ func (o *Orchestrator) rewindMigration(ctx context.Context, state *ecashMigratio
 	}
 	if err := o.stopMigrationCore(ctx); err != nil {
 		return err
+	}
+	return nil
+}
+
+// Header-only source branches stay in the reused block index, so the target could connect their blocks.
+func (o *Orchestrator) rejectSourceHeaders(ctx context.Context, client *CoreStatusClient, state *ecashMigration) error {
+	var tips []struct {
+		Height int64  `json:"height"`
+		Hash   string `json:"hash"`
+		Status string `json:"status"`
+	}
+	if err := migrationRPC(ctx, client, "getchaintips", &tips); err != nil {
+		return err
+	}
+	parent := int64(state.FromEntry.ForkHeight) - 1
+	for _, tip := range tips {
+		if tip.Height <= parent || tip.Status == "invalid" {
+			continue
+		}
+		hash := tip.Hash
+		for height := tip.Height; height > parent+1; height-- {
+			var header struct {
+				Previous string `json:"previousblockhash"`
+			}
+			if err := migrationRPC(ctx, client, "getblockheader", &header, hash); err != nil {
+				return err
+			}
+			hash = header.Previous
+		}
+		if slices.Contains(state.RejectedHashes, hash) {
+			continue
+		}
+		state.RejectedHashes = append(state.RejectedHashes, hash)
+		if err := o.saveMigration(state); err != nil {
+			return err
+		}
+		if err := migrationRPC(ctx, client, "invalidateblock", nil, hash); err != nil {
+			return err
+		}
 	}
 	return nil
 }

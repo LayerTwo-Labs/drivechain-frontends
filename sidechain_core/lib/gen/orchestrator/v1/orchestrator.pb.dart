@@ -6113,6 +6113,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     $core.String? recordStage,
     $fixnum.Int64? downloadMbDone,
     $fixnum.Int64? downloadMbTotal,
+    $core.bool? belowFork,
   }) {
     final $result = create();
     if (jobId != null) {
@@ -6187,6 +6188,9 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     if (downloadMbTotal != null) {
       $result.downloadMbTotal = downloadMbTotal;
     }
+    if (belowFork != null) {
+      $result.belowFork = belowFork;
+    }
     return $result;
   }
   ECashMigrationStatus._() : super();
@@ -6218,6 +6222,7 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
     ..aOS(22, _omitFieldNames ? '' : 'recordStage')
     ..aInt64(23, _omitFieldNames ? '' : 'downloadMbDone')
     ..aInt64(24, _omitFieldNames ? '' : 'downloadMbTotal')
+    ..aOB(25, _omitFieldNames ? '' : 'belowFork')
     ..hasRequiredFields = false
   ;
 
@@ -6463,6 +6468,17 @@ class ECashMigrationStatus extends $pb.GeneratedMessage {
   $core.bool hasDownloadMbTotal() => $_has(23);
   @$pb.TagNumber(24)
   void clearDownloadMbTotal() => clearField(24);
+
+  /// The source tip is below the fork, so the migration skips the rollback.
+  /// common_height is then the source tip.
+  @$pb.TagNumber(25)
+  $core.bool get belowFork => $_getBF(24);
+  @$pb.TagNumber(25)
+  set belowFork($core.bool v) { $_setBool(24, v); }
+  @$pb.TagNumber(25)
+  $core.bool hasBelowFork() => $_has(24);
+  @$pb.TagNumber(25)
+  void clearBelowFork() => clearField(25);
 }
 
 class OrchestratorServiceApi {

@@ -58,7 +58,7 @@ Do not substitute the betanet fork height for this rollback boundary.
 2. Stop the sidechains, enforcer, and Core.
 3. Start source Core with P2P activity and wallet broadcast off.
 4. Check the common block hash and the prune limit.
-5. Invalidate each active source branch above the common block.
+5. Invalidate each active source branch above the common block. If the source tip is below the common block, invalidate each header-only source branch above it.
 6. Make sure the active tip equals the common block.
 7. Stop Core through RPC and wait for its exit.
 8. Check all block records and wallet files.
@@ -80,7 +80,8 @@ The preview refuses BDB wallets before the daemon saves a job.
 Directories with only SQLite wallets use wallet conversion without rollback.
 Source Core reads registered paths for local and external wallets before conversion.
 A source node at block 0 can use the same path; the converter also keeps its genesis block.
-A partially synced source above block 0 must reach the common height before migration.
+A partially synced source below the common height skips the rollback.
+Its blocks are BTC blocks, so the converter changes their magic, and the target sync continues from the source tip.
 
 The daemon preserves old sidechain and enforcer state in adjacent archive directories.
 Start compatible betanet services after the migration.

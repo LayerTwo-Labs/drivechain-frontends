@@ -179,6 +179,32 @@ func TestECashMigrationRejectsEachSourceBranch(t *testing.T) {
 	require.Equal(t, rejected, saved.RejectedHashes)
 }
 
+func TestECashMigrationSkipsRollbackBelowFork(t *testing.T) {
+	o, fixture, block, undo, wallet := prepareMigrationEngineTest(t, "", false)
+	require.NoError(t, os.WriteFile(filepath.Join(fixture.DataDir, "fixture-height"), []byte("90"), 0o600))
+	preview, err := o.PreviewECashMigration(context.Background(), "alphanet", "betanet")
+	require.NoError(t, err)
+	require.True(t, preview.BelowFork)
+	require.EqualValues(t, 90, preview.CommonHeight)
+	require.Equal(t, strings.Repeat("d", 64), preview.CommonHash)
+	_, err = o.StartECashMigration(context.Background(), "alphanet", "betanet")
+	require.NoError(t, err)
+	complete := waitMigrationEngineTest(t, o)
+	requireMigrationEngineResult(t, o, fixture, complete, block, undo, wallet)
+	require.True(t, complete.BelowFork)
+	require.EqualValues(t, 90, complete.CommonHeight)
+	events := requireMigrationEngineEvents(t, fixture)
+	var hashes []string
+	for _, event := range events {
+		if event.Method == "invalidateblock" {
+			var hash string
+			require.NoError(t, json.Unmarshal(event.Params[0], &hash))
+			hashes = append(hashes, hash)
+		}
+	}
+	require.Equal(t, []string{strings.Repeat("b", 64)}, hashes)
+}
+
 func prepareMigrationEngineTest(t *testing.T, externalName string, twoBranches bool) (*Orchestrator, migrationCoreFixture, []byte, []byte, []byte) {
 	t.Helper()
 	o := migrationTestNode(t)
@@ -527,6 +553,9 @@ func migrationCoreFixtureRPC(fixture migrationCoreFixture, method, wallet string
 		if height == 100 {
 			return strings.Repeat("a", 64), nil
 		}
+		if height == 90 {
+			return strings.Repeat("d", 64), nil
+		}
 		if height == 0 && fixture.WalletOnly {
 			return config.ChainParamsFor(config.NetworkECash).GenesisHash.String(), nil
 		}
@@ -543,6 +572,23 @@ func migrationCoreFixtureRPC(fixture migrationCoreFixture, method, wallet string
 			return strings.Repeat("b", 64), nil
 		}
 		return nil, fmt.Errorf("unexpected fixture height %d", height)
+	case "getchaintips":
+		return []map[string]any{
+			{"height": 90, "hash": strings.Repeat("d", 64), "status": "active"},
+			{"height": 102, "hash": strings.Repeat("f", 64), "status": "headers-only"},
+		}, nil
+	case "getblockheader":
+		var hash string
+		if len(params) != 1 {
+			return nil, errors.New("getblockheader uses one hash")
+		}
+		if err := json.Unmarshal(params[0], &hash); err != nil {
+			return nil, err
+		}
+		if hash != strings.Repeat("f", 64) {
+			return nil, fmt.Errorf("unexpected fixture header %s", hash)
+		}
+		return map[string]any{"height": 102, "previousblockhash": strings.Repeat("b", 64)}, nil
 	case "listwallets":
 		return migrationFixtureWalletNames(loaded), nil
 	case "loadwallet":
@@ -604,6 +650,13 @@ func migrationCoreFixtureRPC(fixture migrationCoreFixture, method, wallet string
 		} else if hash != strings.Repeat("b", 64) {
 			return nil, errors.New("the fixture rejected an unexpected block")
 		}
+		data, err := os.ReadFile(heightPath)
+		if err != nil {
+			return nil, err
+		}
+		if height, err := strconv.Atoi(string(data)); err != nil || height < 100 {
+			return nil, err
+		}
 		return nil, os.WriteFile(heightPath, []byte("100"), 0o600)
 	case "getblock":
 		var hash string
@@ -621,7 +674,7 @@ func migrationCoreFixtureRPC(fixture migrationCoreFixture, method, wallet string
 			}
 			return hex.EncodeToString(block.Bytes()), nil
 		}
-		if hash != strings.Repeat("a", 64) || verbosity != 0 {
+		if hash != strings.Repeat("a", 64) && hash != strings.Repeat("d", 64) || verbosity != 0 {
 			return nil, errors.New("the fixture expects the raw common block")
 		}
 		data, err := os.ReadFile(filepath.Join(fixture.DataDir, "blocks", "blk00000.dat"))

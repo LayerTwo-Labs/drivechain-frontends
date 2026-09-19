@@ -205,6 +205,8 @@ func writeECashMigrationStatus(out io.Writer, status *pb.ECashMigrationStatus, a
 	chain := fmt.Sprintf("Common block: %d %s\n", status.CommonHeight, status.CommonHash)
 	if status.WalletOnly {
 		chain = "Wallet conversion: target sync starts from the first block.\n"
+	} else if status.BelowFork {
+		chain = fmt.Sprintf("Source tip below the fork: no rollback, target sync continues from block %d %s\n", status.CommonHeight, status.CommonHash)
 	}
 	_, err := fmt.Fprintf(out,
 		"Source: %s (%s)\nTarget: %s (%s)\nDaemon data directory: %s\n%sFiles: %d block, %d undo\nPruned: %t; prune height: %d\n",
