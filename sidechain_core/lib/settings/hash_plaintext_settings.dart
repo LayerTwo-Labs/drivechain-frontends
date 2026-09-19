@@ -6,17 +6,13 @@ import 'package:thirds/blake3.dart';
 
 class HashMapping {
   final String name;
-  final bool isMine;
 
-  HashMapping({required this.name, this.isMine = false});
+  HashMapping({required this.name});
 
-  Map<String, dynamic> toJson() => {'name': name, 'isMine': isMine};
+  Map<String, dynamic> toJson() => {'name': name};
 
   factory HashMapping.fromJson(Map<String, dynamic> json) {
-    return HashMapping(
-      name: json['name'] as String,
-      isMine: json['isMine'] as bool? ?? false,
-    );
+    return HashMapping(name: json['name'] as String);
   }
 }
 
@@ -75,18 +71,12 @@ class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
     return value[hash.toLowerCase()]?.name;
   }
 
-  /// Get isMine flag for a given hash
-  bool isMineFromHash(String hash) {
-    return value[hash.toLowerCase()]?.isMine ?? false;
-  }
-
-  /// Save a new mapping with isMine flag
-  Future<void> saveMapping(String name, {bool isMine = false}) async {
+  Future<void> saveMapping(String name) async {
     final clientSettings = settings;
     final hash = blake3Hex(utf8.encode(name));
     final currentValue = await clientSettings.getValue(this);
     final newMappings = Map<String, HashMapping>.from(currentValue.value);
-    newMappings[hash] = HashMapping(name: name, isMine: isMine);
+    newMappings[hash] = HashMapping(name: name);
     await clientSettings.setValue(withValue(newMappings));
   }
 }

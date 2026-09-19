@@ -560,7 +560,6 @@ class BitAssetsViewModel extends BaseViewModel {
   final NotificationProvider notificationProvider = GetIt.I.get<NotificationProvider>();
   final BitAssetsProvider provider = GetIt.I.get<BitAssetsProvider>();
   final BitAssetsRPC bitassetsRPC = GetIt.I.get<BitAssetsRPC>();
-  BitwindowClientSettings get nameSettings => HashNameMappingSetting.settings;
 
   String? reserveError;
   bool reserveLoading = false;
@@ -667,10 +666,7 @@ class BitAssetsViewModel extends BaseViewModel {
   }
 
   List<BitAssetEntry> get myEntries {
-    return provider.entries.where((entry) {
-      final mapping = provider.hashNameMapping.value[entry.hash];
-      return mapping?.isMine ?? false;
-    }).toList();
+    return provider.entries.where((entry) => provider.ownedHashes.contains(entry.hash)).toList();
   }
 
   bool get isLoading => !provider.initialized;
@@ -693,13 +689,7 @@ class BitAssetsViewModel extends BaseViewModel {
     notifyListeners();
     try {
       final txid = await bitassetsRPC.reserveBitAsset(name);
-      // Save the mapping with isMine=true
-      final hash = blake3Hex(utf8.encode(name));
-      final setting = HashNameMappingSetting();
-      final currentValue = await nameSettings.getValue(setting);
-      final newMappings = Map<String, HashMapping>.from(currentValue.value);
-      newMappings[hash] = HashMapping(name: name, isMine: true);
-      await nameSettings.setValue(setting.withValue(newMappings));
+      await provider.saveHashNameMapping(name, isMine: true);
 
       reserveLoading = false;
       notifyListeners();
@@ -710,7 +700,6 @@ class BitAssetsViewModel extends BaseViewModel {
           dialogType: DialogType.success,
         );
       }
-      await provider.fetch();
       reserveNameController.clear();
     } catch (e) {
       reserveError = e.toString();

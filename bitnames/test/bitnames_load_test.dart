@@ -221,7 +221,7 @@ void main() {
     final reservedHere = 'b' * 64;
     final heldElsewhere = 'c' * 64;
     await HashNameMappingSetting.settings.setValue(
-      HashNameMappingSetting(newValue: {heldElsewhere: HashMapping(name: 'btcapsule', isMine: true)}),
+      HashNameMappingSetting(newValue: {heldElsewhere: HashMapping(name: 'btcapsule')}),
     );
     rpc.utxos = [
       bitnameCoin({'BitName': owned}),

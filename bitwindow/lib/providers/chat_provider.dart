@@ -309,7 +309,7 @@ class ChatProvider extends ChangeNotifier {
 
   /// Save a plaintext name mapping so BitNames are "decrypted" forever
   Future<void> saveNameMapping(String plaintextName) async {
-    await _hashNameMapping.saveMapping(plaintextName, isMine: false);
+    await _hashNameMapping.saveMapping(plaintextName);
     // Refresh identities to update plaintext names
     await fetchIdentities();
   }
@@ -386,7 +386,7 @@ class ChatProvider extends ChangeNotifier {
 
       // Step 2: Register tx submitted, wait for it to be mined
       _addStatus(statusId, 'Registering "$plaintextName"...');
-      await _hashNameMapping.saveMapping(plaintextName, isMine: true);
+      await _hashNameMapping.saveMapping(plaintextName);
 
       // Poll until BitName appears in identity list (register tx mined)
       while (true) {
