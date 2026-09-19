@@ -42,7 +42,32 @@ func TestEsploraOutspendUnspent(t *testing.T) {
 	require.True(t, found)
 	require.False(t, out.Spent)
 	// One server answers both questions, so the two facts agree.
-	require.Equal(t, []string{"/api/tx/aa/outspend/1", "/api/tx/aa/status"}, paths)
+	require.Equal(t, []string{"/api/tx/aa/outspend/1", "/api/tx/aa"}, paths)
+}
+
+// Blockstream answers /tx/<id>/status with 200 {"confirmed":false} for a
+// transaction it never saw, so only /tx/<id> proves the server holds it.
+func TestEsploraOutspendIgnoresStatusOfUnknownTx(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/tx/aa/outspend/0":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"spent":false}`))
+		case "/api/tx/aa/status":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"confirmed":false}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	c := NewEsploraClient([]string{srv.URL + "/api"}, zerolog.Nop())
+	c.minInterval = 0
+
+	_, found, err := c.Outspend(context.Background(), "aa", 0)
+	require.NoError(t, err)
+	require.False(t, found)
 }
 
 // A 404 from every server means the transaction is not on the chain.
