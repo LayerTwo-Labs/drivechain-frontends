@@ -89,6 +89,7 @@ func Commands() []*cli.Command {
 		resetCommand,
 		ecashCommand,
 		m1Command,
+		miningCommand,
 	}
 
 	// Add sidechain proxy commands
