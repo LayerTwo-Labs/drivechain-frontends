@@ -30,7 +30,6 @@ const (
 	handshakeTimeout  = 2 * time.Minute
 	writeTimeout      = 10 * time.Second
 	maxFutureNtime    = 2 * time.Hour
-	lowDiffGrace      = 30 * time.Second
 	retargetCheck     = 15 * time.Second
 	submitTimeout     = 30 * time.Second
 	subscriptionLabel = "bitwindow"
@@ -94,18 +93,22 @@ type session struct {
 	ip   string
 	out  chan []byte
 
-	subscribed     bool
-	authorized     bool
-	started        bool
-	layout         *layout
-	prefixNumber   uint64
-	prefix         []byte
-	extranonce1    []byte
-	worker         string
-	mask           uint32
-	difficulty     float64
-	prevDifficulty float64
-	prevUntil      time.Time
+	subscribed   bool
+	authorized   bool
+	started      bool
+	layout       *layout
+	prefixNumber uint64
+	prefix       []byte
+	extranonce1  []byte
+	worker       string
+	mask         uint32
+	difficulty   float64
+	// jobDifficulty is the difficulty in force when each job went out. A
+	// share for that job needs only that difficulty.
+	jobDifficulty map[string]float64
+	// aliases are the job ids this session alone got, for work it already
+	// holds, after its difficulty went up.
+	aliases        map[string]*job
 	suggested      float64
 	connected      time.Time
 	retargetAt     time.Time
@@ -269,12 +272,22 @@ func (s *Server) publish(source Source, w *Work) {
 		s.stop(fmt.Errorf("encode notify: %w", err))
 		return
 	}
-	now := time.Now()
 	for sess := range s.sessions {
 		if !sess.started {
 			continue
 		}
-		s.setDifficultyLocked(sess, s.difficultyFor(sess.difficulty, w), now)
+		s.setDifficultyLocked(sess, s.difficultyFor(sess.difficulty, w))
+		for id, base := range sess.aliases {
+			if s.jobs[base.id] != base {
+				delete(sess.aliases, id)
+			}
+		}
+		for id := range sess.jobDifficulty {
+			if _, ok := s.jobs[id]; !ok && sess.aliases[id] == nil {
+				delete(sess.jobDifficulty, id)
+			}
+		}
+		sess.jobDifficulty[j.id] = sess.difficulty
 		sess.send(notify)
 	}
 }
@@ -286,7 +299,7 @@ func (s *Server) difficultyFor(want float64, w *Work) float64 {
 	return clampDifficulty(want, NetworkDifficulty(w.Bits))
 }
 
-func (s *Server) setDifficultyLocked(sess *session, d float64, now time.Time) {
+func (s *Server) setDifficultyLocked(sess *session, d float64) {
 	if d == sess.difficulty {
 		return
 	}
@@ -295,7 +308,6 @@ func (s *Server) setDifficultyLocked(sess *session, d float64, now time.Time) {
 		_ = sess.conn.Close()
 		return
 	}
-	sess.prevDifficulty, sess.prevUntil = sess.difficulty, now.Add(lowDiffGrace)
 	sess.difficulty = d
 	sess.send(line)
 }
@@ -325,7 +337,26 @@ func (s *Server) retargetLocked(sess *session, now time.Time) {
 	}
 	next := retarget(sess.difficulty, sess.retargetShares, now.Sub(sess.retargetAt))
 	sess.retargetAt, sess.retargetShares = now, 0
-	s.setDifficultyLocked(sess, s.difficultyFor(next, s.current.work), now)
+	before := sess.difficulty
+	s.setDifficultyLocked(sess, s.difficultyFor(next, s.current.work))
+	if sess.difficulty > before {
+		s.renotifyLocked(sess)
+	}
+}
+
+// renotifyLocked sends the current work again under a new job id, so a miner
+// that applies a new difficulty from its next job moves to it at once.
+func (s *Server) renotifyLocked(sess *session) {
+	s.jobSeq++
+	id := strconv.FormatUint(s.jobSeq, 16)
+	notify, err := notificationLine("mining.notify", notifyParams(id, s.current.work, false))
+	if err != nil {
+		_ = sess.conn.Close()
+		return
+	}
+	sess.aliases[id] = s.current
+	sess.jobDifficulty[id] = sess.difficulty
+	sess.send(notify)
 }
 
 func (s *Server) serveConn(ctx context.Context, conn net.Conn) {
@@ -425,7 +456,11 @@ func (s *Server) handle(ctx context.Context, sess *session, msg message) {
 		if err == nil {
 			sess.suggested = d
 			if sess.started && s.current != nil {
-				s.setDifficultyLocked(sess, s.difficultyFor(d, s.current.work), time.Now())
+				before := sess.difficulty
+				s.setDifficultyLocked(sess, s.difficultyFor(d, s.current.work))
+				if sess.difficulty > before {
+					s.renotifyLocked(sess)
+				}
 			}
 		}
 		if !isNull(msg.ID) {
@@ -572,6 +607,8 @@ func (s *Server) startLocked(sess *session) {
 		return
 	}
 	sess.difficulty = d
+	sess.jobDifficulty = map[string]float64{s.current.id: d}
+	sess.aliases = map[string]*job{}
 	sess.send(line)
 	notify, err := notificationLine("mining.notify", notifyParams(s.current.id, s.current.work, true))
 	if err != nil {
@@ -651,7 +688,9 @@ func (s *Server) acceptLocked(sess *session, checked shareCheck, now time.Time) 
 	s.best = math.Max(s.best, difficulty)
 	sess.lastShare = now
 	sess.samples = append(pruneSamples(sess.samples, now), shareSample{at: now, difficulty: checked.credit})
-	sess.retargetShares++
+	if checked.credit >= sess.difficulty {
+		sess.retargetShares++
+	}
 	if dueForRetarget(sess.retargetShares, now.Sub(sess.retargetAt)) {
 		s.retargetLocked(sess, now)
 	}
@@ -669,6 +708,9 @@ func (s *Server) checkShareLocked(sess *session, raw json.RawMessage, now time.T
 		return shareCheck{}, rejectf(codeOther, "submit needs five params")
 	}
 	j, ok := s.jobs[params[1]]
+	if !ok {
+		j, ok = sess.aliases[params[1]]
+	}
 	if !ok {
 		return shareCheck{}, rejectf(codeJobNotFound, "job not found")
 	}
@@ -711,8 +753,8 @@ func (s *Server) checkShareLocked(sess *session, raw json.RawMessage, now time.T
 	hash := header.BlockHash()
 	difficulty := hashDifficulty(hash)
 	required := sess.difficulty
-	if sess.prevDifficulty > 0 && now.Before(sess.prevUntil) {
-		required = math.Min(required, sess.prevDifficulty)
+	if sent, ok := sess.jobDifficulty[params[1]]; ok {
+		required = math.Min(required, sent)
 	}
 	if w.Relay {
 		required = w.Difficulty
