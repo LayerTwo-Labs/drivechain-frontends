@@ -944,10 +944,11 @@ extension BinaryPaths on Binary {
       BinaryType.BINARY_TYPE_ZSIDE ||
       BinaryType.BINARY_TYPE_TRUTHCOIN ||
       BinaryType.BINARY_TYPE_PHOTON ||
+      BinaryType.BINARY_TYPE_FREEBANK ||
       BinaryType.BINARY_TYPE_COINSHIFT => _findLatestDirVersionedLog(),
       // Core-derived, so the bitcoind layout: debug.log under the network dir,
       // not the versioned-directory logs the Rust sidechains write.
-      BinaryType.BINARY_TYPE_BBC || BinaryType.BINARY_TYPE_FREEBANK => filePath([datadirNetwork(), 'debug.log']),
+      BinaryType.BINARY_TYPE_BBC => filePath([datadirNetwork(), 'debug.log']),
       BinaryType.BINARY_TYPE_ENFORCER => _findLatestEnforcerLog(),
       BinaryType.BINARY_TYPE_GRPCURL || BinaryType.BINARY_TYPE_DRIVECHAIND || BinaryType.BINARY_TYPE_ZSIDED => '',
       BinaryType.BINARY_TYPE_UNSPECIFIED => _unsupportedBinaryType(type),
@@ -1090,9 +1091,7 @@ extension BinaryPaths on Binary {
 
     switch (OS.current) {
       case OS.linux:
-        if (type == BinaryType.BINARY_TYPE_BITCOIND ||
-            type == BinaryType.BINARY_TYPE_BBC ||
-            type == BinaryType.BINARY_TYPE_FREEBANK) {
+        if (type == BinaryType.BINARY_TYPE_BITCOIND || type == BinaryType.BINARY_TYPE_BBC) {
           // Core and its forks keep their datadir directly under $HOME
           return filePath([home]);
         }
@@ -1180,11 +1179,10 @@ extension BinaryPaths on Binary {
     final baseDir = datadir();
 
     switch (type) {
-      // Bbc and FreeBank are Bitcoin Core derived, so they take the per-network
+      // Bbc is Bitcoin Core derived, so it takes the per-network
       // subdir the CUSF sidechains do not have.
       case BinaryType.BINARY_TYPE_BITCOIND:
       case BinaryType.BINARY_TYPE_BBC:
-      case BinaryType.BINARY_TYPE_FREEBANK:
         if (network == BitcoinNetwork.BITCOIN_NETWORK_MAINNET || network == BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
           return baseDir;
         }
@@ -1201,6 +1199,7 @@ extension BinaryPaths on Binary {
       case BinaryType.BINARY_TYPE_TRUTHCOIN:
       case BinaryType.BINARY_TYPE_PHOTON:
       case BinaryType.BINARY_TYPE_COINSHIFT:
+      case BinaryType.BINARY_TYPE_FREEBANK:
       case BinaryType.BINARY_TYPE_LIQUID_SIGNET:
       case BinaryType.BINARY_TYPE_GRPCURL:
       case BinaryType.BINARY_TYPE_DRIVECHAIND:

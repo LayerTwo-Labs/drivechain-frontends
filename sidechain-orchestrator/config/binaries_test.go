@@ -1,9 +1,12 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/rs/zerolog"
 )
 
 func home() string {
@@ -238,5 +241,32 @@ func TestFlutterFrontendPath(t *testing.T) {
 	p = EnforcerDirs.FlutterFrontendPath()
 	if p != "" {
 		t.Errorf("Enforcer should have no Flutter frontend path, got %q", p)
+	}
+}
+
+func TestFreebankFindsItsChainWalletAndLogs(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"data.mdb", "lock.mdb", "wallet.mdb", filepath.Join("logs", "v0.3.3", "freebank.log")} {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	log := zerolog.Nop()
+
+	if got := FreebankDirs.GetBlockchainDataPaths(dir, NetworkSignet, log); len(got) != 3 {
+		t.Errorf("chain data paths = %v, want data.mdb, lock.mdb and logs", got)
+	}
+	if got := FreebankDirs.GetWalletPaths(dir, NetworkSignet, log); len(got) != 1 || filepath.Base(got[0]) != "wallet.mdb" {
+		t.Errorf("wallet paths = %v, want wallet.mdb", got)
+	}
+	if got := FreebankDirs.GetLogPaths(dir, log); len(got) != 1 || filepath.Base(got[0]) != "logs" {
+		t.Errorf("log paths = %v, want logs", got)
+	}
+	if got, want := FreebankDirs.LogPath(dir), filepath.Join(dir, "logs", "v0.3.3", "freebank.log"); got != want {
+		t.Errorf("LogPath = %q, want %q", got, want)
 	}
 }

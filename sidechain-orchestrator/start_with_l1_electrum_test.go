@@ -47,7 +47,7 @@ func TestStartWithL1RejectsCoreSidechainInLightMode(t *testing.T) {
 	useTempHome(t)
 	o := newTestOrchestrator(t)
 	require.NoError(t, WriteNodeMode(o.BitwindowDir, NodeModeLight))
-	ch, err := o.StartWithL1(context.Background(), "freebank", StartOpts{ForceBackend: true})
+	ch, err := o.StartWithL1(context.Background(), "bbc", StartOpts{ForceBackend: true})
 	require.NoError(t, err)
 	var bootErr error
 	for p := range ch {

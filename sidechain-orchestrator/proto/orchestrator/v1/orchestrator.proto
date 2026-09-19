@@ -514,6 +514,7 @@ enum SidechainType {
   SIDECHAIN_TYPE_TRUTHCOIN = 5;
   SIDECHAIN_TYPE_PHOTON = 6;
   SIDECHAIN_TYPE_COINSHIFT = 7;
+  SIDECHAIN_TYPE_FREEBANK = 8;
 }
 
 // BinaryType is the single typed identifier for any binary the system tracks.

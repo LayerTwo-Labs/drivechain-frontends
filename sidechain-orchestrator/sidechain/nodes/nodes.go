@@ -10,7 +10,6 @@ import (
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/config"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/bbc"
-	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/freebank"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/sidechain/zside"
 )
 
@@ -30,10 +29,5 @@ func New(name, host string, port int, isBitcoinCore bool, network config.Network
 	}
 	cookie := filepath.Join(dirs.DatadirNetwork(network, ""), ".cookie")
 
-	switch name {
-	case "freebank":
-		return freebank.NewClient(host, port, cookie), nil
-	default:
-		return bbc.NewClient(host, port, cookie), nil
-	}
+	return bbc.NewClient(host, port, cookie), nil
 }

@@ -26,6 +26,7 @@ class SidechainType extends $pb.ProtobufEnum {
   static const SidechainType SIDECHAIN_TYPE_TRUTHCOIN = SidechainType._(5, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_TRUTHCOIN');
   static const SidechainType SIDECHAIN_TYPE_PHOTON = SidechainType._(6, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_PHOTON');
   static const SidechainType SIDECHAIN_TYPE_COINSHIFT = SidechainType._(7, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_COINSHIFT');
+  static const SidechainType SIDECHAIN_TYPE_FREEBANK = SidechainType._(8, _omitEnumNames ? '' : 'SIDECHAIN_TYPE_FREEBANK');
 
   static const $core.List<SidechainType> values = <SidechainType> [
     SIDECHAIN_TYPE_UNSPECIFIED,
@@ -36,6 +37,7 @@ class SidechainType extends $pb.ProtobufEnum {
     SIDECHAIN_TYPE_TRUTHCOIN,
     SIDECHAIN_TYPE_PHOTON,
     SIDECHAIN_TYPE_COINSHIFT,
+    SIDECHAIN_TYPE_FREEBANK,
   ];
 
   static final $core.Map<$core.int, SidechainType> _byValue = $pb.ProtobufEnum.initByValue(values);

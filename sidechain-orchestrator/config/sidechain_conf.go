@@ -597,6 +597,16 @@ var KnownSidechainSpecs = map[string]SidechainConfSpec{
 		RPCKey:         "rpc-port",
 		DirKey:         "bitassets",
 	},
+	"freebank": {
+		EnforcerArg:    "mainchain-grpc-host",
+		Name:           "FreeBank",
+		ConfigFilename: "freebank.conf",
+		BasePort:       6130,
+		CliArgKeys:     []string{"net-addr", "zmq-addr"},
+		PortStyle:      "zmq",
+		RPCKey:         "rpc-port",
+		DirKey:         "freebank",
+	},
 	"bitnames": {
 		EnforcerArg:    "mainchain-grpc-host",
 		Name:           "BitNames",
