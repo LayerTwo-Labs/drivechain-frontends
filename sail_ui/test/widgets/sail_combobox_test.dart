@@ -97,5 +97,68 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('nothing here'), findsOneWidget);
     });
+
+    group('with sections', () {
+      const targets = <SailComboboxItem<String>>[
+        SailComboboxItem(value: 'solo', label: 'Solo, your node', section: 'Your node', trailing: ['No fee']),
+        SailComboboxItem(
+          value: 'bip300',
+          label: 'bip300 pool',
+          section: 'Pools',
+          trailing: ['16.5 TH/s', '1% fee'],
+          searchValue: 'bip300 pool pool.beta.bip300.xyz',
+        ),
+        SailComboboxItem(
+          value: 'avon',
+          label: 'avonpool pool',
+          section: 'Pools',
+          searchValue: 'avonpool pool.alpha.xyz',
+        ),
+        SailComboboxItem(value: 'custom', label: 'Custom pool', section: 'Other'),
+      ];
+
+      testWidgets('the trigger shows the trailing figures after the label', (tester) async {
+        await tester.pumpWidget(
+          _app(SailCombobox<String>(items: targets, value: 'bip300', onChanged: (_) {})),
+        );
+        expect(find.text('bip300 pool  ·  16.5 TH/s  ·  1% fee'), findsOneWidget);
+      });
+
+      testWidgets('each section heading shows one time', (tester) async {
+        await tester.pumpWidget(
+          _app(
+            SailCombobox<String>(
+              items: targets,
+              value: 'custom',
+              width: 480,
+              searchPlaceholder: 'Search pools',
+              onChanged: (_) {},
+            ),
+          ),
+        );
+        await tester.tap(find.byType(SailCombobox<String>));
+        await tester.pumpAndSettle();
+        expect(find.text('Search pools'), findsOneWidget);
+        expect(find.text('Your node'), findsOneWidget);
+        expect(find.text('Pools'), findsOneWidget);
+        expect(find.text('Other'), findsOneWidget);
+        expect(find.text('16.5 TH/s'), findsOneWidget);
+        expect(find.text('1% fee'), findsOneWidget);
+      });
+
+      testWidgets('a search on the host keeps the matching pool and its heading', (tester) async {
+        await tester.pumpWidget(
+          _app(SailCombobox<String>(items: targets, width: 480, onChanged: (_) {})),
+        );
+        await tester.tap(find.byType(SailCombobox<String>));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(EditableText).first, 'beta');
+        await tester.pumpAndSettle();
+        expect(find.text('bip300 pool'), findsOneWidget);
+        expect(find.text('Pools'), findsOneWidget);
+        expect(find.text('avonpool pool'), findsNothing);
+        expect(find.text('Your node'), findsNothing);
+      });
+    });
   });
 }

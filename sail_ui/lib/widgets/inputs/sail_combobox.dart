@@ -8,11 +8,19 @@ class SailComboboxItem<T> {
   final String? subtitle;
   final String? searchValue;
 
+  /// Heading of the group the item lists under. Items of one section sit next to each other.
+  final String? section;
+
+  /// Short figures on the right of the row, and after the label on the trigger.
+  final List<String> trailing;
+
   const SailComboboxItem({
     required this.value,
     required this.label,
     this.subtitle,
     this.searchValue,
+    this.section,
+    this.trailing = const [],
   });
 
   String get matchKey => (searchValue ?? label).toLowerCase();
@@ -103,7 +111,7 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
     }
     for (final i in widget.items) {
       if (i.value == widget.value) {
-        return i.label;
+        return [i.label, ...i.trailing].join('  ·  ');
       }
     }
     return widget.placeholder;
@@ -195,23 +203,31 @@ class _SailComboboxState<T> extends State<SailCombobox<T>> {
                           ),
                         ),
                       )
-                    : ListView.builder(
+                    : ListView(
                         shrinkWrap: true,
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        itemCount: filtered.length,
-                        itemBuilder: (ctx, i) {
-                          final item = filtered[i];
-                          final selected = item.value == widget.value;
-                          final highlighted = i == _highlighted;
-                          return _ComboboxRow(
-                            label: item.label,
-                            subtitle: item.subtitle,
-                            selected: selected,
-                            highlighted: highlighted,
-                            onTap: () => _select(item),
-                            onHover: () => setState(() => _highlighted = i),
-                          );
-                        },
+                        children: [
+                          for (var i = 0; i < filtered.length; i++) ...[
+                            if (filtered[i].section != null &&
+                                (i == 0 || filtered[i - 1].section != filtered[i].section))
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                                child: Text(
+                                  filtered[i].section!,
+                                  style: SailStyleValues.twelve.copyWith(color: theme.colors.textTertiary),
+                                ),
+                              ),
+                            _ComboboxRow(
+                              label: filtered[i].label,
+                              subtitle: filtered[i].subtitle,
+                              trailing: filtered[i].trailing,
+                              selected: filtered[i].value == widget.value,
+                              highlighted: i == _highlighted,
+                              onTap: () => _select(filtered[i]),
+                              onHover: () => setState(() => _highlighted = i),
+                            ),
+                          ],
+                        ],
                       ),
               ),
             ],
@@ -274,13 +290,23 @@ class _SearchField extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: theme.colors.border),
       ),
-      child: EditableText(
-        controller: controller,
-        focusNode: focusNode,
-        style: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
-        cursorColor: theme.colors.primary,
-        backgroundCursorColor: theme.colors.backgroundSecondary,
-        onChanged: onChanged,
+      child: Stack(
+        children: [
+          ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => controller.text.isEmpty
+                ? Text(placeholder, style: SailStyleValues.thirteen.copyWith(color: theme.colors.textTertiary))
+                : const SizedBox.shrink(),
+          ),
+          EditableText(
+            controller: controller,
+            focusNode: focusNode,
+            style: SailStyleValues.thirteen.copyWith(color: theme.colors.text),
+            cursorColor: theme.colors.primary,
+            backgroundCursorColor: theme.colors.backgroundSecondary,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }
@@ -289,6 +315,7 @@ class _SearchField extends StatelessWidget {
 class _ComboboxRow extends StatefulWidget {
   final String label;
   final String? subtitle;
+  final List<String> trailing;
   final bool selected;
   final bool highlighted;
   final VoidCallback onTap;
@@ -297,6 +324,7 @@ class _ComboboxRow extends StatefulWidget {
   const _ComboboxRow({
     required this.label,
     this.subtitle,
+    this.trailing = const [],
     required this.selected,
     required this.highlighted,
     required this.onTap,
@@ -355,6 +383,13 @@ class _ComboboxRowState extends State<_ComboboxRow> {
                   ],
                 ),
               ),
+              for (final figure in widget.trailing) ...[
+                const SizedBox(width: 12),
+                Text(
+                  figure,
+                  style: SailStyleValues.twelve.copyWith(color: theme.colors.textSecondary),
+                ),
+              ],
             ],
           ),
         ),
