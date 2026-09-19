@@ -12,19 +12,42 @@ import 'package:thirds/blake3.dart';
 class BitAssetsProvider extends ChangeNotifier {
   BitAssetsRPC get rpc => GetIt.I.get<BitAssetsRPC>();
   BitwindowClientSettings get nameSettings => HashNameMappingSetting.settings;
+  ClientSettings get appSettings => GetIt.I.get<ClientSettings>();
 
   List<BitAssetEntry> entries = [];
   List<DutchAuctionEntry> auctions = [];
   bool initialized = false;
   bool _isFetching = false;
+  bool _disposed = false;
   bool _isLoadingAuctions = true;
   Timer? _retryTimer;
   HashNameMappingSetting hashNameMapping = HashNameMappingSetting();
+  Set<String> ownedHashes = {};
 
   BitAssetsProvider() {
     rpc.addListener(fetch);
-    fetch();
+    unawaited(_start());
     _startRetryTimer();
+  }
+
+  Future<void> _start() async {
+    await migrateOwnedHashes();
+    await fetch();
+  }
+
+  /// Takes the owned hashes an older install kept in its own name map. The
+  /// shared map carries names alone, so ownership moves to a key of this app.
+  Future<void> migrateOwnedHashes() async {
+    final store = appSettings.store;
+    try {
+      if (await store.getString(OwnedBitAssetsSetting().key) != null) {
+        return;
+      }
+      final owned = ownedFromLegacyMapping(await store.getString(HashNameMappingSetting().key));
+      await appSettings.setValue(OwnedBitAssetsSetting(newValue: owned));
+    } catch (e) {
+      // A settings read failure leaves the old map in place for the next start.
+    }
   }
 
   void _startRetryTimer() {
@@ -42,7 +65,7 @@ class BitAssetsProvider extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
-    if (_isFetching) return;
+    if (_isFetching || _disposed) return;
     _isFetching = true;
 
     List<BitAssetEntry>? newEntries;
@@ -53,6 +76,8 @@ class BitAssetsProvider extends ChangeNotifier {
     try {
       final loaded = await nameSettings.getValue(HashNameMappingSetting());
       newHashNameMapping = HashNameMappingSetting(newValue: loaded.value);
+      final owned = await appSettings.getValue(OwnedBitAssetsSetting());
+      ownedHashes = owned.value.toSet();
     } catch (e) {
       // Keep the in-memory mapping if settings are unavailable.
     }
@@ -84,7 +109,9 @@ class BitAssetsProvider extends ChangeNotifier {
         auctions = newAuctions;
         _isLoadingAuctions = false;
       }
-      notifyListeners();
+      if (!_disposed) {
+        notifyListeners();
+      }
     }
 
     _isFetching = false;
@@ -125,7 +152,7 @@ class BitAssetsProvider extends ChangeNotifier {
 
     for (final entry in left.entries) {
       final other = right[entry.key];
-      if (other == null || other.name != entry.value.name || other.isMine != entry.value.isMine) {
+      if (other == null || other.name != entry.value.name) {
         return false;
       }
     }
@@ -140,17 +167,67 @@ class BitAssetsProvider extends ChangeNotifier {
     final hash = blake3Hex(utf8.encode(name));
     final current = await nameSettings.getValue(HashNameMappingSetting());
     final newMappings = Map<String, HashMapping>.from(current.value);
-    newMappings[hash] = HashMapping(name: name, isMine: isMine);
+    newMappings[hash] = HashMapping(name: name);
     hashNameMapping = HashNameMappingSetting(newValue: newMappings);
     await nameSettings.setValue(hashNameMapping);
+    if (isMine) {
+      ownedHashes = {...ownedHashes, hash};
+      await appSettings.setValue(OwnedBitAssetsSetting(newValue: ownedHashes.toList()));
+    }
     notifyListeners();
     await fetch(); // refetch to set the name in the list
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _retryTimer?.cancel();
     rpc.removeListener(fetch);
     super.dispose();
+  }
+}
+
+/// The BitAsset hashes this wallet holds. The name mapping is shared with the
+/// other apps, and the same plaintext hashes to the same value on every chain.
+class OwnedBitAssetsSetting extends SettingValue<List<String>> {
+  OwnedBitAssetsSetting({super.newValue});
+
+  @override
+  String get key => 'owned_bitasset_hashes';
+
+  @override
+  List<String> defaultValue() => [];
+
+  @override
+  String toJson() => jsonEncode(value);
+
+  @override
+  List<String>? fromJson(String jsonString) {
+    try {
+      return (jsonDecode(jsonString) as List<dynamic>).cast<String>();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  SettingValue<List<String>> withValue([List<String>? value]) {
+    return OwnedBitAssetsSetting(newValue: value);
+  }
+}
+
+/// The hashes that an older name map marks as held by this wallet.
+List<String> ownedFromLegacyMapping(String? json) {
+  if (json == null) {
+    return [];
+  }
+  try {
+    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    return [
+      for (final entry in decoded.entries)
+        if ((entry.value as Map<String, dynamic>)['isMine'] == true) entry.key,
+    ];
+  } catch (e) {
+    return [];
   }
 }
