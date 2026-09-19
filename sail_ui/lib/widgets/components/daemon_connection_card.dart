@@ -640,7 +640,6 @@ class MainchainSyncStatus extends StatelessWidget {
     // A phase a few items short of its total must not read as done.
     final percent = done < total ? math.min(fraction * 100, 99.9) : fraction * 100;
     final counts = '${number.format(done)} / ${number.format(total)}$unit';
-    final maxHeight = 'Max height ${number.format(syncInfo.mainchainTipHeight)}';
 
     Widget line(String text, TextStyle style) => Text(
       text,
@@ -662,7 +661,7 @@ class MainchainSyncStatus extends StatelessWidget {
 
     if (compact) {
       return Tooltip(
-        message: '$label\n$counts\n$maxHeight',
+        message: '$label\n$counts',
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -688,12 +687,7 @@ class MainchainSyncStatus extends StatelessWidget {
         const SizedBox(height: SailStyleValues.padding04),
         bar,
         const SizedBox(height: SailStyleValues.padding04),
-        Row(
-          children: [
-            Expanded(child: line(counts, secondary)),
-            line(maxHeight, secondary),
-          ],
-        ),
+        line(counts, secondary),
       ],
     );
   }

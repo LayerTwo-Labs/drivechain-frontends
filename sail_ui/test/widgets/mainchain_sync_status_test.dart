@@ -31,7 +31,7 @@ void main() {
   double barFill(WidgetTester tester) =>
       tester.widget<FractionallySizedBox>(find.byType(FractionallySizedBox)).widthFactor!;
 
-  testWidgets('the headers phase shows its label, percent, counts and max height', (tester) async {
+  testWidgets('the headers phase shows its label, percent and counts', (tester) async {
     await tester.pumpWidget(wrap(BlockStatus(name: 'Thunder', syncInfo: syncing(headers, 412000))));
     await tester.pumpAndSettle();
 
@@ -39,11 +39,11 @@ void main() {
     expect(find.text('Fetching mainchain headers'), findsOneWidget);
     expect(find.text('41.3%'), findsOneWidget);
     expect(find.text('412,000 / 997,070 headers'), findsOneWidget);
-    expect(find.text('Max height 997,070'), findsOneWidget);
+    expect(find.textContaining('Max height'), findsNothing);
     expect(find.byType(ProgressBar), findsNothing);
   });
 
-  testWidgets('the state phase shows its label, percent, counts and max height', (tester) async {
+  testWidgets('the state phase shows its label, percent and counts', (tester) async {
     await tester.pumpWidget(wrap(BlockStatus(name: 'Thunder', syncInfo: syncing(state, 310))));
     await tester.pumpAndSettle();
 
@@ -51,10 +51,9 @@ void main() {
     expect(find.text('Syncing mainchain state'), findsOneWidget);
     expect(find.text('0.0%'), findsOneWidget);
     expect(find.text('310 / 997,070 blocks'), findsOneWidget);
-    expect(find.text('Max height 997,070'), findsOneWidget);
   });
 
-  testWidgets('the writing phase shows its label, percent, counts and max height', (tester) async {
+  testWidgets('the writing phase shows its label, percent and counts', (tester) async {
     await tester.pumpWidget(wrap(BlockStatus(name: 'Thunder', syncInfo: syncing(writing, 500000))));
     await tester.pumpAndSettle();
 
@@ -62,7 +61,6 @@ void main() {
     expect(find.text('Writing mainchain headers'), findsOneWidget);
     expect(find.text('50.1%'), findsOneWidget);
     expect(find.text('500,000 / 997,070 headers'), findsOneWidget);
-    expect(find.text('Max height 997,070'), findsOneWidget);
   });
 
   testWidgets('a phase this build does not name shows a plain mainchain bar', (tester) async {
@@ -73,7 +71,6 @@ void main() {
     expect(find.text('Syncing mainchain'), findsOneWidget);
     expect(find.text('0.1%'), findsOneWidget);
     expect(find.text('1,000 / 997,070'), findsOneWidget);
-    expect(find.text('Max height 997,070'), findsOneWidget);
   });
 
   testWidgets('a phase one item short of its total does not read as done', (tester) async {
@@ -83,7 +80,7 @@ void main() {
     expect(find.text('99.9%'), findsOneWidget);
   });
 
-  testWidgets('the compact loader keeps the counts and max height in its tooltip', (tester) async {
+  testWidgets('the compact loader keeps the counts in its tooltip', (tester) async {
     await tester.pumpWidget(
       wrap(ChainLoader(name: 'Thunder', syncInfo: syncing(headers, 412000), justPercent: true, expanded: false)),
     );
@@ -92,7 +89,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Fetching mainchain headers'), findsOneWidget);
     expect(find.text('41.3%'), findsOneWidget);
-    expect(find.byTooltip('Fetching mainchain headers\n412,000 / 997,070 headers\nMax height 997,070'), findsOneWidget);
+    expect(find.byTooltip('Fetching mainchain headers\n412,000 / 997,070 headers'), findsOneWidget);
   });
 
   testWidgets('a new phase starts its bar at zero, not at the last phase fill', (tester) async {
