@@ -427,6 +427,9 @@ func (h *StratumHandler) SetTarget(
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown target kind %s", target.GetKind()))
 	}
 
+	if next == h.settings.StratumSettings() {
+		return connect.NewResponse(&pb.SetTargetResponse{}), nil
+	}
 	h.mu.Lock()
 	run := h.run
 	h.mu.Unlock()

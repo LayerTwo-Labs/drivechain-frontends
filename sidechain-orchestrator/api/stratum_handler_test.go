@@ -137,6 +137,17 @@ func TestStratumHandlerTargets(t *testing.T) {
 		assert.Equal(t, "bc1qpayout", status.Msg.PayoutAddress)
 	})
 
+	t.Run("the same target again changes nothing", func(t *testing.T) {
+		settings := &fakeStratumSettings{}
+		h, _ := newTestStratumHandler(network, settings)
+		pool := &pb.Target{Kind: pb.TargetKind_TARGET_KIND_POOL, PoolId: "bip300"}
+		for range 2 {
+			_, err := h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{Target: pool}))
+			require.NoError(t, err)
+		}
+		assert.Equal(t, 1, settings.saves)
+	})
+
 	t.Run("an unknown pool", func(t *testing.T) {
 		h, _ := newTestStratumHandler(network, &fakeStratumSettings{})
 		_, err := h.SetTarget(context.Background(), connect.NewRequest(&pb.SetTargetRequest{
