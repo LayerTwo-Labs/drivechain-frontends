@@ -354,24 +354,6 @@ func (e *BmmEngine) History(sidechain pb.BinaryType) ([]bmmstate.Round, error) {
 	return e.store.List(int32(sidechain))
 }
 
-// OurBidTxids names every transaction this node broadcast as a bid, over every
-// sidechain and every round it holds.
-func (e *BmmEngine) OurBidTxids() (map[string]bool, error) {
-	rounds, err := e.store.All()
-	if err != nil {
-		return nil, err
-	}
-	txids := map[string]bool{}
-	for _, round := range rounds {
-		for _, bid := range round.OurBids {
-			if bid.Txid != "" {
-				txids[bid.Txid] = true
-			}
-		}
-	}
-	return txids, nil
-}
-
 // Round returns one round by its mainchain tip, current or settled.
 func (e *BmmEngine) Round(sidechain pb.BinaryType, prevMainHash string) (*bmmstate.Round, error) {
 	if current := e.Current(sidechain); current != nil && current.PrevMainHash == prevMainHash {
