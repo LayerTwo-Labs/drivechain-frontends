@@ -1,5 +1,5 @@
 {
-  "version": 21,
+  "version": 22,
   "binaries": {
     "bitcoincore": {
       "type": "core",
@@ -552,11 +552,11 @@
         "binary": "truthcoin",
         "files": {
           "default": {
-            "base_url": "https://api.github.com/repos/octobocto/truthcoin-dc/releases/latest",
-            "linux-x86_64": "truthcoin-\\d+\\.\\d+\\.\\d+-x86_64-unknown-linux-gnu\\.zip",
-            "macos-x86_64": "truthcoin-\\d+\\.\\d+\\.\\d+-x86_64-apple-darwin\\.zip",
-            "macos-arm64": "truthcoin-\\d+\\.\\d+\\.\\d+-aarch64-apple-darwin\\.zip",
-            "windows-x86_64": "truthcoin-\\d+\\.\\d+\\.\\d+-x86_64-pc-windows-gnu\\.zip"
+            "base_url": "https://releases.drivechain.info/",
+            "linux-x86_64": "L2-S13-Truthcoin-latest-x86_64-unknown-linux-gnu.zip",
+            "macos-x86_64": "L2-S13-Truthcoin-latest-x86_64-apple-darwin.zip",
+            "macos-arm64": "L2-S13-Truthcoin-latest-aarch64-apple-darwin.zip",
+            "windows-x86_64": "L2-S13-Truthcoin-latest-x86_64-pc-windows-gnu.zip"
           }
         }
       },
