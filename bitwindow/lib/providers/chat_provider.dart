@@ -109,6 +109,11 @@ class ChatProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  /// Why the last send did not go out. The paymail poll rewrites [error] on
+  /// every tick, so a send failure kept there would vanish within seconds.
+  String? _sendError;
+  String? get sendError => _sendError;
+
   bool _isSending = false;
   bool get isSending => _isSending;
 
@@ -153,6 +158,7 @@ class ChatProvider extends ChangeNotifier {
     _ownedHashes = {};
     _statusMessages.clear();
     _error = null;
+    _sendError = null;
     _isSending = false;
     notifyListeners();
     unawaited(_init());
@@ -292,6 +298,7 @@ class ChatProvider extends ChangeNotifier {
 
   void selectIdentity(BitnameEntry identity) {
     _selectedIdentity = identity;
+    _sendError = null;
     final contact = _selectedContact;
     if (contact != null) {
       unawaited(markConversationRead(contact.id));
@@ -530,7 +537,7 @@ class ChatProvider extends ChangeNotifier {
   }
 
   /// Add contact directly from a BitnameEntry (no lookup needed)
-  Future<void> addContactFromEntry(BitnameEntry entry) async {
+  Future<void> addContactFromEntry(BitnameEntry entry, {String? plaintextName}) async {
     if (entry.details.encryptionPubkey == null) {
       _error = 'BitName has no encryption key';
       notifyListeners();
@@ -552,8 +559,8 @@ class ChatProvider extends ChangeNotifier {
       id: entry.hash,
       name: entry.hash,
       // A listing row carries no name when the chain never saw the plaintext.
-      // The names this wallet already holds answer it.
-      plaintextName: entry.plaintextName ?? knownPlaintextName(entry.hash),
+      // The name the caller matched, then the names this wallet holds, answer it.
+      plaintextName: entry.plaintextName ?? plaintextName ?? knownPlaintextName(entry.hash),
       encryptionPubkey: entry.details.encryptionPubkey!,
       address: address,
       paymailFeeSats: entry.details.paymailFeeSats,
@@ -565,6 +572,7 @@ class ChatProvider extends ChangeNotifier {
 
   void selectContact(ChatContact contact) {
     _selectedContact = contact;
+    _sendError = null;
     notifyListeners();
     unawaited(markConversationRead(contact.id));
   }
@@ -820,7 +828,7 @@ class ChatProvider extends ChangeNotifier {
     final identity = _selectedIdentity;
     final selectedContact = _selectedContact;
     if (selectedContact == null || identity == null) {
-      _error = 'No contact or identity selected';
+      _sendError = 'No contact or identity selected';
       notifyListeners();
       return null;
     }
@@ -828,19 +836,19 @@ class ChatProvider extends ChangeNotifier {
 
     final senderKey = identity.details.encryptionPubkey;
     if (senderKey == null) {
-      _error = 'The selected identity has no encryption key';
+      _sendError = 'The selected identity has no encryption key';
       notifyListeners();
       return null;
     }
 
     if (selectedContact.encryptionPubkey.isEmpty) {
-      _error = 'This message has no known sender BitName. Add the sender by BitName before a reply.';
+      _sendError = 'This message has no known sender BitName. Add the sender by BitName before a reply.';
       notifyListeners();
       return null;
     }
 
     _isSending = true;
-    _error = null;
+    _sendError = null;
     notifyListeners();
 
     String? txid;
@@ -864,7 +872,7 @@ class ChatProvider extends ChangeNotifier {
         }
         await addContact(contact);
         if (walletChange == _walletChange) {
-          _error = 'The postage increased to $value sats. Select Send again to accept the new cost.';
+          _sendError = 'The postage increased to $value sats. Select Send again to accept the new cost.';
         }
         return null;
       }
@@ -934,7 +942,7 @@ class ChatProvider extends ChangeNotifier {
       if (walletChange != _walletChange) {
         return txid == null ? null : _reportLateSend(txid);
       }
-      _error = 'Could not send the message: $e';
+      _sendError = 'Could not send the message: $e';
       notifyListeners();
       return null;
     } finally {
@@ -960,7 +968,7 @@ class ChatProvider extends ChangeNotifier {
   }
 
   String _reportLateSend(String txid) {
-    _error = 'The node accepted the message. The wallet change stopped the local history save.';
+    _sendError = 'The node accepted the message. The wallet change stopped the local history save.';
     notifyListeners();
     return txid;
   }
@@ -1051,6 +1059,7 @@ class ChatProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
+    _sendError = null;
     notifyListeners();
   }
 
