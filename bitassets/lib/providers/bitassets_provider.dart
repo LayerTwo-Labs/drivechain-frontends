@@ -11,7 +11,7 @@ import 'package:thirds/blake3.dart';
 
 class BitAssetsProvider extends ChangeNotifier {
   BitAssetsRPC get rpc => GetIt.I.get<BitAssetsRPC>();
-  ClientSettings get clientSettings => GetIt.I.get<ClientSettings>();
+  BitwindowClientSettings get nameSettings => HashNameMappingSetting.settings;
 
   List<BitAssetEntry> entries = [];
   List<DutchAuctionEntry> auctions = [];
@@ -51,7 +51,7 @@ class BitAssetsProvider extends ChangeNotifier {
     bool newInitialized = initialized;
 
     try {
-      final loaded = await clientSettings.getValue(HashNameMappingSetting());
+      final loaded = await nameSettings.getValue(HashNameMappingSetting());
       newHashNameMapping = HashNameMappingSetting(newValue: loaded.value);
     } catch (e) {
       // Keep the in-memory mapping if settings are unavailable.
@@ -138,11 +138,11 @@ class BitAssetsProvider extends ChangeNotifier {
   /// Save a new hash-name mapping
   Future<void> saveHashNameMapping(String name, {bool isMine = false}) async {
     final hash = blake3Hex(utf8.encode(name));
-    final current = await clientSettings.getValue(HashNameMappingSetting());
+    final current = await nameSettings.getValue(HashNameMappingSetting());
     final newMappings = Map<String, HashMapping>.from(current.value);
     newMappings[hash] = HashMapping(name: name, isMine: isMine);
     hashNameMapping = HashNameMappingSetting(newValue: newMappings);
-    await clientSettings.setValue(hashNameMapping);
+    await nameSettings.setValue(hashNameMapping);
     notifyListeners();
     await fetch(); // refetch to set the name in the list
   }

@@ -352,7 +352,7 @@ class BitAssetsLive extends BitAssetsRPC {
 
   @override
   Future<List<BitAssetEntry>> listBitAssets() async {
-    final clientSettings = GetIt.I.get<ClientSettings>();
+    final clientSettings = HashNameMappingSetting.settings;
 
     Map<String, String>? hashNameMapping;
     try {

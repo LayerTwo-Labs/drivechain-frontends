@@ -201,7 +201,7 @@ class ChatProvider extends ChangeNotifier {
 
     try {
       // Load hash-name mappings for friendly names
-      final loadedMapping = await _clientSettings.getValue(HashNameMappingSetting());
+      final loadedMapping = await HashNameMappingSetting.settings.getValue(HashNameMappingSetting());
 
       // Fetch all BitNames (for lookup and search)
       final allBitNames = await bitnamesRPC.listBitNames();
@@ -240,7 +240,7 @@ class ChatProvider extends ChangeNotifier {
     final walletChange = _walletChange;
     try {
       // Load hash-name mappings
-      final loadedMapping = await _clientSettings.getValue(HashNameMappingSetting());
+      final loadedMapping = await HashNameMappingSetting.settings.getValue(HashNameMappingSetting());
 
       // Load cached owned hashes
       final ownedSetting = await _clientSettings.getValue(OwnedBitNamesSetting());

@@ -11,7 +11,7 @@ import 'package:thirds/blake3.dart';
 
 class BitnamesProvider extends ChangeNotifier {
   BitnamesRPC get rpc => GetIt.I.get<BitnamesRPC>();
-  ClientSettings get clientSettings => GetIt.I.get<ClientSettings>();
+  BitwindowClientSettings get nameSettings => HashNameMappingSetting.settings;
 
   List<BitnameEntry> entries = [];
   Set<String> ownedHashes = {};
@@ -33,11 +33,11 @@ class BitnamesProvider extends ChangeNotifier {
   Future<void> saveHashNameMapping(String name) async {
     await _nameSaveLock.synchronized(() async {
       final hash = blake3Hex(utf8.encode(name));
-      final saved = await clientSettings.getValue(HashNameMappingSetting());
+      final saved = await nameSettings.getValue(HashNameMappingSetting());
       final newMappings = Map<String, HashMapping>.from(saved.value);
       newMappings[hash] = HashMapping(name: name);
       hashNameMapping = HashNameMappingSetting(newValue: newMappings);
-      await clientSettings.setValue(hashNameMapping);
+      await nameSettings.setValue(hashNameMapping);
     });
     notifyListeners();
     await fetch(); // refetch to set the name in the list
@@ -55,7 +55,7 @@ class BitnamesProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final saved = await clientSettings.getValue(HashNameMappingSetting());
+      final saved = await nameSettings.getValue(HashNameMappingSetting());
       hashNameMapping = HashNameMappingSetting(newValue: saved.value);
       final listed = await rpc.listBitNames();
       final utxos = await rpc.listUTXOs();

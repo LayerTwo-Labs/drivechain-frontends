@@ -25,6 +25,7 @@ void main() {
     final log = Logger();
     GetIt.I.registerSingleton<Logger>(log);
     GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: _Store(), log: log));
+    GetIt.I.registerSingleton<BitwindowClientSettings>(BitwindowClientSettings(store: _Store(), log: log));
     addTearDown(GetIt.I.reset);
 
     final fixture = jsonDecode(await File('test/fixtures/alphanet_bitnames.json').readAsString());

@@ -14,20 +14,20 @@ import 'mocks/storage_mock.dart';
 
 void main() {
   late MockStore store;
-  late ClientSettings settings;
+  late BitwindowClientSettings settings;
   late _AssetListBitAssetsRPC rpc;
 
   setUp(() async {
     await GetIt.I.reset();
 
     store = MockStore();
-    settings = ClientSettings(
+    settings = BitwindowClientSettings(
       store: store,
       log: Logger(printer: PrettyPrinter(methodCount: 0)),
     );
     rpc = _AssetListBitAssetsRPC();
 
-    GetIt.I.registerSingleton<ClientSettings>(settings);
+    GetIt.I.registerSingleton<BitwindowClientSettings>(settings);
     GetIt.I.registerSingleton<BitAssetsRPC>(rpc);
   });
 

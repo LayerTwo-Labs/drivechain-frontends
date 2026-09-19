@@ -23,6 +23,10 @@ class HashMapping {
 class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
   HashNameMappingSetting({super.newValue});
 
+  /// Every app reads and writes this mapping in the bitwindow store, so a name
+  /// one app deciphers shows in the others.
+  static BitwindowClientSettings get settings => GetIt.I.get<BitwindowClientSettings>();
+
   @override
   String get key => 'hash_name_mappings';
 
@@ -78,7 +82,7 @@ class HashNameMappingSetting extends SettingValue<Map<String, HashMapping>> {
 
   /// Save a new mapping with isMine flag
   Future<void> saveMapping(String name, {bool isMine = false}) async {
-    final clientSettings = GetIt.I.get<ClientSettings>();
+    final clientSettings = settings;
     final hash = blake3Hex(utf8.encode(name));
     final currentValue = await clientSettings.getValue(this);
     final newMappings = Map<String, HashMapping>.from(currentValue.value);

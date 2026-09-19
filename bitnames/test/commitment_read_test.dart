@@ -48,7 +48,9 @@ void main() {
     final sidechainRPC = MockSidechainRPC();
     final log = Logger();
     GetIt.I.registerSingleton<Logger>(log);
-    GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: MockStore(), log: log));
+    final store = MockStore();
+    GetIt.I.registerSingleton<ClientSettings>(ClientSettings(store: store, log: log));
+    GetIt.I.registerSingleton<BitwindowClientSettings>(BitwindowClientSettings(store: store, log: log));
     GetIt.I.registerSingleton<SidechainRPC>(sidechainRPC);
     GetIt.I.registerSingleton<BitnamesRPC>(rpc);
     GetIt.I.registerSingleton<BitnamesProvider>(BitnamesProvider());
