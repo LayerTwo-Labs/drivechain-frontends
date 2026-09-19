@@ -286,6 +286,21 @@ void main() {
     await closeDialog(tester);
   });
 
+  testWidgets('a sync below the fork skips the rollback', (tester) async {
+    rpc.saved = _status(jobId: 'job-1', phase: 'convert', active: true)
+      ..belowFork = true
+      ..commonHeight = Int64(850000);
+
+    await openDialog(tester);
+
+    expect(find.text('Skip the rollback'), findsOneWidget);
+    expect(find.text('Synced to block'), findsOneWidget);
+    expect(find.text(groupDigits(850000)), findsOneWidget);
+    expect(find.text('Rollback block'), findsNothing);
+    expect(find.textContaining('Roll back to block'), findsNothing);
+    await closeDialog(tester);
+  });
+
   for (final network in [
     BitcoinNetwork.BITCOIN_NETWORK_MAINNET,
     BitcoinNetwork.BITCOIN_NETWORK_SIGNET,
