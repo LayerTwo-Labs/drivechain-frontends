@@ -3,9 +3,10 @@ import 'package:bitwindow/providers/fork_provider.dart';
 import 'package:bitwindow/providers/psbt_draft_provider.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/utils/navigation_registry.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sail_ui/sail_ui.dart';
+import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart' as bwpb;
 
 /// Drives "fork mode" at the top of the wallet page:
 /// - before the fork: a countdown to the fork height,
@@ -75,6 +76,8 @@ class ForkModeBanner extends StatelessWidget {
 /// window goes down to 400 pixels tall, so a fixed height leaves no room for
 /// the wallet tabs below.
 const double _claimCardBodyHeightShare = 0.4;
+
+const double _claimCardTwoColumnWidth = 800;
 
 class _ClaimEcashCard extends StatefulWidget {
   const _ClaimEcashCard({super.key, required this.fork, required this.walletId});
@@ -176,8 +179,7 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                   color: theme.colors.orange,
                 ),
                 const SizedBox(width: 8),
-                SailText.primary15('You have eCash to claim', bold: true),
-                const Spacer(),
+                Expanded(child: SailText.primary15('You have eCash to claim', bold: true)),
                 SailButton(
                   variant: ButtonVariant.icon,
                   icon: SailSVGAsset.iconClose,
@@ -194,29 +196,45 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
                   maxHeight: MediaQuery.sizeOf(context).height * _claimCardBodyHeightShare,
                 ),
                 child: SingleChildScrollView(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final panel = SailCard(
+                        child: SailColumn(
+                          spacing: SailStyleValues.padding20,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ...claims.map((c) => _coinPicker(context, c, formatter)),
-                            const SizedBox(height: 8),
+                            ...claims.expand((c) => _claimSections(context, c, formatter)),
+                            _summary(theme, formatter, selectedSats),
                             if (_selectionValid || _busy)
-                              SailButton(
-                                label: _buttonLabel(formatter, selectedSats, claims),
-                                loadingLabel: 'Creating transaction',
-                                loading: _busy,
-                                icon: SailSVGAsset.iconCoins,
-                                onPressed: () => _claim(context),
+                              SizedBox(
+                                width: double.infinity,
+                                child: SailButton(
+                                  label: _buttonLabel(formatter, selectedSats, claims),
+                                  loadingLabel: 'Creating transaction',
+                                  loading: _busy,
+                                  icon: SailSVGAsset.iconCoins,
+                                  onPressed: () => _claim(context),
+                                ),
                               ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(child: _whyThisIsNecessary()),
-                    ],
+                      );
+                      if (constraints.maxWidth < _claimCardTwoColumnWidth) {
+                        return SailColumn(
+                          spacing: 24,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [panel, _whyThisIsNecessary()],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: panel),
+                          const SizedBox(width: 24),
+                          Expanded(child: _whyThisIsNecessary()),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -240,120 +258,158 @@ class _ClaimEcashCardState extends State<_ClaimEcashCard> {
     return 'Split ${formatter.formatSats(selectedSats)}';
   }
 
-  Widget _coinPicker(BuildContext context, WalletClaim claim, FormatterProvider formatter) {
+  List<Widget> _claimSections(BuildContext context, WalletClaim claim, FormatterProvider formatter) {
     final theme = SailTheme.of(context);
     final selected = _selected[claim.walletId] ?? {};
     final receivedAt = _receivedAtByOutpoint();
-    final selectedClaimSats = claim.utxos
-        .where((u) => selected.contains(u.output))
-        .fold<int>(0, (sum, u) => sum + u.valueSats.toInt());
+    final multisig = claim.isMultisig ? ' · ${claim.multisig!.m}-of-${claim.multisig!.n} multisig' : '';
+    final coinCount = claim.utxos.length == 1 ? '1 coin' : '${claim.utxos.length} coins';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: SailCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return [
+      SailColumn(
+        spacing: SailStyleValues.padding04,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.primary15(claim.walletName, bold: true),
+          SailText.secondary13('$coinCount$multisig'),
+        ],
+      ),
+      SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.secondary12('Coins to split', bold: true),
+          _panel(
+            theme,
+            Column(
               children: [
-                SailText.secondary12(claim.walletName.toUpperCase(), bold: true),
-                const SizedBox(width: 8),
-                SailText.secondary12('${claim.utxos.length} coins'),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const SizedBox(width: 26),
-                Expanded(flex: 3, child: SailText.secondary12('AMOUNT')),
-                Expanded(flex: 2, child: SailText.secondary12('BLOCK')),
-                Expanded(flex: 3, child: SailText.secondary12('RECEIVED', textAlign: TextAlign.right)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...claim.utxos.map((u) {
-              final selectable = widget.fork.canSelect(claim, u);
-              final isSelected = selected.contains(u.output);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Opacity(
-                  opacity: selectable ? 1 : 0.45,
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 26,
-                        child: SailCheckbox(
-                          value: isSelected,
-                          enabled: selectable,
-                          onChanged: (value) => setState(() {
-                            if (value) {
-                              selected.add(u.output);
-                            } else {
-                              selected.remove(u.output);
-                            }
-                          }),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: SailText.primary13(formatter.formatSats(u.valueSats.toInt()), monospace: true),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: SailText.secondary13(
-                          u.height > 0 ? formatWithThousandSpacers(u.height) : '—',
-                          monospace: true,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: SailText.secondary13(
-                          receivedAt[u.output] != null ? formatDate(receivedAt[u.output]!) : '—',
-                          textAlign: TextAlign.right,
-                          monospace: true,
-                        ),
-                      ),
-                    ],
-                  ),
+                _coinRow(
+                  lead: const SizedBox.shrink(),
+                  amount: SailText.secondary12('Amount'),
+                  block: SailText.secondary12('Block'),
+                  received: SailText.secondary12('Received', textAlign: TextAlign.right),
                 ),
-              );
-            }),
-            Container(height: 1, color: theme.colors.divider),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                SailText.secondary13('Total'),
-                const Spacer(),
-                SailText.primary13(formatter.formatSats(selectedClaimSats), bold: true, monospace: true),
+                for (final u in claim.utxos) ...[
+                  Divider(height: 1, color: theme.colors.divider),
+                  _coinLine(claim, u, selected, receivedAt, formatter),
+                ],
               ],
             ),
-            if (claim.isMultisig) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  SailText.secondary13('Signatures'),
-                  const Spacer(),
-                  SailText.primary13(
-                    '${claim.multisig!.m} of ${claim.multisig!.n} keys',
-                    bold: true,
-                    monospace: true,
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 12),
-            SailText.secondary12('SENDS JUST ECX TO'),
-            const SizedBox(height: 2),
-            SailText.secondary13(
-              claim.isMultisig
-                  ? 'A fresh address in ${claim.walletName} · ${claim.multisig!.m}-of-${claim.multisig!.n} multisig'
-                  : 'A fresh address in ${claim.walletName}',
+            vertical: SailStyleValues.padding04,
+          ),
+        ],
+      ),
+      SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.secondary12('Transaction outputs', bold: true),
+          _panel(
+            theme,
+            SailColumn(
+              spacing: SailStyleValues.padding04,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13('To ${claim.walletName}'),
+                SailText.secondary12('A fresh address$multisig'),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+    ];
+  }
+
+  Widget _coinLine(
+    WalletClaim claim,
+    bwpb.UnspentOutput u,
+    Set<String> selected,
+    Map<String, DateTime> receivedAt,
+    FormatterProvider formatter,
+  ) {
+    final selectable = widget.fork.canSelect(claim, u);
+    return Opacity(
+      opacity: selectable ? 1 : 0.45,
+      child: _coinRow(
+        lead: SailCheckbox(
+          value: selected.contains(u.output),
+          enabled: selectable,
+          onChanged: (value) => setState(() {
+            if (value) {
+              selected.add(u.output);
+            } else {
+              selected.remove(u.output);
+            }
+          }),
+        ),
+        amount: SailText.primary13(formatter.formatSats(u.valueSats.toInt()), monospace: true),
+        block: SailText.secondary13(u.height > 0 ? formatWithThousandSpacers(u.height) : '—', monospace: true),
+        received: SailText.secondary13(
+          receivedAt[u.output] != null ? formatDate(receivedAt[u.output]!) : '—',
+          textAlign: TextAlign.right,
+          monospace: true,
         ),
       ),
     );
   }
+
+  Widget _coinRow({required Widget lead, required Widget amount, required Widget block, required Widget received}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding10),
+      child: Row(
+        children: [
+          SizedBox(width: SailStyleValues.padding16, child: lead),
+          const SailSpacing(SailStyleValues.padding12),
+          Expanded(flex: 3, child: amount),
+          Expanded(flex: 2, child: block),
+          Expanded(flex: 3, child: received),
+        ],
+      ),
+    );
+  }
+
+  Widget _summary(SailThemeData theme, FormatterProvider formatter, int selectedSats) {
+    final selectedClaims = _claims.where((c) => (_selected[c.walletId] ?? {}).isNotEmpty).toList();
+    final multisig = selectedClaims.where((c) => c.isMultisig).firstOrNull?.multisig;
+    return SailColumn(
+      spacing: SailStyleValues.padding08,
+      children: [
+        Divider(height: 1, color: theme.colors.divider),
+        _row(
+          SailText.secondary12('Network fee'),
+          SailText.secondary12('${ForkProvider.sweepFeeRateSatPerVbyte} sat/vB, from the output'),
+        ),
+        if (multisig != null)
+          _row(
+            SailText.primary13('Signatures'),
+            SailText.primary13('${multisig.m} of ${multisig.n} keys', bold: true, monospace: true),
+          ),
+        _row(
+          SailText.primary13('Total to split'),
+          SailText.primary13(formatter.formatSats(selectedSats), bold: true, monospace: true),
+        ),
+      ],
+    );
+  }
+
+  Widget _panel(SailThemeData theme, Widget child, {double vertical = SailStyleValues.padding12}) => Container(
+    width: double.infinity,
+    padding: EdgeInsets.symmetric(horizontal: SailStyleValues.padding12, vertical: vertical),
+    decoration: BoxDecoration(
+      color: theme.colors.background,
+      borderRadius: SailStyleValues.borderRadius,
+      border: Border.all(color: theme.colors.border),
+    ),
+    child: child,
+  );
+
+  Widget _row(Widget label, Widget value) => Row(
+    children: [
+      Expanded(child: label),
+      const SailSpacing(SailStyleValues.padding08),
+      Flexible(child: value),
+    ],
+  );
 
   /// Received timestamps only exist for the active wallet's UTXO list; other
   /// wallets fall back to the block column.
