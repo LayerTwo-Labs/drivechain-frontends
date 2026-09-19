@@ -517,6 +517,8 @@ func sidechainTypeFromName(name string) pb.SidechainType {
 		return pb.SidechainType_SIDECHAIN_TYPE_PHOTON
 	case "coinshift":
 		return pb.SidechainType_SIDECHAIN_TYPE_COINSHIFT
+	case "freebank":
+		return pb.SidechainType_SIDECHAIN_TYPE_FREEBANK
 	default:
 		return pb.SidechainType_SIDECHAIN_TYPE_UNSPECIFIED
 	}

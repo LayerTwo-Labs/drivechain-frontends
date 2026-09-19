@@ -158,6 +158,7 @@ func TestPrepareSidechainArgsPassesTheZmqChainPorts(t *testing.T) {
 	for name, want := range map[string][]string{
 		"bitnames":  {"--net-addr=0.0.0.0:34002", "--zmq-addr=127.0.0.1:58002", "--network=signet"},
 		"bitassets": {"--net-addr=0.0.0.0:34004", "--zmq-addr=127.0.0.1:58004", "--network=signet"},
+		"freebank":  {"--net-addr=0.0.0.0:34130", "--zmq-addr=127.0.0.1:58130", "--network=signet"},
 	} {
 		useTempHome(t)
 		spec, ok := config.KnownSidechainSpecs[name]
@@ -345,25 +346,20 @@ func TestUnforcedBackendKeepsItsWindow(t *testing.T) {
 	assert.Empty(t, opts.TargetArgs)
 }
 
-// A caller that passes its own value for a flag keeps it. A second copy would
-// leave the node with two answers for one option.
-func TestACallerValueBeatsTheGeneratedFlag(t *testing.T) {
+// A FreeBank backend starts with one --headless flag.
+func TestFreeBankForcedBackendGetsHeadlessOnce(t *testing.T) {
 	useTempHome(t)
-	config.SetForkHeight(config.NetworkECash, 963648)
-	t.Cleanup(func() { config.SetForkHeight(config.NetworkECash, 0) })
-	orch := &Orchestrator{
-		log:         zerolog.Nop(),
-		Network:     string(config.NetworkECash),
-		DataDir:     t.TempDir(),
-		BitcoinConf: &config.BitcoinConfManager{Network: config.NetworkECash},
-	}
+	orch := &Orchestrator{log: zerolog.Nop(), Network: string(config.NetworkRegtest), DataDir: t.TempDir()}
 
-	opts := StartOpts{TargetArgs: []string{"-mainchainrest=10.0.0.9:1234"}}
-	// The pin itself fails without a mainchain RPC; the REST flag is settled
-	// before that, and it must stay the caller's.
-	_ = orch.appendSidechainArgs(context.Background(),
-		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 8454, IsBitcoinCore: true}, &opts)
-	assert.Equal(t, []string{"-mainchainrest=10.0.0.9:1234"}, opts.TargetArgs)
+	fresh := StartOpts{ForceBackend: true}
+	require.NoError(t, orch.appendSidechainArgs(context.Background(),
+		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 6130}, &fresh))
+	assert.Equal(t, []string{"--headless"}, fresh.TargetArgs)
+
+	dupe := StartOpts{ForceBackend: true, TargetArgs: []string{"--headless"}}
+	require.NoError(t, orch.appendSidechainArgs(context.Background(),
+		BinaryConfig{Name: "freebank", ChainLayer: 2, Port: 6130}, &dupe))
+	assert.Equal(t, []string{"--headless"}, dupe.TargetArgs)
 }
 
 // A command line that already carries the flag takes it one time.

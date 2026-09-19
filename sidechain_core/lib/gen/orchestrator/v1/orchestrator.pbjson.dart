@@ -25,6 +25,7 @@ const SidechainType$json = {
     {'1': 'SIDECHAIN_TYPE_TRUTHCOIN', '2': 5},
     {'1': 'SIDECHAIN_TYPE_PHOTON', '2': 6},
     {'1': 'SIDECHAIN_TYPE_COINSHIFT', '2': 7},
+    {'1': 'SIDECHAIN_TYPE_FREEBANK', '2': 8},
   ],
 };
 
@@ -34,7 +35,7 @@ final $typed_data.Uint8List sidechainTypeDescriptor = $convert.base64Decode(
     'NIQUlOX1RZUEVfVEhVTkRFUhABEhgKFFNJREVDSEFJTl9UWVBFX1pTSURFEAISGwoXU0lERUNI'
     'QUlOX1RZUEVfQklUTkFNRVMQAxIcChhTSURFQ0hBSU5fVFlQRV9CSVRBU1NFVFMQBBIcChhTSU'
     'RFQ0hBSU5fVFlQRV9UUlVUSENPSU4QBRIZChVTSURFQ0hBSU5fVFlQRV9QSE9UT04QBhIcChhT'
-    'SURFQ0hBSU5fVFlQRV9DT0lOU0hJRlQQBw==');
+    'SURFQ0hBSU5fVFlQRV9DT0lOU0hJRlQQBxIbChdTSURFQ0hBSU5fVFlQRV9GUkVFQkFOSxAI');
 
 @$core.Deprecated('Use binaryTypeDescriptor instead')
 const BinaryType$json = {
