@@ -85,7 +85,7 @@ func TestElectrumDepositSkipsACoinABidHolds(t *testing.T) {
 	p, fake, w, _ := twoCoinWallet(t)
 	ctx := context.Background()
 
-	treasuryScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, 9, txscript.OP_TRUE}
+	treasuryScript := []byte{txscript.OP_NOP8, txscript.OP_DATA_1, 9, txscript.OP_TRUE}
 	treasuryPrev := wire.NewMsgTx(2)
 	treasuryPrev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
 	treasuryPrev.AddTxOut(wire.NewTxOut(250_000, treasuryScript))

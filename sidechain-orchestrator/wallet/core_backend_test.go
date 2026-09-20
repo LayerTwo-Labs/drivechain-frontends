@@ -1271,7 +1271,7 @@ func TestCoreBackendSendM5Deposit(t *testing.T) {
 		walletFunds   = int64(300_000)
 		sidechainSlot = 1
 	)
-	treasury := []byte{0xb4, 0x01, sidechainSlot, 0x51}
+	treasury := []byte{0xb7, 0x01, sidechainSlot, 0x51}
 	net := &chaincfg.RegressionNetParams
 
 	fake.handle("listunspent", func(bitcoindCall) (any, string) {

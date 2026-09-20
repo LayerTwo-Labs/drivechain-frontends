@@ -432,7 +432,7 @@ func TestElectrumSendSidechainDeposit(t *testing.T) {
 				Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
 			}}
 
-			drivechainScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, tc.slot, txscript.OP_TRUE}
+			drivechainScript := []byte{txscript.OP_NOP8, txscript.OP_DATA_1, tc.slot, txscript.OP_TRUE}
 
 			var externalInputs []ExternalInput
 			var ctipTxid string
@@ -467,7 +467,7 @@ func TestElectrumSendSidechainDeposit(t *testing.T) {
 
 			// Outputs: treasury, OP_RETURN address, change — exact bytes and order.
 			require.Len(t, tx.TxOut, 3)
-			assert.Equal(t, []byte{0xB4, 0x01, tc.slot, 0x51}, tx.TxOut[0].PkScript,
+			assert.Equal(t, []byte{0xB7, 0x01, tc.slot, 0x51}, tx.TxOut[0].PkScript,
 				"out[0] treasury = OP_DRIVECHAIN OP_PUSHBYTES_1 <slot> OP_TRUE, raw (no minimal-push)")
 			assert.Equal(t, treasuryValue, tx.TxOut[0].Value, "treasury value = old CTIP + deposit")
 
@@ -595,7 +595,7 @@ func TestElectrumSendSidechainDepositInsufficientFunds(t *testing.T) {
 		Status: EsploraStatus{Confirmed: true, BlockHeight: 100},
 	}}
 
-	drivechainScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, slot, txscript.OP_TRUE}
+	drivechainScript := []byte{txscript.OP_NOP8, txscript.OP_DATA_1, slot, txscript.OP_TRUE}
 	treasuryPrev := wire.NewMsgTx(2)
 	treasuryPrev.AddTxIn(wire.NewTxIn(&wire.OutPoint{Index: 0xffffffff}, []byte{0x00}, nil))
 	treasuryPrev.AddTxOut(wire.NewTxOut(oldCtip, drivechainScript))

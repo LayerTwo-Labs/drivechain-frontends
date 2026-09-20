@@ -44,7 +44,7 @@ func (h *WalletHandler) CreateDeposit(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	treasuryHex := hex.EncodeToString(orchestrator.M5TreasuryScript(slot))
+	treasuryHex := hex.EncodeToString(orchestrator.M8TreasuryScript(slot))
 	ctip, err := h.sidechainCtip(ctx, uint32(slot))
 	if err != nil {
 		return nil, err
