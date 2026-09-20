@@ -6,7 +6,6 @@ import 'package:bitwindow/pages/settings/settings_network.dart';
 import 'package:bitwindow/pages/settings_page.dart';
 import 'package:bitwindow/pages/wallet/wallet_page.dart';
 import 'package:bitwindow/utils/navigation_registry.dart';
-import 'package:bitwindow/dialogs/cpu_mining_dialog.dart';
 import 'package:bitwindow/dialogs/change_password_dialog.dart';
 import 'package:bitwindow/dialogs/encrypt_wallet_dialog.dart';
 import 'package:bitwindow/dialogs/merkle_tree_dialog.dart';
@@ -39,6 +38,18 @@ import 'package:sail_ui/pages/router.gr.dart' as sail_routes;
 import 'package:sail_ui/sail_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
+
+/// Opens the mining page: the Wallet tab, and the Solo Mining tab on it.
+void _openSoloMining() {
+  GetIt.I.get<AppRouter>().navigate(const WalletRoute());
+  WalletPage.openSubtab(WalletPage.soloMiningSubtabLabel);
+}
+
+/// Mining runs on eCash only, and the mining page is a tab that other networks
+/// do not carry.
+bool _minesHere() {
+  return GetIt.I.get<BitcoinConfProvider>().network == BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+}
 
 @RoutePage()
 class RootPage extends StatefulWidget {
@@ -104,7 +115,8 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
 
   void _onNetworkChange() {
     if (mounted) {
-      setState(() {});
+      // The menu carries network-only items, such as Solo Mine.
+      setState(() => _cachedMenuList = null);
     }
   }
 
@@ -306,11 +318,12 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
         category: 'Crypto Tools',
         onSelected: () => GetIt.I.get<WindowProvider>().open(SubWindowTypes.converter),
       ),
-      CommandItem(
-        label: 'Solo Mine',
-        category: 'Work for Bitcoin',
-        onSelected: () => showThemedDialog(context: context, builder: (context) => const CpuMiningDialog()),
-      ),
+      if (_minesHere())
+        CommandItem(
+          label: 'Solo Mine',
+          category: 'Work for Bitcoin',
+          onSelected: _openSoloMining,
+        ),
 
       // This Node
       CommandItem(
@@ -766,12 +779,11 @@ class _RootPageState extends State<RootPage> with WidgetsBindingObserver, Window
               menus: [
                 PlatformMenuItemGroup(
                   members: [
-                    PlatformMenuItem(
-                      label: 'Solo Mine',
-                      onSelected: () async {
-                        await showThemedDialog(context: context, builder: (context) => const CpuMiningDialog());
-                      },
-                    ),
+                    if (_minesHere())
+                      PlatformMenuItem(
+                        label: 'Solo Mine',
+                        onSelected: _openSoloMining,
+                      ),
                     PlatformMenuItem(
                       label: 'Network Statistics',
                       onSelected: () {
@@ -1258,12 +1270,6 @@ class _StatusBarState extends State<StatusBar> {
       },
       onOpenEnforcerConfConfigurator: () {
         GetIt.I.get<AppRouter>().push(const EnforcerConfEditorRoute());
-      },
-      onOpenMiningSettings: () => showThemedDialog(context: context, builder: (context) => const CpuMiningDialog()),
-      onViewMiningLogs: () {
-        GetIt.I.get<AppRouter>().push(
-          LogRoute(title: 'CPU Miner', logPath: minerLogPath()),
-        );
       },
       mainchainInfo: true,
       balanceEndWidgets: const [

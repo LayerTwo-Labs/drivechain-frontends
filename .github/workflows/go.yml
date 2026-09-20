@@ -35,7 +35,6 @@ jobs:
       matrix:
         module:
           - bitwindow/server
-          - bitwindow/server/cpuminer
           - sidechain-orchestrator
           - dc-hub/server
         include:

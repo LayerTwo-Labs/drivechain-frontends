@@ -51,5 +51,24 @@ class WorkMode extends $pb.ProtobufEnum {
   const WorkMode._($core.int v, $core.String n) : super(v, n);
 }
 
+class HashrateRange extends $pb.ProtobufEnum {
+  static const HashrateRange HASHRATE_RANGE_UNSPECIFIED = HashrateRange._(0, _omitEnumNames ? '' : 'HASHRATE_RANGE_UNSPECIFIED');
+  static const HashrateRange HASHRATE_RANGE_HOUR = HashrateRange._(1, _omitEnumNames ? '' : 'HASHRATE_RANGE_HOUR');
+  static const HashrateRange HASHRATE_RANGE_DAY = HashrateRange._(2, _omitEnumNames ? '' : 'HASHRATE_RANGE_DAY');
+  static const HashrateRange HASHRATE_RANGE_WEEK = HashrateRange._(3, _omitEnumNames ? '' : 'HASHRATE_RANGE_WEEK');
+
+  static const $core.List<HashrateRange> values = <HashrateRange> [
+    HASHRATE_RANGE_UNSPECIFIED,
+    HASHRATE_RANGE_HOUR,
+    HASHRATE_RANGE_DAY,
+    HASHRATE_RANGE_WEEK,
+  ];
+
+  static final $core.Map<$core.int, HashrateRange> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static HashrateRange? valueOf($core.int value) => _byValue[value];
+
+  const HashrateRange._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

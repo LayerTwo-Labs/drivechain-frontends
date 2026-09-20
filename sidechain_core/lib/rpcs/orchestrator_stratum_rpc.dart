@@ -36,4 +36,23 @@ class OrchestratorStratumRPC {
   Future<void> setWorkMode(String address, WorkMode mode) async {
     await _client.setWorkMode(stratumpb.SetWorkModeRequest(address: address, mode: mode));
   }
+
+  Future<void> setMiningSettings({int? port, bool? cpuMining, int? cpuThreads, bool? keepMiningOnClose}) async {
+    await _client.setMiningSettings(
+      stratumpb.SetMiningSettingsRequest(
+        port: port,
+        cpuMining: cpuMining,
+        cpuThreads: cpuThreads,
+        keepMiningOnClose: keepMiningOnClose,
+      ),
+    );
+  }
+
+  Future<stratumpb.GetHashrateHistoryResponse> hashrateHistory(HashrateRange range) {
+    return _client.getHashrateHistory(stratumpb.GetHashrateHistoryRequest(range: range));
+  }
+
+  Future<stratumpb.ListPoolBlocksResponse> listPoolBlocks({int limit = 0}) {
+    return _client.listPoolBlocks(stratumpb.ListPoolBlocksRequest(limit: limit));
+  }
 }

@@ -362,6 +362,12 @@ class BinaryProvider extends ChangeNotifier {
 
     _shuttingDown = true;
 
+    if (_keepsMining()) {
+      log.i('BinaryProvider: leaving drivechaind up, because the miners keep going');
+      shutdownOptions?.onComplete();
+      return true;
+    }
+
     // Say we are leaving. drivechaind drains only once no client is left
     // and the owner process is gone, so another app keeps its stack.
     log.i('BinaryProvider: telling drivechaind we are leaving');
@@ -373,6 +379,16 @@ class BinaryProvider extends ChangeNotifier {
 
     shutdownOptions?.onComplete();
     return true;
+  }
+
+  /// Whether the miners keep going. The Stratum server dies with drivechaind,
+  /// so the setting holds drivechaind up too.
+  bool _keepsMining() {
+    if (!GetIt.I.isRegistered<StratumProvider>()) {
+      return false;
+    }
+    final status = GetIt.I.get<StratumProvider>().status;
+    return status.running && status.settings.keepMiningOnClose;
   }
 
   // =========================================================================

@@ -23,6 +23,12 @@ class _FakeStratum implements OrchestratorStratumRPC {
   }
 
   @override
+  Future<GetHashrateHistoryResponse> hashrateHistory(HashrateRange range) async => GetHashrateHistoryResponse();
+
+  @override
+  Future<ListPoolBlocksResponse> listPoolBlocks({int limit = 0}) async => ListPoolBlocksResponse();
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

@@ -33,4 +33,14 @@ void main() {
   test('returns nothing for a label no tab carries', () {
     expect(walletTabIndexForLabel(tabs, 'Nothing'), isNull);
   });
+
+  testWidgets('a tab asked for before the page mounts waits for it', (tester) async {
+    // The command bar and the menu can pick a tab while the wallet route has
+    // never built, and the tab bar has no state to set.
+    expect(WalletPage.tabKey.currentState, isNull);
+
+    WalletPage.openSubtab(WalletPage.soloMiningSubtabLabel);
+
+    expect(WalletPage.pendingSubtab, WalletPage.soloMiningSubtabLabel);
+  });
 }

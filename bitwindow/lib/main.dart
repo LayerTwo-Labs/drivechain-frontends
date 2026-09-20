@@ -293,7 +293,6 @@ Future<(Directory, File, Logger)> init(String arguments) async {
     return coins.frozenOutpoints.toList();
   };
   NetworkScopedRegistry.register<ConsolidationProvider>(ConsolidationProvider());
-  GetIt.I.registerSingleton<MiningProvider>(MiningProvider());
   GetIt.I.registerSingleton<StratumProvider>(
     StratumProvider(
       onBlockFound: (block) => GetIt.I.get<NotificationProvider>().add(

@@ -4,16 +4,16 @@ import 'package:sidechain_core/providers/price_provider.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
-/// Mining is eCash-only — StartMining rejects every other network — so the
-/// miner surfaces stay hidden elsewhere rather than offering a dead control.
-MiningProvider? ecashMiningProvider() {
-  if (!GetIt.I.isRegistered<MiningProvider>() || !GetIt.I.isRegistered<BitcoinConfProvider>()) {
+/// Mining runs on eCash only, so the miner line stays hidden elsewhere rather
+/// than offering a dead control.
+StratumProvider? ecashStratumProvider() {
+  if (!GetIt.I.isRegistered<StratumProvider>() || !GetIt.I.isRegistered<BitcoinConfProvider>()) {
     return null;
   }
   if (GetIt.I.get<BitcoinConfProvider>().network != BitcoinNetwork.BITCOIN_NETWORK_ECASH) {
     return null;
   }
-  return GetIt.I.get<MiningProvider>();
+  return GetIt.I.get<StratumProvider>();
 }
 
 /// Whether a Bitcoin Core / enforcer card belongs in the daemon status dialog.
@@ -70,8 +70,6 @@ class BottomNav extends StatelessWidget {
   final VoidCallback? onOpenConfConfigurator;
   final VoidCallback? onOpenEnforcerConfConfigurator;
   final VoidCallback? onOpenAdditionalConfConfigurator;
-  final VoidCallback? onOpenMiningSettings;
-  final VoidCallback? onViewMiningLogs;
   final BottomNavStatusOverride? statusOverride;
 
   const BottomNav({
@@ -85,8 +83,6 @@ class BottomNav extends StatelessWidget {
     this.onOpenConfConfigurator,
     this.onOpenEnforcerConfConfigurator,
     this.onOpenAdditionalConfConfigurator,
-    this.onOpenMiningSettings,
-    this.onViewMiningLogs,
     this.statusOverride,
   });
 
@@ -360,12 +356,6 @@ class BottomNav extends StatelessWidget {
                             onOpenConfConfigurator: onOpenAdditionalConfConfigurator,
                           );
                         },
-                      ),
-                    if (ecashMiningProvider() case final mining?)
-                      MiningStatusCard(
-                        mining: mining,
-                        onOpenSettings: onOpenMiningSettings,
-                        onViewLogs: onViewMiningLogs,
                       ),
                     // Everything else runs under drivechaind, and a hot start
                     // adopts one this process never spawned. So it carries no
@@ -1063,59 +1053,52 @@ class MiningStatus extends StatefulWidget {
 }
 
 class _MiningStatusState extends State<MiningStatus> {
-  MiningProvider? get _mining => ecashMiningProvider();
+  StratumProvider? get _stratum => ecashStratumProvider();
   BitcoinConfProvider? get _conf =>
       GetIt.I.isRegistered<BitcoinConfProvider>() ? GetIt.I.get<BitcoinConfProvider>() : null;
 
   @override
   void initState() {
     super.initState();
-    _conf?.addListener(_syncPolling);
-    _syncPolling();
+    _conf?.addListener(_onNetworkChange);
   }
 
   @override
   void dispose() {
-    _conf?.removeListener(_syncPolling);
+    _conf?.removeListener(_onNetworkChange);
     super.dispose();
   }
 
-  // The network can flip to eCash long after this widget first built, so
-  // polling follows it rather than being decided once.
-  void _syncPolling() {
-    final mining = _mining;
-    if (mining == null) {
-      if (GetIt.I.isRegistered<MiningProvider>()) {
-        GetIt.I.get<MiningProvider>().stopPolling();
-      }
-      return;
+  void _onNetworkChange() {
+    if (mounted) {
+      setState(() {});
     }
-    mining.startPolling();
-    mining.refreshStatus();
   }
 
   @override
   Widget build(BuildContext context) {
-    final mining = _mining;
-    if (mining == null) {
+    final stratum = _stratum;
+    if (stratum == null) {
       return const SizedBox.shrink();
     }
 
     return ListenableBuilder(
-      listenable: mining,
+      listenable: stratum,
       builder: (context, _) {
-        if (!mining.isMining) {
+        if (!stratum.running) {
           return const SizedBox.shrink();
         }
 
         final theme = SailTheme.of(context);
-        final blocks = mining.blocksFound;
+        final miners = stratum.status.miners.length;
+        final blocks = stratum.status.blocksFound.length;
+        final who = '$miners ${miners == 1 ? 'miner' : 'miners'}';
         return Padding(
           padding: const EdgeInsets.only(right: SailStyleValues.padding08),
           child: SailTappable(
             onTap: widget.onTap == null ? null : () async => widget.onTap!(),
-            child: Tooltip(
-              message: blocks == 0 ? 'CPU mining, no blocks found yet' : 'CPU mining, $blocks blocks found',
+            child: SailTooltip(
+              message: blocks == 0 ? 'Mining with $who, no block found yet' : 'Mining with $who, $blocks blocks found',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1125,7 +1108,7 @@ class _MiningStatusState extends State<MiningStatus> {
                     color: theme.colors.orange,
                   ),
                   const SizedBox(width: SailStyleValues.padding08),
-                  SailText.secondary12('Mining at ${mining.formattedHashRate}'),
+                  SailText.secondary12('Mining at ${formatHashrate(stratum.status.hashrate)}'),
                 ],
               ),
             ),

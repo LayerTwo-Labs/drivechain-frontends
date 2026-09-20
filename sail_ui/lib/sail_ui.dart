@@ -71,7 +71,6 @@ export 'widgets/components/settings_layout.dart';
 export 'widgets/components/result_row.dart';
 export 'widgets/components/daemon_connection_card.dart';
 export 'widgets/components/sail_area_chart.dart';
-export 'widgets/components/mining_status_card.dart';
 export 'widgets/components/dashboard_group.dart';
 export 'widgets/components/sail_avatar.dart';
 export 'widgets/components/sail_info_box.dart';
