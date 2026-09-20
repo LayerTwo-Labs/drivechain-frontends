@@ -92,6 +92,22 @@ String formatDepositAddress(String address, int sidechainNum) {
   return strDepositAddress;
 }
 
+/// The slot that a formatted deposit address names, or null when the text is
+/// not one.
+///
+/// The backend reads this slot and not the selected one, so a stale address
+/// sends coins to the chain it names.
+int? depositAddressSlot(String address) {
+  if (!address.startsWith('s')) {
+    return null;
+  }
+  final parts = address.substring(1).split('_');
+  if (parts.length != 3) {
+    return null;
+  }
+  return int.tryParse(parts[0]);
+}
+
 double cleanAmount(double amount) {
   // clean the amount of any excess decimals! Cap it at 8, and let
   // the front-end be kinda stupid
