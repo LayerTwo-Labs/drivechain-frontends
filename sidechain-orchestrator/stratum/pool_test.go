@@ -188,6 +188,7 @@ func TestPoolRelay(t *testing.T) {
 	status := server.Status()
 	assert.Equal(t, uint64(1), status.Accepted)
 	assert.Equal(t, uint64(1), status.Rejected)
+	assert.True(t, status.BestShareWon)
 	require.Len(t, status.Miners, 1)
 	assert.Equal(t, uint64(1), status.Miners[0].Accepted)
 	assert.Equal(t, uint64(1), status.Miners[0].Rejected)
@@ -241,6 +242,7 @@ func TestSetSourceMovesMiners(t *testing.T) {
 
 	require.Eventually(t, func() bool { return server.Status().NetworkDifficulty > 0 }, 5*time.Second, 10*time.Millisecond)
 	assert.Zero(t, server.Status().BestShare)
+	assert.False(t, server.Status().BestShareWon)
 	moved := dialMiner(t, addr)
 	moved.start("avalon.1")
 	assert.Equal(t, []byte{0xaa, 0xbb, 0xcc, 0xdd, 0, 0, 0, 0}, moved.extranonce1)

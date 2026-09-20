@@ -22,20 +22,30 @@ void main() {
         'at least 8 zeros';
 
     test('a share below the network target', () {
-      final text = bestShareInfo(bestShare: 1, networkDifficulty: 4e9);
+      final text = bestShareInfo(bestShare: 1, won: false, networkDifficulty: 4e9);
       expect(text, contains('must produce a hash that starts with at least 15 zeros.'));
       expect(text, contains('Your best guess started with 8.'));
     });
 
     test('a share that reached the zeros but stayed too big', () {
-      final text = bestShareInfo(bestShare: 1, networkDifficulty: 1);
+      final text = bestShareInfo(bestShare: 2, won: false, networkDifficulty: 8);
       expect(text, startsWith('$opening, and is a smaller number than '));
       expect(text, contains('Your best guess reached 8 zeros, but the digits after them were too big.'));
     });
 
-    test('a share that won a block', () {
-      final text = bestShareInfo(bestShare: 4e9, networkDifficulty: 1);
-      expect(text, startsWith('$opening.'));
+    test('a share that won with the same zeros as the network', () {
+      final text = bestShareInfo(bestShare: 8, won: true, networkDifficulty: 2);
+      expect(text, 'The closest your miner came to a block. Your best guess reached 8 zeros, and it won a block.');
+    });
+
+    test('a share above a network difficulty that dropped later', () {
+      final text = bestShareInfo(bestShare: 8, won: false, networkDifficulty: 2);
+      expect(text, isNot(contains('won a block')));
+    });
+
+    test('a win says nothing about the difficulty of today', () {
+      final text = bestShareInfo(bestShare: 4e9, won: true, networkDifficulty: 1e12);
+      expect(text, isNot(contains('must produce')));
       expect(text, contains('Your best guess reached 15 zeros, and it won a block.'));
     });
   });

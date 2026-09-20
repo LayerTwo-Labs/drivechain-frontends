@@ -58,6 +58,7 @@ type Server struct {
 	prefixes   map[uint64]struct{}
 	nextPrefix uint64
 	best       float64
+	bestWon    bool
 	accepted   uint64
 	rejected   uint64
 	blocks     []Block
@@ -226,6 +227,7 @@ func (s *Server) SetSource(source Source) {
 	s.prefixes, s.nextPrefix = map[uint64]struct{}{}, 0
 	s.jobs, s.jobOrder = map[string]*job{}, nil
 	s.accepted, s.rejected, s.best, s.shares = 0, 0, 0, nil
+	s.bestWon = false
 	if s.ctx != nil && s.ctx.Err() == nil {
 		s.startSourceLocked(source)
 	}
@@ -647,7 +649,10 @@ type shareCheck struct {
 	// credit is the difficulty the share had to reach.
 	credit float64
 	hash   chainhash.Hash
-	block  bool
+	// won is true when the hash meets the network target of the job.
+	won bool
+	// block is true when this server must send the share to its own node.
+	block bool
 }
 
 // AcceptedShare is one share the server took.
@@ -718,7 +723,9 @@ func (s *Server) acceptLocked(sess *session, checked shareCheck, now time.Time) 
 	sess.accepted++
 	s.accepted++
 	sess.best = math.Max(sess.best, difficulty)
-	s.best = math.Max(s.best, difficulty)
+	if difficulty >= s.best {
+		s.best, s.bestWon = difficulty, checked.won
+	}
 	sess.lastShare = now
 	sess.samples = append(pruneSamples(sess.samples, now), shareSample{at: now, difficulty: checked.credit})
 	s.shares = append(s.shares, AcceptedShare{
@@ -727,7 +734,7 @@ func (s *Server) acceptLocked(sess *session, checked shareCheck, now time.Time) 
 		Target: checked.credit,
 		Actual: difficulty,
 		Hash:   checked.hash,
-		Block:  checked.block,
+		Block:  checked.won,
 	})
 	if len(s.shares) > maxRecentShares {
 		s.shares = s.shares[len(s.shares)-maxRecentShares:]
@@ -808,6 +815,8 @@ func (s *Server) checkShareLocked(sess *session, raw json.RawMessage, now time.T
 	}
 	j.seen[key] = struct{}{}
 
+	value := blockchain.HashToBig(&hash)
+	won := value.Cmp(blockchain.CompactToBig(w.Bits)) <= 0
 	return shareCheck{
 		work:   w,
 		source: j.source,
@@ -822,7 +831,8 @@ func (s *Server) checkShareLocked(sess *session, raw json.RawMessage, now time.T
 		difficulty: difficulty,
 		credit:     required,
 		hash:       hash,
-		block:      !w.Relay && blockchain.HashToBig(&hash).Cmp(w.Target) <= 0,
+		won:        won,
+		block:      !w.Relay && value.Cmp(w.Target) <= 0,
 	}, nil
 }
 
@@ -839,8 +849,10 @@ type MinerStatus struct {
 
 // Status is a snapshot of the server.
 type Status struct {
-	Hashrate          float64
-	BestShare         float64
+	Hashrate  float64
+	BestShare float64
+	// BestShareWon is true when the best share met the target of its own job.
+	BestShareWon      bool
 	NetworkDifficulty float64
 	Accepted          uint64
 	Rejected          uint64
@@ -855,11 +867,12 @@ func (s *Server) Status() Status {
 	defer s.mu.Unlock()
 	now := time.Now()
 	status := Status{
-		BestShare: s.best,
-		Accepted:  s.accepted,
-		Rejected:  s.rejected,
-		Blocks:    append([]Block(nil), s.blocks...),
-		Shares:    newestFirst(s.shares),
+		BestShare:    s.best,
+		BestShareWon: s.bestWon,
+		Accepted:     s.accepted,
+		Rejected:     s.rejected,
+		Blocks:       append([]Block(nil), s.blocks...),
+		Shares:       newestFirst(s.shares),
 	}
 	if s.current != nil {
 		status.NetworkDifficulty = NetworkDifficulty(s.current.work.Bits)

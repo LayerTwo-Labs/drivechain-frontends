@@ -1467,6 +1467,7 @@ class GetStratumStatusResponse extends $pb.GeneratedMessage {
     MiningSettings? settings,
     $core.Iterable<AcceptedShare>? recentShares,
     $core.double? networkHashrate,
+    $core.bool? bestShareWon,
   }) {
     final $result = create();
     if (running != null) {
@@ -1523,6 +1524,9 @@ class GetStratumStatusResponse extends $pb.GeneratedMessage {
     if (networkHashrate != null) {
       $result.networkHashrate = networkHashrate;
     }
+    if (bestShareWon != null) {
+      $result.bestShareWon = bestShareWon;
+    }
     return $result;
   }
   GetStratumStatusResponse._() : super();
@@ -1548,6 +1552,7 @@ class GetStratumStatusResponse extends $pb.GeneratedMessage {
     ..aOM<MiningSettings>(16, _omitFieldNames ? '' : 'settings', subBuilder: MiningSettings.create)
     ..pc<AcceptedShare>(17, _omitFieldNames ? '' : 'recentShares', $pb.PbFieldType.PM, subBuilder: AcceptedShare.create)
     ..a<$core.double>(18, _omitFieldNames ? '' : 'networkHashrate', $pb.PbFieldType.OD)
+    ..aOB(19, _omitFieldNames ? '' : 'bestShareWon')
     ..hasRequiredFields = false
   ;
 
@@ -1730,6 +1735,16 @@ class GetStratumStatusResponse extends $pb.GeneratedMessage {
   $core.bool hasNetworkHashrate() => $_has(17);
   @$pb.TagNumber(18)
   void clearNetworkHashrate() => clearField(18);
+
+  /// True when the best share met the target of its own job.
+  @$pb.TagNumber(19)
+  $core.bool get bestShareWon => $_getBF(18);
+  @$pb.TagNumber(19)
+  set bestShareWon($core.bool v) { $_setBool(18, v); }
+  @$pb.TagNumber(19)
+  $core.bool hasBestShareWon() => $_has(18);
+  @$pb.TagNumber(19)
+  void clearBestShareWon() => clearField(19);
 }
 
 class SetTargetRequest extends $pb.GeneratedMessage {

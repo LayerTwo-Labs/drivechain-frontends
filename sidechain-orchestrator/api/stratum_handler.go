@@ -603,6 +603,7 @@ func (h *StratumHandler) GetStratumStatus(
 		}
 		resp.Hashrate = status.Hashrate
 		resp.BestShare = status.BestShare
+		resp.BestShareWon = status.BestShareWon
 		resp.NetworkDifficulty = status.NetworkDifficulty
 		resp.AcceptedShares = status.Accepted
 		resp.RejectedShares = status.Rejected
