@@ -143,13 +143,13 @@ class CardHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (titleTooltip != null)
-          Tooltip(
-            message: titleTooltip,
-            child: SailText.primary16(title, bold: true),
-          )
-        else
-          SailText.primary16(title, bold: true),
+        SailRow(
+          spacing: SailStyleValues.padding04,
+          children: [
+            Flexible(child: SailText.primary16(title, bold: true)),
+            if (titleTooltip != null) SailInfoIcon(title: title, message: titleTooltip!),
+          ],
+        ),
         if (headerValue != null) SailText.primary22(headerValue!, bold: true),
         if (error != null || subtitle != null)
           SailText.primary13(
