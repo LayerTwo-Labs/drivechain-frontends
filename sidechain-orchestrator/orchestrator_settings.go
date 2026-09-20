@@ -59,8 +59,15 @@ type StratumSettings struct {
 	URL      string `json:"url,omitempty"`
 	Worker   string `json:"worker,omitempty"`
 	Password string `json:"password,omitempty"`
-	// PayoutAddress is the wallet address a catalog pool pays.
-	PayoutAddress string `json:"payout_address,omitempty"`
+	// Port is the TCP port the Stratum server listens on. Zero uses 3333.
+	Port uint32 `json:"port,omitempty"`
+	// CPUMining runs the hasher on this computer.
+	CPUMining bool `json:"cpu_mining,omitempty"`
+	// CPUThreads is how many threads the hasher runs. Zero uses half the
+	// processors.
+	CPUThreads uint32 `json:"cpu_threads,omitempty"`
+	// KeepMiningOnClose keeps the miners going after the app window closes.
+	KeepMiningOnClose bool `json:"keep_mining_on_close,omitempty"`
 }
 
 // DefaultTorProxy is the SOCKS5 address of a standard local Tor daemon. Tor

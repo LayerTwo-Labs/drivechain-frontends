@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/blockchain"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/rs/zerolog"
 )
 
@@ -33,6 +34,9 @@ const (
 	retargetCheck     = 15 * time.Second
 	submitTimeout     = 30 * time.Second
 	subscriptionLabel = "bitwindow"
+	// maxRecentShares is how many accepted shares the server keeps for the
+	// recent shares list.
+	maxRecentShares = 200
 )
 
 // Server serves work from one Source to Stratum v1 miners.
@@ -57,6 +61,10 @@ type Server struct {
 	accepted   uint64
 	rejected   uint64
 	blocks     []Block
+	shares     []AcceptedShare
+	cpuWanted  bool
+	cpuThreads int
+	cpu        *cpuRun
 }
 
 // layout is how the extranonce space of the current work divides between
@@ -103,6 +111,9 @@ type session struct {
 	worker       string
 	mask         uint32
 	difficulty   float64
+	// floor is the lowest difficulty this session gets. The hasher on this
+	// computer needs a lower one than an ASIC.
+	floor float64
 	// jobDifficulty is the difficulty in force when each job went out. A
 	// share for that job needs only that difficulty.
 	jobDifficulty map[string]float64
@@ -147,6 +158,9 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	s.mu.Lock()
 	s.ctx, s.stop = ctx, stop
 	s.startSourceLocked(s.source)
+	if s.cpuWanted {
+		s.startCPULocked()
+	}
 	s.mu.Unlock()
 
 	var wg sync.WaitGroup
@@ -164,7 +178,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				s.serveConn(ctx, conn)
+				s.serveConn(ctx, conn, false)
 			}()
 		}
 	}()
@@ -175,6 +189,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 
 	<-ctx.Done()
 	closeErr := ln.Close()
+	s.stopCPU()
 	s.mu.Lock()
 	s.dropSessionsLocked()
 	sourceStop, sourceDone := s.sourceStop, s.sourceDone
@@ -210,7 +225,7 @@ func (s *Server) SetSource(source Source) {
 	s.layout, s.current = nil, nil
 	s.prefixes, s.nextPrefix = map[uint64]struct{}{}, 0
 	s.jobs, s.jobOrder = map[string]*job{}, nil
-	s.accepted, s.rejected, s.best = 0, 0, 0
+	s.accepted, s.rejected, s.best, s.shares = 0, 0, 0, nil
 	if s.ctx != nil && s.ctx.Err() == nil {
 		s.startSourceLocked(source)
 	}
@@ -276,7 +291,7 @@ func (s *Server) publish(source Source, w *Work) {
 		if !sess.started {
 			continue
 		}
-		s.setDifficultyLocked(sess, s.difficultyFor(sess.difficulty, w))
+		s.setDifficultyLocked(sess, s.difficultyFor(sess, sess.difficulty, w))
 		for id, base := range sess.aliases {
 			if s.jobs[base.id] != base {
 				delete(sess.aliases, id)
@@ -292,11 +307,11 @@ func (s *Server) publish(source Source, w *Work) {
 	}
 }
 
-func (s *Server) difficultyFor(want float64, w *Work) float64 {
+func (s *Server) difficultyFor(sess *session, want float64, w *Work) float64 {
 	if w.Relay {
 		return w.Difficulty
 	}
-	return clampDifficulty(want, NetworkDifficulty(w.Bits))
+	return clampDifficulty(want, sess.floor, NetworkDifficulty(w.Bits))
 }
 
 func (s *Server) setDifficultyLocked(sess *session, d float64) {
@@ -338,7 +353,7 @@ func (s *Server) retargetLocked(sess *session, now time.Time) {
 	next := retarget(sess.difficulty, sess.retargetShares, now.Sub(sess.retargetAt))
 	sess.retargetAt, sess.retargetShares = now, 0
 	before := sess.difficulty
-	s.setDifficultyLocked(sess, s.difficultyFor(next, s.current.work))
+	s.setDifficultyLocked(sess, s.difficultyFor(sess, next, s.current.work))
 	if sess.difficulty > before {
 		s.renotifyLocked(sess)
 	}
@@ -359,12 +374,17 @@ func (s *Server) renotifyLocked(sess *session) {
 	sess.send(notify)
 }
 
-func (s *Server) serveConn(ctx context.Context, conn net.Conn) {
-	ip := conn.RemoteAddr().String()
-	if host, _, err := net.SplitHostPort(ip); err == nil {
-		ip = host
+// serveConn runs one miner. The local hasher gets its own address and its own
+// difficulty floor.
+func (s *Server) serveConn(ctx context.Context, conn net.Conn, local bool) {
+	ip, floor := CPUAddress, float64(cpuMinDifficulty)
+	if !local {
+		ip, floor = conn.RemoteAddr().String(), float64(minDifficulty)
+		if host, _, err := net.SplitHostPort(ip); err == nil {
+			ip = host
+		}
 	}
-	sess := &session{conn: conn, ip: ip, out: make(chan []byte, outboxSize), connected: time.Now()}
+	sess := &session{conn: conn, ip: ip, floor: floor, out: make(chan []byte, outboxSize), connected: time.Now()}
 
 	s.mu.Lock()
 	if s.layout == nil {
@@ -457,7 +477,7 @@ func (s *Server) handle(ctx context.Context, sess *session, msg message) {
 			sess.suggested = d
 			if sess.started && s.current != nil {
 				before := sess.difficulty
-				s.setDifficultyLocked(sess, s.difficultyFor(d, s.current.work))
+				s.setDifficultyLocked(sess, s.difficultyFor(sess, d, s.current.work))
 				if sess.difficulty > before {
 					s.renotifyLocked(sess)
 				}
@@ -600,7 +620,7 @@ func (s *Server) startLocked(sess *session) {
 	if sess.suggested > 0 {
 		want = sess.suggested
 	}
-	d := s.difficultyFor(want, s.current.work)
+	d := s.difficultyFor(sess, want, s.current.work)
 	line, err := notificationLine("mining.set_difficulty", []any{d})
 	if err != nil {
 		_ = sess.conn.Close()
@@ -626,7 +646,20 @@ type shareCheck struct {
 	difficulty float64
 	// credit is the difficulty the share had to reach.
 	credit float64
+	hash   chainhash.Hash
 	block  bool
+}
+
+// AcceptedShare is one share the server took.
+type AcceptedShare struct {
+	At     time.Time
+	Worker string
+	// Target is the difficulty the share had to reach, Actual the one it
+	// reached.
+	Target float64
+	Actual float64
+	Hash   chainhash.Hash
+	Block  bool
 }
 
 func (s *Server) submit(ctx context.Context, sess *session, msg message) {
@@ -688,6 +721,17 @@ func (s *Server) acceptLocked(sess *session, checked shareCheck, now time.Time) 
 	s.best = math.Max(s.best, difficulty)
 	sess.lastShare = now
 	sess.samples = append(pruneSamples(sess.samples, now), shareSample{at: now, difficulty: checked.credit})
+	s.shares = append(s.shares, AcceptedShare{
+		At:     now,
+		Worker: sess.worker,
+		Target: checked.credit,
+		Actual: difficulty,
+		Hash:   checked.hash,
+		Block:  checked.block,
+	})
+	if len(s.shares) > maxRecentShares {
+		s.shares = s.shares[len(s.shares)-maxRecentShares:]
+	}
 	if checked.credit >= sess.difficulty {
 		sess.retargetShares++
 	}
@@ -777,6 +821,7 @@ func (s *Server) checkShareLocked(sess *session, raw json.RawMessage, now time.T
 		},
 		difficulty: difficulty,
 		credit:     required,
+		hash:       hash,
 		block:      !w.Relay && blockchain.HashToBig(&hash).Cmp(w.Target) <= 0,
 	}, nil
 }
@@ -801,6 +846,8 @@ type Status struct {
 	Rejected          uint64
 	Miners            []MinerStatus
 	Blocks            []Block
+	// Shares are the last accepted shares, newest first.
+	Shares []AcceptedShare
 }
 
 func (s *Server) Status() Status {
@@ -812,6 +859,7 @@ func (s *Server) Status() Status {
 		Accepted:  s.accepted,
 		Rejected:  s.rejected,
 		Blocks:    append([]Block(nil), s.blocks...),
+		Shares:    newestFirst(s.shares),
 	}
 	if s.current != nil {
 		status.NetworkDifficulty = NetworkDifficulty(s.current.work.Bits)
@@ -836,4 +884,12 @@ func (s *Server) Status() Status {
 		return cmp.Or(cmp.Compare(a.Address, b.Address), cmp.Compare(a.Worker, b.Worker))
 	})
 	return status
+}
+
+func newestFirst(shares []AcceptedShare) []AcceptedShare {
+	out := make([]AcceptedShare, len(shares))
+	for i, share := range shares {
+		out[len(shares)-1-i] = share
+	}
+	return out
 }

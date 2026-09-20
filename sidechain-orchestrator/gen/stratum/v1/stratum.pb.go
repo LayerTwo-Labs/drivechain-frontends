@@ -129,6 +129,61 @@ func (WorkMode) EnumDescriptor() ([]byte, []int) {
 	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{1}
 }
 
+type HashrateRange int32
+
+const (
+	HashrateRange_HASHRATE_RANGE_UNSPECIFIED HashrateRange = 0
+	// One hour in one-minute buckets.
+	HashrateRange_HASHRATE_RANGE_HOUR HashrateRange = 1
+	// One day in ten-minute buckets.
+	HashrateRange_HASHRATE_RANGE_DAY HashrateRange = 2
+	// Seven days in one-hour buckets.
+	HashrateRange_HASHRATE_RANGE_WEEK HashrateRange = 3
+)
+
+// Enum value maps for HashrateRange.
+var (
+	HashrateRange_name = map[int32]string{
+		0: "HASHRATE_RANGE_UNSPECIFIED",
+		1: "HASHRATE_RANGE_HOUR",
+		2: "HASHRATE_RANGE_DAY",
+		3: "HASHRATE_RANGE_WEEK",
+	}
+	HashrateRange_value = map[string]int32{
+		"HASHRATE_RANGE_UNSPECIFIED": 0,
+		"HASHRATE_RANGE_HOUR":        1,
+		"HASHRATE_RANGE_DAY":         2,
+		"HASHRATE_RANGE_WEEK":        3,
+	}
+)
+
+func (x HashrateRange) Enum() *HashrateRange {
+	p := new(HashrateRange)
+	*p = x
+	return p
+}
+
+func (x HashrateRange) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HashrateRange) Descriptor() protoreflect.EnumDescriptor {
+	return file_stratum_v1_stratum_proto_enumTypes[2].Descriptor()
+}
+
+func (HashrateRange) Type() protoreflect.EnumType {
+	return &file_stratum_v1_stratum_proto_enumTypes[2]
+}
+
+func (x HashrateRange) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HashrateRange.Descriptor instead.
+func (HashrateRange) EnumDescriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{2}
+}
+
 type StartStratumRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// TCP port to listen on. Zero uses 3333.
@@ -396,10 +451,648 @@ func (x *Target) GetPassword() string {
 	return ""
 }
 
+type MiningSettings struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// TCP port the Stratum server listens on.
+	Port uint32 `protobuf:"varint,1,opt,name=port,proto3" json:"port,omitempty"`
+	// Whether the hasher on this computer runs.
+	CpuMining bool `protobuf:"varint,2,opt,name=cpu_mining,json=cpuMining,proto3" json:"cpu_mining,omitempty"`
+	// Hash threads the hasher runs.
+	CpuThreads uint32 `protobuf:"varint,3,opt,name=cpu_threads,json=cpuThreads,proto3" json:"cpu_threads,omitempty"`
+	// Whether the miners keep going after the app window closes.
+	KeepMiningOnClose bool `protobuf:"varint,4,opt,name=keep_mining_on_close,json=keepMiningOnClose,proto3" json:"keep_mining_on_close,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *MiningSettings) Reset() {
+	*x = MiningSettings{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MiningSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MiningSettings) ProtoMessage() {}
+
+func (x *MiningSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MiningSettings.ProtoReflect.Descriptor instead.
+func (*MiningSettings) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *MiningSettings) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *MiningSettings) GetCpuMining() bool {
+	if x != nil {
+		return x.CpuMining
+	}
+	return false
+}
+
+func (x *MiningSettings) GetCpuThreads() uint32 {
+	if x != nil {
+		return x.CpuThreads
+	}
+	return 0
+}
+
+func (x *MiningSettings) GetKeepMiningOnClose() bool {
+	if x != nil {
+		return x.KeepMiningOnClose
+	}
+	return false
+}
+
+type SetMiningSettingsRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Port              *uint32                `protobuf:"varint,1,opt,name=port,proto3,oneof" json:"port,omitempty"`
+	CpuMining         *bool                  `protobuf:"varint,2,opt,name=cpu_mining,json=cpuMining,proto3,oneof" json:"cpu_mining,omitempty"`
+	CpuThreads        *uint32                `protobuf:"varint,3,opt,name=cpu_threads,json=cpuThreads,proto3,oneof" json:"cpu_threads,omitempty"`
+	KeepMiningOnClose *bool                  `protobuf:"varint,4,opt,name=keep_mining_on_close,json=keepMiningOnClose,proto3,oneof" json:"keep_mining_on_close,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SetMiningSettingsRequest) Reset() {
+	*x = SetMiningSettingsRequest{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetMiningSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetMiningSettingsRequest) ProtoMessage() {}
+
+func (x *SetMiningSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetMiningSettingsRequest.ProtoReflect.Descriptor instead.
+func (*SetMiningSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SetMiningSettingsRequest) GetPort() uint32 {
+	if x != nil && x.Port != nil {
+		return *x.Port
+	}
+	return 0
+}
+
+func (x *SetMiningSettingsRequest) GetCpuMining() bool {
+	if x != nil && x.CpuMining != nil {
+		return *x.CpuMining
+	}
+	return false
+}
+
+func (x *SetMiningSettingsRequest) GetCpuThreads() uint32 {
+	if x != nil && x.CpuThreads != nil {
+		return *x.CpuThreads
+	}
+	return 0
+}
+
+func (x *SetMiningSettingsRequest) GetKeepMiningOnClose() bool {
+	if x != nil && x.KeepMiningOnClose != nil {
+		return *x.KeepMiningOnClose
+	}
+	return false
+}
+
+type SetMiningSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetMiningSettingsResponse) Reset() {
+	*x = SetMiningSettingsResponse{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetMiningSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetMiningSettingsResponse) ProtoMessage() {}
+
+func (x *SetMiningSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetMiningSettingsResponse.ProtoReflect.Descriptor instead.
+func (*SetMiningSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{8}
+}
+
+type HashratePoint struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Time  *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	// Hashes per second of all miners together over the bucket.
+	Hashrate      float64 `protobuf:"fixed64,2,opt,name=hashrate,proto3" json:"hashrate,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HashratePoint) Reset() {
+	*x = HashratePoint{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HashratePoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HashratePoint) ProtoMessage() {}
+
+func (x *HashratePoint) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HashratePoint.ProtoReflect.Descriptor instead.
+func (*HashratePoint) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *HashratePoint) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Time
+	}
+	return nil
+}
+
+func (x *HashratePoint) GetHashrate() float64 {
+	if x != nil {
+		return x.Hashrate
+	}
+	return 0
+}
+
+type GetHashrateHistoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Range         HashrateRange          `protobuf:"varint,1,opt,name=range,proto3,enum=stratum.v1.HashrateRange" json:"range,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHashrateHistoryRequest) Reset() {
+	*x = GetHashrateHistoryRequest{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHashrateHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHashrateHistoryRequest) ProtoMessage() {}
+
+func (x *GetHashrateHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHashrateHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetHashrateHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetHashrateHistoryRequest) GetRange() HashrateRange {
+	if x != nil {
+		return x.Range
+	}
+	return HashrateRange_HASHRATE_RANGE_UNSPECIFIED
+}
+
+type GetHashrateHistoryResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Oldest first. A bucket with no miner reads zero.
+	Points []*HashratePoint `protobuf:"bytes,1,rep,name=points,proto3" json:"points,omitempty"`
+	// Highest bucket of the range.
+	Peak float64 `protobuf:"fixed64,2,opt,name=peak,proto3" json:"peak,omitempty"`
+	// Hashrate right now.
+	Current       float64 `protobuf:"fixed64,3,opt,name=current,proto3" json:"current,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHashrateHistoryResponse) Reset() {
+	*x = GetHashrateHistoryResponse{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHashrateHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHashrateHistoryResponse) ProtoMessage() {}
+
+func (x *GetHashrateHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHashrateHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetHashrateHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetHashrateHistoryResponse) GetPoints() []*HashratePoint {
+	if x != nil {
+		return x.Points
+	}
+	return nil
+}
+
+func (x *GetHashrateHistoryResponse) GetPeak() float64 {
+	if x != nil {
+		return x.Peak
+	}
+	return 0
+}
+
+func (x *GetHashrateHistoryResponse) GetCurrent() float64 {
+	if x != nil {
+		return x.Current
+	}
+	return 0
+}
+
+type PoolBlock struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Height uint32                 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+	Hash   string                 `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+	// What the pool paid out for the block.
+	RewardSats int64 `protobuf:"varint,3,opt,name=reward_sats,json=rewardSats,proto3" json:"reward_sats,omitempty"`
+	FeeSats    int64 `protobuf:"varint,4,opt,name=fee_sats,json=feeSats,proto3" json:"fee_sats,omitempty"`
+	// Worker name the pool credits.
+	Finder string `protobuf:"bytes,5,opt,name=finder,proto3" json:"finder,omitempty"`
+	// Sats the coinbase of the block pays to the payout address. Unset when
+	// the local node does not give the block.
+	MyPayoutSats *int64 `protobuf:"varint,6,opt,name=my_payout_sats,json=myPayoutSats,proto3,oneof" json:"my_payout_sats,omitempty"`
+	// Whether a miner on this computer found the block.
+	Mine bool `protobuf:"varint,7,opt,name=mine,proto3" json:"mine,omitempty"`
+	// Confirmations from the local node. Negative when the block left the main
+	// chain. Unset when the node does not answer.
+	Confirmations *int32                 `protobuf:"varint,8,opt,name=confirmations,proto3,oneof" json:"confirmations,omitempty"`
+	FoundTime     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=found_time,json=foundTime,proto3" json:"found_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PoolBlock) Reset() {
+	*x = PoolBlock{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PoolBlock) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PoolBlock) ProtoMessage() {}
+
+func (x *PoolBlock) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PoolBlock.ProtoReflect.Descriptor instead.
+func (*PoolBlock) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PoolBlock) GetHeight() uint32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *PoolBlock) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *PoolBlock) GetRewardSats() int64 {
+	if x != nil {
+		return x.RewardSats
+	}
+	return 0
+}
+
+func (x *PoolBlock) GetFeeSats() int64 {
+	if x != nil {
+		return x.FeeSats
+	}
+	return 0
+}
+
+func (x *PoolBlock) GetFinder() string {
+	if x != nil {
+		return x.Finder
+	}
+	return ""
+}
+
+func (x *PoolBlock) GetMyPayoutSats() int64 {
+	if x != nil && x.MyPayoutSats != nil {
+		return *x.MyPayoutSats
+	}
+	return 0
+}
+
+func (x *PoolBlock) GetMine() bool {
+	if x != nil {
+		return x.Mine
+	}
+	return false
+}
+
+func (x *PoolBlock) GetConfirmations() int32 {
+	if x != nil && x.Confirmations != nil {
+		return *x.Confirmations
+	}
+	return 0
+}
+
+func (x *PoolBlock) GetFoundTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FoundTime
+	}
+	return nil
+}
+
+type ListPoolBlocksRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Blocks to return. Zero returns 20.
+	Limit         uint32 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPoolBlocksRequest) Reset() {
+	*x = ListPoolBlocksRequest{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPoolBlocksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPoolBlocksRequest) ProtoMessage() {}
+
+func (x *ListPoolBlocksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPoolBlocksRequest.ProtoReflect.Descriptor instead.
+func (*ListPoolBlocksRequest) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListPoolBlocksRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListPoolBlocksResponse struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Blocks []*PoolBlock           `protobuf:"bytes,1,rep,name=blocks,proto3" json:"blocks,omitempty"`
+	// Why the list is empty, such as a pool that publishes no blocks. Empty
+	// when the pool answered.
+	Unavailable   string `protobuf:"bytes,2,opt,name=unavailable,proto3" json:"unavailable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPoolBlocksResponse) Reset() {
+	*x = ListPoolBlocksResponse{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPoolBlocksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPoolBlocksResponse) ProtoMessage() {}
+
+func (x *ListPoolBlocksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPoolBlocksResponse.ProtoReflect.Descriptor instead.
+func (*ListPoolBlocksResponse) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ListPoolBlocksResponse) GetBlocks() []*PoolBlock {
+	if x != nil {
+		return x.Blocks
+	}
+	return nil
+}
+
+func (x *ListPoolBlocksResponse) GetUnavailable() string {
+	if x != nil {
+		return x.Unavailable
+	}
+	return ""
+}
+
+type AcceptedShare struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Time   *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	Worker string                 `protobuf:"bytes,2,opt,name=worker,proto3" json:"worker,omitempty"`
+	// Difficulty the share had to reach.
+	Target float64 `protobuf:"fixed64,3,opt,name=target,proto3" json:"target,omitempty"`
+	// Difficulty the share reached.
+	Actual float64 `protobuf:"fixed64,4,opt,name=actual,proto3" json:"actual,omitempty"`
+	Hash   string  `protobuf:"bytes,5,opt,name=hash,proto3" json:"hash,omitempty"`
+	// Whether the share completed a block.
+	Block         bool `protobuf:"varint,6,opt,name=block,proto3" json:"block,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcceptedShare) Reset() {
+	*x = AcceptedShare{}
+	mi := &file_stratum_v1_stratum_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcceptedShare) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcceptedShare) ProtoMessage() {}
+
+func (x *AcceptedShare) ProtoReflect() protoreflect.Message {
+	mi := &file_stratum_v1_stratum_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcceptedShare.ProtoReflect.Descriptor instead.
+func (*AcceptedShare) Descriptor() ([]byte, []int) {
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AcceptedShare) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Time
+	}
+	return nil
+}
+
+func (x *AcceptedShare) GetWorker() string {
+	if x != nil {
+		return x.Worker
+	}
+	return ""
+}
+
+func (x *AcceptedShare) GetTarget() float64 {
+	if x != nil {
+		return x.Target
+	}
+	return 0
+}
+
+func (x *AcceptedShare) GetActual() float64 {
+	if x != nil {
+		return x.Actual
+	}
+	return 0
+}
+
+func (x *AcceptedShare) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *AcceptedShare) GetBlock() bool {
+	if x != nil {
+		return x.Block
+	}
+	return false
+}
+
 type ConnectedMiner struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Worker string                 `protobuf:"bytes,1,opt,name=worker,proto3" json:"worker,omitempty"`
-	// IP address the miner connects from.
+	// IP address the miner connects from. The hasher on this computer reads
+	// "this computer".
 	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	// Hashes per second over the last five minutes.
 	Hashrate       float64 `protobuf:"fixed64,3,opt,name=hashrate,proto3" json:"hashrate,omitempty"`
@@ -419,7 +1112,7 @@ type ConnectedMiner struct {
 
 func (x *ConnectedMiner) Reset() {
 	*x = ConnectedMiner{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[6]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -431,7 +1124,7 @@ func (x *ConnectedMiner) String() string {
 func (*ConnectedMiner) ProtoMessage() {}
 
 func (x *ConnectedMiner) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[6]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -444,7 +1137,7 @@ func (x *ConnectedMiner) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectedMiner.ProtoReflect.Descriptor instead.
 func (*ConnectedMiner) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{6}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ConnectedMiner) GetWorker() string {
@@ -540,7 +1233,7 @@ type FoundBlock struct {
 
 func (x *FoundBlock) Reset() {
 	*x = FoundBlock{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[7]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -552,7 +1245,7 @@ func (x *FoundBlock) String() string {
 func (*FoundBlock) ProtoMessage() {}
 
 func (x *FoundBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[7]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -565,7 +1258,7 @@ func (x *FoundBlock) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FoundBlock.ProtoReflect.Descriptor instead.
 func (*FoundBlock) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{7}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *FoundBlock) GetHeight() uint32 {
@@ -630,17 +1323,24 @@ type GetStratumStatusResponse struct {
 	// Upstream pool state. Both are empty for a solo target.
 	PoolConnected bool   `protobuf:"varint,11,opt,name=pool_connected,json=poolConnected,proto3" json:"pool_connected,omitempty"`
 	PoolHost      string `protobuf:"bytes,12,opt,name=pool_host,json=poolHost,proto3" json:"pool_host,omitempty"`
-	// Address the catalog pool pays. Empty for other targets.
-	PayoutAddress  string `protobuf:"bytes,13,opt,name=payout_address,json=payoutAddress,proto3" json:"payout_address,omitempty"`
-	AcceptedShares uint64 `protobuf:"varint,14,opt,name=accepted_shares,json=acceptedShares,proto3" json:"accepted_shares,omitempty"`
-	RejectedShares uint64 `protobuf:"varint,15,opt,name=rejected_shares,json=rejectedShares,proto3" json:"rejected_shares,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Wallet address that a mined block pays. The enforcer builds every
+	// coinbase to it, and a catalog pool pays out to it.
+	PayoutAddress  string          `protobuf:"bytes,13,opt,name=payout_address,json=payoutAddress,proto3" json:"payout_address,omitempty"`
+	AcceptedShares uint64          `protobuf:"varint,14,opt,name=accepted_shares,json=acceptedShares,proto3" json:"accepted_shares,omitempty"`
+	RejectedShares uint64          `protobuf:"varint,15,opt,name=rejected_shares,json=rejectedShares,proto3" json:"rejected_shares,omitempty"`
+	Settings       *MiningSettings `protobuf:"bytes,16,opt,name=settings,proto3" json:"settings,omitempty"`
+	// The last shares the server took, newest first.
+	RecentShares []*AcceptedShare `protobuf:"bytes,17,rep,name=recent_shares,json=recentShares,proto3" json:"recent_shares,omitempty"`
+	// Hashes per second of the whole network, from the local node. Zero when
+	// the node does not answer.
+	NetworkHashrate float64 `protobuf:"fixed64,18,opt,name=network_hashrate,json=networkHashrate,proto3" json:"network_hashrate,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetStratumStatusResponse) Reset() {
 	*x = GetStratumStatusResponse{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[8]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -652,7 +1352,7 @@ func (x *GetStratumStatusResponse) String() string {
 func (*GetStratumStatusResponse) ProtoMessage() {}
 
 func (x *GetStratumStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[8]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -665,7 +1365,7 @@ func (x *GetStratumStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStratumStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetStratumStatusResponse) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{8}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetStratumStatusResponse) GetRunning() bool {
@@ -773,6 +1473,27 @@ func (x *GetStratumStatusResponse) GetRejectedShares() uint64 {
 	return 0
 }
 
+func (x *GetStratumStatusResponse) GetSettings() *MiningSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+func (x *GetStratumStatusResponse) GetRecentShares() []*AcceptedShare {
+	if x != nil {
+		return x.RecentShares
+	}
+	return nil
+}
+
+func (x *GetStratumStatusResponse) GetNetworkHashrate() float64 {
+	if x != nil {
+		return x.NetworkHashrate
+	}
+	return 0
+}
+
 type SetTargetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Target        *Target                `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
@@ -782,7 +1503,7 @@ type SetTargetRequest struct {
 
 func (x *SetTargetRequest) Reset() {
 	*x = SetTargetRequest{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[9]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -794,7 +1515,7 @@ func (x *SetTargetRequest) String() string {
 func (*SetTargetRequest) ProtoMessage() {}
 
 func (x *SetTargetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[9]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -807,7 +1528,7 @@ func (x *SetTargetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTargetRequest.ProtoReflect.Descriptor instead.
 func (*SetTargetRequest) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{9}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SetTargetRequest) GetTarget() *Target {
@@ -825,7 +1546,7 @@ type SetTargetResponse struct {
 
 func (x *SetTargetResponse) Reset() {
 	*x = SetTargetResponse{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[10]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -837,7 +1558,7 @@ func (x *SetTargetResponse) String() string {
 func (*SetTargetResponse) ProtoMessage() {}
 
 func (x *SetTargetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[10]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -850,7 +1571,7 @@ func (x *SetTargetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTargetResponse.ProtoReflect.Descriptor instead.
 func (*SetTargetResponse) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{10}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{20}
 }
 
 type ListTargetsRequest struct {
@@ -861,7 +1582,7 @@ type ListTargetsRequest struct {
 
 func (x *ListTargetsRequest) Reset() {
 	*x = ListTargetsRequest{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[11]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -873,7 +1594,7 @@ func (x *ListTargetsRequest) String() string {
 func (*ListTargetsRequest) ProtoMessage() {}
 
 func (x *ListTargetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[11]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -886,7 +1607,7 @@ func (x *ListTargetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTargetsRequest.ProtoReflect.Descriptor instead.
 func (*ListTargetsRequest) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{11}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{21}
 }
 
 type CatalogPool struct {
@@ -905,7 +1626,7 @@ type CatalogPool struct {
 
 func (x *CatalogPool) Reset() {
 	*x = CatalogPool{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[12]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -917,7 +1638,7 @@ func (x *CatalogPool) String() string {
 func (*CatalogPool) ProtoMessage() {}
 
 func (x *CatalogPool) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[12]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +1651,7 @@ func (x *CatalogPool) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CatalogPool.ProtoReflect.Descriptor instead.
 func (*CatalogPool) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{12}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CatalogPool) GetId() string {
@@ -977,7 +1698,7 @@ type ListTargetsResponse struct {
 
 func (x *ListTargetsResponse) Reset() {
 	*x = ListTargetsResponse{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[13]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -989,7 +1710,7 @@ func (x *ListTargetsResponse) String() string {
 func (*ListTargetsResponse) ProtoMessage() {}
 
 func (x *ListTargetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[13]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1002,7 +1723,7 @@ func (x *ListTargetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTargetsResponse.ProtoReflect.Descriptor instead.
 func (*ListTargetsResponse) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{13}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListTargetsResponse) GetPools() []*CatalogPool {
@@ -1023,7 +1744,7 @@ type SetWorkModeRequest struct {
 
 func (x *SetWorkModeRequest) Reset() {
 	*x = SetWorkModeRequest{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[14]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1035,7 +1756,7 @@ func (x *SetWorkModeRequest) String() string {
 func (*SetWorkModeRequest) ProtoMessage() {}
 
 func (x *SetWorkModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[14]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1048,7 +1769,7 @@ func (x *SetWorkModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetWorkModeRequest.ProtoReflect.Descriptor instead.
 func (*SetWorkModeRequest) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{14}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *SetWorkModeRequest) GetAddress() string {
@@ -1073,7 +1794,7 @@ type SetWorkModeResponse struct {
 
 func (x *SetWorkModeResponse) Reset() {
 	*x = SetWorkModeResponse{}
-	mi := &file_stratum_v1_stratum_proto_msgTypes[15]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1085,7 +1806,7 @@ func (x *SetWorkModeResponse) String() string {
 func (*SetWorkModeResponse) ProtoMessage() {}
 
 func (x *SetWorkModeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_stratum_v1_stratum_proto_msgTypes[15]
+	mi := &file_stratum_v1_stratum_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1098,7 +1819,7 @@ func (x *SetWorkModeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetWorkModeResponse.ProtoReflect.Descriptor instead.
 func (*SetWorkModeResponse) Descriptor() ([]byte, []int) {
-	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{15}
+	return file_stratum_v1_stratum_proto_rawDescGZIP(), []int{25}
 }
 
 var File_stratum_v1_stratum_proto protoreflect.FileDescriptor
@@ -1118,7 +1839,61 @@ const file_stratum_v1_stratum_proto_rawDesc = "" +
 	"\apool_id\x18\x02 \x01(\tR\x06poolId\x12\x10\n" +
 	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
 	"\x06worker\x18\x04 \x01(\tR\x06worker\x12\x1a\n" +
-	"\bpassword\x18\x05 \x01(\tR\bpassword\"\x80\x04\n" +
+	"\bpassword\x18\x05 \x01(\tR\bpassword\"\x95\x01\n" +
+	"\x0eMiningSettings\x12\x12\n" +
+	"\x04port\x18\x01 \x01(\rR\x04port\x12\x1d\n" +
+	"\n" +
+	"cpu_mining\x18\x02 \x01(\bR\tcpuMining\x12\x1f\n" +
+	"\vcpu_threads\x18\x03 \x01(\rR\n" +
+	"cpuThreads\x12/\n" +
+	"\x14keep_mining_on_close\x18\x04 \x01(\bR\x11keepMiningOnClose\"\xf4\x01\n" +
+	"\x18SetMiningSettingsRequest\x12\x17\n" +
+	"\x04port\x18\x01 \x01(\rH\x00R\x04port\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"cpu_mining\x18\x02 \x01(\bH\x01R\tcpuMining\x88\x01\x01\x12$\n" +
+	"\vcpu_threads\x18\x03 \x01(\rH\x02R\n" +
+	"cpuThreads\x88\x01\x01\x124\n" +
+	"\x14keep_mining_on_close\x18\x04 \x01(\bH\x03R\x11keepMiningOnClose\x88\x01\x01B\a\n" +
+	"\x05_portB\r\n" +
+	"\v_cpu_miningB\x0e\n" +
+	"\f_cpu_threadsB\x17\n" +
+	"\x15_keep_mining_on_close\"\x1b\n" +
+	"\x19SetMiningSettingsResponse\"[\n" +
+	"\rHashratePoint\x12.\n" +
+	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1a\n" +
+	"\bhashrate\x18\x02 \x01(\x01R\bhashrate\"L\n" +
+	"\x19GetHashrateHistoryRequest\x12/\n" +
+	"\x05range\x18\x01 \x01(\x0e2\x19.stratum.v1.HashrateRangeR\x05range\"}\n" +
+	"\x1aGetHashrateHistoryResponse\x121\n" +
+	"\x06points\x18\x01 \x03(\v2\x19.stratum.v1.HashratePointR\x06points\x12\x12\n" +
+	"\x04peak\x18\x02 \x01(\x01R\x04peak\x12\x18\n" +
+	"\acurrent\x18\x03 \x01(\x01R\acurrent\"\xd5\x02\n" +
+	"\tPoolBlock\x12\x16\n" +
+	"\x06height\x18\x01 \x01(\rR\x06height\x12\x12\n" +
+	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x1f\n" +
+	"\vreward_sats\x18\x03 \x01(\x03R\n" +
+	"rewardSats\x12\x19\n" +
+	"\bfee_sats\x18\x04 \x01(\x03R\afeeSats\x12\x16\n" +
+	"\x06finder\x18\x05 \x01(\tR\x06finder\x12)\n" +
+	"\x0emy_payout_sats\x18\x06 \x01(\x03H\x00R\fmyPayoutSats\x88\x01\x01\x12\x12\n" +
+	"\x04mine\x18\a \x01(\bR\x04mine\x12)\n" +
+	"\rconfirmations\x18\b \x01(\x05H\x01R\rconfirmations\x88\x01\x01\x129\n" +
+	"\n" +
+	"found_time\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tfoundTimeB\x11\n" +
+	"\x0f_my_payout_satsB\x10\n" +
+	"\x0e_confirmations\"-\n" +
+	"\x15ListPoolBlocksRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\rR\x05limit\"i\n" +
+	"\x16ListPoolBlocksResponse\x12-\n" +
+	"\x06blocks\x18\x01 \x03(\v2\x15.stratum.v1.PoolBlockR\x06blocks\x12 \n" +
+	"\vunavailable\x18\x02 \x01(\tR\vunavailable\"\xb1\x01\n" +
+	"\rAcceptedShare\x12.\n" +
+	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x16\n" +
+	"\x06worker\x18\x02 \x01(\tR\x06worker\x12\x16\n" +
+	"\x06target\x18\x03 \x01(\x01R\x06target\x12\x16\n" +
+	"\x06actual\x18\x04 \x01(\x01R\x06actual\x12\x12\n" +
+	"\x04hash\x18\x05 \x01(\tR\x04hash\x12\x14\n" +
+	"\x05block\x18\x06 \x01(\bR\x05block\"\x80\x04\n" +
 	"\x0eConnectedMiner\x12\x16\n" +
 	"\x06worker\x18\x01 \x01(\tR\x06worker\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x1a\n" +
@@ -1148,7 +1923,7 @@ const file_stratum_v1_stratum_proto_rawDesc = "" +
 	"\n" +
 	"found_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tfoundTime\x12)\n" +
 	"\rconfirmations\x18\x06 \x01(\x05H\x00R\rconfirmations\x88\x01\x01B\x10\n" +
-	"\x0e_confirmations\"\xbb\x04\n" +
+	"\x0e_confirmations\"\xde\x05\n" +
 	"\x18GetStratumStatusResponse\x12\x18\n" +
 	"\arunning\x18\x01 \x01(\bR\arunning\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x19\n" +
@@ -1166,7 +1941,10 @@ const file_stratum_v1_stratum_proto_rawDesc = "" +
 	"\tpool_host\x18\f \x01(\tR\bpoolHost\x12%\n" +
 	"\x0epayout_address\x18\r \x01(\tR\rpayoutAddress\x12'\n" +
 	"\x0faccepted_shares\x18\x0e \x01(\x04R\x0eacceptedShares\x12'\n" +
-	"\x0frejected_shares\x18\x0f \x01(\x04R\x0erejectedShares\">\n" +
+	"\x0frejected_shares\x18\x0f \x01(\x04R\x0erejectedShares\x126\n" +
+	"\bsettings\x18\x10 \x01(\v2\x1a.stratum.v1.MiningSettingsR\bsettings\x12>\n" +
+	"\rrecent_shares\x18\x11 \x03(\v2\x19.stratum.v1.AcceptedShareR\frecentShares\x12)\n" +
+	"\x10network_hashrate\x18\x12 \x01(\x01R\x0fnetworkHashrate\">\n" +
 	"\x10SetTargetRequest\x12*\n" +
 	"\x06target\x18\x01 \x01(\v2\x12.stratum.v1.TargetR\x06target\"\x13\n" +
 	"\x11SetTargetResponse\"\x14\n" +
@@ -1194,14 +1972,22 @@ const file_stratum_v1_stratum_proto_rawDesc = "" +
 	"\x15WORK_MODE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rWORK_MODE_LOW\x10\x01\x12\x11\n" +
 	"\rWORK_MODE_MID\x10\x02\x12\x12\n" +
-	"\x0eWORK_MODE_HIGH\x10\x032\xfc\x03\n" +
+	"\x0eWORK_MODE_HIGH\x10\x03*y\n" +
+	"\rHashrateRange\x12\x1e\n" +
+	"\x1aHASHRATE_RANGE_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13HASHRATE_RANGE_HOUR\x10\x01\x12\x16\n" +
+	"\x12HASHRATE_RANGE_DAY\x10\x02\x12\x17\n" +
+	"\x13HASHRATE_RANGE_WEEK\x10\x032\x9c\x06\n" +
 	"\x0eStratumService\x12Q\n" +
 	"\fStartStratum\x12\x1f.stratum.v1.StartStratumRequest\x1a .stratum.v1.StartStratumResponse\x12N\n" +
 	"\vStopStratum\x12\x1e.stratum.v1.StopStratumRequest\x1a\x1f.stratum.v1.StopStratumResponse\x12]\n" +
 	"\x10GetStratumStatus\x12#.stratum.v1.GetStratumStatusRequest\x1a$.stratum.v1.GetStratumStatusResponse\x12H\n" +
 	"\tSetTarget\x12\x1c.stratum.v1.SetTargetRequest\x1a\x1d.stratum.v1.SetTargetResponse\x12N\n" +
 	"\vListTargets\x12\x1e.stratum.v1.ListTargetsRequest\x1a\x1f.stratum.v1.ListTargetsResponse\x12N\n" +
-	"\vSetWorkMode\x12\x1e.stratum.v1.SetWorkModeRequest\x1a\x1f.stratum.v1.SetWorkModeResponseB\xba\x01\n" +
+	"\vSetWorkMode\x12\x1e.stratum.v1.SetWorkModeRequest\x1a\x1f.stratum.v1.SetWorkModeResponse\x12`\n" +
+	"\x11SetMiningSettings\x12$.stratum.v1.SetMiningSettingsRequest\x1a%.stratum.v1.SetMiningSettingsResponse\x12c\n" +
+	"\x12GetHashrateHistory\x12%.stratum.v1.GetHashrateHistoryRequest\x1a&.stratum.v1.GetHashrateHistoryResponse\x12W\n" +
+	"\x0eListPoolBlocks\x12!.stratum.v1.ListPoolBlocksRequest\x1a\".stratum.v1.ListPoolBlocksResponseB\xba\x01\n" +
 	"\x0ecom.stratum.v1B\fStratumProtoP\x01ZQgithub.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/stratum/v1;stratumv1\xa2\x02\x03SXX\xaa\x02\n" +
 	"Stratum.V1\xca\x02\n" +
 	"Stratum\\V1\xe2\x02\x16Stratum\\V1\\GPBMetadata\xea\x02\vStratum::V1b\x06proto3"
@@ -1218,57 +2004,82 @@ func file_stratum_v1_stratum_proto_rawDescGZIP() []byte {
 	return file_stratum_v1_stratum_proto_rawDescData
 }
 
-var file_stratum_v1_stratum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_stratum_v1_stratum_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_stratum_v1_stratum_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_stratum_v1_stratum_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_stratum_v1_stratum_proto_goTypes = []any{
-	(TargetKind)(0),                  // 0: stratum.v1.TargetKind
-	(WorkMode)(0),                    // 1: stratum.v1.WorkMode
-	(*StartStratumRequest)(nil),      // 2: stratum.v1.StartStratumRequest
-	(*StartStratumResponse)(nil),     // 3: stratum.v1.StartStratumResponse
-	(*StopStratumRequest)(nil),       // 4: stratum.v1.StopStratumRequest
-	(*StopStratumResponse)(nil),      // 5: stratum.v1.StopStratumResponse
-	(*GetStratumStatusRequest)(nil),  // 6: stratum.v1.GetStratumStatusRequest
-	(*Target)(nil),                   // 7: stratum.v1.Target
-	(*ConnectedMiner)(nil),           // 8: stratum.v1.ConnectedMiner
-	(*FoundBlock)(nil),               // 9: stratum.v1.FoundBlock
-	(*GetStratumStatusResponse)(nil), // 10: stratum.v1.GetStratumStatusResponse
-	(*SetTargetRequest)(nil),         // 11: stratum.v1.SetTargetRequest
-	(*SetTargetResponse)(nil),        // 12: stratum.v1.SetTargetResponse
-	(*ListTargetsRequest)(nil),       // 13: stratum.v1.ListTargetsRequest
-	(*CatalogPool)(nil),              // 14: stratum.v1.CatalogPool
-	(*ListTargetsResponse)(nil),      // 15: stratum.v1.ListTargetsResponse
-	(*SetWorkModeRequest)(nil),       // 16: stratum.v1.SetWorkModeRequest
-	(*SetWorkModeResponse)(nil),      // 17: stratum.v1.SetWorkModeResponse
-	(*timestamppb.Timestamp)(nil),    // 18: google.protobuf.Timestamp
+	(TargetKind)(0),                    // 0: stratum.v1.TargetKind
+	(WorkMode)(0),                      // 1: stratum.v1.WorkMode
+	(HashrateRange)(0),                 // 2: stratum.v1.HashrateRange
+	(*StartStratumRequest)(nil),        // 3: stratum.v1.StartStratumRequest
+	(*StartStratumResponse)(nil),       // 4: stratum.v1.StartStratumResponse
+	(*StopStratumRequest)(nil),         // 5: stratum.v1.StopStratumRequest
+	(*StopStratumResponse)(nil),        // 6: stratum.v1.StopStratumResponse
+	(*GetStratumStatusRequest)(nil),    // 7: stratum.v1.GetStratumStatusRequest
+	(*Target)(nil),                     // 8: stratum.v1.Target
+	(*MiningSettings)(nil),             // 9: stratum.v1.MiningSettings
+	(*SetMiningSettingsRequest)(nil),   // 10: stratum.v1.SetMiningSettingsRequest
+	(*SetMiningSettingsResponse)(nil),  // 11: stratum.v1.SetMiningSettingsResponse
+	(*HashratePoint)(nil),              // 12: stratum.v1.HashratePoint
+	(*GetHashrateHistoryRequest)(nil),  // 13: stratum.v1.GetHashrateHistoryRequest
+	(*GetHashrateHistoryResponse)(nil), // 14: stratum.v1.GetHashrateHistoryResponse
+	(*PoolBlock)(nil),                  // 15: stratum.v1.PoolBlock
+	(*ListPoolBlocksRequest)(nil),      // 16: stratum.v1.ListPoolBlocksRequest
+	(*ListPoolBlocksResponse)(nil),     // 17: stratum.v1.ListPoolBlocksResponse
+	(*AcceptedShare)(nil),              // 18: stratum.v1.AcceptedShare
+	(*ConnectedMiner)(nil),             // 19: stratum.v1.ConnectedMiner
+	(*FoundBlock)(nil),                 // 20: stratum.v1.FoundBlock
+	(*GetStratumStatusResponse)(nil),   // 21: stratum.v1.GetStratumStatusResponse
+	(*SetTargetRequest)(nil),           // 22: stratum.v1.SetTargetRequest
+	(*SetTargetResponse)(nil),          // 23: stratum.v1.SetTargetResponse
+	(*ListTargetsRequest)(nil),         // 24: stratum.v1.ListTargetsRequest
+	(*CatalogPool)(nil),                // 25: stratum.v1.CatalogPool
+	(*ListTargetsResponse)(nil),        // 26: stratum.v1.ListTargetsResponse
+	(*SetWorkModeRequest)(nil),         // 27: stratum.v1.SetWorkModeRequest
+	(*SetWorkModeResponse)(nil),        // 28: stratum.v1.SetWorkModeResponse
+	(*timestamppb.Timestamp)(nil),      // 29: google.protobuf.Timestamp
 }
 var file_stratum_v1_stratum_proto_depIdxs = []int32{
 	0,  // 0: stratum.v1.Target.kind:type_name -> stratum.v1.TargetKind
-	18, // 1: stratum.v1.ConnectedMiner.last_share_time:type_name -> google.protobuf.Timestamp
-	1,  // 2: stratum.v1.ConnectedMiner.work_mode:type_name -> stratum.v1.WorkMode
-	18, // 3: stratum.v1.FoundBlock.found_time:type_name -> google.protobuf.Timestamp
-	9,  // 4: stratum.v1.GetStratumStatusResponse.blocks_found:type_name -> stratum.v1.FoundBlock
-	8,  // 5: stratum.v1.GetStratumStatusResponse.miners:type_name -> stratum.v1.ConnectedMiner
-	7,  // 6: stratum.v1.GetStratumStatusResponse.target:type_name -> stratum.v1.Target
-	7,  // 7: stratum.v1.SetTargetRequest.target:type_name -> stratum.v1.Target
-	14, // 8: stratum.v1.ListTargetsResponse.pools:type_name -> stratum.v1.CatalogPool
-	1,  // 9: stratum.v1.SetWorkModeRequest.mode:type_name -> stratum.v1.WorkMode
-	2,  // 10: stratum.v1.StratumService.StartStratum:input_type -> stratum.v1.StartStratumRequest
-	4,  // 11: stratum.v1.StratumService.StopStratum:input_type -> stratum.v1.StopStratumRequest
-	6,  // 12: stratum.v1.StratumService.GetStratumStatus:input_type -> stratum.v1.GetStratumStatusRequest
-	11, // 13: stratum.v1.StratumService.SetTarget:input_type -> stratum.v1.SetTargetRequest
-	13, // 14: stratum.v1.StratumService.ListTargets:input_type -> stratum.v1.ListTargetsRequest
-	16, // 15: stratum.v1.StratumService.SetWorkMode:input_type -> stratum.v1.SetWorkModeRequest
-	3,  // 16: stratum.v1.StratumService.StartStratum:output_type -> stratum.v1.StartStratumResponse
-	5,  // 17: stratum.v1.StratumService.StopStratum:output_type -> stratum.v1.StopStratumResponse
-	10, // 18: stratum.v1.StratumService.GetStratumStatus:output_type -> stratum.v1.GetStratumStatusResponse
-	12, // 19: stratum.v1.StratumService.SetTarget:output_type -> stratum.v1.SetTargetResponse
-	15, // 20: stratum.v1.StratumService.ListTargets:output_type -> stratum.v1.ListTargetsResponse
-	17, // 21: stratum.v1.StratumService.SetWorkMode:output_type -> stratum.v1.SetWorkModeResponse
-	16, // [16:22] is the sub-list for method output_type
-	10, // [10:16] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	29, // 1: stratum.v1.HashratePoint.time:type_name -> google.protobuf.Timestamp
+	2,  // 2: stratum.v1.GetHashrateHistoryRequest.range:type_name -> stratum.v1.HashrateRange
+	12, // 3: stratum.v1.GetHashrateHistoryResponse.points:type_name -> stratum.v1.HashratePoint
+	29, // 4: stratum.v1.PoolBlock.found_time:type_name -> google.protobuf.Timestamp
+	15, // 5: stratum.v1.ListPoolBlocksResponse.blocks:type_name -> stratum.v1.PoolBlock
+	29, // 6: stratum.v1.AcceptedShare.time:type_name -> google.protobuf.Timestamp
+	29, // 7: stratum.v1.ConnectedMiner.last_share_time:type_name -> google.protobuf.Timestamp
+	1,  // 8: stratum.v1.ConnectedMiner.work_mode:type_name -> stratum.v1.WorkMode
+	29, // 9: stratum.v1.FoundBlock.found_time:type_name -> google.protobuf.Timestamp
+	20, // 10: stratum.v1.GetStratumStatusResponse.blocks_found:type_name -> stratum.v1.FoundBlock
+	19, // 11: stratum.v1.GetStratumStatusResponse.miners:type_name -> stratum.v1.ConnectedMiner
+	8,  // 12: stratum.v1.GetStratumStatusResponse.target:type_name -> stratum.v1.Target
+	9,  // 13: stratum.v1.GetStratumStatusResponse.settings:type_name -> stratum.v1.MiningSettings
+	18, // 14: stratum.v1.GetStratumStatusResponse.recent_shares:type_name -> stratum.v1.AcceptedShare
+	8,  // 15: stratum.v1.SetTargetRequest.target:type_name -> stratum.v1.Target
+	25, // 16: stratum.v1.ListTargetsResponse.pools:type_name -> stratum.v1.CatalogPool
+	1,  // 17: stratum.v1.SetWorkModeRequest.mode:type_name -> stratum.v1.WorkMode
+	3,  // 18: stratum.v1.StratumService.StartStratum:input_type -> stratum.v1.StartStratumRequest
+	5,  // 19: stratum.v1.StratumService.StopStratum:input_type -> stratum.v1.StopStratumRequest
+	7,  // 20: stratum.v1.StratumService.GetStratumStatus:input_type -> stratum.v1.GetStratumStatusRequest
+	22, // 21: stratum.v1.StratumService.SetTarget:input_type -> stratum.v1.SetTargetRequest
+	24, // 22: stratum.v1.StratumService.ListTargets:input_type -> stratum.v1.ListTargetsRequest
+	27, // 23: stratum.v1.StratumService.SetWorkMode:input_type -> stratum.v1.SetWorkModeRequest
+	10, // 24: stratum.v1.StratumService.SetMiningSettings:input_type -> stratum.v1.SetMiningSettingsRequest
+	13, // 25: stratum.v1.StratumService.GetHashrateHistory:input_type -> stratum.v1.GetHashrateHistoryRequest
+	16, // 26: stratum.v1.StratumService.ListPoolBlocks:input_type -> stratum.v1.ListPoolBlocksRequest
+	4,  // 27: stratum.v1.StratumService.StartStratum:output_type -> stratum.v1.StartStratumResponse
+	6,  // 28: stratum.v1.StratumService.StopStratum:output_type -> stratum.v1.StopStratumResponse
+	21, // 29: stratum.v1.StratumService.GetStratumStatus:output_type -> stratum.v1.GetStratumStatusResponse
+	23, // 30: stratum.v1.StratumService.SetTarget:output_type -> stratum.v1.SetTargetResponse
+	26, // 31: stratum.v1.StratumService.ListTargets:output_type -> stratum.v1.ListTargetsResponse
+	28, // 32: stratum.v1.StratumService.SetWorkMode:output_type -> stratum.v1.SetWorkModeResponse
+	11, // 33: stratum.v1.StratumService.SetMiningSettings:output_type -> stratum.v1.SetMiningSettingsResponse
+	14, // 34: stratum.v1.StratumService.GetHashrateHistory:output_type -> stratum.v1.GetHashrateHistoryResponse
+	17, // 35: stratum.v1.StratumService.ListPoolBlocks:output_type -> stratum.v1.ListPoolBlocksResponse
+	27, // [27:36] is the sub-list for method output_type
+	18, // [18:27] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_stratum_v1_stratum_proto_init() }
@@ -1276,16 +2087,18 @@ func file_stratum_v1_stratum_proto_init() {
 	if File_stratum_v1_stratum_proto != nil {
 		return
 	}
-	file_stratum_v1_stratum_proto_msgTypes[6].OneofWrappers = []any{}
 	file_stratum_v1_stratum_proto_msgTypes[7].OneofWrappers = []any{}
 	file_stratum_v1_stratum_proto_msgTypes[12].OneofWrappers = []any{}
+	file_stratum_v1_stratum_proto_msgTypes[16].OneofWrappers = []any{}
+	file_stratum_v1_stratum_proto_msgTypes[17].OneofWrappers = []any{}
+	file_stratum_v1_stratum_proto_msgTypes[22].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stratum_v1_stratum_proto_rawDesc), len(file_stratum_v1_stratum_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   16,
+			NumEnums:      3,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

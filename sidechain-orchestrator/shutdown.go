@@ -31,6 +31,15 @@ func (o *Orchestrator) SetLease(l *lease.Lease) {
 	o.clients = l
 }
 
+// HoldClients keeps the stack alive until the returned function runs, whether
+// or not a frontend is connected.
+func (o *Orchestrator) HoldClients() func() {
+	if o.clients == nil {
+		return func() {}
+	}
+	return o.clients.Hold()
+}
+
 // ClientLeaving records that a frontend is quitting. The stack still only
 // drains once nobody is connected and the owner process is gone.
 func (o *Orchestrator) ClientLeaving() {

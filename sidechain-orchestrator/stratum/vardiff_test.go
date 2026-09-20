@@ -39,11 +39,13 @@ func TestDueForRetarget(t *testing.T) {
 }
 
 func TestClampDifficulty(t *testing.T) {
-	assert.Equal(t, 1.0, clampDifficulty(0.01, 1e6))
-	assert.Equal(t, 8192.0, clampDifficulty(8192, 1e6))
-	assert.Equal(t, 1e6, clampDifficulty(1e9, 1e6))
+	assert.Equal(t, 1.0, clampDifficulty(0.01, minDifficulty, 1e6))
+	assert.Equal(t, 8192.0, clampDifficulty(8192, minDifficulty, 1e6))
+	assert.Equal(t, 1e6, clampDifficulty(1e9, minDifficulty, 1e6))
 	// A test network sits below the floor, and the network wins.
-	assert.Equal(t, 4.6e-10, clampDifficulty(8192, 4.6e-10))
+	assert.Equal(t, 4.6e-10, clampDifficulty(8192, minDifficulty, 4.6e-10))
+	// The hasher on this computer gets a floor of its own.
+	assert.Equal(t, cpuMinDifficulty, clampDifficulty(0.0000001, cpuMinDifficulty, 1e6))
 }
 
 func TestHashrate(t *testing.T) {

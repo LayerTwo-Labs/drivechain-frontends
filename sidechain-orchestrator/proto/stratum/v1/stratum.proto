@@ -18,6 +18,13 @@ service StratumService {
   rpc ListTargets(ListTargetsRequest) returns (ListTargetsResponse);
   // SetWorkMode changes the power mode of a connected miner over its device API.
   rpc SetWorkMode(SetWorkModeRequest) returns (SetWorkModeResponse);
+  // SetMiningSettings changes the fields it carries and leaves the rest. The
+  // hasher on this computer starts the server first when the server is stopped.
+  rpc SetMiningSettings(SetMiningSettingsRequest) returns (SetMiningSettingsResponse);
+  // GetHashrateHistory returns the hashrate of all miners together over a range.
+  rpc GetHashrateHistory(GetHashrateHistoryRequest) returns (GetHashrateHistoryResponse);
+  // ListPoolBlocks returns the blocks the upstream pool found, newest first.
+  rpc ListPoolBlocks(ListPoolBlocksRequest) returns (ListPoolBlocksResponse);
 }
 
 message StartStratumRequest {
@@ -60,9 +67,102 @@ enum WorkMode {
   WORK_MODE_HIGH = 3;
 }
 
+message MiningSettings {
+  // TCP port the Stratum server listens on.
+  uint32 port = 1;
+  // Whether the hasher on this computer runs.
+  bool cpu_mining = 2;
+  // Hash threads the hasher runs.
+  uint32 cpu_threads = 3;
+  // Whether the miners keep going after the app window closes.
+  bool keep_mining_on_close = 4;
+}
+
+message SetMiningSettingsRequest {
+  optional uint32 port = 1;
+  optional bool cpu_mining = 2;
+  optional uint32 cpu_threads = 3;
+  optional bool keep_mining_on_close = 4;
+}
+
+message SetMiningSettingsResponse {}
+
+enum HashrateRange {
+  HASHRATE_RANGE_UNSPECIFIED = 0;
+  // One hour in one-minute buckets.
+  HASHRATE_RANGE_HOUR = 1;
+  // One day in ten-minute buckets.
+  HASHRATE_RANGE_DAY = 2;
+  // Seven days in one-hour buckets.
+  HASHRATE_RANGE_WEEK = 3;
+}
+
+message HashratePoint {
+  google.protobuf.Timestamp time = 1;
+  // Hashes per second of all miners together over the bucket.
+  double hashrate = 2;
+}
+
+message GetHashrateHistoryRequest {
+  HashrateRange range = 1;
+}
+
+message GetHashrateHistoryResponse {
+  // Oldest first. A bucket with no miner reads zero.
+  repeated HashratePoint points = 1;
+  // Highest bucket of the range.
+  double peak = 2;
+  // Hashrate right now.
+  double current = 3;
+}
+
+message PoolBlock {
+  uint32 height = 1;
+  string hash = 2;
+  // What the pool paid out for the block.
+  int64 reward_sats = 3;
+  int64 fee_sats = 4;
+  // Worker name the pool credits.
+  string finder = 5;
+  // Sats the coinbase of the block pays to the payout address. Unset when
+  // the local node does not give the block.
+  optional int64 my_payout_sats = 6;
+  // Whether a miner on this computer found the block.
+  bool mine = 7;
+  // Confirmations from the local node. Negative when the block left the main
+  // chain. Unset when the node does not answer.
+  optional int32 confirmations = 8;
+  google.protobuf.Timestamp found_time = 9;
+}
+
+message ListPoolBlocksRequest {
+  // Blocks to return. Zero returns 20.
+  uint32 limit = 1;
+}
+
+message ListPoolBlocksResponse {
+  repeated PoolBlock blocks = 1;
+  // Why the list is empty, such as a pool that publishes no blocks. Empty
+  // when the pool answered.
+  string unavailable = 2;
+}
+
+message AcceptedShare {
+  google.protobuf.Timestamp time = 1;
+  string worker = 2;
+  // Difficulty the share had to reach.
+  double target = 3;
+  // Difficulty the share reached.
+  double actual = 4;
+  string hash = 5;
+  // Whether the share completed a block.
+  bool block = 6;
+}
+
 message ConnectedMiner {
   string worker = 1;
-  // IP address the miner connects from.
+  // IP address the miner connects from. The hasher on this computer reads
+  // "this computer".
   string address = 2;
   // Hashes per second over the last five minutes.
   double hashrate = 3;
@@ -108,10 +208,17 @@ message GetStratumStatusResponse {
   // Upstream pool state. Both are empty for a solo target.
   bool pool_connected = 11;
   string pool_host = 12;
-  // Address the catalog pool pays. Empty for other targets.
+  // Wallet address that a mined block pays. The enforcer builds every
+  // coinbase to it, and a catalog pool pays out to it.
   string payout_address = 13;
   uint64 accepted_shares = 14;
   uint64 rejected_shares = 15;
+  MiningSettings settings = 16;
+  // The last shares the server took, newest first.
+  repeated AcceptedShare recent_shares = 17;
+  // Hashes per second of the whole network, from the local node. Zero when
+  // the node does not answer.
+  double network_hashrate = 18;
 }
 
 message SetTargetRequest {
