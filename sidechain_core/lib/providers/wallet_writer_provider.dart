@@ -266,6 +266,19 @@ class WalletWriterProvider extends ChangeNotifier {
     return _walletReader.getSidechainMnemonic(sidechainSlot);
   }
 
+  /// The seed phrase of one slot, derived when the slot has none.
+  ///
+  /// [getSidechainStarter] reads what the wallet already holds, and the
+  /// backend fills that list only when a sidechain binary starts. A chain
+  /// that starts no binary needs this call.
+  Future<String> ensureSidechainStarter(int sidechainSlot, String name) async {
+    final stored = _walletReader.getSidechainMnemonic(sidechainSlot);
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
+    return _client.ensureSidechainStarter(sidechainSlot, name);
+  }
+
   Future<void> deleteAllWallets({
     Future<void> Function()? beforeBoot,
     void Function(String status)? onStatusUpdate,

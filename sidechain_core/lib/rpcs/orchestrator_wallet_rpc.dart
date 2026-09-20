@@ -108,6 +108,15 @@ class OrchestratorWalletRPC {
     await _unaryClient.setNodeMode(wmpb.SetNodeModeRequest(mode: mode));
   }
 
+  /// The seed phrase of one slot. The backend derives it when the slot has
+  /// none, so a chain that starts no local binary still has one.
+  Future<String> ensureSidechainStarter(int slot, String name) async {
+    final r = await _unaryClient.ensureSidechainStarter(
+      wmpb.EnsureSidechainStarterRequest(slot: slot, name: name),
+    );
+    return r.mnemonic;
+  }
+
   Future<wmpb.ListWalletsResponse> listWallets() {
     return _unaryClient.listWallets(wmpb.ListWalletsRequest());
   }
