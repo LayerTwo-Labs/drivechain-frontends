@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:bitwindow/sol/sol_wallet.dart';
 import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:sidechain_core/mocks/mocks.dart';
@@ -21,6 +22,9 @@ import 'test_utils.dart';
 class _Conf extends ChangeNotifier implements BitcoinConfProvider {
   @override
   BitcoinNetwork network = BitcoinNetwork.BITCOIN_NETWORK_SIGNET;
+
+  @override
+  String ecashNetworkId = '';
 
   @override
   String? get detectedDataDir => null;
@@ -215,6 +219,98 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(ProgressBar), findsNothing);
+  });
+
+  testWidgets('SOL offers an enabled Deposit, because it starts no binary', (tester) async {
+    setUpChain(_thunder());
+    final conf = GetIt.I.get<BitcoinConfProvider>() as _Conf;
+    conf.network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+    conf.ecashNetworkId = 'betanet';
+    final sidechains = GetIt.I.get<SidechainProvider>() as _Sidechains;
+    // SOL is the one row, so the Deposit button of the table is its own.
+    sidechains.sidechains[9] = null;
+    sidechains.sidechains[solSidechainSlot] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: solSidechainTitle, slot: solSidechainSlot),
+      [],
+      [],
+    );
+    await pumpTable(tester);
+
+    final deposit = _buttonWidget(tester, 'Deposit');
+    expect(deposit.disabled, isFalse);
+    expect(
+      find.ancestor(of: _button('Deposit'), matching: find.byType(SailTooltip)),
+      findsNothing,
+      reason: 'a SOL deposit needs no running binary, so no tooltip says to start one',
+    );
+  });
+
+  testWidgets('a slot change drops a deposit address of another slot', (tester) async {
+    setUpChain(_thunder());
+    await registerTestDependencies();
+    final model = SidechainsViewModel();
+    addTearDown(model.dispose);
+
+    model.toggleSelection(solSidechainSlot);
+    model.addressController.text = formatDepositAddress('abc', solSidechainSlot);
+    // The backend reads the slot out of the address, so a left over address
+    // would send the coins to slot 8 under another chain's name.
+    model.toggleSelection(9);
+    expect(model.addressController.text, isEmpty);
+  });
+
+  testWidgets('a slot change keeps an address that names that slot', (tester) async {
+    setUpChain(_thunder());
+    await registerTestDependencies();
+    final model = SidechainsViewModel();
+    addTearDown(model.dispose);
+
+    final address = formatDepositAddress('abc', 9);
+    model.addressController.text = address;
+    model.toggleSelection(9);
+    expect(model.addressController.text, address);
+  });
+
+  testWidgets('a SOL address goes when slot 8 stops being SOL', (tester) async {
+    setUpChain(_thunder());
+    await registerTestDependencies();
+    final conf = GetIt.I.get<BitcoinConfProvider>() as _Conf;
+    conf.network = BitcoinNetwork.BITCOIN_NETWORK_ECASH;
+    conf.ecashNetworkId = 'betanet';
+    final sidechains = GetIt.I.get<SidechainProvider>() as _Sidechains;
+    sidechains.sidechains[solSidechainSlot] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: solSidechainTitle, slot: solSidechainSlot),
+      [],
+      [],
+    );
+    final model = SidechainsViewModel();
+    addTearDown(model.dispose);
+
+    model.toggleSelection(solSidechainSlot);
+    model.addressController.text = formatDepositAddress('abc', solSidechainSlot);
+
+    // A network switch can leave another chain on slot 8. The number stays the
+    // same, so only the identity tells the two apart.
+    sidechains.sidechains[solSidechainSlot] = SidechainOverview(
+      ListSidechainsResponse_Sidechain(title: 'Something else', slot: solSidechainSlot),
+      [],
+      [],
+    );
+    model.toggleSelection(solSidechainSlot);
+    model.toggleSelection(solSidechainSlot);
+    expect(model.addressController.text, isEmpty);
+  });
+
+  testWidgets('a slot change keeps an unformatted address', (tester) async {
+    setUpChain(_thunder());
+    await registerTestDependencies();
+    final model = SidechainsViewModel();
+    addTearDown(model.dispose);
+
+    model.toggleSelection(solSidechainSlot);
+    model.addressController.text = 'a raw address';
+    model.toggleSelection(9);
+    expect(model.addressController.text, 'a raw address');
   });
 
   testWidgets('a stopped chain shows a dash for Your balance', (tester) async {

@@ -7,6 +7,8 @@ import 'package:bitwindow/pages/explorer/block_explorer_dialog.dart';
 import 'package:bitwindow/pages/sidechain_activation_management_page.dart';
 import 'package:bitwindow/providers/sidechain_provider.dart';
 import 'package:bitwindow/routing/router.dart';
+import 'package:bitwindow/sol/sol_rpc.dart';
+import 'package:bitwindow/sol/sol_wallet.dart';
 import 'package:sail_ui/pages/router.gr.dart';
 import 'package:bitwindow/providers/transactions_provider.dart';
 import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
@@ -733,6 +735,20 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   DownloadProvider? get _downloadProvider =>
       GetIt.I.isRegistered<DownloadProvider>() ? GetIt.I.get<DownloadProvider>() : null;
   WalletReaderProvider get _walletReader => GetIt.I<WalletReaderProvider>();
+  final SolRPC _solRPC = SolRPC();
+
+  int? solBalanceSats;
+  String? solBalanceError;
+  bool solBalanceLoading = false;
+  String? _solMnemonic;
+
+  /// Rises on every change that makes the SOL state stale. An answer that
+  /// carries an earlier count writes nothing.
+  int _solLoad = 0;
+
+  /// The wallet that [_solMnemonic] came from. A seed phrase belongs to one
+  /// wallet, so a switch must drop it.
+  String? _solMnemonicWalletId;
 
   // Resolve a Sidechain Binary to its SidechainType enum (key into
   // SyncProvider.sidechains). bitwindowd is intentionally absent — the
@@ -958,7 +974,9 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return '${mismatched.join(', ')} and $last';
   }
 
-  bool canDeposit(int slot) => isSidechainRunning(slot);
+  /// A deposit asks the chain for an address, so the chain must run. SOL
+  /// runs no local binary, and its address comes from the wallet seed.
+  bool canDeposit(int slot) => isSidechainRunning(slot) || isSolSlot(slot);
 
   /// The user's wallet balance in BTC on the chain in [slot], or null while the chain does not run.
   ({double confirmed, double pending})? yourBalance(int slot) {
@@ -1229,18 +1247,168 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     } else {
       _selectedIndex = index; // Select the new item
     }
-    notifyListeners();
+    _onSelectionChanged();
   }
 
   void decrementSelectedIndex() {
     _selectedIndex = max(0, (_selectedIndex ?? 0) - 1);
-    notifyListeners();
+    _onSelectionChanged();
   }
 
   void incrementSelectedIndex() {
     _selectedIndex = min(255, (_selectedIndex ?? 0) + 1);
+    _onSelectionChanged();
+  }
+
+  void _onSelectionChanged() {
+    _dropAddressOfAnotherSlot();
+    solBalanceSats = null;
+    solBalanceError = null;
+    notifyListeners();
+    if (selectedIsSol) {
+      unawaited(loadSolStarter());
+    }
+  }
+
+  /// Asks the backend for the slot 8 seed phrase, then reads the balance.
+  ///
+  /// The backend fills the slot list when a sidechain binary starts. SOL
+  /// starts none, so the phrase arrives only when something asks for it.
+  Future<void> loadSolStarter() async {
+    final walletId = _walletReader.activeWalletId;
+    final load = ++_solLoad;
+    solBalanceLoading = true;
+    solBalanceError = null;
+    notifyListeners();
+    final String phrase;
+    try {
+      phrase = await GetIt.I.get<WalletWriterProvider>().ensureSidechainStarter(
+        solSidechainSlot,
+        solStarterName,
+      );
+    } catch (e) {
+      if (load != _solLoad) {
+        return;
+      }
+      _solMnemonic = null;
+      _solMnemonicWalletId = null;
+      solBalanceSats = null;
+      solBalanceLoading = false;
+      solBalanceError = 'Could not read the SOL seed phrase: $e';
+      notifyListeners();
+      return;
+    }
+    if (load != _solLoad) {
+      return;
+    }
+    // The user can switch wallet while the call runs, and the answer then
+    // belongs to the wallet they left. Read the new one, or the row sits at
+    // "Reading the SOL balance..." until the user picks the slot again.
+    if (_walletReader.activeWalletId != walletId) {
+      unawaited(loadSolStarter());
+      return;
+    }
+    _solMnemonic = phrase;
+    _solMnemonicWalletId = walletId;
+    await fetchSolBalance();
+  }
+
+  void _forgetSolMnemonic() {
+    _solMnemonic = null;
+    _solMnemonicWalletId = null;
+    solBalanceSats = null;
+    _solLoad++;
+  }
+
+  /// Empties the deposit field when its address names another slot.
+  ///
+  /// `CreateSidechainDeposit` reads the slot out of the address and not out
+  /// of the request, so a left over address sends the coins to the chain it
+  /// names, whatever the screen shows.
+  void _dropAddressOfAnotherSlot() {
+    final named = depositAddressSlot(addressController.text);
+    if (named == null) {
+      return;
+    }
+    // A SOL address belongs to the SOL chain, and not to the number 8. Slot 8
+    // changes identity on a network switch, and the old address would then
+    // pay a chain that cannot spend it.
+    final staleSolAddress = named == solSidechainSlot && !isSolSlot(named);
+    if (named != _selectedIndex || staleSolAddress) {
+      addressController.clear();
+    }
+  }
+
+  /// True when this slot carries the hosted SOL drivechain.
+  bool isSolSlot(int slot) => isSolSidechain(
+    slot,
+    sidechains[slot]?.info.title,
+    _confProvider.network,
+    _confProvider.ecashNetworkId,
+  );
+
+  bool get selectedIsSol {
+    final slot = _selectedIndex;
+    return slot != null && isSolSlot(slot);
+  }
+
+  /// The slot 8 Solana address of this wallet, and why it is absent.
+  ///
+  /// SOL runs no local node, so no sidechain daemon can hand out an address.
+  /// BitWindow derives it from the seed phrase the walletmanager keeps for the
+  /// slot, on the same path that solana-keygen and Phantom read.
+  ({String? address, String? error}) get solAccount {
+    // A phrase from another wallet derives an address the user cannot spend,
+    // so the cache counts only while its wallet stays active.
+    final cached = cacheFitsWallet(_solMnemonicWalletId, _walletReader.activeWalletId) ? _solMnemonic : null;
+    final mnemonic = cached ?? _walletReader.getSidechainMnemonic(solSidechainSlot);
+    if (mnemonic == null || mnemonic.isEmpty) {
+      return (address: null, error: 'This wallet holds no seed phrase for slot $solSidechainSlot.');
+    }
+    try {
+      return (address: solAddressFromMnemonic(mnemonic), error: null);
+    } catch (e) {
+      return (address: null, error: 'Could not derive the SOL address: $e');
+    }
+  }
+
+  Future<void> useSolAddress() async {
+    final address = solAccount.address;
+    if (address == null) {
+      return;
+    }
+    addressController.text = formatDepositAddress(address, solSidechainSlot);
+    notifyListeners();
+    await fetchSolBalance();
+  }
+
+  Future<void> fetchSolBalance() async {
+    final address = solAccount.address;
+    if (address == null) {
+      return;
+    }
+    final load = _solLoad;
+    solBalanceLoading = true;
+    solBalanceError = null;
+    notifyListeners();
+    int? sats;
+    String? error;
+    try {
+      sats = satsFromLamports(await _solRPC.getBalanceLamports(address));
+    } catch (e) {
+      error = 'Could not read the SOL balance: $e';
+    }
+    // A balance of the wallet the user left must not show under the new one.
+    if (load != _solLoad) {
+      return;
+    }
+    solBalanceSats = sats;
+    solBalanceError = error;
+    solBalanceLoading = false;
     notifyListeners();
   }
+
+  String get solBalance => solBalanceLabel(loading: solBalanceLoading, error: solBalanceError, sats: solBalanceSats);
 
   List<ListSidechainDepositsResponse_SidechainDeposit> _sortedDeposits = [];
   String depositSortColumn = 'amount';
@@ -1379,10 +1547,22 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     _syncProvider.removeListener(notifyListeners);
     _downloadProvider?.removeListener(_onChange);
     _downloadProvider?.removeListener(notifyListeners);
+    // A close makes every pending SOL request throw. The count stops that
+    // answer from touching a view model that no longer exists.
+    _solLoad++;
+    _solRPC.close();
     super.dispose();
   }
 
   void _onChange() {
+    if (_solMnemonicWalletId != null && !cacheFitsWallet(_solMnemonicWalletId, _walletReader.activeWalletId)) {
+      _forgetSolMnemonic();
+      // A reset or a restore replaces the wallet. The new one holds another
+      // seed phrase, so read it again rather than show an empty row.
+      if (selectedIsSol) {
+        unawaited(loadSolStarter());
+      }
+    }
     // Core data that affects the UI
     track('sidechains', _sidechainProvider.sidechains);
     track('recentDeposits', recentDeposits);
@@ -1542,6 +1722,58 @@ class DepositFeeFields extends StatelessWidget {
   }
 }
 
+/// The SOL drivechain runs no local node, so nothing hands BitWindow an
+/// address. This row derives one from the wallet seed and reads the balance
+/// from the hosted node. A send and a peg out belong to a Solana wallet.
+class _SolDepositRow extends ViewModelWidget<SidechainsViewModel> {
+  const _SolDepositRow();
+
+  @override
+  Widget build(BuildContext context, SidechainsViewModel viewModel) {
+    if (!viewModel.selectedIsSol) {
+      return const SizedBox.shrink();
+    }
+
+    final colors = SailTheme.of(context).colors;
+    final account = viewModel.solAccount;
+    final balanceLabel = viewModel.solBalance;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: SailStyleValues.padding08),
+      child: SailColumn(
+        spacing: SailStyleValues.padding08,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SailText.secondary13(
+            'SOL has no app to start. Your address comes from this wallet seed, so any Solana wallet with the same seed opens it.',
+            color: colors.textTertiary,
+          ),
+          SailRow(
+            spacing: SailStyleValues.padding08,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SailButton(
+                label: 'Use my SOL address',
+                variant: ButtonVariant.outline,
+                disabled: account.address == null,
+                onPressed: viewModel.useSolAddress,
+              ),
+              if (balanceLabel.isNotEmpty)
+                Expanded(
+                  child: SailText.secondary12(
+                    balanceLabel,
+                    color: viewModel.solBalanceError != null ? colors.error : colors.textTertiary,
+                  ),
+                ),
+            ],
+          ),
+          if (account.error != null) SailText.secondary12(account.error!, color: colors.error),
+        ],
+      ),
+    );
+  }
+}
+
 class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
   const MakeDepositsView({super.key});
 
@@ -1553,6 +1785,7 @@ class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const _SolDepositRow(),
             SailRow(
               spacing: SailStyleValues.padding08,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1855,6 +2088,22 @@ class _DepositModalState extends State<DepositModal> {
     return null;
   }
 
+  /// The slot 8 address, from the wallet seed.
+  ///
+  /// SOL runs no local binary, so no sidechain RPC can hand one out. Answers
+  /// null for every other chain.
+  Future<String?> _solDepositAddress() async {
+    final conf = GetIt.I<BitcoinConfProvider>();
+    if (!isSolSidechain(widget.slot, widget.sidechainName, conf.network, conf.ecashNetworkId)) {
+      return null;
+    }
+    final phrase = await GetIt.I.get<WalletWriterProvider>().ensureSidechainStarter(
+      solSidechainSlot,
+      solStarterName,
+    );
+    return formatDepositAddress(solAddressFromMnemonic(phrase), solSidechainSlot);
+  }
+
   Future<void> _fetchDepositAddress() async {
     setState(() {
       isFetchingAddress = true;
@@ -1862,12 +2111,17 @@ class _DepositModalState extends State<DepositModal> {
     });
 
     try {
-      final sidechainRPC = _getSidechainRPC(widget.slot);
-      if (sidechainRPC == null) {
-        throw Exception('Sidechain is not running. Start it first to deposit.');
+      final String address;
+      final fromSeed = await _solDepositAddress();
+      if (fromSeed != null) {
+        address = fromSeed;
+      } else {
+        final sidechainRPC = _getSidechainRPC(widget.slot);
+        if (sidechainRPC == null) {
+          throw Exception('Sidechain is not running. Start it first to deposit.');
+        }
+        address = await sidechainRPC.getDepositAddress();
       }
-
-      final address = await sidechainRPC.getDepositAddress();
       if (mounted) {
         setState(() {
           depositAddress = address;
