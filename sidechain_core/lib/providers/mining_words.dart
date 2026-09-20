@@ -95,18 +95,18 @@ String hashrateInfo({
 }
 
 /// bestShareInfo says how close the best share came to a block, in zeros.
-String bestShareInfo({required double bestShare, required double networkDifficulty}) {
+String bestShareInfo({required double bestShare, required bool won, required double networkDifficulty}) {
   final needed = leadingZeros(networkDifficulty);
   final reached = bestShare <= 0 ? 0 : leadingZeros(bestShare);
+  if (won) {
+    return 'The closest your miner came to a block. Your best guess reached $reached zeros, and it won a block.';
+  }
   final opening =
       'The closest your miner came to a block. To win, your miner must produce a hash that starts with '
       'at least $needed zeros';
-  if (reached > needed) {
-    return '$opening. Your best guess reached $reached zeros, and it won a block.';
-  }
-  if (reached == needed) {
+  if (reached >= needed) {
     final target = truncateMiddle(hashOf(targetOf(networkDifficulty)));
-    return '$opening, and is a smaller number than $target. Your best guess reached $needed zeros, but the digits '
+    return '$opening, and is a smaller number than $target. Your best guess reached $reached zeros, but the digits '
         'after them were too big.';
   }
   return '$opening. Your best guess started with $reached.';

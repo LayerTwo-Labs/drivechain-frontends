@@ -382,6 +382,7 @@ const GetStratumStatusResponse$json = {
     {'1': 'settings', '3': 16, '4': 1, '5': 11, '6': '.stratum.v1.MiningSettings', '10': 'settings'},
     {'1': 'recent_shares', '3': 17, '4': 3, '5': 11, '6': '.stratum.v1.AcceptedShare', '10': 'recentShares'},
     {'1': 'network_hashrate', '3': 18, '4': 1, '5': 1, '10': 'networkHashrate'},
+    {'1': 'best_share_won', '3': 19, '4': 1, '5': 8, '10': 'bestShareWon'},
   ],
 };
 
@@ -400,7 +401,7 @@ final $typed_data.Uint8List getStratumStatusResponseDescriptor = $convert.base64
     'Ug5yZWplY3RlZFNoYXJlcxI2CghzZXR0aW5ncxgQIAEoCzIaLnN0cmF0dW0udjEuTWluaW5nU2'
     'V0dGluZ3NSCHNldHRpbmdzEj4KDXJlY2VudF9zaGFyZXMYESADKAsyGS5zdHJhdHVtLnYxLkFj'
     'Y2VwdGVkU2hhcmVSDHJlY2VudFNoYXJlcxIpChBuZXR3b3JrX2hhc2hyYXRlGBIgASgBUg9uZX'
-    'R3b3JrSGFzaHJhdGU=');
+    'R3b3JrSGFzaHJhdGUSJAoOYmVzdF9zaGFyZV93b24YEyABKAhSDGJlc3RTaGFyZVdvbg==');
 
 @$core.Deprecated('Use setTargetRequestDescriptor instead')
 const SetTargetRequest$json = {

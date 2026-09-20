@@ -1334,8 +1334,10 @@ type GetStratumStatusResponse struct {
 	// Hashes per second of the whole network, from the local node. Zero when
 	// the node does not answer.
 	NetworkHashrate float64 `protobuf:"fixed64,18,opt,name=network_hashrate,json=networkHashrate,proto3" json:"network_hashrate,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// True when the best share met the target of its own job.
+	BestShareWon  bool `protobuf:"varint,19,opt,name=best_share_won,json=bestShareWon,proto3" json:"best_share_won,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetStratumStatusResponse) Reset() {
@@ -1492,6 +1494,13 @@ func (x *GetStratumStatusResponse) GetNetworkHashrate() float64 {
 		return x.NetworkHashrate
 	}
 	return 0
+}
+
+func (x *GetStratumStatusResponse) GetBestShareWon() bool {
+	if x != nil {
+		return x.BestShareWon
+	}
+	return false
 }
 
 type SetTargetRequest struct {
@@ -1923,7 +1932,7 @@ const file_stratum_v1_stratum_proto_rawDesc = "" +
 	"\n" +
 	"found_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tfoundTime\x12)\n" +
 	"\rconfirmations\x18\x06 \x01(\x05H\x00R\rconfirmations\x88\x01\x01B\x10\n" +
-	"\x0e_confirmations\"\xde\x05\n" +
+	"\x0e_confirmations\"\x84\x06\n" +
 	"\x18GetStratumStatusResponse\x12\x18\n" +
 	"\arunning\x18\x01 \x01(\bR\arunning\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x19\n" +
@@ -1944,7 +1953,8 @@ const file_stratum_v1_stratum_proto_rawDesc = "" +
 	"\x0frejected_shares\x18\x0f \x01(\x04R\x0erejectedShares\x126\n" +
 	"\bsettings\x18\x10 \x01(\v2\x1a.stratum.v1.MiningSettingsR\bsettings\x12>\n" +
 	"\rrecent_shares\x18\x11 \x03(\v2\x19.stratum.v1.AcceptedShareR\frecentShares\x12)\n" +
-	"\x10network_hashrate\x18\x12 \x01(\x01R\x0fnetworkHashrate\">\n" +
+	"\x10network_hashrate\x18\x12 \x01(\x01R\x0fnetworkHashrate\x12$\n" +
+	"\x0ebest_share_won\x18\x13 \x01(\bR\fbestShareWon\">\n" +
 	"\x10SetTargetRequest\x12*\n" +
 	"\x06target\x18\x01 \x01(\v2\x12.stratum.v1.TargetR\x06target\"\x13\n" +
 	"\x11SetTargetResponse\"\x14\n" +

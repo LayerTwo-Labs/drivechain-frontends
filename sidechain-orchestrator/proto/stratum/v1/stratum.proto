@@ -219,6 +219,8 @@ message GetStratumStatusResponse {
   // Hashes per second of the whole network, from the local node. Zero when
   // the node does not answer.
   double network_hashrate = 18;
+  // True when the best share met the target of its own job.
+  bool best_share_won = 19;
 }
 
 message SetTargetRequest {

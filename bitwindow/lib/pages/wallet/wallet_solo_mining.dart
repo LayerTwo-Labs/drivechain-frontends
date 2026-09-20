@@ -440,7 +440,11 @@ class _SoloMiningTabState extends State<SoloMiningTab> {
         value: formatDifficulty(status.bestShare),
         subtitle: 'of ${formatDifficulty(status.networkDifficulty)} needed for a block',
         icon: SailSVGAsset.scatterChart,
-        info: bestShareInfo(bestShare: status.bestShare, networkDifficulty: status.networkDifficulty),
+        info: bestShareInfo(
+          bestShare: status.bestShare,
+          won: status.bestShareWon,
+          networkDifficulty: status.networkDifficulty,
+        ),
       ),
       if (solo) ...[
         SailCardStats(

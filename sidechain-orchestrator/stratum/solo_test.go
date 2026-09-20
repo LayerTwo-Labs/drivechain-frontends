@@ -204,6 +204,7 @@ func TestSoloEndToEnd(t *testing.T) {
 	assert.Equal(t, int64(rewardSats), status.Blocks[0].RewardSats)
 	assert.Equal(t, "avalon.1", status.Blocks[0].Worker)
 	assert.Equal(t, block.BlockHash(), status.Blocks[0].Hash)
+	assert.True(t, status.BestShareWon)
 	require.Len(t, status.Miners, 1)
 	assert.Equal(t, "avalon.1", status.Miners[0].Worker)
 	assert.Equal(t, "127.0.0.1", status.Miners[0].Address)
