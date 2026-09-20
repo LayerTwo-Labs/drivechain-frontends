@@ -13,7 +13,6 @@ import 'package:bitwindow/widgets/fast_withdrawal_tab.dart';
 import 'package:bitwindow/widgets/starters_tab.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sidechain_core/gen/wallet/v1/wallet.pb.dart';
@@ -721,9 +720,7 @@ String progressPercent(double current, double goal) {
 }
 
 class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
-  final TransactionProvider _transactionsProvider = GetIt.I.get<TransactionProvider>();
   final BalanceProvider _balanceProvider = GetIt.I.get<BalanceProvider>();
-  final BitwindowRPC _api = GetIt.I.get<BitwindowRPC>();
   final SidechainProvider _sidechainProvider = GetIt.I.get<SidechainProvider>();
   final EnforcerRPC _enforcerRPC = GetIt.I.get<EnforcerRPC>();
   final BinaryProvider _binaryProvider = GetIt.I.get<BinaryProvider>();
@@ -760,18 +757,8 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     return _syncProvider.sidechains[type];
   }
 
-  final TextEditingController addressController = TextEditingController();
-  final TextEditingController depositAmountController = TextEditingController();
-  final TextEditingController feeController = TextEditingController();
-  late final DepositFeeEstimate depositFee = DepositFeeEstimate(feeController);
-
   SidechainsViewModel() {
     initChangeTracker();
-
-    addressController.addListener(_onChange);
-    depositAmountController.addListener(_onChange);
-    feeController.addListener(_onChange);
-    unawaited(setDepositFeeTarget(depositFee.confTarget, keepEdits: true));
 
     _sidechainProvider.addListener(_onChange);
     _sidechainProvider.fetch();
@@ -888,20 +875,6 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   /// True when no local enforcer runs, so nothing can add, remove or withdraw.
   /// Reading chains, chain settings and deposits all work without one.
   bool get sidechainManagementUnavailable => !NodeModeProvider.runsLocalBackends;
-
-  String? _depositWalletId;
-
-  String? get depositWalletId => _walletReader.resolveFundingWalletId(_depositWalletId);
-
-  Future<void> setDepositFeeTarget(int confTarget, {bool keepEdits = false}) async {
-    await depositFee.refresh(confTarget, keepEdits: keepEdits);
-    notifyListeners();
-  }
-
-  void setDepositWalletId(String walletId) {
-    _depositWalletId = walletId;
-    notifyListeners();
-  }
 
   List<SidechainOverview?> get sidechains => _sidechainProvider.sidechains;
 
@@ -1298,81 +1271,12 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
   List<ListSidechainDepositsResponse_SidechainDeposit> get recentDeposits =>
       _sidechainProvider.sidechains[_selectedIndex ?? 255]?.deposits ?? [];
 
-  Future<void> clearAddress() async {
-    addressController.clear();
-    notifyListeners();
-  }
-
-  Future<void> formatAddress() async {
-    if (_selectedIndex == null) {
-      return;
-    }
-
-    addressController.text = formatDepositAddress(addressController.text, _selectedIndex!);
-    notifyListeners();
-  }
-
-  String? get formatError {
-    if (addressController.text.isEmpty) {
-      return 'A deposit address from your sidechain must be set before you can format it.';
-    }
-
-    if (addressController.text.contains('_')) {
-      return 'You can only format an address once. Unformatted addresses can not contain underscores.';
-    }
-
-    return null;
-  }
-
-  void deposit(BuildContext context) async {
-    if (double.tryParse(depositAmountController.text) == null) {
-      showSailToast(context, 'Invalid amount, enter a number');
-      return;
-    }
-    if (double.tryParse(feeController.text) == null) {
-      showSailToast(context, 'Invalid fee, enter a number');
-      return;
-    }
-
-    try {
-      final walletId = depositWalletId;
-      if (walletId == null) {
-        throw Exception('No wallet selected to fund the deposit');
-      }
-
-      setBusy(true);
-      await _api.wallet.createSidechainDeposit(
-        walletId,
-        _selectedIndex ?? 255,
-        addressController.text,
-        double.parse(depositAmountController.text),
-        double.parse(feeController.text),
-      );
-    } catch (e) {
-      if (context.mounted) {
-        showSailToast(context, 'Could not create deposit:\n$e');
-      }
-    } finally {
-      setBusy(false);
-    }
-
-    // refetching the transaction list also triggers the balance to be updated
-    await _transactionsProvider.fetch();
-    // refetching the balance also triggers the balance to be updated
-    await _balanceProvider.fetch();
-    // refetch sidechain transaction list
-    await _sidechainProvider.fetch();
-  }
-
   @override
   void dispose() {
     _sidechainProvider.removeListener(_onChange);
     _walletReader.removeListener(_onChange);
     _nodeMode?.removeListener(_onChange);
     _balanceProvider.removeListener(notifyListeners);
-    addressController.removeListener(_onChange);
-    depositAmountController.removeListener(_onChange);
-    feeController.removeListener(_onChange);
     _binaryProvider.removeListener(_onChange);
     _binaryProvider.removeListener(notifyListeners);
     _syncProvider.removeListener(_onChange);
@@ -1400,16 +1304,10 @@ class SidechainsViewModel extends BaseViewModel with ChangeTrackingMixin {
     // UI state that affects rendering
     track('showOnlyFilled', showOnlyFilled);
     track('selectedIndex', selectedIndex);
-    track('depositWalletId', depositWalletId);
 
     // Sorting state
     track('depositSortColumn', depositSortColumn);
     track('depositSortAscending', depositSortAscending);
-
-    // Text input values
-    track('depositAmount', depositAmountController.text);
-    track('addressController', addressController.text);
-    track('fee', feeController.text);
 
     // Binary states that affect sidechainWidget() rendering - notify immediately
     // so sidechain list buttons update instantly when binaries connect/disconnect.
@@ -1460,9 +1358,9 @@ class DepositWithdrawView extends ViewModelWidget<SidechainsViewModel> {
     return const InlineTabBar(
       tabs: [
         TabItem(
-          label: 'Create Deposits',
+          label: 'See Deposits',
           icon: SailSVGAsset.iconDeposit,
-          child: MakeDepositsView(),
+          child: SeeDepositsView(),
         ),
         TabItem(
           label: 'See Withdrawals',
@@ -1542,118 +1440,14 @@ class DepositFeeFields extends StatelessWidget {
   }
 }
 
-class MakeDepositsView extends ViewModelWidget<SidechainsViewModel> {
-  const MakeDepositsView({super.key});
+class SeeDepositsView extends ViewModelWidget<SidechainsViewModel> {
+  const SeeDepositsView({super.key});
 
   @override
   Widget build(BuildContext context, SidechainsViewModel viewModel) {
     return SailCard(
       bottomPadding: false,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  flex: 2, // take up 2/3 of the space
-                  child: SailTextField(
-                    label: 'Sidechain Deposit Address',
-                    controller: viewModel.addressController,
-                    hintText: 's${viewModel._selectedIndex ?? 0}_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxx',
-                    size: TextFieldSize.small,
-                  ),
-                ),
-                SailButton(
-                  variant: ButtonVariant.icon,
-                  onPressed: () async {
-                    try {
-                      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (clipboardData?.text != null) {
-                        viewModel.addressController.text = clipboardData!.text!;
-                        viewModel.notifyListeners(); // Make sure UI updates
-                      }
-                    } catch (e) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      showSailToast(context, 'Error accessing clipboard');
-                    }
-                  },
-                  icon: SailSVGAsset.clipboardPaste,
-                ),
-                SailTooltip(
-                  message: viewModel.formatError ?? 'Format as deposit address',
-                  child: SailButton(
-                    variant: ButtonVariant.icon,
-                    onPressed: viewModel.formatAddress,
-                    disabled: viewModel.formatError != null,
-                    icon: SailSVGAsset.iconFormat,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: SailStyleValues.padding08),
-            SailRow(
-              spacing: SailStyleValues.padding08,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: NumericField(
-                    label: 'Deposit Amount',
-                    controller: viewModel.depositAmountController,
-                    hintText: '0.00',
-                  ),
-                ),
-                UnitDropdown(value: Unit.BTC, onChanged: (_) => {}, enabled: false),
-                Expanded(
-                  flex: 2,
-                  child: FromWalletField(
-                    selectedWalletId: viewModel.depositWalletId,
-                    onChanged: viewModel.setDepositWalletId,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: SailStyleValues.padding08),
-            DepositFeeFields(
-              estimate: viewModel.depositFee,
-              onTargetChanged: viewModel.setDepositFeeTarget,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: SailStyleValues.padding08),
-              child: SailText.secondary13(
-                'The sidechain may also deduct a fee from your deposit.',
-                color: context.sailTheme.colors.textTertiary,
-              ),
-            ),
-            SailButton(
-              label: 'Deposit',
-              disabled:
-                  viewModel.depositWalletId == null ||
-                  viewModel.addressController.text == '' ||
-                  viewModel.depositAmountController.text == '' ||
-                  viewModel.feeController.text == '',
-              onPressed: () async => viewModel.deposit(context),
-            ),
-            const SizedBox(height: SailStyleValues.padding16),
-            SizedBox(
-              height: 250,
-              child: SailCard(
-                title:
-                    'Your Recent Deposits${viewModel.selectedIndex != null && viewModel.sidechains[viewModel.selectedIndex!] != null ? " to ${viewModel.sidechains[viewModel.selectedIndex!]!.info.title}" : ""}',
-                subtitle: 'Recent deposits to sidechains, coming from your onchain-wallet.',
-                shadowSize: ShadowSize.none,
-                bottomPadding: false,
-                child: RecentDepositsTable(),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: RecentDepositsTable(),
     );
   }
 }
