@@ -1,6 +1,9 @@
+import 'package:bitwindow/providers/sidechain_provider.dart';
+import 'package:bitwindow/sol/sol_wallet.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:logger/logger.dart';
 import 'package:sail_ui/sail_ui.dart';
 import 'package:stacked/stacked.dart';
 
@@ -441,7 +444,31 @@ class StartersPageViewModel extends BaseViewModel {
       });
     }
 
+    // SOL starts no binary, so the loop above never reaches it. Its seed still
+    // holds coins, and a Solana wallet imports it on the same path. The row
+    // belongs to the one L1 that carries the chain, because a phrase for
+    // another network names a slot 8 that holds something else.
+    final conf = GetIt.I.get<BitcoinConfProvider>();
+    final slot8 = GetIt.I.get<SidechainProvider>().sidechains[solSidechainSlot];
+    if (isSolSidechain(solSidechainSlot, slot8?.info.title, conf.network, conf.ecashNetworkId)) {
+      starters.add({
+        'name': solStarterName,
+        'mnemonic': await _solStarter(),
+        'sidechain_slot': solSidechainSlot,
+        'chain_layer': 2,
+      });
+    }
+
     return starters;
+  }
+
+  Future<String?> _solStarter() async {
+    try {
+      return await _walletProvider.ensureSidechainStarter(solSidechainSlot, solStarterName);
+    } catch (e) {
+      GetIt.I.get<Logger>().w('StartersTab: no SOL starter: $e');
+      return null;
+    }
   }
 
   bool isStarterRevealed(String? starterName) {
