@@ -8,9 +8,14 @@ enum SailTooltipPosition { above, below, auto }
 class SailTooltip extends StatefulWidget {
   final Widget child;
   final String message;
+
+  /// Bold line above the message. Null leaves the bubble with the message only.
+  final String? title;
   final SailTooltipPosition position;
   final Duration waitDuration;
-  final Duration showDuration;
+
+  /// How long the bubble stays. Null keeps it up until the pointer leaves.
+  final Duration? showDuration;
   final double verticalOffset;
   final EdgeInsets padding;
   final bool showArrow;
@@ -20,6 +25,7 @@ class SailTooltip extends StatefulWidget {
     super.key,
     required this.child,
     required this.message,
+    this.title,
     this.position = SailTooltipPosition.auto,
     this.waitDuration = const Duration(milliseconds: 400),
     this.showDuration = const Duration(milliseconds: 1500),
@@ -124,7 +130,10 @@ class _SailTooltipState extends State<SailTooltip> with SingleTickerProviderStat
     overlay.insert(_entry!);
     _controller.forward(from: 0);
 
-    _hideTimer = Timer(widget.showDuration, _hide);
+    final showDuration = widget.showDuration;
+    if (showDuration != null) {
+      _hideTimer = Timer(showDuration, _hide);
+    }
   }
 
   Widget _buildOverlay(BuildContext ctx) {
@@ -152,12 +161,33 @@ class _SailTooltipState extends State<SailTooltip> with SingleTickerProviderStat
             ? null
             : [BoxShadow(color: theme.colors.shadow, blurRadius: 6, offset: const Offset(0, 2))],
       ),
-      child: SailText.primary12(
-        widget.message,
-        color: foreground,
-        monospace: theme.chrome.terminalStyle,
-        overflow: TextOverflow.visible,
-      ),
+      child: widget.title == null
+          ? SailText.primary12(
+              widget.message,
+              color: foreground,
+              monospace: theme.chrome.terminalStyle,
+              overflow: TextOverflow.visible,
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SailText.primary13(
+                  widget.title!,
+                  bold: true,
+                  color: foreground,
+                  monospace: theme.chrome.terminalStyle,
+                  overflow: TextOverflow.visible,
+                ),
+                const SizedBox(height: SailStyleValues.padding04),
+                SailText.primary13(
+                  widget.message,
+                  color: foreground,
+                  monospace: theme.chrome.terminalStyle,
+                  overflow: TextOverflow.visible,
+                ),
+              ],
+            ),
     );
 
     final arrow = CustomPaint(

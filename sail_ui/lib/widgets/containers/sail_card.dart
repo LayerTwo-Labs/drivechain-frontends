@@ -417,6 +417,10 @@ class SailCardStats extends StatelessWidget {
   final bool bitcoinAmount;
   final LoadingDetails? loading;
 
+  /// Plain words that say what the tile means. An info icon next to the title
+  /// opens them.
+  final String? info;
+
   const SailCardStats({
     super.key,
     required this.title,
@@ -425,6 +429,7 @@ class SailCardStats extends StatelessWidget {
     required this.icon,
     this.bitcoinAmount = false,
     this.loading,
+    this.info,
   });
 
   @override
@@ -457,7 +462,15 @@ class SailCardStats extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(child: SailText.primary13(title, bold: true)),
+                          Flexible(
+                            child: SailRow(
+                              spacing: SailStyleValues.padding04,
+                              children: [
+                                Flexible(child: SailText.primary13(title, bold: true)),
+                                if (info != null) SailInfoIcon(title: title, message: info!),
+                              ],
+                            ),
+                          ),
                           SailSVG.fromAsset(
                             icon,
                             color: theme.colors.inactiveNavText,
