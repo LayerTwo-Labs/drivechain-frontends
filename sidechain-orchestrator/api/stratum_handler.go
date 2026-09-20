@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -40,6 +42,16 @@ const (
 	targetPool                = "pool"
 	targetCustom              = "custom"
 	catalogPoolWorkerPassword = "x"
+	maxCPUThreads             = 256
+	defaultPoolBlocks         = 20
+	hashrateSample            = 10 * time.Second
+	historyFlush              = time.Minute
+	// networkHashrateKey holds the network hashrate in the stats cache. It is
+	// no URL, so no pool can take it.
+	networkHashrateKey = "network"
+	// poolBlocksTTL is how long a pool block list stands. Every row costs one
+	// verbose block read from the node, and the page polls every two seconds.
+	poolBlocksTTL = time.Minute
 )
 
 // StratumNetwork is what the Stratum handler reads about the running network.
@@ -48,10 +60,29 @@ type StratumNetwork interface {
 	RunningCatalogEntry() (netcatalog.Network, bool)
 }
 
-// StratumSettingsStore persists the work target.
+// StratumSettingsStore persists the work target and the mining settings.
 type StratumSettingsStore interface {
 	StratumSettings() orchestrator.StratumSettings
 	SetStratumSettings(orchestrator.StratumSettings) error
+}
+
+// HoldDaemon keeps the daemon alive until the returned function runs. The
+// miners outlive the app window, and the daemon lease counts no miner.
+type HoldDaemon func() func()
+
+// StratumDeps are the parts of the daemon the Stratum handler drives.
+type StratumDeps struct {
+	Network  StratumNetwork
+	Settings StratumSettingsStore
+	// PayoutAddress is the wallet address a mined block pays. The enforcer
+	// builds every coinbase to it.
+	PayoutAddress func(context.Context) (string, error)
+	Core          CoreRawCaller
+	// HistoryPath is the file the hashrate history reads and writes.
+	HistoryPath string
+	// HoldDaemon keeps the daemon alive while the miners must keep going.
+	HoldDaemon HoldDaemon
+	Log        zerolog.Logger
 }
 
 // StratumHandler runs the Stratum server for miners on the local network. The
@@ -60,8 +91,10 @@ type StratumHandler struct {
 	ctx        context.Context
 	network    StratumNetwork
 	settings   StratumSettingsStore
-	newAddress func(context.Context) (string, error)
+	payout     func(context.Context) (string, error)
 	core       CoreRawCaller
+	holdDaemon HoldDaemon
+	history    *stratum.History
 	log        zerolog.Logger
 
 	newNode    func() (stratum.Node, error)
@@ -73,6 +106,11 @@ type StratumHandler struct {
 	statsMu sync.Mutex
 	stats   map[string]poolStatsEntry
 
+	blocksMu    sync.Mutex
+	blocks20    *pb.ListPoolBlocksResponse
+	blocksAt    time.Time
+	blocksLimit uint32
+
 	// opMu makes Start, Stop and SetTarget run one at a time. mu guards the
 	// fields below and is never held across network calls.
 	opMu    sync.Mutex
@@ -80,6 +118,7 @@ type StratumHandler struct {
 	run     *stratumRun
 	lastErr string
 	blocks  []stratum.Block
+	release func()
 }
 
 type stratumRun struct {
@@ -93,21 +132,16 @@ type stratumRun struct {
 	devices   map[string]cgminer.Device
 }
 
-func NewStratumHandler(
-	ctx context.Context,
-	network StratumNetwork,
-	settings StratumSettingsStore,
-	newAddress func(context.Context) (string, error),
-	core CoreRawCaller,
-	log zerolog.Logger,
-) *StratumHandler {
-	return &StratumHandler{
+func NewStratumHandler(ctx context.Context, deps StratumDeps) *StratumHandler {
+	h := &StratumHandler{
 		ctx:        ctx,
-		network:    network,
-		settings:   settings,
-		newAddress: newAddress,
-		core:       core,
-		log:        log,
+		network:    deps.Network,
+		settings:   deps.Settings,
+		payout:     deps.PayoutAddress,
+		core:       deps.Core,
+		holdDaemon: deps.HoldDaemon,
+		history:    stratum.NewHistory(deps.HistoryPath),
+		log:        deps.Log,
 		newNode: func() (stratum.Node, error) {
 			return stratum.NewEnforcerNode(enforcerproxy.DefaultJSONRPCAddr)
 		},
@@ -123,6 +157,8 @@ func NewStratumHandler(
 		httpClient: &http.Client{Timeout: poolStatsTimeout},
 		stats:      map[string]poolStatsEntry{},
 	}
+	go h.recordHashrate(ctx)
+	return h
 }
 
 func (h *StratumHandler) mineable() error {
@@ -140,34 +176,69 @@ func (h *StratumHandler) StartStratum(
 	if err := h.mineable(); err != nil {
 		return nil, err
 	}
-	port := cmp.Or(req.Msg.Port, defaultStratumPort)
+	port := cmp.Or(req.Msg.Port, h.settings.StratumSettings().Port, defaultStratumPort)
 	if port > 65535 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("port %d is out of range", port))
 	}
 
 	h.opMu.Lock()
 	defer h.opMu.Unlock()
+	if err := h.start(ctx, port, h.settings.StratumSettings()); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&pb.StartStratumResponse{}), nil
+}
+
+// start listens and serves miners under settings. The caller holds opMu.
+func (h *StratumHandler) start(ctx context.Context, port uint32, settings orchestrator.StratumSettings) error {
 	h.mu.Lock()
 	running := h.run
 	h.mu.Unlock()
 	if running != nil {
 		if running.port == port {
-			return connect.NewResponse(&pb.StartStratumResponse{}), nil
+			return nil
 		}
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
+		return connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("the stratum server already runs on port %d", running.port))
 	}
 
-	source, pool, err := h.sourceFor(ctx, h.settings.StratumSettings())
+	ready, err := h.prepare(ctx, port, settings)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	h.serve(ready, settings)
+	return nil
+}
+
+// readyRun is a listener and a work source that a serve takes over.
+type readyRun struct {
+	listener net.Listener
+	port     uint32
+	source   stratum.Source
+	pool     *stratum.PoolSource
+}
+
+// prepare builds everything a start can fail on. The caller holds opMu.
+func (h *StratumHandler) prepare(
+	ctx context.Context, port uint32, settings orchestrator.StratumSettings,
+) (readyRun, error) {
+	source, pool, err := h.sourceFor(ctx, settings)
+	if err != nil {
+		return readyRun{}, err
 	}
 	ln, err := h.listen(port)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("listen on port %d: %w", port, err))
+		return readyRun{}, connect.NewError(connect.CodeUnavailable, fmt.Errorf("listen on port %d: %w", port, err))
 	}
+	return readyRun{listener: ln, port: port, source: source, pool: pool}, nil
+}
+
+// serve takes over a prepared listener. It cannot fail. The caller holds opMu.
+func (h *StratumHandler) serve(ready readyRun, settings orchestrator.StratumSettings) {
+	ln, port, source, pool := ready.listener, ready.port, ready.source, ready.pool
 
 	server := stratum.NewServer(source, h.log)
+	server.SetCPU(settings.CPUMining, int(settings.CPUThreads))
 	runCtx, cancel := context.WithCancel(h.ctx)
 	run := &stratumRun{server: server, port: port, cancel: cancel, done: make(chan struct{}), pool: pool}
 	h.mu.Lock()
@@ -187,14 +258,15 @@ func (h *StratumHandler) StartStratum(
 		}
 		h.mu.Unlock()
 		close(run.done)
+		h.applyHold()
 		if err != nil {
 			h.log.Error().Err(err).Msg("stratum server stopped")
 		}
 	}()
 	go h.pollDevices(runCtx, run)
+	h.applyHold()
 
 	h.log.Info().Uint32("port", port).Msg("stratum server started")
-	return connect.NewResponse(&pb.StartStratumResponse{}), nil
 }
 
 func (h *StratumHandler) StopStratum(
@@ -204,19 +276,35 @@ func (h *StratumHandler) StopStratum(
 	return connect.NewResponse(&pb.StopStratumResponse{}), nil
 }
 
-// Reset stops the server and forgets its blocks, which belong to the
-// network that ran before.
-func (h *StratumHandler) Reset() {
+// Reset stops the server and forgets its blocks and its hashrate history,
+// which belong to the network that ran before. The history moves to the
+// directory of the network that runs now.
+func (h *StratumHandler) Reset(networkDir string) {
 	h.Stop()
 	h.mu.Lock()
 	h.blocks, h.lastErr = nil, ""
 	h.mu.Unlock()
+	h.forgetPoolBlocks()
+	h.statsMu.Lock()
+	delete(h.stats, networkHashrateKey)
+	h.statsMu.Unlock()
+	h.history.Rebind(HashrateHistoryPath(networkDir))
+}
+
+// HashrateHistoryPath is the file the hashrate chart reads and writes.
+func HashrateHistoryPath(networkDir string) string {
+	return filepath.Join(networkDir, "hashrate_history.json")
 }
 
 // Stop stops the server and waits until every connection closes.
 func (h *StratumHandler) Stop() {
 	h.opMu.Lock()
 	defer h.opMu.Unlock()
+	h.stop()
+}
+
+// stop stops the server and waits. The caller holds opMu.
+func (h *StratumHandler) stop() {
 	h.mu.Lock()
 	run := h.run
 	h.mu.Unlock()
@@ -225,6 +313,7 @@ func (h *StratumHandler) Stop() {
 	}
 	run.cancel()
 	<-run.done
+	h.applyHold()
 }
 
 // sourceFor builds the work source a target needs. A solo source reads its
@@ -247,7 +336,11 @@ func (h *StratumHandler) sourceFor(ctx context.Context, s orchestrator.StratumSe
 			return nil, nil, connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("the running network lists no pool %q", s.PoolID))
 		}
-		source, err := stratum.NewPoolSource(pool.url, s.PayoutAddress, catalogPoolWorkerPassword, h.log)
+		address, err := h.payoutAddress(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		source, err := stratum.NewPoolSource(pool.url, address, catalogPoolWorkerPassword, h.log)
 		if err != nil {
 			return nil, nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
@@ -407,12 +500,8 @@ func (h *StratumHandler) SetTarget(
 			return nil, connect.NewError(connect.CodeInvalidArgument,
 				fmt.Errorf("the running network lists no pool %q", target.GetPoolId()))
 		}
-		if next.PayoutAddress == "" {
-			address, err := h.newAddress(ctx)
-			if err != nil {
-				return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get a payout address: %w", err))
-			}
-			next.PayoutAddress = address
+		if _, err := h.payoutAddress(ctx); err != nil {
+			return nil, err
 		}
 		next.Target, next.PoolID = targetPool, target.GetPoolId()
 	case pb.TargetKind_TARGET_KIND_CUSTOM:
@@ -445,6 +534,7 @@ func (h *StratumHandler) SetTarget(
 	if err := h.settings.SetStratumSettings(next); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the stratum target: %w", err))
 	}
+	h.forgetPoolBlocks()
 	if run != nil {
 		run.server.SetSource(source)
 		h.mu.Lock()
@@ -476,13 +566,33 @@ func (h *StratumHandler) GetStratumStatus(
 	h.mu.Unlock()
 
 	settings := h.settings.StratumSettings()
-	resp := &pb.GetStratumStatusResponse{Error: lastErr, Target: targetToProto(settings)}
-	if settings.Target == targetPool {
-		resp.PayoutAddress = settings.PayoutAddress
+	resp := &pb.GetStratumStatusResponse{
+		Error:    lastErr,
+		Target:   targetToProto(settings),
+		Settings: settingsToProto(settings),
+	}
+	if address, err := h.payoutAddress(ctx); err != nil {
+		h.log.Debug().Err(err).Msg("stratum: no payout address yet")
+	} else {
+		resp.PayoutAddress = address
 	}
 	if run != nil {
 		status := run.server.Status()
 		blocks = status.Blocks
+		resp.NetworkHashrate = h.networkHashrate(ctx)
+		on, threads := run.server.CPUOn()
+		resp.Settings.CpuMining = on
+		resp.Settings.CpuThreads = uint32(threads)
+		for _, share := range status.Shares {
+			resp.RecentShares = append(resp.RecentShares, &pb.AcceptedShare{
+				Time:   timestamppb.New(share.At),
+				Worker: share.Worker,
+				Target: share.Target,
+				Actual: share.Actual,
+				Hash:   share.Hash.String(),
+				Block:  share.Block,
+			})
+		}
 		resp.Running, resp.Port = true, run.port
 		ip, ok, err := stratum.LANIPv4()
 		if err != nil {
@@ -669,5 +779,365 @@ func (h *StratumHandler) pollDevices(ctx context.Context, run *stratumRun) {
 		run.devicesMu.Lock()
 		run.devices = devices
 		run.devicesMu.Unlock()
+	}
+}
+
+// payoutAddress returns the wallet address a mined block pays. The daemon
+// hands the enforcer the same address, and it builds every coinbase.
+func (h *StratumHandler) payoutAddress(ctx context.Context) (string, error) {
+	if h.payout == nil {
+		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("no wallet to pay a block to"))
+	}
+	address, err := h.payout(ctx)
+	if err != nil {
+		return "", connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("get a payout address: %w", err))
+	}
+	return address, nil
+}
+
+func (h *StratumHandler) SetMiningSettings(
+	ctx context.Context, req *connect.Request[pb.SetMiningSettingsRequest],
+) (*connect.Response[pb.SetMiningSettingsResponse], error) {
+	if req.Msg.Port != nil && (req.Msg.GetPort() < 1 || req.Msg.GetPort() > 65535) {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("port %d is out of range", req.Msg.GetPort()))
+	}
+	if req.Msg.CpuThreads != nil && req.Msg.GetCpuThreads() > maxCPUThreads {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("a thread count of %d is over the limit of %d", req.Msg.GetCpuThreads(), maxCPUThreads))
+	}
+
+	h.opMu.Lock()
+	defer h.opMu.Unlock()
+	current := h.settings.StratumSettings()
+	next := current
+	if req.Msg.Port != nil {
+		next.Port = req.Msg.GetPort()
+	}
+	if req.Msg.CpuMining != nil {
+		next.CPUMining = req.Msg.GetCpuMining()
+	}
+	if req.Msg.CpuThreads != nil {
+		next.CPUThreads = req.Msg.GetCpuThreads()
+	}
+	if req.Msg.KeepMiningOnClose != nil {
+		next.KeepMiningOnClose = req.Msg.GetKeepMiningOnClose()
+	}
+	if next == current {
+		return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+	}
+	if next.CPUMining {
+		if err := h.mineable(); err != nil {
+			return nil, err
+		}
+	}
+
+	h.mu.Lock()
+	run := h.run
+	h.mu.Unlock()
+	// The hasher needs a server. A switch on with none starts one, before the
+	// save, so a start that fails leaves the switch off.
+	if run == nil && next.CPUMining {
+		if err := h.start(ctx, cmp.Or(next.Port, defaultStratumPort), next); err != nil {
+			return nil, err
+		}
+		if err := h.settings.SetStratumSettings(next); err != nil {
+			h.stop()
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the mining settings: %w", err))
+		}
+		return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+	}
+
+	// A running server listens on the port it started on, so a new port needs
+	// a new listener. The new port binds first, so a bind that fails leaves
+	// every miner on the old one.
+	// A saved port of zero means the default, so compare the port the server
+	// listens on, not the one the settings hold.
+	port := cmp.Or(next.Port, defaultStratumPort)
+	var ready readyRun
+	rebind := run != nil && port != run.port
+	if rebind {
+		var err error
+		ready, err = h.prepare(ctx, port, next)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := h.settings.SetStratumSettings(next); err != nil {
+		if rebind {
+			_ = ready.listener.Close()
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the mining settings: %w", err))
+	}
+	if rebind {
+		h.stop()
+		h.serve(ready, next)
+		return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+	}
+	if run != nil {
+		run.server.SetCPU(next.CPUMining, int(next.CPUThreads))
+	}
+	h.applyHold()
+	return connect.NewResponse(&pb.SetMiningSettingsResponse{}), nil
+}
+
+func settingsToProto(s orchestrator.StratumSettings) *pb.MiningSettings {
+	threads := s.CPUThreads
+	if threads == 0 {
+		threads = uint32(stratum.CPUThreads())
+	}
+	return &pb.MiningSettings{
+		Port:              cmp.Or(s.Port, defaultStratumPort),
+		CpuMining:         s.CPUMining,
+		CpuThreads:        threads,
+		KeepMiningOnClose: s.KeepMiningOnClose,
+	}
+}
+
+// recordHashrate samples the total hashrate into the history and writes the
+// buckets to the file.
+func (h *StratumHandler) recordHashrate(ctx context.Context) {
+	sample := time.NewTicker(hashrateSample)
+	defer sample.Stop()
+	flush := time.NewTicker(historyFlush)
+	defer flush.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			if err := h.history.Flush(time.Now()); err != nil {
+				h.log.Warn().Err(err).Msg("stratum: write the hashrate history")
+			}
+			return
+		case now := <-sample.C:
+			h.mu.Lock()
+			run := h.run
+			h.mu.Unlock()
+			var rate float64
+			if run != nil {
+				rate = run.server.Status().Hashrate
+			}
+			h.history.Record(rate, now)
+		case now := <-flush.C:
+			if err := h.history.Flush(now); err != nil {
+				h.log.Warn().Err(err).Msg("stratum: write the hashrate history")
+			}
+		}
+	}
+}
+
+func rangeOf(r pb.HashrateRange) stratum.Range {
+	switch r {
+	case pb.HashrateRange_HASHRATE_RANGE_HOUR:
+		return stratum.RangeHour
+	case pb.HashrateRange_HASHRATE_RANGE_WEEK:
+		return stratum.RangeWeek
+	}
+	return stratum.RangeDay
+}
+
+func (h *StratumHandler) GetHashrateHistory(
+	_ context.Context, req *connect.Request[pb.GetHashrateHistoryRequest],
+) (*connect.Response[pb.GetHashrateHistoryResponse], error) {
+	points, peak := h.history.Read(rangeOf(req.Msg.GetRange()), time.Now())
+	resp := &pb.GetHashrateHistoryResponse{Peak: peak}
+	for _, p := range points {
+		resp.Points = append(resp.Points, &pb.HashratePoint{Time: timestamppb.New(p.At), Hashrate: p.Hashrate})
+	}
+	h.mu.Lock()
+	run := h.run
+	h.mu.Unlock()
+	if run != nil {
+		resp.Current = run.server.Status().Hashrate
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func (h *StratumHandler) ListPoolBlocks(
+	ctx context.Context, req *connect.Request[pb.ListPoolBlocksRequest],
+) (*connect.Response[pb.ListPoolBlocksResponse], error) {
+	limit := cmp.Or(req.Msg.GetLimit(), defaultPoolBlocks)
+	if cached := h.cachedPoolBlocks(limit); cached != nil {
+		return connect.NewResponse(cached), nil
+	}
+	resp, err := h.readPoolBlocks(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+	h.keepPoolBlocks(limit, resp)
+	return connect.NewResponse(resp), nil
+}
+
+// cachedPoolBlocks returns the last list while it still stands.
+func (h *StratumHandler) cachedPoolBlocks(limit uint32) *pb.ListPoolBlocksResponse {
+	h.blocksMu.Lock()
+	defer h.blocksMu.Unlock()
+	if h.blocks20 == nil || h.blocksLimit != limit || time.Since(h.blocksAt) >= poolBlocksTTL {
+		return nil
+	}
+	return h.blocks20
+}
+
+func (h *StratumHandler) keepPoolBlocks(limit uint32, resp *pb.ListPoolBlocksResponse) {
+	h.blocksMu.Lock()
+	defer h.blocksMu.Unlock()
+	h.blocks20, h.blocksLimit, h.blocksAt = resp, limit, time.Now()
+}
+
+// forgetPoolBlocks drops the cached list, which belongs to the pool or the
+// network that ran before.
+func (h *StratumHandler) forgetPoolBlocks() {
+	h.blocksMu.Lock()
+	defer h.blocksMu.Unlock()
+	h.blocks20 = nil
+}
+
+func (h *StratumHandler) readPoolBlocks(ctx context.Context, limit uint32) (*pb.ListPoolBlocksResponse, error) {
+	settings := h.settings.StratumSettings()
+	if settings.Target != targetPool {
+		return &pb.ListPoolBlocksResponse{
+			Unavailable: "this list holds the blocks of a pool from the catalog only",
+		}, nil
+	}
+	pool, ok := h.catalogPool(settings.PoolID)
+	if !ok || pool.statsURL == "" {
+		return &pb.ListPoolBlocksResponse{Unavailable: "this pool publishes no block list"}, nil
+	}
+	address, err := h.payoutAddress(ctx)
+	if err != nil {
+		return nil, err
+	}
+	blocksURL, err := stratum.PoolBlocksURL(pool.statsURL, int(limit))
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	blocks, err := stratum.FetchPoolBlocks(ctx, h.httpClient, blocksURL)
+	if err != nil {
+		h.log.Debug().Err(err).Str("url", blocksURL).Msg("stratum: the pool block list did not load")
+		return &pb.ListPoolBlocksResponse{Unavailable: fmt.Sprintf("the pool did not answer: %v", err)}, nil
+	}
+
+	resp := &pb.ListPoolBlocksResponse{}
+	for _, block := range blocks {
+		row := &pb.PoolBlock{
+			Height:     block.Height,
+			Hash:       block.Hash,
+			RewardSats: block.RewardSats,
+			FeeSats:    block.FeeSats,
+			Finder:     block.Finder,
+			Mine:       finderIsOurs(block.Finder, address),
+		}
+		if !block.FoundAt.IsZero() {
+			row.FoundTime = timestamppb.New(block.FoundAt)
+		}
+		payout, confirmations, err := h.coinbasePayout(ctx, block.Hash, address)
+		if err != nil {
+			h.log.Debug().Err(err).Str("block", block.Hash).Msg("stratum: the node did not give the block")
+		} else {
+			row.MyPayoutSats = &payout
+			row.Confirmations = &confirmations
+		}
+		resp.Blocks = append(resp.Blocks, row)
+	}
+	return resp, nil
+}
+
+// finderIsOurs reports whether a pool credits a block to this installation.
+// Every miner here reaches the pool under one worker name, and the pool may
+// add a suffix of its own.
+func finderIsOurs(finder, worker string) bool {
+	if worker == "" || finder == "" {
+		return false
+	}
+	return finder == worker || strings.HasPrefix(finder, worker+".")
+}
+
+// coinbasePayout sums the coinbase outputs of a block that pay address.
+func (h *StratumHandler) coinbasePayout(ctx context.Context, hash, address string) (int64, int32, error) {
+	if h.core == nil {
+		return 0, 0, errors.New("no bitcoind seam")
+	}
+	if address == "" {
+		return 0, 0, errors.New("no payout address")
+	}
+	raw, err := h.core(ctx, "getblock", fmt.Sprintf("[%q,2]", hash), "")
+	if err != nil {
+		return 0, 0, err
+	}
+	return coinbasePayout(raw, address)
+}
+
+// coinbasePayout reads a verbose getblock reply and sums the coinbase outputs
+// that pay address.
+func coinbasePayout(raw json.RawMessage, address string) (int64, int32, error) {
+	var block struct {
+		Confirmations int32 `json:"confirmations"`
+		Tx            []struct {
+			Vout []struct {
+				Value        float64 `json:"value"`
+				ScriptPubKey struct {
+					Address string `json:"address"`
+				} `json:"scriptPubKey"`
+			} `json:"vout"`
+		} `json:"tx"`
+	}
+	if err := json.Unmarshal(raw, &block); err != nil {
+		return 0, 0, fmt.Errorf("decode the block: %w", err)
+	}
+	if len(block.Tx) == 0 {
+		return 0, block.Confirmations, nil
+	}
+	var sats int64
+	for _, out := range block.Tx[0].Vout {
+		if out.ScriptPubKey.Address == address {
+			sats += int64(math.Round(out.Value * 1e8))
+		}
+	}
+	return sats, block.Confirmations, nil
+}
+
+// networkHashrate reads the hashrate of the whole network from the local
+// node, at most once a minute. A node that does not answer reads zero.
+func (h *StratumHandler) networkHashrate(ctx context.Context) float64 {
+	h.statsMu.Lock()
+	cached, found := h.stats[networkHashrateKey]
+	h.statsMu.Unlock()
+	if found && time.Since(cached.at) < poolStatsTTL {
+		return cached.hashrate
+	}
+	entry := poolStatsEntry{at: time.Now()}
+	if h.core != nil {
+		raw, err := h.core(ctx, "getnetworkhashps", "[]", "")
+		if err != nil {
+			h.log.Debug().Err(err).Msg("stratum: the node did not give the network hashrate")
+		} else if err := json.Unmarshal(raw, &entry.hashrate); err != nil {
+			h.log.Debug().Err(err).Msg("stratum: the network hashrate does not read as a number")
+			entry.hashrate = 0
+		}
+	}
+	h.statsMu.Lock()
+	h.stats[networkHashrateKey] = entry
+	h.statsMu.Unlock()
+	return entry.hashrate
+}
+
+// applyHold holds the daemon while the server runs and the user asked the
+// miners to keep going. The daemon lease counts client connections, and a
+// miner is none, so the lease would drain the stack under the miners.
+func (h *StratumHandler) applyHold() {
+	if h.holdDaemon == nil {
+		return
+	}
+	h.mu.Lock()
+	keep := h.run != nil && h.settings.StratumSettings().KeepMiningOnClose
+	var release func()
+	switch {
+	case keep && h.release == nil:
+		h.release = h.holdDaemon()
+	case !keep && h.release != nil:
+		release, h.release = h.release, nil
+	}
+	h.mu.Unlock()
+	if release != nil {
+		release()
 	}
 }

@@ -117,7 +117,7 @@ type GetBitcoinConfigResponse struct {
 	ConfigContent             string                 `protobuf:"bytes,6,opt,name=config_content,json=configContent,proto3" json:"config_content,omitempty"`         // raw config file content
 	NetworkSupportsSidechains bool                   `protobuf:"varint,7,opt,name=network_supports_sidechains,json=networkSupportsSidechains,proto3" json:"network_supports_sidechains,omitempty"`
 	IsDemoMode                bool                   `protobuf:"varint,8,opt,name=is_demo_mode,json=isDemoMode,proto3" json:"is_demo_mode,omitempty"` // true on mainnet
-	// RPC creds — exposed so localhost callers (cpuminer, future tools) that
+	// RPC creds — exposed so localhost callers (the btc-buf proxy, future tools) that
 	// need raw bitcoind JSON-RPC can dial it without re-parsing config_content.
 	// Prefer the hosted BitcoinService proxy when possible.
 	RpcUser     string `protobuf:"bytes,9,opt,name=rpc_user,json=rpcUser,proto3" json:"rpc_user,omitempty"`

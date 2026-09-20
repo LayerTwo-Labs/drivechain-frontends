@@ -81,7 +81,7 @@ func TestSetBitcoinConfigNetwork_NoConfManager(t *testing.T) {
 }
 
 // On a cookie-authenticated install the conf sets no rpcuser/rpcpassword, but
-// consumers (the cpuminer, the btc-buf proxy) use these fields to authenticate
+// consumers (the btc-buf proxy) use these fields to authenticate
 // — so they must carry the cookie pair, not be empty.
 func TestGetBitcoinConfigReportsCookieCredentials(t *testing.T) {
 	bitwindowDir := t.TempDir()

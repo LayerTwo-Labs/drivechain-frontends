@@ -51,6 +51,15 @@ const (
 	// StratumServiceSetWorkModeProcedure is the fully-qualified name of the StratumService's
 	// SetWorkMode RPC.
 	StratumServiceSetWorkModeProcedure = "/stratum.v1.StratumService/SetWorkMode"
+	// StratumServiceSetMiningSettingsProcedure is the fully-qualified name of the StratumService's
+	// SetMiningSettings RPC.
+	StratumServiceSetMiningSettingsProcedure = "/stratum.v1.StratumService/SetMiningSettings"
+	// StratumServiceGetHashrateHistoryProcedure is the fully-qualified name of the StratumService's
+	// GetHashrateHistory RPC.
+	StratumServiceGetHashrateHistoryProcedure = "/stratum.v1.StratumService/GetHashrateHistory"
+	// StratumServiceListPoolBlocksProcedure is the fully-qualified name of the StratumService's
+	// ListPoolBlocks RPC.
+	StratumServiceListPoolBlocksProcedure = "/stratum.v1.StratumService/ListPoolBlocks"
 )
 
 // StratumServiceClient is a client for the stratum.v1.StratumService service.
@@ -65,6 +74,13 @@ type StratumServiceClient interface {
 	ListTargets(context.Context, *connect.Request[v1.ListTargetsRequest]) (*connect.Response[v1.ListTargetsResponse], error)
 	// SetWorkMode changes the power mode of a connected miner over its device API.
 	SetWorkMode(context.Context, *connect.Request[v1.SetWorkModeRequest]) (*connect.Response[v1.SetWorkModeResponse], error)
+	// SetMiningSettings changes the fields it carries and leaves the rest. The
+	// hasher on this computer starts the server first when the server is stopped.
+	SetMiningSettings(context.Context, *connect.Request[v1.SetMiningSettingsRequest]) (*connect.Response[v1.SetMiningSettingsResponse], error)
+	// GetHashrateHistory returns the hashrate of all miners together over a range.
+	GetHashrateHistory(context.Context, *connect.Request[v1.GetHashrateHistoryRequest]) (*connect.Response[v1.GetHashrateHistoryResponse], error)
+	// ListPoolBlocks returns the blocks the upstream pool found, newest first.
+	ListPoolBlocks(context.Context, *connect.Request[v1.ListPoolBlocksRequest]) (*connect.Response[v1.ListPoolBlocksResponse], error)
 }
 
 // NewStratumServiceClient constructs a client for the stratum.v1.StratumService service. By
@@ -114,17 +130,38 @@ func NewStratumServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(stratumServiceMethods.ByName("SetWorkMode")),
 			connect.WithClientOptions(opts...),
 		),
+		setMiningSettings: connect.NewClient[v1.SetMiningSettingsRequest, v1.SetMiningSettingsResponse](
+			httpClient,
+			baseURL+StratumServiceSetMiningSettingsProcedure,
+			connect.WithSchema(stratumServiceMethods.ByName("SetMiningSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		getHashrateHistory: connect.NewClient[v1.GetHashrateHistoryRequest, v1.GetHashrateHistoryResponse](
+			httpClient,
+			baseURL+StratumServiceGetHashrateHistoryProcedure,
+			connect.WithSchema(stratumServiceMethods.ByName("GetHashrateHistory")),
+			connect.WithClientOptions(opts...),
+		),
+		listPoolBlocks: connect.NewClient[v1.ListPoolBlocksRequest, v1.ListPoolBlocksResponse](
+			httpClient,
+			baseURL+StratumServiceListPoolBlocksProcedure,
+			connect.WithSchema(stratumServiceMethods.ByName("ListPoolBlocks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // stratumServiceClient implements StratumServiceClient.
 type stratumServiceClient struct {
-	startStratum     *connect.Client[v1.StartStratumRequest, v1.StartStratumResponse]
-	stopStratum      *connect.Client[v1.StopStratumRequest, v1.StopStratumResponse]
-	getStratumStatus *connect.Client[v1.GetStratumStatusRequest, v1.GetStratumStatusResponse]
-	setTarget        *connect.Client[v1.SetTargetRequest, v1.SetTargetResponse]
-	listTargets      *connect.Client[v1.ListTargetsRequest, v1.ListTargetsResponse]
-	setWorkMode      *connect.Client[v1.SetWorkModeRequest, v1.SetWorkModeResponse]
+	startStratum       *connect.Client[v1.StartStratumRequest, v1.StartStratumResponse]
+	stopStratum        *connect.Client[v1.StopStratumRequest, v1.StopStratumResponse]
+	getStratumStatus   *connect.Client[v1.GetStratumStatusRequest, v1.GetStratumStatusResponse]
+	setTarget          *connect.Client[v1.SetTargetRequest, v1.SetTargetResponse]
+	listTargets        *connect.Client[v1.ListTargetsRequest, v1.ListTargetsResponse]
+	setWorkMode        *connect.Client[v1.SetWorkModeRequest, v1.SetWorkModeResponse]
+	setMiningSettings  *connect.Client[v1.SetMiningSettingsRequest, v1.SetMiningSettingsResponse]
+	getHashrateHistory *connect.Client[v1.GetHashrateHistoryRequest, v1.GetHashrateHistoryResponse]
+	listPoolBlocks     *connect.Client[v1.ListPoolBlocksRequest, v1.ListPoolBlocksResponse]
 }
 
 // StartStratum calls stratum.v1.StratumService.StartStratum.
@@ -157,6 +194,21 @@ func (c *stratumServiceClient) SetWorkMode(ctx context.Context, req *connect.Req
 	return c.setWorkMode.CallUnary(ctx, req)
 }
 
+// SetMiningSettings calls stratum.v1.StratumService.SetMiningSettings.
+func (c *stratumServiceClient) SetMiningSettings(ctx context.Context, req *connect.Request[v1.SetMiningSettingsRequest]) (*connect.Response[v1.SetMiningSettingsResponse], error) {
+	return c.setMiningSettings.CallUnary(ctx, req)
+}
+
+// GetHashrateHistory calls stratum.v1.StratumService.GetHashrateHistory.
+func (c *stratumServiceClient) GetHashrateHistory(ctx context.Context, req *connect.Request[v1.GetHashrateHistoryRequest]) (*connect.Response[v1.GetHashrateHistoryResponse], error) {
+	return c.getHashrateHistory.CallUnary(ctx, req)
+}
+
+// ListPoolBlocks calls stratum.v1.StratumService.ListPoolBlocks.
+func (c *stratumServiceClient) ListPoolBlocks(ctx context.Context, req *connect.Request[v1.ListPoolBlocksRequest]) (*connect.Response[v1.ListPoolBlocksResponse], error) {
+	return c.listPoolBlocks.CallUnary(ctx, req)
+}
+
 // StratumServiceHandler is an implementation of the stratum.v1.StratumService service.
 type StratumServiceHandler interface {
 	StartStratum(context.Context, *connect.Request[v1.StartStratumRequest]) (*connect.Response[v1.StartStratumResponse], error)
@@ -169,6 +221,13 @@ type StratumServiceHandler interface {
 	ListTargets(context.Context, *connect.Request[v1.ListTargetsRequest]) (*connect.Response[v1.ListTargetsResponse], error)
 	// SetWorkMode changes the power mode of a connected miner over its device API.
 	SetWorkMode(context.Context, *connect.Request[v1.SetWorkModeRequest]) (*connect.Response[v1.SetWorkModeResponse], error)
+	// SetMiningSettings changes the fields it carries and leaves the rest. The
+	// hasher on this computer starts the server first when the server is stopped.
+	SetMiningSettings(context.Context, *connect.Request[v1.SetMiningSettingsRequest]) (*connect.Response[v1.SetMiningSettingsResponse], error)
+	// GetHashrateHistory returns the hashrate of all miners together over a range.
+	GetHashrateHistory(context.Context, *connect.Request[v1.GetHashrateHistoryRequest]) (*connect.Response[v1.GetHashrateHistoryResponse], error)
+	// ListPoolBlocks returns the blocks the upstream pool found, newest first.
+	ListPoolBlocks(context.Context, *connect.Request[v1.ListPoolBlocksRequest]) (*connect.Response[v1.ListPoolBlocksResponse], error)
 }
 
 // NewStratumServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -214,6 +273,24 @@ func NewStratumServiceHandler(svc StratumServiceHandler, opts ...connect.Handler
 		connect.WithSchema(stratumServiceMethods.ByName("SetWorkMode")),
 		connect.WithHandlerOptions(opts...),
 	)
+	stratumServiceSetMiningSettingsHandler := connect.NewUnaryHandler(
+		StratumServiceSetMiningSettingsProcedure,
+		svc.SetMiningSettings,
+		connect.WithSchema(stratumServiceMethods.ByName("SetMiningSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	stratumServiceGetHashrateHistoryHandler := connect.NewUnaryHandler(
+		StratumServiceGetHashrateHistoryProcedure,
+		svc.GetHashrateHistory,
+		connect.WithSchema(stratumServiceMethods.ByName("GetHashrateHistory")),
+		connect.WithHandlerOptions(opts...),
+	)
+	stratumServiceListPoolBlocksHandler := connect.NewUnaryHandler(
+		StratumServiceListPoolBlocksProcedure,
+		svc.ListPoolBlocks,
+		connect.WithSchema(stratumServiceMethods.ByName("ListPoolBlocks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/stratum.v1.StratumService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case StratumServiceStartStratumProcedure:
@@ -228,6 +305,12 @@ func NewStratumServiceHandler(svc StratumServiceHandler, opts ...connect.Handler
 			stratumServiceListTargetsHandler.ServeHTTP(w, r)
 		case StratumServiceSetWorkModeProcedure:
 			stratumServiceSetWorkModeHandler.ServeHTTP(w, r)
+		case StratumServiceSetMiningSettingsProcedure:
+			stratumServiceSetMiningSettingsHandler.ServeHTTP(w, r)
+		case StratumServiceGetHashrateHistoryProcedure:
+			stratumServiceGetHashrateHistoryHandler.ServeHTTP(w, r)
+		case StratumServiceListPoolBlocksProcedure:
+			stratumServiceListPoolBlocksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -259,4 +342,16 @@ func (UnimplementedStratumServiceHandler) ListTargets(context.Context, *connect.
 
 func (UnimplementedStratumServiceHandler) SetWorkMode(context.Context, *connect.Request[v1.SetWorkModeRequest]) (*connect.Response[v1.SetWorkModeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("stratum.v1.StratumService.SetWorkMode is not implemented"))
+}
+
+func (UnimplementedStratumServiceHandler) SetMiningSettings(context.Context, *connect.Request[v1.SetMiningSettingsRequest]) (*connect.Response[v1.SetMiningSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("stratum.v1.StratumService.SetMiningSettings is not implemented"))
+}
+
+func (UnimplementedStratumServiceHandler) GetHashrateHistory(context.Context, *connect.Request[v1.GetHashrateHistoryRequest]) (*connect.Response[v1.GetHashrateHistoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("stratum.v1.StratumService.GetHashrateHistory is not implemented"))
+}
+
+func (UnimplementedStratumServiceHandler) ListPoolBlocks(context.Context, *connect.Request[v1.ListPoolBlocksRequest]) (*connect.Response[v1.ListPoolBlocksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("stratum.v1.StratumService.ListPoolBlocks is not implemented"))
 }

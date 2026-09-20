@@ -40,8 +40,11 @@ func retarget(current float64, shares int, elapsed time.Duration) float64 {
 
 // clampDifficulty holds d between the floor and the network difficulty. A
 // share above the network difficulty is a block, so no miner needs more.
-func clampDifficulty(d, network float64) float64 {
-	d = math.Max(d, minDifficulty)
+func clampDifficulty(d, floor, network float64) float64 {
+	if floor <= 0 {
+		floor = minDifficulty
+	}
+	d = math.Max(d, floor)
 	if network > 0 {
 		d = math.Min(d, network)
 	}

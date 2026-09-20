@@ -43,7 +43,6 @@ import (
 	stratumrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/stratum/v1/stratumv1connect"
 	thunderrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/thunder/v1/thunderv1connect"
 	truthcoinrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/truthcoin/v1/truthcoinv1connect"
-	walletpb "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1"
 	walletrpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/walletmanager/v1/walletmanagerv1connect"
 	zsiderpc "github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/gen/zside/v1/zsidev1connect"
 	"github.com/LayerTwo-Labs/sidesail/sidechain-orchestrator/lease"
@@ -525,18 +524,18 @@ func run(cctx *cli.Context) error {
 	bmmPath, bmmH := bmmrpc.NewBMMServiceHandler(bmmHandler, connect.WithInterceptors(authIC))
 	mux.Handle(bmmPath, bmmH)
 
-	stratumHandler := api.NewStratumHandler(ctx, orch, orch.Settings,
-		func(ctx context.Context) (string, error) {
-			resp, err := walletHandler.GetNewAddress(ctx, connect.NewRequest(&walletpb.GetNewAddressRequest{}))
-			if err != nil {
-				return "", err
-			}
-			return resp.Msg.Address, nil
+	stratumHandler := api.NewStratumHandler(ctx, api.StratumDeps{
+		Network:  orch,
+		Settings: orch.Settings,
+		PayoutAddress: func(context.Context) (string, error) {
+			return walletSvc.CoinbaseRecipient(orch.NetParams.Resolve())
 		},
-		handler.RawCoreCall,
-		log.With().Str("component", "stratum").Logger(),
-	)
-	walletEngine.OnNetworkReset(func(string) { stratumHandler.Reset() })
+		Core:        handler.RawCoreCall,
+		HistoryPath: api.HashrateHistoryPath(walletSvc.NetworkDir()),
+		HoldDaemon:  orch.HoldClients,
+		Log:         log.With().Str("component", "stratum").Logger(),
+	})
+	walletEngine.OnNetworkReset(stratumHandler.Reset)
 	stratumPath, stratumH := stratumrpc.NewStratumServiceHandler(stratumHandler, connect.WithInterceptors(authIC))
 	mux.Handle(stratumPath, stratumH)
 

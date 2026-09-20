@@ -41,23 +41,98 @@ var miningCommand = &cli.Command{
 			},
 		},
 		workModeCommand,
+		cpuCommand,
+		settingsCommand,
 	},
+}
+
+var cpuCommand = &cli.Command{
+	Name:      "cpu",
+	Usage:     "Mine with this computer, to the same target as every other miner",
+	ArgsUsage: "<on|off>",
+	Flags: []cli.Flag{
+		&cli.UintFlag{Name: "threads", Usage: "hash threads to run"},
+	},
+	Action: func(cctx *cli.Context) error {
+		if cctx.NArg() != 1 {
+			return fmt.Errorf("usage: mining cpu [--threads=N] <on|off>")
+		}
+		on, err := onOff(cctx.Args().First())
+		if err != nil {
+			return err
+		}
+		req := &pb.SetMiningSettingsRequest{CpuMining: &on}
+		if cctx.IsSet("threads") {
+			threads := uint32(cctx.Uint("threads"))
+			req.CpuThreads = &threads
+		}
+		if _, err := newStratumClient(cctx).SetMiningSettings(cctx.Context, connect.NewRequest(req)); err != nil {
+			return err
+		}
+		fmt.Printf("this computer mines: %s\n", cctx.Args().First())
+		return nil
+	},
+}
+
+var settingsCommand = &cli.Command{
+	Name:  "settings",
+	Usage: "Change the port, the hasher threads and what happens when the app closes",
+	Flags: []cli.Flag{
+		&cli.UintFlag{Name: "port", Usage: "TCP port the miners connect to"},
+		&cli.UintFlag{Name: "threads", Usage: "hash threads the hasher on this computer runs"},
+		&cli.BoolFlag{Name: "keep-mining", Usage: "keep mining after the app window closes"},
+	},
+	Action: func(cctx *cli.Context) error {
+		req := &pb.SetMiningSettingsRequest{}
+		if cctx.IsSet("port") {
+			port := uint32(cctx.Uint("port"))
+			req.Port = &port
+		}
+		if cctx.IsSet("threads") {
+			threads := uint32(cctx.Uint("threads"))
+			req.CpuThreads = &threads
+		}
+		if cctx.IsSet("keep-mining") {
+			keep := cctx.Bool("keep-mining")
+			req.KeepMiningOnClose = &keep
+		}
+		if req.Port == nil && req.CpuThreads == nil && req.KeepMiningOnClose == nil {
+			return fmt.Errorf("usage: mining settings [--port=N] [--threads=N] [--keep-mining]")
+		}
+		if _, err := newStratumClient(cctx).SetMiningSettings(cctx.Context, connect.NewRequest(req)); err != nil {
+			return err
+		}
+		fmt.Println("mining settings saved")
+		return nil
+	},
+}
+
+func onOff(word string) (bool, error) {
+	switch strings.ToLower(word) {
+	case "on", "true", "yes":
+		return true, nil
+	case "off", "false", "no":
+		return false, nil
+	}
+	return false, fmt.Errorf("%q is not on or off", word)
 }
 
 var stratumStartCommand = &cli.Command{
 	Name:  "start",
 	Usage: "Start the Stratum server",
 	Flags: []cli.Flag{
-		&cli.UintFlag{Name: "port", Value: 3333, Usage: "TCP port the miners connect to"},
+		&cli.UintFlag{Name: "port", Usage: "TCP port the miners connect to (default: the saved port, or 3333)"},
 	},
 	Action: func(cctx *cli.Context) error {
+		// A port of zero takes the saved one, so a flag nobody set never
+		// overrules `mining settings --port`.
 		_, err := newStratumClient(cctx).StartStratum(cctx.Context, connect.NewRequest(&pb.StartStratumRequest{
 			Port: uint32(cctx.Uint("port")),
 		}))
 		if err != nil {
 			return err
 		}
-		fmt.Printf("stratum server started on port %d\n", cctx.Uint("port"))
+		fmt.Println("stratum server started")
 		return nil
 	},
 }
@@ -181,6 +256,10 @@ func printStratumStatus(out io.Writer, s *pb.GetStratumStatusResponse, now time.
 	if s.Error != "" {
 		_, _ = fmt.Fprintf(&b, "last error:     %s\n", s.Error)
 	}
+	if settings := s.GetSettings(); settings != nil {
+		_, _ = fmt.Fprintf(&b, "this computer:  %s, %d threads\n", onOffName(settings.CpuMining), settings.CpuThreads)
+		_, _ = fmt.Fprintf(&b, "keep mining:    %s\n", onOffName(settings.KeepMiningOnClose))
+	}
 	if s.Running {
 		_, _ = fmt.Fprintf(&b, "hashrate:       %s\n", formatHashrate(s.Hashrate))
 		_, _ = fmt.Fprintf(&b, "shares:         %d accepted, %d rejected\n", s.AcceptedShares, s.RejectedShares)
@@ -219,6 +298,13 @@ func printStratumStatus(out io.Writer, s *pb.GetStratumStatusResponse, now time.
 	}
 	_, err := io.WriteString(out, b.String())
 	return err
+}
+
+func onOffName(on bool) string {
+	if on {
+		return "on"
+	}
+	return "off"
 }
 
 func formatHashrate(h float64) string {

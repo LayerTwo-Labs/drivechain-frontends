@@ -131,9 +131,16 @@ func TestNewSoloWork(t *testing.T) {
 
 func serve(t *testing.T, source stratum.Source) (*stratum.Server, string, <-chan error) {
 	t.Helper()
+	server := stratum.NewServer(source, zerolog.Nop())
+	addr, done := serveServer(t, server)
+	return server, addr, done
+}
+
+// serveServer listens on a free port and stops the server when the test ends.
+func serveServer(t *testing.T, server *stratum.Server) (string, <-chan error) {
+	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	server := stratum.NewServer(source, zerolog.Nop())
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- server.Serve(ctx, ln) }()
@@ -141,7 +148,7 @@ func serve(t *testing.T, source stratum.Source) (*stratum.Server, string, <-chan
 		cancel()
 		<-done
 	})
-	return server, ln.Addr().String(), done
+	return ln.Addr().String(), done
 }
 
 func TestSoloEndToEnd(t *testing.T) {
