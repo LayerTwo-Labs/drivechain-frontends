@@ -747,10 +747,10 @@ func (p *Parser) handleOpReturns(
 		return nil, nil
 	}
 
-	// Check outputs for OP_NOP5
+	// Check outputs for OP_NOP8
 	for _, txout := range tx.TxOut {
 		script := txout.PkScript
-		if len(script) > 0 && script[0] == txscript.OP_NOP5 {
+		if len(script) > 0 && script[0] == txscript.OP_NOP8 {
 			return nil, nil // OP_DRIVECHAIN, skipping
 		}
 	}

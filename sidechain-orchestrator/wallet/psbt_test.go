@@ -303,7 +303,7 @@ func TestPSBTMultisigWrappers(t *testing.T) {
 
 // TestPSBTSignSidechainDeposit builds a BIP300/301 M5 deposit: it spends the
 // previous treasury (CTIP) output — an anyone-can-spend drivechain output,
-// OP_DRIVECHAIN(=OP_NOP5) OP_PUSHBYTES_1 <S> OP_TRUE — together with an electrum
+// OP_DRIVECHAIN(=OP_NOP8) OP_PUSHBYTES_1 <S> OP_TRUE — together with an electrum
 // wallet input, and creates the new larger treasury at index 0 plus wallet
 // change. Only the wallet input is signed; the spend of both inputs must verify
 // through txscript.Engine.
@@ -329,7 +329,7 @@ func TestPSBTSignSidechainDeposit(t *testing.T) {
 
 	// Treasury scriptPubKey, byte-for-byte per the enforcer's create_m5_deposit_output:
 	// OP_DRIVECHAIN OP_PUSHBYTES_1 <S> OP_TRUE.
-	drivechainScript := []byte{txscript.OP_NOP5, txscript.OP_DATA_1, sidechainNum, txscript.OP_TRUE}
+	drivechainScript := []byte{txscript.OP_NOP8, txscript.OP_DATA_1, sidechainNum, txscript.OP_TRUE}
 
 	// Previous treasury (CTIP) UTXO, and the wallet's funding UTXO.
 	treasuryPrev := wire.NewMsgTx(2)
