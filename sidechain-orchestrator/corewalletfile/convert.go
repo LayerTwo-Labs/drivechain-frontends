@@ -362,15 +362,26 @@ func readHeader(path string) (header [100]byte, err error) {
 	return header, err
 }
 
-func openDatabase(path string, readOnly bool) (*sql.DB, error) {
-	uri := url.URL{Scheme: "file", Path: filepath.ToSlash(path)}
+// databaseURI builds the SQLite file URI for a wallet copy. A Windows path
+// starts with a drive letter, and SQLite reads that as the URI authority, so
+// the path takes a leading slash.
+func databaseURI(path string, readOnly bool) string {
+	slashed := filepath.ToSlash(path)
+	if !strings.HasPrefix(slashed, "/") {
+		slashed = "/" + slashed
+	}
+	uri := url.URL{Scheme: "file", Path: slashed}
 	args := url.Values{"mode": {"rw"}, "_busy_timeout": {"0"}}
 	if readOnly {
 		args.Set("mode", "ro")
 		args.Set("immutable", "1")
 	}
 	uri.RawQuery = args.Encode()
-	db, err := sql.Open("sqlite3", uri.String())
+	return uri.String()
+}
+
+func openDatabase(path string, readOnly bool) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", databaseURI(path, readOnly))
 	if err != nil {
 		return nil, err
 	}

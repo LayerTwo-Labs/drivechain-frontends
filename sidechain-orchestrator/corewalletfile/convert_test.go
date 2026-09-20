@@ -317,3 +317,37 @@ func TestConvertReturnsContextCancellation(t *testing.T) {
 
 	require.ErrorIs(t, err, context.Canceled)
 }
+
+// SQLite reads the text between "file://" and the next slash as the URI
+// authority, so a Windows drive letter has to sit after a leading slash.
+func TestDatabaseURIKeepsTheDriveLetterOutOfTheAuthority(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		readOnly bool
+		want     string
+	}{
+		{
+			name: "windows",
+			path: `C:/Users/btcap/Documents/Bitcoin/ecash/wallet_43562395/wallet.dat`,
+			want: "file:///C:/Users/btcap/Documents/Bitcoin/ecash/wallet_43562395/wallet.dat?_busy_timeout=0&mode=rw",
+		},
+		{
+			name: "unix",
+			path: "/home/bo/.ecash/wallet.dat",
+			want: "file:///home/bo/.ecash/wallet.dat?_busy_timeout=0&mode=rw",
+		},
+		{
+			name:     "windows read only",
+			path:     `C:/Users/btcap/wallet.dat`,
+			readOnly: true,
+			want:     "file:///C:/Users/btcap/wallet.dat?_busy_timeout=0&immutable=1&mode=ro",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, databaseURI(tt.path, tt.readOnly))
+		})
+	}
+}
